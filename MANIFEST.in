@@ -1,0 +1,3 @@
+include README.md LICENSE
+include get-pipx.py
+recursive-include pipx *.py
