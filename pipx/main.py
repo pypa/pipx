@@ -36,6 +36,8 @@ import argparse
 import hashlib
 import logging
 import os
+import pkg_resources
+import pkgutil
 from pathlib import Path
 import requests
 import shutil
@@ -75,14 +77,37 @@ class Venv:
     def remove_venv(self):
         rmdir(self.root)
 
-    def install_package(self, binary):
+    def install_package(self, package):
         before = set(child for child in self.bin_path.iterdir())
-        self._run_pip(["install", binary])
+        self._run_pip(["install", package])
         after = set(child for child in self.bin_path.iterdir())
         new_binaries = after - before
         new_binaries_str = ", ".join(str(s) for s in new_binaries)
         logging.info(f"downloaded new binaries: {new_binaries_str}")
         return new_binaries
+
+    def get_package_version(self, package):
+        # package_venv_path = self.root / package
+        GET_VERSION_SCRIPT = textwrap.dedent(f"""
+        try:
+            import pkg_resources
+            print(pkg_resources.get_distribution("{package}").version)
+        except:
+            pass
+        """)
+        version = (
+            subprocess.run(
+                [self.python_path, "-c", GET_VERSION_SCRIPT],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+            )
+            .stdout.decode()
+            .strip()
+        )
+        if not version:
+            return "(unknown version)"
+        else:
+            return version
 
     def run_binary(self, binary, binary_args):
         cmd = [self.bin_path / binary] + binary_args
@@ -130,6 +155,7 @@ def download_and_run(venv_dir, package, binary, binary_args, python, verbose):
             f"{binary} not found in package {package}. Available binaries: "
             f"{', '.join(b.name for b in new_binaries)}"
         )
+    venv.get_package_version(package)
     venv.run_binary(binary, binary_args)
 
 
@@ -155,10 +181,25 @@ def symlink_new_binaries(local_bin_dir, new_binaries, package):
 
 
 def list_packages(pipx_local_venvs):
+    print(f"venvs are in {str(pipx_local_venvs)}, binaries are in {str(local_bin_dir)}")
     for d in sorted(pipx_local_venvs.iterdir()):
         venv = Venv(d)
         python_path = venv.python_path.resolve()
-        print(f"{d.name} (virtualenv: {str(d)}, python executable: {python_path})")
+        package = d.name
+        version = venv.get_package_version(package)
+        binaries = get_bin_symlinks_for_package(venv.bin_path, local_bin_dir)
+        print(
+            f"package {package} {version}, binaries available: {', '.join(binaries)}"
+        )
+        logging.info(f"virtualenv: {str(d)}, python executable: {python_path}")
+
+
+def get_bin_symlinks_for_package(venv_bin_dir, local_bin_dir):
+    symlinks = []
+    for b in local_bin_dir.iterdir():
+        if (venv_bin_dir / b.name).exists():
+            symlinks.append(b.name)
+    return symlinks
 
 
 def upgrade(venv_dir, package, verbose):
@@ -179,16 +220,17 @@ def upgrade_all(pipx_local_venvs, verbose):
 
 def install(venv_dir, package, local_bin_dir, python, verbose):
     if venv_dir.exists():
-        raise PipxError(f"{package} is already installed ({str(venv_dir)})")
+        raise PipxError(f"{package} was already installed with pipx 😴")
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv()
     new_binaries = venv.install_package(package)
     symlink_new_binaries(local_bin_dir, new_binaries, package)
+    print("done! ✨ 🌟 ✨")
 
 
 def uninstall(venv_dir, package, local_bin_dir, verbose):
     if not venv_dir.exists():
-        print(f"Nothing to uninstall at {str(venv_dir)}")
+        print(f"Nothing to uninstall for {package} 😴")
         return
 
     venv = Venv(venv_dir, verbose=verbose)
@@ -200,7 +242,7 @@ def uninstall(venv_dir, package, local_bin_dir, verbose):
                 symlink.unlink()
 
     rmdir(venv_dir)
-    print(f"uninstalled {package}")
+    print(f"uninstalled {package}! ✨ 🌟 ✨")
 
 
 def uninstall_all(pipx_local_venvs, local_bin_dir, verbose):
@@ -231,22 +273,6 @@ def get_fs_package_name(package):
         else:
             ret += x
     return ret
-
-
-def bar(args):
-    print(args)
-    print("woo")
-
-
-class FooAction(argparse.Action):
-    def __init__(self, option_strings, dest, nargs=None, **kwargs):
-        if nargs is not None:
-            raise ValueError("nargs not allowed")
-        super(FooAction, self).__init__(option_strings, dest, **kwargs)
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        print("%r %r %r" % (namespace, values, option_string))
-        setattr(namespace, self.dest, values)
 
 
 def print_version():
@@ -366,8 +392,7 @@ def get_command_parser():
         ),
     )
     subparsers = parser.add_subparsers(
-        dest="command",
-        description="Get help for commands with pipx -h [command]",
+        dest="command", description="Get help for commands with pipx -h [command]"
     )
     p = subparsers.add_parser(
         "binary",
