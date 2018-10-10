@@ -110,10 +110,10 @@ class Venv:
             .stdout.decode()
             .strip()
         )
-        if not version:
-            return "(unknown version)"
-        else:
+        if version:
             return version
+        else:
+            return None
 
     def get_package_binary_paths(self, package):
         get_binaries_script = textwrap.dedent(
@@ -183,13 +183,12 @@ def download_and_run(venv_dir, package, binary, binary_args, python, verbose):
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv()
     venv.install_package(package)
-    binaries = venv.get_package_binary_paths(package)
     if not (venv.bin_path / binary).exists():
+        binaries = venv.get_package_binary_paths(package)
         raise PipxError(
             f"{binary} not found in package {package}. Available binaries: "
             f"{', '.join(b.name for b in binaries)}"
         )
-    venv.get_package_version(package)
     venv.run_binary(binary, binary_args)
 
 
@@ -220,20 +219,28 @@ def list_packages(pipx_local_venvs):
         print("nothing has been installed with pipx 😴")
         return
 
-    print(f"venvs are in {str(pipx_local_venvs)}, binaries symlinks are in {str(local_bin_dir)}")
+    print(
+        f"venvs are in {str(pipx_local_venvs)}, binaries symlinks are in {str(local_bin_dir)}"
+    )
     for d in dirs:
         venv = Venv(d)
         python_path = venv.python_path.resolve()
         package = d.name
         version = venv.get_package_version(package)
+        if version is None:
+            version = "(unknown version)"
         package_binary_paths = venv.get_package_binary_paths(package)
-        symlinked_binaries = get_valid_bin_symlinks_for_package(venv.bin_path, local_bin_dir)
+        symlinked_binaries = get_valid_bin_symlinks_for_package(
+            venv.bin_path, local_bin_dir
+        )
 
         package_binary_names = [b.name for b in package_binary_paths]
         unavailable_binary_names = set(package_binary_names) - set(symlinked_binaries)
-        unavailable = ''
+        unavailable = ""
         if unavailable_binary_names:
-            unavailable = f", binaries not symlinked: {', '.join(unavailable_binary_names)}"
+            unavailable = (
+                f", binaries not symlinked: {', '.join(unavailable_binary_names)}"
+            )
         print(
             f"package {package} {version}, binaries symlinks available: {', '.join(symlinked_binaries)}{unavailable}"
         )
@@ -308,8 +315,26 @@ def ensure_bindir_on_path(local_bin_dir, path_str):
 
 
 def get_venv_dir(pipx_local_venvs, package):
-    package_name = get_fs_package_name(package)
-    return pipx_local_venvs / package_name
+    fs_package_name = get_fs_package_name(package)
+    default_venv_dir = pipx_local_venvs / fs_package_name
+    if (default_venv_dir).exists():
+        return default_venv_dir
+
+    # search for existing venv that has this package installed
+    existing_venvs_with_package = []
+    for p in pipx_local_venvs.iterdir():
+        if p.get_package_version(package) is not None:
+            existing_venvs_with_package.append(p)
+    if len(existing_venvs_with_package) == 1:
+        return existing_venvs_with_package[0]
+    elif len(existing_venvs_with_package) > 1:
+        logging.info(
+            f"Cannot determine which venv to use for package "
+            f"{package}. Found {existing_venvs_with_package}. "
+            f"Assuming {str(default_venv_dir)}."
+        )
+
+    return default_venv_dir
 
 
 def get_fs_package_name(package):
@@ -462,7 +487,12 @@ def get_command_parser():
     )
 
     p = subparsers.add_parser("install", help="Install a package")
-    p.add_argument("package")
+    p.add_argument(
+        "package",
+        help="PyPI package name or pip-compatible argument "
+        "This value is passed directly to `pip install ...`. "
+        "For example `git+https://github.com/cs01/pipx.git`",
+    )
     p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--python",

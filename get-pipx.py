@@ -116,8 +116,22 @@ def ensure_pipx_on_path(bin_dir, modify_path):
         )
 
 
+def get_fs_package_name(package):
+    illegal = ["+", "#", "/", ":"]
+    ret = ""
+    for x in package:
+        if x in illegal:
+            ret += "_"
+        else:
+            ret += x
+    return ret
+
+
 def install(pipx_local_venvs, package, local_bin_dir, pipx_symlink, python, verbose):
-    venv_dir = pipx_local_venvs / "pipx"
+
+    fs_package_name = get_fs_package_name(package)
+    venv_dir = pipx_local_venvs / fs_package_name
+
     venv_dir.mkdir(parents=True, exist_ok=True)
     pipx_symlink.parent.mkdir(parents=True, exist_ok=True)
     logging.info(f"virtualenv location is {venv_dir}")
@@ -141,11 +155,11 @@ def parse_options(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--src",
-        default="git+https://github.com/cs01/pipx.git#egg=pipx",
+        default="git+https://github.com/cs01/pipx.git",
         help=(
             "The specific version of pipx to install. This value is passed "
             'to "pip install <value>". For example, to install from master '
-            'use "git+https://github.com/cs01/pipx.git#egg=pipx". '
+            "use `git+https://github.com/cs01/pipx.git`. "
             "Default: %(default)s"
         ),
     )
