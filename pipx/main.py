@@ -54,10 +54,6 @@ DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 pipx_local_venvs = os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)
 local_bin_dir = os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)
 
-find_binaries_script = pkgutil.get_data("pipx", "scripts/find_binaries.py").decode(
-    "utf-8"
-)
-
 
 class PipxError(Exception):
     pass
