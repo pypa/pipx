@@ -520,6 +520,9 @@ def get_command_parser():
 
 def separate_pipx_and_binary_args(argv, pipx_commands):
     args = get_binary_parser(add_help=False).parse_args()
+    if not args.binary and args.version:
+        print_version()
+        exit(0)        
     index = argv.index(args.binary[0]) if args.binary else 0
     pipx_args = argv[1 : index + 1]
     binary_args = argv[index + 1 :]
