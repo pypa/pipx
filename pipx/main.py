@@ -319,7 +319,7 @@ def get_venv_dir(pipx_local_venvs, package):
     # search for existing venv that has this package installed
     existing_venvs_with_package = []
     for p in pipx_local_venvs.iterdir():
-        if p.get_package_version(package) is not None:
+        if Venv(p).get_package_version(package) is not None:
             existing_venvs_with_package.append(p)
     if len(existing_venvs_with_package) == 1:
         return existing_venvs_with_package[0]
@@ -345,16 +345,17 @@ def get_fs_package_name(package):
 
 
 def print_version():
-    print("0.0.0.1")
+    print("0.0.0.3")
 
 
 def run_pipx_command(args):
-    # command, binary, package, pipx_local_venvs, local_bin_dir, verbose):
     setup(args)
     verbose = args.verbose
     if "package" in args:
         package = args.package
         venv_dir = get_venv_dir(pipx_local_venvs, package)
+        if package == "pipx":
+            package = "git+https://github.com/cs01/pipx.git"
         logging.info(f"virtualenv location is {venv_dir}")
 
     if args.command == "install":
@@ -377,6 +378,8 @@ def run_pipx_command(args):
 def run_ephemeral_binary(args, binary_args):
     binary = args.binary[0] if args.binary else None
     package = args.package if args.package else binary
+    if package == 'pipx':
+        package = "git+https://github.com/cs01/pipx.git"        
     verbose = args.verbose
 
     if not binary:
@@ -522,7 +525,7 @@ def separate_pipx_and_binary_args(argv, pipx_commands):
     args = get_binary_parser(add_help=False).parse_args()
     if not args.binary and args.version:
         print_version()
-        exit(0)        
+        exit(0)
     index = argv.index(args.binary[0]) if args.binary else 0
     pipx_args = argv[1 : index + 1]
     binary_args = argv[index + 1 :]

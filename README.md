@@ -1,5 +1,7 @@
 # pipx - Execute binaries from Python packages in isolated environments
 
+**Under development, not for general use yet**
+
 <p align="center">
 <a href="https://github.com/cs01/pipx/raw/master/pipx_demo.gif">
 <img src="https://github.com/cs01/pipx/raw/master/pipx_demo.gif">
