@@ -9,24 +9,25 @@
 
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 
+pipx does two things.
 
-pipx makes trying a program as easy as
+It makes running the latest version of a program as easy as
 ```
 > pipx <binary>
 ```
 
-and installing a program globally as easy as
+and (safely) installing a program globally as easy as
 ```
 > pipx install <package>
 ```
 
-pipx has two modes of operation: running a binary or installing a package and making binaries available globally.
+Notice that you **don't need execute any install commands to run the binary**.
 
-It eliminates the tedium of creating and removing virtualenvs, and eliminates the temptation to run `sudo pip install ...` (you aren't doing that, are you? 😄).
+It eliminates the tedium of creating and removing virtualenvs, and removes the temptation to run `sudo pip install ...` (you aren't doing that, are you? 😄).
 
-Notice that you **don't need execute any install commands to run the binary**. As a user, this makes trying out binaries really easy. As a developer, this means you can simplify your deployment instructions to users since they can try or install your program painlessly.
+As a user, this makes trying out binaries really easy. As a developer, this means you can simplify your deployment instructions to users since they can try or install your program painlessly.
 
-pipx lets you run Python programs with **no commitment** and no impact to your system, all while using best practices. For example, you can see help for black by running `pipx black --help`. pipx also has a feature to install Python packages in an isolated virtualenv and make their binaries globally available.
+pipx lets you run Python programs with **no commitment** and no impact to your system, all while using best practices. For example, you can see help for any program by running `pipx black --help`. When you use pipx to install a Python package, you get the best of both worlds: the package's binaries become avilable globally, but it runs in an isolated virtualenv -- and can be **cleanly** installed or updated.
 
 ## usage
 ```
@@ -104,9 +105,9 @@ pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/ra
 
 ## pipx install examples
 ```
-pipx install black
-pipx --python pythonX install black  # black will be associated with pythonX
-# package options work the same as in the run binary examples
+pipx install gdbgui
+pipx --python pythonX install gdbgui  # gdbgui will be associated with pythonX
+pipx install gdbgui --url git+https://github.com/cs01/gdbgui.git
 ```
 
 ## pipx commands
@@ -132,6 +133,7 @@ pipx --package chardet chardetect  # detect file encoding
 pipx cookiecutter  # creates projects from project templates
 pipx flake8  # tool for style guide enforcement
 pipx gdbgui  # browser-based gdb debugger
+pipx hexsticker  # create hexagon stickers automatically
 pipx ipython  # powerful interactive Python shell
 pipx pipenv  # python dependency/environment management
 pipx poetry  # python dependency/environment/packaging management
