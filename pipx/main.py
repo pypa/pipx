@@ -1,37 +1,5 @@
 #!/usr/bin/env python
 
-"""
-Easily run Python CLI programs in a temporary environment with no commitment.
-
-Optionally install using best practices, using virtualenv as non-root user.
-
-Pass a binary to run or a pipx command to run.
-
-binary: The name of the Python CLI program to run such as pip or black. All
-arguments before the binary are passed to pipx, all arguments after are passed
-directly to the binary when it is invoked.
-
-pipx commands
-
-install: Install a package to your system so its binariess can be run without
-re-downloading each time. The installation is done using best practice of
-isolating it in a virtualenv as a non-root user. The default installation location
-is {DEFAULT_PIPX_HOME} and can be changed by setting the environment variable
-PIPX_HOME. Binaries are symlinked in {DEFAULT_PIPX_BIN_DIR}, which can be changed
-by setting the environment variable PIPX_BIN_DIR.
-
-uninstall: Uninstalls a package and any symlinks that was installed with pipx.
-
-uninstall-all: Uninstalls all packages, including pipx
-
-list: List installed packages
-
-upgrade: Upgrade a package installed by pipx
-
-upgrade-all: Upgrade all packages installed by pipx
-"""
-
-
 import argparse
 import hashlib
 import logging
@@ -54,11 +22,23 @@ DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 pipx_local_venvs = os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)
 local_bin_dir = os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)
 INSTALL_PIPX_URL = "git+https://github.com/cs01/pipx.git"
-spec_help = (
+SPEC_HELP = (
     "Run `pip install -U SPEC` instead of `pip install -U PACKAGE`"
-    f"For example `--from {INSTALL_PIPX_URL}` or --from mypackage==2.0.0. "
+    f"For example `--from {INSTALL_PIPX_URL}` or `--from mypackage==2.0.0.`"
 )
+PIPX_DESCRIPTION = textwrap.dedent(f"""
+Execute binaries from Python packages.
 
+Binaries can either be run directly or installed globally into isolated venvs.
+
+venv location is {DEFAULT_PIPX_HOME}. Symlinks to binaries are placed in {DEFAULT_PIPX_BIN_DIR}.
+These locations can be overridden with the environment variables
+PIPX_HOME and PIPX_BIN_DIR, respectively.
+"""
+)
+PIPX_USAGE = """
+    %(prog)s [--spec SPEC] [--python PYTHON] BINARY [BINARY-ARGS]
+    %(prog)s {install,upgrade,upgrade-all,uninstall,uninstall-all,list} [--help]"""
 
 class PipxError(Exception):
     pass
@@ -215,7 +195,7 @@ def list_packages(pipx_local_venvs):
         return
 
     print(
-        f"venvs are in {str(pipx_local_venvs)}, binaries symlinks are in {str(local_bin_dir)}"
+        f"venvs are in {str(pipx_local_venvs)}, symlinks to binaries are in {str(local_bin_dir)}"
     )
     for d in dirs:
         venv = Venv(d)
@@ -241,7 +221,7 @@ def list_packages(pipx_local_venvs):
                 f", binaries not symlinked: {', '.join(unavailable_binary_names)}"
             )
         print(
-            f"package {package} {version}, binaries symlinks available: {', '.join(symlinked_binaries)}{unavailable}"
+            f"package {package} {version}, symlinks to binaries available: {', '.join(symlinked_binaries)}{unavailable}"
         )
         logging.info(f"virtualenv: {str(d)}, python executable: {python_path}")
 
@@ -423,7 +403,12 @@ def run_ephemeral_binary(args, binary_args):
 
 
 def get_binary_parser(add_help):
-    parser = argparse.ArgumentParser(add_help=add_help)
+    parser = argparse.ArgumentParser(
+        add_help=add_help,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        usage=PIPX_USAGE,
+        description=PIPX_DESCRIPTION,
+    )
 
     if not add_help:
         parser.add_argument("--help", "-h", action="store_true")
@@ -435,7 +420,7 @@ def get_binary_parser(add_help):
         type=str,
     )
 
-    parser.add_argument("--spec", help=spec_help)
+    parser.add_argument("--spec", help=SPEC_HELP)
     parser.add_argument(
         "--python",
         default="python3",
@@ -454,20 +439,8 @@ def get_binary_parser(add_help):
 def get_command_parser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        usage="""
-    %(prog)s [-h] [--spec SPEC] [--python PYTHON] [-v] [--version] binary
-    %(prog)s [-h] {install,upgrade,upgrade-all,uninstall,uninstall-all,list} ...""",
-        description=textwrap.dedent(
-            f"""
-    Execute binaries from Python packages.
-
-    Binaries can either be run directly or installed globally into isolated venvs.
-
-    venv location is {DEFAULT_PIPX_HOME}. Symlinks to binaries are placed in {DEFAULT_PIPX_BIN_DIR}.
-    These locations can be overridden with the environment variables
-    PIPX_HOME and PIPX_BIN_DIR, respectively.
-    """
-        ),
+        usage=PIPX_USAGE,
+        description=PIPX_DESCRIPTION,
     )
 
     subparsers = parser.add_subparsers(
@@ -476,7 +449,7 @@ def get_command_parser():
     p = subparsers.add_parser(
         "binary", help=("Run a binary with the given from an ephemral virtualenv")
     )
-    p.add_argument("--spec", help=spec_help)
+    p.add_argument("--spec", help=SPEC_HELP)
     p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--python",
@@ -486,7 +459,7 @@ def get_command_parser():
 
     p = subparsers.add_parser("install", help="Install a package")
     p.add_argument("package", help="package name")
-    p.add_argument("--spec", help=spec_help)
+    p.add_argument("--spec", help=SPEC_HELP)
     p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--python",
@@ -496,7 +469,7 @@ def get_command_parser():
 
     p = subparsers.add_parser("upgrade", help="Upgrade a package")
     p.add_argument("package")
-    p.add_argument("--spec", help=spec_help)
+    p.add_argument("--spec", help=SPEC_HELP)
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
