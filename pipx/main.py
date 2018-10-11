@@ -136,7 +136,7 @@ class Venv:
     def run_binary(self, binary, binary_args):
         cmd = [self.bin_path / binary] + binary_args
         try:
-            _run(cmd, check=False)
+            return _run(cmd, check=False)
         except KeyboardInterrupt:
             pass
 
@@ -147,7 +147,7 @@ class Venv:
         cmd = [self.pip_path] + cmd
         if not self.verbose:
             cmd.append("-q")
-        _run(cmd)
+        return _run(cmd)
 
 
 def _run(cmd, check=True):
@@ -156,6 +156,7 @@ def _run(cmd, check=True):
     returncode = subprocess.run(cmd).returncode
     if check and returncode:
         raise PipxError(f"{cmd_str!r} failed")
+    return returncode
 
 
 def rmdir(path):
@@ -180,7 +181,7 @@ def download_and_run(venv_dir, package, binary, binary_args, python, verbose):
             f"{binary} not found in package {package}. Available binaries: "
             f"{', '.join(b.name for b in binaries)}"
         )
-    venv.run_binary(binary, binary_args)
+    return venv.run_binary(binary, binary_args)
 
 
 def symlink_package_binaries(local_bin_dir, binary_paths, package):
@@ -282,11 +283,11 @@ def install(venv_dir, package, package_or_url, local_bin_dir, python, verbose):
 
     if venv.get_package_version(package) is None:
         venv.remove_venv()
-        raise PipxError("Could not find package {package} after installing. Is the name correct?")
-    elif not binary_paths:
+        raise PipxError(f"Could not find package {package}. Is the name correct?")
+    binary_paths = venv.get_package_binary_paths(package)
+    if not binary_paths:
         venv.remove_venv()
         raise PipxError("No binaries associated with this package")
-    binary_paths = venv.get_package_binary_paths(package)
     logging.info(f"new binaries: {', '.join(str(b.name) for b in binary_paths)}")
     symlink_package_binaries(local_bin_dir, binary_paths, package)
     print("done! ✨ 🌟 ✨")
@@ -341,7 +342,7 @@ def run_pipx_command(args):
                 "package from a url, pass the --url flag."
             )
         if package == "pipx":
-            print("isntalling pipx from url f{INSTALL_PIPX_URL}")
+            print(f"isntalling pipx from url {INSTALL_PIPX_URL}")
             args.url = INSTALL_PIPX_URL
         if "url" in args:
             if urllib.parse.urlparse(args.url).scheme:
@@ -402,7 +403,7 @@ def run_ephemeral_binary(args, binary_args):
         prefix=f"{get_fs_package_name(package)}_"
     ) as venv_dir:
         logging.info(f"virtualenv is temporary, its location is {venv_dir}")
-        download_and_run(
+        return download_and_run(
             Path(venv_dir), package, binary, binary_args, args.python, verbose
         )
 
@@ -576,12 +577,9 @@ def cli():
             )
             args = get_binary_parser(add_help=True).parse_args(pipx_args)
             setup(args)
-            run_ephemeral_binary(args, binary_args)
+            exit(run_ephemeral_binary(args, binary_args))
     except PipxError as e:
-        print(e)
-        exit(1)
-
-    exit(0)
+        exit(e)
 
 
 if __name__ == "__main__":

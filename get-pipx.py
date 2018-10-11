@@ -128,18 +128,14 @@ def get_fs_package_name(package):
 
 
 def install(pipx_local_venvs, package, local_bin_dir, pipx_symlink, python, verbose):
-
-    fs_package_name = get_fs_package_name(package)
-    venv_dir = pipx_local_venvs / fs_package_name
-
+    venv_dir = pipx_local_venvs / "pipx"
     venv_dir.mkdir(parents=True, exist_ok=True)
     pipx_symlink.parent.mkdir(parents=True, exist_ok=True)
     logging.info(f"virtualenv location is {venv_dir}")
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv()
     venv.install_package(package)
-    binary_name = "pipx"
-    binary = venv.bin_path / binary_name
+    binary = venv.bin_path / 'pipx'
     if not binary.is_file():
         fail(f"Expected to find {str(binary)}")
     if pipx_symlink.is_file():
@@ -169,7 +165,7 @@ def parse_options(argv):
         help="Don't configure the PATH environment variable",
     )
     parser.add_argument(
-        "--ignore-existing",
+        "--overwrite",
         action="store_true",
         help=("reinstall pipx even if existing installation was found"),
     )
@@ -195,8 +191,8 @@ def main(argv=sys.argv[1:]):
     local_bin_dir = os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)
     pipx_symlink = local_bin_dir / "pipx"
     if which("pipx"):
-        if args.ignore_existing:
-            echo("pipx is already installed. Ignoring installation and continuing.")
+        if args.overwrite:
+            echo("reinstalling pipx")
         else:
             succeed("You already have pipx installed. Type `pipx` to run.")
     elif pipx_symlink.is_symlink() and pipx_symlink.resolve().is_file():
