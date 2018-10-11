@@ -135,7 +135,7 @@ def install(pipx_local_venvs, package, local_bin_dir, pipx_symlink, python, verb
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv()
     venv.install_package(package)
-    binary = venv.bin_path / 'pipx'
+    binary = venv.bin_path / "pipx"
     if not binary.is_file():
         fail(f"Expected to find {str(binary)}")
     if pipx_symlink.is_file():

@@ -9,9 +9,7 @@
 
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 
-pipx does two things.
-
-It makes running the latest version of a program as easy as
+pipx makes running the latest version of a program as easy as
 ```
 > pipx <binary>
 ```
@@ -27,6 +25,17 @@ It eliminates the tedium of creating and removing virtualenvs, and removes the t
 
 As a user, this makes trying out binaries really easy. As a developer, this means you can simplify your deployment instructions to users since they can try or install your program painlessly.
 
+pipx enables you to test various combinations of Python versions and package versions in ephemeral environments:
+```
+pipx <binary>  # latest version of binary is run with python3
+pipx --spec binary-package==2.0.0 binary  # specific version of package is run
+pipx --spec git+https://url.git binary  # latest version on master in run
+pipx --spec git+https://url.git@branch binary
+pipx --spec git+https://url.git@hash binary
+pipx --python 3.4 <binary>
+pipx --python 3.7 --spec binary-package=1.7.3 <binary>
+```
+
 pipx lets you run Python programs with **no commitment** and no impact to your system, all while using best practices. For example, you can see help for any program by running `pipx black --help`. When you use pipx to install a Python package, you get the best of both worlds: the package's binaries become avilable globally, but it runs in an isolated virtualenv -- and can be **cleanly** installed or updated.
 
 ## usage
@@ -35,7 +44,7 @@ pipx binary
 ```
 
 ```
-pipx [--package PACKAGE] [--python PYTHON] binary [binary-arg] ...
+pipx [--spec PACKAGE] [--python PYTHON] binary [binary-arg] ...
 ```
 
 ```
@@ -96,10 +105,10 @@ pipx black
 pipx --version black  # prints pipx version
 pipx black  --version  # prints black version
 pipx --python pythonX black
-pipx --package black==18.4a1 black --version
-pipx --package git+https://github.com/ambv/black.git black
-pipx --package git+https://github.com/ambv/black.git@branch-name black
-pipx --package git+https://github.com/ambv/black.git@git-hash black
+pipx --spec black==18.4a1 black --version
+pipx --spec git+https://github.com/ambv/black.git black
+pipx --spec git+https://github.com/ambv/black.git@branch-name black
+pipx --spec git+https://github.com/ambv/black.git@git-hash black
 pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
 ```
 
@@ -107,7 +116,7 @@ pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/ra
 ```
 pipx install gdbgui
 pipx --python pythonX install gdbgui  # gdbgui will be associated with pythonX
-pipx install gdbgui --url git+https://github.com/cs01/gdbgui.git
+pipx install gdbgui --spec git+https://github.com/cs01/gdbgui.git
 ```
 
 ## pipx commands
@@ -128,8 +137,8 @@ will create a virtualenv, install the package, and create symlinks to the packag
 Here are some programs you can try out with no obligation. If you've never used the program before, make sure you add the `--help` flag so it doesn't do something you don't expect. If you decide you want to install, you can run `pipx install <package>` instead.
 ```
 pipx black  # uncompromising Python code formatter
-pipx --package babel pybabel  # internationalizing and localizing Python applications
-pipx --package chardet chardetect  # detect file encoding
+pipx --spec babel pybabel  # internationalizing and localizing Python applications
+pipx --spec chardet chardetect  # detect file encoding
 pipx cookiecutter  # creates projects from project templates
 pipx flake8  # tool for style guide enforcement
 pipx gdbgui  # browser-based gdb debugger
@@ -165,7 +174,7 @@ These are all things you can do yourself, but pipx automates them for you. If yo
 ```
 pipx --help
 usage:
-    pipx [-h] [--package PACKAGE] [--python PYTHON] [-v] [--version] binary
+    pipx [-h] [--spec PACKAGE] [--python PYTHON] [-v] [--version] binary
     pipx [-h] {install,upgrade,upgrade-all,uninstall,uninstall-all,list} ...
 
 
@@ -197,6 +206,30 @@ subcommands:
     uninstall-all       Uninstall all package, including pipx
     list                List installed packages
 ```
+
+## how does this compare to pipsi?
+The biggest difference is pipx has the ability to run a binary in one line:
+```
+pipx binary
+```
+where pipsi does not.
+
+Both pipx and pipsi install packages to the system in a very similar way. pipx has taken inspiration from pipsi here. Still there are differences. Mainly, pipx aims to take advantage of the progress the Python ecosystem has made in the years since pipsi was created.
+
+* implemenatation details
+  * pipx requires Python 3.6+ and always uses the python3 module venv, rather than the Python 2 package virtualenv
+  * pipx leverages existing Python APIs to find console entry points rather than locating and parsing files manually
+* API differences
+  * pipx does not require you to add "#egg=" to SVN urls when installing.
+  * pipx has the --spec option to allow you to provide an SVN or a package version (package==2.0.0)
+  * pipx allows you to upgrade all packages with one command
+  * pipx allows you to uninstall all packages with one command
+* pipx installs itself with python3
+* pipx always uses the lastest version of pip in its venvs
+* pipx defauls to less verbose output
+* pipx allows you to see each command it runs by passing the --verbose flag
+* pipx is under active development. The creator of pipsi has not been involved with the project for some time.
+* pipx prints emojies 😀
 
 ## Credits
 pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https://github.com/zkat/npx).
