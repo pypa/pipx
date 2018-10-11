@@ -53,6 +53,7 @@ DEFAULT_PIPX_HOME = Path.home() / ".local/pipx/venvs"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 pipx_local_venvs = os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)
 local_bin_dir = os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)
+INSTALL_PIPX_URL = "git+https://github.com/cs01/pipx.git"
 
 
 class PipxError(Exception):
@@ -77,14 +78,8 @@ class Venv:
     def remove_venv(self):
         rmdir(self.root)
 
-    def install_package(self, package):
-        # before = set(child for child in self.bin_path.iterdir())
-        self._run_pip(["install", package])
-        # after = set(child for child in self.bin_path.iterdir())
-        # binary_paths = after - before
-        # binary_paths_str = ", ".join(str(s) for s in binary_paths)
-        # logging.info(f"downloaded new binaries: {binary_paths_str}")
-        # return binary_paths
+    def install_package(self, package_or_url):
+        self._run_pip(["install", package_or_url])
 
     def get_package_version(self, package):
         # package_venv_path = self.root / package
@@ -145,8 +140,8 @@ class Venv:
         except KeyboardInterrupt:
             pass
 
-    def upgrade_package(self, package):
-        self._run_pip(["install", "--upgrade", package])
+    def upgrade_package(self, package_or_url):
+        self._run_pip(["install", "--upgrade", package_or_url])
 
     def _run_pip(self, cmd):
         cmd = [self.pip_path] + cmd
@@ -223,12 +218,16 @@ def list_packages(pipx_local_venvs):
         python_path = venv.python_path.resolve()
         package = d.name
         version = venv.get_package_version(package)
-        if version is None:
-            version = "(unknown version)"
-        package_binary_paths = venv.get_package_binary_paths(package)
         symlinked_binaries = get_valid_bin_symlinks_for_package(
             venv.bin_path, local_bin_dir
         )
+        if version is None:
+            print(
+                f"pipx installed a package from url to dir {package}. "
+                f"Binaries available: {', '.join(symlinked_binaries)}"
+            )
+            continue
+        package_binary_paths = venv.get_package_binary_paths(package)
 
         package_binary_names = [b.name for b in package_binary_paths]
         unavailable_binary_names = set(package_binary_names) - set(symlinked_binaries)
@@ -251,28 +250,42 @@ def get_valid_bin_symlinks_for_package(venv_bin_dir, local_bin_dir):
     return symlinks
 
 
-def upgrade(venv_dir, package, verbose):
+def upgrade(venv_dir, package, url, verbose):
     if not venv_dir.is_dir():
         raise PipxError(
-            f"Package is not installed. Expected to find {str(venv_dir)}, but it does not exist."
+            f"Package is not installed. Expected to find {str(venv_dir)}, "
+            "but it does not exist. If installed with explicit path, try "
+            f"`pipx upgrade {package} --url URL`"
         )
     venv = Venv(venv_dir, verbose=verbose)
-    venv.upgrade_package(package)
+    venv.upgrade_package(url)
     print(f"upgraded package {package} to latest version (location: {str(venv_dir)})")
 
 
 def upgrade_all(pipx_local_venvs, verbose):
     for venv_dir in pipx_local_venvs.iterdir():
         package = venv_dir.name
-        upgrade(venv_dir, package, verbose)
+        url = package
+        upgrade(venv_dir, package, url, verbose)
 
 
-def install(venv_dir, package, local_bin_dir, python, verbose):
+def install(venv_dir, package, package_or_url, local_bin_dir, python, verbose):
     if venv_dir.exists():
         raise PipxError(f"{package} was already installed with pipx 😴")
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv()
-    venv.install_package(package)
+    try:
+        venv.install_package(package_or_url)
+    except PipxError:
+        venv.remove_venv()
+        raise
+
+    if venv.get_package_version(package) is None:
+        venv.remove_venv()
+        raise PipxError("Could not find package {package} after installing. Is the name correct?")
+    elif not binary_paths:
+        venv.remove_venv()
+        raise PipxError("No binaries associated with this package")
     binary_paths = venv.get_package_binary_paths(package)
     logging.info(f"new binaries: {', '.join(str(b.name) for b in binary_paths)}")
     symlink_package_binaries(local_bin_dir, binary_paths, package)
@@ -302,37 +315,6 @@ def uninstall_all(pipx_local_venvs, local_bin_dir, verbose):
         uninstall(venv_dir, package, local_bin_dir, verbose)
 
 
-def ensure_bindir_on_path(local_bin_dir, path_str):
-    logging.info(f"searching for {str(local_bin_dir)} in {path_str}")
-    for p in path_str.split(":"):
-        if Path(p).samefile(local_bin_dir):
-            return
-    raise PipxError(f"{str(local_bin_dir)} is not on your environment variable's PATH")
-
-
-def get_venv_dir(pipx_local_venvs, package):
-    fs_package_name = get_fs_package_name(package)
-    default_venv_dir = pipx_local_venvs / fs_package_name
-    if (default_venv_dir).exists():
-        return default_venv_dir
-
-    # search for existing venv that has this package installed
-    existing_venvs_with_package = []
-    for p in pipx_local_venvs.iterdir():
-        if Venv(p).get_package_version(package) is not None:
-            existing_venvs_with_package.append(p)
-    if len(existing_venvs_with_package) == 1:
-        return existing_venvs_with_package[0]
-    elif len(existing_venvs_with_package) > 1:
-        logging.info(
-            f"Cannot determine which venv to use for package "
-            f"{package}. Found {existing_venvs_with_package}. "
-            f"Assuming {str(default_venv_dir)}."
-        )
-
-    return default_venv_dir
-
-
 def get_fs_package_name(package):
     illegal = ["+", "#", "/", ":"]
     ret = ""
@@ -353,22 +335,36 @@ def run_pipx_command(args):
     verbose = args.verbose
     if "package" in args:
         package = args.package
-        venv_dir = get_venv_dir(pipx_local_venvs, package)
+        if urllib.parse.urlparse(package).scheme:
+            raise PipxError(
+                "Package must be a name. To install a "
+                "package from a url, pass the --url flag."
+            )
         if package == "pipx":
-            package = "git+https://github.com/cs01/pipx.git"
+            print("isntalling pipx from url f{INSTALL_PIPX_URL}")
+            args.url = INSTALL_PIPX_URL
+        if "url" in args:
+            if urllib.parse.urlparse(args.url).scheme:
+                if "#egg=" not in args.url:
+                    args.url = args.url + f"#egg={package}"
+            else:
+                raise PipxError("Url was not a valid url")
+
+        venv_dir = pipx_local_venvs / package
         logging.info(f"virtualenv location is {venv_dir}")
 
     if args.command == "install":
-        ensure_bindir_on_path(local_bin_dir, os.environ.get("PATH", ""))
-        install(venv_dir, package, local_bin_dir, args.python, verbose)
+        package_or_url = args.url if "url" in args else package
+        install(venv_dir, package, package_or_url, local_bin_dir, args.python, verbose)
+    elif args.command == "upgrade":
+        package_or_url = args.url if "url" in args else package
+        upgrade(venv_dir, package, package_or_url, verbose)
     elif args.command == "list":
         list_packages(pipx_local_venvs)
     elif args.command == "uninstall":
         uninstall(venv_dir, package, local_bin_dir, verbose)
     elif args.command == "uninstall-all":
         uninstall_all(pipx_local_venvs, local_bin_dir, verbose)
-    elif args.command == "upgrade":
-        upgrade(venv_dir, package, verbose)
     elif args.command == "upgrade-all":
         upgrade_all(pipx_local_venvs, verbose)
     else:
@@ -378,8 +374,8 @@ def run_pipx_command(args):
 def run_ephemeral_binary(args, binary_args):
     binary = args.binary[0] if args.binary else None
     package = args.package if args.package else binary
-    if package == 'pipx':
-        package = "git+https://github.com/cs01/pipx.git"        
+    if package == "pipx":
+        args.url = INSTALL_PIPX_URL
     verbose = args.verbose
 
     if not binary:
@@ -464,18 +460,11 @@ def get_command_parser():
         ),
     )
     subparsers = parser.add_subparsers(
-        dest="command", description="Get help for commands with pipx -h [command]"
+        dest="command", description="Get help for commands with pipx COMMAND --help"
     )
     p = subparsers.add_parser(
         "binary",
-        help=(
-            "Run a named binary, such as `black`. "
-            "Automatically downloads a Python package to "
-            "a temporary virtualenv. The virtualenv is completely gone after the "
-            "binary exits. i.e. `pipx black --help` will download the latest "
-            "version of black from PyPI, run it in a virtualenv with the --help flag, "
-            "then exit and remove the virtualenv."
-        ),
+        help=("Run a binary with the given from an ephemral virtualenv"),
     )
     p.add_argument("--package")
     p.add_argument("--verbose", action="store_true")
@@ -486,11 +475,11 @@ def get_command_parser():
     )
 
     p = subparsers.add_parser("install", help="Install a package")
+    p.add_argument("package", help="package name")
     p.add_argument(
-        "package",
-        help="PyPI package name or pip-compatible argument "
-        "This value is passed directly to `pip install ...`. "
-        "For example `git+https://github.com/cs01/pipx.git`",
+        "--url",
+        help="Value paassed directly to `pip install ...`. "
+        f"For example `--url {INSTALL_PIPX_URL}`",
     )
     p.add_argument("--verbose", action="store_true")
     p.add_argument(
@@ -501,9 +490,16 @@ def get_command_parser():
 
     p = subparsers.add_parser("upgrade", help="Upgrade a package")
     p.add_argument("package")
+    p.add_argument(
+        "--url", help="Run `pip install -U URL` instead of `pip install -U PACKAGE`"
+    )
     p.add_argument("--verbose", action="store_true")
 
-    p = subparsers.add_parser("upgrade-all", help="Upgrade all packages")
+    p = subparsers.add_parser(
+        "upgrade-all",
+        help="Upgrade all packages. "
+        "Runs `pip install -U <pkgname>` for each package.",
+    )
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser("uninstall", help="Uninstall a package")
