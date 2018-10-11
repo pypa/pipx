@@ -266,7 +266,10 @@ def upgrade(venv_dir, package, url, verbose):
 def upgrade_all(pipx_local_venvs, verbose):
     for venv_dir in pipx_local_venvs.iterdir():
         package = venv_dir.name
-        url = package
+        if package == 'pipx':
+            url = INSTALL_PIPX_URL
+        else:
+            url = package
         upgrade(venv_dir, package, url, verbose)
 
 
@@ -342,9 +345,9 @@ def run_pipx_command(args):
                 "package from a url, pass the --url flag."
             )
         if package == "pipx":
-            print(f"isntalling pipx from url {INSTALL_PIPX_URL}")
+            print(f"using url {INSTALL_PIPX_URL} for pipx installation")
             args.url = INSTALL_PIPX_URL
-        if "url" in args:
+        if "url" in args and args.url is not None:
             if urllib.parse.urlparse(args.url).scheme:
                 if "#egg=" not in args.url:
                     args.url = args.url + f"#egg={package}"
@@ -355,10 +358,10 @@ def run_pipx_command(args):
         logging.info(f"virtualenv location is {venv_dir}")
 
     if args.command == "install":
-        package_or_url = args.url if "url" in args else package
+        package_or_url = args.url if ("url" in args and args.url is not None) else package
         install(venv_dir, package, package_or_url, local_bin_dir, args.python, verbose)
     elif args.command == "upgrade":
-        package_or_url = args.url if "url" in args else package
+        package_or_url = args.url if ("url" in args and args.url is not None) else package
         upgrade(venv_dir, package, package_or_url, verbose)
     elif args.command == "list":
         list_packages(pipx_local_venvs)
