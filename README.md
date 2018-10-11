@@ -28,12 +28,12 @@ As a user, this makes trying out binaries really easy. As a developer, this mean
 pipx enables you to test various combinations of Python versions and package versions in ephemeral environments:
 ```
 pipx <binary>  # latest version of binary is run with python3
-pipx --spec binary-package==2.0.0 binary  # specific version of package is run
-pipx --spec git+https://url.git binary  # latest version on master in run
+pipx --spec PACKAGE==2.0.0 binary  # specific version of package is run
+pipx --spec git+https://url.git binary  # latest version on master is run
 pipx --spec git+https://url.git@branch binary
 pipx --spec git+https://url.git@hash binary
 pipx --python 3.4 <binary>
-pipx --python 3.7 --spec binary-package=1.7.3 <binary>
+pipx --python 3.7 --spec PACKAGE=1.7.3 <binary>
 ```
 
 pipx lets you run Python programs with **no commitment** and no impact to your system, all while using best practices. For example, you can see help for any program by running `pipx black --help`. When you use pipx to install a Python package, you get the best of both worlds: the package's binaries become avilable globally, but it runs in an isolated virtualenv -- and can be **cleanly** installed or updated.
