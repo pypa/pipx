@@ -38,6 +38,8 @@ pipx --python 3.7 --spec PACKAGE=1.7.3 <binary>
 
 pipx lets you run Python programs with **no commitment** and no impact to your system, all while using best practices. For example, you can see help for any program by running `pipx black --help`. When you use pipx to install a Python package, you get the best of both worlds: the package's binaries become avilable globally, but it runs in an isolated virtualenv -- and can be **cleanly** installed or updated.
 
+pipx combines the features of JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b) -- which ships with npm -- and Python's [pipsi](https://github.com/mitsuhiko/pipsi).
+
 ## usage
 ```
 pipx binary
@@ -56,6 +58,11 @@ pipx {install,upgrade,upgrade-all,uninstall,uninstall-all,list} [--help]
 curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3
 ```
 python 3.6+ is required to install pipx. Binaries can be run with Python 3.3+.
+
+To upgrade
+```
+pipx upgrade pipx
+```
 
 To uninstall
 ```

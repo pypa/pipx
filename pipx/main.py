@@ -22,6 +22,7 @@ DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 pipx_local_venvs = os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)
 local_bin_dir = os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)
 INSTALL_PIPX_URL = "git+https://github.com/cs01/pipx.git"
+INSTALL_PIPX_CMD = "curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3"
 SPEC_HELP = (
     "Run `pip install -U SPEC` instead of `pip install -U PACKAGE`"
     f"For example `--from {INSTALL_PIPX_URL}` or `--from mypackage==2.0.0.`"
@@ -256,10 +257,11 @@ def upgrade_all(pipx_local_venvs, verbose):
 
 
 def install(venv_dir, package, package_or_url, local_bin_dir, python, verbose):
-    if venv_dir.exists():
-        raise PipxError(f"{package} was already installed with pipx 😴")
     venv = Venv(venv_dir, python=python, verbose=verbose)
-    venv.create_venv()
+    if venv_dir.exists():
+        pass
+    else:
+        venv.create_venv()
     try:
         venv.install_package(package_or_url)
     except PipxError:
@@ -313,7 +315,7 @@ def get_fs_package_name(package):
 
 
 def print_version():
-    print("0.0.0.4")
+    print("0.0.0.5")
 
 
 def run_pipx_command(args):
@@ -355,6 +357,7 @@ def run_pipx_command(args):
         uninstall(venv_dir, package, local_bin_dir, verbose)
     elif args.command == "uninstall-all":
         uninstall_all(pipx_local_venvs, local_bin_dir, verbose)
+        print(f"To reinstall pipx, run '{INSTALL_PIPX_CMD}'")
     elif args.command == "upgrade-all":
         upgrade_all(pipx_local_venvs, verbose)
     else:
