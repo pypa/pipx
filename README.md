@@ -9,6 +9,8 @@
 
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 
+*pipx is still a new project. Please submit issues if you have questions or bugs to report.*
+
 pipx makes running the latest version of a program as easy as
 ```
 > pipx <binary>
@@ -18,6 +20,7 @@ and (safely) installing a program globally as easy as
 ```
 > pipx install <package>
 ```
+
 
 Notice that you **don't need execute any install commands to run the binary**.
 
