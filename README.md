@@ -1,4 +1,4 @@
-# pipx - Execute binaries from Python packages in isolated environments
+# pipx: execute binaries from Python packages in isolated environments
 
 <p align="center">
 <a href="https://github.com/cs01/pipx/raw/master/pipx_demo.gif">
@@ -13,14 +13,15 @@
 
 pipx makes running the latest version of a program as easy as
 ```
-> pipx <binary>
+> pipx BINARY
 ```
 
 and (safely) installing a program globally as easy as
 ```
-> pipx install <package>
+> pipx install PACKAGE
 ```
 
+Read more on the [blog post](https://medium.com/@grassfedcode/bringing-some-of-javascripts-packaging-solutions-to-python-1b02430d589e).
 
 Notice that you **don't need execute any install commands to run the binary**.
 
@@ -30,16 +31,16 @@ As a user, this makes trying out binaries really easy. As a developer, this mean
 
 pipx enables you to test various combinations of Python versions and package versions in ephemeral environments:
 ```
-pipx <binary>  # latest version of binary is run with python3
-pipx --spec PACKAGE==2.0.0 binary  # specific version of package is run
-pipx --spec git+https://url.git binary  # latest version on master is run
-pipx --spec git+https://url.git@branch binary
-pipx --spec git+https://url.git@hash binary
-pipx --python 3.4 <binary>
-pipx --python 3.7 --spec PACKAGE=1.7.3 <binary>
+pipx BINARY  # latest version of binary is run with python3
+pipx --spec PACKAGE==2.0.0 BINARY  # specific version of package is run
+pipx --python 3.4 BINARY  # Installed and invoked with specific Python version
+pipx --python 3.7 --spec PACKAGE=1.7.3 BINARY
+pipx --spec git+https://url.git BINARY  # latest version on master is run
+pipx --spec git+https://url.git@branch BINARY
+pipx --spec git+https://url.git@hash BINARY
 ```
 
-pipx lets you run Python programs with **no commitment** and no impact to your system, all while using best practices. For example, you can see help for any program by running `pipx black --help`. When you use pipx to install a Python package, you get the best of both worlds: the package's binaries become avilable globally, but it runs in an isolated virtualenv -- and can be **cleanly** installed or updated.
+pipx lets you run Python programs with **no commitment** and no impact to your system, all while using best practices. For example, you can see help for any program by running `pipx BINARY --help`. When you use pipx to install a Python package, you get the best of both worlds: the package's binaries become avilable globally, but it runs in an isolated virtualenv -- and can be **cleanly** installed or updated.
 
 pipx combines the features of JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b) -- which ships with npm -- and Python's [pipsi](https://github.com/mitsuhiko/pipsi).
 
@@ -72,50 +73,13 @@ To uninstall
 pipx uninstall pipx
 ```
 
-## examples
-I'll use the python package `black` as an example. The `black` package ships with a binary called black. You can run it with pipx just like this.
-```
-> pipx black --help
-Usage: black [OPTIONS] [SRC]...
-
-  The uncompromising code formatter.
-  ...
-```
-Black just ran, but you didn't have to run `venv` or install commands. How easy was that!?
-
-pipx makes safely installing the program to globally accessible, isolated environment as easy as
-```
-> pipx install black
-```
-so now `black` will be available globally, wherever you want to use it, but **not mixed in with your OS's Python packages**.
-```
-> black --help  # now available globally
-Usage: black [OPTIONS] [SRC]...
-
-  The uncompromising code formatter.
-  ...
-```
-
-> Aside: I just want to take a second to note how different this is from using `sudo pip install ...` (which you should NEVER do). Using `sudo pip install ...` will mix Python packages installed and required by your OS with whatever you just installed. This can result in very bad things happening. And since all the dependencies were installed along with it (which you have no idea what they were), you can't easily uninstall them -- you have to know every single one and run `sudo pip uninstall ...` for them!
-
-You can uninstall packages with
-```
-pipx uninstall black
-```
-This uninstalls the black package **and all of its dependencies**, but doesn't affect any other packages or binaries.
-
-Oh one other thing. You can also run Python programs directly from a URL, such as github gists. Behold [this gist](https://gist.github.com/cs01/fa721a17a326e551ede048c5088f9e0f) run directly with pipx:
-```
-> pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
-pipx is working!
-```
-
-
 ## pipx commands
 
 ### run a binary
+```
 pipx BINARY
 pipx [--python PYTHON] [--spec SPEC] BINARY [BINARYARGS]
+```
 
 There are a handful of other commands that can be run by pipx:
 ```
@@ -173,13 +137,53 @@ pipx --python pythonX install gdbgui  # gdbgui will be associated with pythonX
 pipx install gdbgui --spec git+https://github.com/cs01/gdbgui.git
 ```
 
-## Programs to try with pipx
-Here are some programs you can try out with no obligation. If you've never used the program before, make sure you add the `--help` flag so it doesn't do something you don't expect. If you decide you want to install, you can run `pipx install <package>` instead.
+## walkthrough
+I'll use the python package `black` as an example. The `black` package ships with a binary called black. You can run it with pipx just like this.
+```
+> pipx black --help
+Usage: black [OPTIONS] [SRC]...
+
+  The uncompromising code formatter.
+  ...
+```
+Black just ran, but you didn't have to run `venv` or install commands. How easy was that!?
+
+pipx makes safely installing the program to globally accessible, isolated environment as easy as
+```
+> pipx install black
+```
+so now `black` will be available globally, wherever you want to use it, but **not mixed in with your OS's Python packages**.
+```
+> black --help  # now available globally
+Usage: black [OPTIONS] [SRC]...
+
+  The uncompromising code formatter.
+  ...
+```
+
+> Aside: I just want to take a second to note how different this is from using `sudo pip install ...` (which you should NEVER do). Using `sudo pip install ...` will mix Python packages installed and required by your OS with whatever you just installed. This can result in very bad things happening. And since all the dependencies were installed along with it (which you have no idea what they were), you can't easily uninstall them -- you have to know every single one and run `sudo pip uninstall ...` for them!
+
+You can uninstall packages with
+```
+pipx uninstall black
+```
+This uninstalls the black package **and all of its dependencies**, but doesn't affect any other packages or binaries.
+
+Oh one other thing. You can also run Python programs directly from a URL, such as github gists. Behold [this gist](https://gist.github.com/cs01/fa721a17a326e551ede048c5088f9e0f) run directly with pipx:
+```
+> pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
+pipx is working!
+```
+
+
+## programs to try with pipx
+Here are some programs you can try out with no obligation. If you've never used the program before, make sure you add the `--help` flag so it doesn't do something you don't expect. If you decide you want to install, you can run `pipx install PACKAGE` instead.
 ```
 pipx black  # uncompromising Python code formatter
 pipx --spec babel pybabel  # internationalizing and localizing Python applications
 pipx --spec chardet chardetect  # detect file encoding
 pipx cookiecutter  # creates projects from project templates
+pipx create-python-package  # easily create and publish new Python packages
 pipx flake8  # tool for style guide enforcement
 pipx gdbgui  # browser-based gdb debugger
 pipx hexsticker  # create hexagon stickers automatically
@@ -191,8 +195,8 @@ pipx pyinstaller  # bundles a Python application and all its dependencies into a
 pipx pyxtermjs  # fully functional terminal in the browser  
 ```
 
-## How it works
-When running a binary (`pipx <binary>`), pipx will
+## how it works
+When running a binary (`pipx BINARY`), pipx will
 * create a temporary directory
 * create a virtualenv inside it with `python -m venv`
 * update pip to the latest version
@@ -201,11 +205,11 @@ When running a binary (`pipx <binary>`), pipx will
 * erase the temporary directory leaving your system untouched
 
 When installing a package and its binaries (`pipx install package`) pipx will
-* create directory ~/.local/pipx/venvs/<package>
-* create a virtualenv in ~/.local/pipx/venvs/<package>
+* create directory ~/.local/pipx/venvs/PACKAGE
+* create a virtualenv in ~/.local/pipx/venvs/PACKAGE
 * update pip to the latest version
 * install the desired package in the virtualenv
-* create symlinks in ~/.local/bin that point to new binaries in ~/.local/pipx/venvs/<package>/bin (such as ~/.local/bin/black -> ~/.local/pipx/venvs/black/bin/black)
+* create symlinks in ~/.local/bin that point to new binaries in ~/.local/pipx/venvs/PACKAGE/bin (such as ~/.local/bin/black -> ~/.local/pipx/venvs/black/bin/black)
 * As long as `~/.local/bin/` is on your PATH, you can now invoke the new binaries globally
 
 These are all things you can do yourself, but pipx automates them for you. If you are curious as to what pipx is doing behind the scenes, you can always use `pipx --verbose ...`.
@@ -234,5 +238,5 @@ Both pipx and pipsi install packages to the system in a very similar way. pipx h
 * pipx is under active development. The creator of pipsi has not been involved with the project for some time.
 * pipx prints emojies 😀
 
-## Credits
+## credits
 pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https://github.com/zkat/npx).
