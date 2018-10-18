@@ -16,18 +16,28 @@ import tempfile
 import textwrap
 import urllib
 
+try:
+    WindowsError
+except NameError:
+    IS_WIN = False
+else:
+    IS_WIN = True
 
+DEFAULT_PYTHON = "python3.exe" if IS_WIN else "python3"
 DEFAULT_PIPX_HOME = Path.home() / ".local/pipx/venvs"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 pipx_local_venvs = os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)
 local_bin_dir = os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)
 INSTALL_PIPX_URL = "git+https://github.com/cs01/pipx.git"
-INSTALL_PIPX_CMD = "curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3"
+INSTALL_PIPX_CMD = (
+    "curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3"
+)
 SPEC_HELP = (
     "Run `pip install -U SPEC` instead of `pip install -U PACKAGE`"
     f"For example `--from {INSTALL_PIPX_URL}` or `--from mypackage==2.0.0.`"
 )
-PIPX_DESCRIPTION = textwrap.dedent(f"""
+PIPX_DESCRIPTION = textwrap.dedent(
+    f"""
 Execute binaries from Python packages.
 
 Binaries can either be run directly or installed globally into isolated venvs.
@@ -41,17 +51,18 @@ PIPX_USAGE = """
     %(prog)s [--spec SPEC] [--python PYTHON] BINARY [BINARY-ARGS]
     %(prog)s {install,upgrade,upgrade-all,uninstall,uninstall-all,list} [--help]"""
 
+
 class PipxError(Exception):
     pass
 
 
 class Venv:
-    def __init__(self, path, *, verbose=False, python="python3"):
+    def __init__(self, path, *, verbose=False, python=DEFAULT_PYTHON):
         self.root = path
         self._python = python
         self.bin_path = path / "bin"
-        self.pip_path = self.bin_path / "pip"
-        self.python_path = self.bin_path / "python"
+        self.pip_path = self.bin_path / ("pip" if not IS_WIN else "pip.exe")
+        self.python_path = self.bin_path / ("python" if not IS_WIN else "python.exe")
         self.verbose = verbose
 
     def create_venv(self):
@@ -325,8 +336,7 @@ def run_pipx_command(args):
         package = args.package
         if urllib.parse.urlparse(package).scheme:
             raise PipxError(
-                "Package must be a name. To install a "
-                "package from a url, pass the --url flag."
+                "Package cannot be a url"
             )
         if package == "pipx":
             logging.warning(f"using url {INSTALL_PIPX_URL} for pipx installation")

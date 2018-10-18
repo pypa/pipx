@@ -23,7 +23,7 @@ and (safely) installing a program globally as easy as
 
 Read more on the [blog post](https://medium.com/@grassfedcode/bringing-some-of-javascripts-packaging-solutions-to-python-1b02430d589e).
 
-Notice that you **don't need execute any install commands to run the binary**.
+Notice that you **don't need to execute any install commands to run the binary**.
 
 It eliminates the tedium of creating and removing virtualenvs, and removes the temptation to run `sudo pip install ...` (you aren't doing that, are you? 😄).
 
