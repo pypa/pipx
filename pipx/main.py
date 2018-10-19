@@ -188,12 +188,12 @@ def symlink_package_binaries(local_bin_dir, binary_paths, package):
 
         if which(binary):
             logging.warning(
-                f"{binary} is already on your PATH at "
+                f"⚠️  {binary} is already on your PATH at "
                 f"{Path(which(binary)).resolve()}. Not creating new symlink at {str(symlink_path)}"
             )
         elif symlink_path.exists():
             logging.warning(
-                f"File exists at {str(symlink_path)} and points to {symlink_path.resolve()}. Not creating."
+                f"⚠️  File exists at {str(symlink_path)} and points to {symlink_path.resolve()}. Not creating."
             )
         else:
             symlink_path.symlink_to(b)
@@ -401,7 +401,7 @@ def run_ephemeral_binary(args, binary_args):
         exit(0)
     elif which(binary):
         logging.warning(
-            f"{binary} is already on your PATH and installed at "
+            f"⚠️  {binary} is already on your PATH and installed at "
             f"{which(binary)}. Downloading and "
             "running anyway."
         )
