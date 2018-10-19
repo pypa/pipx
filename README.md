@@ -9,19 +9,23 @@
 
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 
-*pipx is still a new project. Please submit issues if you have questions or bugs to report.*
+*pipx is still a new project. Please submit issues if you have questions or bugs to report. For comparison to pipsi, see [how does this compare to pipsi?](#how-does-this-compare-to-pipsi)*
 
 pipx makes running the latest version of a program as easy as
 ```
 > pipx BINARY
 ```
+This will install the package in a temporary directory, invoke the binary, then clean up after itself, leaving your system untouched.
 
 and (safely) installing a program globally as easy as
 ```
 > pipx install PACKAGE
 ```
+This will leave the package on your system, where it can be uninstalled or upgrade at any time with `pipx upgrade PACKAGE` or `pipx uninstall PACKAGE`.
 
 Read more on the [blog post](https://medium.com/@grassfedcode/bringing-some-of-javascripts-packaging-solutions-to-python-1b02430d589e).
+
+
 
 Notice that you **don't need to execute any install commands to run the binary**.
 
@@ -118,6 +122,7 @@ pipx list
 ```
 
 ## pipx run binary examples
+Using `pipx` in this way downloads and runs a binary in an ephemeral environment, leaving your system unchanged after the process exits.
 ```
 pipx black
 pipx --version black  # prints pipx version
@@ -127,6 +132,7 @@ pipx --spec black==18.4a1 black --version
 pipx --spec git+https://github.com/ambv/black.git black
 pipx --spec git+https://github.com/ambv/black.git@branch-name black
 pipx --spec git+https://github.com/ambv/black.git@git-hash black
+pipx --spec https://github.com/ambv/black/archive/18.9b0.zip black --help
 pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
 ```
 
@@ -215,7 +221,7 @@ When installing a package and its binaries (`pipx install package`) pipx will
 These are all things you can do yourself, but pipx automates them for you. If you are curious as to what pipx is doing behind the scenes, you can always use `pipx --verbose ...`.
 
 ## how does this compare to pipsi?
-The biggest difference is pipx has the ability to run a binary in one line:
+The biggest difference is pipx has the ability to run a binary in one line, leaving your system unchanged after it finishes:
 ```
 pipx binary
 ```
