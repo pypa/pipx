@@ -251,6 +251,7 @@ Both pipx and pipsi install packages to the system in a very similar way. pipx h
   * pipx has the --spec option to allow you to provide an SVN or a package version (package==2.0.0)
   * pipx allows you to upgrade all packages with one command
   * pipx allows you to uninstall all packages with one command
+  * pipx allows you to reinstall all packages with one command
 * pipx installs itself with python3
 * pipx always uses the lastest version of pip in its venvs
 * pipx defaults to less verbose output
