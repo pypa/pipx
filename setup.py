@@ -19,7 +19,7 @@ setup(
     version="0.0.0.10",
     author="Chad Smith",
     author_email="grassfedcode@gmail.com",
-    description="Run CLI applications with no commited in an isolated environment ",
+    description="Run CLI applications in an isolated environment without commitment",
     long_description=README,
     long_description_content_type="text/markdown",
     url="https://github.com/cs01/pipx",
