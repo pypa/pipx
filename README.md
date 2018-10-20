@@ -239,7 +239,7 @@ Both pipx and pipsi install packages to the system in a very similar way. pipx h
   * pipx allows you to uninstall all packages with one command
 * pipx installs itself with python3
 * pipx always uses the lastest version of pip in its venvs
-* pipx defauls to less verbose output
+* pipx defaults to less verbose output
 * pipx allows you to see each command it runs by passing the --verbose flag
 * pipx is under active development. The creator of pipsi has not been involved with the project for some time.
 * pipx prints emojies 😀
