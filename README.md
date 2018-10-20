@@ -199,6 +199,7 @@ pipx is working!
 ## programs to try with pipx
 Here are some programs you can try out with no obligation. If you've never used the program before, make sure you add the `--help` flag so it doesn't do something you don't expect. If you decide you want to install, you can run `pipx install PACKAGE` instead.
 ```
+pipx asciinema  # Record and share your terminal sessions, the right way.
 pipx black  # uncompromising Python code formatter
 pipx --spec babel pybabel  # internationalizing and localizing Python applications
 pipx --spec chardet chardetect  # detect file encoding

@@ -144,8 +144,7 @@ class Venv:
         )
         binaries = (
             subprocess.run(
-                [self.python_path, "-c", get_binaries_script],
-                stdout=subprocess.PIPE,
+                [self.python_path, "-c", get_binaries_script], stdout=subprocess.PIPE
             )
             .stdout.decode()
             .split()
@@ -239,37 +238,42 @@ def list_packages(pipx_local_venvs):
         venv = Venv(d)
         python_path = venv.python_path.resolve()
         package = d.name
-        version = venv.get_package_version(package)
-        symlinked_binaries = get_valid_bin_symlinks_for_package(
-            venv.bin_path, local_bin_dir
-        )
-        if version is None:
-            print(
-                f"{package} is not installed in the venv {str(d)}"
-                f"Binaries available: {', '.join(symlinked_binaries)}"
-            )
-            continue
-        package_binary_paths = venv.get_package_binary_paths(package)
 
+        version = venv.get_package_version(package)
+        if version is None:
+            print(f"{package} is not installed in the venv {str(d)}")
+            continue
+
+        package_binary_paths = venv.get_package_binary_paths(package)
         package_binary_names = [b.name for b in package_binary_paths]
-        unavailable_binary_names = set(package_binary_names) - set(symlinked_binaries)
+
+        symlinked_binary_paths = get_valid_bin_symlinks_for_package(
+            package_binary_paths, local_bin_dir
+        )
+        symlinked_binary_names = [p.name for p in symlinked_binary_paths]
+        unavailable_binary_names = set(package_binary_names) - set(
+            symlinked_binary_names
+        )
         unavailable = ""
         if unavailable_binary_names:
             unavailable = (
                 f", binaries not symlinked: {', '.join(unavailable_binary_names)}"
             )
         print(
-            f"package {package} {version}, symlinks to binaries available: {', '.join(symlinked_binaries)}{unavailable}"
+            f"package {package} {version}, symlinks to binaries available: {', '.join(symlinked_binary_names)}{unavailable}"
         )
         logging.info(f"virtualenv: {str(d)}, python executable: {python_path}")
 
 
-def get_valid_bin_symlinks_for_package(venv_bin_dir, local_bin_dir):
-    symlinks = []
-    for b in local_bin_dir.iterdir():
-        if (venv_bin_dir / b.name).exists():
-            symlinks.append(b.name)
-    return symlinks
+def get_valid_bin_symlinks_for_package(package_binary_paths, local_bin_dir):
+    set(package_binary_paths)
+    symlinks = set()
+    for s in local_bin_dir.iterdir():
+        try:
+            symlinks.add(s.resolve())
+        except FileNotFoundError:
+            pass
+    return set(package_binary_paths).intersection(symlinks)
 
 
 def upgrade(venv_dir, package, package_or_url, verbose):
@@ -330,9 +334,9 @@ def uninstall(venv_dir, package, local_bin_dir, verbose):
         return
 
     venv = Venv(venv_dir, verbose=verbose)
-    installed_binaries = [b for b in venv.bin_path.iterdir()]
+    package_binary_paths = venv.get_package_binary_paths(package)
     for symlink in local_bin_dir.iterdir():
-        for b in installed_binaries:
+        for b in package_binary_paths:
             if symlink.exists() and b.exists() and symlink.samefile(b):
                 logging.info(f"removing symlink {str(symlink)}")
                 symlink.unlink()
