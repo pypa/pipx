@@ -350,7 +350,7 @@ def get_fs_package_name(package):
 
 
 def print_version():
-    print("0.0.0.6")
+    print("0.0.0.7")
 
 
 def run_pipx_command(args):
@@ -367,8 +367,6 @@ def run_pipx_command(args):
             if urllib.parse.urlparse(args.spec).scheme:
                 if "#egg=" not in args.spec:
                     args.spec = args.spec + f"#egg={package}"
-            else:
-                raise PipxError("Url was not a valid url")
 
         venv_dir = pipx_local_venvs / package
         logging.info(f"virtualenv location is {venv_dir}")
