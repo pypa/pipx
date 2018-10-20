@@ -104,15 +104,33 @@ class Venv:
     def get_package_binary_paths(self, package):
         get_binaries_script = textwrap.dedent(
             f"""
-        import pkg_resources
-        import sys
+            import pkg_resources
+            import sys
+            import os
+            from pathlib import Path
 
-        dist = pkg_resources.get_distribution("{package}")
-        binaries = set()
-        for _, d in pkg_resources.get_entry_map(dist).items():
-            for binary in d:
-                binaries.add(binary)
-        [print(b) for b in binaries]
+            dist = pkg_resources.get_distribution("{package}")
+            bin_path = "{self.bin_path}"
+            binaries = set()
+            for _, d in pkg_resources.get_entry_map(dist).items():
+                for binary in d:
+                    binaries.add(binary)
+
+            if dist.has_metadata('RECORD'):
+                for line in dist.get_metadata_lines('RECORD'):
+                    binary = line.split(',')[0]
+                    path = Path(dist.location) / binary
+                    if path.parent.samefile(bin_path):
+                        binaries.add(Path(binary).name)
+
+            if dist.has_metadata('installed-files.txt'):
+                for line in dist.get_metadata_lines('installed-files.txt'):
+                    binary = line.split(',')[0]
+                    path = Path(dist.location) / binary
+                    if path.parent.samefile(bin_path):
+                        binaries.add(Path(binary).name)
+            [print(b) for b in binaries]
+
         """
         )
         binaries = (
@@ -294,6 +312,11 @@ def install(venv_dir, package, package_or_url, local_bin_dir, python, verbose):
 def uninstall(venv_dir, package, local_bin_dir, verbose):
     if not venv_dir.exists():
         print(f"Nothing to uninstall for {package} 😴")
+        binary = which(package)
+        if binary:
+            print(
+                f"⚠️  Note: '{binary}' still exists on your system and is on your PATH"
+            )
         return
 
     venv = Venv(venv_dir, verbose=verbose)
@@ -326,7 +349,7 @@ def get_fs_package_name(package):
 
 
 def print_version():
-    print("0.0.0.5")
+    print("0.0.0.6")
 
 
 def run_pipx_command(args):
@@ -335,9 +358,7 @@ def run_pipx_command(args):
     if "package" in args:
         package = args.package
         if urllib.parse.urlparse(package).scheme:
-            raise PipxError(
-                "Package cannot be a url"
-            )
+            raise PipxError("Package cannot be a url")
         if package == "pipx":
             logging.warning(f"using url {INSTALL_PIPX_URL} for pipx installation")
             args.spec = INSTALL_PIPX_URL
