@@ -255,8 +255,18 @@ Both pipx and pipsi install packages to the system in a very similar way. pipx h
 * pipx always uses the lastest version of pip in its venvs
 * pipx defaults to less verbose output
 * pipx allows you to see each command it runs by passing the --verbose flag
-* pipx is under active development. The creator of pipsi has not been involved with the project for some time.
+* pipx is under active development. pipsi is no longer maintained.
+* pipx works with Python homebrew installations while pipsi does not (at least on my machine)
 * pipx prints emojies 😀
+
+## how does this compare with rwt?
+[run with this](https://github.com/jaraco/rwt) is focused on running **arbitrary Python code in ephemeral environments** while pipx is focused on running **binaries in ephemeral and non-ephemeral environments**.
+
+For example these two commands both install poetry to an ephemeral environment and invoke poetry with `--help`.
+```
+pipx poetry --help
+rwt poetry -- -m poetry --help
+```
 
 ## credits
 pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https://github.com/zkat/npx).
