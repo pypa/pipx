@@ -122,15 +122,22 @@ class Venv:
                 for line in dist.get_metadata_lines('RECORD'):
                     binary = line.split(',')[0]
                     path = Path(dist.location) / binary
-                    if path.parent.samefile(bin_path):
-                        binaries.add(Path(binary).name)
+                    try:
+                        if path.parent.samefile(bin_path):
+                            binaries.add(Path(binary).name)
+                    except FileNotFoundError:
+                        pass
 
             if dist.has_metadata('installed-files.txt'):
                 for line in dist.get_metadata_lines('installed-files.txt'):
                     binary = line.split(',')[0]
                     path = Path(dist.location) / binary
-                    if path.parent.samefile(bin_path):
-                        binaries.add(Path(binary).name)
+                    try:
+                        if path.parent.samefile(bin_path):
+                            binaries.add(Path(binary).name)
+                    except FileNotFoundError:
+                        pass
+
             [print(b) for b in binaries]
 
         """
@@ -139,7 +146,6 @@ class Venv:
             subprocess.run(
                 [self.python_path, "-c", get_binaries_script],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
             )
             .stdout.decode()
             .split()
@@ -307,7 +313,7 @@ def install(venv_dir, package, package_or_url, local_bin_dir, python, verbose):
     binary_paths = venv.get_package_binary_paths(package)
     if not binary_paths:
         venv.remove_venv()
-        raise PipxError("No binaries associated with this package")
+        raise PipxError("No binaries associated with this package.")
     logging.info(f"new binaries: {', '.join(str(b.name) for b in binary_paths)}")
     symlink_package_binaries(local_bin_dir, binary_paths, package)
     print("done! ✨ 🌟 ✨")
@@ -362,7 +368,7 @@ def get_fs_package_name(package):
 
 
 def print_version():
-    print("0.0.0.9")
+    print("0.0.0.10")
 
 
 def run_pipx_command(args):
