@@ -21,10 +21,8 @@ and (safely) installing a program globally as easy as
 ```
 > pipx install PACKAGE
 ```
-This will leave the package on your system, where it can be uninstalled or upgrade at any time with `pipx upgrade PACKAGE` or `pipx uninstall PACKAGE`.
 
 Read more on the [blog post](https://medium.com/@grassfedcode/bringing-some-of-javascripts-packaging-solutions-to-python-1b02430d589e).
-
 
 
 Notice that you **don't need to execute any install commands to run the binary**.
@@ -95,7 +93,15 @@ All of these are pretty self-explanatory. You can run `pipx COMMAND --help` for 
 ### install
 ```
 pipx install PACKAGE
+pipx install --spec VCS_URL PACKAGE
+pipx install --spec ZIP_FILE PACKAGE
+pipx install --spec TAR_GZ_FILE PACKAGE
 ```
+The argument to `--spec` is passed directly to `pip install`.
+
+The default virtual environment location is `~/.local/pipx/venvs` and can be overridden by setting the environment variable `PIPX_HOME`.
+
+The default binary location is `~/.local/bin` and can be overridden by setting the environment variable `PIPX_BIN_DIR`.
 
 ### upgrade
 ```

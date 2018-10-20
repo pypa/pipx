@@ -27,8 +27,8 @@ else:
 DEFAULT_PYTHON = "python3.exe" if IS_WIN else "python3"
 DEFAULT_PIPX_HOME = Path.home() / ".local/pipx/venvs"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
-pipx_local_venvs = os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)
-local_bin_dir = os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)
+pipx_local_venvs = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve()
+local_bin_dir = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resolve()
 INSTALL_PIPX_URL = "git+https://github.com/cs01/pipx.git"
 INSTALL_PIPX_CMD = (
     "curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3"
@@ -43,7 +43,8 @@ Execute binaries from Python packages.
 
 Binaries can either be run directly or installed globally into isolated venvs.
 
-venv location is {DEFAULT_PIPX_HOME}. Symlinks to binaries are placed in {DEFAULT_PIPX_BIN_DIR}.
+venv location is {str(pipx_local_venvs)}.
+Symlinks to binaries are placed in {str(local_bin_dir)}.
 These locations can be overridden with the environment variables
 PIPX_HOME and PIPX_BIN_DIR, respectively.
 """
@@ -273,6 +274,8 @@ def upgrade(venv_dir, package, package_or_url, verbose):
         )
     venv = Venv(venv_dir, verbose=verbose)
     venv.upgrade_package(package_or_url)
+    binary_paths = venv.get_package_binary_paths(package)
+    symlink_package_binaries(local_bin_dir, binary_paths, package)
     print(f"upgraded package {package} to latest version (location: {str(venv_dir)})")
 
 
@@ -350,7 +353,7 @@ def get_fs_package_name(package):
 
 
 def print_version():
-    print("0.0.0.7")
+    print("0.0.0.8")
 
 
 def run_pipx_command(args):

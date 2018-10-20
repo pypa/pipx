@@ -187,9 +187,14 @@ def main(argv=sys.argv[1:]):
     else:
         logging.basicConfig(level=logging.WARNING, format="%(message)s")
 
-    pipx_local_venvs = os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)
-    local_bin_dir = os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)
+    pipx_local_venvs = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve()
+    local_bin_dir = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resolve()
+
+    pipx_local_venvs.mkdir(exist_ok=True)
+    local_bin_dir.mkdir(exist_ok=True)
+
     pipx_symlink = local_bin_dir / "pipx"
+
     if which("pipx"):
         if args.overwrite:
             echo("reinstalling pipx")
