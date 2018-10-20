@@ -341,6 +341,15 @@ def uninstall_all(pipx_local_venvs, local_bin_dir, verbose):
         uninstall(venv_dir, package, local_bin_dir, verbose)
 
 
+def reinstall_all(pipx_local_venvs, local_bin_dir, python, verbose):
+    for venv_dir in pipx_local_venvs.iterdir():
+        package = venv_dir.name
+        uninstall(venv_dir, package, local_bin_dir, verbose)
+
+        package_or_url = package
+        install(venv_dir, package, package_or_url, local_bin_dir, python, verbose)
+
+
 def get_fs_package_name(package):
     illegal = ["+", "#", "/", ":"]
     ret = ""
@@ -353,7 +362,7 @@ def get_fs_package_name(package):
 
 
 def print_version():
-    print("0.0.0.8")
+    print("0.0.0.9")
 
 
 def run_pipx_command(args):
@@ -393,6 +402,8 @@ def run_pipx_command(args):
         print(f"To reinstall pipx, run '{INSTALL_PIPX_CMD}'")
     elif args.command == "upgrade-all":
         upgrade_all(pipx_local_venvs, verbose)
+    elif args.command == "reinstall-all":
+        reinstall_all(pipx_local_venvs, local_bin_dir, args.python, verbose)
     else:
         raise PipxError(f"Unknown command {args.command}")
 
@@ -520,8 +531,15 @@ def get_command_parser():
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
-        "uninstall-all", help="Uninstall all package, including pipx"
+        "uninstall-all", help="Uninstall all packages, including pipx"
     )
+    p.add_argument("--verbose", action="store_true")
+
+    p = subparsers.add_parser(
+        "reinstall-all",
+        help="Reinstall all packages with a different Python executable",
+    )
+    p.add_argument("python")
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser("list", help="List installed packages")
@@ -580,6 +598,7 @@ def cli():
         "upgrade-all",
         "uninstall",
         "uninstall-all",
+        "reinstall-all",
         "list",
     ]
 

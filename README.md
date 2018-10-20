@@ -85,7 +85,7 @@ pipx [--python PYTHON] [--spec SPEC] BINARY [BINARYARGS]
 
 There are a handful of other commands that can be run by pipx:
 ```
-install, upgrade, upgrade-all, uninstall, uninstall-all, list
+install, upgrade, upgrade-all, uninstall, uninstall-all, reinstall-all, list
 ```
 All of these are pretty self-explanatory. You can run `pipx COMMAND --help` for more.
 
@@ -121,6 +121,14 @@ pipx uninstall PACKAGE
 ```
 pipx uninstall-all
 ```
+
+### reinstall all packages using a different version of Python
+```
+pipx reinstall-all PYTHON
+```
+Specify a version of Python to associate all installed packages with. Packages are uninstalled, then installed with `pip install PACKAGE`. This is useful if you upgraded to a new version of Python and want all your packages to use the latest as well.
+
+If you originally installed a package from a source other than PyPI, this command may behave in unexpected ways since it will reinstall from PyPI.
 
 ### list installed packages/binaries
 ```
