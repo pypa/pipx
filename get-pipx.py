@@ -190,8 +190,8 @@ def main(argv=sys.argv[1:]):
     pipx_local_venvs = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve()
     local_bin_dir = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resolve()
 
-    pipx_local_venvs.mkdir(exist_ok=True)
-    local_bin_dir.mkdir(exist_ok=True)
+    pipx_local_venvs.mkdir(parents=True, exist_ok=True)
+    local_bin_dir.mkdir(parents=True, exist_ok=True)
 
     pipx_symlink = local_bin_dir / "pipx"
 
