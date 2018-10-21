@@ -51,7 +51,7 @@ PIPX_HOME and PIPX_BIN_DIR, respectively.
 )
 PIPX_USAGE = """
     %(prog)s [--spec SPEC] [--python PYTHON] BINARY [BINARY-ARGS]
-    %(prog)s {install,upgrade,upgrade-all,uninstall,uninstall-all,list} [--help]"""
+    %(prog)s {install, upgrade, upgrade-all, uninstall, uninstall-all, reinstall-all, list} [--help]"""
 
 
 class PipxError(Exception):
@@ -247,7 +247,7 @@ def list_packages(pipx_local_venvs):
         package_binary_paths = venv.get_package_binary_paths(package)
         package_binary_names = [b.name for b in package_binary_paths]
 
-        symlinked_binary_paths = get_valid_bin_symlinks_for_package(
+        symlinked_binary_paths = get_bin_symlink_paths_for_package(
             package_binary_paths, local_bin_dir
         )
         symlinked_binary_names = [p.name for p in symlinked_binary_paths]
@@ -265,15 +265,9 @@ def list_packages(pipx_local_venvs):
         logging.info(f"virtualenv: {str(d)}, python executable: {python_path}")
 
 
-def get_valid_bin_symlinks_for_package(package_binary_paths, local_bin_dir):
-    set(package_binary_paths)
-    symlinks = set()
-    for s in local_bin_dir.iterdir():
-        try:
-            symlinks.add(s.resolve())
-        except FileNotFoundError:
-            pass
-    return set(package_binary_paths).intersection(symlinks)
+def get_bin_symlink_paths_for_package(package_binary_paths, local_bin_dir):
+    bin_symlinks = {s.resolve() for s in local_bin_dir.iterdir()}
+    return set(package_binary_paths).intersection(bin_symlinks)
 
 
 def upgrade(venv_dir, package, package_or_url, verbose):
