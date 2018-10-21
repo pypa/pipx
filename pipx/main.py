@@ -283,10 +283,20 @@ def upgrade(venv_dir, package, package_or_url, verbose):
             "but it does not exist."
         )
     venv = Venv(venv_dir, verbose=verbose)
+    old_version = venv.get_package_version(package)
     venv.upgrade_package(package_or_url)
+    new_version = venv.get_package_version(package)
+    if old_version == new_version:
+        print(
+            f"{package} is already at latest version {old_version} (location: {str(venv_dir)})"
+        )
+        return
+
     binary_paths = venv.get_package_binary_paths(package)
     symlink_package_binaries(local_bin_dir, binary_paths, package)
-    print(f"upgraded package {package} to latest version (location: {str(venv_dir)})")
+    print(
+        f"upgraded package {package} from {old_version} to {new_version} (location: {str(venv_dir)})"
+    )
 
 
 def upgrade_all(pipx_local_venvs, verbose):
