@@ -382,7 +382,7 @@ def get_fs_package_name(package):
 
 
 def print_version():
-    print("0.0.0.10")
+    print("0.0.0.11")
 
 
 def run_pipx_command(args):
@@ -569,7 +569,7 @@ def get_command_parser():
 
 
 def separate_pipx_and_binary_args(argv, pipx_commands):
-    args = get_binary_parser(add_help=False).parse_args()
+    args = get_binary_parser(add_help=False).parse_known_args()[0]
     if not args.binary and args.version:
         print_version()
         exit(0)
