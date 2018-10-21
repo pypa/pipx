@@ -9,57 +9,22 @@
 
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 
-*pipx is still a new project. Please submit issues if you have questions or bugs to report. For comparison to pipsi, see [how does this compare to pipsi?](#how-does-this-compare-to-pipsi)*
+*pipx is still a new project. Please submit issues if you have questions or bugs to report. For comparison to pipsi, see [how does this compare to pipsi?](#how-does-this-compare-to-pipsi). Read more about pipx on the [blog post](https://medium.com/@grassfedcode/bringing-some-of-javascripts-packaging-solutions-to-python-1b02430d589e).*
 
 pipx makes running the latest version of a program as easy as
 ```
 > pipx BINARY
 ```
-This will install the package in a temporary directory, invoke the binary, then clean up after itself, leaving your system untouched.
+This will install the package in a temporary directory, invoke the binary, then clean up after itself, leaving your system untouched. Try it! `pipx cowsay moo`. Notice that you **don't need to execute any install commands to run the binary**.
 
-and (safely) installing a program globally as easy as
+It also makes (safely) installing a program globally as easy as
 ```
 > pipx install PACKAGE
 ```
-
-Read more on the [blog post](https://medium.com/@grassfedcode/bringing-some-of-javascripts-packaging-solutions-to-python-1b02430d589e).
-
-
-Notice that you **don't need to execute any install commands to run the binary**.
-
-It eliminates the tedium of creating and removing virtualenvs, and removes the temptation to run `sudo pip install ...` (you aren't doing that, are you? 😄).
-
-As a user, this makes trying out binaries really easy. As a developer, this means you can simplify your deployment instructions to users since they can try or install your program painlessly, and they are guaranteed to be running the latest version of your program.
-
-pipx enables you to test various combinations of Python versions and package versions in ephemeral environments:
-```
-pipx BINARY  # latest version of binary is run with python3
-pipx --spec PACKAGE==2.0.0 BINARY  # specific version of package is run
-pipx --python 3.4 BINARY  # Installed and invoked with specific Python version
-pipx --python 3.7 --spec PACKAGE=1.7.3 BINARY
-pipx --spec git+https://url.git BINARY  # latest version on master is run
-pipx --spec git+https://url.git@branch BINARY
-pipx --spec git+https://url.git@hash BINARY
-```
-
-pipx lets you run Python programs with **no commitment** and no impact to your system, all while using best practices. For example, you can see help for any program by running `pipx BINARY --help`.
-
-And when you use pipx to **install** a Python package rather than run it, you get the best of both worlds: the package's binaries become avilable globally, but it runs in an isolated virtualenv -- and can be **cleanly** installed or updated.
+For example, `pipx install cowsay`. It eliminates the tedium of creating and removing virtualenvs, and removes the temptation to run `sudo pip install ...` (you aren't doing that, are you? 😄).
 
 pipx combines the features of JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b) - which ships with npm - and Python's [pipsi](https://github.com/mitsuhiko/pipsi). pipx does not ship with pip but I consider it to be an important part of bootstrapping your system, similar to how the npm team bootstraps npm with npx.
 
-## usage
-```
-pipx binary
-```
-
-```
-pipx [--spec PACKAGE] [--python PYTHON] binary [binary-arg] ...
-```
-
-```
-pipx {install,upgrade,upgrade-all,uninstall,uninstall-all,list} [--help]
-```
 
 ## install pipx
 ```
@@ -77,33 +42,74 @@ To uninstall
 pipx uninstall pipx
 ```
 
+## usage
+```
+pipx BINARY
+```
+
+```
+pipx [--spec PACKAGE] [--python PYTHON] BINARY [ARGS...]
+```
+
+```
+pipx {install,upgrade,upgrade-all,uninstall,uninstall-all,list} [--help]
+```
+
 ## pipx commands
+`pipx` can be invoked to directly run a binary (`pipx BINARY`) or to run a pipx command (`pipx COMMAND`). The commands are
+```
+install, upgrade, upgrade-all, uninstall, uninstall-all, reinstall-all, list
+```
+You can run `pipx COMMAND --help` for details on each command. You cannot run a binary with the same name as a pipx command.
 
 ### run a binary
 ```
 pipx BINARY
-pipx [--python PYTHON] [--spec SPEC] BINARY [BINARYARGS]
+pipx [--python PYTHON] [--spec SPEC] BINARY [ARGS...]
 ```
 
-There are a handful of other commands that can be run by pipx:
+#### examples
+pipx enables you to test various combinations of Python versions and package versions in ephemeral environments:
 ```
-install, upgrade, upgrade-all, uninstall, uninstall-all, reinstall-all, list
+pipx BINARY  # latest version of binary is run with python3
+pipx --spec PACKAGE==2.0.0 BINARY  # specific version of package is run
+pipx --python 3.4 BINARY  # Installed and invoked with specific Python version
+pipx --python 3.7 --spec PACKAGE=1.7.3 BINARY
+pipx --spec git+https://url.git BINARY  # latest version on master is run
+pipx --spec git+https://url.git@branch BINARY
+pipx --spec git+https://url.git@hash BINARY
+pipx cowsay moo
+pipx --version cowsay  # prints pipx version
+pipx cowsay  --version  # prints cowsay version
+pipx --python pythonX cowsay
+pipx --spec cowsay==2.0 cowsay --version
+pipx --spec git+https://github.com/ambv/black.git black
+pipx --spec git+https://github.com/ambv/black.git@branch-name black
+pipx --spec git+https://github.com/ambv/black.git@git-hash black
+pipx --spec https://github.com/ambv/black/archive/18.9b0.zip black --help
+pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
 ```
-All of these are pretty self-explanatory. You can run `pipx COMMAND --help` for more.
 
+### install a package and expose binaries globally
+The install command is the preferred way to globally install binaries from python packages on your system. It creates an isolated virtual environment for the package, then in a folder on your PATH creates symlinks to all the binaries in that virtual environment.
 
-### install
+The result: binaries you can run from anywhere, located in packages you can **cleanly** upgrade or uninstall. Guaranteed to not have dependency version conflicts or interfere with your OS's python packages. All **without** running `sudo`.
 ```
 pipx install PACKAGE
+pipx install --python PYTHON PACKAGE
 pipx install --spec VCS_URL PACKAGE
 pipx install --spec ZIP_FILE PACKAGE
 pipx install --spec TAR_GZ_FILE PACKAGE
 ```
+
 The argument to `--spec` is passed directly to `pip install`.
 
 The default virtual environment location is `~/.local/pipx/venvs` and can be overridden by setting the environment variable `PIPX_HOME`.
 
 The default binary location is `~/.local/bin` and can be overridden by setting the environment variable `PIPX_BIN_DIR`.
+
+#### install examples
+All of the examples in the `run a binary` section can be used by changing `pipx` to `pipx install`.
 
 ### upgrade
 ```
@@ -135,28 +141,6 @@ If you originally installed a package from a source other than PyPI, this comman
 ### list installed packages/binaries
 ```
 pipx list
-```
-
-## pipx run binary examples
-Using `pipx` in this way downloads and runs a binary in an ephemeral environment, leaving your system unchanged after the process exits.
-```
-pipx black
-pipx --version black  # prints pipx version
-pipx black  --version  # prints black version
-pipx --python pythonX black
-pipx --spec black==18.4a1 black --version
-pipx --spec git+https://github.com/ambv/black.git black
-pipx --spec git+https://github.com/ambv/black.git@branch-name black
-pipx --spec git+https://github.com/ambv/black.git@git-hash black
-pipx --spec https://github.com/ambv/black/archive/18.9b0.zip black --help
-pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
-```
-
-## install examples
-```
-pipx install gdbgui
-pipx --python pythonX install gdbgui  # gdbgui will be associated with pythonX
-pipx install gdbgui --spec git+https://github.com/cs01/gdbgui.git
 ```
 
 ## walkthrough
@@ -196,7 +180,6 @@ Oh one other thing. You can also run Python programs directly from a URL, such a
 > pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
 pipx is working!
 ```
-
 
 ## programs to try with pipx
 Here are some programs you can try out with no obligation. If you've never used the program before, make sure you add the `--help` flag so it doesn't do something you don't expect. If you decide you want to install, you can run `pipx install PACKAGE` instead.
@@ -264,7 +247,7 @@ Both pipx and pipsi install packages to the system in a very similar way. pipx h
 * pipx prints emojies 😀
 
 ## how does this compare with rwt?
-[run with this](https://github.com/jaraco/rwt) is focused on running **arbitrary Python code in ephemeral environments** while pipx is focused on running **binaries in ephemeral and non-ephemeral environments**.
+[run with this](https://github.com/jaraco/rwt) is focused on running **arbitrary Python code in ephemeral environments** while pipx is focused on running **Python binaries in ephemeral and non-ephemeral environments**.
 
 For example these two commands both install poetry to an ephemeral environment and invoke poetry with `--help`.
 ```
