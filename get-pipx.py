@@ -215,7 +215,17 @@ def main(argv=sys.argv[1:]):
         args.verbose,
     )
     ensure_pipx_on_path(local_bin_dir, not args.no_modify_path)
-
+    print()
+    print("Now that pipx is installed, we suggest you run one of these commands.")
+    print()
+    print("  pipx BINARY [BINARY ARGS ...] #  i.e. pipx black --help")
+    print()
+    print("  pipx install PACKAGE  # i.e. pipx install black")
+    print()
+    print("  pipx --help  # to see options")
+    print()
+    print("Questions or comments? See https://github.com/cs01/pipx")
+    print("Enjoy! ✨ 🌟 ✨")
 
 if __name__ == "__main__":
     main()
