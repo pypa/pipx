@@ -332,7 +332,9 @@ def upgrade_all(pipx_local_venvs, verbose):
         upgrade(venv_dir, package, package_or_url, verbose)
 
 
-def install(venv_dir, package, package_or_url, local_bin_dir, python, verbose):
+def install(
+    venv_dir, package, package_or_url, local_bin_dir, python, verbose, recursive
+):
     venv = Venv(venv_dir, python=python, verbose=verbose)
     if venv_dir.exists():
         pass
@@ -347,7 +349,7 @@ def install(venv_dir, package, package_or_url, local_bin_dir, python, verbose):
     if venv.get_package_version(package) is None:
         venv.remove_venv()
         raise PipxError(f"Could not find package {package}. Is the name correct?")
-    binary_paths = venv.get_package_binary_paths(package)
+    binary_paths = venv.get_package_binary_paths(package, recursive=recursive)
     if not binary_paths:
         venv.remove_venv()
         raise PipxError("No binaries associated with this package.")
@@ -430,7 +432,15 @@ def run_pipx_command(args):
         package_or_url = (
             args.spec if ("spec" in args and args.spec is not None) else package
         )
-        install(venv_dir, package, package_or_url, local_bin_dir, args.python, verbose)
+        install(
+            venv_dir,
+            package,
+            package_or_url,
+            local_bin_dir,
+            args.python,
+            verbose,
+            args.recursive,
+        )
     elif args.command == "upgrade":
         package_or_url = (
             args.spec if ("spec" in args and args.spec is not None) else package
@@ -548,6 +558,11 @@ def get_command_parser():
     p = subparsers.add_parser("install", help="Install a package")
     p.add_argument("package", help="package name")
     p.add_argument("--spec", help=SPEC_HELP)
+    p.add_argument(
+        "--recursive",
+        action="store_true",
+        help="Look for binaries installed by dependencies of the package (experimental)",
+    )
     p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--python",
