@@ -11,6 +11,8 @@
 
 *pipx is still a new project. Please submit issues if you have questions or bugs to report. For comparison to pipsi, see [how does this compare to pipsi?](#how-does-this-compare-to-pipsi). Read more about pipx on the [blog post](https://medium.com/@grassfedcode/bringing-some-of-javascripts-packaging-solutions-to-python-1b02430d589e).*
 
+*pipx uses the word "binary" to describe a file that can be run directly from the command line. These files are localed in the `bin` directory alongside other executables. Despite the name, they usually do not contain binary data.*
+
 pipx makes running the latest version of a program as easy as
 ```
 > pipx BINARY
@@ -91,7 +93,9 @@ pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/ra
 ```
 
 ### install a package and expose binaries globally
-The install command is the preferred way to globally install binaries from python packages on your system. It creates an isolated virtual environment for the package, then in a folder on your PATH creates symlinks to all the binaries in that virtual environment.
+The install command is the preferred way to globally install binaries from python packages on your system. It creates an isolated virtual environment for the package, then in a folder on your PATH creates symlinks to all the binaries provided by the installed package. It does not link to the package's dependencies.
+
+*Note: pipx determines a package's binaries (also known as entry points, console scripts, or scripts) by inspecting metadata about the package. Sometimes a package is built in such a way that pipx cannot determine its binaries. In such cases, please create an issue.*
 
 The result: binaries you can run from anywhere, located in packages you can **cleanly** upgrade or uninstall. Guaranteed to not have dependency version conflicts or interfere with your OS's python packages. All **without** running `sudo`.
 ```
