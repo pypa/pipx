@@ -418,7 +418,7 @@ def run_pipx_command(args):
         if urllib.parse.urlparse(package).scheme:
             raise PipxError("Package cannot be a url")
         if package == "pipx":
-            logging.warning(f"using url {INSTALL_PIPX_URL} for pipx installation")
+            logging.warning(f"using url {INSTALL_PIPX_URL} for pipx installation (https://github.com/cs01/pipx/issues/2)")
             args.spec = INSTALL_PIPX_URL
         if "spec" in args and args.spec is not None:
             if urllib.parse.urlparse(args.spec).scheme:
@@ -468,7 +468,7 @@ def run_ephemeral_binary(args, binary_args):
     binary = args.binary[0]
     package_or_url = args.spec if args.spec else binary
     if package_or_url == "pipx":
-        logging.warning(f"using url {INSTALL_PIPX_URL} for pipx installation")
+        logging.warning(f"using url {INSTALL_PIPX_URL} for pipx installation (https://github.com/cs01/pipx/issues/2)")
         package_or_url = INSTALL_PIPX_URL
     verbose = args.verbose
 
