@@ -79,6 +79,22 @@ class Venv:
     def install_package(self, package_or_url):
         self._run_pip(["install", package_or_url])
 
+    def get_package_dependencies(self, package):
+        get_version_script = textwrap.dedent(
+            f"""
+        import pkg_resources
+        for r in pkg_resources.get_distribution("{package}").requires():
+            print(r)
+        """
+        )
+        return (
+            subprocess.run(
+                [self.python_path, "-c", get_version_script], stdout=subprocess.PIPE
+            )
+            .stdout.decode()
+            .split()
+        )
+
     def get_package_version(self, package):
         get_version_script = textwrap.dedent(
             f"""
@@ -103,7 +119,20 @@ class Venv:
         else:
             return None
 
-    def get_package_binary_paths(self, package):
+    def get_package_binary_paths(self, package, recursive=False):
+        # recursive is an experimental flag to find binaries of dependencies of
+        # the desired package
+        if recursive:
+            dependencies = self.get_package_dependencies(package)
+            packages = [package] + dependencies
+        else:
+            packages = [package]
+        binaries = set()
+        for p in packages:
+            binaries.update(self._get_package_binary_paths(p))
+        return binaries
+
+    def _get_package_binary_paths(self, package):
         get_binaries_script = textwrap.dedent(
             f"""
             import pkg_resources
@@ -499,8 +528,7 @@ def get_binary_parser(add_help):
 
 def get_command_parser():
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-        description=PIPX_DESCRIPTION,
+        formatter_class=argparse.RawTextHelpFormatter, description=PIPX_DESCRIPTION
     )
 
     subparsers = parser.add_subparsers(
