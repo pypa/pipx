@@ -120,20 +120,7 @@ class Venv:
         else:
             return None
 
-    def get_package_binary_paths(self, package, recursive=False):
-        # recursive is an experimental flag to find binaries of dependencies of
-        # the desired package
-        if recursive:
-            dependencies = self.get_package_dependencies(package)
-            packages = [package] + dependencies
-        else:
-            packages = [package]
-        binaries = set()
-        for p in packages:
-            binaries.update(self._get_package_binary_paths(p))
-        return binaries
-
-    def _get_package_binary_paths(self, package):
+    def get_package_binary_paths(self, package):
         get_binaries_script = textwrap.dedent(
             f"""
             import pkg_resources
@@ -335,7 +322,7 @@ def upgrade_all(pipx_local_venvs, verbose):
 
 
 def install(
-    venv_dir, package, package_or_url, local_bin_dir, python, verbose, recursive
+    venv_dir, package, package_or_url, local_bin_dir, python, verbose
 ):
     venv = Venv(venv_dir, python=python, verbose=verbose)
     if venv_dir.exists():
@@ -351,10 +338,16 @@ def install(
     if venv.get_package_version(package) is None:
         venv.remove_venv()
         raise PipxError(f"Could not find package {package}. Is the name correct?")
-    binary_paths = venv.get_package_binary_paths(package, recursive=recursive)
+    binary_paths = venv.get_package_binary_paths(package)
     if not binary_paths:
+        for dependent_package in venv.get_package_dependencies(package):
+            dependent_binaries = venv.get_package_binary_paths(dependent_package)
+            if dependent_binaries:
+                print(f"Installing package '{dependent_package}' with pipx would install {len(dependent_binaries)} binaries")
+            for b in dependent_binaries:
+                print(f"  - {b.name}")
         venv.remove_venv()
-        raise PipxError("No binaries associated with this package.")
+        raise PipxError(f"No binaries associated with package {package}.")
     logging.info(f"new binaries: {', '.join(str(b.name) for b in binary_paths)}")
     symlink_package_binaries(local_bin_dir, binary_paths, package)
     print("done! ✨ 🌟 ✨")
@@ -443,7 +436,6 @@ def run_pipx_command(args):
             local_bin_dir,
             args.python,
             verbose,
-            args.recursive,
         )
     elif args.command == "upgrade":
         package_or_url = (
@@ -564,11 +556,6 @@ def get_command_parser():
     p = subparsers.add_parser("install", help="Install a package")
     p.add_argument("package", help="package name")
     p.add_argument("--spec", help=SPEC_HELP)
-    p.add_argument(
-        "--recursive",
-        action="store_true",
-        help="Look for binaries installed by dependencies of the package (experimental)",
-    )
     p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--python",
