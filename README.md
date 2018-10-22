@@ -11,7 +11,7 @@
 
 *pipx is still a new project. Please submit issues if you have questions or bugs to report. For comparison to pipsi, see [how does this compare to pipsi?](#how-does-this-compare-to-pipsi). Read more about pipx on the [blog post](https://medium.com/@grassfedcode/bringing-some-of-javascripts-packaging-solutions-to-python-1b02430d589e).*
 
-*pipx uses the word "binary" to describe a file that can be run directly from the command line. These files are localed in the `bin` directory alongside other executables. Despite the name, they usually do not contain binary data.*
+*pipx uses the word "binary" to describe a file that can be run directly from the command line. These files are located in the `bin` directory alongside other executables. Despite the name, they usually do not contain binary data.*
 
 pipx makes running the latest version of a program as easy as
 ```
