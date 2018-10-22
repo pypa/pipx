@@ -500,7 +500,6 @@ def get_binary_parser(add_help):
 def get_command_parser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        usage=PIPX_USAGE,
         description=PIPX_DESCRIPTION,
     )
 
