@@ -9,6 +9,7 @@ import pkg_resources
 import pkgutil
 from pathlib import Path
 import requests
+import shlex
 import shutil
 from shutil import which
 import subprocess
@@ -24,7 +25,7 @@ except NameError:
 else:
     IS_WIN = True
 
-DEFAULT_PYTHON =  sys.executable
+DEFAULT_PYTHON = sys.executable
 DEFAULT_PIPX_HOME = Path.home() / ".local/pipx/venvs"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 pipx_local_venvs = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve()
@@ -260,9 +261,8 @@ def list_packages(pipx_local_venvs):
         print("nothing has been installed with pipx 😴")
         return
 
-    print(
-        f"venvs are in {str(pipx_local_venvs)}, symlinks to binaries are in {str(local_bin_dir)}"
-    )
+    print(f"venvs are in {str(pipx_local_venvs)}")
+    print(f"symlinks to binaries are in {str(local_bin_dir)}")
     for d in dirs:
         venv = Venv(d)
         python_path = venv.python_path.resolve()
@@ -283,15 +283,17 @@ def list_packages(pipx_local_venvs):
         unavailable_binary_names = set(package_binary_names) - set(
             symlinked_binary_names
         )
-        unavailable = ""
-        if unavailable_binary_names:
-            unavailable = (
-                f", binaries not symlinked: {', '.join(unavailable_binary_names)}"
+
+        print(f"  package: {shlex.quote(package)}, {version}")
+        logging.info(f"    python: {str(python_path)}")
+        if not python_path.exists():
+            logging.error(
+                f"    associated python path {str(python_path)} does not exist!"
             )
-        print(
-            f"package {package} {version}, symlinks to binaries available: {', '.join(symlinked_binary_names)}{unavailable}"
-        )
-        logging.info(f"virtualenv: {str(d)}, python executable: {python_path}")
+        for name in symlinked_binary_names:
+            print(f"    - {name}")
+        for name in unavailable_binary_names:
+            print(f"    - {name} (symlink not installed)")
 
 
 def get_bin_symlink_paths_for_package(package_binary_paths, local_bin_dir):
@@ -418,7 +420,9 @@ def run_pipx_command(args):
         if urllib.parse.urlparse(package).scheme:
             raise PipxError("Package cannot be a url")
         if package == "pipx":
-            logging.warning(f"using url {INSTALL_PIPX_URL} for pipx installation (https://github.com/cs01/pipx/issues/2)")
+            logging.warning(
+                f"using url {INSTALL_PIPX_URL} for pipx installation (https://github.com/cs01/pipx/issues/2)"
+            )
             args.spec = INSTALL_PIPX_URL
         if "spec" in args and args.spec is not None:
             if urllib.parse.urlparse(args.spec).scheme:
@@ -468,7 +472,9 @@ def run_ephemeral_binary(args, binary_args):
     binary = args.binary[0]
     package_or_url = args.spec if args.spec else binary
     if package_or_url == "pipx":
-        logging.warning(f"using url {INSTALL_PIPX_URL} for pipx installation (https://github.com/cs01/pipx/issues/2)")
+        logging.warning(
+            f"using url {INSTALL_PIPX_URL} for pipx installation (https://github.com/cs01/pipx/issues/2)"
+        )
         package_or_url = INSTALL_PIPX_URL
     verbose = args.verbose
 
