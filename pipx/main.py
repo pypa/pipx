@@ -24,7 +24,7 @@ except NameError:
 else:
     IS_WIN = True
 
-DEFAULT_PYTHON = "python3.exe" if IS_WIN else "python3"
+DEFAULT_PYTHON =  sys.executable
 DEFAULT_PIPX_HOME = Path.home() / ".local/pipx/venvs"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 pipx_local_venvs = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve()
