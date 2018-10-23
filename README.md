@@ -9,7 +9,7 @@
 
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 
-*pipx is still a new project. Please submit issues if you have questions or bugs to report. For comparison to pipsi, see [how does this compare to pipsi?](#how-does-this-compare-to-pipsi). Read more about pipx on the [blog post](https://medium.com/@grassfedcode/bringing-some-of-javascripts-packaging-solutions-to-python-1b02430d589e).*
+*pipx is still a new project. Please submit issues if you have questions or bugs to report. For comparison to pipsi, see [how does this compare to pipsi?](#how-does-this-compare-to-pipsi) Read more about pipx on the [blog post](https://medium.com/@grassfedcode/bringing-some-of-javascripts-packaging-solutions-to-python-1b02430d589e).*
 
 *pipx uses the word "binary" to describe a file that can be run directly from the command line. These files are located in the `bin` directory alongside other executables. Despite the name, they usually do not contain binary data.*
 
@@ -27,6 +27,9 @@ For example, `pipx install cowsay`. It eliminates the tedium of creating and rem
 
 pipx combines the features of JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b) - which ships with npm - and Python's [pipsi](https://github.com/mitsuhiko/pipsi). pipx does not ship with pip but I consider it to be an important part of bootstrapping your system, similar to how the npm team bootstraps npm with npx.
 
+## testimonials
+@tkossak
+> Thank you! Great tool btw. I already use it instead of pipsi :)
 
 ## install pipx
 ```
@@ -146,6 +149,16 @@ If you originally installed a package from a source other than PyPI, this comman
 ```
 pipx list
 ```
+results in something like
+```
+venvs are in /Users/user/.local/pipx/venvs
+symlinks to binaries are in /Users/user/.local/bin
+  package: black, 18.9b0
+    - black
+    - blackd
+  package: pipx, 0.0.0.11
+    - pipx
+```
 
 ## walkthrough
 I'll use the python package `black` as an example. The `black` package ships with a binary called black. You can run it with pipx just like this.
@@ -225,29 +238,16 @@ When installing a package and its binaries (`pipx install package`) pipx will
 These are all things you can do yourself, but pipx automates them for you. If you are curious as to what pipx is doing behind the scenes, you can always use `pipx --verbose ...`.
 
 ## how does this compare to pipsi?
-The biggest difference is pipx has the ability to run a binary in one line, leaving your system unchanged after it finishes:
-```
-pipx binary
-```
-where pipsi does not.
-
-Both pipx and pipsi install packages to the system in a very similar way. pipx has taken inspiration from pipsi here. Still there are differences. Mainly, pipx aims to take advantage of the progress the Python ecosystem has made in the years since pipsi was created.
-
-* implemenatation details
-  * pipx requires Python 3.6+ and always uses the python3 module venv, rather than the Python 2 package virtualenv
-  * pipx leverages existing Python APIs to find console entry points rather than locating and parsing files manually
-* API differences
-  * pipx does not require you to add "#egg=" to SVN urls when installing.
-  * pipx has the --spec option to allow you to provide an SVN or a package version (package==2.0.0)
-  * pipx allows you to upgrade all packages with one command
-  * pipx allows you to uninstall all packages with one command
-  * pipx allows you to reinstall all packages with one command
-* pipx installs itself with python3
+* pipx is under active development. pipsi is no longer maintained.
+* pipx and pipsi both install packages in a similar way, but pipx always makes sure you're using the lastest version of pip
+* pipx has the ability to run a binary in one line, leaving your system unchanged after it finishes (`pipx binary`) where pipsi does not
+* pipx adds more useful information to its output
+* pipx has more CLI options such as upgrade-all, reinstall-all, uninstall-all
+* pipx is more modern. It uses Python 3.6+, and venv instead of virtualenv.
 * pipx always uses the lastest version of pip in its venvs
+* pipx works with Python homebrew installations while pipsi does not (at least on my machine)
 * pipx defaults to less verbose output
 * pipx allows you to see each command it runs by passing the --verbose flag
-* pipx is under active development. pipsi is no longer maintained.
-* pipx works with Python homebrew installations while pipsi does not (at least on my machine)
 * pipx prints emojies 😀
 
 ## how does this compare with rwt?
