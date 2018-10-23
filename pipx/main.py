@@ -228,18 +228,22 @@ def symlink_package_binaries(local_bin_dir, binary_paths, package):
         if not symlink_path.parent.is_dir():
             mkdir(symlink_path.parent)
 
-        if which(binary):
-            logging.warning(
-                f"⚠️  {binary} is already on your PATH at "
-                f"{Path(which(binary)).resolve()}. Not creating new symlink at {str(symlink_path)}"
-            )
-        elif symlink_path.exists():
-            logging.warning(
-                f"⚠️  File exists at {str(symlink_path)} and points to {symlink_path.resolve()}. Not creating."
-            )
+        if symlink_path.exists():
+            if symlink_path.samefile(b):
+                print(f"{b.name} from package {package} is now available globally")
+            else:
+                logging.warning(
+                    f"⚠️  File exists at {str(symlink_path)} and points to {symlink_path.resolve()}. Not creating."
+                )
         else:
+            shadow = which(binary)
             symlink_path.symlink_to(b)
             print(f"{b.name} from package {package} is now available globally")
+            if shadow:
+                logging.warning(
+                    f"⚠️  Note: {binary} was already on your PATH at "
+                    f"{shadow}"
+                )
 
 
 def list_packages(pipx_local_venvs):
@@ -321,9 +325,7 @@ def upgrade_all(pipx_local_venvs, verbose):
         upgrade(venv_dir, package, package_or_url, verbose)
 
 
-def install(
-    venv_dir, package, package_or_url, local_bin_dir, python, verbose
-):
+def install(venv_dir, package, package_or_url, local_bin_dir, python, verbose):
     venv = Venv(venv_dir, python=python, verbose=verbose)
     if venv_dir.exists():
         pass
@@ -343,7 +345,9 @@ def install(
         for dependent_package in venv.get_package_dependencies(package):
             dependent_binaries = venv.get_package_binary_paths(dependent_package)
             if dependent_binaries:
-                print(f"Installing package '{dependent_package}' with pipx would install {len(dependent_binaries)} binaries")
+                print(
+                    f"Installing package '{dependent_package}' with pipx would install {len(dependent_binaries)} binaries"
+                )
             for b in dependent_binaries:
                 print(f"  - {b.name}")
         venv.remove_venv()
@@ -402,7 +406,7 @@ def get_fs_package_name(package):
 
 
 def print_version():
-    print("0.0.0.11")
+    print("0.0.0.12")
 
 
 def run_pipx_command(args):
@@ -429,14 +433,7 @@ def run_pipx_command(args):
         package_or_url = (
             args.spec if ("spec" in args and args.spec is not None) else package
         )
-        install(
-            venv_dir,
-            package,
-            package_or_url,
-            local_bin_dir,
-            args.python,
-            verbose,
-        )
+        install(venv_dir, package, package_or_url, local_bin_dir, args.python, verbose)
     elif args.command == "upgrade":
         package_or_url = (
             args.spec if ("spec" in args and args.spec is not None) else package
