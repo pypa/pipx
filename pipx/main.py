@@ -518,7 +518,7 @@ def get_binary_parser(add_help):
     parser.add_argument("--spec", help=SPEC_HELP)
     parser.add_argument(
         "--python",
-        default="python3",
+        default=DEFAULT_PYTHON,
         help="The Python binary to associate the CLI binary with. Must be v3.3+.",
     )
     parser.add_argument(
@@ -546,7 +546,7 @@ def get_command_parser():
     p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--python",
-        default="python3",
+        default=DEFAULT_PYTHON,
         help="The Python binary to associate the CLI binary with. Must be v3.3+.",
     )
 
@@ -556,7 +556,7 @@ def get_command_parser():
     p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--python",
-        default="python3",
+        default=DEFAULT_PYTHON,
         help="The Python binary to associate the CLI binary with. Must be v3.3+.",
     )
 

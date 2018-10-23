@@ -171,7 +171,7 @@ def parse_options(argv):
     )
     parser.add_argument(
         "--python",
-        default="python3",
+        default=sys.executable,
         help=("The Python binary to associate pipx with. Must be v3.6+."),
     )
     parser.add_argument(
