@@ -270,7 +270,7 @@ def list_packages(pipx_local_venvs):
         symlinked_binary_paths = get_bin_symlink_paths_for_package(
             package_binary_paths, local_bin_dir
         )
-        symlinked_binary_names = [p.name for p in symlinked_binary_paths]
+        symlinked_binary_names = sorted([p.name for p in symlinked_binary_paths])
         unavailable_binary_names = set(package_binary_names) - set(
             symlinked_binary_names
         )
