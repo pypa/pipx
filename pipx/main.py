@@ -131,8 +131,8 @@ class Venv:
             dist = pkg_resources.get_distribution("{package}")
             bin_path = "{self.bin_path}"
             binaries = set()
-            for _, d in pkg_resources.get_entry_map(dist).items():
-                for binary in d:
+            for section in ['console_scripts', 'gui_scripts']:
+                for binary in pkg_resources.get_entry_map(dist).get(section, []):
                     binaries.add(binary)
 
             if dist.has_metadata('RECORD'):
