@@ -241,8 +241,7 @@ def symlink_package_binaries(local_bin_dir, binary_paths, package):
             print(f"{b.name} from package {package} is now available globally")
             if shadow:
                 logging.warning(
-                    f"⚠️  Note: {binary} was already on your PATH at "
-                    f"{shadow}"
+                    f"⚠️  Note: {binary} was already on your PATH at " f"{shadow}"
                 )
 
 

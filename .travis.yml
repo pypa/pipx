@@ -1,0 +1,14 @@
+language: python
+sudo: required
+python:
+  - "3.6"
+install:
+  - pip install black flake8 mypy
+script:
+  - python test.py
+
+cache:
+  pip: true
+  yarn: true
+  directories:
+    - node_modules

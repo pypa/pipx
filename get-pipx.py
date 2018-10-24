@@ -227,5 +227,6 @@ def main(argv=sys.argv[1:]):
     print("Questions or comments? See https://github.com/cs01/pipx")
     print("Enjoy! ✨ 🌟 ✨")
 
+
 if __name__ == "__main__":
     main()
