@@ -35,7 +35,7 @@ pipx combines the features of JavaScript's [npx](https://medium.com/@maybekatz/i
 ```
 curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3
 ```
-python 3.6+ is required to install pipx. Binaries can be run with Python 3.3+.
+python 3.6+ is required to install pipx. Binaries can be run with Python 3.3+. If python3 is not found on your PATH or the full path to python3 is not specified, curl will fail with the error message: "(23) Failed writing body."
 
 To upgrade
 ```
