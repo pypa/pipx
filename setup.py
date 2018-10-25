@@ -28,7 +28,7 @@ setup(
     include_package_data=True,
     keywords=["pip", "install"],
     scripts=[],
-    entry_points={"console_scripts": ["pipx = pipx.main:cli"]},
+    entry_points={"console_scripts": ["pipx = pipx.__main__:cli"]},
     extras_require={},
     zip_safe=False,
     python_requires=">=3.6",
