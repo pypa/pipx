@@ -19,13 +19,19 @@ pipx makes running the latest version of a program as easy as
 ```
 This will install the package in a temporary directory, invoke the binary, then clean up after itself, leaving your system untouched. Try it! `pipx cowsay moo`. Notice that you **don't need to execute any install commands to run the binary**.
 
+You can run .py files directly, too.
+```
+> pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
+pipx is working!
+```
+
 It also makes (safely) installing a program globally as easy as
 ```
 > pipx install PACKAGE
 ```
 For example, `pipx install cowsay`. It eliminates the tedium of creating and removing virtualenvs, and removes the temptation to run `sudo pip install ...` (you aren't doing that, are you? 😄).
 
-pipx combines the features of JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b) - which ships with npm - and Python's [pipsi](https://github.com/mitsuhiko/pipsi). pipx does not ship with pip but I consider it to be an important part of bootstrapping your system, similar to how the npm team bootstraps npm with npx.
+pipx combines the features of JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b) - which ships with node - and Python's [pipsi](https://github.com/mitsuhiko/pipsi). pipx does not ship with pip but I consider it to be an important part of bootstrapping your system, similar to how node ships with npm and npx.
 
 ## testimonials
 @tkossak
@@ -36,6 +42,8 @@ pipx combines the features of JavaScript's [npx](https://medium.com/@maybekatz/i
 curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3
 ```
 python 3.6+ is required to install pipx. Binaries can be run with Python 3.3+. If python3 is not found on your PATH or the full path to python3 is not specified, curl will fail with the error message: "(23) Failed writing body."
+
+Note: pipx is not on PyPI. See [issue #2](https://github.com/cs01/pipx/issues/2)
 
 To upgrade
 ```
@@ -84,7 +92,7 @@ pipx --spec git+https://url.git BINARY  # latest version on master is run
 pipx --spec git+https://url.git@branch BINARY
 pipx --spec git+https://url.git@hash BINARY
 pipx cowsay moo
-pipx --version cowsay  # prints pipx version
+pipx --version  # prints pipx version
 pipx cowsay  --version  # prints cowsay version
 pipx --python pythonX cowsay
 pipx --spec cowsay==2.0 cowsay --version
@@ -97,8 +105,6 @@ pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/ra
 
 ### install a package and expose binaries globally
 The install command is the preferred way to globally install binaries from python packages on your system. It creates an isolated virtual environment for the package, then in a folder on your PATH creates symlinks to all the binaries provided by the installed package. It does not link to the package's dependencies.
-
-*Note: pipx determines a package's binaries (also known as entry points, console scripts, or scripts) by inspecting metadata about the package. Sometimes a package is built in such a way that pipx cannot determine its binaries. In such cases, please create an issue.*
 
 The result: binaries you can run from anywhere, located in packages you can **cleanly** upgrade or uninstall. Guaranteed to not have dependency version conflicts or interfere with your OS's python packages. All **without** running `sudo`.
 ```
@@ -116,7 +122,18 @@ The default virtual environment location is `~/.local/pipx/venvs` and can be ove
 The default binary location is `~/.local/bin` and can be overridden by setting the environment variable `PIPX_BIN_DIR`.
 
 #### install examples
-All of the examples in the `run a binary` section can be used by changing `pipx` to `pipx install`.
+```
+pipx install cowsay
+pipx install --python python3.6 cowsay
+pipx install --python python3.7 cowsay
+pipx install --spec git+https://github.com/ambv/black black
+pipx --spec git+https://github.com/ambv/black.git@branch-name black
+pipx --spec git+https://github.com/ambv/black.git@git-hash black
+pipx install --spec https://github.com/ambv/black/archive/18.9b0.zip black
+pipx install --spec black[d] black
+```
+
+*Note: pipx determines a package's binaries (also known as entry points, console scripts, or scripts) by inspecting metadata about the package. Sometimes a package is built in such a way that pipx cannot determine its binaries. In such cases, please create an issue.*
 
 ### upgrade
 ```
@@ -236,6 +253,31 @@ When installing a package and its binaries (`pipx install package`) pipx will
 * As long as `~/.local/bin/` is on your PATH, you can now invoke the new binaries globally
 
 These are all things you can do yourself, but pipx automates them for you. If you are curious as to what pipx is doing behind the scenes, you can always use `pipx --verbose ...`.
+
+## contributing
+To develop `pipx` first clone the repository, then create and activate a virtual environment.
+```
+python -m venv pipxvenv
+source pipxvenv/bin/activate
+```
+Next install pipx in "editable mode".
+```
+pip install -e .
+```
+Now make your changes and run `pipx` as you normally would. Your changes will be used as soon as they are saved.
+
+Make sure your changes pass tests by running
+```
+python test.py
+```
+Note that travis integration tests do not pass because of a bug in travis' virtualenv creation (see [#25](https://github.com/cs01/pipx/issues/25)).
+
+## contributors
+@aiguofer
+@sahensley
+@tkossak
+
+If you make a pull request please add your name here.
 
 ## how does this compare to pipsi?
 * pipx is under active development. pipsi is no longer maintained.

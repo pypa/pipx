@@ -1,12 +1,27 @@
+import argparse
 import subprocess
+import sys
+
+
+def run(cmd):
+    print(f"Running {' '.join(cmd)!r}")
+    rc = subprocess.run(cmd).returncode
+    if rc:
+        exit(rc)
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--only-static", action="store_true")
+    args = parser.parse_args()
+
     files = ["get-pipx.py", "pipx", "tests"]
-    subprocess.run(["python3", "-m", "tests"], check=True)
-    subprocess.run(["flake8", "--no-py2", "--py3"] + files, check=True)
-    subprocess.run(["mypy"] + files, check=True)
-    subprocess.run(["black", "--check"] + files, check=True)
+    if not args.only_static:
+        run([sys.executable, "-m", "tests"])
+
+    run(["flake8"] + files)
+    run(["mypy"] + files)
+    run(["black", "--check"] + files)
 
 
 if __name__ == "__main__":

@@ -16,7 +16,7 @@ with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
 
 setup(
     name="pipx",
-    version="0.0.0.12",
+    version="0.0.0.13",
     author="Chad Smith",
     author_email="grassfedcode@gmail.com",
     description="Run CLI applications in an isolated environment without commitment",
@@ -38,7 +38,6 @@ setup(
         "Operating System :: OS Independent",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
     ],

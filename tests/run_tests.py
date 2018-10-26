@@ -18,8 +18,8 @@ class TestPipx(unittest.TestCase):
     def test_pipx(self):
         with tempfile.TemporaryDirectory() as d:
             env = os.environ
-            home_dir = Path(d) / "pipxhome"
-            bin_dir = Path(d) / "pipxbindir"
+            home_dir = Path(d) / "subdir" / "pipxhome"
+            bin_dir = Path(d) / "otherdir" / "pipxbindir"
             if IS_WIN:
                 pipx_bin = bin_dir / "pipx.exe"
             else:
@@ -47,6 +47,9 @@ class TestPipx(unittest.TestCase):
             subprocess.run([pipx_bin, "cowsay", "pipx test is passing"], check=True)
 
             subprocess.run([pipx_bin, "install", "cowsay"], check=True)
+            subprocess.run([pipx_bin, "install", "black"], check=True)
+            subprocess.run([pipx_bin, "install", "ansible"], check=True)
+            subprocess.run([pipx_bin, "install", "shell-functools"], check=True)
             subprocess.run([pipx_bin, "list"], check=True)
             subprocess.run([pipx_bin, "upgrade", "cowsay"], check=True)
             subprocess.run([pipx_bin, "uninstall", "cowsay"], check=True)

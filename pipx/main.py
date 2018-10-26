@@ -2,11 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import hashlib
 import logging
 import os
-import pkg_resources
-import pkgutil
 from pathlib import Path
 import requests
 import shlex
@@ -15,6 +12,7 @@ from shutil import which
 import subprocess
 import sys
 import tempfile
+from typing import List, Optional, Union, Sequence
 import textwrap
 import urllib
 
@@ -60,7 +58,9 @@ class PipxError(Exception):
 
 
 class Venv:
-    def __init__(self, path, *, verbose=False, python=DEFAULT_PYTHON):
+    def __init__(
+        self, path: Path, *, verbose: bool = False, python: str = DEFAULT_PYTHON
+    ) -> None:
         self.root = path
         self._python = python
         self.bin_path = path / "bin"
@@ -68,19 +68,19 @@ class Venv:
         self.python_path = self.bin_path / ("python" if not IS_WIN else "python.exe")
         self.verbose = verbose
 
-    def create_venv(self):
+    def create_venv(self) -> None:
         _run([self._python, "-m", "venv", self.root])
         if not self.pip_path.exists():
             raise PipxError(f"Expected to find pip at {str(self.pip_path)}")
         self.upgrade_package("pip")
 
-    def remove_venv(self):
+    def remove_venv(self) -> None:
         rmdir(self.root)
 
-    def install_package(self, package_or_url):
+    def install_package(self, package_or_url: str) -> None:
         self._run_pip(["install", package_or_url])
 
-    def get_package_dependencies(self, package):
+    def get_package_dependencies(self, package: str) -> List[str]:
         get_version_script = textwrap.dedent(
             f"""
         import pkg_resources
@@ -96,7 +96,7 @@ class Venv:
             .split()
         )
 
-    def get_package_version(self, package):
+    def get_package_version(self, package: str) -> Optional[str]:
         get_version_script = textwrap.dedent(
             f"""
         try:
@@ -120,7 +120,7 @@ class Venv:
         else:
             return None
 
-    def get_package_binary_paths(self, package):
+    def get_package_binary_paths(self, package: str) -> List[Path]:
         get_binaries_script = textwrap.dedent(
             f"""
             import pkg_resources
@@ -129,36 +129,39 @@ class Venv:
             from pathlib import Path
 
             dist = pkg_resources.get_distribution("{package}")
-            bin_path = "{self.bin_path}"
+
+            bin_path = Path("{self.bin_path}")
             binaries = set()
             for section in ['console_scripts', 'gui_scripts']:
-                for binary in pkg_resources.get_entry_map(dist).get(section, []):
-                    binaries.add(binary)
+                for name in pkg_resources.get_entry_map(dist).get(section, []):
+                    binaries.add(name)
 
-            if dist.has_metadata('RECORD'):
-                for line in dist.get_metadata_lines('RECORD'):
-                    binary = line.split(',')[0]
-                    path = Path(dist.location) / binary
+            if dist.has_metadata("RECORD"):
+                for line in dist.get_metadata_lines("RECORD"):
+                    entry = line.split(',')[0]
+                    path = (Path(dist.location) / entry).resolve()
                     try:
                         if path.parent.samefile(bin_path):
-                            binaries.add(Path(binary).name)
+                            binaries.add(Path(entry).name)
                     except FileNotFoundError:
                         pass
 
-            if dist.has_metadata('installed-files.txt'):
-                for line in dist.get_metadata_lines('installed-files.txt'):
-                    binary = line.split(',')[0]
-                    path = Path(dist.location) / binary
+            if dist.has_metadata("installed-files.txt"):
+                for line in dist.get_metadata_lines("installed-files.txt"):
+                    entry = line.split(',')[0]
+                    path = (Path(dist.egg_info) / entry).resolve()
                     try:
                         if path.parent.samefile(bin_path):
-                            binaries.add(Path(binary).name)
+                            binaries.add(Path(entry).name)
                     except FileNotFoundError:
                         pass
 
-            [print(b) for b in binaries]
+            [print(b) for b in sorted(binaries)]
 
         """
         )
+        if not Path(self.python_path).exists():
+            return []
         binaries = (
             subprocess.run(
                 [self.python_path, "-c", get_binaries_script], stdout=subprocess.PIPE
@@ -166,18 +169,18 @@ class Venv:
             .stdout.decode()
             .split()
         )
-        binary_paths = [Path(self.bin_path) / b for b in binaries]
+        binary_paths = [self.bin_path / b for b in binaries]
         valid_binary_paths = list(filter(lambda p: p.exists(), binary_paths))
         return valid_binary_paths
 
-    def run_binary(self, binary, binary_args):
-        cmd = [self.bin_path / binary] + binary_args
+    def run_binary(self, binary: str, binary_args: List[str]):
+        cmd = [str(self.bin_path / binary)] + binary_args
         try:
             return _run(cmd, check=False)
         except KeyboardInterrupt:
             pass
 
-    def upgrade_package(self, package_or_url):
+    def upgrade_package(self, package_or_url: str):
         self._run_pip(["install", "--upgrade", package_or_url])
 
     def _run_pip(self, cmd):
@@ -187,7 +190,7 @@ class Venv:
         return _run(cmd)
 
 
-def _run(cmd, check=True):
+def _run(cmd: Sequence[Union[str, Path]], check=True) -> int:
     cmd_str = " ".join(str(c) for c in cmd)
     logging.info(f"running {cmd_str}")
     returncode = subprocess.run(cmd).returncode
@@ -196,19 +199,26 @@ def _run(cmd, check=True):
     return returncode
 
 
-def rmdir(path):
+def rmdir(path: Path):
     logging.info(f"removing directory {path}")
     shutil.rmtree(path)
 
 
-def mkdir(path):
+def mkdir(path: Path) -> None:
     if path.is_dir():
         return
     logging.info(f"creating directory {path}")
     path.mkdir(parents=True, exist_ok=True)
 
 
-def download_and_run(venv_dir, package, binary, binary_args, python, verbose):
+def download_and_run(
+    venv_dir: Path,
+    package: str,
+    binary: str,
+    binary_args: List[str],
+    python: str,
+    verbose: bool,
+):
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv()
     venv.install_package(package)
@@ -221,7 +231,9 @@ def download_and_run(venv_dir, package, binary, binary_args, python, verbose):
     return venv.run_binary(binary, binary_args)
 
 
-def symlink_package_binaries(local_bin_dir, binary_paths, package):
+def symlink_package_binaries(
+    local_bin_dir: Path, binary_paths: List[Path], package: str
+):
     for b in binary_paths:
         binary = b.name
         symlink_path = Path(local_bin_dir / binary)
@@ -245,7 +257,7 @@ def symlink_package_binaries(local_bin_dir, binary_paths, package):
                 )
 
 
-def list_packages(pipx_local_venvs):
+def list_packages(pipx_local_venvs: Path):
     dirs = list(sorted(pipx_local_venvs.iterdir()))
     if not dirs:
         print("nothing has been installed with pipx 😴")
@@ -267,9 +279,9 @@ def list_packages(pipx_local_venvs):
         package_binary_names = [b.name for b in package_binary_paths]
 
         symlinked_binary_paths = get_bin_symlink_paths_for_package(
-            package_binary_paths, local_bin_dir
+            venv.bin_path, package_binary_paths, local_bin_dir
         )
-        symlinked_binary_names = sorted([p.name for p in symlinked_binary_paths])
+        symlinked_binary_names = sorted(p.name for p in symlinked_binary_paths)
         unavailable_binary_names = set(package_binary_names) - set(
             symlinked_binary_names
         )
@@ -286,12 +298,24 @@ def list_packages(pipx_local_venvs):
             print(f"    - {name} (symlink not installed)")
 
 
-def get_bin_symlink_paths_for_package(package_binary_paths, local_bin_dir):
-    bin_symlinks = {s.resolve() for s in local_bin_dir.iterdir()}
-    return set(package_binary_paths).intersection(bin_symlinks)
+def get_bin_symlink_paths_for_package(
+    bin_path: Path, package_binary_paths: List[Path], local_bin_dir: Path
+):
+    bin_symlinks = set()
+    package_binary_names = {p.name for p in package_binary_paths}
+    for b in local_bin_dir.iterdir():
+        try:
+            # sometimes symlinks can resolve to a file of a different name
+            # (in the case of ansible for example) so checking the resolved paths
+            # is not a reliable way to determine if the symlink exists
+            if b.resolve().parent.samefile(bin_path) and b.name in package_binary_names:
+                bin_symlinks.add(b)
+        except FileNotFoundError:
+            pass
+    return bin_symlinks
 
 
-def upgrade(venv_dir, package, package_or_url, verbose):
+def upgrade(venv_dir: Path, package: str, package_or_url: str, verbose: bool):
     if not venv_dir.is_dir():
         raise PipxError(
             f"Package is not installed. Expected to find {str(venv_dir)}, "
@@ -314,7 +338,7 @@ def upgrade(venv_dir, package, package_or_url, verbose):
     )
 
 
-def upgrade_all(pipx_local_venvs, verbose):
+def upgrade_all(pipx_local_venvs: Path, verbose: bool):
     for venv_dir in pipx_local_venvs.iterdir():
         package = venv_dir.name
         if package == "pipx":
@@ -324,7 +348,14 @@ def upgrade_all(pipx_local_venvs, verbose):
         upgrade(venv_dir, package, package_or_url, verbose)
 
 
-def install(venv_dir, package, package_or_url, local_bin_dir, python, verbose):
+def install(
+    venv_dir: Path,
+    package: str,
+    package_or_url: str,
+    local_bin_dir: Path,
+    python: str,
+    verbose: bool,
+):
     venv = Venv(venv_dir, python=python, verbose=verbose)
     if venv_dir.exists():
         pass
@@ -345,7 +376,7 @@ def install(venv_dir, package, package_or_url, local_bin_dir, python, verbose):
             dependent_binaries = venv.get_package_binary_paths(dependent_package)
             if dependent_binaries:
                 print(
-                    f"Installing package '{dependent_package}' with pipx would install {len(dependent_binaries)} binaries"
+                    f"Note: Dependent package '{dependent_package}' contains {len(dependent_binaries)} binaries"
                 )
             for b in dependent_binaries:
                 print(f"  - {b.name}")
@@ -356,7 +387,7 @@ def install(venv_dir, package, package_or_url, local_bin_dir, python, verbose):
     print("done! ✨ 🌟 ✨")
 
 
-def uninstall(venv_dir, package, local_bin_dir, verbose):
+def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
     if not venv_dir.exists():
         print(f"Nothing to uninstall for {package} 😴")
         binary = which(package)
@@ -367,6 +398,7 @@ def uninstall(venv_dir, package, local_bin_dir, verbose):
         return
 
     venv = Venv(venv_dir, verbose=verbose)
+
     package_binary_paths = venv.get_package_binary_paths(package)
     for symlink in local_bin_dir.iterdir():
         for b in package_binary_paths:
@@ -378,13 +410,15 @@ def uninstall(venv_dir, package, local_bin_dir, verbose):
     print(f"uninstalled {package}! ✨ 🌟 ✨")
 
 
-def uninstall_all(pipx_local_venvs, local_bin_dir, verbose):
+def uninstall_all(pipx_local_venvs: Path, local_bin_dir: Path, verbose: bool):
     for venv_dir in pipx_local_venvs.iterdir():
         package = venv_dir.name
         uninstall(venv_dir, package, local_bin_dir, verbose)
 
 
-def reinstall_all(pipx_local_venvs, local_bin_dir, python, verbose):
+def reinstall_all(
+    pipx_local_venvs: Path, local_bin_dir: Path, python: str, verbose: bool
+):
     for venv_dir in pipx_local_venvs.iterdir():
         package = venv_dir.name
         uninstall(venv_dir, package, local_bin_dir, verbose)
@@ -393,7 +427,7 @@ def reinstall_all(pipx_local_venvs, local_bin_dir, python, verbose):
         install(venv_dir, package, package_or_url, local_bin_dir, python, verbose)
 
 
-def get_fs_package_name(package):
+def get_fs_package_name(package: str) -> str:
     illegal = ["+", "#", "/", ":"]
     ret = ""
     for x in package:
@@ -404,8 +438,8 @@ def get_fs_package_name(package):
     return ret
 
 
-def print_version():
-    print("0.0.0.12")
+def print_version() -> None:
+    print("0.0.0.13")
 
 
 def run_pipx_command(args):
@@ -496,7 +530,7 @@ def run_ephemeral_binary(args, binary_args):
         )
 
 
-def get_binary_parser(add_help):
+def get_binary_parser(add_help: bool):
     parser = argparse.ArgumentParser(
         add_help=add_help,
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -539,7 +573,7 @@ def get_command_parser():
         dest="command", description="Get help for commands with pipx COMMAND --help"
     )
     p = subparsers.add_parser(
-        "binary", help=("Run a binary with the given from an ephemral virtualenv")
+        "binary", help=("Run a binary with the given name from an ephemral virtualenv")
     )
     p.add_argument("--spec", help=SPEC_HELP)
     p.add_argument("--verbose", action="store_true")
@@ -609,7 +643,7 @@ def separate_pipx_and_binary_args(argv, pipx_commands):
     return (pipx_args, binary_args)
 
 
-def args_have_command(pipx_commands):
+def args_have_command(pipx_commands: Sequence[str]):
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("command", nargs="*")
     args = parser.parse_known_args()

@@ -52,9 +52,9 @@ class Venv:
         self.upgrade_package("pip")
 
     def install_package(self, application):
-        before = set(child for child in self.bin_path.iterdir())
+        before = {child for child in self.bin_path.iterdir()}
         self._run_pip(["install", application])
-        after = set(child for child in self.bin_path.iterdir())
+        after = {child for child in self.bin_path.iterdir()}
         new_binaries = after - before
         new_binaries_str = ", ".join(str(s) for s in new_binaries)
         logging.info(f"downloaded new binaries: {new_binaries_str}")
@@ -111,7 +111,7 @@ def ensure_pipx_on_path(bin_dir, modify_path):
 
             %(sep)s
             """
-                % dict(sep="=" * 60, bin_dir=bin_dir)
+                % {"sep": "=" * 60, "bin_dir": bin_dir}
             )
         )
 
