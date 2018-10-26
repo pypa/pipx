@@ -17,7 +17,9 @@ pipx makes running the latest version of a program as easy as
 ```
 > pipx BINARY
 ```
-This will install the package in a temporary directory, invoke the binary, then clean up after itself, leaving your system untouched. Try it! `pipx cowsay moo`. Notice that you **don't need to execute any install commands to run the binary**.
+This will install the package in a temporary directory, invoke the binary, then clean up after itself, leaving your system untouched. Try it! `pipx cowsay moo`.
+
+Notice that you **don't need to execute any install commands to run the binary**.
 
 You can run .py files directly, too.
 ```
@@ -41,9 +43,12 @@ pipx combines the features of JavaScript's [npx](https://medium.com/@maybekatz/i
 ```
 curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3
 ```
+> pipx is not on PyPI. See [issue #2](https://github.com/cs01/pipx/issues/2) to help fix this.
+
 python 3.6+ is required to install pipx. Binaries can be run with Python 3.3+. If python3 is not found on your PATH or the full path to python3 is not specified, curl will fail with the error message: "(23) Failed writing body."
 
-Note: pipx is not on PyPI. See [issue #2](https://github.com/cs01/pipx/issues/2)
+> Don't have Python3.6+ or later? You can get it at [python.org/downloads](https://www.python.org/downloads/)
+
 
 To upgrade
 ```
@@ -218,6 +223,7 @@ pipx is working!
 ## programs to try with pipx
 Here are some programs you can try out with no obligation. If you've never used the program before, make sure you add the `--help` flag so it doesn't do something you don't expect. If you decide you want to install, you can run `pipx install PACKAGE` instead.
 ```
+pipx install ansible  # IT automation
 pipx asciinema  # Record and share your terminal sessions, the right way.
 pipx black  # uncompromising Python code formatter
 pipx --spec babel pybabel  # internationalizing and localizing Python applications
@@ -233,6 +239,7 @@ pipx poetry  # python dependency/environment/packaging management
 pipx pylint  # source code analyzer
 pipx pyinstaller  # bundles a Python application and all its dependencies into a single package
 pipx pyxtermjs  # fully functional terminal in the browser  
+pipx install shell-functools  # Functional programming tools for the shell
 ```
 
 ## how it works
