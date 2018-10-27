@@ -16,17 +16,17 @@ with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
 
 setup(
     name="pipx",
-    version="0.0.0.13",
+    version="0.0.0.14",
     author="Chad Smith",
     author_email="grassfedcode@gmail.com",
-    description="Run CLI applications in an isolated environment without commitment",
+    description="execute binaries from Python packages in isolated environments",
     long_description=README,
     long_description_content_type="text/markdown",
     url="https://github.com/cs01/pipx",
     license="License :: OSI Approved :: MIT License",
     packages=find_packages(exclude=EXCLUDE_FROM_PACKAGES),
     include_package_data=True,
-    keywords=["pip", "install"],
+    keywords=["pip", "install", "cli", "virtualenv", "workflow"],
     scripts=[],
     entry_points={"console_scripts": ["pipx = pipx.main:cli"]},
     extras_require={},
@@ -34,11 +34,11 @@ setup(
     python_requires=">=3.6",
     install_requires=REQUIRED,
     classifiers=[
-        "Intended Audience :: Developers",
         "Operating System :: OS Independent",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3 :: Only",
     ],
 )

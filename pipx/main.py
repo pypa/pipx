@@ -5,6 +5,8 @@ import argparse
 import logging
 import os
 from pathlib import Path
+from pipx.animate import animate
+from pipx.colors import red, bold
 import requests
 import shlex
 import shutil
@@ -67,18 +69,21 @@ class Venv:
         self.pip_path = self.bin_path / ("pip" if not IS_WIN else "pip.exe")
         self.python_path = self.bin_path / ("python" if not IS_WIN else "python.exe")
         self.verbose = verbose
+        self.do_animation = not verbose
 
     def create_venv(self) -> None:
-        _run([self._python, "-m", "venv", self.root])
-        if not self.pip_path.exists():
-            raise PipxError(f"Expected to find pip at {str(self.pip_path)}")
-        self.upgrade_package("pip")
+        with animate("creating virtual environment", self.do_animation):
+            _run([self._python, "-m", "venv", self.root])
+            if not self.pip_path.exists():
+                raise PipxError(f"Expected to find pip at {str(self.pip_path)}")
+            self.upgrade_package("pip")
 
     def remove_venv(self) -> None:
         rmdir(self.root)
 
     def install_package(self, package_or_url: str) -> None:
-        self._run_pip(["install", package_or_url])
+        with animate(f"installing package {package_or_url!r}", self.do_animation):
+            self._run_pip(["install", package_or_url])
 
     def get_package_dependencies(self, package: str) -> List[str]:
         get_version_script = textwrap.dedent(
@@ -279,7 +284,7 @@ def _list_installed_package(path: Path, *, new_install: bool = False) -> None:
     )
 
     print(
-        f"  {'installed' if new_install else ''} package: {shlex.quote(package)}, {version}"
+        f"  {'installed' if new_install else ''} package {bold(shlex.quote(package))}, {version}"
     )
     logging.info(f"    python: {str(python_path)}")
     if not python_path.exists():
@@ -290,7 +295,7 @@ def _list_installed_package(path: Path, *, new_install: bool = False) -> None:
     for name in symlinked_binary_names:
         print(f"    - {name}")
     for name in unavailable_binary_names:
-        print(f"    - {name} (symlink not installed)")
+        print(f"    - {red(name)} (symlink not installed)")
 
 
 def list_packages(pipx_local_venvs: Path):
@@ -299,8 +304,8 @@ def list_packages(pipx_local_venvs: Path):
         print("nothing has been installed with pipx 😴")
         return
 
-    print(f"venvs are in {str(pipx_local_venvs)}")
-    print(f"symlinks to binaries are in {str(local_bin_dir)}")
+    print(f"venvs are in {bold(str(pipx_local_venvs))}")
+    print(f"symlinks to binaries are in {bold(str(local_bin_dir))}")
     for d in dirs:
         _list_installed_package(d)
 
@@ -446,7 +451,7 @@ def get_fs_package_name(package: str) -> str:
 
 
 def print_version() -> None:
-    print("0.0.0.13")
+    print("0.0.0.14")
 
 
 def run_pipx_command(args):
