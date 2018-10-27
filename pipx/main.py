@@ -242,7 +242,7 @@ def symlink_package_binaries(
 
         if symlink_path.exists():
             if symlink_path.samefile(b):
-                print(f"{b.name} from package {package} is now available globally")
+                pass
             else:
                 logging.warning(
                     f"⚠️  File exists at {str(symlink_path)} and points to {symlink_path.resolve()}. Not creating."
@@ -250,11 +250,47 @@ def symlink_package_binaries(
         else:
             shadow = which(binary)
             symlink_path.symlink_to(b)
-            print(f"{b.name} from package {package} is now available globally")
+            pass
             if shadow:
                 logging.warning(
                     f"⚠️  Note: {binary} was already on your PATH at " f"{shadow}"
                 )
+
+
+def _list_installed_package(path: Path, *, new_install: bool = False) -> None:
+    venv = Venv(path)
+    python_path = venv.python_path.resolve()
+    package = path.name
+
+    version = venv.get_package_version(package)
+    if version is None:
+        print(f"{package} is not installed in the venv {str(path)}")
+        return
+
+    package_binary_paths = venv.get_package_binary_paths(package)
+    package_binary_names = [b.name for b in package_binary_paths]
+
+    symlinked_binary_paths = get_bin_symlink_paths_for_package(
+        venv.bin_path, package_binary_paths, local_bin_dir
+    )
+    symlinked_binary_names = sorted(p.name for p in symlinked_binary_paths)
+    unavailable_binary_names = sorted(
+        set(package_binary_names) - set(symlinked_binary_names)
+    )
+
+    print(
+        f"  {'installed' if new_install else ''} package: {shlex.quote(package)}, {version}"
+    )
+    logging.info(f"    python: {str(python_path)}")
+    if not python_path.exists():
+        logging.error(f"    associated python path {str(python_path)} does not exist!")
+
+    if new_install and symlinked_binary_names:
+        print("  These binaries are now globally available")
+    for name in symlinked_binary_names:
+        print(f"    - {name}")
+    for name in unavailable_binary_names:
+        print(f"    - {name} (symlink not installed)")
 
 
 def list_packages(pipx_local_venvs: Path):
@@ -266,36 +302,7 @@ def list_packages(pipx_local_venvs: Path):
     print(f"venvs are in {str(pipx_local_venvs)}")
     print(f"symlinks to binaries are in {str(local_bin_dir)}")
     for d in dirs:
-        venv = Venv(d)
-        python_path = venv.python_path.resolve()
-        package = d.name
-
-        version = venv.get_package_version(package)
-        if version is None:
-            print(f"{package} is not installed in the venv {str(d)}")
-            continue
-
-        package_binary_paths = venv.get_package_binary_paths(package)
-        package_binary_names = [b.name for b in package_binary_paths]
-
-        symlinked_binary_paths = get_bin_symlink_paths_for_package(
-            venv.bin_path, package_binary_paths, local_bin_dir
-        )
-        symlinked_binary_names = sorted(p.name for p in symlinked_binary_paths)
-        unavailable_binary_names = set(package_binary_names) - set(
-            symlinked_binary_names
-        )
-
-        print(f"  package: {shlex.quote(package)}, {version}")
-        logging.info(f"    python: {str(python_path)}")
-        if not python_path.exists():
-            logging.error(
-                f"    associated python path {str(python_path)} does not exist!"
-            )
-        for name in symlinked_binary_names:
-            print(f"    - {name}")
-        for name in unavailable_binary_names:
-            print(f"    - {name} (symlink not installed)")
+        _list_installed_package(d)
 
 
 def get_bin_symlink_paths_for_package(
@@ -382,8 +389,8 @@ def install(
                 print(f"  - {b.name}")
         venv.remove_venv()
         raise PipxError(f"No binaries associated with package {package}.")
-    logging.info(f"new binaries: {', '.join(str(b.name) for b in binary_paths)}")
     symlink_package_binaries(local_bin_dir, binary_paths, package)
+    _list_installed_package(venv_dir, new_install=True)
     print("done! ✨ 🌟 ✨")
 
 
