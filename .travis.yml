@@ -5,7 +5,7 @@ python:
 install:
   - pip install black flake8 mypy
 script:
-  - python test.py
+  - python test.py --only-static
 
 cache:
   pip: true

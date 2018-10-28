@@ -1,3 +1,3 @@
 from .run_tests import main
 
-main()
+exit(main())

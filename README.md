@@ -4,10 +4,12 @@
 <a href="https://github.com/cs01/pipx/raw/master/pipx_demo.gif">
 <img src="https://github.com/cs01/pipx/raw/master/pipx_demo.gif">
 </a>
-
 </p>
 
+<p align="center">
+<a href="https://travis-ci.org/cs01/pipx"><img src="https://travis-ci.org/cs01/pipx.svg?branch=master" /></a>
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
+</p>
 
 *pipx is still a new project. Please submit issues if you have questions or bugs to report. For comparison to pipsi, see [how does this compare to pipsi?](#how-does-this-compare-to-pipsi) Read more about pipx on the [blog post](https://medium.com/@grassfedcode/bringing-some-of-javascripts-packaging-solutions-to-python-1b02430d589e).*
 
@@ -15,7 +17,7 @@
 
 pipx makes running the latest version of a program as easy as
 ```
-> pipx BINARY
+pipx BINARY [ARGS...]
 ```
 This will install the package in a temporary directory, invoke the binary, then clean up after itself, leaving your system untouched. Try it! `pipx cowsay moo`.
 
@@ -23,13 +25,13 @@ Notice that you **don't need to execute any install commands to run the binary**
 
 You can run .py files directly, too.
 ```
-> pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
+pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
 pipx is working!
 ```
 
 It also makes (safely) installing a program globally as easy as
 ```
-> pipx install PACKAGE
+pipx install PACKAGE
 ```
 For example, `pipx install cowsay`. It eliminates the tedium of creating and removing virtualenvs, and removes the temptation to run `sudo pip install ...` (you aren't doing that, are you? 😄).
 
@@ -43,12 +45,15 @@ pipx combines the features of JavaScript's [npx](https://medium.com/@maybekatz/i
 ```
 curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3
 ```
-> pipx is not on PyPI. See [issue #2](https://github.com/cs01/pipx/issues/2) to help fix this.
+*pipx is not on PyPI. See [issue #2](https://github.com/cs01/pipx/issues/2) to help fix this.*
 
-python 3.6+ is required to install pipx. Binaries can be run with Python 3.3+. If python3 is not found on your PATH or the full path to python3 is not specified, curl will fail with the error message: "(23) Failed writing body."
+If python3 is not found on your PATH or the full path to python3 is not specified, curl will fail with the error message: "(23) Failed writing body."
 
-> Don't have Python3.6+ or later? You can get it at [python.org/downloads](https://www.python.org/downloads/)
 
+### system requirements
+python 3.6+ is required to install pipx. pipx can run binaries from packages with Python 3.3+. Don't have Python3.6+ or later? See [Python 3 Installation & Setup Guide](https://realpython.com/installing-python/).
+
+pipx works on Linux and macOS. Windows support is underway but not available at this time.
 
 To upgrade
 ```

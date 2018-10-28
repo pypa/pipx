@@ -7,6 +7,7 @@ def run(cmd):
     print(f"Running {' '.join(cmd)!r}")
     rc = subprocess.run(cmd).returncode
     if rc:
+        print(f"test failed; exiting with code {rc}")
         exit(rc)
 
 
