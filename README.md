@@ -49,18 +49,17 @@ curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3
 
 If python3 is not found on your PATH or the full path to python3 is not specified, curl will fail with the error message: "(23) Failed writing body."
 
-
 ### system requirements
 python 3.6+ is required to install pipx. pipx can run binaries from packages with Python 3.3+. Don't have Python3.6+ or later? See [Python 3 Installation & Setup Guide](https://realpython.com/installing-python/).
 
-pipx works on Linux and macOS. Windows support is underway but not available at this time.
+pipx has been tested on macOS (so it should work on Linux too). pipx supports Windows but it has not been tested. If you have used pipx on Windows please comment on [issue #30](https://github.com/cs01/pipx/issues/30) and mention if it worked or not.
 
-To upgrade
+### To upgrade
 ```
 pipx upgrade pipx
 ```
 
-To uninstall
+### To uninstall
 ```
 pipx uninstall pipx
 ```

@@ -17,12 +17,13 @@ def main():
     args = parser.parse_args()
 
     files = ["get-pipx.py", "pipx", "tests"]
-    if not args.only_static:
-        run([sys.executable, "-m", "tests"])
 
+    run(["black", "--check"] + files)
     run(["flake8"] + files)
     run(["mypy"] + files)
-    run(["black", "--check"] + files)
+
+    if not args.only_static:
+        run([sys.executable, "-m", "tests"])
 
 
 if __name__ == "__main__":

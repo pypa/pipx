@@ -21,9 +21,9 @@ import urllib
 try:
     WindowsError
 except NameError:
-    IS_WIN = False
+    WINDOWS = False
 else:
-    IS_WIN = True
+    WINDOWS = True
 
 DEFAULT_PYTHON = sys.executable
 DEFAULT_PIPX_HOME = Path.home() / ".local/pipx/venvs"
@@ -66,9 +66,9 @@ class Venv:
     ) -> None:
         self.root = path
         self._python = python
-        self.bin_path = path / "bin"
-        self.pip_path = self.bin_path / ("pip" if not IS_WIN else "pip.exe")
-        self.python_path = self.bin_path / ("python" if not IS_WIN else "python.exe")
+        self.bin_path = path / "bin" if not WINDOWS else path / "Scripts"
+        self.pip_path = self.bin_path / ("pip" if not WINDOWS else "pip.exe")
+        self.python_path = self.bin_path / ("python" if not WINDOWS else "python.exe")
         self.verbose = verbose
         self.do_animation = not verbose
 
@@ -237,7 +237,29 @@ def download_and_run(
     return venv.run_binary(binary, binary_args)
 
 
-def symlink_package_binaries(
+def expose_binaries_globally(
+    local_bin_dir: Path, binary_paths: List[Path], package: str
+):
+    if WINDOWS:
+        _copy_package_binaries(local_bin_dir, binary_paths, package)
+    else:
+        _symlink_package_binaries(local_bin_dir, binary_paths, package)
+
+
+def _copy_package_binaries(local_bin_dir: Path, binary_paths: List[Path], package: str):
+    for src_unresolved in binary_paths:
+        src = src_unresolved.resolve()
+        binary = src.name
+        dest = Path(local_bin_dir / binary)
+        if not dest.parent.is_dir():
+            mkdir(dest.parent)
+        if dest.exists():
+            logging.warning(f"⚠️  Overwriting file {str(dest)} with {str(src)}")
+            dest.unlink()
+        shutil.copy(src, dest)
+
+
+def _symlink_package_binaries(
     local_bin_dir: Path, binary_paths: List[Path], package: str
 ):
     for b in binary_paths:
@@ -276,12 +298,12 @@ def _list_installed_package(path: Path, *, new_install: bool = False) -> None:
     package_binary_paths = venv.get_package_binary_paths(package)
     package_binary_names = [b.name for b in package_binary_paths]
 
-    symlinked_binary_paths = get_bin_symlink_paths_for_package(
+    exposed_binary_paths = get_exposed_binary_paths_for_package(
         venv.bin_path, package_binary_paths, local_bin_dir
     )
-    symlinked_binary_names = sorted(p.name for p in symlinked_binary_paths)
+    exposed_binary_names = sorted(p.name for p in exposed_binary_paths)
     unavailable_binary_names = sorted(
-        set(package_binary_names) - set(symlinked_binary_names)
+        set(package_binary_names) - set(exposed_binary_names)
     )
 
     print(
@@ -291,9 +313,9 @@ def _list_installed_package(path: Path, *, new_install: bool = False) -> None:
     if not python_path.exists():
         logging.error(f"    associated python path {str(python_path)} does not exist!")
 
-    if new_install and symlinked_binary_names:
+    if new_install and exposed_binary_names:
         print("  These binaries are now globally available")
-    for name in symlinked_binary_names:
+    for name in exposed_binary_names:
         print(f"    - {name}")
     for name in unavailable_binary_names:
         print(f"    - {red(name)} (symlink not installed)")
@@ -311,7 +333,7 @@ def list_packages(pipx_local_venvs: Path):
         _list_installed_package(d)
 
 
-def get_bin_symlink_paths_for_package(
+def get_exposed_binary_paths_for_package(
     bin_path: Path, package_binary_paths: List[Path], local_bin_dir: Path
 ):
     bin_symlinks = set()
@@ -320,9 +342,17 @@ def get_bin_symlink_paths_for_package(
         try:
             # sometimes symlinks can resolve to a file of a different name
             # (in the case of ansible for example) so checking the resolved paths
-            # is not a reliable way to determine if the symlink exists
-            if b.resolve().parent.samefile(bin_path) and b.name in package_binary_names:
-                bin_symlinks.add(b)
+            # is not a reliable way to determine if the symlink exists.
+            # windows doesn't use symlinks, so the check is less strict.
+
+            if b.name in package_binary_names:
+                if WINDOWS:
+                    is_same_file = True
+                else:
+                    is_same_file = b.resolve().parent.samefile(bin_path)
+
+                if is_same_file:
+                    bin_symlinks.add(b)
         except FileNotFoundError:
             pass
     return bin_symlinks
@@ -345,7 +375,8 @@ def upgrade(venv_dir: Path, package: str, package_or_url: str, verbose: bool):
         return
 
     binary_paths = venv.get_package_binary_paths(package)
-    symlink_package_binaries(local_bin_dir, binary_paths, package)
+    expose_binaries_globally(local_bin_dir, binary_paths, package)
+
     print(
         f"upgraded package {package} from {old_version} to {new_version} (location: {str(venv_dir)})"
     )
@@ -395,7 +426,8 @@ def install(
                 print(f"  - {b.name}")
         venv.remove_venv()
         raise PipxError(f"No binaries associated with package {package}.")
-    symlink_package_binaries(local_bin_dir, binary_paths, package)
+
+    expose_binaries_globally(local_bin_dir, binary_paths, package)
     _list_installed_package(venv_dir, new_install=True)
     print("done! ✨ 🌟 ✨")
 
