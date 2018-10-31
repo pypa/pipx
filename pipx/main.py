@@ -35,7 +35,7 @@ INSTALL_PIPX_CMD = (
     "curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3"
 )
 SPEC_HELP = (
-    "Specify the exacty installation source instead of using PyPI and the package name. "
+    "Specify the exact installation source instead of using PyPI and the package name. "
     "Runs `pip install -U SPEC` instead of `pip install -U PACKAGE`. "
     f"For example `--spec {INSTALL_PIPX_URL}` or `--spec mypackage==2.0.0.`"
 )
