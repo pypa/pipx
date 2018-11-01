@@ -199,7 +199,9 @@ class Venv:
 def _run(cmd: Sequence[Union[str, Path]], check=True) -> int:
     cmd_str = " ".join(str(c) for c in cmd)
     logging.info(f"running {cmd_str}")
-    returncode = subprocess.run(cmd).returncode
+    # windows cannot take Path objects, only strings
+    cmd_str_list = [str(c) for c in cmd]
+    returncode = subprocess.run(cmd_str_list).returncode
     if check and returncode:
         raise PipxError(f"{cmd_str!r} failed")
     return returncode

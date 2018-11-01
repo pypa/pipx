@@ -2,15 +2,29 @@
 
 import argparse
 from pathlib import Path
-from shutil import which
+from shutil import copy, which
 import sys
 import os
 import textwrap
+from typing import Sequence, Union
 import subprocess
 import logging
 
+
+try:
+    WindowsError
+except NameError:
+    WINDOWS = False
+else:
+    WINDOWS = True
+
+
 DEFAULT_PIPX_HOME = Path.home() / ".local/pipx/venvs"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
+
+
+class PipxError(Exception):
+    pass
 
 
 def echo(msg=""):
@@ -30,21 +44,24 @@ def succeed(msg=""):
     sys.exit(0)
 
 
-def _run(cmd, check=True):
+def _run(cmd: Sequence[Union[str, Path]], check=True) -> int:
     cmd_str = " ".join(str(c) for c in cmd)
     logging.info(f"running {cmd_str}")
-    returncode = subprocess.run(cmd).returncode
+    # windows cannot take Path objects, only strings
+    cmd_str_list = [str(c) for c in cmd]
+    returncode = subprocess.run(cmd_str_list).returncode
     if check and returncode:
-        fail(f"{cmd_str!r} failed")
+        raise PipxError(f"{cmd_str!r} failed")
+    return returncode
 
 
 class Venv:
-    def __init__(self, path, *, verbose=False, python="python3"):
+    def __init__(self, path, *, verbose=False, python=sys.executable):
         self.root = path
         self._python = python
-        self.bin_path = path / "bin"
-        self.pip_path = self.bin_path / "pip"
-        self.python_path = self.bin_path / "python"
+        self.bin_path = path / "bin" if not WINDOWS else path / "Scripts"
+        self.pip_path = self.bin_path / ("pip" if not WINDOWS else "pip.exe")
+        self.python_path = self.bin_path / ("python" if not WINDOWS else "python.exe")
         self.verbose = verbose
 
     def create_venv(self):
@@ -127,10 +144,12 @@ def get_fs_package_name(package):
     return ret
 
 
-def install(pipx_local_venvs, package, local_bin_dir, pipx_symlink, python, verbose):
+def install(
+    pipx_local_venvs, package, local_bin_dir, pipx_exposed_binary, python, verbose
+):
     venv_dir = pipx_local_venvs / "pipx"
     venv_dir.mkdir(parents=True, exist_ok=True)
-    pipx_symlink.parent.mkdir(parents=True, exist_ok=True)
+    pipx_exposed_binary.parent.mkdir(parents=True, exist_ok=True)
     logging.info(f"virtualenv location is {venv_dir}")
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv()
@@ -138,13 +157,19 @@ def install(pipx_local_venvs, package, local_bin_dir, pipx_symlink, python, verb
     binary = venv.bin_path / "pipx"
     if not binary.is_file():
         fail(f"Expected to find {str(binary)}")
-    if pipx_symlink.is_file():
-        if pipx_symlink.resolve().samefile(binary):
-            echo(f"re-using existing symlink at {str(pipx_symlink)}")
-        else:
-            pipx_symlink.unlink()
+
+    if WINDOWS:
+        # no symlinks on windows
+        src = str(binary)
+        dest = str(pipx_exposed_binary)
+        copy(src, dest)
     else:
-        pipx_symlink.symlink_to(binary)
+        if pipx_exposed_binary.is_file():
+            if pipx_exposed_binary.resolve().samefile(binary):
+                return
+            else:
+                pipx_exposed_binary.unlink()
+        pipx_exposed_binary.symlink_to(binary)
 
 
 def parse_options(argv):
@@ -193,14 +218,15 @@ def main(argv=sys.argv[1:]):
     pipx_local_venvs.mkdir(parents=True, exist_ok=True)
     local_bin_dir.mkdir(parents=True, exist_ok=True)
 
-    pipx_symlink = local_bin_dir / "pipx"
+    pipx_exposed_binary = local_bin_dir / "pipx"
 
-    if which("pipx"):
+    pipx_venv = pipx_local_venvs / "pipx"
+    if (pipx_venv).exists():
         if args.overwrite:
-            echo("reinstalling pipx")
+            echo(f"Overwriting existing pipx installation at {str(pipx_venv)!r}")
         else:
             succeed("You already have pipx installed. Type `pipx` to run.")
-    elif pipx_symlink.is_symlink() and pipx_symlink.resolve().is_file():
+    elif pipx_exposed_binary.is_symlink() and pipx_exposed_binary.resolve().is_file():
         echo("pipx is already installed but not on your PATH")
         ensure_pipx_on_path(local_bin_dir, not args.no_modify_path)
         succeed()
@@ -210,21 +236,24 @@ def main(argv=sys.argv[1:]):
         pipx_local_venvs,
         args.src,
         local_bin_dir,
-        pipx_symlink,
+        pipx_exposed_binary,
         args.python,
         args.verbose,
     )
     ensure_pipx_on_path(local_bin_dir, not args.no_modify_path)
     print()
-    print("Now that pipx is installed, we suggest you run one of these commands.")
+    print("Now that pipx is installed you can run these commands.")
+    print()
+    print("  pipx list")
     print()
     print("  pipx BINARY [BINARY ARGS ...] #  i.e. pipx cowsay moo")
     print()
     print("  pipx install PACKAGE  # i.e. pipx install cowsay")
     print()
-    print("  pipx --help  # to see options")
+    print("  pipx --help")
     print()
     print("Questions or comments? See https://github.com/cs01/pipx")
+    print()
     print("Enjoy! ✨ 🌟 ✨")
 
 
