@@ -60,7 +60,6 @@ class Venv:
         self.root = path
         self._python = python
         self.bin_path = path / "bin" if not WINDOWS else path / "Scripts"
-        self.pip_path = self.bin_path / ("pip" if not WINDOWS else "pip.exe")
         self.python_path = self.bin_path / ("python" if not WINDOWS else "python.exe")
         self.verbose = verbose
 
@@ -81,7 +80,7 @@ class Venv:
         self._run_pip(["install", "--upgrade", package])
 
     def _run_pip(self, cmd):
-        cmd = [self.pip_path] + cmd
+        cmd = [self.python_path, "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
         _run(cmd)
@@ -225,7 +224,10 @@ def main(argv=sys.argv[1:]):
         if args.overwrite:
             echo(f"Overwriting existing pipx installation at {str(pipx_venv)!r}")
         else:
-            succeed("You already have pipx installed. Type `pipx` to run.")
+            succeed(
+                "You already have pipx installed. Pass the `--overwrite` flag to reinstall. "
+                "Type `pipx` to run."
+            )
     elif pipx_exposed_binary.is_symlink() and pipx_exposed_binary.resolve().is_file():
         echo("pipx is already installed but not on your PATH")
         ensure_pipx_on_path(local_bin_dir, not args.no_modify_path)

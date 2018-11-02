@@ -67,7 +67,6 @@ class Venv:
         self.root = path
         self._python = python
         self.bin_path = path / "bin" if not WINDOWS else path / "Scripts"
-        self.pip_path = self.bin_path / ("pip" if not WINDOWS else "pip.exe")
         self.python_path = self.bin_path / ("python" if not WINDOWS else "python.exe")
         self.verbose = verbose
         self.do_animation = not verbose
@@ -75,8 +74,6 @@ class Venv:
     def create_venv(self) -> None:
         with animate("creating virtual environment", self.do_animation):
             _run([self._python, "-m", "venv", self.root])
-            if not self.pip_path.exists():
-                raise PipxError(f"Expected to find pip at {str(self.pip_path)}")
             self.upgrade_package("pip")
 
     def remove_venv(self) -> None:
@@ -190,7 +187,7 @@ class Venv:
         self._run_pip(["install", "--upgrade", package_or_url])
 
     def _run_pip(self, cmd):
-        cmd = [self.pip_path] + cmd
+        cmd = [self.python_path, "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
         return _run(cmd)
