@@ -80,7 +80,7 @@ class Venv:
         self._run_pip(["install", "--upgrade", package])
 
     def _run_pip(self, cmd):
-        cmd = [self.python_path, "-m", "pip"] + cmd
+        cmd = [str(self.python_path), "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
         _run(cmd)
@@ -111,23 +111,19 @@ def ensure_pipx_on_path(bin_dir, modify_path):
             else:
                 f.write('export PATH="%s:$PATH"\n' % bin_dir)
         echo("Added %s to the PATH environment variable in %s" % (bin_dir, config_file))
+        echo("")
         echo("Open a new terminal to use pipx")
     else:
         echo(
             textwrap.dedent(
-                """
-            %(sep)s
+                f"""
+                Note:
+                To finish installation, {str(bin_dir)!r} must be added to your PATH.
+                This can be done by adding the following line to your shell
+                config file (such as ~/.bashrc if using bash):
 
-            Note:
-              To finish installation, %(bin_dir)s must be added to your PATH.
-              This can be done by adding the following line to your shell
-              config file:
-
-              export PATH=%(bin_dir)s:$PATH
-
-            %(sep)s
+                    export PATH={str(bin_dir)}:$PATH
             """
-                % {"sep": "=" * 60, "bin_dir": bin_dir}
             )
         )
 
@@ -153,7 +149,7 @@ def install(
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv()
     venv.install_package(package)
-    binary = venv.bin_path / "pipx"
+    binary = venv.bin_path / "pipx" if not WINDOWS else venv.bin_path / "pipx.exe"
     if not binary.is_file():
         fail(f"Expected to find {str(binary)}")
 

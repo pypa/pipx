@@ -93,7 +93,8 @@ class Venv:
         )
         return (
             subprocess.run(
-                [self.python_path, "-c", get_version_script], stdout=subprocess.PIPE
+                [str(self.python_path), "-c", get_version_script],
+                stdout=subprocess.PIPE,
             )
             .stdout.decode()
             .split()
@@ -111,7 +112,7 @@ class Venv:
         )
         version = (
             subprocess.run(
-                [self.python_path, "-c", get_version_script],
+                [str(self.python_path), "-c", get_version_script],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
             )
@@ -167,7 +168,8 @@ class Venv:
             return []
         binaries = (
             subprocess.run(
-                [self.python_path, "-c", get_binaries_script], stdout=subprocess.PIPE
+                [str(self.python_path), "-c", get_binaries_script],
+                stdout=subprocess.PIPE,
             )
             .stdout.decode()
             .split()
@@ -550,7 +552,7 @@ def run_ephemeral_binary(args, binary_args):
         # download and run directly
         r = requests.get(binary)
         try:
-            exit(subprocess.run([args.python, "-c", r.content]).returncode)
+            exit(subprocess.run([str(args.python), "-c", r.content]).returncode)
         except KeyboardInterrupt:
             pass
         exit(0)
