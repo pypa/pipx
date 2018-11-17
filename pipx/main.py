@@ -22,8 +22,14 @@ try:
     WindowsError
 except NameError:
     WINDOWS = False
+    stars = "✨ 🌟 ✨"
+    hazard = "⚠️"
+    sleep = "😴"
 else:
     WINDOWS = True
+    stars = ""
+    hazard = ""
+    sleep = ""
 
 DEFAULT_PYTHON = sys.executable
 DEFAULT_PIPX_HOME = Path.home() / ".local/pipx/venvs"
@@ -255,7 +261,7 @@ def _copy_package_binaries(local_bin_dir: Path, binary_paths: List[Path], packag
         if not dest.parent.is_dir():
             mkdir(dest.parent)
         if dest.exists():
-            logging.warning(f"⚠️  Overwriting file {str(dest)} with {str(src)}")
+            logging.warning(f"{hazard}  Overwriting file {str(dest)} with {str(src)}")
             dest.unlink()
         shutil.copy(src, dest)
 
@@ -274,7 +280,7 @@ def _symlink_package_binaries(
                 pass
             else:
                 logging.warning(
-                    f"⚠️  File exists at {str(symlink_path)} and points to {symlink_path.resolve()}. Not creating."
+                    f"{hazard}  File exists at {str(symlink_path)} and points to {symlink_path.resolve()}. Not creating."
                 )
         else:
             shadow = which(binary)
@@ -282,7 +288,7 @@ def _symlink_package_binaries(
             pass
             if shadow:
                 logging.warning(
-                    f"⚠️  Note: {binary} was already on your PATH at " f"{shadow}"
+                    f"{hazard}  Note: {binary} was already on your PATH at " f"{shadow}"
                 )
 
 
@@ -325,7 +331,7 @@ def _list_installed_package(path: Path, *, new_install: bool = False) -> None:
 def list_packages(pipx_local_venvs: Path):
     dirs = list(sorted(pipx_local_venvs.iterdir()))
     if not dirs:
-        print("nothing has been installed with pipx 😴")
+        print(f"nothing has been installed with pipx {sleep}")
         return
 
     print(f"venvs are in {bold(str(pipx_local_venvs))}")
@@ -415,6 +421,7 @@ def install(
     if venv.get_package_version(package) is None:
         venv.remove_venv()
         raise PipxError(f"Could not find package {package}. Is the name correct?")
+
     binary_paths = venv.get_package_binary_paths(package)
     if not binary_paths:
         for dependent_package in venv.get_package_dependencies(package):
@@ -430,7 +437,7 @@ def install(
 
     expose_binaries_globally(local_bin_dir, binary_paths, package)
     _list_installed_package(venv_dir, new_install=True)
-    print("done! ✨ 🌟 ✨")
+    print(f"done! {stars}")
 
 
 def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
@@ -439,7 +446,7 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
         binary = which(package)
         if binary:
             print(
-                f"⚠️  Note: '{binary}' still exists on your system and is on your PATH"
+                f"{hazard}  Note: '{binary}' still exists on your system and is on your PATH"
             )
         return
 
@@ -453,7 +460,7 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
                 symlink.unlink()
 
     rmdir(venv_dir)
-    print(f"uninstalled {package}! ✨ 🌟 ✨")
+    print(f"uninstalled {package}! {stars}")
 
 
 def uninstall_all(pipx_local_venvs: Path, local_bin_dir: Path, verbose: bool):
@@ -558,7 +565,7 @@ def run_ephemeral_binary(args, binary_args):
         exit(0)
     elif which(binary):
         logging.warning(
-            f"⚠️  {binary} is already on your PATH and installed at "
+            f"{hazard}  {binary} is already on your PATH and installed at "
             f"{which(binary)}. Downloading and "
             "running anyway."
         )
