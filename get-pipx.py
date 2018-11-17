@@ -114,18 +114,37 @@ def ensure_pipx_on_path(bin_dir, modify_path):
         echo("")
         echo("Open a new terminal to use pipx")
     else:
-        echo(
+        if WINDOWS:
             textwrap.dedent(
                 f"""
                 Note:
-                To finish installation, {str(bin_dir)!r} must be added to your PATH.
-                This can be done by adding the following line to your shell
-                config file (such as ~/.bashrc if using bash):
+                To finish installation, {str(bin_dir)!r} must be added to your PATH
+                environment variable.
 
-                    export PATH={str(bin_dir)}:$PATH
+                To do this, go to settings and type "Environment Variables".
+                In the Environment Variables window edit the PATH variable
+                by adding the following to the end of the value, then open a new
+                terminal.
+
+                    ;{str(bin_dir)}
             """
             )
-        )
+
+        else:
+            echo(
+                textwrap.dedent(
+                    f"""
+                    Note:
+                    To finish installation, {str(bin_dir)!r} must be added to your PATH
+                    environemnt variable.
+
+                    To do this, add the following line to your shell
+                    config file (such as ~/.bashrc if using bash):
+
+                        export PATH={str(bin_dir)}:$PATH
+                """
+                )
+            )
 
 
 def get_fs_package_name(package):
@@ -154,10 +173,13 @@ def install(
         fail(f"Expected to find {str(binary)}")
 
     if WINDOWS:
-        # no symlinks on windows
-        src = str(binary)
-        dest = str(pipx_exposed_binary)
-        copy(src, dest)
+        # windows creates multiple files that need to be co-located to work,
+        # such as pipx.exe and pipx-script.py
+        # for name in os.listdir(venv + '/Scripts'):
+        for path in venv.bin_path.iterdir():
+            if "pipx" in path.name.lower():
+                copy(str(path), str(local_bin_dir))
+
     else:
         if pipx_exposed_binary.is_file():
             if pipx_exposed_binary.resolve().samefile(binary):
@@ -213,7 +235,7 @@ def main(argv=sys.argv[1:]):
     pipx_local_venvs.mkdir(parents=True, exist_ok=True)
     local_bin_dir.mkdir(parents=True, exist_ok=True)
 
-    pipx_exposed_binary = local_bin_dir / "pipx"
+    pipx_exposed_binary = local_bin_dir / ("pipx" if not WINDOWS else "pipx.exe")
 
     pipx_venv = pipx_local_venvs / "pipx"
     if (pipx_venv).exists():

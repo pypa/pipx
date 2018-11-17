@@ -140,7 +140,7 @@ class Venv:
 
             dist = pkg_resources.get_distribution("{package}")
 
-            bin_path = Path("{self.bin_path}")
+            bin_path = Path(r"{self.bin_path}")
             binaries = set()
             for section in ['console_scripts', 'gui_scripts']:
                 for name in pkg_resources.get_entry_map(dist).get(section, []):
@@ -180,7 +180,14 @@ class Venv:
             .stdout.decode()
             .split()
         )
-        binary_paths = [self.bin_path / b for b in binaries]
+        binary_paths = {self.bin_path / b for b in binaries}
+        if WINDOWS:
+            for binary in binary_paths:
+                # windows has additional files staring with the same name that are required
+                # to run the binary
+                for win_exec in binary.parent.glob(f"{binary.name}*"):
+                    binary_paths.add(win_exec)
+
         valid_binary_paths = list(filter(lambda p: p.exists(), binary_paths))
         return valid_binary_paths
 
@@ -492,7 +499,7 @@ def get_fs_package_name(package: str) -> str:
 
 
 def print_version() -> None:
-    print("0.0.0.14")
+    print("0.9.0")
 
 
 def run_pipx_command(args):
@@ -569,6 +576,10 @@ def run_ephemeral_binary(args, binary_args):
             f"{which(binary)}. Downloading and "
             "running anyway."
         )
+
+    if WINDOWS and not binary.endswith(".exe"):
+        binary = f"{binary}.exe"
+        logging.warning(f"Assuming binary is {binary!r} (Windows only)")
 
     with tempfile.TemporaryDirectory(
         prefix=f"{get_fs_package_name(package_or_url)}_"
