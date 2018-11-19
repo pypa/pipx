@@ -463,11 +463,17 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
     venv = Venv(venv_dir, verbose=verbose)
 
     package_binary_paths = venv.get_package_binary_paths(package)
-    for symlink in local_bin_dir.iterdir():
-        for b in package_binary_paths:
-            if symlink.exists() and b.exists() and symlink.samefile(b):
-                logging.info(f"removing symlink {str(symlink)}")
-                symlink.unlink()
+    for file in local_bin_dir.iterdir():
+        if WINDOWS:
+            for b in package_binary_paths:
+                if file.name == b.name:
+                    file.unlink()
+        else:
+            symlink = file
+            for b in package_binary_paths:
+                if symlink.exists() and b.exists() and symlink.samefile(b):
+                    logging.info(f"removing symlink {str(symlink)}")
+                    symlink.unlink()
 
     rmdir(venv_dir)
     print(f"uninstalled {package}! {stars}")
@@ -502,7 +508,7 @@ def get_fs_package_name(package: str) -> str:
 
 
 def print_version() -> None:
-    print("0.9.1")
+    print("0.9.2")
 
 
 def run_pipx_command(args):
