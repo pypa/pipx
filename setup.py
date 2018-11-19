@@ -3,8 +3,7 @@
 
 import io
 import os
-import sys
-from setuptools import find_packages, setup, Command
+from setuptools import find_packages, setup
 
 CURDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -15,8 +14,8 @@ with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
     README = f.read()
 
 setup(
-    name="pipx",
-    version="0.9.0",
+    name="pipx-app",
+    version="0.9.1",
     author="Chad Smith",
     author_email="grassfedcode@gmail.com",
     description="execute binaries from Python packages in isolated environments",

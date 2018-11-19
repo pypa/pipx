@@ -221,7 +221,10 @@ def _run(cmd: Sequence[Union[str, Path]], check=True) -> int:
 
 def rmdir(path: Path):
     logging.info(f"removing directory {path}")
-    shutil.rmtree(path)
+    if WINDOWS:
+        os.system(f'rmdir /S /Q "{str(path)}"')
+    else:
+        shutil.rmtree(path)
 
 
 def mkdir(path: Path) -> None:
@@ -499,7 +502,7 @@ def get_fs_package_name(package: str) -> str:
 
 
 def print_version() -> None:
-    print("0.9.0")
+    print("0.9.1")
 
 
 def run_pipx_command(args):
@@ -633,7 +636,7 @@ def get_command_parser():
         dest="command", description="Get help for commands with pipx COMMAND --help"
     )
     p = subparsers.add_parser(
-        "binary", help=("Run a binary with the given name from an ephemral virtualenv")
+        "binary", help=("Run a binary with the given name from an ephemeral virtualenv")
     )
     p.add_argument("--spec", help=SPEC_HELP)
     p.add_argument("--verbose", action="store_true")
