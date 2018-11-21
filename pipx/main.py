@@ -508,7 +508,7 @@ def get_fs_package_name(package: str) -> str:
 
 
 def print_version() -> None:
-    print("0.9.2")
+    print("0.9.3")
 
 
 def run_pipx_command(args):
