@@ -55,7 +55,9 @@ venv location is {}.
 Symlinks to binaries are placed in {}.
 These locations can be overridden with the environment variables
 PIPX_HOME and PIPX_BIN_DIR, respectively.
-""".format(pipx_local_venvs, local_bin_dir)
+""".format(
+        pipx_local_venvs, local_bin_dir
+    )
 )
 PIPX_USAGE = """
     %(prog)s [--spec SPEC] [--python PYTHON] BINARY [BINARY-ARGS]
@@ -86,7 +88,9 @@ class Venv:
         rmdir(self.root)
 
     def install_package(self, package_or_url: str) -> None:
-        with animate("installing package '{}'".format(package_or_url), self.do_animation):
+        with animate(
+            "installing package '{}'".format(package_or_url), self.do_animation
+        ):
             self._run_pip(["install", package_or_url])
 
     def get_package_dependencies(self, package: str) -> List[str]:
@@ -95,7 +99,9 @@ class Venv:
         import pkg_resources
         for r in pkg_resources.get_distribution("{}").requires():
             print(r)
-        """.format(package)
+        """.format(
+                package
+            )
         )
         return (
             subprocess.run(
@@ -114,7 +120,9 @@ class Venv:
             print(pkg_resources.get_distribution("{}").version)
         except:
             pass
-        """.format(package)
+        """.format(
+                package
+            )
         )
         version = (
             subprocess.run(
@@ -168,7 +176,9 @@ class Venv:
 
             [print(b) for b in sorted(binaries)]
 
-        """.format(package, self.bin_path)
+        """.format(
+                package, self.bin_path
+            )
         )
         if not Path(self.python_path).exists():
             return []
@@ -248,7 +258,9 @@ def download_and_run(
     if not (venv.bin_path / binary).exists():
         binaries = venv.get_package_binary_paths(package)
         raise PipxError(
-            "{} not found in package {}. Available binaries: {}".format(binary, package, ', '.join(b.name for b in binaries))
+            "{} not found in package {}. Available binaries: {}".format(
+                binary, package, ", ".join(b.name for b in binaries)
+            )
         )
     return venv.run_binary(binary, binary_args)
 
@@ -290,7 +302,9 @@ def _symlink_package_binaries(
             else:
                 logging.warning(
                     "%s  File exists at %s and points to %s. Not creating.",
-                    hazard, symlink_path, symlink_path.resolve()
+                    hazard,
+                    symlink_path,
+                    symlink_path.resolve(),
                 )
         else:
             shadow = which(binary)
@@ -299,7 +313,9 @@ def _symlink_package_binaries(
             if shadow:
                 logging.warning(
                     "%s  Note: %s was already on your PATH at %s",
-                    hazard, binary, shadow
+                    hazard,
+                    binary,
+                    shadow,
                 )
 
 
@@ -325,7 +341,9 @@ def _list_installed_package(path: Path, *, new_install: bool = False) -> None:
     )
 
     print(
-        "  {} package {}, {}".format('installed' if new_install else '', bold(shlex.quote(package)), version)
+        "  {} package {}, {}".format(
+            "installed" if new_install else "", bold(shlex.quote(package)), version
+        )
     )
     logging.info("    python: %s", python_path)
     if not python_path.exists():
@@ -379,7 +397,9 @@ def get_exposed_binary_paths_for_package(
 def upgrade(venv_dir: Path, package: str, package_or_url: str, verbose: bool):
     if not venv_dir.is_dir():
         raise PipxError(
-            "Package is not installed. Expected to find {}, but it does not exist.".format(venv_dir)
+            "Package is not installed. Expected to find {}, but it does not exist.".format(
+                venv_dir
+            )
         )
     venv = Venv(venv_dir, verbose=verbose)
     old_version = venv.get_package_version(package)
@@ -387,7 +407,9 @@ def upgrade(venv_dir: Path, package: str, package_or_url: str, verbose: bool):
     new_version = venv.get_package_version(package)
     if old_version == new_version:
         print(
-            "{} is already at latest version {} (location: {})".format(package, old_version, venv_dir)
+            "{} is already at latest version {} (location: {})".format(
+                package, old_version, venv_dir
+            )
         )
         return
 
@@ -395,7 +417,9 @@ def upgrade(venv_dir: Path, package: str, package_or_url: str, verbose: bool):
     expose_binaries_globally(local_bin_dir, binary_paths, package)
 
     print(
-        "upgraded package {} from {} to {} (location: {})".format(package, old_version, new_version, venv_dir)
+        "upgraded package {} from {} to {} (location: {})".format(
+            package, old_version, new_version, venv_dir
+        )
     )
 
 
@@ -430,7 +454,9 @@ def install(
 
     if venv.get_package_version(package) is None:
         venv.remove_venv()
-        raise PipxError("Could not find package {}. Is the name correct?".format(package))
+        raise PipxError(
+            "Could not find package {}. Is the name correct?".format(package)
+        )
 
     binary_paths = venv.get_package_binary_paths(package)
     if not binary_paths:
@@ -438,7 +464,9 @@ def install(
             dependent_binaries = venv.get_package_binary_paths(dependent_package)
             if dependent_binaries:
                 print(
-                    "Note: Dependent package '{}' contains {} binaries".format(dependent_package, len(dependent_binaries))
+                    "Note: Dependent package '{}' contains {} binaries".format(
+                        dependent_package, len(dependent_binaries)
+                    )
                 )
             for b in dependent_binaries:
                 print("  - {}".format(b.name))
@@ -456,7 +484,9 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
         binary = which(package)
         if binary:
             print(
-                "{}  Note: '{}' still exists on your system and is on your PATH".format(hazard, binary)
+                "{}  Note: '{}' still exists on your system and is on your PATH".format(
+                    hazard, binary
+                )
             )
         return
 
@@ -582,7 +612,10 @@ def run_ephemeral_binary(args, binary_args):
     elif which(binary):
         logging.warning(
             "%s  %s is already on your PATH and installed at %s."
-            " Downloading and running anyway.", hazard, binary, which(binary)
+            " Downloading and running anyway.",
+            hazard,
+            binary,
+            which(binary),
         )
 
     if WINDOWS and not binary.endswith(".exe"):

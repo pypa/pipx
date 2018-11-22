@@ -110,7 +110,11 @@ def ensure_pipx_on_path(bin_dir, modify_path):
                 f.write("set -x PATH {} $PATH\n\n".format(bin_dir))
             else:
                 f.write('export PATH="{}:$PATH"\n'.format(bin_dir))
-        echo("Added {} to the PATH environment variable in {}".format(bin_dir, config_file))
+        echo(
+            "Added {} to the PATH environment variable in {}".format(
+                bin_dir, config_file
+            )
+        )
         echo("")
         echo("Open a new terminal to use pipx")
     else:
@@ -127,7 +131,9 @@ def ensure_pipx_on_path(bin_dir, modify_path):
                 terminal.
 
                     ;{0}
-            """.format(bin_dir)
+            """.format(
+                    bin_dir
+                )
             )
 
         else:
@@ -142,7 +148,9 @@ def ensure_pipx_on_path(bin_dir, modify_path):
                     config file (such as ~/.bashrc if using bash):
 
                         export PATH={0}:$PATH
-                """.format(bin_dir)
+                """.format(
+                        bin_dir
+                    )
                 )
             )
 
@@ -274,7 +282,7 @@ def main(argv=sys.argv[1:]):
     print()
     print("Questions or comments? See https://github.com/cs01/pipx")
     print()
-    print("Enjoy!".format('✨ 🌟 ✨' if not WINDOWS else ''))
+    print("Enjoy!".format("✨ 🌟 ✨" if not WINDOWS else ""))
 
 
 if __name__ == "__main__":
