@@ -46,12 +46,12 @@ def succeed(msg=""):
 
 def _run(cmd: Sequence[Union[str, Path]], check=True) -> int:
     cmd_str = " ".join(str(c) for c in cmd)
-    logging.info(f"running {cmd_str}")
+    logging.info("running %s", cmd_str)
     # windows cannot take Path objects, only strings
     cmd_str_list = [str(c) for c in cmd]
     returncode = subprocess.run(cmd_str_list).returncode
     if check and returncode:
-        raise PipxError(f"{cmd_str!r} failed")
+        raise PipxError("'{}' failed".format(cmd_str))
     return returncode
 
 
@@ -73,7 +73,7 @@ class Venv:
         after = {child for child in self.bin_path.iterdir()}
         new_binaries = after - before
         new_binaries_str = ", ".join(str(s) for s in new_binaries)
-        logging.info(f"downloaded new binaries: {new_binaries_str}")
+        logging.info("downloaded new binaries: %s", new_binaries_str)
         return new_binaries
 
     def upgrade_package(self, package):
@@ -107,18 +107,18 @@ def ensure_pipx_on_path(bin_dir, modify_path):
         with open(config_file, "a") as f:
             f.write("\n# added by pipx (https://github.com/cs01/pipx)\n")
             if "fish" in shell:
-                f.write("set -x PATH %s $PATH\n\n" % bin_dir)
+                f.write("set -x PATH {} $PATH\n\n".format(bin_dir))
             else:
-                f.write('export PATH="%s:$PATH"\n' % bin_dir)
-        echo("Added %s to the PATH environment variable in %s" % (bin_dir, config_file))
+                f.write('export PATH="{}:$PATH"\n'.format(bin_dir))
+        echo("Added {} to the PATH environment variable in {}".format(bin_dir, config_file))
         echo("")
         echo("Open a new terminal to use pipx")
     else:
         if WINDOWS:
             textwrap.dedent(
-                f"""
+                """
                 Note:
-                To finish installation, {str(bin_dir)!r} must be added to your PATH
+                To finish installation, '{0}' must be added to your PATH
                 environment variable.
 
                 To do this, go to settings and type "Environment Variables".
@@ -126,23 +126,23 @@ def ensure_pipx_on_path(bin_dir, modify_path):
                 by adding the following to the end of the value, then open a new
                 terminal.
 
-                    ;{str(bin_dir)}
-            """
+                    ;{0}
+            """.format(bin_dir)
             )
 
         else:
             echo(
                 textwrap.dedent(
-                    f"""
+                    """
                     Note:
-                    To finish installation, {str(bin_dir)!r} must be added to your PATH
+                    To finish installation, '{0}' must be added to your PATH
                     environemnt variable.
 
                     To do this, add the following line to your shell
                     config file (such as ~/.bashrc if using bash):
 
-                        export PATH={str(bin_dir)}:$PATH
-                """
+                        export PATH={0}:$PATH
+                """.format(bin_dir)
                 )
             )
 
@@ -164,13 +164,13 @@ def install(
     venv_dir = pipx_local_venvs / "pipx"
     venv_dir.mkdir(parents=True, exist_ok=True)
     pipx_exposed_binary.parent.mkdir(parents=True, exist_ok=True)
-    logging.info(f"virtualenv location is {venv_dir}")
+    logging.info("virtualenv location is %s", venv_dir)
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv()
     venv.install_package(package)
     binary = venv.bin_path / "pipx" if not WINDOWS else venv.bin_path / "pipx.exe"
     if not binary.is_file():
-        fail(f"Expected to find {str(binary)}")
+        fail("Expected to find {}".format(binary))
 
     if WINDOWS:
         # windows creates multiple files that need to be co-located to work,
@@ -214,7 +214,7 @@ def parse_options(argv):
     parser.add_argument(
         "--python",
         default=sys.executable,
-        help=("The Python binary to associate pipx with. Must be v3.6+."),
+        help=("The Python binary to associate pipx with. Must be v3.5+."),
     )
     parser.add_argument(
         "--verbose", action="store_true", help=("Display more detailed output")
@@ -240,7 +240,7 @@ def main(argv=sys.argv[1:]):
     pipx_venv = pipx_local_venvs / "pipx"
     if (pipx_venv).exists():
         if args.overwrite:
-            echo(f"Overwriting existing pipx installation at {str(pipx_venv)!r}")
+            echo("Overwriting existing pipx installation at '{}'".format(pipx_venv))
         else:
             succeed(
                 "You already have pipx installed. Pass the `--overwrite` flag to reinstall. "
@@ -274,7 +274,7 @@ def main(argv=sys.argv[1:]):
     print()
     print("Questions or comments? See https://github.com/cs01/pipx")
     print()
-    print(f"Enjoy! {'✨ 🌟 ✨' if not WINDOWS else ''}")
+    print("Enjoy!".format('✨ 🌟 ✨' if not WINDOWS else ''))
 
 
 if __name__ == "__main__":

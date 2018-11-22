@@ -4,10 +4,10 @@ import sys
 
 
 def run(cmd):
-    print(f"Running {' '.join(cmd)!r}")
+    print("Running {}".format(' '.join(cmd)))
     rc = subprocess.run(cmd).returncode
     if rc:
-        print(f"test failed; exiting with code {rc}")
+        print("test failed; exiting with code {}".format(rc))
         exit(rc)
 
 

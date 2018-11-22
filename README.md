@@ -50,7 +50,7 @@ pipx is on PyPI as `pipx-app`, though the recommended way to install pipx is to 
 If python3 is not found on your PATH or the full path to python3 is not specified, curl will fail with the error message: "(23) Failed writing body."
 
 ### system requirements
-python 3.6+ is required to install pipx. pipx can run binaries from packages with Python 3.3+. Don't have Python3.6+ or later? See [Python 3 Installation & Setup Guide](https://realpython.com/installing-python/).
+python 3.5+ is required to install pipx. pipx can run binaries from packages with Python 3.3+. Don't have Python3.5+ or later? See [Python 3 Installation & Setup Guide](https://realpython.com/installing-python/).
 
 pipx works on macOS, linux, and Windows.
 
@@ -296,7 +296,7 @@ If you make a pull request please add your name here.
 * pipx has the ability to run a binary in one line, leaving your system unchanged after it finishes (`pipx binary`) where pipsi does not
 * pipx adds more useful information to its output
 * pipx has more CLI options such as upgrade-all, reinstall-all, uninstall-all
-* pipx is more modern. It uses Python 3.6+, and venv instead of virtualenv.
+* pipx is more modern. It uses Python 3.5+, and venv instead of virtualenv.
 * pipx always uses the lastest version of pip in its venvs
 * pipx works with Python homebrew installations while pipsi does not (at least on my machine)
 * pipx defaults to less verbose output

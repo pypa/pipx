@@ -43,19 +43,19 @@ INSTALL_PIPX_CMD = (
 SPEC_HELP = (
     "Specify the exact installation source instead of using PyPI and the package name. "
     "Runs `pip install -U SPEC` instead of `pip install -U PACKAGE`. "
-    f"For example `--spec {INSTALL_PIPX_URL}` or `--spec mypackage==2.0.0.`"
+    "For example `--spec {}` or `--spec mypackage==2.0.0.`".format(INSTALL_PIPX_URL)
 )
 PIPX_DESCRIPTION = textwrap.dedent(
-    f"""
+    """
 Execute binaries from Python packages.
 
 Binaries can either be run directly or installed globally into isolated venvs.
 
-venv location is {str(pipx_local_venvs)}.
-Symlinks to binaries are placed in {str(local_bin_dir)}.
+venv location is {}.
+Symlinks to binaries are placed in {}.
 These locations can be overridden with the environment variables
 PIPX_HOME and PIPX_BIN_DIR, respectively.
-"""
+""".format(pipx_local_venvs, local_bin_dir)
 )
 PIPX_USAGE = """
     %(prog)s [--spec SPEC] [--python PYTHON] BINARY [BINARY-ARGS]
@@ -86,16 +86,16 @@ class Venv:
         rmdir(self.root)
 
     def install_package(self, package_or_url: str) -> None:
-        with animate(f"installing package {package_or_url!r}", self.do_animation):
+        with animate("installing package '{}'".format(package_or_url), self.do_animation):
             self._run_pip(["install", package_or_url])
 
     def get_package_dependencies(self, package: str) -> List[str]:
         get_version_script = textwrap.dedent(
-            f"""
+            """
         import pkg_resources
-        for r in pkg_resources.get_distribution("{package}").requires():
+        for r in pkg_resources.get_distribution("{}").requires():
             print(r)
-        """
+        """.format(package)
         )
         return (
             subprocess.run(
@@ -108,13 +108,13 @@ class Venv:
 
     def get_package_version(self, package: str) -> Optional[str]:
         get_version_script = textwrap.dedent(
-            f"""
+            """
         try:
             import pkg_resources
-            print(pkg_resources.get_distribution("{package}").version)
+            print(pkg_resources.get_distribution("{}").version)
         except:
             pass
-        """
+        """.format(package)
         )
         version = (
             subprocess.run(
@@ -132,15 +132,15 @@ class Venv:
 
     def get_package_binary_paths(self, package: str) -> List[Path]:
         get_binaries_script = textwrap.dedent(
-            f"""
+            """
             import pkg_resources
             import sys
             import os
             from pathlib import Path
 
-            dist = pkg_resources.get_distribution("{package}")
+            dist = pkg_resources.get_distribution("{}")
 
-            bin_path = Path(r"{self.bin_path}")
+            bin_path = Path(r"{}")
             binaries = set()
             for section in ['console_scripts', 'gui_scripts']:
                 for name in pkg_resources.get_entry_map(dist).get(section, []):
@@ -168,7 +168,7 @@ class Venv:
 
             [print(b) for b in sorted(binaries)]
 
-        """
+        """.format(package, self.bin_path)
         )
         if not Path(self.python_path).exists():
             return []
@@ -185,7 +185,7 @@ class Venv:
             for binary in binary_paths:
                 # windows has additional files staring with the same name that are required
                 # to run the binary
-                for win_exec in binary.parent.glob(f"{binary.name}*"):
+                for win_exec in binary.parent.glob(binary.name + "*"):
                     binary_paths.add(win_exec)
 
         valid_binary_paths = list(filter(lambda p: p.exists(), binary_paths))
@@ -210,27 +210,27 @@ class Venv:
 
 def _run(cmd: Sequence[Union[str, Path]], check=True) -> int:
     cmd_str = " ".join(str(c) for c in cmd)
-    logging.info(f"running {cmd_str}")
+    logging.info("running %s", cmd_str)
     # windows cannot take Path objects, only strings
     cmd_str_list = [str(c) for c in cmd]
     returncode = subprocess.run(cmd_str_list).returncode
     if check and returncode:
-        raise PipxError(f"{cmd_str!r} failed")
+        raise PipxError("'{}' failed".format(cmd_str))
     return returncode
 
 
 def rmdir(path: Path):
-    logging.info(f"removing directory {path}")
+    logging.info("removing directory %s", path)
     if WINDOWS:
-        os.system(f'rmdir /S /Q "{str(path)}"')
+        os.system('rmdir /S /Q "{}"'.format(path))
     else:
-        shutil.rmtree(path)
+        shutil.rmtree(str(path))
 
 
 def mkdir(path: Path) -> None:
     if path.is_dir():
         return
-    logging.info(f"creating directory {path}")
+    logging.info("creating directory %s", path)
     path.mkdir(parents=True, exist_ok=True)
 
 
@@ -248,8 +248,7 @@ def download_and_run(
     if not (venv.bin_path / binary).exists():
         binaries = venv.get_package_binary_paths(package)
         raise PipxError(
-            f"{binary} not found in package {package}. Available binaries: "
-            f"{', '.join(b.name for b in binaries)}"
+            "{} not found in package {}. Available binaries: {}".format(binary, package, ', '.join(b.name for b in binaries))
         )
     return venv.run_binary(binary, binary_args)
 
@@ -271,7 +270,7 @@ def _copy_package_binaries(local_bin_dir: Path, binary_paths: List[Path], packag
         if not dest.parent.is_dir():
             mkdir(dest.parent)
         if dest.exists():
-            logging.warning(f"{hazard}  Overwriting file {str(dest)} with {str(src)}")
+            logging.warning("%s  Overwriting file %s with %s", hazard, dest, src)
             dest.unlink()
         shutil.copy(src, dest)
 
@@ -290,7 +289,8 @@ def _symlink_package_binaries(
                 pass
             else:
                 logging.warning(
-                    f"{hazard}  File exists at {str(symlink_path)} and points to {symlink_path.resolve()}. Not creating."
+                    "%s  File exists at %s and points to %s. Not creating.",
+                    hazard, symlink_path, symlink_path.resolve()
                 )
         else:
             shadow = which(binary)
@@ -298,7 +298,8 @@ def _symlink_package_binaries(
             pass
             if shadow:
                 logging.warning(
-                    f"{hazard}  Note: {binary} was already on your PATH at " f"{shadow}"
+                    "%s  Note: %s was already on your PATH at %s",
+                    hazard, binary, shadow
                 )
 
 
@@ -309,7 +310,7 @@ def _list_installed_package(path: Path, *, new_install: bool = False) -> None:
 
     version = venv.get_package_version(package)
     if version is None:
-        print(f"{package} is not installed in the venv {str(path)}")
+        print("{} is not installed in the venv {}".format(package, path))
         return
 
     package_binary_paths = venv.get_package_binary_paths(package)
@@ -324,28 +325,28 @@ def _list_installed_package(path: Path, *, new_install: bool = False) -> None:
     )
 
     print(
-        f"  {'installed' if new_install else ''} package {bold(shlex.quote(package))}, {version}"
+        "  {} package {}, {}".format('installed' if new_install else '', bold(shlex.quote(package)), version)
     )
-    logging.info(f"    python: {str(python_path)}")
+    logging.info("    python: %s", python_path)
     if not python_path.exists():
-        logging.error(f"    associated python path {str(python_path)} does not exist!")
+        logging.error("    associated python path %s does not exist!", python_path)
 
     if new_install and exposed_binary_names:
         print("  These binaries are now globally available")
     for name in exposed_binary_names:
-        print(f"    - {name}")
+        print("    - {}".format(name))
     for name in unavailable_binary_names:
-        print(f"    - {red(name)} (symlink not installed)")
+        print("    - {} (symlink not installed)".format(red(name)))
 
 
 def list_packages(pipx_local_venvs: Path):
     dirs = list(sorted(pipx_local_venvs.iterdir()))
     if not dirs:
-        print(f"nothing has been installed with pipx {sleep}")
+        print("nothing has been installed with pipx {}".format(sleep))
         return
 
-    print(f"venvs are in {bold(str(pipx_local_venvs))}")
-    print(f"symlinks to binaries are in {bold(str(local_bin_dir))}")
+    print("venvs are in {}".format(bold(str(pipx_local_venvs))))
+    print("symlinks to binaries are in {}".format(bold(str(local_bin_dir))))
     for d in dirs:
         _list_installed_package(d)
 
@@ -378,8 +379,7 @@ def get_exposed_binary_paths_for_package(
 def upgrade(venv_dir: Path, package: str, package_or_url: str, verbose: bool):
     if not venv_dir.is_dir():
         raise PipxError(
-            f"Package is not installed. Expected to find {str(venv_dir)}, "
-            "but it does not exist."
+            "Package is not installed. Expected to find {}, but it does not exist.".format(venv_dir)
         )
     venv = Venv(venv_dir, verbose=verbose)
     old_version = venv.get_package_version(package)
@@ -387,7 +387,7 @@ def upgrade(venv_dir: Path, package: str, package_or_url: str, verbose: bool):
     new_version = venv.get_package_version(package)
     if old_version == new_version:
         print(
-            f"{package} is already at latest version {old_version} (location: {str(venv_dir)})"
+            "{} is already at latest version {} (location: {})".format(package, old_version, venv_dir)
         )
         return
 
@@ -395,7 +395,7 @@ def upgrade(venv_dir: Path, package: str, package_or_url: str, verbose: bool):
     expose_binaries_globally(local_bin_dir, binary_paths, package)
 
     print(
-        f"upgraded package {package} from {old_version} to {new_version} (location: {str(venv_dir)})"
+        "upgraded package {} from {} to {} (location: {})".format(package, old_version, new_version, venv_dir)
     )
 
 
@@ -430,7 +430,7 @@ def install(
 
     if venv.get_package_version(package) is None:
         venv.remove_venv()
-        raise PipxError(f"Could not find package {package}. Is the name correct?")
+        raise PipxError("Could not find package {}. Is the name correct?".format(package))
 
     binary_paths = venv.get_package_binary_paths(package)
     if not binary_paths:
@@ -438,25 +438,25 @@ def install(
             dependent_binaries = venv.get_package_binary_paths(dependent_package)
             if dependent_binaries:
                 print(
-                    f"Note: Dependent package '{dependent_package}' contains {len(dependent_binaries)} binaries"
+                    "Note: Dependent package '{}' contains {} binaries".format(dependent_package, len(dependent_binaries))
                 )
             for b in dependent_binaries:
-                print(f"  - {b.name}")
+                print("  - {}".format(b.name))
         venv.remove_venv()
-        raise PipxError(f"No binaries associated with package {package}.")
+        raise PipxError("No binaries associated with package {}.".format(package))
 
     expose_binaries_globally(local_bin_dir, binary_paths, package)
     _list_installed_package(venv_dir, new_install=True)
-    print(f"done! {stars}")
+    print("done! {}".format(stars))
 
 
 def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
     if not venv_dir.exists():
-        print(f"Nothing to uninstall for {package} 😴")
+        print("Nothing to uninstall for {} {}".format(package, sleep))
         binary = which(package)
         if binary:
             print(
-                f"{hazard}  Note: '{binary}' still exists on your system and is on your PATH"
+                "{}  Note: '{}' still exists on your system and is on your PATH".format(hazard, binary)
             )
         return
 
@@ -472,11 +472,11 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
             symlink = file
             for b in package_binary_paths:
                 if symlink.exists() and b.exists() and symlink.samefile(b):
-                    logging.info(f"removing symlink {str(symlink)}")
+                    logging.info("removing symlink %s", symlink)
                     symlink.unlink()
 
     rmdir(venv_dir)
-    print(f"uninstalled {package}! {stars}")
+    print("uninstalled {}! {}".format(package, stars))
 
 
 def uninstall_all(pipx_local_venvs: Path, local_bin_dir: Path, verbose: bool):
@@ -519,15 +519,15 @@ def run_pipx_command(args):
         if urllib.parse.urlparse(package).scheme:
             raise PipxError("Package cannot be a url")
         if package == "pipx":
-            logging.warning(f"using url {INSTALL_PIPX_URL} for pipx installation")
+            logging.warning("using url %s for pipx installation", INSTALL_PIPX_URL)
             args.spec = INSTALL_PIPX_URL
         if "spec" in args and args.spec is not None:
             if urllib.parse.urlparse(args.spec).scheme:
                 if "#egg=" not in args.spec:
-                    args.spec = args.spec + f"#egg={package}"
+                    args.spec = "{}#egg={}".format(args.spec, package)
 
         venv_dir = pipx_local_venvs / package
-        logging.info(f"virtualenv location is {venv_dir}")
+        logging.info("virtualenv location is %s", venv_dir)
 
     if args.command == "install":
         package_or_url = (
@@ -545,13 +545,13 @@ def run_pipx_command(args):
         uninstall(venv_dir, package, local_bin_dir, verbose)
     elif args.command == "uninstall-all":
         uninstall_all(pipx_local_venvs, local_bin_dir, verbose)
-        print(f"To reinstall pipx, run '{INSTALL_PIPX_CMD}'")
+        print("To reinstall pipx, run '{}'".format(INSTALL_PIPX_CMD))
     elif args.command == "upgrade-all":
         upgrade_all(pipx_local_venvs, verbose)
     elif args.command == "reinstall-all":
         reinstall_all(pipx_local_venvs, local_bin_dir, args.python, verbose)
     else:
-        raise PipxError(f"Unknown command {args.command}")
+        raise PipxError("Unknown command {}".format(args.command))
 
 
 def run_ephemeral_binary(args, binary_args):
@@ -561,7 +561,7 @@ def run_ephemeral_binary(args, binary_args):
     binary = args.binary[0]
     package_or_url = args.spec if args.spec else binary
     if package_or_url == "pipx":
-        logging.warning(f"using url {INSTALL_PIPX_URL} for pipx installation")
+        logging.warning("using url %s for pipx installation", INSTALL_PIPX_URL)
         package_or_url = INSTALL_PIPX_URL
     verbose = args.verbose
 
@@ -581,19 +581,18 @@ def run_ephemeral_binary(args, binary_args):
         exit(0)
     elif which(binary):
         logging.warning(
-            f"{hazard}  {binary} is already on your PATH and installed at "
-            f"{which(binary)}. Downloading and "
-            "running anyway."
+            "%s  %s is already on your PATH and installed at %s."
+            " Downloading and running anyway.", hazard, binary, which(binary)
         )
 
     if WINDOWS and not binary.endswith(".exe"):
-        binary = f"{binary}.exe"
-        logging.warning(f"Assuming binary is {binary!r} (Windows only)")
+        binary = binary + ".exe"
+        logging.warning("Assuming binary is '%s' (Windows only)", binary)
 
     with tempfile.TemporaryDirectory(
-        prefix=f"{get_fs_package_name(package_or_url)}_"
+        prefix=get_fs_package_name(package_or_url) + "_"
     ) as venv_dir:
-        logging.info(f"virtualenv is temporary, its location is {venv_dir}")
+        logging.info("virtualenv is temporary, its location is {}".format(venv_dir))
         return download_and_run(
             Path(venv_dir), package_or_url, binary, binary_args, args.python, verbose
         )

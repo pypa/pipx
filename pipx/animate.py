@@ -36,11 +36,11 @@ def print_animation(meta: Dict[str, bool]):
             cur = "..."
         else:
             cur = ""
-        message = f"{meta['message']}{cur}"
+        message = str(meta["message"]) + cur
         longest_len = max(len(message), longest_len)
         sys.stdout.write(" " * longest_len)
         sys.stdout.write("\r")
-        sys.stdout.write(message)
+        sys.stdout.write(str(message))
         sys.stdout.write("\r")
         sleep(0.5)
     sys.stdout.write(" " * longest_len)

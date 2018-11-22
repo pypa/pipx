@@ -22,9 +22,8 @@ class c:
 def mkcolorfunc(style):
     def stylize_text(x):
         if PRINT_COLOR:
-            return f"{style}{x}{c.end}"
-        else:
-            return x
+            return style + x + c.end
+        return x
 
     return stylize_text
 
