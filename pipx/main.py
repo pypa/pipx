@@ -62,6 +62,10 @@ PIPX_USAGE = """
     %(prog)s {install, upgrade, upgrade-all, uninstall, uninstall-all, reinstall-all, list} [--help]"""
 
 
+def print_version() -> None:
+    print("0.10.2.1")
+
+
 class PipxError(Exception):
     pass
 
@@ -507,10 +511,6 @@ def get_fs_package_name(package: str) -> str:
     return ret
 
 
-def print_version() -> None:
-    print("0.10.2.0")
-
-
 def run_pipx_command(args):
     setup(args)
     verbose = args.verbose
@@ -518,8 +518,13 @@ def run_pipx_command(args):
         package = args.package
         if urllib.parse.urlparse(package).scheme:
             raise PipxError("Package cannot be a url")
+
         if package == "pipx":
-            raise PipxError(f"use 'pipx-app' instead of 'pipx' for package name")
+            if args.command == "uninstall":
+                logging.warning("Did you mean to use 'pipx-app' instead of 'pipx' for the package name?")
+            else:
+                raise PipxError("use 'pipx-app' instead of 'pipx' for package name")
+
         if "spec" in args and args.spec is not None:
             if urllib.parse.urlparse(args.spec).scheme:
                 if "#egg=" not in args.spec:
@@ -737,10 +742,11 @@ def setup(args):
 
     old_pipx_venv_location = pipx_local_venvs / "pipx"
     if old_pipx_venv_location.exists():
-        raise PipxError(
+        logging.warning(
             "A virtual environment for pipx was detected at "
             f"{str(old_pipx_venv_location)}. The 'pipx' package has been renamed "
-            "to 'pipx-app'. Please reinstall pipx:\n"
+            "to 'pipx-app'. Please reinstall pipx. This will not affect other packages "
+            "installed by pipx. See https://github.com/cs01/pipx/issues/41.\n"
             "  pipx uninstall pipx\n"
             f"  {INSTALL_PIPX_CMD}"
         )
