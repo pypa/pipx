@@ -1,1 +1,6 @@
 *egg*
+.mypy_cache
+.vscode
+build
+dist
+activate
