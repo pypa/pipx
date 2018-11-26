@@ -15,7 +15,7 @@ with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
 
 setup(
     name="pipx-app",
-    version="0.10.2.0",
+    version="0.10.2.1",
     author="Chad Smith",
     author_email="grassfedcode@gmail.com",
     description="execute binaries from Python packages in isolated environments",
@@ -25,7 +25,7 @@ setup(
     license="License :: OSI Approved :: MIT License",
     packages=find_packages(exclude=EXCLUDE_FROM_PACKAGES),
     include_package_data=True,
-    keywords=["pip", "install", "cli", "virtualenv", "workflow"],
+    keywords=["pip", "install", "cli", "virtualenv", "workflow", "bootstrap"],
     scripts=[],
     entry_points={"console_scripts": ["pipx = pipx.main:cli"]},
     extras_require={},
