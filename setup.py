@@ -14,8 +14,8 @@ with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
     README = f.read()
 
 setup(
-    name="pipx",
-    version="0.9.3",
+    name="pipx-app",
+    version="0.10.0",
     author="Chad Smith",
     author_email="grassfedcode@gmail.com",
     description="execute binaries from Python packages in isolated environments",

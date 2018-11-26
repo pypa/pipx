@@ -159,13 +159,18 @@ def get_fs_package_name(package):
 
 
 def install(
-    pipx_local_venvs, package, local_bin_dir, pipx_exposed_binary, python, verbose
+    pipx_local_venvs,
+    pipx_venv,
+    package,
+    local_bin_dir,
+    pipx_exposed_binary,
+    python,
+    verbose,
 ):
-    venv_dir = pipx_local_venvs / "pipx"
-    venv_dir.mkdir(parents=True, exist_ok=True)
+    pipx_venv.mkdir(parents=True, exist_ok=True)
     pipx_exposed_binary.parent.mkdir(parents=True, exist_ok=True)
-    logging.info(f"virtualenv location is {venv_dir}")
-    venv = Venv(venv_dir, python=python, verbose=verbose)
+    logging.info(f"virtualenv location is {pipx_venv}")
+    venv = Venv(pipx_venv, python=python, verbose=verbose)
     venv.create_venv()
     venv.install_package(package)
     binary = venv.bin_path / "pipx" if not WINDOWS else venv.bin_path / "pipx.exe"
@@ -193,7 +198,7 @@ def parse_options(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--src",
-        default="git+https://github.com/cs01/pipx.git",
+        default="pipx-app",
         help=(
             "The specific version of pipx to install. This value is passed "
             'to "pip install <value>". For example, to install from master '
@@ -237,7 +242,7 @@ def main(argv=sys.argv[1:]):
 
     pipx_exposed_binary = local_bin_dir / ("pipx" if not WINDOWS else "pipx.exe")
 
-    pipx_venv = pipx_local_venvs / "pipx"
+    pipx_venv = pipx_local_venvs / "pipx-app"
     if (pipx_venv).exists():
         if args.overwrite:
             echo(f"Overwriting existing pipx installation at {str(pipx_venv)!r}")
@@ -254,6 +259,7 @@ def main(argv=sys.argv[1:]):
     echo("Installing pipx")
     install(
         pipx_local_venvs,
+        pipx_venv,
         args.src,
         local_bin_dir,
         pipx_exposed_binary,

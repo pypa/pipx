@@ -36,14 +36,14 @@ DEFAULT_PIPX_HOME = Path.home() / ".local/pipx/venvs"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 pipx_local_venvs = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve()
 local_bin_dir = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resolve()
-INSTALL_PIPX_URL = "git+https://github.com/cs01/pipx.git"
+PIPX_PACKAGE_NAME = "pipx-app"
 INSTALL_PIPX_CMD = (
     "curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3"
 )
 SPEC_HELP = (
     "Specify the exact installation source instead of using PyPI and the package name. "
     "Runs `pip install -U SPEC` instead of `pip install -U PACKAGE`. "
-    f"For example `--spec {INSTALL_PIPX_URL}` or `--spec mypackage==2.0.0.`"
+    f"For example `--spec {PIPX_PACKAGE_NAME}` or `--spec mypackage==2.0.0.`"
 )
 PIPX_DESCRIPTION = textwrap.dedent(
     f"""
@@ -403,7 +403,7 @@ def upgrade_all(pipx_local_venvs: Path, verbose: bool):
     for venv_dir in pipx_local_venvs.iterdir():
         package = venv_dir.name
         if package == "pipx":
-            package_or_url = INSTALL_PIPX_URL
+            package_or_url = PIPX_PACKAGE_NAME
         else:
             package_or_url = package
         upgrade(venv_dir, package, package_or_url, verbose)
@@ -519,8 +519,7 @@ def run_pipx_command(args):
         if urllib.parse.urlparse(package).scheme:
             raise PipxError("Package cannot be a url")
         if package == "pipx":
-            logging.warning(f"using url {INSTALL_PIPX_URL} for pipx installation")
-            args.spec = INSTALL_PIPX_URL
+            raise PipxError(f"use 'pipx-app' instead of 'pipx' for package name")
         if "spec" in args and args.spec is not None:
             if urllib.parse.urlparse(args.spec).scheme:
                 if "#egg=" not in args.spec:
@@ -561,8 +560,7 @@ def run_ephemeral_binary(args, binary_args):
     binary = args.binary[0]
     package_or_url = args.spec if args.spec else binary
     if package_or_url == "pipx":
-        logging.warning(f"using url {INSTALL_PIPX_URL} for pipx installation")
-        package_or_url = INSTALL_PIPX_URL
+        raise PipxError(f"use 'pipx-app' instead of 'pipx' for package name")
     verbose = args.verbose
 
     if urllib.parse.urlparse(binary).scheme:
@@ -736,6 +734,16 @@ def setup(args):
 
     mkdir(pipx_local_venvs)
     mkdir(local_bin_dir)
+
+    old_pipx_venv_location = pipx_local_venvs / "pipx"
+    if old_pipx_venv_location.exists():
+        raise PipxError(
+            "A virtual environment for pipx was detected at "
+            f"{str(old_pipx_venv_location)}. The 'pipx' package has been renamed "
+            "to 'pipx-app'. Please reinstall pipx:\n"
+            "  pipx uninstall pipx\n"
+            f"  {INSTALL_PIPX_CMD}"
+        )
 
 
 def cli():
