@@ -20,11 +20,25 @@
 
 *if you are using pipx < v0.10 see [issue #41](https://github.com/cs01/pipx/issues/41)*
 
+## overview
+What pipx does for you:
+* Run the latest version of a CLI application from a package in a temporary virtual environment, leaving your system untouched after it finishes
+* Install packages to isolated virtual environments, while globally exposing their CLI applications so you can run them from anywhere
+* Easily list, upgrade, and uninstall packages that were installed with pipx
+* Runs with regular user permissions, never calling `sudo pip install ...` (you aren't doing that, are you? 😄).
+
+pipx combines the features of JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b) - which ships with node - and Python's [pipsi](https://github.com/mitsuhiko/pipsi). pipx does not ship with pip but I consider it to be an important part of bootstrapping your system, similar to how node ships with npm and npx.
+
+### running in one-time ephemeral environments
 pipx makes running the latest version of a program as easy as
 ```
 pipx BINARY [ARGS...]
 ```
-This will install the package in a temporary directory, invoke the binary, then clean up after itself, leaving your system untouched. Try it! `pipx cowsay moo`.
+This will install the package in a temporary directory, invoke the binary, then clean up after itself, leaving your system untouched. Try it!
+
+```
+pipx cowsay moo
+```
 
 Notice that you **don't need to execute any install commands to run the binary**.
 
@@ -34,15 +48,12 @@ pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/ra
 pipx is working!
 ```
 
+### Safely installing to isolated environments
 It also makes (safely) installing a program globally as easy as
 ```
 pipx install PACKAGE
 ```
-This automatically creates a virtual environment, installs the package, and symlinks the package's CLI binaries to a location on your `PATH`. For example, `pipx install cowsay` makes the `cowsay` command available globally, but sandboxes the cowsay package in its own virtual environment.
-
-It eliminates the tedium of creating and removing virtualenvs, and removes the temptation to run `sudo pip install ...` (you aren't doing that, are you? 😄).
-
-pipx combines the features of JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b) - which ships with node - and Python's [pipsi](https://github.com/mitsuhiko/pipsi). pipx does not ship with pip but I consider it to be an important part of bootstrapping your system, similar to how node ships with npm and npx.
+This automatically creates a virtual environment, installs the package, and symlinks the package's CLI binaries to a location on your `PATH`. For example, `pipx install cowsay` makes the `cowsay` command available globally, but sandboxes the cowsay package in its own virtual environment. **pipx never needs to run as sudo to do this.**
 
 ## testimonials
 @tkossak
@@ -56,18 +67,18 @@ pipx is on PyPI as `pipx-app`, though the recommended way to install pipx is to 
 
 If python3 is not found on your PATH or there is a syntax error/typo, `curl` will fail with the error message: "(23) Failed writing body."
 
-To pass arguments to the `get-pipx.py` script, run, for example
+To see options when getting pipx
 ```
-curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3 - ARGS
+curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3 - --help
 ```
 
-To install the latest master
+To install from the latest master
 ```
 curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3 - --src git+https://github.com/cs01/pipx.git
 ```
 
 ### system requirements
-python 3.6+ is required to install pipx. pipx can run binaries from packages with Python 3.3+. Don't have Python3.6+ or later? See [Python 3 Installation & Setup Guide](https://realpython.com/installing-python/).
+python 3.6+ is required to install pipx. pipx can run binaries from packages with Python 3.3+. Don't have Python 3.6 or later? See [Python 3 Installation & Setup Guide](https://realpython.com/installing-python/).
 
 pipx works on macOS, linux, and Windows.
 
@@ -129,7 +140,7 @@ pipx --spec https://github.com/ambv/black/archive/18.9b0.zip black --help
 pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
 ```
 
-### install a package and expose binaries globally
+### install a package
 The install command is the preferred way to globally install binaries from python packages on your system. It creates an isolated virtual environment for the package, then in a folder on your PATH creates symlinks to all the binaries provided by the installed package. It does not link to the package's dependencies.
 
 The result: binaries you can run from anywhere, located in packages you can **cleanly** upgrade or uninstall. Guaranteed to not have dependency version conflicts or interfere with your OS's python packages. All **without** running `sudo`.
@@ -162,25 +173,31 @@ pipx install --spec black[d] black
 *Note: pipx determines a package's binaries (also known as entry points, console scripts, or scripts) by inspecting metadata about the package. Sometimes a package is built in such a way that pipx cannot determine its binaries. In such cases, please create an issue.*
 
 ### upgrade
+Upgrades a package within its virtual environments by running `pip install --upgrade PACKAGE`.
+
 ```
 pipx upgrade PACKAGE
 ```
 
-### upgrade all packages
+### upgrade-all
+Upgrades all packages within their virtual environments by running `pip install --upgrade PACKAGE`.
 ```
 pipx upgrade-all
 ```
 
 ### uninstall
+Uninstalls a package by deleting its virtual environment and any symlinks that point to its binaries.
 ```
 pipx uninstall PACKAGE
 ```
-### uninstall all packages (including pipx)
+### uninstall-all
+Uninstalls all packages (including pipx)
 ```
 pipx uninstall-all
 ```
 
-### reinstall all packages using a different version of Python
+### reinstall-all
+Reinstalls all packages using a different version of Python.
 ```
 pipx reinstall-all PYTHON
 ```
@@ -188,7 +205,8 @@ Specify a version of Python to associate all installed packages with. Packages a
 
 If you originally installed a package from a source other than PyPI, this command may behave in unexpected ways since it will reinstall from PyPI.
 
-### list installed packages/binaries
+### List
+Lists installed packages/binaries
 ```
 pipx list
 ```
@@ -203,10 +221,10 @@ symlinks to binaries are in /Users/user/.local/bin
     - pipx
 ```
 
-## walkthrough
+## Walkthrough
 I'll use the python package `black` as an example. The `black` package ships with a binary called black. You can run it with pipx just like this.
 ```
-> pipx black --help
+pipx black --help
 Usage: black [OPTIONS] [SRC]...
 
   The uncompromising code formatter.
@@ -216,18 +234,18 @@ Black just ran, but you didn't have to run `venv` or install commands. How easy 
 
 pipx makes safely installing the program to globally accessible, isolated environment as easy as
 ```
-> pipx install black
+pipx install black
 ```
 so now `black` will be available globally, wherever you want to use it, but **not mixed in with your OS's Python packages**.
 ```
-> black --help  # now available globally
+black --help  # now available globally
 Usage: black [OPTIONS] [SRC]...
 
   The uncompromising code formatter.
   ...
 ```
 
-> Aside: I just want to take a second to note how different this is from using `sudo pip install ...` (which you should NEVER do). Using `sudo pip install ...` will mix Python packages installed and required by your OS with whatever you just installed. This can result in very bad things happening. And since all the dependencies were installed along with it (which you have no idea what they were), you can't easily uninstall them -- you have to know every single one and run `sudo pip uninstall ...` for them!
+> Aside: I just want to take a second to note how different this is from using `sudo pip install ...` (which you should NEVER do). Using `sudo pip install ...` will mix Python packages installed and required by your OS with whatever you just installed. This can result in very bad things happening. And since all the dependencies were installed along with it (and you have no idea what they were), you can't easily uninstall them -- you have to know every single one and run `sudo pip uninstall ...` for them!
 
 You can uninstall packages with
 ```
@@ -235,13 +253,7 @@ pipx uninstall black
 ```
 This uninstalls the black package **and all of its dependencies**, but doesn't affect any other packages or binaries.
 
-Oh one other thing. You can also run Python programs directly from a URL, such as github gists. Behold [this gist](https://gist.github.com/cs01/fa721a17a326e551ede048c5088f9e0f) run directly with pipx:
-```
-> pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
-pipx is working!
-```
-
-## programs to try with pipx
+## Programs to try with pipx
 Here are some programs you can try out with no obligation. If you've never used the program before, make sure you add the `--help` flag so it doesn't do something you don't expect. If you decide you want to install, you can run `pipx install PACKAGE` instead.
 ```
 pipx install ansible  # IT automation
@@ -263,7 +275,7 @@ pipx pyxtermjs  # fully functional terminal in the browser  
 pipx install shell-functools  # Functional programming tools for the shell
 ```
 
-## how it works
+## How it Works
 When running a binary (`pipx BINARY`), pipx will
 * create a temporary directory
 * create a virtualenv inside it with `python -m venv`
@@ -282,7 +294,7 @@ When installing a package and its binaries (`pipx install package`) pipx will
 
 These are all things you can do yourself, but pipx automates them for you. If you are curious as to what pipx is doing behind the scenes, you can always use `pipx --verbose ...`.
 
-## contributing
+## Contributing
 To develop `pipx` first clone the repository, then create and activate a virtual environment.
 ```
 python -m venv pipxvenv
@@ -300,17 +312,12 @@ python test.py
 ```
 Note that travis integration tests do not pass because of a bug in travis' virtualenv creation (see [#25](https://github.com/cs01/pipx/issues/25)).
 
-## contributors
-@aiguofer
-@sahensley
-@tkossak
-
-If you make a pull request please add your name here.
 
 ## how does this compare to pipsi?
 * pipx is under active development. pipsi is no longer maintained.
-* pipx and pipsi both install packages in a similar way, but pipx always makes sure you're using the latest version of pip
-* pipx has the ability to run a binary in one line, leaving your system unchanged after it finishes (`pipx binary`) where pipsi does not
+* pipx and pipsi both install packages in a similar way
+* pipx always makes sure you're using the latest version of pip
+* pipx has the ability to run a binary in one line, leaving your system unchanged after it finishes (`pipx BINARY`) where pipsi does not
 * pipx adds more useful information to its output
 * pipx has more CLI options such as upgrade-all, reinstall-all, uninstall-all
 * pipx is more modern. It uses Python 3.6+, and venv instead of virtualenv.
@@ -328,5 +335,15 @@ pipx poetry --help
 rwt poetry -- -m poetry --help
 ```
 
-## credits
+## Credits
 pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https://github.com/zkat/npx).
+
+
+## Authors
+pipx was created and is maintained by [Chad Smith](https://github.com/cs01/).
+
+Contributions and feedback from
+* [Bjorn Neergaard](https://github.com/neersighted)
+* [Diego Fernandez](https://github.com/aiguofer)
+* [Shawn Hensley](https://github.com/sahensley)
+* [tkossak](https://github.com/tkossak)
