@@ -14,7 +14,7 @@ from shutil import which
 import subprocess
 import sys
 import tempfile
-from typing import List, Optional, Union, Sequence
+from typing import List, Optional, Union, Sequence, TypeVar
 import textwrap
 import urllib
 
@@ -379,21 +379,36 @@ def get_exposed_binary_paths_for_package(
     return bin_symlinks
 
 
-def upgrade(venv_dir: Path, package: str, package_or_url: str, verbose: bool):
+def upgrade(
+    venv_dir: Path,
+    package: str,
+    package_or_url: str,
+    verbose: bool,
+    *,
+    upgrading_all: bool,
+) -> int:
     if not venv_dir.is_dir():
         raise PipxError(
             f"Package is not installed. Expected to find {str(venv_dir)}, "
             "but it does not exist."
         )
+
     venv = Venv(venv_dir, verbose=verbose)
+
     old_version = venv.get_package_version(package)
-    venv.upgrade_package(package_or_url)
+    do_animation = not verbose
+    with animate(f"upgrading package {package_or_url!r}", do_animation):
+        venv.upgrade_package(package_or_url)
     new_version = venv.get_package_version(package)
+
     if old_version == new_version:
-        print(
-            f"{package} is already at latest version {old_version} (location: {str(venv_dir)})"
-        )
-        return
+        if upgrading_all:
+            pass
+        else:
+            print(
+                f"{package} is already at latest version {old_version} (location: {str(venv_dir)})"
+            )
+        return 0
 
     binary_paths = venv.get_package_binary_paths(package)
     expose_binaries_globally(local_bin_dir, binary_paths, package)
@@ -401,16 +416,27 @@ def upgrade(venv_dir: Path, package: str, package_or_url: str, verbose: bool):
     print(
         f"upgraded package {package} from {old_version} to {new_version} (location: {str(venv_dir)})"
     )
+    return 1
 
 
 def upgrade_all(pipx_local_venvs: Path, verbose: bool):
+    packages_upgraded = 0
+    num_packages = 0
     for venv_dir in pipx_local_venvs.iterdir():
+        num_packages += 1
         package = venv_dir.name
         if package == "pipx":
             package_or_url = PIPX_PACKAGE_NAME
         else:
             package_or_url = package
-        upgrade(venv_dir, package, package_or_url, verbose)
+        packages_upgraded += upgrade(
+            venv_dir, package, package_or_url, verbose, upgrading_all=True
+        )
+
+    if packages_upgraded == 0:
+        print(
+            f"Versions did not change after running 'pip upgrade' for each package {sleep}"
+        )
 
 
 def install(
@@ -544,7 +570,7 @@ def run_pipx_command(args):
         package_or_url = (
             args.spec if ("spec" in args and args.spec is not None) else package
         )
-        upgrade(venv_dir, package, package_or_url, verbose)
+        upgrade(venv_dir, package, package_or_url, verbose, upgrading_all=False)
     elif args.command == "list":
         list_packages(pipx_local_venvs)
     elif args.command == "uninstall":

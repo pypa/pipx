@@ -9,7 +9,7 @@ from time import sleep
 
 
 @contextmanager
-def animate(message, do_animation):
+def animate(message: str, do_animation: bool):
     animate = {"do_animation": do_animation, "message": message}
     t = Thread(target=print_animation, args=(animate,))
     t.start()
