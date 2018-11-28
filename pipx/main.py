@@ -14,7 +14,7 @@ from shutil import which
 import subprocess
 import sys
 import tempfile
-from typing import List, Optional, Union, Sequence, TypeVar
+from typing import List, Optional, Union, Sequence
 import textwrap
 import urllib
 
@@ -446,12 +446,20 @@ def install(
     local_bin_dir: Path,
     python: str,
     verbose: bool,
+    *,
+    force: bool,
 ):
+    if venv_dir.exists() and next(venv_dir.iterdir()):
+        if force:
+            print(f"Installing to existing directory {str(venv_dir)!r}")
+        else:
+            raise PipxError(
+                f"Not installing to existing directory {str(venv_dir)!r}. "
+                "Pass '--force' to force installation"
+            )
+
     venv = Venv(venv_dir, python=python, verbose=verbose)
-    if venv_dir.exists():
-        pass
-    else:
-        venv.create_venv()
+    venv.create_venv()
     try:
         venv.install_package(package_or_url)
     except PipxError:
@@ -523,7 +531,15 @@ def reinstall_all(
         uninstall(venv_dir, package, local_bin_dir, verbose)
 
         package_or_url = package
-        install(venv_dir, package, package_or_url, local_bin_dir, python, verbose)
+        install(
+            venv_dir,
+            package,
+            package_or_url,
+            local_bin_dir,
+            python,
+            verbose,
+            force=True,
+        )
 
 
 def get_fs_package_name(package: str) -> str:
@@ -565,7 +581,15 @@ def run_pipx_command(args):
         package_or_url = (
             args.spec if ("spec" in args and args.spec is not None) else package
         )
-        install(venv_dir, package, package_or_url, local_bin_dir, args.python, verbose)
+        install(
+            venv_dir,
+            package,
+            package_or_url,
+            local_bin_dir,
+            args.python,
+            verbose,
+            force=args.force,
+        )
     elif args.command == "upgrade":
         package_or_url = (
             args.spec if ("spec" in args and args.spec is not None) else package
@@ -687,6 +711,11 @@ def get_command_parser():
     p.add_argument("package", help="package name")
     p.add_argument("--spec", help=SPEC_HELP)
     p.add_argument("--verbose", action="store_true")
+    p.add_argument(
+        "--force",
+        action="store_true",
+        help="Install even when the package has already been installed",
+    )
     p.add_argument(
         "--python",
         default=DEFAULT_PYTHON,
