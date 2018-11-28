@@ -18,6 +18,11 @@ from typing import List, Optional, Union, Sequence
 import textwrap
 import urllib
 
+
+def print_version() -> None:
+    print("0.10.3.0")
+
+
 try:
     WindowsError
 except NameError:
@@ -62,10 +67,6 @@ PIPX_USAGE = """
     %(prog)s {install, upgrade, upgrade-all, uninstall, uninstall-all, reinstall-all, list} [--help]"""
 
 
-def print_version() -> None:
-    print("0.10.2.1")
-
-
 class PipxError(Exception):
     pass
 
@@ -108,6 +109,13 @@ class Venv:
             )
             .stdout.decode()
             .split()
+        )
+
+    def get_python_version(self) -> str:
+        return (
+            subprocess.run([str(self.python_path), "--version"], stdout=subprocess.PIPE)
+            .stdout.decode()
+            .strip()
         )
 
     def get_package_version(self, package: str) -> Optional[str]:
@@ -316,6 +324,7 @@ def _list_installed_package(path: Path, *, new_install: bool = False) -> None:
         print(f"{package} is not installed in the venv {str(path)}")
         return
 
+    python_version = venv.get_python_version()
     package_binary_paths = venv.get_package_binary_paths(package)
     package_binary_names = [b.name for b in package_binary_paths]
 
@@ -328,9 +337,9 @@ def _list_installed_package(path: Path, *, new_install: bool = False) -> None:
     )
 
     print(
-        f"  {'installed' if new_install else ''} package {bold(shlex.quote(package))}, {version}"
+        f"  {'installed' if new_install else ''} package {bold(shlex.quote(package))} {bold(version)}, {python_version}"
     )
-    logging.info(f"    python: {str(python_path)}")
+
     if not python_path.exists():
         logging.error(f"    associated python path {str(python_path)} does not exist!")
 

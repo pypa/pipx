@@ -10,7 +10,7 @@
 <a href="https://travis-ci.org/cs01/pipx"><img src="https://travis-ci.org/cs01/pipx.svg?branch=master" /></a>
 
 <a href="https://pypi.python.org/pypi/pipx-app/">
-<img src="https://img.shields.io/badge/pypi-0.10.2.1-blue.svg" /></a>
+<img src="https://img.shields.io/badge/pypi-0.10.3.0-blue.svg" /></a>
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
@@ -214,10 +214,10 @@ results in something like
 ```
 venvs are in /Users/user/.local/pipx/venvs
 symlinks to binaries are in /Users/user/.local/bin
-   package black, 18.9b0
+   package black 18.9b0, Python 3.7.0
     - black
     - blackd
-   package pipx-app, 0.10.0
+   package pipx-app 0.10.0, Python 3.7.0
     - pipx
 ```
 
@@ -335,9 +335,10 @@ pipx poetry --help
 rwt poetry -- -m poetry --help
 ```
 
+## [Changelog](https://github.com/cs01/pipx/blob/master/CHANGELOG.md)
+
 ## Credits
 pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https://github.com/zkat/npx).
-
 
 ## Authors
 pipx was created and is maintained by [Chad Smith](https://github.com/cs01/).
