@@ -488,11 +488,7 @@ def install(
     print(f"done! {stars}")
 
 
-def inject(
-        venv_dir: Path,
-        package: str,
-        package_or_url: str,
-        verbose: bool):
+def inject(venv_dir: Path, package: str, package_or_url: str, verbose: bool):
     if not venv_dir.exists() or not next(venv_dir.iterdir()):
         raise PipxError(f"Can't inject {package} into nonexistent venv {venv_dir}!")
 
@@ -612,12 +608,7 @@ def run_pipx_command(args):
         package_or_url = (
             args.spec if ("spec" in args and args.spec is not None) else args.dependency
         )
-        inject(
-            venv_dir,
-            args.dependency,
-            package_or_url,
-            verbose,
-        )
+        inject(venv_dir, args.dependency, package_or_url, verbose)
     elif args.command == "upgrade":
         package_or_url = (
             args.spec if ("spec" in args and args.spec is not None) else package
@@ -750,8 +741,12 @@ def get_command_parser():
         help="The Python binary to associate the CLI binary with. Must be v3.3+.",
     )
 
-    p = subparsers.add_parser("inject", help="Install a package into an existing virtualenv")
-    p.add_argument("package", help="name of the existing pipx-managed virtualenv to inject into")
+    p = subparsers.add_parser(
+        "inject", help="Install a package into an existing virtualenv"
+    )
+    p.add_argument(
+        "package", help="name of the existing pipx-managed virtualenv to inject into"
+    )
     p.add_argument("dependency", help="the package to inject into the virtualenv")
     p.add_argument("--spec", help=SPEC_HELP)
     p.add_argument("--verbose", action="store_true")
