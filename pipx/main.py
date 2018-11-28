@@ -745,7 +745,7 @@ def get_command_parser():
         "inject", help="Install a package into an existing virtualenv"
     )
     p.add_argument(
-        "package", help="name of the existing pipx-managed virtualenv to inject into"
+        "package", help="Name of the existing pipx-managed virtualenv to inject into"
     )
     p.add_argument("dependency", help="the package to inject into the virtualenv")
     p.add_argument("--spec", help=SPEC_HELP)
