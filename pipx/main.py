@@ -488,12 +488,12 @@ def install(
     print(f"done! {stars}")
 
 
-def inject(venv_dir: Path, package: str, package_or_url: str, verbose: bool):
+def inject(venv_dir: Path, package: str, verbose: bool):
     if not venv_dir.exists() or not next(venv_dir.iterdir()):
         raise PipxError(f"Can't inject {package} into nonexistent venv {venv_dir}!")
 
     venv = Venv(venv_dir, verbose=verbose)
-    venv.install_package(package_or_url)
+    venv.install_package(package)
 
     if venv.get_package_version(package) is None:
         raise PipxError(f"Could not find package {package}. Is the name correct?")
@@ -605,10 +605,7 @@ def run_pipx_command(args):
             force=args.force,
         )
     elif args.command == "inject":
-        package_or_url = (
-            args.spec if ("spec" in args and args.spec is not None) else args.dependency
-        )
-        inject(venv_dir, args.dependency, package_or_url, verbose)
+        inject(venv_dir, args.dependency, verbose)
     elif args.command == "upgrade":
         package_or_url = (
             args.spec if ("spec" in args and args.spec is not None) else package
@@ -748,7 +745,6 @@ def get_command_parser():
         "package", help="Name of the existing pipx-managed virtualenv to inject into"
     )
     p.add_argument("dependency", help="the package to inject into the virtualenv")
-    p.add_argument("--spec", help=SPEC_HELP)
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser("upgrade", help="Upgrade a package")
