@@ -185,6 +185,25 @@ Upgrades all packages within their virtual environments by running `pip install 
 pipx upgrade-all
 ```
 
+### inject
+Adds a package to an existing pipx-managed virtual environment.
+
+```
+pipx inject PACKAGE DEPENDENCY
+```
+
+#### inject example
+
+One use of the inject command is setting up a REPL with some useful extra packages.
+
+```
+pipx install ptpython
+pipx inject ptpython requests
+pipx inject ptpython pendulum
+```
+
+After running the above commands, you will be able to import and use the `requests` and `pendulum` packages inside a `ptpython` repl.
+
 ### uninstall
 Uninstalls a package by deleting its virtual environment and any symlinks that point to its binaries.
 ```
