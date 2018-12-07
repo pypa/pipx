@@ -498,7 +498,6 @@ def inject(venv_dir: Path, package: str, verbose: bool):
     if venv.get_package_version(package) is None:
         raise PipxError(f"Could not find package {package}. Is the name correct?")
 
-    _list_installed_package(venv_dir)
     print(f"done! {stars}")
 
 
