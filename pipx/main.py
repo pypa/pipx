@@ -73,13 +73,19 @@ class PipxError(Exception):
 
 class Venv:
     def __init__(
-        self, path: Path, *, verbose: bool = False, python: str = DEFAULT_PYTHON
+        self,
+        path: Path,
+        *,
+        verbose: bool = False,
+        develop: bool = False,
+        python: str = DEFAULT_PYTHON,
     ) -> None:
         self.root = path
         self._python = python
         self.bin_path = path / "bin" if not WINDOWS else path / "Scripts"
         self.python_path = self.bin_path / ("python" if not WINDOWS else "python.exe")
         self.verbose = verbose
+        self.develop = develop
         self.do_animation = not verbose
 
     def create_venv(self) -> None:
@@ -91,8 +97,12 @@ class Venv:
         rmdir(self.root)
 
     def install_package(self, package_or_url: str) -> None:
+        cmd = ["install"]
+        if self.develop:
+            cmd.append("-e")
+        cmd.append(package_or_url)
         with animate(f"installing package {package_or_url!r}", self.do_animation):
-            self._run_pip(["install", package_or_url])
+            self._run_pip(cmd)
 
     def get_package_dependencies(self, package: str) -> List[str]:
         get_version_script = textwrap.dedent(
@@ -457,6 +467,7 @@ def install(
     verbose: bool,
     *,
     force: bool,
+    develop: bool,
 ):
     if venv_dir.exists() and next(venv_dir.iterdir()):
         if force:
@@ -467,7 +478,7 @@ def install(
                 "Pass '--force' to force installation"
             )
 
-    venv = Venv(venv_dir, python=python, verbose=verbose)
+    venv = Venv(venv_dir, python=python, verbose=verbose, develop=develop)
     venv.create_venv()
     try:
         venv.install_package(package_or_url)
@@ -546,7 +557,11 @@ def uninstall_all(pipx_local_venvs: Path, local_bin_dir: Path, verbose: bool):
 
 
 def reinstall_all(
-    pipx_local_venvs: Path, local_bin_dir: Path, python: str, verbose: bool
+    pipx_local_venvs: Path,
+    local_bin_dir: Path,
+    python: str,
+    verbose: bool,
+    develop: bool,
 ):
     for venv_dir in pipx_local_venvs.iterdir():
         package = venv_dir.name
@@ -561,6 +576,7 @@ def reinstall_all(
             python,
             verbose,
             force=True,
+            develop=develop,
         )
 
 
@@ -611,6 +627,7 @@ def run_pipx_command(args):
             args.python,
             verbose,
             force=args.force,
+            develop=args.develop,
         )
     elif args.command == "inject":
         inject(venv_dir, args.dependency, verbose)
@@ -629,7 +646,9 @@ def run_pipx_command(args):
     elif args.command == "upgrade-all":
         upgrade_all(pipx_local_venvs, verbose)
     elif args.command == "reinstall-all":
-        reinstall_all(pipx_local_venvs, local_bin_dir, args.python, verbose)
+        reinstall_all(
+            pipx_local_venvs, local_bin_dir, args.python, verbose, develop=args.develop
+        )
     else:
         raise PipxError(f"Unknown command {args.command}")
 
@@ -740,6 +759,7 @@ def get_command_parser():
         action="store_true",
         help="Install even when the package has already been installed",
     )
+    p.add_argument("--develop", action="store_true", help="Install in development mode")
     p.add_argument(
         "--python",
         default=DEFAULT_PYTHON,
