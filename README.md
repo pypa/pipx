@@ -22,15 +22,22 @@
 
 ## overview
 What pipx does for you:
+* Safely install packages to isolated virtual environments, while globally exposing their CLI applications so you can run them from anywhere
 * Run the latest version of a CLI application from a package in a temporary virtual environment, leaving your system untouched after it finishes
-* Install packages to isolated virtual environments, while globally exposing their CLI applications so you can run them from anywhere
 * Easily list, upgrade, and uninstall packages that were installed with pipx
 * Runs with regular user permissions, never calling `sudo pip install ...` (you aren't doing that, are you? 😄).
 
 pipx combines the features of JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b) - which ships with node - and Python's [pipsi](https://github.com/mitsuhiko/pipsi). pipx does not ship with pip but I consider it to be an important part of bootstrapping your system, similar to how node ships with npm and npx.
 
+### Safely installing to isolated environments
+You can globally install a CLI application by running
+```
+pipx install PACKAGE
+```
+This automatically creates a virtual environment, installs the package, and symlinks the package's CLI binaries to a location on your `PATH`. For example, `pipx install cowsay` makes the `cowsay` command available globally, but sandboxes the cowsay package in its own virtual environment. **pipx never needs to run as sudo to do this.**
+
 ### running in one-time ephemeral environments
-pipx makes running the latest version of a program as easy as
+pipx makes running the latest version of a program in a one-time environment as easy as
 ```
 pipx BINARY [ARGS...]
 ```
@@ -48,16 +55,12 @@ pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/ra
 pipx is working!
 ```
 
-### Safely installing to isolated environments
-It also makes (safely) installing a program globally as easy as
-```
-pipx install PACKAGE
-```
-This automatically creates a virtual environment, installs the package, and symlinks the package's CLI binaries to a location on your `PATH`. For example, `pipx install cowsay` makes the `cowsay` command available globally, but sandboxes the cowsay package in its own virtual environment. **pipx never needs to run as sudo to do this.**
-
 ## testimonials
 @tkossak
 > Thank you! Great tool btw. I already use it instead of pipsi :)
+
+[Mason Egger](https://medium.com/homeaway-tech-blog/simplify-your-python-developer-environment-aba90f32dddb)
+> This tool filled in the gap that was missing with pipenv and virtualenvwrapper.
 
 ## install pipx
 ```
