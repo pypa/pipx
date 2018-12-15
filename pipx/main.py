@@ -2,22 +2,23 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import http.client
 import logging
 import os
 from pathlib import Path
 from pipx.animate import animate
 from pipx.colors import red, bold
-import requests
 import shlex
 import shutil
 from shutil import which
+import ssl
 import subprocess
 import sys
 import tempfile
 from typing import List, Optional, Union, Sequence
 import textwrap
 import urllib
-
+import urllib.parse
 
 def print_version() -> None:
     print("0.10.3.0")
@@ -634,6 +635,19 @@ def run_pipx_command(args):
         raise PipxError(f"Unknown command {args.command}")
 
 
+def http_get_request(url: str):
+    parts = urllib.parse.urlparse(url)
+    conn = http.client.HTTPSConnection(
+        parts.hostname, context=ssl._create_unverified_context()
+    )
+    conn.request("GET", parts.path)
+    response = conn.getresponse()
+    if response.status != 200:
+        raise PipxError(response.reason)
+
+    return response.read().decode("utf-8")
+
+
 def run_ephemeral_binary(args, binary_args):
     if not args.binary:
         get_command_parser().print_help()
@@ -651,10 +665,10 @@ def run_ephemeral_binary(args, binary_args):
                 "they end with '.py'. To run from an SVN, try pipx --spec URL BINARY"
             )
         logging.info("Detected url. Downloading and executing as a Python file.")
-        # download and run directly
-        r = requests.get(binary)
+
+        content = http_get_request(binary)
         try:
-            exit(subprocess.run([str(args.python), "-c", r.content]).returncode)
+            exit(subprocess.run([str(args.python), "-c", content]).returncode)
         except KeyboardInterrupt:
             pass
         exit(0)

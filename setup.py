@@ -8,7 +8,7 @@ from setuptools import find_packages, setup
 CURDIR = os.path.abspath(os.path.dirname(__file__))
 
 EXCLUDE_FROM_PACKAGES = []
-REQUIRED = ["requests"]
+REQUIRED = []
 
 with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
     README = f.read()
