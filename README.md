@@ -10,18 +10,17 @@
 <a href="https://travis-ci.org/cs01/pipx"><img src="https://travis-ci.org/cs01/pipx.svg?branch=master" /></a>
 
 <a href="https://pypi.python.org/pypi/pipx-app/">
-<img src="https://img.shields.io/badge/pypi-0.10.3.0-blue.svg" /></a>
+<img src="https://img.shields.io/badge/pypi-0.10.4.0-blue.svg" /></a>
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
-*For comparison to pipsi, see [how does this compare to pipsi?](#how-does-this-compare-to-pipsi)*
+*For comparison to pipsi, see [how does this compare to pipsi?](#how-does-this-compare-to-pipsi) and [migrating to pipx from pipsi](#migrating-to-pipx-from-pipsi).*
 
 *pipx uses the word "binary" to describe a CLI application that can be run directly from the command line. These files are located in the `bin` directory of a Python installation, alongside other executables. Despite the name, they do not necessarily contain binary data.*
 
 *if you are using pipx < v0.10 see [issue #41](https://github.com/cs01/pipx/issues/41)*
 
-## overview
-What pipx does for you:
+## Overview
 * Safely install packages to isolated virtual environments, while globally exposing their CLI applications so you can run them from anywhere
 * Run the latest version of a CLI application from a package in a temporary virtual environment, leaving your system untouched after it finishes
 * Easily list, upgrade, and uninstall packages that were installed with pipx
@@ -36,7 +35,7 @@ pipx install PACKAGE
 ```
 This automatically creates a virtual environment, installs the package, and symlinks the package's CLI binaries to a location on your `PATH`. For example, `pipx install cowsay` makes the `cowsay` command available globally, but sandboxes the cowsay package in its own virtual environment. **pipx never needs to run as sudo to do this.**
 
-### running in one-time ephemeral environments
+### Running in one-time ephemeral environments
 pipx makes running the latest version of a program in a one-time environment as easy as
 ```
 pipx BINARY [ARGS...]
@@ -55,14 +54,14 @@ pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/ra
 pipx is working!
 ```
 
-## testimonials
+## Testimonials
 @tkossak
 > Thank you! Great tool btw. I already use it instead of pipsi :)
 
 [Mason Egger](https://medium.com/homeaway-tech-blog/simplify-your-python-developer-environment-aba90f32dddb)
 > This tool filled in the gap that was missing with pipenv and virtualenvwrapper.
 
-## install pipx
+## Install pipx
 ```
 curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3
 ```
@@ -173,7 +172,16 @@ pipx install --spec https://github.com/ambv/black/archive/18.9b0.zip black
 pipx install --spec black[d] black
 ```
 
-*Note: pipx determines a package's binaries (also known as entry points, console scripts, or scripts) by inspecting metadata about the package. Sometimes a package is built in such a way that pipx cannot determine its binaries. In such cases, please create an issue.*
+#### Additional Options
+These options are available for `pipx install` and other pipx commands that invoke pip such as upgrade, inject, etc.
+```
+--index-url INDEX_URL, -i INDEX_URL
+                      Base URL of Python Package Index
+--editable, -e        Install a project in editable mode
+--pip-args PIP_ARGS   Arbitrary pip arguments to pass directly to pip
+                      install/upgrade commands
+```
+
 
 ### upgrade
 Upgrades a package within its virtual environments by running `pip install --upgrade PACKAGE`.
@@ -347,6 +355,16 @@ Note that travis integration tests do not pass because of a bug in travis' virtu
 * pipx defaults to less verbose output
 * pipx allows you to see each command it runs by passing the --verbose flag
 * pipx prints emojies 😀
+
+## migrating to pipx from pipsi
+There is no automatic way to do this, so you will have to remove pipsi's directory completely then reinstall everything with pipx.
+
+First remove pipsi's directory (this is its default)
+```
+rm -r ~/.local/pipsi
+```
+
+there will still be symlinks in `~/.local/bi`n that point to `~/.local/pipsi/venvs`. If you reinstall the same packages with `pipx`, the symlinks will be overwritten with valid symlinks that point to the new pipx directory in `~/.local/pipx/venvs`. You may also want to remove files in `~/.local/bin`, but be sure the files you delete there were created by pipsi.
 
 ## how does this compare with rwt?
 [run with this](https://github.com/jaraco/rwt) is focused on running **arbitrary Python code in ephemeral environments** while pipx is focused on running **Python binaries in ephemeral and non-ephemeral environments**.
