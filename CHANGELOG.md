@@ -1,3 +1,6 @@
+0.10.4.1
+* Fix version printed when `pipx --version` is run
+
 0.10.4.0
 * Add --index-url, --editable, and --pip-args flags
 * Updated README with pipsi migration instructions

@@ -22,7 +22,7 @@ import urllib.parse
 
 
 def print_version() -> None:
-    print("0.10.3.0")
+    print("0.10.4.1")
 
 
 try:

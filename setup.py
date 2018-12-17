@@ -15,7 +15,7 @@ with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
 
 setup(
     name="pipx-app",
-    version="0.10.4.0",
+    version="0.10.4.1",
     author="Chad Smith",
     author_email="grassfedcode@gmail.com",
     description="execute binaries from Python packages in isolated environments",
