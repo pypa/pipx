@@ -364,7 +364,7 @@ First remove pipsi's directory (this is its default)
 rm -r ~/.local/pipsi
 ```
 
-there will still be symlinks in `~/.local/bi`n that point to `~/.local/pipsi/venvs`. If you reinstall the same packages with `pipx`, the symlinks will be overwritten with valid symlinks that point to the new pipx directory in `~/.local/pipx/venvs`. You may also want to remove files in `~/.local/bin`, but be sure the files you delete there were created by pipsi.
+there will still be symlinks in `~/.local/bin` that point to `~/.local/pipsi/venvs`. If you reinstall the same packages with `pipx`, the symlinks will be overwritten with valid symlinks that point to the new pipx directory in `~/.local/pipx/venvs`. You may also want to remove files in `~/.local/bin`, but be sure the files you delete there were created by pipsi.
 
 ## how does this compare with rwt?
 [run with this](https://github.com/jaraco/rwt) is focused on running **arbitrary Python code in ephemeral environments** while pipx is focused on running **Python binaries in ephemeral and non-ephemeral environments**.
