@@ -642,7 +642,8 @@ def run_pipx_command(args):
             force=args.force,
         )
     elif args.command == "inject":
-        inject(venv_dir, args.dependency, pip_args, verbose)
+        for dep in args.dependencies:
+            inject(venv_dir, dep, pip_args, verbose)
     elif args.command == "upgrade":
         package_or_url = (
             args.spec if ("spec" in args and args.spec is not None) else package
@@ -814,12 +815,14 @@ def get_command_parser():
     add_pip_args(p)
 
     p = subparsers.add_parser(
-        "inject", help="Install a package into an existing virtualenv"
+        "inject", help="Install packages into an existing virtualenv"
     )
     p.add_argument(
         "package", help="Name of the existing pipx-managed virtualenv to inject into"
     )
-    p.add_argument("dependency", help="the package to inject into the virtualenv")
+    p.add_argument(
+        "dependencies", nargs="+", help="the packages to inject into the virtualenv"
+    )
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser("upgrade", help="Upgrade a package")

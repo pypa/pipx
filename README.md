@@ -197,10 +197,10 @@ pipx upgrade-all
 ```
 
 ### inject
-Adds a package to an existing pipx-managed virtual environment.
+Adds packages to an existing pipx-managed virtual environment.
 
 ```
-pipx inject PACKAGE DEPENDENCY
+pipx inject PACKAGE DEPENDENCIES
 ```
 
 #### inject example
@@ -209,8 +209,7 @@ One use of the inject command is setting up a REPL with some useful extra packag
 
 ```
 pipx install ptpython
-pipx inject ptpython requests
-pipx inject ptpython pendulum
+pipx inject ptpython requests pendulum
 ```
 
 After running the above commands, you will be able to import and use the `requests` and `pendulum` packages inside a `ptpython` repl.
