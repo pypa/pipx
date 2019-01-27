@@ -7,7 +7,7 @@ from setuptools import find_packages, setup
 
 CURDIR = os.path.abspath(os.path.dirname(__file__))
 
-EXCLUDE_FROM_PACKAGES = ['tests']
+EXCLUDE_FROM_PACKAGES = ["tests"]
 REQUIRED = []
 
 with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
@@ -15,7 +15,7 @@ with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
 
 setup(
     name="pipx-app",
-    version="0.10.4.1",
+    version="0.11.0.0b",
     author="Chad Smith",
     author_email="grassfedcode@gmail.com",
     description="execute binaries from Python packages in isolated environments",

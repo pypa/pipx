@@ -1,5 +1,6 @@
-dev
-* upgrade pip when upgrading packages #72
+0.11.0.0
+* Replace `pipx BINARY` with `pipx run BINARY` to run a binary in an ephemeral environment. This is a breaking API change so the major version has been incremented. Issue #69.
+* upgrade pip when upgrading packages Issue #72.
 
 0.10.4.1
 * Fix version printed when `pipx --version` is run

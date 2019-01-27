@@ -48,8 +48,8 @@ INSTALL_PIPX_CMD = (
     "curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3"
 )
 SPEC_HELP = (
-    "Specify the exact installation source instead of using PyPI and the package name. "
-    "Runs `pip install -U SPEC` instead of `pip install -U PACKAGE`. "
+    "The package name or specific installation source. "
+    "Runs `pip install -U SPEC`. "
     f"For example `--spec {PIPX_PACKAGE_NAME}` or `--spec mypackage==2.0.0.`"
 )
 PIPX_DESCRIPTION = textwrap.dedent(
@@ -64,9 +64,6 @@ These locations can be overridden with the environment variables
 PIPX_HOME and PIPX_BIN_DIR, respectively.
 """
 )
-PIPX_USAGE = """
-    %(prog)s [--spec SPEC] [--python PYTHON] BINARY [BINARY-ARGS]
-    %(prog)s {install, inject, upgrade, upgrade-all, uninstall, uninstall-all, reinstall-all, list} [--help]"""
 
 
 class PipxError(Exception):
@@ -611,6 +608,8 @@ def get_pip_args(parsed_args: Dict):
 def run_pipx_command(args):
     setup(args)
     verbose = args.verbose
+    pip_args = get_pip_args(vars(args))
+
     if "package" in args:
         package = args.package
         if urllib.parse.urlparse(package).scheme:
@@ -632,9 +631,19 @@ def run_pipx_command(args):
         venv_dir = pipx_local_venvs / package
         logging.info(f"virtualenv location is {venv_dir}")
 
-    pip_args = get_pip_args(vars(args))
-
-    if args.command == "install":
+    if args.command == "run":
+        package_or_url = (
+            args.spec if ("spec" in args and args.spec is not None) else args.binary
+        )
+        return run_ephemeral_binary(
+            args.binary,
+            package_or_url,
+            args.binary_args,
+            args.python,
+            pip_args,
+            verbose,
+        )
+    elif args.command == "install":
         package_or_url = (
             args.spec if ("spec" in args and args.spec is not None) else package
         )
@@ -686,15 +695,16 @@ def http_get_request(url: str):
     return response.read().decode("utf-8")
 
 
-def run_ephemeral_binary(args, binary_args):
-    if not args.binary:
-        get_command_parser().print_help()
-        exit(1)
-    binary = args.binary[0]
-    package_or_url = args.spec if args.spec else binary
+def run_ephemeral_binary(
+    binary: str,
+    package_or_url: str,
+    binary_args: List[str],
+    python: str,
+    pip_args: List[str],
+    verbose: bool,
+):
     if package_or_url == "pipx":
         raise PipxError(f"use 'pipx-app' instead of 'pipx' for package name")
-    verbose = args.verbose
 
     if urllib.parse.urlparse(binary).scheme:
         if not binary.endswith(".py"):
@@ -706,7 +716,7 @@ def run_ephemeral_binary(args, binary_args):
 
         content = http_get_request(binary)
         try:
-            exit(subprocess.run([str(args.python), "-c", content]).returncode)
+            exit(subprocess.run([str(python), "-c", content]).returncode)
         except KeyboardInterrupt:
             pass
         exit(0)
@@ -730,46 +740,10 @@ def run_ephemeral_binary(args, binary_args):
             package_or_url,
             binary,
             binary_args,
-            args.python,
-            get_pip_args(vars(args)),
+            python,
+            pip_args,
             verbose,
         )
-
-
-def get_binary_parser(add_help: bool):
-    parser = argparse.ArgumentParser(
-        add_help=add_help,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        usage=PIPX_USAGE,
-        description=PIPX_DESCRIPTION,
-    )
-
-    if not add_help:
-        parser.add_argument("--help", "-h", action="store_true")
-    parser.add_argument(
-        "binary",
-        help="A Python package's binary to run or the pipx command to run. If binary,"
-        "the PyPI package is assumed to have the same name.",
-        nargs="*",
-        type=str,
-    )
-
-    parser.add_argument("--spec", help=SPEC_HELP)
-    parser.add_argument(
-        "--python",
-        default=DEFAULT_PYTHON,
-        help="The Python binary to associate the CLI binary with. Must be v3.3+.",
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Log additional output to the console",
-    )
-    parser.add_argument("--version", action="store_true", help="Show version")
-    add_pip_args(parser)
-
-    return parser
 
 
 def add_pip_args(parser):
@@ -793,16 +767,6 @@ def get_command_parser():
 
     subparsers = parser.add_subparsers(
         dest="command", description="Get help for commands with pipx COMMAND --help"
-    )
-    p = subparsers.add_parser(
-        "binary", help=("Run a binary with the given name from an ephemeral virtualenv")
-    )
-    p.add_argument("--spec", help=SPEC_HELP)
-    p.add_argument("--verbose", action="store_true")
-    p.add_argument(
-        "--python",
-        default=DEFAULT_PYTHON,
-        help="The Python binary to associate the CLI binary with. Must be v3.3+.",
     )
 
     p = subparsers.add_parser("install", help="Install a package")
@@ -866,33 +830,27 @@ def get_command_parser():
     p = subparsers.add_parser("list", help="List installed packages")
     p.add_argument("--verbose", action="store_true")
 
+    p = subparsers.add_parser(
+        "run",
+        help="Download latest version of a package to temporary directory, "
+        "then run a binary from it. Temp dir is removed after execution is finshed.",
+    )
+    p.add_argument("binary", help="binary/package name")
+    p.add_argument(
+        "binary_args",
+        nargs="*",
+        help="arguments passed to the binary when it is invoked",
+        default=[],
+    )
+    p.add_argument("--spec", help=SPEC_HELP)
+    p.add_argument("--verbose", action="store_true")
+    p.add_argument(
+        "--python",
+        default=DEFAULT_PYTHON,
+        help="The Python version to run package's CLI binary with. Must be v3.3+.",
+    )
+    add_pip_args(p)
     return parser
-
-
-def separate_pipx_and_binary_args(argv, pipx_commands):
-    args = get_binary_parser(add_help=False).parse_known_args()[0]
-    if not args.binary and args.version:
-        print_version()
-        exit(0)
-    if args.binary:
-        index = argv.index(args.binary[0])
-        pipx_args = argv[1 : index + 1]
-        binary_args = argv[index + 1 :]
-    else:
-        # there was no binary, so all args are for pipx
-        pipx_args = argv[1:]
-        binary_args = []
-    return (pipx_args, binary_args)
-
-
-def args_have_command(pipx_commands: Sequence[str]):
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("command", nargs="*")
-    args = parser.parse_known_args()
-    if args[0].command:
-        return args[0].command[0] in pipx_commands
-    else:
-        return False
 
 
 def setup(args):
@@ -924,29 +882,10 @@ def setup(args):
 
 def cli():
     """Entry point from command line"""
-    pipx_commands = [
-        "install",
-        "inject",
-        "upgrade",
-        "upgrade-all",
-        "uninstall",
-        "uninstall-all",
-        "reinstall-all",
-        "list",
-    ]
-
     try:
-        if args_have_command(pipx_commands):
-            args = get_command_parser().parse_args()
-            setup(args)
-            run_pipx_command(args)
-        else:
-            pipx_args, binary_args = separate_pipx_and_binary_args(
-                sys.argv, pipx_commands
-            )
-            args = get_binary_parser(add_help=True).parse_args(pipx_args)
-            setup(args)
-            exit(run_ephemeral_binary(args, binary_args))
+        args = get_command_parser().parse_args()
+        setup(args)
+        exit(run_pipx_command(args))
     except PipxError as e:
         exit(e)
 
