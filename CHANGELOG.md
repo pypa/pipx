@@ -1,3 +1,6 @@
+dev
+* upgrade pip when upgrading packages #72
+
 0.10.4.1
 * Fix version printed when `pipx --version` is run
 
