@@ -10,7 +10,7 @@
 <a href="https://travis-ci.org/cs01/pipx"><img src="https://travis-ci.org/cs01/pipx.svg?branch=master" /></a>
 
 <a href="https://pypi.python.org/pypi/pipx-app/">
-<img src="https://img.shields.io/badge/pypi-0.11.0.0-blue.svg" /></a>
+<img src="https://img.shields.io/badge/pypi-0.11.0.1-blue.svg" /></a>
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
@@ -62,6 +62,19 @@ pipx is working!
 > This tool filled in the gap that was missing with pipenv and virtualenvwrapper.
 
 ## Install pipx
+Option 1, **pipx-bootstrap**:
+```
+pip install --user pipx-bootstrap
+pipx-bootstrap
+pip uninstall pipx-boostrap
+```
+
+pipx should now be installed. To see installation options, run
+```
+pipx-boostrap --help
+```
+
+Option 2, **curl**:
 ```
 curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3
 ```

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import sys
+assert sys.version_info >= (3, 6, 0), "Python 3.6+ is required"
 
 import argparse
 import http.client
@@ -13,7 +15,6 @@ import shutil
 from shutil import which
 import ssl
 import subprocess
-import sys
 import tempfile
 from typing import Dict, List, Optional, Union, Sequence
 import textwrap
@@ -22,7 +23,7 @@ import urllib.parse
 
 
 def print_version() -> None:
-    print("0.10.4.1")
+    print("0.11.0.1")
 
 
 try:
@@ -906,7 +907,12 @@ def setup(args):
 def cli():
     """Entry point from command line"""
     try:
-        args = get_command_parser().parse_args()
+        parser = get_command_parser()
+        args = parser.parse_args()
+        if not args.command:
+            parser.print_help()
+            exit(1)
+
         setup(args)
         exit(run_pipx_command(args))
     except PipxError as e:

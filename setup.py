@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import sys
+assert sys.version_info >= (3, 6, 0), "Python 3.6+ is required"
+
 import io
 import os
 from setuptools import find_packages, setup
@@ -15,7 +18,7 @@ with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
 
 setup(
     name="pipx-app",
-    version="0.11.0.0",
+    version="0.11.0.1",
     author="Chad Smith",
     author_email="grassfedcode@gmail.com",
     description="execute binaries from Python packages in isolated environments",
