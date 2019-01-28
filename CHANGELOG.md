@@ -1,6 +1,10 @@
+0.11.0.1
+ * add version check, command check, fix printed version update installation instructions
+
 0.11.0.0
-* Replace `pipx BINARY` with `pipx run BINARY` to run a binary in an ephemeral environment. This is a breaking API change so the major version has been incremented. Issue #69.
-* upgrade pip when upgrading packages Issue #72.
+* Replace `pipx BINARY` with `pipx run BINARY` to run a binary in an ephemeral environment. This is a breaking API change so the major version has been incremented. (Issue #69)
+* upgrade pip when upgrading packages (Issue #72)
+* support --system-site-packages flag (Issue #64)
 
 0.10.4.1
 * Fix version printed when `pipx --version` is run
