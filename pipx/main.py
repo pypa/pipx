@@ -81,9 +81,9 @@ class Venv:
         self.verbose = verbose
         self.do_animation = not verbose
 
-    def create_venv(self) -> None:
+    def create_venv(self, venv_args) -> None:
         with animate("creating virtual environment", self.do_animation):
-            _run([self._python, "-m", "venv", self.root])
+            _run([self._python, "-m", "venv"] + venv_args + [str(self.root)])
             self.upgrade_package("pip", [])
 
     def remove_venv(self) -> None:
@@ -255,10 +255,11 @@ def download_and_run(
     binary_args: List[str],
     python: str,
     pip_args: List[str],
+    venv_args: List[str],
     verbose: bool,
 ):
     venv = Venv(venv_dir, python=python, verbose=verbose)
-    venv.create_venv()
+    venv.create_venv(venv_args)
     venv.install_package(package, pip_args)
     if not (venv.bin_path / binary).exists():
         binaries = venv.get_package_binary_paths(package)
@@ -466,6 +467,7 @@ def install(
     local_bin_dir: Path,
     python: str,
     pip_args: List[str],
+    venv_args: List[str],
     verbose: bool,
     *,
     force: bool,
@@ -480,7 +482,7 @@ def install(
             )
 
     venv = Venv(venv_dir, python=python, verbose=verbose)
-    venv.create_venv()
+    venv.create_venv(venv_args)
     try:
         venv.install_package(package_or_url, pip_args)
     except PipxError:
@@ -562,6 +564,7 @@ def reinstall_all(
     local_bin_dir: Path,
     python: str,
     pip_args: List[str],
+    venv_args: List[str],
     verbose: bool,
 ):
     for venv_dir in pipx_local_venvs.iterdir():
@@ -576,6 +579,7 @@ def reinstall_all(
             local_bin_dir,
             python,
             pip_args,
+            venv_args,
             verbose,
             force=True,
         )
@@ -605,10 +609,18 @@ def get_pip_args(parsed_args: Dict):
     return pip_args
 
 
+def get_venv_args(parsed_args: Dict):
+    venv_args: List[str] = []
+    if parsed_args.get("system_site_packages"):
+        venv_args += ["--system-site-packages"]
+    return venv_args
+
+
 def run_pipx_command(args):
     setup(args)
     verbose = args.verbose
     pip_args = get_pip_args(vars(args))
+    venv_args = get_venv_args(vars(args))
 
     if "package" in args:
         package = args.package
@@ -641,6 +653,7 @@ def run_pipx_command(args):
             args.binary_args,
             args.python,
             pip_args,
+            venv_args,
             verbose,
         )
     elif args.command == "install":
@@ -654,6 +667,7 @@ def run_pipx_command(args):
             local_bin_dir,
             args.python,
             pip_args,
+            venv_args,
             verbose,
             force=args.force,
         )
@@ -677,7 +691,9 @@ def run_pipx_command(args):
     elif args.command == "upgrade-all":
         upgrade_all(pipx_local_venvs, pip_args, verbose)
     elif args.command == "reinstall-all":
-        reinstall_all(pipx_local_venvs, local_bin_dir, args.python, pip_args, verbose)
+        reinstall_all(
+            pipx_local_venvs, local_bin_dir, args.python, pip_args, venv_args, verbose
+        )
     else:
         raise PipxError(f"Unknown command {args.command}")
 
@@ -701,6 +717,7 @@ def run_ephemeral_binary(
     binary_args: List[str],
     python: str,
     pip_args: List[str],
+    venv_args: List[str],
     verbose: bool,
 ):
     if package_or_url == "pipx":
@@ -742,11 +759,17 @@ def run_ephemeral_binary(
             binary_args,
             python,
             pip_args,
+            venv_args,
             verbose,
         )
 
 
-def add_pip_args(parser):
+def add_pip_venv_args(parser):
+    parser.add_argument(
+        "--system-site-packages",
+        action="store_true",
+        help="Give the virtual environment access to the system site-packages dir.",
+    )
     parser.add_argument("--index-url", "-i", help="Base URL of Python Package Index")
     parser.add_argument(
         "--editable",
@@ -783,7 +806,7 @@ def get_command_parser():
         default=DEFAULT_PYTHON,
         help="The Python binary to associate the CLI binary with. Must be v3.3+.",
     )
-    add_pip_args(p)
+    add_pip_venv_args(p)
 
     p = subparsers.add_parser(
         "inject", help="Install packages into an existing virtualenv"
@@ -800,7 +823,7 @@ def get_command_parser():
     p.add_argument("package")
     p.add_argument("--spec", help=SPEC_HELP)
     p.add_argument("--verbose", action="store_true")
-    add_pip_args(p)
+    add_pip_venv_args(p)
 
     p = subparsers.add_parser(
         "upgrade-all",
@@ -808,7 +831,7 @@ def get_command_parser():
         "Runs `pip install -U <pkgname>` for each package.",
     )
     p.add_argument("--verbose", action="store_true")
-    add_pip_args(p)
+    add_pip_venv_args(p)
 
     p = subparsers.add_parser("uninstall", help="Uninstall a package")
     p.add_argument("package")
@@ -825,7 +848,7 @@ def get_command_parser():
     )
     p.add_argument("python")
     p.add_argument("--verbose", action="store_true")
-    add_pip_args(p)
+    add_pip_venv_args(p)
 
     p = subparsers.add_parser("list", help="List installed packages")
     p.add_argument("--verbose", action="store_true")
@@ -833,7 +856,7 @@ def get_command_parser():
     p = subparsers.add_parser(
         "run",
         help="Download latest version of a package to temporary directory, "
-        "then run a binary from it. Temp dir is removed after execution is finshed.",
+        "then run a binary from it. Temp dir is removed after execution is finished.",
     )
     p.add_argument("binary", help="binary/package name")
     p.add_argument(
@@ -849,7 +872,7 @@ def get_command_parser():
         default=DEFAULT_PYTHON,
         help="The Python version to run package's CLI binary with. Must be v3.3+.",
     )
-    add_pip_args(p)
+    add_pip_venv_args(p)
     return parser
 
 

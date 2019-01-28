@@ -97,23 +97,9 @@ pipx uninstall pipx-app
 ## usage
 
 ```
-pipx {install,upgrade,upgrade-all,uninstall,uninstall-all,list} [--help]
+pipx {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run}
 ```
 
-```
-pipx run BINARY
-```
-
-```
-pipx [--spec PACKAGE] [--python PYTHON] run BINARY [BINARY_ARGS...]
-```
-
-
-## pipx commands
-pipx commands are
-```
-install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run
-```
 You can run `pipx COMMAND --help` for details on each command.
 
 ### install a package
