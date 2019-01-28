@@ -44,10 +44,19 @@ class TestPipx(unittest.TestCase):
 
             subprocess.run([pipx_bin, "--help"], check=True)
             subprocess.run([pipx_bin, "list"], check=True)
-            subprocess.run([pipx_bin, "cowsay", "pipx test is passing"], check=True)
-
+            self.assertNotEqual(
+                subprocess.run([pipx_bin, "cowsay", "pipx test is passing"]).returncode,
+                0,
+            )
+            subprocess.run(
+                [pipx_bin, "run", "cowsay", "pipx test is passing"], check=True
+            )
             subprocess.run([pipx_bin, "install", "cowsay"], check=True)
             subprocess.run([pipx_bin, "install", "black"], check=True)
+            subprocess.run([pipx_bin, "inject", "black", "aiohttp"], check=True)
+            subprocess.run(
+                [pipx_bin, "inject", "black", "aiohttp", "pygdbmi"], check=True
+            )
             subprocess.run([pipx_bin, "install", "ansible"], check=True)
             subprocess.run([pipx_bin, "install", "shell-functools"], check=True)
             subprocess.run([pipx_bin, "list"], check=True)
@@ -56,6 +65,7 @@ class TestPipx(unittest.TestCase):
             subprocess.run(
                 [
                     pipx_bin,
+                    "run",
                     "https://gist.githubusercontent.com/cs01/"
                     "fa721a17a326e551ede048c5088f9e0f/raw/"
                     "6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py",
