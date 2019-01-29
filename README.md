@@ -1,8 +1,8 @@
 # pipx: execute binaries from Python packages in isolated environments
 
 <p align="center">
-<a href="https://github.com/cs01/pipx/raw/master/pipx_demo.gif">
-<img src="https://github.com/cs01/pipx/raw/master/pipx_demo.gif">
+<a href="https://github.com/pipxproject/pipx-app/raw/master/pipx_demo.gif">
+<img src="https://github.com/pipxproject/pipx-app/raw/master/pipx_demo.gif">
 </a>
 </p>
 
@@ -18,7 +18,7 @@
 
 *pipx uses the word "binary" to describe a CLI application that can be run directly from the command line. These files are located in the `bin` directory of a Python installation, alongside other executables. Despite the name, they do not necessarily contain binary data.*
 
-*if you are using pipx < v0.10 see [issue #41](https://github.com/cs01/pipx/issues/41)*
+*if you are using pipx < v0.10 see [issue #41](https://github.com/pipxproject/pipx-app/issues/41)*
 
 ## Overview
 * Safely install packages to isolated virtual environments, while globally exposing their CLI applications so you can run them from anywhere
@@ -76,7 +76,7 @@ pipx-boostrap --help
 
 Option 2, **curl**:
 ```
-curl https://raw.githubusercontent.com/cs01/pipx-bootstrap/master/pipxbootstrap/main.py | python3
+curl https://raw.githubusercontent.com/pipxproject/pipx-bootstrap/master/pipxbootstrap/main.py | python3
 ```
 pipx is on PyPI as `pipx-app`, though the recommended way to install pipx is to use the above command.
 
@@ -84,12 +84,12 @@ If python3 is not found on your PATH or there is a syntax error/typo, `curl` wil
 
 To see options when getting pipx
 ```
-curl https://raw.githubusercontent.com/cs01/pipx-bootstrap/master/pipxbootstrap/main.py | python3 - --help
+curl https://raw.githubusercontent.com/pipxproject/pipx-bootstrap/master/pipxbootstrap/main.py | python3 - --help
 ```
 
 To install from the latest master
 ```
-curl https://raw.githubusercontent.com/cs01/pipx-bootstrap/master/pipxbootstrap/main.py | python3 - --src git+https://github.com/cs01/pipx.git
+curl https://raw.githubusercontent.com/pipxproject/pipx-bootstrap/master/pipxbootstrap/main.py | python3 - --src git+https://github.com/cs01/pipx.git
 ```
 
 ### system requirements
@@ -340,7 +340,7 @@ Make sure your changes pass tests by running
 ```
 python test.py
 ```
-Note that travis integration tests do not pass because of a bug in travis' virtualenv creation (see [#25](https://github.com/cs01/pipx/issues/25)).
+Note that travis integration tests do not pass because of a bug in travis' virtualenv creation (see [#25](https://github.com/pipxproject/pipx-app/issues/25)).
 
 
 ## How does this compare to pipsi?
@@ -398,7 +398,7 @@ pipx poetry --help
 rwt poetry -- -m poetry --help
 ```
 
-## [Changelog](https://github.com/cs01/pipx/blob/master/CHANGELOG.md)
+## [Changelog](https://github.com/pipxproject/pipx-app/blob/master/CHANGELOG.md)
 
 ## Credits
 pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https://github.com/zkat/npx).
