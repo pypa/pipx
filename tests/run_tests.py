@@ -42,6 +42,7 @@ class TestPipx(unittest.TestCase):
                 check=True,
             )
 
+            subprocess.run([pipx_bin, "--version"], check=True)
             subprocess.run([pipx_bin, "--help"], check=True)
             subprocess.run([pipx_bin, "list"], check=True)
             self.assertNotEqual(

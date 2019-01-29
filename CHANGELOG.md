@@ -1,3 +1,6 @@
+0.11.0.2
+ * add version argument parsing back in (fixes regression)
+
 0.11.0.1
  * add version check, command check, fix printed version update installation instructions
 

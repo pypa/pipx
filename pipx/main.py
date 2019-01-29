@@ -1,9 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import sys
-
-assert sys.version_info >= (3, 6, 0), "Python 3.6+ is required"
-
 import argparse
 import http.client
 import logging
@@ -22,9 +19,11 @@ import textwrap
 import urllib
 import urllib.parse
 
+__version__ = "0.11.0.2"
+
 
 def print_version() -> None:
-    print("0.11.0.1")
+    print(__version__)
 
 
 try:
@@ -875,6 +874,8 @@ def get_command_parser():
         help="The Python version to run package's CLI binary with. Must be v3.3+.",
     )
     add_pip_venv_args(p)
+
+    parser.add_argument("--version", action="store_true", help="Print version and exit")
     return parser
 
 
@@ -910,11 +911,10 @@ def cli():
     try:
         parser = get_command_parser()
         args = parser.parse_args()
+        setup(args)
         if not args.command:
             parser.print_help()
             exit(1)
-
-        setup(args)
         exit(run_pipx_command(args))
     except PipxError as e:
         exit(e)
