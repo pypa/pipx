@@ -3,7 +3,9 @@
 
 import sys
 
-assert sys.version_info >= (3, 6, 0), "Python 3.6+ is required"
+if sys.version_info < (3, 6, 0):
+    print("Python 3.6+ is required")
+    exit(1)
 import io  # noqa E402
 import os  # noqa E402
 from setuptools import find_packages, setup  # noqa E402
