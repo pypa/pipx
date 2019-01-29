@@ -46,7 +46,7 @@ pipx_local_venvs = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve(
 local_bin_dir = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resolve()
 PIPX_PACKAGE_NAME = "pipx-app"
 INSTALL_PIPX_CMD = (
-    "curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3"
+    "python3 -m pip install --user pipx-bootstrap && pipx-bootstrap"
 )
 SPEC_HELP = (
     "The package name or specific installation source. "
@@ -900,7 +900,7 @@ def setup(args):
             "A virtual environment for pipx was detected at "
             f"{str(old_pipx_venv_location)}. The 'pipx' package has been renamed "
             "to 'pipx-app'. Please reinstall pipx. This will not affect other packages "
-            "installed by pipx. See https://github.com/cs01/pipx/issues/41.\n"
+            "installed by pipx. See https://github.com/pipxproject/pipx-app/issues/41.\n"
             "  pipx uninstall pipx\n"
             f"  {INSTALL_PIPX_CMD}"
         )

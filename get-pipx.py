@@ -279,12 +279,12 @@ def main(argv=sys.argv[1:]):
     print()
     print("  pipx --help")
     print()
-    print("Questions or comments? See https://github.com/cs01/pipx")
+    print("Questions or comments? See https://github.com/pipxproject/pipx-app")
     print()
     print(f"Enjoy! {'✨ 🌟 ✨' if not WINDOWS else ''}")
     print(
         "DeprecationWarning: This file is deprecated. See current installation "
-        "instructions at https://github.com/cs01/pipx"
+        "instructions at https://github.com/pipxproject/pipx-app"
     )
 
 
