@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import sys
 
-assert sys.version_info >= (3, 6, 0), "Python 3.6+ is required"
+if sys.version_info < (3, 6, 0):
+    exit("Python 3.6+ is required")
 import argparse  # noqa: E402
 from pathlib import Path  # noqa: E402
 from shutil import copy, which  # noqa: E402
