@@ -10,7 +10,7 @@
 <a href="https://travis-ci.org/cs01/pipx"><img src="https://travis-ci.org/cs01/pipx.svg?branch=master" /></a>
 
 <a href="https://pypi.python.org/pypi/pipx-app/">
-<img src="https://img.shields.io/badge/pypi-0.11.0.1-blue.svg" /></a>
+<img src="https://img.shields.io/badge/pypi-0.11.0.2-blue.svg" /></a>
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
@@ -76,7 +76,7 @@ pipx-boostrap --help
 
 Option 2, **curl**:
 ```
-curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3
+curl https://raw.githubusercontent.com/cs01/pipx-bootstrap/master/pipxbootstrap/main.py | python3
 ```
 pipx is on PyPI as `pipx-app`, though the recommended way to install pipx is to use the above command.
 
@@ -84,12 +84,12 @@ If python3 is not found on your PATH or there is a syntax error/typo, `curl` wil
 
 To see options when getting pipx
 ```
-curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3 - --help
+curl https://raw.githubusercontent.com/cs01/pipx-bootstrap/master/pipxbootstrap/main.py | python3 - --help
 ```
 
 To install from the latest master
 ```
-curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3 - --src git+https://github.com/cs01/pipx.git
+curl https://raw.githubusercontent.com/cs01/pipx-bootstrap/master/pipxbootstrap/main.py | python3 - --src git+https://github.com/cs01/pipx.git
 ```
 
 ### system requirements
@@ -362,7 +362,10 @@ it is pretty easy to do it from the command-line:
 
 ```bash
 # install pipx with the recommended method
-curl https://raw.githubusercontent.com/cs01/pipx/master/get-pipx.py | python3
+pip install --user pipx-bootstrap
+pipx-bootstrap
+pip uninstall pipx-boostrap
+# you may have to open a new terminal here for pipx to be on your PATH
 
 # migrate from pipsi to pipx
 pipsi list | grep 'Package ' | cut -d\" -f2 | \

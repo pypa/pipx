@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 import sys
-
 assert sys.version_info >= (3, 6, 0), "Python 3.6+ is required"
-
-import argparse
-from pathlib import Path
-from shutil import copy, which
-import os
-import textwrap
-from typing import Sequence, Union
-import subprocess
-import logging
+import argparse  # noqa: E402
+from pathlib import Path  # noqa: E402
+from shutil import copy, which  # noqa: E402
+import os  # noqa: E402
+import textwrap  # noqa: E402
+from typing import Sequence, Union  # noqa: E402
+import subprocess  # noqa: E402
+import logging  # noqa: E402
 
 
 try:
