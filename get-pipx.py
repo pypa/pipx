@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+
 assert sys.version_info >= (3, 6, 0), "Python 3.6+ is required"
 import argparse  # noqa: E402
 from pathlib import Path  # noqa: E402
@@ -9,7 +10,6 @@ import textwrap  # noqa: E402
 from typing import Sequence, Union  # noqa: E402
 import subprocess  # noqa: E402
 import logging  # noqa: E402
-
 
 try:
     WindowsError
@@ -270,17 +270,21 @@ def main(argv=sys.argv[1:]):
     print()
     print("Now that pipx is installed you can run these commands.")
     print()
+    print("  pipx install PACKAGE  # i.e. pipx install cowsay")
+    print()
     print("  pipx list")
     print()
-    print("  pipx BINARY [BINARY ARGS ...] #  i.e. pipx cowsay moo")
-    print()
-    print("  pipx install PACKAGE  # i.e. pipx install cowsay")
+    print("  pipx run BINARY [BINARY ARGS ...] #  i.e. pipx cowsay moo")
     print()
     print("  pipx --help")
     print()
     print("Questions or comments? See https://github.com/cs01/pipx")
     print()
     print(f"Enjoy! {'✨ 🌟 ✨' if not WINDOWS else ''}")
+    print(
+        "DeprecationWarning: This file is deprecated. See current installation "
+        "instructions at https://github.com/cs01/pipx"
+    )
 
 
 if __name__ == "__main__":
