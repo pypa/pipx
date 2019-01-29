@@ -275,7 +275,7 @@ def main(argv=sys.argv[1:]):
     print()
     print("  pipx list")
     print()
-    print("  pipx run BINARY [BINARY ARGS ...] #  i.e. pipx cowsay moo")
+    print("  pipx run BINARY [BINARY ARGS ...]  #  i.e. pipx run cowsay moo")
     print()
     print("  pipx --help")
     print()
