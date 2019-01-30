@@ -1,13 +1,17 @@
+<p align="center">
+<img align="center" src="https://github.com/pipxproject/pipx-app/raw/master/logo.png"/>
+</p>
+
 # pipx: execute binaries from Python packages in isolated environments
 
 <p align="center">
 <a href="https://github.com/pipxproject/pipx-app/raw/master/pipx_demo.gif">
-<img src="https://github.com/pipxproject/pipx-app/raw/master/pipx_demo.gif">
+<img src="https://github.com/pipxproject/pipx-app/raw/master/pipx_demo.gif"/>
 </a>
 </p>
 
 <p align="center">
-<a href="https://travis-ci.org/cs01/pipx"><img src="https://travis-ci.org/cs01/pipx.svg?branch=master" /></a>
+<a href="https://travis-ci.org/pipxproject/pipx-app"><img src="https://travis-ci.org/pipxproject/pipx-app.svg?branch=master" /></a>
 
 <a href="https://pypi.python.org/pypi/pipx-app/">
 <img src="https://img.shields.io/badge/pypi-0.11.0.2-blue.svg" /></a>

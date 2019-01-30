@@ -45,9 +45,7 @@ DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 pipx_local_venvs = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve()
 local_bin_dir = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resolve()
 PIPX_PACKAGE_NAME = "pipx-app"
-INSTALL_PIPX_CMD = (
-    "python3 -m pip install --user pipx-bootstrap && pipx-bootstrap"
-)
+INSTALL_PIPX_CMD = "python3 -m pip install --user pipx-bootstrap && pipx-bootstrap"
 SPEC_HELP = (
     "The package name or specific installation source. "
     "Runs `pip install -U SPEC`. "
