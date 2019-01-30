@@ -47,7 +47,13 @@ setup(
     keywords=["pip", "install", "cli", "virtualenv", "workflow", "bootstrap"],
     scripts=[],
     entry_points={"console_scripts": ["pipx = pipx.main:cli"]},
-    extras_require={},
+    extras_require={
+        'dev': [
+            'black',
+            'flake8',
+            'mypy',
+        ]
+    },
     zip_safe=False,
     python_requires=">=3.6",
     install_requires=REQUIRED,
