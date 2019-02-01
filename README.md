@@ -91,12 +91,12 @@ Option 1, **pipx-bootstrap**. This is the recommended option.
 ```
 pip install --user pipx-bootstrap
 pipx-bootstrap
-pip uninstall pipx-boostrap
+pip uninstall pipx-bootstrap
 ```
 
 pipx should now be installed. To see installation options, run
 ```
-pipx-boostrap --help
+pipx-bootstrap --help
 ```
 
 Option 2, **curl**:
