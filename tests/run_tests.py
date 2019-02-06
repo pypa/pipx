@@ -1,3 +1,4 @@
+from distutils.spawn import find_executable
 import os
 from pathlib import Path
 import unittest
@@ -21,27 +22,19 @@ class TestPipx(unittest.TestCase):
             home_dir = Path(d) / "subdir" / "pipxhome"
             bin_dir = Path(d) / "otherdir" / "pipxbindir"
             if IS_WIN:
-                pipx_bin = bin_dir / "pipx.exe"
+                pipx_bin = "pipx.exe"
             else:
-                pipx_bin = bin_dir / "pipx"
+                pipx_bin = "pipx"
 
             env["PIPX_HOME"] = str(home_dir)
             env["PIPX_BIN_DIR"] = str(bin_dir)
 
             subprocess.run(
-                [
-                    sys.executable,
-                    "get-pipx.py",
-                    "--src",
-                    ".",
-                    "--overwrite",
-                    "--no-modify-path",
-                    "--verbose",
-                ],
+                [sys.executable, "-m", "pip", "install", ".", "--verbose", "--upgrade"],
                 env=env,
                 check=True,
             )
-
+            self.assertTrue(find_executable(pipx_bin))
             subprocess.run([pipx_bin, "--version"], check=True)
             subprocess.run([pipx_bin, "--help"], check=True)
             subprocess.run([pipx_bin, "list"], check=True)
@@ -77,7 +70,12 @@ class TestPipx(unittest.TestCase):
                 subprocess.run([pipx_bin, "upgrade", "cowsay"]).returncode, 0
             )
             subprocess.run([pipx_bin, "uninstall-all"], check=True)
-            self.assertFalse(pipx_bin.is_file())
+            self.assertTrue(find_executable(pipx_bin))
+            subprocess.run(
+                [sys.executable, "-m", "pip", "uninstall", ".", "--verbose"],
+                env=env,
+                check=True,
+            )
 
 
 def main():

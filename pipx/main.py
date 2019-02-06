@@ -2,12 +2,15 @@
 # -*- coding: utf-8 -*-
 import sys
 import argparse
+import distutils.spawn
 import http.client
 import logging
 import os
 from pathlib import Path
 from pipx.animate import animate
 from pipx.colors import red, bold
+from pipx.emojies import WINDOWS, stars, hazard, sleep
+from pipx.ensurepath import ensure_pipx_on_path
 import shlex
 import shutil
 from shutil import which
@@ -19,33 +22,19 @@ import textwrap
 import urllib
 import urllib.parse
 
-__version__ = "0.11.0.2"
+__version__ = "0.12.0.0"
 
 
 def print_version() -> None:
     print(__version__)
 
 
-try:
-    WindowsError
-except NameError:
-    WINDOWS = False
-    stars = "✨ 🌟 ✨"
-    hazard = "⚠️"
-    sleep = "😴"
-else:
-    WINDOWS = True
-    stars = ""
-    hazard = ""
-    sleep = ""
-
 DEFAULT_PYTHON = sys.executable
 DEFAULT_PIPX_HOME = Path.home() / ".local/pipx/venvs"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 pipx_local_venvs = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve()
 local_bin_dir = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resolve()
-PIPX_PACKAGE_NAME = "pipx-app"
-INSTALL_PIPX_CMD = "python3 -m pip install --user pipx-bootstrap && pipx-bootstrap"
+PIPX_PACKAGE_NAME = "pipx"
 SPEC_HELP = (
     "The package name or specific installation source. "
     "Runs `pip install -U SPEC`. "
@@ -53,9 +42,10 @@ SPEC_HELP = (
 )
 PIPX_DESCRIPTION = textwrap.dedent(
     f"""
-Execute binaries from Python packages.
+Install and execute binaries from Python packages.
 
-Binaries can either be run directly or installed globally into isolated venvs.
+Binaries can either be installed globally into isolated Virtual Environments
+or run directly in an ephemeral Virtual Environment.
 
 venv location is {str(pipx_local_venvs)}.
 Symlinks to binaries are placed in {str(local_bin_dir)}.
@@ -507,6 +497,14 @@ def install(
 
     expose_binaries_globally(local_bin_dir, binary_paths, package)
     _list_installed_package(venv_dir, new_install=True)
+
+    if not distutils.spawn.find_executable(str(binary_paths[0])):
+        logging.warning(
+            f"{hazard}  Note: {str(local_bin_dir)!r} is not on your PATH environment "
+            "variable. These binaries will not be globally accessible until "
+            "your PATH is updated. Run `pipx ensurepath` to automatically add it, "
+            "or manually modify your PATH in your shell's config file (i.e. ~/.bashrc)."
+        )
     print(f"done! {stars}")
 
 
@@ -617,7 +615,7 @@ def get_venv_args(parsed_args: Dict):
 
 def run_pipx_command(args):
     setup(args)
-    verbose = args.verbose
+    verbose = args.verbose if "verbose" in args else False
     pip_args = get_pip_args(vars(args))
     venv_args = get_venv_args(vars(args))
 
@@ -625,14 +623,6 @@ def run_pipx_command(args):
         package = args.package
         if urllib.parse.urlparse(package).scheme:
             raise PipxError("Package cannot be a url")
-
-        if package == "pipx":
-            if args.command == "uninstall":
-                logging.warning(
-                    "Did you mean to use 'pipx-app' instead of 'pipx' for the package name?"
-                )
-            else:
-                raise PipxError("use 'pipx-app' instead of 'pipx' for package name")
 
         if "spec" in args and args.spec is not None:
             if urllib.parse.urlparse(args.spec).scheme:
@@ -686,13 +676,21 @@ def run_pipx_command(args):
         uninstall(venv_dir, package, local_bin_dir, verbose)
     elif args.command == "uninstall-all":
         uninstall_all(pipx_local_venvs, local_bin_dir, verbose)
-        print(f"To reinstall pipx, run '{INSTALL_PIPX_CMD}'")
     elif args.command == "upgrade-all":
         upgrade_all(pipx_local_venvs, pip_args, verbose)
     elif args.command == "reinstall-all":
         reinstall_all(
             pipx_local_venvs, local_bin_dir, args.python, pip_args, venv_args, verbose
         )
+    elif args.command == "ensurepath":
+        path_good = str(local_bin_dir) in os.getenv("PATH")
+        if not path_good or (path_good and args.force):
+            ensure_pipx_on_path(local_bin_dir)
+        else:
+            print(
+                "Your PATH looks like it already is set up for pipx. "
+                "Pass `--force` to modify the PATH."
+            )
     else:
         raise PipxError(f"Unknown command {args.command}")
 
@@ -719,9 +717,6 @@ def run_ephemeral_binary(
     venv_args: List[str],
     verbose: bool,
 ):
-    if package_or_url == "pipx":
-        raise PipxError(f"use 'pipx-app' instead of 'pipx' for package name")
-
     if urllib.parse.urlparse(binary).scheme:
         if not binary.endswith(".py"):
             exit(
@@ -873,6 +868,21 @@ def get_command_parser():
     )
     add_pip_venv_args(p)
 
+    p = subparsers.add_parser(
+        "ensurepath",
+        help=(
+            f"Ensure {str(local_bin_dir)} is on your PATH environment variable"
+            "by modifying your shell's configuration file."
+        ),
+    )
+    p.add_argument(
+        "--force",
+        action="store_true",
+        help=(
+            f"Add text to your shell's config file even if it looks like your "
+            "PATH already has {str(local_bin_dir)}"
+        ),
+    )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     return parser
 
@@ -892,15 +902,12 @@ def setup(args):
     mkdir(pipx_local_venvs)
     mkdir(local_bin_dir)
 
-    old_pipx_venv_location = pipx_local_venvs / "pipx"
+    old_pipx_venv_location = pipx_local_venvs / "pipx-app"
     if old_pipx_venv_location.exists():
         logging.warning(
             "A virtual environment for pipx was detected at "
-            f"{str(old_pipx_venv_location)}. The 'pipx' package has been renamed "
-            "to 'pipx-app'. Please reinstall pipx. This will not affect other packages "
-            "installed by pipx. See https://github.com/pipxproject/pipx-app/issues/41.\n"
-            "  pipx uninstall pipx\n"
-            f"  {INSTALL_PIPX_CMD}"
+            f"{str(old_pipx_venv_location)}. The 'pipx-app' package has been renamed "
+            "back to 'pipx' (https://github.com/pipxproject/pipx/issues/82)."
         )
 
 
