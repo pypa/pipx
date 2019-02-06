@@ -6,11 +6,11 @@ windows_shell:
 	docker run -v "`pwd`:/src/" -it pipx_windows /bin/bash
 	# docker run -v "`pwd`:/src/" pipx_windows
 
-build:
+build: clean
 	python -m pip install --upgrade --quiet setuptools wheel twine
 	python setup.py --quiet sdist bdist_wheel
 
-publish:
+publish: build
 	python -m twine upload dist/*
 
 clean:

@@ -1,28 +1,26 @@
 <p align="center">
-<img align="center" src="https://github.com/pipxproject/pipx-app/raw/master/logo.png"/>
+<img align="center" src="https://github.com/pipxproject/pipx/raw/master/logo.png"/>
 </p>
 
 # pipx: execute binaries from Python packages in isolated environments
 
 <p align="center">
-<a href="https://github.com/pipxproject/pipx-app/raw/master/pipx_demo.gif">
-<img src="https://github.com/pipxproject/pipx-app/raw/master/pipx_demo.gif"/>
+<a href="https://github.com/pipxproject/pipx/raw/master/pipx_demo.gif">
+<img src="https://github.com/pipxproject/pipx/raw/master/pipx_demo.gif"/>
 </a>
 </p>
 
 <p align="center">
-<a href="https://travis-ci.org/pipxproject/pipx-app"><img src="https://travis-ci.org/pipxproject/pipx-app.svg?branch=master" /></a>
+<a href="https://travis-ci.org/pipxproject/pipx"><img src="https://travis-ci.org/pipxproject/pipx.svg?branch=master" /></a>
 
-<a href="https://pypi.python.org/pypi/pipx-app/">
-<img src="https://img.shields.io/badge/pypi-0.11.0.2-blue.svg" /></a>
+<a href="https://pypi.python.org/pypi/pipx/">
+<img src="https://img.shields.io/badge/pypi-0.12.0.0-blue.svg" /></a>
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
 *For comparison to pipsi, see [how does this compare to pipsi?](#how-does-this-compare-to-pipsi) and [migrating to pipx from pipsi](#migrating-to-pipx-from-pipsi).*
 
 *pipx uses the word "binary" to describe a CLI application that can be run directly from the command line. These files are located in the `bin` directory of a Python installation, alongside other executables. Despite the name, they do not necessarily contain binary data.*
-
-*if you are using pipx < v0.10 see [issue #41](https://github.com/pipxproject/pipx-app/issues/41)*
 
 ## Overview
 * Safely install packages to isolated virtual environments, while globally exposing their CLI applications so you can run them from anywhere
@@ -86,49 +84,20 @@ pipx is working!
 [Mason Egger](https://medium.com/homeaway-tech-blog/simplify-your-python-developer-environment-aba90f32dddb)
 > This tool filled in the gap that was missing with pipenv and virtualenvwrapper.
 
-## Install pipx
-Option 1, **pipx-bootstrap**. This is the recommended option.
-```
-pip install --user pipx-bootstrap
-pipx-bootstrap
-pip uninstall pipx-bootstrap
-```
-
-pipx should now be installed. To see installation options, run
-```
-pipx-bootstrap --help
-```
-
-Option 2, **curl**:
-```
-curl https://raw.githubusercontent.com/pipxproject/pipx-bootstrap/master/pipxbootstrap/main.py | python3
-```
-
-If python3 is not found on your PATH or there is a syntax error/typo, `curl` will fail with the error message: "(23) Failed writing body."
-
-To see options when getting pipx
-```
-curl https://raw.githubusercontent.com/pipxproject/pipx-bootstrap/master/pipxbootstrap/main.py | python3 - --help
-```
-
-To install from the latest master
-```
-curl https://raw.githubusercontent.com/pipxproject/pipx-bootstrap/master/pipxbootstrap/main.py | python3 - --src git+https://github.com/cs01/pipx.git
-```
-
-### system requirements
+### System Requirements
 python 3.6+ is required to install pipx. pipx can run binaries from packages with Python 3.3+. Don't have Python 3.6 or later? See [Python 3 Installation & Setup Guide](https://realpython.com/installing-python/).
 
 pipx works on macOS, linux, and Windows.
 
-### To upgrade pipx
+## Install `pipx`
 ```
-pipx upgrade pipx-app
+pip install --user pipx
 ```
 
-### To uninstall pipx
+to be sure you are using python3 you can run
+
 ```
-pipx uninstall pipx-app
+python3 -m pip install --user pipx
 ```
 
 ## Usage
@@ -139,7 +108,7 @@ pipx {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,l
 
 You can run `pipx COMMAND --help` for details on each command.
 
-### Install a package
+### Install a Package
 The install command is the preferred way to globally install binaries from python packages on your system. It creates an isolated virtual environment for the package, then in a folder on your PATH creates symlinks to all the binaries provided by the installed package. It does not link to the package's dependencies.
 
 The result: binaries you can run from anywhere, located in packages you can **cleanly** upgrade or uninstall. Guaranteed to not have dependency version conflicts or interfere with your OS's python packages. All **without** running `sudo`.
@@ -157,7 +126,7 @@ The default virtual environment location is `~/.local/pipx/venvs` and can be ove
 
 The default binary location is `~/.local/bin` and can be overridden by setting the environment variable `PIPX_BIN_DIR`.
 
-#### Examples
+#### Package Installation Examples
 ```
 pipx install cowsay
 pipx install --python python3.6 cowsay
@@ -189,7 +158,7 @@ Adds packages to an existing pipx-managed virtual environment.
 pipx inject PACKAGE DEPENDENCIES
 ```
 
-#### inject example
+#### Inject Example
 
 One use of the inject command is setting up a REPL with some useful extra packages.
 
@@ -232,7 +201,7 @@ symlinks to binaries are in /Users/user/.local/bin
    package black 18.9b0, Python 3.7.0
     - black
     - blackd
-   package pipx-app 0.10.0, Python 3.7.0
+   package pipx 0.10.0, Python 3.7.0
     - pipx
 ```
 ### `run`
@@ -242,7 +211,7 @@ pipx run BINARY
 pipx [--python PYTHON] [--spec SPEC] BINARY [ARGS...]
 ```
 
-#### Examples
+#### `pipx run` Examples
 pipx enables you to test various combinations of Python versions and package versions in ephemeral environments:
 ```
 pipx run BINARY  # latest version of binary is run with python3
@@ -415,7 +384,7 @@ pipx run poetry --help
 pip-run poetry -- -m poetry --help
 ```
 
-## [Changelog](https://github.com/pipxproject/pipx-app/blob/master/CHANGELOG.md)
+## [Changelog](https://github.com/pipxproject/pipx/blob/master/CHANGELOG.md)
 
 ## Credits
 pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https://github.com/zkat/npx).

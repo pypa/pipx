@@ -33,7 +33,7 @@ def get_version() -> str:
 
 
 setup(
-    name="pipx-app",
+    name="pipx",
     version=get_version(),
     author="Chad Smith",
     author_email="grassfedcode@gmail.com",
