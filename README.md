@@ -78,11 +78,16 @@ pipx is working!
 ```
 
 ## Testimonials
-@tkossak
-> Thank you! Great tool btw. I already use it instead of pipsi :)
 
-[Mason Egger](https://medium.com/homeaway-tech-blog/simplify-your-python-developer-environment-aba90f32dddb)
-> This tool filled in the gap that was missing with pipenv and virtualenvwrapper.
+"Just the “pipx upgrade-all” command is already a huge win over pipsi"
+— [Stefane Fermigier](https://twitter.com/sfermigier/status/1093073303521116160)
+
+"This tool filled in the gap that was missing with pipenv and virtualenvwrapper."
+— [Mason Egger](https://medium.com/homeaway-tech-blog/simplify-your-python-developer-environment-aba90f32dddb)
+
+"Thank you! Great tool btw. I already use it instead of pipsi :)"
+— @tkossak
+
 
 ### System Requirements
 python 3.6+ is required to install pipx. pipx can run binaries from packages with Python 3.3+. Don't have Python 3.6 or later? See [Python 3 Installation & Setup Guide](https://realpython.com/installing-python/).
@@ -92,12 +97,14 @@ pipx works on macOS, linux, and Windows.
 ## Install `pipx`
 ```
 pip install --user pipx
+pipx ensurepath
 ```
 
 to be sure you are using python3 you can run
 
 ```
 python3 -m pip install --user pipx
+pipx ensurepath
 ```
 
 ## Usage
@@ -348,9 +355,8 @@ it is pretty easy to do it from the command-line:
 
 ```bash
 # install pipx with the recommended method
-pip install --user pipx-bootstrap
-pipx-bootstrap
-pip uninstall pipx-boostrap
+pip install --user pipx
+pipx ensurepath
 # you may have to open a new terminal here for pipx to be on your PATH
 
 # migrate from pipsi to pipx
