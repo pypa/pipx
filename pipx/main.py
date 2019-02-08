@@ -14,7 +14,6 @@ from pipx.ensurepath import ensure_pipx_on_path
 import shlex
 import shutil
 from shutil import which
-import ssl
 import subprocess
 import tempfile
 from typing import Dict, List, Optional, Union, Sequence
@@ -22,7 +21,7 @@ import textwrap
 import urllib
 import urllib.parse
 
-__version__ = "0.12.0.0"
+__version__ = "0.12.0.1"
 
 
 def print_version() -> None:
@@ -697,9 +696,7 @@ def run_pipx_command(args):
 
 def http_get_request(url: str):
     parts = urllib.parse.urlparse(url)
-    conn = http.client.HTTPSConnection(
-        parts.hostname, context=ssl._create_unverified_context()
-    )
+    conn = http.client.HTTPSConnection(parts.hostname)
     conn.request("GET", parts.path)
     response = conn.getresponse()
     if response.status != 200:
