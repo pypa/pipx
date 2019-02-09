@@ -14,4 +14,4 @@ publish: build
 	python -m twine upload dist/*
 
 clean:
-	rm -r build dist
+	rm -r build dist *.egg-info || true
