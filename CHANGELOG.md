@@ -1,3 +1,6 @@
+0.12.0.4
+* Fix parsing bug in pipx run
+
 0.12.0.3
 * list python2 as supported language so that pip installs with python2 will no longer install the pipx on PyPI from the original pipx owner. Running pipx with python2 will fail, but at least it will not be as confusing as running the pipx package from the original owner.
 
