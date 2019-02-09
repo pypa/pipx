@@ -21,7 +21,7 @@ import textwrap
 import urllib
 import urllib.parse
 
-__version__ = "0.12.0.2"
+__version__ = "0.12.0.3"
 
 
 def print_version() -> None:
