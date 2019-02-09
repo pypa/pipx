@@ -21,7 +21,7 @@ import textwrap
 import urllib
 import urllib.parse
 
-__version__ = "0.12.0.3"
+__version__ = "0.12.0.4"
 
 
 def print_version() -> None:
@@ -918,6 +918,7 @@ def _split_argv() -> Tuple[List[str], List[str]]:
                 if not arg.startswith("-"):
                     args_to_parse = sys.argv[1 : 3 + i]
                     binary_args = sys.argv[3 + i :]
+                    break
     return args_to_parse, binary_args
 
 
