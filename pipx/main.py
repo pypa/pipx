@@ -16,12 +16,12 @@ import shutil
 from shutil import which
 import subprocess
 import tempfile
-from typing import Dict, List, Optional, Union, Sequence
+from typing import Dict, List, Optional, Union, Sequence, Tuple
 import textwrap
 import urllib
 import urllib.parse
 
-__version__ = "0.12.0.1"
+__version__ = "0.12.0.2"
 
 
 def print_version() -> None:
@@ -612,7 +612,7 @@ def get_venv_args(parsed_args: Dict):
     return venv_args
 
 
-def run_pipx_command(args):
+def run_pipx_command(args, binary_args: List[str]):
     setup(args)
     verbose = args.verbose if "verbose" in args else False
     pip_args = get_pip_args(vars(args))
@@ -638,7 +638,7 @@ def run_pipx_command(args):
         return run_ephemeral_binary(
             args.binary,
             package_or_url,
-            args.binary_args,
+            binary_args,
             args.python,
             pip_args,
             venv_args,
@@ -682,7 +682,8 @@ def run_pipx_command(args):
             pipx_local_venvs, local_bin_dir, args.python, pip_args, venv_args, verbose
         )
     elif args.command == "ensurepath":
-        path_good = str(local_bin_dir) in os.getenv("PATH")
+        if os.getenv("PATH") is not None:
+            path_good = str(local_bin_dir) in (os.getenv("PATH") or "")
         if not path_good or (path_good and args.force):
             ensure_pipx_on_path(local_bin_dir)
         else:
@@ -908,16 +909,29 @@ def setup(args):
         )
 
 
+def _split_argv() -> Tuple[List[str], List[str]]:
+    args_to_parse = sys.argv[1:]
+    binary_args: List[str] = []
+    if len(sys.argv) >= 2:
+        if sys.argv[1] == "run":
+            for i, arg in enumerate(sys.argv[2:]):
+                if not arg.startswith("-"):
+                    args_to_parse = sys.argv[1 : 3 + i]
+                    binary_args = sys.argv[3 + i :]
+    return args_to_parse, binary_args
+
+
 def cli():
     """Entry point from command line"""
     try:
+        args_to_parse, binary_args = _split_argv()
         parser = get_command_parser()
-        args = parser.parse_args()
-        setup(args)
-        if not args.command:
+        parsed_pipx_args = parser.parse_args(args_to_parse)
+        setup(parsed_pipx_args)
+        if not parsed_pipx_args.command:
             parser.print_help()
             exit(1)
-        exit(run_pipx_command(args))
+        exit(run_pipx_command(parsed_pipx_args, binary_args))
     except PipxError as e:
         exit(e)
 

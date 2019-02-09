@@ -1,3 +1,13 @@
+0.12.0.2
+* forward arguments to run command correctly #90
+
+0.12.0.1
+* stop using unverified context #89
+
+0.12.0.0
+* Change installation instructions to use `pipx` PyPI name
+* Add `ensurepath` command
+
 0.11.0.2
  * add version argument parsing back in (fixes regression)
 

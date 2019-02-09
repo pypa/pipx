@@ -34,14 +34,30 @@ class TestPipx(unittest.TestCase):
                 env=env,
                 check=True,
             )
+
             self.assertTrue(find_executable(pipx_bin))
+
             subprocess.run([pipx_bin, "--version"], check=True)
-            subprocess.run([pipx_bin, "--help"], check=True)
             subprocess.run([pipx_bin, "list"], check=True)
-            self.assertNotEqual(
-                subprocess.run([pipx_bin, "cowsay", "pipx test is passing"]).returncode,
-                0,
+
+            # pipx help should contain the word pipx
+            ret = subprocess.run(
+                [pipx_bin, "--help"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True,
             )
+            self.assertTrue("pipx" in ret.stdout.decode().lower())
+
+            # passing --help to cowsay should NOT contain the word pipx
+            ret = subprocess.run(
+                [pipx_bin, "run", "cowsay", "--help"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertTrue("pipx" not in ret.stdout.decode().lower())
+            self.assertTrue("pipx" not in ret.stderr.decode().lower())
+
             subprocess.run(
                 [pipx_bin, "run", "cowsay", "pipx test is passing"], check=True
             )
