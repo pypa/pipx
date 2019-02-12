@@ -136,8 +136,6 @@ class Venv:
         get_binaries_script = textwrap.dedent(
             f"""
             import pkg_resources
-            import sys
-            import os
             from pathlib import Path
 
             dist = pkg_resources.get_distribution("{package}")
@@ -153,7 +151,7 @@ class Venv:
                     entry = line.split(',')[0]
                     path = (Path(dist.location) / entry).resolve()
                     try:
-                        if path.parent.samefile(bin_path):
+                        if path.parent.name == "scripts" in entry or path.parent.samefile(bin_path):
                             binaries.add(Path(entry).name)
                     except FileNotFoundError:
                         pass
@@ -182,6 +180,7 @@ class Venv:
             .stdout.decode()
             .split()
         )
+
         binary_paths = {self.bin_path / b for b in binaries}
         if WINDOWS:
             for binary in binary_paths:
