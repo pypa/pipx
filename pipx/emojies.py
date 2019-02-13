@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-try:
-    WindowsError
-except NameError:
-    WINDOWS = False
-    stars = "✨ 🌟 ✨"
-    hazard = "⚠️"
-    sleep = "😴"
-else:
-    WINDOWS = True
+from pipx.util import WINDOWS
+
+if WINDOWS:
     stars = ""
     hazard = ""
     sleep = ""
+else:
+    stars = "✨ 🌟 ✨"
+    hazard = "⚠️"
+    sleep = "😴"

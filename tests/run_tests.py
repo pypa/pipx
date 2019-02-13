@@ -5,23 +5,42 @@ import unittest
 import subprocess
 import sys
 import tempfile
-
-
-try:
-    WindowsError
-except NameError:
-    IS_WIN = False
-else:
-    IS_WIN = True
+from pipx.main import split_run_argv
+from pipx.util import WINDOWS
 
 
 class TestPipx(unittest.TestCase):
+    def test_split_run_argv(self):
+        args_to_parse, binary_args = split_run_argv(["pipx"])
+        self.assertEqual(args_to_parse, [])
+        self.assertEqual(binary_args, [])
+
+        args_to_parse, binary_args = split_run_argv(["pipx", "list"])
+        self.assertEqual(args_to_parse, ["list"])
+        self.assertEqual(binary_args, [])
+
+        args_to_parse, binary_args = split_run_argv(["pipx", "list", "--help"])
+        self.assertEqual(args_to_parse, ["list", "--help"])
+        self.assertEqual(binary_args, [])
+
+        args_to_parse, binary_args = split_run_argv(
+            ["pipx", "run", "cowsay", "moo", "--help"]
+        )
+        self.assertEqual(args_to_parse, ["run", "cowsay"])
+        self.assertEqual(binary_args, ["moo", "--help"])
+
+        args_to_parse, binary_args = split_run_argv(
+            ["pipx", "upgrade", "cowsay", "moo", "--help"]
+        )
+        self.assertEqual(args_to_parse, ["upgrade", "cowsay", "moo", "--help"])
+        self.assertEqual(binary_args, [])
+
     def test_pipx(self):
         with tempfile.TemporaryDirectory() as d:
             env = os.environ
             home_dir = Path(d) / "subdir" / "pipxhome"
             bin_dir = Path(d) / "otherdir" / "pipxbindir"
-            if IS_WIN:
+            if WINDOWS:
                 pipx_bin = "pipx.exe"
             else:
                 pipx_bin = "pipx"
@@ -59,8 +78,35 @@ class TestPipx(unittest.TestCase):
             self.assertTrue("pipx" not in ret.stderr.decode().lower())
 
             subprocess.run(
-                [pipx_bin, "run", "cowsay", "pipx test is passing"], check=True
+                [pipx_bin, "run", "--verbose", "cowsay", "cowsay args"], check=True
             )
+            ret = subprocess.run(
+                [
+                    pipx_bin,
+                    "run",
+                    "--verbose",
+                    "cowsay",
+                    "different args should re-use cache",
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True,
+            )
+            self.assertTrue("Reusing cached venv" in ret.stderr.decode())
+            ret = subprocess.run(
+                [
+                    pipx_bin,
+                    "run",
+                    "--verbose",
+                    "--no-cache",
+                    "cowsay",
+                    "no cache should remove cache",
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True,
+            )
+            self.assertTrue("Removing cached venv" in ret.stderr.decode())
             subprocess.run([pipx_bin, "install", "cowsay"], check=True)
             subprocess.run([pipx_bin, "install", "black"], check=True)
             subprocess.run([pipx_bin, "inject", "black", "aiohttp"], check=True)
@@ -87,11 +133,6 @@ class TestPipx(unittest.TestCase):
             )
             subprocess.run([pipx_bin, "uninstall-all"], check=True)
             self.assertTrue(find_executable(pipx_bin))
-            subprocess.run(
-                [sys.executable, "-m", "pip", "uninstall", ".", "--verbose"],
-                env=env,
-                check=True,
-            )
 
 
 def main():
