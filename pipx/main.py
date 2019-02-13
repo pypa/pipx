@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 import sys
 import argparse
+import datetime
 import distutils.spawn
+import hashlib
 import http.client
 import logging
 import os
@@ -16,6 +18,7 @@ import shutil
 from shutil import which
 import subprocess
 import tempfile
+import time
 from typing import Dict, List, Optional, Union, Sequence, Tuple
 import textwrap
 import urllib
@@ -33,6 +36,7 @@ DEFAULT_PIPX_HOME = Path.home() / ".local/pipx/venvs"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 pipx_local_venvs = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve()
 local_bin_dir = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resolve()
+PIPX_VENV_CACHEDIR = pipx_local_venvs / ".cache"
 PIPX_PACKAGE_NAME = "pipx"
 SPEC_HELP = (
     "The package name or specific installation source. "
@@ -580,17 +584,6 @@ def reinstall_all(
         )
 
 
-def get_fs_package_name(package: str) -> str:
-    illegal = ["+", "#", "/", ":"]
-    ret = ""
-    for x in package:
-        if x in illegal:
-            ret += "_"
-        else:
-            ret += x
-    return ret
-
-
 def get_pip_args(parsed_args: Dict):
     pip_args: List[str] = []
     if parsed_args.get("index_url"):
@@ -634,6 +627,7 @@ def run_pipx_command(args, binary_args: List[str]):
         package_or_url = (
             args.spec if ("spec" in args and args.spec is not None) else args.binary
         )
+        use_cache = not args.no_cache
         return run_ephemeral_binary(
             args.binary,
             package_or_url,
@@ -642,6 +636,7 @@ def run_pipx_command(args, binary_args: List[str]):
             pip_args,
             venv_args,
             verbose,
+            use_cache,
         )
     elif args.command == "install":
         package_or_url = (
@@ -713,6 +708,7 @@ def run_ephemeral_binary(
     pip_args: List[str],
     venv_args: List[str],
     verbose: bool,
+    use_cache: bool,
 ):
     if urllib.parse.urlparse(binary).scheme:
         if not binary.endswith(".py"):
@@ -739,10 +735,23 @@ def run_ephemeral_binary(
         binary = f"{binary}.exe"
         logging.warning(f"Assuming binary is {binary!r} (Windows only)")
 
-    with tempfile.TemporaryDirectory(
-        prefix=f"{get_fs_package_name(package_or_url)}_"
-    ) as venv_dir:
-        logging.info(f"virtualenv is temporary, its location is {venv_dir}")
+    m = hashlib.sha256()
+    m.update(package_or_url.encode())
+    m.update(python.encode())
+    m.update("".join(pip_args).encode())
+    m.update("".join(venv_args).encode())
+    venv_folder_name = m.hexdigest()[0:15]
+    venv_dir = Path(PIPX_VENV_CACHEDIR) / venv_folder_name
+
+    venv = Venv(venv_dir)
+    bin_path = venv.bin_path / binary
+    _prepare_cache(venv, bin_path, use_cache)
+
+    if bin_path.exists():
+        logging.info(f"reusing existing venv at {venv_dir}")
+        return venv.run_binary(binary, binary_args)
+    else:
+        logging.info(f"venv location is {venv_dir}")
         return download_and_run(
             Path(venv_dir),
             package_or_url,
@@ -753,6 +762,24 @@ def run_ephemeral_binary(
             venv_args,
             verbose,
         )
+
+
+def _prepare_cache(venv: Venv, bin_path: Path, use_cache: bool):
+    venv_dir = venv.root
+    if not use_cache and bin_path.exists():
+        rmdir(venv_dir)
+
+    try:
+        created_time = venv_dir.stat().st_ctime
+        current_time = time.mktime(datetime.datetime.now().timetuple())
+        age = current_time - created_time
+        two_days_in_seconds = 60 * 60 * 24
+        threshold = two_days_in_seconds
+        is_expired = age > threshold
+        if is_expired:
+            rmdir(venv_dir)
+    except FileNotFoundError:
+        pass
 
 
 def add_pip_venv_args(parser):
@@ -849,6 +876,11 @@ def get_command_parser():
         help="Download latest version of a package to temporary directory, "
         "then run a binary from it. Temp dir is removed after execution is finished.",
     )
+    p.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Do not re-use cached virtual environment if it exists",
+    )
     p.add_argument("binary", help="binary/package name")
     p.add_argument(
         "binary_args",
@@ -898,6 +930,7 @@ def setup(args):
 
     mkdir(pipx_local_venvs)
     mkdir(local_bin_dir)
+    mkdir(PIPX_VENV_CACHEDIR)
 
     old_pipx_venv_location = pipx_local_venvs / "pipx-app"
     if old_pipx_venv_location.exists():
