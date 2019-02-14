@@ -1,3 +1,10 @@
+0.12.1.0
+* Cache and reuse temporary Virtual Environments created with `pipx run` (#61)
+* Update binary discovery logic to find "scripts" like awscli (#91)
+* Forward `--pip-args` to the pip upgrade command (previously the args were forwarded to install/upgrade commands for packages) (#77)
+* When using environment variable PIPX_HOME, Virtual Environments will now be created at `$PIPX_HOME/venvs` rather than at `$PIPX_HOME`.
+* [dev] refactor into multiple files, add more unit tests
+
 0.12.0.4
 * Fix parsing bug in pipx run
 

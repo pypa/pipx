@@ -40,7 +40,8 @@ or run directly in an ephemeral Virtual Environment.
 venv location is {str(PIPX_LOCAL_VENVS)}.
 Symlinks to binaries are placed in {str(LOCAL_BIN_DIR)}.
 These locations can be overridden with the environment variables
-PIPX_HOME and PIPX_BIN_DIR, respectively.
+PIPX_HOME and PIPX_BIN_DIR, respectively. (venvs will be installed to
+$PIPX_HOME/venvs)
 """
 )
 

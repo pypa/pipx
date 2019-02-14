@@ -99,7 +99,7 @@ def _download_and_run(
     verbose: bool,
 ):
     venv = Venv(venv_dir, python=python, verbose=verbose)
-    venv.create_venv(venv_args)
+    venv.create_venv(venv_args, pip_args)
     venv.install_package(package, pip_args)
     if not (venv.bin_path / binary).exists():
         binaries = venv.get_package_binary_paths(package)
@@ -251,7 +251,7 @@ def install(
             )
 
     venv = Venv(venv_dir, python=python, verbose=verbose)
-    venv.create_venv(venv_args)
+    venv.create_venv(venv_args, pip_args)
     try:
         venv.install_package(package_or_url, pip_args)
     except PipxError:

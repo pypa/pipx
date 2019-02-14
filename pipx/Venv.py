@@ -24,10 +24,10 @@ class Venv:
         self.verbose = verbose
         self.do_animation = not verbose
 
-    def create_venv(self, venv_args) -> None:
+    def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
             _run([self._python, "-m", "venv"] + venv_args + [str(self.root)])
-            self.upgrade_package("pip", [])
+            self.upgrade_package("pip", pip_args)
 
     def remove_venv(self) -> None:
         rmdir(self.root)

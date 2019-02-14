@@ -14,7 +14,7 @@
 <a href="https://travis-ci.org/pipxproject/pipx"><img src="https://travis-ci.org/pipxproject/pipx.svg?branch=master" /></a>
 
 <a href="https://pypi.python.org/pypi/pipx/">
-<img src="https://img.shields.io/badge/pypi-0.12.0.4-blue.svg" /></a>
+<img src="https://img.shields.io/badge/pypi-0.12.1.0-blue.svg" /></a>
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
@@ -58,18 +58,18 @@ done! ✨ 🌟 ✨
                  ||     ||
 ```
 
-### Running in one-time ephemeral environments
+### Running in temporary, sandboxed environments
 pipx makes running the latest version of a program in a one-time environment as easy as
 ```
 pipx run BINARY [ARGS...]
 ```
-This will install the package in a temporary directory, invoke the binary, then clean up after itself, leaving your system untouched. Try it!
+This will install the package in a temporary directory and invoke the binary. Try it!
 
 ```
 pipx run cowsay moo
 ```
 
-Notice that you **don't need to execute any install commands to run the binary**.
+Notice that you **don't need to execute any install commands to run the binary**. Re-running the same binary is quick because pipx caches Virtual Environments on a per-binary basis. These caches last two days.
 
 You can run .py files directly, too.
 ```
@@ -129,7 +129,7 @@ pipx install --spec TAR_GZ_FILE PACKAGE
 
 The argument to `--spec` is passed directly to `pip install`.
 
-The default virtual environment location is `~/.local/pipx/venvs` and can be overridden by setting the environment variable `PIPX_HOME`.
+The default virtual environment location is `~/.local/pipx/venvs` and can be overridden by setting the environment variable `PIPX_HOME` (venvs will be installed to `$PIPX_HOME/venvs`).
 
 The default binary location is `~/.local/bin` and can be overridden by setting the environment variable `PIPX_BIN_DIR`.
 
@@ -212,10 +212,13 @@ symlinks to binaries are in /Users/user/.local/bin
     - pipx
 ```
 ### `run`
-Run a binary from the latest version of its package in a temporary, ephemeral environment.
+Run a binary from the latest version of its package in a temporary environment. The environment will be cached and re-used for up to two days. To ignore the cache, you can pass `--no-cache`.
 ```
 pipx run BINARY
-pipx [--python PYTHON] [--spec SPEC] BINARY [ARGS...]
+pipx run [-h] [--no-cache] [--spec SPEC] [--verbose] [--python PYTHON]
+                [--system-site-packages] [--index-url INDEX_URL] [--editable]
+                [--pip-args PIP_ARGS]
+                binary [binary_args [binary_args ...]]
 ```
 
 #### `pipx run` Examples
