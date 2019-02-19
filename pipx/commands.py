@@ -3,6 +3,7 @@
 
 from .animate import animate
 from .colors import red, bold
+from .constants import LOCAL_BIN_DIR, PIPX_PACKAGE_NAME, PIPX_VENV_CACHEDIR
 from .emojies import stars, hazard, sleep
 from .util import rmdir, mkdir, PipxError, WINDOWS
 from .Venv import Venv
@@ -21,7 +22,6 @@ import subprocess
 import textwrap
 import time
 import urllib.parse
-from .constants import LOCAL_BIN_DIR, PIPX_PACKAGE_NAME, PIPX_VENV_CACHEDIR
 
 TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 2
 
@@ -241,7 +241,12 @@ def install(
     *,
     force: bool,
 ):
-    if venv_dir.exists() and next(venv_dir.iterdir()):
+    try:
+        exists = venv_dir.exists() and next(venv_dir.iterdir())
+    except StopIteration:
+        exists = False
+
+    if exists:
         if force:
             print(f"Installing to existing directory {str(venv_dir)!r}")
         else:

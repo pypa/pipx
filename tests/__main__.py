@@ -1,3 +1,3 @@
-from .run_tests import main
+from .test_pipx import main
 
 exit(main())

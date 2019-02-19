@@ -27,7 +27,9 @@ class Venv:
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
             _run([self._python, "-m", "venv"] + venv_args + [str(self.root)])
-            self.upgrade_package("pip", pip_args)
+            ignored_args = ["--editable"]
+            _pip_args = [arg for arg in pip_args if arg not in ignored_args]
+            self.upgrade_package("pip", _pip_args)
 
     def remove_venv(self) -> None:
         rmdir(self.root)

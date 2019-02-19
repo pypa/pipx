@@ -44,19 +44,14 @@ setup(
     license="License :: OSI Approved :: MIT License",
     packages=find_packages(exclude=EXCLUDE_FROM_PACKAGES),
     include_package_data=True,
-    keywords=["pip", "install", "cli", "virtualenv", "workflow", "bootstrap"],
+    keywords=["pip", "install", "cli", "virtualenv", "workflow", "Virtual Environment"],
     scripts=[],
     entry_points={"console_scripts": ["pipx = pipx.main:cli"]},
-    extras_require={
-        'dev': [
-            'black',
-            'flake8',
-            'mypy',
-        ]
-    },
+    extras_require={"dev": ["black", "flake8", "mypy"]},
     zip_safe=False,
     python_requires=">=3.6",
     install_requires=REQUIRED,
+    test_suite="tests.test_pipx",
     classifiers=[
         "Operating System :: OS Independent",
         "License :: OSI Approved :: MIT License",

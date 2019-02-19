@@ -334,7 +334,7 @@ pip install -e .[dev]
 ```
 then running tests
 ```
-python test.py
+python setup.py test
 ```
 
 When finished, you can exit the virtual environment by running `deactivate` and remove the virtual environment with `rm -r pipxvenv`.

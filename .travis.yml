@@ -2,10 +2,14 @@ language: python
 sudo: required
 python:
   - "3.6"
+  # - "3.7"
 install:
-  - pip install black flake8 mypy
+  - pip install .[dev]
 script:
-  - python test.py --only-static
+  - python -m unittest tests.test_pipx.PipxStaticTests.test_static
+  # TODO figure out how to make this run on travis
+  # (https://github.com/pipxproject/pipx/issues/25)
+  # - python setup.py test
 
 cache:
   pip: true
