@@ -5,7 +5,14 @@ from .animate import animate
 from .colors import red, bold
 from .constants import LOCAL_BIN_DIR, PIPX_PACKAGE_NAME, PIPX_VENV_CACHEDIR
 from .emojies import stars, hazard, sleep
-from .util import rmdir, mkdir, PipxError, WINDOWS
+from .util import (
+    rmdir,
+    mkdir,
+    PipxError,
+    WINDOWS,
+    get_pypackage_bin_path,
+    run_pypackage_bin,
+)
 from .Venv import Venv
 from pathlib import Path
 from shutil import which
@@ -33,6 +40,7 @@ def run(
     python: str,
     pip_args: List[str],
     venv_args: List[str],
+    pypackages: bool,
     verbose: bool,
     use_cache: bool,
 ):
@@ -64,6 +72,19 @@ def run(
     if WINDOWS and not binary.endswith(".exe"):
         binary = f"{binary}.exe"
         logging.warning(f"Assuming binary is {binary!r} (Windows only)")
+
+    pypackage_bin_path = get_pypackage_bin_path(binary)
+    if pypackage_bin_path.exists():
+        logging.info(
+            f"Using binary in local __pypackages__ directory at {str(pypackage_bin_path)}"
+        )
+        return run_pypackage_bin(pypackage_bin_path, binary_args)
+    if pypackages:
+        raise PipxError(
+            f"'--pypackages' flag was passed, but {str(pypackage_bin_path)!r} was "
+            "not found. See https://github.com/cs01/pythonloc to learn how to "
+            "install here, or omit the flag."
+        )
 
     venv_dir = _get_temporary_venv_path(package_or_url, python, pip_args, venv_args)
 
@@ -459,7 +480,7 @@ def list_packages(pipx_local_venvs: Path):
         return
 
     print(f"venvs are in {bold(str(pipx_local_venvs))}")
-    print(f"symlinks to binaries are in {bold(str(LOCAL_BIN_DIR))}")
+    print(f"binaries are exposed on your $PATH at {bold(str(LOCAL_BIN_DIR))}")
     for d in dirs:
         _list_installed_package(d)
 

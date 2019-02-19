@@ -18,7 +18,7 @@ from typing import Dict, List, Tuple
 import textwrap
 import urllib.parse
 
-__version__ = "0.12.1.0"
+__version__ = "0.12.2.0"
 
 
 def print_version() -> None:
@@ -97,6 +97,7 @@ def run_pipx_command(args, binary_args: List[str]):
             args.python,
             pip_args,
             venv_args,
+            args.pypackages,
             verbose,
             use_cache,
         )
@@ -242,8 +243,9 @@ def get_command_parser():
 
     p = subparsers.add_parser(
         "run",
-        help="Download latest version of a package to temporary directory, "
-        "then run a binary from it. Temp dir is removed after execution is finished.",
+        help="Either download latest version of a package to temporary directory, "
+        "then run a binary from it, or invoke binary from local `__pypackages__` "
+        "directory (expiremental, see https://github.com/cs01/pythonloc)",
     )
     p.add_argument(
         "--no-cache",
@@ -256,6 +258,11 @@ def get_command_parser():
         nargs="*",
         help="arguments passed to the binary when it is invoked",
         default=[],
+    )
+    p.add_argument(
+        "--pypackages",
+        action="store_true",
+        help="Require binary to be run from local __pypackages__ directory",
     )
     p.add_argument("--spec", help=SPEC_HELP)
     p.add_argument("--verbose", action="store_true")

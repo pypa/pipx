@@ -1,3 +1,8 @@
+0.12.2.0
+* Add support for PEP 582's `__pypackages__` (experimental). `pipx run BINARY` will first search in `__pypackages__` for binary, then fallback to installing from PyPI. `pipx run --pypackages BINARY` will raise an error if the binary is not found in `__pypackages__`.
+* Fix regression when installing with `--editable` flag (#93) 
+* [dev] improve unit tests
+
 0.12.1.0
 * Cache and reuse temporary Virtual Environments created with `pipx run` (#61)
 * Update binary discovery logic to find "scripts" like awscli (#91)

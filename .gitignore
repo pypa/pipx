@@ -4,3 +4,4 @@
 build
 dist
 activate
+__pypackages__
