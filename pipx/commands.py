@@ -1,27 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from .animate import animate
-from .colors import red, bold
-from .constants import LOCAL_BIN_DIR, PIPX_PACKAGE_NAME, PIPX_VENV_CACHEDIR
-from .emojies import stars, hazard, sleep
-from .util import (
-    rmdir,
-    mkdir,
-    PipxError,
-    WINDOWS,
-    get_pypackage_bin_path,
-    run_pypackage_bin,
-)
-from .Venv import Venv
-from pathlib import Path
-from shutil import which
-from typing import List, Optional
 import datetime
 import distutils.spawn
 import hashlib
 import http.client
 import logging
+import multiprocessing
 import os
 import shlex
 import shutil
@@ -29,6 +14,24 @@ import subprocess
 import textwrap
 import time
 import urllib.parse
+from pathlib import Path
+from shutil import which
+from typing import List, Optional
+
+from .animate import animate
+from .colors import bold, red
+from .constants import LOCAL_BIN_DIR, PIPX_PACKAGE_NAME, PIPX_VENV_CACHEDIR
+from .emojies import hazard, sleep, stars
+from .util import (
+    WINDOWS,
+    PipxError,
+    get_pypackage_bin_path,
+    mkdir,
+    rmdir,
+    run_pypackage_bin,
+)
+from .Venv import Venv
+
 
 TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 2
 
@@ -302,7 +305,7 @@ def install(
         raise PipxError(f"No binaries associated with package {package}.")
 
     _expose_binaries_globally(local_bin_dir, binary_paths, package)
-    _list_installed_package(venv_dir, new_install=True)
+    print(_get_package_summary(venv_dir, new_install=True))
 
     if not distutils.spawn.find_executable(str(binary_paths[0])):
         logging.warning(
@@ -436,41 +439,62 @@ def _symlink_package_binaries(
                 )
 
 
-def _list_installed_package(path: Path, *, new_install: bool = False) -> None:
+def _get_package_summary(path: Path, *, new_install: bool = False) -> str:
     venv = Venv(path)
     python_path = venv.python_path.resolve()
     package = path.name
 
     version = venv.get_package_version(package)
     if version is None:
-        print(f"{package} is not installed in the venv {str(path)}")
-        return
+        output = f"{package} is not installed in the venv {str(path)}"
+    else:
+        python_version = venv.get_python_version()
+        package_binary_paths = venv.get_package_binary_paths(package)
+        package_binary_names = [b.name for b in package_binary_paths]
 
-    python_version = venv.get_python_version()
-    package_binary_paths = venv.get_package_binary_paths(package)
-    package_binary_names = [b.name for b in package_binary_paths]
+        exposed_binary_paths = _get_exposed_binary_paths_for_package(
+            venv.bin_path, package_binary_paths, LOCAL_BIN_DIR
+        )
+        exposed_binary_names = sorted(p.name for p in exposed_binary_paths)
+        unavailable_binary_names = sorted(
+            set(package_binary_names) - set(exposed_binary_names)
+        )
+        output = _get_list_output(
+            python_version,
+            python_path,
+            version,
+            package,
+            new_install,
+            exposed_binary_names,
+            unavailable_binary_names,
+        )
+    return output
 
-    exposed_binary_paths = _get_exposed_binary_paths_for_package(
-        venv.bin_path, package_binary_paths, LOCAL_BIN_DIR
-    )
-    exposed_binary_names = sorted(p.name for p in exposed_binary_paths)
-    unavailable_binary_names = sorted(
-        set(package_binary_names) - set(exposed_binary_names)
-    )
 
-    print(
+def _get_list_output(
+    python_version: str,
+    python_path: Path,
+    version: str,
+    package: str,
+    new_install: bool,
+    exposed_binary_names: List[str],
+    unavailable_binary_names: List[str],
+) -> str:
+    output = []
+    output.append(
         f"  {'installed' if new_install else ''} package {bold(shlex.quote(package))} {bold(version)}, {python_version}"
     )
 
     if not python_path.exists():
-        logging.error(f"    associated python path {str(python_path)} does not exist!")
+        output.append(f"    associated python path {str(python_path)} does not exist!")
 
     if new_install and exposed_binary_names:
-        print("  These binaries are now globally available")
+        output.append("  These binaries are now globally available")
     for name in exposed_binary_names:
-        print(f"    - {name}")
+        output.append(f"    - {name}")
     for name in unavailable_binary_names:
-        print(f"    - {red(name)} (symlink not installed)")
+        output.append(f"    - {red(name)} (symlink not installed)")
+    return "\n".join(output)
 
 
 def list_packages(pipx_local_venvs: Path):
@@ -481,8 +505,10 @@ def list_packages(pipx_local_venvs: Path):
 
     print(f"venvs are in {bold(str(pipx_local_venvs))}")
     print(f"binaries are exposed on your $PATH at {bold(str(LOCAL_BIN_DIR))}")
-    for d in dirs:
-        _list_installed_package(d)
+
+    with multiprocessing.Pool() as p:
+        for package_summary in p.map(_get_package_summary, dirs):
+            print(package_summary)
 
 
 def _get_exposed_binary_paths_for_package(
