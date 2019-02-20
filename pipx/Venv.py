@@ -3,12 +3,19 @@
 
 import logging
 from pathlib import Path
+import pkgutil
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON
 from pipx.util import rmdir, WINDOWS, PipxError
 import subprocess
-import textwrap
 from typing import List, Optional, Union, Sequence
+
+
+GET_BINARIES_SCRIPT = pkgutil.get_data("pipx", "get_binaries.py").decode("utf-8")
+GET_VERSION_SCRIPT = pkgutil.get_data("pipx", "get_version.py").decode("utf-8")
+GET_PACKAGE_DEPS_SCRIPT = pkgutil.get_data(
+    "pipx", "get_package_dependencies.py"
+).decode("utf-8")
 
 
 class Venv:
@@ -42,16 +49,9 @@ class Venv:
             self._run_pip(cmd)
 
     def get_package_dependencies(self, package: str) -> List[str]:
-        get_version_script = textwrap.dedent(
-            f"""
-        import pkg_resources
-        for r in pkg_resources.get_distribution("{package}").requires():
-            print(r)
-        """
-        )
         return (
             subprocess.run(
-                [str(self.python_path), "-c", get_version_script],
+                [str(self.python_path), "-c", GET_PACKAGE_DEPS_SCRIPT, package],
                 stdout=subprocess.PIPE,
             )
             .stdout.decode()
@@ -66,18 +66,9 @@ class Venv:
         )
 
     def get_package_version(self, package: str) -> Optional[str]:
-        get_version_script = textwrap.dedent(
-            f"""
-        try:
-            import pkg_resources
-            print(pkg_resources.get_distribution("{package}").version)
-        except:
-            pass
-        """
-        )
         version = (
             subprocess.run(
-                [str(self.python_path), "-c", get_version_script],
+                [str(self.python_path), "-c", GET_VERSION_SCRIPT, package],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
             )
@@ -90,48 +81,17 @@ class Venv:
             return None
 
     def get_package_binary_paths(self, package: str) -> List[Path]:
-        get_binaries_script = textwrap.dedent(
-            f"""
-            import pkg_resources
-            from pathlib import Path
-
-            dist = pkg_resources.get_distribution("{package}")
-
-            bin_path = Path(r"{self.bin_path}")
-            binaries = set()
-            for section in ['console_scripts', 'gui_scripts']:
-                for name in pkg_resources.get_entry_map(dist).get(section, []):
-                    binaries.add(name)
-
-            if dist.has_metadata("RECORD"):
-                for line in dist.get_metadata_lines("RECORD"):
-                    entry = line.split(',')[0]
-                    path = (Path(dist.location) / entry).resolve()
-                    try:
-                        if path.parent.name == "scripts" in entry or path.parent.samefile(bin_path):
-                            binaries.add(Path(entry).name)
-                    except FileNotFoundError:
-                        pass
-
-            if dist.has_metadata("installed-files.txt"):
-                for line in dist.get_metadata_lines("installed-files.txt"):
-                    entry = line.split(',')[0]
-                    path = (Path(dist.egg_info) / entry).resolve()
-                    try:
-                        if path.parent.samefile(bin_path):
-                            binaries.add(Path(entry).name)
-                    except FileNotFoundError:
-                        pass
-
-            [print(b) for b in sorted(binaries)]
-
-        """
-        )
         if not Path(self.python_path).exists():
             return []
         binaries = (
             subprocess.run(
-                [str(self.python_path), "-c", get_binaries_script],
+                [
+                    str(self.python_path),
+                    "-c",
+                    GET_BINARIES_SCRIPT,
+                    package,
+                    self.bin_path,
+                ],
                 stdout=subprocess.PIPE,
             )
             .stdout.decode()
