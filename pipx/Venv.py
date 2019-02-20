@@ -2,20 +2,28 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import json
 from pathlib import Path
 import pkgutil
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON
 from pipx.util import rmdir, WINDOWS, PipxError
 import subprocess
-from typing import List, Optional, Union, Sequence
+from typing import Dict, List, NamedTuple, Union, Sequence
 
 
-GET_BINARIES_SCRIPT = pkgutil.get_data("pipx", "get_binaries.py").decode("utf-8")
-GET_VERSION_SCRIPT = pkgutil.get_data("pipx", "get_version.py").decode("utf-8")
-GET_PACKAGE_DEPS_SCRIPT = pkgutil.get_data(
-    "pipx", "get_package_dependencies.py"
-).decode("utf-8")
+class PipxVenvMetadata(NamedTuple):
+    binaries: List[str]
+    binary_paths: List[Path]
+    dependencies: List[str]
+    binaries_of_dependencies: Dict[str, List[str]]
+    package_version: str
+    python_version: str
+
+
+venv_metadata_inspector_raw = pkgutil.get_data("pipx", "venv_metadata_inspector.py")
+if venv_metadata_inspector_raw:
+    VENV_METADATA_INSPECTOR = venv_metadata_inspector_raw.decode("utf-8")
 
 
 class Venv:
@@ -48,15 +56,31 @@ class Venv:
             cmd = ["install"] + pip_args + [package_or_url]
             self._run_pip(cmd)
 
-    def get_package_dependencies(self, package: str) -> List[str]:
-        return (
+    def get_venv_metadata_for_package(self, package: str) -> PipxVenvMetadata:
+
+        data = json.loads(
             subprocess.run(
-                [str(self.python_path), "-c", GET_PACKAGE_DEPS_SCRIPT, package],
+                [
+                    str(self.python_path),
+                    "-c",
+                    VENV_METADATA_INSPECTOR,
+                    package,
+                    self.bin_path,
+                ],
                 stdout=subprocess.PIPE,
-            )
-            .stdout.decode()
-            .split()
+            ).stdout.decode(),
+            encoding="utf-8",
         )
+        data["binary_paths"] = [Path(p) for p in data["binary_paths"]]
+        if WINDOWS:
+            windows_bin_paths = set()
+            for binary in data["binary_paths"]:
+                # windows has additional files staring with the same name that are required
+                # to run the binary
+                for win_exec in binary.parent.glob(f"{binary.name}*"):
+                    windows_bin_paths.add(win_exec)
+            data["binary_paths"] = windows_bin_paths
+        return PipxVenvMetadata(**data)
 
     def get_python_version(self) -> str:
         return (
@@ -64,50 +88,6 @@ class Venv:
             .stdout.decode()
             .strip()
         )
-
-    def get_package_version(self, package: str) -> Optional[str]:
-        version = (
-            subprocess.run(
-                [str(self.python_path), "-c", GET_VERSION_SCRIPT, package],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-            )
-            .stdout.decode()
-            .strip()
-        )
-        if version:
-            return version
-        else:
-            return None
-
-    def get_package_binary_paths(self, package: str) -> List[Path]:
-        if not Path(self.python_path).exists():
-            return []
-        binaries = (
-            subprocess.run(
-                [
-                    str(self.python_path),
-                    "-c",
-                    GET_BINARIES_SCRIPT,
-                    package,
-                    self.bin_path,
-                ],
-                stdout=subprocess.PIPE,
-            )
-            .stdout.decode()
-            .split()
-        )
-
-        binary_paths = {self.bin_path / b for b in binaries}
-        if WINDOWS:
-            for binary in binary_paths:
-                # windows has additional files staring with the same name that are required
-                # to run the binary
-                for win_exec in binary.parent.glob(f"{binary.name}*"):
-                    binary_paths.add(win_exec)
-
-        valid_binary_paths = list(filter(lambda p: p.exists(), binary_paths))
-        return valid_binary_paths
 
     def run_binary(self, binary: str, binary_args: List[str]):
         cmd = [str(self.bin_path / binary)] + binary_args
