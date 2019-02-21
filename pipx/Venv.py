@@ -15,7 +15,6 @@ from typing import Dict, List, NamedTuple, Union, Sequence
 class PipxVenvMetadata(NamedTuple):
     binaries: List[str]
     binary_paths: List[Path]
-    dependencies: List[str]
     binaries_of_dependencies: Dict[str, List[str]]
     package_version: str
     python_version: str

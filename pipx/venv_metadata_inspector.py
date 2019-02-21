@@ -34,12 +34,14 @@ def get_binaries(package: str, bin_path: Path) -> List[str]:
 
     binaries = set()
     for section in ["console_scripts", "gui_scripts"]:
+        # "entry_points" entry in setup.py are found here
         for name in pkg_resources.get_entry_map(dist).get(section, []):
             binaries.add(name)
 
     if dist.has_metadata("RECORD"):
+        # "scripts" entry in setup.py is found here (test w/ awscli)
         for line in dist.get_metadata_lines("RECORD"):
-            entry = line.split(",")[0]
+            entry = line.split(",")[0]  # noqa: T484
             path = (Path(dist.location) / entry).resolve()
             try:
                 if path.parent.name == "scripts" in entry or path.parent.samefile(
@@ -50,8 +52,9 @@ def get_binaries(package: str, bin_path: Path) -> List[str]:
                 pass
 
     if dist.has_metadata("installed-files.txt"):
+        # not sure what is found here
         for line in dist.get_metadata_lines("installed-files.txt"):
-            entry = line.split(",")[0]
+            entry = line.split(",")[0]  # noqa: T484
             path = (Path(dist.egg_info) / entry).resolve()  # type: ignore
             try:
                 if path.parent.samefile(bin_path):
@@ -62,25 +65,37 @@ def get_binaries(package: str, bin_path: Path) -> List[str]:
     return sorted(binaries)
 
 
+def _dfs_package_binaries(
+    bin_path: Path, package: str, binaries_of_dependencies: Dict[str, List[str]]
+):
+    dependencies = get_package_dependencies(package)
+    for d in dependencies:
+        binaries = get_binaries(d, bin_path)
+        if binaries:
+            binaries_of_dependencies[d] = binaries
+        # recursively search for more
+        binaries_of_dependencies = _dfs_package_binaries(
+            bin_path, d, binaries_of_dependencies
+        )
+    return binaries_of_dependencies
+
+
 def main():
     package = sys.argv[1]
     bin_path = Path(sys.argv[2])
 
     binaries = get_binaries(package, bin_path)
     binary_paths = [str(Path(bin_path) / binary) for binary in binaries]
-    dependencies = get_package_dependencies(package)
     binaries_of_dependencies: Dict[str, List[str]] = {}
-    for dep in dependencies:
-        dep_binaries = get_binaries(dep, bin_path)
-        if dep_binaries:
-            binaries_of_dependencies[dep] = dep_binaries
+    binaries_of_dependencies = _dfs_package_binaries(
+        bin_path, package, binaries_of_dependencies
+    )
 
     print(
         json.dumps(
             {
                 "binaries": binaries,
                 "binary_paths": binary_paths,
-                "dependencies": dependencies,
                 "binaries_of_dependencies": binaries_of_dependencies,
                 "package_version": get_package_version(package),
                 "python_version": f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
@@ -98,7 +113,6 @@ if __name__ == "__main__":
                 {
                     "binaries": [],
                     "binary_paths": [],
-                    "dependencies": [],
                     "binaries_of_dependencies": {},
                     "package_version": None,
                     "python_version": None,
