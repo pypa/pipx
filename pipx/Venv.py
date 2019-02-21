@@ -2,13 +2,31 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import json
 from pathlib import Path
+import pkgutil
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON
 from pipx.util import rmdir, WINDOWS, PipxError
 import subprocess
-import textwrap
-from typing import List, Optional, Union, Sequence
+from typing import Dict, List, NamedTuple, Union, Sequence
+
+
+class PipxVenvMetadata(NamedTuple):
+    binaries: List[str]
+    binary_paths: List[Path]
+    dependencies: List[str]
+    binaries_of_dependencies: Dict[str, List[str]]
+    package_version: str
+    python_version: str
+
+
+venv_metadata_inspector_raw = pkgutil.get_data("pipx", "venv_metadata_inspector.py")
+assert venv_metadata_inspector_raw is not None, (
+    "pipx could not find required file venv_metadata_inspector.py. "
+    "Please report this error at https://github.com/pipxproject/pipx. Exiting."
+)
+VENV_METADATA_INSPECTOR = venv_metadata_inspector_raw.decode("utf-8")
 
 
 class Venv:
@@ -41,22 +59,31 @@ class Venv:
             cmd = ["install"] + pip_args + [package_or_url]
             self._run_pip(cmd)
 
-    def get_package_dependencies(self, package: str) -> List[str]:
-        get_version_script = textwrap.dedent(
-            f"""
-        import pkg_resources
-        for r in pkg_resources.get_distribution("{package}").requires():
-            print(r)
-        """
-        )
-        return (
+    def get_venv_metadata_for_package(self, package: str) -> PipxVenvMetadata:
+
+        data = json.loads(
             subprocess.run(
-                [str(self.python_path), "-c", get_version_script],
+                [
+                    str(self.python_path),
+                    "-c",
+                    VENV_METADATA_INSPECTOR,
+                    package,
+                    self.bin_path,
+                ],
                 stdout=subprocess.PIPE,
-            )
-            .stdout.decode()
-            .split()
+            ).stdout.decode(),
+            encoding="utf-8",
         )
+        data["binary_paths"] = [Path(p) for p in data["binary_paths"]]
+        if WINDOWS:
+            windows_bin_paths = set()
+            for binary in data["binary_paths"]:
+                # windows has additional files staring with the same name that are required
+                # to run the binary
+                for win_exec in binary.parent.glob(f"{binary.name}*"):
+                    windows_bin_paths.add(win_exec)
+            data["binary_paths"] = windows_bin_paths
+        return PipxVenvMetadata(**data)
 
     def get_python_version(self) -> str:
         return (
@@ -64,90 +91,6 @@ class Venv:
             .stdout.decode()
             .strip()
         )
-
-    def get_package_version(self, package: str) -> Optional[str]:
-        get_version_script = textwrap.dedent(
-            f"""
-        try:
-            import pkg_resources
-            print(pkg_resources.get_distribution("{package}").version)
-        except:
-            pass
-        """
-        )
-        version = (
-            subprocess.run(
-                [str(self.python_path), "-c", get_version_script],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-            )
-            .stdout.decode()
-            .strip()
-        )
-        if version:
-            return version
-        else:
-            return None
-
-    def get_package_binary_paths(self, package: str) -> List[Path]:
-        get_binaries_script = textwrap.dedent(
-            f"""
-            import pkg_resources
-            from pathlib import Path
-
-            dist = pkg_resources.get_distribution("{package}")
-
-            bin_path = Path(r"{self.bin_path}")
-            binaries = set()
-            for section in ['console_scripts', 'gui_scripts']:
-                for name in pkg_resources.get_entry_map(dist).get(section, []):
-                    binaries.add(name)
-
-            if dist.has_metadata("RECORD"):
-                for line in dist.get_metadata_lines("RECORD"):
-                    entry = line.split(',')[0]
-                    path = (Path(dist.location) / entry).resolve()
-                    try:
-                        if path.parent.name == "scripts" in entry or path.parent.samefile(bin_path):
-                            binaries.add(Path(entry).name)
-                    except FileNotFoundError:
-                        pass
-
-            if dist.has_metadata("installed-files.txt"):
-                for line in dist.get_metadata_lines("installed-files.txt"):
-                    entry = line.split(',')[0]
-                    path = (Path(dist.egg_info) / entry).resolve()
-                    try:
-                        if path.parent.samefile(bin_path):
-                            binaries.add(Path(entry).name)
-                    except FileNotFoundError:
-                        pass
-
-            [print(b) for b in sorted(binaries)]
-
-        """
-        )
-        if not Path(self.python_path).exists():
-            return []
-        binaries = (
-            subprocess.run(
-                [str(self.python_path), "-c", get_binaries_script],
-                stdout=subprocess.PIPE,
-            )
-            .stdout.decode()
-            .split()
-        )
-
-        binary_paths = {self.bin_path / b for b in binaries}
-        if WINDOWS:
-            for binary in binary_paths:
-                # windows has additional files staring with the same name that are required
-                # to run the binary
-                for win_exec in binary.parent.glob(f"{binary.name}*"):
-                    binary_paths.add(win_exec)
-
-        valid_binary_paths = list(filter(lambda p: p.exists(), binary_paths))
-        return valid_binary_paths
 
     def run_binary(self, binary: str, binary_args: List[str]):
         cmd = [str(self.bin_path / binary)] + binary_args
