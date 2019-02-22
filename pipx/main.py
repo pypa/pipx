@@ -142,7 +142,9 @@ def run_pipx_command(args, binary_args: List[str]):
     elif args.command == "uninstall-all":
         commands.uninstall_all(PIPX_LOCAL_VENVS, LOCAL_BIN_DIR, verbose)
     elif args.command == "upgrade-all":
-        commands.upgrade_all(PIPX_LOCAL_VENVS, pip_args, verbose, include_deps=args.include_deps)
+        commands.upgrade_all(
+            PIPX_LOCAL_VENVS, pip_args, verbose, include_deps=args.include_deps
+        )
     elif args.command == "reinstall-all":
         commands.reinstall_all(
             PIPX_LOCAL_VENVS,

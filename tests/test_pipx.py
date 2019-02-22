@@ -1,12 +1,17 @@
-from distutils.spawn import find_executable
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import os
-from pathlib import Path
-import unittest
 import subprocess
 import sys
 import tempfile
+import unittest
+from distutils.spawn import find_executable
+from pathlib import Path
+
 from pipx.main import split_run_argv
 from pipx.util import WINDOWS
+
 
 PIPX_PATH = CURDIR = Path(__file__).parent.parent
 
@@ -153,6 +158,27 @@ class TestPipxCommands(unittest.TestCase):
     def test_editable_install(self):
         subprocess.run(
             [self.pipx_bin, "install", "-e", "pipx", "--spec", PIPX_PATH], check=True
+        )
+
+    def test_include_deps_install(self):
+        self.assertNotEqual(
+            subprocess.run(
+                [self.pipx_bin, "install", "jupyter", "--spec", "jupyter==1.0.0"]
+            ).returncode,
+            0,
+        )
+        self.assertEqual(
+            subprocess.run(
+                [
+                    self.pipx_bin,
+                    "install",
+                    "--include-deps",
+                    "jupyter",
+                    "--spec",
+                    "jupyter==1.0.0",
+                ]
+            ).returncode,
+            0,
         )
 
     def test_uninstall(self):
