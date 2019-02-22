@@ -1,5 +1,8 @@
 dev
-* Speed up `pipx list` output (by running multiple processes in parallel)
+* Add `--include-deps` argument to include binaries of dependent packages when installing with pipx. This improves compatibility with packages that depend on other installed packages, such as `jupyter`.
+* Speed up `pipx list` output (by running multiple processes in parallel) and by collecting all metadata in a single subprocess call
+* More aggressive cache directory removal when `--no-cache` is passed to `pipx run`
+* [dev] Move inline text passed to subprocess calls to their own files to enable autoformating, linting, unit testing
 
 0.12.2.0
 * Add support for PEP 582's `__pypackages__` (experimental). `pipx run BINARY` will first search in `__pypackages__` for binary, then fallback to installing from PyPI. `pipx run --pypackages BINARY` will raise an error if the binary is not found in `__pypackages__`.

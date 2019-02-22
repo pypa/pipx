@@ -189,7 +189,7 @@ def add_pip_venv_args(parser):
 def add_include_deps(parser):
     parser.add_argument(
         "--include-deps",
-        help="Include binaries dependent packages",
+        help="Include binaries of dependent packages",
         action="store_true",
     )
 

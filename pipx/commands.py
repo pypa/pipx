@@ -97,10 +97,10 @@ def run(
 
     if bin_path.exists():
         logging.info(f"Reusing cached venv {venv_dir}")
-        return venv.run_binary(binary, binary_args)
+        retval = venv.run_binary(binary, binary_args)
     else:
         logging.info(f"venv location is {venv_dir}")
-        return _download_and_run(
+        retval = _download_and_run(
             Path(venv_dir),
             package_or_url,
             binary,
@@ -110,6 +110,10 @@ def run(
             venv_args,
             verbose,
         )
+
+    if not use_cache:
+        rmdir(venv_dir)
+    return retval
 
 
 def _download_and_run(
@@ -170,7 +174,7 @@ def _prepare_venv_cache(venv: Venv, bin_path: Path, use_cache: bool):
 def _remove_all_expired_venvs():
     for venv_dir in Path(PIPX_VENV_CACHEDIR).iterdir():
         if _is_temporary_venv_expired(venv_dir):
-            logging.infof(f"Removing expired venv {str(venv_dir)}")
+            logging.info(f"Removing expired venv {str(venv_dir)}")
             rmdir(venv_dir)
 
 
