@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import logging
 import json
-from pathlib import Path
+import logging
 import pkgutil
+import subprocess
+from pathlib import Path
+from typing import Dict, List, NamedTuple, Sequence, Union
+
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON
-from pipx.util import rmdir, WINDOWS, PipxError
-import subprocess
-from typing import Dict, List, NamedTuple, Union, Sequence
+from pipx.util import WINDOWS, PipxError, rmdir
 
 
 class PipxVenvMetadata(NamedTuple):
     binaries: List[str]
     binary_paths: List[Path]
     binaries_of_dependencies: Dict[str, List[str]]
+    binary_paths_of_dependencies: Dict[str, List[Path]]
     package_version: str
     python_version: str
 
@@ -74,6 +76,13 @@ class Venv:
             encoding="utf-8",
         )
         data["binary_paths"] = [Path(p) for p in data["binary_paths"]]
+
+        data["binaries_of_dependencies"] = []
+        for dep, raw_paths in data["binary_paths_of_dependencies"].items():
+            paths = [Path(raw_path) for raw_path in raw_paths]
+            data["binary_paths_of_dependencies"][dep] = paths
+            data["binaries_of_dependencies"] += [path.name for path in paths]
+
         if WINDOWS:
             windows_bin_paths = set()
             for binary in data["binary_paths"]:

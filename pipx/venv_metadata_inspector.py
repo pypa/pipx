@@ -66,18 +66,19 @@ def get_binaries(package: str, bin_path: Path) -> List[str]:
 
 
 def _dfs_package_binaries(
-    bin_path: Path, package: str, binaries_of_dependencies: Dict[str, List[str]]
+    bin_path: Path, package: str, binary_paths_of_dependencies: Dict[str, List[str]]
 ):
     dependencies = get_package_dependencies(package)
     for d in dependencies:
-        binaries = get_binaries(d, bin_path)
-        if binaries:
-            binaries_of_dependencies[d] = binaries
+        binary_names = get_binaries(d, bin_path)
+        if binary_names:
+            binaries = [str(Path(bin_path) / binary) for binary in binary_names]
+            binary_paths_of_dependencies[d] = binaries
         # recursively search for more
-        binaries_of_dependencies = _dfs_package_binaries(
-            bin_path, d, binaries_of_dependencies
+        binary_paths_of_dependencies = _dfs_package_binaries(
+            bin_path, d, binary_paths_of_dependencies
         )
-    return binaries_of_dependencies
+    return binary_paths_of_dependencies
 
 
 def main():
@@ -86,9 +87,9 @@ def main():
 
     binaries = get_binaries(package, bin_path)
     binary_paths = [str(Path(bin_path) / binary) for binary in binaries]
-    binaries_of_dependencies: Dict[str, List[str]] = {}
-    binaries_of_dependencies = _dfs_package_binaries(
-        bin_path, package, binaries_of_dependencies
+    binary_paths_of_dependencies: Dict[str, List[str]] = {}
+    binary_paths_of_dependencies = _dfs_package_binaries(
+        bin_path, package, binary_paths_of_dependencies
     )
 
     print(
@@ -96,7 +97,7 @@ def main():
             {
                 "binaries": binaries,
                 "binary_paths": binary_paths,
-                "binaries_of_dependencies": binaries_of_dependencies,
+                "binary_paths_of_dependencies": binary_paths_of_dependencies,
                 "package_version": get_package_version(package),
                 "python_version": f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
             }
@@ -113,7 +114,7 @@ if __name__ == "__main__":
                 {
                     "binaries": [],
                     "binary_paths": [],
-                    "binaries_of_dependencies": {},
+                    "binary_paths_of_dependencies": {},
                     "package_version": None,
                     "python_version": None,
                 }

@@ -3,20 +3,22 @@
 import argparse
 import logging
 import os
+import shlex
 import sys
+import textwrap
+import urllib.parse
+from typing import Dict, List, Tuple
+
+from . import commands
 from .constants import (
+    DEFAULT_PYTHON,
     LOCAL_BIN_DIR,
     PIPX_LOCAL_VENVS,
     PIPX_PACKAGE_NAME,
     PIPX_VENV_CACHEDIR,
-    DEFAULT_PYTHON,
 )
-from .util import mkdir, PipxError
-from . import commands
-import shlex
-from typing import Dict, List, Tuple
-import textwrap
-import urllib.parse
+from .util import PipxError, mkdir
+
 
 __version__ = "0.12.2.0"
 
@@ -115,6 +117,7 @@ def run_pipx_command(args, binary_args: List[str]):
             venv_args,
             verbose,
             force=args.force,
+            include_deps=args.include_deps,
         )
     elif args.command == "inject":
         for dep in args.dependencies:
@@ -124,7 +127,13 @@ def run_pipx_command(args, binary_args: List[str]):
             args.spec if ("spec" in args and args.spec is not None) else package
         )
         commands.upgrade(
-            venv_dir, package, package_or_url, pip_args, verbose, upgrading_all=False
+            venv_dir,
+            package,
+            package_or_url,
+            pip_args,
+            verbose,
+            upgrading_all=False,
+            include_deps=args.include_deps,
         )
     elif args.command == "list":
         commands.list_packages(PIPX_LOCAL_VENVS)
@@ -133,10 +142,16 @@ def run_pipx_command(args, binary_args: List[str]):
     elif args.command == "uninstall-all":
         commands.uninstall_all(PIPX_LOCAL_VENVS, LOCAL_BIN_DIR, verbose)
     elif args.command == "upgrade-all":
-        commands.upgrade_all(PIPX_LOCAL_VENVS, pip_args, verbose)
+        commands.upgrade_all(PIPX_LOCAL_VENVS, pip_args, verbose, include_deps=args.include_deps)
     elif args.command == "reinstall-all":
         commands.reinstall_all(
-            PIPX_LOCAL_VENVS, LOCAL_BIN_DIR, args.python, pip_args, venv_args, verbose
+            PIPX_LOCAL_VENVS,
+            LOCAL_BIN_DIR,
+            args.python,
+            pip_args,
+            venv_args,
+            verbose,
+            args.include_deps,
         )
     elif args.command == "ensurepath":
         if os.getenv("PATH") is not None:
@@ -171,6 +186,14 @@ def add_pip_venv_args(parser):
     )
 
 
+def add_include_deps(parser):
+    parser.add_argument(
+        "--include-deps",
+        help="Include binaries dependent packages",
+        action="store_true",
+    )
+
+
 def get_command_parser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter, description=PIPX_DESCRIPTION
@@ -183,6 +206,7 @@ def get_command_parser():
     p = subparsers.add_parser("install", help="Install a package")
     p.add_argument("package", help="package name")
     p.add_argument("--spec", help=SPEC_HELP)
+    add_include_deps(p)
     p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--force",
@@ -210,16 +234,18 @@ def get_command_parser():
     p = subparsers.add_parser("upgrade", help="Upgrade a package")
     p.add_argument("package")
     p.add_argument("--spec", help=SPEC_HELP)
-    p.add_argument("--verbose", action="store_true")
+    add_include_deps(p)
     add_pip_venv_args(p)
+    p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
         "upgrade-all",
         help="Upgrade all packages. "
         "Runs `pip install -U <pkgname>` for each package.",
     )
-    p.add_argument("--verbose", action="store_true")
+    add_include_deps(p)
     add_pip_venv_args(p)
+    p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser("uninstall", help="Uninstall a package")
     p.add_argument("package")
@@ -235,8 +261,9 @@ def get_command_parser():
         help="Reinstall all packages with a different Python executable",
     )
     p.add_argument("python")
-    p.add_argument("--verbose", action="store_true")
+    add_include_deps(p)
     add_pip_venv_args(p)
+    p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser("list", help="List installed packages")
     p.add_argument("--verbose", action="store_true")
@@ -348,6 +375,8 @@ def cli():
         exit(run_pipx_command(parsed_pipx_args, binary_args))
     except PipxError as e:
         exit(e)
+    except KeyboardInterrupt:
+        exit(1)
 
 
 if __name__ == "__main__":

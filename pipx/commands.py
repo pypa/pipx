@@ -193,7 +193,10 @@ def upgrade(
     verbose: bool,
     *,
     upgrading_all: bool,
+    include_deps: bool,
 ) -> int:
+    """Returns nonzero if package was upgraded, 0 if version did not change"""
+
     if not venv_dir.is_dir():
         raise PipxError(
             f"Package is not installed. Expected to find {str(venv_dir)}, "
@@ -215,6 +218,13 @@ def upgrade(
         venv.upgrade_package(package_or_url, pip_args)
     new_version = venv.get_venv_metadata_for_package(package).package_version
 
+    metadata = venv.get_venv_metadata_for_package(package)
+    _expose_binaries_globally(LOCAL_BIN_DIR, metadata.binary_paths, package)
+
+    if include_deps:
+        for _, binary_paths in metadata.binary_paths_of_dependencies.items():
+            _expose_binaries_globally(LOCAL_BIN_DIR, binary_paths, package)
+
     if old_version == new_version:
         if upgrading_all:
             pass
@@ -223,17 +233,16 @@ def upgrade(
                 f"{package} is already at latest version {old_version} (location: {str(venv_dir)})"
             )
         return 0
-
-    binary_paths = venv.get_venv_metadata_for_package(package).binary_paths
-    _expose_binaries_globally(LOCAL_BIN_DIR, binary_paths, package)
-
-    print(
-        f"upgraded package {package} from {old_version} to {new_version} (location: {str(venv_dir)})"
-    )
-    return 1
+    else:
+        print(
+            f"upgraded package {package} from {old_version} to {new_version} (location: {str(venv_dir)})"
+        )
+        return 1
 
 
-def upgrade_all(pipx_local_venvs: Path, pip_args: List[str], verbose: bool):
+def upgrade_all(
+    pipx_local_venvs: Path, pip_args: List[str], verbose: bool, *, include_deps: bool
+):
     packages_upgraded = 0
     num_packages = 0
     for venv_dir in pipx_local_venvs.iterdir():
@@ -245,7 +254,13 @@ def upgrade_all(pipx_local_venvs: Path, pip_args: List[str], verbose: bool):
             package_or_url = package
         try:
             packages_upgraded += upgrade(
-                venv_dir, package, package_or_url, pip_args, verbose, upgrading_all=True
+                venv_dir,
+                package,
+                package_or_url,
+                pip_args,
+                verbose,
+                upgrading_all=True,
+                include_deps=include_deps,
             )
         except Exception:
             logging.error(f"Error encountered when upgrading {package}")
@@ -267,6 +282,7 @@ def install(
     verbose: bool,
     *,
     force: bool,
+    include_deps: bool,
 ):
     try:
         exists = venv_dir.exists() and next(venv_dir.iterdir())
@@ -294,28 +310,52 @@ def install(
         venv.remove_venv()
         raise PipxError(f"Could not find package {package}. Is the name correct?")
 
+    _run_post_install_actions(venv, package, local_bin_dir, venv_dir, include_deps)
+
+
+def _run_post_install_actions(
+    venv: Venv, package: str, local_bin_dir: Path, venv_dir: Path, include_deps: bool
+):
     metadata = venv.get_venv_metadata_for_package(package)
-    if not metadata.binary_paths:
-        for dep, dependent_binaries in metadata.binaries_of_dependencies.items():
+    if not include_deps and not metadata.binary_paths:
+        for dep, dependent_binaries in metadata.binary_paths_of_dependencies.items():
             print(
                 f"Note: Dependent package '{dep}' contains {len(dependent_binaries)} binaries"
             )
             for binary in dependent_binaries:
-                print(f"  - {binary}")
+                print(f"  - {binary.name}")
         venv.remove_venv()
-        raise PipxError(f"No binaries associated with package {package}.")
+        if len(metadata.binary_paths_of_dependencies.keys()):
+            raise PipxError(
+                f"No binaries associated with package {package}. "
+                "Try again with '--include-deps' to include binaries of dependent packages."
+            )
+        else:
+            raise PipxError(f"No binaries associated with package {package}. ")
 
     _expose_binaries_globally(local_bin_dir, metadata.binary_paths, package)
-    print(_get_package_summary(venv_dir, new_install=True))
+    if include_deps:
+        for _, binary_paths in metadata.binary_paths_of_dependencies.items():
+            _expose_binaries_globally(local_bin_dir, binary_paths, package)
 
-    if not distutils.spawn.find_executable(str(metadata.binary_paths[0])):
+    print(_get_package_summary(venv_dir, new_install=True))
+    random_binary_name = (
+        metadata.binaries[0]
+        if metadata.binaries
+        else metadata.binaries_of_dependencies[0]
+    )
+    _warn_if_not_on_path(local_bin_dir, random_binary_name)
+    print(f"done! {stars}")
+
+
+def _warn_if_not_on_path(local_bin_dir: Path, binary: str):
+    if not distutils.spawn.find_executable(binary):
         logging.warning(
             f"{hazard}  Note: {str(local_bin_dir)!r} is not on your PATH environment "
             "variable. These binaries will not be globally accessible until "
             "your PATH is updated. Run `pipx ensurepath` to automatically add it, "
             "or manually modify your PATH in your shell's config file (i.e. ~/.bashrc)."
         )
-    print(f"done! {stars}")
 
 
 def inject(venv_dir: Path, package: str, pip_args: List[str], verbose: bool):
@@ -343,15 +383,18 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
 
     venv = Venv(venv_dir, verbose=verbose)
 
-    package_binary_paths = venv.get_venv_metadata_for_package(package).binary_paths
+    metadata = venv.get_venv_metadata_for_package(package)
+    binary_paths = metadata.binary_paths
+    for dep_paths in metadata.binary_paths_of_dependencies.values():
+        binary_paths += dep_paths
     for file in local_bin_dir.iterdir():
         if WINDOWS:
-            for b in package_binary_paths:
+            for b in binary_paths:
                 if file.name == b.name:
                     file.unlink()
         else:
             symlink = file
-            for b in package_binary_paths:
+            for b in binary_paths:
                 if symlink.exists() and b.exists() and symlink.samefile(b):
                     logging.info(f"removing symlink {str(symlink)}")
                     symlink.unlink()
@@ -373,6 +416,7 @@ def reinstall_all(
     pip_args: List[str],
     venv_args: List[str],
     verbose: bool,
+    include_deps: bool,
 ):
     for venv_dir in pipx_local_venvs.iterdir():
         package = venv_dir.name
@@ -389,6 +433,7 @@ def reinstall_all(
             venv_args,
             verbose,
             force=True,
+            include_deps=include_deps,
         )
 
 
@@ -428,12 +473,16 @@ def _symlink_package_binaries(
                 pass
             else:
                 logging.warning(
-                    f"{hazard}  File exists at {str(symlink_path)} and points to {symlink_path.resolve()}. Not creating."
+                    f"{hazard}  File exists at {str(symlink_path)} and points "
+                    f"to {symlink_path.resolve()}. Not modifying."
                 )
         else:
             shadow = which(binary)
-            symlink_path.symlink_to(b)
-            pass
+            try:
+                symlink_path.symlink_to(b)
+            except FileExistsError:
+                pass
+
             if shadow:
                 logging.warning(
                     f"{hazard}  Note: {binary} was already on your PATH at " f"{shadow}"
@@ -451,8 +500,9 @@ def _get_package_summary(path: Path, *, new_install: bool = False) -> str:
         not_installed = red("is not installed")
         return f"   package {bold(package)} {not_installed} in the venv {str(path)}"
 
+    binaries = metadata.binaries + metadata.binaries_of_dependencies
     exposed_binary_paths = _get_exposed_binary_paths_for_package(
-        venv.bin_path, metadata.binaries, LOCAL_BIN_DIR
+        venv.bin_path, binaries, LOCAL_BIN_DIR
     )
 
     exposed_binary_names = sorted(p.name for p in exposed_binary_paths)
