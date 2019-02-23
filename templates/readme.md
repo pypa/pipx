@@ -297,7 +297,7 @@ When finished, you can exit the virtual environment by running `deactivate` and 
 * pipx has the ability to recursively install binaries from dependent packagages
 * pipx adds more useful information to its output
 * pipx has more CLI options such as upgrade-all, reinstall-all, uninstall-all
-* pipx is more modern. It uses Python 3.6+, and venv instead of Virtual Environment.
+* pipx is more modern. It uses Python 3.6+, and the `venv` package in the Python3 standard library instead of the python 2 package `virtualenv`.
 * pipx works with Python homebrew installations while pipsi does not (at least on my machine)
 * pipx defaults to less verbose output
 * pipx allows you to see each command it runs by passing the --verbose flag
