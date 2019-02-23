@@ -14,7 +14,7 @@
 <a href="https://travis-ci.org/pipxproject/pipx"><img src="https://travis-ci.org/pipxproject/pipx.svg?branch=master" /></a>
 
 <a href="https://pypi.python.org/pypi/pipx/">
-<img src="https://img.shields.io/badge/pypi-0.12.2.0-blue.svg" /></a>
+<img src="https://img.shields.io/badge/pypi-0.12.3.0-blue.svg" /></a>
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
@@ -80,14 +80,14 @@ pipx is working!
 
 ## Testimonials
 
+"Thanks for improving the workflow that pipsi has covered in the past. Nicely done!"
+- [Jannis Leidel](https://twitter.com/jezdez) PSF fellow and former pip maintainer
+
 "Just the “pipx upgrade-all” command is already a huge win over pipsi"
 — [Stefane Fermigier](https://twitter.com/sfermigier/status/1093073303521116160)
 
 "This tool filled in the gap that was missing with pipenv and virtualenvwrapper."
 — [Mason Egger](https://medium.com/homeaway-tech-blog/simplify-your-python-developer-environment-aba90f32dddb)
-
-"Thank you! Great tool btw. I already use it instead of pipsi :)"
-— @tkossak
 
 
 ### System Requirements
@@ -144,6 +144,7 @@ pipx --spec git+https://github.com/ambv/black.git@branch-name black
 pipx --spec git+https://github.com/ambv/black.git@git-hash black
 pipx install --spec https://github.com/ambv/black/archive/18.9b0.zip black
 pipx install --spec black[d] black
+pipx install --include-deps jupyter
 ```
 
 ### `upgrade`

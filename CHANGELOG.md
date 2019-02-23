@@ -1,4 +1,4 @@
-dev
+0.12.3.0
 * Add `--include-deps` argument to include binaries of dependent packages when installing with pipx. This improves compatibility with packages that depend on other installed packages, such as `jupyter`.
 * Speed up `pipx list` output (by running multiple processes in parallel) and by collecting all metadata in a single subprocess call
 * More aggressive cache directory removal when `--no-cache` is passed to `pipx run`
