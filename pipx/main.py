@@ -157,8 +157,19 @@ def run_pipx_command(args, binary_args: List[str]):
             include_deps=args.include_deps,
         )
     elif args.command == "inject":
+        if not args.include_binaries and args.include_deps:
+            raise PipxError(
+                "Cannot pass --include-deps if --use_binaries is not passed as well"
+            )
         for dep in args.dependencies:
-            commands.inject(venv_dir, dep, pip_args, verbose)
+            commands.inject(
+                venv_dir,
+                dep,
+                pip_args,
+                verbose=verbose,
+                include_binaries=args.include_binaries,
+                include_deps=args.include_deps,
+            )
     elif args.command == "upgrade":
         package_or_url = (
             args.spec if ("spec" in args and args.spec is not None) else package
@@ -280,6 +291,13 @@ def get_command_parser():
         nargs="+",
         help="the packages to inject into the Virtual Environment",
     )
+    p.add_argument(
+        "--include-binaries",
+        action="store_true",
+        help="Add binaries from the injected packages onto your PATH",
+    )
+    add_include_deps(p)
+    add_pip_venv_args(p)
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(

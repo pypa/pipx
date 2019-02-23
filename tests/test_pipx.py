@@ -181,14 +181,38 @@ class TestPipxCommands(unittest.TestCase):
             0,
         )
 
+    def test_inject(self):
+        subprocess.run([self.pipx_bin, "install", "cowsay"], check=True)
+        ret = subprocess.run(
+            [self.pipx_bin, "inject", "cowsay", "black"],
+            stdout=subprocess.PIPE,
+            check=True,
+        )
+        self.assertTrue("black" not in ret.stdout.decode())
+        self.assertNotEqual(
+            subprocess.run(
+                [self.pipx_bin, "inject", "cowsay", "black", "--include-deps"]
+            ).returncode,
+            0,
+        )
+        ret = subprocess.run(
+            [
+                self.pipx_bin,
+                "inject",
+                "cowsay",
+                "black",
+                "--include-binaries",
+                "--include-deps",
+            ],
+            stdout=subprocess.PIPE,
+        )
+        self.assertEqual(ret.returncode, 0)
+        self.assertTrue("black" in ret.stdout.decode())
+
     def test_uninstall(self):
         subprocess.run([self.pipx_bin, "install", "cowsay"], check=True)
         subprocess.run([self.pipx_bin, "uninstall", "cowsay"], check=True)
         subprocess.run([self.pipx_bin, "uninstall-all"], check=True)
-
-    def test_inject(self):
-        subprocess.run([self.pipx_bin, "install", "black"], check=True)
-        subprocess.run([self.pipx_bin, "inject", "black", "aiohttp"], check=True)
 
     def test_upgrade(self):
         self.assertNotEqual(

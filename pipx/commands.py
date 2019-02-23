@@ -344,7 +344,7 @@ def _run_post_install_actions(
         for _, binary_paths in metadata.binary_paths_of_dependencies.items():
             _expose_binaries_globally(local_bin_dir, binary_paths, package)
 
-    print(_get_package_summary(venv_dir, new_install=True))
+    print(_get_package_summary(venv_dir, package=package, new_install=True))
 
     random_binary_name: str
     if metadata.binaries:
@@ -366,15 +366,33 @@ def _warn_if_not_on_path(local_bin_dir: Path, binary: str):
         )
 
 
-def inject(venv_dir: Path, package: str, pip_args: List[str], verbose: bool):
+def inject(
+    venv_dir: Path,
+    package: str,
+    pip_args: List[str],
+    *,
+    verbose: bool,
+    include_binaries: bool,
+    include_deps: bool,
+):
     if not venv_dir.exists() or not next(venv_dir.iterdir()):
-        raise PipxError(f"Can't inject {package} into nonexistent venv {venv_dir}!")
+        raise PipxError(
+            textwrap.dedent(
+                f"""\
+            Can't inject {package!r} into nonexistent Virtual Environment {str(venv_dir)!r}.
+            Be sure to install the package first with pipx install {venv_dir.name!r}
+            before injecting into it."""
+            )
+        )
 
     venv = Venv(venv_dir, verbose=verbose)
     venv.install_package(package, pip_args)
 
     if venv.get_venv_metadata_for_package(package).package_version is None:
         raise PipxError(f"Could not find package {package}. Is the name correct?")
+
+    if include_binaries:
+        _run_post_install_actions(venv, package, LOCAL_BIN_DIR, venv_dir, include_deps)
 
     print(f"done! {stars}")
 
@@ -497,11 +515,13 @@ def _symlink_package_binaries(
                 )
 
 
-def _get_package_summary(path: Path, *, new_install: bool = False) -> str:
+def _get_package_summary(
+    path: Path, *, package: str = None, new_install: bool = False
+) -> str:
     venv = Venv(path)
     python_path = venv.python_path.resolve()
-    package = path.name
-
+    if package is None:
+        package = path.name
     metadata = venv.get_venv_metadata_for_package(package)
 
     if metadata.package_version is None:
@@ -512,7 +532,6 @@ def _get_package_summary(path: Path, *, new_install: bool = False) -> str:
     exposed_binary_paths = _get_exposed_binary_paths_for_package(
         venv.bin_path, binaries, LOCAL_BIN_DIR
     )
-
     exposed_binary_names = sorted(p.name for p in exposed_binary_paths)
     unavailable_binary_names = sorted(
         set(metadata.binaries) - set(exposed_binary_names)
@@ -578,15 +597,14 @@ def _get_exposed_binary_paths_for_package(
             # (in the case of ansible for example) so checking the resolved paths
             # is not a reliable way to determine if the symlink exists.
             # windows doesn't use symlinks, so the check is less strict.
+            if WINDOWS and b.name in package_binary_names:
+                is_same_file = True
+            else:
+                is_same_file = b.resolve().parent.samefile(bin_path)
 
-            if b.name in package_binary_names:
-                if WINDOWS:
-                    is_same_file = True
-                else:
-                    is_same_file = b.resolve().parent.samefile(bin_path)
+            if is_same_file:
+                bin_symlinks.add(b)
 
-                if is_same_file:
-                    bin_symlinks.add(b)
         except FileNotFoundError:
             pass
     return bin_symlinks

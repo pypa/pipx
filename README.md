@@ -380,17 +380,30 @@ optional arguments:
 
 ```
 pipx inject --help
-usage: pipx inject [-h] [--verbose] package dependencies [dependencies ...]
+usage: pipx inject [-h] [--include-binaries] [--include-deps]
+                   [--system-site-packages] [--index-url INDEX_URL]
+                   [--editable] [--pip-args PIP_ARGS] [--verbose]
+                   package dependencies [dependencies ...]
 
 Installs packages to an existing pipx-managed virtual environment.
 
 positional arguments:
-  package       Name of the existing pipx-managed Virtual Environment to
-                inject into
-  dependencies  the packages to inject into the Virtual Environment
+  package               Name of the existing pipx-managed Virtual Environment
+                        to inject into
+  dependencies          the packages to inject into the Virtual Environment
 
 optional arguments:
-  -h, --help    show this help message and exit
+  -h, --help            show this help message and exit
+  --include-binaries    Add binaries from the injected packages onto your PATH
+  --include-deps        Include binaries of dependent packages
+  --system-site-packages
+                        Give the virtual environment access to the system
+                        site-packages dir.
+  --index-url INDEX_URL, -i INDEX_URL
+                        Base URL of Python Package Index
+  --editable, -e        Install a project in editable mode
+  --pip-args PIP_ARGS   Arbitrary pip arguments to pass directly to pip
+                        install/upgrade commands
   --verbose
 
 ```
