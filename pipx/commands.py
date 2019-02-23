@@ -20,7 +20,12 @@ from typing import List, Optional
 
 from .animate import animate
 from .colors import bold, red
-from .constants import LOCAL_BIN_DIR, PIPX_PACKAGE_NAME, PIPX_VENV_CACHEDIR
+from .constants import (
+    LOCAL_BIN_DIR,
+    PIPX_PACKAGE_NAME,
+    PIPX_VENV_CACHEDIR,
+    TEMP_VENV_EXPIRATION_THRESHOLD_DAYS,
+)
 from .emojies import hazard, sleep, stars
 from .util import (
     WINDOWS,
@@ -31,9 +36,6 @@ from .util import (
     run_pypackage_bin,
 )
 from .Venv import Venv
-
-
-TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 2
 
 
 def run(
@@ -343,11 +345,13 @@ def _run_post_install_actions(
             _expose_binaries_globally(local_bin_dir, binary_paths, package)
 
     print(_get_package_summary(venv_dir, new_install=True))
-    random_binary_name = (
-        metadata.binaries[0]
-        if metadata.binaries
-        else metadata.binaries_of_dependencies[0]
-    )
+
+    random_binary_name: str
+    if metadata.binaries:
+        random_binary_name = metadata.binaries[0]
+    else:
+        random_binary_name = metadata.binaries_of_dependencies[0]
+
     _warn_if_not_on_path(local_bin_dir, random_binary_name)
     print(f"done! {stars}")
 
@@ -605,11 +609,11 @@ def ensurepath(bin_dir: Path):
 
     if config_file and os.path.exists(config_file):
         with open(config_file, "a") as f:
-            f.write("\n# added by pipx (https://github.com/cs01/pipx)\n")
+            f.write("\n# added by pipx (https://github.com/pipxproject/pipx)\n")
             if "fish" in shell:
-                f.write("set -x PATH %s $PATH\n\n" % bin_dir)
+                f.write(f"set -x PATH {str(bin_dir)} $PATH\n\n")
             else:
-                f.write('export PATH="%s:$PATH"\n' % bin_dir)
+                f.write(f'export PATH="{str(bin_dir)}{os.pathsep}$PATH"\n')
         print(f"Added {str(bin_dir)} to the PATH environment variable in {config_file}")
         print("")
         print(f"Open a new terminal to use pipx {stars}")

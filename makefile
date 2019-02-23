@@ -1,10 +1,8 @@
-.PHONY: build publish
+.PHONY: build publish docs test
 
 
-windows_shell:
-	docker build -t pipx_windows docker/windows
-	docker run -v "`pwd`:/src/" -it pipx_windows /bin/bash
-	# docker run -v "`pwd`:/src/" pipx_windows
+test:
+	python setup.py test
 
 build: clean
 	python -m pip install --upgrade --quiet setuptools wheel twine
@@ -15,3 +13,6 @@ publish: build
 
 clean:
 	rm -r build dist *.egg-info || true
+
+docs:
+	python generate_readme.py

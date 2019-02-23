@@ -92,17 +92,15 @@ def main():
         bin_path, package, binary_paths_of_dependencies
     )
 
-    print(
-        json.dumps(
-            {
-                "binaries": binaries,
-                "binary_paths": binary_paths,
-                "binary_paths_of_dependencies": binary_paths_of_dependencies,
-                "package_version": get_package_version(package),
-                "python_version": f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
-            }
-        )
-    )
+    output = {
+        "binaries": binaries,
+        "binary_paths": binary_paths,
+        "binary_paths_of_dependencies": binary_paths_of_dependencies,
+        "package_version": get_package_version(package),
+        "python_version": f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+    }
+
+    print(json.dumps(output))
 
 
 if __name__ == "__main__":

@@ -13,9 +13,11 @@ from . import commands
 from .constants import (
     DEFAULT_PYTHON,
     LOCAL_BIN_DIR,
+    DEFAULT_PIPX_HOME,
+    DEFAULT_PIPX_BIN_DIR,
     PIPX_LOCAL_VENVS,
-    PIPX_PACKAGE_NAME,
     PIPX_VENV_CACHEDIR,
+    TEMP_VENV_EXPIRATION_THRESHOLD_DAYS,
 )
 from .util import PipxError, mkdir
 
@@ -27,25 +29,60 @@ def print_version() -> None:
     print(__version__)
 
 
-SPEC_HELP = (
-    "The package name or specific installation source. "
-    "Runs `pip install -U SPEC`. "
-    f"For example `--spec {PIPX_PACKAGE_NAME}` or `--spec mypackage==2.0.0.`"
+SPEC_HELP = textwrap.dedent(
+    """The package name or specific installation source passed to pip.
+    Runs `pip install -U SPEC`.
+    For example `--spec mypackage==2.0.0` or `--spec  git+https://github.com/user/repo.git@branch`
+    """
 )
 PIPX_DESCRIPTION = textwrap.dedent(
     f"""
 Install and execute binaries from Python packages.
 
 Binaries can either be installed globally into isolated Virtual Environments
-or run directly in an ephemeral Virtual Environment.
+or run directly in an temporary Virtual Environment.
 
-venv location is {str(PIPX_LOCAL_VENVS)}.
+Virtual Envrionment location is {str(PIPX_LOCAL_VENVS)}.
 Symlinks to binaries are placed in {str(LOCAL_BIN_DIR)}.
 These locations can be overridden with the environment variables
-PIPX_HOME and PIPX_BIN_DIR, respectively. (venvs will be installed to
-$PIPX_HOME/venvs)
+PIPX_HOME and PIPX_BIN_DIR, respectively. (Virtual Environments will
+be installed to $PIPX_HOME/venvs)
 """
 )
+
+
+INSTALL_DESCRIPTION = f"""
+The install command is the preferred way to globally install binaries
+from python packages on your system. It creates an isolated virtual
+environment for the package, then ensures the package's binaries are
+accessible on your $PATH.
+
+The result: binaries you can run from anywhere, located in packages
+you can cleanly upgrade or uninstall. Guaranteed to not have
+dependency version conflicts or interfere with your OS's python
+packages. 'sudo' is not required to do this.
+
+pipx install PACKAGE
+pipx install --python PYTHON PACKAGE
+pipx install --spec VCS_URL PACKAGE
+pipx install --spec ZIP_FILE PACKAGE
+pipx install --spec TAR_GZ_FILE PACKAGE
+
+The argument to `--spec` is passed directly to `pip install`.
+
+The default virtual environment location is {DEFAULT_PIPX_HOME}
+and can be overridden by setting the environment variable `PIPX_HOME`
+ (Virtual Environments will be installed to `$PIPX_HOME/venvs`).
+
+The default binary location is {DEFAULT_PIPX_BIN_DIR} and can be
+overridden by setting the environment variable `PIPX_BIN_DIR`.
+"""
+
+
+class LineWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
+    def _split_lines(self, text, width):
+        text = self._whitespace_matcher.sub(" ", text).strip()
+        return textwrap.wrap(text, width)
 
 
 def get_pip_args(parsed_args: Dict):
@@ -85,7 +122,7 @@ def run_pipx_command(args, binary_args: List[str]):
                     args.spec = args.spec + f"#egg={package}"
 
         venv_dir = PIPX_LOCAL_VENVS / package
-        logging.info(f"virtualenv location is {venv_dir}")
+        logging.info(f"Virtual Environment location is {venv_dir}")
 
     if args.command == "run":
         package_or_url = (
@@ -156,14 +193,13 @@ def run_pipx_command(args, binary_args: List[str]):
             args.include_deps,
         )
     elif args.command == "ensurepath":
-        if os.getenv("PATH") is not None:
-            path_good = str(LOCAL_BIN_DIR) in (os.getenv("PATH") or "")
-        if not path_good or (path_good and args.force):
+        paths = os.getenv("PATH", "").split(os.pathsep)
+        path_good = str(LOCAL_BIN_DIR) in paths
+        if not path_good or args.force:
             commands.ensurepath(LOCAL_BIN_DIR)
         else:
             print(
-                "Your PATH looks like it already is set up for pipx. "
-                "Pass `--force` to modify the PATH."
+                "Your PATH looks like it already is set up for pipx. Pass `--force` to modify the PATH."
             )
     else:
         raise PipxError(f"Unknown command {args.command}")
@@ -198,14 +234,19 @@ def add_include_deps(parser):
 
 def get_command_parser():
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter, description=PIPX_DESCRIPTION
+        formatter_class=LineWrapRawTextHelpFormatter, description=PIPX_DESCRIPTION
     )
 
     subparsers = parser.add_subparsers(
         dest="command", description="Get help for commands with pipx COMMAND --help"
     )
 
-    p = subparsers.add_parser("install", help="Install a package")
+    p = subparsers.add_parser(
+        "install",
+        help="Install a package",
+        formatter_class=LineWrapRawTextHelpFormatter,
+        description=INSTALL_DESCRIPTION,
+    )
     p.add_argument("package", help="package name")
     p.add_argument("--spec", help=SPEC_HELP)
     add_include_deps(p)
@@ -218,22 +259,34 @@ def get_command_parser():
     p.add_argument(
         "--python",
         default=DEFAULT_PYTHON,
-        help="The Python binary to associate the CLI binary with. Must be v3.3+.",
+        help=(
+            "The Python executable used to create the Virtual Environment and run the "
+            "associated binary/binaries. Must be v3.3+."
+        ),
     )
     add_pip_venv_args(p)
 
     p = subparsers.add_parser(
-        "inject", help="Install packages into an existing virtualenv"
+        "inject",
+        help="Install packages into an existing Virtual Environment",
+        description="Installs packages to an existing pipx-managed virtual environment.",
     )
     p.add_argument(
-        "package", help="Name of the existing pipx-managed virtualenv to inject into"
+        "package",
+        help="Name of the existing pipx-managed Virtual Environment to inject into",
     )
     p.add_argument(
-        "dependencies", nargs="+", help="the packages to inject into the virtualenv"
+        "dependencies",
+        nargs="+",
+        help="the packages to inject into the Virtual Environment",
     )
     p.add_argument("--verbose", action="store_true")
 
-    p = subparsers.add_parser("upgrade", help="Upgrade a package")
+    p = subparsers.add_parser(
+        "upgrade",
+        help="Upgrade a package",
+        description="Upgrade a package in a pipx-managed Virtual Environment by running 'pip install --upgrade PACKAGE'",
+    )
     p.add_argument("package")
     p.add_argument("--spec", help=SPEC_HELP)
     add_include_deps(p)
@@ -244,37 +297,80 @@ def get_command_parser():
         "upgrade-all",
         help="Upgrade all packages. "
         "Runs `pip install -U <pkgname>` for each package.",
+        description="Upgrades all packages within their virtual environments by running 'pip install --upgrade PACKAGE'",
     )
     add_include_deps(p)
     add_pip_venv_args(p)
     p.add_argument("--verbose", action="store_true")
 
-    p = subparsers.add_parser("uninstall", help="Uninstall a package")
+    p = subparsers.add_parser(
+        "uninstall",
+        help="Uninstall a package",
+        description="Uninstalls a pipx-managed Virtual Envrionment by deleting it and any files that point to its binaries.",
+    )
     p.add_argument("package")
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
-        "uninstall-all", help="Uninstall all packages, including pipx"
+        "uninstall-all",
+        help="Uninstall all packages",
+        description="Uninstall all pipx-managed packages",
     )
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
         "reinstall-all",
+        formatter_class=LineWrapRawTextHelpFormatter,
         help="Reinstall all packages with a different Python executable",
+        description=textwrap.dedent(
+            """
+        Reinstalls all packages using a different version of Python.
+
+        Packages are uninstalled, then installed with pipx install PACKAGE.
+        This is useful if you upgraded to a new version of Python and want
+        all your packages to use the latest as well.
+
+        If you originally installed a package from a source other than PyPI,
+        this command may behave in unexpected ways since it will reinstall from PyPI.
+
+        """
+        ),
     )
     p.add_argument("python")
     add_include_deps(p)
     add_pip_venv_args(p)
     p.add_argument("--verbose", action="store_true")
 
-    p = subparsers.add_parser("list", help="List installed packages")
+    p = subparsers.add_parser(
+        "list",
+        help="List installed packages",
+        description="List packages and binariess installed with pipx",
+    )
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
         "run",
-        help="Either download latest version of a package to temporary directory, "
+        formatter_class=LineWrapRawTextHelpFormatter,
+        help="Either download the latest version of a package to temporary directory, "
         "then run a binary from it, or invoke binary from local `__pypackages__` "
         "directory (expiremental, see https://github.com/cs01/pythonloc)",
+        description=textwrap.dedent(
+            f"""
+        Either download the latest version of a package to temporary directory
+        then run a binary from it, or invoke a binary from local `__pypackages__`
+        directory.
+
+        If running from a temporary environment, the environment will be cached
+        and re-used for up to {TEMP_VENV_EXPIRATION_THRESHOLD_DAYS} days. This
+        means subsequent calls to 'run' for the same package will be faster
+        since they can re-use the cached Virtual Environment.
+
+        In support of PEP 582 'run' will use binaries found in a local __pypackages__
+         directory, if present. Please note that this behavior is experimental,
+         and is a acts as a companion tool to pythonloc. It may be modified or
+         removed in the future.
+        """
+        ),
     )
     p.add_argument(
         "--no-cache",
@@ -305,16 +401,21 @@ def get_command_parser():
     p = subparsers.add_parser(
         "ensurepath",
         help=(
-            f"Ensure {str(LOCAL_BIN_DIR)} is on your PATH environment variable"
-            "by modifying your shell's configuration file."
+            f"Ensure {str(LOCAL_BIN_DIR)} is on your PATH environment variable by modifying your shell's configuration file."
+        ),
+        description=(
+            f"""Ensure {str(LOCAL_BIN_DIR)} is on your PATH environment variable by
+            modifying your shell's configuration file. This only needs to be run
+            once after initial installation if {str(LOCAL_BIN_DIR)} is not already on your PATH.
+            """
         ),
     )
     p.add_argument(
         "--force",
         action="store_true",
         help=(
-            f"Add text to your shell's config file even if it looks like your "
-            "PATH already has {str(LOCAL_BIN_DIR)}"
+            "Add text to your shell's config file even if it looks like your "
+            f"PATH already has {str(LOCAL_BIN_DIR)}"
         ),
     )
     parser.add_argument("--version", action="store_true", help="Print version and exit")

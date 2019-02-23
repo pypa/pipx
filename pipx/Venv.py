@@ -16,7 +16,7 @@ from pipx.util import WINDOWS, PipxError, rmdir
 class PipxVenvMetadata(NamedTuple):
     binaries: List[str]
     binary_paths: List[Path]
-    binaries_of_dependencies: Dict[str, List[str]]
+    binaries_of_dependencies: List[str]
     binary_paths_of_dependencies: Dict[str, List[Path]]
     package_version: str
     python_version: str

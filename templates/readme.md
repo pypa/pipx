@@ -14,7 +14,7 @@
 <a href="https://travis-ci.org/pipxproject/pipx"><img src="https://travis-ci.org/pipxproject/pipx.svg?branch=master" /></a>
 
 <a href="https://pypi.python.org/pypi/pipx/">
-<img src="https://img.shields.io/badge/pypi-0.12.3.0-blue.svg" /></a>
+<img src="https://img.shields.io/badge/pypi-{{version}}-blue.svg" /></a>
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
@@ -117,114 +117,10 @@ pipx ensurepath
 ```
 
 ## Usage
-
-```
-pipx --help
-usage: pipx [-h] [--version]
-            {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,ensurepath}
-            ...
-
-Install and execute binaries from Python packages.
-
-Binaries can either be installed globally into isolated Virtual Environments
-or run directly in an temporary Virtual Environment.
-
-Virtual Envrionment location is /home/$USER/.local/pipx/venvs.
-Symlinks to binaries are placed in /home/$USER/.local/bin.
-These locations can be overridden with the environment variables
-PIPX_HOME and PIPX_BIN_DIR, respectively. (Virtual Environments will
-be installed to $PIPX_HOME/venvs)
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --version             Print version and exit
-
-subcommands:
-  Get help for commands with pipx COMMAND --help
-
-  {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,ensurepath}
-    install             Install a package
-    inject              Install packages into an existing Virtual Environment
-    upgrade             Upgrade a package
-    upgrade-all         Upgrade all packages. Runs `pip install -U <pkgname>`
-                        for each package.
-    uninstall           Uninstall a package
-    uninstall-all       Uninstall all packages
-    reinstall-all       Reinstall all packages with a different Python
-                        executable
-    list                List installed packages
-    run                 Either download the latest version of a package to
-                        temporary directory, then run a binary from it, or
-                        invoke binary from local `__pypackages__` directory
-                        (expiremental, see https://github.com/cs01/pythonloc)
-    ensurepath          Ensure /home/$USER/.local/bin is on your PATH
-                        environment variable by modifying your shell's
-                        configuration file.
-
-```
-
+{{ usage }}
 
 ### pipx install
-
-```
-pipx install --help
-usage: pipx install [-h] [--spec SPEC] [--include-deps] [--verbose] [--force]
-                    [--python PYTHON] [--system-site-packages]
-                    [--index-url INDEX_URL] [--editable] [--pip-args PIP_ARGS]
-                    package
-
-The install command is the preferred way to globally install binaries
-from python packages on your system. It creates an isolated virtual
-environment for the package, then ensures the package's binaries are
-accessible on your $PATH.
-
-The result: binaries you can run from anywhere, located in packages
-you can cleanly upgrade or uninstall. Guaranteed to not have
-dependency version conflicts or interfere with your OS's python
-packages. 'sudo' is not required to do this.
-
-pipx install PACKAGE
-pipx install --python PYTHON PACKAGE
-pipx install --spec VCS_URL PACKAGE
-pipx install --spec ZIP_FILE PACKAGE
-pipx install --spec TAR_GZ_FILE PACKAGE
-
-The argument to `--spec` is passed directly to `pip install`.
-
-The default virtual environment location is /home/$USER/.local/pipx
-and can be overridden by setting the environment variable `PIPX_HOME`
- (Virtual Environments will be installed to `$PIPX_HOME/venvs`).
-
-The default binary location is /home/$USER/.local/bin and can be
-overridden by setting the environment variable `PIPX_BIN_DIR`.
-
-positional arguments:
-  package               package name
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --spec SPEC           The package name or specific installation source
-                        passed to pip. Runs `pip install -U SPEC`. For example
-                        `--spec mypackage==2.0.0` or `--spec
-                        git+https://github.com/user/repo.git@branch`
-  --include-deps        Include binaries of dependent packages
-  --verbose
-  --force               Install even when the package has already been
-                        installed
-  --python PYTHON       The Python executable used to create the Virtual
-                        Environment and run the associated binary/binaries.
-                        Must be v3.3+.
-  --system-site-packages
-                        Give the virtual environment access to the system
-                        site-packages dir.
-  --index-url INDEX_URL, -i INDEX_URL
-                        Base URL of Python Package Index
-  --editable, -e        Install a project in editable mode
-  --pip-args PIP_ARGS   Arbitrary pip arguments to pass directly to pip
-                        install/upgrade commands
-
-```
-
+{{ install }}
 
 #### `pipx install` examples
 ```
@@ -240,55 +136,7 @@ pipx install --include-deps jupyter
 ```
 
 ### pipx run
-
-```
-pipx run --help
-usage: pipx run [-h] [--no-cache] [--pypackages] [--spec SPEC] [--verbose]
-                [--python PYTHON] [--system-site-packages]
-                [--index-url INDEX_URL] [--editable] [--pip-args PIP_ARGS]
-                binary [binary_args [binary_args ...]]
-
-Either download the latest version of a package to temporary directory
-then run a binary from it, or invoke a binary from local `__pypackages__`
-directory.
-
-If running from a temporary environment, the environment will be cached
-and re-used for up to 2 days. This
-means subsequent calls to 'run' for the same package will be faster
-since they can re-use the cached Virtual Environment.
-
-In support of PEP 582 'run' will use binaries found in a local __pypackages__
- directory, if present. Please note that this behavior is experimental,
- and is a acts as a companion tool to pythonloc. It may be modified or
- removed in the future.
-
-positional arguments:
-  binary                binary/package name
-  binary_args           arguments passed to the binary when it is invoked
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --no-cache            Do not re-use cached virtual environment if it exists
-  --pypackages          Require binary to be run from local __pypackages__
-                        directory
-  --spec SPEC           The package name or specific installation source
-                        passed to pip. Runs `pip install -U SPEC`. For example
-                        `--spec mypackage==2.0.0` or `--spec
-                        git+https://github.com/user/repo.git@branch`
-  --verbose
-  --python PYTHON       The Python version to run package's CLI binary with.
-                        Must be v3.3+.
-  --system-site-packages
-                        Give the virtual environment access to the system
-                        site-packages dir.
-  --index-url INDEX_URL, -i INDEX_URL
-                        Base URL of Python Package Index
-  --editable, -e        Install a project in editable mode
-  --pip-args PIP_ARGS   Arbitrary pip arguments to pass directly to pip
-                        install/upgrade commands
-
-```
-
+{{run}}
 
 #### `pipx run` examples
 
@@ -315,86 +163,13 @@ pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/ra
 
 
 ### pipx upgrade
-
-```
-pipx upgrade --help
-usage: pipx upgrade [-h] [--spec SPEC] [--include-deps]
-                    [--system-site-packages] [--index-url INDEX_URL]
-                    [--editable] [--pip-args PIP_ARGS] [--verbose]
-                    package
-
-Upgrade a package in a pipx-managed Virtual Environment by running 'pip
-install --upgrade PACKAGE'
-
-positional arguments:
-  package
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --spec SPEC           The package name or specific installation source
-                        passed to pip. Runs `pip install -U SPEC`. For example
-                        `--spec mypackage==2.0.0` or `--spec
-                        git+https://github.com/user/repo.git@branch`
-  --include-deps        Include binaries of dependent packages
-  --system-site-packages
-                        Give the virtual environment access to the system
-                        site-packages dir.
-  --index-url INDEX_URL, -i INDEX_URL
-                        Base URL of Python Package Index
-  --editable, -e        Install a project in editable mode
-  --pip-args PIP_ARGS   Arbitrary pip arguments to pass directly to pip
-                        install/upgrade commands
-  --verbose
-
-```
-
+{{upgrade}}
 
 ### pipx upgrade-all
-
-```
-pipx upgrade-all --help
-usage: pipx upgrade-all [-h] [--include-deps] [--system-site-packages]
-                        [--index-url INDEX_URL] [--editable]
-                        [--pip-args PIP_ARGS] [--verbose]
-
-Upgrades all packages within their virtual environments by running 'pip
-install --upgrade PACKAGE'
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --include-deps        Include binaries of dependent packages
-  --system-site-packages
-                        Give the virtual environment access to the system
-                        site-packages dir.
-  --index-url INDEX_URL, -i INDEX_URL
-                        Base URL of Python Package Index
-  --editable, -e        Install a project in editable mode
-  --pip-args PIP_ARGS   Arbitrary pip arguments to pass directly to pip
-                        install/upgrade commands
-  --verbose
-
-```
-
+{{upgradeall}}
 
 ### pipx inject
-
-```
-pipx inject --help
-usage: pipx inject [-h] [--verbose] package dependencies [dependencies ...]
-
-Installs packages to an existing pipx-managed virtual environment.
-
-positional arguments:
-  package       Name of the existing pipx-managed Virtual Environment to
-                inject into
-  dependencies  the packages to inject into the Virtual Environment
-
-optional arguments:
-  -h, --help    show this help message and exit
-  --verbose
-
-```
-
+{{inject}}
 
 #### `pipx inject` example
 
@@ -408,90 +183,16 @@ pipx inject ptpython requests pendulum
 After running the above commands, you will be able to import and use the `requests` and `pendulum` packages inside a `ptpython` repl.
 
 ### pipx uninstall
-
-```
-pipx uninstall --help
-usage: pipx uninstall [-h] [--verbose] package
-
-Uninstalls a pipx-managed Virtual Envrionment by deleting it and any files
-that point to its binaries.
-
-positional arguments:
-  package
-
-optional arguments:
-  -h, --help  show this help message and exit
-  --verbose
-
-```
-
+{{uninstall}}
 
 ### pipx uninstall-all
-
-```
-pipx uninstall-all --help
-usage: pipx uninstall-all [-h] [--verbose]
-
-Uninstall all pipx-managed packages
-
-optional arguments:
-  -h, --help  show this help message and exit
-  --verbose
-
-```
-
+{{uninstallall}}
 
 ### pipx reinstall-all
-
-```
-pipx reinstall-all --help
-usage: pipx reinstall-all [-h] [--include-deps] [--system-site-packages]
-                          [--index-url INDEX_URL] [--editable]
-                          [--pip-args PIP_ARGS] [--verbose]
-                          python
-
-Reinstalls all packages using a different version of Python.
-
-Packages are uninstalled, then installed with pipx install PACKAGE.
-This is useful if you upgraded to a new version of Python and want
-all your packages to use the latest as well.
-
-If you originally installed a package from a source other than PyPI,
-this command may behave in unexpected ways since it will reinstall from PyPI.
-
-positional arguments:
-  python
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --include-deps        Include binaries of dependent packages
-  --system-site-packages
-                        Give the virtual environment access to the system
-                        site-packages dir.
-  --index-url INDEX_URL, -i INDEX_URL
-                        Base URL of Python Package Index
-  --editable, -e        Install a project in editable mode
-  --pip-args PIP_ARGS   Arbitrary pip arguments to pass directly to pip
-                        install/upgrade commands
-  --verbose
-
-```
-
+{{reinstallall}}
 
 ### pipx list
-
-```
-pipx list --help
-usage: pipx list [-h] [--verbose]
-
-List packages and binariess installed with pipx
-
-optional arguments:
-  -h, --help  show this help message and exit
-  --verbose
-
-```
-
+{{list}}
 
 #### `pipx list` example
 ```
@@ -506,23 +207,7 @@ binaries are exposed on your $PATH at /Users/user/.local/bin
 ```
 
 ### pipx ensurepath
-
-```
-pipx ensurepath --help
-usage: pipx ensurepath [-h] [--force]
-
-Ensure /home/$USER/.local/bin is on your PATH environment variable by
-modifying your shell's configuration file. This only needs to be run once
-after initial installation if /home/$USER/.local/bin is not already on your
-PATH.
-
-optional arguments:
-  -h, --help  show this help message and exit
-  --force     Add text to your shell's config file even if it looks like your
-              PATH already has /home/$USER/.local/bin
-
-```
-
+{{ensurepath}}
 
 #### `pipx ensurepath` example
 ```
