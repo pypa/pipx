@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-
-from pathlib import Path
-import sys
 import json
+import sys
+from pathlib import Path
 from typing import Dict, List, Optional
 
 
