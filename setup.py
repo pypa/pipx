@@ -1,18 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import sys
-
-if sys.version_info < (3, 6, 0):
-    print("Python 3.6+ is required")
-    exit(1)
+import ast  # noqa E402
 import io  # noqa E402
 import os  # noqa E402
-from setuptools import find_packages, setup  # noqa E402
+import re  # noqa E402
 from pathlib import Path  # noqa E402
 from typing import List  # noqa E402
-import ast  # noqa E402
-import re  # noqa E402
+
+from setuptools import find_packages, setup  # noqa E402
 
 CURDIR = Path(__file__).parent
 
