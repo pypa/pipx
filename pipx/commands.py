@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import datetime
 import distutils.spawn
 import hashlib
@@ -18,6 +15,7 @@ from pathlib import Path
 from shutil import which
 from typing import List, Optional
 
+from .Venv import Venv
 from .animate import animate
 from .colors import bold, red
 from .constants import (
@@ -35,19 +33,18 @@ from .util import (
     rmdir,
     run_pypackage_bin,
 )
-from .Venv import Venv
 
 
 def run(
-    binary: str,
-    package_or_url: str,
-    binary_args: List[str],
-    python: str,
-    pip_args: List[str],
-    venv_args: List[str],
-    pypackages: bool,
-    verbose: bool,
-    use_cache: bool,
+        binary: str,
+        package_or_url: str,
+        binary_args: List[str],
+        python: str,
+        pip_args: List[str],
+        venv_args: List[str],
+        pypackages: bool,
+        verbose: bool,
+        use_cache: bool,
 ):
     """Installs venv to temporary dir (or reuses cache), then runs binary from
     package
@@ -119,14 +116,14 @@ def run(
 
 
 def _download_and_run(
-    venv_dir: Path,
-    package: str,
-    binary: str,
-    binary_args: List[str],
-    python: str,
-    pip_args: List[str],
-    venv_args: List[str],
-    verbose: bool,
+        venv_dir: Path,
+        package: str,
+        binary: str,
+        binary_args: List[str],
+        python: str,
+        pip_args: List[str],
+        venv_args: List[str],
+        verbose: bool,
 ):
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv(venv_args, pip_args)
@@ -141,7 +138,7 @@ def _download_and_run(
 
 
 def _get_temporary_venv_path(
-    package_or_url: str, python: str, pip_args: List[str], venv_args: List[str]
+        package_or_url: str, python: str, pip_args: List[str], venv_args: List[str]
 ):
     """Computes deterministic path using hashing function on arguments relevant
     to virtual environment's end state. Arguments used should result in idempotent
@@ -192,14 +189,14 @@ def _http_get_request(url: str):
 
 
 def upgrade(
-    venv_dir: Path,
-    package: str,
-    package_or_url: str,
-    pip_args: List[str],
-    verbose: bool,
-    *,
-    upgrading_all: bool,
-    include_deps: bool,
+        venv_dir: Path,
+        package: str,
+        package_or_url: str,
+        pip_args: List[str],
+        verbose: bool,
+        *,
+        upgrading_all: bool,
+        include_deps: bool,
 ) -> int:
     """Returns nonzero if package was upgraded, 0 if version did not change"""
 
@@ -247,7 +244,7 @@ def upgrade(
 
 
 def upgrade_all(
-    pipx_local_venvs: Path, pip_args: List[str], verbose: bool, *, include_deps: bool
+        pipx_local_venvs: Path, pip_args: List[str], verbose: bool, *, include_deps: bool
 ):
     packages_upgraded = 0
     num_packages = 0
@@ -278,17 +275,17 @@ def upgrade_all(
 
 
 def install(
-    venv_dir: Path,
-    package: str,
-    package_or_url: str,
-    local_bin_dir: Path,
-    python: str,
-    pip_args: List[str],
-    venv_args: List[str],
-    verbose: bool,
-    *,
-    force: bool,
-    include_deps: bool,
+        venv_dir: Path,
+        package: str,
+        package_or_url: str,
+        local_bin_dir: Path,
+        python: str,
+        pip_args: List[str],
+        venv_args: List[str],
+        verbose: bool,
+        *,
+        force: bool,
+        include_deps: bool,
 ):
     try:
         exists = venv_dir.exists() and next(venv_dir.iterdir())
@@ -320,7 +317,7 @@ def install(
 
 
 def _run_post_install_actions(
-    venv: Venv, package: str, local_bin_dir: Path, venv_dir: Path, include_deps: bool
+        venv: Venv, package: str, local_bin_dir: Path, venv_dir: Path, include_deps: bool
 ):
     metadata = venv.get_venv_metadata_for_package(package)
     if not include_deps and not metadata.binary_paths:
@@ -367,13 +364,13 @@ def _warn_if_not_on_path(local_bin_dir: Path, binary: str):
 
 
 def inject(
-    venv_dir: Path,
-    package: str,
-    pip_args: List[str],
-    *,
-    verbose: bool,
-    include_binaries: bool,
-    include_deps: bool,
+        venv_dir: Path,
+        package: str,
+        pip_args: List[str],
+        *,
+        verbose: bool,
+        include_binaries: bool,
+        include_deps: bool,
 ):
     if not venv_dir.exists() or not next(venv_dir.iterdir()):
         raise PipxError(
@@ -436,13 +433,13 @@ def uninstall_all(pipx_local_venvs: Path, local_bin_dir: Path, verbose: bool):
 
 
 def reinstall_all(
-    pipx_local_venvs: Path,
-    local_bin_dir: Path,
-    python: str,
-    pip_args: List[str],
-    venv_args: List[str],
-    verbose: bool,
-    include_deps: bool,
+        pipx_local_venvs: Path,
+        local_bin_dir: Path,
+        python: str,
+        pip_args: List[str],
+        venv_args: List[str],
+        verbose: bool,
+        include_deps: bool,
 ):
     for venv_dir in pipx_local_venvs.iterdir():
         package = venv_dir.name
@@ -464,7 +461,7 @@ def reinstall_all(
 
 
 def _expose_binaries_globally(
-    local_bin_dir: Path, binary_paths: List[Path], package: str
+        local_bin_dir: Path, binary_paths: List[Path], package: str
 ):
     if WINDOWS:
         _copy_package_binaries(local_bin_dir, binary_paths, package)
@@ -487,7 +484,7 @@ def _copy_package_binaries(local_bin_dir: Path, binary_paths: List[Path], packag
 
 
 def _symlink_package_binaries(
-    local_bin_dir: Path, binary_paths: List[Path], package: str
+        local_bin_dir: Path, binary_paths: List[Path], package: str
 ):
     for b in binary_paths:
         binary = b.name
@@ -517,7 +514,7 @@ def _symlink_package_binaries(
 
 
 def _get_package_summary(
-    path: Path, *, package: str = None, new_install: bool = False
+        path: Path, *, package: str = None, new_install: bool = False
 ) -> str:
     venv = Venv(path)
     python_path = venv.python_path.resolve()
@@ -549,13 +546,13 @@ def _get_package_summary(
 
 
 def _get_list_output(
-    python_version: str,
-    python_path: Path,
-    package_version: str,
-    package: str,
-    new_install: bool,
-    exposed_binary_names: List[str],
-    unavailable_binary_names: List[str],
+        python_version: str,
+        python_path: Path,
+        package_version: str,
+        package: str,
+        new_install: bool,
+        exposed_binary_names: List[str],
+        unavailable_binary_names: List[str],
 ) -> str:
     output = []
     output.append(
@@ -589,7 +586,7 @@ def list_packages(pipx_local_venvs: Path):
 
 
 def _get_exposed_binary_paths_for_package(
-    bin_path: Path, package_binary_names: List[str], local_bin_dir: Path
+        bin_path: Path, package_binary_names: List[str], local_bin_dir: Path
 ):
     bin_symlinks = set()
     for b in local_bin_dir.iterdir():
