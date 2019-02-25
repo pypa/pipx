@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 import argparse
 import logging
 import os
@@ -49,7 +48,6 @@ PIPX_HOME and PIPX_BIN_DIR, respectively. (Virtual Environments will
 be installed to $PIPX_HOME/venvs)
 """
 )
-
 
 INSTALL_DESCRIPTION = f"""
 The install command is the preferred way to globally install binaries
@@ -314,7 +312,7 @@ def get_command_parser():
     p = subparsers.add_parser(
         "upgrade-all",
         help="Upgrade all packages. "
-        "Runs `pip install -U <pkgname>` for each package.",
+             "Runs `pip install -U <pkgname>` for each package.",
         description="Upgrades all packages within their virtual environments by running 'pip install --upgrade PACKAGE'",
     )
     add_include_deps(p)
@@ -370,8 +368,8 @@ def get_command_parser():
         "run",
         formatter_class=LineWrapRawTextHelpFormatter,
         help="Either download the latest version of a package to temporary directory, "
-        "then run a binary from it, or invoke binary from local `__pypackages__` "
-        "directory (expiremental, see https://github.com/cs01/pythonloc)",
+             "then run a binary from it, or invoke binary from local `__pypackages__` "
+             "directory (expiremental, see https://github.com/cs01/pythonloc)",
         description=textwrap.dedent(
             f"""
         Either download the latest version of a package to temporary directory
