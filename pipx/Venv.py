@@ -69,7 +69,7 @@ class Venv:
                     "-c",
                     VENV_METADATA_INSPECTOR,
                     package,
-                    self.bin_path,
+                    str(self.bin_path),
                 ],
                 stdout=subprocess.PIPE,
             ).stdout.decode(),

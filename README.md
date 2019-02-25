@@ -14,7 +14,7 @@
 <a href="https://travis-ci.org/pipxproject/pipx"><img src="https://travis-ci.org/pipxproject/pipx.svg?branch=master" /></a>
 
 <a href="https://pypi.python.org/pypi/pipx/">
-<img src="https://img.shields.io/badge/pypi-0.12.3.0-blue.svg" /></a>
+<img src="https://img.shields.io/badge/pypi-0.12.3.1-blue.svg" /></a>
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
@@ -129,8 +129,8 @@ Install and execute binaries from Python packages.
 Binaries can either be installed globally into isolated Virtual Environments
 or run directly in an temporary Virtual Environment.
 
-Virtual Envrionment location is /home/$USER/.local/pipx/venvs.
-Symlinks to binaries are placed in /home/$USER/.local/bin.
+Virtual Envrionment location is /Users/$USER/.local/pipx/venvs.
+Symlinks to binaries are placed in /Users/$USER/.local/bin.
 These locations can be overridden with the environment variables
 PIPX_HOME and PIPX_BIN_DIR, respectively. (Virtual Environments will
 be installed to $PIPX_HOME/venvs)
@@ -157,7 +157,7 @@ subcommands:
                         temporary directory, then run a binary from it, or
                         invoke binary from local `__pypackages__` directory
                         (expiremental, see https://github.com/cs01/pythonloc)
-    ensurepath          Ensure /home/$USER/.local/bin is on your PATH
+    ensurepath          Ensure /Users/$USER/.local/bin is on your PATH
                         environment variable by modifying your shell's
                         configuration file.
 
@@ -191,11 +191,11 @@ pipx install --spec TAR_GZ_FILE PACKAGE
 
 The argument to `--spec` is passed directly to `pip install`.
 
-The default virtual environment location is /home/$USER/.local/pipx
+The default virtual environment location is /Users/$USER/.local/pipx
 and can be overridden by setting the environment variable `PIPX_HOME`
  (Virtual Environments will be installed to `$PIPX_HOME/venvs`).
 
-The default binary location is /home/$USER/.local/bin and can be
+The default binary location is /Users/$USER/.local/bin and can be
 overridden by setting the environment variable `PIPX_BIN_DIR`.
 
 positional arguments:
@@ -524,15 +524,15 @@ binaries are exposed on your $PATH at /Users/user/.local/bin
 pipx ensurepath --help
 usage: pipx ensurepath [-h] [--force]
 
-Ensure /home/$USER/.local/bin is on your PATH environment variable by
+Ensure /Users/$USER/.local/bin is on your PATH environment variable by
 modifying your shell's configuration file. This only needs to be run once
-after initial installation if /home/$USER/.local/bin is not already on your
+after initial installation if /Users/$USER/.local/bin is not already on your
 PATH.
 
 optional arguments:
   -h, --help  show this help message and exit
   --force     Add text to your shell's config file even if it looks like your
-              PATH already has /home/$USER/.local/bin
+              PATH already has /Users/$USER/.local/bin
 
 ```
 
