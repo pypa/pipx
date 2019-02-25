@@ -410,7 +410,7 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
     venv = Venv(venv_dir, verbose=verbose)
 
     metadata = venv.get_venv_metadata_for_package(package)
-    binary_paths = metadata.binary_paths
+    binary_paths = list(metadata.binary_paths)
     for dep_paths in metadata.binary_paths_of_dependencies.values():
         binary_paths += dep_paths
     for file in local_bin_dir.iterdir():
