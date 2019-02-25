@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-import os
-from pathlib import Path
 import logging
+import os
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 from typing import List
 
 
@@ -38,11 +36,11 @@ def mkdir(path: Path) -> None:
 
 def get_pypackage_bin_path(binary_name: str) -> Path:
     return (
-        Path("__pypackages__")
-        / (str(sys.version_info.major) + "." + str(sys.version_info.minor))  # noqa E503
-        / "lib"  # noqa E503
-        / "bin"  # noqa E503
-        / binary_name  # noqa E503
+            Path("__pypackages__")
+            / (str(sys.version_info.major) + "." + str(sys.version_info.minor))  # noqa E503
+            / "lib"  # noqa E503
+            / "bin"  # noqa E503
+            / binary_name  # noqa E503
     )
 
 
