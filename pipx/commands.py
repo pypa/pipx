@@ -482,7 +482,8 @@ def _copy_package_binaries(local_bin_dir: Path, binary_paths: List[Path], packag
         if dest.exists():
             logging.warning(f"{hazard}  Overwriting file {str(dest)} with {str(src)}")
             dest.unlink()
-        shutil.copy(src, dest)
+        if src.exists():
+            shutil.copy(src, dest)
 
 
 def _symlink_package_binaries(
