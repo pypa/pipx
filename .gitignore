@@ -7,3 +7,4 @@ activate
 __pypackages__
 venv
 .DS_Store
+.idea
