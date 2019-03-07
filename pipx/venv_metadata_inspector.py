@@ -75,9 +75,12 @@ def _dfs_package_binaries(
             binaries = [str(Path(bin_path) / binary) for binary in binary_names]
             binary_paths_of_dependencies[d] = binaries
         # recursively search for more
-        binary_paths_of_dependencies = _dfs_package_binaries(
-            bin_path, d, binary_paths_of_dependencies
-        )
+        if d not in binary_paths_of_dependencies:
+            # only search if this package isn't already listed to avoid
+            # infinite recursion
+            binary_paths_of_dependencies = _dfs_package_binaries(
+                bin_path, d, binary_paths_of_dependencies
+            )
     return binary_paths_of_dependencies
 
 

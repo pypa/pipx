@@ -142,7 +142,7 @@ class TestPipxCommands(unittest.TestCase):
 
     def test_install(self):
         easy_packages = ["cowsay", "black"]
-        tricky_packages = ["awscli", "ansible", "shell-functools"]
+        tricky_packages = ["clouldtoken", "awscli", "ansible", "shell-functools"]
         all_packages = easy_packages + tricky_packages
 
         for package in all_packages:

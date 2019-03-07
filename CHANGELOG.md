@@ -1,3 +1,9 @@
+dev
+* Fix infinite recursion error when installing package such as `cloudtoken==0.1.84` (#103)
+
+0.12.3.1
+* Fix "WindowsPath is not iterable" bug
+
 0.12.3.0
 * Add `--include-deps` argument to include binaries of dependent packages when installing with pipx. This improves compatibility with packages that depend on other installed packages, such as `jupyter`.
 * Speed up `pipx list` output (by running multiple processes in parallel) and by collecting all metadata in a single subprocess call
