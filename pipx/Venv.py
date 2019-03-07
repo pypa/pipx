@@ -90,7 +90,7 @@ class Venv:
                 # to run the binary
                 for win_exec in binary.parent.glob(f"{binary.name}*"):
                     windows_bin_paths.add(win_exec)
-            data["binary_paths"] = windows_bin_paths
+            data["binary_paths"] = list(windows_bin_paths)
         return PipxVenvMetadata(**data)
 
     def get_python_version(self) -> str:
