@@ -1,3 +1,9 @@
-include README.md LICENSE
-include get-pipx.py
-recursive-include pipx *.py
+include *.md pipx_demo.gif logo.png LICENSE
+graft pipx
+
+exclude get-pipx.py makefile generate_readme.py .flake8
+prune templates
+prune tests
+
+global-exclude *.py[cod]
+global-exclude __pycache__
