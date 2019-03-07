@@ -6,6 +6,8 @@ python:
 install:
   - pip install .[dev]
 script:
+  - python setup.py check -m -s
+  - check-manifest
   - python -m unittest tests.test_pipx.PipxStaticTests.test_static
   # TODO figure out how to make this run on travis
   # (https://github.com/pipxproject/pipx/issues/25)
