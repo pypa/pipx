@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import datetime
-import distutils.spawn
 import hashlib
 import http.client
 import logging
@@ -357,7 +356,7 @@ def _run_post_install_actions(
 
 
 def _warn_if_not_on_path(local_bin_dir: Path, binary: str):
-    if not distutils.spawn.find_executable(binary):
+    if not which(binary):
         logging.warning(
             f"{hazard}  Note: {str(local_bin_dir)!r} is not on your PATH environment "
             "variable. These binaries will not be globally accessible until "

@@ -6,7 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from distutils.spawn import find_executable
+from shutil import which
 from pathlib import Path
 
 from pipx.main import split_run_argv
@@ -77,7 +77,7 @@ class TestPipxCommands(unittest.TestCase):
             [sys.executable, "-m", "pip", "install", ".", "--quiet", "--upgrade"],
             check=True,
         )
-        self.assertTrue(find_executable(pipx_bin))
+        self.assertTrue(which(pipx_bin))
         self.pipx_bin = pipx_bin
         self.temp_dir = temp_dir
         print()  # blank line to unit tests doesn't get overwritten by pipx output

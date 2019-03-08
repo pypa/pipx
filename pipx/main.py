@@ -22,7 +22,7 @@ from .constants import (
 from .util import PipxError, mkdir
 
 
-__version__ = "0.12.3.2"
+__version__ = "0.12.3.3"
 
 
 def print_version() -> None:
