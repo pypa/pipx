@@ -44,9 +44,7 @@ def get_binaries(package: str, bin_path: Path) -> List[str]:
             entry = line.split(",")[0]  # noqa: T484
             path = (Path(dist.location) / entry).resolve()
             try:
-                if path.parent.name == "scripts" in entry or path.parent.samefile(
-                    bin_path
-                ):
+                if path.parent.samefile(bin_path):
                     binaries.add(Path(entry).name)
             except FileNotFoundError:
                 pass

@@ -1,3 +1,6 @@
+dev
+* Update logic in determining a package's binaries during installation. This removes spurious binaries from the installation. (#104)
+
 0.12.3.2
 * Fix infinite recursion error when installing package such as `cloudtoken==0.1.84` (#103)
 * Fix windows type errors (#96, #98)
