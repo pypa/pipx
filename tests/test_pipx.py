@@ -57,6 +57,12 @@ class TestPipxArgParsing(unittest.TestCase):
         self.assertEqual(args_to_parse, ["upgrade", "cowsay", "moo", "--help"])
         self.assertEqual(binary_args, [])
 
+        args_to_parse, binary_args = split_run_argv(
+            ["pipx", "runpip", "cowsay", "--version"]
+        )
+        self.assertEqual(args_to_parse, ["runpip", "cowsay"])
+        self.assertEqual(binary_args, ["--version"])
+
 
 class TestPipxCommands(unittest.TestCase):
     def setUp(self):

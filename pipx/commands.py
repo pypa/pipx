@@ -610,6 +610,16 @@ def _get_exposed_binary_paths_for_package(
     return bin_symlinks
 
 
+def run_pip(package: str, venv_dir: Path, pip_args: List[str], verbose: bool):
+    venv = Venv(venv_dir, verbose=verbose)
+    if not venv.python_path.exists():
+        raise PipxError(
+            f"venv for {package!r} was not found. Was {package!r} installed with pipx?"
+        )
+    venv.verbose = True
+    venv._run_pip(pip_args)
+
+
 def ensurepath(bin_dir: Path):
     shell = os.environ.get("SHELL", "")
     config_file: Optional[str]

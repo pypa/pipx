@@ -22,7 +22,7 @@ from .constants import (
 from .util import PipxError, mkdir
 
 
-__version__ = "0.12.3.3"
+__version__ = "0.12.4.0"
 
 
 def print_version() -> None:
@@ -203,6 +203,10 @@ def run_pipx_command(args, binary_args: List[str]):
             verbose,
             args.include_deps,
         )
+    elif args.command == "runpip":
+        if not venv_dir:
+            raise PipxError("developer error: venv dir is not defined")
+        commands.run_pip(package, venv_dir, binary_args, args.verbose)
     elif args.command == "ensurepath":
         paths = os.getenv("PATH", "").split(os.pathsep)
         path_good = str(LOCAL_BIN_DIR) in paths
@@ -417,6 +421,18 @@ def get_command_parser():
     add_pip_venv_args(p)
 
     p = subparsers.add_parser(
+        "runpip",
+        help="Run pip in an existing pipx-managed Virtual Environment",
+        description="Run pip in an existing pipx-managed Virtual Environment",
+    )
+    p.add_argument(
+        "package",
+        help="Name of the existing pipx-managed Virtual Environment to run pip in",
+    )
+    p.add_argument("pipargs", nargs="*", help="Arguments to forward to pip command")
+    p.add_argument("--verbose", action="store_true")
+
+    p = subparsers.add_parser(
         "ensurepath",
         help=(
             f"Ensure {str(LOCAL_BIN_DIR)} is on your PATH environment variable by modifying your shell's configuration file."
@@ -471,7 +487,12 @@ def split_run_argv(argv: List[str]) -> Tuple[List[str], List[str]]:
     """
     args_to_parse = argv[1:]
     binary_args: List[str] = []
+
     if len(argv) >= 2:
+        if argv[1] == "runpip":
+            package_index = argv.index("runpip") + 1
+            return argv[1 : package_index + 1], argv[package_index + 1 :]
+
         if argv[1] == "run":
             start = 2
             for i, arg in enumerate(argv[start:]):
