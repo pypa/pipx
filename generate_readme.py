@@ -37,6 +37,7 @@ template = env.get_template("readme.md")
 cmd_help = {
     "usage": get_help(None),
     "ensurepath": get_help("ensurepath"),
+    "runpip": get_help("runpip"),
     "install": get_help("install"),
     "upgrade": get_help("upgrade"),
     "upgradeall": get_help("upgrade-all"),
@@ -46,7 +47,7 @@ cmd_help = {
     "reinstallall": get_help("reinstall-all"),
     "list": get_help("list"),
     "run": get_help("run"),
-    "version": __version__
+    "version": __version__,
 }
 
 with open("README.md", "wb") as f:

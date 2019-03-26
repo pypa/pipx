@@ -206,6 +206,10 @@ binaries are exposed on your $PATH at /Users/user/.local/bin
     - pipx
 ```
 
+### pipx runpip
+{{runpip}}
+
+
 ### pipx ensurepath
 {{ensurepath}}
 

@@ -1,3 +1,6 @@
+0.12.4.0
+* Add `runpip` command
+
 0.12.3.3
 * Update logic in determining a package's binaries during installation. This removes spurious binaries from the installation. (#104)
 * Improve compatibility with Debian distributions by using `shutil.which` instead of `distutils.spawn.find_executable` (#102)

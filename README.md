@@ -14,7 +14,7 @@
 <a href="https://travis-ci.org/pipxproject/pipx"><img src="https://travis-ci.org/pipxproject/pipx.svg?branch=master" /></a>
 
 <a href="https://pypi.python.org/pypi/pipx/">
-<img src="https://img.shields.io/badge/pypi-0.12.3.3-blue.svg" /></a>
+<img src="https://img.shields.io/badge/pypi-0.12.4.0-blue.svg" /></a>
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
@@ -37,23 +37,23 @@ You can globally install a CLI application by running
 pipx install PACKAGE
 ```
 
-This automatically creates a virtual environment, installs the package, and adds the package's CLI entry points to a location on your `PATH`. For example, `pipx install cowsay` makes the `cowsay` command available globally, but sandboxes the cowsay package in its own virtual environment. **pipx never needs to run as sudo to do this.**
+This automatically creates a virtual environment, installs the package, and adds the package's CLI entry points to a location on your `PATH`. For example, `pipx install pycowsay` makes the `pycowsay` command available globally, but sandboxes the pycowsay package in its own virtual environment. **pipx never needs to run as sudo to do this.**
 
 Example:
 ```
->> pipx install cowsay
-  installed package cowsay 2.0, Python 3.6.7
+>> pipx install pycowsay
+  installed package pycowsay 2.0, Python 3.6.7
   These binaries are now globally available
-    - cowsay
+    - pycowsay
 done! ✨ 🌟 ✨
 
 >> pipx list
 venvs are in /home/user/.local/pipx/venvs
 binaries are exposed on your $PATH at /home/user/.local/bin
-   package cowsay 2.0, Python 3.6.7
-    - cowsay
+   package pycowsay 2.0, Python 3.6.7
+    - pycowsay
 
->> cowsay moooo
+>> pycowsay moooo
   _____
 < moooo >
   =====
@@ -73,7 +73,7 @@ pipx run BINARY [ARGS...]
 This will install the package in an isolated, temporary directory and invoke the binary. Try it!
 
 ```
-pipx run cowsay moo
+pipx run pycowsay moo
 ```
 
 Notice that you **don't need to execute any install commands to run the binary**.
@@ -121,7 +121,7 @@ pipx ensurepath
 ```
 pipx --help
 usage: pipx [-h] [--version]
-            {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,ensurepath}
+            {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip,ensurepath}
             ...
 
 Install and execute binaries from Python packages.
@@ -142,7 +142,7 @@ optional arguments:
 subcommands:
   Get help for commands with pipx COMMAND --help
 
-  {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,ensurepath}
+  {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip,ensurepath}
     install             Install a package
     inject              Install packages into an existing Virtual Environment
     upgrade             Upgrade a package
@@ -157,6 +157,8 @@ subcommands:
                         temporary directory, then run a binary from it, or
                         invoke binary from local `__pypackages__` directory
                         (expiremental, see https://github.com/cs01/pythonloc)
+    runpip              Run pip in an existing pipx-managed Virtual
+                        Environment
     ensurepath          Ensure /home/$USER/.local/bin is on your PATH
                         environment variable by modifying your shell's
                         configuration file.
@@ -228,9 +230,9 @@ optional arguments:
 
 #### `pipx install` examples
 ```
-pipx install cowsay
-pipx install --python python3.6 cowsay
-pipx install --python python3.7 cowsay
+pipx install pycowsay
+pipx install --python python3.6 pycowsay
+pipx install --python python3.7 pycowsay
 pipx install --spec git+https://github.com/ambv/black black
 pipx --spec git+https://github.com/ambv/black.git@branch-name black
 pipx --spec git+https://github.com/ambv/black.git@git-hash black
@@ -301,11 +303,11 @@ pipx --python 3.7 --spec PACKAGE=1.7.3 run BINARY
 pipx --spec git+https://url.git run BINARY  # latest version on master is run
 pipx --spec git+https://url.git@branch run BINARY
 pipx --spec git+https://url.git@hash run BINARY
-pipx run cowsay moo
+pipx run pycowsay moo
 pipx --version  # prints pipx version
-pipx run cowsay  --version  # prints cowsay version
-pipx --python pythonX cowsay
-pipx --spec cowsay==2.0 cowsay --version
+pipx run pycowsay  --version  # prints pycowsay version
+pipx --python pythonX pycowsay
+pipx --spec pycowsay==2.0 pycowsay --version
 pipx --spec git+https://github.com/ambv/black.git black
 pipx --spec git+https://github.com/ambv/black.git@branch-name black
 pipx --spec git+https://github.com/ambv/black.git@git-hash black
@@ -517,6 +519,27 @@ binaries are exposed on your $PATH at /Users/user/.local/bin
    package pipx 0.10.0, Python 3.7.0
     - pipx
 ```
+
+### pipx runpip
+
+```
+pipx runpip --help
+usage: pipx runpip [-h] [--verbose] package [pipargs [pipargs ...]]
+
+Run pip in an existing pipx-managed Virtual Environment
+
+positional arguments:
+  package     Name of the existing pipx-managed Virtual Environment to run pip
+              in
+  pipargs     Arguments to forward to pip command
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --verbose
+
+```
+
+
 
 ### pipx ensurepath
 
