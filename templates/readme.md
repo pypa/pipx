@@ -37,23 +37,23 @@ You can globally install a CLI application by running
 pipx install PACKAGE
 ```
 
-This automatically creates a virtual environment, installs the package, and adds the package's CLI entry points to a location on your `PATH`. For example, `pipx install cowsay` makes the `cowsay` command available globally, but sandboxes the cowsay package in its own virtual environment. **pipx never needs to run as sudo to do this.**
+This automatically creates a virtual environment, installs the package, and adds the package's CLI entry points to a location on your `PATH`. For example, `pipx install pycowsay` makes the `pycowsay` command available globally, but sandboxes the pycowsay package in its own virtual environment. **pipx never needs to run as sudo to do this.**
 
 Example:
 ```
->> pipx install cowsay
-  installed package cowsay 2.0, Python 3.6.7
+>> pipx install pycowsay
+  installed package pycowsay 2.0, Python 3.6.7
   These binaries are now globally available
-    - cowsay
+    - pycowsay
 done! ✨ 🌟 ✨
 
 >> pipx list
 venvs are in /home/user/.local/pipx/venvs
 binaries are exposed on your $PATH at /home/user/.local/bin
-   package cowsay 2.0, Python 3.6.7
-    - cowsay
+   package pycowsay 2.0, Python 3.6.7
+    - pycowsay
 
->> cowsay moooo
+>> pycowsay moooo
   _____
 < moooo >
   =====
@@ -73,7 +73,7 @@ pipx run BINARY [ARGS...]
 This will install the package in an isolated, temporary directory and invoke the binary. Try it!
 
 ```
-pipx run cowsay moo
+pipx run pycowsay moo
 ```
 
 Notice that you **don't need to execute any install commands to run the binary**.
@@ -124,9 +124,9 @@ pipx ensurepath
 
 #### `pipx install` examples
 ```
-pipx install cowsay
-pipx install --python python3.6 cowsay
-pipx install --python python3.7 cowsay
+pipx install pycowsay
+pipx install --python python3.6 pycowsay
+pipx install --python python3.7 pycowsay
 pipx install --spec git+https://github.com/ambv/black black
 pipx --spec git+https://github.com/ambv/black.git@branch-name black
 pipx --spec git+https://github.com/ambv/black.git@git-hash black
@@ -149,11 +149,11 @@ pipx --python 3.7 --spec PACKAGE=1.7.3 run BINARY
 pipx --spec git+https://url.git run BINARY  # latest version on master is run
 pipx --spec git+https://url.git@branch run BINARY
 pipx --spec git+https://url.git@hash run BINARY
-pipx run cowsay moo
+pipx run pycowsay moo
 pipx --version  # prints pipx version
-pipx run cowsay  --version  # prints cowsay version
-pipx --python pythonX cowsay
-pipx --spec cowsay==2.0 cowsay --version
+pipx run pycowsay  --version  # prints pycowsay version
+pipx --python pythonX pycowsay
+pipx --spec pycowsay==2.0 pycowsay --version
 pipx --spec git+https://github.com/ambv/black.git black
 pipx --spec git+https://github.com/ambv/black.git@branch-name black
 pipx --spec git+https://github.com/ambv/black.git@git-hash black
