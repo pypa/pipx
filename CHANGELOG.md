@@ -1,3 +1,8 @@
+0.13.0.0
+* Add `runpip` command to run arbitrary pip commands in pipx-managed virtual environments
+* Do not raise error when running `pipx install PACKAGE` and the package has already been installed by pipx (#125). This is the cause of the major version change from 0.12 to 0.13.
+* Add `--skip` argument to `upgrade-all` and `reinstall-all` commands, to let the user skip particular packages
+
 0.12.3.3
 * Update logic in determining a package's binaries during installation. This removes spurious binaries from the installation. (#104)
 * Improve compatibility with Debian distributions by using `shutil.which` instead of `distutils.spawn.find_executable` (#102)

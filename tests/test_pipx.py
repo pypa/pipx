@@ -46,16 +46,22 @@ class TestPipxArgParsing(unittest.TestCase):
         self.assertEqual(binary_args, [])
 
         args_to_parse, binary_args = split_run_argv(
-            ["pipx", "run", "cowsay", "moo", "--help"]
+            ["pipx", "run", "pycowsay", "moo", "--help"]
         )
-        self.assertEqual(args_to_parse, ["run", "cowsay"])
+        self.assertEqual(args_to_parse, ["run", "pycowsay"])
         self.assertEqual(binary_args, ["moo", "--help"])
 
         args_to_parse, binary_args = split_run_argv(
-            ["pipx", "upgrade", "cowsay", "moo", "--help"]
+            ["pipx", "upgrade", "pycowsay", "moo", "--help"]
         )
-        self.assertEqual(args_to_parse, ["upgrade", "cowsay", "moo", "--help"])
+        self.assertEqual(args_to_parse, ["upgrade", "pycowsay", "moo", "--help"])
         self.assertEqual(binary_args, [])
+
+        args_to_parse, binary_args = split_run_argv(
+            ["pipx", "runpip", "pycowsay", "--version"]
+        )
+        self.assertEqual(args_to_parse, ["runpip", "pycowsay"])
+        self.assertEqual(binary_args, ["--version"])
 
 
 class TestPipxCommands(unittest.TestCase):
@@ -99,9 +105,9 @@ class TestPipxCommands(unittest.TestCase):
         self.assertTrue("pipx" in ret.stdout.decode().lower())
 
     def test_arg_forwarding(self):
-        # passing --help to cowsay should NOT contain the word pipx
+        # passing --help to pycowsay should NOT contain the word pipx
         ret = subprocess.run(
-            [self.pipx_bin, "run", "cowsay", "--help"],
+            [self.pipx_bin, "run", "pycowsay", "--help"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
@@ -110,14 +116,14 @@ class TestPipxCommands(unittest.TestCase):
 
     def test_pipx_venv_cache(self):
         subprocess.run(
-            [self.pipx_bin, "run", "--verbose", "cowsay", "cowsay args"], check=True
+            [self.pipx_bin, "run", "--verbose", "pycowsay", "pycowsay args"], check=True
         )
         ret = subprocess.run(
             [
                 self.pipx_bin,
                 "run",
                 "--verbose",
-                "cowsay",
+                "pycowsay",
                 "different args should re-use cache",
             ],
             stdout=subprocess.PIPE,
@@ -131,7 +137,7 @@ class TestPipxCommands(unittest.TestCase):
                 "run",
                 "--verbose",
                 "--no-cache",
-                "cowsay",
+                "pycowsay",
                 "no cache should remove cache",
             ],
             stdout=subprocess.PIPE,
@@ -141,7 +147,7 @@ class TestPipxCommands(unittest.TestCase):
         self.assertTrue("Removing cached venv" in ret.stderr.decode())
 
     def test_install(self):
-        easy_packages = ["cowsay", "black"]
+        easy_packages = ["pycowsay", "black"]
         tricky_packages = ["cloudtoken", "awscli", "ansible", "shell-functools"]
         all_packages = easy_packages + tricky_packages
 
@@ -159,6 +165,14 @@ class TestPipxCommands(unittest.TestCase):
         subprocess.run(
             [self.pipx_bin, "install", "-e", "pipx", "--spec", PIPX_PATH], check=True
         )
+
+    def test_install_existing_package(self):
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
+
+    def test_runpip(self):
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
+        subprocess.run([self.pipx_bin, "runpip", "pycowsay", "list"], check=True)
 
     def test_include_deps_install(self):
         self.assertNotEqual(
@@ -182,16 +196,16 @@ class TestPipxCommands(unittest.TestCase):
         )
 
     def test_inject(self):
-        subprocess.run([self.pipx_bin, "install", "cowsay"], check=True)
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
         ret = subprocess.run(
-            [self.pipx_bin, "inject", "cowsay", "black"],
+            [self.pipx_bin, "inject", "pycowsay", "black"],
             stdout=subprocess.PIPE,
             check=True,
         )
         self.assertTrue("black" not in ret.stdout.decode())
         self.assertNotEqual(
             subprocess.run(
-                [self.pipx_bin, "inject", "cowsay", "black", "--include-deps"]
+                [self.pipx_bin, "inject", "pycowsay", "black", "--include-deps"]
             ).returncode,
             0,
         )
@@ -199,7 +213,7 @@ class TestPipxCommands(unittest.TestCase):
             [
                 self.pipx_bin,
                 "inject",
-                "cowsay",
+                "pycowsay",
                 "black",
                 "--include-binaries",
                 "--include-deps",
@@ -210,16 +224,16 @@ class TestPipxCommands(unittest.TestCase):
         self.assertTrue("black" in ret.stdout.decode())
 
     def test_uninstall(self):
-        subprocess.run([self.pipx_bin, "install", "cowsay"], check=True)
-        subprocess.run([self.pipx_bin, "uninstall", "cowsay"], check=True)
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
+        subprocess.run([self.pipx_bin, "uninstall", "pycowsay"], check=True)
         subprocess.run([self.pipx_bin, "uninstall-all"], check=True)
 
     def test_upgrade(self):
         self.assertNotEqual(
-            subprocess.run([self.pipx_bin, "upgrade", "cowsay"]).returncode, 0
+            subprocess.run([self.pipx_bin, "upgrade", "pycowsay"]).returncode, 0
         )
-        subprocess.run([self.pipx_bin, "install", "cowsay"], check=True)
-        subprocess.run([self.pipx_bin, "upgrade", "cowsay"], check=True)
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
+        subprocess.run([self.pipx_bin, "upgrade", "pycowsay"], check=True)
 
     def test_run_downloads_from_internet(self):
         subprocess.run(

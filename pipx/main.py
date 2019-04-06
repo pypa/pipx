@@ -22,7 +22,7 @@ from .constants import (
 from .util import PipxError, mkdir
 
 
-__version__ = "0.12.3.3"
+__version__ = "0.13.0.0"
 
 
 def print_version() -> None:
@@ -191,7 +191,11 @@ def run_pipx_command(args, binary_args: List[str]):
         commands.uninstall_all(PIPX_LOCAL_VENVS, LOCAL_BIN_DIR, verbose)
     elif args.command == "upgrade-all":
         commands.upgrade_all(
-            PIPX_LOCAL_VENVS, pip_args, verbose, include_deps=args.include_deps
+            PIPX_LOCAL_VENVS,
+            pip_args,
+            verbose,
+            include_deps=args.include_deps,
+            skip=args.skip,
         )
     elif args.command == "reinstall-all":
         commands.reinstall_all(
@@ -202,7 +206,12 @@ def run_pipx_command(args, binary_args: List[str]):
             venv_args,
             verbose,
             args.include_deps,
+            skip=args.skip,
         )
+    elif args.command == "runpip":
+        if not venv_dir:
+            raise PipxError("developer error: venv dir is not defined")
+        commands.run_pip(package, venv_dir, binary_args, args.verbose)
     elif args.command == "ensurepath":
         paths = os.getenv("PATH", "").split(os.pathsep)
         path_good = str(LOCAL_BIN_DIR) in paths
@@ -317,8 +326,10 @@ def get_command_parser():
         "Runs `pip install -U <pkgname>` for each package.",
         description="Upgrades all packages within their virtual environments by running 'pip install --upgrade PACKAGE'",
     )
+
     add_include_deps(p)
     add_pip_venv_args(p)
+    p.add_argument("--skip", nargs="+", help="skip these packages")
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
@@ -357,6 +368,7 @@ def get_command_parser():
     p.add_argument("python")
     add_include_deps(p)
     add_pip_venv_args(p)
+    p.add_argument("--skip", nargs="+", help="skip these packages")
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
@@ -417,6 +429,18 @@ def get_command_parser():
     add_pip_venv_args(p)
 
     p = subparsers.add_parser(
+        "runpip",
+        help="Run pip in an existing pipx-managed Virtual Environment",
+        description="Run pip in an existing pipx-managed Virtual Environment",
+    )
+    p.add_argument(
+        "package",
+        help="Name of the existing pipx-managed Virtual Environment to run pip in",
+    )
+    p.add_argument("pipargs", nargs="*", help="Arguments to forward to pip command")
+    p.add_argument("--verbose", action="store_true")
+
+    p = subparsers.add_parser(
         "ensurepath",
         help=(
             f"Ensure {str(LOCAL_BIN_DIR)} is on your PATH environment variable by modifying your shell's configuration file."
@@ -471,7 +495,12 @@ def split_run_argv(argv: List[str]) -> Tuple[List[str], List[str]]:
     """
     args_to_parse = argv[1:]
     binary_args: List[str] = []
+
     if len(argv) >= 2:
+        if argv[1] == "runpip":
+            package_index = argv.index("runpip") + 1
+            return argv[1 : package_index + 1], argv[package_index + 1 :]
+
         if argv[1] == "run":
             start = 2
             for i, arg in enumerate(argv[start:]):

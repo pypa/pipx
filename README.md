@@ -14,7 +14,7 @@
 <a href="https://travis-ci.org/pipxproject/pipx"><img src="https://travis-ci.org/pipxproject/pipx.svg?branch=master" /></a>
 
 <a href="https://pypi.python.org/pypi/pipx/">
-<img src="https://img.shields.io/badge/pypi-0.12.3.3-blue.svg" /></a>
+<img src="https://img.shields.io/badge/pypi-0.13.0.0-blue.svg" /></a>
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
@@ -23,13 +23,19 @@
 *pipx uses the word "binary" to describe a CLI application that can be run directly from the command line. These files are located in the `bin` directory of a Python installation, alongside other executables. Despite the name, they do not necessarily contain binary data.*
 
 ## Overview
-* Safely install packages to isolated virtual environments, while globally exposing their CLI applications so you can run them from anywhere
-* Easily list, upgrade, and uninstall packages that were installed with pipx
-* Run the latest version of a CLI application from a package in a temporary virtual environment, leaving your system untouched after it finishes
-* Run binaries from the `__pypackages__` directory per PEP 582 as companion tool to [pythonloc](https://github.com/cs01/pythonloc)
-* Runs with regular user permissions, never calling `sudo pip install ...` (you aren't doing that, are you? 😄).
+Python and PyPI allow developers to distribute code with "entry points". These entry points let users call into python code from the command line, effectively acting like standalone applications.
 
-pipx combines the features of JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b) - which ships with npm - and Python's [pipsi](https://github.com/mitsuhiko/pipsi). pipx does not ship with pip but it is an important part of bootstrapping your system.
+`pipx` is a tool to install and run any of the thousands of Python applications available on PyPI in a safe, convenient, and reliable way. Not all Python packages have entry points, but many do.
+
+`pipx` lets you:
+* Safely install packages to isolated virtual environments, while globally exposing their CLI entry points so you can run them from anywhere (see the `install` command)
+* Easily list, upgrade, and uninstall packages that were installed with pipx
+* Run the latest version of a CLI application in a temporary environment (see the `run` command)
+* Run binaries from the `__pypackages__` directory per PEP 582 as companion tool to [pythonloc](https://github.com/cs01/pythonloc)
+
+Best of all, pipx runs with regular user permissions, never calling `sudo pip install` (you aren't doing that, are you? 😄).
+
+pipx is similar to JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b) - which ships with npm, but also allows you to install instead of just run. pipx does not ship with pip but installing it is often an important part of bootstrapping your system.
 
 ### Safely installing to isolated environments
 You can globally install a CLI application by running
@@ -37,23 +43,23 @@ You can globally install a CLI application by running
 pipx install PACKAGE
 ```
 
-This automatically creates a virtual environment, installs the package, and adds the package's CLI entry points to a location on your `PATH`. For example, `pipx install cowsay` makes the `cowsay` command available globally, but sandboxes the cowsay package in its own virtual environment. **pipx never needs to run as sudo to do this.**
+This automatically creates a virtual environment, installs the package, and adds the package's CLI entry points to a location on your `PATH`. For example, `pipx install pycowsay` makes the `pycowsay` command available globally, but sandboxes the pycowsay package in its own virtual environment. **pipx never needs to run as sudo to do this.**
 
 Example:
 ```
->> pipx install cowsay
-  installed package cowsay 2.0, Python 3.6.7
+>> pipx install pycowsay
+  installed package pycowsay 2.0, Python 3.6.7
   These binaries are now globally available
-    - cowsay
+    - pycowsay
 done! ✨ 🌟 ✨
 
 >> pipx list
 venvs are in /home/user/.local/pipx/venvs
 binaries are exposed on your $PATH at /home/user/.local/bin
-   package cowsay 2.0, Python 3.6.7
-    - cowsay
+   package pycowsay 2.0, Python 3.6.7
+    - pycowsay
 
->> cowsay moooo
+>> pycowsay moooo
   _____
 < moooo >
   =====
@@ -73,7 +79,7 @@ pipx run BINARY [ARGS...]
 This will install the package in an isolated, temporary directory and invoke the binary. Try it!
 
 ```
-pipx run cowsay moo
+pipx run pycowsay moo
 ```
 
 Notice that you **don't need to execute any install commands to run the binary**.
@@ -116,12 +122,20 @@ python3 -m pip install --user pipx
 pipx ensurepath
 ```
 
+### Using Development Versions
+New versions of pipx are published as beta or release candidates. These versions look something like `0.13.0b1`, where `b1` signifies the first beta release of version 0.13. These releases can be tested with
+```
+pip install --user pipx --upgrade --dev
+```
+Development occurs on the `dev` branch of this repository. If there is no such branch, that means there is no work currently in development for a new version.
+
+
 ## Usage
 
 ```
 pipx --help
 usage: pipx [-h] [--version]
-            {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,ensurepath}
+            {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip,ensurepath}
             ...
 
 Install and execute binaries from Python packages.
@@ -142,7 +156,7 @@ optional arguments:
 subcommands:
   Get help for commands with pipx COMMAND --help
 
-  {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,ensurepath}
+  {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip,ensurepath}
     install             Install a package
     inject              Install packages into an existing Virtual Environment
     upgrade             Upgrade a package
@@ -157,6 +171,8 @@ subcommands:
                         temporary directory, then run a binary from it, or
                         invoke binary from local `__pypackages__` directory
                         (expiremental, see https://github.com/cs01/pythonloc)
+    runpip              Run pip in an existing pipx-managed Virtual
+                        Environment
     ensurepath          Ensure /home/$USER/.local/bin is on your PATH
                         environment variable by modifying your shell's
                         configuration file.
@@ -228,9 +244,9 @@ optional arguments:
 
 #### `pipx install` examples
 ```
-pipx install cowsay
-pipx install --python python3.6 cowsay
-pipx install --python python3.7 cowsay
+pipx install pycowsay
+pipx install --python python3.6 pycowsay
+pipx install --python python3.7 pycowsay
 pipx install --spec git+https://github.com/ambv/black black
 pipx --spec git+https://github.com/ambv/black.git@branch-name black
 pipx --spec git+https://github.com/ambv/black.git@git-hash black
@@ -301,11 +317,11 @@ pipx --python 3.7 --spec PACKAGE=1.7.3 run BINARY
 pipx --spec git+https://url.git run BINARY  # latest version on master is run
 pipx --spec git+https://url.git@branch run BINARY
 pipx --spec git+https://url.git@hash run BINARY
-pipx run cowsay moo
+pipx run pycowsay moo
 pipx --version  # prints pipx version
-pipx run cowsay  --version  # prints cowsay version
-pipx --python pythonX cowsay
-pipx --spec cowsay==2.0 cowsay --version
+pipx run pycowsay  --version  # prints pycowsay version
+pipx --python pythonX pycowsay
+pipx --spec pycowsay==2.0 pycowsay --version
 pipx --spec git+https://github.com/ambv/black.git black
 pipx --spec git+https://github.com/ambv/black.git@branch-name black
 pipx --spec git+https://github.com/ambv/black.git@git-hash black
@@ -355,7 +371,8 @@ optional arguments:
 pipx upgrade-all --help
 usage: pipx upgrade-all [-h] [--include-deps] [--system-site-packages]
                         [--index-url INDEX_URL] [--editable]
-                        [--pip-args PIP_ARGS] [--verbose]
+                        [--pip-args PIP_ARGS] [--skip SKIP [SKIP ...]]
+                        [--verbose]
 
 Upgrades all packages within their virtual environments by running 'pip
 install --upgrade PACKAGE'
@@ -371,6 +388,8 @@ optional arguments:
   --editable, -e        Install a project in editable mode
   --pip-args PIP_ARGS   Arbitrary pip arguments to pass directly to pip
                         install/upgrade commands
+  --skip SKIP [SKIP ...]
+                        skip these packages
   --verbose
 
 ```
@@ -460,7 +479,8 @@ optional arguments:
 pipx reinstall-all --help
 usage: pipx reinstall-all [-h] [--include-deps] [--system-site-packages]
                           [--index-url INDEX_URL] [--editable]
-                          [--pip-args PIP_ARGS] [--verbose]
+                          [--pip-args PIP_ARGS] [--skip SKIP [SKIP ...]]
+                          [--verbose]
                           python
 
 Reinstalls all packages using a different version of Python.
@@ -486,6 +506,8 @@ optional arguments:
   --editable, -e        Install a project in editable mode
   --pip-args PIP_ARGS   Arbitrary pip arguments to pass directly to pip
                         install/upgrade commands
+  --skip SKIP [SKIP ...]
+                        skip these packages
   --verbose
 
 ```
@@ -517,6 +539,27 @@ binaries are exposed on your $PATH at /Users/user/.local/bin
    package pipx 0.10.0, Python 3.7.0
     - pipx
 ```
+
+### pipx runpip
+
+```
+pipx runpip --help
+usage: pipx runpip [-h] [--verbose] package [pipargs [pipargs ...]]
+
+Run pip in an existing pipx-managed Virtual Environment
+
+positional arguments:
+  package     Name of the existing pipx-managed Virtual Environment to run pip
+              in
+  pipargs     Arguments to forward to pip command
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --verbose
+
+```
+
+
 
 ### pipx ensurepath
 
@@ -664,7 +707,7 @@ rm -r ~/.local/pipsi
 There will still be files in `~/.local/bin` that point to `~/.local/pipsi/venvs`. If you reinstall the same packages with `pipx`, the files will be overwritten with valid files that point to the new pipx directory in `~/.local/pipx/venvs`. You may also want to remove files in `~/.local/bin`, but be sure the files you delete there were created by pipsi.
 
 ## How does this compare with `pip-run`?
-[run with this](https://github.com/jaraco/pip-run) is focused on running **arbitrary Python code in ephemeral environments** while pipx is focused on running **Python binaries in ephemeral and non-ephemeral environments**.
+[pip-run](https://github.com/jaraco/pip-run) is focused on running **arbitrary Python code in ephemeral environments** while pipx is focused on running **Python binaries in ephemeral and non-ephemeral environments**.
 
 For example these two commands both install poetry to an ephemeral environment and invoke poetry with `--help`.
 ```
@@ -677,11 +720,8 @@ pip-run poetry -- -m poetry --help
 ## Credits
 pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https://github.com/zkat/npx).
 
-## Authors
-pipx was created and is maintained by [Chad Smith](https://github.com/cs01/).
-
-Contributions and feedback from
-* [Bjorn Neergaard](https://github.com/neersighted)
-* [Diego Fernandez](https://github.com/aiguofer)
-* [Shawn Hensley](https://github.com/sahensley)
-* [tkossak](https://github.com/tkossak)
+* [Chad Smith](https://github.com/cs01/), creator and maintainer
+* [Bjorn Neergaard](https://github.com/neersighted), contributor
+* [Diego Fernandez](https://github.com/aiguofer), contributor
+* [tkossak](https://github.com/tkossak), contributor
+* [Shawn Hensley](https://github.com/sahensley), contributor

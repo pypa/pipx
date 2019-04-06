@@ -246,13 +246,20 @@ def upgrade(
 
 
 def upgrade_all(
-    pipx_local_venvs: Path, pip_args: List[str], verbose: bool, *, include_deps: bool
+    pipx_local_venvs: Path,
+    pip_args: List[str],
+    verbose: bool,
+    *,
+    include_deps: bool,
+    skip: List[str],
 ):
     packages_upgraded = 0
     num_packages = 0
     for venv_dir in pipx_local_venvs.iterdir():
         num_packages += 1
         package = venv_dir.name
+        if package in skip:
+            continue
         if package == "pipx":
             package_or_url = PIPX_PACKAGE_NAME
         else:
@@ -298,10 +305,12 @@ def install(
         if force:
             print(f"Installing to existing directory {str(venv_dir)!r}")
         else:
-            raise PipxError(
-                f"Not installing to existing directory {str(venv_dir)!r}. "
+            print(
+                f"{package!r} already seems to be installed. "
+                "Not modifying existing installation in {str(venv_dir)!r}. "
                 "Pass '--force' to force installation"
             )
+            return
 
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv(venv_args, pip_args)
@@ -442,9 +451,13 @@ def reinstall_all(
     venv_args: List[str],
     verbose: bool,
     include_deps: bool,
+    *,
+    skip: List[str],
 ):
     for venv_dir in pipx_local_venvs.iterdir():
         package = venv_dir.name
+        if package in skip:
+            continue
         uninstall(venv_dir, package, local_bin_dir, verbose)
 
         package_or_url = package
@@ -608,6 +621,16 @@ def _get_exposed_binary_paths_for_package(
         except FileNotFoundError:
             pass
     return bin_symlinks
+
+
+def run_pip(package: str, venv_dir: Path, pip_args: List[str], verbose: bool):
+    venv = Venv(venv_dir, verbose=verbose)
+    if not venv.python_path.exists():
+        raise PipxError(
+            f"venv for {package!r} was not found. Was {package!r} installed with pipx?"
+        )
+    venv.verbose = True
+    venv._run_pip(pip_args)
 
 
 def ensurepath(bin_dir: Path):
