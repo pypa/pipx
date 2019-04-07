@@ -281,24 +281,20 @@ When running a binary (`pipx run BINARY`), pipx will
 These are all things you can do yourself, but pipx automates them for you. If you are curious as to what pipx is doing behind the scenes, you can always pass the `--verbose` flag to see every single command and argument being run.
 
 ## Contributing
-To develop `pipx` first clone the repository, then create and activate a virtual environment.
+To develop `pipx` first clone the repository, have tox installed somewhere, then run tox.
 ```
-python3 -m venv venv
-source venv/bin/activate
+tox --notest
 ```
-Next install pipx in "editable mode".
+
+Tox creates an environment in .tox/python. You may activate it thus.
 ```
-pip install -e .
+source .tox/python/bin/activate
 ```
 Now make your changes and run `pipx` as you normally would. Your changes will be used as soon as they are saved.
 
-Make sure your changes pass tests by installing development dependencies
+Make sure your changes pass tests by running tox
 ```
-pip install -e .[dev]
-```
-then running tests
-```
-python setup.py test
+tox
 ```
 If you added or modified any command line argument parsers, be sure to regenerate the README.md.
 ```
