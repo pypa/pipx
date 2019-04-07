@@ -112,14 +112,14 @@ pipx works on macOS, linux, and Windows.
 ## Install pipx
 ```
 pip install --user pipx
-pipx ensurepath
+userpath append ~/.local/bin
 ```
 
 to be sure you are using python3 you can run
 
 ```
 python3 -m pip install --user pipx
-pipx ensurepath
+userpath append ~/.local/bin
 ```
 
 ### Using Development Versions
@@ -135,7 +135,7 @@ Development occurs on the `dev` branch of this repository. If there is no such b
 ```
 pipx --help
 usage: pipx [-h] [--version]
-            {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip,ensurepath}
+            {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip}
             ...
 
 Install and execute binaries from Python packages.
@@ -156,7 +156,7 @@ optional arguments:
 subcommands:
   Get help for commands with pipx COMMAND --help
 
-  {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip,ensurepath}
+  {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip}
     install             Install a package
     inject              Install packages into an existing Virtual Environment
     upgrade             Upgrade a package
@@ -173,9 +173,6 @@ subcommands:
                         (expiremental, see https://github.com/cs01/pythonloc)
     runpip              Run pip in an existing pipx-managed Virtual
                         Environment
-    ensurepath          Ensure ~/.local/bin is on your PATH
-                        environment variable by modifying your shell's
-                        configuration file.
 
 ```
 
@@ -561,36 +558,6 @@ optional arguments:
 
 
 
-### pipx ensurepath
-
-```
-pipx ensurepath --help
-usage: pipx ensurepath [-h] [--force]
-
-Ensure ~/.local/bin is on your PATH environment variable by
-modifying your shell's configuration file. This only needs to be run once
-after initial installation if ~/.local/bin is not already on your
-PATH.
-
-optional arguments:
-  -h, --help  show this help message and exit
-  --force     Add text to your shell's config file even if it looks like your
-              PATH already has ~/.local/bin
-
-```
-
-
-#### `pipx ensurepath` example
-```
-> pipx ensurepath
-Added /home/user/.local/bin to the PATH environment variable in /home/user/.bashrc
-
-Open a new terminal to use pipx ✨ 🌟 ✨
-```
-```
-> pipx ensurepath
-Your PATH looks like it already is set up for pipx. Pass `--force` to modify the PATH.
-```
 ## Programs to try with pipx
 Here are some programs you can try out. If you've never used the program before, make sure you add the `--help` flag so it doesn't do something you don't expect. If you decide you want to install, you can run `pipx install PACKAGE` instead.
 ```
@@ -681,7 +648,7 @@ it is pretty easy to do it from the command-line:
 ```bash
 # install pipx with the recommended method
 pip install --user pipx
-pipx ensurepath
+userpath append ~/.local/bin
 # you may have to open a new terminal here for pipx to be on your PATH
 
 # migrate from pipsi to pipx
