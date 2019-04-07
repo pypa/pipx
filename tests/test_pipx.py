@@ -16,9 +16,8 @@ from pipx.util import WINDOWS
 PIPX_PATH = CURDIR = Path(__file__).parent.parent
 
 
-assert not hasattr(sys, 'real_prefix'), "Tests cannot run under virtualenv"
-assert getattr(sys, 'base_prefix', sys.prefix) != sys.prefix, \
-    "Tests require venv"
+assert not hasattr(sys, "real_prefix"), "Tests cannot run under virtualenv"
+assert getattr(sys, "base_prefix", sys.prefix) != sys.prefix, "Tests require venv"
 
 
 class PipxStaticTests(unittest.TestCase):
