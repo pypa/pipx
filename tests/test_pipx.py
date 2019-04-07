@@ -235,6 +235,20 @@ class TestPipxCommands(unittest.TestCase):
         subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
         subprocess.run([self.pipx_bin, "upgrade", "pycowsay"], check=True)
 
+    def test_upgrade_all(self):
+        self.assertNotEqual(
+            subprocess.run([self.pipx_bin, "upgrade", "pycowsay"]).returncode, 0
+        )
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
+        subprocess.run([self.pipx_bin, "upgrade-all"], check=True)
+
+    def test_reinstall_all(self):
+        self.assertNotEqual(
+            subprocess.run([self.pipx_bin, "upgrade", "pycowsay"]).returncode, 0
+        )
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
+        subprocess.run([self.pipx_bin, "reinstall-all", "python3"], check=True)
+
     def test_run_downloads_from_internet(self):
         subprocess.run(
             [

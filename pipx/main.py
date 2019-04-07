@@ -22,7 +22,7 @@ from .constants import (
 from .util import PipxError, mkdir
 
 
-__version__ = "0.13.0.0"
+__version__ = "0.13.0.1"
 
 
 def print_version() -> None:
@@ -329,7 +329,7 @@ def get_command_parser():
 
     add_include_deps(p)
     add_pip_venv_args(p)
-    p.add_argument("--skip", nargs="+", help="skip these packages")
+    p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
@@ -368,7 +368,7 @@ def get_command_parser():
     p.add_argument("python")
     add_include_deps(p)
     add_pip_venv_args(p)
-    p.add_argument("--skip", nargs="+", help="skip these packages")
+    p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
