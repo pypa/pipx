@@ -16,8 +16,6 @@ from pathlib import Path
 from shutil import which
 from typing import List
 
-import userpath
-
 from .animate import animate
 from .colors import bold, red
 from .constants import (
@@ -370,7 +368,8 @@ def _warn_if_not_on_path(local_bin_dir: Path, binary: str):
         logging.warning(
             f"{hazard}  Note: {str(local_bin_dir)!r} is not on your PATH environment "
             "variable. These binaries will not be globally accessible until "
-            "your PATH is updated. Run `pipx ensurepath` to automatically add it, "
+            "your PATH is updated. Run `userpath append ~/.local/bin` to "
+            "automatically add it, "
             "or manually modify your PATH in your shell's config file (i.e. ~/.bashrc)."
         )
 
@@ -632,7 +631,3 @@ def run_pip(package: str, venv_dir: Path, pip_args: List[str], verbose: bool):
         )
     venv.verbose = True
     venv._run_pip(pip_args)
-
-
-def ensurepath(bin_dir: Path):
-    userpath.in_new_path(bin_dir) or userpath.append(bin_dir)

@@ -32,7 +32,6 @@ template = env.get_template("readme.md")
 
 cmd_help = {
     "usage": get_help(None),
-    "ensurepath": get_help("ensurepath"),
     "runpip": get_help("runpip"),
     "install": get_help("install"),
     "upgrade": get_help("upgrade"),
