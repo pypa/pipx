@@ -143,8 +143,8 @@ Install and execute binaries from Python packages.
 Binaries can either be installed globally into isolated Virtual Environments
 or run directly in an temporary Virtual Environment.
 
-Virtual Envrionment location is /home/$USER/.local/pipx/venvs.
-Symlinks to binaries are placed in /home/$USER/.local/bin.
+Virtual Envrionment location is /Users/$USER/.local/pipx/venvs.
+Symlinks to binaries are placed in /Users/$USER/.local/bin.
 These locations can be overridden with the environment variables
 PIPX_HOME and PIPX_BIN_DIR, respectively. (Virtual Environments will
 be installed to $PIPX_HOME/venvs)
@@ -173,7 +173,7 @@ subcommands:
                         (expiremental, see https://github.com/cs01/pythonloc)
     runpip              Run pip in an existing pipx-managed Virtual
                         Environment
-    ensurepath          Ensure /home/$USER/.local/bin is on your PATH
+    ensurepath          Ensure /Users/$USER/.local/bin is on your PATH
                         environment variable by modifying your shell's
                         configuration file.
 
@@ -207,11 +207,11 @@ pipx install --spec TAR_GZ_FILE PACKAGE
 
 The argument to `--spec` is passed directly to `pip install`.
 
-The default virtual environment location is /home/$USER/.local/pipx
+The default virtual environment location is /Users/$USER/.local/pipx
 and can be overridden by setting the environment variable `PIPX_HOME`
  (Virtual Environments will be installed to `$PIPX_HOME/venvs`).
 
-The default binary location is /home/$USER/.local/bin and can be
+The default binary location is /Users/$USER/.local/bin and can be
 overridden by setting the environment variable `PIPX_BIN_DIR`.
 
 positional arguments:
@@ -567,15 +567,15 @@ optional arguments:
 pipx ensurepath --help
 usage: pipx ensurepath [-h] [--force]
 
-Ensure /home/$USER/.local/bin is on your PATH environment variable by
+Ensure /Users/$USER/.local/bin is on your PATH environment variable by
 modifying your shell's configuration file. This only needs to be run once
-after initial installation if /home/$USER/.local/bin is not already on your
+after initial installation if /Users/$USER/.local/bin is not already on your
 PATH.
 
 optional arguments:
   -h, --help  show this help message and exit
   --force     Add text to your shell's config file even if it looks like your
-              PATH already has /home/$USER/.local/bin
+              PATH already has /Users/$USER/.local/bin
 
 ```
 
@@ -634,31 +634,27 @@ When running a binary (`pipx run BINARY`), pipx will
 These are all things you can do yourself, but pipx automates them for you. If you are curious as to what pipx is doing behind the scenes, you can always pass the `--verbose` flag to see every single command and argument being run.
 
 ## Contributing
-To develop `pipx` first clone the repository, then create and activate a virtual environment.
+To develop `pipx` first clone the repository, have tox installed somewhere, then run tox.
 ```
-python3 -m venv venv
-source venv/bin/activate
+tox --notest
 ```
-Next install pipx in "editable mode".
+
+Tox creates an environment in .tox/python. You may activate it thus.
 ```
-pip install -e .
+source .tox/python/bin/activate
 ```
 Now make your changes and run `pipx` as you normally would. Your changes will be used as soon as they are saved.
 
-Make sure your changes pass tests by installing development dependencies
+Make sure your changes pass tests by running tox
 ```
-pip install -e .[dev]
-```
-then running tests
-```
-python setup.py test
+tox
 ```
 If you added or modified any command line argument parsers, be sure to regenerate the README.md.
 ```
-make docs
+tox -e docs
 ```
 
-When finished, you can exit the virtual environment by running `deactivate` and remove the virtual environment with `rm -r venv`.
+When finished, you can exit the virtual environment by running `deactivate` and remove the virtual environment with `rm -r .tox`.
 
 ## How does this compare to pipsi?
 * pipx is under active development. pipsi is no longer maintained.
