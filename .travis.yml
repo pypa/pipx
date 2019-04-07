@@ -4,12 +4,9 @@ python:
   - "3.6"
   # - "3.7"
 install:
-  - pip install .[dev]
+  - pip install tox
 script:
-  - python -m unittest tests.test_pipx.PipxStaticTests.test_static
-  # TODO figure out how to make this run on travis
-  # (https://github.com/pipxproject/pipx/issues/25)
-  # - python setup.py test
+  tox
 
 cache:
   pip: true
