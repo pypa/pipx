@@ -1,3 +1,6 @@
+0.13.0.1
+* Fix upgrade-all and reinstall-all regression
+
 0.13.0.0
 * Add `runpip` command to run arbitrary pip commands in pipx-managed virtual environments
 * Do not raise error when running `pipx install PACKAGE` and the package has already been installed by pipx (#125). This is the cause of the major version change from 0.12 to 0.13.
