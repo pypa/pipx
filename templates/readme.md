@@ -298,10 +298,10 @@ tox
 ```
 If you added or modified any command line argument parsers, be sure to regenerate the README.md.
 ```
-make docs
+tox -e docs
 ```
 
-When finished, you can exit the virtual environment by running `deactivate` and remove the virtual environment with `rm -r venv`.
+When finished, you can exit the virtual environment by running `deactivate` and remove the virtual environment with `rm -r .tox`.
 
 ## How does this compare to pipsi?
 * pipx is under active development. pipsi is no longer maintained.
