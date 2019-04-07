@@ -3,14 +3,9 @@
 
 import subprocess
 from typing import Optional
-import getpass
 from pipx.main import __version__
 import os
 from jinja2 import Environment, FileSystemLoader
-
-
-USER = getpass.getuser()
-HOME = os.environ.get("HOME", f"/home/{USER}")
 
 
 def get_help(pipxcmd: Optional[str]) -> str:
@@ -22,7 +17,7 @@ def get_help(pipxcmd: Optional[str]) -> str:
     helptext = (
         subprocess.run(cmd, stdout=subprocess.PIPE, check=True)
         .stdout.decode()
-        .replace(HOME, "/home/USER")
+        .replace(os.path.expanduser('~'), "~")
     )
     return f"""
 ```
