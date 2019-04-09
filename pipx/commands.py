@@ -3,7 +3,6 @@
 
 import datetime
 import hashlib
-import http.client
 import logging
 import multiprocessing
 import os
@@ -13,6 +12,7 @@ import subprocess
 import textwrap
 import time
 import urllib.parse
+import urllib.request
 from pathlib import Path
 from shutil import which
 from typing import List, Optional
@@ -180,14 +180,7 @@ def _remove_all_expired_venvs():
 
 
 def _http_get_request(url: str):
-    parts = urllib.parse.urlparse(url)
-    conn = http.client.HTTPSConnection(parts.hostname)
-    conn.request("GET", parts.path)
-    response = conn.getresponse()
-    if response.status != 200:
-        raise PipxError(response.reason)
-
-    return response.read().decode("utf-8")
+    return urllib.request.urlopen(url).read().decode("utf-8")
 
 
 def upgrade(
