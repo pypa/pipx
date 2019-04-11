@@ -143,7 +143,7 @@ Install and execute binaries from Python packages.
 Binaries can either be installed globally into isolated Virtual Environments
 or run directly in an temporary Virtual Environment.
 
-Virtual Envrionment location is ~/.local/pipx/venvs.
+Virtual Environment location is ~/.local/pipx/venvs.
 Symlinks to binaries are placed in ~/.local/bin.
 These locations can be overridden with the environment variables
 PIPX_HOME and PIPX_BIN_DIR, respectively. (Virtual Environments will
@@ -445,7 +445,7 @@ After running the above commands, you will be able to import and use the `reques
 pipx uninstall --help
 usage: pipx uninstall [-h] [--verbose] package
 
-Uninstalls a pipx-managed Virtual Envrionment by deleting it and any files
+Uninstalls a pipx-managed Virtual Environment by deleting it and any files
 that point to its binaries.
 
 positional arguments:
