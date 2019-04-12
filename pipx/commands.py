@@ -180,7 +180,12 @@ def _remove_all_expired_venvs():
 
 
 def _http_get_request(url: str):
-    return urllib.request.urlopen(url).read().decode("utf-8")
+    try:
+        res = urllib.request.urlopen(url)
+        charset = res.headers.get_content_charset() or "utf-8"
+        return res.read().decode(charset)
+    except Exception as e:
+        raise PipxError(str(e))
 
 
 def upgrade(
