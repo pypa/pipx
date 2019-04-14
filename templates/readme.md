@@ -286,11 +286,11 @@ To develop `pipx` first clone the repository, have tox with tox-venv installed s
 tox --notest
 ```
 
-Tox creates an environment in .tox/python. You may activate it thus.
+Tox creates environments in `.tox/` (`.tox/python` is the default). Make any changes and then invoke `pipx` thus:
 ```
-source .tox/python/bin/activate
+.tox/python/bin/pipx ...
 ```
-Now make your changes and run `pipx` as you normally would. Your changes will be used as soon as they are saved.
+Any changes you make will be reflected in the behavior immediately.
 
 Make sure your changes pass tests by running tox
 ```
@@ -301,7 +301,7 @@ If you added or modified any command line argument parsers, be sure to regenerat
 tox -e docs
 ```
 
-When finished, you can exit the virtual environment by running `deactivate` and remove the virtual environment with `rm -r .tox`.
+When finished, you may remove the virtual environment with `rm -r .tox`.
 
 ## How does this compare to pipsi?
 * pipx is under active development. pipsi is no longer maintained.
