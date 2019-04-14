@@ -300,6 +300,10 @@ The README is rendered from the templates/readme.md and from the usage output fr
 ```
 tox -e docs
 ```
+Then commit the changes:
+```
+git commit -a
+```
 
 When finished, you may remove the virtual environment with `rm -r .tox`.
 
