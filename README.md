@@ -649,7 +649,7 @@ Make sure your changes pass tests by running tox
 ```
 tox
 ```
-If you added or modified any command line argument parsers, be sure to regenerate the README.md.
+The README is rendered from the templates/readme.md and from the usage output from the pipx command. If you modified the readme template or added or modified any command line argument parsers, be sure to regenerate README.md.
 ```
 tox -e docs
 ```
