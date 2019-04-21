@@ -23,7 +23,7 @@
 *pipx uses the word "binary" to describe a CLI application that can be run directly from the command line. These files are located in the `bin` directory of a Python installation, alongside other executables. Despite the name, they do not necessarily contain binary data.*
 
 ## Overview
-Python and PyPI allow developers to distribute code with "console scripts". These scripts let users call into python code from the command line, effectively acting like standalone applications.
+Python and PyPI allow developers to distribute code with "console scripts". These scripts let users call into Python code from the command line, effectively acting like standalone applications.
 
 `pipx` is a tool to install and run any of the thousands of Python applications available on PyPI in a safe, convenient, and reliable way. Not all Python packages have entry points, but many do.
 
@@ -31,7 +31,7 @@ Python and PyPI allow developers to distribute code with "console scripts". Thes
 * Safely install packages to isolated virtual environments, while globally exposing their CLI entry points so you can run them from anywhere (see the `install` command)
 * Easily list, upgrade, and uninstall packages that were installed with pipx
 * Run the latest version of a CLI application in a temporary environment (see the `run` command)
-* Run binaries from the `__pypackages__` directory per PEP 582 as companion tool to [pythonloc](https://github.com/cs01/pythonloc)
+* Run binaries from the `__pypackages__` directory per PEP 582 as a companion tool to [pythonloc](https://github.com/cs01/pythonloc)
 
 Best of all, pipx runs with regular user permissions, never calling `sudo pip install` (you aren't doing that, are you? 😄).
 
