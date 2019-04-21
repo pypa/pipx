@@ -283,7 +283,7 @@ These are all things you can do yourself, but pipx automates them for you. If yo
 ## Contributing
 pipx uses [tox](https://pypi.org/project/tox/) for development and continuous integration testing and automation.
 
-To develop `pipx` first clone the repository, have `tox` with `tox-venv` installed somewhere on your system, then run `tox`.
+To develop `pipx` first clone the repository, have `tox` installed somewhere on your system, then run `tox`.
 ```
 tox --notest
 ```

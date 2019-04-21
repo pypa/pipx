@@ -27,7 +27,7 @@ See Contributing for how to update this file.
 *pipx uses the word "binary" to describe a CLI application that can be run directly from the command line. These files are located in the `bin` directory of a Python installation, alongside other executables. Despite the name, they do not necessarily contain binary data.*
 
 ## Overview
-Python and PyPI allow developers to distribute code with "console script entry points". These scripts let users call into python code from the command line, effectively acting like standalone applications.
+Python and PyPI allow developers to distribute code with "console script entry points". These scripts let users call into Python code from the command line, effectively acting like standalone applications.
 
 `pipx` is a tool to install and run any of the thousands of Python applications available on PyPI in a safe, convenient, and reliable way. Not all Python packages have entry points, but many do.
 
@@ -640,7 +640,7 @@ These are all things you can do yourself, but pipx automates them for you. If yo
 ## Contributing
 pipx uses [tox](https://pypi.org/project/tox/) for development and continuous integration testing and automation.
 
-To develop `pipx` first clone the repository, have `tox` with `tox-venv` installed somewhere on your system, then run `tox`.
+To develop `pipx` first clone the repository, have `tox` installed somewhere on your system, then run `tox`.
 ```
 tox --notest
 ```
@@ -658,6 +658,10 @@ tox
 The README is rendered from the templates/readme.md and from the usage output from the pipx command. If you modified the readme template or added or modified any command line argument parsers, be sure to regenerate README.md.
 ```
 tox -e docs
+```
+Then commit the changes:
+```
+git commit -a
 ```
 
 When finished, you may remove the virtual environment with `rm -r .tox`.
