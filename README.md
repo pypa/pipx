@@ -23,7 +23,7 @@
 *pipx uses the word "binary" to describe a CLI application that can be run directly from the command line. These files are located in the `bin` directory of a Python installation, alongside other executables. Despite the name, they do not necessarily contain binary data.*
 
 ## Overview
-Python and PyPI allow developers to distribute code with "entry points". These entry points let users call into python code from the command line, effectively acting like standalone applications.
+Python and PyPI allow developers to distribute code with "console script entry points". These scripts let users call into python code from the command line, effectively acting like standalone applications.
 
 `pipx` is a tool to install and run any of the thousands of Python applications available on PyPI in a safe, convenient, and reliable way. Not all Python packages have entry points, but many do.
 
