@@ -31,7 +31,7 @@ Python and PyPI allow developers to distribute code with "console script entry p
 * Safely install packages to isolated virtual environments, while globally exposing their CLI entry points so you can run them from anywhere (see the `install` command)
 * Easily list, upgrade, and uninstall packages that were installed with pipx
 * Run the latest version of a CLI application in a temporary environment (see the `run` command)
-* Run binaries from the `__pypackages__` directory per PEP 582 as companion tool to [pythonloc](https://github.com/cs01/pythonloc)
+* Run binaries from the `__pypackages__` directory per PEP 582 as a companion tool to [pythonloc](https://github.com/cs01/pythonloc)
 
 Best of all, pipx runs with regular user permissions, never calling `sudo pip install` (you aren't doing that, are you? 😄).
 
@@ -639,7 +639,7 @@ To develop `pipx` first clone the repository, then create and activate a virtual
 python3 -m venv venv
 source venv/bin/activate
 ```
-Next install pipx in "editable mode".
+Next install pipx in 'editable mode'.
 ```
 pip install -e .
 ```
