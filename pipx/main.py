@@ -440,18 +440,7 @@ def get_command_parser():
     p.add_argument("pipargs", nargs="*", help="Arguments to forward to pip command")
     p.add_argument("--verbose", action="store_true")
 
-    p = subparsers.add_parser(
-        "ensurepath",
-        help=(
-            f"Ensure {str(LOCAL_BIN_DIR)} is on your PATH environment variable by modifying your shell's configuration file."
-        ),
-        description=(
-            f"""Ensure {str(LOCAL_BIN_DIR)} is on your PATH environment variable by
-            modifying your shell's configuration file. This only needs to be run
-            once after initial installation if {str(LOCAL_BIN_DIR)} is not already on your PATH.
-            """
-        ),
-    )
+    p = subparsers.add_parser("ensurepath")
     p.add_argument(
         "--force",
         action="store_true",
