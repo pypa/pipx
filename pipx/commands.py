@@ -307,7 +307,7 @@ def install(
         else:
             print(
                 f"{package!r} already seems to be installed. "
-                "Not modifying existing installation in {str(venv_dir)!r}. "
+                f"Not modifying existing installation in {str(venv_dir)!r}. "
                 "Pass '--force' to force installation"
             )
             return

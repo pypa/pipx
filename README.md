@@ -27,7 +27,7 @@ See Contributing for how to update this file.
 *pipx uses the word "binary" to describe a CLI application that can be run directly from the command line. These files are located in the `bin` directory of a Python installation, alongside other executables. Despite the name, they do not necessarily contain binary data.*
 
 ## Overview
-Python and PyPI allow developers to distribute code with "entry points". These entry points let users call into python code from the command line, effectively acting like standalone applications.
+Python and PyPI allow developers to distribute code with "console script entry points". These scripts let users call into python code from the command line, effectively acting like standalone applications.
 
 `pipx` is a tool to install and run any of the thousands of Python applications available on PyPI in a safe, convenient, and reliable way. Not all Python packages have entry points, but many do.
 
@@ -35,7 +35,7 @@ Python and PyPI allow developers to distribute code with "entry points". These e
 * Safely install packages to isolated virtual environments, while globally exposing their CLI entry points so you can run them from anywhere (see the `install` command)
 * Easily list, upgrade, and uninstall packages that were installed with pipx
 * Run the latest version of a CLI application in a temporary environment (see the `run` command)
-* Run binaries from the `__pypackages__` directory per PEP 582 as companion tool to [pythonloc](https://github.com/cs01/pythonloc)
+* Run binaries from the `__pypackages__` directory per PEP 582 as a companion tool to [pythonloc](https://github.com/cs01/pythonloc)
 
 Best of all, pipx runs with regular user permissions, never calling `sudo pip install` (you aren't doing that, are you? 😄).
 
@@ -147,7 +147,7 @@ Install and execute binaries from Python packages.
 Binaries can either be installed globally into isolated Virtual Environments
 or run directly in an temporary Virtual Environment.
 
-Virtual Envrionment location is ~/.local/pipx/venvs.
+Virtual Environment location is ~/.local/pipx/venvs.
 Symlinks to binaries are placed in ~/.local/bin.
 These locations can be overridden with the environment variables
 PIPX_HOME and PIPX_BIN_DIR, respectively. (Virtual Environments will
@@ -449,7 +449,7 @@ After running the above commands, you will be able to import and use the `reques
 pipx uninstall --help
 usage: pipx uninstall [-h] [--verbose] package
 
-Uninstalls a pipx-managed Virtual Envrionment by deleting it and any files
+Uninstalls a pipx-managed Virtual Environment by deleting it and any files
 that point to its binaries.
 
 positional arguments:
@@ -638,16 +638,18 @@ When running a binary (`pipx run BINARY`), pipx will
 These are all things you can do yourself, but pipx automates them for you. If you are curious as to what pipx is doing behind the scenes, you can always pass the `--verbose` flag to see every single command and argument being run.
 
 ## Contributing
-To develop `pipx` first clone the repository, have tox with tox-venv installed somewhere, then run tox.
+pipx uses [tox](https://pypi.org/project/tox/) for development and continuous integration testing and automation.
+
+To develop `pipx` first clone the repository, have `tox` with `tox-venv` installed somewhere on your system, then run `tox`.
 ```
 tox --notest
 ```
 
-Tox creates environments in `.tox/` (`.tox/python` is the default). Make any changes and then invoke `pipx` thus:
+Tox creates virtual environments in `.tox/` (`.tox/python` is the default). Make any changes and then invoke `pipx` like this:
 ```
 .tox/python/bin/pipx ...
 ```
-Any changes you make will be reflected in the behavior immediately.
+Any changes you make to pipx source code will be reflected immediately.
 
 Make sure your changes pass tests by running tox
 ```
