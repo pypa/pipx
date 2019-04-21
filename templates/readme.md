@@ -23,7 +23,7 @@
 *pipx uses the word "binary" to describe a CLI application that can be run directly from the command line. These files are located in the `bin` directory of a Python installation, alongside other executables. Despite the name, they do not necessarily contain binary data.*
 
 ## Overview
-Python and PyPI allow developers to distribute code with "entry points". These entry points let users call into python code from the command line, effectively acting like standalone applications.
+Python and PyPI allow developers to distribute code with "console script entry points". These scripts let users call into Python code from the command line, effectively acting like standalone applications.
 
 `pipx` is a tool to install and run any of the thousands of Python applications available on PyPI in a safe, convenient, and reliable way. Not all Python packages have entry points, but many do.
 
@@ -31,7 +31,7 @@ Python and PyPI allow developers to distribute code with "entry points". These e
 * Safely install packages to isolated virtual environments, while globally exposing their CLI entry points so you can run them from anywhere (see the `install` command)
 * Easily list, upgrade, and uninstall packages that were installed with pipx
 * Run the latest version of a CLI application in a temporary environment (see the `run` command)
-* Run binaries from the `__pypackages__` directory per PEP 582 as companion tool to [pythonloc](https://github.com/cs01/pythonloc)
+* Run binaries from the `__pypackages__` directory per PEP 582 as a companion tool to [pythonloc](https://github.com/cs01/pythonloc)
 
 Best of all, pipx runs with regular user permissions, never calling `sudo pip install` (you aren't doing that, are you? 😄).
 
@@ -267,31 +267,33 @@ When running a binary (`pipx run BINARY`), pipx will
 These are all things you can do yourself, but pipx automates them for you. If you are curious as to what pipx is doing behind the scenes, you can always pass the `--verbose` flag to see every single command and argument being run.
 
 ## Contributing
-To develop `pipx` first clone the repository, then create and activate a virtual environment.
-```
-python3 -m venv venv
-source venv/bin/activate
-```
-Next install pipx in "editable mode".
-```
-pip install -e .
-```
-Now make your changes and run `pipx` as you normally would. Your changes will be used as soon as they are saved.
+pipx uses [tox](https://pypi.org/project/tox/) for development and continuous integration testing and automation.
 
-Make sure your changes pass tests by installing development dependencies
+To develop `pipx` first clone the repository, have `tox` installed somewhere on your system, then run `tox`.
 ```
-pip install -e .[dev]
-```
-then running tests
-```
-python setup.py test
-```
-If you added or modified any command line argument parsers, be sure to regenerate the README.md.
-```
-make docs
+tox --notest
 ```
 
-When finished, you can exit the virtual environment by running `deactivate` and remove the virtual environment with `rm -r venv`.
+Tox creates virtual environments in `.tox/` (`.tox/python` is the default). Make any changes and then invoke `pipx` like this:
+```
+.tox/python/bin/pipx ...
+```
+Any changes you make to pipx source code will be reflected immediately.
+
+Make sure your changes pass tests by running tox
+```
+tox
+```
+The README is rendered from the templates/readme.md and from the usage output from the pipx command. If you modified the readme template or added or modified any command line argument parsers, be sure to regenerate README.md.
+```
+tox -e docs
+```
+Then commit the changes:
+```
+git commit -a
+```
+
+When finished, you may remove the virtual environment with `rm -r .tox`.
 
 ## How does this compare to pipsi?
 * pipx is under active development. pipsi is no longer maintained.

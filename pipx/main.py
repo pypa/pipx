@@ -42,7 +42,7 @@ Install and execute binaries from Python packages.
 Binaries can either be installed globally into isolated Virtual Environments
 or run directly in an temporary Virtual Environment.
 
-Virtual Envrionment location is {str(PIPX_LOCAL_VENVS)}.
+Virtual Environment location is {str(PIPX_LOCAL_VENVS)}.
 Symlinks to binaries are placed in {str(LOCAL_BIN_DIR)}.
 These locations can be overridden with the environment variables
 PIPX_HOME and PIPX_BIN_DIR, respectively. (Virtual Environments will
@@ -335,7 +335,7 @@ def get_command_parser():
     p = subparsers.add_parser(
         "uninstall",
         help="Uninstall a package",
-        description="Uninstalls a pipx-managed Virtual Envrionment by deleting it and any files that point to its binaries.",
+        description="Uninstalls a pipx-managed Virtual Environment by deleting it and any files that point to its binaries.",
     )
     p.add_argument("package")
     p.add_argument("--verbose", action="store_true")

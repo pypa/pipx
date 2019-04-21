@@ -3,7 +3,6 @@
 
 import datetime
 import hashlib
-import http.client
 import logging
 import multiprocessing
 import os
@@ -14,6 +13,7 @@ import textwrap
 import time
 import sys
 import urllib.parse
+import urllib.request
 from pathlib import Path
 from shutil import which
 from typing import List, Optional
@@ -181,14 +181,12 @@ def _remove_all_expired_venvs():
 
 
 def _http_get_request(url: str):
-    parts = urllib.parse.urlparse(url)
-    conn = http.client.HTTPSConnection(parts.hostname)
-    conn.request("GET", parts.path)
-    response = conn.getresponse()
-    if response.status != 200:
-        raise PipxError(response.reason)
-
-    return response.read().decode("utf-8")
+    try:
+        res = urllib.request.urlopen(url)
+        charset = res.headers.get_content_charset() or "utf-8"  # type: ignore
+        return res.read().decode(charset)
+    except Exception as e:
+        raise PipxError(str(e))
 
 
 def upgrade(
@@ -308,7 +306,7 @@ def install(
         else:
             print(
                 f"{package!r} already seems to be installed. "
-                "Not modifying existing installation in {str(venv_dir)!r}. "
+                f"Not modifying existing installation in {str(venv_dir)!r}. "
                 "Pass '--force' to force installation"
             )
             return
