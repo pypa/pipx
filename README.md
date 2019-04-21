@@ -139,7 +139,7 @@ Development occurs on the `dev` branch of this repository. If there is no such b
 ```
 pipx --help
 usage: pipx [-h] [--version]
-            {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip}
+            {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip,ensurepath}
             ...
 
 Install and execute binaries from Python packages.
@@ -160,7 +160,7 @@ optional arguments:
 subcommands:
   Get help for commands with pipx COMMAND --help
 
-  {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip}
+  {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip,ensurepath}
     install             Install a package
     inject              Install packages into an existing Virtual Environment
     upgrade             Upgrade a package
