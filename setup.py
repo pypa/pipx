@@ -17,7 +17,7 @@ import re  # noqa E402
 CURDIR = Path(__file__).parent
 
 EXCLUDE_FROM_PACKAGES = ["tests"]
-REQUIRED: List[str] = []
+REQUIRED: List[str] = ["userpath"]
 
 with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
     README = f.read()

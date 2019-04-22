@@ -112,14 +112,14 @@ pipx works on macOS, linux, and Windows.
 ## Install pipx
 ```
 pip install --user pipx
-pipx ensurepath
+userpath append ~/.local/bin
 ```
 
 to be sure you are using python3 you can run
 
 ```
 python3 -m pip install --user pipx
-pipx ensurepath
+userpath append ~/.local/bin
 ```
 
 ### Using Development Versions
@@ -224,20 +224,6 @@ binaries are exposed on your $PATH at /Users/user/.local/bin
 {{runpip}}
 
 
-### pipx ensurepath
-{{ensurepath}}
-
-#### `pipx ensurepath` example
-```
-> pipx ensurepath
-Added /home/user/.local/bin to the PATH environment variable in /home/user/.bashrc
-
-Open a new terminal to use pipx ✨ 🌟 ✨
-```
-```
-> pipx ensurepath
-Your PATH looks like it already is set up for pipx. Pass `--force` to modify the PATH.
-```
 ## Programs to try with pipx
 Here are some programs you can try out. If you've never used the program before, make sure you add the `--help` flag so it doesn't do something you don't expect. If you decide you want to install, you can run `pipx install PACKAGE` instead.
 ```
@@ -330,7 +316,7 @@ it is pretty easy to do it from the command-line:
 ```bash
 # install pipx with the recommended method
 pip install --user pipx
-pipx ensurepath
+userpath append ~/.local/bin
 # you may have to open a new terminal here for pipx to be on your PATH
 
 # migrate from pipsi to pipx
