@@ -634,10 +634,7 @@ def run_pip(package: str, venv_dir: Path, pip_args: List[str], verbose: bool):
 
 
 def ensurepath(bin_dir: Path):
-    print(
-        "ensurepath command is deprecated. Use 'userpath' instead.",
-        file=sys.stderr,
-    )
+    print("ensurepath command is deprecated. Use 'userpath' instead.", file=sys.stderr)
     print("See https://github.com/pipxproject/pipx for usage.", file=sys.stderr)
 
     shell = os.environ.get("SHELL", "")
