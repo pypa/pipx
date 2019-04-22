@@ -126,6 +126,8 @@ python3 -m pip install --user pipx
 userpath append ~/.local/bin
 ```
 
+If you want pipx to store binaries in a different location, you can set the environment variable `PIPX_BIN_DIR`, and ensure that location is on your path with `userpath append $PIPX_BIN_DIR`.
+
 ### Using Development Versions
 New versions of pipx are published as beta or release candidates. These versions look something like `0.13.0b1`, where `b1` signifies the first beta release of version 0.13. These releases can be tested with
 ```
@@ -177,6 +179,8 @@ subcommands:
                         (expiremental, see https://github.com/cs01/pythonloc)
     runpip              Run pip in an existing pipx-managed Virtual
                         Environment
+    ensurepath          Deprecated, will be removed in a future release. Use
+                        `userpath` instead.
 
 ```
 

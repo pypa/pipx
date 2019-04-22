@@ -440,7 +440,10 @@ def get_command_parser():
     p.add_argument("pipargs", nargs="*", help="Arguments to forward to pip command")
     p.add_argument("--verbose", action="store_true")
 
-    p = subparsers.add_parser("ensurepath")
+    p = subparsers.add_parser(
+        "ensurepath",
+        help="Deprecated, will be removed in a future release. Use `userpath` instead.",
+    )
     p.add_argument(
         "--force",
         action="store_true",
