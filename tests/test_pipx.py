@@ -30,6 +30,7 @@ class PipxStaticTests(unittest.TestCase):
 
     def test_static(self):
         files = ["pipx", "tests"]
+        self.run_cmd(["mkdocs", "build"])
         self.run_cmd(["black", "--check"] + files)
         self.run_cmd(["flake8"] + files)
         self.run_cmd(["mypy"] + files)
