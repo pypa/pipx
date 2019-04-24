@@ -16,6 +16,10 @@ from pipx.util import WINDOWS
 PIPX_PATH = CURDIR = Path(__file__).parent.parent
 
 
+assert not hasattr(sys, "real_prefix"), "Tests cannot run under virtualenv"
+assert getattr(sys, "base_prefix", sys.prefix) != sys.prefix, "Tests require venv"
+
+
 class PipxStaticTests(unittest.TestCase):
     def run_cmd(self, cmd):
         print(f"Running {' '.join(cmd)!r}")
@@ -26,6 +30,7 @@ class PipxStaticTests(unittest.TestCase):
 
     def test_static(self):
         files = ["pipx", "tests"]
+        self.run_cmd(["mkdocs", "build"])
         self.run_cmd(["black", "--check"] + files)
         self.run_cmd(["flake8"] + files)
         self.run_cmd(["mypy"] + files)

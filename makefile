@@ -14,5 +14,3 @@ publish: build
 clean:
 	rm -r build dist *.egg-info || true
 
-docs:
-	python generate_readme.py

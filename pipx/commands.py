@@ -3,7 +3,6 @@
 
 import datetime
 import hashlib
-import http.client
 import logging
 import multiprocessing
 import os
@@ -12,7 +11,9 @@ import shutil
 import subprocess
 import textwrap
 import time
+import sys
 import urllib.parse
+import urllib.request
 from pathlib import Path
 from shutil import which
 from typing import List, Optional
@@ -180,14 +181,12 @@ def _remove_all_expired_venvs():
 
 
 def _http_get_request(url: str):
-    parts = urllib.parse.urlparse(url)
-    conn = http.client.HTTPSConnection(parts.hostname)
-    conn.request("GET", parts.path)
-    response = conn.getresponse()
-    if response.status != 200:
-        raise PipxError(response.reason)
-
-    return response.read().decode("utf-8")
+    try:
+        res = urllib.request.urlopen(url)
+        charset = res.headers.get_content_charset() or "utf-8"  # type: ignore
+        return res.read().decode(charset)
+    except Exception as e:
+        raise PipxError(str(e))
 
 
 def upgrade(
@@ -307,7 +306,7 @@ def install(
         else:
             print(
                 f"{package!r} already seems to be installed. "
-                "Not modifying existing installation in {str(venv_dir)!r}. "
+                f"Not modifying existing installation in {str(venv_dir)!r}. "
                 "Pass '--force' to force installation"
             )
             return
@@ -331,14 +330,19 @@ def _run_post_install_actions(
     venv: Venv, package: str, local_bin_dir: Path, venv_dir: Path, include_deps: bool
 ):
     metadata = venv.get_venv_metadata_for_package(package)
-    if not include_deps and not metadata.binary_paths:
+    if not metadata.binary_paths and not include_deps:
+        # No binaries associated with this package and we aren't including dependencies.
+        # This package has nothing for pipx to use, so this is an error.
         for dep, dependent_binaries in metadata.binary_paths_of_dependencies.items():
             print(
                 f"Note: Dependent package '{dep}' contains {len(dependent_binaries)} binaries"
             )
             for binary in dependent_binaries:
                 print(f"  - {binary.name}")
-        venv.remove_venv()
+
+        if venv.safe_to_remove():
+            venv.remove_venv()
+
         if len(metadata.binary_paths_of_dependencies.keys()):
             raise PipxError(
                 f"No binaries associated with package {package}. "
@@ -348,6 +352,7 @@ def _run_post_install_actions(
             raise PipxError(f"No binaries associated with package {package}. ")
 
     _expose_binaries_globally(local_bin_dir, metadata.binary_paths, package)
+
     if include_deps:
         for _, binary_paths in metadata.binary_paths_of_dependencies.items():
             _expose_binaries_globally(local_bin_dir, binary_paths, package)
@@ -369,8 +374,9 @@ def _warn_if_not_on_path(local_bin_dir: Path, binary: str):
         logging.warning(
             f"{hazard}  Note: {str(local_bin_dir)!r} is not on your PATH environment "
             "variable. These binaries will not be globally accessible until "
-            "your PATH is updated. Run `pipx ensurepath` to automatically add it, "
-            "or manually modify your PATH in your shell's config file (i.e. ~/.bashrc)."
+            "your PATH is updated. Run `userpath append ~/.local/bin` to "
+            "automatically add it, or manually modify your PATH in your shell's "
+            "config file (i.e. ~/.bashrc)."
         )
 
 
@@ -634,6 +640,9 @@ def run_pip(package: str, venv_dir: Path, pip_args: List[str], verbose: bool):
 
 
 def ensurepath(bin_dir: Path):
+    print("ensurepath command is deprecated. Use 'userpath' instead.", file=sys.stderr)
+    print("See https://github.com/pipxproject/pipx for usage.", file=sys.stderr)
+
     shell = os.environ.get("SHELL", "")
     config_file: Optional[str]
     if "bash" in shell:

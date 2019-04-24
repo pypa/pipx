@@ -17,7 +17,7 @@ import re  # noqa E402
 CURDIR = Path(__file__).parent
 
 EXCLUDE_FROM_PACKAGES = ["tests"]
-REQUIRED: List[str] = []
+REQUIRED: List[str] = ["userpath"]
 
 with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
     README = f.read()
@@ -47,7 +47,9 @@ setup(
     keywords=["pip", "install", "cli", "workflow", "Virtual Environment"],
     scripts=[],
     entry_points={"console_scripts": ["pipx = pipx.main:cli"]},
-    extras_require={"dev": ["black", "flake8", "mypy", "jinja2"]},
+    extras_require={
+        "dev": ["black", "flake8", "mypy", "jinja2", "mkdocs", "mkdocs-material"]
+    },
     zip_safe=False,
     python_requires=">=3.6",
     install_requires=REQUIRED,

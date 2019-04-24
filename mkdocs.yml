@@ -1,0 +1,24 @@
+site_name: pipx
+site_description: execute binaries from Python packages in isolated environments
+
+theme:
+  name: "material"
+google_analytics:
+  - 'UA-90243909-2'
+  - 'auto'
+repo_name: pipx-project/pipx
+repo_url: https://github.com/pipx-project/pipx
+
+nav:
+  - Home: "index.md"
+  - Installation: "installation.md"
+  - Getting Started: "getting-started.md"
+  - Docs: "docs.md"
+  - FAQ: "faq.md"
+  - How pipx works: "how-pipx-works.md"
+  - Programs to Try: "programs-to-try.md"
+  - Contributing: "contributing.md"
+  - Changelog: "changelog.md"
+
+markdown_extensions:
+  - admonition  #  note blocks, warning blocks -- https://github.com/mkdocs/mkdocs/issues/1659

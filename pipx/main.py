@@ -22,7 +22,7 @@ from .constants import (
 from .util import PipxError, mkdir
 
 
-__version__ = "0.13.0.1"
+__version__ = "0.13.1.0"
 
 
 def print_version() -> None:
@@ -42,7 +42,7 @@ Install and execute binaries from Python packages.
 Binaries can either be installed globally into isolated Virtual Environments
 or run directly in an temporary Virtual Environment.
 
-Virtual Envrionment location is {str(PIPX_LOCAL_VENVS)}.
+Virtual Environment location is {str(PIPX_LOCAL_VENVS)}.
 Symlinks to binaries are placed in {str(LOCAL_BIN_DIR)}.
 These locations can be overridden with the environment variables
 PIPX_HOME and PIPX_BIN_DIR, respectively. (Virtual Environments will
@@ -335,7 +335,7 @@ def get_command_parser():
     p = subparsers.add_parser(
         "uninstall",
         help="Uninstall a package",
-        description="Uninstalls a pipx-managed Virtual Envrionment by deleting it and any files that point to its binaries.",
+        description="Uninstalls a pipx-managed Virtual Environment by deleting it and any files that point to its binaries.",
     )
     p.add_argument("package")
     p.add_argument("--verbose", action="store_true")
@@ -381,16 +381,15 @@ def get_command_parser():
     p = subparsers.add_parser(
         "run",
         formatter_class=LineWrapRawTextHelpFormatter,
-        help="Either download the latest version of a package to temporary directory, "
-        "then run a binary from it, or invoke binary from local `__pypackages__` "
-        "directory (expiremental, see https://github.com/cs01/pythonloc)",
+        help=(
+            "Download the latest version of a package to a temporary virtual environment, "
+            "then run a binary from it. Also compatible with local `__pypackages__` "
+            "directory (experimental)."
+        ),
         description=textwrap.dedent(
             f"""
-        Either download the latest version of a package to temporary directory
-        then run a binary from it, or invoke a binary from local `__pypackages__`
-        directory.
-
-        If running from a temporary environment, the environment will be cached
+        Download the latest version of a package to a temporary virtual environment,
+        then run a binary from it. The environment will be cached
         and re-used for up to {TEMP_VENV_EXPIRATION_THRESHOLD_DAYS} days. This
         means subsequent calls to 'run' for the same package will be faster
         since they can re-use the cached Virtual Environment.
@@ -398,7 +397,7 @@ def get_command_parser():
         In support of PEP 582 'run' will use binaries found in a local __pypackages__
          directory, if present. Please note that this behavior is experimental,
          and is a acts as a companion tool to pythonloc. It may be modified or
-         removed in the future.
+         removed in the future. See https://github.com/cs01/pythonloc.
         """
         ),
     )
@@ -442,15 +441,7 @@ def get_command_parser():
 
     p = subparsers.add_parser(
         "ensurepath",
-        help=(
-            f"Ensure {str(LOCAL_BIN_DIR)} is on your PATH environment variable by modifying your shell's configuration file."
-        ),
-        description=(
-            f"""Ensure {str(LOCAL_BIN_DIR)} is on your PATH environment variable by
-            modifying your shell's configuration file. This only needs to be run
-            once after initial installation if {str(LOCAL_BIN_DIR)} is not already on your PATH.
-            """
-        ),
+        help="Deprecated, will be removed in a future release. Use `userpath` instead.",
     )
     p.add_argument(
         "--force",
