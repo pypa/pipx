@@ -381,16 +381,15 @@ def get_command_parser():
     p = subparsers.add_parser(
         "run",
         formatter_class=LineWrapRawTextHelpFormatter,
-        help="Either download the latest version of a package to temporary directory, "
-        "then run a binary from it, or invoke binary from local `__pypackages__` "
-        "directory (expiremental, see https://github.com/cs01/pythonloc)",
+        help=(
+            "Download the latest version of a package to a temporary virtual environment, "
+            "then run a binary from it. Also compatible with local `__pypackages__` "
+            "directory (experimental)."
+        ),
         description=textwrap.dedent(
             f"""
-        Either download the latest version of a package to temporary directory
-        then run a binary from it, or invoke a binary from local `__pypackages__`
-        directory.
-
-        If running from a temporary environment, the environment will be cached
+        Download the latest version of a package to a temporary virtual environment,
+        then run a binary from it. The environment will be cached
         and re-used for up to {TEMP_VENV_EXPIRATION_THRESHOLD_DAYS} days. This
         means subsequent calls to 'run' for the same package will be faster
         since they can re-use the cached Virtual Environment.
@@ -398,7 +397,7 @@ def get_command_parser():
         In support of PEP 582 'run' will use binaries found in a local __pypackages__
          directory, if present. Please note that this behavior is experimental,
          and is a acts as a companion tool to pythonloc. It may be modified or
-         removed in the future.
+         removed in the future. See https://github.com/cs01/pythonloc.
         """
         ),
     )

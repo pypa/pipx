@@ -375,8 +375,8 @@ def _warn_if_not_on_path(local_bin_dir: Path, binary: str):
             f"{hazard}  Note: {str(local_bin_dir)!r} is not on your PATH environment "
             "variable. These binaries will not be globally accessible until "
             "your PATH is updated. Run `userpath append ~/.local/bin` to "
-            "automatically add it, "
-            "or manually modify your PATH in your shell's config file (i.e. ~/.bashrc)."
+            "automatically add it, or manually modify your PATH in your shell's "
+            "config file (i.e. ~/.bashrc)."
         )
 
 

@@ -4,6 +4,7 @@
 - Support redirects and proxies when downloading python files (i.e. `pipx run http://url/file.py`)
 - Use tox for document generation and CI testing (CI tests are now functional rather than static tests on style and formatting!)
 - Use mkdocs for documentation
+- Change default cache duration for `pipx run` from 2 to 14 days
 
 0.13.0.1
 

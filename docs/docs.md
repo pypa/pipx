@@ -38,10 +38,10 @@ subcommands:
     reinstall-all       Reinstall all packages with a different Python
                         executable
     list                List installed packages
-    run                 Either download the latest version of a package to
-                        temporary directory, then run a binary from it, or
-                        invoke binary from local `__pypackages__` directory
-                        (expiremental, see https://github.com/cs01/pythonloc)
+    run                 Download the latest version of a package to a
+                        temporary virtual environment, then run a binary from
+                        it. Also compatible with local `__pypackages__`
+                        directory (experimental).
     runpip              Run pip in an existing pipx-managed Virtual
                         Environment
     ensurepath          Deprecated, will be removed in a future release. Use
@@ -134,19 +134,16 @@ usage: pipx run [-h] [--no-cache] [--pypackages] [--spec SPEC] [--verbose]
                 [--index-url INDEX_URL] [--editable] [--pip-args PIP_ARGS]
                 binary [binary_args [binary_args ...]]
 
-Either download the latest version of a package to temporary directory
-then run a binary from it, or invoke a binary from local `__pypackages__`
-directory.
-
-If running from a temporary environment, the environment will be cached
-and re-used for up to 2 days. This
+Download the latest version of a package to a temporary virtual environment,
+then run a binary from it. The environment will be cached
+and re-used for up to 14 days. This
 means subsequent calls to 'run' for the same package will be faster
 since they can re-use the cached Virtual Environment.
 
 In support of PEP 582 'run' will use binaries found in a local __pypackages__
  directory, if present. Please note that this behavior is experimental,
  and is a acts as a companion tool to pythonloc. It may be modified or
- removed in the future.
+ removed in the future. See https://github.com/cs01/pythonloc.
 
 positional arguments:
   binary                binary/package name
