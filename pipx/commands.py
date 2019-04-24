@@ -330,14 +330,19 @@ def _run_post_install_actions(
     venv: Venv, package: str, local_bin_dir: Path, venv_dir: Path, include_deps: bool
 ):
     metadata = venv.get_venv_metadata_for_package(package)
-    if not include_deps and not metadata.binary_paths:
+    if not metadata.binary_paths and not include_deps:
+        # No binaries associated with this package and we aren't including dependencies.
+        # This package has nothing for pipx to use, so this is an error.
         for dep, dependent_binaries in metadata.binary_paths_of_dependencies.items():
             print(
                 f"Note: Dependent package '{dep}' contains {len(dependent_binaries)} binaries"
             )
             for binary in dependent_binaries:
                 print(f"  - {binary.name}")
-        venv.remove_venv()
+
+        if venv.safe_to_remove():
+            venv.remove_venv()
+
         if len(metadata.binary_paths_of_dependencies.keys()):
             raise PipxError(
                 f"No binaries associated with package {package}. "
@@ -347,6 +352,7 @@ def _run_post_install_actions(
             raise PipxError(f"No binaries associated with package {package}. ")
 
     _expose_binaries_globally(local_bin_dir, metadata.binary_paths, package)
+
     if include_deps:
         for _, binary_paths in metadata.binary_paths_of_dependencies.items():
             _expose_binaries_globally(local_bin_dir, binary_paths, package)

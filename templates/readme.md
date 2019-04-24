@@ -1,5 +1,7 @@
 <p align="center">
+<a href="https://pipxproject.github.io/pipx/">
 <img align="center" src="https://github.com/pipxproject/pipx/raw/master/logo.png"/>
+</a>
 </p>
 
 # pipx: execute binaries from Python packages in isolated environments
@@ -17,3 +19,7 @@
 <img src="https://img.shields.io/badge/pypi-{{version}}-blue.svg" /></a>
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
+
+# [Documentation](https://pipxproject.github.io/pipx/)
+
+https://pipxproject.github.io/pipx/
