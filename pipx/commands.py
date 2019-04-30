@@ -330,6 +330,21 @@ def _run_post_install_actions(
     venv: Venv, package: str, local_bin_dir: Path, venv_dir: Path, include_deps: bool
 ):
     metadata = venv.get_venv_metadata_for_package(package)
+
+    random_binary_name: str
+    if metadata.binaries:
+        random_binary_name = metadata.binaries[0]
+    elif metadata.binaries_of_dependencies and include_deps:
+        random_binary_name = metadata.binaries_of_dependencies[0]
+    else:
+        # No binaries associated with this package and we aren't including dependencies.
+        # This package has nothing for pipx to use, so this is an error.
+        if venv.safe_to_remove():
+            venv.remove_venv()
+        raise PipxError(
+            f"No binaries associated with package {package} or its dependencies."
+        )
+
     if not metadata.binary_paths and not include_deps:
         # No binaries associated with this package and we aren't including dependencies.
         # This package has nothing for pipx to use, so this is an error.
@@ -349,7 +364,7 @@ def _run_post_install_actions(
                 "Try again with '--include-deps' to include binaries of dependent packages."
             )
         else:
-            raise PipxError(f"No binaries associated with package {package}. ")
+            raise PipxError(f"No binaries associated with package {package}.")
 
     _expose_binaries_globally(local_bin_dir, metadata.binary_paths, package)
 
@@ -358,13 +373,6 @@ def _run_post_install_actions(
             _expose_binaries_globally(local_bin_dir, binary_paths, package)
 
     print(_get_package_summary(venv_dir, package=package, new_install=True))
-
-    random_binary_name: str
-    if metadata.binaries:
-        random_binary_name = metadata.binaries[0]
-    else:
-        random_binary_name = metadata.binaries_of_dependencies[0]
-
     _warn_if_not_on_path(local_bin_dir, random_binary_name)
     print(f"done! {stars}")
 
