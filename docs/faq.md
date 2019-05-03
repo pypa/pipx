@@ -14,9 +14,10 @@
 
 ## Migrating to pipx from pipsi
 
-After you have installed pipx, run this [gist](https://gist.githubusercontent.com/cs01/e72fc2e6a641a5105c4c22d83fe9cacc/raw/258582a6e7d8d4ac4b7313a48693264a5b6ea889/migrate_pipsi_to_pipx.py).
+After you have installed pipx, run [migrate_pipsi_to_pipx.py](https://raw.githubusercontent.com/pipxproject/pipx/master/scripts/migrate_pipsi_to_pipx.py). Why not do this with your new pipx installation?
+
 ```
-pipx run https://gist.githubusercontent.com/cs01/e72fc2e6a641a5105c4c22d83fe9cacc/raw/258582a6e7d8d4ac4b7313a48693264a5b6ea889/migrate_pipsi_to_pipx.py
+pipx run https://raw.githubusercontent.com/pipxproject/pipx/master/scripts/migrate_pipsi_to_pipx.py
 ```
 
 ## How does this compare with `pip-run`?
