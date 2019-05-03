@@ -10,7 +10,7 @@ pipx: execute binaries from Python packages in isolated environments
 
 **Documentation**: https://pipxproject.github.io/pipx/
 
-**Source Code**: https://pipxproject.github.io/pipx/
+**Source Code**: https://github.com/pipxproject/pipx
 
 
 <p align="center">
