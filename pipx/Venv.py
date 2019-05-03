@@ -42,10 +42,12 @@ class Venv:
         self.python_path = self.bin_path / ("python" if not WINDOWS else "python.exe")
         self.verbose = verbose
         self.do_animation = not verbose
-        self._was_created_this_session = False
+        try:
+            self._existing = self.root.exists() and next(self.root.iterdir())
+        except StopIteration:
+            self._existing = False
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
-        self._was_created_this_session = True
         with animate("creating virtual environment", self.do_animation):
             _run([self._python, "-m", "venv"] + venv_args + [str(self.root)])
             ignored_args = ["--editable"]
@@ -53,7 +55,7 @@ class Venv:
             self.upgrade_package("pip", _pip_args)
 
     def safe_to_remove(self) -> bool:
-        return self._was_created_this_session
+        return not self._existing
 
     def remove_venv(self) -> None:
         if self.safe_to_remove():

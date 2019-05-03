@@ -1,3 +1,8 @@
+0.13.1.1
+
+- Do not raise bare exception if no binaries found (#150)
+- Update pipsi migration script
+
 0.13.1.0
 
 - Deprecate `ensurepath` command. Use `userpath append ~/.local/bin`

@@ -166,6 +166,14 @@ class TestPipxCommands(unittest.TestCase):
         for package in all_packages:
             self.assertTrue(package in ret.stdout.decode())
 
+    def test_install_no_packages_found(self):
+        ret = subprocess.run(
+            [self.pipx_bin, "install", "--include-deps", "pygdbmi"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        self.assertTrue("No binaries associated with package" in ret.stderr.decode())
+
     def test_editable_install(self):
         subprocess.run(
             [self.pipx_bin, "install", "-e", "pipx", "--spec", PIPX_PATH], check=True
