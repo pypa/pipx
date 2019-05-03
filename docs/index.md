@@ -26,6 +26,15 @@ _For comparison to pipsi, see the [FAQ](faq.md)._
 
 _pipx uses the word "binary" to describe a CLI application that can be run directly from the command line. These files are located in the `bin` directory of a Python installation, alongside other executables. Despite the name, they do not necessarily contain binary data._
 
+## Install pipx
+
+```
+python3 -m pip install --user pipx
+python3 -m userpath append ~/.local/bin
+```
+
+For more details, see [installation](installation).
+
 ## Overview
 
 Python and PyPI allow developers to distribute code with "console script entry points". These scripts let users call into Python code from the command line, effectively acting like standalone applications.

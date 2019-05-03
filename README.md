@@ -14,7 +14,7 @@ pipx: execute binaries from Python packages in isolated environments
 
 **Documentation**: https://pipxproject.github.io/pipx/
 
-**Source Code**: https://pipxproject.github.io/pipx/
+**Source Code**: https://github.com/pipxproject/pipx
 
 
 <p align="center">
@@ -32,3 +32,14 @@ pipx: execute binaries from Python packages in isolated environments
 <img src="https://github.com/pipxproject/pipx/raw/master/pipx_demo.gif"/>
 </a>
 </p>
+
+### Quick Installation Guide
+
+In a hurry? Here's how to get started with pipx:
+
+```
+python3 -m pip install --user pipx
+python3 -m userpath append ~/.local/bin
+```
+
+For more details, see [installation](https://pipxproject.github.io/pipx/installation/).

@@ -18,18 +18,26 @@ tox
 ```
 
 ## Documentation
-Documentation is made with `mkdocs` which generates documentation from several `.md` files in `docs`.
+Documentation is generated with `mkdocs` which generates documentation from several `.md` files in `docs`. Some of those `.md` files, as well as the main `README.md` file are generated from a `templates` directory.
 
+
+### Serving
 To serve documenation with mkdocs that reflect the content of the `docs` folder as you make changes:
 ```
 tox -e watchdocs
 ```
 
-To build the documentation:
+As you serve the docs, if you make changes to any template files, you generate the .md files by running:
 ```
 tox -e docs
 ```
 
-Note that some of the documentation is generated. This occurs during the build command.
+
+### Publishing
+To publish documentation to GitHub pages:
+```
+mkdocs gh-pages
+```
 
 When finished, you may remove the virtual environment with `rm -r .tox`.
+

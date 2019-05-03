@@ -54,7 +54,7 @@ def main():
                 error = True
                 print(f"Failed to install {package!r} with pipx.")
             else:
-                print(f"SUccessfully installed {package} with pipx")
+                print(f"Successfully installed {package} with pipx")
 
     print(f"Done migrating {len(packages)} packages!")
     print(
