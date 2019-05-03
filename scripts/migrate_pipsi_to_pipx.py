@@ -23,6 +23,7 @@ def main():
 
     if not packages:
         print("No packages installed with pipsi")
+        exit(0)
 
     print("Attempting to migrate the following packages from pipsi to pipx:")
     for package in packages:
