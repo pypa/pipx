@@ -47,7 +47,9 @@ setup(
     keywords=["pip", "install", "cli", "workflow", "Virtual Environment"],
     scripts=[],
     entry_points={"console_scripts": ["pipx = pipx.main:cli"]},
-    extras_require={"dev": ["black", "flake8", "mypy", "jinja2"]},
+    extras_require={
+        "dev": ["black", "flake8", "mypy", "jinja2", "mkdocs", "mkdocs-material"]
+    },
     zip_safe=False,
     python_requires=">=3.6",
     install_requires=REQUIRED,

@@ -9,3 +9,4 @@ venv
 .DS_Store
 .tox
 __pycache__
+site

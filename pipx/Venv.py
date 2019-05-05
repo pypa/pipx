@@ -42,6 +42,10 @@ class Venv:
         self.python_path = self.bin_path / ("python" if not WINDOWS else "python.exe")
         self.verbose = verbose
         self.do_animation = not verbose
+        try:
+            self._existing = self.root.exists() and next(self.root.iterdir())
+        except StopIteration:
+            self._existing = False
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
@@ -50,8 +54,17 @@ class Venv:
             _pip_args = [arg for arg in pip_args if arg not in ignored_args]
             self.upgrade_package("pip", _pip_args)
 
+    def safe_to_remove(self) -> bool:
+        return not self._existing
+
     def remove_venv(self) -> None:
-        rmdir(self.root)
+        if self.safe_to_remove():
+            rmdir(self.root)
+        else:
+            logging.warning(
+                f"Not removing existing venv {self.root} because "
+                "it was not created in this session"
+            )
 
     def install_package(self, package_or_url: str, pip_args: List[str]) -> None:
         with animate(f"installing package {package_or_url!r}", self.do_animation):

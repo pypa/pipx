@@ -30,6 +30,7 @@ class PipxStaticTests(unittest.TestCase):
 
     def test_static(self):
         files = ["pipx", "tests"]
+        self.run_cmd(["mkdocs", "build"])
         self.run_cmd(["black", "--check"] + files)
         self.run_cmd(["flake8"] + files)
         self.run_cmd(["mypy"] + files)
@@ -164,6 +165,14 @@ class TestPipxCommands(unittest.TestCase):
 
         for package in all_packages:
             self.assertTrue(package in ret.stdout.decode())
+
+    def test_install_no_packages_found(self):
+        ret = subprocess.run(
+            [self.pipx_bin, "install", "--include-deps", "pygdbmi"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        self.assertTrue("No binaries associated with package" in ret.stderr.decode())
 
     def test_editable_install(self):
         subprocess.run(

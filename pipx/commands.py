@@ -330,35 +330,49 @@ def _run_post_install_actions(
     venv: Venv, package: str, local_bin_dir: Path, venv_dir: Path, include_deps: bool
 ):
     metadata = venv.get_venv_metadata_for_package(package)
-    if not include_deps and not metadata.binary_paths:
+
+    random_binary_name: str
+    if metadata.binaries:
+        random_binary_name = metadata.binaries[0]
+    elif metadata.binaries_of_dependencies and include_deps:
+        random_binary_name = metadata.binaries_of_dependencies[0]
+    else:
+        # No binaries associated with this package and we aren't including dependencies.
+        # This package has nothing for pipx to use, so this is an error.
+        if venv.safe_to_remove():
+            venv.remove_venv()
+        raise PipxError(
+            f"No binaries associated with package {package} or its dependencies."
+        )
+
+    if not metadata.binary_paths and not include_deps:
+        # No binaries associated with this package and we aren't including dependencies.
+        # This package has nothing for pipx to use, so this is an error.
         for dep, dependent_binaries in metadata.binary_paths_of_dependencies.items():
             print(
                 f"Note: Dependent package '{dep}' contains {len(dependent_binaries)} binaries"
             )
             for binary in dependent_binaries:
                 print(f"  - {binary.name}")
-        venv.remove_venv()
+
+        if venv.safe_to_remove():
+            venv.remove_venv()
+
         if len(metadata.binary_paths_of_dependencies.keys()):
             raise PipxError(
                 f"No binaries associated with package {package}. "
                 "Try again with '--include-deps' to include binaries of dependent packages."
             )
         else:
-            raise PipxError(f"No binaries associated with package {package}. ")
+            raise PipxError(f"No binaries associated with package {package}.")
 
     _expose_binaries_globally(local_bin_dir, metadata.binary_paths, package)
+
     if include_deps:
         for _, binary_paths in metadata.binary_paths_of_dependencies.items():
             _expose_binaries_globally(local_bin_dir, binary_paths, package)
 
     print(_get_package_summary(venv_dir, package=package, new_install=True))
-
-    random_binary_name: str
-    if metadata.binaries:
-        random_binary_name = metadata.binaries[0]
-    else:
-        random_binary_name = metadata.binaries_of_dependencies[0]
-
     _warn_if_not_on_path(local_bin_dir, random_binary_name)
     print(f"done! {stars}")
 
@@ -369,8 +383,8 @@ def _warn_if_not_on_path(local_bin_dir: Path, binary: str):
             f"{hazard}  Note: {str(local_bin_dir)!r} is not on your PATH environment "
             "variable. These binaries will not be globally accessible until "
             "your PATH is updated. Run `userpath append ~/.local/bin` to "
-            "automatically add it, "
-            "or manually modify your PATH in your shell's config file (i.e. ~/.bashrc)."
+            "automatically add it, or manually modify your PATH in your shell's "
+            "config file (i.e. ~/.bashrc)."
         )
 
 
@@ -634,10 +648,7 @@ def run_pip(package: str, venv_dir: Path, pip_args: List[str], verbose: bool):
 
 
 def ensurepath(bin_dir: Path):
-    print(
-        "ensurepath command is deprecated. Use 'userpath' instead.",
-        file=sys.stderr,
-    )
+    print("ensurepath command is deprecated. Use 'userpath' instead.", file=sys.stderr)
     print("See https://github.com/pipxproject/pipx for usage.", file=sys.stderr)
 
     shell = os.environ.get("SHELL", "")
