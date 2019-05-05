@@ -3,6 +3,7 @@
 import argparse
 import logging
 import os
+import runpy
 import shlex
 import sys
 import textwrap
@@ -505,6 +506,10 @@ def split_run_argv(argv: List[str]) -> Tuple[List[str], List[str]]:
 
 def cli():
     """Entry point from command line"""
+    run_userpath() or main()
+
+
+def main():
     try:
         args_to_parse, binary_args = split_run_argv(sys.argv)
         parser = get_command_parser()
@@ -518,6 +523,18 @@ def cli():
         exit(e)
     except KeyboardInterrupt:
         exit(1)
+
+
+def run_userpath():
+    """
+    If subcommand is 'userpath', invoke that command instead.
+    """
+    if sys.argv[1] != "userpath":
+        return
+
+    sys.argv[1:] = sys.argv[2:]
+    runpy.run_module("userpath", run_name="userpath", alter_sys=True)
+    return True
 
 
 if __name__ == "__main__":
