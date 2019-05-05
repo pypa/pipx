@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 import argparse
 import logging
-import os
 import shlex
 import sys
 import textwrap
@@ -212,15 +211,6 @@ def run_pipx_command(args, binary_args: List[str]):
         if not venv_dir:
             raise PipxError("developer error: venv dir is not defined")
         commands.run_pip(package, venv_dir, binary_args, args.verbose)
-    elif args.command == "ensurepath":
-        paths = os.getenv("PATH", "").split(os.pathsep)
-        path_good = str(LOCAL_BIN_DIR) in paths
-        if not path_good or args.force:
-            commands.ensurepath(LOCAL_BIN_DIR)
-        else:
-            print(
-                "Your PATH looks like it already is set up for pipx. Pass `--force` to modify the PATH."
-            )
     else:
         raise PipxError(f"Unknown command {args.command}")
 
@@ -439,26 +429,6 @@ def get_command_parser():
     p.add_argument("pipargs", nargs="*", help="Arguments to forward to pip command")
     p.add_argument("--verbose", action="store_true")
 
-    p = subparsers.add_parser(
-        "ensurepath",
-        help=(
-            f"Ensure {str(LOCAL_BIN_DIR)} is on your PATH environment variable by modifying your shell's configuration file."
-        ),
-        description=(
-            f"""Ensure {str(LOCAL_BIN_DIR)} is on your PATH environment variable by
-            modifying your shell's configuration file. This only needs to be run
-            once after initial installation if {str(LOCAL_BIN_DIR)} is not already on your PATH.
-            """
-        ),
-    )
-    p.add_argument(
-        "--force",
-        action="store_true",
-        help=(
-            "Add text to your shell's config file even if it looks like your "
-            f"PATH already has {str(LOCAL_BIN_DIR)}"
-        ),
-    )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     return parser
 
