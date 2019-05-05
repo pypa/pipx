@@ -441,7 +441,15 @@ def get_command_parser():
 
     p = subparsers.add_parser(
         "ensurepath",
-        help="Deprecated, will be removed in a future release. Use `userpath` instead.",
+        help=(
+            f"Ensure {str(LOCAL_BIN_DIR)} is on your PATH environment variable by modifying your shell's configuration file."
+        ),
+        description=(
+            f"""Ensure {str(LOCAL_BIN_DIR)} is on your PATH environment variable by
+            modifying your shell's configuration file. This only needs to be run
+            once after initial installation if {str(LOCAL_BIN_DIR)} is not already on your PATH.
+            """
+        ),
     )
     p.add_argument(
         "--force",
