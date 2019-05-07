@@ -28,6 +28,7 @@ def _execute_command(command: str) -> (str, str):
     print(proc.stdout, flush=True)
     if proc.stderr:
         print(proc.stderr, file=sys.stderr, flush=True)
+    return proc.stdout, proc.stderr
 
 
 def _execute_in_venv(venv_dir: str, command: str) -> (str, str):
