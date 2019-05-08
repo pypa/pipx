@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+
+"""The command line interface to pipx"""
+
 import argparse
 import logging
 import os

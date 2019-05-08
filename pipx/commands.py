@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+"""The implementation of pipx commands"""
 
 import datetime
 import hashlib
@@ -26,6 +25,7 @@ from .constants import (
     PIPX_VENV_CACHEDIR,
     TEMP_VENV_EXPIRATION_THRESHOLD_DAYS,
 )
+
 from .emojies import hazard, sleep, stars
 from .util import (
     WINDOWS,
