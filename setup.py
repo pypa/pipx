@@ -47,7 +47,15 @@ setup(
     scripts=[],
     entry_points={"console_scripts": ["pipx = pipx.main:cli"]},
     extras_require={
-        "dev": ["black", "flake8", "mypy", "jinja2", "mkdocs", "mkdocs-material"]
+        "dev": [
+            "black",
+            "flake8",
+            "mypy",
+            "jinja2",
+            "mkdocs",
+            "mkdocs-material",
+            "check-manifest",
+        ]
     },
     zip_safe=False,
     python_requires=">=3.6",
