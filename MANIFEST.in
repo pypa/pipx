@@ -1,9 +1,11 @@
 include *.md pipx_demo.gif logo.png LICENSE
 graft pipx
 
-exclude get-pipx.py makefile generate_readme.py .flake8
+exclude get-pipx.py makefile generate_docs.py .flake8 mkdocs.yml tox.ini
 prune templates
 prune tests
+prune docs
+prune scripts
 
 global-exclude *.py[cod]
 global-exclude __pycache__
