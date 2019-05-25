@@ -51,10 +51,12 @@ setup(
             "black",
             "flake8",
             "mypy",
+            "check-manifest",
+        ],
+        "docs": [
             "jinja2",
             "mkdocs",
             "mkdocs-material",
-            "check-manifest",
         ]
     },
     zip_safe=False,
