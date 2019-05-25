@@ -35,7 +35,7 @@ tox -e docs
 ### Publishing
 To publish documentation to GitHub pages:
 ```
-mkdocs gh-pages
+.tox/docs/bin/mkdocs gh-pages
 ```
 
 When finished, you may remove the virtual environment with `rm -r .tox`.
