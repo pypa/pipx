@@ -1,18 +1,17 @@
-pipx uses [tox](https://pypi.org/project/tox/) for development and continuous integration testing and automation.
+pipx uses [tox](https://pypi.org/project/tox/) for development, continuous integration testing, and automation.
 
 ## Developing pipx
-To develop `pipx` first clone the repository, have `tox` installed somewhere on your system, then run `tox`.
+To develop `pipx`, first clone the repository, have `tox` installed somewhere on your system, then run:
 ```
 tox --notest
 ```
 
-Tox creates virtual environments in `.tox/` (`.tox/python` is the default). Make any changes and then invoke `pipx` like this:
+This will perform an editable install of `pipx` for each environment listed in `envlist` in the `tox.ini`. Any changes you make to pipx source code will be reflected immediately, if you invoke `pipx` in the virtual environment like so:
 ```
-.tox/python/bin/pipx ...
+.tox/py36/bin/pipx
 ```
-Any changes you make to pipx source code will be reflected immediately.
 
-Make sure your changes pass tests by running tox
+Make sure your changes pass tests:
 ```
 tox
 ```
