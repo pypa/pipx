@@ -9,6 +9,7 @@ script:
   - python setup.py check --metadata --strict
   - check-manifest
   - tox
+  - tox -e docs
 
 cache:
   pip: true
