@@ -7,7 +7,6 @@ install:
   - pip install tox tox-venv
 script:
   - python setup.py check --metadata --strict
-  - check-manifest
   - tox
   - tox -e docs
 
