@@ -211,12 +211,12 @@ def upgrade(
 
     old_version = venv.get_venv_metadata_for_package(package).package_version
     do_animation = not verbose
-    try:
-        with animate(f"upgrading pip for package {package_or_url!r}", do_animation):
-            venv.upgrade_package("pip", pip_args)
+    #try:
+    #    with animate(f"upgrading pip for package {package_or_url!r}", do_animation):
+    #        venv.upgrade_package("pip", pip_args)
 
-    except Exception:
-        logging.error("Failed to upgrade pip", exc_info=True)
+    #except Exception:
+    #    logging.error("Failed to upgrade pip", exc_info=True)
 
     with animate(f"upgrading package {package_or_url!r}", do_animation):
         venv.upgrade_package(package_or_url, pip_args)

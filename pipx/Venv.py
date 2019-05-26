@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import pkgutil
 import subprocess
 from pathlib import Path
@@ -7,6 +8,7 @@ from typing import Dict, List, NamedTuple, Sequence, Union
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON
+from pipx.shared_pip import get_shared_pip
 from pipx.util import WINDOWS, PipxError, rmdir
 
 
@@ -46,10 +48,8 @@ class Venv:
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
-            _run([self._python, "-m", "venv"] + venv_args + [str(self.root)])
-            ignored_args = ["--editable"]
-            _pip_args = [arg for arg in pip_args if arg not in ignored_args]
-            self.upgrade_package("pip", _pip_args)
+            cmd = [self._python, "-m", "venv", "--without-pip"]
+            _run(cmd + venv_args + [str(self.root)])
 
     def safe_to_remove(self) -> bool:
         return not self._existing
@@ -72,6 +72,9 @@ class Venv:
 
     def get_venv_metadata_for_package(self, package: str) -> PipxVenvMetadata:
 
+        # TODO: VENV_METADATA_INSPECTOR needs setuptools, get it from shared pip dierctory
+        env = os.environ.copy()
+        env['PYTHONPATH'] = str(get_shared_pip())
         data = json.loads(
             subprocess.run(
                 [
@@ -82,6 +85,7 @@ class Venv:
                     str(self.bin_path),
                 ],
                 stdout=subprocess.PIPE,
+                env=env,
             ).stdout.decode(),
             encoding="utf-8",
         )
@@ -121,7 +125,7 @@ class Venv:
         self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
 
     def _run_pip(self, cmd):
-        cmd = [self.python_path, "-m", "pip"] + cmd
+        cmd = [self.python_path, get_shared_pip() / "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
         return _run(cmd)
