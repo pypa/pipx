@@ -15,10 +15,13 @@ def get_shared_pip() -> Path:
     if _pip_venv is None:
         _pip_venv = PIPX_SHARED_PIP
         if not _pip_venv.exists():
+            bin_path = _pip_venv / ("bin" if not WINDOWS else "Scripts")
+            python_path = bin_path / ("python" if not WINDOWS else "python.exe")
+
             Venv._run([sys.executable, "-m", "venv", _pip_venv])
             Venv._run(
                 [
-                    _pip_venv / "Scripts/python.exe",
+                    python_path,
                     "-m",
                     "pip",
                     "install",
@@ -29,9 +32,9 @@ def get_shared_pip() -> Path:
                     "--disable-pip-version-check",
                 ]
             )
-    if WINDOWS:
-        site_packages = "Lib/site-packages"
-    else:
-        site_packages = "lib/python{}.{}/site-packages".format(*sys.version_info[:2])
+    site_packages = _pip_venv / ("lib" if not WINDOWS else "Lib")
+    if not WINDOWS:
+        site_packages = site_packages / "python{}.{}".format(*sys.version_info[:2])
+    site_packages = site_packages / "site-packages"
 
-    return _pip_venv / site_packages
+    return site_packages
