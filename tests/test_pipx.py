@@ -153,7 +153,10 @@ class TestPipxCommands(unittest.TestCase):
     def test_install(self):
         easy_packages = ["pycowsay", "black"]
         tricky_packages = ["cloudtoken", "awscli", "ansible", "shell-functools"]
-        all_packages = easy_packages + tricky_packages
+        if WINDOWS:
+            all_packages = easy_packages
+        else:
+            all_packages = easy_packages + tricky_packages
 
         for package in all_packages:
             subprocess.run([self.pipx_bin, "install", package], check=True)
@@ -175,7 +178,7 @@ class TestPipxCommands(unittest.TestCase):
 
     def test_editable_install(self):
         subprocess.run(
-            [self.pipx_bin, "install", "-e", "pipx", "--spec", PIPX_PATH], check=True
+            [str(self.pipx_bin), "install", "-e", "pipx", "--spec", str(PIPX_PATH)], check=True
         )
 
     def test_install_existing_package(self):
@@ -259,7 +262,11 @@ class TestPipxCommands(unittest.TestCase):
             subprocess.run([self.pipx_bin, "upgrade", "pycowsay"]).returncode, 0
         )
         subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
-        subprocess.run([self.pipx_bin, "reinstall-all", "python3"], check=True)
+        if WINDOWS:
+            py = sys.executable
+        else:
+            py = "python3"
+        subprocess.run([self.pipx_bin, "reinstall-all", py], check=True)
 
     def test_run_downloads_from_internet(self):
         subprocess.run(
