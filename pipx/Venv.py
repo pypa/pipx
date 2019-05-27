@@ -74,7 +74,7 @@ class Venv:
 
         # TODO: VENV_METADATA_INSPECTOR needs setuptools, get it from shared pip dierctory
         env = os.environ.copy()
-        env['PYTHONPATH'] = str(get_shared_pip())
+        env["PYTHONPATH"] = str(get_shared_pip())
         data = json.loads(
             subprocess.run(
                 [
