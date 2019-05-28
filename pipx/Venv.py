@@ -3,6 +3,7 @@ import logging
 import os
 import pkgutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Sequence, Union
 
@@ -50,6 +51,14 @@ class Venv:
         with animate("creating virtual environment", self.do_animation):
             cmd = [self._python, "-m", "venv", "--without-pip"]
             _run(cmd + venv_args + [str(self.root)])
+            site_packages = self.root / ("lib" if not WINDOWS else "Lib")
+            if not WINDOWS:
+                site_packages = site_packages / "python{}.{}".format(
+                    *sys.version_info[:2]
+                )
+            site_packages = site_packages / "site-packages"
+            pip_pth = site_packages / "pip.pth"
+            pip_pth.write_text(str(get_shared_pip()), encoding="utf-8")
 
     def safe_to_remove(self) -> bool:
         return not self._existing
@@ -73,8 +82,8 @@ class Venv:
     def get_venv_metadata_for_package(self, package: str) -> PipxVenvMetadata:
 
         # TODO: VENV_METADATA_INSPECTOR needs setuptools, get it from shared pip dierctory
-        env = os.environ.copy()
-        env["PYTHONPATH"] = str(get_shared_pip())
+        # env = os.environ.copy()
+        # env["PYTHONPATH"] = str(get_shared_pip())
         data = json.loads(
             subprocess.run(
                 [
@@ -85,7 +94,7 @@ class Venv:
                     str(self.bin_path),
                 ],
                 stdout=subprocess.PIPE,
-                env=env,
+                # env=env,
             ).stdout.decode(),
             encoding="utf-8",
         )
@@ -125,7 +134,7 @@ class Venv:
         self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
 
     def _run_pip(self, cmd):
-        cmd = [self.python_path, get_shared_pip() / "pip"] + cmd
+        cmd = [self.python_path, "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
         return _run(cmd)

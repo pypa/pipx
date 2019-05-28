@@ -178,7 +178,8 @@ class TestPipxCommands(unittest.TestCase):
 
     def test_editable_install(self):
         subprocess.run(
-            [str(self.pipx_bin), "install", "-e", "pipx", "--spec", str(PIPX_PATH)], check=True
+            [str(self.pipx_bin), "install", "-e", "pipx", "--spec", str(PIPX_PATH)],
+            check=True,
         )
 
     def test_install_existing_package(self):
