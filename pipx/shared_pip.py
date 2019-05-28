@@ -4,7 +4,6 @@ from pathlib import Path
 # Venv is a circular import...
 from . import Venv
 from .constants import PIPX_SHARED_PIP
-from typing import List
 from pipx.util import WINDOWS
 
 _pip_venv = None
