@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 import pkgutil
 import subprocess
 import sys
@@ -81,9 +80,6 @@ class Venv:
 
     def get_venv_metadata_for_package(self, package: str) -> PipxVenvMetadata:
 
-        # TODO: VENV_METADATA_INSPECTOR needs setuptools, get it from shared pip dierctory
-        # env = os.environ.copy()
-        # env["PYTHONPATH"] = str(get_shared_pip())
         data = json.loads(
             subprocess.run(
                 [
