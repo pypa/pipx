@@ -2,7 +2,6 @@ import json
 import logging
 import pkgutil
 import subprocess
-import sys
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Sequence, Union
 
@@ -134,12 +133,7 @@ class Venv:
 
 
 class SharedLibs:
-    def __init__(
-        self,
-        *,
-        path: Path = PIPX_SHARED_LIBS,
-        verbose: bool = False,
-    ) -> None:
+    def __init__(self, *, path: Path = PIPX_SHARED_LIBS, verbose: bool = False) -> None:
         self.root = path
         self.bin_path, self.python_path, self.site_packages = get_venv_paths(self.root)
         self.verbose = verbose
@@ -148,7 +142,7 @@ class SharedLibs:
     def create(self, python: str = DEFAULT_PYTHON):
         if not self.root.exists():
             with animate("creating shared libraries", self.do_animation):
-                _run([self._python, "-m", "venv", self.root])
+                _run([python, "-m", "venv", self.root])
                 self.upgrade()
 
     def upgrade(self):

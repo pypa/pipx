@@ -35,7 +35,7 @@ from .util import (
     rmdir,
     run_pypackage_bin,
 )
-from .Venv import Venv
+from .Venv import Venv, SharedLibs
 
 
 def run(
