@@ -201,4 +201,4 @@ def _get_site_packages(python: Path) -> Path:
     output = _get_script_output(
         python, "import sysconfig; print(sysconfig.get_path('purelib'))"
     )
-    return Path(output)
+    return Path(output.strip())
