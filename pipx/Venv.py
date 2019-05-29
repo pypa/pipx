@@ -7,9 +7,8 @@ from pathlib import Path
 from typing import Dict, List, NamedTuple, Sequence, Union
 
 from pipx.animate import animate
-from pipx.constants import DEFAULT_PYTHON
-from pipx.shared_pip import get_shared_pip
-from pipx.util import WINDOWS, PipxError, rmdir
+from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_LIBS
+from pipx.util import WINDOWS, PipxError, rmdir, get_venv_paths
 
 
 class PipxVenvMetadata(NamedTuple):
@@ -37,8 +36,7 @@ class Venv:
     ) -> None:
         self.root = path
         self._python = python
-        self.bin_path = path / "bin" if not WINDOWS else path / "Scripts"
-        self.python_path = self.bin_path / ("python" if not WINDOWS else "python.exe")
+        self.bin_path, self.python_path, self.site_packages = get_venv_paths(self.root)
         self.verbose = verbose
         self.do_animation = not verbose
         try:
@@ -47,17 +45,14 @@ class Venv:
             self._existing = False
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
+        shared = SharedLibs(verbose=self.verbose)
+        shared.create(self._python)
         with animate("creating virtual environment", self.do_animation):
             cmd = [self._python, "-m", "venv", "--without-pip"]
             _run(cmd + venv_args + [str(self.root)])
-            site_packages = self.root / ("lib" if not WINDOWS else "Lib")
-            if not WINDOWS:
-                site_packages = site_packages / "python{}.{}".format(
-                    *sys.version_info[:2]
-                )
-            site_packages = site_packages / "site-packages"
-            pip_pth = site_packages / "pip.pth"
-            pip_pth.write_text(str(get_shared_pip()), encoding="utf-8")
+            pipx_pth = self.site_packages / "pipx_shared.pth"
+            # TODO: Make sure path is relative (or absolute, just be definite!)
+            pipx_pth.write_text(str(shared.site_packages), encoding="utf-8")
 
     def safe_to_remove(self) -> bool:
         return not self._existing
@@ -129,11 +124,52 @@ class Venv:
     def upgrade_package(self, package_or_url: str, pip_args: List[str]):
         self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
 
+    # TODO: def upgrade_pip() - gets shared libs and upgrades, or upgrades in place
+
     def _run_pip(self, cmd):
         cmd = [self.python_path, "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
         return _run(cmd)
+
+
+class SharedLibs:
+    def __init__(
+        self,
+        *,
+        path: Path = PIPX_SHARED_LIBS,
+        verbose: bool = False,
+    ) -> None:
+        self.root = path
+        self.bin_path, self.python_path, self.site_packages = get_venv_paths(self.root)
+        self.verbose = verbose
+        self.do_animation = not verbose
+
+    def create(self, python: str = DEFAULT_PYTHON):
+        if not self.root.exists():
+            with animate("creating shared libraries", self.do_animation):
+                _run([self._python, "-m", "venv", self.root])
+                self.upgrade()
+
+    def upgrade(self):
+        # TODO: Don't upgrade multiple times per run (day?)
+        try:
+            with animate("upgrading shared libraries", self.do_animation):
+                _run(
+                    [
+                        self.python_path,
+                        "-m",
+                        "pip",
+                        "--disable-pip-version-check",
+                        "install",
+                        "--upgrade",
+                        "pip",
+                        "setuptools",
+                        "wheel",
+                    ]
+                )
+        except Exception:
+            logging.error("Failed to upgrade pip", exc_info=True)
 
 
 def _run(cmd: Sequence[Union[str, Path]], check=True) -> int:
