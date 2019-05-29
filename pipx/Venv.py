@@ -36,6 +36,10 @@ class SharedLibs:
         if self.updated:
             return
 
+        ignored_args = ["--editable"]
+        _pip_args = [arg for arg in pip_args if arg not in ignored_args]
+        if not verbose:
+            _pip_args.append("-q")
         try:
             with animate("upgrading shared libraries", not verbose):
                 _run(
@@ -44,8 +48,8 @@ class SharedLibs:
                         "-m",
                         "pip",
                         "--disable-pip-version-check",
-                        *pip_args,
                         "install",
+                        *_pip_args,
                         "--upgrade",
                         "pip",
                         "setuptools",
