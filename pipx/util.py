@@ -77,8 +77,8 @@ else:
         python_path = bin_path / "python"
         site_packages = (
             root
-            / "Lib"
-            / f"python{sys.version_info.major}.{sys.version_info.minor}"
-            / "site-packages"
+            / "lib"  # noqa E503
+            / f"python{sys.version_info.major}.{sys.version_info.minor}"  # noqa E503
+            / "site-packages"  # noqa E503
         )
         return bin_path, python_path, site_packages
