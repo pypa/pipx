@@ -35,7 +35,7 @@ from .util import (
     rmdir,
     run_pypackage_bin,
 )
-from .Venv import Venv, SharedLibs
+from .Venv import Venv
 
 
 def run(
@@ -213,8 +213,7 @@ def upgrade(
     do_animation = not verbose
 
     # Upgrade shared libraries (pip, setuptools and wheel)
-    shared = SharedLibs(verbose=verbose)
-    shared.upgrade()
+    venv.upgrade_shared(pip_args)
 
     with animate(f"upgrading package {package_or_url!r}", do_animation):
         venv.upgrade_package(package_or_url, pip_args)

@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import pkgutil
 import subprocess
 from pathlib import Path
@@ -8,6 +9,55 @@ from typing import Dict, List, NamedTuple, Sequence, Union
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_LIBS
 from pipx.util import WINDOWS, PipxError, rmdir, get_venv_paths
+
+
+class SharedLibs:
+    def __init__(self):
+        self.root = PIPX_SHARED_LIBS
+        self.bin_path, self.python_path = get_venv_paths(self.root)
+        self._site_packages = None
+        self.updated = False
+
+    @property
+    def site_packages(self) -> Path:
+        if self._site_packages is None:
+            self._site_packages = _get_site_packages(self.python_path)
+
+        return self._site_packages
+
+    def create(self, pip_args: List[str], verbose: bool = False):
+        if not self.root.exists():
+            with animate("creating shared libraries", not verbose):
+                _run([DEFAULT_PYTHON, "-m", "venv", self.root])
+                self.upgrade(pip_args, verbose)
+
+    def upgrade(self, pip_args: List[str], verbose: bool = False):
+        # Don't try to upgrade multiple times per run
+        if self.updated:
+            return
+
+        try:
+            with animate("upgrading shared libraries", not verbose):
+                _run(
+                    [
+                        self.python_path,
+                        "-m",
+                        "pip",
+                        "--disable-pip-version-check",
+                        *pip_args,
+                        "install",
+                        "--upgrade",
+                        "pip",
+                        "setuptools",
+                        "wheel",
+                    ]
+                )
+                self.updated = True
+        except Exception:
+            logging.error("Failed to upgrade pip", exc_info=True)
+
+
+shared_libs = SharedLibs()
 
 
 class PipxVenvMetadata(NamedTuple):
@@ -35,7 +85,7 @@ class Venv:
     ) -> None:
         self.root = path
         self._python = python
-        self.bin_path, self.python_path, self.site_packages = get_venv_paths(self.root)
+        self.bin_path, self.python_path = get_venv_paths(self.root)
         self.verbose = verbose
         self.do_animation = not verbose
         try:
@@ -44,14 +94,12 @@ class Venv:
             self._existing = False
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
-        shared = SharedLibs(verbose=self.verbose)
-        shared.create(self._python)
         with animate("creating virtual environment", self.do_animation):
             cmd = [self._python, "-m", "venv", "--without-pip"]
             _run(cmd + venv_args + [str(self.root)])
-            pipx_pth = self.site_packages / "pipx_shared.pth"
-            # TODO: Make sure path is relative (or absolute, just be definite!)
-            pipx_pth.write_text(str(shared.site_packages), encoding="utf-8")
+            shared_libs.create(pip_args, self.verbose)
+            pipx_pth = _get_site_packages(self.python_path) / "pipx_shared.pth"
+            pipx_pth.write_text(str(shared_libs.site_packages), encoding="utf-8")
 
     def safe_to_remove(self) -> bool:
         return not self._existing
@@ -65,6 +113,9 @@ class Venv:
                 "it was not created in this session"
             )
 
+    def upgrade_shared(self, pip_args: List[str]) -> None:
+        shared_libs.upgrade(pip_args, self.verbose)
+
     def install_package(self, package_or_url: str, pip_args: List[str]) -> None:
         with animate(f"installing package {package_or_url!r}", self.do_animation):
             if pip_args is None:
@@ -75,18 +126,9 @@ class Venv:
     def get_venv_metadata_for_package(self, package: str) -> PipxVenvMetadata:
 
         data = json.loads(
-            subprocess.run(
-                [
-                    str(self.python_path),
-                    "-c",
-                    VENV_METADATA_INSPECTOR,
-                    package,
-                    str(self.bin_path),
-                ],
-                stdout=subprocess.PIPE,
-                # env=env,
-            ).stdout.decode(),
-            encoding="utf-8",
+            _get_script_output(
+                self.python_path, VENV_METADATA_INSPECTOR, package, str(self.bin_path)
+            )
         )
         data["binary_paths"] = [Path(p) for p in data["binary_paths"]]
 
@@ -132,40 +174,6 @@ class Venv:
         return _run(cmd)
 
 
-class SharedLibs:
-    def __init__(self, *, path: Path = PIPX_SHARED_LIBS, verbose: bool = False) -> None:
-        self.root = path
-        self.bin_path, self.python_path, self.site_packages = get_venv_paths(self.root)
-        self.verbose = verbose
-        self.do_animation = not verbose
-
-    def create(self, python: str = DEFAULT_PYTHON):
-        if not self.root.exists():
-            with animate("creating shared libraries", self.do_animation):
-                _run([python, "-m", "venv", self.root])
-                self.upgrade()
-
-    def upgrade(self):
-        # TODO: Don't upgrade multiple times per run (day?)
-        try:
-            with animate("upgrading shared libraries", self.do_animation):
-                _run(
-                    [
-                        self.python_path,
-                        "-m",
-                        "pip",
-                        "--disable-pip-version-check",
-                        "install",
-                        "--upgrade",
-                        "pip",
-                        "setuptools",
-                        "wheel",
-                    ]
-                )
-        except Exception:
-            logging.error("Failed to upgrade pip", exc_info=True)
-
-
 def _run(cmd: Sequence[Union[str, Path]], check=True) -> int:
     """Run arbitrary command as subprocess"""
 
@@ -177,3 +185,20 @@ def _run(cmd: Sequence[Union[str, Path]], check=True) -> int:
     if check and returncode:
         raise PipxError(f"{cmd_str!r} failed")
     return returncode
+
+
+def _get_script_output(interpreter: Path, script: str, *args) -> str:
+    # Make sure that Python writes output in UTF-8
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "utf-8"
+    output = subprocess.run(
+        [str(interpreter), "-c", script, *args], stdout=subprocess.PIPE, env=env
+    ).stdout.decode(encoding="utf-8")
+    return output
+
+
+def _get_site_packages(python: Path) -> Path:
+    output = _get_script_output(
+        python, "import sysconfig; print(sysconfig.get_path('purelib'))"
+    )
+    return Path(output)

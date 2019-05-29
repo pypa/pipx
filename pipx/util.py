@@ -63,22 +63,15 @@ def run_pypackage_bin(bin_path: Path, args: List[str]) -> int:
 
 if WINDOWS:
 
-    def get_venv_paths(root: Path) -> Tuple[Path, Path, Path]:
+    def get_venv_paths(root: Path) -> Tuple[Path, Path]:
         bin_path = root / "Scripts"
         python_path = bin_path / "python.exe"
-        site_packages = root / "Lib/site-packages"
-        return bin_path, python_path, site_packages
+        return bin_path, python_path
 
 
 else:
 
-    def get_venv_paths(root: Path) -> Tuple[Path, Path, Path]:
+    def get_venv_paths(root: Path) -> Tuple[Path, Path]:
         bin_path = root / "bin"
         python_path = bin_path / "python"
-        site_packages = (
-            root
-            / "lib"  # noqa E503
-            / f"python{sys.version_info.major}.{sys.version_info.minor}"  # noqa E503
-            / "site-packages"  # noqa E503
-        )
-        return bin_path, python_path, site_packages
+        return bin_path, python_path
