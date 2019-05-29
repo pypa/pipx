@@ -4,7 +4,7 @@ import logging
 import shutil
 import subprocess
 import sys
-from typing import List, Generator
+from typing import List, Generator, Tuple
 
 
 class PipxError(Exception):
@@ -96,7 +96,7 @@ def autocomplete_list_of_installed_packages(
 
 if WINDOWS:
 
-    def get_venv_paths(root: Path) -> List[Path]:
+    def get_venv_paths(root: Path) -> Tuple[Path, Path, Path]:
         bin_path = root / "Scripts"
         python_path = bin_path / "python.exe"
         site_packages = root / "Lib/site-packages"
@@ -105,7 +105,7 @@ if WINDOWS:
 
 else:
 
-    def get_venv_paths(root: Path) -> List[Path]:
+    def get_venv_paths(root: Path) -> Tuple[Path, Path, Path]:
         bin_path = root / "bin"
         python_path = bin_path / "python"
         site_packages = (
