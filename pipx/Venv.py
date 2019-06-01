@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Dict, List, NamedTuple, Sequence, Union
 
 from pipx.animate import animate
-from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_LIBS
+from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_LIBS, PIPX_SHARED_PTH
 from pipx.util import WINDOWS, PipxError, rmdir, get_venv_paths
 
 
@@ -96,13 +96,19 @@ class Venv:
             self._existing = self.root.exists() and next(self.root.iterdir())
         except StopIteration:
             self._existing = False
+        if self._existing:
+            pth_files = self.root.glob("**/" + PIPX_SHARED_PTH)
+            self.uses_shared_libs = next(pth_files, None) is not None
+        else:
+            # create_venv always uses shared libs
+            self.uses_shared_libs = True
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
             cmd = [self._python, "-m", "venv", "--without-pip"]
             _run(cmd + venv_args + [str(self.root)])
             shared_libs.create(pip_args, self.verbose)
-            pipx_pth = _get_site_packages(self.python_path) / "pipx_shared.pth"
+            pipx_pth = _get_site_packages(self.python_path) / PIPX_SHARED_PTH
             pipx_pth.write_text(str(shared_libs.site_packages), encoding="utf-8")
 
     def safe_to_remove(self) -> bool:
@@ -118,7 +124,12 @@ class Venv:
             )
 
     def upgrade_shared(self, pip_args: List[str]) -> None:
-        shared_libs.upgrade(pip_args, self.verbose)
+        if self.uses_shared_libs:
+            shared_libs.upgrade(pip_args, self.verbose)
+        else:
+            # TODO: setuptools and wheel? Original code didn't bother
+            # but shared libs code does.
+            self.upgrade_package("pip", pip_args)
 
     def install_package(self, package_or_url: str, pip_args: List[str]) -> None:
         with animate(f"installing package {package_or_url!r}", self.do_animation):
@@ -168,8 +179,6 @@ class Venv:
 
     def upgrade_package(self, package_or_url: str, pip_args: List[str]):
         self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
-
-    # TODO: def upgrade_pip() - gets shared libs and upgrades, or upgrades in place
 
     def _run_pip(self, cmd):
         cmd = [self.python_path, "-m", "pip"] + cmd
