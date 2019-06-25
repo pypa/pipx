@@ -4,8 +4,8 @@ Here are some programs you can try out. If you've never used the program before,
 pipx install ansible  # IT automation
 pipx run asciinema  # Record and share your terminal sessions, the right way.
 pipx run black  # uncompromising Python code formatter
-pipx --spec babel run pybabel  # internationalizing and localizing Python applications
-pipx --spec chardet run chardetect  # detect file encoding
+pipx run --spec=babel pybabel --help  # internationalizing and localizing Python applications
+pipx run --spec=chardet chardetect --help  # detect file encoding
 pipx run cookiecutter  # creates projects from project templates
 pipx run create-python-package  # easily create and publish new Python packages
 pipx run flake8  # tool for style guide enforcement
