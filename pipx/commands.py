@@ -4,18 +4,18 @@ import datetime
 import hashlib
 import logging
 import multiprocessing
-import os
 import shlex
 import shutil
 import subprocess
 import textwrap
 import time
-import sys
 import urllib.parse
 import urllib.request
 from pathlib import Path
 from shutil import which
-from typing import List, Optional
+from typing import List
+
+import userpath  # type: ignore
 
 from .animate import animate
 from .colors import bold, red
@@ -25,7 +25,6 @@ from .constants import (
     PIPX_VENV_CACHEDIR,
     TEMP_VENV_EXPIRATION_THRESHOLD_DAYS,
 )
-
 from .emojies import hazard, sleep, stars
 from .util import (
     WINDOWS,
@@ -648,65 +647,18 @@ def run_pip(package: str, venv_dir: Path, pip_args: List[str], verbose: bool):
     venv._run_pip(pip_args)
 
 
-def ensurepath(bin_dir: Path):
-    print("ensurepath command is deprecated. Use 'userpath' instead.", file=sys.stderr)
-    print("See https://github.com/pipxproject/pipx for usage.", file=sys.stderr)
-
-    shell = os.environ.get("SHELL", "")
-    config_file: Optional[str]
-    if "bash" in shell:
-        config_file = "~/.bashrc"
-    elif "zsh" in shell:
-        config_file = "~/.zshrc"
-    elif "fish" in shell:
-        config_file = "~/.config/fish/config.fish"
-    else:
-        config_file = None
-
-    if config_file:
-        config_file = os.path.expanduser(config_file)
-
-    if config_file and os.path.exists(config_file):
-        with open(config_file, "a") as f:
-            f.write("\n# added by pipx (https://github.com/pipxproject/pipx)\n")
-            if "fish" in shell:
-                f.write(f"set -x PATH {str(bin_dir)} $PATH\n\n")
-            else:
-                f.write(f'export PATH="{str(bin_dir)}{os.pathsep}$PATH"\n')
-        print(f"Added {str(bin_dir)} to the PATH environment variable in {config_file}")
-        print("")
-        print(f"Open a new terminal to use pipx {stars}")
-    else:
-        if WINDOWS:
-            print(
-                textwrap.dedent(
-                    f"""
-                Note {hazard}:
-                To finish installation, {str(bin_dir)!r} must be added to your PATH
-                environment variable.
-
-                To do this, go to settings and type "Environment Variables".
-                In the Environment Variables window edit the PATH variable
-                by adding the following to the end of the value, then open a new
-                terminal.
-
-                    ;{str(bin_dir)}
-            """
+def ensurepath(location: Path, *, force: bool):
+    if userpath.in_current_path(str(location)):
+        if not force:
+            logging.warning(
+                (
+                    f"The directory `{str(location)}` is already in PATH. If you "
+                    "are sure you want to proceed, try again with "
+                    "the '--force' flag."
                 )
             )
-
-        else:
-            print(
-                textwrap.dedent(
-                    f"""
-                    Note:
-                    To finish installation, {str(bin_dir)!r} must be added to your PATH
-                    environemnt variable.
-
-                    To do this, add the following line to your shell
-                    config file (such as ~/.bashrc if using bash):
-
-                        export PATH={str(bin_dir)}:$PATH
-                """
-                )
-            )
+            return
+    userpath.append(str(location))
+    print(f"Success! Added {str(location)} to the PATH environment variable.")
+    print("")
+    print(f"Open a new terminal to use pipx {stars}")
