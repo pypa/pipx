@@ -4,11 +4,11 @@ python:
   - "3.6"
   # - "3.7"
 install:
-  - pip install tox tox-venv .[dev]
+  - pip install tox tox-venv
 script:
   - python setup.py check --metadata --strict
-  - check-manifest
   - tox
+  - tox -e docs
 
 cache:
   pip: true

@@ -1,5 +1,4 @@
-.PHONY: build publish docs test
-
+.PHONY: test build publish clean
 
 test:
 	python setup.py test
@@ -13,4 +12,3 @@ publish: build
 
 clean:
 	rm -r build dist *.egg-info || true
-
