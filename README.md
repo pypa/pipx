@@ -9,7 +9,7 @@ See Contributing for how to update this file.
 </p>
 
 <p align="center">
-*pipx: execute binaries from Python packages in isolated environments*
+pipx: execute binaries from Python packages in isolated environments
 </p>
 
 **Documentation**: https://pipxproject.github.io/pipx/
