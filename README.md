@@ -4,12 +4,12 @@ See Contributing for how to update this file.
 --->
 <p align="center">
 <a href="https://pipxproject.github.io/pipx/">
-<img align="center" src="https://github.com/pipxproject/pipx/raw/master/logo.png"/>
+<img align="center" src="https://github.com/pipxproject/pipx/raw/master/logo.png" height="200px"/>
 </a>
 </p>
 
 <p align="center">
-pipx: execute binaries from Python packages in isolated environments
+*pipx: execute binaries from Python packages in isolated environments*
 </p>
 
 **Documentation**: https://pipxproject.github.io/pipx/

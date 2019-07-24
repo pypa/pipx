@@ -18,4 +18,4 @@ Documentation is generated with `mkdocs` which generates documentation from seve
 
 First, build the documentation virtualenv with `tox -e docs`. This will also build the documentation.
 
-If you make changes to any template files, enter the virtualenv: `source .tox/docs/bin/activate`. Rebuild the documentation with `mkdocs build`. To serve documentation, `mkdocs serve`. To publish documentation to GitHub pages, `mkdocs gh-pages`.
+If you make changes to any template files, enter the virtualenv: `source .tox/docs/bin/activate`. Rebuild the documentation with `mkdocs build`. To serve documentation, `mkdocs serve`. To publish documentation to GitHub pages, `mkdocs gh-deploy`.
