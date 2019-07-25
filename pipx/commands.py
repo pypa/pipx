@@ -648,16 +648,23 @@ def run_pip(package: str, venv_dir: Path, pip_args: List[str], verbose: bool):
 
 
 def ensurepath(location: Path, *, force: bool):
-    if userpath.in_current_path(str(location)):
+    if userpath.in_current_path(str(location)) or userpath.need_shell_restart(location):
         if not force:
-            logging.warning(
-                (
-                    f"The directory `{str(location)}` is already in PATH. If you "
-                    "are sure you want to proceed, try again with "
-                    "the '--force' flag."
+            if userpath.need_shell_restart(location):
+                print(
+                    f"{str(location)} has been already been added to PATH. "
+                    "Open a new terminal for the change to take effect."
                 )
-            )
+            else:
+                logging.warning(
+                    (
+                        f"The directory `{str(location)}` is already in PATH. If you "
+                        "are sure you want to proceed, try again with "
+                        "the '--force' flag."
+                    )
+                )
             return
+
     userpath.append(str(location))
     print(f"Success! Added {str(location)} to the PATH environment variable.")
     print("")
