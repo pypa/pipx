@@ -68,3 +68,10 @@ pipx run nox --session docs
 pipx run nox --session docs
 .nox/docs-3-6/bin/mkdocs serve
 ```
+
+## Release
+To create a new release
+* make sure the changelog is updated
+* update the version of pipx defined in `setup.py`
+* run `make publish`
+* publish updated documenation

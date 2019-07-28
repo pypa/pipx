@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
+
 """The command line interface to pipx"""
 
 import argcomplete
@@ -313,7 +315,7 @@ def get_command_parser():
         help="Upgrade a package",
         description="Upgrade a package in a pipx-managed Virtual Environment by running 'pip install --upgrade PACKAGE'",
     )
-    p.add_argument("package")
+    p.add_argument("package").completer = autocomplete_list_of_installed_packages
     p.add_argument("--spec", help=SPEC_HELP)
     add_include_deps(p)
     add_pip_venv_args(p)

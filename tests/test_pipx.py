@@ -81,6 +81,7 @@ class TestPipxCommands(unittest.TestCase):
     def test_basic_commands(self):
         subprocess.run([self.pipx_bin, "--version"], check=True)
         subprocess.run([self.pipx_bin, "list"], check=True)
+        subprocess.run([self.pipx_bin, "completions"], check=True)
 
     def test_pipx_help_contains_text(self):
         ret = subprocess.run(
