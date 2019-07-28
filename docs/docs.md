@@ -44,8 +44,8 @@ subcommands:
                         directory (experimental).
     runpip              Run pip in an existing pipx-managed Virtual
                         Environment
-    ensurepath          Deprecated, will be removed in a future release. Use
-                        `userpath` instead.
+    ensurepath          Ensure directory where pipx stores binaries is on your
+                        PATH environment variable
 
 ```
 

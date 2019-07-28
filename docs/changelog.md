@@ -1,3 +1,7 @@
+0.13.1.2
+
+- Un-deprecate `ensurepath`. Use `userpath` internally instead of instructing users to run the `userpath` cli command.
+
 0.13.1.1
 
 - Do not raise bare exception if no binaries found (#150)

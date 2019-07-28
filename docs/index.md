@@ -30,7 +30,7 @@ _pipx uses the word "binary" to describe a CLI application that can be run direc
 
 ```
 python3 -m pip install --user pipx
-python3 -m userpath append ~/.local/bin
+python3 -m pipx ensurepath
 ```
 
 For more details, see [installation](installation).

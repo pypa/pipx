@@ -35,7 +35,7 @@ In a hurry? Here's how to get started with pipx:
 
 ```
 python3 -m pip install --user pipx
-python3 -m userpath append ~/.local/bin
+python3 -m pipx ensurepath
 ```
 
 For more details, see [installation](https://pipxproject.github.io/pipx/installation/).
