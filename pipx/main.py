@@ -440,7 +440,8 @@ def get_command_parser():
         "ensurepath",
         help=(
             "Ensure directory where pipx stores binaries is on your "
-            "PATH environment variable"
+            "PATH environment variable. Note that running this may modify "
+            "your shell's configuration file(s) such as '~/.bashrc'."
         ),
     )
     p.add_argument(

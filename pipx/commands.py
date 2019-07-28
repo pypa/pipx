@@ -648,24 +648,33 @@ def run_pip(package: str, venv_dir: Path, pip_args: List[str], verbose: bool):
 
 
 def ensurepath(location: Path, *, force: bool):
-    if userpath.in_current_path(str(location)) or userpath.need_shell_restart(location):
+    location_str = str(location)
+
+    post_install_message = (
+        "You likely need to open a new terminal or re-login for "
+        "the changes to take effect."
+    )
+    if userpath.in_current_path(location_str) or userpath.need_shell_restart(
+        location_str
+    ):
         if not force:
-            if userpath.need_shell_restart(location):
+            if userpath.need_shell_restart(location_str):
                 print(
-                    f"{str(location)} has been already been added to PATH. "
-                    "Open a new terminal for the change to take effect."
+                    f"{location_str} has been already been added to PATH. "
+                    f"{post_install_message}"
                 )
             else:
                 logging.warning(
                     (
-                        f"The directory `{str(location)}` is already in PATH. If you "
+                        f"The directory `{location_str}` is already in PATH. If you "
                         "are sure you want to proceed, try again with "
-                        "the '--force' flag."
+                        "the '--force' flag.\n\n"
+                        f"Otherwise pipx is ready to go! {stars}"
                     )
                 )
             return
 
-    userpath.append(str(location))
-    print(f"Success! Added {str(location)} to the PATH environment variable.")
+    userpath.append(location_str)
+    print(f"Success! Added {location_str} to the PATH environment variable.")
     print("")
-    print(f"Open a new terminal to use pipx {stars}")
+    print(f"{post_install_message} {stars}")
