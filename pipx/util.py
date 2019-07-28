@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 from typing import List
+from .constants import PIPX_LOCAL_VENVS
 
 
 class PipxError(Exception):
@@ -59,3 +60,7 @@ def run_pypackage_bin(bin_path: Path, args: List[str]) -> int:
         ).returncode
     except KeyboardInterrupt:
         return 1
+
+
+def autocomplete_list_of_installed_packages(*args, **kwargs) -> List[str]:
+    return list(str(p.name) for p in sorted(PIPX_LOCAL_VENVS.iterdir()))

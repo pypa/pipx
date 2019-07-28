@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-
 """The command line interface to pipx"""
 
+import argcomplete
 import argparse
 import logging
 import shlex
@@ -19,8 +19,9 @@ from .constants import (
     PIPX_LOCAL_VENVS,
     PIPX_VENV_CACHEDIR,
     TEMP_VENV_EXPIRATION_THRESHOLD_DAYS,
+    completion_instructions,
 )
-from .util import PipxError, mkdir
+from .util import PipxError, mkdir, autocomplete_list_of_installed_packages
 
 __version__ = "0.13.1.1"
 
@@ -217,6 +218,8 @@ def run_pipx_command(args, binary_args: List[str]):
             commands.ensurepath(LOCAL_BIN_DIR, force=args.force)
         except Exception as e:
             raise PipxError(e)
+    elif args.command == "completions":
+        print(completion_instructions)
     else:
         raise PipxError(f"Unknown command {args.command}")
 
@@ -290,7 +293,7 @@ def get_command_parser():
     p.add_argument(
         "package",
         help="Name of the existing pipx-managed Virtual Environment to inject into",
-    )
+    ).completer = autocomplete_list_of_installed_packages
     p.add_argument(
         "dependencies",
         nargs="+",
@@ -333,7 +336,7 @@ def get_command_parser():
         help="Uninstall a package",
         description="Uninstalls a pipx-managed Virtual Environment by deleting it and any files that point to its binaries.",
     )
-    p.add_argument("package")
+    p.add_argument("package").completer = autocomplete_list_of_installed_packages
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
@@ -431,7 +434,7 @@ def get_command_parser():
     p.add_argument(
         "package",
         help="Name of the existing pipx-managed Virtual Environment to run pip in",
-    )
+    ).completer = autocomplete_list_of_installed_packages
     p.add_argument("pipargs", nargs="*", help="Arguments to forward to pip command")
     p.add_argument("--verbose", action="store_true")
 
@@ -452,6 +455,10 @@ def get_command_parser():
         ),
     )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
+    p = subparsers.add_parser(
+        "completions",
+        help=("Print instructions on enabling shell completions for pipx"),
+    )
     return parser
 
 
@@ -508,6 +515,9 @@ def cli():
     try:
         args_to_parse, binary_args = split_run_argv(sys.argv)
         parser = get_command_parser()
+
+        argcomplete.autocomplete(parser)
+
         parsed_pipx_args = parser.parse_args(args_to_parse)
         setup(parsed_pipx_args)
         if not parsed_pipx_args.command:
