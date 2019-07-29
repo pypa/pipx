@@ -29,6 +29,7 @@ from .emojies import hazard, sleep, stars
 from .util import (
     WINDOWS,
     PipxError,
+    VenvContainer,
     get_pypackage_bin_path,
     mkdir,
     rmdir,
@@ -244,7 +245,7 @@ def upgrade(
 
 
 def upgrade_all(
-    pipx_local_venvs: Path,
+    venv_container: VenvContainer,
     pip_args: List[str],
     verbose: bool,
     *,
@@ -253,7 +254,7 @@ def upgrade_all(
 ):
     packages_upgraded = 0
     num_packages = 0
-    for venv_dir in pipx_local_venvs.iterdir():
+    for venv_dir in venv_container.iter_venv_dirs():
         num_packages += 1
         package = venv_dir.name
         if package in skip:
@@ -451,14 +452,14 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
     print(f"uninstalled {package}! {stars}")
 
 
-def uninstall_all(pipx_local_venvs: Path, local_bin_dir: Path, verbose: bool):
-    for venv_dir in pipx_local_venvs.iterdir():
+def uninstall_all(venv_container: VenvContainer, local_bin_dir: Path, verbose: bool):
+    for venv_dir in venv_container.iter_venv_dirs():
         package = venv_dir.name
         uninstall(venv_dir, package, local_bin_dir, verbose)
 
 
 def reinstall_all(
-    pipx_local_venvs: Path,
+    venv_container: VenvContainer,
     local_bin_dir: Path,
     python: str,
     pip_args: List[str],
@@ -468,7 +469,7 @@ def reinstall_all(
     *,
     skip: List[str],
 ):
-    for venv_dir in pipx_local_venvs.iterdir():
+    for venv_dir in venv_container.iter_venv_dirs():
         package = venv_dir.name
         if package in skip:
             continue
@@ -600,13 +601,13 @@ def _get_list_output(
     return "\n".join(output)
 
 
-def list_packages(pipx_local_venvs: Path):
-    dirs = list(sorted(pipx_local_venvs.iterdir()))
+def list_packages(venv_container: VenvContainer):
+    dirs = list(sorted(venv_container.iter_venv_dirs()))
     if not dirs:
         print(f"nothing has been installed with pipx {sleep}")
         return
 
-    print(f"venvs are in {bold(str(pipx_local_venvs))}")
+    print(f"venvs are in {bold(str(venv_container))}")
     print(f"binaries are exposed on your $PATH at {bold(str(LOCAL_BIN_DIR))}")
 
     with multiprocessing.Pool() as p:

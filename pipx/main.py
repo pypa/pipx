@@ -5,6 +5,7 @@
 
 import argcomplete  # type: ignore
 import argparse
+import functools
 import logging
 import shlex
 import sys
@@ -23,7 +24,12 @@ from .constants import (
     TEMP_VENV_EXPIRATION_THRESHOLD_DAYS,
     completion_instructions,
 )
-from .util import PipxError, mkdir, autocomplete_list_of_installed_packages
+from .util import (
+    PipxError,
+    VenvContainer,
+    mkdir,
+    autocomplete_list_of_installed_packages as _autocomplete_list_of_installed_packages,
+)
 
 __version__ = "0.13.1.1"
 
@@ -114,6 +120,8 @@ def run_pipx_command(args, binary_args: List[str]):
     pip_args = get_pip_args(vars(args))
     venv_args = get_venv_args(vars(args))
 
+    venv_container = VenvContainer(PIPX_LOCAL_VENVS)
+
     if "package" in args:
         package = args.package
         if urllib.parse.urlparse(package).scheme:
@@ -124,7 +132,7 @@ def run_pipx_command(args, binary_args: List[str]):
                 if "#egg=" not in args.spec:
                     args.spec = args.spec + f"#egg={package}"
 
-        venv_dir = PIPX_LOCAL_VENVS / package
+        venv_dir = venv_container.get_venv_dir(package)
         logging.info(f"Virtual Environment location is {venv_dir}")
 
     if args.command == "run":
@@ -187,14 +195,14 @@ def run_pipx_command(args, binary_args: List[str]):
             include_deps=args.include_deps,
         )
     elif args.command == "list":
-        commands.list_packages(PIPX_LOCAL_VENVS)
+        commands.list_packages(venv_container)
     elif args.command == "uninstall":
         commands.uninstall(venv_dir, package, LOCAL_BIN_DIR, verbose)
     elif args.command == "uninstall-all":
-        commands.uninstall_all(PIPX_LOCAL_VENVS, LOCAL_BIN_DIR, verbose)
+        commands.uninstall_all(venv_container, LOCAL_BIN_DIR, verbose)
     elif args.command == "upgrade-all":
         commands.upgrade_all(
-            PIPX_LOCAL_VENVS,
+            venv_container,
             pip_args,
             verbose,
             include_deps=args.include_deps,
@@ -202,7 +210,7 @@ def run_pipx_command(args, binary_args: List[str]):
         )
     elif args.command == "reinstall-all":
         commands.reinstall_all(
-            PIPX_LOCAL_VENVS,
+            venv_container,
             LOCAL_BIN_DIR,
             args.python,
             pip_args,
@@ -254,6 +262,13 @@ def add_include_deps(parser):
 
 
 def get_command_parser():
+    venv_container = VenvContainer(PIPX_LOCAL_VENVS)
+
+    autocomplete_list_of_installed_packages = functools.partial(
+        _autocomplete_list_of_installed_packages,
+        venv_container,
+    )
+
     parser = argparse.ArgumentParser(
         formatter_class=LineWrapRawTextHelpFormatter, description=PIPX_DESCRIPTION
     )
