@@ -1,6 +1,7 @@
 0.13.1.2
 
 - Un-deprecate `ensurepath`. Use `userpath` internally instead of instructing users to run the `userpath` cli command.
+- [dev] Migrate from tox to nox
 
 0.13.1.1
 

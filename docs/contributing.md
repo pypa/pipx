@@ -1,21 +1,65 @@
-pipx uses [tox](https://pypi.org/project/tox/) for development, continuous integration testing, and automation.
+pipx uses [nox](https://pypi.org/project/nox/) for development, continuous integration testing, and automation.
 
 ## Developing pipx
 
-To develop `pipx`, first clone the repository, have `tox` installed somewhere on your system, then run:
+pipx uses pipx to develop -- it's recursive! But don't worry, it's not that scary. You'll be up in running in no time.
+
+To develop `pipx`, first clone the repository, and have a stable version of `pipx` installed.
+
+Next, run this command which will set up a virtual environment for each Python version pipx tests against. Currently this is only Python 3.6, so you must have python3.6 on your system.
 ```
-tox --notest
+pipx run --spec=git+https://github.com/cs01/nox.git@205b64ab8f9 nox --session develop
 ```
 
-This will perform an editable install of `pipx` for each environment listed in `envlist` in the `tox.ini`. Currently, this is only `py36`. Enter the virtualenv with `source .tox/py36/bin/activate`. Any changes you make to pipx source code will be reflected immediately in the virtualenv's `pipx` executable.
+<details markdown="1">
+<summary>pipx requires a branch of <code>nox</code> to run tests at the moment</summary>
+For tests to work, pipx requires nox to create virtual environments with venv. nox currently uses virtualenv. pipx uses a fork of nox at https://github.com/cs01/nox on the branch cs01/use-venv until this is fixed in nox. See https://github.com/theacodes/nox/issues/199
 
-Make sure your changes pass tests by first exiting the virtual environment, then running `tox`.
+</details>
 
+A virtual environment with required dependencies is now sandboxed and ready to go in `.nox/develop-3.6`. Any changes you make to pipx source code will be reflected immediately in the virtual environment inside `.nox/develop-3.6`.
+
+So how do you run with that environment? You can  either enter the virtual environment with `source .nox/develop-3.6/bin/activate` and run `pipx`, or you can run the development `pipx` directly with `.nox/develop-3.6/bin/pipx`. Either way, it's running directly from the source code you just cloned and will reflect any changes you make. In one case the command is a bit longer but your environment isn't modified. In the other, you can type `pipx` but you have to enter the virtual environment. Whichever you prefer will work fine.
+
+## Testing pipx locally
+pipx uses the test automation framework [nox](https://github.com/theacodes/nox). Test definitions live in `noxfile.py`.
+
+Run tests by exiting any virtual environment, then running
+```
+pipx run --spec=git+https://github.com/cs01/nox.git@205b64ab8f9 nox
+```
+
+<details markdown="1">
+<summary>pipx requires a branch of <code>nox</code> to run tests at the moment</summary>
+For tests to work, pipx requires nox to create virtual environments with venv. nox currently uses virtualenv. pipx uses a fork of nox at https://github.com/cs01/nox on the branch cs01/use-venv until this is fixed in nox. See https://github.com/theacodes/nox/issues/199
+</details>
+
+This will create virtual environments for each nox "session" in the `.nox` folder. If you want to run specific sessions, you can pass the `--session` argument to `nox`. To list sessions, pass `--list`.
 
 ## Documentation
 
-Documentation is generated with `mkdocs` which generates documentation from several `.md` files in `docs`. Some of those `.md` files, as well as the main `README.md` file are generated from a `templates` directory.
+Documentation has a couple steps to it. The first step is to generate markdown files that contain the current pipx API and fill in various templates (see `templates` directory). These files will have a header at the top indicating they were generated and shouldn't be manually modified.
 
-First, build the documentation virtualenv with `tox -e docs`. This will also build the documentation.
+The second is to compile the markdown files in `docs` with `mkdocs`.
 
-If you make changes to any template files, enter the virtualenv: `source .tox/docs/bin/activate`. Rebuild the documentation with `mkdocs build`. To serve documentation, `mkdocs serve`. To publish documentation to GitHub pages, `mkdocs gh-deploy`.
+Both of these steps are done in a single build command:
+```
+pipx run nox --session docs
+```
+
+To preview changes, including live reloading, run
+```
+.nox/docs-3-6/bin/mkdocs serve
+```
+
+If you make changes to the pipx cli api or any template, regenerate the `.md` files in the `docs` folder:
+```
+pipx run nox --session docs
+```
+
+### Publishing Changes to GitHub pages
+
+```
+pipx run nox --session docs
+.nox/docs-3-6/bin/mkdocs serve
+```

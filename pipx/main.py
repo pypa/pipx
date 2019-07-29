@@ -22,7 +22,6 @@ from .constants import (
 )
 from .util import PipxError, mkdir
 
-
 __version__ = "0.13.1.1"
 
 
