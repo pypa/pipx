@@ -1,5 +1,5 @@
-0.13.1.2
-
+0.13.2.0
+- Add shell autocompletions. Also add `pipx completions` command to print instructions on how to add pipx completions to your shell.
 - Un-deprecate `ensurepath`. Use `userpath` internally instead of instructing users to run the `userpath` cli command.
 - [dev] Migrate from tox to nox
 

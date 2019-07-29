@@ -20,5 +20,3 @@ New versions of pipx are published as beta or release candidates. These versions
 ```
 pip install --user pipx --upgrade --dev
 ```
-Development occurs on the `dev` branch of this repository. If there is no such branch, that means there is no work currently in development for a new version.
-

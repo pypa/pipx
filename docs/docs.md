@@ -6,7 +6,7 @@ See Contributing for how to update this file.
 ```
 pipx --help
 usage: pipx [-h] [--version]
-            {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip,ensurepath}
+            {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip,ensurepath,completions}
             ...
 
 Install and execute binaries from Python packages.
@@ -27,7 +27,7 @@ optional arguments:
 subcommands:
   Get help for commands with pipx COMMAND --help
 
-  {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip,ensurepath}
+  {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip,ensurepath,completions}
     install             Install a package
     inject              Install packages into an existing Virtual Environment
     upgrade             Upgrade a package
@@ -48,6 +48,8 @@ subcommands:
                         PATH environment variable. Note that running this may
                         modify your shell's configuration file(s) such as
                         '~/.bashrc'.
+    completions         Print instructions on enabling shell completions for
+                        pipx
 
 ```
 
