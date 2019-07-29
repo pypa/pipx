@@ -265,8 +265,7 @@ def get_command_parser():
     venv_container = VenvContainer(PIPX_LOCAL_VENVS)
 
     autocomplete_list_of_installed_packages = functools.partial(
-        _autocomplete_list_of_installed_packages,
-        venv_container,
+        _autocomplete_list_of_installed_packages, venv_container
     )
 
     parser = argparse.ArgumentParser(

@@ -64,6 +64,7 @@ def run_pypackage_bin(bin_path: Path, args: List[str]) -> int:
 class VenvContainer:
     """A collection of venvs managed by pipx.
     """
+
     def __init__(self, root: Path):
         self._root = root
 
@@ -82,14 +83,12 @@ class VenvContainer:
             yield entry
 
     def get_venv_dir(self, package: str) -> Path:
-        """Name the expected venv path for given `package`.
+        """Return the expected venv path for given `package`.
         """
         return self._root.joinpath(package)
 
 
 def autocomplete_list_of_installed_packages(
-    venv_container: VenvContainer,
-    *args,
-    **kwargs,
+    venv_container: VenvContainer, *args, **kwargs
 ) -> List[str]:
     return list(str(p.name) for p in sorted(venv_container.iter_venv_dirs()))
