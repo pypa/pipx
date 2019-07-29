@@ -6,9 +6,14 @@ pipx uses pipx to develop -- it's recursive! But don't worry, it's not that scar
 
 To develop `pipx`, first clone the repository, and have a stable version of `pipx` installed.
 
-Next, run this command which will set up a virtual environment for each Python version pipx tests against. Currently this is only Python 3.6, so you must have python3.6 on your system.
+Next, run this command which will set up a virtual environment for each Python version pipx tests against. Don't worry, you can develop as long as you have any of the Python versions installed on your system.
 ```
-pipx run --spec=git+https://github.com/cs01/nox.git@205b64ab8f9 nox --session develop
+pipx run --spec=git+https://github.com/cs01/nox.git@7f65d2abc nox --session develop
+```
+
+Alternatively, you can install this version of nox on your system:
+```
+pip install git+https://github.com/cs01/nox.git@7f65d2abc#egg=nox
 ```
 
 <details markdown="1">
@@ -26,7 +31,7 @@ pipx uses the test automation framework [nox](https://github.com/theacodes/nox).
 
 Run tests by exiting any virtual environment, then running
 ```
-pipx run --spec=git+https://github.com/cs01/nox.git@205b64ab8f9 nox
+pipx run --spec=git+https://github.com/cs01/nox.git@7f65d2abc nox
 ```
 
 <details markdown="1">

@@ -98,8 +98,12 @@ class TestPipxCommands(unittest.TestCase):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        self.assertTrue("pipx" not in ret.stdout.decode().lower())
-        self.assertTrue("pipx" not in ret.stderr.decode().lower())
+        stdout = ret.stdout.decode().lower()
+        stderr = ret.stderr.decode().lower()
+        print(stdout)
+        print(stderr)
+        self.assertTrue("pipx" not in stdout)
+        self.assertTrue("pipx" not in stderr)
 
     def test_pipx_venv_cache(self):
         subprocess.run(
