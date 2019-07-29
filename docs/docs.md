@@ -45,7 +45,9 @@ subcommands:
     runpip              Run pip in an existing pipx-managed Virtual
                         Environment
     ensurepath          Ensure directory where pipx stores binaries is on your
-                        PATH environment variable
+                        PATH environment variable. Note that running this may
+                        modify your shell's configuration file(s) such as
+                        '~/.bashrc'.
 
 ```
 

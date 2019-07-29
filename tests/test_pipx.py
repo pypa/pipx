@@ -14,24 +14,8 @@ from pipx.util import WINDOWS
 
 PIPX_PATH = CURDIR = Path(__file__).parent.parent
 
-
 assert not hasattr(sys, "real_prefix"), "Tests cannot run under virtualenv"
 assert getattr(sys, "base_prefix", sys.prefix) != sys.prefix, "Tests require venv"
-
-
-class PipxStaticTests(unittest.TestCase):
-    def run_cmd(self, cmd):
-        print(f"Running {' '.join(cmd)!r}")
-        rc = subprocess.run(cmd).returncode
-        if rc:
-            print(f"test failed; exiting with code {rc}")
-            exit(rc)
-
-    def test_static(self):
-        files = ["pipx", "tests"]
-        self.run_cmd(["black", "--check"] + files)
-        self.run_cmd(["flake8"] + files)
-        self.run_cmd(["mypy"] + files)
 
 
 class TestPipxArgParsing(unittest.TestCase):
@@ -114,8 +98,12 @@ class TestPipxCommands(unittest.TestCase):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        self.assertTrue("pipx" not in ret.stdout.decode().lower())
-        self.assertTrue("pipx" not in ret.stderr.decode().lower())
+        stdout = ret.stdout.decode().lower()
+        stderr = ret.stderr.decode().lower()
+        print(stdout)
+        print(stderr)
+        self.assertTrue("pipx" not in stdout)
+        self.assertTrue("pipx" not in stderr)
 
     def test_pipx_venv_cache(self):
         subprocess.run(
@@ -277,11 +265,7 @@ def main():
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
 
-    suite.addTests(
-        loader.loadTestsFromTestCase(
-            PipxStaticTests, TestPipxArgParsing, TestPipxCommands
-        )
-    )
+    suite.addTests(loader.loadTestsFromTestCase(TestPipxArgParsing, TestPipxCommands))
 
     runner = unittest.TextTestRunner(verbosity=1)
     result = runner.run(suite)
