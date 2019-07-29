@@ -9,7 +9,7 @@ import nox
 # until this is fixed in nox. See
 # https://github.com/theacodes/nox/issues/199
 
-python = ["3.6", "3.7"]
+python = ["3.6"]
 
 
 @nox.session(python=python)

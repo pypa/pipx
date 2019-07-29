@@ -3,8 +3,8 @@ sudo: required
 matrix:
   include:
   - python: '3.6'
-  - python: '3.7'
-    dist: xenial
+  # - python: '3.7'
+  #   dist: xenial
 install:
   - pip install git+https://github.com/cs01/nox.git@7f65d2abc#egg=nox
 script:
