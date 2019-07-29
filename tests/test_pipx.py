@@ -78,28 +78,28 @@ class TestPipxCommands(unittest.TestCase):
     def tearDown(self):
         self.temp_dir.cleanup()
 
-    # def test_basic_commands(self):
-    #     subprocess.run([self.pipx_bin, "--version"], check=True)
-    #     subprocess.run([self.pipx_bin, "list"], check=True)
+    def test_basic_commands(self):
+        subprocess.run([self.pipx_bin, "--version"], check=True)
+        subprocess.run([self.pipx_bin, "list"], check=True)
 
-    # def test_pipx_help_contains_text(self):
-    #     ret = subprocess.run(
-    #         [self.pipx_bin, "--help"],
-    #         stdout=subprocess.PIPE,
-    #         stderr=subprocess.PIPE,
-    #         check=True,
-    #     )
-    #     self.assertTrue("pipx" in ret.stdout.decode().lower())
+    def test_pipx_help_contains_text(self):
+        ret = subprocess.run(
+            [self.pipx_bin, "--help"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
+        self.assertTrue("pipx" in ret.stdout.decode().lower())
 
-    # def test_arg_forwarding(self):
-    #     # passing --help to pycowsay should NOT contain the word pipx
-    #     ret = subprocess.run(
-    #         [self.pipx_bin, "run", "pycowsay", "--help"],
-    #         stdout=subprocess.PIPE,
-    #         stderr=subprocess.PIPE,
-    #     )
-    #     self.assertTrue("pipx" not in ret.stdout.decode().lower())
-    #     self.assertTrue("pipx" not in ret.stderr.decode().lower())
+    def test_arg_forwarding(self):
+        # passing --help to pycowsay should NOT contain the word pipx
+        ret = subprocess.run(
+            [self.pipx_bin, "run", "pycowsay", "--help"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        self.assertTrue("pipx" not in ret.stdout.decode().lower())
+        self.assertTrue("pipx" not in ret.stderr.decode().lower())
 
     def test_pipx_venv_cache(self):
         subprocess.run(
@@ -133,128 +133,128 @@ class TestPipxCommands(unittest.TestCase):
         )
         self.assertTrue("Removing cached venv" in ret.stderr.decode())
 
-    # def test_install(self):
-    #     easy_packages = ["pycowsay", "black"]
-    #     tricky_packages = ["cloudtoken", "awscli", "ansible", "shell-functools"]
-    #     all_packages = easy_packages + tricky_packages
+    def test_install(self):
+        easy_packages = ["pycowsay", "black"]
+        tricky_packages = ["cloudtoken", "awscli", "ansible", "shell-functools"]
+        all_packages = easy_packages + tricky_packages
 
-    #     for package in all_packages:
-    #         subprocess.run([self.pipx_bin, "install", package], check=True)
+        for package in all_packages:
+            subprocess.run([self.pipx_bin, "install", package], check=True)
 
-    #     ret = subprocess.run(
-    #         [self.pipx_bin, "list"], check=True, stdout=subprocess.PIPE
-    #     )
+        ret = subprocess.run(
+            [self.pipx_bin, "list"], check=True, stdout=subprocess.PIPE
+        )
 
-    #     for package in all_packages:
-    #         self.assertTrue(package in ret.stdout.decode())
+        for package in all_packages:
+            self.assertTrue(package in ret.stdout.decode())
 
-    # def test_install_no_packages_found(self):
-    #     ret = subprocess.run(
-    #         [self.pipx_bin, "install", "--include-deps", "pygdbmi"],
-    #         stdout=subprocess.PIPE,
-    #         stderr=subprocess.PIPE,
-    #     )
-    #     self.assertTrue("No binaries associated with package" in ret.stderr.decode())
+    def test_install_no_packages_found(self):
+        ret = subprocess.run(
+            [self.pipx_bin, "install", "--include-deps", "pygdbmi"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        self.assertTrue("No binaries associated with package" in ret.stderr.decode())
 
-    # def test_editable_install(self):
-    #     subprocess.run(
-    #         [self.pipx_bin, "install", "-e", "pipx", "--spec", PIPX_PATH], check=True
-    #     )
+    def test_editable_install(self):
+        subprocess.run(
+            [self.pipx_bin, "install", "-e", "pipx", "--spec", PIPX_PATH], check=True
+        )
 
-    # def test_install_existing_package(self):
-    #     subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
-    #     subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
+    def test_install_existing_package(self):
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
 
-    # def test_runpip(self):
-    #     subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
-    #     subprocess.run([self.pipx_bin, "runpip", "pycowsay", "list"], check=True)
+    def test_runpip(self):
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
+        subprocess.run([self.pipx_bin, "runpip", "pycowsay", "list"], check=True)
 
-    # def test_include_deps_install(self):
-    #     self.assertNotEqual(
-    #         subprocess.run(
-    #             [self.pipx_bin, "install", "jupyter", "--spec", "jupyter==1.0.0"]
-    #         ).returncode,
-    #         0,
-    #     )
-    #     self.assertEqual(
-    #         subprocess.run(
-    #             [
-    #                 self.pipx_bin,
-    #                 "install",
-    #                 "--include-deps",
-    #                 "jupyter",
-    #                 "--spec",
-    #                 "jupyter==1.0.0",
-    #             ]
-    #         ).returncode,
-    #         0,
-    #     )
+    def test_include_deps_install(self):
+        self.assertNotEqual(
+            subprocess.run(
+                [self.pipx_bin, "install", "jupyter", "--spec", "jupyter==1.0.0"]
+            ).returncode,
+            0,
+        )
+        self.assertEqual(
+            subprocess.run(
+                [
+                    self.pipx_bin,
+                    "install",
+                    "--include-deps",
+                    "jupyter",
+                    "--spec",
+                    "jupyter==1.0.0",
+                ]
+            ).returncode,
+            0,
+        )
 
-    # def test_inject(self):
-    #     subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
-    #     ret = subprocess.run(
-    #         [self.pipx_bin, "inject", "pycowsay", "black"],
-    #         stdout=subprocess.PIPE,
-    #         check=True,
-    #     )
-    #     self.assertTrue("black" not in ret.stdout.decode())
-    #     self.assertNotEqual(
-    #         subprocess.run(
-    #             [self.pipx_bin, "inject", "pycowsay", "black", "--include-deps"]
-    #         ).returncode,
-    #         0,
-    #     )
-    #     ret = subprocess.run(
-    #         [
-    #             self.pipx_bin,
-    #             "inject",
-    #             "pycowsay",
-    #             "black",
-    #             "--include-binaries",
-    #             "--include-deps",
-    #         ],
-    #         stdout=subprocess.PIPE,
-    #     )
-    #     self.assertEqual(ret.returncode, 0)
-    #     self.assertTrue("black" in ret.stdout.decode())
+    def test_inject(self):
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
+        ret = subprocess.run(
+            [self.pipx_bin, "inject", "pycowsay", "black"],
+            stdout=subprocess.PIPE,
+            check=True,
+        )
+        self.assertTrue("black" not in ret.stdout.decode())
+        self.assertNotEqual(
+            subprocess.run(
+                [self.pipx_bin, "inject", "pycowsay", "black", "--include-deps"]
+            ).returncode,
+            0,
+        )
+        ret = subprocess.run(
+            [
+                self.pipx_bin,
+                "inject",
+                "pycowsay",
+                "black",
+                "--include-binaries",
+                "--include-deps",
+            ],
+            stdout=subprocess.PIPE,
+        )
+        self.assertEqual(ret.returncode, 0)
+        self.assertTrue("black" in ret.stdout.decode())
 
-    # def test_uninstall(self):
-    #     subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
-    #     subprocess.run([self.pipx_bin, "uninstall", "pycowsay"], check=True)
-    #     subprocess.run([self.pipx_bin, "uninstall-all"], check=True)
+    def test_uninstall(self):
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
+        subprocess.run([self.pipx_bin, "uninstall", "pycowsay"], check=True)
+        subprocess.run([self.pipx_bin, "uninstall-all"], check=True)
 
-    # def test_upgrade(self):
-    #     self.assertNotEqual(
-    #         subprocess.run([self.pipx_bin, "upgrade", "pycowsay"]).returncode, 0
-    #     )
-    #     subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
-    #     subprocess.run([self.pipx_bin, "upgrade", "pycowsay"], check=True)
+    def test_upgrade(self):
+        self.assertNotEqual(
+            subprocess.run([self.pipx_bin, "upgrade", "pycowsay"]).returncode, 0
+        )
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
+        subprocess.run([self.pipx_bin, "upgrade", "pycowsay"], check=True)
 
-    # def test_upgrade_all(self):
-    #     self.assertNotEqual(
-    #         subprocess.run([self.pipx_bin, "upgrade", "pycowsay"]).returncode, 0
-    #     )
-    #     subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
-    #     subprocess.run([self.pipx_bin, "upgrade-all"], check=True)
+    def test_upgrade_all(self):
+        self.assertNotEqual(
+            subprocess.run([self.pipx_bin, "upgrade", "pycowsay"]).returncode, 0
+        )
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
+        subprocess.run([self.pipx_bin, "upgrade-all"], check=True)
 
-    # def test_reinstall_all(self):
-    #     self.assertNotEqual(
-    #         subprocess.run([self.pipx_bin, "upgrade", "pycowsay"]).returncode, 0
-    #     )
-    #     subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
-    #     subprocess.run([self.pipx_bin, "reinstall-all", "python3"], check=True)
+    def test_reinstall_all(self):
+        self.assertNotEqual(
+            subprocess.run([self.pipx_bin, "upgrade", "pycowsay"]).returncode, 0
+        )
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
+        subprocess.run([self.pipx_bin, "reinstall-all", "python3"], check=True)
 
-    # def test_run_downloads_from_internet(self):
-    #     subprocess.run(
-    #         [
-    #             self.pipx_bin,
-    #             "run",
-    #             "https://gist.githubusercontent.com/cs01/"
-    #             "fa721a17a326e551ede048c5088f9e0f/raw/"
-    #             "6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py",
-    #         ],
-    #         check=True,
-    #     )
+    def test_run_downloads_from_internet(self):
+        subprocess.run(
+            [
+                self.pipx_bin,
+                "run",
+                "https://gist.githubusercontent.com/cs01/"
+                "fa721a17a326e551ede048c5088f9e0f/raw/"
+                "6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py",
+            ],
+            check=True,
+        )
 
 
 def main():
