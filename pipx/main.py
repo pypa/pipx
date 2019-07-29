@@ -3,7 +3,7 @@
 
 """The command line interface to pipx"""
 
-import argcomplete
+import argcomplete  # type: ignore
 import argparse
 import logging
 import shlex
