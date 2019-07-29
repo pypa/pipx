@@ -31,7 +31,7 @@ from .util import (
     autocomplete_list_of_installed_packages as _autocomplete_list_of_installed_packages,
 )
 
-__version__ = "0.13.1.1"
+__version__ = "0.13.2.0b0"
 
 
 def print_version() -> None:
