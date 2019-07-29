@@ -14,18 +14,18 @@ python = ["3.6", "3.7"]
 
 @nox.session(python=python)
 def develop(session):
-    session.install("-e", ".", ".[dev]", ".[docs]")
+    session.install("-e", ".", ".[dev]", ".[docs]", external=True)
 
 
 @nox.session(python=python)
 def unittests(session):
-    session.install(".")
+    session.install(".", external=True)
     session.run("python", "-m", "unittest", "discover")
 
 
 @nox.session(python=python)
 def lint(session):
-    session.install(".[dev]")
+    session.install(".[dev]", external=True)
     files = ["pipx", "tests"]
     session.run("black", "--check", *files)
     session.run("flake8", *files)
@@ -36,6 +36,6 @@ def lint(session):
 
 @nox.session(python=python)
 def docs(session):
-    session.install(".[docs]")
+    session.install(".[docs]", external=True)
     session.run("python", "generate_docs.py")
     session.run("mkdocs", "build")

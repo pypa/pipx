@@ -3,8 +3,8 @@ sudo: required
 python:
   - "3.6"
 install:
-  - pip install pipx
+  - pip install git+https://github.com/cs01/nox.git@2ba8984a#egg=nox
 script:
-  - pipx run --spec=git+https://github.com/cs01/nox.git@2ba8984a nox
+  - nox --non-interactive
 cache:
   pip: true
