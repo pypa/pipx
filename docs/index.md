@@ -22,7 +22,7 @@ See Contributing for how to update this file.
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
-_For comparison to pipsi, see the [FAQ](faq.md)._
+_For comparison to other tools including pipsi, see the [comparisons](comparisons.md)._
 
 _pipx uses the word "binary" to describe a CLI application that can be run directly from the command line. These files are located in the `bin` directory of a Python installation, alongside other executables. Despite the name, they do not necessarily contain binary data._
 
@@ -33,7 +33,7 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ```
 
-For more details, see [installation](installation).
+For more details, [installation](installation).
 
 ## Overview
 
@@ -116,21 +116,36 @@ pipx is working!
 
 ## Testimonials
 
-"Thanks for improving the workflow that pipsi has covered in the past. Nicely done!"
-— [Jannis Leidel](https://twitter.com/jezdez) PSF fellow and former pip maintainer
+"*I'm a big fan of pipx. I think pipx is super cool.*"
+<div style="text-align: right; margin-right: 10%;">
+—<a href="https://twitter.com/mkennedy">Michael Kennedy</a>, co-host of PythonBytes podcast in <a href="https://pythonbytes.fm/episodes/transcript/139/f-yes-for-the-f-strings">episode 139</a>
+</div>
 
-"Just the “pipx upgrade-all” command is already a huge win over pipsi"
-— [Stefane Fermigier](https://twitter.com/sfermigier/status/1093073303521116160)
+"*Thanks for improving the workflow that pipsi has covered in the past. Nicely done!*"
+<div style="text-align: right; margin-right: 10%;">
+—<a href="https://twitter.com/jezdez">Jannis Leidel</a>, PSF fellow and former pip maintainer
+</div>
 
-"This tool filled in the gap that was missing with pipenv and Virtual Environmentwrapper."
-— [Mason Egger](https://medium.com/homeaway-tech-blog/simplify-your-python-developer-environment-aba90f32dddb)
+"*This tool filled in the gap that was missing with pipenv and Virtual Environmentwrapper.*"
+<div style="text-align: right; margin-right: 10%;">
+—Mason Egger in a <a href="https://medium.com/homeaway-tech-blog/simplify-your-python-developer-environment-aba90f32dddb">blog post</a>
+</div>
+
 
 ## Credits
 
 pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https://github.com/zkat/npx).
 
-- [Chad Smith](https://github.com/cs01/), creator and maintainer
-- [Bjorn Neergaard](https://github.com/neersighted), contributor
-- [Diego Fernandez](https://github.com/aiguofer), contributor
-- [tkossak](https://github.com/tkossak), contributor
-- [Shawn Hensley](https://github.com/sahensley), contributor
+Creator/Maintainer
+
+- [Chad Smith](https://github.com/cs01/)
+
+Contributors
+
+- [Bjorn Neergaard](https://github.com/neersighted)
+- [Diego Fernandez](https://github.com/aiguofer)
+- [Jason R. Coombs](https://github.com/jaraco)
+- [joshuarli](https://github.com/joshuarli)
+- [tkossak](https://github.com/tkossak)
+- [Tzu-ping Chung](https://github.com/uranusjr)
+- [Shawn Hensley](https://github.com/sahensley)

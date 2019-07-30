@@ -42,4 +42,6 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ```
 
+Now you can try things like `pipx run black --help`, `pipx install flake8`, or `pipx --help`.
+
 For more details, see [installation](https://pipxproject.github.io/pipx/installation/).
