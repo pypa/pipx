@@ -4,7 +4,7 @@ import logging
 import shutil
 import subprocess
 import sys
-from typing import List
+from typing import List, Generator
 
 
 class PipxError(Exception):
@@ -74,7 +74,7 @@ class VenvContainer:
     def __str__(self):
         return str(self._root)
 
-    def iter_venv_dirs(self) -> Path:
+    def iter_venv_dirs(self) -> Generator[Path, None, None]:
         """Iterate venv directories in this container.
         """
         for entry in self._root.iterdir():
