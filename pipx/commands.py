@@ -348,10 +348,16 @@ def _run_post_install_actions(
             raise PipxError(
                 f"No binaries associated with package {package}. "
                 "Try again with '--include-deps' to include binaries of dependent packages, "
-                "which are listed above."
+                "which are listed above. "
+                "If you are attempting to install a library, pipx should not be used. "
+                "Consider using pip or a similar tool instead."
             )
         else:
-            raise PipxError(f"No binaries associated with package {package}.")
+            raise PipxError(
+                f"No binaries associated with package {package}."
+                "If you are attempting to install a library, pipx should not be used. "
+                "Consider using pip or a similar tool instead."
+            )
 
     random_binary_name: str
     if metadata.binaries:
@@ -365,6 +371,8 @@ def _run_post_install_actions(
             venv.remove_venv()
         raise PipxError(
             f"No binaries associated with package {package} or its dependencies."
+            "If you are attempting to install a library, pipx should not be used. "
+            "Consider using pip or a similar tool instead."
         )
 
     _expose_binaries_globally(local_bin_dir, metadata.binary_paths, package)
@@ -678,5 +686,9 @@ def ensurepath(location: Path, *, force: bool):
 
     userpath.append(location_str)
     print(f"Success! Added {location_str} to the PATH environment variable.")
-    print("")
+    print(
+        "Consider adding shell completions for pipx. "
+        "Run 'pipx completions' for instructions."
+    )
+    print()
     print(f"{post_install_message} {stars}")

@@ -13,11 +13,6 @@ python = ["3.6"]
 
 
 @nox.session(python=python)
-def develop(session):
-    session.install("-e", ".", ".[dev]", ".[docs]")
-
-
-@nox.session(python=python)
 def unittests(session):
     session.install(".")
     session.run("python", "-m", "unittest", "discover")
