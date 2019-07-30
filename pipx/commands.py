@@ -355,9 +355,9 @@ def _run_post_install_actions(
 
     random_binary_name: str
     if metadata.binaries:
-        random_binary_name = metadata.binaries[0]
+        pass
     elif metadata.binaries_of_dependencies and include_deps:
-        random_binary_name = metadata.binaries_of_dependencies[0]
+        pass
     else:
         # No binaries associated with this package and we aren't including dependencies.
         # This package has nothing for pipx to use, so this is an error.
@@ -374,12 +374,12 @@ def _run_post_install_actions(
             _expose_binaries_globally(local_bin_dir, binary_paths, package)
 
     print(_get_package_summary(venv_dir, package=package, new_install=True))
-    _warn_if_not_on_path(local_bin_dir, random_binary_name)
+    _warn_if_not_on_path(local_bin_dir)
     print(f"done! {stars}")
 
 
-def _warn_if_not_on_path(local_bin_dir: Path, binary: str):
-    if not which(binary):
+def _warn_if_not_on_path(local_bin_dir: Path):
+    if not userpath.in_current_path(str(local_bin_dir)):
         logging.warning(
             f"{hazard}  Note: {str(local_bin_dir)!r} is not on your PATH environment "
             "variable. These binaries will not be globally accessible until "
@@ -531,15 +531,16 @@ def _symlink_package_binaries(
                     f"to {symlink_path.resolve()}. Not modifying."
                 )
         else:
-            shadow = which(binary)
+            existing_executable_on_path = which(binary)
             try:
                 symlink_path.symlink_to(b)
             except FileExistsError:
                 pass
 
-            if shadow:
+            if existing_executable_on_path:
                 logging.warning(
-                    f"{hazard}  Note: {binary} was already on your PATH at " f"{shadow}"
+                    f"{hazard}  Note: {binary} was already on your PATH at "
+                    f"{existing_executable_on_path}"
                 )
 
 
@@ -597,7 +598,9 @@ def _get_list_output(
     for name in exposed_binary_names:
         output.append(f"    - {name}")
     for name in unavailable_binary_names:
-        output.append(f"    - {red(name)} (symlink not installed)")
+        output.append(
+            f"    - {red(name)} (symlink missing or pointing to unexpected location)"
+        )
     return "\n".join(output)
 
 
@@ -616,7 +619,7 @@ def list_packages(venv_container: VenvContainer):
 
 
 def _get_exposed_binary_paths_for_package(
-    bin_path: Path, package_binary_names: List[str], local_bin_dir: Path
+    venv_bin_path: Path, package_binary_names: List[str], local_bin_dir: Path
 ):
     bin_symlinks = set()
     for b in local_bin_dir.iterdir():
@@ -628,11 +631,9 @@ def _get_exposed_binary_paths_for_package(
             if WINDOWS and b.name in package_binary_names:
                 is_same_file = True
             else:
-                is_same_file = b.resolve().parent.samefile(bin_path)
-
+                is_same_file = b.resolve().parent.samefile(venv_bin_path)
             if is_same_file:
                 bin_symlinks.add(b)
-
         except FileNotFoundError:
             pass
     return bin_symlinks

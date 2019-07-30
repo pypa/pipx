@@ -73,6 +73,7 @@ class TestPipxCommands(unittest.TestCase):
         self.assertTrue(which(pipx_bin))
         self.pipx_bin = pipx_bin
         self.temp_dir = temp_dir
+        self.bin_dir = bin_dir
         print()  # blank line to unit tests doesn't get overwritten by pipx output
 
     def tearDown(self):
@@ -259,6 +260,52 @@ class TestPipxCommands(unittest.TestCase):
                 "6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py",
             ],
             check=True,
+        )
+
+    def test_symlink_points_to_wrong_location_warning(self):
+        self.bin_dir.mkdir(exist_ok=True, parents=True)
+        (self.bin_dir / "pycowsay").symlink_to("/dev/null")
+
+        env = os.environ.copy()
+        env["PATH"] = f"{str(self.bin_dir)}:{env.get('PATH')}"
+        ret = subprocess.run(
+            [self.pipx_bin, "install", "pycowsay"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env,
+        )
+        stdout = ret.stdout.decode()
+        stderr = ret.stderr.decode()
+        self.assertTrue("File exists at" in stderr)
+        self.assertTrue("symlink missing or pointing to unexpected location" in stdout)
+        # bin dir was on path, so the warning should NOT appear (even though the symlink
+        # pointed to the wrong location)
+        self.assertTrue("is not on your PATH environment variable" not in stderr)
+
+    def test_path_warning(self):
+        # warning should appear since temp directory is not on PATH
+        self.assertTrue(
+            "is not on your PATH environment variable."
+            in subprocess.run(
+                [self.pipx_bin, "install", "pycowsay"],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            ).stderr.decode()
+        )
+
+        env = os.environ.copy()
+        # add bin dir to path, warning should NOT appear now
+        env["PATH"] = f"{str(self.bin_dir)}:{env.get('PATH')}"
+        self.assertTrue(
+            "is not on your PATH environment variable."
+            not in subprocess.run(
+                [self.pipx_bin, "install", "pycowsay"],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=env,
+            ).stderr.decode()
         )
 
 
