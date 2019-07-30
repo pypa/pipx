@@ -14,7 +14,7 @@ nav:
   - Installation: "installation.md"
   - Getting Started: "getting-started.md"
   - Docs: "docs.md"
-  - FAQ: "faq.md"
+  - Comparison to Other Tools: "comparisons.md"
   - How pipx works: "how-pipx-works.md"
   - Programs to Try: "programs-to-try.md"
   - Contributing: "contributing.md"
