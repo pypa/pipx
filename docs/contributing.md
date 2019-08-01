@@ -8,8 +8,13 @@ To develop `pipx`, first clone the repository, and have a stable version of `pip
 
 Next, run this command which will use the amazing [nox](https://github.com/theacodes/nox) automation framework to set up a virtual environment for each Python version pipx tests against.
 ```
-pipx run nox --noxfile automation.py -s develop
+pipx run --spec=git+https://github.com/cs01/nox.git@7f65d2abc nox -f automation.py -s develop
 ```
+
+<details markdown="1">
+<summary>pipx requires a branch of <code>nox</code> at the moment</summary>
+For tests to work, pipx requires nox to create virtual environments with venv. nox currently uses virtualenv. pipx uses a fork of nox at https://github.com/cs01/nox on the branch cs01/use-venv until this is fixed in nox. See https://github.com/theacodes/nox/issues/199
+</details>
 
 A virtual environment with required dependencies is now sandboxed and ready to go in `.nox/develop-3.6` for Python 3.6. Any changes you make to pipx source code will be reflected immediately in the virtual environment inside `.nox/develop-3.6`.
 
@@ -26,7 +31,7 @@ pipx run --spec=git+https://github.com/cs01/nox.git@7f65d2abc nox
 ```
 
 <details markdown="1">
-<summary>pipx requires a branch of <code>nox</code> to run tests at the moment</summary>
+<summary>pipx requires a branch of <code>nox</code> at the moment</summary>
 For tests to work, pipx requires nox to create virtual environments with venv. nox currently uses virtualenv. pipx uses a fork of nox at https://github.com/cs01/nox on the branch cs01/use-venv until this is fixed in nox. See https://github.com/theacodes/nox/issues/199
 </details>
 
