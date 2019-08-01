@@ -34,4 +34,4 @@ def watch_docs(session):
 def publish_docs(session):
     session.install(".[docs]")
     session.run("python", "generate_docs.py")
-    session.run("mkdocs", "gh-pages")
+    session.run("mkdocs", "gh-deploy")
