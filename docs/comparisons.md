@@ -50,6 +50,14 @@ Install a Python interpreter with pyenv, then install a package using pipx and t
 Example interaction:
 None. Either one or the other should be used. These tools compete for a similar workflow.
 
+### Migrating to pipx from pipsi
+
+After you have installed pipx, run [migrate_pipsi_to_pipx.py](https://raw.githubusercontent.com/pipxproject/pipx/master/scripts/migrate_pipsi_to_pipx.py). Why not do this with your new pipx installation?
+
+```
+pipx run https://raw.githubusercontent.com/pipxproject/pipx/master/scripts/migrate_pipsi_to_pipx.py
+```
+
 ## pipx vs brew
 * Both brew and pipx install cli tools
 * They install them from different sources. brew uses a curated repository specifically for brew, and pipx generally uses PyPI.
@@ -65,14 +73,6 @@ brew can be used to install pipx, but they generally don't interact much.
 
 Example interaction:
 None. These tools work for different languages.
-
-### Migrating to pipx from pipsi
-
-After you have installed pipx, run [migrate_pipsi_to_pipx.py](https://raw.githubusercontent.com/pipxproject/pipx/master/scripts/migrate_pipsi_to_pipx.py). Why not do this with your new pipx installation?
-
-```
-pipx run https://raw.githubusercontent.com/pipxproject/pipx/master/scripts/migrate_pipsi_to_pipx.py
-```
 
 ## pipx vs pip-run
 [pip-run](https://github.com/jaraco/pip-run) is focused on running **arbitrary Python code in ephemeral environments** while pipx is focused on running **Python binaries in ephemeral and non-ephemeral environments**.
