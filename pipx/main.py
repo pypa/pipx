@@ -30,8 +30,9 @@ from .util import (
     mkdir,
     autocomplete_list_of_installed_packages as _autocomplete_list_of_installed_packages,
 )
+from .colors import bold, green
 
-__version__ = "0.13.2.0"
+__version__ = "0.13.2.1"
 
 
 def print_version() -> None:
@@ -484,9 +485,10 @@ def setup(args):
         exit(0)
 
     if "verbose" in args and args.verbose:
-        logging.basicConfig(
-            level=logging.DEBUG, format="pipx (%(funcName)s:%(lineno)d): %(message)s"
-        )
+        pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
+        format_str = f"{pipx_str} (%(funcName)s:%(lineno)d): %(message)s"
+
+        logging.basicConfig(level=logging.DEBUG, format=format_str)
     else:
         logging.basicConfig(level=logging.WARNING, format="%(message)s")
 

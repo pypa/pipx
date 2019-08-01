@@ -6,7 +6,8 @@ python = ["3.6"]
 
 @nox.session(python=["3.6", "3.7"])
 def develop(session):
-    session.install("-e", ".", ".[dev]", ".[docs]")
+    session.install(".[dev]", ".[docs]")
+    session.install("-e", ".")
 
 
 @nox.session(python=python)

@@ -307,23 +307,24 @@ def install(
             print(
                 f"{package!r} already seems to be installed. "
                 f"Not modifying existing installation in {str(venv_dir)!r}. "
-                "Pass '--force' to force installation"
+                "Pass '--force' to force installation."
             )
             return
 
     venv = Venv(venv_dir, python=python, verbose=verbose)
-    venv.create_venv(venv_args, pip_args)
     try:
+        venv.create_venv(venv_args, pip_args)
         venv.install_package(package_or_url, pip_args)
-    except PipxError:
+
+        if venv.get_venv_metadata_for_package(package).package_version is None:
+            venv.remove_venv()
+            raise PipxError(f"Could not find package {package}. Is the name correct?")
+
+        _run_post_install_actions(venv, package, local_bin_dir, venv_dir, include_deps)
+    except (Exception, KeyboardInterrupt):
+        print("")
         venv.remove_venv()
         raise
-
-    if venv.get_venv_metadata_for_package(package).package_version is None:
-        venv.remove_venv()
-        raise PipxError(f"Could not find package {package}. Is the name correct?")
-
-    _run_post_install_actions(venv, package, local_bin_dir, venv_dir, include_deps)
 
 
 def _run_post_install_actions(
