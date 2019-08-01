@@ -50,6 +50,22 @@ Install a Python interpreter with pyenv, then install a package using pipx and t
 Example interaction:
 None. Either one or the other should be used. These tools compete for a similar workflow.
 
+## pipx vs brew
+* Both brew and pipx install cli tools
+* They install them from different sources. brew uses a curated repository specifically for brew, and pipx generally uses PyPI.
+
+Example interaction:
+brew can be used to install pipx, but they generally don't interact much.
+
+## pipx vs npx
+* Both can run cli tools (npx will search for them in node_modules, and if not found run in a temporary environment. `pipx run` wil search in `__pypackages__` and if not found run in a temporary environment)
+* npx works with JavaScript and pipx works with Python
+* Both tools attempt to make runnning executables written in a dynamic language (JS/Python) as easy as possible
+* pipx can also install tools globally; npx cannot
+
+Example interaction:
+None. These tools work for different languages.
+
 ### Migrating to pipx from pipsi
 
 After you have installed pipx, run [migrate_pipsi_to_pipx.py](https://raw.githubusercontent.com/pipxproject/pipx/master/scripts/migrate_pipsi_to_pipx.py). Why not do this with your new pipx installation?

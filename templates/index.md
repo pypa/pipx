@@ -31,11 +31,16 @@ python3 -m pipx ensurepath
 
 For more details, [installation](installation).
 
+To add shell completions, see instructions with
+```
+pipx completions
+```
+
 ## Overview
 
 Python and PyPI allow developers to distribute code with "console script entry points". These scripts let users call into Python code from the command line, effectively acting like standalone applications.
 
-`pipx` is a tool to install and run any of the thousands of Python applications available on PyPI in a safe, convenient, and reliable way. Not all Python packages have entry points, but many do.
+`pipx` is a tool to install and run any of the thousands of Python applications available on PyPI in a safe, convenient, and reliable way. In a way, it turns Python Package Index (PyPI) into a big app store for Python applications. Not all Python packages have entry points, but many do.
 
 `pipx` lets you:
 

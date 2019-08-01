@@ -1,4 +1,5 @@
-import nox
+import nox  # type: ignore
+from pathlib import Path
 
 # NOTE: these tests require nox to create virtual environments
 # with venv. nox currently uses virtualenv. pipx
@@ -9,12 +10,8 @@ import nox
 # until this is fixed in nox. See
 # https://github.com/theacodes/nox/issues/199
 
-python = ["3.6"]
 
-
-@nox.session(python=python)
-def develop(session):
-    session.install("-e", ".", ".[dev]", ".[docs]")
+python = ["3.6", "3.7"]
 
 
 @nox.session(python=python)
@@ -26,7 +23,7 @@ def unittests(session):
 @nox.session(python=python)
 def lint(session):
     session.install(".[dev]")
-    files = ["pipx", "tests"]
+    files = ["pipx", "tests"] + [str(p) for p in Path(".").glob("*.py")]
     session.run("black", "--check", *files)
     session.run("flake8", *files)
     session.run("mypy", *files)

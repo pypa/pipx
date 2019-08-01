@@ -1,6 +1,10 @@
 0.13.2.0
 - Add shell autocompletions. Also add `pipx completions` command to print instructions on how to add pipx completions to your shell.
 - Un-deprecate `ensurepath`. Use `userpath` internally instead of instructing users to run the `userpath` cli command.
+- Improve detection of PIPX_BIN_DIR not being on PATH
+- Improve error message when an existing symlink exists in PIPX_BIN_DIR and points to the wrong location
+- Improve handling of unexpected files in PIPX_HOME (@uranusjr)
+- swap out of order logic in order to correctly recommend --include-deps (@joshuarli)
 - [dev] Migrate from tox to nox
 
 0.13.1.1
