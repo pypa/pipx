@@ -1,7 +1,9 @@
 0.13.2.1
-- Remove virtual environment if installation did not complete (#193)
+
+- Remove virtual environment if installation did not complete. For example, if it was interrupted by ctrl+c or if an exception occurred for any reason. (#193)
 
 0.13.2.0
+
 - Add shell autocompletions. Also add `pipx completions` command to print instructions on how to add pipx completions to your shell.
 - Un-deprecate `ensurepath`. Use `userpath` internally instead of instructing users to run the `userpath` cli command.
 - Improve detection of PIPX_BIN_DIR not being on PATH
