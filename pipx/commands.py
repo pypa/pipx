@@ -642,6 +642,7 @@ def _get_exposed_binary_paths_for_package(
                 is_same_file = b.resolve().parent.samefile(venv_bin_path)
             if is_same_file:
                 bin_symlinks.add(b)
+
         except FileNotFoundError:
             pass
     return bin_symlinks

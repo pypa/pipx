@@ -24,7 +24,7 @@ class _SharedLibs:
         return self._site_packages
 
     def create(self, pip_args: List[str], verbose: bool = False):
-        if not self.root.exists():
+        if not self.is_valid:
             with animate("creating shared libraries", not verbose):
                 run([DEFAULT_PYTHON, "-m", "venv", self.root])
                 self.upgrade(pip_args, verbose)
@@ -36,7 +36,9 @@ class _SharedLibs:
     def upgrade(self, pip_args: List[str], verbose: bool = False):
         # Don't try to upgrade multiple times per run
         if self.has_been_updated_this_run:
+            logging.info("Already upgraded libraries in", self.root)
             return
+        logging.info("Upgradign shared libraries in", self.root)
 
         ignored_args = ["--editable"]
         _pip_args = [arg for arg in pip_args if arg not in ignored_args]

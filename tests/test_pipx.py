@@ -52,15 +52,27 @@ class TestPipxArgParsing(unittest.TestCase):
 
 
 class TestPipxCommands(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls._shared_dir = tempfile.TemporaryDirectory(prefix="pipx_shared_dir_")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._shared_dir.cleanup()
+
     def setUp(self):
         """install pipx to temporary directory and save pipx binary path"""
 
         temp_dir = tempfile.TemporaryDirectory(prefix="pipx_tests_")
-        env = os.environ
         home_dir = Path(temp_dir.name) / "subdir" / "pipxhome"
         bin_dir = Path(temp_dir.name) / "otherdir" / "pipxbindir"
+
+        Path(temp_dir.name).mkdir(exist_ok=True)
+        env = os.environ
+        env["PIPX_SHARED_LIBS"] = str(self._shared_dir.name)
         env["PIPX_HOME"] = str(home_dir)
         env["PIPX_BIN_DIR"] = str(bin_dir)
+
         if WINDOWS:
             pipx_bin = "pipx.exe"
         else:
