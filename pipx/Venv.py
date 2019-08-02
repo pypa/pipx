@@ -16,7 +16,7 @@ class SharedLibs:
         self.root = PIPX_SHARED_LIBS
         self.bin_path, self.python_path = get_venv_paths(self.root)
         self._site_packages = None
-        self.updated = False
+        self.has_been_updated_this_run = False
 
     @property
     def site_packages(self) -> Path:
@@ -33,7 +33,7 @@ class SharedLibs:
 
     def upgrade(self, pip_args: List[str], verbose: bool = False):
         # Don't try to upgrade multiple times per run
-        if self.updated:
+        if self.has_been_updated_this_run:
             return
 
         ignored_args = ["--editable"]
@@ -56,7 +56,7 @@ class SharedLibs:
                         "wheel",
                     ]
                 )
-                self.updated = True
+                self.has_been_updated_this_run = True
         except Exception:
             logging.error("Failed to upgrade pip", exc_info=True)
 
@@ -96,12 +96,15 @@ class Venv:
             self._existing = self.root.exists() and next(self.root.iterdir())
         except StopIteration:
             self._existing = False
+
+    @property
+    def uses_shared_libs(self):
         if self._existing:
             pth_files = self.root.glob("**/" + PIPX_SHARED_PTH)
-            self.uses_shared_libs = next(pth_files, None) is not None
+            return next(pth_files, None) is not None
         else:
-            # create_venv always uses shared libs
-            self.uses_shared_libs = True
+            # always use shared libs when creating a new venv
+            return True
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
@@ -123,7 +126,7 @@ class Venv:
                 "it was not created in this session"
             )
 
-    def upgrade_shared(self, pip_args: List[str]) -> None:
+    def upgrade_packaging_libraries(self, pip_args: List[str]) -> None:
         if self.uses_shared_libs:
             shared_libs.upgrade(pip_args, self.verbose)
         else:

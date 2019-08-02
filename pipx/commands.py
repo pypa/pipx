@@ -213,7 +213,7 @@ def upgrade(
     do_animation = not verbose
 
     # Upgrade shared libraries (pip, setuptools and wheel)
-    venv.upgrade_shared(pip_args)
+    venv.upgrade_packaging_libraries(pip_args)
 
     with animate(f"upgrading package {package_or_url!r}", do_animation):
         venv.upgrade_package(package_or_url, pip_args)

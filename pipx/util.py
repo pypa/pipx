@@ -4,11 +4,7 @@ import logging
 import shutil
 import subprocess
 import sys
-<<<<<<< HEAD
-from typing import List, Tuple
-=======
 from typing import List, Generator, Tuple
->>>>>>> rebased-shared-pip
 
 
 class PipxError(Exception):
