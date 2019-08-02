@@ -24,13 +24,10 @@ from .constants import (
     TEMP_VENV_EXPIRATION_THRESHOLD_DAYS,
     completion_instructions,
 )
-from .util import (
-    PipxError,
-    VenvContainer,
-    mkdir,
-    autocomplete_list_of_installed_packages as _autocomplete_list_of_installed_packages,
-)
+from .util import PipxError, mkdir
 from .colors import bold, green
+from .Venv import VenvContainer
+
 
 __version__ = "0.13.2.1"
 
@@ -260,6 +257,12 @@ def add_include_deps(parser):
         help="Include binaries of dependent packages",
         action="store_true",
     )
+
+
+def _autocomplete_list_of_installed_packages(
+    venv_container: VenvContainer, *args, **kwargs
+) -> List[str]:
+    return list(str(p.name) for p in sorted(venv_container.iter_venv_dirs()))
 
 
 def get_command_parser():

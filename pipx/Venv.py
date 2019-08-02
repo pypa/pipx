@@ -1,67 +1,55 @@
 import json
 import logging
-import os
 import pkgutil
 import subprocess
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Sequence, Union
+from typing import Dict, List, NamedTuple
 
 from pipx.animate import animate
-from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_LIBS, PIPX_SHARED_PTH
-from pipx.util import WINDOWS, PipxError, rmdir, get_venv_paths
+from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH, WINDOWS
+from pipx.util import (
+    PipxError,
+    rmdir,
+    get_venv_paths,
+    get_script_output,
+    get_site_packages,
+    run,
+)
+from pipx.SharedLibs import shared_libs
 
 
-class SharedLibs:
-    def __init__(self):
-        self.root = PIPX_SHARED_LIBS
-        self.bin_path, self.python_path = get_venv_paths(self.root)
-        self._site_packages = None
-        self.has_been_updated_this_run = False
-
-    @property
-    def site_packages(self) -> Path:
-        if self._site_packages is None:
-            self._site_packages = _get_site_packages(self.python_path)
-
-        return self._site_packages
-
-    def create(self, pip_args: List[str], verbose: bool = False):
-        if not self.root.exists():
-            with animate("creating shared libraries", not verbose):
-                _run([DEFAULT_PYTHON, "-m", "venv", self.root])
-                self.upgrade(pip_args, verbose)
-
-    def upgrade(self, pip_args: List[str], verbose: bool = False):
-        # Don't try to upgrade multiple times per run
-        if self.has_been_updated_this_run:
-            return
-
-        ignored_args = ["--editable"]
-        _pip_args = [arg for arg in pip_args if arg not in ignored_args]
-        if not verbose:
-            _pip_args.append("-q")
-        try:
-            with animate("upgrading shared libraries", not verbose):
-                _run(
-                    [
-                        self.python_path,
-                        "-m",
-                        "pip",
-                        "--disable-pip-version-check",
-                        "install",
-                        *_pip_args,
-                        "--upgrade",
-                        "pip",
-                        "setuptools",
-                        "wheel",
-                    ]
-                )
-                self.has_been_updated_this_run = True
-        except Exception:
-            logging.error("Failed to upgrade pip", exc_info=True)
+from typing import Generator
 
 
-shared_libs = SharedLibs()
+class VenvContainer:
+    """A collection of venvs managed by pipx.
+    """
+
+    def __init__(self, root: Path):
+        self._root = root
+
+    def __repr__(self):
+        return f"VenvContainer({str(self._root)!r})"
+
+    def __str__(self):
+        return str(self._root)
+
+    def iter_venv_dirs(self) -> Generator[Path, None, None]:
+        """Iterate venv directories in this container.
+        """
+        for entry in self._root.iterdir():
+            if not entry.is_dir():
+                continue
+            yield entry
+
+    def get_venv_dir(self, package: str) -> Path:
+        """Return the expected venv path for given `package`.
+        """
+        return self._root.joinpath(package)
+
+    def verify_shared_libs(self):
+        for p in self.iter_venv_dirs():
+            Venv(p)
 
 
 class PipxVenvMetadata(NamedTuple):
@@ -97,6 +85,22 @@ class Venv:
         except StopIteration:
             self._existing = False
 
+        if self._existing and self.uses_shared_libs and not shared_libs.is_valid:
+            logging.warning(
+                f"Shared libraries not found, but are required for package {self.root.name}. "
+                "Attemping to install now."
+            )
+            shared_libs.create([])
+            if shared_libs.is_valid:
+                logging.info("Successfully created shared libraries")
+            else:
+                raise PipxError(
+                    f"Error: pipx's shared venv is invalid and "
+                    "needs re-installation. To fix this, install or reinstall a "
+                    "package. For example,\n"
+                    f"  pipx install {self.root.name} --force"
+                )
+
     @property
     def uses_shared_libs(self):
         if self._existing:
@@ -109,10 +113,19 @@ class Venv:
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
             cmd = [self._python, "-m", "venv", "--without-pip"]
-            _run(cmd + venv_args + [str(self.root)])
+            run(cmd + venv_args + [str(self.root)])
             shared_libs.create(pip_args, self.verbose)
-            pipx_pth = _get_site_packages(self.python_path) / PIPX_SHARED_PTH
-            pipx_pth.write_text(str(shared_libs.site_packages), encoding="utf-8")
+            pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
+            # write path pointing to the shared libs site-packages directory
+            # example pipx_pth location:
+            #   ~/.local/pipx/venvs/black/lib/python3.8/site-packages/pipx_shared.pth
+            # example shared_libs.site_packages location:
+            #   ~/.local/pipx/shared/lib/python3.6/site-packages
+            #
+            # https://docs.python.org/3/library/site.html
+            # A path configuration file is a file whose name has the form 'name.pth'.
+            # its contents are additional items (one per line) to be added to sys.path
+            pipx_pth.write_text(str(shared_libs.site_packages) + "\n", encoding="utf-8")
 
     def safe_to_remove(self) -> bool:
         return not self._existing
@@ -144,7 +157,7 @@ class Venv:
     def get_venv_metadata_for_package(self, package: str) -> PipxVenvMetadata:
 
         data = json.loads(
-            _get_script_output(
+            get_script_output(
                 self.python_path, VENV_METADATA_INSPECTOR, package, str(self.bin_path)
             )
         )
@@ -176,7 +189,7 @@ class Venv:
     def run_binary(self, binary: str, binary_args: List[str]):
         cmd = [str(self.bin_path / binary)] + binary_args
         try:
-            return _run(cmd, check=False)
+            return run(cmd, check=False)
         except KeyboardInterrupt:
             pass
 
@@ -187,34 +200,4 @@ class Venv:
         cmd = [self.python_path, "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
-        return _run(cmd)
-
-
-def _run(cmd: Sequence[Union[str, Path]], check=True) -> int:
-    """Run arbitrary command as subprocess"""
-
-    cmd_str = " ".join(str(c) for c in cmd)
-    logging.info(f"running {cmd_str}")
-    # windows cannot take Path objects, only strings
-    cmd_str_list = [str(c) for c in cmd]
-    returncode = subprocess.run(cmd_str_list).returncode
-    if check and returncode:
-        raise PipxError(f"{cmd_str!r} failed")
-    return returncode
-
-
-def _get_script_output(interpreter: Path, script: str, *args) -> str:
-    # Make sure that Python writes output in UTF-8
-    env = os.environ.copy()
-    env["PYTHONIOENCODING"] = "utf-8"
-    output = subprocess.run(
-        [str(interpreter), "-c", script, *args], stdout=subprocess.PIPE, env=env
-    ).stdout.decode(encoding="utf-8")
-    return output
-
-
-def _get_site_packages(python: Path) -> Path:
-    output = _get_script_output(
-        python, "import sysconfig; print(sysconfig.get_path('purelib'))"
-    )
-    return Path(output.strip())
+        return run(cmd)

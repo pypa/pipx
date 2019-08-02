@@ -4,19 +4,12 @@ import logging
 import shutil
 import subprocess
 import sys
-from typing import List, Generator, Tuple
+from typing import List, Tuple, Sequence, Union
+from pipx.constants import WINDOWS
 
 
 class PipxError(Exception):
     pass
-
-
-try:
-    WindowsError
-except NameError:
-    WINDOWS = False
-else:
-    WINDOWS = True
 
 
 def rmdir(path: Path):
@@ -61,39 +54,6 @@ def run_pypackage_bin(bin_path: Path, args: List[str]) -> int:
         return 1
 
 
-class VenvContainer:
-    """A collection of venvs managed by pipx.
-    """
-
-    def __init__(self, root: Path):
-        self._root = root
-
-    def __repr__(self):
-        return f"VenvContainer({str(self._root)!r})"
-
-    def __str__(self):
-        return str(self._root)
-
-    def iter_venv_dirs(self) -> Generator[Path, None, None]:
-        """Iterate venv directories in this container.
-        """
-        for entry in self._root.iterdir():
-            if not entry.is_dir():
-                continue
-            yield entry
-
-    def get_venv_dir(self, package: str) -> Path:
-        """Return the expected venv path for given `package`.
-        """
-        return self._root.joinpath(package)
-
-
-def autocomplete_list_of_installed_packages(
-    venv_container: VenvContainer, *args, **kwargs
-) -> List[str]:
-    return list(str(p.name) for p in sorted(venv_container.iter_venv_dirs()))
-
-
 if WINDOWS:
 
     def get_venv_paths(root: Path) -> Tuple[Path, Path]:
@@ -108,3 +68,33 @@ else:
         bin_path = root / "bin"
         python_path = bin_path / "python"
         return bin_path, python_path
+
+
+def get_script_output(interpreter: Path, script: str, *args) -> str:
+    # Make sure that Python writes output in UTF-8
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "utf-8"
+    output = subprocess.run(
+        [str(interpreter), "-c", script, *args], stdout=subprocess.PIPE, env=env
+    ).stdout.decode(encoding="utf-8")
+    return output
+
+
+def get_site_packages(python: Path) -> Path:
+    output = get_script_output(
+        python, "import sysconfig; print(sysconfig.get_path('purelib'))"
+    )
+    return Path(output.strip())
+
+
+def run(cmd: Sequence[Union[str, Path]], check=True) -> int:
+    """Run arbitrary command as subprocess"""
+
+    cmd_str = " ".join(str(c) for c in cmd)
+    logging.info(f"running {cmd_str}")
+    # windows cannot take Path objects, only strings
+    cmd_str_list = [str(c) for c in cmd]
+    returncode = subprocess.run(cmd_str_list).returncode
+    if check and returncode:
+        raise PipxError(f"{cmd_str!r} failed")
+    return returncode
