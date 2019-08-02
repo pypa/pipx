@@ -29,5 +29,6 @@ def mkcolorfunc(style):
 
 bold = mkcolorfunc(c.bold)
 red = mkcolorfunc(c.red)
-cyan = mkcolorfunc(c.cyan)
+blue = mkcolorfunc(c.cyan)
+cyan = mkcolorfunc(c.blue)
 green = mkcolorfunc(c.green)

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 
 """The command line interface to pipx"""
 
+import argcomplete  # type: ignore
 import argparse
+import functools
 import logging
-import os
 import shlex
 import sys
 import textwrap
@@ -13,18 +15,24 @@ from typing import Dict, List, Tuple
 
 from . import commands
 from .constants import (
+    DEFAULT_PIPX_BIN_DIR,
+    DEFAULT_PIPX_HOME,
     DEFAULT_PYTHON,
     LOCAL_BIN_DIR,
-    DEFAULT_PIPX_HOME,
-    DEFAULT_PIPX_BIN_DIR,
     PIPX_LOCAL_VENVS,
     PIPX_VENV_CACHEDIR,
     TEMP_VENV_EXPIRATION_THRESHOLD_DAYS,
+    completion_instructions,
 )
-from .util import PipxError, mkdir
+from .util import (
+    PipxError,
+    VenvContainer,
+    mkdir,
+    autocomplete_list_of_installed_packages as _autocomplete_list_of_installed_packages,
+)
+from .colors import bold, green
 
-
-__version__ = "0.13.1.1"
+__version__ = "0.13.2.1"
 
 
 def print_version() -> None:
@@ -113,6 +121,8 @@ def run_pipx_command(args, binary_args: List[str]):
     pip_args = get_pip_args(vars(args))
     venv_args = get_venv_args(vars(args))
 
+    venv_container = VenvContainer(PIPX_LOCAL_VENVS)
+
     if "package" in args:
         package = args.package
         if urllib.parse.urlparse(package).scheme:
@@ -123,7 +133,7 @@ def run_pipx_command(args, binary_args: List[str]):
                 if "#egg=" not in args.spec:
                     args.spec = args.spec + f"#egg={package}"
 
-        venv_dir = PIPX_LOCAL_VENVS / package
+        venv_dir = venv_container.get_venv_dir(package)
         logging.info(f"Virtual Environment location is {venv_dir}")
 
     if args.command == "run":
@@ -186,14 +196,14 @@ def run_pipx_command(args, binary_args: List[str]):
             include_deps=args.include_deps,
         )
     elif args.command == "list":
-        commands.list_packages(PIPX_LOCAL_VENVS)
+        commands.list_packages(venv_container)
     elif args.command == "uninstall":
         commands.uninstall(venv_dir, package, LOCAL_BIN_DIR, verbose)
     elif args.command == "uninstall-all":
-        commands.uninstall_all(PIPX_LOCAL_VENVS, LOCAL_BIN_DIR, verbose)
+        commands.uninstall_all(venv_container, LOCAL_BIN_DIR, verbose)
     elif args.command == "upgrade-all":
         commands.upgrade_all(
-            PIPX_LOCAL_VENVS,
+            venv_container,
             pip_args,
             verbose,
             include_deps=args.include_deps,
@@ -201,7 +211,7 @@ def run_pipx_command(args, binary_args: List[str]):
         )
     elif args.command == "reinstall-all":
         commands.reinstall_all(
-            PIPX_LOCAL_VENVS,
+            venv_container,
             LOCAL_BIN_DIR,
             args.python,
             pip_args,
@@ -215,14 +225,12 @@ def run_pipx_command(args, binary_args: List[str]):
             raise PipxError("developer error: venv dir is not defined")
         commands.run_pip(package, venv_dir, binary_args, args.verbose)
     elif args.command == "ensurepath":
-        paths = os.getenv("PATH", "").split(os.pathsep)
-        path_good = str(LOCAL_BIN_DIR) in paths
-        if not path_good or args.force:
-            commands.ensurepath(LOCAL_BIN_DIR)
-        else:
-            print(
-                "Your PATH looks like it already is set up for pipx. Pass `--force` to modify the PATH."
-            )
+        try:
+            commands.ensurepath(LOCAL_BIN_DIR, force=args.force)
+        except Exception as e:
+            raise PipxError(e)
+    elif args.command == "completions":
+        print(completion_instructions)
     else:
         raise PipxError(f"Unknown command {args.command}")
 
@@ -255,6 +263,12 @@ def add_include_deps(parser):
 
 
 def get_command_parser():
+    venv_container = VenvContainer(PIPX_LOCAL_VENVS)
+
+    autocomplete_list_of_installed_packages = functools.partial(
+        _autocomplete_list_of_installed_packages, venv_container
+    )
+
     parser = argparse.ArgumentParser(
         formatter_class=LineWrapRawTextHelpFormatter, description=PIPX_DESCRIPTION
     )
@@ -296,7 +310,7 @@ def get_command_parser():
     p.add_argument(
         "package",
         help="Name of the existing pipx-managed Virtual Environment to inject into",
-    )
+    ).completer = autocomplete_list_of_installed_packages
     p.add_argument(
         "dependencies",
         nargs="+",
@@ -316,7 +330,7 @@ def get_command_parser():
         help="Upgrade a package",
         description="Upgrade a package in a pipx-managed Virtual Environment by running 'pip install --upgrade PACKAGE'",
     )
-    p.add_argument("package")
+    p.add_argument("package").completer = autocomplete_list_of_installed_packages
     p.add_argument("--spec", help=SPEC_HELP)
     add_include_deps(p)
     add_pip_venv_args(p)
@@ -339,7 +353,7 @@ def get_command_parser():
         help="Uninstall a package",
         description="Uninstalls a pipx-managed Virtual Environment by deleting it and any files that point to its binaries.",
     )
-    p.add_argument("package")
+    p.add_argument("package").completer = autocomplete_list_of_installed_packages
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
@@ -437,13 +451,17 @@ def get_command_parser():
     p.add_argument(
         "package",
         help="Name of the existing pipx-managed Virtual Environment to run pip in",
-    )
+    ).completer = autocomplete_list_of_installed_packages
     p.add_argument("pipargs", nargs="*", help="Arguments to forward to pip command")
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
         "ensurepath",
-        help="Deprecated, will be removed in a future release. Use `userpath` instead.",
+        help=(
+            "Ensure directory where pipx stores binaries is on your "
+            "PATH environment variable. Note that running this may modify "
+            "your shell's configuration file(s) such as '~/.bashrc'."
+        ),
     )
     p.add_argument(
         "--force",
@@ -454,6 +472,10 @@ def get_command_parser():
         ),
     )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
+    p = subparsers.add_parser(
+        "completions",
+        help=("Print instructions on enabling shell completions for pipx"),
+    )
     return parser
 
 
@@ -463,9 +485,10 @@ def setup(args):
         exit(0)
 
     if "verbose" in args and args.verbose:
-        logging.basicConfig(
-            level=logging.DEBUG, format="pipx (%(funcName)s:%(lineno)d): %(message)s"
-        )
+        pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
+        format_str = f"{pipx_str} (%(funcName)s:%(lineno)d): %(message)s"
+
+        logging.basicConfig(level=logging.DEBUG, format=format_str)
     else:
         logging.basicConfig(level=logging.WARNING, format="%(message)s")
 
@@ -510,6 +533,9 @@ def cli():
     try:
         args_to_parse, binary_args = split_run_argv(sys.argv)
         parser = get_command_parser()
+
+        argcomplete.autocomplete(parser)
+
         parsed_pipx_args = parser.parse_args(args_to_parse)
         setup(parsed_pipx_args)
         if not parsed_pipx_args.command:

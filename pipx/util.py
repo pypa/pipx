@@ -4,7 +4,11 @@ import logging
 import shutil
 import subprocess
 import sys
+<<<<<<< HEAD
 from typing import List, Tuple
+=======
+from typing import List, Generator, Tuple
+>>>>>>> rebased-shared-pip
 
 
 class PipxError(Exception):
@@ -59,6 +63,39 @@ def run_pypackage_bin(bin_path: Path, args: List[str]) -> int:
         ).returncode
     except KeyboardInterrupt:
         return 1
+
+
+class VenvContainer:
+    """A collection of venvs managed by pipx.
+    """
+
+    def __init__(self, root: Path):
+        self._root = root
+
+    def __repr__(self):
+        return f"VenvContainer({str(self._root)!r})"
+
+    def __str__(self):
+        return str(self._root)
+
+    def iter_venv_dirs(self) -> Generator[Path, None, None]:
+        """Iterate venv directories in this container.
+        """
+        for entry in self._root.iterdir():
+            if not entry.is_dir():
+                continue
+            yield entry
+
+    def get_venv_dir(self, package: str) -> Path:
+        """Return the expected venv path for given `package`.
+        """
+        return self._root.joinpath(package)
+
+
+def autocomplete_list_of_installed_packages(
+    venv_container: VenvContainer, *args, **kwargs
+) -> List[str]:
+    return list(str(p.name) for p in sorted(venv_container.iter_venv_dirs()))
 
 
 if WINDOWS:

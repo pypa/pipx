@@ -1,16 +1,21 @@
-.PHONY: build publish docs test
+.PHONY: test docs develop build publish publish_docs
 
+develop:
+	pipx run --spec=git+https://github.com/cs01/nox.git@7f65d2abc nox -f automation.py -s develop
 
 test:
-	python setup.py test
+	# TODO use `pipx run nox` when nox supports venv creation (and thus
+	# pipx tests pass)
+	pipx run --spec=git+https://github.com/cs01/nox.git@7f65d2abc nox
 
-build: clean
-	python -m pip install --upgrade --quiet setuptools wheel twine
-	python setup.py --quiet sdist bdist_wheel
+publish:
+	pipx run nox -f automation.py -s publish-3.6
 
-publish: build
-	python -m twine upload dist/*
+docs:
+	pipx run nox --session docs -s docs-3.6
 
-clean:
-	rm -r build dist *.egg-info || true
+watch_docs:
+	pipx run nox -f automation.py -s watch_docs-3.6
 
+publish_docs:
+	pipx run nox -f automation.py -s publish_docs-3.6

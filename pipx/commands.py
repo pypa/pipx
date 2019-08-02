@@ -4,18 +4,18 @@ import datetime
 import hashlib
 import logging
 import multiprocessing
-import os
 import shlex
 import shutil
 import subprocess
 import textwrap
 import time
-import sys
 import urllib.parse
 import urllib.request
 from pathlib import Path
 from shutil import which
-from typing import List, Optional
+from typing import List
+
+import userpath  # type: ignore
 
 from .animate import animate
 from .colors import bold, red
@@ -25,11 +25,11 @@ from .constants import (
     PIPX_VENV_CACHEDIR,
     TEMP_VENV_EXPIRATION_THRESHOLD_DAYS,
 )
-
 from .emojies import hazard, sleep, stars
 from .util import (
     WINDOWS,
     PipxError,
+    VenvContainer,
     get_pypackage_bin_path,
     mkdir,
     rmdir,
@@ -242,7 +242,7 @@ def upgrade(
 
 
 def upgrade_all(
-    pipx_local_venvs: Path,
+    venv_container: VenvContainer,
     pip_args: List[str],
     verbose: bool,
     *,
@@ -251,7 +251,7 @@ def upgrade_all(
 ):
     packages_upgraded = 0
     num_packages = 0
-    for venv_dir in pipx_local_venvs.iterdir():
+    for venv_dir in venv_container.iter_venv_dirs():
         num_packages += 1
         package = venv_dir.name
         if package in skip:
@@ -304,43 +304,30 @@ def install(
             print(
                 f"{package!r} already seems to be installed. "
                 f"Not modifying existing installation in {str(venv_dir)!r}. "
-                "Pass '--force' to force installation"
+                "Pass '--force' to force installation."
             )
             return
 
     venv = Venv(venv_dir, python=python, verbose=verbose)
-    venv.create_venv(venv_args, pip_args)
     try:
+        venv.create_venv(venv_args, pip_args)
         venv.install_package(package_or_url, pip_args)
-    except PipxError:
+
+        if venv.get_venv_metadata_for_package(package).package_version is None:
+            venv.remove_venv()
+            raise PipxError(f"Could not find package {package}. Is the name correct?")
+
+        _run_post_install_actions(venv, package, local_bin_dir, venv_dir, include_deps)
+    except (Exception, KeyboardInterrupt):
+        print("")
         venv.remove_venv()
         raise
-
-    if venv.get_venv_metadata_for_package(package).package_version is None:
-        venv.remove_venv()
-        raise PipxError(f"Could not find package {package}. Is the name correct?")
-
-    _run_post_install_actions(venv, package, local_bin_dir, venv_dir, include_deps)
 
 
 def _run_post_install_actions(
     venv: Venv, package: str, local_bin_dir: Path, venv_dir: Path, include_deps: bool
 ):
     metadata = venv.get_venv_metadata_for_package(package)
-
-    random_binary_name: str
-    if metadata.binaries:
-        random_binary_name = metadata.binaries[0]
-    elif metadata.binaries_of_dependencies and include_deps:
-        random_binary_name = metadata.binaries_of_dependencies[0]
-    else:
-        # No binaries associated with this package and we aren't including dependencies.
-        # This package has nothing for pipx to use, so this is an error.
-        if venv.safe_to_remove():
-            venv.remove_venv()
-        raise PipxError(
-            f"No binaries associated with package {package} or its dependencies."
-        )
 
     if not metadata.binary_paths and not include_deps:
         # No binaries associated with this package and we aren't including dependencies.
@@ -358,10 +345,33 @@ def _run_post_install_actions(
         if len(metadata.binary_paths_of_dependencies.keys()):
             raise PipxError(
                 f"No binaries associated with package {package}. "
-                "Try again with '--include-deps' to include binaries of dependent packages."
+                "Try again with '--include-deps' to include binaries of dependent packages, "
+                "which are listed above. "
+                "If you are attempting to install a library, pipx should not be used. "
+                "Consider using pip or a similar tool instead."
             )
         else:
-            raise PipxError(f"No binaries associated with package {package}.")
+            raise PipxError(
+                f"No binaries associated with package {package}."
+                "If you are attempting to install a library, pipx should not be used. "
+                "Consider using pip or a similar tool instead."
+            )
+
+    random_binary_name: str
+    if metadata.binaries:
+        pass
+    elif metadata.binaries_of_dependencies and include_deps:
+        pass
+    else:
+        # No binaries associated with this package and we aren't including dependencies.
+        # This package has nothing for pipx to use, so this is an error.
+        if venv.safe_to_remove():
+            venv.remove_venv()
+        raise PipxError(
+            f"No binaries associated with package {package} or its dependencies."
+            "If you are attempting to install a library, pipx should not be used. "
+            "Consider using pip or a similar tool instead."
+        )
 
     _expose_binaries_globally(local_bin_dir, metadata.binary_paths, package)
 
@@ -370,16 +380,16 @@ def _run_post_install_actions(
             _expose_binaries_globally(local_bin_dir, binary_paths, package)
 
     print(_get_package_summary(venv_dir, package=package, new_install=True))
-    _warn_if_not_on_path(local_bin_dir, random_binary_name)
+    _warn_if_not_on_path(local_bin_dir)
     print(f"done! {stars}")
 
 
-def _warn_if_not_on_path(local_bin_dir: Path, binary: str):
-    if not which(binary):
+def _warn_if_not_on_path(local_bin_dir: Path):
+    if not userpath.in_current_path(str(local_bin_dir)):
         logging.warning(
             f"{hazard}  Note: {str(local_bin_dir)!r} is not on your PATH environment "
             "variable. These binaries will not be globally accessible until "
-            "your PATH is updated. Run `userpath append ~/.local/bin` to "
+            "your PATH is updated. Run `pipx ensurepath` to "
             "automatically add it, or manually modify your PATH in your shell's "
             "config file (i.e. ~/.bashrc)."
         )
@@ -448,14 +458,14 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
     print(f"uninstalled {package}! {stars}")
 
 
-def uninstall_all(pipx_local_venvs: Path, local_bin_dir: Path, verbose: bool):
-    for venv_dir in pipx_local_venvs.iterdir():
+def uninstall_all(venv_container: VenvContainer, local_bin_dir: Path, verbose: bool):
+    for venv_dir in venv_container.iter_venv_dirs():
         package = venv_dir.name
         uninstall(venv_dir, package, local_bin_dir, verbose)
 
 
 def reinstall_all(
-    pipx_local_venvs: Path,
+    venv_container: VenvContainer,
     local_bin_dir: Path,
     python: str,
     pip_args: List[str],
@@ -465,7 +475,7 @@ def reinstall_all(
     *,
     skip: List[str],
 ):
-    for venv_dir in pipx_local_venvs.iterdir():
+    for venv_dir in venv_container.iter_venv_dirs():
         package = venv_dir.name
         if package in skip:
             continue
@@ -527,15 +537,16 @@ def _symlink_package_binaries(
                     f"to {symlink_path.resolve()}. Not modifying."
                 )
         else:
-            shadow = which(binary)
+            existing_executable_on_path = which(binary)
             try:
                 symlink_path.symlink_to(b)
             except FileExistsError:
                 pass
 
-            if shadow:
+            if existing_executable_on_path:
                 logging.warning(
-                    f"{hazard}  Note: {binary} was already on your PATH at " f"{shadow}"
+                    f"{hazard}  Note: {binary} was already on your PATH at "
+                    f"{existing_executable_on_path}"
                 )
 
 
@@ -593,17 +604,19 @@ def _get_list_output(
     for name in exposed_binary_names:
         output.append(f"    - {name}")
     for name in unavailable_binary_names:
-        output.append(f"    - {red(name)} (symlink not installed)")
+        output.append(
+            f"    - {red(name)} (symlink missing or pointing to unexpected location)"
+        )
     return "\n".join(output)
 
 
-def list_packages(pipx_local_venvs: Path):
-    dirs = list(sorted(pipx_local_venvs.iterdir()))
+def list_packages(venv_container: VenvContainer):
+    dirs = list(sorted(venv_container.iter_venv_dirs()))
     if not dirs:
         print(f"nothing has been installed with pipx {sleep}")
         return
 
-    print(f"venvs are in {bold(str(pipx_local_venvs))}")
+    print(f"venvs are in {bold(str(venv_container))}")
     print(f"binaries are exposed on your $PATH at {bold(str(LOCAL_BIN_DIR))}")
 
     with multiprocessing.Pool() as p:
@@ -612,7 +625,7 @@ def list_packages(pipx_local_venvs: Path):
 
 
 def _get_exposed_binary_paths_for_package(
-    bin_path: Path, package_binary_names: List[str], local_bin_dir: Path
+    venv_bin_path: Path, package_binary_names: List[str], local_bin_dir: Path
 ):
     bin_symlinks = set()
     for b in local_bin_dir.iterdir():
@@ -624,11 +637,9 @@ def _get_exposed_binary_paths_for_package(
             if WINDOWS and b.name in package_binary_names:
                 is_same_file = True
             else:
-                is_same_file = b.resolve().parent.samefile(bin_path)
-
+                is_same_file = b.resolve().parent.samefile(venv_bin_path)
             if is_same_file:
                 bin_symlinks.add(b)
-
         except FileNotFoundError:
             pass
     return bin_symlinks
@@ -644,65 +655,38 @@ def run_pip(package: str, venv_dir: Path, pip_args: List[str], verbose: bool):
     venv._run_pip(pip_args)
 
 
-def ensurepath(bin_dir: Path):
-    print("ensurepath command is deprecated. Use 'userpath' instead.", file=sys.stderr)
-    print("See https://github.com/pipxproject/pipx for usage.", file=sys.stderr)
+def ensurepath(location: Path, *, force: bool):
+    location_str = str(location)
 
-    shell = os.environ.get("SHELL", "")
-    config_file: Optional[str]
-    if "bash" in shell:
-        config_file = "~/.bashrc"
-    elif "zsh" in shell:
-        config_file = "~/.zshrc"
-    elif "fish" in shell:
-        config_file = "~/.config/fish/config.fish"
-    else:
-        config_file = None
-
-    if config_file:
-        config_file = os.path.expanduser(config_file)
-
-    if config_file and os.path.exists(config_file):
-        with open(config_file, "a") as f:
-            f.write("\n# added by pipx (https://github.com/pipxproject/pipx)\n")
-            if "fish" in shell:
-                f.write(f"set -x PATH {str(bin_dir)} $PATH\n\n")
+    post_install_message = (
+        "You likely need to open a new terminal or re-login for "
+        "the changes to take effect."
+    )
+    if userpath.in_current_path(location_str) or userpath.need_shell_restart(
+        location_str
+    ):
+        if not force:
+            if userpath.need_shell_restart(location_str):
+                print(
+                    f"{location_str} has been already been added to PATH. "
+                    f"{post_install_message}"
+                )
             else:
-                f.write(f'export PATH="{str(bin_dir)}{os.pathsep}$PATH"\n')
-        print(f"Added {str(bin_dir)} to the PATH environment variable in {config_file}")
-        print("")
-        print(f"Open a new terminal to use pipx {stars}")
-    else:
-        if WINDOWS:
-            print(
-                textwrap.dedent(
-                    f"""
-                Note {hazard}:
-                To finish installation, {str(bin_dir)!r} must be added to your PATH
-                environment variable.
-
-                To do this, go to settings and type "Environment Variables".
-                In the Environment Variables window edit the PATH variable
-                by adding the following to the end of the value, then open a new
-                terminal.
-
-                    ;{str(bin_dir)}
-            """
+                logging.warning(
+                    (
+                        f"The directory `{location_str}` is already in PATH. If you "
+                        "are sure you want to proceed, try again with "
+                        "the '--force' flag.\n\n"
+                        f"Otherwise pipx is ready to go! {stars}"
+                    )
                 )
-            )
+            return
 
-        else:
-            print(
-                textwrap.dedent(
-                    f"""
-                    Note:
-                    To finish installation, {str(bin_dir)!r} must be added to your PATH
-                    environemnt variable.
-
-                    To do this, add the following line to your shell
-                    config file (such as ~/.bashrc if using bash):
-
-                        export PATH={str(bin_dir)}:$PATH
-                """
-                )
-            )
+    userpath.append(location_str)
+    print(f"Success! Added {location_str} to the PATH environment variable.")
+    print(
+        "Consider adding shell completions for pipx. "
+        "Run 'pipx completions' for instructions."
+    )
+    print()
+    print(f"{post_install_message} {stars}")

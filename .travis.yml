@@ -1,14 +1,13 @@
 language: python
 sudo: required
-python:
-  - "3.6"
-  # - "3.7"
+matrix:
+  include:
+  - python: '3.6'
+  - python: '3.7'
+    dist: xenial
 install:
-  - pip install tox tox-venv .[dev]
+  - pip install git+https://github.com/cs01/nox.git@7f65d2abc#egg=nox
 script:
-  - python setup.py check --metadata --strict
-  - check-manifest
-  - tox
-
+  - nox --non-interactive
 cache:
   pip: true
