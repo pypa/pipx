@@ -1,10 +1,10 @@
-from pipx.util import WINDOWS
+from pipx.util import emoji_support
 
-if WINDOWS:
-    stars = ""
-    hazard = ""
-    sleep = ""
-else:
+if emoji_support:
     stars = "✨ 🌟 ✨"
     hazard = "⚠️"
     sleep = "😴"
+else:
+    stars = ""
+    hazard = ""
+    sleep = ""
