@@ -420,9 +420,6 @@ def inject(
     venv = Venv(venv_dir, verbose=verbose)
     venv.install_package(package, pip_args)
 
-    if venv.get_venv_metadata_for_package(package).package_version is None:
-        raise PipxError(f"Could not find package {package}. Is the name correct?")
-
     if include_binaries:
         _run_post_install_actions(venv, package, LOCAL_BIN_DIR, venv_dir, include_deps)
 
