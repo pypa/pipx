@@ -10,7 +10,7 @@ def animate(message: str, do_animation: bool):
     event = Event()
 
     if emoji_support:
-        symbols = "⣷⣯⣟⡿⢿⣻⣽⣾"
+        symbols = ["⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"]
         message = message + " "
         incremental_wait_time = 0.1
     else:
@@ -25,7 +25,7 @@ def animate(message: str, do_animation: bool):
         "clear_line": clear_line,
         "event": event,
         "symbols": symbols,
-        "initial_wait_time": 0,
+        "delay": 0,
         "incremental_wait_time": incremental_wait_time,
     }
 
@@ -46,10 +46,10 @@ def print_animation(
     clear_line: str,
     event: Event,
     symbols: List[str],
-    initial_wait_time: float,
+    delay: float,
     incremental_wait_time: float,
 ):
-    if event.wait(initial_wait_time):
+    if event.wait(delay):
         return
     while True:
         for s in symbols:
