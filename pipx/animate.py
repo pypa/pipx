@@ -1,44 +1,59 @@
 from contextlib import contextmanager
 import sys
-from typing import Dict
-from threading import Thread
-from time import sleep
+from typing import List
+from threading import Thread, Event
+from pipx.constants import emoji_support
 
 
 @contextmanager
 def animate(message: str, do_animation: bool):
-    animate = {"do_animation": do_animation, "message": message}
-    t = Thread(target=print_animation, args=(animate,))
-    t.start()
+    event = Event()
+
+    if emoji_support:
+        symbols = ["⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"]
+        message = message + " "
+        incremental_wait_time = 0.1
+    else:
+        symbols = ["", ".", "..", "..."]
+        incremental_wait_time = 1
+    max_symbol_len = max(len(s) for s in symbols)
+    spaces = " " * (len(message) + max_symbol_len)
+    clear_line = f"\r{spaces}\r"
+
+    thread_kwargs = {
+        "message": message,
+        "clear_line": clear_line,
+        "event": event,
+        "symbols": symbols,
+        "delay": 0,
+        "incremental_wait_time": incremental_wait_time,
+    }
+
+    if do_animation and sys.stderr.isatty():
+        t = Thread(target=print_animation, kwargs=thread_kwargs)
+        t.start()
+
     try:
         yield
     finally:
-        animate["do_animation"] = False
-        t.join(0)
+        event.set()
+        sys.stderr.write(clear_line)
 
 
-def print_animation(meta: Dict[str, bool]):
-    if not sys.stdout.isatty():
+def print_animation(
+    *,
+    message: str,
+    clear_line: str,
+    event: Event,
+    symbols: List[str],
+    delay: float,
+    incremental_wait_time: float,
+):
+    if event.wait(delay):
         return
-
-    cur = "."
-    longest_len = 0
-    sleep(1)
-    while meta["do_animation"]:
-        if cur == "":
-            cur = "."
-        elif cur == ".":
-            cur = ".."
-        elif cur == "..":
-            cur = "..."
-        else:
-            cur = ""
-        message = f"{meta['message']}{cur}"
-        longest_len = max(len(message), longest_len)
-        sys.stdout.write(" " * longest_len)
-        sys.stdout.write("\r")
-        sys.stdout.write(message)
-        sys.stdout.write("\r")
-        sleep(0.5)
-    sys.stdout.write(" " * longest_len)
-    sys.stdout.write("\r")
+    while True:
+        for s in symbols:
+            cur_line = f"{message}{s}"
+            sys.stderr.write(clear_line + cur_line + "\r")
+            if event.wait(incremental_wait_time):
+                return

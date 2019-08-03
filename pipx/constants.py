@@ -24,6 +24,7 @@ except NameError:
 else:
     WINDOWS = True
 
+emoji_support = not WINDOWS and sys.getdefaultencoding() == "utf-8"
 
 completion_instructions = dedent(
     """
