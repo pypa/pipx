@@ -18,6 +18,8 @@ except NameError:
 else:
     WINDOWS = True
 
+emoji_support = not WINDOWS and sys.getdefaultencoding() == "utf-8"
+
 
 def rmdir(path: Path):
     logging.info(f"removing directory {path}")
