@@ -1,3 +1,7 @@
+0.13.2.3
+
+- Fix regression when installing a package that doesn't have any entry points
+
 0.13.2.2
 
 - Remove unneccesary and sometimes incorrect check after `pipx inject` (#195)
