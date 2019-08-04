@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List
 
 from pipx.animate import animate
-from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_LIBS
+from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_LIBS, WINDOWS
 from pipx.util import get_venv_paths, get_site_packages, run
 
 
@@ -31,14 +31,17 @@ class _SharedLibs:
 
     @property
     def is_valid(self):
-        return self.python_path.is_file() and (self.bin_path / "pip").is_file()
+        return (
+            self.python_path.is_file()
+            and (self.bin_path / ("pip" if not WINDOWS else "pip.exe")).is_file()
+        )
 
     def upgrade(self, pip_args: List[str], verbose: bool = False):
         # Don't try to upgrade multiple times per run
         if self.has_been_updated_this_run:
             logging.info("Already upgraded libraries in", self.root)
             return
-        logging.info("Upgradign shared libraries in", self.root)
+        logging.info("Upgrading shared libraries in", self.root)
 
         ignored_args = ["--editable"]
         _pip_args = [arg for arg in pip_args if arg not in ignored_args]
