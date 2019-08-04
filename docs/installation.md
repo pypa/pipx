@@ -10,7 +10,12 @@ pipx works on macOS, linux, and Windows.
 Assuming you have `pip` installed for python3, run:
 ```
 python3 -m pip install --user pipx
-python3 -m ensurepath
+python3 -m pipx ensurepath
+```
+
+## Upgrade pipx
+```
+python3 -m pip install -U pipx
 ```
 
 ### Installation Options

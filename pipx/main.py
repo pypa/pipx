@@ -29,7 +29,7 @@ from .colors import bold, green
 from .Venv import VenvContainer
 
 
-__version__ = "0.13.2.1"
+__version__ = "0.13.2.3"
 
 
 def print_version() -> None:

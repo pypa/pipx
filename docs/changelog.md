@@ -1,3 +1,13 @@
+0.13.2.3
+
+- Fix regression when installing a package that doesn't have any entry points
+
+0.13.2.2
+
+- Remove unneccesary and sometimes incorrect check after `pipx inject` (#195)
+- Make status text/animation reliably disappear before continuing
+- Update animation symbols
+
 0.13.2.1
 
 - Remove virtual environment if installation did not complete. For example, if it was interrupted by ctrl+c or if an exception occurred for any reason. (#193)
