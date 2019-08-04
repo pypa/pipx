@@ -32,7 +32,7 @@ from .util import (
 )
 from .colors import bold, green
 
-__version__ = "0.13.2.2"
+__version__ = "0.13.2.3"
 
 
 def print_version() -> None:

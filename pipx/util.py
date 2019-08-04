@@ -23,10 +23,13 @@ emoji_support = not WINDOWS and sys.getdefaultencoding() == "utf-8"
 
 def rmdir(path: Path):
     logging.info(f"removing directory {path}")
-    if WINDOWS:
-        os.system(f'rmdir /S /Q "{str(path)}"')
-    else:
-        shutil.rmtree(path)
+    try:
+        if WINDOWS:
+            os.system(f'rmdir /S /Q "{str(path)}"')
+        else:
+            shutil.rmtree(path)
+    except FileNotFoundError:
+        pass
 
 
 def mkdir(path: Path) -> None:
