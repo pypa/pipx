@@ -39,10 +39,10 @@ def mkdir(path: Path) -> None:
 def get_pypackage_bin_path(binary_name: str) -> Path:
     return (
         Path("__pypackages__")
-        / (str(sys.version_info.major) + "." + str(sys.version_info.minor))  # noqa E503
-        / "lib"  # noqa E503
-        / "bin"  # noqa E503
-        / binary_name  # noqa E503
+        / (str(sys.version_info.major) + "." + str(sys.version_info.minor))
+        / "lib"
+        / "bin"
+        / binary_name
     )
 
 
@@ -51,7 +51,7 @@ def run_pypackage_bin(bin_path: Path, args: List[str]) -> int:
         env = dict(os.environ)
         env["PYTHONPATH"] = os.path.pathsep.join(
             [".", str(bin_path.parent.parent)]
-            + os.getenv("PYTHONPATH", "").split(os.path.pathsep)  # noqa E503
+            + os.getenv("PYTHONPATH", "").split(os.path.pathsep)
         )
         return env
 

@@ -13,6 +13,11 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ```
 
+## Upgrade pipx
+```
+python3 -m pip install -U pipx
+```
+
 ### Installation Options
 pipx's default binary location is `~/.local/bin`. This can be overriden with the environment variable `PIPX_BIN_DIR`.
 
