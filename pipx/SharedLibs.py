@@ -27,7 +27,7 @@ class _SharedLibs:
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
                 run([DEFAULT_PYTHON, "-m", "venv", self.root])
-                self.upgrade(pip_args, verbose)
+            self.upgrade(pip_args, verbose)
 
     @property
     def is_valid(self):
