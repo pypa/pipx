@@ -165,6 +165,10 @@ class TestPipxCommands(unittest.TestCase):
         for package in all_packages:
             self.assertTrue(package in ret.stdout.decode())
 
+    def test_shared_libs_automatically_recreated(self):
+        self._shared_dir.cleanup()
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
+
     def test_install_no_packages_found(self):
         ret = subprocess.run(
             [self.pipx_bin, "install", "--include-deps", "pygdbmi"],
