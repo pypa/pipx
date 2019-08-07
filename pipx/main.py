@@ -112,7 +112,7 @@ def get_venv_args(parsed_args: Dict):
     return venv_args
 
 
-def run_pipx_command(args, binary_args: List[str]):
+def run_pipx_command(args):
     setup(args)
     verbose = args.verbose if "verbose" in args else False
     pip_args = get_pip_args(vars(args))
@@ -141,7 +141,7 @@ def run_pipx_command(args, binary_args: List[str]):
         return commands.run(
             args.binary,
             package_or_url,
-            binary_args,
+            args.appargs,
             args.python,
             pip_args,
             venv_args,
@@ -220,7 +220,7 @@ def run_pipx_command(args, binary_args: List[str]):
     elif args.command == "runpip":
         if not venv_dir:
             raise PipxError("developer error: venv dir is not defined")
-        commands.run_pip(package, venv_dir, binary_args, args.verbose)
+        commands.run_pip(package, venv_dir, args.pipargs, args.verbose)
     elif args.command == "ensurepath":
         try:
             commands.ensurepath(LOCAL_BIN_DIR, force=args.force)
@@ -427,9 +427,9 @@ def get_command_parser():
     )
     p.add_argument("binary", help="binary/package name")
     p.add_argument(
-        "binary_args",
-        nargs="*",
-        help="arguments passed to the binary when it is invoked",
+        "appargs",
+        nargs=argparse.REMAINDER,
+        help="arguments passed to the application when it is invoked",
         default=[],
     )
     p.add_argument(
@@ -455,7 +455,12 @@ def get_command_parser():
         "package",
         help="Name of the existing pipx-managed Virtual Environment to run pip in",
     ).completer = autocomplete_list_of_installed_packages
-    p.add_argument("pipargs", nargs="*", help="Arguments to forward to pip command")
+    p.add_argument(
+        "pipargs",
+        nargs=argparse.REMAINDER,
+        default=[],
+        help="Arguments to forward to pip command",
+    )
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
@@ -534,17 +539,14 @@ def split_run_argv(argv: List[str]) -> Tuple[List[str], List[str]]:
 def cli():
     """Entry point from command line"""
     try:
-        args_to_parse, binary_args = split_run_argv(sys.argv)
         parser = get_command_parser()
-
         argcomplete.autocomplete(parser)
-
-        parsed_pipx_args = parser.parse_args(args_to_parse)
+        parsed_pipx_args = parser.parse_args()
         setup(parsed_pipx_args)
         if not parsed_pipx_args.command:
             parser.print_help()
             exit(1)
-        exit(run_pipx_command(parsed_pipx_args, binary_args))
+        exit(run_pipx_command(parsed_pipx_args))
     except PipxError as e:
         exit(e)
     except KeyboardInterrupt:
