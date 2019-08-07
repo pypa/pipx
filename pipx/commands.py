@@ -38,7 +38,7 @@ from pipx.Venv import Venv, VenvContainer
 
 
 def run(
-    binary: str,
+    app: str,
     package_or_url: str,
     binary_args: List[str],
     python: str,
@@ -48,39 +48,39 @@ def run(
     verbose: bool,
     use_cache: bool,
 ):
-    """Installs venv to temporary dir (or reuses cache), then runs binary from
+    """Installs venv to temporary dir (or reuses cache), then runs app from
     package
     """
 
-    if urllib.parse.urlparse(binary).scheme:
-        if not binary.endswith(".py"):
+    if urllib.parse.urlparse(app).scheme:
+        if not app.endswith(".py"):
             exit(
-                "pipx will only execute binaries from the internet directly if "
+                "pipx will only execute apps from the internet directly if "
                 "they end with '.py'. To run from an SVN, try pipx --spec URL BINARY"
             )
         logging.info("Detected url. Downloading and executing as a Python file.")
 
-        content = _http_get_request(binary)
+        content = _http_get_request(app)
         try:
             exit(subprocess.run([str(python), "-c", content]).returncode)
         except KeyboardInterrupt:
             pass
         exit(0)
-    elif which(binary):
+    elif which(app):
         logging.warning(
-            f"{hazard}  {binary} is already on your PATH and installed at "
-            f"{which(binary)}. Downloading and "
+            f"{hazard}  {app} is already on your PATH and installed at "
+            f"{which(app)}. Downloading and "
             "running anyway."
         )
 
-    if WINDOWS and not binary.endswith(".exe"):
-        binary = f"{binary}.exe"
-        logging.warning(f"Assuming binary is {binary!r} (Windows only)")
+    if WINDOWS and not app.endswith(".exe"):
+        app = f"{app}.exe"
+        logging.warning(f"Assuming app is {app!r} (Windows only)")
 
-    pypackage_bin_path = get_pypackage_bin_path(binary)
+    pypackage_bin_path = get_pypackage_bin_path(app)
     if pypackage_bin_path.exists():
         logging.info(
-            f"Using binary in local __pypackages__ directory at {str(pypackage_bin_path)}"
+            f"Using app in local __pypackages__ directory at {str(pypackage_bin_path)}"
         )
         return run_pypackage_bin(pypackage_bin_path, binary_args)
     if pypackages:
@@ -93,18 +93,18 @@ def run(
     venv_dir = _get_temporary_venv_path(package_or_url, python, pip_args, venv_args)
 
     venv = Venv(venv_dir)
-    bin_path = venv.bin_path / binary
+    bin_path = venv.bin_path / app
     _prepare_venv_cache(venv, bin_path, use_cache)
 
     if bin_path.exists():
         logging.info(f"Reusing cached venv {venv_dir}")
-        retval = venv.run_binary(binary, binary_args)
+        retval = venv.run_app(app, binary_args)
     else:
         logging.info(f"venv location is {venv_dir}")
         retval = _download_and_run(
             Path(venv_dir),
             package_or_url,
-            binary,
+            app,
             binary_args,
             python,
             pip_args,
@@ -120,7 +120,7 @@ def run(
 def _download_and_run(
     venv_dir: Path,
     package: str,
-    binary: str,
+    app: str,
     binary_args: List[str],
     python: str,
     pip_args: List[str],
@@ -130,14 +130,15 @@ def _download_and_run(
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv(venv_args, pip_args)
     venv.install_package(package, pip_args)
-    if not (venv.bin_path / binary).exists():
-        binaries = venv.get_venv_metadata_for_package(package).binaries
+
+    if not (venv.bin_path / app).exists():
+        apps = venv.get_venv_metadata_for_package(package).apps
         raise PipxError(
-            f"'{binary}' executable script not found in package '{package}'. "
+            f"'{app}' executable script not found in package '{package}'. "
             "Available executable scripts: "
-            f"{', '.join(b for b in binaries)}"
+            f"{', '.join(b for b in apps)}"
         )
-    return venv.run_binary(binary, binary_args)
+    return venv.run_app(app, binary_args)
 
 
 def _get_temporary_venv_path(
@@ -145,7 +146,7 @@ def _get_temporary_venv_path(
 ):
     """Computes deterministic path using hashing function on arguments relevant
     to virtual environment's end state. Arguments used should result in idempotent
-    virtual environment. (i.e. args passed to binary aren't relevant, but args
+    virtual environment. (i.e. args passed to app aren't relevant, but args
     passed to venv creation are.)
     """
     m = hashlib.sha256()
@@ -197,7 +198,7 @@ def upgrade(
     verbose: bool,
     *,
     upgrading_all: bool,
-    include_deps: bool,
+    include_dependencies: bool,
 ) -> int:
     """Returns nonzero if package was upgraded, 0 if version did not change"""
 
@@ -220,11 +221,11 @@ def upgrade(
     new_version = venv.get_venv_metadata_for_package(package).package_version
 
     metadata = venv.get_venv_metadata_for_package(package)
-    _expose_binaries_globally(LOCAL_BIN_DIR, metadata.binary_paths, package)
+    _expose_apps_globally(LOCAL_BIN_DIR, metadata.app_paths, package)
 
-    if include_deps:
-        for _, binary_paths in metadata.binary_paths_of_dependencies.items():
-            _expose_binaries_globally(LOCAL_BIN_DIR, binary_paths, package)
+    if include_dependencies:
+        for _, app_paths in metadata.app_paths_of_dependencies.items():
+            _expose_apps_globally(LOCAL_BIN_DIR, app_paths, package)
 
     if old_version == new_version:
         if upgrading_all:
@@ -246,7 +247,7 @@ def upgrade_all(
     pip_args: List[str],
     verbose: bool,
     *,
-    include_deps: bool,
+    include_dependencies: bool,
     skip: List[str],
 ):
     packages_upgraded = 0
@@ -268,7 +269,7 @@ def upgrade_all(
                 pip_args,
                 verbose,
                 upgrading_all=True,
-                include_deps=include_deps,
+                include_dependencies=include_dependencies,
             )
         except Exception:
             logging.error(f"Error encountered when upgrading {package}")
@@ -290,7 +291,7 @@ def install(
     verbose: bool,
     *,
     force: bool,
-    include_deps: bool,
+    include_dependencies: bool,
 ):
     try:
         exists = venv_dir.exists() and next(venv_dir.iterdir())
@@ -317,7 +318,9 @@ def install(
             venv.remove_venv()
             raise PipxError(f"Could not find package {package}. Is the name correct?")
 
-        _run_post_install_actions(venv, package, local_bin_dir, venv_dir, include_deps)
+        _run_post_install_actions(
+            venv, package, local_bin_dir, venv_dir, include_dependencies
+        )
     except (Exception, KeyboardInterrupt):
         print("")
         venv.remove_venv()
@@ -325,59 +328,62 @@ def install(
 
 
 def _run_post_install_actions(
-    venv: Venv, package: str, local_bin_dir: Path, venv_dir: Path, include_deps: bool
+    venv: Venv,
+    package: str,
+    local_bin_dir: Path,
+    venv_dir: Path,
+    include_dependencies: bool,
 ):
     metadata = venv.get_venv_metadata_for_package(package)
 
-    if not metadata.binary_paths and not include_deps:
-        # No binaries associated with this package and we aren't including dependencies.
+    if not metadata.app_paths and not include_dependencies:
+        # No apps associated with this package and we aren't including dependencies.
         # This package has nothing for pipx to use, so this is an error.
-        for dep, dependent_binaries in metadata.binary_paths_of_dependencies.items():
+        for dep, dependent_apps in metadata.app_paths_of_dependencies.items():
             print(
-                f"Note: Dependent package '{dep}' contains {len(dependent_binaries)} binaries"
+                f"Note: Dependent package '{dep}' contains {len(dependent_apps)} apps"
             )
-            for binary in dependent_binaries:
-                print(f"  - {binary.name}")
+            for app in dependent_apps:
+                print(f"  - {app.name}")
 
         if venv.safe_to_remove():
             venv.remove_venv()
 
-        if len(metadata.binary_paths_of_dependencies.keys()):
+        if len(metadata.app_paths_of_dependencies.keys()):
             raise PipxError(
-                f"No binaries associated with package {package}. "
-                "Try again with '--include-deps' to include binaries of dependent packages, "
+                f"No apps associated with package {package}. "
+                "Try again with '--include-deps' to include apps of dependent packages, "
                 "which are listed above. "
                 "If you are attempting to install a library, pipx should not be used. "
                 "Consider using pip or a similar tool instead."
             )
         else:
             raise PipxError(
-                f"No binaries associated with package {package}."
+                f"No apps associated with package {package}."
                 "If you are attempting to install a library, pipx should not be used. "
                 "Consider using pip or a similar tool instead."
             )
 
-    random_binary_name: str
-    if metadata.binaries:
+    if metadata.apps:
         pass
-    elif metadata.binaries_of_dependencies and include_deps:
+    elif metadata.apps_of_dependencies and include_dependencies:
         pass
     else:
-        # No binaries associated with this package and we aren't including dependencies.
+        # No apps associated with this package and we aren't including dependencies.
         # This package has nothing for pipx to use, so this is an error.
         if venv.safe_to_remove():
             venv.remove_venv()
         raise PipxError(
-            f"No binaries associated with package {package} or its dependencies."
+            f"No apps associated with package {package} or its dependencies."
             "If you are attempting to install a library, pipx should not be used. "
             "Consider using pip or a similar tool instead."
         )
 
-    _expose_binaries_globally(local_bin_dir, metadata.binary_paths, package)
+    _expose_apps_globally(local_bin_dir, metadata.app_paths, package)
 
-    if include_deps:
-        for _, binary_paths in metadata.binary_paths_of_dependencies.items():
-            _expose_binaries_globally(local_bin_dir, binary_paths, package)
+    if include_dependencies:
+        for _, app_paths in metadata.app_paths_of_dependencies.items():
+            _expose_apps_globally(local_bin_dir, app_paths, package)
 
     print(_get_package_summary(venv_dir, package=package, new_install=True))
     _warn_if_not_on_path(local_bin_dir)
@@ -388,7 +394,7 @@ def _warn_if_not_on_path(local_bin_dir: Path):
     if not userpath.in_current_path(str(local_bin_dir)):
         logging.warning(
             f"{hazard}  Note: {str(local_bin_dir)!r} is not on your PATH environment "
-            "variable. These binaries will not be globally accessible until "
+            "variable. These apps will not be globally accessible until "
             "your PATH is updated. Run `pipx ensurepath` to "
             "automatically add it, or manually modify your PATH in your shell's "
             "config file (i.e. ~/.bashrc)."
@@ -401,8 +407,8 @@ def inject(
     pip_args: List[str],
     *,
     verbose: bool,
-    include_binaries: bool,
-    include_deps: bool,
+    include_apps: bool,
+    include_dependencies: bool,
 ):
     if not venv_dir.exists() or not next(venv_dir.iterdir()):
         raise PipxError(
@@ -417,8 +423,10 @@ def inject(
     venv = Venv(venv_dir, verbose=verbose)
     venv.install_package(package, pip_args)
 
-    if include_binaries:
-        _run_post_install_actions(venv, package, LOCAL_BIN_DIR, venv_dir, include_deps)
+    if include_apps:
+        _run_post_install_actions(
+            venv, package, LOCAL_BIN_DIR, venv_dir, include_dependencies
+        )
 
     print(f"done! {stars}")
 
@@ -426,27 +434,27 @@ def inject(
 def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
     if not venv_dir.exists():
         print(f"Nothing to uninstall for {package} 😴")
-        binary = which(package)
-        if binary:
+        app = which(package)
+        if app:
             print(
-                f"{hazard}  Note: '{binary}' still exists on your system and is on your PATH"
+                f"{hazard}  Note: '{app}' still exists on your system and is on your PATH"
             )
         return
 
     venv = Venv(venv_dir, verbose=verbose)
 
     metadata = venv.get_venv_metadata_for_package(package)
-    binary_paths = metadata.binary_paths
-    for dep_paths in metadata.binary_paths_of_dependencies.values():
-        binary_paths += dep_paths
+    app_paths = metadata.app_paths
+    for dep_paths in metadata.app_paths_of_dependencies.values():
+        app_paths += dep_paths
     for file in local_bin_dir.iterdir():
         if WINDOWS:
-            for b in binary_paths:
+            for b in app_paths:
                 if file.name == b.name:
                     file.unlink()
         else:
             symlink = file
-            for b in binary_paths:
+            for b in app_paths:
                 if symlink.exists() and b.exists() and symlink.samefile(b):
                     logging.info(f"removing symlink {str(symlink)}")
                     symlink.unlink()
@@ -468,7 +476,7 @@ def reinstall_all(
     pip_args: List[str],
     venv_args: List[str],
     verbose: bool,
-    include_deps: bool,
+    include_dependencies: bool,
     *,
     skip: List[str],
 ):
@@ -489,24 +497,22 @@ def reinstall_all(
             venv_args,
             verbose,
             force=True,
-            include_deps=include_deps,
+            include_dependencies=include_dependencies,
         )
 
 
-def _expose_binaries_globally(
-    local_bin_dir: Path, binary_paths: List[Path], package: str
-):
+def _expose_apps_globally(local_bin_dir: Path, app_paths: List[Path], package: str):
     if WINDOWS:
-        _copy_package_binaries(local_bin_dir, binary_paths, package)
+        _copy_package_apps(local_bin_dir, app_paths, package)
     else:
-        _symlink_package_binaries(local_bin_dir, binary_paths, package)
+        _symlink_package_apps(local_bin_dir, app_paths, package)
 
 
-def _copy_package_binaries(local_bin_dir: Path, binary_paths: List[Path], package: str):
-    for src_unresolved in binary_paths:
+def _copy_package_apps(local_bin_dir: Path, app_paths: List[Path], package: str):
+    for src_unresolved in app_paths:
         src = src_unresolved.resolve()
-        binary = src.name
-        dest = Path(local_bin_dir / binary)
+        app = src.name
+        dest = Path(local_bin_dir / app)
         if not dest.parent.is_dir():
             mkdir(dest.parent)
         if dest.exists():
@@ -516,33 +522,31 @@ def _copy_package_binaries(local_bin_dir: Path, binary_paths: List[Path], packag
             shutil.copy(src, dest)
 
 
-def _symlink_package_binaries(
-    local_bin_dir: Path, binary_paths: List[Path], package: str
-):
-    for b in binary_paths:
-        binary = b.name
-        symlink_path = Path(local_bin_dir / binary)
+def _symlink_package_apps(local_bin_dir: Path, app_paths: List[Path], package: str):
+    for app_path in app_paths:
+        app_name = app_path.name
+        symlink_path = Path(local_bin_dir / app_name)
         if not symlink_path.parent.is_dir():
             mkdir(symlink_path.parent)
 
         if symlink_path.exists():
-            if symlink_path.samefile(b):
+            if symlink_path.samefile(app_path):
                 pass
             else:
                 logging.warning(
                     f"{hazard}  File exists at {str(symlink_path)} and points "
-                    f"to {symlink_path.resolve()}. Not modifying."
+                    f"to {symlink_path.resolve()}, not {str(app_path)}. Not modifying."
                 )
         else:
-            existing_executable_on_path = which(binary)
+            existing_executable_on_path = which(app_name)
             try:
-                symlink_path.symlink_to(b)
+                symlink_path.symlink_to(app_path)
             except FileExistsError:
                 pass
 
             if existing_executable_on_path:
                 logging.warning(
-                    f"{hazard}  Note: {binary} was already on your PATH at "
+                    f"{hazard}  Note: {app_name} was already on your PATH at "
                     f"{existing_executable_on_path}"
                 )
 
@@ -560,14 +564,12 @@ def _get_package_summary(
         not_installed = red("is not installed")
         return f"   package {bold(package)} {not_installed} in the venv {str(path)}"
 
-    binaries = metadata.binaries + metadata.binaries_of_dependencies
-    exposed_binary_paths = _get_exposed_binary_paths_for_package(
-        venv.bin_path, binaries, LOCAL_BIN_DIR
+    apps = metadata.apps + metadata.apps_of_dependencies
+    exposed_app_paths = _get_exposed_app_paths_for_package(
+        venv.bin_path, apps, LOCAL_BIN_DIR
     )
-    exposed_binary_names = sorted(p.name for p in exposed_binary_paths)
-    unavailable_binary_names = sorted(
-        set(metadata.binaries) - set(exposed_binary_names)
-    )
+    exposed_binary_names = sorted(p.name for p in exposed_app_paths)
+    unavailable_binary_names = sorted(set(metadata.apps) - set(exposed_binary_names))
     return _get_list_output(
         metadata.python_version,
         python_path,
@@ -597,7 +599,7 @@ def _get_list_output(
         output.append(f"    associated python path {str(python_path)} does not exist!")
 
     if new_install and exposed_binary_names:
-        output.append("  These binaries are now globally available")
+        output.append("  These apps are now globally available")
     for name in exposed_binary_names:
         output.append(f"    - {name}")
     for name in unavailable_binary_names:
@@ -614,7 +616,7 @@ def list_packages(venv_container: VenvContainer):
         return
 
     print(f"venvs are in {bold(str(venv_container))}")
-    print(f"binaries are exposed on your $PATH at {bold(str(LOCAL_BIN_DIR))}")
+    print(f"apps are exposed on your $PATH at {bold(str(LOCAL_BIN_DIR))}")
 
     venv_container.verify_shared_libs()
 
@@ -623,7 +625,7 @@ def list_packages(venv_container: VenvContainer):
             print(package_summary)
 
 
-def _get_exposed_binary_paths_for_package(
+def _get_exposed_app_paths_for_package(
     venv_bin_path: Path, package_binary_names: List[str], local_bin_dir: Path
 ):
     bin_symlinks = set()

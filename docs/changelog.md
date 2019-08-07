@@ -1,6 +1,9 @@
 0.14.0.0
 
-- Speed up operations by using shared venv for `pip`, `setuptools`, and `wheel`. This shared venv is used by all pipx-installed packages regardless of the Python version associated with the package's venv. This is currently fine as none of `pip`, `setuptools`, nor `wheel` are customized for a specific Python version. End users should not be affected by this other than having quicker invocations of `pipx run` and `pipx install`. If they are, we will roll back this change. You can see more detail in the 'how pipx works' section of the documentation. (#164, @pfmoore)
+- Speed up operations by using shared venv for `pip`, `setuptools`, and `wheel`. You can see more detail in the 'how pipx works' section of the documentation. (#164, @pfmoore)
+- Breaking change: for the `inject` command, change `--include-binaries` to `--include-apps`
+- Change all terminology from `binary` to `app` or `application`
+- Improve argument parsing for `pipx run` and `pipx runpip`
 
 0.13.2.3
 

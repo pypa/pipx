@@ -23,18 +23,18 @@ def get_package_version(package: str) -> Optional[str]:
         return None
 
 
-def get_binaries(package: str, bin_path: Path) -> List[str]:
+def get_apps(package: str, bin_path: Path) -> List[str]:
     try:
         import pkg_resources
     except Exception:
         return []
     dist = pkg_resources.get_distribution(package)
 
-    binaries = set()
+    apps = set()
     for section in ["console_scripts", "gui_scripts"]:
         # "entry_points" entry in setup.py are found here
         for name in pkg_resources.get_entry_map(dist).get(section, []):
-            binaries.add(name)
+            apps.add(name)
 
     if dist.has_metadata("RECORD"):
         # "scripts" entry in setup.py is found here (test w/ awscli)
@@ -43,7 +43,7 @@ def get_binaries(package: str, bin_path: Path) -> List[str]:
             path = (Path(dist.location) / entry).resolve()
             try:
                 if path.parent.samefile(bin_path):
-                    binaries.add(Path(entry).name)
+                    apps.add(Path(entry).name)
             except FileNotFoundError:
                 pass
 
@@ -54,47 +54,47 @@ def get_binaries(package: str, bin_path: Path) -> List[str]:
             path = (Path(dist.egg_info) / entry).resolve()  # type: ignore
             try:
                 if path.parent.samefile(bin_path):
-                    binaries.add(Path(entry).name)
+                    apps.add(Path(entry).name)
             except FileNotFoundError:
                 pass
 
-    return sorted(binaries)
+    return sorted(apps)
 
 
-def _dfs_package_binaries(
-    bin_path: Path, package: str, binary_paths_of_dependencies: Dict[str, List[str]]
+def _dfs_package_apps(
+    bin_path: Path, package: str, app_paths_of_dependencies: Dict[str, List[str]]
 ):
     dependencies = get_package_dependencies(package)
     for d in dependencies:
-        binary_names = get_binaries(d, bin_path)
-        if binary_names:
-            binaries = [str(Path(bin_path) / binary) for binary in binary_names]
-            binary_paths_of_dependencies[d] = binaries
+        app_names = get_apps(d, bin_path)
+        if app_names:
+            apps = [str(Path(bin_path) / app) for app in app_names]
+            app_paths_of_dependencies[d] = apps
         # recursively search for more
-        if d not in binary_paths_of_dependencies:
+        if d not in app_paths_of_dependencies:
             # only search if this package isn't already listed to avoid
             # infinite recursion
-            binary_paths_of_dependencies = _dfs_package_binaries(
-                bin_path, d, binary_paths_of_dependencies
+            app_paths_of_dependencies = _dfs_package_apps(
+                bin_path, d, app_paths_of_dependencies
             )
-    return binary_paths_of_dependencies
+    return app_paths_of_dependencies
 
 
 def main():
     package = sys.argv[1]
     bin_path = Path(sys.argv[2])
 
-    binaries = get_binaries(package, bin_path)
-    binary_paths = [str(Path(bin_path) / binary) for binary in binaries]
-    binary_paths_of_dependencies: Dict[str, List[str]] = {}
-    binary_paths_of_dependencies = _dfs_package_binaries(
-        bin_path, package, binary_paths_of_dependencies
+    apps = get_apps(package, bin_path)
+    app_paths = [str(Path(bin_path) / app) for app in apps]
+    app_paths_of_dependencies: Dict[str, List[str]] = {}
+    app_paths_of_dependencies = _dfs_package_apps(
+        bin_path, package, app_paths_of_dependencies
     )
 
     output = {
-        "binaries": binaries,
-        "binary_paths": binary_paths,
-        "binary_paths_of_dependencies": binary_paths_of_dependencies,
+        "apps": apps,
+        "app_paths": app_paths,
+        "app_paths_of_dependencies": app_paths_of_dependencies,
         "package_version": get_package_version(package),
         "python_version": f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
     }
@@ -109,9 +109,9 @@ if __name__ == "__main__":
         print(
             json.dumps(
                 {
-                    "binaries": [],
-                    "binary_paths": [],
-                    "binary_paths_of_dependencies": {},
+                    "apps": [],
+                    "app_paths": [],
+                    "app_paths_of_dependencies": {},
                     "package_version": None,
                     "python_version": None,
                 }

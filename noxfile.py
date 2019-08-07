@@ -15,6 +15,10 @@ python = ["3.6", "3.7"]
 nox.options.sessions = ["unittests", "lint", "docs"]
 
 
+doc_dependencies = [".", "jinja2", "mkdocs", "mkdocs-material"]
+lint_dependencies = ["black", "flake8", "mypy", "check-manifest"]
+
+
 @nox.session(python=python)
 def unittests(session):
     session.install(".")
@@ -23,7 +27,7 @@ def unittests(session):
 
 @nox.session(python=python)
 def lint(session):
-    session.install(".[dev]")
+    session.install(*lint_dependencies)
     files = ["pipx", "tests"] + [str(p) for p in Path(".").glob("*.py")]
     session.run("black", "--check", *files)
     session.run("flake8", *files)
@@ -34,14 +38,14 @@ def lint(session):
 
 @nox.session(python=python)
 def docs(session):
-    session.install(".[docs]")
+    session.install(*doc_dependencies)
     session.run("python", "generate_docs.py")
     session.run("mkdocs", "build")
 
 
 @nox.session(python=python)
 def develop(session):
-    session.install(".[dev]", ".[docs]")
+    session.install(*doc_dependencies, *lint_dependencies)
     session.install("-e", ".")
 
 
@@ -63,12 +67,12 @@ def publish(session):
 
 @nox.session(python=["3.7"])
 def watch_docs(session):
-    session.install(".[docs]")
+    session.install(*doc_dependencies)
     session.run("mkdocs", "serve")
 
 
 @nox.session(python=["3.7"])
 def publish_docs(session):
-    session.install(".[docs]")
+    session.install(*doc_dependencies)
     session.run("python", "generate_docs.py")
     session.run("mkdocs", "gh-deploy")

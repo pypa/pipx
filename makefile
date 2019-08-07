@@ -9,13 +9,13 @@ test:
 	pipx run --spec=git+https://github.com/cs01/nox.git@5ea70723e9e6 nox
 
 publish:
-	pipx run nox -s publish-3.6
+	pipx run nox -s publish-3.7
 
 docs:
-	pipx run nox --session docs -s docs-3.6
+	pipx run nox --session docs -s docs-3.7
 
 watch_docs:
-	pipx run nox -s watch_docs-3.6
+	pipx run nox -s watch_docs-3.7
 
 publish_docs:
-	pipx run nox -s publish_docs-3.6
+	pipx run nox -s publish_docs-3.7

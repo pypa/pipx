@@ -37,7 +37,7 @@ Install a Python interpreter with pyenv, then install a package using pipx and t
 * pipx and pipsi both install packages in a similar way
 * pipx is under active development. pipsi is no longer maintained.
 * pipx always makes sure you're using the latest version of pip
-* pipx has the ability to run a binary in one line, leaving your system unchanged after it finishes (`pipx run BINARY`) where pipsi does not
+* pipx has the ability to run a app in one line, leaving your system unchanged after it finishes (`pipx run APP`) where pipsi does not
 * pipx has the ability to recursively install binaries from dependent packages
 * pipx adds more useful information to its output
 * pipx has more CLI options such as upgrade-all, reinstall-all, uninstall-all
