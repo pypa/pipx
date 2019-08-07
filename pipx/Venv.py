@@ -3,11 +3,53 @@ import logging
 import pkgutil
 import subprocess
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Sequence, Union
+from typing import Dict, List, NamedTuple
 
 from pipx.animate import animate
-from pipx.constants import DEFAULT_PYTHON
-from pipx.util import WINDOWS, PipxError, rmdir
+from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH, WINDOWS
+from pipx.util import (
+    PipxError,
+    rmdir,
+    get_venv_paths,
+    get_script_output,
+    get_site_packages,
+    run,
+)
+from pipx.SharedLibs import shared_libs
+
+
+from typing import Generator
+
+
+class VenvContainer:
+    """A collection of venvs managed by pipx.
+    """
+
+    def __init__(self, root: Path):
+        self._root = root
+
+    def __repr__(self):
+        return f"VenvContainer({str(self._root)!r})"
+
+    def __str__(self):
+        return str(self._root)
+
+    def iter_venv_dirs(self) -> Generator[Path, None, None]:
+        """Iterate venv directories in this container.
+        """
+        for entry in self._root.iterdir():
+            if not entry.is_dir():
+                continue
+            yield entry
+
+    def get_venv_dir(self, package: str) -> Path:
+        """Return the expected venv path for given `package`.
+        """
+        return self._root.joinpath(package)
+
+    def verify_shared_libs(self):
+        for p in self.iter_venv_dirs():
+            Venv(p)
 
 
 class PipxVenvMetadata(NamedTuple):
@@ -35,8 +77,7 @@ class Venv:
     ) -> None:
         self.root = path
         self._python = python
-        self.bin_path = path / "bin" if not WINDOWS else path / "Scripts"
-        self.python_path = self.bin_path / ("python" if not WINDOWS else "python.exe")
+        self.bin_path, self.python_path = get_venv_paths(self.root)
         self.verbose = verbose
         self.do_animation = not verbose
         try:
@@ -44,12 +85,47 @@ class Venv:
         except StopIteration:
             self._existing = False
 
+        if self._existing and self.uses_shared_libs and not shared_libs.is_valid:
+            logging.warning(
+                f"Shared libraries not found, but are required for package {self.root.name}. "
+                "Attemping to install now."
+            )
+            shared_libs.create([])
+            if shared_libs.is_valid:
+                logging.info("Successfully created shared libraries")
+            else:
+                raise PipxError(
+                    f"Error: pipx's shared venv is invalid and "
+                    "needs re-installation. To fix this, install or reinstall a "
+                    "package. For example,\n"
+                    f"  pipx install {self.root.name} --force"
+                )
+
+    @property
+    def uses_shared_libs(self):
+        if self._existing:
+            pth_files = self.root.glob("**/" + PIPX_SHARED_PTH)
+            return next(pth_files, None) is not None
+        else:
+            # always use shared libs when creating a new venv
+            return True
+
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
-            _run([self._python, "-m", "venv"] + venv_args + [str(self.root)])
-            ignored_args = ["--editable"]
-            _pip_args = [arg for arg in pip_args if arg not in ignored_args]
-            self.upgrade_package("pip", _pip_args)
+            cmd = [self._python, "-m", "venv", "--without-pip"]
+            run(cmd + venv_args + [str(self.root)])
+            shared_libs.create(pip_args, self.verbose)
+            pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
+            # write path pointing to the shared libs site-packages directory
+            # example pipx_pth location:
+            #   ~/.local/pipx/venvs/black/lib/python3.8/site-packages/pipx_shared.pth
+            # example shared_libs.site_packages location:
+            #   ~/.local/pipx/shared/lib/python3.6/site-packages
+            #
+            # https://docs.python.org/3/library/site.html
+            # A path configuration file is a file whose name has the form 'name.pth'.
+            # its contents are additional items (one per line) to be added to sys.path
+            pipx_pth.write_text(str(shared_libs.site_packages) + "\n", encoding="utf-8")
 
     def safe_to_remove(self) -> bool:
         return not self._existing
@@ -63,6 +139,14 @@ class Venv:
                 "it was not created in this session"
             )
 
+    def upgrade_packaging_libraries(self, pip_args: List[str]) -> None:
+        if self.uses_shared_libs:
+            shared_libs.upgrade(pip_args, self.verbose)
+        else:
+            # TODO: setuptools and wheel? Original code didn't bother
+            # but shared libs code does.
+            self.upgrade_package("pip", pip_args)
+
     def install_package(self, package_or_url: str, pip_args: List[str]) -> None:
         with animate(f"installing package {package_or_url!r}", self.do_animation):
             if pip_args is None:
@@ -73,17 +157,9 @@ class Venv:
     def get_venv_metadata_for_package(self, package: str) -> PipxVenvMetadata:
 
         data = json.loads(
-            subprocess.run(
-                [
-                    str(self.python_path),
-                    "-c",
-                    VENV_METADATA_INSPECTOR,
-                    package,
-                    str(self.bin_path),
-                ],
-                stdout=subprocess.PIPE,
-            ).stdout.decode(),
-            encoding="utf-8",
+            get_script_output(
+                self.python_path, VENV_METADATA_INSPECTOR, package, str(self.bin_path)
+            )
         )
         data["binary_paths"] = [Path(p) for p in data["binary_paths"]]
 
@@ -113,7 +189,7 @@ class Venv:
     def run_binary(self, binary: str, binary_args: List[str]):
         cmd = [str(self.bin_path / binary)] + binary_args
         try:
-            return _run(cmd, check=False)
+            return run(cmd, check=False)
         except KeyboardInterrupt:
             pass
 
@@ -124,17 +200,4 @@ class Venv:
         cmd = [self.python_path, "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
-        return _run(cmd)
-
-
-def _run(cmd: Sequence[Union[str, Path]], check=True) -> int:
-    """Run arbitrary command as subprocess"""
-
-    cmd_str = " ".join(str(c) for c in cmd)
-    logging.info(f"running {cmd_str}")
-    # windows cannot take Path objects, only strings
-    cmd_str_list = [str(c) for c in cmd]
-    returncode = subprocess.run(cmd_str_list).returncode
-    if check and returncode:
-        raise PipxError(f"{cmd_str!r} failed")
-    return returncode
+        return run(cmd)

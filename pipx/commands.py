@@ -17,25 +17,24 @@ from typing import List
 
 import userpath  # type: ignore
 
-from .animate import animate
-from .colors import bold, red
-from .constants import (
+from pipx.animate import animate
+from pipx.colors import bold, red
+from pipx.constants import (
     LOCAL_BIN_DIR,
     PIPX_PACKAGE_NAME,
     PIPX_VENV_CACHEDIR,
     TEMP_VENV_EXPIRATION_THRESHOLD_DAYS,
 )
-from .emojies import hazard, sleep, stars
-from .util import (
+from pipx.emojies import hazard, sleep, stars
+from pipx.util import (
     WINDOWS,
     PipxError,
-    VenvContainer,
     get_pypackage_bin_path,
     mkdir,
     rmdir,
     run_pypackage_bin,
 )
-from .Venv import Venv
+from pipx.Venv import Venv, VenvContainer
 
 
 def run(
@@ -134,7 +133,8 @@ def _download_and_run(
     if not (venv.bin_path / binary).exists():
         binaries = venv.get_venv_metadata_for_package(package).binaries
         raise PipxError(
-            f"{binary} not found in package {package}. Available binaries: "
+            f"'{binary}' executable script not found in package '{package}'. "
+            "Available executable scripts: "
             f"{', '.join(b for b in binaries)}"
         )
     return venv.run_binary(binary, binary_args)
@@ -211,12 +211,9 @@ def upgrade(
 
     old_version = venv.get_venv_metadata_for_package(package).package_version
     do_animation = not verbose
-    try:
-        with animate(f"upgrading pip for package {package_or_url!r}", do_animation):
-            venv.upgrade_package("pip", pip_args)
 
-    except Exception:
-        logging.error("Failed to upgrade pip", exc_info=True)
+    # Upgrade shared libraries (pip, setuptools and wheel)
+    venv.upgrade_packaging_libraries(pip_args)
 
     with animate(f"upgrading package {package_or_url!r}", do_animation):
         venv.upgrade_package(package_or_url, pip_args)
@@ -619,6 +616,8 @@ def list_packages(venv_container: VenvContainer):
     print(f"venvs are in {bold(str(venv_container))}")
     print(f"binaries are exposed on your $PATH at {bold(str(LOCAL_BIN_DIR))}")
 
+    venv_container.verify_shared_libs()
+
     with multiprocessing.Pool() as p:
         for package_summary in p.map(_get_package_summary, dirs):
             print(package_summary)
@@ -640,6 +639,7 @@ def _get_exposed_binary_paths_for_package(
                 is_same_file = b.resolve().parent.samefile(venv_bin_path)
             if is_same_file:
                 bin_symlinks.add(b)
+
         except FileNotFoundError:
             pass
     return bin_symlinks

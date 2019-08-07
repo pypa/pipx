@@ -2,7 +2,7 @@ from contextlib import contextmanager
 import sys
 from typing import List
 from threading import Thread, Event
-from pipx.util import emoji_support
+from pipx.constants import emoji_support
 
 
 @contextmanager

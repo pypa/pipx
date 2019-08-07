@@ -1,4 +1,4 @@
-from pipx.util import emoji_support
+from pipx.constants import emoji_support
 
 if emoji_support:
     stars = "✨ 🌟 ✨"

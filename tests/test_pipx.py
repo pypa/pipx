@@ -52,15 +52,27 @@ class TestPipxArgParsing(unittest.TestCase):
 
 
 class TestPipxCommands(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls._shared_dir = tempfile.TemporaryDirectory(prefix="pipx_shared_dir_")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._shared_dir.cleanup()
+
     def setUp(self):
         """install pipx to temporary directory and save pipx binary path"""
 
         temp_dir = tempfile.TemporaryDirectory(prefix="pipx_tests_")
-        env = os.environ
         home_dir = Path(temp_dir.name) / "subdir" / "pipxhome"
         bin_dir = Path(temp_dir.name) / "otherdir" / "pipxbindir"
+
+        Path(temp_dir.name).mkdir(exist_ok=True)
+        env = os.environ
+        env["PIPX_SHARED_LIBS"] = str(self._shared_dir.name)
         env["PIPX_HOME"] = str(home_dir)
         env["PIPX_BIN_DIR"] = str(bin_dir)
+
         if WINDOWS:
             pipx_bin = "pipx.exe"
         else:
@@ -138,7 +150,10 @@ class TestPipxCommands(unittest.TestCase):
     def test_install(self):
         easy_packages = ["pycowsay", "black"]
         tricky_packages = ["cloudtoken", "awscli", "ansible", "shell-functools"]
-        all_packages = easy_packages + tricky_packages
+        if WINDOWS:
+            all_packages = easy_packages
+        else:
+            all_packages = easy_packages + tricky_packages
 
         for package in all_packages:
             subprocess.run([self.pipx_bin, "install", package], check=True)
@@ -149,6 +164,10 @@ class TestPipxCommands(unittest.TestCase):
 
         for package in all_packages:
             self.assertTrue(package in ret.stdout.decode())
+
+    def test_shared_libs_automatically_recreated(self):
+        self._shared_dir.cleanup()
+        subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
 
     def test_install_no_packages_found(self):
         ret = subprocess.run(
@@ -245,7 +264,11 @@ class TestPipxCommands(unittest.TestCase):
             subprocess.run([self.pipx_bin, "upgrade", "pycowsay"]).returncode, 0
         )
         subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)
-        subprocess.run([self.pipx_bin, "reinstall-all", "python3"], check=True)
+        if WINDOWS:
+            py = sys.executable
+        else:
+            py = "python3"
+        subprocess.run([self.pipx_bin, "reinstall-all", py], check=True)
 
     def test_run_downloads_from_internet(self):
         subprocess.run(
