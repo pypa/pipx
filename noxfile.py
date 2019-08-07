@@ -12,6 +12,7 @@ from pathlib import Path
 
 
 python = ["3.6", "3.7"]
+nox.options.sessions = ["unittests", "lint", "docs"]
 
 
 @nox.session(python=python)
@@ -36,3 +37,38 @@ def docs(session):
     session.install(".[docs]")
     session.run("python", "generate_docs.py")
     session.run("mkdocs", "build")
+
+
+@nox.session(python=python)
+def develop(session):
+    session.install(".[dev]", ".[docs]")
+    session.install("-e", ".")
+
+
+@nox.session(python=["3.7"])
+def build(session):
+    session.install("setuptools")
+    session.install("wheel")
+    session.install("twine")
+    session.run("rm", "-rf", "dist", external=True)
+    session.run("python", "setup.py", "--quiet", "sdist", "bdist_wheel")
+
+
+@nox.session(python=["3.7"])
+def publish(session):
+    build(session)
+    print("REMINDER: Has the changelog been updated?")
+    session.run("python", "-m", "twine", "upload", "dist/*")
+
+
+@nox.session(python=["3.7"])
+def watch_docs(session):
+    session.install(".[docs]")
+    session.run("mkdocs", "serve")
+
+
+@nox.session(python=["3.7"])
+def publish_docs(session):
+    session.install(".[docs]")
+    session.run("python", "generate_docs.py")
+    session.run("mkdocs", "gh-deploy")
