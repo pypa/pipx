@@ -8,7 +8,6 @@ import unittest
 from shutil import which
 from pathlib import Path
 
-from pipx.main import split_run_argv
 from pipx.util import WINDOWS
 
 
@@ -16,39 +15,6 @@ PIPX_PATH = CURDIR = Path(__file__).parent.parent
 
 assert not hasattr(sys, "real_prefix"), "Tests cannot run under virtualenv"
 assert getattr(sys, "base_prefix", sys.prefix) != sys.prefix, "Tests require venv"
-
-
-class TestPipxArgParsing(unittest.TestCase):
-    def test_split_run_argv(self):
-        args_to_parse, binary_args = split_run_argv(["pipx"])
-        self.assertEqual(args_to_parse, [])
-        self.assertEqual(binary_args, [])
-
-        args_to_parse, binary_args = split_run_argv(["pipx", "list"])
-        self.assertEqual(args_to_parse, ["list"])
-        self.assertEqual(binary_args, [])
-
-        args_to_parse, binary_args = split_run_argv(["pipx", "list", "--help"])
-        self.assertEqual(args_to_parse, ["list", "--help"])
-        self.assertEqual(binary_args, [])
-
-        args_to_parse, binary_args = split_run_argv(
-            ["pipx", "run", "pycowsay", "moo", "--help"]
-        )
-        self.assertEqual(args_to_parse, ["run", "pycowsay"])
-        self.assertEqual(binary_args, ["moo", "--help"])
-
-        args_to_parse, binary_args = split_run_argv(
-            ["pipx", "upgrade", "pycowsay", "moo", "--help"]
-        )
-        self.assertEqual(args_to_parse, ["upgrade", "pycowsay", "moo", "--help"])
-        self.assertEqual(binary_args, [])
-
-        args_to_parse, binary_args = split_run_argv(
-            ["pipx", "runpip", "pycowsay", "--version"]
-        )
-        self.assertEqual(args_to_parse, ["runpip", "pycowsay"])
-        self.assertEqual(binary_args, ["--version"])
 
 
 class TestPipxCommands(unittest.TestCase):
@@ -333,7 +299,7 @@ def main():
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
 
-    suite.addTests(loader.loadTestsFromTestCase(TestPipxArgParsing, TestPipxCommands))
+    suite.addTests(loader.loadTestsFromTestCase(TestPipxCommands))
 
     runner = unittest.TextTestRunner(verbosity=1)
     result = runner.run(suite)
