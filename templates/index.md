@@ -1,8 +1,10 @@
 <p align="center">
+<a href="https://pipxproject.github.io/pipx/">
 <img align="center" src="https://github.com/pipxproject/pipx/raw/master/logo.png"/>
+</a>
 </p>
 
-# pipx: execute binaries from Python packages in isolated environments
+# pipx — Install and Run Python Applications in Isolated Environments
 
 <p align="center">
 <a href="https://github.com/pipxproject/pipx/raw/master/pipx_demo.gif">
@@ -12,15 +14,13 @@
 
 <p align="center">
 <a href="https://travis-ci.org/pipxproject/pipx"><img src="https://travis-ci.org/pipxproject/pipx.svg?branch=master" /></a>
-
-<a href="https://pypi.python.org/pypi/pipx/">
-<img src="https://img.shields.io/badge/pypi-{{version}}-blue.svg" /></a>
-<a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
-_For comparison to other tools including pipsi, see the [comparisons](comparisons.md)._
+**Documentation**: https://pipxproject.github.io/pipx/
 
-_pipx uses the word "binary" to describe a CLI application that can be run directly from the command line. These files are located in the `bin` directory of a Python installation, alongside other executables. Despite the name, they do not necessarily contain binary data._
+**Source Code**: https://github.com/pipxproject/pipx
+
+_For comparison to other tools including pipsi, see the [comparisons](comparisons.md)._
 
 ## Install pipx
 
@@ -36,18 +36,19 @@ To add shell completions, see instructions with
 pipx completions
 ```
 
-## Overview
+## Overview: What is `pipx`?
+
+pipx is a tool to help you install and run end-user applications written in Python. pipx **is not** a tool for development or publishing of your code. It's kind of like macOS's `brew` (if you are familiar with that), but for Python applications.
 
 Python and PyPI allow developers to distribute code with "console script entry points". These scripts let users call into Python code from the command line, effectively acting like standalone applications.
 
-`pipx` is a tool to install and run any of the thousands of Python applications available on PyPI in a safe, convenient, and reliable way. In a way, it turns Python Package Index (PyPI) into a big app store for Python applications. Not all Python packages have entry points, but many do.
+`pipx` is a tool to install and run any of the thousands of Python applications available on PyPI in a safe, convenient, and reliable way. **In a way, it turns Python Package Index (PyPI) into a big app store for Python applications.** Not all Python packages have entry points, but many do.
 
-`pipx` lets you:
+`pipx` enables you to:
 
-- Safely install packages to isolated virtual environments, while globally exposing their CLI entry points so you can run them from anywhere (see the `install` command)
+- Safely install packages to isolated environments, while globally exposing their CLI entry points so you can run them from anywhere (see the `install` command). This guarantees no dependency conflicts and clean uninstalls!
 - Easily list, upgrade, and uninstall packages that were installed with pipx
-- Run the latest version of a CLI application in a temporary environment (see the `run` command)
-- Run binaries from the `__pypackages__` directory per PEP 582 as a companion tool to [pythonloc](https://github.com/cs01/pythonloc)
+- Run the latest version of a Python application in a temporary environment (see the `run` command)
 
 Best of all, pipx runs with regular user permissions, never calling `sudo pip install` (you aren't doing that, are you? 😄).
 
@@ -55,39 +56,44 @@ pipx is similar to JavaScript's [npx](https://medium.com/@maybekatz/introducing-
 
 ### Safely installing to isolated environments
 
-You can globally install a CLI application by running
+You can globally install an application by running
 
 ```
 pipx install PACKAGE
 ```
 
-This automatically creates a virtual environment, installs the package, and adds the package's CLI entry points to a location on your `PATH`. For example, `pipx install pycowsay` makes the `pycowsay` command available globally, but sandboxes the pycowsay package in its own virtual environment. **pipx never needs to run as sudo to do this.**
+This automatically creates a virtual environment, installs the package, and adds the package's associated applications (entry points) to a location on your `PATH`. For example, `pipx install pycowsay` makes the `pycowsay` command available globally, but sandboxes the pycowsay package in its own virtual environment. **pipx never needs to run as sudo to do this.**
 
 Example:
 
 ```
 >> pipx install pycowsay
-  installed package pycowsay 2.0, Python 3.6.7
-  These binaries are now globally available
+  installed package pycowsay 2.0.3, Python 3.7.3
+  These apps are now globally available
     - pycowsay
 done! ✨ 🌟 ✨
 
+
 >> pipx list
 venvs are in /home/user/.local/pipx/venvs
-binaries are exposed on your $PATH at /home/user/.local/bin
-   package pycowsay 2.0, Python 3.6.7
+apps are exposed on your $PATH at /home/user/.local/bin
+   package pycowsay 2.0.3, Python 3.7.3
     - pycowsay
 
->> pycowsay moooo
-  _____
-< moooo >
-  =====
+
+>> pycowsay mooo
+  ____
+< mooo >
+  ====
+         \
           \
-           \
-             ^__^
-             (oo)\_______
-             (__)\       )\/       ||----w |
-                 ||     ||
+            ^__^
+            (oo)\_______
+            (__)\       )\/\
+                ||----w |
+                ||     ||
+
+
 ```
 
 ### Running in temporary, sandboxed environments
@@ -95,18 +101,20 @@ binaries are exposed on your $PATH at /home/user/.local/bin
 pipx makes running the latest version of a program in a temporary environment as easy as
 
 ```
-pipx run BINARY [ARGS...]
+pipx run APP [ARGS...]
 ```
 
-This will install the package in an isolated, temporary directory and invoke the binary. Try it!
+This will install the package in an isolated, temporary directory and invoke the app. Try it!
 
 ```
 pipx run pycowsay moo
 ```
 
-Notice that you **don't need to execute any install commands to run the binary**.
+Notice that you **don't need to execute any install commands to run the app**.
 
-Re-running the same binary is quick because pipx caches Virtual Environments on a per-binary basis. These caches last two days.
+Re-running the same app is quick because pipx caches Virtual Environments on a per-app basis. These caches last two days.
+
+I find this handy when I want to quickly see the help text of an application, or when I occasionally run an app but don't necessarily want it hanging around on my system. A nice side benefit is that you don't have to remember to upgrade it since `pipx run` will automatically run a recent version for you.
 
 You can run .py files directly, too.
 

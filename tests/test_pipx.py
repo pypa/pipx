@@ -141,7 +141,7 @@ class TestPipxCommands(unittest.TestCase):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        self.assertTrue("No binaries associated with package" in ret.stderr.decode())
+        self.assertTrue("No apps associated with package" in ret.stderr.decode())
 
     # TODO determine why this is failing in CI
     # def test_editable_install(self):
@@ -198,7 +198,7 @@ class TestPipxCommands(unittest.TestCase):
                 "inject",
                 "pycowsay",
                 "black",
-                "--include-binaries",
+                "--include-apps",
                 "--include-deps",
             ],
             stdout=subprocess.PIPE,

@@ -10,13 +10,13 @@ usage: pipx [-h] [--version]
             {install,inject,upgrade,upgrade-all,uninstall,uninstall-all,reinstall-all,list,run,runpip,ensurepath,completions}
             ...
 
-Install and execute binaries from Python packages.
+Install and execute apps from Python packages.
 
 Binaries can either be installed globally into isolated Virtual Environments
 or run directly in an temporary Virtual Environment.
 
 Virtual Environment location is ~/.local/pipx/venvs.
-Symlinks to binaries are placed in ~/.local/bin.
+Symlinks to apps are placed in ~/.local/bin.
 These locations can be overridden with the environment variables
 PIPX_HOME and PIPX_BIN_DIR, respectively. (Virtual Environments will
 be installed to $PIPX_HOME/venvs)
@@ -40,12 +40,12 @@ subcommands:
                         executable
     list                List installed packages
     run                 Download the latest version of a package to a
-                        temporary virtual environment, then run a binary from
+                        temporary virtual environment, then run an app from
                         it. Also compatible with local `__pypackages__`
                         directory (experimental).
     runpip              Run pip in an existing pipx-managed Virtual
                         Environment
-    ensurepath          Ensure directory where pipx stores binaries is on your
+    ensurepath          Ensure directory where pipx stores apps is on your
                         PATH environment variable. Note that running this may
                         modify your shell's configuration file(s) such as
                         '~/.bashrc'.
@@ -64,12 +64,12 @@ usage: pipx install [-h] [--spec SPEC] [--include-deps] [--verbose] [--force]
                     [--index-url INDEX_URL] [--editable] [--pip-args PIP_ARGS]
                     package
 
-The install command is the preferred way to globally install binaries
+The install command is the preferred way to globally install apps
 from python packages on your system. It creates an isolated virtual
-environment for the package, then ensures the package's binaries are
+environment for the package, then ensures the package's apps are
 accessible on your $PATH.
 
-The result: binaries you can run from anywhere, located in packages
+The result: apps you can run from anywhere, located in packages
 you can cleanly upgrade or uninstall. Guaranteed to not have
 dependency version conflicts or interfere with your OS's python
 packages. 'sudo' is not required to do this.
@@ -86,7 +86,7 @@ The default virtual environment location is ~/.local/pipx
 and can be overridden by setting the environment variable `PIPX_HOME`
  (Virtual Environments will be installed to `$PIPX_HOME/venvs`).
 
-The default binary location is ~/.local/bin and can be
+The default app location is ~/.local/bin and can be
 overridden by setting the environment variable `PIPX_BIN_DIR`.
 
 positional arguments:
@@ -98,13 +98,13 @@ optional arguments:
                         passed to pip. Runs `pip install -U SPEC`. For example
                         `--spec mypackage==2.0.0` or `--spec
                         git+https://github.com/user/repo.git@branch`
-  --include-deps        Include binaries of dependent packages
+  --include-deps        Include apps of dependent packages
   --verbose
   --force               Install even when the package has already been
                         installed
   --python PYTHON       The Python executable used to create the Virtual
-                        Environment and run the associated binary/binaries.
-                        Must be v3.3+.
+                        Environment and run the associated app/apps. Must be
+                        v3.3+.
   --system-site-packages
                         Give the virtual environment access to the system
                         site-packages dir.
@@ -116,19 +116,6 @@ optional arguments:
 
 ```
 
-
-#### `pipx install` examples
-```
-pipx install pycowsay
-pipx install --python python3.6 pycowsay
-pipx install --python python3.7 pycowsay
-pipx install --spec git+https://github.com/ambv/black black
-pipx --spec git+https://github.com/ambv/black.git@branch-name black
-pipx --spec git+https://github.com/ambv/black.git@git-hash black
-pipx install --spec https://github.com/ambv/black/archive/18.9b0.zip black
-pipx install --spec black[d] black
-pipx install --include-deps jupyter
-```
 
 ### pipx run
 
@@ -137,35 +124,35 @@ pipx run --help
 usage: pipx run [-h] [--no-cache] [--pypackages] [--spec SPEC] [--verbose]
                 [--python PYTHON] [--system-site-packages]
                 [--index-url INDEX_URL] [--editable] [--pip-args PIP_ARGS]
-                binary [binary_args [binary_args ...]]
+                app ...
 
 Download the latest version of a package to a temporary virtual environment,
-then run a binary from it. The environment will be cached
+then run an app from it. The environment will be cached
 and re-used for up to 14 days. This
 means subsequent calls to 'run' for the same package will be faster
 since they can re-use the cached Virtual Environment.
 
-In support of PEP 582 'run' will use binaries found in a local __pypackages__
+In support of PEP 582 'run' will use apps found in a local __pypackages__
  directory, if present. Please note that this behavior is experimental,
  and is a acts as a companion tool to pythonloc. It may be modified or
  removed in the future. See https://github.com/cs01/pythonloc.
 
 positional arguments:
-  binary                binary/package name
-  binary_args           arguments passed to the binary when it is invoked
+  app                   app/package name
+  appargs               arguments passed to the application when it is invoked
 
 optional arguments:
   -h, --help            show this help message and exit
   --no-cache            Do not re-use cached virtual environment if it exists
-  --pypackages          Require binary to be run from local __pypackages__
+  --pypackages          Require app to be run from local __pypackages__
                         directory
   --spec SPEC           The package name or specific installation source
                         passed to pip. Runs `pip install -U SPEC`. For example
                         `--spec mypackage==2.0.0` or `--spec
                         git+https://github.com/user/repo.git@branch`
   --verbose
-  --python PYTHON       The Python version to run package's CLI binary with.
-                        Must be v3.3+.
+  --python PYTHON       The Python version to run package's CLI app with. Must
+                        be v3.3+.
   --system-site-packages
                         Give the virtual environment access to the system
                         site-packages dir.
@@ -175,30 +162,6 @@ optional arguments:
   --pip-args PIP_ARGS   Arbitrary pip arguments to pass directly to pip
                         install/upgrade commands
 
-```
-
-
-#### `pipx run` examples
-
-pipx enables you to test various combinations of Python versions and package versions in ephemeral environments:
-```
-pipx run BINARY  # latest version of binary is run with python3
-pipx --spec PACKAGE==2.0.0 run BINARY  # specific version of package is run
-pipx --python 3.4 run BINARY  # Installed and invoked with specific Python version
-pipx --python 3.7 --spec PACKAGE=1.7.3 run BINARY
-pipx --spec git+https://url.git run BINARY  # latest version on master is run
-pipx --spec git+https://url.git@branch run BINARY
-pipx --spec git+https://url.git@hash run BINARY
-pipx run pycowsay moo
-pipx --version  # prints pipx version
-pipx run pycowsay  --version  # prints pycowsay version
-pipx --python pythonX pycowsay
-pipx --spec pycowsay==2.0 pycowsay --version
-pipx --spec git+https://github.com/ambv/black.git black
-pipx --spec git+https://github.com/ambv/black.git@branch-name black
-pipx --spec git+https://github.com/ambv/black.git@git-hash black
-pipx --spec https://github.com/ambv/black/archive/18.9b0.zip black --help
-pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
 ```
 
 
@@ -223,7 +186,7 @@ optional arguments:
                         passed to pip. Runs `pip install -U SPEC`. For example
                         `--spec mypackage==2.0.0` or `--spec
                         git+https://github.com/user/repo.git@branch`
-  --include-deps        Include binaries of dependent packages
+  --include-deps        Include apps of dependent packages
   --system-site-packages
                         Give the virtual environment access to the system
                         site-packages dir.
@@ -251,7 +214,7 @@ install --upgrade PACKAGE'
 
 optional arguments:
   -h, --help            show this help message and exit
-  --include-deps        Include binaries of dependent packages
+  --include-deps        Include apps of dependent packages
   --system-site-packages
                         Give the virtual environment access to the system
                         site-packages dir.
@@ -271,7 +234,7 @@ optional arguments:
 
 ```
 pipx inject --help
-usage: pipx inject [-h] [--include-binaries] [--include-deps]
+usage: pipx inject [-h] [--include-apps] [--include-deps]
                    [--system-site-packages] [--index-url INDEX_URL]
                    [--editable] [--pip-args PIP_ARGS] [--verbose]
                    package dependencies [dependencies ...]
@@ -285,8 +248,8 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --include-binaries    Add binaries from the injected packages onto your PATH
-  --include-deps        Include binaries of dependent packages
+  --include-apps        Add apps from the injected packages onto your PATH
+  --include-deps        Include apps of dependent packages
   --system-site-packages
                         Give the virtual environment access to the system
                         site-packages dir.
@@ -300,17 +263,6 @@ optional arguments:
 ```
 
 
-#### `pipx inject` example
-
-One use of the inject command is setting up a REPL with some useful extra packages.
-
-```
-pipx install ptpython
-pipx inject ptpython requests pendulum
-```
-
-After running the above commands, you will be able to import and use the `requests` and `pendulum` packages inside a `ptpython` repl.
-
 ### pipx uninstall
 
 ```
@@ -318,7 +270,7 @@ pipx uninstall --help
 usage: pipx uninstall [-h] [--verbose] package
 
 Uninstalls a pipx-managed Virtual Environment by deleting it and any files
-that point to its binaries.
+that point to its apps.
 
 positional arguments:
   package
@@ -369,7 +321,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --include-deps        Include binaries of dependent packages
+  --include-deps        Include apps of dependent packages
   --system-site-packages
                         Give the virtual environment access to the system
                         site-packages dir.
@@ -391,7 +343,7 @@ optional arguments:
 pipx list --help
 usage: pipx list [-h] [--verbose]
 
-List packages and binariess installed with pipx
+List packages and apps installed with pipx
 
 optional arguments:
   -h, --help  show this help message and exit
@@ -400,23 +352,11 @@ optional arguments:
 ```
 
 
-#### `pipx list` example
-```
-> pipx list
-venvs are in /Users/user/.local/pipx/venvs
-binaries are exposed on your $PATH at /Users/user/.local/bin
-   package black 18.9b0, Python 3.7.0
-    - black
-    - blackd
-   package pipx 0.10.0, Python 3.7.0
-    - pipx
-```
-
 ### pipx runpip
 
 ```
 pipx runpip --help
-usage: pipx runpip [-h] [--verbose] package [pipargs [pipargs ...]]
+usage: pipx runpip [-h] [--verbose] package ...
 
 Run pip in an existing pipx-managed Virtual Environment
 

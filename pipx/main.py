@@ -44,13 +44,13 @@ SPEC_HELP = textwrap.dedent(
 )
 PIPX_DESCRIPTION = textwrap.dedent(
     f"""
-Install and execute binaries from Python packages.
+Install and execute apps from Python packages.
 
 Binaries can either be installed globally into isolated Virtual Environments
 or run directly in an temporary Virtual Environment.
 
 Virtual Environment location is {str(PIPX_LOCAL_VENVS)}.
-Symlinks to binaries are placed in {str(LOCAL_BIN_DIR)}.
+Symlinks to apps are placed in {str(LOCAL_BIN_DIR)}.
 These locations can be overridden with the environment variables
 PIPX_HOME and PIPX_BIN_DIR, respectively. (Virtual Environments will
 be installed to $PIPX_HOME/venvs)
@@ -59,12 +59,12 @@ be installed to $PIPX_HOME/venvs)
 
 
 INSTALL_DESCRIPTION = f"""
-The install command is the preferred way to globally install binaries
+The install command is the preferred way to globally install apps
 from python packages on your system. It creates an isolated virtual
-environment for the package, then ensures the package's binaries are
+environment for the package, then ensures the package's apps are
 accessible on your $PATH.
 
-The result: binaries you can run from anywhere, located in packages
+The result: apps you can run from anywhere, located in packages
 you can cleanly upgrade or uninstall. Guaranteed to not have
 dependency version conflicts or interfere with your OS's python
 packages. 'sudo' is not required to do this.
@@ -81,7 +81,7 @@ The default virtual environment location is {DEFAULT_PIPX_HOME}
 and can be overridden by setting the environment variable `PIPX_HOME`
  (Virtual Environments will be installed to `$PIPX_HOME/venvs`).
 
-The default binary location is {DEFAULT_PIPX_BIN_DIR} and can be
+The default app location is {DEFAULT_PIPX_BIN_DIR} and can be
 overridden by setting the environment variable `PIPX_BIN_DIR`.
 """
 
@@ -135,11 +135,11 @@ def run_pipx_command(args):
 
     if args.command == "run":
         package_or_url = (
-            args.spec if ("spec" in args and args.spec is not None) else args.binary
+            args.spec if ("spec" in args and args.spec is not None) else args.app
         )
         use_cache = not args.no_cache
         return commands.run(
-            args.binary,
+            args.app,
             package_or_url,
             args.appargs,
             args.python,
@@ -163,12 +163,12 @@ def run_pipx_command(args):
             venv_args,
             verbose,
             force=args.force,
-            include_deps=args.include_deps,
+            include_dependencies=args.include_deps,
         )
     elif args.command == "inject":
-        if not args.include_binaries and args.include_deps:
+        if not args.include_apps and args.include_deps:
             raise PipxError(
-                "Cannot pass --include-deps if --use_binaries is not passed as well"
+                "Cannot pass --include-deps if --use_apps is not passed as well"
             )
         for dep in args.dependencies:
             commands.inject(
@@ -176,8 +176,8 @@ def run_pipx_command(args):
                 dep,
                 pip_args,
                 verbose=verbose,
-                include_binaries=args.include_binaries,
-                include_deps=args.include_deps,
+                include_apps=args.include_apps,
+                include_dependencies=args.include_deps,
             )
     elif args.command == "upgrade":
         package_or_url = (
@@ -190,7 +190,7 @@ def run_pipx_command(args):
             pip_args,
             verbose,
             upgrading_all=False,
-            include_deps=args.include_deps,
+            include_dependencies=args.include_deps,
         )
     elif args.command == "list":
         commands.list_packages(venv_container)
@@ -203,7 +203,7 @@ def run_pipx_command(args):
             venv_container,
             pip_args,
             verbose,
-            include_deps=args.include_deps,
+            include_dependencies=args.include_deps,
             skip=args.skip,
         )
     elif args.command == "reinstall-all":
@@ -251,11 +251,9 @@ def add_pip_venv_args(parser):
     )
 
 
-def add_include_deps(parser):
+def add_include_dependencies(parser):
     parser.add_argument(
-        "--include-deps",
-        help="Include binaries of dependent packages",
-        action="store_true",
+        "--include-deps", help="Include apps of dependent packages", action="store_true"
     )
 
 
@@ -288,7 +286,7 @@ def get_command_parser():
     )
     p.add_argument("package", help="package name")
     p.add_argument("--spec", help=SPEC_HELP)
-    add_include_deps(p)
+    add_include_dependencies(p)
     p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--force",
@@ -300,7 +298,7 @@ def get_command_parser():
         default=DEFAULT_PYTHON,
         help=(
             "The Python executable used to create the Virtual Environment and run the "
-            "associated binary/binaries. Must be v3.3+."
+            "associated app/apps. Must be v3.3+."
         ),
     )
     add_pip_venv_args(p)
@@ -320,11 +318,11 @@ def get_command_parser():
         help="the packages to inject into the Virtual Environment",
     )
     p.add_argument(
-        "--include-binaries",
+        "--include-apps",
         action="store_true",
-        help="Add binaries from the injected packages onto your PATH",
+        help="Add apps from the injected packages onto your PATH",
     )
-    add_include_deps(p)
+    add_include_dependencies(p)
     add_pip_venv_args(p)
     p.add_argument("--verbose", action="store_true")
 
@@ -335,7 +333,7 @@ def get_command_parser():
     )
     p.add_argument("package").completer = autocomplete_list_of_installed_packages
     p.add_argument("--spec", help=SPEC_HELP)
-    add_include_deps(p)
+    add_include_dependencies(p)
     add_pip_venv_args(p)
     p.add_argument("--verbose", action="store_true")
 
@@ -346,7 +344,7 @@ def get_command_parser():
         description="Upgrades all packages within their virtual environments by running 'pip install --upgrade PACKAGE'",
     )
 
-    add_include_deps(p)
+    add_include_dependencies(p)
     add_pip_venv_args(p)
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
     p.add_argument("--verbose", action="store_true")
@@ -354,7 +352,7 @@ def get_command_parser():
     p = subparsers.add_parser(
         "uninstall",
         help="Uninstall a package",
-        description="Uninstalls a pipx-managed Virtual Environment by deleting it and any files that point to its binaries.",
+        description="Uninstalls a pipx-managed Virtual Environment by deleting it and any files that point to its apps.",
     )
     p.add_argument("package").completer = autocomplete_list_of_installed_packages
     p.add_argument("--verbose", action="store_true")
@@ -385,7 +383,7 @@ def get_command_parser():
         ),
     )
     p.add_argument("python")
-    add_include_deps(p)
+    add_include_dependencies(p)
     add_pip_venv_args(p)
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
     p.add_argument("--verbose", action="store_true")
@@ -393,7 +391,7 @@ def get_command_parser():
     p = subparsers.add_parser(
         "list",
         help="List installed packages",
-        description="List packages and binariess installed with pipx",
+        description="List packages and apps installed with pipx",
     )
     p.add_argument("--verbose", action="store_true")
 
@@ -402,18 +400,18 @@ def get_command_parser():
         formatter_class=LineWrapRawTextHelpFormatter,
         help=(
             "Download the latest version of a package to a temporary virtual environment, "
-            "then run a binary from it. Also compatible with local `__pypackages__` "
+            "then run an app from it. Also compatible with local `__pypackages__` "
             "directory (experimental)."
         ),
         description=textwrap.dedent(
             f"""
         Download the latest version of a package to a temporary virtual environment,
-        then run a binary from it. The environment will be cached
+        then run an app from it. The environment will be cached
         and re-used for up to {TEMP_VENV_EXPIRATION_THRESHOLD_DAYS} days. This
         means subsequent calls to 'run' for the same package will be faster
         since they can re-use the cached Virtual Environment.
 
-        In support of PEP 582 'run' will use binaries found in a local __pypackages__
+        In support of PEP 582 'run' will use apps found in a local __pypackages__
          directory, if present. Please note that this behavior is experimental,
          and is a acts as a companion tool to pythonloc. It may be modified or
          removed in the future. See https://github.com/cs01/pythonloc.
@@ -425,7 +423,7 @@ def get_command_parser():
         action="store_true",
         help="Do not re-use cached virtual environment if it exists",
     )
-    p.add_argument("binary", help="binary/package name")
+    p.add_argument("app", help="app/package name")
     p.add_argument(
         "appargs",
         nargs=argparse.REMAINDER,
@@ -435,14 +433,14 @@ def get_command_parser():
     p.add_argument(
         "--pypackages",
         action="store_true",
-        help="Require binary to be run from local __pypackages__ directory",
+        help="Require app to be run from local __pypackages__ directory",
     )
     p.add_argument("--spec", help=SPEC_HELP)
     p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--python",
         default=DEFAULT_PYTHON,
-        help="The Python version to run package's CLI binary with. Must be v3.3+.",
+        help="The Python version to run package's CLI app with. Must be v3.3+.",
     )
     add_pip_venv_args(p)
 
@@ -466,7 +464,7 @@ def get_command_parser():
     p = subparsers.add_parser(
         "ensurepath",
         help=(
-            "Ensure directory where pipx stores binaries is on your "
+            "Ensure directory where pipx stores apps is on your "
             "PATH environment variable. Note that running this may modify "
             "your shell's configuration file(s) such as '~/.bashrc'."
         ),

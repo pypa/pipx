@@ -53,10 +53,10 @@ class VenvContainer:
 
 
 class PipxVenvMetadata(NamedTuple):
-    binaries: List[str]
-    binary_paths: List[Path]
-    binaries_of_dependencies: List[str]
-    binary_paths_of_dependencies: Dict[str, List[Path]]
+    apps: List[str]
+    app_paths: List[Path]
+    apps_of_dependencies: List[str]
+    app_paths_of_dependencies: Dict[str, List[Path]]
     package_version: str
     python_version: str
 
@@ -161,22 +161,22 @@ class Venv:
                 self.python_path, VENV_METADATA_INSPECTOR, package, str(self.bin_path)
             )
         )
-        data["binary_paths"] = [Path(p) for p in data["binary_paths"]]
+        data["app_paths"] = [Path(p) for p in data["app_paths"]]
 
-        data["binaries_of_dependencies"] = []
-        for dep, raw_paths in data["binary_paths_of_dependencies"].items():
+        data["apps_of_dependencies"] = []
+        for dep, raw_paths in data["app_paths_of_dependencies"].items():
             paths = [Path(raw_path) for raw_path in raw_paths]
-            data["binary_paths_of_dependencies"][dep] = paths
-            data["binaries_of_dependencies"] += [path.name for path in paths]
+            data["app_paths_of_dependencies"][dep] = paths
+            data["apps_of_dependencies"] += [path.name for path in paths]
 
         if WINDOWS:
             windows_bin_paths = set()
-            for binary in data["binary_paths"]:
+            for app in data["app_paths"]:
                 # windows has additional files staring with the same name that are required
-                # to run the binary
-                for win_exec in binary.parent.glob(f"{binary.name}*"):
+                # to run the app
+                for win_exec in app.parent.glob(f"{app.name}*"):
                     windows_bin_paths.add(win_exec)
-            data["binary_paths"] = list(windows_bin_paths)
+            data["app_paths"] = list(windows_bin_paths)
         return PipxVenvMetadata(**data)
 
     def get_python_version(self) -> str:
@@ -186,8 +186,8 @@ class Venv:
             .strip()
         )
 
-    def run_binary(self, binary: str, binary_args: List[str]):
-        cmd = [str(self.bin_path / binary)] + binary_args
+    def run_app(self, app: str, app_args: List[str]):
+        cmd = [str(self.bin_path / app)] + app_args
         try:
             return run(cmd, check=False)
         except KeyboardInterrupt:
