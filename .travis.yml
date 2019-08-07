@@ -6,7 +6,7 @@ matrix:
   - python: '3.7'
     dist: xenial
 install:
-  - pip install git+https://github.com/cs01/nox.git@7f65d2abc#egg=nox
+  - pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
 script:
   - nox --non-interactive
 cache:
