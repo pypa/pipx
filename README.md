@@ -19,13 +19,17 @@ See Contributing for how to update this file.
 
 <p align="center">
 <a href="https://travis-ci.org/pipxproject/pipx"><img src="https://travis-ci.org/pipxproject/pipx.svg?branch=master" /></a>
+
+<a href="https://pypi.python.org/pypi/pipx/">
+<img src="https://img.shields.io/badge/pypi-0.14.0.0rc0-blue.svg" /></a>
+<a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
 **Documentation**: https://pipxproject.github.io/pipx/
 
 **Source Code**: https://github.com/pipxproject/pipx
 
-_For comparison to other tools including pipsi, see the [comparisons](comparisons.md)._
+_For comparison to other tools including pipsi, see [Comparison to Other Tools](https://pipxproject.github.io/pipx/comparisons/)._
 
 ## Install pipx
 
@@ -160,6 +164,7 @@ Contributors
 - [Diego Fernandez](https://github.com/aiguofer)
 - [Jason R. Coombs](https://github.com/jaraco)
 - [joshuarli](https://github.com/joshuarli)
+- [Paul Moore](https://github.com/pfmoore)
 - [tkossak](https://github.com/tkossak)
 - [Tzu-ping Chung](https://github.com/uranusjr)
 - [Shawn Hensley](https://github.com/sahensley)
