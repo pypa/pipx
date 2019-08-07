@@ -513,29 +513,6 @@ def setup(args):
         )
 
 
-def split_run_argv(argv: List[str]) -> Tuple[List[str], List[str]]:
-    """If 'run' command is used, split between args passed to pipx and args
-    to be forwarded to binary
-    """
-    args_to_parse = argv[1:]
-    binary_args: List[str] = []
-
-    if len(argv) >= 2:
-        if argv[1] == "runpip":
-            package_index = argv.index("runpip") + 1
-            return argv[1 : package_index + 1], argv[package_index + 1 :]
-
-        if argv[1] == "run":
-            start = 2
-            for i, arg in enumerate(argv[start:]):
-                if not arg.startswith("-"):
-                    offset = start + i + 1
-                    args_to_parse = argv[1:offset]
-                    binary_args = argv[offset:]
-                    break
-    return args_to_parse, binary_args
-
-
 def cli():
     """Entry point from command line"""
     try:
