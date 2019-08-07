@@ -8,7 +8,6 @@ import unittest
 from shutil import which
 from pathlib import Path
 
-from pipx.main import get_command_parser
 from pipx.util import WINDOWS
 
 
@@ -17,8 +16,6 @@ PIPX_PATH = CURDIR = Path(__file__).parent.parent
 assert not hasattr(sys, "real_prefix"), "Tests cannot run under virtualenv"
 assert getattr(sys, "base_prefix", sys.prefix) != sys.prefix, "Tests require venv"
 
-
-class TestPipxArgParsing(unittest.TestCase):
 
 class TestPipxCommands(unittest.TestCase):
     @classmethod
@@ -302,7 +299,7 @@ def main():
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
 
-    suite.addTests(loader.loadTestsFromTestCase(TestPipxArgParsing, TestPipxCommands))
+    suite.addTests(loader.loadTestsFromTestCase(TestPipxCommands))
 
     runner = unittest.TextTestRunner(verbosity=1)
     result = runner.run(suite)

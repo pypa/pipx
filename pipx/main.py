@@ -11,7 +11,7 @@ import shlex
 import sys
 import textwrap
 import urllib.parse
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 from . import commands
 from .constants import (
