@@ -33,7 +33,7 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ```
 
-For more details, [installation](installation).
+For more details, see [installation](https://pipxproject.github.io/pipx/installation/) instructions.
 
 To add shell completions, see instructions with
 ```
