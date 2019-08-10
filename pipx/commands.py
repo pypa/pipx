@@ -7,6 +7,7 @@ import multiprocessing
 import shlex
 import shutil
 import subprocess
+import sys
 import textwrap
 import time
 import urllib.parse
@@ -17,7 +18,6 @@ from typing import List
 
 import userpath  # type: ignore
 
-from pipx.animate import animate
 from pipx.colors import bold, red
 from pipx.constants import (
     LOCAL_BIN_DIR,
@@ -199,6 +199,7 @@ def upgrade(
     *,
     upgrading_all: bool,
     include_dependencies: bool,
+    force: bool,
 ) -> int:
     """Returns nonzero if package was upgraded, 0 if version did not change"""
 
@@ -211,21 +212,19 @@ def upgrade(
     venv = Venv(venv_dir, verbose=verbose)
 
     old_version = venv.get_venv_metadata_for_package(package).package_version
-    do_animation = not verbose
 
     # Upgrade shared libraries (pip, setuptools and wheel)
     venv.upgrade_packaging_libraries(pip_args)
 
-    with animate(f"upgrading package {package_or_url!r}", do_animation):
-        venv.upgrade_package(package_or_url, pip_args)
+    venv.upgrade_package(package_or_url, pip_args)
     new_version = venv.get_venv_metadata_for_package(package).package_version
 
     metadata = venv.get_venv_metadata_for_package(package)
-    _expose_apps_globally(LOCAL_BIN_DIR, metadata.app_paths, package)
+    _expose_apps_globally(LOCAL_BIN_DIR, metadata.app_paths, package, force=force)
 
     if include_dependencies:
         for _, app_paths in metadata.app_paths_of_dependencies.items():
-            _expose_apps_globally(LOCAL_BIN_DIR, app_paths, package)
+            _expose_apps_globally(LOCAL_BIN_DIR, app_paths, package, force=force)
 
     if old_version == new_version:
         if upgrading_all:
@@ -249,6 +248,7 @@ def upgrade_all(
     *,
     include_dependencies: bool,
     skip: List[str],
+    force: bool,
 ):
     packages_upgraded = 0
     num_packages = 0
@@ -270,6 +270,7 @@ def upgrade_all(
                 verbose,
                 upgrading_all=True,
                 include_dependencies=include_dependencies,
+                force=force,
             )
         except Exception:
             logging.error(f"Error encountered when upgrading {package}")
@@ -319,7 +320,7 @@ def install(
             raise PipxError(f"Could not find package {package}. Is the name correct?")
 
         _run_post_install_actions(
-            venv, package, local_bin_dir, venv_dir, include_dependencies
+            venv, package, local_bin_dir, venv_dir, include_dependencies, force=force
         )
     except (Exception, KeyboardInterrupt):
         print("")
@@ -333,6 +334,8 @@ def _run_post_install_actions(
     local_bin_dir: Path,
     venv_dir: Path,
     include_dependencies: bool,
+    *,
+    force: bool,
 ):
     metadata = venv.get_venv_metadata_for_package(package)
 
@@ -379,15 +382,15 @@ def _run_post_install_actions(
             "Consider using pip or a similar tool instead."
         )
 
-    _expose_apps_globally(local_bin_dir, metadata.app_paths, package)
+    _expose_apps_globally(local_bin_dir, metadata.app_paths, package, force=force)
 
     if include_dependencies:
         for _, app_paths in metadata.app_paths_of_dependencies.items():
-            _expose_apps_globally(local_bin_dir, app_paths, package)
+            _expose_apps_globally(local_bin_dir, app_paths, package, force=force)
 
     print(_get_package_summary(venv_dir, package=package, new_install=True))
     _warn_if_not_on_path(local_bin_dir)
-    print(f"done! {stars}")
+    print(f"done! {stars}", file=sys.stderr)
 
 
 def _warn_if_not_on_path(local_bin_dir: Path):
@@ -409,6 +412,7 @@ def inject(
     verbose: bool,
     include_apps: bool,
     include_dependencies: bool,
+    force: bool,
 ):
     if not venv_dir.exists() or not next(venv_dir.iterdir()):
         raise PipxError(
@@ -425,10 +429,10 @@ def inject(
 
     if include_apps:
         _run_post_install_actions(
-            venv, package, LOCAL_BIN_DIR, venv_dir, include_dependencies
+            venv, package, LOCAL_BIN_DIR, venv_dir, include_dependencies, force=force
         )
 
-    print(f"done! {stars}")
+    print(f"done! {stars}", file=sys.stderr)
 
 
 def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
@@ -501,11 +505,13 @@ def reinstall_all(
         )
 
 
-def _expose_apps_globally(local_bin_dir: Path, app_paths: List[Path], package: str):
+def _expose_apps_globally(
+    local_bin_dir: Path, app_paths: List[Path], package: str, *, force: bool
+):
     if WINDOWS:
         _copy_package_apps(local_bin_dir, app_paths, package)
     else:
-        _symlink_package_apps(local_bin_dir, app_paths, package)
+        _symlink_package_apps(local_bin_dir, app_paths, package, force=force)
 
 
 def _copy_package_apps(local_bin_dir: Path, app_paths: List[Path], package: str):
@@ -522,33 +528,42 @@ def _copy_package_apps(local_bin_dir: Path, app_paths: List[Path], package: str)
             shutil.copy(src, dest)
 
 
-def _symlink_package_apps(local_bin_dir: Path, app_paths: List[Path], package: str):
+def _symlink_package_apps(
+    local_bin_dir: Path, app_paths: List[Path], package: str, *, force: bool
+):
     for app_path in app_paths:
         app_name = app_path.name
         symlink_path = Path(local_bin_dir / app_name)
         if not symlink_path.parent.is_dir():
             mkdir(symlink_path.parent)
 
+        if force:
+            logging.info(f"Force is true. Removing {str(symlink_path)}.")
+            try:
+                symlink_path.unlink()
+            except FileNotFoundError:
+                pass
+            except IsADirectoryError:
+                rmdir(symlink_path)
+
         if symlink_path.exists():
             if symlink_path.samefile(app_path):
-                pass
+                logging.info(f"Same path {str(symlink_path)} and {str(app_path)}")
             else:
                 logging.warning(
                     f"{hazard}  File exists at {str(symlink_path)} and points "
                     f"to {symlink_path.resolve()}, not {str(app_path)}. Not modifying."
                 )
-        else:
-            existing_executable_on_path = which(app_name)
-            try:
-                symlink_path.symlink_to(app_path)
-            except FileExistsError:
-                pass
+            continue
 
-            if existing_executable_on_path:
-                logging.warning(
-                    f"{hazard}  Note: {app_name} was already on your PATH at "
-                    f"{existing_executable_on_path}"
-                )
+        existing_executable_on_path = which(app_name)
+        symlink_path.symlink_to(app_path)
+
+        if existing_executable_on_path:
+            logging.warning(
+                f"{hazard}  Note: {app_name} was already on your PATH at "
+                f"{existing_executable_on_path}"
+            )
 
 
 def _get_package_summary(

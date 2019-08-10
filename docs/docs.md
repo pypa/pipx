@@ -100,8 +100,8 @@ optional arguments:
                         git+https://github.com/user/repo.git@branch`
   --include-deps        Include apps of dependent packages
   --verbose
-  --force               Install even when the package has already been
-                        installed
+  --force, -f           Modify existing virtual environment and files in
+                        PIPX_BIN_DIR
   --python PYTHON       The Python executable used to create the Virtual
                         Environment and run the associated app/apps. Must be
                         v3.3+.
@@ -169,7 +169,7 @@ optional arguments:
 
 ```
 pipx upgrade --help
-usage: pipx upgrade [-h] [--spec SPEC] [--include-deps]
+usage: pipx upgrade [-h] [--spec SPEC] [--force] [--include-deps]
                     [--system-site-packages] [--index-url INDEX_URL]
                     [--editable] [--pip-args PIP_ARGS] [--verbose]
                     package
@@ -186,6 +186,8 @@ optional arguments:
                         passed to pip. Runs `pip install -U SPEC`. For example
                         `--spec mypackage==2.0.0` or `--spec
                         git+https://github.com/user/repo.git@branch`
+  --force, -f           Modify existing virtual environment and files in
+                        PIPX_BIN_DIR
   --include-deps        Include apps of dependent packages
   --system-site-packages
                         Give the virtual environment access to the system
@@ -207,7 +209,7 @@ pipx upgrade-all --help
 usage: pipx upgrade-all [-h] [--include-deps] [--system-site-packages]
                         [--index-url INDEX_URL] [--editable]
                         [--pip-args PIP_ARGS] [--skip SKIP [SKIP ...]]
-                        [--verbose]
+                        [--force] [--verbose]
 
 Upgrades all packages within their virtual environments by running 'pip
 install --upgrade PACKAGE'
@@ -225,6 +227,8 @@ optional arguments:
                         install/upgrade commands
   --skip SKIP [SKIP ...]
                         skip these packages
+  --force, -f           Modify existing virtual environment and files in
+                        PIPX_BIN_DIR
   --verbose
 
 ```
@@ -236,7 +240,7 @@ optional arguments:
 pipx inject --help
 usage: pipx inject [-h] [--include-apps] [--include-deps]
                    [--system-site-packages] [--index-url INDEX_URL]
-                   [--editable] [--pip-args PIP_ARGS] [--verbose]
+                   [--editable] [--pip-args PIP_ARGS] [--force] [--verbose]
                    package dependencies [dependencies ...]
 
 Installs packages to an existing pipx-managed virtual environment.
@@ -258,6 +262,8 @@ optional arguments:
   --editable, -e        Install a project in editable mode
   --pip-args PIP_ARGS   Arbitrary pip arguments to pass directly to pip
                         install/upgrade commands
+  --force, -f           Modify existing virtual environment and files in
+                        PIPX_BIN_DIR
   --verbose
 
 ```

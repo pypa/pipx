@@ -131,6 +131,17 @@ class TestPipxCommands(unittest.TestCase):
         for package in all_packages:
             self.assertTrue(package in ret.stdout.decode())
 
+    def test_force_install(self):
+        subprocess.run(
+            [self.pipx_bin, "install", "cowsay"], check=True, stdout=subprocess.PIPE
+        )
+
+        subprocess.run(
+            [self.pipx_bin, "install", "cowsay", "--force"],
+            check=True,
+            stdout=subprocess.PIPE,
+        )
+
     def test_shared_libs_automatically_recreated(self):
         self._shared_dir.cleanup()
         subprocess.run([self.pipx_bin, "install", "pycowsay"], check=True)

@@ -29,7 +29,7 @@ from .colors import bold, green
 from .Venv import VenvContainer
 
 
-__version__ = "0.14.0.0rc0"
+__version__ = "0.14.0.0rc1"
 
 
 def print_version() -> None:
@@ -178,6 +178,7 @@ def run_pipx_command(args):
                 verbose=verbose,
                 include_apps=args.include_apps,
                 include_dependencies=args.include_deps,
+                force=args.force,
             )
     elif args.command == "upgrade":
         package_or_url = (
@@ -191,6 +192,7 @@ def run_pipx_command(args):
             verbose,
             upgrading_all=False,
             include_dependencies=args.include_deps,
+            force=args.force,
         )
     elif args.command == "list":
         commands.list_packages(venv_container)
@@ -205,6 +207,7 @@ def run_pipx_command(args):
             verbose,
             include_dependencies=args.include_deps,
             skip=args.skip,
+            force=args.force,
         )
     elif args.command == "reinstall-all":
         commands.reinstall_all(
@@ -290,8 +293,9 @@ def get_command_parser():
     p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--force",
+        "-f",
         action="store_true",
-        help="Install even when the package has already been installed",
+        help="Modify existing virtual environment and files in PIPX_BIN_DIR",
     )
     p.add_argument(
         "--python",
@@ -324,6 +328,12 @@ def get_command_parser():
     )
     add_include_dependencies(p)
     add_pip_venv_args(p)
+    p.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+    )
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
@@ -333,6 +343,12 @@ def get_command_parser():
     )
     p.add_argument("package").completer = autocomplete_list_of_installed_packages
     p.add_argument("--spec", help=SPEC_HELP)
+    p.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+    )
     add_include_dependencies(p)
     add_pip_venv_args(p)
     p.add_argument("--verbose", action="store_true")
@@ -347,6 +363,12 @@ def get_command_parser():
     add_include_dependencies(p)
     add_pip_venv_args(p)
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
+    p.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+    )
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
@@ -471,6 +493,7 @@ def get_command_parser():
     )
     p.add_argument(
         "--force",
+        "-f",
         action="store_true",
         help=(
             "Add text to your shell's config file even if it looks like your "
