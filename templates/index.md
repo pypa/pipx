@@ -45,11 +45,13 @@ For more details, see the [installation instructions](https://pipxproject.github
 
 ## Overview: What is `pipx`?
 
-pipx is a tool to help you install and run end-user applications written in Python. pipx **is not** a tool for development or publishing of your code -- it's only for consuming already published packages. If you are familiar macOS's `brew`, it's kind of like that but for Python applications. If you are familiar with JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b), it's kind of like that but also allows you to install packages. pipx does not ship with pip, but installing it is often an important part of bootstrapping your system.
+pipx is a tool to help you install and run end-user applications written in Python. pipx **is not** a tool for development or publishing of your code -- it's only for consuming already published packages.
 
-Python and PyPI allow developers to distribute code with "console script entry points". These scripts let users call into Python code from the command line, effectively acting like standalone applications.
+If you are familiar macOS's `brew`, it's kind of like that but for Python applications. If you are familiar with JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b), it's kind of like that but also allows you to install packages. If you are familiar with `pip`, it's kind of like that but is only focused on installing packages that have entry points.
 
-`pipx` is a tool to install and run any of the thousands of Python applications available on PyPI in a safe, convenient, and reliable way. **In a way, it turns Python Package Index (PyPI) into a big app store for Python applications.** Not all Python packages have entry points, but many do. `pipx` is **not** a tool to install a library and `import` it in your Python code.
+pipx does not ship with pip, but installing it is often an important part of bootstrapping your system.
+
+Python and PyPI allow developers to distribute code with "console script entry points". These scripts let users call into Python code from the command line, effectively acting like standalone applications. `pipx` is a tool to install and run any of these thousands of Python applications available on PyPI in a safe, convenient, and reliable way. **In a way, it turns Python Package Index (PyPI) into a big app store for Python applications.** Not all Python packages have entry points, but many do. `pipx` is **not** a tool to install a library and `import` it in your Python code.
 
 `pipx` enables you to:
 
