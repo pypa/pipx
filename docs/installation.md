@@ -23,6 +23,12 @@ pipx's default binary location is `~/.local/bin`. This can be overriden with the
 
 pipx's default virtual environment location is `~/.local/pipx`. This can be overridden with the environment variable `PIPX_HOME`.
 
+## Shell Completion
+You can easily get your shell's tab completions working by following instructions printed with this command:
+```
+pipx completions
+```
+
 ## Install pipx Development Versions
 New versions of pipx are published as beta or release candidates. These versions look something like `0.13.0b1`, where `b1` signifies the first beta release of version 0.13. These releases can be tested with
 ```

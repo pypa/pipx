@@ -38,20 +38,23 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ```
 
-For more details, see [installation](https://pipxproject.github.io/pipx/installation/) instructions.
+Upgrade pipx with `python3 -m pip install -U pipx`.
 
-To add shell completions, see instructions with
+Shell completions are available by following the instructions printed with this command:
 ```
 pipx completions
 ```
 
+For more details, see the [installation instructions](https://pipxproject.github.io/pipx/installation/).
+
+
 ## Overview: What is `pipx`?
 
-pipx is a tool to help you install and run end-user applications written in Python. pipx **is not** a tool for development or publishing of your code. It's kind of like macOS's `brew` (if you are familiar with that), but for Python applications.
+pipx is a tool to help you install and run end-user applications written in Python. pipx **is not** a tool for development or publishing of your code -- it's only for consuming already published packages. If you are familiar macOS's `brew`, it's kind of like that but for Python applications. If you are familiar with JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b), it's kind of like that but also allows you to install packages. pipx does not ship with pip, but installing it is often an important part of bootstrapping your system.
 
 Python and PyPI allow developers to distribute code with "console script entry points". These scripts let users call into Python code from the command line, effectively acting like standalone applications.
 
-`pipx` is a tool to install and run any of the thousands of Python applications available on PyPI in a safe, convenient, and reliable way. **In a way, it turns Python Package Index (PyPI) into a big app store for Python applications.** Not all Python packages have entry points, but many do.
+`pipx` is a tool to install and run any of the thousands of Python applications available on PyPI in a safe, convenient, and reliable way. **In a way, it turns Python Package Index (PyPI) into a big app store for Python applications.** Not all Python packages have entry points, but many do. `pipx` is **not** a tool to install a library and `import` it in your Python code.
 
 `pipx` enables you to:
 
@@ -61,9 +64,8 @@ Python and PyPI allow developers to distribute code with "console script entry p
 
 Best of all, pipx runs with regular user permissions, never calling `sudo pip install` (you aren't doing that, are you? 😄).
 
-pipx is similar to JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b) - which ships with npm, but also allows you to install instead of just run. pipx does not ship with pip but installing it is often an important part of bootstrapping your system.
 
-### Safely installing to isolated environments
+### Walkthrough: Installing a Package and its Applications With `pipx`
 
 You can globally install an application by running
 
@@ -90,6 +92,7 @@ apps are exposed on your $PATH at /home/user/.local/bin
     - pycowsay
 
 
+# Now you can run pycowsay from anywhere
 >> pycowsay mooo
   ____
 < mooo >
@@ -102,12 +105,17 @@ apps are exposed on your $PATH at /home/user/.local/bin
                 ||----w |
                 ||     ||
 
-
 ```
 
-### Running in temporary, sandboxed environments
+### Walkthrough: Running an Application in a Temporary, Sandboxed Environment
 
-pipx makes running the latest version of a program in a temporary environment as easy as
+I find this handy when I occasionally run an app and want to use the latest version of it, but don't necessarily need it installed on my computer. You may want to do this when you are initializing a new project and want to set up the right directory structure, when you want to view the help text of an application, or if you simply want to run an app in a one-off case.
+
+For example, the blog post [How to set up a perfect Python project](https://sourcery.ai/blog/python-best-practices/) uses `pipx run` to kickstart a new project with[cookiecutter](https://github.com/cookiecutter/cookiecutter).
+
+A nice side benefit is that you don't have to remember to upgrade the app it since `pipx run` will automatically run a recent version for you.
+
+Okay, let's see what this looks like in practice!
 
 ```
 pipx run APP [ARGS...]
@@ -121,9 +129,7 @@ pipx run pycowsay moo
 
 Notice that you **don't need to execute any install commands to run the app**.
 
-Re-running the same app is quick because pipx caches Virtual Environments on a per-app basis. These caches last two days.
-
-I find this handy when I want to quickly see the help text of an application, or when I occasionally run an app but don't necessarily want it hanging around on my system. A nice side benefit is that you don't have to remember to upgrade it since `pipx run` will automatically run a recent version for you.
+Re-running the same app is quick because pipx caches Virtual Environments on a per-app basis. The caches only last a few days, and when they expire, pipx will again use the latest version of the package. This way you can be sure you're always running a new version of the package without having to manually upgrade.
 
 You can run .py files directly, too.
 
@@ -168,3 +174,5 @@ Contributors
 - [tkossak](https://github.com/tkossak)
 - [Tzu-ping Chung](https://github.com/uranusjr)
 - [Shawn Hensley](https://github.com/sahensley)
+
+Logo by [@IrishMorales](https://github.com/IrishMorales).
