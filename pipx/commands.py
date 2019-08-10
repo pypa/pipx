@@ -7,6 +7,7 @@ import multiprocessing
 import shlex
 import shutil
 import subprocess
+import sys
 import textwrap
 import time
 import urllib.parse
@@ -17,7 +18,6 @@ from typing import List
 
 import userpath  # type: ignore
 
-from pipx.animate import animate
 from pipx.colors import bold, red
 from pipx.constants import (
     LOCAL_BIN_DIR,
@@ -212,13 +212,11 @@ def upgrade(
     venv = Venv(venv_dir, verbose=verbose)
 
     old_version = venv.get_venv_metadata_for_package(package).package_version
-    do_animation = not verbose
 
     # Upgrade shared libraries (pip, setuptools and wheel)
     venv.upgrade_packaging_libraries(pip_args)
 
-    with animate(f"upgrading package {package_or_url!r}", do_animation):
-        venv.upgrade_package(package_or_url, pip_args)
+    venv.upgrade_package(package_or_url, pip_args)
     new_version = venv.get_venv_metadata_for_package(package).package_version
 
     metadata = venv.get_venv_metadata_for_package(package)
@@ -392,7 +390,7 @@ def _run_post_install_actions(
 
     print(_get_package_summary(venv_dir, package=package, new_install=True))
     _warn_if_not_on_path(local_bin_dir)
-    print(f"done! {stars}")
+    print(f"done! {stars}", file=sys.stderr)
 
 
 def _warn_if_not_on_path(local_bin_dir: Path):
@@ -434,7 +432,7 @@ def inject(
             venv, package, LOCAL_BIN_DIR, venv_dir, include_dependencies, force=force
         )
 
-    print(f"done! {stars}")
+    print(f"done! {stars}", file=sys.stderr)
 
 
 def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):

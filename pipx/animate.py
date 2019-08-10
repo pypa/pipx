@@ -1,47 +1,52 @@
 from contextlib import contextmanager
 import sys
-from typing import List
+from typing import List, Generator
 from threading import Thread, Event
 from pipx.constants import emoji_support
 
+stderr_is_tty = sys.stderr.isatty()
+
 
 @contextmanager
-def animate(message: str, do_animation: bool):
+def animate(message: str, do_animation: bool) -> Generator[None, None, None]:
+
+    if not do_animation or not stderr_is_tty:
+        # no op
+        yield
+        return
+
     event = Event()
 
     if emoji_support:
+        animate_at_beginning_of_line = True
         symbols = ["⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"]
-        message = message + " "
-        incremental_wait_time = 0.1
-        before = True
+        period = 0.1
     else:
+        animate_at_beginning_of_line = False
         symbols = ["", ".", "..", "..."]
-        incremental_wait_time = 1
-        before = False
-    max_symbol_len = max(len(s) for s in symbols)
-    spaces = " " * (len(message) + max_symbol_len + 2)
+        period = 1
 
     thread_kwargs = {
         "message": message,
         "event": event,
         "symbols": symbols,
         "delay": 0,
-        "incremental_wait_time": incremental_wait_time,
-        "before": before,
+        "period": period,
+        "animate_at_beginning_of_line": animate_at_beginning_of_line,
     }
 
-    if do_animation and sys.stderr.isatty():
-        t = Thread(target=print_animation, kwargs=thread_kwargs)
-        t.start()
+    hide_cursor()
+    t = Thread(target=print_animation, kwargs=thread_kwargs)
+    t.start()
 
-    _hide_cursor()
     try:
         yield
     finally:
         event.set()
-        sys.stderr.write("\r")
         clear_line()
         show_cursor()
+        sys.stderr.write("\r")
+        sys.stdout.write("\r")
 
 
 def print_animation(
@@ -50,30 +55,24 @@ def print_animation(
     event: Event,
     symbols: List[str],
     delay: float,
-    incremental_wait_time: float,
-    before: bool,
+    period: float,
+    animate_at_beginning_of_line: bool,
 ):
-    if event.wait(delay):
-        sys.stderr.write("\r")
-        clear_line()
-        return
-    while True:
+    while not event.wait(0):
         for s in symbols:
-            if before:
+            if animate_at_beginning_of_line:
                 cur_line = f"{s} {message}"
             else:
                 cur_line = f"{message}{s}"
 
-            sys.stderr.write("\r")
             clear_line()
+            sys.stderr.write("\r")
             sys.stderr.write(cur_line)
-            if event.wait(incremental_wait_time):
-                sys.stderr.write("\r")
-                clear_line()
-                return
+            if event.wait(period):
+                break
 
 
-def _hide_cursor():
+def hide_cursor():
     sys.stderr.write("\033[?25l")
 
 
@@ -83,3 +82,4 @@ def show_cursor():
 
 def clear_line():
     sys.stderr.write("\033[K")
+    sys.stdout.write("\033[K")

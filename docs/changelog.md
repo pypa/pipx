@@ -5,6 +5,7 @@
 - Change all terminology from `binary` to `app` or `application`
 - Improve argument parsing for `pipx run` and `pipx runpip`
 - If `--force` is passed, remove existing files in PIPX_BIN_DIR
+- Move animation to start of line, hide cursor when animating
 
 0.13.2.3
 

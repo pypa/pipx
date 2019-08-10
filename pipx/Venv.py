@@ -194,7 +194,8 @@ class Venv:
             pass
 
     def upgrade_package(self, package_or_url: str, pip_args: List[str]):
-        self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
+        with animate(f"upgrading package {package_or_url!r}", self.do_animation):
+            self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
 
     def _run_pip(self, cmd):
         cmd = [self.python_path, "-m", "pip"] + cmd

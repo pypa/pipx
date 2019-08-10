@@ -132,11 +132,11 @@ class TestPipxCommands(unittest.TestCase):
             self.assertTrue(package in ret.stdout.decode())
 
     def test_force_install(self):
-        ret = subprocess.run(
+        subprocess.run(
             [self.pipx_bin, "install", "cowsay"], check=True, stdout=subprocess.PIPE
         )
 
-        ret = subprocess.run(
+        subprocess.run(
             [self.pipx_bin, "install", "cowsay", "--force"],
             check=True,
             stdout=subprocess.PIPE,
