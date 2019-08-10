@@ -100,8 +100,8 @@ optional arguments:
                         git+https://github.com/user/repo.git@branch`
   --include-deps        Include apps of dependent packages
   --verbose
-  --force               Install even when the package has already been
-                        installed
+  --force, -f           Modify existing virtual environment and files in
+                        PIPX_BIN_DIR
   --python PYTHON       The Python executable used to create the Virtual
                         Environment and run the associated app/apps. Must be
                         v3.3+.
@@ -169,7 +169,7 @@ optional arguments:
 
 ```
 pipx upgrade --help
-usage: pipx upgrade [-h] [--spec SPEC] [--include-deps]
+usage: pipx upgrade [-h] [--spec SPEC] [--force] [--include-deps]
                     [--system-site-packages] [--index-url INDEX_URL]
                     [--editable] [--pip-args PIP_ARGS] [--verbose]
                     package
@@ -186,6 +186,8 @@ optional arguments:
                         passed to pip. Runs `pip install -U SPEC`. For example
                         `--spec mypackage==2.0.0` or `--spec
                         git+https://github.com/user/repo.git@branch`
+  --force, -f           Modify existing virtual environment and files in
+                        PIPX_BIN_DIR
   --include-deps        Include apps of dependent packages
   --system-site-packages
                         Give the virtual environment access to the system

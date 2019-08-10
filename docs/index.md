@@ -21,7 +21,7 @@ See Contributing for how to update this file.
 <a href="https://travis-ci.org/pipxproject/pipx"><img src="https://travis-ci.org/pipxproject/pipx.svg?branch=master" /></a>
 
 <a href="https://pypi.python.org/pypi/pipx/">
-<img src="https://img.shields.io/badge/pypi-0.14.0.0rc0-blue.svg" /></a>
+<img src="https://img.shields.io/badge/pypi-0.14.0.0rc1-blue.svg" /></a>
 <a href="https://github.com/ambv/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
@@ -38,7 +38,7 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ```
 
-For more details, [installation](installation).
+For more details, see [installation](https://pipxproject.github.io/pipx/installation/) instructions.
 
 To add shell completions, see instructions with
 ```
