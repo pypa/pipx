@@ -250,6 +250,7 @@ def upgrade_all(
     *,
     include_dependencies: bool,
     skip: List[str],
+    force: bool,
 ):
     packages_upgraded = 0
     num_packages = 0
@@ -271,6 +272,7 @@ def upgrade_all(
                 verbose,
                 upgrading_all=True,
                 include_dependencies=include_dependencies,
+                force=force,
             )
         except Exception:
             logging.error(f"Error encountered when upgrading {package}")

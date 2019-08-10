@@ -207,6 +207,7 @@ def run_pipx_command(args):
             verbose,
             include_dependencies=args.include_deps,
             skip=args.skip,
+            force=args.force,
         )
     elif args.command == "reinstall-all":
         commands.reinstall_all(
@@ -327,6 +328,12 @@ def get_command_parser():
     )
     add_include_dependencies(p)
     add_pip_venv_args(p)
+    p.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+    )
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
@@ -356,6 +363,12 @@ def get_command_parser():
     add_include_dependencies(p)
     add_pip_venv_args(p)
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
+    p.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+    )
     p.add_argument("--verbose", action="store_true")
 
     p = subparsers.add_parser(
