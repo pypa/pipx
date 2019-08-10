@@ -58,4 +58,9 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3 :: Only",
     ],
+    project_urls={
+        "Documentation": "https://pipxproject.github.io/pipx/",
+        "Source Code": "https://github.com/pipxproject/pipx",
+        "Bug Tracker": "https://github.com/pipxproject/pipx/issues",
+    },
 )
