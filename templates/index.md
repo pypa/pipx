@@ -110,7 +110,7 @@ I find this handy when I occasionally run an app and want to use the latest vers
 
 For example, the blog post [How to set up a perfect Python project](https://sourcery.ai/blog/python-best-practices/) uses `pipx run` to kickstart a new project with [cookiecutter](https://github.com/cookiecutter/cookiecutter).
 
-A nice side benefit is that you don't have to remember to upgrade the app it since `pipx run` will automatically run a recent version for you.
+A nice side benefit is that you don't have to remember to upgrade the app since `pipx run` will automatically run a recent version for you.
 
 Okay, let's see what this looks like in practice!
 
@@ -118,13 +118,40 @@ Okay, let's see what this looks like in practice!
 pipx run APP [ARGS...]
 ```
 
-This will install the package in an isolated, temporary directory and invoke the app. Try it!
+This will install the package in an isolated, temporary directory and invoke the app. Give it a try:
 
 ```
-pipx run pycowsay moo
+> pipx run pycowsay moo
+
+  ---
+< moo >
+  ---
+   \   ^__^
+    \  (oo)\_______
+       (__)\       )\/\
+           ||----w |
+           ||     ||
+
+
 ```
 
 Notice that you **don't need to execute any install commands to run the app**.
+
+Any arguments after the application name will be passed directly to the application:
+
+```
+> pipx run pycowsay these arguments are all passed to pycowsay!
+
+  -------------------------------------------
+< these arguments are all passed to pycowsay! >
+  -------------------------------------------
+   \   ^__^
+    \  (oo)\_______
+       (__)\       )\/\
+           ||----w |
+           ||     ||
+
+```
 
 Re-running the same app is quick because pipx caches Virtual Environments on a per-app basis. The caches only last a few days, and when they expire, pipx will again use the latest version of the package. This way you can be sure you're always running a new version of the package without having to manually upgrade.
 
