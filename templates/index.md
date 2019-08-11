@@ -108,7 +108,7 @@ apps are exposed on your $PATH at /home/user/.local/bin
 
 I find this handy when I occasionally run an app and want to use the latest version of it, but don't necessarily need it installed on my computer. You may want to do this when you are initializing a new project and want to set up the right directory structure, when you want to view the help text of an application, or if you simply want to run an app in a one-off case.
 
-For example, the blog post [How to set up a perfect Python project](https://sourcery.ai/blog/python-best-practices/) uses `pipx run` to kickstart a new project with[cookiecutter](https://github.com/cookiecutter/cookiecutter).
+For example, the blog post [How to set up a perfect Python project](https://sourcery.ai/blog/python-best-practices/) uses `pipx run` to kickstart a new project with [cookiecutter](https://github.com/cookiecutter/cookiecutter).
 
 A nice side benefit is that you don't have to remember to upgrade the app it since `pipx run` will automatically run a recent version for you.
 
