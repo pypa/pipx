@@ -19,8 +19,8 @@ Install pipenv and poetry with pipx: `pipx install poetry`
 Run pipenv or poetry with pipx: `pipx run poetry --help`
 
 ## pipx vs venv
-* venv is part of Python's standard library in of Python 3.2 and above
-* venv creates "virtual environments" with are sandboxed python installations
+* venv is part of Python's standard library in Python 3.2 and above
+* venv creates "virtual environments" which are sandboxed python installations
 * pipx heavily relies on the venv package
 
 Example interaction:
