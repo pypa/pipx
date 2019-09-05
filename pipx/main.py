@@ -92,7 +92,7 @@ class LineWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
         return textwrap.wrap(text, width)
 
 
-def get_pip_args(parsed_args: Dict):
+def get_pip_args(parsed_args: Dict) -> List[str]:
     pip_args: List[str] = []
     if parsed_args.get("index_url"):
         pip_args += ["--index-url", parsed_args["index_url"]]
@@ -105,14 +105,14 @@ def get_pip_args(parsed_args: Dict):
     return pip_args
 
 
-def get_venv_args(parsed_args: Dict):
+def get_venv_args(parsed_args: Dict) -> List[str]:
     venv_args: List[str] = []
     if parsed_args.get("system_site_packages"):
         venv_args += ["--system-site-packages"]
     return venv_args
 
 
-def run_pipx_command(args):
+def run_pipx_command(args):  # noqa: C901
     setup(args)
     verbose = args.verbose if "verbose" in args else False
     pip_args = get_pip_args(vars(args))
