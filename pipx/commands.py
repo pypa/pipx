@@ -555,7 +555,7 @@ def _symlink_package_apps(
                         f"{hazard}  File exists at {str(symlink_path)} and points "
                         f"to {symlink_path.resolve()}, not {str(app_path)}. Not modifying."
                     )
-                    continue
+                continue
             except FileNotFoundError:
                 symlink_path.unlink()
 
