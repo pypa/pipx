@@ -546,7 +546,7 @@ def _symlink_package_apps(
             except IsADirectoryError:
                 rmdir(symlink_path)
 
-        if symlink_path.exists() or symlink_path.is_file() or symlink_path.is_symlink():
+        if symlink_path.exists() or symlink_path.is_symlink():
             try:
                 if symlink_path.samefile(app_path):
                     logging.info(f"Same path {str(symlink_path)} and {str(app_path)}")
