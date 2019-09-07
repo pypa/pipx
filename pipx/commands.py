@@ -546,7 +546,9 @@ def _symlink_package_apps(
             except IsADirectoryError:
                 rmdir(symlink_path)
 
-        if symlink_path.exists():
+        exists = symlink_path.exists()
+        is_symlink = symlink_path.is_symlink()
+        if exists:
             if symlink_path.samefile(app_path):
                 logging.info(f"Same path {str(symlink_path)} and {str(app_path)}")
             else:
@@ -555,6 +557,12 @@ def _symlink_package_apps(
                     f"to {symlink_path.resolve()}, not {str(app_path)}. Not modifying."
                 )
             continue
+        if is_symlink and not exists:
+            logging.info(
+                f"Removing existing symlink {str(symlink_path)} since it "
+                "pointed non-existent location"
+            )
+            symlink_path.unlink()
 
         existing_executable_on_path = which(app_name)
         symlink_path.symlink_to(app_path)
