@@ -259,7 +259,7 @@ class TestPipxCommands(unittest.TestCase):
             check=True,
         )
 
-    def test_symlink_points_to_existing_wrong_location_warning(self):
+    def test_existing_symlink_points_to_existing_wrong_location_warning(self):
         self.bin_dir.mkdir(exist_ok=True, parents=True)
         (self.bin_dir / "pycowsay").symlink_to("/dev/null")
 
@@ -279,7 +279,7 @@ class TestPipxCommands(unittest.TestCase):
         # pointed to the wrong location)
         self.assertTrue("is not on your PATH environment variable" not in stderr)
 
-    def test_symlink_points_to_non_existing_wrong_location_warning(self):
+    def test_existing_symlink_points_to_nothing(self):
         self.bin_dir.mkdir(exist_ok=True, parents=True)
         (self.bin_dir / "pycowsay").symlink_to("/asdf/jkl")
 
@@ -294,6 +294,9 @@ class TestPipxCommands(unittest.TestCase):
         )
         stdout = ret.stdout.decode()
         self.assertTrue("These apps are now globally available" in stdout)
+        self.assertTrue(
+            "symlink missing or pointing to unexpected location" not in stdout
+        )
 
     def test_path_warning(self):
         # warning should appear since temp directory is not on PATH
