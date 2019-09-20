@@ -337,7 +337,7 @@ def _create_pipxrc(venv_dir: Path, package_or_url: str):
         json.dump({'package_or_url': package_or_url}, pipxrc_fh)
 
 
-def _read_pipxrc(venv_dir: Path):
+def _read_pipxrc(venv_dir: Path) -> dict:
     try:
         with open(venv_dir / 'pipxrc', 'r') as pipxrc_fh:
             pipxrc_info = json.load(pipxrc_fh)
