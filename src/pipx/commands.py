@@ -462,7 +462,7 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
 
     venv = Venv(venv_dir, verbose=verbose)
 
-    metadata = venv.get_venv_metadata_for_package(package)
+    metadata = read_pipxrc(venv_dir)['venv_metadata']
     app_paths = metadata.app_paths
     for dep_paths in metadata.app_paths_of_dependencies.values():
         app_paths += dep_paths
