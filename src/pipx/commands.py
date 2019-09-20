@@ -2,7 +2,6 @@
 
 import datetime
 import hashlib
-import json
 import logging
 import multiprocessing
 import shlex
@@ -31,6 +30,7 @@ from pipx.util import (
     rmdir,
     run_pypackage_bin,
 )
+from pipx.pipxrc import read_pipxrc, write_pipxrc
 from pipx.venv import Venv, VenvContainer
 
 
@@ -256,7 +256,7 @@ def upgrade_all(
     for venv_dir in venv_container.iter_venv_dirs():
         num_packages += 1
         package = venv_dir.name
-        pipxrc_info = _read_pipxrc(venv_dir)
+        pipxrc_info = read_pipxrc(venv_dir)
         if package in skip:
             continue
         if package == "pipx":
@@ -316,13 +316,18 @@ def install(
     try:
         venv.create_venv(venv_args, pip_args)
         venv.install_package(package_or_url, pip_args)
+        venv_metadata = venv.get_venv_metadata_for_package(package)
 
-        if venv.get_venv_metadata_for_package(package).package_version is None:
+        if venv_metadata.package_version is None:
             venv.remove_venv()
             raise PipxError(f"Could not find package {package}. Is the name correct?")
 
-        pipxrc_info = {'package_or_url': package_or_url}
-        _write_pipxrc(venv_dir, pipxrc_info)
+        pipxrc_info = {
+                'package_or_url': package_or_url,
+                'venv_metadata': venv_metadata,
+                'injected_packages': {}
+                }
+        write_pipxrc(venv_dir, pipxrc_info)
         _run_post_install_actions(
             venv, package, local_bin_dir, venv_dir, include_dependencies, force=force
         )
@@ -330,23 +335,6 @@ def install(
         print("")
         venv.remove_venv()
         raise
-
-
-def _write_pipxrc(venv_dir: Path, pipxrc_info: dict):
-    # TODO 20190919: raise exception on failure?
-    with open(venv_dir / 'pipxrc', 'w') as pipxrc_fh:
-        json.dump({'package_or_url': package_or_url}, pipxrc_fh)
-
-
-def _read_pipxrc(venv_dir: Path) -> dict:
-    try:
-        with open(venv_dir / 'pipxrc', 'r') as pipxrc_fh:
-            pipxrc_info = json.load(pipxrc_fh)
-    except IOError:
-        # return empty dict if no pipxrc file or unreadable
-        return {}
-
-    return pipxrc_info
 
 
 def _run_post_install_actions(
@@ -513,9 +501,9 @@ def reinstall_all(
 ):
     for venv_dir in venv_container.iter_venv_dirs():
         package = venv_dir.name
-        pipxrc_info = _read_pipxrc(venv_dir)
         if package in skip:
             continue
+        pipxrc_info = read_pipxrc(venv_dir)
         uninstall(venv_dir, package, local_bin_dir, verbose)
 
         package_or_url = pipxrc_info.get('package_or_url', package)
