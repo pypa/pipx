@@ -445,6 +445,15 @@ def inject(
             include_dependencies,
             force=force,
         )
+    pipxrc_info = read_pipxrc(venv_dir)
+    pipxrc_info['injected_packages'][package] = {
+            'pip_args': pip_args,
+            'verbose': verbose,
+            'include_apps': include_apps,
+            'include_dependencies': include_dependencies,
+            'force': force,
+            }
+    write_pipxrc(venv_dir, pipxrc_info)
 
     print(f"  injected package {bold(package)} into venv {bold(venv_dir.name)}")
     print(f"done! {stars}", file=sys.stderr)
