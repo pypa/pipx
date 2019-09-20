@@ -321,7 +321,8 @@ def install(
             venv.remove_venv()
             raise PipxError(f"Could not find package {package}. Is the name correct?")
 
-        _create_pipxrc(venv_dir, package_or_url)
+        pipxrc_info = {'package_or_url': package_or_url}
+        _write_pipxrc(venv_dir, pipxrc_info)
         _run_post_install_actions(
             venv, package, local_bin_dir, venv_dir, include_dependencies, force=force
         )
@@ -331,7 +332,7 @@ def install(
         raise
 
 
-def _create_pipxrc(venv_dir: Path, package_or_url: str):
+def _write_pipxrc(venv_dir: Path, pipxrc_info: dict):
     # TODO 20190919: raise exception on failure?
     with open(venv_dir / 'pipxrc', 'w') as pipxrc_fh:
         json.dump({'package_or_url': package_or_url}, pipxrc_fh)
