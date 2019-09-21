@@ -210,6 +210,10 @@ def upgrade(
 
     old_version = venv.get_venv_metadata_for_package(package).package_version
 
+    # if default package_or_url, check pipxrc for better url
+    if package_or_url == package:
+        package_or_url = read_pipxrc(venv_dir).get("package_or_url", package)
+
     # Upgrade shared libraries (pip, setuptools and wheel)
     venv.upgrade_packaging_libraries(pip_args)
 
@@ -262,7 +266,7 @@ def upgrade_all(
         if package == "pipx":
             package_or_url = PIPX_PACKAGE_NAME
         else:
-            package_or_url = pipxrc_info.get('package_or_url', package)
+            package_or_url = pipxrc_info.get("package_or_url", package)
         try:
             packages_upgraded += upgrade(
                 venv_dir,
@@ -323,10 +327,10 @@ def install(
             raise PipxError(f"Could not find package {package}. Is the name correct?")
 
         pipxrc_info = {
-                'package_or_url': package_or_url,
-                'venv_metadata': venv_metadata,
-                'injected_packages': {}
-                }
+            "package_or_url": package_or_url,
+            "venv_metadata": venv_metadata,
+            "injected_packages": {},
+        }
         write_pipxrc(venv_dir, pipxrc_info)
         # TODO 20190920: Does _run_post_install_actions affect venv metadata?
         #   if so, we need to get metadata for pipxrc after this
@@ -448,13 +452,13 @@ def inject(
             force=force,
         )
     pipxrc_info = read_pipxrc(venv_dir)
-    pipxrc_info['injected_packages'][package] = {
-            'pip_args': pip_args,
-            'verbose': verbose,
-            'include_apps': include_apps,
-            'include_dependencies': include_dependencies,
-            'force': force,
-            }
+    pipxrc_info["injected_packages"][package] = {
+        "pip_args": pip_args,
+        "verbose": verbose,
+        "include_apps": include_apps,
+        "include_dependencies": include_dependencies,
+        "force": force,
+    }
     write_pipxrc(venv_dir, pipxrc_info)
 
     print(f"  injected package {bold(package)} into venv {bold(venv_dir.name)}")
@@ -474,8 +478,8 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
     venv = Venv(venv_dir, verbose=verbose)
 
     metadata = read_pipxrc(venv_dir).get(
-            'venv_metadata', venv.get_venv_metadata_for_package(package)
-            )
+        "venv_metadata", venv.get_venv_metadata_for_package(package)
+    )
     app_paths = metadata.app_paths
     for dep_paths in metadata.app_paths_of_dependencies.values():
         app_paths += dep_paths
@@ -519,7 +523,7 @@ def reinstall_all(
         pipxrc_info = read_pipxrc(venv_dir)
         uninstall(venv_dir, package, local_bin_dir, verbose)
 
-        package_or_url = pipxrc_info.get('package_or_url', package)
+        package_or_url = pipxrc_info.get("package_or_url", package)
         install(
             venv_dir,
             package,
@@ -532,17 +536,17 @@ def reinstall_all(
             force=True,
             include_dependencies=include_dependencies,
         )
-        for injected_package in pipxrc_info.get('injected_packages', {}):
-            pkg_info = pipxrc_info['injected_packages'][injected_package]
+        for injected_package in pipxrc_info.get("injected_packages", {}):
+            pkg_info = pipxrc_info["injected_packages"][injected_package]
             inject(
-                    venv_dir,
-                    injected_package,
-                    pkg_info['pip_args'],
-                    verbose = pkg_info['verbose'],
-                    include_apps = pkg_info['include_apps'],
-                    include_dependencies = pkg_info['include_dependencies'],
-                    force = pkg_info['force'],
-                    )
+                venv_dir,
+                injected_package,
+                pkg_info["pip_args"],
+                verbose=pkg_info["verbose"],
+                include_apps=pkg_info["include_apps"],
+                include_dependencies=pkg_info["include_dependencies"],
+                force=pkg_info["force"],
+            )
 
 
 def _expose_apps_globally(
