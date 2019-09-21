@@ -530,6 +530,17 @@ def reinstall_all(
             force=True,
             include_dependencies=include_dependencies,
         )
+        for injected_package in pipxrc_info.get('injected_packages', {}):
+            pkg_info = pipxrc_info['injected_packages'][injected_package]
+            inject(
+                    venv_dir,
+                    injected_package,
+                    pkg_info['pip_args'],
+                    verbose = pkg_info['verbose'],
+                    include_apps = pkg_info['include_apps'],
+                    include_dependencies = pkg_info['include_dependencies'],
+                    force = pkg_info['force'],
+                    )
 
 
 def _expose_apps_globally(
