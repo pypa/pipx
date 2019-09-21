@@ -328,6 +328,8 @@ def install(
                 'injected_packages': {}
                 }
         write_pipxrc(venv_dir, pipxrc_info)
+        # TODO 20190920: Does _run_post_install_actions affect venv metadata?
+        #   if so, we need to get metadata for pipxrc after this
         _run_post_install_actions(
             venv, package, local_bin_dir, venv_dir, include_dependencies, force=force
         )
