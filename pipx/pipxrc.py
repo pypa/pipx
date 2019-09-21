@@ -31,7 +31,11 @@ def write_pipxrc(venv_dir: Path, pipxrc_info: dict):
                     }
     # TODO 20190919: raise exception on failure?
     with open(venv_dir / 'pipxrc', 'w') as pipxrc_fh:
-        json.dump(pipxrc_info, pipxrc_fh, cls=JsonEncoderPipx)
+        json.dump(
+                pipxrc_info, pipxrc_fh,
+                indent=4, sort_keys=True,
+                cls=JsonEncoderPipx
+                )
 
 
 def read_pipxrc(venv_dir: Path) -> dict:
