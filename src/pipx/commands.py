@@ -272,10 +272,10 @@ def upgrade_all(
                 venv_dir,
                 package,
                 package_or_url,
-                pip_args,
+                pip_args, # TODO 20190923: use pipxrc_info
                 verbose,
                 upgrading_all=True,
-                include_dependencies=include_dependencies,
+                include_dependencies=include_dependencies, # TODO 20190923: use pipxrc_info
                 force=force,
             )
         except Exception:
