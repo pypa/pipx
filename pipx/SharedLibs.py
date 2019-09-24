@@ -26,7 +26,7 @@ class _SharedLibs:
     def create(self, pip_args: List[str], verbose: bool = False):
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
-                run([DEFAULT_PYTHON, "-m", "venv", self.root])
+                run([DEFAULT_PYTHON, "-m", "venv", "--clear", self.root])
             self.upgrade(pip_args, verbose)
 
     @property
