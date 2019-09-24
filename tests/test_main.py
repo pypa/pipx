@@ -11,6 +11,20 @@ from pipx import main
 assert_not_in_virtualenv()
 
 
+@pytest.mark.parametrize(
+    "ver_str,expected",
+    [
+        ["0.14.0.0", (0, 14)],
+        ["0.14.0.0b0", (0, 14, 0, 0, "b", 0)],
+        ["0.14", (0, 14)],
+        ["0.14b0", (0, 14, 0, 0, "b", 0)],
+        ["1.1.1.1", (1, 1, 1, 1)],
+    ],
+)
+def test_simple_parse_version(ver_str, expected):
+    assert main.simple_parse_version(ver_str) == expected
+
+
 def test_help_text(monkeypatch, capsys):
     mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
     with mock.patch.object(sys, "exit", mock_exit), pytest.raises(
