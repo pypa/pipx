@@ -250,13 +250,7 @@ def upgrade(
 
 
 def upgrade_all(
-    venv_container: VenvContainer,
-    pip_args: List[str],
-    verbose: bool,
-    *,
-    include_dependencies: bool,
-    skip: List[str],
-    force: bool,
+    venv_container: VenvContainer, verbose: bool, *, skip: List[str], force: bool
 ):
     packages_upgraded = 0
     num_packages = 0
@@ -275,10 +269,10 @@ def upgrade_all(
                 venv_dir,
                 package,
                 package_or_url,
-                pip_args,  # TODO 20190923: use pipxrc_info
+                pipxrc_info["install"]["pip_args"],
                 verbose,
                 upgrading_all=True,
-                include_dependencies=include_dependencies,  # TODO 20190923: use pipxrc_info
+                include_dependencies=pipxrc_info["install"]["include_dependencies"],
                 force=force,
             )
         except Exception:

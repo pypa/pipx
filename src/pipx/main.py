@@ -205,14 +205,7 @@ def run_pipx_command(args):  # noqa: C901
     elif args.command == "uninstall-all":
         return commands.uninstall_all(venv_container, constants.LOCAL_BIN_DIR, verbose)
     elif args.command == "upgrade-all":
-        return commands.upgrade_all(
-            venv_container,
-            pip_args,
-            verbose,
-            include_dependencies=args.include_deps,
-            skip=args.skip,
-            force=args.force,
-        )
+        return commands.upgrade_all(venv_container, verbose, skip=args.skip, force=args.force)
     elif args.command == "reinstall-all":
         return commands.reinstall_all(
             venv_container, constants.LOCAL_BIN_DIR, args.python, verbose, skip=args.skip
@@ -350,8 +343,6 @@ def _add_upgrade_all(subparsers):
         description="Upgrades all packages within their virtual environments by running 'pip install --upgrade PACKAGE'",
     )
 
-    add_include_dependencies(p)
-    add_pip_venv_args(p)
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
     p.add_argument(
         "--force",
