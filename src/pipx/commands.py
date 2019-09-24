@@ -516,10 +516,7 @@ def reinstall_all(
     venv_container: VenvContainer,
     local_bin_dir: Path,
     python: str,
-    pip_args: List[str],
-    venv_args: List[str],
     verbose: bool,
-    include_dependencies: bool,
     *,
     skip: List[str],
 ):
@@ -537,11 +534,11 @@ def reinstall_all(
             package_or_url,
             local_bin_dir,
             python,
-            pip_args,  # TODO 20190923: use pipxrc_info
-            venv_args,  # TODO 20190923: use pipxrc_info
+            pipxrc_info["install"]["pip_args"],
+            pipxrc_info["install"]["venv_args"],
             verbose,
             force=True,
-            include_dependencies=include_dependencies,  # TODO 20190923: use pipxrc_info
+            include_dependencies=pipxrc_info["install"]["include_dependencies"],
         )
         for injected_package in pipxrc_info.get("injected_packages", {}):
             pkg_info = pipxrc_info["injected_packages"][injected_package]

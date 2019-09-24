@@ -215,14 +215,7 @@ def run_pipx_command(args):  # noqa: C901
         )
     elif args.command == "reinstall-all":
         return commands.reinstall_all(
-            venv_container,
-            constants.LOCAL_BIN_DIR,
-            args.python,
-            pip_args,
-            venv_args,
-            verbose,
-            args.include_deps,
-            skip=args.skip,
+            venv_container, constants.LOCAL_BIN_DIR, args.python, verbose, skip=args.skip
         )
     elif args.command == "runpip":
         if not venv_dir:
@@ -397,19 +390,15 @@ def _add_reinstall_all(subparsers):
             """
         Reinstalls all packages using a different version of Python.
 
-        Packages are uninstalled, then installed with pipx install PACKAGE.
+        Packages are uninstalled, then installed with pipx install PACKAGE
+        with the same options used in the original install of PACKAGE.
         This is useful if you upgraded to a new version of Python and want
         all your packages to use the latest as well.
-
-        If you originally installed a package from a source other than PyPI,
-        this command may behave in unexpected ways since it will reinstall from PyPI.
 
         """
         ),
     )
     p.add_argument("python")
-    add_include_dependencies(p)
-    add_pip_venv_args(p)
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
     p.add_argument("--verbose", action="store_true")
 
