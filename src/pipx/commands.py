@@ -207,12 +207,13 @@ def upgrade(
         )
 
     venv = Venv(venv_dir, verbose=verbose)
+    pipxrc_info = read_pipxrc(venv_dir)
 
     old_version = venv.get_venv_metadata_for_package(package).package_version
 
     # if default package_or_url, check pipxrc for better url
     if package_or_url == package:
-        package_or_url = read_pipxrc(venv_dir).get("package_or_url", package)
+        package_or_url = pipxrc_info.get("package_or_url", package)
 
     # Upgrade shared libraries (pip, setuptools and wheel)
     venv.upgrade_packaging_libraries(pip_args)
@@ -243,6 +244,8 @@ def upgrade(
         print(
             f"upgraded package {package} from {old_version} to {new_version} (location: {str(venv_dir)})"
         )
+        pipxrc_info["venv_metadata"] = venv.get_venv_metadata_for_package(package)
+        write_pipxrc(venv_dir, pipxrc_info)
         return 1
 
 
