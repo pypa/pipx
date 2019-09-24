@@ -272,10 +272,10 @@ def upgrade_all(
                 venv_dir,
                 package,
                 package_or_url,
-                pip_args, # TODO 20190923: use pipxrc_info
+                pip_args,  # TODO 20190923: use pipxrc_info
                 verbose,
                 upgrading_all=True,
-                include_dependencies=include_dependencies, # TODO 20190923: use pipxrc_info
+                include_dependencies=include_dependencies,  # TODO 20190923: use pipxrc_info
                 force=force,
             )
         except Exception:
@@ -539,11 +539,11 @@ def reinstall_all(
             package_or_url,
             local_bin_dir,
             python,
-            pip_args, # TODO 20190923: use pipxrc_info
-            venv_args, # TODO 20190923: use pipxrc_info
+            pip_args,  # TODO 20190923: use pipxrc_info
+            venv_args,  # TODO 20190923: use pipxrc_info
             verbose,
             force=True,
-            include_dependencies=include_dependencies, # TODO 20190923: use pipxrc_info
+            include_dependencies=include_dependencies,  # TODO 20190923: use pipxrc_info
         )
         for injected_package in pipxrc_info.get("injected_packages", {}):
             pkg_info = pipxrc_info["injected_packages"][injected_package]
