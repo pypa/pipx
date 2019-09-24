@@ -326,8 +326,6 @@ def install(
             venv.remove_venv()
             raise PipxError(f"Could not find package {package}. Is the name correct?")
 
-        # TODO 20190920: Does _run_post_install_actions affect venv metadata?
-        #   if so, we need to get metadata for pipxrc after this
         _run_post_install_actions(
             venv, package, local_bin_dir, venv_dir, include_dependencies, force=force
         )
