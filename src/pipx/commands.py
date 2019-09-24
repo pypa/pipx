@@ -337,8 +337,15 @@ def install(
         raise
 
     # if all is well, write out pipxrc file
+    # TODO 20190923: if package_or_url is a local path, we need to make it
+    #   an absolute path
     pipxrc_info = {
         "package_or_url": package_or_url,
+        "install": {
+            "pip_args": pip_args,
+            "venv_args": venv_args,
+            "include_dependencies": include_dependencies,
+        },
         "venv_metadata": venv.get_venv_metadata_for_package(package),
         "injected_packages": {},
     }
@@ -532,11 +539,11 @@ def reinstall_all(
             package_or_url,
             local_bin_dir,
             python,
-            pip_args,
-            venv_args,
+            pip_args, # TODO 20190923: use pipxrc_info
+            venv_args, # TODO 20190923: use pipxrc_info
             verbose,
             force=True,
-            include_dependencies=include_dependencies,
+            include_dependencies=include_dependencies, # TODO 20190923: use pipxrc_info
         )
         for injected_package in pipxrc_info.get("injected_packages", {}):
             pkg_info = pipxrc_info["injected_packages"][injected_package]
