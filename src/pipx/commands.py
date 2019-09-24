@@ -317,7 +317,6 @@ def install(
     try:
         venv.create_venv(venv_args, pip_args)
         venv.install_package(package_or_url, pip_args)
-        venv.get_venv_metadata_for_package(package)
 
         if venv.get_venv_metadata_for_package(package).package_version is None:
             venv.remove_venv()
