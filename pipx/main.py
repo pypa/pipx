@@ -2,8 +2,6 @@
 # PYTHON_ARGCOMPLETE_OK
 
 """The command line interface to pipx"""
-from pathlib import Path
-
 import argcomplete  # type: ignore
 import argparse
 import functools
@@ -31,7 +29,7 @@ from .Venv import VenvContainer
 
 
 __version__ = "0.14.0.0"
-__version_info__ = tuple(int(n) for n in __version__.split('.'))
+__version_info__ = tuple(int(n) for n in __version__.split("."))
 
 
 def print_version() -> None:
@@ -197,7 +195,10 @@ def run_pipx_command(args):  # noqa: C901
             force=args.force,
         )
     elif args.command == "list":
-        commands.list_packages(venv_container)
+        if args.freeze:
+            commands.freeze_packages(venv_container)
+        else:
+            commands.list_packages(venv_container)
     elif args.command == "uninstall":
         commands.uninstall(venv_dir, package, LOCAL_BIN_DIR, verbose)
     elif args.command == "uninstall-all":
@@ -417,6 +418,12 @@ def _add_list(subparsers):
         help="List installed packages",
         description="List packages and apps installed with pipx",
     )
+    p.add_argument(
+        "--freeze",
+        action="store_true",
+        help="Print package information in `pip freeze`-like format. "
+        "Unlike `pip freeze`, dependencies are not included.",
+    )
     p.add_argument("--verbose", action="store_true")
 
 
@@ -539,8 +546,7 @@ def get_command_parser():
 
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     subparsers.add_parser(
-        "completions",
-        help="Print instructions on enabling shell completions for pipx",
+        "completions", help="Print instructions on enabling shell completions for pipx"
     )
     return parser
 

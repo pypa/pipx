@@ -648,6 +648,27 @@ def list_packages(venv_container: VenvContainer):
             print(package_summary)
 
 
+def _get_package_spec(path: Path, *, package: str = None) -> str:
+    venv = Venv(path)
+    if package is None:
+        package = path.name
+    metadata = venv.get_venv_metadata_for_package(package)
+    return f"{package}=={metadata.package_version}"
+
+
+def freeze_packages(venv_container: VenvContainer):
+    dirs = list(sorted(venv_container.iter_venv_dirs()))
+    if not dirs:
+        print("")
+        return
+
+    venv_container.verify_shared_libs()
+
+    with multiprocessing.Pool() as p:
+        for package_spec in p.map(_get_package_spec, dirs):
+            print(package_spec)
+
+
 def _get_exposed_app_paths_for_package(
     venv_bin_path: Path, package_binary_names: List[str], local_bin_dir: Path
 ):

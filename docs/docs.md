@@ -347,12 +347,14 @@ optional arguments:
 
 ```
 pipx list --help
-usage: pipx list [-h] [--verbose]
+usage: pipx list [-h] [--freeze] [--verbose]
 
 List packages and apps installed with pipx
 
 optional arguments:
   -h, --help  show this help message and exit
+  --freeze    Print package information in `pip freeze`-like format. Unlike
+              `pip freeze`, dependencies are not included.
   --verbose
 
 ```
