@@ -88,7 +88,7 @@ class Venv:
         if self._existing and self.uses_shared_libs and not shared_libs.is_valid:
             logging.warning(
                 f"Shared libraries not found, but are required for package {self.root.name}. "
-                "Attemping to install now."
+                "Attempting to install now."
             )
             shared_libs.create([])
             if shared_libs.is_valid:
