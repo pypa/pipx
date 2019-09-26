@@ -392,7 +392,7 @@ def _add_reinstall_all(subparsers):
     p = subparsers.add_parser(
         "reinstall-all",
         formatter_class=LineWrapRawTextHelpFormatter,
-        help="Reinstall all packages with a different Python executable",
+        help="Reinstall all packages, possibly with a different Python executable",
         description=textwrap.dedent(
             """
         Reinstalls all packages using a different version of Python.
@@ -407,7 +407,11 @@ def _add_reinstall_all(subparsers):
         """
         ),
     )
-    p.add_argument("python")
+    p.add_argument(
+        "--python",
+        default=DEFAULT_PYTHON,
+        help="The Python version to run package's CLI app with. Must be v3.3+.",
+    )
     add_include_dependencies(p)
     add_pip_venv_args(p)
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
