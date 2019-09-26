@@ -1,11 +1,12 @@
 import json
 from pathlib import Path
+from typing import Dict, Any
 
 from pipx.Venv import PipxVenvMetadata
 
 
 # handy, helps enforce some consistency, and adds pipxrc_version
-pipxrc_info_template = {
+pipxrc_info_template: Dict[str, Any] = {
     "package_or_url": None,
     "install": {"pip_args": [], "venv_args": [], "include_dependencies": None},
     "venv_metadata": None,
