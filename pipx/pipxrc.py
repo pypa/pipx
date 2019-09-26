@@ -4,6 +4,16 @@ from pathlib import Path
 from pipx.Venv import PipxVenvMetadata
 
 
+# handy, helps enforce some consistency, and adds pipxrc_version
+pipxrc_info_template = {
+    "package_or_url": None,
+    "install": {"pip_args": [], "venv_args": [], "include_dependencies": None},
+    "venv_metadata": None,
+    "injected_packages": {},
+    "pipxrc_version": 0.1,
+}
+
+
 class JsonEncoderPipx(json.JSONEncoder):
     def default(self, obj):
         # only handles what json.JSONEncoder doesn't understand by default

@@ -30,7 +30,7 @@ from pipx.util import (
     rmdir,
     run_pypackage_bin,
 )
-from pipx.pipxrc import read_pipxrc, write_pipxrc
+from pipx.pipxrc import read_pipxrc, write_pipxrc, pipxrc_info_template
 from pipx.venv import Venv, VenvContainer
 
 
@@ -333,16 +333,12 @@ def install(
     # if all is well, write out pipxrc file
     # TODO 20190923: if package_or_url is a local path, we need to make it
     #   an absolute path
-    pipxrc_info = {
-        "package_or_url": package_or_url,
-        "install": {
-            "pip_args": pip_args,
-            "venv_args": venv_args,
-            "include_dependencies": include_dependencies,
-        },
-        "venv_metadata": venv.get_venv_metadata_for_package(package),
-        "injected_packages": {},
-    }
+    pipxrc_info = pipxrc_info_template
+    pipxrc_info["package_or_url"] = package_or_url
+    pipxrc_info["install"]["pip_args"] = pip_args
+    pipxrc_info["install"]["venv_args"] = venv_args
+    pipxrc_info["install"]["include_dependencies"] = include_dependencies
+    pipxrc_info["venv_metadata"] = venv.get_venv_metadata_for_package(package)
     write_pipxrc(venv_dir, pipxrc_info)
 
 
