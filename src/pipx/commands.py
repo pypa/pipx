@@ -30,7 +30,7 @@ from pipx.util import (
     rmdir,
     run_pypackage_bin,
 )
-from pipx.pipxrc import read_pipxrc, write_pipxrc, pipxrc_info_template
+from pipx.pipxrc import Pipxrc
 from pipx.venv import Venv, VenvContainer
 
 
@@ -207,13 +207,15 @@ def upgrade(
         )
 
     venv = Venv(venv_dir, verbose=verbose)
-    pipxrc_info = read_pipxrc(venv_dir)
+    pipxrc = Pipxrc(venv_dir)
 
     old_version = venv.get_venv_metadata_for_package(package).package_version
 
     # if default package_or_url, check pipxrc for better url
+    # TODO 20190926: main.py should communicate if this is spec or copied from
+    #   package
     if package_or_url == package:
-        package_or_url = pipxrc_info.get("package_or_url", package)
+        package_or_url = pipxrc.get_package_or_url(default=package)
 
     # Upgrade shared libraries (pip, setuptools and wheel)
     venv.upgrade_packaging_libraries(pip_args)
@@ -244,8 +246,8 @@ def upgrade(
         print(
             f"upgraded package {package} from {old_version} to {new_version} (location: {str(venv_dir)})"
         )
-        pipxrc_info["venv_metadata"] = venv.get_venv_metadata_for_package(package)
-        write_pipxrc(venv_dir, pipxrc_info)
+        pipxrc.set_venv_metadata(venv.get_venv_metadata_for_package(package))
+        pipxrc.write()
         return 1
 
 
@@ -257,22 +259,24 @@ def upgrade_all(
     for venv_dir in venv_container.iter_venv_dirs():
         num_packages += 1
         package = venv_dir.name
-        pipxrc_info = read_pipxrc(venv_dir)
+        pipxrc = Pipxrc(venv_dir)
         if package in skip:
             continue
         if package == "pipx":
             package_or_url = PIPX_PACKAGE_NAME
         else:
-            package_or_url = pipxrc_info.get("package_or_url", package)
+            package_or_url = pipxrc.get_package_or_url(default=package)
         try:
             packages_upgraded += upgrade(
                 venv_dir,
                 package,
                 package_or_url,
-                pipxrc_info["install"]["pip_args"],
+                pipxrc.get_install_pip_args(default=[]),
                 verbose,
                 upgrading_all=True,
-                include_dependencies=pipxrc_info["install"]["include_dependencies"],
+                include_dependencies=pipxrc.get_install_include_dependencies(
+                    default=False
+                ),
                 force=force,
             )
         except Exception:
@@ -331,15 +335,11 @@ def install(
         raise
 
     # if all is well, write out pipxrc file
-    # TODO 20190923: if package_or_url is a local path, we need to make it
-    #   an absolute path
-    pipxrc_info = pipxrc_info_template
-    pipxrc_info["package_or_url"] = package_or_url
-    pipxrc_info["install"]["pip_args"] = pip_args
-    pipxrc_info["install"]["venv_args"] = venv_args
-    pipxrc_info["install"]["include_dependencies"] = include_dependencies
-    pipxrc_info["venv_metadata"] = venv.get_venv_metadata_for_package(package)
-    write_pipxrc(venv_dir, pipxrc_info)
+    pipxrc = Pipxrc(venv_dir, read=False)
+    pipxrc.set_package_or_url(package_or_url)
+    pipxrc.set_install_options(pip_args, venv_args, include_dependencies)
+    pipxrc.set_venv_metadata(venv.get_venv_metadata_for_package(package))
+    pipxrc.write()
 
 
 def _run_post_install_actions(
@@ -450,15 +450,11 @@ def inject(
             include_dependencies,
             force=force,
         )
-    pipxrc_info = read_pipxrc(venv_dir)
-    pipxrc_info["injected_packages"][package] = {
-        "pip_args": pip_args,
-        "verbose": verbose,
-        "include_apps": include_apps,
-        "include_dependencies": include_dependencies,
-        "force": force,
-    }
-    write_pipxrc(venv_dir, pipxrc_info)
+    pipxrc = Pipxrc(venv_dir)
+    pipxrc.add_injected_package(
+        package, pip_args, verbose, include_apps, include_dependencies, force
+    )
+    pipxrc.write()
 
     print(f"  injected package {bold(package)} into venv {bold(venv_dir.name)}")
     print(f"done! {stars}", file=sys.stderr)
@@ -475,9 +471,10 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
         return
 
     venv = Venv(venv_dir, verbose=verbose)
+    pipxrc = Pipxrc(venv_dir)
 
-    metadata = read_pipxrc(venv_dir).get(
-        "venv_metadata", venv.get_venv_metadata_for_package(package)
+    metadata = pipxrc.get_venv_metadata(
+        default=venv.get_venv_metadata_for_package(package)
     )
     app_paths = metadata.app_paths
     for dep_paths in metadata.app_paths_of_dependencies.values():
@@ -516,32 +513,31 @@ def reinstall_all(
         package = venv_dir.name
         if package in skip:
             continue
-        pipxrc_info = read_pipxrc(venv_dir)
+        pipxrc = Pipxrc(venv_dir)
         uninstall(venv_dir, package, local_bin_dir, verbose)
 
-        package_or_url = pipxrc_info.get("package_or_url", package)
+        package_or_url = pipxrc.get_package_or_url(default=package)
         install(
             venv_dir,
             package,
             package_or_url,
             local_bin_dir,
             python,
-            pipxrc_info["install"]["pip_args"],
-            pipxrc_info["install"]["venv_args"],
+            pipxrc.get_install_pip_args(default=[]),
+            pipxrc.get_install_venv_args(default=[]),
             verbose,
             force=True,
-            include_dependencies=pipxrc_info["install"]["include_dependencies"],
+            include_dependencies=pipxrc.get_install_include_dependencies(default=False),
         )
-        for injected_package in pipxrc_info.get("injected_packages", {}):
-            pkg_info = pipxrc_info["injected_packages"][injected_package]
+        for injected in pipxrc.get_injected_packages(default=[]):
             inject(
                 venv_dir,
-                injected_package,
-                pkg_info["pip_args"],
-                verbose=pkg_info["verbose"],
-                include_apps=pkg_info["include_apps"],
-                include_dependencies=pkg_info["include_dependencies"],
-                force=pkg_info["force"],
+                injected["package"],
+                injected["pip_args"],
+                verbose=injected["verbose"],
+                include_apps=injected["include_apps"],
+                include_dependencies=injected["include_dependencies"],
+                force=injected["force"],
             )
 
 
