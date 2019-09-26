@@ -11,7 +11,7 @@ pipxrc_info_template: Dict[str, Any] = {
     "install": {"pip_args": [], "venv_args": [], "include_dependencies": None},
     "venv_metadata": None,
     "injected_packages": {},
-    "pipxrc_version": 0.1,
+    "pipxrc_version": "0.1",
 }
 
 
