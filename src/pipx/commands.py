@@ -4,6 +4,7 @@ import datetime
 import hashlib
 import logging
 import multiprocessing
+import re
 import shlex
 import shutil
 import subprocess
@@ -335,11 +336,61 @@ def install(
         raise
 
     # if all is well, write out pipxrc file
+    package_or_url_pipxrc = _abs_path_if_local(package_or_url, venv, pip_args)
     pipxrc = Pipxrc(venv_dir, read=False)
-    pipxrc.set_package_or_url(package_or_url)
+    pipxrc.set_package_or_url(package_or_url_pipxrc)
     pipxrc.set_install_options(pip_args, venv_args, include_dependencies)
     pipxrc.set_venv_metadata(venv.get_venv_metadata_for_package(package))
     pipxrc.write()
+
+
+def _abs_path_if_local(package_or_url: str, venv: Venv, pip_args: List[str]) -> str:
+    # if not pip --editable, then pip assumes any one-word word spec MUST
+    #   be a pypi package
+    pkg_path = Path(package_or_url)
+    if not pkg_path.exists():
+        # no existing path, must be pypi package or non-existent
+        return package_or_url
+
+    valid_pkg_name = bool(
+        re.search(r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$", package_or_url, re.I)
+    )
+
+    if not valid_pkg_name:
+        return str(pkg_path.resolve())
+
+    pip_search_args: List[str]
+
+    try:
+        arg_i = pip_args.index("--index-url")
+    except ValueError:
+        pip_search_args = []
+    else:
+        pip_search_args = pip_args[arg_i : arg_i + 2]
+    pip_search_result_str = venv.pip_search(package_or_url, pip_search_args)
+
+    pip_search_results = pip_search_result_str.split("\n")
+
+    pkg_found = False
+    pip_search_found = []
+    for pip_search_line in pip_search_results:
+        if pkg_found:
+            if re.search(r"^\s", pip_search_line):
+                pip_search_found.append(pip_search_line)
+            else:
+                break
+        elif pip_search_line.startswith(package_or_url):
+            pip_search_found.append(pip_search_line)
+            pkg_found = True
+
+    if (
+        len(pip_search_found) > 1
+        and pip_search_found[0].startswith(package_or_url)
+        and "INSTALLED" in pip_search_found[-1]
+    ):
+        return package_or_url
+    else:
+        return str(pkg_path.resolve())
 
 
 def _run_post_install_actions(

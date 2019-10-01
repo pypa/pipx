@@ -185,6 +185,12 @@ class Venv:
             .strip()
         )
 
+    def pip_search(self, search_term, pip_search_args):
+        cmd = [str(self.python_path), "-m", "pip", "search"]
+        cmd += pip_search_args + [search_term]
+        cmd_run = subprocess.run(cmd, stdout=subprocess.PIPE)
+        return cmd_run.stdout.decode().strip()
+
     def run_app(self, app: str, app_args: List[str]):
         cmd = [str(self.bin_path / app)] + app_args
         try:
