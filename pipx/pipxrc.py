@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import List, Dict, Any, Union, NamedTuple
+from typing import List, Dict, Union, NamedTuple
 
 from pipx.Venv import PipxVenvMetadata
 
@@ -27,14 +27,18 @@ class InjPkg(NamedTuple):
     force: bool
 
 
+class InstallOpts(NamedTuple):
+    pip_args: Union[List[str], None]
+    venv_args: Union[List[str], None]
+    include_dependencies: Union[bool, None]
+
+
 class PipxrcInfo:
     def __init__(self):
         self.package_or_url: Union[str, None] = None
-        self.install: Dict[str, Any] = {
-            "pip_args": None,
-            "venv_args": None,
-            "include_dependencies": None,
-        }
+        self.install: InstallOpts = InstallOpts(
+            pip_args=None, venv_args=None, include_dependencies=None
+        )
         self.venv_metadata: Union[PipxVenvMetadata, None] = None
         self.injected_packages: Union[Dict[str, InjPkg], None] = None
         self._pipxrc_version: str = "0.1"
@@ -42,7 +46,7 @@ class PipxrcInfo:
     def to_dict(self):
         return {
             "package_or_url": self.package_or_url,
-            "install": self.install,
+            "install": self.install._asdict(),
             "venv_metadata": self.venv_metadata._asdict(),
             "injected_packages": {
                 k: v._asdict() for (k, v) in self.injected_packages.items()
@@ -52,7 +56,7 @@ class PipxrcInfo:
 
     def from_dict(self, pipxrc_info_dict):
         self.package_or_url = pipxrc_info_dict["package_or_url"]
-        self.install = pipxrc_info_dict["install"]
+        self.install = InstallOpts(**pipxrc_info_dict["install"])
         self.venv_metadata = PipxVenvMetadata(**pipxrc_info_dict["venv_metadata"])
         self.injected_packages = {
             k: InjPkg(**v) for (k, v) in pipxrc_info_dict["injected_packages"].items()
@@ -76,20 +80,20 @@ class Pipxrc:
             return default
 
     def get_install_pip_args(self, default: List[str]) -> List[str]:
-        if self.pipxrc_info.install["pip_args"] is not None:
-            return self.pipxrc_info.install["pip_args"]
+        if self.pipxrc_info.install.pip_args is not None:
+            return self.pipxrc_info.install.pip_args
         else:
             return default
 
     def get_install_venv_args(self, default: List[str]) -> List[str]:
-        if self.pipxrc_info.install["venv_args"] is not None:
-            return self.pipxrc_info.install["venv_args"]
+        if self.pipxrc_info.install.venv_args is not None:
+            return self.pipxrc_info.install.venv_args
         else:
             return default
 
     def get_install_include_dependencies(self, default: bool) -> bool:
-        if self.pipxrc_info.install["include_dependencies"] is not None:
-            return self.pipxrc_info.install["include_dependencies"]
+        if self.pipxrc_info.install.include_dependencies is not None:
+            return self.pipxrc_info.install.include_dependencies
         else:
             return default
 
@@ -123,9 +127,11 @@ class Pipxrc:
     def set_install_options(
         self, pip_args: List, venv_args: List, include_dependencies: bool
     ):
-        self.pipxrc_info.install["pip_args"] = pip_args
-        self.pipxrc_info.install["venv_args"] = venv_args
-        self.pipxrc_info.install["include_dependencies"] = include_dependencies
+        self.pipxrc_info.install = InstallOpts(
+            pip_args=pip_args,
+            venv_args=venv_args,
+            include_dependencies=include_dependencies,
+        )
 
     def add_injected_package(
         self,
