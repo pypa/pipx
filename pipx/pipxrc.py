@@ -73,35 +73,28 @@ class Pipxrc:
     def reset(self):
         self.pipxrc_info = PipxrcInfo()
 
-    def get_package_or_url(self, default: str) -> str:
-        if self.pipxrc_info.package_or_url is not None:
-            return self.pipxrc_info.package_or_url
+    def _val_or_default(self, value, default):
+        if value is not None:
+            return value
         else:
             return default
+
+    def get_package_or_url(self, default: str) -> str:
+        return self._val_or_default(self.pipxrc_info.package_or_url, default)
 
     def get_install_pip_args(self, default: List[str]) -> List[str]:
-        if self.pipxrc_info.install.pip_args is not None:
-            return self.pipxrc_info.install.pip_args
-        else:
-            return default
+        return self._val_or_default(self.pipxrc_info.install.pip_args, default)
 
     def get_install_venv_args(self, default: List[str]) -> List[str]:
-        if self.pipxrc_info.install.venv_args is not None:
-            return self.pipxrc_info.install.venv_args
-        else:
-            return default
+        return self._val_or_default(self.pipxrc_info.install.venv_args, default)
 
     def get_install_include_dependencies(self, default: bool) -> bool:
-        if self.pipxrc_info.install.include_dependencies is not None:
-            return self.pipxrc_info.install.include_dependencies
-        else:
-            return default
+        return self._val_or_default(
+            self.pipxrc_info.install.include_dependencies, default
+        )
 
     def get_venv_metadata(self, default: PipxVenvMetadata) -> PipxVenvMetadata:
-        if self.pipxrc_info.venv_metadata is not None:
-            return self.pipxrc_info.venv_metadata
-        else:
-            return default
+        return self._val_or_default(self.pipxrc_info.venv_metadata, default)
 
     def get_injected_packages(self, default: List) -> List:
         if self.pipxrc_info.injected_packages is not None:
