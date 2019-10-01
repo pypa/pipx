@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import List, Dict, Union, NamedTuple
+from typing import List, Dict, NamedTuple, Any, Optional
 
 from pipx.Venv import PipxVenvMetadata
 
@@ -28,33 +28,45 @@ class InjPkg(NamedTuple):
 
 
 class InstallOpts(NamedTuple):
-    pip_args: Union[List[str], None]
-    venv_args: Union[List[str], None]
-    include_dependencies: Union[bool, None]
+    pip_args: Optional[List[str]]
+    venv_args: Optional[List[str]]
+    include_dependencies: Optional[bool]
 
 
 class PipxrcInfo:
     def __init__(self):
-        self.package_or_url: Union[str, None] = None
+        self.package_or_url: Optional[str] = None
         self.install: InstallOpts = InstallOpts(
             pip_args=None, venv_args=None, include_dependencies=None
         )
-        self.venv_metadata: Union[PipxVenvMetadata, None] = None
-        self.injected_packages: Union[Dict[str, InjPkg], None] = None
+        self.venv_metadata: Optional[PipxVenvMetadata] = None
+        self.injected_packages: Optional[Dict[str, InjPkg]] = None
         self._pipxrc_version: str = "0.1"
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
+        venv_metadata: Optional[Dict[str, Any]]
+        injected_packages: Optional[Dict[str, Dict[str, Any]]]
+
+        if self.venv_metadata is not None:
+            venv_metadata = self.venv_metadata._asdict()
+        else:
+            venv_metadata = None
+        if self.injected_packages is not None:
+            injected_packages = {
+                k: v._asdict() for (k, v) in self.injected_packages.items()
+            }
+        else:
+            injected_packages = None
+
         return {
             "package_or_url": self.package_or_url,
             "install": self.install._asdict(),
-            "venv_metadata": self.venv_metadata._asdict(),
-            "injected_packages": {
-                k: v._asdict() for (k, v) in self.injected_packages.items()
-            },
+            "venv_metadata": venv_metadata,
+            "injected_packages": injected_packages,
             "pipxrc_version": self._pipxrc_version,
         }
 
-    def from_dict(self, pipxrc_info_dict):
+    def from_dict(self, pipxrc_info_dict) -> None:
         self.package_or_url = pipxrc_info_dict["package_or_url"]
         self.install = InstallOpts(**pipxrc_info_dict["install"])
         self.venv_metadata = PipxVenvMetadata(**pipxrc_info_dict["venv_metadata"])
@@ -70,7 +82,7 @@ class Pipxrc:
         if read:
             self.read()
 
-    def reset(self):
+    def reset(self) -> None:
         self.pipxrc_info = PipxrcInfo()
 
     def _val_or_default(self, value, default):
@@ -96,7 +108,7 @@ class Pipxrc:
     def get_venv_metadata(self, default: PipxVenvMetadata) -> PipxVenvMetadata:
         return self._val_or_default(self.pipxrc_info.venv_metadata, default)
 
-    def get_injected_packages(self, default: List) -> List:
+    def get_injected_packages(self, default: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if self.pipxrc_info.injected_packages is not None:
             injected_packages = []
             for package in self.pipxrc_info.injected_packages:
@@ -109,17 +121,17 @@ class Pipxrc:
         else:
             return default
 
-    def set_package_or_url(self, package_or_url: str):
+    def set_package_or_url(self, package_or_url: str) -> None:
         # TODO 20190923: if package_or_url is a local path, we need to make it
         #   an absolute path
         self.pipxrc_info.package_or_url = package_or_url
 
-    def set_venv_metadata(self, venv_metadata: PipxVenvMetadata):
+    def set_venv_metadata(self, venv_metadata: PipxVenvMetadata) -> None:
         self.pipxrc_info.venv_metadata = venv_metadata
 
     def set_install_options(
-        self, pip_args: List, venv_args: List, include_dependencies: bool
-    ):
+        self, pip_args: List[str], venv_args: List[str], include_dependencies: bool
+    ) -> None:
         self.pipxrc_info.install = InstallOpts(
             pip_args=pip_args,
             venv_args=venv_args,
@@ -129,12 +141,12 @@ class Pipxrc:
     def add_injected_package(
         self,
         package: str,
-        pip_args: List,
+        pip_args: List[str],
         verbose: bool,
         include_apps: bool,
         include_dependencies: bool,
         force: bool,
-    ):
+    ) -> None:
         if self.pipxrc_info.injected_packages is None:
             self.pipxrc_info.injected_packages = {}
 
@@ -146,7 +158,7 @@ class Pipxrc:
             force=force,
         )
 
-    def write(self):
+    def write(self) -> None:
         # If writing out, make sure injected_packages is not None, so next
         #   successful read of pipxrc does not use default in
         #   get_injected_packages()
@@ -163,7 +175,7 @@ class Pipxrc:
                 cls=JsonEncoderPipx,
             )
 
-    def read(self):
+    def read(self) -> None:
         try:
             with open(self.venv_dir / "pipxrc", "r") as pipxrc_fh:
                 self.pipxrc_info.from_dict(
