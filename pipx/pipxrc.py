@@ -108,7 +108,9 @@ class Pipxrc:
     def get_venv_metadata(self, default: PipxVenvMetadata) -> PipxVenvMetadata:
         return self._val_or_default(self.pipxrc_info.venv_metadata, default)
 
-    def get_injected_packages(self, default: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def get_injected_packages(
+        self, default: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         if self.pipxrc_info.injected_packages is not None:
             injected_packages = []
             for package in self.pipxrc_info.injected_packages:
