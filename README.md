@@ -42,7 +42,7 @@ Upgrade pipx with `python3 -m pip install -U pipx`.
 
 Shell completions are available by following the instructions printed with this command:
 ```
-pipx completions
+pipx completion
 ```
 
 For more details, see the [installation instructions](https://pipxproject.github.io/pipx/installation/).
