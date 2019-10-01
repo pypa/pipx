@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any, Union, NamedTuple
 
 from pipx.Venv import PipxVenvMetadata
 
@@ -16,12 +16,15 @@ class JsonEncoderPipx(json.JSONEncoder):
 def _json_decoder_object_hook(json_dict):
     if json_dict.get("__type__", None) == "Path" and "__Path__" in json_dict:
         return Path(json_dict["__Path__"])
-    if (
-        json_dict.get("__type__", None) == "PipxVenvMetadata"
-        and "__PipxVenvMetadata__" in json_dict
-    ):
-        return PipxVenvMetadata(**json_dict["__PipxVenvMetadata__"])
     return json_dict
+
+
+class InjPkg(NamedTuple):
+    pip_args: List[str]
+    verbose: bool
+    include_apps: bool
+    include_dependencies: bool
+    force: bool
 
 
 class PipxrcInfo:
@@ -33,26 +36,27 @@ class PipxrcInfo:
             "include_dependencies": None,
         }
         self.venv_metadata: Union[PipxVenvMetadata, None] = None
-        self.injected_packages: Union[Dict[str, Any], None] = None
+        self.injected_packages: Union[Dict[str, InjPkg], None] = None
         self._pipxrc_version: str = "0.1"
 
     def to_dict(self):
         return {
             "package_or_url": self.package_or_url,
             "install": self.install,
-            "venv_metadata": {
-                "__type__": "PipxVenvMetadata",
-                "__PipxVenvMetadata__": dict(self.venv_metadata._asdict()),
+            "venv_metadata": self.venv_metadata._asdict(),
+            "injected_packages": {
+                k: v._asdict() for (k, v) in self.injected_packages.items()
             },
-            "injected_packages": self.injected_packages,
             "pipxrc_version": self._pipxrc_version,
         }
 
     def from_dict(self, pipxrc_info_dict):
         self.package_or_url = pipxrc_info_dict["package_or_url"]
         self.install = pipxrc_info_dict["install"]
-        self.venv_metadata = pipxrc_info_dict["venv_metadata"]
-        self.injected_packages = pipxrc_info_dict["injected_packages"]
+        self.venv_metadata = PipxVenvMetadata(**pipxrc_info_dict["venv_metadata"])
+        self.injected_packages = {
+            k: InjPkg(**v) for (k, v) in pipxrc_info_dict["injected_packages"].items()
+        }
 
 
 class Pipxrc:
@@ -100,7 +104,9 @@ class Pipxrc:
             injected_packages = []
             for package in self.pipxrc_info.injected_packages:
                 package_info = {"package": package}
-                package_info.update(self.pipxrc_info.injected_packages[package])
+                package_info.update(
+                    self.pipxrc_info.injected_packages[package]._asdict()
+                )
                 injected_packages.append(package_info)
             return injected_packages
         else:
@@ -133,13 +139,13 @@ class Pipxrc:
         if self.pipxrc_info.injected_packages is None:
             self.pipxrc_info.injected_packages = {}
 
-        self.pipxrc_info.injected_packages[package] = {
-            "pip_args": pip_args,
-            "verbose": verbose,
-            "include_apps": include_apps,
-            "include_dependencies": include_dependencies,
-            "force": force,
-        }
+        self.pipxrc_info.injected_packages[package] = InjPkg(
+            pip_args=pip_args,
+            verbose=verbose,
+            include_apps=include_apps,
+            include_dependencies=include_dependencies,
+            force=force,
+        )
 
     def write(self):
         # If writing out, make sure injected_packages is not None, so next
