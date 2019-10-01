@@ -1,7 +1,6 @@
-import copy
 import json
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 
 from pipx.Venv import PipxVenvMetadata
 
@@ -28,7 +27,7 @@ def _json_decoder_object_hook(json_dict):
 class PipxrcInfo:
     def __init__(self):
         self.package_or_url: Union[str, None] = None
-        self.install: Dict[str, Union[List[str], bool, None]] = {
+        self.install: Dict[str, Any] = {
             "pip_args": None,
             "venv_args": None,
             "include_dependencies": None,
@@ -72,13 +71,13 @@ class Pipxrc:
         else:
             return default
 
-    def get_install_pip_args(self, default: List) -> List:
+    def get_install_pip_args(self, default: List[str]) -> List[str]:
         if self.pipxrc_info.install["pip_args"] is not None:
             return self.pipxrc_info.install["pip_args"]
         else:
             return default
 
-    def get_install_venv_args(self, default: List) -> List:
+    def get_install_venv_args(self, default: List[str]) -> List[str]:
         if self.pipxrc_info.install["venv_args"] is not None:
             return self.pipxrc_info.install["venv_args"]
         else:
