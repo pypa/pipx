@@ -37,7 +37,7 @@ class PipxrcInfo:
         self.injected_packages: Union[Dict[str, Any], None] = None
         self._pipxrc_version: str = "0.1"
 
-    def _serialize(self):
+    def to_dict(self):
         return {
             "package_or_url": self.package_or_url,
             "install": self.install,
@@ -49,7 +49,7 @@ class PipxrcInfo:
             "pipxrc_version": self._pipxrc_version,
         }
 
-    def _unserialize(self, pipxrc_info_dict):
+    def from_dict(self, pipxrc_info_dict):
         self.package_or_url = pipxrc_info_dict["package_or_url"]
         self.install = pipxrc_info_dict["install"]
         self.venv_metadata = pipxrc_info_dict["venv_metadata"]
@@ -152,7 +152,7 @@ class Pipxrc:
         # TODO 20190919: raise exception on failure?
         with open(self.venv_dir / "pipxrc", "w") as pipxrc_fh:
             json.dump(
-                self.pipxrc_info._serialize(),
+                self.pipxrc_info.to_dict(),
                 pipxrc_fh,
                 indent=4,
                 sort_keys=True,
@@ -162,7 +162,7 @@ class Pipxrc:
     def read(self):
         try:
             with open(self.venv_dir / "pipxrc", "r") as pipxrc_fh:
-                self.pipxrc_info._unserialize(
+                self.pipxrc_info.from_dict(
                     json.load(pipxrc_fh, object_hook=_json_decoder_object_hook)
                 )
         except IOError:  # Reset self.pipxrc_info if problem reading
