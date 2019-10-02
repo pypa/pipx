@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import List, Dict, NamedTuple, Any, Optional
+from typing import List, Dict, NamedTuple, Any, Optional, TypeVar
 
 from pipx.Venv import PipxVenvMetadata
 
@@ -17,6 +17,10 @@ def _json_decoder_object_hook(json_dict):
     if json_dict.get("__type__", None) == "Path" and "__Path__" in json_dict:
         return Path(json_dict["__Path__"])
     return json_dict
+
+
+# Used for consistent types of multiple kinds
+Multi = TypeVar("Multi")
 
 
 class InjPkg(NamedTuple):
@@ -85,7 +89,7 @@ class Pipxrc:
     def reset(self) -> None:
         self.pipxrc_info = PipxrcInfo()
 
-    def _val_or_default(self, value, default):
+    def _val_or_default(self, value: Optional[Multi], default: Multi) -> Multi:
         if value is not None:
             return value
         else:
