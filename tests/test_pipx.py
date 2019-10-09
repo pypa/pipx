@@ -196,7 +196,8 @@ class TestPipxCommands(unittest.TestCase):
             stdout=subprocess.PIPE,
             check=True,
         )
-        self.assertTrue("black" not in ret.stdout.decode())
+        self.assertTrue("black" in ret.stdout.decode())
+        self.assertTrue("apps" not in ret.stdout.decode())
         self.assertNotEqual(
             subprocess.run(
                 [self.pipx_bin, "inject", "pycowsay", "black", "--include-deps"]

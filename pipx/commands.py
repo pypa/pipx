@@ -432,6 +432,7 @@ def inject(
             venv, package, LOCAL_BIN_DIR, venv_dir, include_dependencies, force=force
         )
 
+    print(f"  injected package {bold(package)} into venv {bold(venv_dir.name)}")
     print(f"done! {stars}", file=sys.stderr)
 
 
