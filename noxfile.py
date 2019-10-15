@@ -1,3 +1,6 @@
+import os
+import sys
+
 import nox  # type: ignore
 from pathlib import Path
 
@@ -11,8 +14,16 @@ from pathlib import Path
 # https://github.com/theacodes/nox/issues/199
 
 
-python = ["3.6", "3.7"]
-nox.options.sessions = ["unittests", "lint", "docs"]
+travis_python_version = os.environ.get("TRAVIS_PYTHON_VERSION")
+if travis_python_version:
+    python = [travis_python_version]
+else:
+    python = ["3.6", "3.7"]
+
+nox.options.sessions = ["unittests", "lint"]
+# docs fail on Windows, even if `chcp.com 65001` is used
+if sys.platform != "win32":
+    nox.options.sessions.append("docs")
 
 
 doc_dependencies = [".", "jinja2", "mkdocs", "mkdocs-material"]
