@@ -5,6 +5,9 @@ from typing import List, Dict, NamedTuple, Any, Optional, TypeVar
 from pipx.Venv import PipxVenvMetadata
 
 
+PIPX_INFO_FILENAME = "pipxrc.json"
+
+
 class JsonEncoderPipx(json.JSONEncoder):
     def default(self, obj):
         # only handles what json.JSONEncoder doesn't understand by default
@@ -172,7 +175,7 @@ class Pipxrc:
             self.pipxrc_info.injected_packages = {}
 
         # TODO 20190919: raise exception on failure?
-        with open(self.venv_dir / "pipxrc", "w") as pipxrc_fh:
+        with open(self.venv_dir / PIPX_INFO_FILENAME, "w") as pipxrc_fh:
             json.dump(
                 self.pipxrc_info.to_dict(),
                 pipxrc_fh,
@@ -183,7 +186,7 @@ class Pipxrc:
 
     def read(self) -> None:
         try:
-            with open(self.venv_dir / "pipxrc", "r") as pipxrc_fh:
+            with open(self.venv_dir / PIPX_INFO_FILENAME, "r") as pipxrc_fh:
                 self.pipxrc_info.from_dict(
                     json.load(pipxrc_fh, object_hook=_json_decoder_object_hook)
                 )
