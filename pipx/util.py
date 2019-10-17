@@ -1,10 +1,11 @@
-import os
-from pathlib import Path
 import logging
+import os
 import shutil
 import subprocess
 import sys
-from typing import List, Tuple, Sequence, Union
+from pathlib import Path
+from typing import List, Sequence, Tuple, Union
+
 from pipx.constants import WINDOWS
 
 

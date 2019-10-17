@@ -18,13 +18,9 @@ from typing import List
 
 import userpath  # type: ignore
 
+from pipx import constants
 from pipx.colors import bold, red
-from pipx.constants import (
-    LOCAL_BIN_DIR,
-    PIPX_PACKAGE_NAME,
-    PIPX_VENV_CACHEDIR,
-    TEMP_VENV_EXPIRATION_THRESHOLD_DAYS,
-)
+from pipx.constants import PIPX_PACKAGE_NAME, TEMP_VENV_EXPIRATION_THRESHOLD_DAYS
 from pipx.emojies import hazard, sleep, stars
 from pipx.util import (
     WINDOWS,
@@ -54,7 +50,7 @@ def run(
 
     if urllib.parse.urlparse(app).scheme:
         if not app.endswith(".py"):
-            exit(
+            raise PipxError(
                 "pipx will only execute apps from the internet directly if "
                 "they end with '.py'. To run from an SVN, try pipx --spec URL BINARY"
             )
@@ -62,10 +58,10 @@ def run(
 
         content = _http_get_request(app)
         try:
-            exit(subprocess.run([str(python), "-c", content]).returncode)
+            return subprocess.run([str(python), "-c", content]).returncode
         except KeyboardInterrupt:
-            pass
-        exit(0)
+            return 1
+
     elif which(app):
         logging.warning(
             f"{hazard}  {app} is already on your PATH and installed at "
@@ -155,7 +151,7 @@ def _get_temporary_venv_path(
     m.update("".join(pip_args).encode())
     m.update("".join(venv_args).encode())
     venv_folder_name = m.hexdigest()[0:15]  # 15 chosen arbitrarily
-    return Path(PIPX_VENV_CACHEDIR) / venv_folder_name
+    return Path(constants.PIPX_VENV_CACHEDIR) / venv_folder_name
 
 
 def _is_temporary_venv_expired(venv_dir: Path):
@@ -175,7 +171,7 @@ def _prepare_venv_cache(venv: Venv, bin_path: Path, use_cache: bool):
 
 
 def _remove_all_expired_venvs():
-    for venv_dir in Path(PIPX_VENV_CACHEDIR).iterdir():
+    for venv_dir in Path(constants.PIPX_VENV_CACHEDIR).iterdir():
         if _is_temporary_venv_expired(venv_dir):
             logging.info(f"Removing expired venv {str(venv_dir)}")
             rmdir(venv_dir)
@@ -220,11 +216,15 @@ def upgrade(
     new_version = venv.get_venv_metadata_for_package(package).package_version
 
     metadata = venv.get_venv_metadata_for_package(package)
-    _expose_apps_globally(LOCAL_BIN_DIR, metadata.app_paths, package, force=force)
+    _expose_apps_globally(
+        constants.LOCAL_BIN_DIR, metadata.app_paths, package, force=force
+    )
 
     if include_dependencies:
         for _, app_paths in metadata.app_paths_of_dependencies.items():
-            _expose_apps_globally(LOCAL_BIN_DIR, app_paths, package, force=force)
+            _expose_apps_globally(
+                constants.LOCAL_BIN_DIR, app_paths, package, force=force
+            )
 
     if old_version == new_version:
         if upgrading_all:
@@ -362,7 +362,7 @@ def _run_post_install_actions(
             )
         else:
             raise PipxError(
-                f"No apps associated with package {package}."
+                f"No apps associated with package {package}. "
                 "If you are attempting to install a library, pipx should not be used. "
                 "Consider using pip or a similar tool instead."
             )
@@ -429,7 +429,12 @@ def inject(
 
     if include_apps:
         _run_post_install_actions(
-            venv, package, LOCAL_BIN_DIR, venv_dir, include_dependencies, force=force
+            venv,
+            package,
+            constants.LOCAL_BIN_DIR,
+            venv_dir,
+            include_dependencies,
+            force=force,
         )
 
     print(f"  injected package {bold(package)} into venv {bold(venv_dir.name)}")
@@ -590,7 +595,7 @@ def _get_package_summary(
 
     apps = metadata.apps + metadata.apps_of_dependencies
     exposed_app_paths = _get_exposed_app_paths_for_package(
-        venv.bin_path, apps, LOCAL_BIN_DIR
+        venv.bin_path, apps, constants.LOCAL_BIN_DIR
     )
     exposed_binary_names = sorted(p.name for p in exposed_app_paths)
     unavailable_binary_names = sorted(set(metadata.apps) - set(exposed_binary_names))
@@ -640,7 +645,7 @@ def list_packages(venv_container: VenvContainer):
         return
 
     print(f"venvs are in {bold(str(venv_container))}")
-    print(f"apps are exposed on your $PATH at {bold(str(LOCAL_BIN_DIR))}")
+    print(f"apps are exposed on your $PATH at {bold(str(constants.LOCAL_BIN_DIR))}")
 
     venv_container.verify_shared_libs()
 
