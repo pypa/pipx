@@ -4,7 +4,7 @@ from typing import List
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_LIBS, WINDOWS
-from pipx.util import get_venv_paths, get_site_packages, run
+from pipx.util import get_site_packages, get_venv_paths, run
 
 
 class _SharedLibs:

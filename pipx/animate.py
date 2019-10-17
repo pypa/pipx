@@ -1,7 +1,8 @@
-from contextlib import contextmanager
 import sys
-from typing import List, Generator
-from threading import Thread, Event
+from contextlib import contextmanager
+from threading import Event, Thread
+from typing import Generator, List
+
 from pipx.constants import emoji_support
 
 stderr_is_tty = sys.stderr.isatty()

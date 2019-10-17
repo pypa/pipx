@@ -18,12 +18,13 @@ travis_python_version = os.environ.get("TRAVIS_PYTHON_VERSION")
 if travis_python_version:
     python = [travis_python_version]
 else:
-    python = ["3.6", "3.7"]
+    python = ["3.6", "3.7", "3.8"]
 
-nox.options.sessions = ["unittests", "lint"]
-# docs fail on Windows, even if `chcp.com 65001` is used
-if sys.platform != "win32":
-    nox.options.sessions.append("docs")
+if sys.platform == "win32":
+    # docs fail on Windows, even if `chcp.com 65001` is used
+    nox.options.sessions = ["tests", "lint"]
+else:
+    nox.options.sessions = ["tests", "lint", "docs"]
 
 
 doc_dependencies = [".", "jinja2", "mkdocs", "mkdocs-material"]
@@ -31,12 +32,24 @@ lint_dependencies = ["black", "flake8", "mypy", "check-manifest"]
 
 
 @nox.session(python=python)
-def unittests(session):
-    session.install(".")
-    session.run("python", "-m", "unittest", "discover")
+def tests(session):
+    session.install("-e", ".", "pytest", "pytest-cov")
+    tests = session.posargs or ["tests"]
+    session.run(
+        "pytest", "--cov=pipx", "--cov-config", ".coveragerc", "--cov-report=", *tests
+    )
+    session.notify("cover")
 
 
-@nox.session(python=python)
+@nox.session
+def cover(session):
+    """Coverage analysis"""
+    session.install("coverage")
+    session.run("coverage", "report", "--show-missing", "--fail-under=70")
+    session.run("coverage", "erase")
+
+
+@nox.session(python="3.7")
 def lint(session):
     session.install(*lint_dependencies)
     files = ["pipx", "tests"] + [str(p) for p in Path(".").glob("*.py")]
@@ -47,7 +60,7 @@ def lint(session):
     session.run("python", "setup.py", "check", "--metadata", "--strict")
 
 
-@nox.session(python=python)
+@nox.session(python="3.7")
 def docs(session):
     session.install(*doc_dependencies)
     session.run("python", "generate_docs.py")
