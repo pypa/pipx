@@ -1,5 +1,4 @@
 language: python
-sudo: required
 os: linux
 cache:
   pip: true
