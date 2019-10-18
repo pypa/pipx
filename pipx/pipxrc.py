@@ -26,7 +26,7 @@ def _json_decoder_object_hook(json_dict):
 Multi = TypeVar("Multi")
 
 
-class InjPkg(NamedTuple):
+class InjectedPackage(NamedTuple):
     pip_args: List[str]
     verbose: bool
     include_apps: bool
@@ -34,7 +34,7 @@ class InjPkg(NamedTuple):
     force: bool
 
 
-class InstallOpts(NamedTuple):
+class InstallOptions(NamedTuple):
     pip_args: Optional[List[str]]
     venv_args: Optional[List[str]]
     include_dependencies: Optional[bool]
@@ -43,11 +43,11 @@ class InstallOpts(NamedTuple):
 class PipxrcInfo:
     def __init__(self):
         self.package_or_url: Optional[str] = None
-        self.install: InstallOpts = InstallOpts(
+        self.install: InstallOptions = InstallOptions(
             pip_args=None, venv_args=None, include_dependencies=None
         )
         self.venv_metadata: Optional[PipxVenvMetadata] = None
-        self.injected_packages: Optional[Dict[str, InjPkg]] = None
+        self.injected_packages: Optional[Dict[str, InjectedPackage]] = None
         self._pipxrc_version: str = "0.1"
 
     def to_dict(self) -> Dict[str, Any]:
@@ -75,10 +75,11 @@ class PipxrcInfo:
 
     def from_dict(self, pipxrc_info_dict) -> None:
         self.package_or_url = pipxrc_info_dict["package_or_url"]
-        self.install = InstallOpts(**pipxrc_info_dict["install"])
+        self.install = InstallOptions(**pipxrc_info_dict["install"])
         self.venv_metadata = PipxVenvMetadata(**pipxrc_info_dict["venv_metadata"])
         self.injected_packages = {
-            k: InjPkg(**v) for (k, v) in pipxrc_info_dict["injected_packages"].items()
+            k: InjectedPackage(**v)
+            for (k, v) in pipxrc_info_dict["injected_packages"].items()
         }
 
 
@@ -141,7 +142,7 @@ class Pipxrc:
     def set_install_options(
         self, pip_args: List[str], venv_args: List[str], include_dependencies: bool
     ) -> None:
-        self.pipxrc_info.install = InstallOpts(
+        self.pipxrc_info.install = InstallOptions(
             pip_args=pip_args,
             venv_args=venv_args,
             include_dependencies=include_dependencies,
@@ -159,7 +160,7 @@ class Pipxrc:
         if self.pipxrc_info.injected_packages is None:
             self.pipxrc_info.injected_packages = {}
 
-        self.pipxrc_info.injected_packages[package] = InjPkg(
+        self.pipxrc_info.injected_packages[package] = InjectedPackage(
             pip_args=pip_args,
             verbose=verbose,
             include_apps=include_apps,
