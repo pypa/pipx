@@ -206,10 +206,7 @@ def run_pipx_command(args):  # noqa: C901
         return commands.uninstall_all(venv_container, constants.LOCAL_BIN_DIR, verbose)
     elif args.command == "upgrade-all":
         return commands.upgrade_all(
-            venv_container,
-            verbose,
-            skip=args.skip,
-            force=args.force,
+            venv_container, verbose, skip=args.skip, force=args.force
         )
     elif args.command == "reinstall-all":
         return commands.reinstall_all(
