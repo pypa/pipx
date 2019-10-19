@@ -104,7 +104,7 @@ optional arguments:
                         PIPX_BIN_DIR
   --python PYTHON       The Python executable used to create the Virtual
                         Environment and run the associated app/apps. Must be
-                        v3.5+.
+                        v3.3+.
   --system-site-packages
                         Give the virtual environment access to the system
                         site-packages dir.
@@ -152,7 +152,7 @@ optional arguments:
                         git+https://github.com/user/repo.git@branch`
   --verbose
   --python PYTHON       The Python version to run package's CLI app with. Must
-                        be v3.5+.
+                        be v3.3+.
   --system-site-packages
                         Give the virtual environment access to the system
                         site-packages dir.
