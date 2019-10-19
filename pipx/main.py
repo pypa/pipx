@@ -293,7 +293,7 @@ def _add_install(subparsers):
         default=constants.DEFAULT_PYTHON,
         help=(
             "The Python executable used to create the Virtual Environment and run the "
-            "associated app/apps. Must be v3.3+."
+            "associated app/apps. Must be v3.5+."
         ),
     )
     add_pip_venv_args(p)
@@ -469,7 +469,7 @@ def _add_run(subparsers):
     p.add_argument(
         "--python",
         default=constants.DEFAULT_PYTHON,
-        help="The Python version to run package's CLI app with. Must be v3.3+.",
+        help="The Python version to run package's CLI app with. Must be v3.5+.",
     )
     add_pip_venv_args(p)
 
