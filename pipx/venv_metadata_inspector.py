@@ -96,7 +96,9 @@ def main():
         "app_paths": app_paths,
         "app_paths_of_dependencies": app_paths_of_dependencies,
         "package_version": get_package_version(package),
-        "python_version": f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+        "python_version": "Python {}.{}.{}".format(
+            sys.version_info.major, sys.version_info.minor, sys.version_info.micro
+        ),
     }
 
     print(json.dumps(output))
