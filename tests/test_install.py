@@ -3,6 +3,8 @@
 import os
 import sys
 from unittest import mock
+from shutil import which
+
 
 import pytest  # type: ignore
 
@@ -10,6 +12,9 @@ from helpers import assert_not_in_virtualenv, run_pipx_cli
 from pipx import constants
 
 assert_not_in_virtualenv()
+
+
+PYTHON3_5 = which("python3.5")
 
 
 def test_help_text(monkeypatch, capsys):
@@ -122,3 +127,10 @@ def test_existing_symlink_points_to_nothing(pipx_temp_env, caplog, capsys):
     # pipx should realize the symlink points to nothing and replace it,
     # so no warning should be present
     assert "symlink missing or pointing to unexpected location" not in captured.out
+
+
+def test_install_python3_5(pipx_temp_env):
+    if PYTHON3_5:
+        assert not run_pipx_cli(["install", "cowsay", "--python", PYTHON3_5])
+    else:
+        pytest.skip("python3.5 not on PATH")
