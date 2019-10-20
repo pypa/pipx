@@ -2,10 +2,13 @@ import sys
 from contextlib import contextmanager
 from threading import Event, Thread
 from typing import Generator, List
+import shutil
 
 from pipx.constants import emoji_support
 
 stderr_is_tty = sys.stderr.isatty()
+
+(TERM_COLS, TERM_ROWS) = shutil.get_terminal_size(fallback=(9999, 24))
 
 
 @contextmanager
@@ -68,7 +71,10 @@ def print_animation(
 
             clear_line()
             sys.stderr.write("\r")
-            sys.stderr.write(cur_line)
+            if len(cur_line) > TERM_COLS:
+                sys.stderr.write(f"{cur_line:.{TERM_COLS-4}}...")
+            else:
+                sys.stderr.write(cur_line)
             if event.wait(period):
                 break
 
