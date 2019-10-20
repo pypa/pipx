@@ -8,7 +8,7 @@ from pipx.constants import emoji_support
 
 stderr_is_tty = sys.stderr.isatty()
 
-(TERM_COLS, TERM_ROWS) = shutil.get_terminal_size(fallback=(9999, 24))
+(TERM_COLS, _) = shutil.get_terminal_size(fallback=(9999, 24))
 
 
 @contextmanager
