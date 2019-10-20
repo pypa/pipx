@@ -206,25 +206,13 @@ optional arguments:
 
 ```
 pipx upgrade-all --help
-usage: pipx upgrade-all [-h] [--include-deps] [--system-site-packages]
-                        [--index-url INDEX_URL] [--editable]
-                        [--pip-args PIP_ARGS] [--skip SKIP [SKIP ...]]
-                        [--force] [--verbose]
+usage: pipx upgrade-all [-h] [--skip SKIP [SKIP ...]] [--force] [--verbose]
 
 Upgrades all packages within their virtual environments by running 'pip
 install --upgrade PACKAGE'
 
 optional arguments:
   -h, --help            show this help message and exit
-  --include-deps        Include apps of dependent packages
-  --system-site-packages
-                        Give the virtual environment access to the system
-                        site-packages dir.
-  --index-url INDEX_URL, -i INDEX_URL
-                        Base URL of Python Package Index
-  --editable, -e        Install a project in editable mode
-  --pip-args PIP_ARGS   Arbitrary pip arguments to pass directly to pip
-                        install/upgrade commands
   --skip SKIP [SKIP ...]
                         skip these packages
   --force, -f           Modify existing virtual environment and files in
@@ -307,35 +295,20 @@ optional arguments:
 
 ```
 pipx reinstall-all --help
-usage: pipx reinstall-all [-h] [--include-deps] [--system-site-packages]
-                          [--index-url INDEX_URL] [--editable]
-                          [--pip-args PIP_ARGS] [--skip SKIP [SKIP ...]]
-                          [--verbose]
-                          python
+usage: pipx reinstall-all [-h] [--skip SKIP [SKIP ...]] [--verbose] python
 
 Reinstalls all packages using a different version of Python.
 
-Packages are uninstalled, then installed with pipx install PACKAGE.
+Packages are uninstalled, then installed with pipx install PACKAGE
+with the same options used in the original install of PACKAGE.
 This is useful if you upgraded to a new version of Python and want
 all your packages to use the latest as well.
-
-If you originally installed a package from a source other than PyPI,
-this command may behave in unexpected ways since it will reinstall from PyPI.
 
 positional arguments:
   python
 
 optional arguments:
   -h, --help            show this help message and exit
-  --include-deps        Include apps of dependent packages
-  --system-site-packages
-                        Give the virtual environment access to the system
-                        site-packages dir.
-  --index-url INDEX_URL, -i INDEX_URL
-                        Base URL of Python Package Index
-  --editable, -e        Install a project in editable mode
-  --pip-args PIP_ARGS   Arbitrary pip arguments to pass directly to pip
-                        install/upgrade commands
   --skip SKIP [SKIP ...]
                         skip these packages
   --verbose
