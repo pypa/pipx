@@ -8,8 +8,6 @@ from pipx.constants import emoji_support
 
 stderr_is_tty = sys.stderr.isatty()
 
-(TERM_COLS, _) = shutil.get_terminal_size(fallback=(9999, 24))
-
 
 @contextmanager
 def animate(message: str, do_animation: bool) -> Generator[None, None, None]:
@@ -62,18 +60,19 @@ def print_animation(
     period: float,
     animate_at_beginning_of_line: bool,
 ):
+    (term_cols, _) = shutil.get_terminal_size(fallback=(9999, 24))
     while not event.wait(0):
         for s in symbols:
             if animate_at_beginning_of_line:
                 if len(message) <= TERM_COLS - 3:
                     cur_line = f"{s} {message}"
                 else:
-                    cur_line = f"{s} {message:.{TERM_COLS-6}}..."
+                    cur_line = f"{s} {message:.{term_cols-6}}..."
             else:
                 if len(message) <= TERM_COLS - 4:
                     cur_line = f"{message}{s}"
                 else:
-                    cur_line = f"{message:.{TERM_COLS-4}}{s}"
+                    cur_line = f"{message:.{term_cols-4}}{s}"
 
             clear_line()
             sys.stderr.write("\r")
