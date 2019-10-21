@@ -65,12 +65,12 @@ def print_animation(
     while not event.wait(0):
         for s in symbols:
             if animate_at_beginning_of_line:
-                if len(message) < TERM_COLS - 2:
+                if len(message) <= TERM_COLS - 3:
                     cur_line = f"{s} {message}"
                 else:
                     cur_line = f"{s} {message:.{TERM_COLS-6}}..."
             else:
-                if len(message) < TERM_COLS - 3:
+                if len(message) <= TERM_COLS - 4:
                     cur_line = f"{message}{s}"
                 else:
                     cur_line = f"{message:.{TERM_COLS-4}}{s}"
