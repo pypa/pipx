@@ -1,5 +1,7 @@
 import json
+import logging
 from pathlib import Path
+import textwrap
 from typing import List, Dict, NamedTuple, Any, Optional, TypeVar
 
 from pipx.Venv import PipxVenvMetadata
@@ -175,15 +177,25 @@ class Pipxrc:
         if self.pipxrc_info.injected_packages is None:
             self.pipxrc_info.injected_packages = {}
 
-        # TODO 20190919: raise exception on failure?
-        with open(self.venv_dir / PIPX_INFO_FILENAME, "w") as pipxrc_fh:
-            json.dump(
-                self.pipxrc_info.to_dict(),
-                pipxrc_fh,
-                indent=4,
-                sort_keys=True,
-                cls=JsonEncoderHandlesPath,
+        try:
+            with open(self.venv_dir / PIPX_INFO_FILENAME, "w") as pipxrc_fh:
+                json.dump(
+                    self.pipxrc_info.to_dict(),
+                    pipxrc_fh,
+                    indent=4,
+                    sort_keys=True,
+                    cls=JsonEncoderHandlesPath,
+                )
+        except IOError:
+            logging.warning(
+                textwrap.fill(
+                    f"Unable to write {PIPX_INFO_FILENAME} to {self.venv_dir}. "
+                    f"This may cause future pipx operations involving "
+                    f"{self.venv_dir.name} to fail or behave incorrectly.",
+                    width=79,
+                )
             )
+            pass
 
     def read(self) -> None:
         try:
@@ -192,5 +204,13 @@ class Pipxrc:
                     json.load(pipxrc_fh, object_hook=_json_decoder_object_hook)
                 )
         except IOError:  # Reset self.pipxrc_info if problem reading
+            logging.warning(
+                textwrap.fill(
+                    f"Unable to read {PIPX_INFO_FILENAME} in {self.venv_dir}. "
+                    f"This may cause this or future pipx operations involving "
+                    f"{self.venv_dir.name} to fail or behave incorrectly.",
+                    width=79,
+                )
+            )
             self.reset()
             return
