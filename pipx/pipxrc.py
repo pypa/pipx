@@ -123,19 +123,9 @@ class Pipxrc:
         return self._val_or_default(self.pipxrc_info.venv_metadata, default)
 
     def get_injected_packages(
-        self, default: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
-        if self.pipxrc_info.injected_packages is not None:
-            injected_packages = []
-            for package in self.pipxrc_info.injected_packages:
-                package_info = {"package": package}
-                package_info.update(
-                    self.pipxrc_info.injected_packages[package]._asdict()
-                )
-                injected_packages.append(package_info)
-            return injected_packages
-        else:
-            return default
+        self, default: Dict[str, InjectedPackage]
+    ) -> Dict[str, InjectedPackage]:
+        return self._val_or_default(self.pipxrc_info.injected_packages, default)
 
     def set_package_or_url(self, package_or_url: str) -> None:
         # if package_or_url is a local path, it MUST be an absolute path
@@ -217,3 +207,5 @@ class Pipxrc:
             )
             self.reset()
             return
+
+    # TODO 20191020: Move _abs_path_if_local here?

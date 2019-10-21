@@ -588,15 +588,17 @@ def reinstall_all(
             force=True,
             include_dependencies=pipxrc.get_install_include_dependencies(default=False),
         )
-        for injected in pipxrc.get_injected_packages(default=[]):
+        for (injected_package, package_specs) in pipxrc.get_injected_packages(
+            default={}
+        ).items():
             inject(
                 venv_dir,
-                injected["package"],
-                injected["pip_args"],
-                verbose=injected["verbose"],
-                include_apps=injected["include_apps"],
-                include_dependencies=injected["include_dependencies"],
-                force=injected["force"],
+                injected_package,
+                package_specs.pip_args,
+                verbose=package_specs.verbose,
+                include_apps=package_specs.include_apps,
+                include_dependencies=package_specs.include_dependencies,
+                force=package_specs.force,
             )
 
 
