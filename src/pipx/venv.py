@@ -152,7 +152,6 @@ class Venv:
             self._run_pip(cmd)
 
     def get_venv_metadata_for_package(self, package: str) -> PipxVenvMetadata:
-
         data = json.loads(
             get_script_output(
                 self.python_path, VENV_METADATA_INSPECTOR, package, str(self.bin_path)

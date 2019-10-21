@@ -453,10 +453,22 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
 
     venv = Venv(venv_dir, verbose=verbose)
 
-    metadata = venv.get_venv_metadata_for_package(package)
-    app_paths = metadata.app_paths
-    for dep_paths in metadata.app_paths_of_dependencies.values():
-        app_paths += dep_paths
+    if venv.python_path.is_file():
+        # has a valid python interpreter and can get metadata about the package
+        metadata = venv.get_venv_metadata_for_package(package)
+        app_paths = metadata.app_paths
+        for dep_paths in metadata.app_paths_of_dependencies.values():
+            app_paths += dep_paths
+    else:
+        # doesn't have a valid python interpreter. We'll take our best guess on what to uninstall
+        # here.
+        apps_linking_to_venv_bin_dir = [
+            f
+            for f in constants.LOCAL_BIN_DIR.iterdir()
+            if str(f.resolve()).startswith(str(venv.bin_path))
+        ]
+        app_paths = apps_linking_to_venv_bin_dir
+
     for file in local_bin_dir.iterdir():
         if WINDOWS:
             for b in app_paths:
@@ -587,6 +599,9 @@ def _get_package_summary(
     python_path = venv.python_path.resolve()
     if package is None:
         package = path.name
+    if not python_path.is_file():
+        return f"   package {red(bold(package))} has invalid interpreter {str(python_path)}"
+
     metadata = venv.get_venv_metadata_for_package(package)
 
     if metadata.package_version is None:
