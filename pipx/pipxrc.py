@@ -42,6 +42,10 @@ class InstallOptions(NamedTuple):
     include_dependencies: Optional[bool]
 
 
+# PipxrcInfo members start with the value None to indicate the information is
+#   missing. This means either a pipxrc.json file has never been read, or a new
+#   PipxrcInfo object was created and the information was not filled in
+#   properly.
 class PipxrcInfo:
     def __init__(self):
         self.package_or_url: Optional[str] = None
@@ -134,8 +138,7 @@ class Pipxrc:
             return default
 
     def set_package_or_url(self, package_or_url: str) -> None:
-        # TODO 20190923: if package_or_url is a local path, we need to make it
-        #   an absolute path
+        # if package_or_url is a local path, it MUST be an absolute path
         self.pipxrc_info.package_or_url = package_or_url
 
     def set_venv_metadata(self, venv_metadata: PipxVenvMetadata) -> None:
