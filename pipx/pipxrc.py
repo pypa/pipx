@@ -8,7 +8,7 @@ from pipx.Venv import PipxVenvMetadata
 PIPX_INFO_FILENAME = "pipxrc.json"
 
 
-class JsonEncoderPipx(json.JSONEncoder):
+class JsonEncoderHandlesPath(json.JSONEncoder):
     def default(self, obj):
         # only handles what json.JSONEncoder doesn't understand by default
         if isinstance(obj, Path):
@@ -182,7 +182,7 @@ class Pipxrc:
                 pipxrc_fh,
                 indent=4,
                 sort_keys=True,
-                cls=JsonEncoderPipx,
+                cls=JsonEncoderHandlesPath,
             )
 
     def read(self) -> None:
