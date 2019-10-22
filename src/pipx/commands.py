@@ -345,15 +345,13 @@ def install(
 
 
 def _abs_path_if_local(package_or_url: str, venv: Venv, pip_args: List[str]) -> str:
-    # TODO 20191001: if not pip --editable, then pip assumes any one-word word
-    #   spec MUST be a pypi package?
-
     pkg_path = Path(package_or_url)
     if not pkg_path.exists():
         # no existing path, must be pypi package or non-existent
         return package_or_url
 
     # Editable packages are either local or url, non-url must be local.
+    # https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs
     if "--editable" in pip_args and pkg_path.exists():
         return str(pkg_path.resolve())
 
