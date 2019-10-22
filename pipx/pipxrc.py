@@ -207,5 +207,3 @@ class Pipxrc:
             )
             self.reset()
             return
-
-    # TODO 20191020: Move _abs_path_if_local here?
