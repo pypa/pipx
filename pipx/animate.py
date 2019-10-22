@@ -64,15 +64,13 @@ def print_animation(
     while not event.wait(0):
         for s in symbols:
             if animate_at_beginning_of_line:
-                if len(message) <= term_cols - 3:
-                    cur_line = f"{s} {message}"
-                else:
-                    cur_line = f"{s} {message:.{term_cols-6}}..."
+                max_message_len = term_cols - len(f"{s} ... ")
+                cur_line = f"{s} {message:.{max_message_len}}"
+                if len(message) > max_message_len:
+                    cur_line += "..."
             else:
-                if len(message) <= term_cols - 4:
-                    cur_line = f"{message}{s}"
-                else:
-                    cur_line = f"{message:.{term_cols-4}}{s}"
+                max_message_len = term_cols - len("... ")
+                cur_line = f"{message:.{max_message_len}}{s}"
 
             clear_line()
             sys.stderr.write("\r")
