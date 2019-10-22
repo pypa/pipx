@@ -345,7 +345,7 @@ def install(
 
 
 def _abs_path_if_local(package_or_url: str, venv: Venv, pip_args: List[str]) -> str:
-    # TODO 20191001 if not pip --editable, then pip assumes any one-word word
+    # TODO 20191001: if not pip --editable, then pip assumes any one-word word
     #   spec MUST be a pypi package?
 
     pkg_path = Path(package_or_url)
