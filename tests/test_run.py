@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import logging
 import sys
+import subprocess
 from unittest import mock
 
 import pytest  # type: ignore
@@ -42,3 +43,10 @@ def test_run_script_from_internet(pipx_temp_env, capsys):
             "6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py",
         ]
     )
+
+def test_run_ensure_null_pythonpath():
+    assert 'None' in subprocess.run(
+        [sys.executable, "-m", "pipx", "run", "ipython", "-c", "import os; print(os.environ.get('PYTHONPATH'))"],
+        text=True,
+        capture_output=True,
+        env={'PYTHONPATH': 'test'}).stdout
