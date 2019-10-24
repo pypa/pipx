@@ -94,7 +94,7 @@ def get_site_packages(python: Path) -> Path:
 def run(cmd: Sequence[Union[str, Path]], check=True) -> int:
     """Run arbitrary command as subprocess"""
 
-    env = {k:v for k,v in os.environ.items() if k != 'PYTHONPATH'}
+    env = {k:v for k,v in os.environ.items() if k.upper() != 'PYTHONPATH'}
     cmd_str = " ".join(str(c) for c in cmd)
     logging.info(f"running {cmd_str}")
     # windows cannot take Path objects, only strings
