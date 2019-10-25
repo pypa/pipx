@@ -36,7 +36,19 @@ class PackageInfo(NamedTuple):
 class Pipxrc:
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
-        self.reset()
+        self.main_package = PackageInfo(
+            package_or_url=None,
+            pip_args=[],
+            include_dependencies=False,
+            include_apps=True,  # always True for main_package
+        )
+        self.venv_metadata: Optional[PipxVenvMetadata] = None
+        self.venv_args: List[str] = []
+        self.injected_packages: List[PackageInfo] = []
+
+        # Only change this if file format changes
+        self._pipxrc_version: str = "0.1"
+
         if read:
             self.read()
 
@@ -54,8 +66,6 @@ class Pipxrc:
         self.venv_metadata: Optional[PipxVenvMetadata] = None
         self.venv_args: List[str] = []
         self.injected_packages: List[PackageInfo] = []
-        # Only change this if file format changes
-        self._pipxrc_version: str = "0.1"
 
     def to_dict(self) -> Dict[str, Any]:
         venv_metadata: Optional[Dict[str, Any]]
