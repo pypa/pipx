@@ -63,9 +63,9 @@ class Pipxrc:
             include_dependencies=False,
             include_apps=True,  # always True for main_package
         )
-        self.venv_metadata: Optional[PipxVenvMetadata] = None
-        self.venv_args: List[str] = []
-        self.injected_packages: List[PackageInfo] = []
+        self.venv_metadata = None
+        self.venv_args = []
+        self.injected_packages = []
 
     def to_dict(self) -> Dict[str, Any]:
         venv_metadata: Optional[Dict[str, Any]]
