@@ -12,6 +12,8 @@ stderr_is_tty = sys.stderr.isatty()
 HIDE_CURSOR = "\033[?25l"
 SHOW_CURSOR = "\033[?25h"
 CLEAR_LINE = "\033[K"
+EMOJI_ANIMATION_FRAMES = ["⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"]
+NONEMOJI_ANIMATION_FRAMES = ["", ".", "..", "..."]
 
 
 @contextmanager
@@ -26,11 +28,11 @@ def animate(message: str, do_animation: bool) -> Generator[None, None, None]:
 
     if emoji_support:
         animate_at_beginning_of_line = True
-        symbols = ["⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"]
+        symbols = EMOJI_ANIMATION_FRAMES
         period = 0.1
     else:
         animate_at_beginning_of_line = False
-        symbols = ["", ".", "..", "..."]
+        symbols = NONEMOJI_ANIMATION_FRAMES
         period = 1
 
     thread_kwargs = {

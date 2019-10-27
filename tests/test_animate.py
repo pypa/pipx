@@ -2,7 +2,12 @@
 import time
 
 import pipx.animate
-from pipx.animate import HIDE_CURSOR, CLEAR_LINE
+from pipx.animate import (
+    HIDE_CURSOR,
+    CLEAR_LINE,
+    EMOJI_ANIMATION_FRAMES,
+    NONEMOJI_ANIMATION_FRAMES,
+)
 
 
 def check_animate_output(
@@ -45,8 +50,7 @@ def test_line_lengths_emoji(capsys, monkeypatch):
         monkeypatch.setenv("COLUMNS", str(columns))
 
         frame_strings = [
-            f"{CLEAR_LINE}\r{x} {expected_message[i]}"
-            for x in ["⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"]
+            f"{CLEAR_LINE}\r{x} {expected_message[i]}" for x in EMOJI_ANIMATION_FRAMES
         ]
         check_animate_output(
             capsys, test_string, frame_strings, frame_period, frames_to_test
@@ -77,7 +81,7 @@ def test_line_lengths_no_emoji(capsys, monkeypatch):
         monkeypatch.setenv("COLUMNS", str(columns))
 
         frame_strings = [
-            f"{CLEAR_LINE}\r{expected_message[i]}{x}" for x in ["", ".", "..", "..."]
+            f"{CLEAR_LINE}\r{expected_message[i]}{x}" for x in NONEMOJI_ANIMATION_FRAMES
         ]
 
         check_animate_output(
