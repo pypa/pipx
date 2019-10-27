@@ -232,7 +232,7 @@ def upgrade(
         # TODO 20191026: should this be `include_dependencies`?
         include_dependencies=old_package_metadata.include_dependencies,
         include_apps=old_package_metadata.include_apps,
-        is_main=True,
+        is_main_package=True,
     )
 
     package_metadata = venv.package_metadata[package]
@@ -343,7 +343,7 @@ def install(
             pip_args=pip_args,
             include_dependencies=include_dependencies,
             include_apps=True,
-            is_main=True,
+            is_main_package=True,
         )
 
         if venv.package_metadata[package].package_version is None:
@@ -467,7 +467,7 @@ def inject(
         pip_args=pip_args,
         include_apps=include_apps,
         include_dependencies=include_dependencies,
-        is_main=False,
+        is_main_package=False,
     )
 
     if include_apps:

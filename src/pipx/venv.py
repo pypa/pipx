@@ -197,10 +197,10 @@ class Venv:
         pip_args: List[str],
         include_dependencies: bool,
         include_apps: bool,
-        is_main: bool,
+        is_main_package: bool,
     ):
         venv_package_metadata = self.get_venv_metadata_for_package(package)
-        if is_main:
+        if is_main_package:
             self.pipx_metadata.main_package = PackageInfo(
                 package_or_url=abs_path_if_local(package_or_url, self, pip_args),
                 pip_args=pip_args,
