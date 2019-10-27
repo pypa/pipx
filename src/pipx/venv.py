@@ -78,7 +78,6 @@ class Venv:
         self._python = python
         self.bin_path, self.python_path = get_venv_paths(self.root)
         self.pipx_metadata = PipxMetadata(venv_dir=path)
-        self.pipx_metadata.python_version = self.get_python_version()
         self.verbose = verbose
         self.do_animation = not verbose
         try:
@@ -136,6 +135,7 @@ class Venv:
 
         # write venv-specific metadata
         self.pipx_metadata.venv_args = venv_args
+        self.pipx_metadata.python_version = self.get_python_version()
 
     def safe_to_remove(self) -> bool:
         return not self._existing
