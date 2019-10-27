@@ -30,8 +30,8 @@ from pipx.util import (
     rmdir,
     run_pypackage_bin,
 )
-from pipx.pipxrc import PipxMetadata, abs_path_if_local, PackageInfo
-from pipx.venv import Venv, VenvContainer
+from pipx.pipxrc import PipxMetadata, PackageInfo
+from pipx.venv import Venv, VenvContainer, abs_path_if_local
 
 
 def run(
@@ -525,7 +525,7 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
 
     if pipx_metadata.main_package is not None:
         all_packages = [pipx_metadata.main_package] + pipx_metadata.injected_packages
-        app_paths = []
+        app_paths: List[Path] = []
         for viewed_package in all_packages:
             app_paths += viewed_package.app_paths
             for dep_paths in viewed_package.app_paths_of_dependencies.values():

@@ -4,7 +4,7 @@ from pathlib import Path
 import textwrap
 from typing import List, Dict, NamedTuple, Any, Optional
 
-from pipx.util import PipxError, VenvMetadata
+from pipx.util import PipxError
 
 
 PIPX_INFO_FILENAME = "pipx_metadata.json"
@@ -51,10 +51,11 @@ class PipxMetadata:
             #
             apps=[],
             app_paths=[],
+            apps_of_dependencies=[],
             app_paths_of_dependencies={},
             package_version="",
         )
-        self.python_version = None
+        self.python_version: Optional[str] = None
         self.venv_args: List[str] = []
         self.injected_packages: List[PackageInfo] = []
 
@@ -65,7 +66,25 @@ class PipxMetadata:
             self.read()
 
     def reset(self) -> None:
-        self.__init__(self.venv_dir, read=False)
+        # We init this instance with reasonable fallback defaults for all
+        #   members, EXCEPT for those we cannot know:
+        #       self.main_package.package_or_url=None
+        #       self.venv_metadata.package_or_url=None
+        self.main_package = PackageInfo(
+            package_or_url=None,
+            pip_args=[],
+            include_dependencies=False,
+            include_apps=True,  # always True for main_package
+            #
+            apps=[],
+            app_paths=[],
+            apps_of_dependencies=[],
+            app_paths_of_dependencies={},
+            package_version="",
+        )
+        self.python_version = None
+        self.venv_args = []
+        self.injected_packages = []
 
     def to_dict(self) -> Dict[str, Any]:
         return {
