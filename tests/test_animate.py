@@ -2,11 +2,7 @@
 import time
 
 import pipx.animate
-
-
-HIDE_CURSOR = "\033[?25l"
-SHOW_CURSOR = "\033[?25h"
-CLEAR_LINE = "\033[K"
+from pipx.animate import HIDE_CURSOR, CLEAR_LINE
 
 
 def check_animate_output(

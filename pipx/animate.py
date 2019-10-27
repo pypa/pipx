@@ -9,6 +9,11 @@ from pipx.constants import emoji_support
 stderr_is_tty = sys.stderr.isatty()
 
 
+HIDE_CURSOR = "\033[?25l"
+SHOW_CURSOR = "\033[?25h"
+CLEAR_LINE = "\033[K"
+
+
 @contextmanager
 def animate(message: str, do_animation: bool) -> Generator[None, None, None]:
 
@@ -80,13 +85,13 @@ def print_animation(
 
 
 def hide_cursor():
-    sys.stderr.write("\033[?25l")
+    sys.stderr.write(f"{HIDE_CURSOR}")
 
 
 def show_cursor():
-    sys.stderr.write("\033[?25h")
+    sys.stderr.write(f"{SHOW_CURSOR}")
 
 
 def clear_line():
-    sys.stderr.write("\033[K")
-    sys.stdout.write("\033[K")
+    sys.stderr.write(f"{CLEAR_LINE}")
+    sys.stdout.write(f"{CLEAR_LINE}")
