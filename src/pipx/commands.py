@@ -336,11 +336,6 @@ def install(
     try:
         venv.create_venv(venv_args, pip_args)
         venv.install_package(package_or_url, pip_args)
-
-        if venv.get_venv_metadata_for_package(package).package_version is None:
-            venv.remove_venv()
-            raise PipxError(f"Could not find package {package}. Is the name correct?")
-
         # if installed ok, write pipx_metadata
         venv.update_package_metadata(
             package=package,
@@ -350,6 +345,10 @@ def install(
             include_apps=True,
             is_main=True,
         )
+
+        if venv.package_metadata[package].package_version is None:
+            venv.remove_venv()
+            raise PipxError(f"Could not find package {package}. Is the name correct?")
 
         _run_post_install_actions(
             venv, package, local_bin_dir, venv_dir, include_dependencies, force=force
