@@ -5,11 +5,11 @@ import re
 import textwrap
 from typing import List, Dict, NamedTuple, Any, Optional
 
-from pipx.Venv import PipxVenvMetadata, Venv
+from pipx.Venv import VenvMetadata, Venv
 from pipx.util import PipxError
 
 
-PIPX_INFO_FILENAME = "pipxrc.json"
+PIPX_INFO_FILENAME = "pipx_metadata.json"
 
 
 class JsonEncoderHandlesPath(json.JSONEncoder):
@@ -33,7 +33,7 @@ class PackageInfo(NamedTuple):
     include_apps: bool
 
 
-class Pipxrc:
+class PipxMetadata:
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
         self.main_package = PackageInfo(
@@ -42,12 +42,12 @@ class Pipxrc:
             include_dependencies=False,
             include_apps=True,  # always True for main_package
         )
-        self.venv_metadata: Optional[PipxVenvMetadata] = None
+        self.venv_metadata: Optional[VenvMetadata] = None
         self.venv_args: List[str] = []
         self.injected_packages: List[PackageInfo] = []
 
         # Only change this if file format changes
-        self._pipxrc_version: str = "0.1"
+        self._pipx_metadata_version: str = "0.1"
 
         if read:
             self.read()
@@ -79,13 +79,13 @@ class Pipxrc:
             "venv_metadata": venv_metadata,
             "venv_args": self.venv_args,
             "injected_packages": [x._asdict() for x in self.injected_packages],
-            "pipxrc_version": self._pipxrc_version,
+            "pipx_metadata_version": self._pipx_metadata_version,
         }
 
     def from_dict(self, input_dict: Dict[str, Any]) -> None:
-        venv_metadata: Optional[PipxVenvMetadata]
+        venv_metadata: Optional[VenvMetadata]
         if input_dict["venv_metadata"] is not None:
-            venv_metadata = PipxVenvMetadata(**input_dict["venv_metadata"])
+            venv_metadata = VenvMetadata(**input_dict["venv_metadata"])
         else:
             venv_metadata = None
 
@@ -102,15 +102,15 @@ class Pipxrc:
             or self.main_package.package_or_url is None
             or not self.main_package.include_apps
         ):
-            raise PipxError("Internal Error: Pipxrc data is corrupt, cannot write.")
+            raise PipxError("Internal Error: PipxMetadata is corrupt, cannot write.")
 
     def write(self) -> None:
         self.validate_before_write()
         try:
-            with open(self.venv_dir / PIPX_INFO_FILENAME, "w") as pipxrc_fh:
+            with open(self.venv_dir / PIPX_INFO_FILENAME, "w") as pipx_metadata_fh:
                 json.dump(
                     self.to_dict(),
-                    pipxrc_fh,
+                    pipx_metadata_fh,
                     indent=4,
                     sort_keys=True,
                     cls=JsonEncoderHandlesPath,
@@ -128,11 +128,11 @@ class Pipxrc:
 
     def read(self) -> None:
         try:
-            with open(self.venv_dir / PIPX_INFO_FILENAME, "r") as pipxrc_fh:
+            with open(self.venv_dir / PIPX_INFO_FILENAME, "r") as pipx_metadata_fh:
                 self.from_dict(
-                    json.load(pipxrc_fh, object_hook=_json_decoder_object_hook)
+                    json.load(pipx_metadata_fh, object_hook=_json_decoder_object_hook)
                 )
-        except IOError:  # Reset self.pipxrc_info if problem reading
+        except IOError:  # Reset self if problem reading
             logging.warning(
                 textwrap.fill(
                     f"Unable to read {PIPX_INFO_FILENAME} in {self.venv_dir}. "

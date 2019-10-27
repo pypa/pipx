@@ -30,7 +30,7 @@ from pipx.util import (
     rmdir,
     run_pypackage_bin,
 )
-from pipx.pipxrc import Pipxrc, abs_path_if_local, PackageInfo
+from pipx.pipxrc import PipxMetadata, abs_path_if_local, PackageInfo
 from pipx.venv import Venv, VenvContainer
 
 
@@ -207,16 +207,16 @@ def upgrade(
         )
 
     venv = Venv(venv_dir, verbose=verbose)
-    pipxrc = Pipxrc(venv_dir)
+    pipx_metadata = PipxMetadata(venv_dir)
 
     old_version = venv.get_venv_metadata_for_package(package).package_version
 
-    # if default package_or_url, check pipxrc for better url
+    # if default package_or_url, check pipx_metadata for better url
     # TODO 20190926: main.py should communicate if this is spec or copied from
     #   package
     if package_or_url == package:
-        if pipxrc.main_package.package_or_url is not None:
-            package_or_url = pipxrc.main_package.package_or_url
+        if pipx_metadata.main_package.package_or_url is not None:
+            package_or_url = pipx_metadata.main_package.package_or_url
         else:
             package_or_url = package
 
@@ -249,8 +249,8 @@ def upgrade(
         print(
             f"upgraded package {package} from {old_version} to {new_version} (location: {str(venv_dir)})"
         )
-        pipxrc.venv_metadata = venv.get_venv_metadata_for_package(package)
-        pipxrc.write()
+        pipx_metadata.venv_metadata = venv.get_venv_metadata_for_package(package)
+        pipx_metadata.write()
         return 1
 
 
@@ -262,14 +262,14 @@ def upgrade_all(
     for venv_dir in venv_container.iter_venv_dirs():
         num_packages += 1
         package = venv_dir.name
-        pipxrc = Pipxrc(venv_dir)
+        pipx_metadata = PipxMetadata(venv_dir)
         if package in skip:
             continue
         if package == "pipx":
             package_or_url = PIPX_PACKAGE_NAME
         else:
-            if pipxrc.main_package.package_or_url is not None:
-                package_or_url = pipxrc.main_package.package_or_url
+            if pipx_metadata.main_package.package_or_url is not None:
+                package_or_url = pipx_metadata.main_package.package_or_url
             else:
                 package_or_url = package
         try:
@@ -277,10 +277,10 @@ def upgrade_all(
                 venv_dir,
                 package,
                 package_or_url,
-                pipxrc.main_package.pip_args,
+                pipx_metadata.main_package.pip_args,
                 verbose,
                 upgrading_all=True,
-                include_dependencies=pipxrc.main_package.include_dependencies,
+                include_dependencies=pipx_metadata.main_package.include_dependencies,
                 force=force,
             )
         # TODO 20191024: Upgrade injected packages
@@ -340,17 +340,17 @@ def install(
         venv.remove_venv()
         raise
 
-    # if all is well, write out pipxrc file
-    pipxrc = Pipxrc(venv_dir, read=False)
-    pipxrc.main_package = PackageInfo(
+    # if all is well, write out pipx_metadata file
+    pipx_metadata = PipxMetadata(venv_dir, read=False)
+    pipx_metadata.main_package = PackageInfo(
         package_or_url=abs_path_if_local(package_or_url, venv, pip_args),
         pip_args=pip_args,
         include_dependencies=include_dependencies,
         include_apps=True,
     )
-    pipxrc.venv_args = venv_args
-    pipxrc.venv_metadata = venv.get_venv_metadata_for_package(package)
-    pipxrc.write()
+    pipx_metadata.venv_args = venv_args
+    pipx_metadata.venv_metadata = venv.get_venv_metadata_for_package(package)
+    pipx_metadata.write()
 
 
 def _run_post_install_actions(
@@ -461,8 +461,8 @@ def inject(
             include_dependencies,
             force=force,
         )
-    pipxrc = Pipxrc(venv_dir)
-    pipxrc.injected_packages.append(
+    pipx_metadata = PipxMetadata(venv_dir)
+    pipx_metadata.injected_packages.append(
         PackageInfo(
             package_or_url=package,
             pip_args=pip_args,
@@ -470,7 +470,7 @@ def inject(
             include_dependencies=include_dependencies,
         )
     )
-    pipxrc.write()
+    pipx_metadata.write()
 
     print(f"  injected package {bold(package)} into venv {bold(venv_dir.name)}")
     print(f"done! {stars}", file=sys.stderr)
@@ -489,10 +489,10 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
     # TODO 20191024: Uninstall injected packages
 
     venv = Venv(venv_dir, verbose=verbose)
-    pipxrc = Pipxrc(venv_dir)
+    pipx_metadata = PipxMetadata(venv_dir)
 
-    if pipxrc.venv_metadata is not None:
-        metadata = pipxrc.venv_metadata
+    if pipx_metadata.venv_metadata is not None:
+        metadata = pipx_metadata.venv_metadata
     else:
         metadata = venv.get_venv_metadata_for_package(package)
 
@@ -533,11 +533,11 @@ def reinstall_all(
         package = venv_dir.name
         if package in skip:
             continue
-        pipxrc = Pipxrc(venv_dir)
+        pipx_metadata = PipxMetadata(venv_dir)
         uninstall(venv_dir, package, local_bin_dir, verbose)
 
-        if pipxrc.main_package.package_or_url is not None:
-            package_or_url = pipxrc.main_package.package_or_url
+        if pipx_metadata.main_package.package_or_url is not None:
+            package_or_url = pipx_metadata.main_package.package_or_url
         else:
             package_or_url = package
 
@@ -547,13 +547,13 @@ def reinstall_all(
             package_or_url,
             local_bin_dir,
             python,
-            pipxrc.main_package.pip_args,
-            pipxrc.venv_args,
+            pipx_metadata.main_package.pip_args,
+            pipx_metadata.venv_args,
             verbose,
             force=True,
-            include_dependencies=pipxrc.main_package.include_dependencies,
+            include_dependencies=pipx_metadata.main_package.include_dependencies,
         )
-        for injected_package in pipxrc.injected_packages:
+        for injected_package in pipx_metadata.injected_packages:
             if injected_package.package_or_url is None:
                 # This should never happen, but package_or_url is type
                 #   Optional[str] so mypy thinks it could be None

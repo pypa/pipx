@@ -49,7 +49,7 @@ class VenvContainer:
             Venv(p)
 
 
-class PipxVenvMetadata(NamedTuple):
+class VenvMetadata(NamedTuple):
     apps: List[str]
     app_paths: List[Path]
     apps_of_dependencies: List[str]
@@ -151,7 +151,7 @@ class Venv:
             cmd = ["install"] + pip_args + [package_or_url]
             self._run_pip(cmd)
 
-    def get_venv_metadata_for_package(self, package: str) -> PipxVenvMetadata:
+    def get_venv_metadata_for_package(self, package: str) -> VenvMetadata:
 
         data = json.loads(
             get_script_output(
@@ -176,7 +176,7 @@ class Venv:
             data["app_paths_of_dependencies"][dep] = paths
             data["apps_of_dependencies"] += [path.name for path in paths]
 
-        return PipxVenvMetadata(**data)
+        return VenvMetadata(**data)
 
     def get_python_version(self) -> str:
         return (
