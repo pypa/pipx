@@ -4,7 +4,7 @@ import pkgutil
 import re
 import subprocess
 from pathlib import Path
-from typing import Generator, List
+from typing import Generator, List, NamedTuple, Dict
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH, WINDOWS
@@ -12,7 +12,6 @@ from pipx.pipxrc import PipxMetadata
 from pipx.shared_libs import shared_libs
 from pipx.util import (
     PipxError,
-    VenvMetadata,
     get_script_output,
     get_site_packages,
     get_venv_paths,
@@ -52,6 +51,15 @@ class VenvContainer:
             Venv(p)
 
 
+class VenvMetadata(NamedTuple):
+    apps: List[str]
+    app_paths: List[Path]
+    apps_of_dependencies: List[str]
+    app_paths_of_dependencies: Dict[str, List[Path]]
+    package_version: str
+    python_version: str
+
+
 venv_metadata_inspector_raw = pkgutil.get_data("pipx", "venv_metadata_inspector.py")
 assert venv_metadata_inspector_raw is not None, (
     "pipx could not find required file venv_metadata_inspector.py. "
@@ -71,7 +79,7 @@ class Venv:
         self.bin_path, self.python_path = get_venv_paths(self.root)
         # TODO 20191026: probably always need to try and read, silently fail
         #   if this is a new Venv yet to be created
-        self.pipx_metadata = PipxMetadata(venv_dir=path, read=False)
+        self.pipx_metadata = PipxMetadata(venv_dir=path)
         self.verbose = verbose
         self.do_animation = not verbose
         try:

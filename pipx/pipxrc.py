@@ -132,22 +132,21 @@ class PipxMetadata:
             )
             pass
 
-    def read(self) -> None:
-        # TODO 20191026: make verbose argument, only show warning if verbose
-        #   and make it less alarming.
+    def read(self, verbose: bool = False) -> None:
         try:
             with open(self.venv_dir / PIPX_INFO_FILENAME, "r") as pipx_metadata_fh:
                 self.from_dict(
                     json.load(pipx_metadata_fh, object_hook=_json_decoder_object_hook)
                 )
         except IOError:  # Reset self if problem reading
-            logging.warning(
-                textwrap.fill(
-                    f"Unable to read {PIPX_INFO_FILENAME} in {self.venv_dir}. "
-                    f"This may cause this or future pipx operations involving "
-                    f"{self.venv_dir.name} to fail or behave incorrectly.",
-                    width=79,
+            if verbose:
+                logging.warning(
+                    textwrap.fill(
+                        f"Unable to read {PIPX_INFO_FILENAME} in {self.venv_dir}. "
+                        f"This may cause this or future pipx operations involving "
+                        f"{self.venv_dir.name} to fail or behave incorrectly.",
+                        width=79,
+                    )
                 )
-            )
             self.reset()
             return

@@ -4,22 +4,13 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Sequence, Tuple, Union, Dict, NamedTuple
+from typing import List, Sequence, Tuple, Union
 
 from pipx.constants import WINDOWS
 
 
 class PipxError(Exception):
     pass
-
-
-class VenvMetadata(NamedTuple):
-    apps: List[str]
-    app_paths: List[Path]
-    apps_of_dependencies: List[str]
-    app_paths_of_dependencies: Dict[str, List[Path]]
-    package_version: str
-    python_version: str
 
 
 def rmdir(path: Path):
