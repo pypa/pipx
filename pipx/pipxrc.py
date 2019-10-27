@@ -42,7 +42,6 @@ class PipxMetadata:
         # We init this instance with reasonable fallback defaults for all
         #   members, EXCEPT for those we cannot know:
         #       self.main_package.package_or_url=None
-        #       self.venv_metadata.package_or_url=None
         self.main_package = PackageInfo(
             package_or_url=None,
             pip_args=[],
