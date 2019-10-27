@@ -2,9 +2,8 @@
 
 import os
 import sys
-from unittest import mock
 from shutil import which
-
+from unittest import mock
 
 import pytest  # type: ignore
 

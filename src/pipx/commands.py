@@ -460,14 +460,18 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
         for dep_paths in metadata.app_paths_of_dependencies.values():
             app_paths += dep_paths
     else:
-        # doesn't have a valid python interpreter. We'll take our best guess on what to uninstall
-        # here.
-        apps_linking_to_venv_bin_dir = [
-            f
-            for f in constants.LOCAL_BIN_DIR.iterdir()
-            if str(f.resolve()).startswith(str(venv.bin_path))
-        ]
-        app_paths = apps_linking_to_venv_bin_dir
+        if not WINDOWS:
+            # Doesn't have a valid python interpreter. We'll take our best guess on what to uninstall
+            # here based on symlink location. pipx doesn't use symlinks on windows, so this is for
+            # non-windows only.
+            # The heuristic here is any symlink in ~/.local/bin pointing to .local/pipx/venvs/PACKAGE/bin
+            # should be uninstalled.
+            apps_linking_to_venv_bin_dir = [
+                f
+                for f in constants.LOCAL_BIN_DIR.iterdir()
+                if str(f.resolve()).startswith(str(venv.bin_path))
+            ]
+            app_paths = apps_linking_to_venv_bin_dir
 
     for file in local_bin_dir.iterdir():
         if WINDOWS:
