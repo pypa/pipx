@@ -57,7 +57,7 @@ class PipxMetadata:
         )
         self.python_version: Optional[str] = None
         self.venv_args: List[str] = []
-        self.injected_packages: List[PackageInfo] = []
+        self.injected_packages: Dict[str, PackageInfo] = {}
 
         # Only change this if file format changes
         self._pipx_metadata_version: str = "0.1"
@@ -84,14 +84,16 @@ class PipxMetadata:
         )
         self.python_version = None
         self.venv_args = []
-        self.injected_packages = []
+        self.injected_packages = {}
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "main_package": self.main_package._asdict(),
             "python_version": self.python_version,
             "venv_args": self.venv_args,
-            "injected_packages": [x._asdict() for x in self.injected_packages],
+            "injected_packages": {
+                name: data._asdict() for (name, data) in self.injected_packages.items()
+            },
             "pipx_metadata_version": self._pipx_metadata_version,
         }
 
@@ -99,9 +101,10 @@ class PipxMetadata:
         self.main_package = PackageInfo(**input_dict["main_package"])
         self.python_version = input_dict["python_version"]
         self.venv_args = input_dict["venv_args"]
-        self.injected_packages = [
-            PackageInfo(**x) for x in input_dict["injected_packages"]
-        ]
+        self.injected_packages = {
+            name: PackageInfo(**data)
+            for (name, data) in input_dict["injected_packages"].items()
+        }
 
     def validate_before_write(self):
         if (

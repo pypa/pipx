@@ -178,6 +178,7 @@ def run_pipx_command(args):  # noqa: C901
             commands.inject(
                 venv_dir,
                 dep,
+                dep,  # NOP now, but in future can be package_or_url --spec
                 pip_args,
                 verbose=verbose,
                 include_apps=args.include_apps,

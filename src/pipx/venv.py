@@ -225,18 +225,16 @@ class Venv:
     ):
         venv_package_metadata = self.get_venv_metadata_for_package(package)
 
-        self.pipx_metadata.injected_packages.append(
-            PackageInfo(
-                package_or_url=package_or_url,
-                pip_args=pip_args,
-                include_apps=include_apps,
-                include_dependencies=include_dependencies,
-                apps=venv_package_metadata.apps,
-                app_paths=venv_package_metadata.app_paths,
-                apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
-                app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
-                package_version=venv_package_metadata.package_version,
-            )
+        self.pipx_metadata.injected_packages[package] = PackageInfo(
+            package_or_url=package_or_url,
+            pip_args=pip_args,
+            include_apps=include_apps,
+            include_dependencies=include_dependencies,
+            apps=venv_package_metadata.apps,
+            app_paths=venv_package_metadata.app_paths,
+            apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
+            app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
+            package_version=venv_package_metadata.package_version,
         )
         self.pipx_metadata.write()
 

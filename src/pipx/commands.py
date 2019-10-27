@@ -339,6 +339,16 @@ def install(
             venv.remove_venv()
             raise PipxError(f"Could not find package {package}. Is the name correct?")
 
+        # if installed ok, write pipx_metadata
+        venv.update_package_metadata(
+            package=package,
+            package_or_url=package_or_url,
+            pip_args=pip_args,
+            include_dependencies=include_dependencies,
+            include_apps=True,
+            is_main=True,
+        )
+
         _run_post_install_actions(
             venv, package, local_bin_dir, venv_dir, include_dependencies, force=force
         )
@@ -346,16 +356,6 @@ def install(
         print("")
         venv.remove_venv()
         raise
-
-    # if all is well, write pipx_metadata
-    venv.update_package_metadata(
-        package=package,
-        package_or_url=package_or_url,
-        pip_args=pip_args,
-        include_dependencies=include_dependencies,
-        include_apps=True,
-        is_main=True,
-    )
 
 
 def _run_post_install_actions(
@@ -367,7 +367,8 @@ def _run_post_install_actions(
     *,
     force: bool,
 ):
-    metadata = venv.get_venv_metadata_for_package(package)
+    if package == venv_dir.name:
+        metadata = venv.pipx_metadata.main_package
 
     if not metadata.app_paths and not include_dependencies:
         # No apps associated with this package and we aren't including dependencies.
@@ -437,7 +438,7 @@ def _warn_if_not_on_path(local_bin_dir: Path):
 def inject(
     venv_dir: Path,
     package: str,
-    # TODO 20191026: Need package_or_url separate from package
+    package_or_url: str,
     pip_args: List[str],
     *,
     verbose: bool,
@@ -456,7 +457,15 @@ def inject(
         )
 
     venv = Venv(venv_dir, verbose=verbose)
-    venv.install_package(package, pip_args)
+    venv.install_package(package_or_url, pip_args)
+    # TODO 20191026: verify installed ok like install()?
+    venv.append_injected_package_metadata(
+        package=package,
+        package_or_url=package_or_url,
+        pip_args=pip_args,
+        include_apps=include_apps,
+        include_dependencies=include_dependencies,
+    )
 
     if include_apps:
         _run_post_install_actions(
@@ -467,14 +476,6 @@ def inject(
             include_dependencies,
             force=force,
         )
-
-    venv.append_injected_package_metadata(
-        package=package,
-        package_or_url=package,
-        pip_args=pip_args,
-        include_apps=include_apps,
-        include_dependencies=include_dependencies,
-    )
 
     print(f"  injected package {bold(package)} into venv {bold(venv_dir.name)}")
     print(f"done! {stars}", file=sys.stderr)
@@ -498,9 +499,9 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
     venv = Venv(venv_dir, verbose=verbose)
 
     if venv.pipx_metadata.main_package is not None:
-        all_packages = [
-            venv.pipx_metadata.main_package
-        ] + venv.pipx_metadata.injected_packages
+        all_packages = [venv.pipx_metadata.main_package] + list(
+            venv.pipx_metadata.injected_packages.values()
+        )
         app_paths: List[Path] = []
         for viewed_package in all_packages:
             app_paths += viewed_package.app_paths
@@ -577,13 +578,17 @@ def reinstall_all(
         )
 
         # now install injected packages
-        for injected_package in venv.pipx_metadata.injected_packages:
+        for (
+            injected_name,
+            injected_package,
+        ) in venv.pipx_metadata.injected_packages.items():
             if injected_package.package_or_url is None:
                 # This should never happen, but package_or_url is type
                 #   Optional[str] so mypy thinks it could be None
                 raise PipxError("Internal Error injecting package")
             inject(
                 venv_dir,
+                injected_name,
                 injected_package.package_or_url,
                 injected_package.pip_args,
                 verbose=verbose,
