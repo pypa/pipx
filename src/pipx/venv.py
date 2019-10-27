@@ -69,6 +69,8 @@ class Venv:
         self.root = path
         self._python = python
         self.bin_path, self.python_path = get_venv_paths(self.root)
+        # TODO 20191026: probably always need to try and read, silently fail
+        #   if this is a new Venv yet to be created
         self.pipx_metadata = PipxMetadata(venv_dir=path, read=False)
         self.verbose = verbose
         self.do_animation = not verbose

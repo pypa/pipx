@@ -4,7 +4,6 @@ from pathlib import Path
 import textwrap
 from typing import List, Dict, NamedTuple, Any, Optional
 
-# from pipx.Venv import VenvMetadata, Venv
 from pipx.util import PipxError, VenvMetadata
 
 
@@ -30,18 +29,32 @@ class PackageInfo(NamedTuple):
     pip_args: List[str]
     include_dependencies: bool
     include_apps: bool
+    apps: List[str]
+    app_paths: List[Path]
+    apps_of_dependencies: List[str]
+    app_paths_of_dependencies: Dict[str, List[Path]]
+    package_version: str
 
 
 class PipxMetadata:
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
+        # We init this instance with reasonable fallback defaults for all
+        #   members, EXCEPT for those we cannot know:
+        #       self.main_package.package_or_url=None
+        #       self.venv_metadata.package_or_url=None
         self.main_package = PackageInfo(
             package_or_url=None,
             pip_args=[],
             include_dependencies=False,
             include_apps=True,  # always True for main_package
+            #
+            apps=[],
+            app_paths=[],
+            app_paths_of_dependencies={},
+            package_version="",
         )
-        self.venv_metadata: Optional[VenvMetadata] = None
+        self.python_version = None
         self.venv_args: List[str] = []
         self.injected_packages: List[PackageInfo] = []
 
@@ -52,44 +65,20 @@ class PipxMetadata:
             self.read()
 
     def reset(self) -> None:
-        # We init this instance with reasonable fallback defaults for all
-        #   members, EXCEPT for those we cannot know:
-        #       self.main_package.package_or_url=None
-        #       self.venv_metadata.package_or_url=None
-        self.main_package = PackageInfo(
-            package_or_url=None,
-            pip_args=[],
-            include_dependencies=False,
-            include_apps=True,  # always True for main_package
-        )
-        self.venv_metadata = None
-        self.venv_args = []
-        self.injected_packages = []
+        self.__init__(self.venv_dir, read=False)
 
     def to_dict(self) -> Dict[str, Any]:
-        venv_metadata: Optional[Dict[str, Any]]
-        if self.venv_metadata is not None:
-            venv_metadata = self.venv_metadata._asdict()
-        else:
-            venv_metadata = None
-
         return {
             "main_package": self.main_package._asdict(),
-            "venv_metadata": venv_metadata,
+            "python_version": self.python_version,
             "venv_args": self.venv_args,
             "injected_packages": [x._asdict() for x in self.injected_packages],
             "pipx_metadata_version": self._pipx_metadata_version,
         }
 
     def from_dict(self, input_dict: Dict[str, Any]) -> None:
-        venv_metadata: Optional[VenvMetadata]
-        if input_dict["venv_metadata"] is not None:
-            venv_metadata = VenvMetadata(**input_dict["venv_metadata"])
-        else:
-            venv_metadata = None
-
         self.main_package = PackageInfo(**input_dict["main_package"])
-        self.venv_metadata = venv_metadata
+        self.python_version = input_dict["python_version"]
         self.venv_args = input_dict["venv_args"]
         self.injected_packages = [
             PackageInfo(**x) for x in input_dict["injected_packages"]
@@ -97,8 +86,7 @@ class PipxMetadata:
 
     def validate_before_write(self):
         if (
-            self.venv_metadata is None
-            or self.main_package.package_or_url is None
+            self.main_package.package_or_url is None
             or not self.main_package.include_apps
         ):
             raise PipxError("Internal Error: PipxMetadata is corrupt, cannot write.")
