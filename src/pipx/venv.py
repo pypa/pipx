@@ -77,9 +77,8 @@ class Venv:
         self.root = path
         self._python = python
         self.bin_path, self.python_path = get_venv_paths(self.root)
-        # TODO 20191026: probably always need to try and read, silently fail
-        #   if this is a new Venv yet to be created
         self.pipx_metadata = PipxMetadata(venv_dir=path)
+        self.pipx_metadata.python_version = self.get_python_version()
         self.verbose = verbose
         self.do_animation = not verbose
         try:
@@ -112,6 +111,12 @@ class Venv:
             # always use shared libs when creating a new venv
             return True
 
+    @property
+    def package_metadata(self) -> Dict[str, PackageInfo]:
+        return_dict = self.pipx_metadata.injected_packages.copy()
+        return_dict[self.root.name] = self.pipx_metadata.main_package
+        return return_dict
+
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
             cmd = [self._python, "-m", "venv", "--without-pip"]
@@ -131,7 +136,6 @@ class Venv:
 
         # write venv-specific metadata
         self.pipx_metadata.venv_args = venv_args
-        self.pipx_metadata.python_version = self.get_python_version()
 
     def safe_to_remove(self) -> bool:
         return not self._existing
@@ -161,7 +165,6 @@ class Venv:
             self._run_pip(cmd)
 
     def get_venv_metadata_for_package(self, package: str) -> VenvMetadata:
-
         data = json.loads(
             get_script_output(
                 self.python_path, VENV_METADATA_INSPECTOR, package, str(self.bin_path)
@@ -210,32 +213,18 @@ class Venv:
                 package_version=venv_package_metadata.package_version,
             )
         else:
-            # TODO 20191026: see if we can use this for injected packages also
-            raise Exception("Internal Error: is_main=False is unimplemented.")
+            self.pipx_metadata.injected_packages[package] = PackageInfo(
+                package_or_url=package_or_url,
+                pip_args=pip_args,
+                include_apps=include_apps,
+                include_dependencies=include_dependencies,
+                apps=venv_package_metadata.apps,
+                app_paths=venv_package_metadata.app_paths,
+                apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
+                app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
+                package_version=venv_package_metadata.package_version,
+            )
 
-        self.pipx_metadata.write()
-
-    def append_injected_package_metadata(
-        self,
-        package: str,
-        package_or_url: str,
-        pip_args: List[str],
-        include_apps: bool,
-        include_dependencies: bool,
-    ):
-        venv_package_metadata = self.get_venv_metadata_for_package(package)
-
-        self.pipx_metadata.injected_packages[package] = PackageInfo(
-            package_or_url=package_or_url,
-            pip_args=pip_args,
-            include_apps=include_apps,
-            include_dependencies=include_dependencies,
-            apps=venv_package_metadata.apps,
-            app_paths=venv_package_metadata.app_paths,
-            apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
-            app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
-            package_version=venv_package_metadata.package_version,
-        )
         self.pipx_metadata.write()
 
     def get_python_version(self) -> str:

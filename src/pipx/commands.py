@@ -207,7 +207,8 @@ def upgrade(
 
     venv = Venv(venv_dir, verbose=verbose)
 
-    old_version = venv.get_venv_metadata_for_package(package).package_version
+    old_package_metadata = venv.package_metadata[package]
+    old_version = old_package_metadata.package_version
 
     # if default package_or_url, check pipx_metadata for better url
     # TODO 20190926: main.py should communicate if this is spec or copied from
@@ -224,15 +225,25 @@ def upgrade(
     venv.upgrade_package(package_or_url, pip_args)
     # TODO 20191026: Should we upgrade injected packages also?
 
-    new_version = venv.get_venv_metadata_for_package(package).package_version
+    venv.update_package_metadata(
+        package=package,
+        package_or_url=package_or_url,
+        pip_args=old_package_metadata.pip_args,
+        # TODO 20191026: should this be old_package_metadata.include_dependencies?
+        include_dependencies=include_dependencies,
+        include_apps=old_package_metadata.include_apps,
+        is_main=True,
+    )
 
-    metadata = venv.get_venv_metadata_for_package(package)
+    package_metadata = venv.package_metadata[package]
+    new_version = package_metadata.package_version
+
     _expose_apps_globally(
-        constants.LOCAL_BIN_DIR, metadata.app_paths, package, force=force
+        constants.LOCAL_BIN_DIR, package_metadata.app_paths, package, force=force
     )
 
     if include_dependencies:
-        for _, app_paths in metadata.app_paths_of_dependencies.items():
+        for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             _expose_apps_globally(
                 constants.LOCAL_BIN_DIR, app_paths, package, force=force
             )
@@ -248,15 +259,6 @@ def upgrade(
     else:
         print(
             f"upgraded package {package} from {old_version} to {new_version} (location: {str(venv_dir)})"
-        )
-        orig_package_info = venv.pipx_metadata.main_package
-        venv.update_package_metadata(
-            package=package,
-            package_or_url=package_or_url,
-            pip_args=orig_package_info.pip_args,
-            include_dependencies=orig_package_info.include_dependencies,
-            include_apps=orig_package_info.include_apps,
-            is_main=True,
         )
         return 1
 
@@ -367,13 +369,12 @@ def _run_post_install_actions(
     *,
     force: bool,
 ):
-    if package == venv_dir.name:
-        metadata = venv.pipx_metadata.main_package
+    package_metadata = venv.package_metadata[package]
 
-    if not metadata.app_paths and not include_dependencies:
+    if not package_metadata.app_paths and not include_dependencies:
         # No apps associated with this package and we aren't including dependencies.
         # This package has nothing for pipx to use, so this is an error.
-        for dep, dependent_apps in metadata.app_paths_of_dependencies.items():
+        for dep, dependent_apps in package_metadata.app_paths_of_dependencies.items():
             print(
                 f"Note: Dependent package '{dep}' contains {len(dependent_apps)} apps"
             )
@@ -383,7 +384,7 @@ def _run_post_install_actions(
         if venv.safe_to_remove():
             venv.remove_venv()
 
-        if len(metadata.app_paths_of_dependencies.keys()):
+        if len(package_metadata.app_paths_of_dependencies.keys()):
             raise PipxError(
                 f"No apps associated with package {package}. "
                 "Try again with '--include-deps' to include apps of dependent packages, "
@@ -398,9 +399,9 @@ def _run_post_install_actions(
                 "Consider using pip or a similar tool instead."
             )
 
-    if metadata.apps:
+    if package_metadata.apps:
         pass
-    elif metadata.apps_of_dependencies and include_dependencies:
+    elif package_metadata.apps_of_dependencies and include_dependencies:
         pass
     else:
         # No apps associated with this package and we aren't including dependencies.
@@ -413,10 +414,12 @@ def _run_post_install_actions(
             "Consider using pip or a similar tool instead."
         )
 
-    _expose_apps_globally(local_bin_dir, metadata.app_paths, package, force=force)
+    _expose_apps_globally(
+        local_bin_dir, package_metadata.app_paths, package, force=force
+    )
 
     if include_dependencies:
-        for _, app_paths in metadata.app_paths_of_dependencies.items():
+        for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             _expose_apps_globally(local_bin_dir, app_paths, package, force=force)
 
     print(_get_package_summary(venv_dir, package=package, new_install=True))
@@ -459,12 +462,13 @@ def inject(
     venv = Venv(venv_dir, verbose=verbose)
     venv.install_package(package_or_url, pip_args)
     # TODO 20191026: verify installed ok like install()?
-    venv.append_injected_package_metadata(
+    venv.update_package_metadata(
         package=package,
         package_or_url=package_or_url,
         pip_args=pip_args,
         include_apps=include_apps,
         include_dependencies=include_dependencies,
+        is_main=False,
     )
 
     if include_apps:
@@ -674,22 +678,31 @@ def _get_package_summary(
     python_path = venv.python_path.resolve()
     if package is None:
         package = path.name
-    metadata = venv.get_venv_metadata_for_package(package)
+    package_metadata = venv.package_metadata[package]
 
-    if metadata.package_version is None:
+    if package_metadata.package_version is None:
         not_installed = red("is not installed")
         return f"   package {bold(package)} {not_installed} in the venv {str(path)}"
 
-    apps = metadata.apps + metadata.apps_of_dependencies
+    apps = package_metadata.apps + package_metadata.apps_of_dependencies
     exposed_app_paths = _get_exposed_app_paths_for_package(
         venv.bin_path, apps, constants.LOCAL_BIN_DIR
     )
     exposed_binary_names = sorted(p.name for p in exposed_app_paths)
-    unavailable_binary_names = sorted(set(metadata.apps) - set(exposed_binary_names))
+    unavailable_binary_names = sorted(
+        set(package_metadata.apps) - set(exposed_binary_names)
+    )
+    # The following is to satisfy mypy that python_version is str and not
+    #   Optional[str]
+    python_version = (
+        venv.pipx_metadata.python_version
+        if venv.pipx_metadata.python_version is not None
+        else ""
+    )
     return _get_list_output(
-        metadata.python_version,
+        python_version,
         python_path,
-        metadata.package_version,
+        package_metadata.package_version,
         package,
         new_install,
         exposed_binary_names,
