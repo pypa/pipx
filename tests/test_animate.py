@@ -7,6 +7,8 @@ from pipx.animate import (
     CLEAR_LINE,
     EMOJI_ANIMATION_FRAMES,
     NONEMOJI_ANIMATION_FRAMES,
+    EMOJI_FRAME_PERIOD,
+    NONEMOJI_FRAME_PERIOD,
 )
 
 
@@ -38,7 +40,7 @@ def test_line_lengths_emoji(capsys, monkeypatch):
 
     frames_to_test = 4
     # matches animate.py
-    frame_period = 0.1
+    frame_period = EMOJI_FRAME_PERIOD
 
     # 40-char test_string counts columns e.g.: "0204060810 ... 363840"
     test_string = "".join([f"{x:02}" for x in range(2, 41, 2)])
@@ -69,7 +71,7 @@ def test_line_lengths_no_emoji(capsys, monkeypatch):
 
     frames_to_test = 2
     # matches animate.py
-    frame_period = 1
+    frame_period = NONEMOJI_FRAME_PERIOD
 
     # 40-char test_string counts columns e.g.: "0204060810 ... 363840"
     test_string = "".join([f"{x:02}" for x in range(2, 41, 2)])

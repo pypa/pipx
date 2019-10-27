@@ -14,6 +14,8 @@ SHOW_CURSOR = "\033[?25h"
 CLEAR_LINE = "\033[K"
 EMOJI_ANIMATION_FRAMES = ["⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"]
 NONEMOJI_ANIMATION_FRAMES = ["", ".", "..", "..."]
+EMOJI_FRAME_PERIOD = 0.1
+NONEMOJI_FRAME_PERIOD = 1
 
 
 @contextmanager
@@ -29,11 +31,11 @@ def animate(message: str, do_animation: bool) -> Generator[None, None, None]:
     if emoji_support:
         animate_at_beginning_of_line = True
         symbols = EMOJI_ANIMATION_FRAMES
-        period = 0.1
+        period = EMOJI_FRAME_PERIOD
     else:
         animate_at_beginning_of_line = False
         symbols = NONEMOJI_ANIMATION_FRAMES
-        period = 1
+        period = NONEMOJI_FRAME_PERIOD
 
     thread_kwargs = {
         "message": message,
