@@ -30,8 +30,8 @@ from pipx.util import (
     rmdir,
     run_pypackage_bin,
 )
-from pipx.pipxrc import PipxMetadata, abs_path_if_local, PackageInfo
-from pipx.venv import Venv, VenvContainer
+from pipx.pipxrc import PipxMetadata, PackageInfo
+from pipx.venv import Venv, VenvContainer, abs_path_if_local
 
 
 def run(
