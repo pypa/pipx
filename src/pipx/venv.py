@@ -8,7 +8,7 @@ from typing import Generator, List, NamedTuple, Dict
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH, WINDOWS
-from pipx.pipxrc import PipxMetadata, PackageInfo
+from pipx.pipx_metadata_file import PipxMetadata, PackageInfo
 from pipx.shared_libs import shared_libs
 from pipx.util import (
     PipxError,
