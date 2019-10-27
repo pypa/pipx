@@ -8,7 +8,7 @@ from typing import Generator, List, NamedTuple, Dict
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH, WINDOWS
-from pipx.pipxrc import PipxMetadata
+from pipx.pipxrc import PipxMetadata, PackageInfo
 from pipx.shared_libs import shared_libs
 from pipx.util import (
     PipxError,
@@ -129,6 +129,10 @@ class Venv:
         # its contents are additional items (one per line) to be added to sys.path
         pipx_pth.write_text(str(shared_libs.site_packages) + "\n", encoding="utf-8")
 
+        # write venv-specific metadata
+        self.pipx_metadata.venv_args = venv_args
+        self.pipx_metadata.python_version = self.get_python_version()
+
     def safe_to_remove(self) -> bool:
         return not self._existing
 
@@ -182,6 +186,59 @@ class Venv:
             data["apps_of_dependencies"] += [path.name for path in paths]
 
         return VenvMetadata(**data)
+
+    def update_package_metadata(
+        self,
+        package: str,
+        package_or_url: str,
+        pip_args: List[str],
+        include_dependencies: bool,
+        include_apps: bool,
+        is_main: bool,
+    ):
+        venv_package_metadata = self.get_venv_metadata_for_package(package)
+        if is_main:
+            self.pipx_metadata.main_package = PackageInfo(
+                package_or_url=abs_path_if_local(package_or_url, self, pip_args),
+                pip_args=pip_args,
+                include_dependencies=include_dependencies,
+                include_apps=True,
+                apps=venv_package_metadata.apps,
+                app_paths=venv_package_metadata.app_paths,
+                apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
+                app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
+                package_version=venv_package_metadata.package_version,
+            )
+        else:
+            # TODO 20191026: see if we can use this for injected packages also
+            raise Exception("Internal Error: is_main=False is unimplemented.")
+
+        self.pipx_metadata.write()
+
+    def append_injected_package_metadata(
+        self,
+        package: str,
+        package_or_url: str,
+        pip_args: List[str],
+        include_apps: bool,
+        include_dependencies: bool,
+    ):
+        venv_package_metadata = self.get_venv_metadata_for_package(package)
+
+        self.pipx_metadata.injected_packages.append(
+            PackageInfo(
+                package_or_url=package_or_url,
+                pip_args=pip_args,
+                include_apps=include_apps,
+                include_dependencies=include_dependencies,
+                apps=venv_package_metadata.apps,
+                app_paths=venv_package_metadata.app_paths,
+                apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
+                app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
+                package_version=venv_package_metadata.package_version,
+            )
+        )
+        self.pipx_metadata.write()
 
     def get_python_version(self) -> str:
         return (

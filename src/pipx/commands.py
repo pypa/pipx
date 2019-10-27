@@ -30,8 +30,7 @@ from pipx.util import (
     rmdir,
     run_pypackage_bin,
 )
-from pipx.pipxrc import PipxMetadata, PackageInfo
-from pipx.venv import Venv, VenvContainer, abs_path_if_local
+from pipx.venv import Venv, VenvContainer
 
 
 def run(
@@ -207,7 +206,6 @@ def upgrade(
         )
 
     venv = Venv(venv_dir, verbose=verbose)
-    pipx_metadata = PipxMetadata(venv_dir)
 
     old_version = venv.get_venv_metadata_for_package(package).package_version
 
@@ -215,8 +213,8 @@ def upgrade(
     # TODO 20190926: main.py should communicate if this is spec or copied from
     #   package
     if package_or_url == package:
-        if pipx_metadata.main_package.package_or_url is not None:
-            package_or_url = pipx_metadata.main_package.package_or_url
+        if venv.pipx_metadata.main_package.package_or_url is not None:
+            package_or_url = venv.pipx_metadata.main_package.package_or_url
         else:
             package_or_url = package
 
@@ -251,23 +249,15 @@ def upgrade(
         print(
             f"upgraded package {package} from {old_version} to {new_version} (location: {str(venv_dir)})"
         )
-        venv_package_metadata = venv.get_venv_metadata_for_package(package)
-        orig_package_info = pipx_metadata.main_package
-        # TODO 20191026: we need to know if user is making a conscious decision
-        #   to override existing package_or_url, pip_args, include_dependencies
-        #   or just wishing to replicate original args
-        pipx_metadata.main_package = PackageInfo(
-            package_or_url=orig_package_info.package_or_url,
+        orig_package_info = venv.pipx_metadata.main_package
+        venv.update_package_metadata(
+            package=package,
+            package_or_url=package_or_url,
             pip_args=orig_package_info.pip_args,
             include_dependencies=orig_package_info.include_dependencies,
             include_apps=orig_package_info.include_apps,
-            apps=venv_package_metadata.apps,
-            app_paths=venv_package_metadata.app_paths,
-            apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
-            app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
-            package_version=venv_package_metadata.package_version,
+            is_main=True,
         )
-        pipx_metadata.write()
         return 1
 
 
@@ -279,14 +269,14 @@ def upgrade_all(
     for venv_dir in venv_container.iter_venv_dirs():
         num_packages += 1
         package = venv_dir.name
-        pipx_metadata = PipxMetadata(venv_dir)
+        venv = Venv(venv_dir, verbose=verbose)
         if package in skip:
             continue
         if package == "pipx":
             package_or_url = PIPX_PACKAGE_NAME
         else:
-            if pipx_metadata.main_package.package_or_url is not None:
-                package_or_url = pipx_metadata.main_package.package_or_url
+            if venv.pipx_metadata.main_package.package_or_url is not None:
+                package_or_url = venv.pipx_metadata.main_package.package_or_url
             else:
                 package_or_url = package
         try:
@@ -294,10 +284,10 @@ def upgrade_all(
                 venv_dir,
                 package,
                 package_or_url,
-                pipx_metadata.main_package.pip_args,
+                venv.pipx_metadata.main_package.pip_args,
                 verbose,
                 upgrading_all=True,
-                include_dependencies=pipx_metadata.main_package.include_dependencies,
+                include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
                 force=force,
             )
         # TODO 20191024: Upgrade injected packages
@@ -357,24 +347,15 @@ def install(
         venv.remove_venv()
         raise
 
-    venv_package_metadata = venv.get_venv_metadata_for_package(package)
-
-    # if all is well, write out pipx_metadata file
-    pipx_metadata = PipxMetadata(venv_dir, read=False)
-    pipx_metadata.main_package = PackageInfo(
-        package_or_url=abs_path_if_local(package_or_url, venv, pip_args),
+    # if all is well, write pipx_metadata
+    venv.update_package_metadata(
+        package=package,
+        package_or_url=package_or_url,
         pip_args=pip_args,
         include_dependencies=include_dependencies,
         include_apps=True,
-        apps=venv_package_metadata.apps,
-        app_paths=venv_package_metadata.app_paths,
-        apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
-        app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
-        package_version=venv_package_metadata.package_version,
+        is_main=True,
     )
-    pipx_metadata.python_version = venv_package_metadata.python_version
-    pipx_metadata.venv_args = venv_args
-    pipx_metadata.write()
 
 
 def _run_post_install_actions(
@@ -456,6 +437,7 @@ def _warn_if_not_on_path(local_bin_dir: Path):
 def inject(
     venv_dir: Path,
     package: str,
+    # TODO 20191026: Need package_or_url separate from package
     pip_args: List[str],
     *,
     verbose: bool,
@@ -486,29 +468,22 @@ def inject(
             force=force,
         )
 
-    venv_package_metadata = venv.get_venv_metadata_for_package(package)
-
-    pipx_metadata = PipxMetadata(venv_dir)
-    pipx_metadata.injected_packages.append(
-        PackageInfo(
-            package_or_url=package,
-            pip_args=pip_args,
-            include_apps=include_apps,
-            include_dependencies=include_dependencies,
-            apps=venv_package_metadata.apps,
-            app_paths=venv_package_metadata.app_paths,
-            apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
-            app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
-            package_version=venv_package_metadata.package_version,
-        )
+    venv.append_injected_package_metadata(
+        package=package,
+        package_or_url=package,
+        pip_args=pip_args,
+        include_apps=include_apps,
+        include_dependencies=include_dependencies,
     )
-    pipx_metadata.write()
 
     print(f"  injected package {bold(package)} into venv {bold(venv_dir.name)}")
     print(f"done! {stars}", file=sys.stderr)
 
 
 def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
+    """Uninstall entire venv_dir, including main package and all injected
+    packages.
+    """
     if not venv_dir.exists():
         print(f"Nothing to uninstall for {package} 😴")
         app = which(package)
@@ -521,10 +496,11 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
     # TODO 20191024: Uninstall injected packages apps in bin
     # TODO 20191026: Handle error if package is not installed?
     venv = Venv(venv_dir, verbose=verbose)
-    pipx_metadata = PipxMetadata(venv_dir)
 
-    if pipx_metadata.main_package is not None:
-        all_packages = [pipx_metadata.main_package] + pipx_metadata.injected_packages
+    if venv.pipx_metadata.main_package is not None:
+        all_packages = [
+            venv.pipx_metadata.main_package
+        ] + venv.pipx_metadata.injected_packages
         app_paths: List[Path] = []
         for viewed_package in all_packages:
             app_paths += viewed_package.app_paths
@@ -570,12 +546,19 @@ def reinstall_all(
         package = venv_dir.name
         if package in skip:
             continue
-        pipx_metadata = PipxMetadata(venv_dir)
+
+        venv = Venv(venv_dir, verbose=verbose)
+
+        # TODO 20191026: store this away in case uninstalling removes metadata
+        # orig_pipx_metadata = venv.pipx_metadata
 
         uninstall(venv_dir, package, local_bin_dir, verbose)
+        # TODO 20191026: also uninstall all injected packages
+        #   injected packages will be cluttering up metadata if their metadata
+        #   is not removed also
 
-        if pipx_metadata.main_package.package_or_url is not None:
-            package_or_url = pipx_metadata.main_package.package_or_url
+        if venv.pipx_metadata.main_package.package_or_url is not None:
+            package_or_url = venv.pipx_metadata.main_package.package_or_url
         else:
             package_or_url = package
 
@@ -586,15 +569,15 @@ def reinstall_all(
             package_or_url,
             local_bin_dir,
             python,
-            pipx_metadata.main_package.pip_args,
-            pipx_metadata.venv_args,
+            venv.pipx_metadata.main_package.pip_args,
+            venv.pipx_metadata.venv_args,
             verbose,
             force=True,
-            include_dependencies=pipx_metadata.main_package.include_dependencies,
+            include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
         )
 
         # now install injected packages
-        for injected_package in pipx_metadata.injected_packages:
+        for injected_package in venv.pipx_metadata.injected_packages:
             if injected_package.package_or_url is None:
                 # This should never happen, but package_or_url is type
                 #   Optional[str] so mypy thinks it could be None
