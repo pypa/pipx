@@ -75,6 +75,7 @@ class Venv:
         self.root = path
         self._python = python
         self.bin_path, self.python_path = get_venv_paths(self.root)
+        self.pipx_metadata = pipxrc.PipxMetadata(venv_dir=path, read=False)
         self.verbose = verbose
         self.do_animation = not verbose
         try:

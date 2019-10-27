@@ -127,6 +127,8 @@ class PipxMetadata:
             pass
 
     def read(self) -> None:
+        # TODO 20191026: make verbose argument, only show warning if verbose
+        #   and make it less alarming.
         try:
             with open(self.venv_dir / PIPX_INFO_FILENAME, "r") as pipx_metadata_fh:
                 self.from_dict(
