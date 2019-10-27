@@ -229,8 +229,8 @@ def upgrade(
         package=package,
         package_or_url=package_or_url,
         pip_args=old_package_metadata.pip_args,
-        # TODO 20191026: should this be old_package_metadata.include_dependencies?
-        include_dependencies=include_dependencies,
+        # TODO 20191026: should this be `include_dependencies`?
+        include_dependencies=old_package_metadata.include_dependencies,
         include_apps=old_package_metadata.include_apps,
         is_main=True,
     )
