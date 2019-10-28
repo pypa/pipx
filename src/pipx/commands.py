@@ -30,7 +30,7 @@ from pipx.util import (
     rmdir,
     run_pypackage_bin,
 )
-from pipx.Venv import Venv, VenvContainer
+from pipx.venv import Venv, VenvContainer
 
 
 def run(
