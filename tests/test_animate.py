@@ -1,5 +1,7 @@
 import time
 
+import pytest  # type: ignore
+
 import pipx.animate
 from pipx.animate import (
     HIDE_CURSOR,
@@ -9,6 +11,17 @@ from pipx.animate import (
     EMOJI_FRAME_PERIOD,
     NONEMOJI_FRAME_PERIOD,
 )
+
+
+@pytest.fixture(scope="module")
+def terminal_state():
+    """Implement tear-down to restore terminal state after test is done.
+    """
+    original_stderr_is_tty = pipx.animate.stderr_is_tty
+    original_emoji_support = pipx.animate.emoji_support
+    yield
+    pipx.animate.stderr_is_tty = original_stderr_is_tty
+    pipx.animate.emoji_support = original_emoji_support
 
 
 def check_animate_output(
@@ -22,16 +35,10 @@ def check_animate_output(
         time.sleep(frame_period * (frames_to_test - 1) + 0.1)
     captured = capsys.readouterr()
 
-    # print for debug help if fail
-    print("expected_string:")
-    print(repr(expected_string[:chars_to_test]))
-    print("capsys sterr:")
-    print(repr(captured.err[:chars_to_test]))
-
     assert captured.err[:chars_to_test] == expected_string[:chars_to_test]
 
 
-def test_line_lengths_emoji(capsys, monkeypatch):
+def test_line_lengths_emoji(capsys, monkeypatch, terminal_state):
     # emoji_support and stderr_is_tty is set only at import animate.py
     # since we are already after that, we must override both here
     pipx.animate.stderr_is_tty = True
@@ -57,12 +64,8 @@ def test_line_lengths_emoji(capsys, monkeypatch):
             capsys, test_string, frame_strings, frame_period, frames_to_test
         )
 
-    # set back to test-normal
-    pipx.animate.stderr_is_tty = False
-    pipx.animate.emoji_support = True
 
-
-def test_line_lengths_no_emoji(capsys, monkeypatch):
+def test_line_lengths_no_emoji(capsys, monkeypatch, terminal_state):
     # emoji_support and stderr_is_tty is set only at import animate.py
     # since we are already after that, we must override both here
     pipx.animate.stderr_is_tty = True
@@ -88,7 +91,3 @@ def test_line_lengths_no_emoji(capsys, monkeypatch):
         check_animate_output(
             capsys, test_string, frame_strings, frame_period, frames_to_test
         )
-
-    # set back to test-normal
-    pipx.animate.stderr_is_tty = False
-    pipx.animate.emoji_support = True
