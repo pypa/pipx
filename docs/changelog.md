@@ -1,3 +1,7 @@
+0.14.0.1
+
+- Null out the PYTHONPATH when executing any command to prevent conflicts between pipx dependencices and package dependenies when pipx is installed via homebrew. Homebrew can use pythonpath manipulation instead of virtual environments. (#233)
+
 0.14.0.0
 
 - Speed up operations by using shared venv for `pip`, `setuptools`, and `wheel`. You can see more detail in the 'how pipx works' section of the documentation. (#164, @pfmoore)
