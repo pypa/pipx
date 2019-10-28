@@ -117,7 +117,9 @@ class Venv:
     @property
     def package_metadata(self) -> Dict[str, PackageInfo]:
         return_dict = self.pipx_metadata.injected_packages.copy()
-        return_dict[self.root.name] = self.pipx_metadata.main_package
+        return_dict[
+            self.pipx_metadata.main_package.package
+        ] = self.pipx_metadata.main_package
         return return_dict
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
@@ -236,6 +238,7 @@ class Venv:
         venv_package_metadata = self.get_venv_metadata_for_package(package)
         if is_main_package:
             self.pipx_metadata.main_package = PackageInfo(
+                package=package,
                 package_or_url=abs_path_if_local(package_or_url, self, pip_args),
                 pip_args=pip_args,
                 include_dependencies=include_dependencies,
@@ -248,6 +251,7 @@ class Venv:
             )
         else:
             self.pipx_metadata.injected_packages[package] = PackageInfo(
+                package=package,
                 package_or_url=package_or_url,
                 pip_args=pip_args,
                 include_apps=include_apps,

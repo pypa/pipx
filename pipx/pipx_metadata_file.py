@@ -25,6 +25,7 @@ def _json_decoder_object_hook(json_dict):
 
 
 class PackageInfo(NamedTuple):
+    package: Optional[str]
     package_or_url: Optional[str]
     pip_args: List[str]
     include_dependencies: bool
@@ -41,9 +42,11 @@ class PipxMetadata:
         self.venv_dir = venv_dir
         # We init this instance with reasonable fallback defaults for all
         #   members, EXCEPT for those we cannot know:
+        #       self.main_package.package=None
         #       self.main_package.package_or_url=None
         #       self.python_version=None
         self.main_package = PackageInfo(
+            package=None,
             package_or_url=None,
             pip_args=[],
             include_dependencies=False,
@@ -71,6 +74,7 @@ class PipxMetadata:
         #       self.main_package.package_or_url=None
         #       self.venv_metadata.package_or_url=None
         self.main_package = PackageInfo(
+            package=None,
             package_or_url=None,
             pip_args=[],
             include_dependencies=False,
