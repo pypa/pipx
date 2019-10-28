@@ -52,7 +52,9 @@ def cover(session):
 @nox.session(python="3.7")
 def lint(session):
     session.install(*lint_dependencies)
-    files = ["pipx", "tests"] + [str(p) for p in Path(".").glob("*.py")]
+    files = [str(Path("src") / "pipx"), "tests"] + [
+        str(p) for p in Path(".").glob("*.py")
+    ]
     session.run("black", "--check", *files)
     session.run("flake8", *files)
     session.run("mypy", *files)

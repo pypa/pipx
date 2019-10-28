@@ -1,5 +1,5 @@
+graft src
 include *.md pipx_demo.gif logo.png LICENSE
-graft pipx
 
 exclude get-pipx.py makefile generate_docs.py .flake8 mkdocs.yml noxfile.py .coveragerc
 prune templates
