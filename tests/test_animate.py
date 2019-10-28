@@ -1,7 +1,5 @@
 import time
 
-import pytest  # type: ignore
-
 import pipx.animate
 from pipx.animate import (
     HIDE_CURSOR,
@@ -34,8 +32,6 @@ def test_line_lengths_emoji(capsys, monkeypatch):
     monkeypatch.setattr(pipx.animate, "emoji_support", True)
 
     frames_to_test = 4
-    # matches animate.py
-    frame_period = EMOJI_FRAME_PERIOD
 
     # 40-char test_string counts columns e.g.: "0204060810 ... 363840"
     test_string = "".join([f"{x:02}" for x in range(2, 41, 2)])
@@ -50,7 +46,7 @@ def test_line_lengths_emoji(capsys, monkeypatch):
             f"{CLEAR_LINE}\r{x} {expected_message[i]}" for x in EMOJI_ANIMATION_FRAMES
         ]
         check_animate_output(
-            capsys, test_string, frame_strings, frame_period, frames_to_test
+            capsys, test_string, frame_strings, EMOJI_FRAME_PERIOD, frames_to_test
         )
 
 
@@ -61,8 +57,6 @@ def test_line_lengths_no_emoji(capsys, monkeypatch):
     monkeypatch.setattr(pipx.animate, "emoji_support", False)
 
     frames_to_test = 2
-    # matches animate.py
-    frame_period = NONEMOJI_FRAME_PERIOD
 
     # 40-char test_string counts columns e.g.: "0204060810 ... 363840"
     test_string = "".join([f"{x:02}" for x in range(2, 41, 2)])
@@ -78,5 +72,5 @@ def test_line_lengths_no_emoji(capsys, monkeypatch):
         ]
 
         check_animate_output(
-            capsys, test_string, frame_strings, frame_period, frames_to_test
+            capsys, test_string, frame_strings, NONEMOJI_FRAME_PERIOD, frames_to_test
         )
