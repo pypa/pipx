@@ -48,5 +48,5 @@ def test_run_ensure_null_pythonpath():
     assert 'None' in subprocess.run(
         [sys.executable, "-m", "pipx", "run", "ipython", "-c", "import os; print(os.environ.get('PYTHONPATH'))"],
         universal_newlines=True,
-        capture_output=True,
-        env={'PYTHONPATH': 'test'}).stdout
+        env={'PYTHONPATH': 'test'},
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout
