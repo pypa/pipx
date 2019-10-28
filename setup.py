@@ -15,7 +15,6 @@ import re  # noqa E402
 
 CURDIR = Path(__file__).parent
 
-EXCLUDE_FROM_PACKAGES = ["tests"]
 REQUIRED: List[str] = ["userpath", "argcomplete>=1.9.4, <2.0"]
 
 with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
@@ -23,7 +22,7 @@ with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
 
 
 def get_version() -> str:
-    main_file = CURDIR / "pipx" / "main.py"
+    main_file = CURDIR / "src" / "pipx" / "main.py"
     _version_re = re.compile(r"__version__\s+=\s+(?P<version>.*)")
     with open(main_file, "r", encoding="utf8") as f:
         match = _version_re.search(f.read())
@@ -41,7 +40,8 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/pipxproject/pipx",
     license="License :: OSI Approved :: MIT License",
-    packages=find_packages(exclude=EXCLUDE_FROM_PACKAGES),
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
     include_package_data=True,
     keywords=["pip", "install", "cli", "workflow", "Virtual Environment"],
     scripts=[],

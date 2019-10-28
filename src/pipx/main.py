@@ -18,7 +18,7 @@ from .colors import bold, green
 from . import commands
 from . import constants
 from .util import PipxError, mkdir
-from .Venv import VenvContainer
+from .venv import VenvContainer
 
 __version__ = "0.14.0.0"
 

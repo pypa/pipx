@@ -39,9 +39,9 @@ class _SharedLibs:
     def upgrade(self, pip_args: List[str], verbose: bool = False):
         # Don't try to upgrade multiple times per run
         if self.has_been_updated_this_run:
-            logging.info("Already upgraded libraries in", self.root)
+            logging.info(f"Already upgraded libraries in {self.root}")
             return
-        logging.info("Upgrading shared libraries in", self.root)
+        logging.info(f"Upgrading shared libraries in {self.root}")
 
         ignored_args = ["--editable"]
         _pip_args = [arg for arg in pip_args if arg not in ignored_args]
