@@ -7,7 +7,7 @@ from typing import Dict, Generator, List, NamedTuple
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH, WINDOWS
-from pipx.SharedLibs import shared_libs
+from pipx.shared_libs import shared_libs
 from pipx.util import (
     PipxError,
     get_script_output,
