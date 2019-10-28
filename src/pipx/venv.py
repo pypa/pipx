@@ -117,9 +117,10 @@ class Venv:
     @property
     def package_metadata(self) -> Dict[str, PackageInfo]:
         return_dict = self.pipx_metadata.injected_packages.copy()
-        return_dict[
-            self.pipx_metadata.main_package.package
-        ] = self.pipx_metadata.main_package
+        if self.pipx_metadata.main_package.package is not None:
+            return_dict[
+                self.pipx_metadata.main_package.package
+            ] = self.pipx_metadata.main_package
         return return_dict
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
@@ -291,7 +292,6 @@ class Venv:
         cmd_run = subprocess.run(cmd, stdout=subprocess.PIPE)
         pip_show_stdout = cmd_run.stdout.decode().strip()
 
-        package_data: Dict[str, Dict[str, str]] = {}
         for line in pip_show_stdout.split("\n"):
             key_value_re = re.search(r"^([^:]+):\s(.*)", line)
             if key_value_re:
