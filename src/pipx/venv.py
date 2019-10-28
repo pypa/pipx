@@ -4,7 +4,7 @@ import pkgutil
 import re
 import subprocess
 from pathlib import Path
-from typing import Generator, List, NamedTuple, Dict
+from typing import Generator, List, NamedTuple, Dict, Set
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH, WINDOWS
@@ -163,18 +163,28 @@ class Venv:
 
     def install_package(
         self,
-        package: str,
+        package: str,  # if "", will be determined
         package_or_url: str,
         pip_args: List[str],
         include_dependencies: bool,
         include_apps: bool,
         is_main_package: bool,
     ) -> None:
+        if not package:
+            # If no package name is supplied, find out package name installed
+            #   by comparing old_package_set with new one after install
+            old_package_set = self.list_installed_packages()
+
         with animate(f"installing package {package_or_url!r}", self.do_animation):
             if pip_args is None:
                 pip_args = []
             cmd = ["install"] + pip_args + [package_or_url]
             self._run_pip(cmd)
+
+        if not package:
+            installed_packages = self.list_installed_packages() - old_package_set
+            package = self.top_of_deptree(installed_packages)
+
         self.update_package_metadata(
             package=package,
             package_or_url=package_or_url,
@@ -183,6 +193,7 @@ class Venv:
             include_apps=include_apps,
             is_main_package=is_main_package,
         )
+
         # Verify package installed ok
         if self.package_metadata[package].package_version is None:
             raise PackageInstallFailureError
@@ -262,6 +273,33 @@ class Venv:
         cmd += pip_search_args + [search_term]
         cmd_run = subprocess.run(cmd, stdout=subprocess.PIPE)
         return cmd_run.stdout.decode().strip()
+
+    def list_installed_packages(self) -> Set[str]:
+        cmd = [str(self.python_path), "-m", "pip", "list", "--format=json"]
+        cmd_run = subprocess.run(cmd, stdout=subprocess.PIPE)
+        pip_list = json.loads(cmd_run.stdout.decode().strip())
+        return set([x["name"] for x in pip_list])
+
+    def top_of_deptree(self, packages):
+        top_package_name = ""
+
+        cmd = [str(self.python_path), "-m", "pip", "show"] + list(packages)
+        cmd_run = subprocess.run(cmd, stdout=subprocess.PIPE)
+        pip_show_stdout = cmd_run.stdout.decode().strip()
+
+        package_data: Dict[str, Dict[str, str]] = {}
+        for line in pip_show_stdout.split("\n"):
+            key_value_re = re.search(r"^([^:]+):\s(.*)", line)
+            if key_value_re:
+                key = key_value_re.group(1)
+                value = key_value_re.group(2)
+                if key == "Name":
+                    package_name = value
+                if key == "Required-by" and value == "":
+                    top_package_name = package_name
+                    break
+
+        return top_package_name
 
     def run_app(self, app: str, app_args: List[str]):
         cmd = [str(self.bin_path / app)] + app_args
