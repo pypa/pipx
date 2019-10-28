@@ -30,7 +30,7 @@ from pipx.util import (
     rmdir,
     run_pypackage_bin,
 )
-from pipx.venv import Venv, VenvContainer
+from pipx.venv import Venv, VenvContainer, PackageInstallFailureError
 
 
 def run(
@@ -115,7 +115,7 @@ def run(
 
 def _download_and_run(
     venv_dir: Path,
-    package: str,
+    package_or_url: str,
     app: str,
     binary_args: List[str],
     python: str,
@@ -123,9 +123,22 @@ def _download_and_run(
     venv_args: List[str],
     verbose: bool,
 ):
+    # placeholder package name to refer to metadata in venv
+    package = "run_package"
+
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv(venv_args, pip_args)
-    venv.install_package(package, pip_args)
+    try:
+        venv.install_package(
+            package=package,
+            package_or_url=package_or_url,
+            pip_args=pip_args,
+            include_dependencies=False,
+            include_apps=True,
+            is_main_package=True,
+        )
+    except PackageInstallFailureError:
+        raise PipxError(f"Unable to install {package_or_url}")
 
     if not (venv.bin_path / app).exists():
         apps = venv.get_venv_metadata_for_package(package).apps
@@ -335,20 +348,20 @@ def install(
     venv = Venv(venv_dir, python=python, verbose=verbose)
     try:
         venv.create_venv(venv_args, pip_args)
-        venv.install_package(package_or_url, pip_args)
-        # if installed ok, write pipx_metadata
-        venv.update_package_metadata(
-            package=package,
-            package_or_url=package_or_url,
-            pip_args=pip_args,
-            include_dependencies=include_dependencies,
-            include_apps=True,
-            is_main_package=True,
-        )
-
-        if venv.package_metadata[package].package_version is None:
+        try:
+            venv.install_package(
+                package=package,
+                package_or_url=package_or_url,
+                pip_args=pip_args,
+                include_dependencies=include_dependencies,
+                include_apps=True,
+                is_main_package=True,
+            )
+        except PackageInstallFailureError:
             venv.remove_venv()
-            raise PipxError(f"Could not find package {package}. Is the name correct?")
+            raise PipxError(
+                f"Could not install package {package}. Is the name or spec correct?"
+            )
 
         _run_post_install_actions(
             venv, package, local_bin_dir, venv_dir, include_dependencies, force=force
@@ -459,17 +472,19 @@ def inject(
         )
 
     venv = Venv(venv_dir, verbose=verbose)
-    venv.install_package(package_or_url, pip_args)
-    # TODO 20191026: verify installed ok like install()?
-    venv.update_package_metadata(
-        package=package,
-        package_or_url=package_or_url,
-        pip_args=pip_args,
-        include_apps=include_apps,
-        include_dependencies=include_dependencies,
-        is_main_package=False,
-    )
-
+    try:
+        venv.install_package(
+            package=package,
+            package_or_url=package_or_url,
+            pip_args=pip_args,
+            include_dependencies=include_dependencies,
+            include_apps=include_apps,
+            is_main_package=False,
+        )
+    except PackageInstallFailureError:
+        raise PipxError(
+            f"Could not inject package {package}. Is the name or spec correct?"
+        )
     if include_apps:
         _run_post_install_actions(
             venv,

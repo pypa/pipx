@@ -20,6 +20,10 @@ from pipx.util import (
 )
 
 
+class PackageInstallFailureError(Exception):
+    pass
+
+
 class VenvContainer:
     """A collection of venvs managed by pipx.
     """
@@ -157,12 +161,31 @@ class Venv:
             # but shared libs code does.
             self.upgrade_package("pip", pip_args)
 
-    def install_package(self, package_or_url: str, pip_args: List[str]) -> None:
+    def install_package(
+        self,
+        package: str,
+        package_or_url: str,
+        pip_args: List[str],
+        include_dependencies: bool,
+        include_apps: bool,
+        is_main_package: bool,
+    ) -> None:
         with animate(f"installing package {package_or_url!r}", self.do_animation):
             if pip_args is None:
                 pip_args = []
             cmd = ["install"] + pip_args + [package_or_url]
             self._run_pip(cmd)
+        self.update_package_metadata(
+            package=package,
+            package_or_url=package_or_url,
+            pip_args=pip_args,
+            include_dependencies=include_dependencies,
+            include_apps=include_apps,
+            is_main_package=is_main_package,
+        )
+        # Verify package installed ok
+        if self.package_metadata[package].package_version is None:
+            raise PackageInstallFailureError
 
     def get_venv_metadata_for_package(self, package: str) -> VenvMetadata:
         data = json.loads(
