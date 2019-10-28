@@ -236,18 +236,16 @@ def upgrade(
     # Upgrade shared libraries (pip, setuptools and wheel)
     venv.upgrade_packaging_libraries(pip_args)
 
-    venv.upgrade_package(package_or_url, pip_args)
-    # TODO 20191026: Should we upgrade injected packages also?
-
-    venv.update_package_metadata(
-        package=package,
-        package_or_url=package_or_url,
-        pip_args=old_package_metadata.pip_args,
+    venv.upgrade_package(
+        package,
+        package_or_url,
+        pip_args,
         # TODO 20191026: should this be `include_dependencies`?
         include_dependencies=old_package_metadata.include_dependencies,
         include_apps=old_package_metadata.include_apps,
         is_main_package=True,
     )
+    # TODO 20191026: Should we upgrade injected packages also?
 
     package_metadata = venv.package_metadata[package]
     new_version = package_metadata.package_version

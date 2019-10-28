@@ -162,7 +162,7 @@ class Venv:
         else:
             # TODO: setuptools and wheel? Original code didn't bother
             # but shared libs code does.
-            self.upgrade_package("pip", pip_args)
+            self._upgrade_package_no_metadata("pip", pip_args)
 
     def install_package(
         self,
@@ -312,9 +312,30 @@ class Venv:
         except KeyboardInterrupt:
             pass
 
-    def upgrade_package(self, package_or_url: str, pip_args: List[str]):
+    def _upgrade_package_no_metadata(self, package_or_url: str, pip_args: List[str]):
         with animate(f"upgrading package {package_or_url!r}", self.do_animation):
             self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
+
+    def upgrade_package(
+        self,
+        package: str,
+        package_or_url: str,
+        pip_args: List[str],
+        include_dependencies: bool,
+        include_apps: bool,
+        is_main_package: bool,
+    ):
+        with animate(f"upgrading package {package_or_url!r}", self.do_animation):
+            self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
+
+        self.update_package_metadata(
+            package=package,
+            package_or_url=package_or_url,
+            pip_args=pip_args,
+            include_dependencies=include_dependencies,
+            include_apps=include_apps,
+            is_main_package=is_main_package,
+        )
 
     def _run_pip(self, cmd):
         cmd = [self.python_path, "-m", "pip"] + cmd
