@@ -123,11 +123,12 @@ def _download_and_run(
     venv_args: List[str],
     verbose: bool,
 ):
-    # placeholder package name to refer to metadata in venv
-    package = "run_package"
-
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv(venv_args, pip_args)
+    # if venv is pre-existing and already installed with package, we
+    #   can get package name from it, otherwise use empty string
+    package = venv.pipx_metadata.main_package.package or ""
+
     try:
         venv.install_package(
             package=package,
@@ -141,7 +142,7 @@ def _download_and_run(
         raise PipxError(f"Unable to install {package_or_url}")
 
     if not (venv.bin_path / app).exists():
-        apps = venv.get_venv_metadata_for_package(package).apps
+        apps = venv.pipx_metadata.main_package.apps
         raise PipxError(
             f"'{app}' executable script not found in package '{package}'. "
             "Available executable scripts: "
