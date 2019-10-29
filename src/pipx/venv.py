@@ -237,32 +237,22 @@ class Venv:
         is_main_package: bool,
     ):
         venv_package_metadata = self.get_venv_metadata_for_package(package)
+        package_info = PackageInfo(
+            package=package,
+            package_or_url=abs_path_if_local(package_or_url, self, pip_args),
+            pip_args=pip_args,
+            include_apps=include_apps,
+            include_dependencies=include_dependencies,
+            apps=venv_package_metadata.apps,
+            app_paths=venv_package_metadata.app_paths,
+            apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
+            app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
+            package_version=venv_package_metadata.package_version,
+        )
         if is_main_package:
-            self.pipx_metadata.main_package = PackageInfo(
-                package=package,
-                package_or_url=abs_path_if_local(package_or_url, self, pip_args),
-                pip_args=pip_args,
-                include_dependencies=include_dependencies,
-                include_apps=True,
-                apps=venv_package_metadata.apps,
-                app_paths=venv_package_metadata.app_paths,
-                apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
-                app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
-                package_version=venv_package_metadata.package_version,
-            )
+            self.pipx_metadata.main_package = package_info
         else:
-            self.pipx_metadata.injected_packages[package] = PackageInfo(
-                package=package,
-                package_or_url=package_or_url,
-                pip_args=pip_args,
-                include_apps=include_apps,
-                include_dependencies=include_dependencies,
-                apps=venv_package_metadata.apps,
-                app_paths=venv_package_metadata.app_paths,
-                apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
-                app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
-                package_version=venv_package_metadata.package_version,
-            )
+            self.pipx_metadata.injected_packages[package] = package_info
 
         self.pipx_metadata.write()
 
