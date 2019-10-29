@@ -18,9 +18,15 @@ def run_pipx_cli(pipx_args: List[str]):
 
 
 def which_python(python_exe):
-    pyenv_which = subprocess.run(["pyenv", "which", python_exe], stdout=subprocess.PIPE)
-    if not pyenv_which.returncode:
-        python_path = pyenv_which.stdout.decode().strip()
+    try:
+        pyenv_which = subprocess.run(
+            ["pyenv", "which", python_exe], stdout=subprocess.PIPE, universal_newlines=True
+        )
+    except FileNotFoundError:
+        # no pyenv on system
+        return which(python_exe)
+
+    if pyenv_which.returncode==0:
+        return pyenv_which.stdout.strip()
     else:
-        python_path = which(python_exe)
-    return python_path
+        return None
