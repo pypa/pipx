@@ -112,7 +112,8 @@ class PipxMetadata:
 
     def validate_before_write(self):
         if (
-            self.main_package.package_or_url is None
+            self.main_package.package is None
+            or self.main_package.package_or_url is None
             or not self.main_package.include_apps
         ):
             raise PipxError("Internal Error: PipxMetadata is corrupt, cannot write.")
