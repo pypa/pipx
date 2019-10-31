@@ -573,12 +573,26 @@ def setup(args):
         )
 
 
+def parse_args(parser):
+    parsed_args = parser.parse_args()
+    if parsed_args.command == "run":
+        app_i = -(len(parsed_args.appargs) + 1)
+        # sys.argv[app_i] is:
+        #   app if no deleted "--" post-app in sys.argv
+        #   first item of appargs if "--" deleted post-app in sys.argv
+
+        # insert another "--" if first "--" is after app and no previous one
+        if "--" in sys.argv[app_i:] and "--" not in sys.argv[:app_i]:
+            sys.argv.insert(sys.argv.index("--", app_i), "--")
+    return parser.parse_args()
+
+
 def cli() -> int:
     """Entry point from command line"""
     try:
         parser = get_command_parser()
         argcomplete.autocomplete(parser)
-        parsed_pipx_args = parser.parse_args()
+        parsed_pipx_args = parse_args(parser)
         setup(parsed_pipx_args)
         if not parsed_pipx_args.command:
             parser.print_help()
