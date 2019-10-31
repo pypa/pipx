@@ -60,17 +60,9 @@ def test_pipx_metadata_file_validation(tmp_path):
     venv_dir2 = tmp_path / "venv2"
     venv_dir2.mkdir()
 
-    test_package1_data = TEST_PACKAGE1._asdict()
-    test_package1_data["include_apps"] = False
-    test_package1 = PackageInfo(**test_package1_data)
-
-    test_package2_data = TEST_PACKAGE1._asdict()
-    test_package2_data["package"] = None
-    test_package2 = PackageInfo(**test_package2_data)
-
-    test_package3_data = TEST_PACKAGE1._asdict()
-    test_package3_data["package_or_url"] = None
-    test_package3 = PackageInfo(**test_package3_data)
+    test_package1 = TEST_PACKAGE1._replace(include_apps=False)
+    test_package2 = TEST_PACKAGE1._replace(package=None)
+    test_package3 = TEST_PACKAGE1._replace(package_or_url=None)
 
     for test_package in [test_package1, test_package2, test_package3]:
         pipx_metadata = PipxMetadata(venv_dir1)
