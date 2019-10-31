@@ -64,11 +64,20 @@ def test_pipx_metadata_file_validation(tmp_path):
     test_package1_data["include_apps"] = False
     test_package1 = PackageInfo(**test_package1_data)
 
-    pipx_metadata = PipxMetadata(venv_dir1)
-    pipx_metadata.main_package = test_package1
-    pipx_metadata.python_version = "3.4.5"
-    pipx_metadata.venv_args = ["--system-site-packages"]
-    pipx_metadata.injected_packages = {}
+    test_package2_data = TEST_PACKAGE1._asdict()
+    test_package2_data["package"] = None
+    test_package2 = PackageInfo(**test_package2_data)
 
-    with pytest.raises(PipxError):
-        pipx_metadata.write()
+    test_package3_data = TEST_PACKAGE1._asdict()
+    test_package3_data["package_or_url"] = None
+    test_package3 = PackageInfo(**test_package3_data)
+
+    for test_package in [test_package1, test_package2, test_package3]:
+        pipx_metadata = PipxMetadata(venv_dir1)
+        pipx_metadata.main_package = test_package
+        pipx_metadata.python_version = "3.4.5"
+        pipx_metadata.venv_args = ["--system-site-packages"]
+        pipx_metadata.injected_packages = {}
+
+        with pytest.raises(PipxError):
+            pipx_metadata.write()
