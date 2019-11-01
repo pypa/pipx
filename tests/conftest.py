@@ -21,4 +21,5 @@ def pipx_temp_env(tmp_path, monkeypatch):
     monkeypatch.setattr(constants, "LOCAL_BIN_DIR", bin_dir)
     monkeypatch.setattr(constants, "PIPX_LOCAL_VENVS", home_dir / "venvs")
 
-    monkeypatch.setenv("PATH", ":".join(["/usr/bin", str(bin_dir)]))
+    env_path = [Path("/usr/bin"), bin_dir]
+    monkeypatch.setenv("PATH", ":".join([str(x) for x in env_path]))
