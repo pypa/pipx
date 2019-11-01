@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest  # type: ignore
@@ -20,6 +21,7 @@ def pipx_temp_env(tmp_path, monkeypatch):
     monkeypatch.setattr(constants, "PIPX_HOME", home_dir)
     monkeypatch.setattr(constants, "LOCAL_BIN_DIR", bin_dir)
     monkeypatch.setattr(constants, "PIPX_LOCAL_VENVS", home_dir / "venvs")
-
+    
+    # add /usr/bin so a compiled package can find gcc
     env_path = [Path("/usr/bin"), bin_dir]
-    monkeypatch.setenv("PATH", ":".join([str(x) for x in env_path]))
+    monkeypatch.setenv("PATH", os.pathsep.join([str(x) for x in env_path]))
