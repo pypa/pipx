@@ -42,3 +42,24 @@ def test_run_script_from_internet(pipx_temp_env, capsys):
             "6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py",
         ]
     )
+
+
+def test_appargs_doubledash(capsys):
+    run_pipx_cli(["run", "pycowsay", "--", "hello"])
+    captured = capsys.readouterr()
+    assert "< -- hello >" not in captured.out
+    run_pipx_cli(["run", "pycowsay", "hello", "--"])
+    captured = capsys.readouterr()
+    assert "< hello -- >" not in captured.out
+    run_pipx_cli(["run", "pycowsay", "--"])
+    captured = capsys.readouterr()
+    assert "< -- >" not in captured.out
+    run_pipx_cli(["run", "--", "pycowsay", "--", "hello"])
+    captured = capsys.readouterr()
+    assert "< -- hello >" not in captured.out
+    run_pipx_cli(["run", "--", "pycowsay", "hello", "--"])
+    captured = capsys.readouterr()
+    assert "< hello -- >" not in captured.out
+    run_pipx_cli(["run", "--", "pycowsay", "--"])
+    captured = capsys.readouterr()
+    assert "< -- >" not in captured.out
