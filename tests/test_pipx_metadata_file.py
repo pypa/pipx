@@ -1,8 +1,12 @@
 from pathlib import Path
 import pytest  # type: ignore
 
+from helpers import assert_not_in_virtualenv, run_pipx_cli
+import pipx.constants
 from pipx.pipx_metadata_file import PipxMetadata, PackageInfo
 from pipx.util import PipxError
+
+assert_not_in_virtualenv()
 
 
 TEST_PACKAGE1 = PackageInfo(
@@ -29,11 +33,6 @@ TEST_PACKAGE2 = PackageInfo(
     app_paths_of_dependencies={"dep2": [Path("bin")]},
     package_version="6.7.8",
 )
-
-
-# test to make sure we never have duplicate injected packages
-#   this might happen during reinstall_all if we don't properly uninstall
-#       injected packages or don't remove their metadata
 
 
 def test_pipx_metadata_file_create(tmp_path):
@@ -73,3 +72,25 @@ def test_pipx_metadata_file_validation(tmp_path):
 
         with pytest.raises(PipxError):
             pipx_metadata.write()
+
+
+def test_package_install(monkeypatch, tmp_path):
+    pipx_home = tmp_path / ".local" / "pipx"
+    pipx_home.mkdir(parents=True)
+    local_bin_dir = tmp_path / ".local" / "bin"
+    local_bin_dir.mkdir(parents=True)
+    pipx_local_venvs = pipx_home / "venvs"
+    pipx_local_venvs.mkdir(parents=True)
+    pipx_shared_libs = pipx_home / "shared"
+    pipx_shared_libs.mkdir(parents=True)
+    monkeypatch.setattr(pipx.constants, "PIPX_HOME", pipx_home)
+    monkeypatch.setattr(pipx.constants, "PIPX_LOCAL_VENVS", pipx_local_venvs)
+    monkeypatch.setattr(pipx.constants, "PIPX_SHARED_LIBS", pipx_shared_libs)
+    monkeypatch.setattr(pipx.constants, "LOCAL_BIN_DIR", local_bin_dir)
+
+    run_pipx_cli(["install", "pycowsay"])
+    assert (pipx_home / "venvs" / "pycowsay" / "pipx_metadata.json").is_file()
+
+
+# confirm that package install creates pipx_metadata.json
+# confirm that package inject adds injected package to pipx metadata
