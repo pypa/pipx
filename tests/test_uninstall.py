@@ -12,6 +12,8 @@ def test_uninstall_with_missing_interpreter(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
 
     _, python_path = util.get_venv_paths(constants.PIPX_LOCAL_VENVS / "pycowsay")
-    assert (python_path).is_file()
+    assert python_path.is_file()
+    python_path.unlink()
+    assert not python_path.is_file()
 
     assert not run_pipx_cli(["uninstall", "pycowsay"])
