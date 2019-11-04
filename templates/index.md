@@ -163,7 +163,7 @@ pipx is working!
 ```
 
 ### Summary
-That's it! Those are the most important commands `pipx` offers. To see full command documentation, run `pipx --help` or see the [docs](https://pipxproject.github.io/pipx/docs/).
+That's it! Those are the most important commands `pipx` offers. To see all of pipx's documentation, run `pipx --help` or see the [docs](https://pipxproject.github.io/pipx/docs/).
 
 ## Testimonials
 

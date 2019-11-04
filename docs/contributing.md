@@ -16,7 +16,7 @@ pip install --user git+https://github.com/cs01/nox.git@5ea70723e9e6 nox
 
 
 ## Developing pipx
-Clone pipx, then enter the root of the pipx source tree. Run this command to see which commands you can run with nox.
+Clone pipx, then enter the root of the pipx repository. Run this command to see which commands you can run with nox.
 ```
 nox -l
 ```
