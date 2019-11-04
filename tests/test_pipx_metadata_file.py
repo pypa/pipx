@@ -88,8 +88,7 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     if pipx.constants.WINDOWS:
         assert pipx_metadata.main_package.apps == ["pycowsay", "pycowsay.exe"]
         assert pipx_metadata.main_package.app_paths == [
-            pipx_venvs_dir / "pycowsay" / "bin" / "pycowsay",
-            pipx_venvs_dir / "pycowsay" / "bin" / "pycowsay.exe",
+            pipx_venvs_dir / "pycowsay" / "Scripts" / "pycowsay.exe"
         ]
     else:
         assert pipx_metadata.main_package.apps == ["pycowsay"]
@@ -121,10 +120,8 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
             "blackd.exe",
         ]
         assert pipx_metadata.injected_packages["black"].app_paths == [
-            pipx_venvs_dir / "pycowsay" / "bin" / "black",
-            pipx_venvs_dir / "pycowsay" / "bin" / "black.exe",
-            pipx_venvs_dir / "pycowsay" / "bin" / "blackd",
-            pipx_venvs_dir / "pycowsay" / "bin" / "blackd.exe",
+            pipx_venvs_dir / "pycowsay" / "Scripts" / "black.exe",
+            pipx_venvs_dir / "pycowsay" / "Scripts" / "blackd.exe",
         ]
     else:
         assert pipx_metadata.injected_packages["black"].apps == ["black", "blackd"]
