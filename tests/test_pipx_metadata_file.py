@@ -85,10 +85,17 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     assert pipx_metadata.main_package.pip_args == []
     assert pipx_metadata.main_package.include_dependencies == False  # noqa: E712
     assert pipx_metadata.main_package.include_apps == True  # noqa: E712
-    assert pipx_metadata.main_package.apps == ["pycowsay"]
-    assert pipx_metadata.main_package.app_paths == [
-        pipx_venvs_dir / "pycowsay" / "bin" / "pycowsay"
-    ]
+    if pipx.constants.WINDOWS:
+        assert pipx_metadata.main_package.apps == ["pycowsay", "pycowsay.exe"]
+        assert pipx_metadata.main_package.app_paths == [
+            pipx_venvs_dir / "pycowsay" / "bin" / "pycowsay",
+            pipx_venvs_dir / "pycowsay" / "bin" / "pycowsay.exe",
+        ]
+    else:
+        assert pipx_metadata.main_package.apps == ["pycowsay"]
+        assert pipx_metadata.main_package.app_paths == [
+            pipx_venvs_dir / "pycowsay" / "bin" / "pycowsay"
+        ]
     assert pipx_metadata.main_package.apps_of_dependencies == []
     assert pipx_metadata.main_package.app_paths_of_dependencies == {}
     assert pipx_metadata.main_package.package_version != ""
@@ -106,11 +113,25 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
         pipx_metadata.injected_packages["black"].include_dependencies == False
     )  # noqa: E712
     assert pipx_metadata.injected_packages["black"].include_apps == False  # noqa: E712
-    assert pipx_metadata.injected_packages["black"].apps == ["black", "blackd"]
-    assert pipx_metadata.injected_packages["black"].app_paths == [
-        pipx_venvs_dir / "pycowsay" / "bin" / "black",
-        pipx_venvs_dir / "pycowsay" / "bin" / "blackd",
-    ]
+    if pipx.constants.WINDOWS:
+        assert pipx_metadata.injected_packages["black"].apps == [
+            "black",
+            "black.exe",
+            "blackd",
+            "blackd.exe",
+        ]
+        assert pipx_metadata.injected_packages["black"].app_paths == [
+            pipx_venvs_dir / "pycowsay" / "bin" / "black",
+            pipx_venvs_dir / "pycowsay" / "bin" / "black.exe",
+            pipx_venvs_dir / "pycowsay" / "bin" / "blackd",
+            pipx_venvs_dir / "pycowsay" / "bin" / "blackd.exe",
+        ]
+    else:
+        assert pipx_metadata.injected_packages["black"].apps == ["black", "blackd"]
+        assert pipx_metadata.injected_packages["black"].app_paths == [
+            pipx_venvs_dir / "pycowsay" / "bin" / "black",
+            pipx_venvs_dir / "pycowsay" / "bin" / "blackd",
+        ]
     assert pipx_metadata.injected_packages["black"].apps_of_dependencies == []
     assert pipx_metadata.injected_packages["black"].app_paths_of_dependencies == {}
     assert pipx_metadata.injected_packages["black"].package_version != ""
