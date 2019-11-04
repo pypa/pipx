@@ -51,7 +51,6 @@ class PipxMetadata:
             pip_args=[],
             include_dependencies=False,
             include_apps=True,  # always True for main_package
-            #
             apps=[],
             app_paths=[],
             apps_of_dependencies=[],
@@ -79,7 +78,6 @@ class PipxMetadata:
             pip_args=[],
             include_dependencies=False,
             include_apps=True,  # always True for main_package
-            #
             apps=[],
             app_paths=[],
             apps_of_dependencies=[],
