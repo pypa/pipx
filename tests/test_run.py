@@ -7,6 +7,8 @@ import pytest  # type: ignore
 
 from helpers import run_pipx_cli
 
+import pipx.main
+
 
 def test_help_text(pipx_temp_env, monkeypatch, capsys):
     mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
@@ -44,22 +46,26 @@ def test_run_script_from_internet(pipx_temp_env, capsys):
     )
 
 
-def test_appargs_doubledash(capsys):
-    run_pipx_cli(["run", "pycowsay", "--", "hello"])
-    captured = capsys.readouterr()
-    assert "< -- hello >" not in captured.out
-    run_pipx_cli(["run", "pycowsay", "hello", "--"])
-    captured = capsys.readouterr()
-    assert "< hello -- >" not in captured.out
-    run_pipx_cli(["run", "pycowsay", "--"])
-    captured = capsys.readouterr()
-    assert "< -- >" not in captured.out
-    run_pipx_cli(["run", "--", "pycowsay", "--", "hello"])
-    captured = capsys.readouterr()
-    assert "< -- hello >" not in captured.out
-    run_pipx_cli(["run", "--", "pycowsay", "hello", "--"])
-    captured = capsys.readouterr()
-    assert "< hello -- >" not in captured.out
-    run_pipx_cli(["run", "--", "pycowsay", "--"])
-    captured = capsys.readouterr()
-    assert "< -- >" not in captured.out
+def test_appargs_doubledash(pipx_temp_env, capsys, monkeypatch):
+    parser = pipx.main.get_command_parser()
+
+    input_argv = [
+        ["pipx", "run", "pycowsay", "--", "hello"],
+        ["pipx", "run", "pycowsay", "hello", "--"],
+        ["pipx", "run", "pycowsay", "--"],
+        #["pipx", "run", "--", "pycowsay", "--", "hello"],
+        #["pipx", "run", "--", "pycowsay", "hello", "--"],
+        #["pipx", "run", "--", "pycowsay", "--"],
+    ]
+    expected_appargs = [
+        ["--", "hello"],
+        ["hello", "--"],
+        ["--"],
+        ["--", "hello"],
+        ["hello", "--"],
+        ["--"],
+    ]
+    for i, input_argv in enumerate(input_argv):
+        monkeypatch.setattr(sys, "argv", input_argv)
+        parsed_pipx_args = pipx.main.parse_args(parser)
+        assert parsed_pipx_args.appargs == expected_appargs[i]
