@@ -110,7 +110,7 @@ class PipxMetadata:
             for (name, data) in input_dict["injected_packages"].items()
         }
 
-    def validate_before_write(self):
+    def _validate_before_write(self):
         if (
             self.main_package.package is None
             or self.main_package.package_or_url is None
@@ -119,7 +119,7 @@ class PipxMetadata:
             raise PipxError("Internal Error: PipxMetadata is corrupt, cannot write.")
 
     def write(self) -> None:
-        self.validate_before_write()
+        self._validate_before_write()
         try:
             with open(self.venv_dir / PIPX_INFO_FILENAME, "w") as pipx_metadata_fh:
                 json.dump(
