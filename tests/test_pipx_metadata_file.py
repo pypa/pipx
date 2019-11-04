@@ -36,7 +36,6 @@ TEST_PACKAGE2 = PackageInfo(
 
 
 def test_pipx_metadata_file_create(tmp_path):
-
     pipx_metadata = PipxMetadata(tmp_path)
     pipx_metadata.main_package = TEST_PACKAGE1
     pipx_metadata.python_version = "3.4.5"
@@ -75,10 +74,41 @@ def test_pipx_metadata_file_validation(tmp_path):
 
 
 def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
+    pipx_venvs_dir = pipx.constants.PIPX_HOME / "venvs"
+
     run_pipx_cli(["install", "pycowsay"])
-    assert (
-        pipx.constants.PIPX_HOME / "venvs" / "pycowsay" / "pipx_metadata.json"
-    ).is_file()
-    # confirm pipx_metadata.json attributes
-    # confirm that package inject adds injected package to pipx metadata
-    # confirm pipx_metadata.json injected package attributes
+    assert (pipx_venvs_dir / "pycowsay" / "pipx_metadata.json").is_file()
+
+    pipx_metadata = PipxMetadata(pipx_venvs_dir / "pycowsay")
+    assert pipx_metadata.main_package.package == "pycowsay"
+    assert pipx_metadata.main_package.package_or_url == "pycowsay"
+    assert pipx_metadata.main_package.pip_args == []
+    assert pipx_metadata.main_package.include_dependencies == False
+    assert pipx_metadata.main_package.include_apps == True
+    assert pipx_metadata.main_package.apps == ["pycowsay"]
+    assert pipx_metadata.main_package.app_paths == [
+        pipx_venvs_dir / "pycowsay" / "bin" / "pycowsay"
+    ]
+    assert pipx_metadata.main_package.apps_of_dependencies == []
+    assert pipx_metadata.main_package.app_paths_of_dependencies == {}
+    assert pipx_metadata.main_package.package_version != ""
+
+    del pipx_metadata
+
+    # TODO 20191103: need simpler non-gcc-compiling package besides black!
+    run_pipx_cli(["inject", "pycowsay", "black"])
+
+    pipx_metadata = PipxMetadata(pipx_venvs_dir / "pycowsay")
+    assert pipx_metadata.injected_packages["black"].package == "black"
+    assert pipx_metadata.injected_packages["black"].package_or_url == "black"
+    assert pipx_metadata.injected_packages["black"].pip_args == []
+    assert pipx_metadata.injected_packages["black"].include_dependencies == False
+    assert pipx_metadata.injected_packages["black"].include_apps == False
+    assert pipx_metadata.injected_packages["black"].apps == ["black", "blackd"]
+    assert pipx_metadata.injected_packages["black"].app_paths == [
+        pipx_venvs_dir / "pycowsay" / "bin" / "black",
+        pipx_venvs_dir / "pycowsay" / "bin" / "blackd",
+    ]
+    assert pipx_metadata.injected_packages["black"].apps_of_dependencies == []
+    assert pipx_metadata.injected_packages["black"].app_paths_of_dependencies == {}
+    assert pipx_metadata.injected_packages["black"].package_version != ""
