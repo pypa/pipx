@@ -188,7 +188,7 @@ class Venv:
             installed_packages = self.list_installed_packages() - old_package_set
             package = self.top_of_deptree(installed_packages)
 
-        self.update_package_metadata(
+        self._update_package_metadata(
             package=package,
             package_or_url=package_or_url,
             pip_args=pip_args,
@@ -227,7 +227,7 @@ class Venv:
 
         return VenvMetadata(**data)
 
-    def update_package_metadata(
+    def _update_package_metadata(
         self,
         package: str,
         package_or_url: str,
@@ -318,7 +318,7 @@ class Venv:
         with animate(f"upgrading package {package_or_url!r}", self.do_animation):
             self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
 
-        self.update_package_metadata(
+        self._update_package_metadata(
             package=package,
             package_or_url=package_or_url,
             pip_args=pip_args,
