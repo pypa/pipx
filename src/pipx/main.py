@@ -575,15 +575,14 @@ def setup(args):
 
 def parse_args(parser):
     parsed_args = parser.parse_args()
-    if parsed_args.command == "run":
-        app_i = -(len(parsed_args.appargs) + 1)
-        # sys.argv[app_i] is:
-        #   app if no deleted "--" post-app in sys.argv
-        #   first item of appargs if "--" deleted post-app in sys.argv
 
-        # insert another "--" if first "--" is after app and no previous one
-        if "--" in sys.argv[app_i:] and "--" not in sys.argv[:app_i]:
-            sys.argv.insert(sys.argv.index("--", app_i), "--")
+    if parsed_args.command == "run":
+        # argparse will not interfere with arguments inside of appargs because
+        #   we use argparse.REMAINDER for it.
+        # So we check for argparse removing -- at the beginning of appargs
+        before_appargs_i = -(len(parsed_args.appargs) + 1)
+        if sys.argv[before_appargs_i] == "--":
+            sys.argv.insert(before_appargs_i, "--")
     return parser.parse_args()
 
 
