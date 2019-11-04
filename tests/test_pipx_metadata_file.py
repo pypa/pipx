@@ -83,8 +83,8 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     assert pipx_metadata.main_package.package == "pycowsay"
     assert pipx_metadata.main_package.package_or_url == "pycowsay"
     assert pipx_metadata.main_package.pip_args == []
-    assert pipx_metadata.main_package.include_dependencies == False
-    assert pipx_metadata.main_package.include_apps == True
+    assert pipx_metadata.main_package.include_dependencies == False  # noqa: E712
+    assert pipx_metadata.main_package.include_apps == True  # noqa: E712
     assert pipx_metadata.main_package.apps == ["pycowsay"]
     assert pipx_metadata.main_package.app_paths == [
         pipx_venvs_dir / "pycowsay" / "bin" / "pycowsay"
@@ -102,8 +102,10 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     assert pipx_metadata.injected_packages["black"].package == "black"
     assert pipx_metadata.injected_packages["black"].package_or_url == "black"
     assert pipx_metadata.injected_packages["black"].pip_args == []
-    assert pipx_metadata.injected_packages["black"].include_dependencies == False
-    assert pipx_metadata.injected_packages["black"].include_apps == False
+    assert (
+        pipx_metadata.injected_packages["black"].include_dependencies == False
+    )  # noqa: E712
+    assert pipx_metadata.injected_packages["black"].include_apps == False  # noqa: E712
     assert pipx_metadata.injected_packages["black"].apps == ["black", "blackd"]
     assert pipx_metadata.injected_packages["black"].app_paths == [
         pipx_venvs_dir / "pycowsay" / "bin" / "black",
