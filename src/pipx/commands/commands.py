@@ -17,7 +17,6 @@ from shutil import which
 from typing import List
 
 import userpath  # type: ignore
-
 from pipx import constants
 from pipx.colors import bold, red
 from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS
@@ -365,12 +364,14 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
         for dep_paths in metadata.app_paths_of_dependencies.values():
             app_paths += dep_paths
     else:
-        if not WINDOWS:
-            # Doesn't have a valid python interpreter. We'll take our best guess on what to uninstall
-            # here based on symlink location. pipx doesn't use symlinks on windows, so this is for
-            # non-windows only.
-            # The heuristic here is any symlink in ~/.local/bin pointing to .local/pipx/venvs/PACKAGE/bin
-            # should be uninstalled.
+        # Doesn't have a valid python interpreter. We'll take our best guess on what to uninstall
+        # here based on symlink location. pipx doesn't use symlinks on windows, so this is for
+        # non-windows only.
+        # The heuristic here is any symlink in ~/.local/bin pointing to .local/pipx/venvs/PACKAGE/bin
+        # should be uninstalled.
+        if WINDOWS:
+            app_paths = []
+        else:
             apps_linking_to_venv_bin_dir = [
                 f
                 for f in constants.LOCAL_BIN_DIR.iterdir()
