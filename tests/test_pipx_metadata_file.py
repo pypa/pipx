@@ -113,22 +113,28 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     )  # noqa: E712
     assert pipx_metadata.injected_packages["black"].include_apps == False  # noqa: E712
     if pipx.constants.WINDOWS:
-        assert pipx_metadata.injected_packages["black"].apps == [
+        # order is not important, so we compare sets
+        assert isinstance(pipx_metadata.injected_packages["black"].apps, list)
+        assert set(pipx_metadata.injected_packages["black"].apps) == {
             "black",
             "black.exe",
             "blackd",
             "blackd.exe",
-        ]
-        assert pipx_metadata.injected_packages["black"].app_paths == [
+        }
+        assert isinstance(pipx_metadata.injected_packages["black"].app_paths, list)
+        assert set(pipx_metadata.injected_packages["black"].app_paths) == {
             pipx_venvs_dir / "pycowsay" / "Scripts" / "black.exe",
             pipx_venvs_dir / "pycowsay" / "Scripts" / "blackd.exe",
-        ]
+        }
     else:
-        assert pipx_metadata.injected_packages["black"].apps == ["black", "blackd"]
-        assert pipx_metadata.injected_packages["black"].app_paths == [
+        # order is not important, so we compare sets
+        assert isinstance(pipx_metadata.injected_packages["black"].apps, list)
+        assert set(pipx_metadata.injected_packages["black"].apps) == {"black", "blackd"}
+        assert isinstance(pipx_metadata.injected_packages["black"].app_paths, list)
+        assert set(pipx_metadata.injected_packages["black"].app_paths) == {
             pipx_venvs_dir / "pycowsay" / "bin" / "black",
             pipx_venvs_dir / "pycowsay" / "bin" / "blackd",
-        ]
+        }
     assert pipx_metadata.injected_packages["black"].apps_of_dependencies == []
     assert pipx_metadata.injected_packages["black"].app_paths_of_dependencies == {}
     assert pipx_metadata.injected_packages["black"].package_version != ""
