@@ -75,7 +75,7 @@ def develop(session):
     session.install("-e", ".")
 
 
-@nox.session(python=["3.7"])
+@nox.session(python="3.7")
 def build(session):
     session.install("setuptools")
     session.install("wheel")
@@ -84,20 +84,20 @@ def build(session):
     session.run("python", "setup.py", "--quiet", "sdist", "bdist_wheel")
 
 
-@nox.session(python=["3.7"])
+@nox.session(python="3.7")
 def publish(session):
     build(session)
     print("REMINDER: Has the changelog been updated?")
     session.run("python", "-m", "twine", "upload", "dist/*")
 
 
-@nox.session(python=["3.7"])
+@nox.session(python="3.7")
 def watch_docs(session):
     session.install(*doc_dependencies)
     session.run("mkdocs", "serve")
 
 
-@nox.session(python=["3.7"])
+@nox.session(python="3.7")
 def publish_docs(session):
     session.install(*doc_dependencies)
     session.run("python", "generate_docs.py")
