@@ -512,7 +512,6 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
         return
 
     # TODO 20191024: Uninstall injected packages apps in bin
-    # TODO 20191026: Handle error if package is not installed?
     venv = Venv(venv_dir, verbose=verbose)
 
     if venv.pipx_metadata.main_package is not None:
