@@ -1,3 +1,7 @@
+dev
+
+- Change `reinstall-all` to use system python by default for apps.  Now use `--python` option to specify a different python version.
+
 0.14.0.0
 
 - Speed up operations by using shared venv for `pip`, `setuptools`, and `wheel`. You can see more detail in the 'how pipx works' section of the documentation. (#164, @pfmoore)
