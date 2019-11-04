@@ -74,23 +74,9 @@ def test_pipx_metadata_file_validation(tmp_path):
             pipx_metadata.write()
 
 
-def test_package_install(monkeypatch, tmp_path):
-    pipx_home = tmp_path / ".local" / "pipx"
-    pipx_home.mkdir(parents=True)
-    local_bin_dir = tmp_path / ".local" / "bin"
-    local_bin_dir.mkdir(parents=True)
-    pipx_local_venvs = pipx_home / "venvs"
-    pipx_local_venvs.mkdir(parents=True)
-    pipx_shared_libs = pipx_home / "shared"
-    pipx_shared_libs.mkdir(parents=True)
-    monkeypatch.setattr(pipx.constants, "PIPX_HOME", pipx_home)
-    monkeypatch.setattr(pipx.constants, "PIPX_LOCAL_VENVS", pipx_local_venvs)
-    monkeypatch.setattr(pipx.constants, "PIPX_SHARED_LIBS", pipx_shared_libs)
-    monkeypatch.setattr(pipx.constants, "LOCAL_BIN_DIR", local_bin_dir)
-
+def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     run_pipx_cli(["install", "pycowsay"])
     assert (pipx_home / "venvs" / "pycowsay" / "pipx_metadata.json").is_file()
-
-
-# confirm that package install creates pipx_metadata.json
-# confirm that package inject adds injected package to pipx metadata
+    # confirm pipx_metadata.json attributes
+    # confirm that package inject adds injected package to pipx metadata
+    # confirm pipx_metadata.json injected package attributes
