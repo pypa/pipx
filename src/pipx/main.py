@@ -383,10 +383,10 @@ def _add_reinstall_all(subparsers):
     p = subparsers.add_parser(
         "reinstall-all",
         formatter_class=LineWrapRawTextHelpFormatter,
-        help="Reinstall all packages with a different Python executable",
+        help="Reinstall all packages",
         description=textwrap.dedent(
             """
-        Reinstalls all packages using a different version of Python.
+        Reinstalls all packages.
 
         Packages are uninstalled, then installed with pipx install PACKAGE
         with the same options used in the original install of PACKAGE.
@@ -396,7 +396,11 @@ def _add_reinstall_all(subparsers):
         """
         ),
     )
-    p.add_argument("python")
+    p.add_argument(
+        "--python",
+        default=constants.DEFAULT_PYTHON,
+        help="The Python version to reinstall the package's CLI app with. Must be v3.5+.",
+    )
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
     p.add_argument("--verbose", action="store_true")
 
