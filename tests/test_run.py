@@ -51,19 +51,31 @@ def test_appargs_doubledash(pipx_temp_env, capsys, monkeypatch):
 
     input_argv = [
         ["pipx", "run", "pycowsay", "--", "hello"],
+        ["pipx", "run", "pycowsay", "--", "--", "hello"],
         ["pipx", "run", "pycowsay", "hello", "--"],
+        ["pipx", "run", "pycowsay", "hello", "--", "--"],
         ["pipx", "run", "pycowsay", "--"],
-        #["pipx", "run", "--", "pycowsay", "--", "hello"],
-        #["pipx", "run", "--", "pycowsay", "hello", "--"],
-        #["pipx", "run", "--", "pycowsay", "--"],
+        ["pipx", "run", "pycowsay", "--", "--"],
+        ["pipx", "run", "--", "pycowsay", "--", "hello"],
+        ["pipx", "run", "--", "pycowsay", "--", "--", "hello"],
+        ["pipx", "run", "--", "pycowsay", "hello", "--"],
+        ["pipx", "run", "--", "pycowsay", "hello", "--", "--"],
+        ["pipx", "run", "--", "pycowsay", "--"],
+        ["pipx", "run", "--", "pycowsay", "--", "--"],
     ]
     expected_appargs = [
         ["--", "hello"],
+        ["--", "--", "hello"],
         ["hello", "--"],
+        ["hello", "--", "--"],
         ["--"],
+        ["--", "--"],
         ["--", "hello"],
+        ["--", "--", "hello"],
         ["hello", "--"],
+        ["hello", "--", "--"],
         ["--"],
+        ["--", "--"],
     ]
     for i, input_argv in enumerate(input_argv):
         monkeypatch.setattr(sys, "argv", input_argv)
