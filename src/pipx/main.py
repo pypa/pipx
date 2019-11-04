@@ -409,7 +409,7 @@ def _add_reinstall_all(subparsers):
     )
     p.add_argument(
         "--python",
-        default=DEFAULT_PYTHON,
+        default=constants.DEFAULT_PYTHON,
         help="The Python version to run package's CLI app with. Must be v3.3+.",
     )
     add_include_dependencies(p)
