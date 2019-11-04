@@ -76,7 +76,9 @@ def test_pipx_metadata_file_validation(tmp_path):
 
 def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     run_pipx_cli(["install", "pycowsay"])
-    assert (pipx_home / "venvs" / "pycowsay" / "pipx_metadata.json").is_file()
+    assert (
+        pipx.constants.PIPX_HOME / "venvs" / "pycowsay" / "pipx_metadata.json"
+    ).is_file()
     # confirm pipx_metadata.json attributes
     # confirm that package inject adds injected package to pipx metadata
     # confirm pipx_metadata.json injected package attributes
