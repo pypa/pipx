@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import logging
 import sys
 import subprocess
@@ -44,9 +45,25 @@ def test_run_script_from_internet(pipx_temp_env, capsys):
         ]
     )
 
+
 def test_run_ensure_null_pythonpath():
-    assert 'None' in subprocess.run(
-        [sys.executable, "-m", "pipx", "run", "ipython", "-c", "import os; print(os.environ.get('PYTHONPATH'))"],
-        universal_newlines=True,
-        env={'PYTHONPATH': 'test'},
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout
+    env = os.environ.copy()
+    env["PYTHONPATH"] = "test"
+    assert (
+        "None"
+        in subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pipx",
+                "run",
+                "ipython",
+                "-c",
+                "import os; print(os.environ.get('PYTHONPATH'))",
+            ],
+            universal_newlines=True,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ).stdout
+    )
