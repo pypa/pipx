@@ -20,7 +20,6 @@ def upgrade(
     verbose: bool,
     *,
     upgrading_all: bool,
-    include_dependencies: bool,
     force: bool,
 ) -> int:
     """Returns nonzero if package was upgraded, 0 if version did not change"""
@@ -49,7 +48,6 @@ def upgrade(
         package,
         package_or_url,
         pip_args,
-        # TODO 20191026: should this be `include_dependencies`?
         include_dependencies=old_package_metadata.include_dependencies,
         include_apps=old_package_metadata.include_apps,
         is_main_package=True,
@@ -63,7 +61,7 @@ def upgrade(
         constants.LOCAL_BIN_DIR, package_metadata.app_paths, package, force=force
     )
 
-    if include_dependencies:
+    if old_package_metadata.include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             _expose_apps_globally(
                 constants.LOCAL_BIN_DIR, app_paths, package, force=force

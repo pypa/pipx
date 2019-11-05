@@ -187,13 +187,7 @@ def run_pipx_command(args):  # noqa: C901
             )
     elif args.command == "upgrade":
         return commands.upgrade(
-            venv_dir,
-            package,
-            pip_args,
-            verbose,
-            upgrading_all=False,
-            include_dependencies=args.include_deps,
-            force=args.force,
+            venv_dir, package, pip_args, verbose, upgrading_all=False, force=args.force
         )
     elif args.command == "list":
         return commands.list_packages(venv_container)
@@ -332,7 +326,6 @@ def _add_upgrade(subparsers, autocomplete_list_of_installed_packages):
         action="store_true",
         help="Modify existing virtual environment and files in PIPX_BIN_DIR",
     )
-    add_include_dependencies(p)
     add_pip_venv_args(p)
     p.add_argument("--verbose", action="store_true")
 
