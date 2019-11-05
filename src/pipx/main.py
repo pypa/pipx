@@ -411,7 +411,7 @@ def _add_reinstall_all(subparsers):
         "--python",
         default=constants.DEFAULT_PYTHON,
         help=(
-            "The Python executable used to reinstall the Virtual Environment "
+            "The Python executable used to recreate the Virtual Environment "
             "and run the associated app/apps. Must be v3.5+."
         ),
     )
