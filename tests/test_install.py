@@ -4,7 +4,6 @@ import os
 import sys
 from unittest import mock
 
-
 import pytest  # type: ignore
 
 from helpers import assert_not_in_virtualenv, run_pipx_cli, which_python
