@@ -32,14 +32,21 @@ def upgrade(
 
     venv = Venv(venv_dir, verbose=verbose)
 
-    old_package_metadata = venv.package_metadata[package]
-    old_version = old_package_metadata.package_version
-
-    if venv.pipx_metadata.main_package.package_or_url is not None:
-        package_or_url = venv.pipx_metadata.main_package.package_or_url
+    package_metadata = venv.package_metadata[package]
+    if package_metadata.package_or_url is not None:
+        package_or_url = package_metadata.package_or_url
+        old_version = package_metadata.package_version
+        include_apps = package_metadata.include_apps
+        include_dependencies = package_metadata.include_dependencies
     else:
         # fallback if no metadata
         package_or_url = package
+        old_version = ""
+        include_apps = True
+        include_dependencies = False
+
+    if package == "pipx":
+        package_or_url = PIPX_PACKAGE_NAME
 
     # Upgrade shared libraries (pip, setuptools and wheel)
     venv.upgrade_packaging_libraries(pip_args)
@@ -48,8 +55,8 @@ def upgrade(
         package,
         package_or_url,
         pip_args,
-        include_dependencies=old_package_metadata.include_dependencies,
-        include_apps=old_package_metadata.include_apps,
+        include_dependencies=include_dependencies,
+        include_apps=include_apps,
         is_main_package=True,
     )
     # TODO 20191026: Should we upgrade injected packages also?
@@ -61,7 +68,7 @@ def upgrade(
         constants.LOCAL_BIN_DIR, package_metadata.app_paths, package, force=force
     )
 
-    if old_package_metadata.include_dependencies:
+    if include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             _expose_apps_globally(
                 constants.LOCAL_BIN_DIR, app_paths, package, force=force
@@ -93,22 +100,13 @@ def upgrade_all(
         venv = Venv(venv_dir, verbose=verbose)
         if package in skip:
             continue
-        if package == "pipx":
-            package_or_url = PIPX_PACKAGE_NAME
-        else:
-            if venv.pipx_metadata.main_package.package_or_url is not None:
-                package_or_url = venv.pipx_metadata.main_package.package_or_url
-            else:
-                package_or_url = package
         try:
             packages_upgraded += upgrade(
                 venv_dir,
                 package,
-                package_or_url,
                 venv.pipx_metadata.main_package.pip_args,
                 verbose,
                 upgrading_all=True,
-                include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
                 force=force,
             )
         # TODO 20191024: Upgrade injected packages
