@@ -1,6 +1,7 @@
 dev
 
 - Handle missing interpreters more gracefully (#146)
+- Change `reinstall-all` to use system python by default for apps.  Now use `--python` option to specify a different python version.
 
 0.14.0.0
 
