@@ -3,18 +3,16 @@
 import os
 import sys
 from unittest import mock
-from shutil import which
-
 
 import pytest  # type: ignore
 
-from helpers import assert_not_in_virtualenv, run_pipx_cli
+from helpers import assert_not_in_virtualenv, run_pipx_cli, which_python
 from pipx import constants
 
 assert_not_in_virtualenv()
 
 
-PYTHON3_5 = which("python3.5")
+PYTHON3_5 = which_python("python3.5")
 
 
 def test_help_text(monkeypatch, capsys):

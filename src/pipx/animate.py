@@ -2,10 +2,20 @@ import sys
 from contextlib import contextmanager
 from threading import Event, Thread
 from typing import Generator, List
+import shutil
 
 from pipx.constants import emoji_support
 
 stderr_is_tty = sys.stderr.isatty()
+
+
+HIDE_CURSOR = "\033[?25l"
+SHOW_CURSOR = "\033[?25h"
+CLEAR_LINE = "\033[K"
+EMOJI_ANIMATION_FRAMES = ["⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"]
+NONEMOJI_ANIMATION_FRAMES = ["", ".", "..", "..."]
+EMOJI_FRAME_PERIOD = 0.1
+NONEMOJI_FRAME_PERIOD = 1
 
 
 @contextmanager
@@ -20,12 +30,12 @@ def animate(message: str, do_animation: bool) -> Generator[None, None, None]:
 
     if emoji_support:
         animate_at_beginning_of_line = True
-        symbols = ["⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"]
-        period = 0.1
+        symbols = EMOJI_ANIMATION_FRAMES
+        period = EMOJI_FRAME_PERIOD
     else:
         animate_at_beginning_of_line = False
-        symbols = ["", ".", "..", "..."]
-        period = 1
+        symbols = NONEMOJI_ANIMATION_FRAMES
+        period = NONEMOJI_FRAME_PERIOD
 
     thread_kwargs = {
         "message": message,
@@ -59,12 +69,17 @@ def print_animation(
     period: float,
     animate_at_beginning_of_line: bool,
 ):
+    (term_cols, _) = shutil.get_terminal_size(fallback=(9999, 24))
     while not event.wait(0):
         for s in symbols:
             if animate_at_beginning_of_line:
-                cur_line = f"{s} {message}"
+                max_message_len = term_cols - len(f"{s} ... ")
+                cur_line = f"{s} {message:.{max_message_len}}"
+                if len(message) > max_message_len:
+                    cur_line += "..."
             else:
-                cur_line = f"{message}{s}"
+                max_message_len = term_cols - len("... ")
+                cur_line = f"{message:.{max_message_len}}{s}"
 
             clear_line()
             sys.stderr.write("\r")
@@ -74,13 +89,13 @@ def print_animation(
 
 
 def hide_cursor():
-    sys.stderr.write("\033[?25l")
+    sys.stderr.write(f"{HIDE_CURSOR}")
 
 
 def show_cursor():
-    sys.stderr.write("\033[?25h")
+    sys.stderr.write(f"{SHOW_CURSOR}")
 
 
 def clear_line():
-    sys.stderr.write("\033[K")
-    sys.stdout.write("\033[K")
+    sys.stderr.write(f"{CLEAR_LINE}")
+    sys.stdout.write(f"{CLEAR_LINE}")

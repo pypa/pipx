@@ -56,7 +56,7 @@ If you are familiar macOS's `brew`, it's kind of like that but for Python applic
 
 pipx does not ship with pip, but installing it is often an important part of bootstrapping your system.
 
-Python and PyPI allow developers to distribute code with "console script entry points". These scripts let users call into Python code from the command line, effectively acting like standalone applications. `pipx` is a tool to install and run any of these thousands of Python applications available on PyPI in a safe, convenient, and reliable way. **In a way, it turns Python Package Index (PyPI) into a big app store for Python applications.** Not all Python packages have entry points, but many do. `pipx` is **not** a tool to install a library and `import` it in your Python code.
+Python and PyPI allow developers to distribute code with "console script entry points". These scripts let users call into Python code from the command line, effectively acting like standalone applications. `pipx` is a tool to install and run any of these thousands of Python applications available on PyPI in a safe, convenient, and reliable way. **In a way, it turns Python Package Index (PyPI) into a big app store for Python applications.** Not all Python packages have entry points, but many do.
 
 `pipx` enables you to:
 
@@ -167,6 +167,9 @@ pipx run https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0
 pipx is working!
 ```
 
+### Summary
+That's it! Those are the most important commands `pipx` offers. To see all of pipx's documentation, run `pipx --help` or see the [docs](https://pipxproject.github.io/pipx/docs/).
+
 ## Testimonials
 
 "*I'm a big fan of pipx. I think pipx is super cool.*"
@@ -174,10 +177,12 @@ pipx is working!
 —<a href="https://twitter.com/mkennedy">Michael Kennedy</a>, co-host of PythonBytes podcast in <a href="https://pythonbytes.fm/episodes/transcript/139/f-yes-for-the-f-strings">episode 139</a>
 </div>
 
+
 "*Thanks for improving the workflow that pipsi has covered in the past. Nicely done!*"
 <div style="text-align: right; margin-right: 10%;">
 —<a href="https://twitter.com/jezdez">Jannis Leidel</a>, PSF fellow and former pip maintainer
 </div>
+
 
 "*This tool filled in the gap that was missing with pipenv and Virtual Environmentwrapper.*"
 <div style="text-align: right; margin-right: 10%;">
@@ -187,21 +192,15 @@ pipx is working!
 
 ## Credits
 
-pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https://github.com/zkat/npx).
+pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https://github.com/zkat/npx). It was created by [Chad Smith](https://github.com/cs01/) and has had lots of help from [contributors](https://github.com/pipxproject/pipx/graphs/contributors). The logo was created by [@IrishMorales](https://github.com/IrishMorales).
 
-Creator/Maintainer
+pipx is maintained by a team of volunteers (in alphabetical order)
 
-- [Chad Smith](https://github.com/cs01/)
-
-Contributors
-
-- [Bjorn Neergaard](https://github.com/neersighted)
+- [Bernát Gábor](https://github.com/gaborbernat)
+- [Chad Smith](https://github.com/cs01)
 - [Diego Fernandez](https://github.com/aiguofer)
-- [Jason R. Coombs](https://github.com/jaraco)
-- [joshuarli](https://github.com/joshuarli)
-- [Paul Moore](https://github.com/pfmoore)
-- [tkossak](https://github.com/tkossak)
-- [Tzu-ping Chung](https://github.com/uranusjr)
+- [Matthew Clapp](https://github.com/itsayellow)
 - [Shawn Hensley](https://github.com/sahensley)
 
-Logo by [@IrishMorales](https://github.com/IrishMorales).
+## Contributing
+Issues and Pull Requests are definitely welcome! Check out [Contributing](https://pipxproject.github.io/pipx/contributing/) to get started.
