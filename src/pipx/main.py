@@ -186,13 +186,9 @@ def run_pipx_command(args):  # noqa: C901
                 force=args.force,
             )
     elif args.command == "upgrade":
-        package_or_url = (
-            args.spec if ("spec" in args and args.spec is not None) else package
-        )
         return commands.upgrade(
             venv_dir,
             package,
-            package_or_url,
             pip_args,
             verbose,
             upgrading_all=False,
@@ -330,7 +326,6 @@ def _add_upgrade(subparsers, autocomplete_list_of_installed_packages):
         description="Upgrade a package in a pipx-managed Virtual Environment by running 'pip install --upgrade PACKAGE'",
     )
     p.add_argument("package").completer = autocomplete_list_of_installed_packages
-    p.add_argument("--spec", help=SPEC_HELP)
     p.add_argument(
         "--force",
         "-f",

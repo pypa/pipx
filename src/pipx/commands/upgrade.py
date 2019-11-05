@@ -16,7 +16,6 @@ from .common import _expose_apps_globally
 def upgrade(
     venv_dir: Path,
     package: str,
-    package_or_url: str,
     pip_args: List[str],
     verbose: bool,
     *,
@@ -37,14 +36,11 @@ def upgrade(
     old_package_metadata = venv.package_metadata[package]
     old_version = old_package_metadata.package_version
 
-    # if default package_or_url, check pipx_metadata for better url
-    # TODO 20190926: main.py should communicate if this is spec or copied from
-    #   package
-    if package_or_url == package:
-        if venv.pipx_metadata.main_package.package_or_url is not None:
-            package_or_url = venv.pipx_metadata.main_package.package_or_url
-        else:
-            package_or_url = package
+    if venv.pipx_metadata.main_package.package_or_url is not None:
+        package_or_url = venv.pipx_metadata.main_package.package_or_url
+    else:
+        # fallback if no metadata
+        package_or_url = package
 
     # Upgrade shared libraries (pip, setuptools and wheel)
     venv.upgrade_packaging_libraries(pip_args)
