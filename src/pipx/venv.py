@@ -7,7 +7,7 @@ from typing import Dict, Generator, List, NamedTuple
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH, WINDOWS
-from pipx.SharedLibs import shared_libs
+from pipx.shared_libs import shared_libs
 from pipx.util import (
     PipxError,
     get_script_output,
@@ -152,7 +152,6 @@ class Venv:
             self._run_pip(cmd)
 
     def get_venv_metadata_for_package(self, package: str) -> PipxVenvMetadata:
-
         data = json.loads(
             get_script_output(
                 self.python_path, VENV_METADATA_INSPECTOR, package, str(self.bin_path)

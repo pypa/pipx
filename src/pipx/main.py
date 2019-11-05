@@ -18,7 +18,7 @@ from .colors import bold, green
 from . import commands
 from . import constants
 from .util import PipxError, mkdir
-from .Venv import VenvContainer
+from .venv import VenvContainer
 
 __version__ = "0.14.0.0"
 
@@ -392,10 +392,10 @@ def _add_reinstall_all(subparsers):
     p = subparsers.add_parser(
         "reinstall-all",
         formatter_class=LineWrapRawTextHelpFormatter,
-        help="Reinstall all packages with a different Python executable",
+        help="Reinstall all packages",
         description=textwrap.dedent(
             """
-        Reinstalls all packages using a different version of Python.
+        Reinstalls all packages.
 
         Packages are uninstalled, then installed with pipx install PACKAGE.
         This is useful if you upgraded to a new version of Python and want
@@ -407,7 +407,14 @@ def _add_reinstall_all(subparsers):
         """
         ),
     )
-    p.add_argument("python")
+    p.add_argument(
+        "--python",
+        default=constants.DEFAULT_PYTHON,
+        help=(
+            "The Python executable used to recreate the Virtual Environment "
+            "and run the associated app/apps. Must be v3.5+."
+        ),
+    )
     add_include_dependencies(p)
     add_pip_venv_args(p)
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
