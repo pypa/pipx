@@ -592,14 +592,7 @@ def _get_package_summary(
     python_path = venv.python_path.resolve()
     if package is None:
         package = path.name
-<<<<<<< HEAD
     package_metadata = venv.package_metadata[package]
-=======
-    if not python_path.is_file():
-        return f"   package {red(bold(package))} has invalid interpreter {str(python_path)}"
-
-    metadata = venv.get_venv_metadata_for_package(package)
->>>>>>> 5417f064581cdfc289f7db8aabf6255db613bd68
 
     if package_metadata.package_version is None:
         not_installed = red("is not installed")
