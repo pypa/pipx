@@ -398,11 +398,8 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
     venv = Venv(venv_dir, verbose=verbose)
 
     if venv.pipx_metadata.main_package is not None:
-        all_packages = [venv.pipx_metadata.main_package] + list(
-            venv.pipx_metadata.injected_packages.values()
-        )
         app_paths: List[Path] = []
-        for viewed_package in all_packages:
+        for viewed_package in venv.package_metadata.values():
             app_paths += viewed_package.app_paths
             for dep_paths in viewed_package.app_paths_of_dependencies.values():
                 app_paths += dep_paths
