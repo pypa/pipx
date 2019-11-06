@@ -395,7 +395,6 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
             )
         return
 
-    # TODO 20191024: Uninstall injected packages apps in bin
     venv = Venv(venv_dir, verbose=verbose)
 
     if venv.pipx_metadata.main_package is not None:
@@ -469,9 +468,6 @@ def reinstall_all(
         venv = Venv(venv_dir, verbose=verbose)
 
         uninstall(venv_dir, package, local_bin_dir, verbose)
-        # TODO 20191026: also uninstall all injected packages
-        #   injected packages will be cluttering up metadata if their metadata
-        #   is not removed also
 
         # venv instance still holds old loaded metadata even after uninstall
         if venv.pipx_metadata.main_package.package_or_url is not None:
