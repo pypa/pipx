@@ -94,11 +94,12 @@ def get_site_packages(python: Path) -> Path:
 def run(cmd: Sequence[Union[str, Path]], check=True) -> int:
     """Run arbitrary command as subprocess"""
 
+    env = {k: v for k, v in os.environ.items() if k.upper() != "PYTHONPATH"}
     cmd_str = " ".join(str(c) for c in cmd)
     logging.info(f"running {cmd_str}")
     # windows cannot take Path objects, only strings
     cmd_str_list = [str(c) for c in cmd]
-    returncode = subprocess.run(cmd_str_list).returncode
+    returncode = subprocess.run(cmd_str_list, env=env).returncode
     if check and returncode:
         raise PipxError(f"{cmd_str!r} failed")
     return returncode
