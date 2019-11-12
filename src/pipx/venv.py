@@ -4,7 +4,7 @@ import pkgutil
 import re
 import subprocess
 from pathlib import Path
-from typing import Generator, List, NamedTuple, Dict, Set, Optional
+from typing import Generator, List, NamedTuple, Dict, Set, Optional, Iterable
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH, WINDOWS
@@ -106,7 +106,7 @@ class Venv:
                 )
 
     @property
-    def uses_shared_libs(self):
+    def uses_shared_libs(self) -> bool:
         if self._existing:
             pth_files = self.root.glob("**/" + PIPX_SHARED_PTH)
             return next(pth_files, None) is not None
@@ -235,7 +235,7 @@ class Venv:
         include_dependencies: bool,
         include_apps: bool,
         is_main_package: bool,
-    ):
+    ) -> None:
         venv_package_metadata = self.get_venv_metadata_for_package(package)
         package_info = PackageInfo(
             package=package,
@@ -278,7 +278,7 @@ class Venv:
         pip_list = json.loads(cmd_run.stdout.decode().strip())
         return set([x["name"] for x in pip_list])
 
-    def top_of_deptree(self, packages):
+    def top_of_deptree(self, packages: Iterable[str]) -> str:
         top_package_name = ""
 
         cmd = [str(self.python_path), "-m", "pip", "show"] + list(packages)
@@ -298,14 +298,16 @@ class Venv:
 
         return top_package_name
 
-    def run_app(self, app: str, app_args: List[str]):
+    def run_app(self, app: str, app_args: List[str]) -> int:
         cmd = [str(self.bin_path / app)] + app_args
         try:
             return run(cmd, check=False)
         except KeyboardInterrupt:
-            pass
+            return 130  # shell code for Ctrl-C
 
-    def _upgrade_package_no_metadata(self, package_or_url: str, pip_args: List[str]):
+    def _upgrade_package_no_metadata(
+        self, package_or_url: str, pip_args: List[str]
+    ) -> None:
         with animate(f"upgrading package {package_or_url!r}", self.do_animation):
             self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
 
@@ -317,7 +319,7 @@ class Venv:
         include_dependencies: bool,
         include_apps: bool,
         is_main_package: bool,
-    ):
+    ) -> None:
         with animate(f"upgrading package {package_or_url!r}", self.do_animation):
             self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
 
@@ -330,8 +332,8 @@ class Venv:
             is_main_package=is_main_package,
         )
 
-    def _run_pip(self, cmd):
-        cmd = [self.python_path, "-m", "pip"] + cmd
+    def _run_pip(self, cmd: List[str]) -> int:
+        cmd = [str(self.python_path), "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
         return run(cmd)
