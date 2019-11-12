@@ -5,7 +5,6 @@ from typing import List
 
 
 from pipx import constants
-from pipx.constants import PIPX_PACKAGE_NAME
 from pipx.emojies import sleep
 from pipx.util import PipxError
 
@@ -46,7 +45,7 @@ def upgrade(
         include_dependencies = False
 
     if package == "pipx":
-        package_or_url = PIPX_PACKAGE_NAME
+        package_or_url = "pipx"
 
     # Upgrade shared libraries (pip, setuptools and wheel)
     venv.upgrade_packaging_libraries(pip_args)
