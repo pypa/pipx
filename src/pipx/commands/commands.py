@@ -465,13 +465,12 @@ def reinstall_all(
 
         venv = Venv(venv_dir, verbose=verbose)
 
-        uninstall(venv_dir, package, local_bin_dir, verbose)
-
-        # venv instance still holds old loaded metadata even after uninstall
         if venv.pipx_metadata.main_package.package_or_url is not None:
             package_or_url = venv.pipx_metadata.main_package.package_or_url
         else:
             package_or_url = package
+
+        uninstall(venv_dir, package, local_bin_dir, verbose)
 
         # install main package first
         install(
