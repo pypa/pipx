@@ -140,7 +140,6 @@ class Venv:
         # its contents are additional items (one per line) to be added to sys.path
         pipx_pth.write_text(str(shared_libs.site_packages) + "\n", encoding="utf-8")
 
-        # write venv-specific metadata
         self.pipx_metadata.venv_args = venv_args
         self.pipx_metadata.python_version = self.get_python_version()
 
