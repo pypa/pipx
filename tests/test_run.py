@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
+import os
 import logging
 import sys
+import subprocess
 from unittest import mock
 
 import pytest  # type: ignore
@@ -81,3 +83,26 @@ def test_appargs_doubledash(pipx_temp_env, capsys, monkeypatch):
         monkeypatch.setattr(sys, "argv", input_argv)
         parsed_pipx_args = pipx.main.parse_args(parser)
         assert parsed_pipx_args.appargs == expected_appargs[i]
+
+
+def test_run_ensure_null_pythonpath():
+    env = os.environ.copy()
+    env["PYTHONPATH"] = "test"
+    assert (
+        "None"
+        in subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pipx",
+                "run",
+                "ipython",
+                "-c",
+                "import os; print(os.environ.get('PYTHONPATH'))",
+            ],
+            universal_newlines=True,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ).stdout
+    )
