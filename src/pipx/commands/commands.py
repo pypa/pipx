@@ -124,13 +124,14 @@ def _download_and_run(
 ):
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv(venv_args, pip_args)
-    # if venv is pre-existing and already installed with package, we
-    #   can get package name from it, otherwise use empty string
-    package = venv.pipx_metadata.main_package.package or ""
+
+    # venv.pipx_metadata.main_package.package contains package name if it is
+    #   pre-existing, otherwise is None to instruct venv.install_package to
+    #   determine package name.
 
     try:
         venv.install_package(
-            package=package,
+            package=venv.pipx_metadata.main_package.package,
             package_or_url=package_or_url,
             pip_args=pip_args,
             include_dependencies=False,
@@ -143,7 +144,7 @@ def _download_and_run(
     if not (venv.bin_path / app).exists():
         apps = venv.pipx_metadata.main_package.apps
         raise PipxError(
-            f"'{app}' executable script not found in package '{package}'. "
+            f"'{app}' executable script not found in package '{package_or_url}'. "
             "Available executable scripts: "
             f"{', '.join(b for b in apps)}"
         )

@@ -4,7 +4,7 @@ import pkgutil
 import re
 import subprocess
 from pathlib import Path
-from typing import Generator, List, NamedTuple, Dict, Set
+from typing import Generator, List, NamedTuple, Dict, Set, Optional
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH, WINDOWS
@@ -166,14 +166,14 @@ class Venv:
 
     def install_package(
         self,
-        package: str,  # if "", will be determined
+        package: Optional[str],  # if None, will be determined in this function
         package_or_url: str,
         pip_args: List[str],
         include_dependencies: bool,
         include_apps: bool,
         is_main_package: bool,
     ) -> None:
-        if not package:
+        if package is None:
             # If no package name is supplied, find out package name installed
             #   by comparing old_package_set with new one after install
             old_package_set = self.list_installed_packages()
@@ -184,7 +184,7 @@ class Venv:
             cmd = ["install"] + pip_args + [package_or_url]
             self._run_pip(cmd)
 
-        if not package:
+        if package is None:
             installed_packages = self.list_installed_packages() - old_package_set
             package = self.top_of_deptree(installed_packages)
 
