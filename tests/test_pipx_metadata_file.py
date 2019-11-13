@@ -41,15 +41,10 @@ def test_pipx_metadata_file_create(tmp_path):
     pipx_metadata.python_version = "3.4.5"
     pipx_metadata.venv_args = ["--system-site-packages"]
     pipx_metadata.injected_packages = {"injected": TEST_PACKAGE2}
-
     pipx_metadata.write()
-    del pipx_metadata
 
     pipx_metadata2 = PipxMetadata(tmp_path)
-    assert pipx_metadata2.main_package == TEST_PACKAGE1
-    assert pipx_metadata2.python_version == "3.4.5"
-    assert pipx_metadata2.venv_args == ["--system-site-packages"]
-    assert pipx_metadata2.injected_packages == {"injected": TEST_PACKAGE2}
+    assert pipx_metadata2 = pipx_metadata
 
 
 def test_pipx_metadata_file_validation(tmp_path):
