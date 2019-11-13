@@ -154,5 +154,4 @@ class PipxMetadata:
                         width=79,
                     )
                 )
-            self.reset()
             return
