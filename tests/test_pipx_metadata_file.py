@@ -83,8 +83,8 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     assert pipx_metadata.main_package.package == "pycowsay"
     assert pipx_metadata.main_package.package_or_url == "pycowsay"
     assert pipx_metadata.main_package.pip_args == []
-    assert pipx_metadata.main_package.include_dependencies == False  # noqa: E712
-    assert pipx_metadata.main_package.include_apps == True  # noqa: E712
+    assert pipx_metadata.main_package.include_dependencies is False
+    assert pipx_metadata.main_package.include_apps is True
     if pipx.constants.WINDOWS:
         assert pipx_metadata.main_package.apps == ["pycowsay", "pycowsay.exe"]
         assert pipx_metadata.main_package.app_paths == [
@@ -108,10 +108,8 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     assert pipx_metadata.injected_packages["black"].package == "black"
     assert pipx_metadata.injected_packages["black"].package_or_url == "black"
     assert pipx_metadata.injected_packages["black"].pip_args == []
-    assert (
-        pipx_metadata.injected_packages["black"].include_dependencies == False
-    )  # noqa: E712
-    assert pipx_metadata.injected_packages["black"].include_apps == False  # noqa: E712
+    assert pipx_metadata.injected_packages["black"].include_dependencies is False
+    assert pipx_metadata.injected_packages["black"].include_apps is False
     if pipx.constants.WINDOWS:
         # order is not important, so we compare sets
         assert isinstance(pipx_metadata.injected_packages["black"].apps, list)
