@@ -197,7 +197,7 @@ class Venv:
         )
 
         # Verify package installed ok
-        print("package")
+        print("package") #
         print(package)
         if self.package_metadata[package].package_version is None:
             raise PackageInstallFailureError
