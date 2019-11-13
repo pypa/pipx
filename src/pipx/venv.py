@@ -185,8 +185,6 @@ class Venv:
 
         if package is None:
             installed_packages = self.list_installed_packages() - old_package_set
-            print("installed_packages")
-            print(installed_packages)
             package = self.top_of_deptree(installed_packages)
 
         self._update_package_metadata(
@@ -199,7 +197,7 @@ class Venv:
         )
 
         # Verify package installed ok
-        print("package")
+        print("package") #
         print(package)
         if self.package_metadata[package].package_version is None:
             raise PackageInstallFailureError
