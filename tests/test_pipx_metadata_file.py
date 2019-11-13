@@ -117,6 +117,7 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     if pipx.constants.WINDOWS:
         # order is not important, so we compare sets
         assert isinstance(pipx_metadata.injected_packages["black"].apps, list)
+        # TODO: Issue #217 - Windows should not have non-exe black, blackd
         assert set(pipx_metadata.injected_packages["black"].apps) == {
             "black",
             "black.exe",
