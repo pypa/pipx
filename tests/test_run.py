@@ -49,21 +49,23 @@ def test_run_script_from_internet(pipx_temp_env, capsys):
 def test_run_ensure_null_pythonpath():
     env = os.environ.copy()
     env["PYTHONPATH"] = "test"
-    assert (
-        "None"
-        in subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "pipx",
-                "run",
-                "ipython",
-                "-c",
-                "import os; print(os.environ.get('PYTHONPATH'))",
-            ],
-            universal_newlines=True,
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ).stdout
+    test_command = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pipx",
+            "run",
+            "ipython",
+            "-c",
+            "import os; print(os.environ.get('PYTHONPATH'))",
+        ],
+        universal_newlines=True,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
+    print("test_command.stdout")
+    print(test_command.stdout)
+    print("test_command.stderr")
+    print(test_command.stderr)
+    assert "None" in test_command.stdout
