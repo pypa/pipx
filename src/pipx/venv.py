@@ -279,8 +279,8 @@ class Venv:
 
     def top_of_deptree(self, packages: Iterable[str]) -> str:
         cmd = [str(self.python_path), "-m", "pip", "show"] + list(packages)
-        cmd_run = subprocess.run(cmd, stdout=subprocess.PIPE)
-        pip_show_stdout = cmd_run.stdout.decode().strip()
+        cmd_run = subprocess.run(cmd, stdout=subprocess.PIPE, universal_newlines=True)
+        pip_show_stdout = cmd_run.stdout
 
         for line in pip_show_stdout.split("\n"):
             key_value_re = re.search(r"^([^:]+):\s(.*)", line)
