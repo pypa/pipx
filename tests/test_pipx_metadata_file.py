@@ -44,28 +44,37 @@ def test_pipx_metadata_file_create(tmp_path):
     pipx_metadata.write()
 
     pipx_metadata2 = PipxMetadata(tmp_path)
-    assert pipx_metadata2 = pipx_metadata
+
+    for attribute in [
+        "venv_dir",
+        "main_package",
+        "python_version",
+        "venv_args",
+        "injected_packages",
+    ]:
+        assert getattr(pipx_metadata, attribute) == getattr(pipx_metadata2, attribute)
 
 
-def test_pipx_metadata_file_validation(tmp_path):
-    venv_dir1 = tmp_path / "venv1"
-    venv_dir1.mkdir()
-    venv_dir2 = tmp_path / "venv2"
-    venv_dir2.mkdir()
+@pytest.mark.parametrize(
+    "test_package",
+    [
+        TEST_PACKAGE1._replace(include_apps=False),
+        TEST_PACKAGE1._replace(package=None),
+        TEST_PACKAGE1._replace(package_or_url=None),
+    ],
+)
+def test_pipx_metadata_file_validation(tmp_path, test_package):
+    venv_dir = tmp_path / "venv"
+    venv_dir.mkdir()
 
-    test_package1 = TEST_PACKAGE1._replace(include_apps=False)
-    test_package2 = TEST_PACKAGE1._replace(package=None)
-    test_package3 = TEST_PACKAGE1._replace(package_or_url=None)
+    pipx_metadata = PipxMetadata(venv_dir)
+    pipx_metadata.main_package = test_package
+    pipx_metadata.python_version = "3.4.5"
+    pipx_metadata.venv_args = ["--system-site-packages"]
+    pipx_metadata.injected_packages = {}
 
-    for test_package in [test_package1, test_package2, test_package3]:
-        pipx_metadata = PipxMetadata(venv_dir1)
-        pipx_metadata.main_package = test_package
-        pipx_metadata.python_version = "3.4.5"
-        pipx_metadata.venv_args = ["--system-site-packages"]
-        pipx_metadata.injected_packages = {}
-
-        with pytest.raises(PipxError):
-            pipx_metadata.write()
+    with pytest.raises(PipxError):
+        pipx_metadata.write()
 
 
 def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
