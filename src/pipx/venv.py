@@ -278,8 +278,6 @@ class Venv:
         return set([x["name"] for x in pip_list])
 
     def top_of_deptree(self, packages: Iterable[str]) -> str:
-        top_package_name = ""
-
         cmd = [str(self.python_path), "-m", "pip", "show"] + list(packages)
         cmd_run = subprocess.run(cmd, stdout=subprocess.PIPE)
         pip_show_stdout = cmd_run.stdout.decode().strip()
@@ -292,10 +290,9 @@ class Venv:
                 if key == "Name":
                     package_name = value
                 if key == "Required-by" and value == "":
-                    top_package_name = package_name
-                    break
+                    return package_name
 
-        return top_package_name
+        return ""
 
     def run_app(self, app: str, app_args: List[str]) -> int:
         cmd = [str(self.bin_path / app)] + app_args
