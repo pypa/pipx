@@ -125,7 +125,6 @@ def assert_package_metadata(test_metadata, ref_metadata):
 def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     pipx_venvs_dir = pipx.constants.PIPX_HOME / "venvs"
 
-    # test metadata after package install
     run_pipx_cli(["install", "pycowsay"])
     assert (pipx_venvs_dir / "pycowsay" / "pipx_metadata.json").is_file()
 
@@ -145,12 +144,17 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
         PYCOWSAY_PACKAGE_REF._replace(include_apps=True, **ref_replacement_fields),
     )
 
-    del pipx_metadata
 
-    # test metadata after package inject
+def test_package_inject(monkeypatch, tmp_path, pipx_temp_env):
+    pipx_venvs_dir = pipx.constants.PIPX_HOME / "venvs"
+
+    run_pipx_cli(["install", "pycowsay"])
     run_pipx_cli(["inject", "pycowsay", "black"])
+    assert (pipx_venvs_dir / "pycowsay" / "pipx_metadata.json").is_file()
 
     pipx_metadata = PipxMetadata(pipx_venvs_dir / "pycowsay")
+
+    assert pipx_metadata.injected_packages.keys() == ["black"]
 
     if pipx.constants.WINDOWS:
         ref_replacement_fields = {
