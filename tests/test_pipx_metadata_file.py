@@ -150,10 +150,8 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
             BLACK_PACKAGE_REF._replace(
                 apps=["black", "black.exe", "blackd", "blackd.exe"],
                 app_paths=[
-                    pipx_venvs_dir / "pycowsay" / "bin" / "black",
-                    pipx_venvs_dir / "pycowsay" / "bin" / "black.exe",
-                    pipx_venvs_dir / "pycowsay" / "bin" / "blackd",
-                    pipx_venvs_dir / "pycowsay" / "bin" / "blackd.exe",
+                    pipx_venvs_dir / "pycowsay" / "Scripts" / "black.exe",
+                    pipx_venvs_dir / "pycowsay" / "Scripts" / "blackd.exe",
                 ],
                 include_apps=False,
             ),
