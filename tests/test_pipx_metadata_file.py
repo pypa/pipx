@@ -104,67 +104,71 @@ def test_pipx_metadata_file_validation(tmp_path, test_package):
 
 
 def assert_package_metadata(test_metadata, ref_metadata):
+    # update package version of ref with recent package version
+    # only compare sets for apps, app_paths so order is not important
+
     assert test_metadata.package_version != ""
-    assert test_metadata == ref_metadata._replace(
-        package_version=test_metadata.package_version
+    assert isinstance(test_metadata.apps, list)
+    assert isinstance(test_metadata.app_paths, list)
+
+    test_metadata_replaced = test_metadata._replace(
+        apps=set(test_metadata.apps), app_paths=set(test_metadata.apps)
     )
+    ref_metadata_replaced = ref_metadata._replace(
+        apps=set(ref_metadata.apps),
+        app_paths=set(ref_metadata.apps),
+        package_version=test_metadata.package_version,
+    )
+    assert test_metadata_replaced == ref_metadata_replaced
 
 
 def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     pipx_venvs_dir = pipx.constants.PIPX_HOME / "venvs"
 
+    # test metadata after package install
     run_pipx_cli(["install", "pycowsay"])
     assert (pipx_venvs_dir / "pycowsay" / "pipx_metadata.json").is_file()
 
     pipx_metadata = PipxMetadata(pipx_venvs_dir / "pycowsay")
 
     if pipx.constants.WINDOWS:
-        assert_package_metadata(
-            pipx_metadata.main_package,
-            PYCOWSAY_PACKAGE_REF._replace(
-                app_paths=[pipx_venvs_dir / "pycowsay" / "Scripts" / "pycowsay.exe"],
-                apps=["pycowsay", "pycowsay.exe"],
-                include_apps=True,
-            ),
-        )
+        ref_replacement_fields = {
+            "app_paths": [pipx_venvs_dir / "pycowsay" / "Scripts" / "pycowsay.exe"],
+            "apps": ["pycowsay", "pycowsay.exe"],
+        }
     else:
-        assert_package_metadata(
-            pipx_metadata.main_package,
-            PYCOWSAY_PACKAGE_REF._replace(
-                app_paths=[pipx_venvs_dir / "pycowsay" / "bin" / "pycowsay"],
-                include_apps=True,
-            ),
-        )
+        ref_replacement_fields = {
+            "app_paths": [pipx_venvs_dir / "pycowsay" / "bin" / "pycowsay"]
+        }
+    assert_package_metadata(
+        pipx_metadata.main_package,
+        PYCOWSAY_PACKAGE_REF._replace(include_apps=True, **ref_replacement_fields),
+    )
 
     del pipx_metadata
 
-    # test package injection
-
+    # test metadata after package inject
     run_pipx_cli(["inject", "pycowsay", "black"])
 
     pipx_metadata = PipxMetadata(pipx_venvs_dir / "pycowsay")
 
     if pipx.constants.WINDOWS:
-        assert_package_metadata(
-            pipx_metadata.injected_packages["black"],
-            BLACK_PACKAGE_REF._replace(
-                apps=["black", "black.exe", "blackd", "blackd.exe"],
-                app_paths=[
-                    pipx_venvs_dir / "pycowsay" / "Scripts" / "black.exe",
-                    pipx_venvs_dir / "pycowsay" / "Scripts" / "blackd.exe",
-                ],
-                include_apps=False,
-            ),
-        )
+        ref_replacement_fields = {
+            "apps": ["black", "black.exe", "blackd", "blackd.exe"],
+            "app_paths": [
+                pipx_venvs_dir / "pycowsay" / "Scripts" / "black.exe",
+                pipx_venvs_dir / "pycowsay" / "Scripts" / "blackd.exe",
+            ],
+        }
     else:
-        assert_package_metadata(
-            pipx_metadata.injected_packages["black"],
-            BLACK_PACKAGE_REF._replace(
-                apps=["black", "blackd"],
-                app_paths=[
-                    pipx_venvs_dir / "pycowsay" / "bin" / "black",
-                    pipx_venvs_dir / "pycowsay" / "bin" / "blackd",
-                ],
-                include_apps=False,
-            ),
-        )
+        ref_replacement_fields = {
+            "apps": ["black", "blackd"],
+            "app_paths": [
+                pipx_venvs_dir / "pycowsay" / "bin" / "black",
+                pipx_venvs_dir / "pycowsay" / "bin" / "blackd",
+            ],
+        }
+    assert_package_metadata(
+        pipx_metadata.injected_packages["black"],
+        BLACK_PACKAGE_REF._replace(include_apps=False, **ref_replacement_fields),
+    )
