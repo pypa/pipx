@@ -155,7 +155,7 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
                     pipx_venvs_dir / "pycowsay" / "bin" / "blackd",
                     pipx_venvs_dir / "pycowsay" / "bin" / "blackd.exe",
                 ],
-                include_apps=False
+                include_apps=False,
             ),
         )
     else:
