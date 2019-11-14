@@ -154,7 +154,7 @@ def test_package_inject(monkeypatch, tmp_path, pipx_temp_env):
 
     pipx_metadata = PipxMetadata(pipx_venvs_dir / "pycowsay")
 
-    assert pipx_metadata.injected_packages.keys() == ["black"]
+    assert pipx_metadata.injected_packages.keys() == {"black"}
 
     if pipx.constants.WINDOWS:
         ref_replacement_fields = {
