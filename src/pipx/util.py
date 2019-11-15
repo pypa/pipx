@@ -108,7 +108,7 @@ def run_subprocess(
         env=env,
         stdout=subprocess.PIPE if capture_stdout else None,
         stderr=subprocess.PIPE if capture_stderr else None,
-        universal_newlines=True,  # implies encoded strings in stdout, stderr
+        universal_newlines=True,  # implies decoded strings in stdout, stderr
     )
 
 
