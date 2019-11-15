@@ -116,7 +116,7 @@ def run(cmd: Sequence[Union[str, Path]], check=True) -> int:
     """Run arbitrary command as subprocess"""
 
     returncode = run_subprocess(
-        cmd_str_list, capture_stdout=False, capture_stderr=False
+        cmd, capture_stdout=False, capture_stderr=False
     ).returncode
 
     if check and returncode:
