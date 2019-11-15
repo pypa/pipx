@@ -67,3 +67,33 @@ def test_run_ensure_null_pythonpath():
             stderr=subprocess.PIPE,
         ).stdout
     )
+
+
+@pytest.mark.parametrize(
+    "package, package_or_url, app_args",
+    [
+        ("pycowsay", "pycowsay", ["pycowsay", "hello"]),
+        ("black", "black", ["black", "--help"]),
+        ("cloudtoken", "cloudtoken", ["cloudtoken", "--help"]),
+        ("awscli", "awscli", ["aws", "--help"]),
+        ("shell-functools", "shell-functools", ["filter", "--help"]),
+        ("pylint", "pylint", ["pylint", "--help"]),
+        ("kaggle", "kaggle", ["kaggle", "--help"]),
+        ("ipython", "ipython", ["ipython", "--version"]),
+        # ("ansible", "ansible", ["ansible", "--help"]), # takes too long
+    ],
+)
+def test_package_determination(
+    caplog, pipx_temp_env, package, package_or_url, app_args
+):
+    caplog.set_level(logging.INFO)  # "root.venv")
+
+    run_pipx_cli(["run", "--verbose", "--spec", package_or_url, "--"] + app_args)
+
+    print(f"package={package}")
+    print(f"package_or_url={package_or_url}")
+    print(f"app_args={app_args}")
+    print("caplog.text")
+    print(caplog.text)
+    assert "Cannot determine package name" not in caplog.text
+    assert f"Determined package name: '{package}'" in caplog.text
