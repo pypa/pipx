@@ -2,7 +2,6 @@ import json
 import logging
 import pkgutil
 import re
-import subprocess
 from pathlib import Path
 from typing import Generator, List, NamedTuple, Dict, Set, Optional
 
@@ -269,20 +268,15 @@ class Venv:
         self.pipx_metadata.write()
 
     def get_python_version(self) -> str:
-        return (
-            subprocess.run([str(self.python_path), "--version"], stdout=subprocess.PIPE)
-            .stdout.decode()
-            .strip()
-        )
+        return run_stdout_stderr([str(self.python_path), "--version"]).stdout.strip()
 
     def pip_search(self, search_term: str, pip_search_args: List[str]) -> str:
-        cmd = (
+        cmd_run = run_stdout_stderr(
             [str(self.python_path), "-m", "pip", "search"]
             + pip_search_args
             + [search_term]
         )
-        cmd_run = subprocess.run(cmd, stdout=subprocess.PIPE)
-        return cmd_run.stdout.decode().strip()
+        return cmd_run.stdout.strip()
 
     def list_installed_packages(self) -> Set[str]:
         cmd_run = run_stdout_stderr(
