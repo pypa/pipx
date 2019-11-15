@@ -119,6 +119,8 @@ def run(cmd: Sequence[Union[str, Path]], check=True) -> int:
         cmd, capture_stdout=False, capture_stderr=False
     ).returncode
 
+    cmd_str = " ".join(str(c) for c in cmd)
+
     if check and returncode:
         raise PipxError(f"{cmd_str!r} failed")
     return returncode
