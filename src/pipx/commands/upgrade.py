@@ -58,7 +58,7 @@ def upgrade(
         include_apps=include_apps,
         is_main_package=True,
     )
-    # TODO 20191026: Should we upgrade injected packages also?
+    # TODO 20191026: upgrade injected packages also (Issue #79)
 
     package_metadata = venv.package_metadata[package]
     new_version = package_metadata.package_version
@@ -108,7 +108,6 @@ def upgrade_all(
                 upgrading_all=True,
                 force=force,
             )
-        # TODO 20191024: Upgrade injected packages
 
         except Exception:
             logging.error(f"Error encountered when upgrading {package}")
