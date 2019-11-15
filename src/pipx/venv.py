@@ -4,7 +4,7 @@ import pkgutil
 import re
 import subprocess
 from pathlib import Path
-from typing import Generator, List, NamedTuple, Dict, Set, Optional, Iterable
+from typing import Generator, List, NamedTuple, Dict, Set, Optional
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH, WINDOWS
