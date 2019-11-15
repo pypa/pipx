@@ -98,6 +98,9 @@ def run_subprocess(
 ) -> subprocess.CompletedProcess:
     """Run arbitrary command as subprocess, capturing stderr and stout"""
 
+    # Null out PYTHONPATH because some platforms (macOS with Homebrew) add
+    #   pipx directories to it, and can make it appear to venvs as though
+    #   pipx dependencies are in the venv path (#233)
     env = {k: v for k, v in os.environ.items() if k.upper() != "PYTHONPATH"}
     cmd_str = " ".join(str(c) for c in cmd)
     logging.info(f"running {cmd_str}")
