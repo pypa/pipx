@@ -69,24 +69,25 @@ def test_run_ensure_null_pythonpath():
     )
 
 
+# packages listed roughly in order of increasing test duration
 @pytest.mark.parametrize(
     "package, package_or_url, app_args",
     [
         ("pycowsay", "pycowsay", ["pycowsay", "hello"]),
-        ("black", "black", ["black", "--help"]),
-        ("cloudtoken", "cloudtoken", ["cloudtoken", "--help"]),
-        ("awscli", "awscli", ["aws", "--help"]),
         ("shell-functools", "shell-functools", ["filter", "--help"]),
+        ("black", "black", ["black", "--help"]),
         ("pylint", "pylint", ["pylint", "--help"]),
         ("kaggle", "kaggle", ["kaggle", "--help"]),
         ("ipython", "ipython", ["ipython", "--version"]),
+        ("cloudtoken", "cloudtoken", ["cloudtoken", "--help"]),
+        ("awscli", "awscli", ["aws", "--help"]),
         # ("ansible", "ansible", ["ansible", "--help"]), # takes too long
     ],
 )
 def test_package_determination(
     caplog, pipx_temp_env, package, package_or_url, app_args
 ):
-    caplog.set_level(logging.INFO)  # "root.venv")
+    caplog.set_level(logging.INFO)
 
     run_pipx_cli(["run", "--verbose", "--spec", package_or_url, "--"] + app_args)
 
