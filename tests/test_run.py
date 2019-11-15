@@ -91,10 +91,5 @@ def test_package_determination(
 
     run_pipx_cli(["run", "--verbose", "--spec", package_or_url, "--"] + app_args)
 
-    print(f"package={package}")
-    print(f"package_or_url={package_or_url}")
-    print(f"app_args={app_args}")
-    print("caplog.text")
-    print(caplog.text)
     assert "Cannot determine package name" not in caplog.text
     assert f"Determined package name: '{package}'" in caplog.text
