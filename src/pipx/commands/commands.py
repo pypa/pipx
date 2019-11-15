@@ -3,7 +3,6 @@
 import datetime
 import hashlib
 import logging
-import multiprocessing
 import shlex
 import shutil
 import subprocess
@@ -15,6 +14,19 @@ import urllib.request
 from pathlib import Path
 from shutil import which
 from typing import List
+
+try:
+    # Instantiating a Pool() attempts to import multiprocessing.synchronize,
+    # which fails if the underlying OS does not support semaphores.
+    # Here, we import ahead of time to decide which Pool implementation to use:
+    # one backed by Processes (the default), or one backed by Threads
+    import multiprocessing.synchronize  # noqa: F401
+except ImportError:
+    # Fallback to Threads on platforms that do not support semaphores
+    # https://github.com/pipxproject/pipx/issues/229
+    from multiprocessing.dummy import Pool
+else:
+    from multiprocessing import Pool
 
 import userpath  # type: ignore
 from pipx import constants
@@ -574,7 +586,7 @@ def list_packages(venv_container: VenvContainer):
 
     venv_container.verify_shared_libs()
 
-    with multiprocessing.Pool() as p:
+    with Pool() as p:
         for package_summary in p.map(_get_package_summary, dirs):
             print(package_summary)
 
