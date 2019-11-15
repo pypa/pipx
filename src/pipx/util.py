@@ -103,3 +103,26 @@ def run(cmd: Sequence[Union[str, Path]], check=True) -> int:
     if check and returncode:
         raise PipxError(f"{cmd_str!r} failed")
     return returncode
+
+
+def run_stdout_stderr(
+    cmd: Sequence[Union[str, Path]], check=True
+) -> subprocess.CompletedProcess:
+    """Run arbitrary command as subprocess, capturing stderr and stout"""
+
+    env = {k: v for k, v in os.environ.items() if k.upper() != "PYTHONPATH"}
+    cmd_str = " ".join(str(c) for c in cmd)
+    logging.info(f"running {cmd_str}")
+    # windows cannot take Path objects, only strings
+    cmd_str_list = [str(c) for c in cmd]
+    command_obj = subprocess.run(
+        cmd_str_list,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,  # implies encoded strings in stdout, stderr
+    )
+    returncode = command_obj.returncode
+    if check and returncode:
+        raise PipxError(f"{cmd_str!r} failed")
+    return command_obj

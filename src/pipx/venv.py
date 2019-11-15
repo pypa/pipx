@@ -17,6 +17,7 @@ from pipx.util import (
     get_venv_paths,
     rmdir,
     run,
+    run_stdout_stderr,
 )
 
 
@@ -284,9 +285,10 @@ class Venv:
         return cmd_run.stdout.decode().strip()
 
     def list_installed_packages(self) -> Set[str]:
-        cmd = [str(self.python_path), "-m", "pip", "list", "--format=json"]
-        cmd_run = subprocess.run(cmd, stdout=subprocess.PIPE)
-        pip_list = json.loads(cmd_run.stdout.decode().strip())
+        cmd_run = run_stdout_stderr(
+            [str(self.python_path), "-m", "pip", "list", "--format=json"]
+        )
+        pip_list = json.loads(cmd_run.stdout.strip())
         return set([x["name"] for x in pip_list])
 
     def run_app(self, app: str, app_args: List[str]) -> int:
