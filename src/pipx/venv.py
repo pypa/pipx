@@ -16,7 +16,7 @@ from pipx.util import (
     get_venv_paths,
     rmdir,
     run,
-    run_stdout_stderr,
+    run_subprocess,
 )
 
 
@@ -268,10 +268,10 @@ class Venv:
         self.pipx_metadata.write()
 
     def get_python_version(self) -> str:
-        return run_stdout_stderr([str(self.python_path), "--version"]).stdout.strip()
+        return run_subprocess([str(self.python_path), "--version"]).stdout.strip()
 
     def pip_search(self, search_term: str, pip_search_args: List[str]) -> str:
-        cmd_run = run_stdout_stderr(
+        cmd_run = run_subprocess(
             [str(self.python_path), "-m", "pip", "search"]
             + pip_search_args
             + [search_term]
@@ -279,7 +279,7 @@ class Venv:
         return cmd_run.stdout.strip()
 
     def list_installed_packages(self) -> Set[str]:
-        cmd_run = run_stdout_stderr(
+        cmd_run = run_subprocess(
             [str(self.python_path), "-m", "pip", "list", "--format=json"]
         )
         pip_list = json.loads(cmd_run.stdout.strip())
