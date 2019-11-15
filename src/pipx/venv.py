@@ -172,20 +172,32 @@ class Venv:
         include_apps: bool,
         is_main_package: bool,
     ) -> None:
-        if package is None:
-            # If no package name is supplied, find out package name installed
-            #   by comparing old_package_set with new one after install
-            old_package_set = self.list_installed_packages()
 
         with animate(f"installing package {package_or_url!r}", self.do_animation):
             if pip_args is None:
                 pip_args = []
+            if package is None:
+                # If no package name is supplied, install only main package
+                #   first in order to see what its name is
+                old_package_set = self.list_installed_packages()
+                cmd = ["install"] + pip_args + ["--no-dependencies"] + [package_or_url]
+                self._run_pip(cmd)
+                installed_packages = self.list_installed_packages() - old_package_set
+                if len(installed_packages) == 1:
+                    package = installed_packages.pop()
+                    logging.info(f"Determined package name: '{package}'")
+                else:
+                    package = None
             cmd = ["install"] + pip_args + [package_or_url]
             self._run_pip(cmd)
 
         if package is None:
-            installed_packages = self.list_installed_packages() - old_package_set
-            package = self.top_of_deptree(installed_packages)
+            logging.warning(
+                f"Cannot determine package name for package_or_url='{package_or_url}'. "
+                f"Unable to retrieve package metadata. "
+                f"Unable to verify if package was installed properly."
+            )
+            return
 
         self._update_package_metadata(
             package=package,
@@ -276,23 +288,6 @@ class Venv:
         cmd_run = subprocess.run(cmd, stdout=subprocess.PIPE)
         pip_list = json.loads(cmd_run.stdout.decode().strip())
         return set([x["name"] for x in pip_list])
-
-    def top_of_deptree(self, packages: Iterable[str]) -> str:
-        cmd = [str(self.python_path), "-m", "pip", "show"] + list(packages)
-        cmd_run = subprocess.run(cmd, stdout=subprocess.PIPE, universal_newlines=True)
-        pip_show_stdout = cmd_run.stdout
-
-        for line in pip_show_stdout.split("\n"):
-            key_value_re = re.search(r"^([^:]+):\s(.*)", line)
-            if key_value_re:
-                key = key_value_re.group(1)
-                value = key_value_re.group(2)
-                if key == "Name":
-                    package_name = value
-                if key == "Required-by" and value == "":
-                    return package_name
-
-        return ""
 
     def run_app(self, app: str, app_args: List[str]) -> int:
         cmd = [str(self.bin_path / app)] + app_args
