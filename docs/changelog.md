@@ -2,7 +2,7 @@ dev
 
 - Handle missing interpreters more gracefully (#146)
 - Change `reinstall-all` to use system python by default for apps.  Now use `--python` option to specify a different python version.
-- Remove the PYTHONPATH environment variable when executing any command to prevent conflicts between pipx dependencies and package dependenies when pipx is installed via homebrew. Homebrew can use pythonpath manipulation instead of virtual environments. (#233)
+- Remove the PYTHONPATH environment variable when executing any command to prevent conflicts between pipx dependencies and package dependencies when pipx is installed via homebrew. Homebrew can use pythonpath manipulation instead of virtual environments. (#233)
 
 0.14.0.0
 
