@@ -1,12 +1,13 @@
 import json
 import logging
 import pkgutil
-import subprocess
+import re
 from pathlib import Path
-from typing import Dict, Generator, List, NamedTuple
+from typing import Generator, List, NamedTuple, Dict, Set, Optional
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH, WINDOWS
+from pipx.pipx_metadata_file import PipxMetadata, PackageInfo
 from pipx.shared_libs import shared_libs
 from pipx.util import (
     PipxError,
@@ -15,7 +16,12 @@ from pipx.util import (
     get_venv_paths,
     rmdir,
     run,
+    run_subprocess,
 )
+
+
+class PackageInstallFailureError(Exception):
+    pass
 
 
 class VenvContainer:
@@ -49,7 +55,7 @@ class VenvContainer:
             Venv(p)
 
 
-class PipxVenvMetadata(NamedTuple):
+class VenvMetadata(NamedTuple):
     apps: List[str]
     app_paths: List[Path]
     apps_of_dependencies: List[str]
@@ -75,6 +81,7 @@ class Venv:
         self.root = path
         self._python = python
         self.bin_path, self.python_path = get_venv_paths(self.root)
+        self.pipx_metadata = PipxMetadata(venv_dir=path)
         self.verbose = verbose
         self.do_animation = not verbose
         try:
@@ -99,13 +106,22 @@ class Venv:
                 )
 
     @property
-    def uses_shared_libs(self):
+    def uses_shared_libs(self) -> bool:
         if self._existing:
             pth_files = self.root.glob("**/" + PIPX_SHARED_PTH)
             return next(pth_files, None) is not None
         else:
             # always use shared libs when creating a new venv
             return True
+
+    @property
+    def package_metadata(self) -> Dict[str, PackageInfo]:
+        return_dict = self.pipx_metadata.injected_packages.copy()
+        if self.pipx_metadata.main_package.package is not None:
+            return_dict[
+                self.pipx_metadata.main_package.package
+            ] = self.pipx_metadata.main_package
+        return return_dict
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
@@ -123,6 +139,9 @@ class Venv:
         # A path configuration file is a file whose name has the form 'name.pth'.
         # its contents are additional items (one per line) to be added to sys.path
         pipx_pth.write_text(str(shared_libs.site_packages) + "\n", encoding="utf-8")
+
+        self.pipx_metadata.venv_args = venv_args
+        self.pipx_metadata.python_version = self.get_python_version()
 
     def safe_to_remove(self) -> bool:
         return not self._existing
@@ -142,16 +161,58 @@ class Venv:
         else:
             # TODO: setuptools and wheel? Original code didn't bother
             # but shared libs code does.
-            self.upgrade_package("pip", pip_args)
+            self._upgrade_package_no_metadata("pip", pip_args)
 
-    def install_package(self, package_or_url: str, pip_args: List[str]) -> None:
+    def install_package(
+        self,
+        package: Optional[str],  # if None, will be determined in this function
+        package_or_url: str,
+        pip_args: List[str],
+        include_dependencies: bool,
+        include_apps: bool,
+        is_main_package: bool,
+    ) -> None:
+
         with animate(f"installing package {package_or_url!r}", self.do_animation):
             if pip_args is None:
                 pip_args = []
+            if package is None:
+                # If no package name is supplied, install only main package
+                #   first in order to see what its name is
+                old_package_set = self.list_installed_packages()
+                cmd = ["install"] + pip_args + ["--no-dependencies"] + [package_or_url]
+                self._run_pip(cmd)
+                installed_packages = self.list_installed_packages() - old_package_set
+                if len(installed_packages) == 1:
+                    package = installed_packages.pop()
+                    logging.info(f"Determined package name: '{package}'")
+                else:
+                    package = None
             cmd = ["install"] + pip_args + [package_or_url]
             self._run_pip(cmd)
 
-    def get_venv_metadata_for_package(self, package: str) -> PipxVenvMetadata:
+        if package is None:
+            logging.warning(
+                f"Cannot determine package name for package_or_url='{package_or_url}'. "
+                f"Unable to retrieve package metadata. "
+                f"Unable to verify if package was installed properly."
+            )
+            return
+
+        self._update_package_metadata(
+            package=package,
+            package_or_url=package_or_url,
+            pip_args=pip_args,
+            include_dependencies=include_dependencies,
+            include_apps=include_apps,
+            is_main_package=is_main_package,
+        )
+
+        # Verify package installed ok
+        if self.package_metadata[package].package_version is None:
+            raise PackageInstallFailureError
+
+    def get_venv_metadata_for_package(self, package: str) -> VenvMetadata:
         data = json.loads(
             get_script_output(
                 self.python_path, VENV_METADATA_INSPECTOR, package, str(self.bin_path)
@@ -175,28 +236,149 @@ class Venv:
             data["app_paths_of_dependencies"][dep] = paths
             data["apps_of_dependencies"] += [path.name for path in paths]
 
-        return PipxVenvMetadata(**data)
+        return VenvMetadata(**data)
+
+    def _update_package_metadata(
+        self,
+        package: str,
+        package_or_url: str,
+        pip_args: List[str],
+        include_dependencies: bool,
+        include_apps: bool,
+        is_main_package: bool,
+    ) -> None:
+        venv_package_metadata = self.get_venv_metadata_for_package(package)
+        package_info = PackageInfo(
+            package=package,
+            package_or_url=abs_path_if_local(package_or_url, self, pip_args),
+            pip_args=pip_args,
+            include_apps=include_apps,
+            include_dependencies=include_dependencies,
+            apps=venv_package_metadata.apps,
+            app_paths=venv_package_metadata.app_paths,
+            apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
+            app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
+            package_version=venv_package_metadata.package_version,
+        )
+        if is_main_package:
+            self.pipx_metadata.main_package = package_info
+        else:
+            self.pipx_metadata.injected_packages[package] = package_info
+
+        self.pipx_metadata.write()
 
     def get_python_version(self) -> str:
-        return (
-            subprocess.run([str(self.python_path), "--version"], stdout=subprocess.PIPE)
-            .stdout.decode()
-            .strip()
-        )
+        return run_subprocess([str(self.python_path), "--version"]).stdout.strip()
 
-    def run_app(self, app: str, app_args: List[str]):
+    def pip_search(self, search_term: str, pip_search_args: List[str]) -> str:
+        cmd_run = run_subprocess(
+            [str(self.python_path), "-m", "pip", "search"]
+            + pip_search_args
+            + [search_term]
+        )
+        return cmd_run.stdout.strip()
+
+    def list_installed_packages(self) -> Set[str]:
+        cmd_run = run_subprocess(
+            [str(self.python_path), "-m", "pip", "list", "--format=json"]
+        )
+        pip_list = json.loads(cmd_run.stdout.strip())
+        return set([x["name"] for x in pip_list])
+
+    def run_app(self, app: str, app_args: List[str]) -> int:
         cmd = [str(self.bin_path / app)] + app_args
         try:
             return run(cmd, check=False)
         except KeyboardInterrupt:
-            pass
+            return 130  # shell code for Ctrl-C
 
-    def upgrade_package(self, package_or_url: str, pip_args: List[str]):
+    def _upgrade_package_no_metadata(
+        self, package_or_url: str, pip_args: List[str]
+    ) -> None:
         with animate(f"upgrading package {package_or_url!r}", self.do_animation):
             self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
 
-    def _run_pip(self, cmd):
-        cmd = [self.python_path, "-m", "pip"] + cmd
+    def upgrade_package(
+        self,
+        package: str,
+        package_or_url: str,
+        pip_args: List[str],
+        include_dependencies: bool,
+        include_apps: bool,
+        is_main_package: bool,
+    ) -> None:
+        with animate(f"upgrading package {package_or_url!r}", self.do_animation):
+            self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
+
+        self._update_package_metadata(
+            package=package,
+            package_or_url=package_or_url,
+            pip_args=pip_args,
+            include_dependencies=include_dependencies,
+            include_apps=include_apps,
+            is_main_package=is_main_package,
+        )
+
+    def _run_pip(self, cmd: List[str]) -> int:
+        cmd = [str(self.python_path), "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
         return run(cmd)
+
+
+def abs_path_if_local(package_or_url: str, venv: Venv, pip_args: List[str]) -> str:
+    """Return the absolute path if package_or_url represents a filepath
+    and not a pypi package
+    """
+    pkg_path = Path(package_or_url)
+    if not pkg_path.exists():
+        # no existing path, must be pypi package or non-existent
+        return package_or_url
+
+    # Editable packages are either local or url, non-url must be local.
+    # https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs
+    if "--editable" in pip_args and pkg_path.exists():
+        return str(pkg_path.resolve())
+
+    # https://www.python.org/dev/peps/pep-0508/#names
+    valid_pkg_name = bool(
+        re.search(r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$", package_or_url, re.I)
+    )
+    if not valid_pkg_name:
+        return str(pkg_path.resolve())
+
+    # If all of the above conditions do not return, we may have used a pypi
+    #   package.
+    # If we find a pypi package with this name installed, assume we just
+    #   installed it.
+    pip_search_args: List[str]
+
+    # If user-defined pypi index url, then use it for search
+    try:
+        arg_i = pip_args.index("--index-url")
+    except ValueError:
+        pip_search_args = []
+    else:
+        pip_search_args = pip_args[arg_i : arg_i + 2]
+
+    pip_search_result_str = venv.pip_search(package_or_url, pip_search_args)
+    pip_search_results = pip_search_result_str.split("\n")
+
+    # Get package_or_url and following related lines from pip search stdout
+    pkg_found = False
+    pip_search_found = []
+    for pip_search_line in pip_search_results:
+        if pkg_found:
+            if re.search(r"^\s", pip_search_line):
+                pip_search_found.append(pip_search_line)
+            else:
+                break
+        elif pip_search_line.startswith(package_or_url):
+            pip_search_found.append(pip_search_line)
+            pkg_found = True
+    pip_found_str = " ".join(pip_search_found)
+
+    if pip_found_str.startswith(package_or_url) and "INSTALLED" in pip_found_str:
+        return package_or_url
+    else:
+        return str(pkg_path.resolve())

@@ -5,7 +5,6 @@ from typing import List
 
 
 from pipx import constants
-from pipx.constants import PIPX_PACKAGE_NAME
 from pipx.emojies import sleep
 from pipx.util import PipxError
 
@@ -16,12 +15,10 @@ from .common import _expose_apps_globally
 def upgrade(
     venv_dir: Path,
     package: str,
-    package_or_url: str,
     pip_args: List[str],
     verbose: bool,
     *,
     upgrading_all: bool,
-    include_dependencies: bool,
     force: bool,
 ) -> int:
     """Returns nonzero if package was upgraded, 0 if version did not change"""
@@ -34,21 +31,44 @@ def upgrade(
 
     venv = Venv(venv_dir, verbose=verbose)
 
-    old_version = venv.get_venv_metadata_for_package(package).package_version
+    package_metadata = venv.package_metadata[package]
+    if package_metadata.package_or_url is not None:
+        package_or_url = package_metadata.package_or_url
+        old_version = package_metadata.package_version
+        include_apps = package_metadata.include_apps
+        include_dependencies = package_metadata.include_dependencies
+    else:
+        # fallback if no metadata
+        package_or_url = package
+        old_version = ""
+        include_apps = True
+        include_dependencies = False
+
+    if package == "pipx":
+        package_or_url = "pipx"
 
     # Upgrade shared libraries (pip, setuptools and wheel)
     venv.upgrade_packaging_libraries(pip_args)
 
-    venv.upgrade_package(package_or_url, pip_args)
-    new_version = venv.get_venv_metadata_for_package(package).package_version
+    venv.upgrade_package(
+        package,
+        package_or_url,
+        pip_args,
+        include_dependencies=include_dependencies,
+        include_apps=include_apps,
+        is_main_package=True,
+    )
+    # TODO 20191026: upgrade injected packages also (Issue #79)
 
-    metadata = venv.get_venv_metadata_for_package(package)
+    package_metadata = venv.package_metadata[package]
+    new_version = package_metadata.package_version
+
     _expose_apps_globally(
-        constants.LOCAL_BIN_DIR, metadata.app_paths, package, force=force
+        constants.LOCAL_BIN_DIR, package_metadata.app_paths, package, force=force
     )
 
     if include_dependencies:
-        for _, app_paths in metadata.app_paths_of_dependencies.items():
+        for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             _expose_apps_globally(
                 constants.LOCAL_BIN_DIR, app_paths, package, force=force
             )
@@ -69,36 +89,26 @@ def upgrade(
 
 
 def upgrade_all(
-    venv_container: VenvContainer,
-    pip_args: List[str],
-    verbose: bool,
-    *,
-    include_dependencies: bool,
-    skip: List[str],
-    force: bool,
+    venv_container: VenvContainer, verbose: bool, *, skip: List[str], force: bool
 ):
     packages_upgraded = 0
     num_packages = 0
     for venv_dir in venv_container.iter_venv_dirs():
         num_packages += 1
         package = venv_dir.name
+        venv = Venv(venv_dir, verbose=verbose)
         if package in skip:
             continue
-        if package == "pipx":
-            package_or_url = PIPX_PACKAGE_NAME
-        else:
-            package_or_url = package
         try:
             packages_upgraded += upgrade(
                 venv_dir,
                 package,
-                package_or_url,
-                pip_args,
+                venv.pipx_metadata.main_package.pip_args,
                 verbose,
                 upgrading_all=True,
-                include_dependencies=include_dependencies,
                 force=force,
             )
+
         except Exception:
             logging.error(f"Error encountered when upgrading {package}")
 
