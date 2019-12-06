@@ -41,7 +41,7 @@ from pipx.util import (
     rmdir,
     run_pypackage_bin,
 )
-from pipx.venv import Venv, VenvContainer
+from pipx.venv import Venv, VenvContainer, PackageInstallFailureError
 
 
 def run(
@@ -126,7 +126,7 @@ def run(
 
 def _download_and_run(
     venv_dir: Path,
-    package: str,
+    package_or_url: str,
     app: str,
     binary_args: List[str],
     python: str,
@@ -136,12 +136,27 @@ def _download_and_run(
 ):
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv(venv_args, pip_args)
-    venv.install_package(package, pip_args)
+
+    # venv.pipx_metadata.main_package.package contains package name if it is
+    #   pre-existing, otherwise is None to instruct venv.install_package to
+    #   determine package name.
+
+    try:
+        venv.install_package(
+            package=venv.pipx_metadata.main_package.package,
+            package_or_url=package_or_url,
+            pip_args=pip_args,
+            include_dependencies=False,
+            include_apps=True,
+            is_main_package=True,
+        )
+    except PackageInstallFailureError:
+        raise PipxError(f"Unable to install {package_or_url}")
 
     if not (venv.bin_path / app).exists():
-        apps = venv.get_venv_metadata_for_package(package).apps
+        apps = venv.pipx_metadata.main_package.apps
         raise PipxError(
-            f"'{app}' executable script not found in package '{package}'. "
+            f"'{app}' executable script not found in package '{package_or_url}'. "
             "Available executable scripts: "
             f"{', '.join(b for b in apps)}"
         )
@@ -229,11 +244,20 @@ def install(
     venv = Venv(venv_dir, python=python, verbose=verbose)
     try:
         venv.create_venv(venv_args, pip_args)
-        venv.install_package(package_or_url, pip_args)
-
-        if venv.get_venv_metadata_for_package(package).package_version is None:
+        try:
+            venv.install_package(
+                package=package,
+                package_or_url=package_or_url,
+                pip_args=pip_args,
+                include_dependencies=include_dependencies,
+                include_apps=True,
+                is_main_package=True,
+            )
+        except PackageInstallFailureError:
             venv.remove_venv()
-            raise PipxError(f"Could not find package {package}. Is the name correct?")
+            raise PipxError(
+                f"Could not install package {package}. Is the name or spec correct?"
+            )
 
         _run_post_install_actions(
             venv, package, local_bin_dir, venv_dir, include_dependencies, force=force
@@ -253,12 +277,12 @@ def _run_post_install_actions(
     *,
     force: bool,
 ):
-    metadata = venv.get_venv_metadata_for_package(package)
+    package_metadata = venv.package_metadata[package]
 
-    if not metadata.app_paths and not include_dependencies:
+    if not package_metadata.app_paths and not include_dependencies:
         # No apps associated with this package and we aren't including dependencies.
         # This package has nothing for pipx to use, so this is an error.
-        for dep, dependent_apps in metadata.app_paths_of_dependencies.items():
+        for dep, dependent_apps in package_metadata.app_paths_of_dependencies.items():
             print(
                 f"Note: Dependent package '{dep}' contains {len(dependent_apps)} apps"
             )
@@ -268,7 +292,7 @@ def _run_post_install_actions(
         if venv.safe_to_remove():
             venv.remove_venv()
 
-        if len(metadata.app_paths_of_dependencies.keys()):
+        if len(package_metadata.app_paths_of_dependencies.keys()):
             raise PipxError(
                 f"No apps associated with package {package}. "
                 "Try again with '--include-deps' to include apps of dependent packages, "
@@ -283,9 +307,9 @@ def _run_post_install_actions(
                 "Consider using pip or a similar tool instead."
             )
 
-    if metadata.apps:
+    if package_metadata.apps:
         pass
-    elif metadata.apps_of_dependencies and include_dependencies:
+    elif package_metadata.apps_of_dependencies and include_dependencies:
         pass
     else:
         # No apps associated with this package and we aren't including dependencies.
@@ -298,10 +322,12 @@ def _run_post_install_actions(
             "Consider using pip or a similar tool instead."
         )
 
-    _expose_apps_globally(local_bin_dir, metadata.app_paths, package, force=force)
+    _expose_apps_globally(
+        local_bin_dir, package_metadata.app_paths, package, force=force
+    )
 
     if include_dependencies:
-        for _, app_paths in metadata.app_paths_of_dependencies.items():
+        for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             _expose_apps_globally(local_bin_dir, app_paths, package, force=force)
 
     print(_get_package_summary(venv_dir, package=package, new_install=True))
@@ -323,6 +349,7 @@ def _warn_if_not_on_path(local_bin_dir: Path):
 def inject(
     venv_dir: Path,
     package: str,
+    package_or_url: str,
     pip_args: List[str],
     *,
     verbose: bool,
@@ -341,8 +368,19 @@ def inject(
         )
 
     venv = Venv(venv_dir, verbose=verbose)
-    venv.install_package(package, pip_args)
-
+    try:
+        venv.install_package(
+            package=package,
+            package_or_url=package_or_url,
+            pip_args=pip_args,
+            include_dependencies=include_dependencies,
+            include_apps=include_apps,
+            is_main_package=False,
+        )
+    except PackageInstallFailureError:
+        raise PipxError(
+            f"Could not inject package {package}. Is the name or spec correct?"
+        )
     if include_apps:
         _run_post_install_actions(
             venv,
@@ -358,6 +396,9 @@ def inject(
 
 
 def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
+    """Uninstall entire venv_dir, including main package and all injected
+    packages.
+    """
     if not venv_dir.exists():
         print(f"Nothing to uninstall for {package} 😴")
         app = which(package)
@@ -369,27 +410,35 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
 
     venv = Venv(venv_dir, verbose=verbose)
 
-    if venv.python_path.is_file():
-        # has a valid python interpreter and can get metadata about the package
-        metadata = venv.get_venv_metadata_for_package(package)
-        app_paths = metadata.app_paths
-        for dep_paths in metadata.app_paths_of_dependencies.values():
-            app_paths += dep_paths
+    if venv.pipx_metadata.main_package is not None:
+        app_paths: List[Path] = []
+        for viewed_package in venv.package_metadata.values():
+            app_paths += viewed_package.app_paths
+            for dep_paths in viewed_package.app_paths_of_dependencies.values():
+                app_paths += dep_paths
     else:
-        # Doesn't have a valid python interpreter. We'll take our best guess on what to uninstall
-        # here based on symlink location. pipx doesn't use symlinks on windows, so this is for
-        # non-windows only.
-        # The heuristic here is any symlink in ~/.local/bin pointing to .local/pipx/venvs/PACKAGE/bin
-        # should be uninstalled.
-        if WINDOWS:
-            app_paths = []
+        # fallback if not metadata from pipx_metadata.json
+        if venv.python_path.is_file():
+            # has a valid python interpreter and can get metadata about the package
+            metadata = venv.get_venv_metadata_for_package(package)
+            app_paths = metadata.app_paths
+            for dep_paths in metadata.app_paths_of_dependencies.values():
+                app_paths += dep_paths
         else:
-            apps_linking_to_venv_bin_dir = [
-                f
-                for f in constants.LOCAL_BIN_DIR.iterdir()
-                if str(f.resolve()).startswith(str(venv.bin_path))
-            ]
-            app_paths = apps_linking_to_venv_bin_dir
+            # Doesn't have a valid python interpreter. We'll take our best guess on what to uninstall
+            # here based on symlink location. pipx doesn't use symlinks on windows, so this is for
+            # non-windows only.
+            # The heuristic here is any symlink in ~/.local/bin pointing to .local/pipx/venvs/PACKAGE/bin
+            # should be uninstalled.
+            if WINDOWS:
+                app_paths = []
+            else:
+                apps_linking_to_venv_bin_dir = [
+                    f
+                    for f in constants.LOCAL_BIN_DIR.iterdir()
+                    if str(f.resolve()).startswith(str(venv.bin_path))
+                ]
+                app_paths = apps_linking_to_venv_bin_dir
 
     for file in local_bin_dir.iterdir():
         if WINDOWS:
@@ -417,10 +466,7 @@ def reinstall_all(
     venv_container: VenvContainer,
     local_bin_dir: Path,
     python: str,
-    pip_args: List[str],
-    venv_args: List[str],
     verbose: bool,
-    include_dependencies: bool,
     *,
     skip: List[str],
 ):
@@ -428,21 +474,49 @@ def reinstall_all(
         package = venv_dir.name
         if package in skip:
             continue
+
+        venv = Venv(venv_dir, verbose=verbose)
+
+        if venv.pipx_metadata.main_package.package_or_url is not None:
+            package_or_url = venv.pipx_metadata.main_package.package_or_url
+        else:
+            package_or_url = package
+
         uninstall(venv_dir, package, local_bin_dir, verbose)
 
-        package_or_url = package
+        # install main package first
         install(
             venv_dir,
             package,
             package_or_url,
             local_bin_dir,
             python,
-            pip_args,
-            venv_args,
+            venv.pipx_metadata.main_package.pip_args,
+            venv.pipx_metadata.venv_args,
             verbose,
             force=True,
-            include_dependencies=include_dependencies,
+            include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
         )
+
+        # now install injected packages
+        for (
+            injected_name,
+            injected_package,
+        ) in venv.pipx_metadata.injected_packages.items():
+            if injected_package.package_or_url is None:
+                # This should never happen, but package_or_url is type
+                #   Optional[str] so mypy thinks it could be None
+                raise PipxError("Internal Error injecting package")
+            inject(
+                venv_dir,
+                injected_name,
+                injected_package.package_or_url,
+                injected_package.pip_args,
+                verbose=verbose,
+                include_apps=injected_package.include_apps,
+                include_dependencies=injected_package.include_dependencies,
+                force=True,
+            )
 
 
 def _expose_apps_globally(
@@ -524,22 +598,31 @@ def _get_package_summary(
     if not python_path.is_file():
         return f"   package {red(bold(package))} has invalid interpreter {str(python_path)}"
 
-    metadata = venv.get_venv_metadata_for_package(package)
+    package_metadata = venv.package_metadata[package]
 
-    if metadata.package_version is None:
+    if package_metadata.package_version is None:
         not_installed = red("is not installed")
         return f"   package {bold(package)} {not_installed} in the venv {str(path)}"
 
-    apps = metadata.apps + metadata.apps_of_dependencies
+    apps = package_metadata.apps + package_metadata.apps_of_dependencies
     exposed_app_paths = _get_exposed_app_paths_for_package(
         venv.bin_path, apps, constants.LOCAL_BIN_DIR
     )
     exposed_binary_names = sorted(p.name for p in exposed_app_paths)
-    unavailable_binary_names = sorted(set(metadata.apps) - set(exposed_binary_names))
+    unavailable_binary_names = sorted(
+        set(package_metadata.apps) - set(exposed_binary_names)
+    )
+    # The following is to satisfy mypy that python_version is str and not
+    #   Optional[str]
+    python_version = (
+        venv.pipx_metadata.python_version
+        if venv.pipx_metadata.python_version is not None
+        else ""
+    )
     return _get_list_output(
-        metadata.python_version,
+        python_version,
         python_path,
-        metadata.package_version,
+        package_metadata.package_version,
         package,
         new_install,
         exposed_binary_names,

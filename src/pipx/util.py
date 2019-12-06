@@ -91,15 +91,39 @@ def get_site_packages(python: Path) -> Path:
     return Path(output.strip())
 
 
-def run(cmd: Sequence[Union[str, Path]], check=True) -> int:
-    """Run arbitrary command as subprocess"""
+def run_subprocess(
+    cmd: Sequence[Union[str, Path]],
+    capture_stdout: bool = True,
+    capture_stderr: bool = True,
+) -> subprocess.CompletedProcess:
+    """Run arbitrary command as subprocess, capturing stderr and stout"""
 
+    # Null out PYTHONPATH because some platforms (macOS with Homebrew) add
+    #   pipx directories to it, and can make it appear to venvs as though
+    #   pipx dependencies are in the venv path (#233)
     env = {k: v for k, v in os.environ.items() if k.upper() != "PYTHONPATH"}
     cmd_str = " ".join(str(c) for c in cmd)
     logging.info(f"running {cmd_str}")
     # windows cannot take Path objects, only strings
     cmd_str_list = [str(c) for c in cmd]
-    returncode = subprocess.run(cmd_str_list, env=env).returncode
+    return subprocess.run(
+        cmd_str_list,
+        env=env,
+        stdout=subprocess.PIPE if capture_stdout else None,
+        stderr=subprocess.PIPE if capture_stderr else None,
+        universal_newlines=True,  # implies decoded strings in stdout, stderr
+    )
+
+
+def run(cmd: Sequence[Union[str, Path]], check=True) -> int:
+    """Run arbitrary command as subprocess"""
+
+    returncode = run_subprocess(
+        cmd, capture_stdout=False, capture_stderr=False
+    ).returncode
+
+    cmd_str = " ".join(str(c) for c in cmd)
+
     if check and returncode:
         raise PipxError(f"{cmd_str!r} failed")
     return returncode

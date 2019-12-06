@@ -19,7 +19,7 @@ def check_animate_output(
     chars_to_test = 1 + len("".join(frame_strings[:frames_to_test]))
 
     with pipx.animate.animate(test_string, do_animation=True):
-        time.sleep(frame_period * (frames_to_test - 1) + 0.2)
+        time.sleep(frame_period * (frames_to_test - 1) + 0.5)
     captured = capsys.readouterr()
 
     assert captured.err[:chars_to_test] == expected_string[:chars_to_test]

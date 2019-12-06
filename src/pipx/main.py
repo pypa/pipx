@@ -178,6 +178,7 @@ def run_pipx_command(args):  # noqa: C901
             commands.inject(
                 venv_dir,
                 dep,
+                dep,  # NOP now, but in future can be package_or_url from --spec
                 pip_args,
                 verbose=verbose,
                 include_apps=args.include_apps,
@@ -185,18 +186,8 @@ def run_pipx_command(args):  # noqa: C901
                 force=args.force,
             )
     elif args.command == "upgrade":
-        package_or_url = (
-            args.spec if ("spec" in args and args.spec is not None) else package
-        )
         return commands.upgrade(
-            venv_dir,
-            package,
-            package_or_url,
-            pip_args,
-            verbose,
-            upgrading_all=False,
-            include_dependencies=args.include_deps,
-            force=args.force,
+            venv_dir, package, pip_args, verbose, upgrading_all=False, force=args.force
         )
     elif args.command == "list":
         return commands.list_packages(venv_container)
@@ -206,22 +197,14 @@ def run_pipx_command(args):  # noqa: C901
         return commands.uninstall_all(venv_container, constants.LOCAL_BIN_DIR, verbose)
     elif args.command == "upgrade-all":
         return commands.upgrade_all(
-            venv_container,
-            pip_args,
-            verbose,
-            include_dependencies=args.include_deps,
-            skip=args.skip,
-            force=args.force,
+            venv_container, verbose, skip=args.skip, force=args.force
         )
     elif args.command == "reinstall-all":
         return commands.reinstall_all(
             venv_container,
             constants.LOCAL_BIN_DIR,
             args.python,
-            pip_args,
-            venv_args,
             verbose,
-            args.include_deps,
             skip=args.skip,
         )
     elif args.command == "runpip":
@@ -337,14 +320,12 @@ def _add_upgrade(subparsers, autocomplete_list_of_installed_packages):
         description="Upgrade a package in a pipx-managed Virtual Environment by running 'pip install --upgrade PACKAGE'",
     )
     p.add_argument("package").completer = autocomplete_list_of_installed_packages
-    p.add_argument("--spec", help=SPEC_HELP)
     p.add_argument(
         "--force",
         "-f",
         action="store_true",
         help="Modify existing virtual environment and files in PIPX_BIN_DIR",
     )
-    add_include_dependencies(p)
     add_pip_venv_args(p)
     p.add_argument("--verbose", action="store_true")
 
@@ -357,8 +338,6 @@ def _add_upgrade_all(subparsers):
         description="Upgrades all packages within their virtual environments by running 'pip install --upgrade PACKAGE'",
     )
 
-    add_include_dependencies(p)
-    add_pip_venv_args(p)
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
     p.add_argument(
         "--force",
@@ -397,12 +376,10 @@ def _add_reinstall_all(subparsers):
             """
         Reinstalls all packages.
 
-        Packages are uninstalled, then installed with pipx install PACKAGE.
+        Packages are uninstalled, then installed with pipx install PACKAGE
+        with the same options used in the original install of PACKAGE.
         This is useful if you upgraded to a new version of Python and want
         all your packages to use the latest as well.
-
-        If you originally installed a package from a source other than PyPI,
-        this command may behave in unexpected ways since it will reinstall from PyPI.
 
         """
         ),
@@ -415,8 +392,6 @@ def _add_reinstall_all(subparsers):
             "and run the associated app/apps. Must be v3.5+."
         ),
     )
-    add_include_dependencies(p)
-    add_pip_venv_args(p)
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
     p.add_argument("--verbose", action="store_true")
 
