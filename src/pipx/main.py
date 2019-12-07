@@ -555,25 +555,12 @@ def setup(args):
         )
 
 
-def parse_args(parser):
-    parsed_args = parser.parse_args()
-
-    if parsed_args.command == "run":
-        # argparse will not interfere with arguments inside of appargs because
-        #   we use argparse.REMAINDER for it.
-        # So we check for argparse removing -- at the beginning of appargs
-        before_appargs_i = -(len(parsed_args.appargs) + 1)
-        if sys.argv[before_appargs_i] == "--":
-            sys.argv.insert(before_appargs_i, "--")
-    return parser.parse_args()
-
-
 def cli() -> int:
     """Entry point from command line"""
     try:
         parser = get_command_parser()
         argcomplete.autocomplete(parser)
-        parsed_pipx_args = parse_args(parser)
+        parsed_pipx_args = parser.parse_args()
         setup(parsed_pipx_args)
         if not parsed_pipx_args.command:
             parser.print_help()
