@@ -23,18 +23,18 @@ def test_help_text(pipx_temp_env, monkeypatch, capsys):
 
 
 def test_simple_run(pipx_temp_env, monkeypatch, capsys):
-    run_pipx_cli(["run", "pycowsay", "--help"])
+    run_pipx_cli(["run", "--", "pycowsay", "--help"])
     captured = capsys.readouterr()
     assert "Download the latest version of a package" not in captured.out
 
 
 def test_cache(pipx_temp_env, monkeypatch, capsys, caplog):
-    run_pipx_cli(["run", "pycowsay", "cowsay", "args"])
+    run_pipx_cli(["run", "--", "pycowsay", "cowsay", "args"])
     caplog.set_level(logging.DEBUG)
-    assert not run_pipx_cli(["run", "--verbose", "pycowsay", "cowsay", "args"])
+    assert not run_pipx_cli(["run", "--verbose", "--", "pycowsay", "cowsay", "args"])
     assert "Reusing cached venv" in caplog.text
 
-    run_pipx_cli(["run", "--no-cache", "pycowsay", "cowsay", "args"])
+    run_pipx_cli(["run", "--no-cache", "--", "pycowsay", "cowsay", "args"])
     assert "Removing cached venv" in caplog.text
 
 
@@ -42,6 +42,7 @@ def test_run_script_from_internet(pipx_temp_env, capsys):
     assert not run_pipx_cli(
         [
             "run",
+            "--",
             "https://gist.githubusercontent.com/cs01/"
             "fa721a17a326e551ede048c5088f9e0f/raw/"
             "6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py",
@@ -49,41 +50,59 @@ def test_run_script_from_internet(pipx_temp_env, capsys):
     )
 
 
-def test_appargs_doubledash(pipx_temp_env, capsys, monkeypatch):
-    parser = pipx.main.get_command_parser()
+@pytest.mark.parametrize(
+    "valid_args,input_run_args",
+    [
+        (False, ["pycowsay", "--", "hello"]),
+        (False, ["pycowsay", "--", "--", "hello"]),
+        (False, ["pycowsay", "hello", "--"]),
+        (False, ["pycowsay", "hello", "--", "--"]),
+        (False, ["pycowsay", "--"]),
+        (False, ["pycowsay", "--", "--"]),
+        (True, ["--", "pycowsay", "--", "hello"]),
+        (True, ["--", "pycowsay", "--", "--", "hello"]),
+        (True, ["--", "pycowsay", "hello", "--"]),
+        (True, ["--", "pycowsay", "hello", "--", "--"]),
+        (True, ["--", "pycowsay", "--"]),
+        (True, ["--", "pycowsay", "--", "--"]),
+    ],
+)
+def test_valid_args(pipx_temp_env, capsys, monkeypatch, input_run_args, valid_args):
+    if valid_args:
+        assert not run_pipx_cli(["run"] + input_run_args)
+    else:
+        assert run_pipx_cli(["run"] + input_run_args)
+        captured = capsys.readouterr()
+        assert (
+            "pipx run: error: '--' is required before the app argument." in captured.err
+        )
 
-    input_argv = [
-        ["pipx", "run", "pycowsay", "--", "hello"],
-        ["pipx", "run", "pycowsay", "--", "--", "hello"],
-        ["pipx", "run", "pycowsay", "hello", "--"],
-        ["pipx", "run", "pycowsay", "hello", "--", "--"],
-        ["pipx", "run", "pycowsay", "--"],
-        ["pipx", "run", "pycowsay", "--", "--"],
-        ["pipx", "run", "--", "pycowsay", "--", "hello"],
-        ["pipx", "run", "--", "pycowsay", "--", "--", "hello"],
-        ["pipx", "run", "--", "pycowsay", "hello", "--"],
-        ["pipx", "run", "--", "pycowsay", "hello", "--", "--"],
-        ["pipx", "run", "--", "pycowsay", "--"],
-        ["pipx", "run", "--", "pycowsay", "--", "--"],
-    ]
-    expected_appargs = [
-        ["--", "hello"],
-        ["--", "--", "hello"],
-        ["hello", "--"],
-        ["hello", "--", "--"],
-        ["--"],
-        ["--", "--"],
-        ["--", "hello"],
-        ["--", "--", "hello"],
-        ["hello", "--"],
-        ["hello", "--", "--"],
-        ["--"],
-        ["--", "--"],
-    ]
-    for i, input_argv in enumerate(input_argv):
-        monkeypatch.setattr(sys, "argv", input_argv)
-        parsed_pipx_args = pipx.main.parse_args(parser)
-        assert parsed_pipx_args.appargs == expected_appargs[i]
+
+@pytest.mark.parametrize(
+    "valid_args,input_run_args,expected_appargs",
+    [
+        (False, ["pycowsay", "--", "hello"], ["--", "hello"]),
+        (False, ["pycowsay", "--", "--", "hello"], ["--", "--", "hello"]),
+        (False, ["pycowsay", "hello", "--"], ["hello", "--"]),
+        (False, ["pycowsay", "hello", "--", "--"], ["hello", "--", "--"]),
+        (False, ["pycowsay", "--"], ["--"]),
+        (False, ["pycowsay", "--", "--"], ["--", "--"]),
+        (True, ["--", "pycowsay", "--", "hello"], ["--", "hello"]),
+        (True, ["--", "pycowsay", "--", "--", "hello"], ["--", "--", "hello"]),
+        (True, ["--", "pycowsay", "hello", "--"], ["hello", "--"]),
+        (True, ["--", "pycowsay", "hello", "--", "--"], ["hello", "--", "--"]),
+        (True, ["--", "pycowsay", "--"], ["--"]),
+        (True, ["--", "pycowsay", "--", "--"], ["--", "--"]),
+    ],
+)
+def test_appargs_doubledash(
+    pipx_temp_env, capsys, monkeypatch, input_run_args, expected_appargs, valid_args
+):
+    parser = pipx.main.get_command_parser()
+    monkeypatch.setattr(sys, "argv", ["pipx", "run"] + input_run_args)
+    parsed_pipx_args = parser.parse_args()
+    if valid_args:
+        assert parsed_pipx_args.appargs == expected_appargs
 
 
 def test_run_ensure_null_pythonpath():
@@ -97,6 +116,7 @@ def test_run_ensure_null_pythonpath():
                 "-m",
                 "pipx",
                 "run",
+                "--",
                 "ipython",
                 "-c",
                 "import os; print(os.environ.get('PYTHONPATH'))",
@@ -111,7 +131,7 @@ def test_run_ensure_null_pythonpath():
 
 # packages listed roughly in order of increasing test duration
 @pytest.mark.parametrize(
-    "package, package_or_url, app_args",
+    "package, package_or_url, app_appargs",
     [
         ("pycowsay", "pycowsay", ["pycowsay", "hello"]),
         ("shell-functools", "shell-functools", ["filter", "--help"]),
@@ -125,11 +145,11 @@ def test_run_ensure_null_pythonpath():
     ],
 )
 def test_package_determination(
-    caplog, pipx_temp_env, package, package_or_url, app_args
+    caplog, pipx_temp_env, package, package_or_url, app_appargs
 ):
     caplog.set_level(logging.INFO)
 
-    run_pipx_cli(["run", "--verbose", "--spec", package_or_url, "--"] + app_args)
+    run_pipx_cli(["run", "--verbose", "--spec", package_or_url, "--"] + app_appargs)
 
     assert "Cannot determine package name" not in caplog.text
     assert f"Determined package name: '{package}'" in caplog.text
