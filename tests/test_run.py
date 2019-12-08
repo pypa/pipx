@@ -81,30 +81,23 @@ def test_valid_args(pipx_temp_env, capsys, monkeypatch, input_run_args, valid_ar
 
 
 @pytest.mark.parametrize(
-    "valid_args,input_run_args,expected_appargs",
+    "input_run_args,expected_appargs",
     [
-        (False, ["pycowsay", "--", "hello"], ["--", "hello"]),
-        (False, ["pycowsay", "--", "--", "hello"], ["--", "--", "hello"]),
-        (False, ["pycowsay", "hello", "--"], ["hello", "--"]),
-        (False, ["pycowsay", "hello", "--", "--"], ["hello", "--", "--"]),
-        (False, ["pycowsay", "--"], ["--"]),
-        (False, ["pycowsay", "--", "--"], ["--", "--"]),
-        (True, ["--", "pycowsay", "--", "hello"], ["--", "hello"]),
-        (True, ["--", "pycowsay", "--", "--", "hello"], ["--", "--", "hello"]),
-        (True, ["--", "pycowsay", "hello", "--"], ["hello", "--"]),
-        (True, ["--", "pycowsay", "hello", "--", "--"], ["hello", "--", "--"]),
-        (True, ["--", "pycowsay", "--"], ["--"]),
-        (True, ["--", "pycowsay", "--", "--"], ["--", "--"]),
+        (["--", "pycowsay", "--", "hello"], ["--", "hello"]),
+        (["--", "pycowsay", "--", "--", "hello"], ["--", "--", "hello"]),
+        (["--", "pycowsay", "hello", "--"], ["hello", "--"]),
+        (["--", "pycowsay", "hello", "--", "--"], ["hello", "--", "--"]),
+        (["--", "pycowsay", "--"], ["--"]),
+        (["--", "pycowsay", "--", "--"], ["--", "--"]),
     ],
 )
 def test_appargs_doubledash(
-    pipx_temp_env, capsys, monkeypatch, input_run_args, expected_appargs, valid_args
+    pipx_temp_env, capsys, monkeypatch, input_run_args, expected_appargs
 ):
     parser = pipx.main.get_command_parser()
     monkeypatch.setattr(sys, "argv", ["pipx", "run"] + input_run_args)
     parsed_pipx_args = parser.parse_args()
-    if valid_args:
-        assert parsed_pipx_args.appargs == expected_appargs
+    assert parsed_pipx_args.appargs == expected_appargs
 
 
 def test_run_ensure_null_pythonpath():
