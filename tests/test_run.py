@@ -71,7 +71,9 @@ def test_valid_args(pipx_temp_env, capsys, monkeypatch, input_run_args, valid_ar
     if valid_args:
         assert not run_pipx_cli(["run"] + input_run_args)
     else:
-        assert run_pipx_cli(["run"] + input_run_args)
+        with pytest.raises(SystemExit) as pytest_wrapped_e:
+            run_pipx_cli(["run"] + input_run_args)
+        assert pytest_wrapped_e.value.code == 2
         captured = capsys.readouterr()
         assert (
             "pipx run: error: '--' is required before the app argument." in captured.err
