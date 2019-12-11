@@ -7,7 +7,6 @@ import argparse
 import functools
 import logging
 from pkg_resources import parse_version
-import re
 import shlex
 import sys
 import textwrap
@@ -456,13 +455,6 @@ def _add_run(subparsers):
     )
     add_pip_venv_args(p)
 
-    p.usage = re.sub(r"^usage: ", "", p.format_usage())
-    # add a double-dash to usage text to show requirement before app
-    p.usage = re.sub(r"app ...", "-- app ...", p.usage)
-
-    # add this subparser to its own Namespace, to use its error method later
-    p.set_defaults(subparser=p)
-
 
 def _add_runpip(subparsers, autocomplete_list_of_installed_packages):
     p = subparsers.add_parser(
@@ -563,21 +555,12 @@ def setup(args):
         )
 
 
-def check_args(args):
-    argv = sys.argv[1:]
-    if args.command == "run":
-        # check if "--" before args.app in argv
-        if "--" not in argv[: -len(args.appargs) - 1]:
-            args.subparser.error("'--' is required before the app argument.")
-
-
 def cli() -> int:
     """Entry point from command line"""
     try:
         parser = get_command_parser()
         argcomplete.autocomplete(parser)
         parsed_pipx_args = parser.parse_args()
-        check_args(parsed_pipx_args)
         setup(parsed_pipx_args)
         if not parsed_pipx_args.command:
             parser.print_help()
