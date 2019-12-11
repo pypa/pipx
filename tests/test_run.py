@@ -23,7 +23,7 @@ def test_help_text(pipx_temp_env, monkeypatch, capsys):
 
 
 def test_simple_run(pipx_temp_env, monkeypatch, capsys):
-    run_pipx_cli(["run", "--", "pycowsay", "--help"])
+    run_pipx_cli(["run", "pycowsay", "--help"])
     captured = capsys.readouterr()
     assert "Download the latest version of a package" not in captured.out
 
@@ -31,10 +31,10 @@ def test_simple_run(pipx_temp_env, monkeypatch, capsys):
 def test_cache(pipx_temp_env, monkeypatch, capsys, caplog):
     run_pipx_cli(["run", "--", "pycowsay", "cowsay", "args"])
     caplog.set_level(logging.DEBUG)
-    assert not run_pipx_cli(["run", "--verbose", "--", "pycowsay", "cowsay", "args"])
+    assert not run_pipx_cli(["run", "--verbose", "pycowsay", "cowsay", "args"])
     assert "Reusing cached venv" in caplog.text
 
-    run_pipx_cli(["run", "--no-cache", "--", "pycowsay", "cowsay", "args"])
+    run_pipx_cli(["run", "--no-cache", "pycowsay", "cowsay", "args"])
     assert "Removing cached venv" in caplog.text
 
 
@@ -42,42 +42,11 @@ def test_run_script_from_internet(pipx_temp_env, capsys):
     assert not run_pipx_cli(
         [
             "run",
-            "--",
             "https://gist.githubusercontent.com/cs01/"
             "fa721a17a326e551ede048c5088f9e0f/raw/"
             "6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py",
         ]
     )
-
-
-@pytest.mark.parametrize(
-    "valid_args,input_run_args",
-    [
-        (False, ["pycowsay", "--", "hello"]),
-        (False, ["pycowsay", "--", "--", "hello"]),
-        (False, ["pycowsay", "hello", "--"]),
-        (False, ["pycowsay", "hello", "--", "--"]),
-        (False, ["pycowsay", "--"]),
-        (False, ["pycowsay", "--", "--"]),
-        (True, ["--", "pycowsay", "--", "hello"]),
-        (True, ["--", "pycowsay", "--", "--", "hello"]),
-        (True, ["--", "pycowsay", "hello", "--"]),
-        (True, ["--", "pycowsay", "hello", "--", "--"]),
-        (True, ["--", "pycowsay", "--"]),
-        (True, ["--", "pycowsay", "--", "--"]),
-    ],
-)
-def test_valid_args(pipx_temp_env, capsys, monkeypatch, input_run_args, valid_args):
-    if valid_args:
-        assert not run_pipx_cli(["run"] + input_run_args)
-    else:
-        with pytest.raises(SystemExit) as pytest_wrapped_e:
-            run_pipx_cli(["run"] + input_run_args)
-        assert pytest_wrapped_e.value.code == 2
-        captured = capsys.readouterr()
-        assert (
-            "pipx run: error: '--' is required before the app argument." in captured.err
-        )
 
 
 @pytest.mark.parametrize(
@@ -89,6 +58,12 @@ def test_valid_args(pipx_temp_env, capsys, monkeypatch, input_run_args, valid_ar
         (["--", "pycowsay", "hello", "--", "--"], ["hello", "--", "--"]),
         (["--", "pycowsay", "--"], ["--"]),
         (["--", "pycowsay", "--", "--"], ["--", "--"]),
+        (["pycowsay", "--", "hello"], ["hello"]),
+        (["pycowsay", "--", "--", "hello"], ["--", "hello"]),
+        (["pycowsay", "hello", "--"], ["hello", "--"]),
+        (["pycowsay", "hello", "--", "--"], ["hello", "--", "--"]),
+        (["pycowsay", "--"], []),
+        (["pycowsay", "--", "--"], ["--"]),
     ],
 )
 def test_appargs_doubledash(
@@ -111,7 +86,6 @@ def test_run_ensure_null_pythonpath():
                 "-m",
                 "pipx",
                 "run",
-                "--",
                 "ipython",
                 "-c",
                 "import os; print(os.environ.get('PYTHONPATH'))",
