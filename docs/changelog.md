@@ -1,9 +1,9 @@
 dev
 
-- Now store metadata information for each application installed, including install options like `--spec`, and injected packages. This information allows upgrade, upgrade-all and reinstall-all to work properly even with non-pypi installed packages.  (#222)
-- Change `upgrade`, removing options `--spec`, `--include-deps`.  Use original options used to install application instead. (#222)
-- Change `upgrade-all`, removing options `--include-deps`, `--system-site-packages`, `--index-url`, `--editable`, `--pip-args`.  Use original options used to install each application instead. (#222)
-- Change `reinstall-all`, removing options `--include-deps`, `--system-site-packages`, `--index-url`, `--editable`, `--pip-args`.  Use original options used to install each application instead. (#222)
+- Metadata is now stored for each application installed, including install options like `--spec`, and injected packages. This information allows upgrade, upgrade-all and reinstall-all to work properly even with non-pypi installed packages.  (#222)
+- `upgrade` options `--spec` and `--include-deps` were removed.  Pipx now uses the original options used to install each application instead. (#222)
+- `upgrade-all` options `--include-deps`, `--system-site-packages`, `--index-url`, `--editable`, and `--pip-args` were removed.  Pipx now uses the original options used to install each application instead. (#222)
+- `reinstall-all` options `--include-deps`, `--system-site-packages`, `--index-url`, `--editable`, and `--pip-args` were removed.  Pipx now uses the original options used to install each application instead. (#222)
 - Handle missing interpreters more gracefully (#146)
 - Change `reinstall-all` to use system python by default for apps.  Now use `--python` option to specify a different python version.
 - Remove the PYTHONPATH environment variable when executing any command to prevent conflicts between pipx dependencies and package dependencies when pipx is installed via homebrew. Homebrew can use pythonpath manipulation instead of virtual environments. (#233)
