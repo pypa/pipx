@@ -36,7 +36,8 @@ subcommands:
                         for each package.
     uninstall           Uninstall a package
     uninstall-all       Uninstall all packages
-    reinstall-all       Reinstall all packages
+    reinstall-all       Reinstall all packages with a different Python
+                        executable
     list                List installed packages
     run                 Download the latest version of a package to a
                         temporary virtual environment, then run an app from
@@ -168,9 +169,9 @@ optional arguments:
 
 ```
 pipx upgrade --help
-usage: pipx upgrade [-h] [--force] [--system-site-packages]
-                    [--index-url INDEX_URL] [--editable] [--pip-args PIP_ARGS]
-                    [--verbose]
+usage: pipx upgrade [-h] [--spec SPEC] [--force] [--include-deps]
+                    [--system-site-packages] [--index-url INDEX_URL]
+                    [--editable] [--pip-args PIP_ARGS] [--verbose]
                     package
 
 Upgrade a package in a pipx-managed Virtual Environment by running 'pip
@@ -181,8 +182,13 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --spec SPEC           The package name or specific installation source
+                        passed to pip. Runs `pip install -U SPEC`. For example
+                        `--spec mypackage==2.0.0` or `--spec
+                        git+https://github.com/user/repo.git@branch`
   --force, -f           Modify existing virtual environment and files in
                         PIPX_BIN_DIR
+  --include-deps        Include apps of dependent packages
   --system-site-packages
                         Give the virtual environment access to the system
                         site-packages dir.
@@ -289,21 +295,20 @@ optional arguments:
 
 ```
 pipx reinstall-all --help
-usage: pipx reinstall-all [-h] [--python PYTHON] [--skip SKIP [SKIP ...]]
-                          [--verbose]
+usage: pipx reinstall-all [-h] [--skip SKIP [SKIP ...]] [--verbose] python
 
-Reinstalls all packages.
+Reinstalls all packages using a different version of Python.
 
 Packages are uninstalled, then installed with pipx install PACKAGE
 with the same options used in the original install of PACKAGE.
 This is useful if you upgraded to a new version of Python and want
 all your packages to use the latest as well.
 
+positional arguments:
+  python
+
 optional arguments:
   -h, --help            show this help message and exit
-  --python PYTHON       The Python executable used to recreate the Virtual
-                        Environment and run the associated app/apps. Must be
-                        v3.5+.
   --skip SKIP [SKIP ...]
                         skip these packages
   --verbose
@@ -344,4 +349,3 @@ optional arguments:
   --verbose
 
 ```
-
