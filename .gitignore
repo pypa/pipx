@@ -1,3 +1,5 @@
+/.nox/
+/.coverage
 *egg*
 .mypy_cache
 .vscode
