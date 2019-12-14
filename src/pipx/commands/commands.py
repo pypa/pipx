@@ -30,7 +30,7 @@ else:
 import userpath  # type: ignore
 from pipx import constants
 from pipx.colors import bold, red
-from pipx.commands.common import _expose_apps_globally
+from pipx.commands.common import expose_apps_globally
 from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS
 from pipx.emojies import hazard, sleep, stars
 from pipx.util import (
@@ -321,13 +321,13 @@ def _run_post_install_actions(
             "Consider using pip or a similar tool instead."
         )
 
-    _expose_apps_globally(
+    expose_apps_globally(
         local_bin_dir, package_metadata.app_paths, package, force=force
     )
 
     if include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
-            _expose_apps_globally(local_bin_dir, app_paths, package, force=force)
+            expose_apps_globally(local_bin_dir, app_paths, package, force=force)
 
     print(_get_package_summary(venv_dir, package=package, new_install=True))
     _warn_if_not_on_path(local_bin_dir)
