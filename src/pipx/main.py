@@ -173,7 +173,7 @@ def run_pipx_command(args):  # noqa: C901
     elif args.command == "inject":
         if not args.include_apps and args.include_deps:
             raise PipxError(
-                "Cannot pass --include-deps if --use_apps is not passed as well"
+                "Cannot pass --include-deps if --include-apps is not passed as well"
             )
         for dep in args.dependencies:
             commands.inject(
