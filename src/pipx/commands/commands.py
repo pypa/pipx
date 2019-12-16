@@ -46,7 +46,7 @@ from pipx.venv import Venv, VenvContainer, PackageInstallFailureError
 def run(
     app: str,
     package_or_url: str,
-    binary_args: List[str],
+    app_args: List[str],
     python: str,
     pip_args: List[str],
     venv_args: List[str],
@@ -88,7 +88,7 @@ def run(
         logging.info(
             f"Using app in local __pypackages__ directory at {str(pypackage_bin_path)}"
         )
-        return run_pypackage_bin(pypackage_bin_path, binary_args)
+        return run_pypackage_bin(pypackage_bin_path, app_args)
     if pypackages:
         raise PipxError(
             f"'--pypackages' flag was passed, but {str(pypackage_bin_path)!r} was "
@@ -104,14 +104,14 @@ def run(
 
     if bin_path.exists():
         logging.info(f"Reusing cached venv {venv_dir}")
-        retval = venv.run_app(app, binary_args)
+        retval = venv.run_app(app, app_args)
     else:
         logging.info(f"venv location is {venv_dir}")
         retval = _download_and_run(
             Path(venv_dir),
             package_or_url,
             app,
-            binary_args,
+            app_args,
             python,
             pip_args,
             venv_args,
@@ -127,7 +127,7 @@ def _download_and_run(
     venv_dir: Path,
     package_or_url: str,
     app: str,
-    binary_args: List[str],
+    app_args: List[str],
     python: str,
     pip_args: List[str],
     venv_args: List[str],
@@ -159,7 +159,7 @@ def _download_and_run(
             "Available executable scripts: "
             f"{', '.join(b for b in apps)}"
         )
-    return venv.run_app(app, binary_args)
+    return venv.run_app(app, app_args)
 
 
 def _get_temporary_venv_path(
