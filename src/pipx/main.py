@@ -459,6 +459,7 @@ def _add_run(subparsers):
     add_pip_venv_args(p)
     p.set_defaults(subparser=p)
 
+    # modify usage text to show required app argument
     p.usage = re.sub(r"^usage: ", "", p.format_usage())
     # add a double-dash to usage text to show requirement before app
     p.usage = re.sub(r"\.\.\.", "app ...", p.usage)
@@ -565,8 +566,12 @@ def setup(args):
 
 def check_args(parsed_pipx_args: argparse.Namespace):
     if parsed_pipx_args.command == "run":
+        # we manually discard a first -- because using nargs=argparse.REMAINDER
+        #   will not do it automatically
         if parsed_pipx_args.app_with_args and parsed_pipx_args.app_with_args[0] == "--":
             parsed_pipx_args.app_with_args.pop(0)
+        # since we would like app to be required but not in a separate argparse
+        #   add_argument, we implement our own missing required arg error
         if not parsed_pipx_args.app_with_args:
             parsed_pipx_args.subparser.error(
                 "the following arguments are required: app"
