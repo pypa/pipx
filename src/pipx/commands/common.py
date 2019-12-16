@@ -9,7 +9,7 @@ from pipx.emojies import hazard
 from pipx.util import WINDOWS, mkdir, rmdir
 
 
-def _expose_apps_globally(
+def expose_apps_globally(
     local_bin_dir: Path, app_paths: List[Path], package: str, *, force: bool
 ):
     if WINDOWS:
