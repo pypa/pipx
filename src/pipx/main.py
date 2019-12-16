@@ -568,7 +568,9 @@ def check_args(parsed_pipx_args: argparse.Namespace):
         if parsed_pipx_args.app_with_args and parsed_pipx_args.app_with_args[0] == "--":
             parsed_pipx_args.app_with_args.pop(0)
         if not parsed_pipx_args.app_with_args:
-            parsed_pipx_args.subparser.error("the following arguments are required: app")
+            parsed_pipx_args.subparser.error(
+                "the following arguments are required: app"
+            )
 
 
 def cli() -> int:
