@@ -8,6 +8,7 @@ import functools
 import logging
 from pkg_resources import parse_version
 import shlex
+import re
 import sys
 import textwrap
 import urllib.parse
@@ -438,6 +439,7 @@ def _add_run(subparsers):
     )
     p.add_argument(
         "app_with_args",
+        metavar="app ...",
         nargs=argparse.REMAINDER,
         help="app/package name and any arguments to be passed to it",
         default=[],
@@ -457,6 +459,9 @@ def _add_run(subparsers):
     add_pip_venv_args(p)
     p.set_defaults(subparser=p)
 
+    p.usage = re.sub(r"^usage: ", "", p.format_usage())
+    # add a double-dash to usage text to show requirement before app
+    p.usage = re.sub(r"\.\.\.", "app ...", p.usage)
 
 def _add_runpip(subparsers, autocomplete_list_of_installed_packages):
     p = subparsers.add_parser(
