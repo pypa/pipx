@@ -9,6 +9,8 @@ import pytest  # type: ignore
 
 from helpers import run_pipx_cli
 
+import pipx.main
+
 
 def test_help_text(pipx_temp_env, monkeypatch, capsys):
     mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
@@ -47,6 +49,34 @@ def test_run_script_from_internet(pipx_temp_env, capsys):
     )
 
 
+@pytest.mark.parametrize(
+    "input_run_args,expected_app_with_args",
+    [
+        (["--", "pycowsay", "--", "hello"], ["pycowsay", "--", "hello"]),
+        (["--", "pycowsay", "--", "--", "hello"], ["pycowsay", "--", "--", "hello"]),
+        (["--", "pycowsay", "hello", "--"], ["pycowsay", "hello", "--"]),
+        (["--", "pycowsay", "hello", "--", "--"], ["pycowsay", "hello", "--", "--"]),
+        (["--", "pycowsay", "--"], ["pycowsay", "--"]),
+        (["--", "pycowsay", "--", "--"], ["pycowsay", "--", "--"]),
+        (["pycowsay", "--", "hello"], ["pycowsay", "--", "hello"]),
+        (["pycowsay", "--", "--", "hello"], ["pycowsay", "--", "--", "hello"]),
+        (["pycowsay", "hello", "--"], ["pycowsay", "hello", "--"]),
+        (["pycowsay", "hello", "--", "--"], ["pycowsay", "hello", "--", "--"]),
+        (["pycowsay", "--"], ["pycowsay", "--"]),
+        (["pycowsay", "--", "--"], ["pycowsay", "--", "--"]),
+        (["--", "--", "pycowsay", "--"], ["--", "pycowsay", "--"]),
+    ],
+)
+def test_appargs_doubledash(
+    pipx_temp_env, capsys, monkeypatch, input_run_args, expected_app_with_args
+):
+    parser = pipx.main.get_command_parser()
+    monkeypatch.setattr(sys, "argv", ["pipx", "run"] + input_run_args)
+    parsed_pipx_args = parser.parse_args()
+    pipx.main.check_args(parsed_pipx_args)
+    assert parsed_pipx_args.app_with_args == expected_app_with_args
+
+
 def test_run_ensure_null_pythonpath():
     env = os.environ.copy()
     env["PYTHONPATH"] = "test"
@@ -72,7 +102,7 @@ def test_run_ensure_null_pythonpath():
 
 # packages listed roughly in order of increasing test duration
 @pytest.mark.parametrize(
-    "package, package_or_url, app_args",
+    "package, package_or_url, app_appargs",
     [
         ("pycowsay", "pycowsay", ["pycowsay", "hello"]),
         ("shell-functools", "shell-functools", ["filter", "--help"]),
@@ -86,11 +116,11 @@ def test_run_ensure_null_pythonpath():
     ],
 )
 def test_package_determination(
-    caplog, pipx_temp_env, package, package_or_url, app_args
+    caplog, pipx_temp_env, package, package_or_url, app_appargs
 ):
     caplog.set_level(logging.INFO)
 
-    run_pipx_cli(["run", "--verbose", "--spec", package_or_url, "--"] + app_args)
+    run_pipx_cli(["run", "--verbose", "--spec", package_or_url, "--"] + app_appargs)
 
     assert "Cannot determine package name" not in caplog.text
     assert f"Determined package name: '{package}'" in caplog.text
