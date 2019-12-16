@@ -64,6 +64,7 @@ def test_run_script_from_internet(pipx_temp_env, capsys):
         (["pycowsay", "hello", "--", "--"], ["pycowsay", "hello", "--", "--"]),
         (["pycowsay", "--"], ["pycowsay", "--"]),
         (["pycowsay", "--", "--"], ["pycowsay", "--", "--"]),
+        (["--", "--", "pycowsay", "--"], ["--", "pycowsay", "--"]),
     ],
 )
 def test_appargs_doubledash(
