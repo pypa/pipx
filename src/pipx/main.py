@@ -463,6 +463,7 @@ def _add_run(subparsers):
     # add a double-dash to usage text to show requirement before app
     p.usage = re.sub(r"\.\.\.", "app ...", p.usage)
 
+
 def _add_runpip(subparsers, autocomplete_list_of_installed_packages):
     p = subparsers.add_parser(
         "runpip",
@@ -564,10 +565,10 @@ def setup(args):
 
 def check_args(parsed_pipx_args: argparse.Namespace):
     if parsed_pipx_args.command == "run":
-        if parsed_pipx_args.app_with_args[0] == "--":
+        if parsed_pipx_args.app_with_args and parsed_pipx_args.app_with_args[0] == "--":
             parsed_pipx_args.app_with_args.pop(0)
         if not parsed_pipx_args.app_with_args:
-            parsed_pipx_args.subparser.error("app argument is required.")
+            parsed_pipx_args.subparser.error("the following arguments are required: app")
 
 
 def cli() -> int:
