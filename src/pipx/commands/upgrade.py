@@ -9,7 +9,7 @@ from pipx.emojies import sleep
 from pipx.util import PipxError
 
 from pipx.venv import Venv, VenvContainer
-from .common import _expose_apps_globally
+from .common import expose_apps_globally
 
 
 def upgrade(
@@ -63,13 +63,13 @@ def upgrade(
     package_metadata = venv.package_metadata[package]
     new_version = package_metadata.package_version
 
-    _expose_apps_globally(
+    expose_apps_globally(
         constants.LOCAL_BIN_DIR, package_metadata.app_paths, package, force=force
     )
 
     if include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
-            _expose_apps_globally(
+            expose_apps_globally(
                 constants.LOCAL_BIN_DIR, app_paths, package, force=force
             )
 
