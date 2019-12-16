@@ -15,7 +15,6 @@ from typing import Dict, List, Tuple, Union
 
 import argcomplete  # type: ignore
 from .colors import bold, green
-from pipx.emojies import hazard
 from . import commands
 from . import constants
 from .util import PipxError, mkdir
@@ -563,10 +562,16 @@ def setup(args):
 def check_args(args: argparse.Namespace):
     if args.command == "run":
         if sys.argv[-len(args.appargs) - 1] == "--":
-            logging.warning(
-                f"{hazard}  pipx arg parsing has removed the first -- after '{args.app}', yielding:\n"
-                f"{args.app} {' '.join(args.appargs)}\n"
-                "If this is not intended, add another -- before app or appargs pipx arguments."
+            print(
+                "Note, pipx arg parsing has removed the first -- from appargs, yielding:",
+                file=sys.stderr,
+            )
+            print(
+                f"{args.app} {' '.join(args.appargs)}", file=sys.stderr,
+            )
+            print(
+                "If this is not intended, add another -- before app or appargs pipx arguments.",
+                file=sys.stderr,
             )
 
 
@@ -576,8 +581,8 @@ def cli() -> int:
         parser = get_command_parser()
         argcomplete.autocomplete(parser)
         parsed_pipx_args = parser.parse_args()
-        setup(parsed_pipx_args)
         check_args(parsed_pipx_args)
+        setup(parsed_pipx_args)
         if not parsed_pipx_args.command:
             parser.print_help()
             return 1
