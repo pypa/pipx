@@ -417,14 +417,10 @@ def _add_run(subparsers):
         description=textwrap.dedent(
             f"""
         Download the latest version of a package to a temporary virtual environment,
-        then run an app from it.
-
-        NOTE: Precede the app/appargs with a -- to ensure all app options are passed
-        to the app unambiguously.  e.g. `pipx run --verbose pyapp -- pyapparg1`.
-
-        The environment will be cached and re-used for up to {constants.TEMP_VENV_EXPIRATION_THRESHOLD_DAYS} days. This means
-        subsequent calls to 'run' for the same package will be faster since
-        they can re-use the cached Virtual Environment.
+        then run an app from it. The environment will be cached
+        and re-used for up to {constants.TEMP_VENV_EXPIRATION_THRESHOLD_DAYS} days. This
+        means subsequent calls to 'run' for the same package will be faster
+        since they can re-use the cached Virtual Environment.
 
         In support of PEP 582 'run' will use apps found in a local __pypackages__
          directory, if present. Please note that this behavior is experimental,
