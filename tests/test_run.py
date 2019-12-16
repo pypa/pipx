@@ -50,29 +50,30 @@ def test_run_script_from_internet(pipx_temp_env, capsys):
 
 
 @pytest.mark.parametrize(
-    "input_run_args,expected_appargs",
+    "input_run_args,expected_app_with_args",
     [
-        (["--", "pycowsay", "--", "hello"], ["--", "hello"]),
-        (["--", "pycowsay", "--", "--", "hello"], ["--", "--", "hello"]),
-        (["--", "pycowsay", "hello", "--"], ["hello", "--"]),
-        (["--", "pycowsay", "hello", "--", "--"], ["hello", "--", "--"]),
-        (["--", "pycowsay", "--"], ["--"]),
-        (["--", "pycowsay", "--", "--"], ["--", "--"]),
-        (["pycowsay", "--", "hello"], ["hello"]),
-        (["pycowsay", "--", "--", "hello"], ["--", "hello"]),
-        (["pycowsay", "hello", "--"], ["hello", "--"]),
-        (["pycowsay", "hello", "--", "--"], ["hello", "--", "--"]),
-        (["pycowsay", "--"], []),
-        (["pycowsay", "--", "--"], ["--"]),
+        (["--", "pycowsay", "--", "hello"], ["pycowsay", "--", "hello"]),
+        (["--", "pycowsay", "--", "--", "hello"], ["pycowsay", "--", "--", "hello"]),
+        (["--", "pycowsay", "hello", "--"], ["pycowsay", "hello", "--"]),
+        (["--", "pycowsay", "hello", "--", "--"], ["pycowsay", "hello", "--", "--"]),
+        (["--", "pycowsay", "--"], ["pycowsay", "--"]),
+        (["--", "pycowsay", "--", "--"], ["pycowsay", "--", "--"]),
+        (["pycowsay", "--", "hello"], ["pycowsay", "--", "hello"]),
+        (["pycowsay", "--", "--", "hello"], ["pycowsay", "--", "--", "hello"]),
+        (["pycowsay", "hello", "--"], ["pycowsay", "hello", "--"]),
+        (["pycowsay", "hello", "--", "--"], ["pycowsay", "hello", "--", "--"]),
+        (["pycowsay", "--"], ["pycowsay", "--"]),
+        (["pycowsay", "--", "--"], ["pycowsay", "--", "--"]),
     ],
 )
 def test_appargs_doubledash(
-    pipx_temp_env, capsys, monkeypatch, input_run_args, expected_appargs
+    pipx_temp_env, capsys, monkeypatch, input_run_args, expected_app_with_args
 ):
     parser = pipx.main.get_command_parser()
     monkeypatch.setattr(sys, "argv", ["pipx", "run"] + input_run_args)
     parsed_pipx_args = parser.parse_args()
-    assert parsed_pipx_args.appargs == expected_appargs
+    pipx.main.check_args(parsed_pipx_args)
+    assert parsed_pipx_args.app_with_args == expected_app_with_args
 
 
 def test_run_ensure_null_pythonpath():

@@ -139,13 +139,15 @@ def run_pipx_command(args):  # noqa: C901
 
     if args.command == "run":
         package_or_url = (
-            args.spec if ("spec" in args and args.spec is not None) else args.app
+            args.spec
+            if ("spec" in args and args.spec is not None)
+            else args.app_with_args[0]
         )
         use_cache = not args.no_cache
         return commands.run(
-            args.app,
+            args.app_with_args[0],
             package_or_url,
-            args.appargs,
+            args.app_with_args[1:],
             args.python,
             pip_args,
             venv_args,
@@ -434,11 +436,10 @@ def _add_run(subparsers):
         action="store_true",
         help="Do not re-use cached virtual environment if it exists",
     )
-    p.add_argument("app", help="app/package name")
     p.add_argument(
-        "appargs",
+        "app_with_args",
         nargs=argparse.REMAINDER,
-        help="arguments passed to the application when it is invoked",
+        help="app/package name and any arguments to be passed to it",
         default=[],
     )
     p.add_argument(
@@ -454,6 +455,7 @@ def _add_run(subparsers):
         help="The Python version to run package's CLI app with. Must be v3.5+.",
     )
     add_pip_venv_args(p)
+    p.set_defaults(subparser=p)
 
 
 def _add_runpip(subparsers, autocomplete_list_of_installed_packages):
@@ -555,6 +557,14 @@ def setup(args):
         )
 
 
+def check_args(parsed_pipx_args: argparse.Namespace):
+    if parsed_pipx_args.command == "run":
+        if parsed_pipx_args.app_with_args[0] == "--":
+            parsed_pipx_args.app_with_args.pop(0)
+        if not parsed_pipx_args.app_with_args:
+            parsed_pipx_args.subparser.error("app argument is required.")
+
+
 def cli() -> int:
     """Entry point from command line"""
     try:
@@ -562,6 +572,7 @@ def cli() -> int:
         argcomplete.autocomplete(parser)
         parsed_pipx_args = parser.parse_args()
         setup(parsed_pipx_args)
+        check_args(parsed_pipx_args)
         if not parsed_pipx_args.command:
             parser.print_help()
             return 1
