@@ -23,6 +23,14 @@ def pipx_temp_env(tmp_path, monkeypatch):
     monkeypatch.setattr(constants, "PIPX_LOCAL_VENVS", home_dir / "venvs")
     monkeypatch.setattr(constants, "PIPX_VENV_CACHEDIR", home_dir / ".cache")
 
-    # add /usr/bin so a compiled package can find gcc
-    env_path = [Path("/usr/bin"), bin_dir]
+    # Allow compiled packages to find gcc.
+    system_gcc = Path("/usr/bin/gcc")
+    our_gcc = bin_dir / "gcc"
+    if system_gcc.exists() and not our_gcc.exists():
+        # If we add /usr/bin directly to PATH other scripts in that directory
+        # can match scripts installed during tests, causing pipx to print warnings.
+        # For that reason we create a symlink to gcc instead of adding /usr/bin to PATH.
+        our_gcc.parent.mkdir(parents=True, exist_ok=True)
+        os.symlink(system_gcc, our_gcc)
+    env_path = [bin_dir]
     monkeypatch.setenv("PATH", os.pathsep.join([str(x) for x in env_path]))
