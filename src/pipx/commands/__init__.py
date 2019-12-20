@@ -1,7 +1,7 @@
+from .run import run
 from .upgrade import upgrade, upgrade_all
 
 from .commands import (
-    run,
     install,
     inject,
     uninstall,
