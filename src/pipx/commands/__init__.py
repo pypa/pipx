@@ -1,3 +1,4 @@
+from .list_packages import list_packages
 from .run import run
 from .upgrade import upgrade, upgrade_all
 
@@ -7,7 +8,6 @@ from .commands import (
     uninstall,
     uninstall_all,
     reinstall_all,
-    list_packages,
     run_pip,
     ensurepath,
 )
