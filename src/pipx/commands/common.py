@@ -82,7 +82,7 @@ def _symlink_package_apps(
             )
 
 
-def _get_package_summary(
+def get_package_summary(
     path: Path, *, package: str = None, new_install: bool = False
 ) -> str:
     venv = Venv(path)

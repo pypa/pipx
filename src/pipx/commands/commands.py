@@ -23,7 +23,7 @@ else:
 import userpath  # type: ignore
 from pipx import constants
 from pipx.colors import bold
-from pipx.commands.common import _get_package_summary, expose_apps_globally
+from pipx.commands.common import expose_apps_globally, get_package_summary
 from pipx.emojies import hazard, sleep, stars
 from pipx.util import WINDOWS, PipxError, rmdir
 from pipx.venv import Venv, VenvContainer, PackageInstallFailureError
@@ -147,7 +147,7 @@ def _run_post_install_actions(
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             expose_apps_globally(local_bin_dir, app_paths, package, force=force)
 
-    print(_get_package_summary(venv_dir, package=package, new_install=True))
+    print(get_package_summary(venv_dir, package=package, new_install=True))
     _warn_if_not_on_path(local_bin_dir)
     print(f"done! {stars}", file=sys.stderr)
 
@@ -348,7 +348,7 @@ def list_packages(venv_container: VenvContainer):
     venv_container.verify_shared_libs()
 
     with Pool() as p:
-        for package_summary in p.map(_get_package_summary, dirs):
+        for package_summary in p.map(get_package_summary, dirs):
             print(package_summary)
 
 
