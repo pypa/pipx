@@ -3,9 +3,10 @@
 import logging
 import sys
 import textwrap
+import tempfile
 from pathlib import Path
 from shutil import which
-from typing import List
+from typing import List, Optional
 
 import userpath  # type: ignore
 from pipx import constants
@@ -17,9 +18,9 @@ from pipx.venv import Venv, VenvContainer, PackageInstallFailureError
 
 
 def install(
-    venv_dir: Path,
-    package: str,
-    package_or_url: str,
+    venv_dir: Optional[Path],
+    package_name: Optional[str],
+    package_spec: str,
     local_bin_dir: Path,
     python: str,
     pip_args: List[str],
@@ -29,6 +30,14 @@ def install(
     force: bool,
     include_dependencies: bool,
 ):
+    # package_spec is anything pip-installable, including package_name, vcs spec,
+    #   zip file, or tar.gz file.
+    # Determine package_name to properly name venv directory.
+    if venv_dir is None or package_name is None:
+        package_name = _package_name_from_spec(package_spec, python)
+        venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
+        venv_dir = venv_container.get_venv_dir(package_name)
+
     try:
         exists = venv_dir.exists() and next(venv_dir.iterdir())
     except StopIteration:
@@ -39,7 +48,7 @@ def install(
             print(f"Installing to existing directory {str(venv_dir)!r}")
         else:
             print(
-                f"{package!r} already seems to be installed. "
+                f"{package_name!r} already seems to be installed. "
                 f"Not modifying existing installation in {str(venv_dir)!r}. "
                 "Pass '--force' to force installation."
             )
@@ -50,8 +59,8 @@ def install(
         venv.create_venv(venv_args, pip_args)
         try:
             venv.install_package(
-                package=package,
-                package_or_url=package_or_url,
+                package=package_name,
+                package_or_url=package_spec,
                 pip_args=pip_args,
                 include_dependencies=include_dependencies,
                 include_apps=True,
@@ -60,16 +69,43 @@ def install(
         except PackageInstallFailureError:
             venv.remove_venv()
             raise PipxError(
-                f"Could not install package {package}. Is the name or spec correct?"
+                f"Could not install package {package_name}. Is the name or spec correct?"
             )
 
         _run_post_install_actions(
-            venv, package, local_bin_dir, venv_dir, include_dependencies, force=force
+            venv,
+            package_name,
+            local_bin_dir,
+            venv_dir,
+            include_dependencies,
+            force=force,
         )
     except (Exception, KeyboardInterrupt):
         print("")
         venv.remove_venv()
         raise
+
+
+def _package_name_from_spec(package_spec: str, python: str) -> str:
+    with tempfile.TemporaryDirectory() as temp_venv_dir:
+        venv = Venv(Path(temp_venv_dir), python=python)
+        venv.create_venv(venv_args=[], pip_args=[])
+        try:
+            venv.install_package(
+                package=None,
+                package_or_url=package_spec,
+                pip_args=[],
+                include_dependencies=False,
+                include_apps=True,  # TODO 20191223: is this ok? Needed for metadata to validate
+                is_main_package=True,
+            )
+        except PackageInstallFailureError:
+            raise PipxError(f"Unable to validate {package_spec}")
+        package_name = venv.pipx_metadata.main_package.package
+        if package_name is None:
+            raise PipxError(f"Unable to validate {package_spec}")
+    logging.info(f"Determined package name: {package_name}")
+    return package_name
 
 
 def _run_post_install_actions(
