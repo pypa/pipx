@@ -14,7 +14,7 @@ from pipx import constants
 from pipx.colors import bold
 from pipx.commands.common import expose_apps_globally, get_package_summary
 from pipx.emojies import hazard, stars
-from pipx.util import WINDOWS, PipxError, rmdir
+from pipx.util import WINDOWS, PipxError, rmdir, valid_pypi_name
 from pipx.venv import Venv, VenvContainer, PackageInstallFailureError
 
 
@@ -89,6 +89,15 @@ def install(
 
 def _package_name_from_spec(package_spec: str, python: str) -> str:
     start_time = time.time()
+
+    package_name: Optional[str]
+
+    # TODO 20191223: Need to check if --editable and local path?
+    if valid_pypi_name(package_spec):
+        package_name = package_spec
+        logging.info(f"Determined package name: {package_name}")
+        logging.info(f"Elapsed time: {time.time()-start_time:.1f}s")
+        return package_name
 
     with tempfile.TemporaryDirectory() as temp_venv_dir:
         venv = Venv(Path(temp_venv_dir), python=python)

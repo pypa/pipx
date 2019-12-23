@@ -17,6 +17,7 @@ from pipx.util import (
     rmdir,
     run,
     run_subprocess,
+    valid_pypi_name,
 )
 
 
@@ -340,11 +341,7 @@ def abs_path_if_local(package_or_url: str, venv: Venv, pip_args: List[str]) -> s
     if "--editable" in pip_args and pkg_path.exists():
         return str(pkg_path.resolve())
 
-    # https://www.python.org/dev/peps/pep-0508/#names
-    valid_pkg_name = bool(
-        re.search(r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$", package_or_url, re.I)
-    )
-    if not valid_pkg_name:
+    if not valid_pypi_name(package_or_url):
         return str(pkg_path.resolve())
 
     # If all of the above conditions do not return, we may have used a pypi
