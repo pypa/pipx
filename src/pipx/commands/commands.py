@@ -4,6 +4,7 @@ import logging
 import sys
 import textwrap
 import tempfile
+import time
 from pathlib import Path
 from shutil import which
 from typing import List, Optional
@@ -87,6 +88,8 @@ def install(
 
 
 def _package_name_from_spec(package_spec: str, python: str) -> str:
+    start_time = time.time()
+
     with tempfile.TemporaryDirectory() as temp_venv_dir:
         venv = Venv(Path(temp_venv_dir), python=python)
         venv.create_venv(venv_args=[], pip_args=[])
@@ -96,7 +99,7 @@ def _package_name_from_spec(package_spec: str, python: str) -> str:
                 package_or_url=package_spec,
                 pip_args=[],
                 include_dependencies=False,
-                include_apps=True,  # TODO 20191223: is this ok? Needed for metadata to validate
+                include_apps=True,  # metadata-only, so metadata validates
                 is_main_package=True,
             )
         except PackageInstallFailureError:
@@ -105,6 +108,7 @@ def _package_name_from_spec(package_spec: str, python: str) -> str:
         if package_name is None:
             raise PipxError(f"Unable to validate {package_spec}")
     logging.info(f"Determined package name: {package_name}")
+    logging.info(f"Elapsed time: {time.time()-start_time:.1f}s")
     return package_name
 
 
