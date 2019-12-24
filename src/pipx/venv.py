@@ -180,15 +180,8 @@ class Venv:
             if package is None:
                 # If no package name is supplied, install only main package
                 #   first in order to see what its name is
-                old_package_set = self.list_installed_packages()
-                cmd = ["install"] + pip_args + ["--no-dependencies"] + [package_or_url]
-                self._run_pip(cmd)
-                installed_packages = self.list_installed_packages() - old_package_set
-                if len(installed_packages) == 1:
-                    package = installed_packages.pop()
-                    logging.info(f"Determined package name: '{package}'")
-                else:
-                    package = None
+                package = self.install_package_no_deps(package_or_url, pip_args)
+
             cmd = ["install"] + pip_args + [package_or_url]
             self._run_pip(cmd)
 
@@ -212,6 +205,24 @@ class Venv:
         # Verify package installed ok
         if self.package_metadata[package].package_version is None:
             raise PackageInstallFailureError
+
+    def install_package_no_deps(
+        self, package_or_url: str, pip_args: List[str]
+    ) -> Optional[str]:
+        package: Optional[str]
+
+        old_package_set = self.list_installed_packages()
+        cmd = ["install"] + pip_args + ["--no-dependencies"] + [package_or_url]
+        self._run_pip(cmd)
+        installed_packages = self.list_installed_packages() - old_package_set
+        if len(installed_packages) == 1:
+            package = installed_packages.pop()
+            logging.info(f"Determined package name: '{package}'")
+        else:
+            package = None
+            logging.info(f"Unable to determined package name for: '{package_or_url}'")
+
+        return package
 
     def get_venv_metadata_for_package(self, package: str) -> VenvMetadata:
         data = json.loads(
