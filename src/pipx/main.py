@@ -130,7 +130,6 @@ def run_pipx_command(args):  # noqa: C901
         if urllib.parse.urlparse(package).scheme:
             raise PipxError("Package cannot be a url")
 
-        # TODO 20191223: this may not be used anymore
         if "spec" in args and args.spec is not None:
             if urllib.parse.urlparse(args.spec).scheme:
                 if "#egg=" not in args.spec:
