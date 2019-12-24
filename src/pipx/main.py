@@ -294,7 +294,7 @@ def _add_inject(subparsers, autocomplete_list_of_installed_packages):
     p.add_argument(
         "dependencies",
         nargs="+",
-        help="the packages to inject into the Virtual Environment",
+        help="the packages to inject into the Virtual Environment--either package name or pip package spec",
     )
     p.add_argument(
         "--include-apps",
