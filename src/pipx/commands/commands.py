@@ -191,8 +191,8 @@ def _warn_if_not_on_path(local_bin_dir: Path):
 
 def inject(
     venv_dir: Path,
-    package: str,
-    package_or_url: str,
+    package_name: Optional[str],
+    package_spec: str,
     pip_args: List[str],
     *,
     verbose: bool,
@@ -204,17 +204,24 @@ def inject(
         raise PipxError(
             textwrap.dedent(
                 f"""\
-            Can't inject {package!r} into nonexistent Virtual Environment {str(venv_dir)!r}.
+            Can't inject {package_spec!r} into nonexistent Virtual Environment {str(venv_dir)!r}.
             Be sure to install the package first with pipx install {venv_dir.name!r}
             before injecting into it."""
             )
         )
 
     venv = Venv(venv_dir, verbose=verbose)
+
+    # package_spec is anything pip-installable, including package_name, vcs spec,
+    #   zip file, or tar.gz file.
+    if package_name is None:
+        # TODO 20191223: make '_python' member public 'python'.
+        package_name = _package_name_from_spec(package_spec, venv._python)
+
     try:
         venv.install_package(
-            package=package,
-            package_or_url=package_or_url,
+            package=package_name,
+            package_or_url=package_spec,
             pip_args=pip_args,
             include_dependencies=include_dependencies,
             include_apps=include_apps,
@@ -222,19 +229,19 @@ def inject(
         )
     except PackageInstallFailureError:
         raise PipxError(
-            f"Could not inject package {package}. Is the name or spec correct?"
+            f"Could not inject package {package_spec}. Is the name or spec correct?"
         )
     if include_apps:
         _run_post_install_actions(
             venv,
-            package,
+            package_name,
             constants.LOCAL_BIN_DIR,
             venv_dir,
             include_dependencies,
             force=force,
         )
 
-    print(f"  injected package {bold(package)} into venv {bold(venv_dir.name)}")
+    print(f"  injected package {bold(package_name)} into venv {bold(venv_dir.name)}")
     print(f"done! {stars}", file=sys.stderr)
 
 
