@@ -85,10 +85,8 @@ def test_install_same_package_twice_no_error(pipx_temp_env, capsys):
 
 
 def test_include_deps(pipx_temp_env, capsys):
-    assert run_pipx_cli(["install", "jupyter", "--spec", "jupyter==1.0.0"]) == 1
-    assert not run_pipx_cli(
-        ["install", "jupyter", "--spec", "jupyter==1.0.0", "--include-deps"]
-    )
+    assert run_pipx_cli(["install", "jupyter==1.0.0"]) == 1
+    assert not run_pipx_cli(["install", "jupyter==1.0.0", "--include-deps"])
 
 
 def test_path_warning(pipx_temp_env, capsys, monkeypatch, caplog):
