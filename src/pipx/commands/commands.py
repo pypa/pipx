@@ -92,11 +92,11 @@ def _package_name_from_spec(package_spec: str, python: str) -> str:
 
     package_name: Optional[str]
 
-    # TODO 20191223: Need to check if --editable and local path?
-    if valid_pypi_name(package_spec):
+    # shortcut if valid PYPI name and not a local path
+    if valid_pypi_name(package_spec) and not Path(package_spec).exists():
         package_name = package_spec
         logging.info(f"Determined package name: {package_name}")
-        logging.info(f"Elapsed time: {time.time()-start_time:.1f}s")
+        logging.info(f"Package name determined in {time.time()-start_time:.1f}s")
         return package_name
 
     with tempfile.TemporaryDirectory() as temp_venv_dir:
@@ -107,9 +107,7 @@ def _package_name_from_spec(package_spec: str, python: str) -> str:
         )
         if package_name is None:
             raise PipxError(f"Unable to validate {package_spec}")
-    logging.info(
-        f"Package name determination elapsed time: {time.time()-start_time:.1f}s"
-    )
+    logging.info(f"Package name determined in {time.time()-start_time:.1f}s")
     return package_name
 
 
