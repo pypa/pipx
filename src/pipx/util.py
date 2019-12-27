@@ -135,3 +135,10 @@ def valid_pypi_name(package_name: str) -> bool:
     return bool(
         re.search(r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$", package_name, re.I)
     )
+
+
+def full_package_description(package, package_or_url):
+    name_str = f"{package}"
+    if package != package_or_url:
+        name_str += f" from specification {package_or_url!r}"
+    return name_str

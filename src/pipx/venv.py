@@ -11,6 +11,7 @@ from pipx.pipx_metadata_file import PipxMetadata, PackageInfo
 from pipx.shared_libs import shared_libs
 from pipx.util import (
     PipxError,
+    full_package_description,
     get_script_output,
     get_site_packages,
     get_venv_paths,
@@ -174,14 +175,21 @@ class Venv:
         is_main_package: bool,
     ) -> None:
 
-        with animate(f"installing package {package_or_url!r}", self.do_animation):
-            if pip_args is None:
-                pip_args = []
-            if package is None:
-                # If no package name is supplied, install only main package
-                #   first in order to see what its name is
-                package = self.install_package_no_deps(package_or_url, pip_args)
+        if pip_args is None:
+            pip_args = []
+        if package is None:
+            # If no package name is supplied, install only main package
+            #   first in order to see what its name is
+            package = self.install_package_no_deps(package_or_url, pip_args)
 
+        install_message = f"installing {package}"
+        if package != package_or_url:
+            install_message += f" from specification {package_or_url!r}"
+
+        with animate(
+            "installing " + full_package_description(package, package_or_url),
+            self.do_animation,
+        ):
             cmd = ["install"] + pip_args + [package_or_url]
             self._run_pip(cmd)
 
@@ -211,9 +219,10 @@ class Venv:
     ) -> Optional[str]:
         package: Optional[str]
 
-        old_package_set = self.list_installed_packages()
-        cmd = ["install"] + pip_args + ["--no-dependencies"] + [package_or_url]
-        self._run_pip(cmd)
+        with animate(f"resolving {package_or_url!r}", self.do_animation):
+            old_package_set = self.list_installed_packages()
+            cmd = ["install"] + pip_args + ["--no-dependencies"] + [package_or_url]
+            self._run_pip(cmd)
         installed_packages = self.list_installed_packages() - old_package_set
         if len(installed_packages) == 1:
             package = installed_packages.pop()
@@ -304,11 +313,11 @@ class Venv:
         except KeyboardInterrupt:
             return 130  # shell code for Ctrl-C
 
-    def _upgrade_package_no_metadata(
-        self, package_or_url: str, pip_args: List[str]
-    ) -> None:
-        with animate(f"upgrading package {package_or_url!r}", self.do_animation):
-            self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
+    def _upgrade_package_no_metadata(self, package: str, pip_args: List[str]) -> None:
+        with animate(
+            "upgrading " + full_package_description(package, package), self.do_animation
+        ):
+            self._run_pip(["install"] + pip_args + ["--upgrade", package])
 
     def upgrade_package(
         self,
@@ -319,7 +328,10 @@ class Venv:
         include_apps: bool,
         is_main_package: bool,
     ) -> None:
-        with animate(f"upgrading package {package_or_url!r}", self.do_animation):
+        with animate(
+            "upgrading " + full_package_description(package, package_or_url),
+            self.do_animation,
+        ):
             self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
 
         self._update_package_metadata(
