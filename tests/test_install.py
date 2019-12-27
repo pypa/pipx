@@ -60,7 +60,7 @@ def test_install_tricky_packages(capsys, pipx_temp_env, caplog, package):
     install_package(capsys, pipx_temp_env, caplog, package)
 
 
-# TODO 20191223: Add git+... spec when git is in binpath of tests
+# TODO: Add git+... spec when git is in binpath of tests (Issue #303)
 @pytest.mark.parametrize(
     "package_name,package_spec",
     [
