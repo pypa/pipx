@@ -3,11 +3,11 @@
 pipx install pycowsay
 pipx install --python python3.6 pycowsay
 pipx install --python python3.7 pycowsay
-pipx install --spec git+https://github.com/ambv/black black
-pipx --spec git+https://github.com/ambv/black.git@branch-name black
-pipx --spec git+https://github.com/ambv/black.git@git-hash black
-pipx install --spec https://github.com/ambv/black/archive/18.9b0.zip black
-pipx install --spec black[d] black
+pipx install git+https://github.com/ambv/black
+pipx install git+https://github.com/ambv/black.git@branch-name
+pipx install git+https://github.com/ambv/black.git@git-hash
+pipx install https://github.com/ambv/black/archive/18.9b0.zip
+pipx install black[d]
 pipx install --include-deps jupyter
 ```
 
