@@ -2,6 +2,7 @@ import json
 import logging
 import pkgutil
 import re
+import urllib.parse
 from pathlib import Path
 from typing import Generator, List, NamedTuple, Dict, Set, Optional
 
@@ -354,6 +355,10 @@ def abs_path_if_local(package_or_url: str, venv: Venv, pip_args: List[str]) -> s
     """Return the absolute path if package_or_url represents a filepath
     and not a pypi package
     """
+    # if valid url leave it untouched
+    if urllib.parse.urlparse(package_or_url).scheme:
+        return package_or_url
+
     pkg_path = Path(package_or_url)
     if not pkg_path.exists():
         # no existing path, must be pypi package or non-existent
