@@ -80,7 +80,7 @@ class Venv:
         self, path: Path, *, verbose: bool = False, python: str = DEFAULT_PYTHON
     ) -> None:
         self.root = path
-        self._python = python
+        self.python = python
         self.bin_path, self.python_path = get_venv_paths(self.root)
         self.pipx_metadata = PipxMetadata(venv_dir=path)
         self.verbose = verbose
@@ -126,7 +126,7 @@ class Venv:
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
-            cmd = [self._python, "-m", "venv", "--without-pip"]
+            cmd = [self.python, "-m", "venv", "--without-pip"]
             run(cmd + venv_args + [str(self.root)])
         shared_libs.create(pip_args, self.verbose)
         pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH

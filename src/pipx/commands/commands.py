@@ -215,8 +215,7 @@ def inject(
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
     if package_name is None:
-        # TODO 20191223: make '_python' member public 'python'.
-        package_name = _package_name_from_spec(package_spec, venv._python)
+        package_name = _package_name_from_spec(package_spec, venv.python)
 
     try:
         venv.install_package(
