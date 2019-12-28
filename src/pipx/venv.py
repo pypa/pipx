@@ -182,10 +182,8 @@ class Venv:
             # If no package name is supplied, install only main package
             #   first in order to see what its name is
             package = self.install_package_no_deps(package_or_url, pip_args)
-
-        install_message = f"installing {package}"
-        if package != package_or_url:
-            install_message += f" from specification {package_or_url!r}"
+            if package is None:
+                package = "??"
 
         with animate(
             "installing " + full_package_description(package, package_or_url),
