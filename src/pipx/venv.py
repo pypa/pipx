@@ -141,7 +141,7 @@ class Venv:
         # https://docs.python.org/3/library/site.html
         # A path configuration file is a file whose name has the form 'name.pth'.
         # its contents are additional items (one per line) to be added to sys.path
-        pipx_pth.write_text(str(shared_libs.site_packages) + "\n", encoding="utf-8")
+        pipx_pth.write_text(f"{shared_libs.site_packages}\n", encoding="utf-8")
 
         self.pipx_metadata.venv_args = venv_args
         self.pipx_metadata.python_version = self.get_python_version()
@@ -186,7 +186,7 @@ class Venv:
                 package = "??"
 
         with animate(
-            "installing " + full_package_description(package, package_or_url),
+            "installing {full_package_description(package, package_or_url)}",
             self.do_animation,
         ):
             cmd = ["install"] + pip_args + [package_or_url]
@@ -314,7 +314,7 @@ class Venv:
 
     def _upgrade_package_no_metadata(self, package: str, pip_args: List[str]) -> None:
         with animate(
-            "upgrading " + full_package_description(package, package), self.do_animation
+            "upgrading {full_package_description(package, package)}", self.do_animation
         ):
             self._run_pip(["install"] + pip_args + ["--upgrade", package])
 
@@ -328,7 +328,7 @@ class Venv:
         is_main_package: bool,
     ) -> None:
         with animate(
-            "upgrading " + full_package_description(package, package_or_url),
+            "upgrading {full_package_description(package, package_or_url)}",
             self.do_animation,
         ):
             self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
