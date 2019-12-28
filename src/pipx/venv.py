@@ -182,11 +182,12 @@ class Venv:
             # If no package name is supplied, install only main package
             #   first in order to see what its name is
             package = self.install_package_no_deps(package_or_url, pip_args)
+            # TODO 20191228: should we just fail if we cannot determine package?
             if package is None:
                 package = "??"
 
         with animate(
-            "installing {full_package_description(package, package_or_url)}",
+            f"installing {full_package_description(package, package_or_url)}",
             self.do_animation,
         ):
             cmd = ["install"] + pip_args + [package_or_url]
@@ -314,7 +315,7 @@ class Venv:
 
     def _upgrade_package_no_metadata(self, package: str, pip_args: List[str]) -> None:
         with animate(
-            "upgrading {full_package_description(package, package)}", self.do_animation
+            f"upgrading {full_package_description(package, package)}", self.do_animation
         ):
             self._run_pip(["install"] + pip_args + ["--upgrade", package])
 
@@ -328,7 +329,7 @@ class Venv:
         is_main_package: bool,
     ) -> None:
         with animate(
-            "upgrading {full_package_description(package, package_or_url)}",
+            f"upgrading {full_package_description(package, package_or_url)}",
             self.do_animation,
         ):
             self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
