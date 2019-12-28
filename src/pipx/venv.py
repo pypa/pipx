@@ -231,7 +231,7 @@ class Venv:
             logging.info(f"Determined package name: '{package}'")
         else:
             package = None
-            logging.info(f"Unable to determined package name for: '{package_or_url}'")
+            logging.info(f"Unable to determine package name for: '{package_or_url}'")
 
         return package
 
