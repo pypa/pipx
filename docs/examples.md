@@ -24,14 +24,14 @@ pipx --spec git+https://url.git@branch run BINARY
 pipx --spec git+https://url.git@hash run BINARY
 pipx run pycowsay moo
 pipx --version  # prints pipx version
-pipx run pycowsay  --version  # prints pycowsay version
-pipx --python pythonX pycowsay
-pipx --spec pycowsay==2.0 pycowsay --version
-pipx --spec git+https://github.com/psf/black.git black
-pipx --spec git+https://github.com/psf/black.git@branch-name black
-pipx --spec git+https://github.com/psf/black.git@git-hash black
-pipx --spec https://github.com/psf/black/archive/18.9b0.zip black --help
-pipx https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
+pipx run pycowsay --version  # prints pycowsay version
+pipx run --python pythonX pycowsay
+pipx run --spec pycowsay==2.0 pycowsay --version
+pipx run --spec git+https://github.com/psf/black.git black
+pipx run --spec git+https://github.com/psf/black.git@branch-name black
+pipx run --spec git+https://github.com/psf/black.git@git-hash black
+pipx run --spec https://github.com/psf/black/archive/18.9b0.zip black --help
+pipx run https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
 ```
 
 ## `pipx inject` example
