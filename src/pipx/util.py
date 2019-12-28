@@ -137,8 +137,8 @@ def valid_pypi_name(package_name: str) -> bool:
     )
 
 
-def full_package_description(package, package_spec):
-    name_str = f"{package}"
-    if package != package_spec:
-        name_str += f" from spec. {package_spec!r}"
-    return name_str
+def full_package_description(package: str, package_spec: str) -> str:
+    if package == package_spec:
+        return package
+    else:
+        return f"{package} from spec {package_spec!r}"
