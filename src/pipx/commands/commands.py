@@ -58,21 +58,14 @@ def install(
     venv = Venv(venv_dir, python=python, verbose=verbose)
     try:
         venv.create_venv(venv_args, pip_args)
-        try:
-            venv.install_package(
-                package=package_name,
-                package_or_url=package_spec,
-                pip_args=pip_args,
-                include_dependencies=include_dependencies,
-                include_apps=True,
-                is_main_package=True,
-            )
-        except PackageInstallFailureError:
-            venv.remove_venv()
-            raise PipxError(
-                f"Could not install package {package_name}. Is the name or spec correct?"
-            )
-
+        venv.install_package(
+            package=package_name,
+            package_or_url=package_spec,
+            pip_args=pip_args,
+            include_dependencies=include_dependencies,
+            include_apps=True,
+            is_main_package=True,
+        )
         _run_post_install_actions(
             venv,
             package_name,
@@ -105,8 +98,7 @@ def _package_name_from_spec(package_spec: str, python: str) -> str:
         package_name = venv.install_package_no_deps(
             package_or_url=package_spec, pip_args=[]
         )
-        if package_name is None:
-            raise PipxError(f"Unable to validate {package_spec}")
+
     logging.info(f"Package name determined in {time.time()-start_time:.1f}s")
     return package_name
 

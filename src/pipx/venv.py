@@ -12,6 +12,7 @@ from pipx.pipx_metadata_file import PipxMetadata, PackageInfo
 from pipx.shared_libs import shared_libs
 from pipx.util import (
     PipxError,
+    PackageInstallFailureError,
     full_package_description,
     get_script_output,
     get_site_packages,
@@ -21,10 +22,6 @@ from pipx.util import (
     run_subprocess,
     valid_pypi_name,
 )
-
-
-class PackageInstallFailureError(Exception):
-    pass
 
 
 class VenvContainer:
@@ -182,18 +179,20 @@ class Venv:
             # If no package name is supplied, install only main package
             #   first in order to see what its name is
             package = self.install_package_no_deps(package_or_url, pip_args)
-            if package is None:
-                logging.warning(
-                    f"Cannot determine package name for spec {package_or_url!r}. "
-                )
-                raise PackageInstallFailureError
 
-        with animate(
-            f"installing {full_package_description(package, package_or_url)}",
-            self.do_animation,
-        ):
-            cmd = ["install"] + pip_args + [package_or_url]
-            self._run_pip(cmd)
+        try:
+            with animate(
+                f"installing {full_package_description(package, package_or_url)}",
+                self.do_animation,
+            ):
+                cmd = ["install"] + pip_args + [package_or_url]
+                self._run_pip(cmd)
+        except PipxError as e:
+            logging.info(e)
+            raise PackageInstallFailureError(
+                f"Error installing "
+                f"{full_package_description(package, package_or_url)}."
+            )
 
         self._update_package_metadata(
             package=package,
@@ -206,26 +205,38 @@ class Venv:
 
         # Verify package installed ok
         if self.package_metadata[package].package_version is None:
-            raise PackageInstallFailureError
+            raise PackageInstallFailureError(
+                f"Unable to install "
+                f"{full_package_description(package, package_or_url)}."
+                f"Check the name or spec for errors."
+            )
 
-    def install_package_no_deps(
-        self, package_or_url: str, pip_args: List[str]
-    ) -> Optional[str]:
-        package: Optional[str]
+    def install_package_no_deps(self, package_or_url: str, pip_args: List[str]) -> str:
+        try:
+            with animate(
+                f"determining package name from {package_or_url!r}", self.do_animation
+            ):
+                old_package_set = self.list_installed_packages()
+                cmd = ["install"] + pip_args + ["--no-dependencies"] + [package_or_url]
+                self._run_pip(cmd)
+        except PipxError as e:
+            logging.info(e)
+            raise PipxError(
+                f"Cannot determine package name from spec {package_or_url!r}. "
+                f"Check package spec for errors."
+            )
 
-        with animate(
-            f"determining package name from {package_or_url!r}", self.do_animation
-        ):
-            old_package_set = self.list_installed_packages()
-            cmd = ["install"] + pip_args + ["--no-dependencies"] + [package_or_url]
-            self._run_pip(cmd)
         installed_packages = self.list_installed_packages() - old_package_set
         if len(installed_packages) == 1:
             package = installed_packages.pop()
             logging.info(f"Determined package name: '{package}'")
         else:
-            package = None
-            logging.info(f"Unable to determine package name for: '{package_or_url}'")
+            logging.info(f"old_package_set = {old_package_set}")
+            logging.info(f"install_packages = {installed_packages}")
+            raise PipxError(
+                f"Cannot determine package name from spec {package_or_url!r}. "
+                f"Check package spec for errors."
+            )
 
         return package
 
