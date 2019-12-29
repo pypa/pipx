@@ -182,9 +182,11 @@ class Venv:
             # If no package name is supplied, install only main package
             #   first in order to see what its name is
             package = self.install_package_no_deps(package_or_url, pip_args)
-            # TODO 20191228: should we just fail if we cannot determine package?
             if package is None:
-                package = "??"
+                logging.warning(
+                    f"Cannot determine package name for spec {package_or_url!r}. "
+                )
+                raise PackageInstallFailureError
 
         with animate(
             f"installing {full_package_description(package, package_or_url)}",
@@ -192,14 +194,6 @@ class Venv:
         ):
             cmd = ["install"] + pip_args + [package_or_url]
             self._run_pip(cmd)
-
-        if package is None:
-            logging.warning(
-                f"Cannot determine package name for package_or_url='{package_or_url}'. "
-                f"Unable to retrieve package metadata. "
-                f"Unable to verify if package was installed properly."
-            )
-            return
 
         self._update_package_metadata(
             package=package,
