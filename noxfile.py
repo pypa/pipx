@@ -28,7 +28,7 @@ else:
 
 
 doc_dependencies = [".", "jinja2", "mkdocs", "mkdocs-material"]
-lint_dependencies = ["black", "flake8", "mypy", "check-manifest"]
+lint_dependencies = ["black", "flake8", "flake8-bugbear", "mypy", "check-manifest"]
 
 
 @nox.session(python=python)
