@@ -207,8 +207,9 @@ class Venv:
         if self.package_metadata[package].package_version is None:
             raise PackageInstallFailureError(
                 f"Unable to install "
-                f"{full_package_description(package, package_or_url)}."
-                f"Check the name or spec for errors."
+                f"{full_package_description(package, package_or_url)}.\n"
+                f"Check the name or spec for errors, and verify that it can "
+                f"be installed with pip."
             )
 
     def install_package_no_deps(self, package_or_url: str, pip_args: List[str]) -> str:
