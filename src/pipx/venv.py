@@ -12,7 +12,6 @@ from pipx.pipx_metadata_file import PipxMetadata, PackageInfo
 from pipx.shared_libs import shared_libs
 from pipx.util import (
     PipxError,
-    PackageInstallFailureError,
     full_package_description,
     get_script_output,
     get_site_packages,
@@ -189,7 +188,7 @@ class Venv:
                 self._run_pip(cmd)
         except PipxError as e:
             logging.info(e)
-            raise PackageInstallFailureError(
+            raise PipxError(
                 f"Error installing "
                 f"{full_package_description(package, package_or_url)}."
             )
@@ -205,7 +204,7 @@ class Venv:
 
         # Verify package installed ok
         if self.package_metadata[package].package_version is None:
-            raise PackageInstallFailureError(
+            raise PipxError(
                 f"Unable to install "
                 f"{full_package_description(package, package_or_url)}.\n"
                 f"Check the name or spec for errors, and verify that it can "

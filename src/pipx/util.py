@@ -14,10 +14,6 @@ class PipxError(Exception):
     pass
 
 
-class PackageInstallFailureError(PipxError):
-    pass
-
-
 def rmdir(path: Path):
     logging.info(f"removing directory {path}")
     try:
