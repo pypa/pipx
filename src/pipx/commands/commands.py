@@ -14,13 +14,7 @@ from pipx import constants
 from pipx.colors import bold
 from pipx.commands.common import expose_apps_globally, get_package_summary
 from pipx.emojies import hazard, stars
-from pipx.util import (
-    WINDOWS,
-    PipxError,
-    PackageInstallFailureError,
-    rmdir,
-    valid_pypi_name,
-)
+from pipx.util import WINDOWS, PipxError, rmdir, valid_pypi_name
 from pipx.venv import Venv, VenvContainer
 
 
@@ -215,19 +209,14 @@ def inject(
     if package_name is None:
         package_name = _package_name_from_spec(package_spec, venv.python)
 
-    try:
-        venv.install_package(
-            package=package_name,
-            package_or_url=package_spec,
-            pip_args=pip_args,
-            include_dependencies=include_dependencies,
-            include_apps=include_apps,
-            is_main_package=False,
-        )
-    except PackageInstallFailureError:
-        raise PipxError(
-            f"Could not inject package {package_spec}. Is the name or spec correct?"
-        )
+    venv.install_package(
+        package=package_name,
+        package_or_url=package_spec,
+        pip_args=pip_args,
+        include_dependencies=include_dependencies,
+        include_apps=include_apps,
+        is_main_package=False,
+    )
     if include_apps:
         _run_post_install_actions(
             venv,
