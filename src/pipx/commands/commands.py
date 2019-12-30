@@ -14,8 +14,14 @@ from pipx import constants
 from pipx.colors import bold
 from pipx.commands.common import expose_apps_globally, get_package_summary
 from pipx.emojies import hazard, stars
-from pipx.util import WINDOWS, PipxError, rmdir, valid_pypi_name
-from pipx.venv import Venv, VenvContainer, PackageInstallFailureError
+from pipx.util import (
+    WINDOWS,
+    PipxError,
+    PackageInstallFailureError,
+    rmdir,
+    valid_pypi_name,
+)
+from pipx.venv import Venv, VenvContainer
 
 
 def install(

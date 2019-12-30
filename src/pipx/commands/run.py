@@ -15,11 +15,12 @@ from pipx.emojies import hazard
 from pipx.util import (
     WINDOWS,
     PipxError,
+    PackageInstallFailureError,
     get_pypackage_bin_path,
     rmdir,
     run_pypackage_bin,
 )
-from pipx.venv import PackageInstallFailureError, Venv
+from pipx.venv import Venv
 
 
 def run(
