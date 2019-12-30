@@ -15,7 +15,6 @@ from pipx.emojies import hazard
 from pipx.util import (
     WINDOWS,
     PipxError,
-    PackageInstallFailureError,
     get_pypackage_bin_path,
     rmdir,
     run_pypackage_bin,
@@ -120,17 +119,14 @@ def _download_and_run(
     #   pre-existing, otherwise is None to instruct venv.install_package to
     #   determine package name.
 
-    try:
-        venv.install_package(
-            package=venv.pipx_metadata.main_package.package,
-            package_or_url=package_or_url,
-            pip_args=pip_args,
-            include_dependencies=False,
-            include_apps=True,
-            is_main_package=True,
-        )
-    except PackageInstallFailureError:
-        raise PipxError(f"Unable to install {package_or_url}")
+    venv.install_package(
+        package=venv.pipx_metadata.main_package.package,
+        package_or_url=package_or_url,
+        pip_args=pip_args,
+        include_dependencies=False,
+        include_apps=True,
+        is_main_package=True,
+    )
 
     if not (venv.bin_path / app).exists():
         apps = venv.pipx_metadata.main_package.apps
