@@ -83,8 +83,6 @@ def install(
 def _package_name_from_spec(package_spec: str, python: str) -> str:
     start_time = time.time()
 
-    package_name: Optional[str]
-
     # shortcut if valid PYPI name and not a local path
     if valid_pypi_name(package_spec) and not Path(package_spec).exists():
         package_name = package_spec
