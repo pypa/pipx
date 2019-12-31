@@ -4,8 +4,11 @@ import sys
 from setuptools import find_packages, setup  # type: ignore
 
 if sys.version_info < (3, 6, 0):
-    print("pipx requires Python 3.6 or later")
-    exit(1)
+    sys.exit(
+        "Python 3.6 or later is required. "
+        "See https://github.com/pipxproject/pipx "
+        "for installation instructions."
+    )
 
 import io  # noqa E402
 import os  # noqa E402
