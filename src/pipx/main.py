@@ -74,13 +74,13 @@ you can cleanly upgrade or uninstall. Guaranteed to not have
 dependency version conflicts or interfere with your OS's python
 packages. 'sudo' is not required to do this.
 
-pipx install PACKAGE
-pipx install --python PYTHON PACKAGE
-pipx install --spec VCS_URL PACKAGE
-pipx install --spec ZIP_FILE PACKAGE
-pipx install --spec TAR_GZ_FILE PACKAGE
+pipx install PACKAGE_NAME
+pipx install --python PYTHON PACKAGE_NAME
+pipx install VCS_URL
+pipx install ZIP_FILE
+pipx install TAR_GZ_FILE
 
-The argument to `--spec` is passed directly to `pip install`.
+The PACKAGE_SPEC argument is passed directly to `pip install`.
 
 The default virtual environment location is {constants.DEFAULT_PIPX_HOME}
 and can be overridden by setting the environment variable `PIPX_HOME`
@@ -157,13 +157,10 @@ def run_pipx_command(args):  # noqa: C901
             use_cache,
         )
     elif args.command == "install":
-        package_or_url = (
-            args.spec if ("spec" in args and args.spec is not None) else package
-        )
         return commands.install(
-            venv_dir,
-            package,
-            package_or_url,
+            None,
+            None,
+            args.package_spec,
             constants.LOCAL_BIN_DIR,
             args.python,
             pip_args,
@@ -180,8 +177,8 @@ def run_pipx_command(args):  # noqa: C901
         for dep in args.dependencies:
             commands.inject(
                 venv_dir,
+                None,
                 dep,
-                dep,  # NOP now, but in future can be package_or_url from --spec
                 pip_args,
                 verbose=verbose,
                 include_apps=args.include_apps,
@@ -264,8 +261,7 @@ def _add_install(subparsers):
         formatter_class=LineWrapRawTextHelpFormatter,
         description=INSTALL_DESCRIPTION,
     )
-    p.add_argument("package", help="package name")
-    p.add_argument("--spec", help=SPEC_HELP)
+    p.add_argument("package_spec", help="package name or pip installation spec")
     add_include_dependencies(p)
     p.add_argument("--verbose", action="store_true")
     p.add_argument(
@@ -298,7 +294,7 @@ def _add_inject(subparsers, autocomplete_list_of_installed_packages):
     p.add_argument(
         "dependencies",
         nargs="+",
-        help="the packages to inject into the Virtual Environment",
+        help="the packages to inject into the Virtual Environment--either package name or pip package spec",
     )
     p.add_argument(
         "--include-apps",

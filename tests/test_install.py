@@ -25,10 +25,13 @@ def test_help_text(monkeypatch, capsys):
     assert "apps you can run from anywhere" in captured.out
 
 
-def install_package(capsys, pipx_temp_env, caplog, package):
+def install_package(capsys, pipx_temp_env, caplog, package, package_name=""):
+    if not package_name:
+        package_name = package
+
     run_pipx_cli(["install", package, "--verbose"])
     captured = capsys.readouterr()
-    assert f"installed package {package}" in captured.out
+    assert f"installed package {package_name}" in captured.out
     if not sys.platform.startswith("win"):
         # TODO assert on windows too
         # https://github.com/pipxproject/pipx/issues/217
@@ -55,6 +58,21 @@ def test_install_tricky_packages(capsys, pipx_temp_env, caplog, package):
     if sys.platform.startswith("win"):
         pytest.skip("TODO make this work on Windows")
     install_package(capsys, pipx_temp_env, caplog, package)
+
+
+# TODO: Add git+... spec when git is in binpath of tests (Issue #303)
+@pytest.mark.parametrize(
+    "package_name,package_spec",
+    [
+        # ("nox", "git+https://github.com/cs01/nox.git@5ea70723e9e6"),
+        ("pylint", "pylint==2.3.1"),
+        ("black", "https://github.com/ambv/black/archive/18.9b0.zip"),
+    ],
+)
+def test_install_package_specs(
+    capsys, pipx_temp_env, caplog, package_name, package_spec
+):
+    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
 
 
 def test_force_install(pipx_temp_env, capsys):
@@ -85,10 +103,8 @@ def test_install_same_package_twice_no_error(pipx_temp_env, capsys):
 
 
 def test_include_deps(pipx_temp_env, capsys):
-    assert run_pipx_cli(["install", "jupyter", "--spec", "jupyter==1.0.0"]) == 1
-    assert not run_pipx_cli(
-        ["install", "jupyter", "--spec", "jupyter==1.0.0", "--include-deps"]
-    )
+    assert run_pipx_cli(["install", "jupyter==1.0.0"]) == 1
+    assert not run_pipx_cli(["install", "jupyter==1.0.0", "--include-deps"])
 
 
 def test_path_warning(pipx_temp_env, capsys, monkeypatch, caplog):

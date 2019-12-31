@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -122,8 +123,21 @@ def run(cmd: Sequence[Union[str, Path]], check=True) -> int:
         cmd, capture_stdout=False, capture_stderr=False
     ).returncode
 
-    cmd_str = " ".join(str(c) for c in cmd)
-
     if check and returncode:
+        cmd_str = " ".join(str(c) for c in cmd)
         raise PipxError(f"{cmd_str!r} failed")
     return returncode
+
+
+def valid_pypi_name(package_name: str) -> bool:
+    # https://www.python.org/dev/peps/pep-0508/#names
+    return bool(
+        re.search(r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$", package_name, re.I)
+    )
+
+
+def full_package_description(package: str, package_spec: str) -> str:
+    if package == package_spec:
+        return package
+    else:
+        return f"{package} from spec {package_spec!r}"

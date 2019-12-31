@@ -2,6 +2,7 @@ import json
 import logging
 import pkgutil
 import re
+import urllib.parse
 from pathlib import Path
 from typing import Generator, List, NamedTuple, Dict, Set, Optional
 
@@ -11,17 +12,15 @@ from pipx.pipx_metadata_file import PipxMetadata, PackageInfo
 from pipx.shared_libs import shared_libs
 from pipx.util import (
     PipxError,
+    full_package_description,
     get_script_output,
     get_site_packages,
     get_venv_paths,
     rmdir,
     run,
     run_subprocess,
+    valid_pypi_name,
 )
-
-
-class PackageInstallFailureError(Exception):
-    pass
 
 
 class VenvContainer:
@@ -79,7 +78,7 @@ class Venv:
         self, path: Path, *, verbose: bool = False, python: str = DEFAULT_PYTHON
     ) -> None:
         self.root = path
-        self._python = python
+        self.python = python
         self.bin_path, self.python_path = get_venv_paths(self.root)
         self.pipx_metadata = PipxMetadata(venv_dir=path)
         self.verbose = verbose
@@ -125,7 +124,7 @@ class Venv:
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
-            cmd = [self._python, "-m", "venv", "--without-pip"]
+            cmd = [self.python, "-m", "venv", "--without-pip"]
             run(cmd + venv_args + [str(self.root)])
         shared_libs.create(pip_args, self.verbose)
         pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
@@ -138,7 +137,7 @@ class Venv:
         # https://docs.python.org/3/library/site.html
         # A path configuration file is a file whose name has the form 'name.pth'.
         # its contents are additional items (one per line) to be added to sys.path
-        pipx_pth.write_text(str(shared_libs.site_packages) + "\n", encoding="utf-8")
+        pipx_pth.write_text(f"{shared_libs.site_packages}\n", encoding="utf-8")
 
         self.pipx_metadata.venv_args = venv_args
         self.pipx_metadata.python_version = self.get_python_version()
@@ -173,31 +172,26 @@ class Venv:
         is_main_package: bool,
     ) -> None:
 
-        with animate(f"installing package {package_or_url!r}", self.do_animation):
-            if pip_args is None:
-                pip_args = []
-            if package is None:
-                # If no package name is supplied, install only main package
-                #   first in order to see what its name is
-                old_package_set = self.list_installed_packages()
-                cmd = ["install"] + pip_args + ["--no-dependencies"] + [package_or_url]
-                self._run_pip(cmd)
-                installed_packages = self.list_installed_packages() - old_package_set
-                if len(installed_packages) == 1:
-                    package = installed_packages.pop()
-                    logging.info(f"Determined package name: '{package}'")
-                else:
-                    package = None
-            cmd = ["install"] + pip_args + [package_or_url]
-            self._run_pip(cmd)
-
+        if pip_args is None:
+            pip_args = []
         if package is None:
-            logging.warning(
-                f"Cannot determine package name for package_or_url='{package_or_url}'. "
-                f"Unable to retrieve package metadata. "
-                f"Unable to verify if package was installed properly."
+            # If no package name is supplied, install only main package
+            #   first in order to see what its name is
+            package = self.install_package_no_deps(package_or_url, pip_args)
+
+        try:
+            with animate(
+                f"installing {full_package_description(package, package_or_url)}",
+                self.do_animation,
+            ):
+                cmd = ["install"] + pip_args + [package_or_url]
+                self._run_pip(cmd)
+        except PipxError as e:
+            logging.info(e)
+            raise PipxError(
+                f"Error installing "
+                f"{full_package_description(package, package_or_url)}."
             )
-            return
 
         self._update_package_metadata(
             package=package,
@@ -210,7 +204,41 @@ class Venv:
 
         # Verify package installed ok
         if self.package_metadata[package].package_version is None:
-            raise PackageInstallFailureError
+            raise PipxError(
+                f"Unable to install "
+                f"{full_package_description(package, package_or_url)}.\n"
+                f"Check the name or spec for errors, and verify that it can "
+                f"be installed with pip."
+            )
+
+    def install_package_no_deps(self, package_or_url: str, pip_args: List[str]) -> str:
+        try:
+            with animate(
+                f"determining package name from {package_or_url!r}", self.do_animation
+            ):
+                old_package_set = self.list_installed_packages()
+                cmd = ["install"] + pip_args + ["--no-dependencies"] + [package_or_url]
+                self._run_pip(cmd)
+        except PipxError as e:
+            logging.info(e)
+            raise PipxError(
+                f"Cannot determine package name from spec {package_or_url!r}. "
+                f"Check package spec for errors."
+            )
+
+        installed_packages = self.list_installed_packages() - old_package_set
+        if len(installed_packages) == 1:
+            package = installed_packages.pop()
+            logging.info(f"Determined package name: '{package}'")
+        else:
+            logging.info(f"old_package_set = {old_package_set}")
+            logging.info(f"install_packages = {installed_packages}")
+            raise PipxError(
+                f"Cannot determine package name from spec {package_or_url!r}. "
+                f"Check package spec for errors."
+            )
+
+        return package
 
     def get_venv_metadata_for_package(self, package: str) -> VenvMetadata:
         data = json.loads(
@@ -292,11 +320,11 @@ class Venv:
         except KeyboardInterrupt:
             return 130  # shell code for Ctrl-C
 
-    def _upgrade_package_no_metadata(
-        self, package_or_url: str, pip_args: List[str]
-    ) -> None:
-        with animate(f"upgrading package {package_or_url!r}", self.do_animation):
-            self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
+    def _upgrade_package_no_metadata(self, package: str, pip_args: List[str]) -> None:
+        with animate(
+            f"upgrading {full_package_description(package, package)}", self.do_animation
+        ):
+            self._run_pip(["install"] + pip_args + ["--upgrade", package])
 
     def upgrade_package(
         self,
@@ -307,7 +335,10 @@ class Venv:
         include_apps: bool,
         is_main_package: bool,
     ) -> None:
-        with animate(f"upgrading package {package_or_url!r}", self.do_animation):
+        with animate(
+            f"upgrading {full_package_description(package, package_or_url)}",
+            self.do_animation,
+        ):
             self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
 
         self._update_package_metadata(
@@ -330,6 +361,10 @@ def abs_path_if_local(package_or_url: str, venv: Venv, pip_args: List[str]) -> s
     """Return the absolute path if package_or_url represents a filepath
     and not a pypi package
     """
+    # if valid url leave it untouched
+    if urllib.parse.urlparse(package_or_url).scheme:
+        return package_or_url
+
     pkg_path = Path(package_or_url)
     if not pkg_path.exists():
         # no existing path, must be pypi package or non-existent
@@ -340,11 +375,7 @@ def abs_path_if_local(package_or_url: str, venv: Venv, pip_args: List[str]) -> s
     if "--editable" in pip_args and pkg_path.exists():
         return str(pkg_path.resolve())
 
-    # https://www.python.org/dev/peps/pep-0508/#names
-    valid_pkg_name = bool(
-        re.search(r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$", package_or_url, re.I)
-    )
-    if not valid_pkg_name:
+    if not valid_pypi_name(package_or_url):
         return str(pkg_path.resolve())
 
     # If all of the above conditions do not return, we may have used a pypi

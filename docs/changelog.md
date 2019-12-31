@@ -1,5 +1,7 @@
 dev
 
+- `install` now has no `--spec` option.  You may specify any valid pip specification for `install`'s main argument.
+- `inject` will now accept pip specifications for dependency arguments
 - Metadata is now stored for each application installed, including install options like `--spec`, and injected packages. This information allows upgrade, upgrade-all and reinstall-all to work properly even with non-pypi installed packages.  (#222)
 - `upgrade` options `--spec` and `--include-deps` were removed.  Pipx now uses the original options used to install each application instead. (#222)
 - `upgrade-all` options `--include-deps`, `--system-site-packages`, `--index-url`, `--editable`, and `--pip-args` were removed.  Pipx now uses the original options used to install each application instead. (#222)
