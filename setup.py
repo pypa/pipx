@@ -4,8 +4,12 @@ import sys
 from setuptools import find_packages, setup  # type: ignore
 
 if sys.version_info < (3, 6, 0):
-    print("Python 3.6+ is required")
-    exit(1)
+    sys.exit(
+        "Python 3.6 or later is required. "
+        "See https://github.com/pipxproject/pipx "
+        "for installation instructions."
+    )
+
 import io  # noqa E402
 import os  # noqa E402
 from pathlib import Path  # noqa E402
@@ -15,13 +19,13 @@ import re  # noqa E402
 
 CURDIR = Path(__file__).parent
 
-REQUIRED: List[str] = ["userpath", "argcomplete>=1.9.4, <2.0"]
+REQUIRED = ["userpath", "argcomplete>=1.9.4, <2.0"]  # type: List[str]
 
 with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
     README = f.read()
 
 
-def get_version() -> str:
+def get_version():
     main_file = CURDIR / "src" / "pipx" / "main.py"
     _version_re = re.compile(r"__version__\s+=\s+(?P<version>.*)")
     with open(main_file, "r", encoding="utf8") as f:
@@ -47,7 +51,6 @@ setup(
     scripts=[],
     entry_points={"console_scripts": ["pipx = pipx.main:cli"]},
     zip_safe=False,
-    python_requires=">=3.6",
     install_requires=REQUIRED,
     test_suite="tests.test_pipx",
     classifiers=[
