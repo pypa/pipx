@@ -1,14 +1,20 @@
-dev
+0.15.0.0
 
-- `install` now has no `--spec` option.  You may specify any valid pip specification for `install`'s main argument.
+- `install` now has no `--spec` option. You may specify any valid pip specification for `install`'s main argument.
 - `inject` will now accept pip specifications for dependency arguments
-- Metadata is now stored for each application installed, including install options like `--spec`, and injected packages. This information allows upgrade, upgrade-all and reinstall-all to work properly even with non-pypi installed packages.  (#222)
-- `upgrade` options `--spec` and `--include-deps` were removed.  Pipx now uses the original options used to install each application instead. (#222)
-- `upgrade-all` options `--include-deps`, `--system-site-packages`, `--index-url`, `--editable`, and `--pip-args` were removed.  Pipx now uses the original options used to install each application instead. (#222)
-- `reinstall-all` options `--include-deps`, `--system-site-packages`, `--index-url`, `--editable`, and `--pip-args` were removed.  Pipx now uses the original options used to install each application instead. (#222)
+- Metadata is now stored for each application installed, including install options like `--spec`, and injected packages. This information allows upgrade, upgrade-all and reinstall-all to work properly even with non-pypi installed packages. (#222)
+- `upgrade` options `--spec` and `--include-deps` were removed. Pipx now uses the original options used to install each application instead. (#222)
+- `upgrade-all` options `--include-deps`, `--system-site-packages`, `--index-url`, `--editable`, and `--pip-args` were removed. Pipx now uses the original options used to install each application instead. (#222)
+- `reinstall-all` options `--include-deps`, `--system-site-packages`, `--index-url`, `--editable`, and `--pip-args` were removed. Pipx now uses the original options used to install each application instead. (#222)
 - Handle missing interpreters more gracefully (#146)
-- Change `reinstall-all` to use system python by default for apps.  Now use `--python` option to specify a different python version.
+- Change `reinstall-all` to use system python by default for apps. Now use `--python` option to specify a different python version.
 - Remove the PYTHONPATH environment variable when executing any command to prevent conflicts between pipx dependencies and package dependencies when pipx is installed via homebrew. Homebrew can use pythonpath manipulation instead of virtual environments. (#233)
+- Add printed summary after successful call to `pipx inject`
+- Support associating apps with Python 3.5
+- Improvements to animation status text
+- Make `--python` argument in `reinstall-all` command optional
+- Use threads on OS's without support for semaphores
+- Stricter parsing when passing `--` argument as delimeter
 
 0.14.0.0
 
