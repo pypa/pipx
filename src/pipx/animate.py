@@ -19,7 +19,9 @@ NONEMOJI_FRAME_PERIOD = 1
 
 
 @contextmanager
-def animate(message: str, do_animation: bool) -> Generator[None, None, None]:
+def animate(
+    message: str, do_animation: bool, *, delay: float = 0
+) -> Generator[None, None, None]:
 
     if not do_animation or not stderr_is_tty:
         # no op
@@ -41,7 +43,7 @@ def animate(message: str, do_animation: bool) -> Generator[None, None, None]:
         "message": message,
         "event": event,
         "symbols": symbols,
-        "delay": 0,
+        "delay": delay,
         "period": period,
         "animate_at_beginning_of_line": animate_at_beginning_of_line,
     }
@@ -70,6 +72,7 @@ def print_animation(
     animate_at_beginning_of_line: bool,
 ):
     (term_cols, _) = shutil.get_terminal_size(fallback=(9999, 24))
+    event.wait(delay)
     while not event.wait(0):
         for s in symbols:
             if animate_at_beginning_of_line:
