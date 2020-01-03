@@ -36,8 +36,7 @@ subcommands:
                         for each package.
     uninstall           Uninstall a package
     uninstall-all       Uninstall all packages
-    reinstall-all       Reinstall all packages with a different Python
-                        executable
+    reinstall-all       Reinstall all packages
     list                List installed packages
     run                 Download the latest version of a package to a
                         temporary virtual environment, then run an app from
@@ -59,10 +58,10 @@ subcommands:
 
 ```
 pipx install --help
-usage: pipx install [-h] [--spec SPEC] [--include-deps] [--verbose] [--force]
+usage: pipx install [-h] [--include-deps] [--verbose] [--force]
                     [--python PYTHON] [--system-site-packages]
                     [--index-url INDEX_URL] [--editable] [--pip-args PIP_ARGS]
-                    package
+                    package_spec
 
 The install command is the preferred way to globally install apps
 from python packages on your system. It creates an isolated virtual
@@ -74,13 +73,13 @@ you can cleanly upgrade or uninstall. Guaranteed to not have
 dependency version conflicts or interfere with your OS's python
 packages. 'sudo' is not required to do this.
 
-pipx install PACKAGE
-pipx install --python PYTHON PACKAGE
-pipx install --spec VCS_URL PACKAGE
-pipx install --spec ZIP_FILE PACKAGE
-pipx install --spec TAR_GZ_FILE PACKAGE
+pipx install PACKAGE_NAME
+pipx install --python PYTHON PACKAGE_NAME
+pipx install VCS_URL
+pipx install ZIP_FILE
+pipx install TAR_GZ_FILE
 
-The argument to `--spec` is passed directly to `pip install`.
+The PACKAGE_SPEC argument is passed directly to `pip install`.
 
 The default virtual environment location is ~/.local/pipx
 and can be overridden by setting the environment variable `PIPX_HOME`
@@ -90,14 +89,10 @@ The default app location is ~/.local/bin and can be
 overridden by setting the environment variable `PIPX_BIN_DIR`.
 
 positional arguments:
-  package               package name
+  package_spec          package name or pip installation spec
 
 optional arguments:
   -h, --help            show this help message and exit
-  --spec SPEC           The package name or specific installation source
-                        passed to pip. Runs `pip install -U SPEC`. For example
-                        `--spec mypackage==2.0.0` or `--spec
-                        git+https://github.com/user/repo.git@branch`
   --include-deps        Include apps of dependent packages
   --verbose
   --force, -f           Modify existing virtual environment and files in
@@ -138,8 +133,7 @@ In support of PEP 582 'run' will use apps found in a local __pypackages__
  removed in the future. See https://github.com/cs01/pythonloc.
 
 positional arguments:
-  app                   app/package name
-  appargs               arguments passed to the application when it is invoked
+  app ...               app/package name and any arguments to be passed to it
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -169,9 +163,9 @@ optional arguments:
 
 ```
 pipx upgrade --help
-usage: pipx upgrade [-h] [--spec SPEC] [--force] [--include-deps]
-                    [--system-site-packages] [--index-url INDEX_URL]
-                    [--editable] [--pip-args PIP_ARGS] [--verbose]
+usage: pipx upgrade [-h] [--force] [--system-site-packages]
+                    [--index-url INDEX_URL] [--editable] [--pip-args PIP_ARGS]
+                    [--verbose]
                     package
 
 Upgrade a package in a pipx-managed Virtual Environment by running 'pip
@@ -182,13 +176,8 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --spec SPEC           The package name or specific installation source
-                        passed to pip. Runs `pip install -U SPEC`. For example
-                        `--spec mypackage==2.0.0` or `--spec
-                        git+https://github.com/user/repo.git@branch`
   --force, -f           Modify existing virtual environment and files in
                         PIPX_BIN_DIR
-  --include-deps        Include apps of dependent packages
   --system-site-packages
                         Give the virtual environment access to the system
                         site-packages dir.
@@ -206,25 +195,13 @@ optional arguments:
 
 ```
 pipx upgrade-all --help
-usage: pipx upgrade-all [-h] [--include-deps] [--system-site-packages]
-                        [--index-url INDEX_URL] [--editable]
-                        [--pip-args PIP_ARGS] [--skip SKIP [SKIP ...]]
-                        [--force] [--verbose]
+usage: pipx upgrade-all [-h] [--skip SKIP [SKIP ...]] [--force] [--verbose]
 
 Upgrades all packages within their virtual environments by running 'pip
 install --upgrade PACKAGE'
 
 optional arguments:
   -h, --help            show this help message and exit
-  --include-deps        Include apps of dependent packages
-  --system-site-packages
-                        Give the virtual environment access to the system
-                        site-packages dir.
-  --index-url INDEX_URL, -i INDEX_URL
-                        Base URL of Python Package Index
-  --editable, -e        Install a project in editable mode
-  --pip-args PIP_ARGS   Arbitrary pip arguments to pass directly to pip
-                        install/upgrade commands
   --skip SKIP [SKIP ...]
                         skip these packages
   --force, -f           Modify existing virtual environment and files in
@@ -248,7 +225,8 @@ Installs packages to an existing pipx-managed virtual environment.
 positional arguments:
   package               Name of the existing pipx-managed Virtual Environment
                         to inject into
-  dependencies          the packages to inject into the Virtual Environment
+  dependencies          the packages to inject into the Virtual Environment--
+                        either package name or pip package spec
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -307,35 +285,21 @@ optional arguments:
 
 ```
 pipx reinstall-all --help
-usage: pipx reinstall-all [-h] [--include-deps] [--system-site-packages]
-                          [--index-url INDEX_URL] [--editable]
-                          [--pip-args PIP_ARGS] [--skip SKIP [SKIP ...]]
+usage: pipx reinstall-all [-h] [--python PYTHON] [--skip SKIP [SKIP ...]]
                           [--verbose]
-                          python
 
-Reinstalls all packages using a different version of Python.
+Reinstalls all packages.
 
-Packages are uninstalled, then installed with pipx install PACKAGE.
+Packages are uninstalled, then installed with pipx install PACKAGE
+with the same options used in the original install of PACKAGE.
 This is useful if you upgraded to a new version of Python and want
 all your packages to use the latest as well.
 
-If you originally installed a package from a source other than PyPI,
-this command may behave in unexpected ways since it will reinstall from PyPI.
-
-positional arguments:
-  python
-
 optional arguments:
   -h, --help            show this help message and exit
-  --include-deps        Include apps of dependent packages
-  --system-site-packages
-                        Give the virtual environment access to the system
-                        site-packages dir.
-  --index-url INDEX_URL, -i INDEX_URL
-                        Base URL of Python Package Index
-  --editable, -e        Install a project in editable mode
-  --pip-args PIP_ARGS   Arbitrary pip arguments to pass directly to pip
-                        install/upgrade commands
+  --python PYTHON       The Python executable used to recreate the Virtual
+                        Environment and run the associated app/apps. Must be
+                        v3.5+.
   --skip SKIP [SKIP ...]
                         skip these packages
   --verbose
