@@ -1,6 +1,6 @@
 0.15.0.0
 
-Upgrade instructions: When upgrading to 0.15.0.0 or above, you must re-install all packages to take advantage of the new persistent pipx metadata files introduced in this release. These metadata files store pip specification values, injected packages, any custom pip arguments, and more in each main package's venv. You can do this by running `pipx reinstall-all` or `pipx uninstall-all`, then reinstalling manually.
+Upgrade instructions: When  upgrading to 0.15.0.0 or above from a pre-0.15.0.0 version, you must re-install all packages to take advantage of the new persistent pipx metadata files introduced in this release. These metadata files store pip specification values, injected packages, any custom pip arguments, and more in each main package's venv. You can do this by running `pipx reinstall-all` or `pipx uninstall-all`, then reinstalling manually.
 
 - `install` now has no `--spec` option. You may specify any valid pip specification for `install`'s main argument.
 - `inject` will now accept pip specifications for dependency arguments
