@@ -21,7 +21,7 @@ from . import constants
 from .util import PipxError, mkdir
 from .venv import VenvContainer
 
-__version__ = "0.14.0.0"
+__version__ = "0.15.0.0"
 
 
 def simple_parse_version(s, segments=4) -> Tuple[Union[int, str], ...]:

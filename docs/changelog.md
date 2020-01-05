@@ -1,5 +1,7 @@
 0.15.0.0
 
+Upgrade instructions: When upgrading to 0.15.0.0 or above from a pre-0.15.0.0 version, you must re-install all packages to take advantage of the new persistent pipx metadata files introduced in this release. These metadata files store pip specification values, injected packages, any custom pip arguments, and more in each main package's venv. You can do this by running `pipx reinstall-all` or `pipx uninstall-all`, then reinstalling manually.
+
 - `install` now has no `--spec` option. You may specify any valid pip specification for `install`'s main argument.
 - `inject` will now accept pip specifications for dependency arguments
 - Metadata is now stored for each application installed, including install options like `--spec`, and injected packages. This information allows upgrade, upgrade-all and reinstall-all to work properly even with non-pypi installed packages. (#222)
