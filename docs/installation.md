@@ -13,15 +13,22 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ```
 
+### Installation Options
+pipx's default binary location is `~/.local/bin`. This can be overriden with the environment variable `PIPX_BIN_DIR`.
+
+pipx's default virtual environment location is `~/.local/pipx`. This can be overridden with the environment variable `PIPX_HOME`.
+
 ## Upgrade pipx
 ```
 python3 -m pip install -U pipx
 ```
 
-### Installation Options
-pipx's default binary location is `~/.local/bin`. This can be overriden with the environment variable `PIPX_BIN_DIR`.
+### Note: Upgrading pipx from a pre-0.15.0.0 version to 0.15.0.0 or later
+When upgrading to pipx 0.15.0.0 or above from a pre-0.15.0.0 version, you must re-install all packages to take advantage of the new persistent pipx metadata files introduced in the 0.15.0.0 release. These metadata files store pip specification values, injected packages, any custom pip arguments, and more in each main package's venv.
 
-pipx's default virtual environment location is `~/.local/pipx`. This can be overridden with the environment variable `PIPX_HOME`.
+If you have no packages installed from a VCS source and no venvs with injected packages, you can do this by running `pipx reinstall-all`
+
+If you have a packages installed from a VCS source or venvs with injected packages, you can reinstall packages manually using `pipx uninstall-all`, followed by `pipx install` and possibly `pipx inject`.
 
 ## Shell Completion
 You can easily get your shell's tab completions working by following instructions printed with this command:
