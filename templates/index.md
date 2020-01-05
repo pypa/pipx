@@ -117,9 +117,11 @@ apps are exposed on your $PATH at /home/user/.local/bin
 
 ### Walkthrough: Running an Application in a Temporary, Sandboxed Environment
 
-I find this handy when I occasionally run an app and want to use the latest version of it, but don't necessarily need it installed on my computer. You may want to do this when you are initializing a new project and want to set up the right directory structure, when you want to view the help text of an application, or if you simply want to run an app in a one-off case.
+I find this handy when I need to run the latest version of an app, but don't necessarily need it installed on my computer.
 
-For example, the blog post [How to set up a perfect Python project](https://sourcery.ai/blog/python-best-practices/) uses `pipx run` to kickstart a new project with [cookiecutter](https://github.com/cookiecutter/cookiecutter).
+You may want to do this when you are initializing a new project and want to set up the right directory structure, when you want to view the help text of an application, or if you simply want to run an app in a one-off case and and leave your system untouched afterwards.
+
+For example, the blog post [How to set up a perfect Python project](https://sourcery.ai/blog/python-best-practices/) uses `pipx run` to kickstart a new project with [cookiecutter](https://github.com/cookiecutter/cookiecutter), a tool that creates projects from project templates.
 
 A nice side benefit is that you don't have to remember to upgrade the app since `pipx run` will automatically run a recent version for you.
 
@@ -178,22 +180,33 @@ That's it! Those are the most important commands `pipx` offers. To see all of pi
 
 ## Testimonials
 
-"*I'm a big fan of pipx. I think pipx is super cool.*"
-<div style="text-align: right; margin-right: 10%;">
+<div>
+"Thanks for improving the workflow that pipsi has covered in the past. Nicely done!"
+<div style="text-align: right; margin-right: 10%; font-style:italic;">
+—<a href="https://twitter.com/jezdez">Jannis Leidel</a>, PSF fellow, former pip and Django core developer, and founder of the Python Packaging Authority (PyPA)
+</div>
+</div>
+
+<p></p>
+
+<div>
+"My setup pieces together pyenv, poetry, and pipx. [...] For the things I need, it’s perfect."
+<div style="text-align: right; margin-right: 10%; font-style:italic;">
+—<a href="https://twitter.com/mkennedy">Jacob Moss</a>, co-creator of Django in blog post <a href="https://jacobian.org/2019/nov/11/python-environment-2020/">My Python Development Environment, 2020 Edition</a>
+</div>
+</div>
+
+<p></p>
+
+<div>
+"I'm a big fan of pipx. I think pipx is super cool."
+<div style="text-align: right; margin-right: 10%; font-style:italic;">
 —<a href="https://twitter.com/mkennedy">Michael Kennedy</a>, co-host of PythonBytes podcast in <a href="https://pythonbytes.fm/episodes/transcript/139/f-yes-for-the-f-strings">episode 139</a>
 </div>
-
-
-"*Thanks for improving the workflow that pipsi has covered in the past. Nicely done!*"
-<div style="text-align: right; margin-right: 10%;">
-—<a href="https://twitter.com/jezdez">Jannis Leidel</a>, PSF fellow and former pip maintainer
 </div>
 
+<p></p>
 
-"*This tool filled in the gap that was missing with pipenv and Virtual Environmentwrapper.*"
-<div style="text-align: right; margin-right: 10%;">
-—Mason Egger in a <a href="https://medium.com/homeaway-tech-blog/simplify-your-python-developer-environment-aba90f32dddb">blog post</a>
-</div>
 
 
 ## Credits
