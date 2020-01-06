@@ -30,8 +30,8 @@ def test_delay_suppresses_output(capsys, monkeypatch):
 
     test_string = "asdf"
 
-    with pipx.animate.animate(test_string, do_animation=True, delay=0.1):
-        time.sleep(0.05)
+    with pipx.animate.animate(test_string, do_animation=True, delay=0.9):
+        time.sleep(0.5)
     captured = capsys.readouterr()
     assert test_string not in captured.err
 
