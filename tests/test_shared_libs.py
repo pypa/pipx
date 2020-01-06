@@ -15,10 +15,11 @@ now = time.time()
     ],
 )
 def test_auto_update_shared_libs(capsys, pipx_temp_env, mtime, needs_upgrade):
+    print("now is", now)
+    print("mtime is", mtime)
     shared_libs.shared_libs.create([], verbose=True)
 
     access_time = now  # this can be anything
     os.utime(shared_libs.shared_libs.pip_path, (access_time, mtime))
 
     assert shared_libs.shared_libs.needs_upgrade is needs_upgrade
-
