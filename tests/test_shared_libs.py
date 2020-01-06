@@ -1,6 +1,6 @@
 import os
 import time
-import pytest
+import pytest  # type: ignore
 from pipx import shared_libs
 
 
