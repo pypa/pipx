@@ -25,6 +25,17 @@ def check_animate_output(
     assert captured.err[:chars_to_test] == expected_string[:chars_to_test]
 
 
+def test_delay_suppresses_output(capsys, monkeypatch):
+    monkeypatch.setattr(pipx.animate, "stderr_is_tty", True)
+
+    test_string = "asdf"
+
+    with pipx.animate.animate(test_string, do_animation=True, delay=0.9):
+        time.sleep(0.5)
+    captured = capsys.readouterr()
+    assert test_string not in captured.err
+
+
 def test_line_lengths_emoji(capsys, monkeypatch):
     # emoji_support and stderr_is_tty is set only at import animate.py
     # since we are already after that, we must override both here
