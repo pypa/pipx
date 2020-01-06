@@ -1,46 +1,27 @@
 Thanks for your interest in contributing to pipx!
 
+## Running pipx From Source Tree
+To run the pipx executable from your source tree during development, run pipx from the src directory:
 
-## Dependencies
+```
+python src/pipx --version
+```
+
+## Running Tests
+
+### Setup
 pipx uses an automation tool called [nox](https://pypi.org/project/nox/) for development, continuous integration testing, and various tasks.
 
 `nox` defines tasks or "sessions" in `noxfile.py` which can be run with `nox -s SESSION_NAME`. Session names can be listed with `nox -l`.
 
 Install nox for pipx development:
 ```
-pip install --user git+https://github.com/cs01/nox.git@5ea70723e9e6 nox
+python -m pip install --user git+https://github.com/cs01/nox.git@5ea70723e9e6 nox
 ```
 
 !!! note
     A specific version of nox must be used for pipx development until [nox issue 233](https://github.com/theacodes/nox/issues/233) is resolved.
 
-
-## Developing pipx
-Clone pipx, then enter the root of the pipx repository. Run this command to see which commands you can run with nox.
-```
-nox -l
-```
-
-You should see some options that look like this
-```
-- develop-3.6
-- develop-3.7
-- develop-3.8
-```
-
-Choose the Python version you want to develop in and run the following commands, modifying with your version as necessary.
-```
-nox -s develop-3.8
-source .nox/develop-3.8/bin/activate
-```
-
-A virtual environment with required dependencies is now sandboxed and activated!
-
-Go ahead and make your changes now. You can confirm they still work by running unit tests (see the next section).
-
-To leave the environment, type `deactivate`.
-
-## Testing pipx locally
 Tests are defined as `nox` sessions. You can see all nox sessions with
 ```
 nox -l
@@ -66,11 +47,11 @@ Sessions defined in /home/csmith/git/pipx/noxfile.py:
 - publish_docs
 ```
 
-So to run unit tests in Python3.7, you can run
+### Unit Tests
+To run unit tests in Python3.7, you can run
 ```
 nox -s tests-3.7
 ```
-
 
 !!! tip
     You can running a specific unit test by passing arguments to pytest, the test runner pipx uses:
@@ -87,16 +68,16 @@ nox -s tests-3.7
 
     Coverage errors can usually be ignored when only running a subset of tests.
 
-To run lint checks, run
+### Lint Tests
+
 ```
 nox -s lint
 ```
-and so on.
 
 ## Testing pipx on Continuous Integration builds
 When you push a new git branch, tests will automatically be run against your code as defined in `.travis`.
 
-## Documentation
+## Building Documentation
 
 `pipx` autogenerates API documentation, and also uses templates.
 
@@ -119,14 +100,16 @@ nox -s watch_docs
 nox -s publish_docs
 ```
 
-## Release New `pipx` Version
+## Releasing New `pipx` Versions
 To create a new release
 
+* update pipx's version in `__main__.py` and regenerate documentation
 * make sure the changelog is updated
-* update the version of pipx defined in `setup.py`
 
 Finally, run
 ```bash
 nox -s publish
 nox -s publish_docs
 ```
+
+and create a new release in GitHub.
