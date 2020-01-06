@@ -2,10 +2,13 @@ import logging
 from pathlib import Path
 from typing import List
 import time
+import datetime
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_LIBS, WINDOWS
 from pipx.util import get_site_packages, get_venv_paths, run
+
+SHARED_LIBS_MAX_AGE_SEC = datetime.timedelta(days=30).total_seconds()
 
 
 class _SharedLibs:
@@ -43,14 +46,13 @@ class _SharedLibs:
         if not self.pip_path.is_file():
             return True
 
-        one_month_sec = 30 * 24 * 60 * 60
         now = time.time()
         time_since_last_update_sec = now - self.pip_path.stat().st_mtime
         logging.info(
             f"Time since last upgrade of shared libs, in seconds: {time_since_last_update_sec}. "
-            f"Upgrade will be run by pipx if greater than {one_month_sec}."
+            f"Upgrade will be run by pipx if greater than {SHARED_LIBS_MAX_AGE_SEC}."
         )
-        return time_since_last_update_sec > one_month_sec
+        return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
     def upgrade(self, pip_args: List[str], verbose: bool = False):
         # Don't try to upgrade multiple times per run
