@@ -88,17 +88,16 @@ class Venv:
         except StopIteration:
             self._existing = False
 
-        if self._existing and self.uses_shared_libs and not shared_libs.is_valid:
-            logging.warning(
-                f"Shared libraries not found, but are required for package {self.root.name}. "
-                "Attempting to install now."
-            )
-            shared_libs.create([])
+        if self._existing and self.uses_shared_libs:
             if shared_libs.is_valid:
-                logging.info("Successfully created shared libraries")
+                if shared_libs.needs_upgrade:
+                    shared_libs.upgrade([], verbose)
             else:
+                shared_libs.create([], verbose)
+
+            if not shared_libs.is_valid:
                 raise PipxError(
-                    f"Error: pipx's shared venv is invalid and "
+                    f"Error: pipx's shared venv {str(shared_libs.root)} is invalid and "
                     "needs re-installation. To fix this, install or reinstall a "
                     "package. For example,\n"
                     f"  pipx install {self.root.name} --force"
