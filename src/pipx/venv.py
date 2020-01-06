@@ -97,7 +97,7 @@ class Venv:
 
             if not shared_libs.is_valid:
                 raise PipxError(
-                    f"Error: pipx's shared venv {str(shared_libs.root)} is invalid and "
+                    f"Error: pipx's shared venv {shared_libs.root} is invalid and "
                     "needs re-installation. To fix this, install or reinstall a "
                     "package. For example,\n"
                     f"  pipx install {self.root.name} --force"
