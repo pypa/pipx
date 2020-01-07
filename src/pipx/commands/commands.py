@@ -35,7 +35,9 @@ def install(
     #   zip file, or tar.gz file.
     # Determine package_name to properly name venv directory.
     if venv_dir is None or package_name is None:
-        package_name = _package_name_from_spec(package_spec, python)
+        package_name = _package_name_from_spec(
+            package_spec, python, pip_args=pip_args, verbose=verbose
+        )
         venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
         venv_dir = venv_container.get_venv_dir(package_name)
 
@@ -80,10 +82,12 @@ def install(
         raise
 
 
-def _package_name_from_spec(package_spec: str, python: str) -> str:
+def _package_name_from_spec(
+    package_spec: str, python: str, *, pip_args: List[str], verbose: bool
+) -> str:
     start_time = time.time()
 
-    # shortcut if valid PYPI name and not a local path
+    # shortcut if valid PyPI name and not a local path
     if valid_pypi_name(package_spec) and not Path(package_spec).exists():
         package_name = package_spec
         logging.info(f"Determined package name: {package_name}")
@@ -91,10 +95,10 @@ def _package_name_from_spec(package_spec: str, python: str) -> str:
         return package_name
 
     with tempfile.TemporaryDirectory() as temp_venv_dir:
-        venv = Venv(Path(temp_venv_dir), python=python)
+        venv = Venv(Path(temp_venv_dir), python=python, verbose=verbose)
         venv.create_venv(venv_args=[], pip_args=[])
         package_name = venv.install_package_no_deps(
-            package_or_url=package_spec, pip_args=[]
+            package_or_url=package_spec, pip_args=pip_args
         )
 
     logging.info(f"Package name determined in {time.time()-start_time:.1f}s")
@@ -205,7 +209,9 @@ def inject(
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
     if package_name is None:
-        package_name = _package_name_from_spec(package_spec, venv.python)
+        package_name = _package_name_from_spec(
+            package_spec, venv.python, pip_args=pip_args, verbose=verbose
+        )
 
     venv.install_package(
         package=package_name,

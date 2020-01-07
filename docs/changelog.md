@@ -1,3 +1,7 @@
+0.15.0.1
+
+- [bugfix] pass pip arguments to pip when determining package name
+
 0.15.0.0
 
 Upgrade instructions: When upgrading to 0.15.0.0 or above from a pre-0.15.0.0 version, you must re-install all packages to take advantage of the new persistent pipx metadata files introduced in this release. These metadata files store pip specification values, injected packages, any custom pip arguments, and more in each main package's venv. You can do this by running `pipx reinstall-all` or `pipx uninstall-all`, then reinstalling manually.
