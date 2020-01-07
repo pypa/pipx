@@ -216,7 +216,7 @@ class Venv:
                 f"determining package name from {package_or_url!r}", self.do_animation
             ):
                 old_package_set = self.list_installed_packages()
-                cmd = ["install"] + pip_args + ["--no-dependencies"] + [package_or_url]
+                cmd = ["install"] + ["--no-dependencies"] + pip_args + [package_or_url]
                 self._run_pip(cmd)
         except PipxError as e:
             logging.info(e)
