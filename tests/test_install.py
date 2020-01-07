@@ -148,3 +148,19 @@ def test_install_python3_5(pipx_temp_env):
         assert not run_pipx_cli(["install", "cowsay", "--python", PYTHON3_5])
     else:
         pytest.skip("python3.5 not on PATH")
+
+
+def test_pip_args_forwarded_to_package_name_determination(
+    pipx_temp_env, caplog, capsys
+):
+    assert run_pipx_cli(
+        [
+            "install",
+            # use a valid spec and invalid pip args
+            "https://github.com/ambv/black/archive/18.9b0.zip",
+            "--verbose",
+            "--pip-args='--asdf'",
+        ]
+    )
+    captured = capsys.readouterr()
+    assert "Cannot determine package name from spec" in captured.err
