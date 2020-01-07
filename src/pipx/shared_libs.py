@@ -1,16 +1,21 @@
 import logging
 from pathlib import Path
 from typing import List
+import time
+import datetime
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_LIBS, WINDOWS
 from pipx.util import get_site_packages, get_venv_paths, run
+
+SHARED_LIBS_MAX_AGE_SEC = datetime.timedelta(days=30).total_seconds()
 
 
 class _SharedLibs:
     def __init__(self):
         self.root = PIPX_SHARED_LIBS
         self.bin_path, self.python_path = get_venv_paths(self.root)
+        self.pip_path = self.bin_path / ("pip" if not WINDOWS else "pip.exe")
         # i.e. bin_path is ~/.local/pipx/shared/bin
         # i.e. python_path is ~/.local/pipx/shared/python
         self._site_packages = None
@@ -31,10 +36,23 @@ class _SharedLibs:
 
     @property
     def is_valid(self):
-        return (
-            self.python_path.is_file()
-            and (self.bin_path / ("pip" if not WINDOWS else "pip.exe")).is_file()
+        return self.python_path.is_file() and self.pip_path.is_file()
+
+    @property
+    def needs_upgrade(self):
+        if self.has_been_updated_this_run:
+            return False
+
+        if not self.pip_path.is_file():
+            return True
+
+        now = time.time()
+        time_since_last_update_sec = now - self.pip_path.stat().st_mtime
+        logging.info(
+            f"Time since last upgrade of shared libs, in seconds: {time_since_last_update_sec}. "
+            f"Upgrade will be run by pipx if greater than {SHARED_LIBS_MAX_AGE_SEC}."
         )
+        return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
     def upgrade(self, pip_args: List[str], verbose: bool = False):
         # Don't try to upgrade multiple times per run
@@ -64,6 +82,8 @@ class _SharedLibs:
                     ]
                 )
                 self.has_been_updated_this_run = True
+            self.pip_path.touch()
+
         except Exception:
             logging.error("Failed to upgrade shared libraries", exc_info=True)
 

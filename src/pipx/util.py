@@ -103,6 +103,7 @@ def run_subprocess(
     #   pipx directories to it, and can make it appear to venvs as though
     #   pipx dependencies are in the venv path (#233)
     env = {k: v for k, v in os.environ.items() if k.upper() != "PYTHONPATH"}
+    env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
     cmd_str = " ".join(str(c) for c in cmd)
     logging.info(f"running {cmd_str}")
     # windows cannot take Path objects, only strings
