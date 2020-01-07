@@ -102,11 +102,13 @@ def get_pip_args(parsed_args: Dict) -> List[str]:
     if parsed_args.get("index_url"):
         pip_args += ["--index-url", parsed_args["index_url"]]
 
-    if parsed_args.get("editable"):
-        pip_args += ["--editable"]
-
     if parsed_args.get("pip_args"):
         pip_args += shlex.split(parsed_args.get("pip_args", ""))
+
+    # make sure --editable is last because it needs to be right before
+    #   package specification
+    if parsed_args.get("editable"):
+        pip_args += ["--editable"]
     return pip_args
 
 
