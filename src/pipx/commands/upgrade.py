@@ -97,7 +97,7 @@ def upgrade_all(
         num_packages += 1
         package = venv_dir.name
         venv = Venv(venv_dir, verbose=verbose)
-        if package in skip:
+        if package in skip or "--editable" in venv.pipx_metadata.main_package.pip_args:
             continue
         try:
             packages_upgraded += upgrade(
