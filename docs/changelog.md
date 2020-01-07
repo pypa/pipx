@@ -1,5 +1,6 @@
-0.15.0.1
+0.15.1.0
 
+- Add Python 3.8 to PyPI classifier and travis test matrix
 - [feature] auto-upgrade shared libraries, including pip, if older than one month. Hide all pip warnings that a new version is available. (#264)
 - [bugfix] pass pip arguments to pip when determining package name (#320)
 
