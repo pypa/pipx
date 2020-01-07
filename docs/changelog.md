@@ -1,3 +1,7 @@
+dev
+
+- [bugfix] fix regression that caused installing with --editable flag to fail package name determination.
+
 0.15.1.0
 
 - Add Python 3.8 to PyPI classifier and travis test matrix
