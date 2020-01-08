@@ -80,10 +80,10 @@ def _dfs_package_apps(
         if d not in dep_visited:
             # only search if this package isn't already listed to avoid
             # infinite recursion
+            dep_visited[d] = True
             app_paths_of_dependencies = _dfs_package_apps(
                 bin_path, d, app_paths_of_dependencies, dep_visited
             )
-            dep_visited[d] = True
     return app_paths_of_dependencies
 
 
