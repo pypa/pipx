@@ -62,7 +62,10 @@ def get_apps(package: str, bin_path: Path) -> List[str]:
 
 
 def _dfs_package_apps(
-    bin_path: Path, package: str, app_paths_of_dependencies: Dict[str, List[str]]
+    bin_path: Path,
+    package: str,
+    app_paths_of_dependencies: Dict[str, List[str]],
+    dep_visited: Dict[str, bool],
 ):
     dependencies = get_package_dependencies(package)
     for d in dependencies:
@@ -71,12 +74,13 @@ def _dfs_package_apps(
             apps = [str(Path(bin_path) / app) for app in app_names]
             app_paths_of_dependencies[d] = apps
         # recursively search for more
-        if d not in app_paths_of_dependencies:
+        if d not in dep_visited:
             # only search if this package isn't already listed to avoid
             # infinite recursion
             app_paths_of_dependencies = _dfs_package_apps(
-                bin_path, d, app_paths_of_dependencies
+                bin_path, d, app_paths_of_dependencies, dep_visited
             )
+            dep_visited[d] = True
     return app_paths_of_dependencies
 
 
@@ -88,7 +92,7 @@ def main():
     app_paths = [str(Path(bin_path) / app) for app in apps]
     app_paths_of_dependencies = {}  # type: Dict[str, List[str]]
     app_paths_of_dependencies = _dfs_package_apps(
-        bin_path, package, app_paths_of_dependencies
+        bin_path, package, app_paths_of_dependencies, {}
     )
 
     output = {
