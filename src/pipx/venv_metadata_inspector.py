@@ -65,8 +65,11 @@ def _dfs_package_apps(
     bin_path: Path,
     package: str,
     app_paths_of_dependencies: Dict[str, List[str]],
-    dep_visited: Dict[str, bool],
+    dep_visited: Optional[Dict[str, bool]] = None,
 ):
+    if dep_visited is None:
+        dep_visited = {}
+
     dependencies = get_package_dependencies(package)
     for d in dependencies:
         app_names = get_apps(d, bin_path)
@@ -92,7 +95,7 @@ def main():
     app_paths = [str(Path(bin_path) / app) for app in apps]
     app_paths_of_dependencies = {}  # type: Dict[str, List[str]]
     app_paths_of_dependencies = _dfs_package_apps(
-        bin_path, package, app_paths_of_dependencies, {}
+        bin_path, package, app_paths_of_dependencies
     )
 
     output = {
