@@ -1,3 +1,7 @@
+dev
+
+- [bugfix] Fix recursive search of dependencies' apps so no apps are missed.
+
 0.15.1.1
 
 - [bugfix] fix regression that caused installing with --editable flag to fail package name determination.
