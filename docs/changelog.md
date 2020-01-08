@@ -1,6 +1,7 @@
 dev
 
 - [bugfix] Fix recursive search of dependencies' apps so no apps are missed.
+- `upgrade-all` now skips editable packages, because pip disallows upgrading editable packages.
 
 0.15.1.1
 
