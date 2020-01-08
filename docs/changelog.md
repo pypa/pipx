@@ -1,3 +1,7 @@
+dev
+
+- Add config to mkdocs.yml so gh-deploy pushes to proper remote_name
+
 0.15.1.2
 
 - [bugfix] Fix recursive search of dependencies' apps so no apps are missed.
