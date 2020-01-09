@@ -25,4 +25,5 @@ markdown_extensions:
   - admonition  #  note blocks, warning blocks -- https://github.com/mkdocs/mkdocs/issues/1659
 
 # for mkdocs gh-deploy
-remote_name: git@github.com:pipxproject/pipx.git
+#   (make sure upstream is 'git@github.com:pipxproject/pipx.git')
+remote_name: upstream
