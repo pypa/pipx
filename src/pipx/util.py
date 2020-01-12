@@ -79,6 +79,7 @@ def get_script_output(interpreter: Path, script: str, *args) -> str:
     # Make sure that Python writes output in UTF-8
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
+    env.pop("__PYVENV_LAUNCHER__", None)
     output = subprocess.run(
         [str(interpreter), "-c", script, *args], stdout=subprocess.PIPE, env=env
     ).stdout.decode(encoding="utf-8")
@@ -103,6 +104,7 @@ def run_subprocess(
     #   pipx directories to it, and can make it appear to venvs as though
     #   pipx dependencies are in the venv path (#233)
     env = {k: v for k, v in os.environ.items() if k.upper() != "PYTHONPATH"}
+    env.pop("__PYVENV_LAUNCHER__", None)
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
     cmd_str = " ".join(str(c) for c in cmd)
     logging.info(f"running {cmd_str}")
