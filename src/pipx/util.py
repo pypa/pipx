@@ -75,7 +75,7 @@ else:
         return bin_path, python_path
 
 
-def get_script_output(interpreter: Path, script: str, *args) -> str:
+def get_script_output(interpreter: Path, script: str, *args: Union[str, Path]) -> str:
     proc = run_subprocess([interpreter, "-c", script, *args], capture_stderr=False)
     return proc.stdout
 
