@@ -76,7 +76,7 @@ else:
 
 
 def get_script_output(interpreter: Path, script: str, *args) -> str:
-    proc = run_subprocess([str(interpreter), "-c", script, *args], capture_stderr=False)
+    proc = run_subprocess([interpreter, "-c", script, *args], capture_stderr=False)
     return proc.stdout
 
 
