@@ -1,3 +1,7 @@
+dev
+
+- [bugfix] Fixed a `pipx install` bug causing incorrect python binary to be used when using the optional --python argument in certain situations, such as running pipx from a Framework python on macOS and specifying a non-Framework python.
+
 0.15.1.2
 
 - [bugfix] Fix recursive search of dependencies' apps so no apps are missed.
