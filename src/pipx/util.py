@@ -100,10 +100,14 @@ def run_subprocess(
 ) -> subprocess.CompletedProcess:
     """Run arbitrary command as subprocess, capturing stderr and stout"""
 
-    # Null out PYTHONPATH because some platforms (macOS with Homebrew) add
+    env = dict(os.environ)
+    # Remove PYTHONPATH because some platforms (macOS with Homebrew) add
     #   pipx directories to it, and can make it appear to venvs as though
     #   pipx dependencies are in the venv path (#233)
-    env = {k: v for k, v in os.environ.items() if k.upper() != "PYTHONPATH"}
+    env.pop("PYTHONPATH", None)
+    # Remove __PYVENV_LAUNCHER__ because it is only meant to be communication
+    #   between main python binary and its subprocess and can cause the wrong
+    #   python binary to be used (#334)
     env.pop("__PYVENV_LAUNCHER__", None)
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
     cmd_str = " ".join(str(c) for c in cmd)
