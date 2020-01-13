@@ -76,14 +76,8 @@ else:
 
 
 def get_script_output(interpreter: Path, script: str, *args) -> str:
-    # Make sure that Python writes output in UTF-8
-    env = os.environ.copy()
-    env["PYTHONIOENCODING"] = "utf-8"
-    env.pop("__PYVENV_LAUNCHER__", None)
-    output = subprocess.run(
-        [str(interpreter), "-c", script, *args], stdout=subprocess.PIPE, env=env
-    ).stdout.decode(encoding="utf-8")
-    return output
+    proc = run_subprocess([str(interpreter), "-c", script, *args], capture_stderr=False)
+    return proc.stdout
 
 
 def get_site_packages(python: Path) -> Path:
