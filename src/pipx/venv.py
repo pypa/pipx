@@ -242,7 +242,7 @@ class Venv:
     def get_venv_metadata_for_package(self, package: str) -> VenvMetadata:
         data = json.loads(
             get_script_output(
-                self.python_path, VENV_METADATA_INSPECTOR, package, str(self.bin_path)
+                self.python_path, VENV_METADATA_INSPECTOR, package, self.bin_path
             )
         )
         app_paths = [Path(p) for p in data["app_paths"]]
