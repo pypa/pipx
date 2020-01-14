@@ -105,6 +105,9 @@ def run_subprocess(
         env.pop(env_to_remove, None)
 
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
+    # Make sure that Python writes output in UTF-8
+    env["PYTHONIOENCODING"] = "utf-8"
+
     cmd_str = " ".join(str(c) for c in cmd)
     logging.info(f"running {cmd_str}")
     # windows cannot take Path objects, only strings
@@ -114,7 +117,8 @@ def run_subprocess(
         env=env,
         stdout=subprocess.PIPE if capture_stdout else None,
         stderr=subprocess.PIPE if capture_stderr else None,
-        universal_newlines=True,  # implies decoded strings in stdout, stderr
+        encoding="utf-8",
+        universal_newlines=True,
     )
 
 
