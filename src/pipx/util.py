@@ -75,14 +75,9 @@ else:
         return bin_path, python_path
 
 
-def get_script_output(interpreter: Path, script: str, *args) -> str:
-    # Make sure that Python writes output in UTF-8
-    env = os.environ.copy()
-    env["PYTHONIOENCODING"] = "utf-8"
-    output = subprocess.run(
-        [str(interpreter), "-c", script, *args], stdout=subprocess.PIPE, env=env
-    ).stdout.decode(encoding="utf-8")
-    return output
+def get_script_output(interpreter: Path, script: str, *args: Union[str, Path]) -> str:
+    proc = run_subprocess([interpreter, "-c", script, *args], capture_stderr=False)
+    return proc.stdout
 
 
 def get_site_packages(python: Path) -> Path:
@@ -98,12 +93,21 @@ def run_subprocess(
     capture_stderr: bool = True,
 ) -> subprocess.CompletedProcess:
     """Run arbitrary command as subprocess, capturing stderr and stout"""
+    env = dict(os.environ)
 
-    # Null out PYTHONPATH because some platforms (macOS with Homebrew) add
-    #   pipx directories to it, and can make it appear to venvs as though
-    #   pipx dependencies are in the venv path (#233)
-    env = {k: v for k, v in os.environ.items() if k.upper() != "PYTHONPATH"}
+    # Remove PYTHONPATH because some platforms (macOS with Homebrew) add pipx
+    #   directories to it, and can make it appear to venvs as though pipx
+    #   dependencies are in the venv path (#233)
+    # Remove __PYVENV_LAUNCHER__ because it can cause the wrong python binary
+    #   to be used (#334)
+    env_blacklist = ["PYTHONPATH", "__PYVENV_LAUNCHER__"]
+    for env_to_remove in env_blacklist:
+        env.pop(env_to_remove, None)
+
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
+    # Make sure that Python writes output in UTF-8
+    env["PYTHONIOENCODING"] = "utf-8"
+
     cmd_str = " ".join(str(c) for c in cmd)
     logging.info(f"running {cmd_str}")
     # windows cannot take Path objects, only strings
@@ -113,7 +117,8 @@ def run_subprocess(
         env=env,
         stdout=subprocess.PIPE if capture_stdout else None,
         stderr=subprocess.PIPE if capture_stderr else None,
-        universal_newlines=True,  # implies decoded strings in stdout, stderr
+        encoding="utf-8",
+        universal_newlines=True,
     )
 
 
