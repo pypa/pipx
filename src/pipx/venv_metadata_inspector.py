@@ -6,6 +6,14 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 
+try:
+    WindowsError
+except NameError:
+    WINDOWS = False
+else:
+    WINDOWS = True
+
+
 def get_package_dependencies(package: str) -> List[str]:
     try:
         import pkg_resources
@@ -34,9 +42,14 @@ def get_apps(package: str, bin_path: Path) -> List[str]:
     for section in ["console_scripts", "gui_scripts"]:
         # "entry_points" entry in setup.py are found here
         for name in pkg_resources.get_entry_map(dist).get(section, []):
-            apps.add(name)
+            if (bin_path / name).exists():
+                apps.add(name)
+            if WINDOWS and (bin_path / f"{name}.exe").exists():
+                # WINDOWS adds .exe to entry_point name
+                apps.add(f"{name}.exe")
 
     if dist.has_metadata("RECORD"):
+        # for non-editable package installs, RECORD is files that got installed
         # "scripts" entry in setup.py is found here (test w/ awscli)
         for line in dist.get_metadata_lines("RECORD"):
             entry = line.split(",")[0]  # noqa: T484
