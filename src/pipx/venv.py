@@ -257,7 +257,7 @@ class Venv:
                 dep_app_paths = _windows_extra_app_paths(paths)
             else:
                 dep_app_paths = paths
-            data["app_paths_of_dependencies"][dep] = paths
+            data["app_paths_of_dependencies"][dep] = dep_app_paths
             data["apps_of_dependencies"] += [path.name for path in paths]
 
         return VenvMetadata(**data)
