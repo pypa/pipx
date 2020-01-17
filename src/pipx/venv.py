@@ -247,19 +247,16 @@ class Venv:
         )
         app_paths = [Path(p) for p in data["app_paths"]]
         if WINDOWS:
-            windows_bin_paths = set()
-            for app in app_paths:
-                # windows has additional files staring with the same name that are required
-                # to run the app
-                for win_exec in app.parent.glob(f"{app.name}*.exe"):
-                    windows_bin_paths.add(win_exec)
-            data["app_paths"] = list(windows_bin_paths)
-        else:
-            data["app_paths"] = app_paths
+            app_paths = _windows_extra_app_paths(app_paths)
+        data["app_paths"] = app_paths
 
         data["apps_of_dependencies"] = []
         for dep, raw_paths in data["app_paths_of_dependencies"].items():
             paths = [Path(raw_path) for raw_path in raw_paths]
+            if WINDOWS:
+                dep_app_paths = _windows_extra_app_paths(paths)
+            else:
+                dep_app_paths = paths
             data["app_paths_of_dependencies"][dep] = paths
             data["apps_of_dependencies"] += [path.name for path in paths]
 
@@ -354,6 +351,17 @@ class Venv:
         if not self.verbose:
             cmd.append("-q")
         return run(cmd)
+
+
+def _windows_extra_app_paths(app_paths):
+    app_paths_output = app_paths.copy()
+    for app_path in app_paths:
+        # In Windows, editable package have additional files starting
+        #   with the same name that are required to run the app
+        win_app_path = app_path.parent / f"{app_path.stem}-script.py"
+        if win_app_path.exists():
+            app_paths_output.append(win_app_path)
+    return app_paths_output
 
 
 def abs_path_if_local(package_or_url: str, venv: Venv, pip_args: List[str]) -> str:
