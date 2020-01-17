@@ -133,7 +133,7 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     if pipx.constants.WINDOWS:
         ref_replacement_fields = {
             "app_paths": [pipx_venvs_dir / "pycowsay" / "Scripts" / "pycowsay.exe"],
-            "apps": ["pycowsay", "pycowsay.exe"],
+            "apps": ["pycowsay.exe"],
         }
     else:
         ref_replacement_fields = {
@@ -158,7 +158,7 @@ def test_package_inject(monkeypatch, tmp_path, pipx_temp_env):
 
     if pipx.constants.WINDOWS:
         ref_replacement_fields = {
-            "apps": ["black", "black.exe", "blackd", "blackd.exe"],
+            "apps": ["black.exe", "blackd.exe"],
             "app_paths": [
                 pipx_venvs_dir / "pycowsay" / "Scripts" / "black.exe",
                 pipx_venvs_dir / "pycowsay" / "Scripts" / "blackd.exe",
