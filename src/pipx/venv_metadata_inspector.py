@@ -44,11 +44,9 @@ def get_apps(package: str, bin_path: Path) -> List[str]:
         for name in pkg_resources.get_entry_map(dist).get(section, []):
             if (bin_path / name).exists():
                 apps.add(name)
-            if WINDOWS:
-                win_names = [f"{name}.exe", f"{name}-script.py", f"{name}.exe.manifest"]
-                for win_name in win_names:
-                    if (bin_path / win_name).exists():
-                        apps.add(win_name)
+            if WINDOWS and (bin_path / f"{name}.exe").exists():
+                # WINDOWS adds .exe to entry_point name
+                apps.add(f"{name}.exe")
 
     if dist.has_metadata("RECORD"):
         # for non-editable package installs, RECORD is files that got installed
