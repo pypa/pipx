@@ -245,17 +245,7 @@ class Venv:
                 self.python_path, VENV_METADATA_INSPECTOR, package, self.bin_path
             )
         )
-        app_paths = [Path(p) for p in data["app_paths"]]
-        if WINDOWS:
-            windows_bin_paths = set()
-            for app in app_paths:
-                # windows has additional files staring with the same name that are required
-                # to run the app
-                for win_exec in app.parent.glob(f"{app.name}*.exe"):
-                    windows_bin_paths.add(win_exec)
-            data["app_paths"] = list(windows_bin_paths)
-        else:
-            data["app_paths"] = app_paths
+        data["app_paths"] = [Path(p) for p in data["app_paths"]]
 
         data["apps_of_dependencies"] = []
         for dep, raw_paths in data["app_paths_of_dependencies"].items():
