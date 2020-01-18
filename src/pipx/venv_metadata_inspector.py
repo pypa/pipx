@@ -104,7 +104,7 @@ def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
     #   same name that are required to run the app
     app_paths_output = app_paths.copy()
     for app_path in app_paths:
-        win_app_path = app_path.parent / f"{app_path.stem}-script.py"
+        win_app_path = app_path.parent / (app_path.stem + "-script.py")
         if win_app_path.exists():
             app_paths_output.append(win_app_path)
     return app_paths_output
