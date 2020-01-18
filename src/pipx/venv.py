@@ -353,7 +353,7 @@ class Venv:
         return run(cmd)
 
 
-def _windows_extra_app_paths(app_paths):
+def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
     app_paths_output = app_paths.copy()
     for app_path in app_paths:
         # In Windows, editable package have additional files starting
