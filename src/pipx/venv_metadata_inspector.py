@@ -125,13 +125,13 @@ def main():
         bin_path, package, app_paths_of_dependencies
     )
     for dep in app_paths_of_dependencies:
-        apps_of_dependencies += [path.name for app_paths_of_dependencies[dep]]
+        apps_of_dependencies += [p.name for p in app_paths_of_dependencies[dep]]
         if WINDOWS:
             app_paths_of_dependencies[dep] = _windows_extra_app_paths(
                 app_paths_of_dependencies[dep]
             )
         app_paths_of_dependencies[dep] = [
-            str(app_path) for app_path in app_paths_of_dependencies[dep]
+            str(p) for p in app_paths_of_dependencies[dep]
         ]
 
     output = {
