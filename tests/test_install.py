@@ -54,9 +54,9 @@ def test_install_easy_packages(capsys, pipx_temp_env, caplog, package):
 def test_install_tricky_packages(capsys, pipx_temp_env, caplog, package):
     if os.getenv("FAST"):
         pytest.skip("skipping slow tests")
+    if sys.platform.startswith("win") and package=="ansible":
+        pytest.skip("Ansible is not installable on Windows")
 
-    #if sys.platform.startswith("win"):
-    #    pytest.skip("TODO make this work on Windows")
     install_package(capsys, pipx_temp_env, caplog, package)
 
 
