@@ -134,6 +134,9 @@ def test_existing_symlink_points_to_existing_wrong_location_warning(
 
 
 def test_existing_symlink_points_to_nothing(pipx_temp_env, caplog, capsys):
+    if sys.platform.startswith("win"):
+        pytest.skip("pipx does not use symlinks on Windows")
+
     constants.LOCAL_BIN_DIR.mkdir(exist_ok=True, parents=True)
     (constants.LOCAL_BIN_DIR / "pycowsay").symlink_to("/asdf/jkl")
     assert not run_pipx_cli(["install", "pycowsay"])
