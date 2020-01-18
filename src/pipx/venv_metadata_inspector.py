@@ -87,8 +87,7 @@ def _dfs_package_apps(
     for d in dependencies:
         app_names = get_apps(d, bin_path)
         if app_names:
-            apps = [str(Path(bin_path) / app) for app in app_names]
-            app_paths_of_dependencies[d] = apps
+            app_paths_of_dependencies[d] = [bin_path / app for app in app_names]
         # recursively search for more
         if d not in dep_visited:
             # only search if this package isn't already listed to avoid
@@ -100,20 +99,45 @@ def _dfs_package_apps(
     return app_paths_of_dependencies
 
 
+def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
+    # In Windows, editable package have additional files starting with the
+    #   same name that are required to run the app
+    app_paths_output = app_paths.copy()
+    for app_path in app_paths:
+        win_app_path = app_path.parent / f"{app_path.stem}-script.py"
+        if win_app_path.exists():
+            app_paths_output.append(win_app_path)
+    return app_paths_output
+
+
 def main():
     package = sys.argv[1]
     bin_path = Path(sys.argv[2])
 
     apps = get_apps(package, bin_path)
+    if WINDOWS:
+        app_paths = _windows_extra_app_paths(app_paths)
     app_paths = [str(Path(bin_path) / app) for app in apps]
+
     app_paths_of_dependencies = {}  # type: Dict[str, List[str]]
+    apps_of_dependencies = []  # type: List[str]
     app_paths_of_dependencies = _dfs_package_apps(
         bin_path, package, app_paths_of_dependencies
     )
+    for dep in app_paths_of_dependencies:
+        apps_of_dependencies += [path.name for app_paths_of_dependencies[dep]]
+        if WINDOWS:
+            app_paths_of_dependencies[dep] = _windows_extra_app_paths(
+                app_paths_of_dependencies[dep]
+            )
+        app_paths_of_dependencies[dep] = [
+            str(app_path) for app_path in app_paths_of_dependencies[dep]
+        ]
 
     output = {
         "apps": apps,
         "app_paths": app_paths,
+        "apps_of_dependencies": apps_of_dependencies,
         "app_paths_of_dependencies": app_paths_of_dependencies,
         "package_version": get_package_version(package),
         "python_version": "Python {}.{}.{}".format(
