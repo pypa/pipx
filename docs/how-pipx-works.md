@@ -2,10 +2,10 @@
 
 When installing a package and its binaries (`pipx install package`) pipx will
 
-- create directory ~/.local/pipx/venvs/PACKAGE
+- create directory `~/.local/pipx/venvs/PACKAGE`
 - create or re-use a shared virtual environment that contains shared packaging libraries `pip`, `setuptools` and `wheel` in `~/.local/pipx/shared/`
 - ensure all packaging libraries are updated to their latest versions
-- create a Virtual Environment in ~/.local/pipx/venvs/PACKAGE that uses the shared pip mentioned above but otherwise is isolated (pipx uses a [.pth file]( https://docs.python.org/3/library/site.html) to do this)
+- create a Virtual Environment in `~/.local/pipx/venvs/PACKAGE` that uses the shared pip mentioned above but otherwise is isolated (pipx uses a [.pth file]( https://docs.python.org/3/library/site.html) to do this)
 - install the desired package in the Virtual Environment
 - expose binaries at `~/.local/bin` that point to new binaries in `~/.local/pipx/venvs/PACKAGE/bin` (such as `~/.local/bin/black` -> `~/.local/pipx/venvs/black/bin/black`)
 - As long as `~/.local/bin/` is on your PATH, you can now invoke the new binaries globally
