@@ -49,7 +49,7 @@ def get_apps(package: str, bin_path: Path) -> List[str]:
                 apps.add(name + ".exe")
 
     if dist.has_metadata("RECORD"):
-        # for non-editable package installs, RECORD is files that got installed
+        # for non-editable package installs, RECORD is list of installed files
         # "scripts" entry in setup.py is found here (test w/ awscli)
         for line in dist.get_metadata_lines("RECORD"):
             entry = line.split(",")[0]  # noqa: T484
