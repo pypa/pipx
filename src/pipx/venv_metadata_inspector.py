@@ -118,7 +118,7 @@ def main():
     app_paths = [Path(bin_path) / app for app in apps]
     if WINDOWS:
         app_paths = _windows_extra_app_paths(app_paths)
-    app_str_paths = [str(app_path) for app_path in app_paths]
+    app_paths = [str(app_path) for app_path in app_paths]
 
     app_paths_of_dependencies = {}  # type: Dict[str, List[str]]
     apps_of_dependencies = []  # type: List[str]
@@ -139,7 +139,7 @@ def main():
 
     output = {
         "apps": apps,
-        "app_paths": app_str_paths,
+        "app_paths": app_paths,
         "apps_of_dependencies": apps_of_dependencies,
         "app_paths_of_dependencies": app_paths_of_dependencies,
         "package_version": get_package_version(package),
