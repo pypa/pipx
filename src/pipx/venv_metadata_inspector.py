@@ -101,7 +101,7 @@ def _dfs_package_apps(
 
 def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
     # In Windows, editable package have additional files starting with the
-    #   same name that are required to run the app
+    #   same name that are required to be in the same dir to run the app
     app_paths_output = app_paths.copy()
     for app_path in app_paths:
         win_app_path = app_path.parent / (app_path.stem + "-script.py")
