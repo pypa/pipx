@@ -102,9 +102,14 @@ def _dfs_package_apps(
 def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
     # In Windows, editable package have additional files starting with the
     #   same name that are required to be in the same dir to run the app
+    # Add "*-script.py", "*.exe.manifest" only to app_paths to make
+    #   execution work; do not add them to apps to ensure they are not listed
     app_paths_output = app_paths.copy()
     for app_path in app_paths:
         win_app_path = app_path.parent / (app_path.stem + "-script.py")
+        if win_app_path.exists():
+            app_paths_output.append(win_app_path)
+        win_app_path = app_path.parent / (app_path.stem + ".exe.manifest")
         if win_app_path.exists():
             app_paths_output.append(win_app_path)
     return app_paths_output
@@ -116,8 +121,6 @@ def main():
 
     apps = get_apps(package, bin_path)
     app_paths = [Path(bin_path) / app for app in apps]
-    # On Windows, add extra "*-script.py" to app_paths to make execution work;
-    #   do not add them to apps to ensure they are not listed
     if WINDOWS:
         app_paths = _windows_extra_app_paths(app_paths)
     app_paths = [str(app_path) for app_path in app_paths]
@@ -131,8 +134,6 @@ def main():
         apps_of_dependencies += [
             dep_path.name for dep_path in app_paths_of_dependencies[dep]
         ]
-        # On Windows, add extra "*-script.py" to app_paths to make execution
-        #   work; do not add them to apps to ensure they are not listed
         if WINDOWS:
             app_paths_of_dependencies[dep] = _windows_extra_app_paths(
                 app_paths_of_dependencies[dep]
