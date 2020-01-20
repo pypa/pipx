@@ -116,6 +116,7 @@ def main():
 
     apps = get_apps(package, bin_path)
     app_paths = [Path(bin_path) / app for app in apps]
+    # On Windows, only add extra "*-script.py" to app_paths, not to apps
     if WINDOWS:
         app_paths = _windows_extra_app_paths(app_paths)
     app_paths = [str(app_path) for app_path in app_paths]
@@ -129,6 +130,7 @@ def main():
         apps_of_dependencies += [
             dep_path.name for dep_path in app_paths_of_dependencies[dep]
         ]
+        # On Windows, only add extra "*-script.py" to app_paths, not to apps
         if WINDOWS:
             app_paths_of_dependencies[dep] = _windows_extra_app_paths(
                 app_paths_of_dependencies[dep]
