@@ -54,9 +54,9 @@ def test_install_easy_packages(capsys, pipx_temp_env, caplog, package):
 def test_install_tricky_packages(capsys, pipx_temp_env, caplog, package):
     if os.getenv("FAST"):
         pytest.skip("skipping slow tests")
+    if sys.platform.startswith("win") and package == "ansible":
+        pytest.skip("Ansible is not installable on Windows")
 
-    if sys.platform.startswith("win"):
-        pytest.skip("TODO make this work on Windows")
     install_package(capsys, pipx_temp_env, caplog, package)
 
 
@@ -134,6 +134,9 @@ def test_existing_symlink_points_to_existing_wrong_location_warning(
 
 
 def test_existing_symlink_points_to_nothing(pipx_temp_env, caplog, capsys):
+    if sys.platform.startswith("win"):
+        pytest.skip("pipx does not use symlinks on Windows")
+
     constants.LOCAL_BIN_DIR.mkdir(exist_ok=True, parents=True)
     (constants.LOCAL_BIN_DIR / "pycowsay").symlink_to("/asdf/jkl")
     assert not run_pipx_cli(["install", "pycowsay"])

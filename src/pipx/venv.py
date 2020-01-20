@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Generator, List, NamedTuple, Dict, Set, Optional
 
 from pipx.animate import animate
-from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH, WINDOWS
+from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH
 from pipx.pipx_metadata_file import PipxMetadata, PackageInfo
 from pipx.shared_libs import shared_libs
 from pipx.util import (
@@ -245,23 +245,11 @@ class Venv:
                 self.python_path, VENV_METADATA_INSPECTOR, package, self.bin_path
             )
         )
-        app_paths = [Path(p) for p in data["app_paths"]]
-        if WINDOWS:
-            windows_bin_paths = set()
-            for app in app_paths:
-                # windows has additional files staring with the same name that are required
-                # to run the app
-                for win_exec in app.parent.glob(f"{app.name}*.exe"):
-                    windows_bin_paths.add(win_exec)
-            data["app_paths"] = list(windows_bin_paths)
-        else:
-            data["app_paths"] = app_paths
-
-        data["apps_of_dependencies"] = []
-        for dep, raw_paths in data["app_paths_of_dependencies"].items():
-            paths = [Path(raw_path) for raw_path in raw_paths]
-            data["app_paths_of_dependencies"][dep] = paths
-            data["apps_of_dependencies"] += [path.name for path in paths]
+        data["app_paths"] = [Path(p) for p in data["app_paths"]]
+        for dep in data["app_paths_of_dependencies"]:
+            data["app_paths_of_dependencies"][dep] = [
+                Path(p) for p in data["app_paths_of_dependencies"][dep]
+            ]
 
         return VenvMetadata(**data)
 
