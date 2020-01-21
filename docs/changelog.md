@@ -1,4 +1,4 @@
-dev
+0.15.1.3
 
 - [bugfix] On Windows, pipx now lists correct Windows apps (#217)
 - [bugfix] Fixed a `pipx install` bug causing incorrect python binary to be used when using the optional --python argument in certain situations, such as running pipx from a Framework python on macOS and specifying a non-Framework python.
