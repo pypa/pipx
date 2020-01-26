@@ -5,6 +5,10 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 
+try:
+    from importlib import metadata
+except ImportError:
+    import importlib_metadata as metadata
 
 try:
     WindowsError
@@ -16,60 +20,52 @@ else:
 
 def get_package_dependencies(package: str) -> List[str]:
     try:
-        import pkg_resources
+        return metadata.requires(package)
     except Exception:
         return []
-    return [str(r) for r in pkg_resources.get_distribution(package).requires()]
 
 
 def get_package_version(package: str) -> Optional[str]:
     try:
-        import pkg_resources
-
-        return pkg_resources.get_distribution(package).version
+        return metadata.version(package)
     except Exception:
         return None
 
 
 def get_apps(package: str, bin_path: Path) -> List[str]:
-    try:
-        import pkg_resources
-    except Exception:
-        return []
-    dist = pkg_resources.get_distribution(package)
+    dist = metadata.distribution(package)
 
     apps = set()
-    for section in ["console_scripts", "gui_scripts"]:
-        # "entry_points" entry in setup.py are found here
-        for name in pkg_resources.get_entry_map(dist).get(section, []):
-            if (bin_path / name).exists():
-                apps.add(name)
-            if WINDOWS and (bin_path / (name + ".exe")).exists():
-                # WINDOWS adds .exe to entry_point name
-                apps.add(name + ".exe")
+    sections = {"console_scripts", "gui_scripts"}
+    # "entry_points" entry in setup.py are found here
+    for ep in dist.entry_points:
+        if ep.group not in sections:
+            continue
+        if (bin_path / ep.name).exists():
+            apps.add(ep.name)
+        if WINDOWS and (bin_path / (ep.name + ".exe")).exists():
+            # WINDOWS adds .exe to entry_point name
+            apps.add(ep.name + ".exe")
 
-    if dist.has_metadata("RECORD"):
-        # for non-editable package installs, RECORD is list of installed files
-        # "scripts" entry in setup.py is found here (test w/ awscli)
-        for line in dist.get_metadata_lines("RECORD"):
-            entry = line.split(",")[0]  # noqa: T484
-            path = (Path(dist.location) / entry).resolve()
-            try:
-                if path.parent.samefile(bin_path):
-                    apps.add(Path(entry).name)
-            except FileNotFoundError:
-                pass
+    # search installed files
+    # "scripts" entry in setup.py is found here (test w/ awscli)
+    for path in dist.files:
+        try:
+            if path.parent.samefile(bin_path):
+                apps.add(path.name)
+        except FileNotFoundError:
+            pass
 
-    if dist.has_metadata("installed-files.txt"):
-        # not sure what is found here
-        for line in dist.get_metadata_lines("installed-files.txt"):
-            entry = line.split(",")[0]  # noqa: T484
-            path = (Path(dist.egg_info) / entry).resolve()  # type: ignore
-            try:
-                if path.parent.samefile(bin_path):
-                    apps.add(Path(entry).name)
-            except FileNotFoundError:
-                pass
+    # not sure what is found here
+    inst_files = dist.read_text("installed-files.txt") or ''
+    for line in inst_files.splitlines():
+        entry = line.split(",")[0]  # noqa: T484
+        path = dist.locate_file(entry)  # type: ignore
+        try:
+            if path.parent.samefile(bin_path):
+                apps.add(Path(entry).name)
+        except FileNotFoundError:
+            pass
 
     return sorted(apps)
 
