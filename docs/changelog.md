@@ -1,4 +1,6 @@
-0.15.1.4
+0.15.2.0
+
+- Rely on importlib.metadata for package metadata.
 - [bugfix] Replaced implicit dependency on setuptools with an explicit dependency on packaging (#339).
 
 0.15.1.3
