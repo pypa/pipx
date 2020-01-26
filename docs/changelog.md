@@ -1,3 +1,6 @@
+0.15.1.4
+- [bugfix] Replaced implicit dependency on setuptools with an explicit dependency on packaging (#339).
+
 0.15.1.3
 
 - [bugfix] On Windows, pipx now lists correct Windows apps (#217)
