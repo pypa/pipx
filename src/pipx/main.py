@@ -6,7 +6,6 @@
 import argparse
 import functools
 import logging
-from pkg_resources import parse_version
 import shlex
 import re
 import sys
@@ -14,6 +13,7 @@ import textwrap
 import urllib.parse
 from typing import Dict, List, Tuple, Union
 
+import packaging.version
 import argcomplete  # type: ignore
 from .colors import bold, green
 from . import commands
@@ -25,7 +25,8 @@ __version__ = "0.15.1.3"
 
 
 def simple_parse_version(s, segments=4) -> Tuple[Union[int, str], ...]:
-    _, out, subver, *_ = parse_version(s)._key  # type: ignore
+
+    _, out, subver, *_ = packaging.version.Version(s)._key  # type: ignore
 
     if isinstance(subver, tuple):
         while len(out) < segments:

@@ -19,7 +19,7 @@ import re  # noqa E402
 
 CURDIR = Path(__file__).parent
 
-REQUIRED = ["userpath", "argcomplete>=1.9.4, <2.0"]  # type: List[str]
+REQUIRED = ["userpath", "argcomplete>=1.9.4, <2.0", "packaging"]  # type: List[str]
 
 with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
     README = f.read()
