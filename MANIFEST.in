@@ -9,3 +9,4 @@ prune scripts
 
 global-exclude *.py[cod]
 global-exclude __pycache__
+global-exclude .*.swp
