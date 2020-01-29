@@ -10,7 +10,7 @@ try:
 except ImportError:
     import importlib_metadata as metadata
 
-import packaging.requirements  # type: ignore
+from packaging.requirements import Requirement
 
 try:
     WindowsError
@@ -20,9 +20,13 @@ else:
     WINDOWS = True
 
 
-def get_package_dependencies(package: str) -> List[str]:
+def get_package_dependencies(package: str) -> List[Requirement]:
     try:
-        return metadata.requires(package)
+        return [
+            req
+            for req in map(Requirement, metadata.requires(package))
+            if req.marker.evaluate()
+        ]
     except Exception:
         return []
 
@@ -34,8 +38,8 @@ def get_package_version(package: str) -> Optional[str]:
         return None
 
 
-def get_apps(req: str, bin_path: Path) -> List[str]:
-    dist = metadata.distribution(packaging.requirements.Requirement(req).name)
+def get_apps(req: Requirement, bin_path: Path) -> List[str]:
+    dist = metadata.distribution(req.name)
 
     apps = set()
     sections = {"console_scripts", "gui_scripts"}
@@ -82,17 +86,17 @@ def _dfs_package_apps(
         dep_visited = {}
 
     dependencies = get_package_dependencies(package)
-    for d in dependencies:
-        app_names = get_apps(d, bin_path)
+    for req in dependencies:
+        app_names = get_apps(req, bin_path)
         if app_names:
-            app_paths_of_dependencies[d] = [bin_path / app for app in app_names]
+            app_paths_of_dependencies[req.name] = [bin_path / app for app in app_names]
         # recursively search for more
-        if d not in dep_visited:
+        if req.name not in dep_visited:
             # only search if this package isn't already listed to avoid
             # infinite recursion
-            dep_visited[d] = True
+            dep_visited[req.name] = True
             app_paths_of_dependencies = _dfs_package_apps(
-                bin_path, d, app_paths_of_dependencies, dep_visited
+                bin_path, req.name, app_paths_of_dependencies, dep_visited
             )
     return app_paths_of_dependencies
 
@@ -117,7 +121,7 @@ def main():
     package = sys.argv[1]
     bin_path = Path(sys.argv[2])
 
-    apps = get_apps(package, bin_path)
+    apps = get_apps(Requirement(package), bin_path)
     app_paths = [Path(bin_path) / app for app in apps]
     if WINDOWS:
         app_paths = _windows_extra_app_paths(app_paths)
