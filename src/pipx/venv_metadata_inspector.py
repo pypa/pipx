@@ -10,6 +10,8 @@ try:
 except ImportError:
     import importlib_metadata as metadata
 
+import packaging.requirements  # type: ignore
+
 try:
     WindowsError
 except NameError:
@@ -32,8 +34,8 @@ def get_package_version(package: str) -> Optional[str]:
         return None
 
 
-def get_apps(package: str, bin_path: Path) -> List[str]:
-    dist = metadata.distribution(package)
+def get_apps(req: str, bin_path: Path) -> List[str]:
+    dist = metadata.distribution(packaging.requirements.Requirement(req).name)
 
     apps = set()
     sections = {"console_scripts", "gui_scripts"}
@@ -51,7 +53,7 @@ def get_apps(package: str, bin_path: Path) -> List[str]:
     # "scripts" entry in setup.py is found here (test w/ awscli)
     for path in dist.files:
         try:
-            if path.parent.samefile(bin_path):
+            if path.locate().parent.samefile(bin_path):
                 apps.add(path.name)
         except FileNotFoundError:
             pass
