@@ -13,7 +13,7 @@ import textwrap
 import urllib.parse
 from typing import Dict, List, Tuple, Union
 
-import packaging.version
+import packaging.version  # type: ignore
 import argcomplete  # type: ignore
 from .colors import bold, green
 from . import commands
