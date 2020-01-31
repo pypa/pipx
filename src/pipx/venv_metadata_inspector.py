@@ -21,11 +21,12 @@ else:
 
 
 def get_package_dependencies(package: str) -> List[Requirement]:
+    extras = Requirement(package).extras
     try:
         return [
             req
-            for req in map(Requirement, metadata.requires(package))
-            if req.marker.evaluate()
+            for req in map(Requirement, metadata.requires(package) or [])
+            if not req.marker or req.marker.evaluate({'extra': extras})
         ]
     except Exception:
         return []
