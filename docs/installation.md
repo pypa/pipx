@@ -20,7 +20,7 @@ pipx's default virtual environment location is `~/.local/pipx`. This can be over
 
 ## Upgrade pipx
 ```
-python3 -m pip install -U pipx
+python3 -m pip install --user -U pipx
 ```
 
 ### Note: Upgrading pipx from a pre-0.15.0.0 version to 0.15.0.0 or later
