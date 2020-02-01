@@ -80,7 +80,7 @@ class _SharedLibs:
                         "setuptools",
                         "wheel",
                         "packaging",
-                        "importlib_metadata; python_version<'3.8'",
+                        "importlib_metadata",
                     ]
                 )
                 self.has_been_updated_this_run = True
