@@ -6,11 +6,11 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 try:
-    from importlib import metadata
+    from importlib import metadata  # type: ignore
 except ImportError:
-    import importlib_metadata as metadata
+    import importlib_metadata as metadata  # type: ignore
 
-from packaging.requirements import Requirement
+from packaging.requirements import Requirement  # type: ignore
 
 try:
     WindowsError
@@ -25,8 +25,8 @@ def get_package_dependencies(package: str) -> List[Requirement]:
     try:
         return [
             req
-            for req in map(Requirement, metadata.requires(package) or [])
-            if not req.marker or req.marker.evaluate({'extra': extras})
+            for req in map(Requirement, metadata.requires(package) or [])  # type: ignore
+            if not req.marker or req.marker.evaluate({"extra": extras})
         ]
     except Exception:
         return []
@@ -34,13 +34,13 @@ def get_package_dependencies(package: str) -> List[Requirement]:
 
 def get_package_version(package: str) -> Optional[str]:
     try:
-        return metadata.version(package)
+        return metadata.version(package)  # type: ignore
     except Exception:
         return None
 
 
 def get_apps(req: Requirement, bin_path: Path) -> List[str]:
-    dist = metadata.distribution(req.name)
+    dist = metadata.distribution(req.name)  # type: ignore
 
     apps = set()
     sections = {"console_scripts", "gui_scripts"}
@@ -64,7 +64,7 @@ def get_apps(req: Requirement, bin_path: Path) -> List[str]:
             pass
 
     # not sure what is found here
-    inst_files = dist.read_text("installed-files.txt") or ''
+    inst_files = dist.read_text("installed-files.txt") or ""
     for line in inst_files.splitlines():
         entry = line.split(",")[0]  # noqa: T484
         path = dist.locate_file(entry)  # type: ignore
