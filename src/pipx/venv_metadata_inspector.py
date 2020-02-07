@@ -2,74 +2,78 @@
 
 import json
 import sys
+import os
 from pathlib import Path
 from typing import Dict, List, Optional
 
-
 try:
-    WindowsError
-except NameError:
-    WINDOWS = False
-else:
-    WINDOWS = True
+    from importlib import metadata
+except ImportError:
+    import importlib_metadata as metadata
+
+
+WINDOWS = os.name == "nt"
 
 
 def get_package_dependencies(package: str) -> List[str]:
-    try:
-        import pkg_resources
-    except Exception:
-        return []
-    return [str(r) for r in pkg_resources.get_distribution(package).requires()]
+    return metadata.distribution(package).requires
 
 
 def get_package_version(package: str) -> Optional[str]:
-    try:
-        import pkg_resources
+    return metadata.distribution(package).version
 
-        return pkg_resources.get_distribution(package).version
-    except Exception:
-        return None
+
+def yield_lines(text: Optional[str]) -> Iterator[str]:
+    """Strip whitespace, skip empty and commented lines"""
+    if not text:
+        return
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#"):
+            yield stripped
 
 
 def get_apps(package: str, bin_path: Path) -> List[str]:
-    try:
-        import pkg_resources
-    except Exception:
-        return []
-    dist = pkg_resources.get_distribution(package)
+    accepted_groups = {"console_scripts", "gui_scripts"}
+    dist = metadata.distribution(package)
 
     apps = set()
-    for section in ["console_scripts", "gui_scripts"]:
-        # "entry_points" entry in setup.py are found here
-        for name in pkg_resources.get_entry_map(dist).get(section, []):
-            if (bin_path / name).exists():
-                apps.add(name)
-            if WINDOWS and (bin_path / (name + ".exe")).exists():
-                # WINDOWS adds .exe to entry_point name
-                apps.add(name + ".exe")
+    for entry_point in dist.entry_points:
+        if entry_point.group not in accepted_groups:
+            continue
+        name = entry_point.name
+        if (bin_path / name).exists():
+            apps.add(name)
+        if WINDOWS and (bin_path / (name + ".exe")).exists():
+            # windows adds .exe to entry_point name
+            apps.add(name + ".exe")
 
-    if dist.has_metadata("RECORD"):
-        # for non-editable package installs, RECORD is list of installed files
-        # "scripts" entry in setup.py is found here (test w/ awscli)
-        for line in dist.get_metadata_lines("RECORD"):
-            entry = line.split(",")[0]  # noqa: T484
-            path = (Path(dist.location) / entry).resolve()
-            try:
-                if path.parent.samefile(bin_path):
-                    apps.add(Path(entry).name)
-            except FileNotFoundError:
-                pass
+    # For non-editable package installs, RECORD is a list of installed files,
+    # relative to site-packages.
+    # "scripts" entry in setup.py is found here (test w/ awscli).
+    #
+    # This use case is nearly covered by dist.files,
+    # but that checks SOURCES.txt if RECORD does not exist,
+    # which does not describe output files.
+    for line in yield_lines(dist.read_text("RECORD")):
+        entry = line.split(",")[0]
+        path = dist.locate_file(entry).resolve()
+        try:
+            if path.parent.samefile(bin_path):
+                apps.add(Path(entry).name)
+        except FileNotFoundError:
+            pass
 
-    if dist.has_metadata("installed-files.txt"):
-        # not sure what is found here
-        for line in dist.get_metadata_lines("installed-files.txt"):
-            entry = line.split(",")[0]  # noqa: T484
-            path = (Path(dist.egg_info) / entry).resolve()  # type: ignore
-            try:
-                if path.parent.samefile(bin_path):
-                    apps.add(Path(entry).name)
-            except FileNotFoundError:
-                pass
+    for line in yield_lines(dist.read_text("installed-files.txt")):
+        entry = line.split(",")[0]
+        # dist.locate_file is relative to site-packages;
+        # these paths are relative to installed-files.txt
+        path = (dist._path / entry).resolve()
+        try:
+            if path.parent.samefile(bin_path):
+                apps.add(Path(entry).name)
+        except FileNotFoundError:
+            pass
 
     return sorted(apps)
 
