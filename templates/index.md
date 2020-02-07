@@ -192,7 +192,7 @@ That's it! Those are the most important commands `pipx` offers. To see all of pi
 <div>
 "My setup pieces together pyenv, poetry, and pipx. [...] For the things I need, it’s perfect."
 <div style="text-align: right; margin-right: 10%; font-style:italic;">
-—<a href="https://twitter.com/mkennedy">Jacob Moss</a>, co-creator of Django in blog post <a href="https://jacobian.org/2019/nov/11/python-environment-2020/">My Python Development Environment, 2020 Edition</a>
+—<a href="https://twitter.com/jacobian">Jacob Kaplan-Moss</a>, co-creator of Django in blog post <a href="https://jacobian.org/2019/nov/11/python-environment-2020/">My Python Development Environment, 2020 Edition</a>
 </div>
 </div>
 
