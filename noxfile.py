@@ -27,7 +27,9 @@ else:
     nox.options.sessions = ["tests", "lint", "docs"]
 
 
-doc_dependencies = [".", "jinja2", "mkdocs", "mkdocs-material"]
+# can remove "markdown>=3.1,<3.2" when mkdocs-material no longer requires
+#   Markdown<3.2, otherwise doc builds fail
+doc_dependencies = [".", "jinja2", "mkdocs", "mkdocs-material", "markdown>=3.1,<3.2"]
 lint_dependencies = ["black", "flake8", "flake8-bugbear", "mypy", "check-manifest"]
 
 
