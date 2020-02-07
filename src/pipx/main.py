@@ -11,7 +11,7 @@ import re
 import sys
 import textwrap
 import urllib.parse
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List
 
 import argcomplete  # type: ignore
 from .colors import bold, green
@@ -19,7 +19,7 @@ from . import commands
 from . import constants
 from .util import PipxError, mkdir
 from .venv import VenvContainer
-from .version import __version__, __version_info__
+from .version import __version__
 
 
 def print_version() -> None:

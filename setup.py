@@ -16,11 +16,16 @@ from pathlib import Path  # noqa E402
 from typing import List  # noqa E402
 import ast  # noqa E402
 import re  # noqa E402
-import runpy
+import runpy  # noqa E402
 
 CURDIR = Path(__file__).parent
 
-REQUIRED = ["userpath", "argcomplete>=1.9.4, <2.0", "packaging"]  # type: List[str]
+REQUIRED = [
+    "userpath",
+    "argcomplete>=1.9.4, <2.0",
+    "packaging",
+    "importlib_metadata; python_version < '3.8'",
+]  # type: List[str]
 
 with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
     README = f.read()

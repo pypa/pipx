@@ -4,12 +4,12 @@ import json
 import sys
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Iterator
 
 try:
-    from importlib import metadata
+    from importlib import metadata  # type: ignore
 except ImportError:
-    import importlib_metadata as metadata
+    import importlib_metadata as metadata  # type: ignore
 
 
 WINDOWS = os.name == "nt"
