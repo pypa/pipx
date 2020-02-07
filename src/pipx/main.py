@@ -20,23 +20,7 @@ from . import commands
 from . import constants
 from .util import PipxError, mkdir
 from .venv import VenvContainer
-
-__version__ = "0.15.1.3"
-
-
-def simple_parse_version(s, segments=4) -> Tuple[Union[int, str], ...]:
-
-    _, out, subver, *_ = packaging.version.Version(s)._key  # type: ignore
-
-    if isinstance(subver, tuple):
-        while len(out) < segments:
-            out += (0,)
-        out += subver
-
-    return out
-
-
-__version_info__ = simple_parse_version(__version__)
+from .version import __version__, __version_info__
 
 
 def print_version() -> None:

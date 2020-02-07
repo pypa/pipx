@@ -16,6 +16,7 @@ from pathlib import Path  # noqa E402
 from typing import List  # noqa E402
 import ast  # noqa E402
 import re  # noqa E402
+import runpy
 
 CURDIR = Path(__file__).parent
 
@@ -26,12 +27,8 @@ with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
 
 
 def get_version():
-    main_file = CURDIR / "src" / "pipx" / "main.py"
-    _version_re = re.compile(r"__version__\s+=\s+(?P<version>.*)")
-    with open(main_file, "r", encoding="utf8") as f:
-        match = _version_re.search(f.read())
-        version = match.group("version") if match is not None else '"unknown"'
-    return str(ast.literal_eval(version))
+    namespace = runpy.run_path(CURDIR / "src" / "pipx" / "version.py")
+    return namespace["__version__"]
 
 
 setup(
