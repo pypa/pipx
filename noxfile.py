@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -86,11 +87,25 @@ def build(session):
     session.run("python", "setup.py", "--quiet", "sdist", "bdist_wheel")
 
 
+def has_changes():
+    status = (
+        subprocess.run("git status --porcelain", shell=True, stdout=subprocess.PIPE)
+        .stdout.decode()
+        .strip()
+    )
+    return len(status) > 0
+
+
 @nox.session(python="3.7")
 def publish(session):
+    if has_changes():
+        session.error("All changes must be committed or removed before publishing.")
+    if branch != "master":
+        session.error(f"Must be on 'master' branch. Currently on '{branch}' branch")
     build(session)
     print("REMINDER: Has the changelog been updated?")
     session.run("python", "-m", "twine", "upload", "dist/*")
+    publish_docs(session)
 
 
 @nox.session(python="3.7")
