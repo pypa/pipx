@@ -54,12 +54,6 @@ warning = textwrap.dedent(
 ).lstrip()
 
 env = Environment(loader=FileSystemLoader("templates"))
-with open("docs/index.md", "w") as f1, open("README.md", "w") as f2:
-    content = env.get_template("index.md").render(**params)
-    for f in [f1, f2]:
-        f.write(warning)
-        f.write(content)
-        f.write("\n")
 
 with open("docs/docs.md", "w") as f:
     f.write(warning)

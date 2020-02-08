@@ -1,8 +1,9 @@
 import os
 import sys
+from pathlib import Path
 
 import nox  # type: ignore
-from pathlib import Path
+
 
 # NOTE: these tests require nox to create virtual environments
 # with venv. nox currently uses virtualenv. pipx
@@ -26,6 +27,7 @@ if sys.platform == "win32":
 else:
     nox.options.sessions = ["tests", "lint", "docs"]
 
+nox.options.reuse_existing_virtualenvs = True
 
 # can remove "markdown>=3.1,<3.2" when mkdocs-material no longer requires
 #   Markdown<3.2, otherwise doc builds fail
