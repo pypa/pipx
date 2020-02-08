@@ -89,19 +89,35 @@ def build(session):
 
 def has_changes():
     status = (
-        subprocess.run("git status --porcelain", shell=True, stdout=subprocess.PIPE)
+        subprocess.run(
+            "git status --porcelain", shell=True, check=True, stdout=subprocess.PIPE
+        )
         .stdout.decode()
         .strip()
     )
     return len(status) > 0
 
 
+def get_branch():
+    return (
+        subprocess.run(
+            "git rev-parse --abbrev-ref HEAD",
+            shell=True,
+            check=True,
+            stdout=subprocess.PIPE,
+        )
+        .stdout.decode()
+        .strip()
+    )
+
+
 @nox.session(python="3.7")
 def publish(session):
     if has_changes():
-        session.error("All changes must be committed or removed before publishing.")
+        session.error("All changes must be committed or removed before publishing")
+    branch = get_branch()
     if branch != "master":
-        session.error(f"Must be on 'master' branch. Currently on '{branch}' branch")
+        session.error(f"Must be on 'master' branch. Currently on {branch!r} branch")
     build(session)
     print("REMINDER: Has the changelog been updated?")
     session.run("python", "-m", "twine", "upload", "dist/*")
