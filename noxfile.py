@@ -29,9 +29,7 @@ else:
 
 nox.options.reuse_existing_virtualenvs = True
 
-# can remove "markdown>=3.1,<3.2" when mkdocs-material no longer requires
-#   Markdown<3.2, otherwise doc builds fail
-doc_dependencies = [".", "jinja2", "mkdocs", "mkdocs-material", "markdown>=3.1,<3.2"]
+doc_dependencies = [".", "jinja2", "mkdocs", "mkdocs-material"]
 lint_dependencies = ["black", "flake8", "flake8-bugbear", "mypy", "check-manifest"]
 
 
