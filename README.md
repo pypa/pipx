@@ -41,7 +41,7 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ```
 
-Upgrade pipx with `python3 -m pip install -U pipx`.
+Upgrade pipx with `python3 -m pip install --user -U pipx`.
 
 Shell completions are available by following the instructions printed with this command:
 ```
