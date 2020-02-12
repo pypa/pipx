@@ -53,17 +53,25 @@ For more details, see the [installation instructions](https://pipxproject.github
 
 ## Overview: What is `pipx`?
 
-pipx is a tool to help you install and run end-user applications written in Python. pipx **is not** a tool for development or publishing of your code -- it's only for consuming already published packages.
-
-If you are familiar macOS's `brew`, it's kind of like that but for Python applications. If you are familiar with JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b), it's kind of like that but also allows you to install packages. If you are familiar with `pip`, it's kind of like that but is only focused on installing packages that have entry points.
+pipx is a tool to help you install and run end-user applications written in Python. It's roughly similar to macOS's `brew`, JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b), and Linux's `apt`. It's closely related to `pip`. In fact, it uses pip, but is focused installing and managing packages that have entry points. For library installation you should use pip, not pipx. But for application installation, consider pipx.
 
 pipx does not ship with pip, but installing it is often an important part of bootstrapping your system.
 
-Python and PyPI allow developers to distribute code with "console script entry points". These scripts let users call into Python code from the command line, effectively acting like standalone applications. `pipx` is a tool to install and run any of these thousands of Python applications available on PyPI in a safe, convenient, and reliable way. **In a way, it turns Python Package Index (PyPI) into a big app store for Python applications.** Not all Python packages have entry points, but many do.
 
-`pipx` enables you to:
+### Where Does `pipx` Install Apps From?
+By default, `pipx` uses the same package index as `pip`, [PyPI](https://pypi.org/). `pipx` can also install from all other sources pip can, such as a local directory, wheel, git url, etc.
 
-- Safely install packages to isolated environments, while globally exposing their CLI entry points so you can run them from anywhere (see the `install` command). This guarantees no dependency conflicts and clean uninstalls!
+Python and PyPI allow developers to distribute code with "console script entry points". These entry points let users call into Python code from the command line, effectively acting like standalone applications.
+
+`pipx` is a tool to install and run any of these thousands of Python applications available on PyPI in a safe, convenient, and reliable way. **In a way, it turns Python Package Index (PyPI) into a big app store for Python applications.** Not all Python packages have entry points, but many do.
+
+If you would like to make your package compatible with pipx, all you need to do is add a [`console_scripts`](https://python-packaging.readthedocs.io/en/latest/command-line-scripts.html#the-console-scripts-entry-point) entry point. If you're a poetry user, use [these instruction](https://python-poetry.org/docs/pyproject/#scripts).
+
+
+## Features
+`pipx` enables you to
+
+- Expose CLI entrypoints of packages ("apps") installed to isolated environments (see the `install` command). This guarantees no dependency conflicts and clean uninstalls!
 - Easily list, upgrade, and uninstall packages that were installed with pipx
 - Run the latest version of a Python application in a temporary environment (see the `run` command)
 
@@ -112,11 +120,23 @@ apps are exposed on your $PATH at /home/user/.local/bin
 
 ```
 
+### Installing from Source Control
+
+You can also install from a git repository. Here, `black` is used as an example.
+```
+pipx install git+https://github.com/psf/black.git
+pipx install git+https://github.com/psf/black.git@branch  # branch of your choice
+pipx install git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022573a59cdb1  # git hash
+pipx install https://github.com/psf/black/archive/18.9b0.zip  # install a release
+```
+
 ### Walkthrough: Running an Application in a Temporary, Sandboxed Environment
+
+This is an alternative to `pipx install`.
 
 I find this handy when I need to run the latest version of an app, but don't necessarily need it installed on my computer.
 
-You may want to do this when you are initializing a new project and want to set up the right directory structure, when you want to view the help text of an application, or if you simply want to run an app in a one-off case and and leave your system untouched afterwards.
+For example, you may want to do this when you are initializing a new project and want to set up the right directory structure, when you want to view the help text of an application, or if you simply want to run an app in a one-off case and and leave your system untouched afterwards.
 
 For example, the blog post [How to set up a perfect Python project](https://sourcery.ai/blog/python-best-practices/) uses `pipx run` to kickstart a new project with [cookiecutter](https://github.com/cookiecutter/cookiecutter), a tool that creates projects from project templates.
 
@@ -164,6 +184,18 @@ Any arguments after the application name will be passed directly to the applicat
 ```
 
 Re-running the same app is quick because pipx caches Virtual Environments on a per-app basis. The caches only last a few days, and when they expire, pipx will again use the latest version of the package. This way you can be sure you're always running a new version of the package without having to manually upgrade.
+
+### Running from Source Control
+
+You can also run from a git repository. Here, `black` is used as an example.
+```
+pipx run --spec git+https://github.com/psf/black.git black
+pipx run --spec git+https://github.com/psf/black.git@branch black  # branch of your choice
+pipx run --spec git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022573a59cdb1 black  # git hash
+pipx run --spec https://github.com/psf/black/archive/18.9b0.zip black # install a release
+```
+
+### Running from URL
 
 You can run .py files directly, too.
 
