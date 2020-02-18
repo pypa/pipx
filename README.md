@@ -55,7 +55,7 @@ For more details, see the [installation instructions](https://pipxproject.github
 
 pipx is a tool to help you install and run end-user applications written in Python. It's roughly similar to macOS's `brew`, JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b), and Linux's `apt`.
 
-It's closely related to `pip`. In fact, it uses `pip`, but is focused installing and managing packages that can be run from the command line directly as applications. `pip` is a general-purpose package installer for both libraries and apps with no environment isolation. For library installation you should use pip (or a similar tool), not `pipx`. But for application installation, consider `pipx` since it adds a layer of isolation on top of pip specifically for command-line tools.
+It's closely related to `pip`. In fact, it uses `pip`, but is focused installing and managing Python packages that can be run from the command line directly as applications. `pip` is a general-purpose package installer for both libraries and apps with no environment isolation. For library installation you should use pip (or a similar tool), not `pipx`. But for application installation, consider `pipx` since it also adds isolation: `pipx` creates an isolated environment for each application and its associated packages.
 
 `pipx` does not ship with `pip`, but installing it is often an important part of bootstrapping your system.
 
