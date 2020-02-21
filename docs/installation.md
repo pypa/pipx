@@ -7,7 +7,17 @@ pipx works on macOS, linux, and Windows.
 
 ## Install pipx
 
-Assuming you have `pip` installed for python3, run:
+On macOS:
+
+```
+brew install pipx
+pipx ensurepath
+```
+
+Upgrade pipx with `brew update && brew upgrade pipx`.
+
+Otherwise, install via pip:
+
 ```
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
