@@ -7,7 +7,15 @@ pipx works on macOS, linux, and Windows.
 
 ## Install pipx
 
-Assuming you have `pip` installed for python3, run:
+On macOS:
+
+```
+brew install pipx
+pipx ensurepath
+```
+
+Otherwise, install via pip:
+
 ```
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
@@ -19,6 +27,15 @@ pipx's default binary location is `~/.local/bin`. This can be overriden with the
 pipx's default virtual environment location is `~/.local/pipx`. This can be overridden with the environment variable `PIPX_HOME`.
 
 ## Upgrade pipx
+
+On macOS:
+
+```
+brew update && brew upgrade pipx
+```
+
+Otherwise, upgrade via pip:
+
 ```
 python3 -m pip install --user -U pipx
 ```
