@@ -10,8 +10,6 @@ if sys.version_info < (3, 6, 0):
         "for installation instructions."
     )
 
-import io  # noqa E402
-import os  # noqa E402
 from pathlib import Path  # noqa E402
 from runpy import run_path  # noqa E402
 from typing import List  # noqa E402
@@ -21,9 +19,6 @@ import re  # noqa E402
 CURDIR = Path(__file__).parent
 
 REQUIRED = ["userpath", "argcomplete>=1.9.4, <2.0"]  # type: List[str]
-
-with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
-    README = f.read()
 
 
 def get_version():
@@ -38,7 +33,7 @@ setup(
     author="Chad Smith",
     author_email="grassfedcode@gmail.com",
     description="Install and Run Python Applications in Isolated Environments",
-    long_description=README,
+    long_description=CURDIR.joinpath("README.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
     url="https://github.com/pipxproject/pipx",
     license="License :: OSI Approved :: MIT License",
