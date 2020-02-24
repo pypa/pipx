@@ -84,7 +84,9 @@ def get_site_packages(python: Path) -> Path:
     output = get_script_output(
         python, "import sysconfig; print(sysconfig.get_path('purelib'))"
     )
-    return Path(output.strip())
+    path = Path(output.strip())
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def run_subprocess(
