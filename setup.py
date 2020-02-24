@@ -22,8 +22,8 @@ REQUIRED = ["userpath", "argcomplete>=1.9.4, <2.0"]  # type: List[str]
 
 
 def get_version():
-    version_file = CURDIR / "src" / "pipx" / "version.py"
-    namespace = run_path(version_file)
+    version_file = CURDIR.joinpath("src", "pipx", "version.py").resolve()
+    namespace = run_path(str(version_file))
     return namespace["__version__"]
 
 
