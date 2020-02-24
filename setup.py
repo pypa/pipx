@@ -27,8 +27,8 @@ with io.open(os.path.join(CURDIR, "README.md"), "r", encoding="utf-8") as f:
 
 
 def get_version():
-    version_file = CURDIR / "src" / "pipx" / "version.py"
-    namespace = run_path(version_file)
+    version_file = CURDIR.joinpath("src", "pipx", "version.py").resolve()
+    namespace = run_path(str(version_file))
     return namespace["__version__"]
 
 
