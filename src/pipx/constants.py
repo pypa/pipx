@@ -16,6 +16,12 @@ PIPX_SHARED_PTH = "pipx_shared.pth"
 LOCAL_BIN_DIR = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resolve()
 PIPX_VENV_CACHEDIR = PIPX_HOME / ".cache"
 TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 14
+try:
+    WindowsError
+except NameError:
+    WINDOWS = False
+else:
+    WINDOWS = True
 
 #Explicitly require the "USE_EMOJI" flag be set to use emoji
 #Optionally over-ride `USE_EMOJI` with the more specific `PIPX_USE_EMOJI` value.
