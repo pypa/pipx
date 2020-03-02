@@ -23,9 +23,9 @@ except NameError:
 else:
     WINDOWS = True
 
-#Explicitly require the "USE_EMOJI" flag be set to use emoji
-#Optionally over-ride `USE_EMOJI` with the more specific `PIPX_USE_EMOJI` value.
-emoji_support = os.environ.get('PIPX_USE_EMOJI',os.environ.get('USE_EMOJI', False))
+platform_emoji_support = not WINDOWS and sys.getdefaultencoding() == "utf-8"
+# The "USE_EMOJI" environment variable allows you to override default emoji behavior.
+emoji_support = os.environ.get('USE_EMOJI', platform_emoji_support)
 
 completion_instructions = dedent(
     """
