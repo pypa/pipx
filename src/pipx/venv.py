@@ -245,6 +245,11 @@ class Venv:
                 self.python_path, VENV_METADATA_INSPECTOR, package, self.bin_path
             )
         )
+        venv_metadata_traceback = data.pop("exception_traceback", None)
+        if venv_metadata_traceback is not None:
+            logging.info(
+                f"venv_metadata_inspector.py Traceback:\n{venv_metadata_traceback}"
+            )
         data["app_paths"] = [Path(p) for p in data["app_paths"]]
         for dep in data["app_paths_of_dependencies"]:
             data["app_paths_of_dependencies"][dep] = [
