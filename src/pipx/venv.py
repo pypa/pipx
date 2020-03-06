@@ -13,7 +13,6 @@ from pipx.shared_libs import shared_libs
 from pipx.util import (
     PipxError,
     full_package_description,
-    get_script_output,
     get_site_packages,
     get_venv_paths,
     rmdir,
@@ -21,6 +20,7 @@ from pipx.util import (
     run_subprocess,
     valid_pypi_name,
 )
+from pipx.venv_metadata_inspector import __file__ as VENV_METADATA_INSPECTOR_FILE
 
 
 class VenvContainer:
@@ -61,14 +61,6 @@ class VenvMetadata(NamedTuple):
     app_paths_of_dependencies: Dict[str, List[Path]]
     package_version: str
     python_version: str
-
-
-venv_metadata_inspector_raw = pkgutil.get_data("pipx", "venv_metadata_inspector.py")
-assert venv_metadata_inspector_raw is not None, (
-    "pipx could not find required file venv_metadata_inspector.py. "
-    "Please report this error at https://github.com/pipxproject/pipx. Exiting."
-)
-VENV_METADATA_INSPECTOR = venv_metadata_inspector_raw.decode("utf-8")
 
 
 class Venv:
@@ -241,15 +233,23 @@ class Venv:
 
     def get_venv_metadata_for_package(self, package: str) -> VenvMetadata:
         data = json.loads(
-            get_script_output(
-                self.python_path, VENV_METADATA_INSPECTOR, package, self.bin_path
-            )
+            run_subprocess(
+                [
+                    self.python_path,
+                    VENV_METADATA_INSPECTOR_FILE,
+                    package,
+                    self.bin_path,
+                ],
+                capture_stderr=False,
+            ).stdout
         )
+
         venv_metadata_traceback = data.pop("exception_traceback", None)
         if venv_metadata_traceback is not None:
             logging.info(
                 f"venv_metadata_inspector.py Traceback:\n{venv_metadata_traceback}"
             )
+
         data["app_paths"] = [Path(p) for p in data["app_paths"]]
         for dep in data["app_paths_of_dependencies"]:
             data["app_paths_of_dependencies"][dep] = [
