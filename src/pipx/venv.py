@@ -245,7 +245,7 @@ class Venv:
 
         venv_metadata_traceback = data.pop("exception_traceback", None)
         if venv_metadata_traceback is not None:
-            logging.info(
+            logging.warning(
                 f"venv_metadata_inspector.py Traceback:\n{venv_metadata_traceback}"
             )
 
