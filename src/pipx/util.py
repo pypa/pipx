@@ -75,15 +75,11 @@ else:
         return bin_path, python_path
 
 
-def get_script_output(interpreter: Path, script: str, *args: Union[str, Path]) -> str:
-    proc = run_subprocess([interpreter, "-c", script, *args], capture_stderr=False)
-    return proc.stdout
-
-
 def get_site_packages(python: Path) -> Path:
-    output = get_script_output(
-        python, "import sysconfig; print(sysconfig.get_path('purelib'))"
-    )
+    output = run_subprocess(
+        [python, "-c", "import sysconfig; print(sysconfig.get_path('purelib'))"],
+        capture_stderr=False,
+    ).stdout
     path = Path(output.strip())
     path.mkdir(parents=True, exist_ok=True)
     return path
