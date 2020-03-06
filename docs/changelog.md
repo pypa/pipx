@@ -1,6 +1,6 @@
 0.15.1.4
-- Improve error reporting during venv metadata inspection
-- [bugfix] Fix incompatibility with pypy as venv interpreter
+- Improved error reporting during venv metadata inspection.
+- [bugfix] Fixed incompatibility with pypy as venv interpreter (#372).
 - [bugfix] Replaced implicit dependency on setuptools with an explicit dependency on packaging (#339).
 
 0.15.1.3
