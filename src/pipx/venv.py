@@ -245,7 +245,8 @@ class Venv:
 
         venv_metadata_traceback = data.pop("exception_traceback", None)
         if venv_metadata_traceback is not None:
-            logging.warning(
+            logging.error("Pipx internal error with venv metadata inspection.")
+            logging.info(
                 f"venv_metadata_inspector.py Traceback:\n{venv_metadata_traceback}"
             )
 
