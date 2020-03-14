@@ -89,7 +89,7 @@ def run_subprocess(
     cmd: Sequence[Union[str, Path]],
     capture_stdout: bool = True,
     capture_stderr: bool = True,
-    log_cmd_str: Optional[str] = None
+    log_cmd_str: Optional[str] = None,
 ) -> subprocess.CompletedProcess:
     """Run arbitrary command as subprocess, capturing stderr and stout"""
     env = dict(os.environ)
