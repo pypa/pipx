@@ -1,5 +1,6 @@
 import json
 import logging
+import pkgutil
 import re
 import urllib.parse
 from pathlib import Path
@@ -19,7 +20,14 @@ from pipx.util import (
     run_subprocess,
     valid_pypi_name,
 )
-from pipx.venv_metadata_inspector import __file__ as VENV_METADATA_INSPECTOR_FILE
+
+
+venv_metadata_inspector_raw = pkgutil.get_data("pipx", "venv_metadata_inspector.py")
+assert venv_metadata_inspector_raw is not None, (
+    "pipx could not find required file venv_metadata_inspector.py. "
+    "Please report this error at https://github.com/pipxproject/pipx. Exiting."
+)
+VENV_METADATA_INSPECTOR = venv_metadata_inspector_raw.decode("utf-8")
 
 
 class VenvContainer:
@@ -235,7 +243,8 @@ class Venv:
             run_subprocess(
                 [
                     self.python_path,
-                    VENV_METADATA_INSPECTOR_FILE,
+                    "-c",
+                    VENV_METADATA_INSPECTOR,
                     package,
                     self.bin_path,
                 ],
