@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Sequence, Tuple, Union
+from typing import List, Sequence, Tuple, Union, Optional
 
 from pipx.constants import WINDOWS
 
@@ -89,6 +89,7 @@ def run_subprocess(
     cmd: Sequence[Union[str, Path]],
     capture_stdout: bool = True,
     capture_stderr: bool = True,
+    log_cmd_str: Optional[str] = None
 ) -> subprocess.CompletedProcess:
     """Run arbitrary command as subprocess, capturing stderr and stout"""
     env = dict(os.environ)
@@ -106,8 +107,9 @@ def run_subprocess(
     # Make sure that Python writes output in UTF-8
     env["PYTHONIOENCODING"] = "utf-8"
 
-    cmd_str = " ".join(str(c) for c in cmd)
-    logging.info(f"running {cmd_str}")
+    if log_cmd_str is None:
+        log_cmd_str = " ".join(str(c) for c in cmd)
+    logging.info(f"running {log_cmd_str}")
     # windows cannot take Path objects, only strings
     cmd_str_list = [str(c) for c in cmd]
     return subprocess.run(

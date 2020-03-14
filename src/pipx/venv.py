@@ -249,6 +249,15 @@ class Venv:
                     self.bin_path,
                 ],
                 capture_stderr=False,
+                log_cmd_str=" ".join(
+                    [
+                        str(self.python_path),
+                        "-c",
+                        "<contents of venv_metadata_inspector.py>",
+                        package,
+                        str(self.bin_path),
+                    ]
+                ),
             ).stdout
         )
 
