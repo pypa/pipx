@@ -1,3 +1,6 @@
+0.15.2.0
+- [refactor] Moved all commands to separate files within the commands module (#255).
+
 0.15.1.4
 - [bugfix] Replaced implicit dependency on setuptools with an explicit dependency on packaging (#339).
 
