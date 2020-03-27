@@ -178,7 +178,7 @@ def _get_list_output(
     return "\n".join(output)
 
 
-def _package_name_from_spec(
+def package_name_from_spec(
     package_spec: str, python: str, *, pip_args: List[str], verbose: bool
 ) -> str:
     start_time = time.time()
@@ -201,7 +201,7 @@ def _package_name_from_spec(
     return package_name
 
 
-def _run_post_install_actions(
+def run_post_install_actions(
     venv: Venv,
     package: str,
     local_bin_dir: Path,
@@ -264,11 +264,11 @@ def _run_post_install_actions(
             expose_apps_globally(local_bin_dir, app_paths, package, force=force)
 
     print(get_package_summary(venv_dir, package=package, new_install=True))
-    _warn_if_not_on_path(local_bin_dir)
+    warn_if_not_on_path(local_bin_dir)
     print(f"done! {stars}", file=sys.stderr)
 
 
-def _warn_if_not_on_path(local_bin_dir: Path):
+def warn_if_not_on_path(local_bin_dir: Path):
     if not userpath.in_current_path(str(local_bin_dir)):
         logging.warning(
             f"{hazard}  Note: {str(local_bin_dir)!r} is not on your PATH environment "

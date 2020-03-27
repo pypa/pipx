@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from pipx import constants
-from pipx.commands.common import _package_name_from_spec, _run_post_install_actions
+from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.venv import Venv, VenvContainer
 
 
@@ -23,7 +23,7 @@ def install(
     #   zip file, or tar.gz file.
     # Determine package_name to properly name venv directory.
     if venv_dir is None or package_name is None:
-        package_name = _package_name_from_spec(
+        package_name = package_name_from_spec(
             package_spec, python, pip_args=pip_args, verbose=verbose
         )
         venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
@@ -56,7 +56,7 @@ def install(
             include_apps=True,
             is_main_package=True,
         )
-        _run_post_install_actions(
+        run_post_install_actions(
             venv,
             package_name,
             local_bin_dir,

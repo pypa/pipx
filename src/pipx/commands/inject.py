@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from pipx import constants
 from pipx.colors import bold
-from pipx.commands.common import _package_name_from_spec, _run_post_install_actions
+from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.emojies import stars
 from pipx.util import PipxError
 from pipx.venv import Venv
@@ -37,7 +37,7 @@ def inject(
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
     if package_name is None:
-        package_name = _package_name_from_spec(
+        package_name = package_name_from_spec(
             package_spec, venv.python, pip_args=pip_args, verbose=verbose
         )
 
@@ -50,7 +50,7 @@ def inject(
         is_main_package=False,
     )
     if include_apps:
-        _run_post_install_actions(
+        run_post_install_actions(
             venv,
             package_name,
             constants.LOCAL_BIN_DIR,
