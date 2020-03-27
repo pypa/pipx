@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import List
 
-from pipx.commands import install, inject
+from pipx.commands.inject import inject
+from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
