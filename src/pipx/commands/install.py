@@ -2,8 +2,8 @@ from pathlib import Path
 from typing import List, Optional
 
 from pipx import constants
-from pipx.venv import Venv, VenvContainer
 from pipx.commands.common import _package_name_from_spec, _run_post_install_actions
+from pipx.venv import Venv, VenvContainer
 
 
 def install(

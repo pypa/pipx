@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from pipx import constants
 from pipx.colors import bold
-from pipx.common import _package_name_from_spec, _run_post_install_actions
+from pipx.commands.common import _package_name_from_spec, _run_post_install_actions
 from pipx.emojies import stars
 from pipx.util import PipxError
 from pipx.venv import Venv
