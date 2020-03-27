@@ -9,10 +9,10 @@ import userpath  # type: ignore
 from pathlib import Path
 from shutil import which
 from typing import List
+
 from pipx import constants
 from pipx.colors import bold, red
 from pipx.emojies import hazard, stars
-
 from pipx.util import (
     WINDOWS, PipxError, mkdir, rmdir, valid_pypi_name
 )
