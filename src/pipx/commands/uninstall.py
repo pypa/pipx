@@ -7,7 +7,7 @@ from pipx.util import WINDOWS, rmdir
 
 from pipx import constants
 from pipx.emojies import hazard, stars
-from pipx.venv import Venv
+from pipx.venv import Venv, VenvContainer
 
 
 def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
@@ -69,3 +69,9 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
 
     rmdir(venv_dir)
     print(f"uninstalled {package}! {stars}")
+
+
+def uninstall_all(venv_container: VenvContainer, local_bin_dir: Path, verbose: bool):
+    for venv_dir in venv_container.iter_venv_dirs():
+        package = venv_dir.name
+        uninstall(venv_dir, package, local_bin_dir, verbose)
