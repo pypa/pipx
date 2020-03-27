@@ -1,15 +1,21 @@
 import logging
 import shlex
 import shutil
+import sys
+import tempfile
+import time
+import userpath  # type: ignore
 
 from pathlib import Path
 from shutil import which
 from typing import List
 from pipx import constants
 from pipx.colors import bold, red
-from pipx.emojies import hazard
+from pipx.emojies import hazard, stars
 
-from pipx.util import WINDOWS, mkdir, rmdir
+from pipx.util import (
+    WINDOWS, PipxError, mkdir, rmdir, valid_pypi_name
+)
 from pipx.venv import Venv
 
 
@@ -172,3 +178,104 @@ def _get_list_output(
             f"    - {red(name)} (symlink missing or pointing to unexpected location)"
         )
     return "\n".join(output)
+
+
+def _package_name_from_spec(
+    package_spec: str, python: str, *, pip_args: List[str], verbose: bool
+) -> str:
+    start_time = time.time()
+
+    # shortcut if valid PyPI name and not a local path
+    if valid_pypi_name(package_spec) and not Path(package_spec).exists():
+        package_name = package_spec
+        logging.info(f"Determined package name: {package_name}")
+        logging.info(f"Package name determined in {time.time()-start_time:.1f}s")
+        return package_name
+
+    with tempfile.TemporaryDirectory() as temp_venv_dir:
+        venv = Venv(Path(temp_venv_dir), python=python, verbose=verbose)
+        venv.create_venv(venv_args=[], pip_args=[])
+        package_name = venv.install_package_no_deps(
+            package_or_url=package_spec, pip_args=pip_args
+        )
+
+    logging.info(f"Package name determined in {time.time()-start_time:.1f}s")
+    return package_name
+
+
+def _run_post_install_actions(
+    venv: Venv,
+    package: str,
+    local_bin_dir: Path,
+    venv_dir: Path,
+    include_dependencies: bool,
+    *,
+    force: bool,
+):
+    package_metadata = venv.package_metadata[package]
+
+    if not package_metadata.app_paths and not include_dependencies:
+        # No apps associated with this package and we aren't including dependencies.
+        # This package has nothing for pipx to use, so this is an error.
+        for dep, dependent_apps in package_metadata.app_paths_of_dependencies.items():
+            print(
+                f"Note: Dependent package '{dep}' contains {len(dependent_apps)} apps"
+            )
+            for app in dependent_apps:
+                print(f"  - {app.name}")
+
+        if venv.safe_to_remove():
+            venv.remove_venv()
+
+        if len(package_metadata.app_paths_of_dependencies.keys()):
+            raise PipxError(
+                f"No apps associated with package {package}. "
+                "Try again with '--include-deps' to include apps of dependent packages, "
+                "which are listed above. "
+                "If you are attempting to install a library, pipx should not be used. "
+                "Consider using pip or a similar tool instead."
+            )
+        else:
+            raise PipxError(
+                f"No apps associated with package {package}. "
+                "If you are attempting to install a library, pipx should not be used. "
+                "Consider using pip or a similar tool instead."
+            )
+
+    if package_metadata.apps:
+        pass
+    elif package_metadata.apps_of_dependencies and include_dependencies:
+        pass
+    else:
+        # No apps associated with this package and we aren't including dependencies.
+        # This package has nothing for pipx to use, so this is an error.
+        if venv.safe_to_remove():
+            venv.remove_venv()
+        raise PipxError(
+            f"No apps associated with package {package} or its dependencies."
+            "If you are attempting to install a library, pipx should not be used. "
+            "Consider using pip or a similar tool instead."
+        )
+
+    expose_apps_globally(
+        local_bin_dir, package_metadata.app_paths, package, force=force
+    )
+
+    if include_dependencies:
+        for _, app_paths in package_metadata.app_paths_of_dependencies.items():
+            expose_apps_globally(local_bin_dir, app_paths, package, force=force)
+
+    print(get_package_summary(venv_dir, package=package, new_install=True))
+    _warn_if_not_on_path(local_bin_dir)
+    print(f"done! {stars}", file=sys.stderr)
+
+
+def _warn_if_not_on_path(local_bin_dir: Path):
+    if not userpath.in_current_path(str(local_bin_dir)):
+        logging.warning(
+            f"{hazard}  Note: {str(local_bin_dir)!r} is not on your PATH environment "
+            "variable. These apps will not be globally accessible until "
+            "your PATH is updated. Run `pipx ensurepath` to "
+            "automatically add it, or manually modify your PATH in your shell's "
+            "config file (i.e. ~/.bashrc)."
+        )
