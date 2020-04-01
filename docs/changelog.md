@@ -1,9 +1,8 @@
-0.15.2.0
+0.15.1.4
+
+- [bugfix] Replaced implicit dependency on setuptools with an explicit dependency on packaging (#339).
 - [refactor] Moved all commands to separate files within the commands module (#255).
 - [refactor] Command `ensurepath` renamed to `ensure_path`.
-
-0.15.1.4
-- [bugfix] Replaced implicit dependency on setuptools with an explicit dependency on packaging (#339).
 
 0.15.1.3
 
