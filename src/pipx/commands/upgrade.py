@@ -5,11 +5,10 @@ from typing import List
 
 
 from pipx import constants
+from pipx.commands.common import expose_apps_globally
 from pipx.emojies import sleep
 from pipx.util import PipxError
-
 from pipx.venv import Venv, VenvContainer
-from .common import expose_apps_globally
 
 
 def upgrade(

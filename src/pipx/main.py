@@ -103,7 +103,7 @@ def get_venv_args(parsed_args: Dict) -> List[str]:
     return venv_args
 
 
-def run_pipx_command(args):  # noqa: C901
+def run_pipx_command(args: argparse.Namespace):  # noqa: C901
     setup(args)
     verbose = args.verbose if "verbose" in args else False
     pip_args = get_pip_args(vars(args))
@@ -199,7 +199,7 @@ def run_pipx_command(args):  # noqa: C901
         return commands.run_pip(package, venv_dir, args.pipargs, args.verbose)
     elif args.command == "ensurepath":
         try:
-            return commands.ensurepath(constants.LOCAL_BIN_DIR, force=args.force)
+            return commands.ensure_path(constants.LOCAL_BIN_DIR, force=args.force)
         except Exception as e:
             raise PipxError(e)
     elif args.command == "completions":
