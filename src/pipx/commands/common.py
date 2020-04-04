@@ -209,7 +209,7 @@ def run_post_install_actions(
     include_dependencies: bool,
     *,
     force: bool,
-):
+) -> None:
     package_metadata = venv.package_metadata[package]
 
     if not package_metadata.app_paths and not include_dependencies:

@@ -76,7 +76,7 @@ overridden by setting the environment variable `PIPX_BIN_DIR`.
 
 
 class LineWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
-    def _split_lines(self, text, width):
+    def _split_lines(self, text: str, width: int):
         text = self._whitespace_matcher.sub(" ", text).strip()
         return textwrap.wrap(text, width)
 
@@ -103,7 +103,7 @@ def get_venv_args(parsed_args: Dict) -> List[str]:
     return venv_args
 
 
-def run_pipx_command(args: argparse.Namespace):  # noqa: C901
+def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
     setup(args)
     verbose = args.verbose if "verbose" in args else False
     pip_args = get_pip_args(vars(args))
@@ -160,17 +160,24 @@ def run_pipx_command(args: argparse.Namespace):  # noqa: C901
             raise PipxError(
                 "Cannot pass --include-deps if --include-apps is not passed as well"
             )
+        success = True
         for dep in args.dependencies:
-            commands.inject(
-                venv_dir,
-                None,
-                dep,
-                pip_args,
-                verbose=verbose,
-                include_apps=args.include_apps,
-                include_dependencies=args.include_deps,
-                force=args.force,
-            )
+            try:
+                commands.inject(
+                    venv_dir,
+                    None,
+                    dep,
+                    pip_args,
+                    verbose=verbose,
+                    include_apps=args.include_apps,
+                    include_dependencies=args.include_deps,
+                    force=args.force,
+                )
+            except PipxError as e:
+                print(e, file=sys.stderr)
+                success = False
+        return 0 if success else 1
+
     elif args.command == "upgrade":
         return commands.upgrade(
             venv_dir, package, pip_args, verbose, upgrading_all=False, force=args.force
@@ -209,7 +216,7 @@ def run_pipx_command(args: argparse.Namespace):  # noqa: C901
         raise PipxError(f"Unknown command {args.command}")
 
 
-def add_pip_venv_args(parser):
+def add_pip_venv_args(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--system-site-packages",
         action="store_true",
@@ -228,7 +235,7 @@ def add_pip_venv_args(parser):
     )
 
 
-def add_include_dependencies(parser):
+def add_include_dependencies(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--include-deps", help="Include apps of dependent packages", action="store_true"
     )
@@ -240,7 +247,7 @@ def _autocomplete_list_of_installed_packages(
     return list(str(p.name) for p in sorted(venv_container.iter_venv_dirs()))
 
 
-def _add_install(subparsers):
+def _add_install(subparsers: argparse._SubParsersAction):
     p = subparsers.add_parser(
         "install",
         help="Install a package",
@@ -267,13 +274,16 @@ def _add_install(subparsers):
     add_pip_venv_args(p)
 
 
-def _add_inject(subparsers, autocomplete_list_of_installed_packages):
+def _add_inject(
+    subparsers: argparse._SubParsersAction,
+    autocomplete_list_of_installed_packages,  # type: functools.partial[List[str]]
+):
     p = subparsers.add_parser(
         "inject",
         help="Install packages into an existing Virtual Environment",
         description="Installs packages to an existing pipx-managed virtual environment.",
     )
-    p.add_argument(
+    p.add_argument(  # type: ignore
         "package",
         help="Name of the existing pipx-managed Virtual Environment to inject into",
     ).completer = autocomplete_list_of_installed_packages
@@ -298,13 +308,16 @@ def _add_inject(subparsers, autocomplete_list_of_installed_packages):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_upgrade(subparsers, autocomplete_list_of_installed_packages):
+def _add_upgrade(
+    subparsers: argparse._SubParsersAction,
+    autocomplete_list_of_installed_packages,  # type: functools.partial[List[str]]
+):
     p = subparsers.add_parser(
         "upgrade",
         help="Upgrade a package",
         description="Upgrade a package in a pipx-managed Virtual Environment by running 'pip install --upgrade PACKAGE'",
     )
-    p.add_argument("package").completer = autocomplete_list_of_installed_packages
+    p.add_argument("package").completer = autocomplete_list_of_installed_packages  # type: ignore
     p.add_argument(
         "--force",
         "-f",
@@ -315,7 +328,7 @@ def _add_upgrade(subparsers, autocomplete_list_of_installed_packages):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_upgrade_all(subparsers):
+def _add_upgrade_all(subparsers: argparse._SubParsersAction,):
     p = subparsers.add_parser(
         "upgrade-all",
         help="Upgrade all packages. "
@@ -333,17 +346,20 @@ def _add_upgrade_all(subparsers):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_uninstall(subparsers, autocomplete_list_of_installed_packages):
+def _add_uninstall(
+    subparsers: argparse._SubParsersAction,
+    autocomplete_list_of_installed_packages,  # type: functools.partial[List[str]]
+):
     p = subparsers.add_parser(
         "uninstall",
         help="Uninstall a package",
         description="Uninstalls a pipx-managed Virtual Environment by deleting it and any files that point to its apps.",
     )
-    p.add_argument("package").completer = autocomplete_list_of_installed_packages
+    p.add_argument("package").completer = autocomplete_list_of_installed_packages  # type: ignore
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_uninstall_all(subparsers):
+def _add_uninstall_all(subparsers: argparse._SubParsersAction,):
     p = subparsers.add_parser(
         "uninstall-all",
         help="Uninstall all packages",
@@ -352,7 +368,7 @@ def _add_uninstall_all(subparsers):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_reinstall_all(subparsers):
+def _add_reinstall_all(subparsers: argparse._SubParsersAction,):
     p = subparsers.add_parser(
         "reinstall-all",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -381,7 +397,7 @@ def _add_reinstall_all(subparsers):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_list(subparsers):
+def _add_list(subparsers: argparse._SubParsersAction,):
     p = subparsers.add_parser(
         "list",
         help="List installed packages",
@@ -390,7 +406,7 @@ def _add_list(subparsers):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_run(subparsers):
+def _add_run(subparsers: argparse._SubParsersAction,):
     p = subparsers.add_parser(
         "run",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -447,13 +463,16 @@ def _add_run(subparsers):
     p.usage = re.sub(r"\.\.\.", "app ...", p.usage)
 
 
-def _add_runpip(subparsers, autocomplete_list_of_installed_packages):
+def _add_runpip(
+    subparsers: argparse._SubParsersAction,
+    autocomplete_list_of_installed_packages,  # type: functools.partial[List[str]]
+):
     p = subparsers.add_parser(
         "runpip",
         help="Run pip in an existing pipx-managed Virtual Environment",
         description="Run pip in an existing pipx-managed Virtual Environment",
     )
-    p.add_argument(
+    p.add_argument(  # type:ignore
         "package",
         help="Name of the existing pipx-managed Virtual Environment to run pip in",
     ).completer = autocomplete_list_of_installed_packages
@@ -466,7 +485,7 @@ def _add_runpip(subparsers, autocomplete_list_of_installed_packages):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_ensurepath(subparsers):
+def _add_ensurepath(subparsers: argparse._SubParsersAction,):
     p = subparsers.add_parser(
         "ensurepath",
         help=(
@@ -486,7 +505,7 @@ def _add_ensurepath(subparsers):
     )
 
 
-def get_command_parser():
+def get_command_parser() -> argparse.ArgumentParser:
     venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
 
     autocomplete_list_of_installed_packages = functools.partial(
@@ -520,7 +539,7 @@ def get_command_parser():
     return parser
 
 
-def setup(args):
+def setup(args: argparse.Namespace) -> None:
     if "version" in args and args.version:
         print_version()
         sys.exit(0)

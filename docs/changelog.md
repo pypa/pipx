@@ -1,9 +1,11 @@
-0.15.1.4
+dev
 
 - Improved error reporting during venv metadata inspection.
 - [bugfix] Fixed incompatibility with pypy as venv interpreter (#372).
 - [bugfix] Replaced implicit dependency on setuptools with an explicit dependency on packaging (#339).
 - [refactor] Moved all commands to separate files within the commands module (#255).
+- [bugfix] Do not abort early when injecting multiple dependencies
+- [dev] Add more type annotations
 
 0.15.1.3
 

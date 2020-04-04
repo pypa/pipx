@@ -21,7 +21,7 @@ def inject(
     include_apps: bool,
     include_dependencies: bool,
     force: bool,
-):
+) -> None:
     if not venv_dir.exists() or not next(venv_dir.iterdir()):
         raise PipxError(
             textwrap.dedent(
