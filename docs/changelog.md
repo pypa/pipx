@@ -5,6 +5,7 @@ dev
 - [bugfix] Replaced implicit dependency on setuptools with an explicit dependency on packaging (#339).
 - [refactor] Moved all commands to separate files within the commands module (#255).
 - [bugfix] Continue reinstalling packages after failure
+- [bugfix] Hide cursor while pipx runs
 
 0.15.1.3
 

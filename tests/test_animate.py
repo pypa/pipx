@@ -2,7 +2,6 @@ import time
 
 import pipx.animate
 from pipx.animate import (
-    HIDE_CURSOR,
     CLEAR_LINE,
     EMOJI_ANIMATION_FRAMES,
     NONEMOJI_ANIMATION_FRAMES,
@@ -14,7 +13,7 @@ from pipx.animate import (
 def check_animate_output(
     capsys, test_string, frame_strings, frame_period, frames_to_test
 ):
-    expected_string = f"{HIDE_CURSOR}" + "".join(frame_strings)
+    expected_string = "".join(frame_strings)
 
     chars_to_test = 1 + len("".join(frame_strings[:frames_to_test]))
 
