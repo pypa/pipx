@@ -10,7 +10,7 @@ import re
 import sys
 import textwrap
 import urllib.parse
-from typing import Dict, List
+from typing import Dict, List, Generator
 
 import argcomplete  # type: ignore
 from .colors import bold, green
@@ -242,8 +242,8 @@ def add_include_dependencies(parser: argparse.ArgumentParser):
 
 def autocomplete_list_of_installed_packages(
     venv_container: VenvContainer, *args, **kwargs
-) -> List[str]:
-    return list(str(p.name) for p in sorted(venv_container.iter_venv_dirs()))
+) -> Generator[str, None, None]:
+    return (str(p.name) for p in sorted(venv_container.iter_venv_dirs()))
 
 
 def _add_install(subparsers: argparse._SubParsersAction):
@@ -274,7 +274,7 @@ def _add_install(subparsers: argparse._SubParsersAction):
 
 
 def _add_inject(
-    subparsers: argparse._SubParsersAction, package_choices: List[str],
+    subparsers: argparse._SubParsersAction, package_choices: Generator[str, None, None],
 ):
     p = subparsers.add_parser(
         "inject",
@@ -283,6 +283,7 @@ def _add_inject(
     )
     p.add_argument(
         "package",
+        metavar="package",
         help="Name of the existing pipx-managed Virtual Environment to inject into",
         choices=package_choices,
     )
@@ -307,13 +308,17 @@ def _add_inject(
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_upgrade(subparsers: argparse._SubParsersAction, package_choices: List[str]):
+def _add_upgrade(
+    subparsers: argparse._SubParsersAction, package_choices: Generator[str, None, None]
+):
     p = subparsers.add_parser(
         "upgrade",
         help="Upgrade a package",
         description="Upgrade a package in a pipx-managed Virtual Environment by running 'pip install --upgrade PACKAGE'",
     )
-    p.add_argument("package", choices=package_choices)
+    p.add_argument(
+        "package", metavar="package", choices=package_choices,
+    )
     p.add_argument(
         "--force",
         "-f",
@@ -342,13 +347,17 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction,):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_uninstall(subparsers: argparse._SubParsersAction, package_choices: List[str]):
+def _add_uninstall(
+    subparsers: argparse._SubParsersAction, package_choices: Generator[str, None, None]
+):
     p = subparsers.add_parser(
         "uninstall",
         help="Uninstall a package",
         description="Uninstalls a pipx-managed Virtual Environment by deleting it and any files that point to its apps.",
     )
-    p.add_argument("package", choices=package_choices)
+    p.add_argument(
+        "package", metavar="package", choices=package_choices,
+    )
     p.add_argument("--verbose", action="store_true")
 
 
@@ -456,7 +465,9 @@ def _add_run(subparsers: argparse._SubParsersAction,):
     p.usage = re.sub(r"\.\.\.", "app ...", p.usage)
 
 
-def _add_runpip(subparsers: argparse._SubParsersAction, package_choices: List[str]):
+def _add_runpip(
+    subparsers: argparse._SubParsersAction, package_choices: Generator[str, None, None]
+):
     p = subparsers.add_parser(
         "runpip",
         help="Run pip in an existing pipx-managed Virtual Environment",
@@ -464,6 +475,7 @@ def _add_runpip(subparsers: argparse._SubParsersAction, package_choices: List[st
     )
     p.add_argument(
         "package",
+        metavar="package",
         help="Name of the existing pipx-managed Virtual Environment to run pip in",
         choices=package_choices,
     )

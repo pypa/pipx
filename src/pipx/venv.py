@@ -46,10 +46,11 @@ class VenvContainer:
     def iter_venv_dirs(self) -> Generator[Path, None, None]:
         """Iterate venv directories in this container.
         """
-        for entry in self._root.iterdir():
-            if not entry.is_dir():
-                continue
-            yield entry
+        if self._root.is_dir():
+            for entry in self._root.iterdir():
+                if not entry.is_dir():
+                    continue
+                yield entry
 
     def get_venv_dir(self, package: str) -> Path:
         """Return the expected venv path for given `package`.
