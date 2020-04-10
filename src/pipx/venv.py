@@ -135,7 +135,7 @@ class Venv:
         # https://docs.python.org/3/library/site.html
         # A path configuration file is a file whose name has the form 'name.pth'.
         # its contents are additional items (one per line) to be added to sys.path
-        pipx_pth.write_text(f"{shared_libs.site_packages}\n", encoding="utf-8")
+        pipx_pth.write_text(f"{shared_libs.pth_block}", encoding="utf-8")
 
         self.pipx_metadata.venv_args = venv_args
         self.pipx_metadata.python_version = self.get_python_version()

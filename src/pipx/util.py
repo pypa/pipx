@@ -84,6 +84,19 @@ def get_site_packages(python: Path) -> Path:
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+def get_pth_block(python: Path) -> str:
+    """Some distrbutions (Debian, Redhat) break up pip's _vendor directory
+    into its constituent wheels, in which case we want to ensure that the pth
+    file we write in each virtual environment points to these shared
+    environment wheels.
+    """
+    return run_subprocess(
+        [python, "-c",
+         "import sys; l=len(sys.path); import pip._vendor as v; "
+         "print('\\n'.join(sys.path[:-l])) if v.DEBUNDLED else None;"
+         "import sysconfig; print(sysconfig.get_path('purelib'))"],
+        capture_stderr=False,
+    ).stdout
 
 def run_subprocess(
     cmd: Sequence[Union[str, Path]],

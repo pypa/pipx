@@ -6,7 +6,7 @@ import datetime
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_LIBS, WINDOWS
-from pipx.util import get_site_packages, get_venv_paths, run
+from pipx.util import get_pth_block, get_venv_paths, run
 
 SHARED_LIBS_MAX_AGE_SEC = datetime.timedelta(days=30).total_seconds()
 
@@ -18,15 +18,15 @@ class _SharedLibs:
         self.pip_path = self.bin_path / ("pip" if not WINDOWS else "pip.exe")
         # i.e. bin_path is ~/.local/pipx/shared/bin
         # i.e. python_path is ~/.local/pipx/shared/python
-        self._site_packages = None
+        self._pth_block = None
         self.has_been_updated_this_run = False
 
     @property
-    def site_packages(self) -> Path:
-        if self._site_packages is None:
-            self._site_packages = get_site_packages(self.python_path)
+    def pth_block(self) -> str:
+        if self._pth_block is None:
+            self._pth_block = get_pth_block(self.python_path)
 
-        return self._site_packages
+        return self._pth_block
 
     def create(self, pip_args: List[str], verbose: bool = False):
         if not self.is_valid:
