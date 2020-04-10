@@ -122,7 +122,7 @@ class Venv:
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
-            cmd = [self.python, "-m", "venv", "--without-pip"]
+            cmd = [self.python, "-m", "venv"]
             run(cmd + venv_args + [str(self.root)])
         shared_libs.create(pip_args, self.verbose)
         pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
