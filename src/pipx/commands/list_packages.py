@@ -18,14 +18,15 @@ from pipx.emojies import sleep
 from pipx.venv import VenvContainer
 
 
-def list_packages(venv_container: VenvContainer):
+def list_packages(venv_container: VenvContainer, clean: bool):
     dirs = list(sorted(venv_container.iter_venv_dirs()))
     if not dirs:
         print(f"nothing has been installed with pipx {sleep}")
         return
 
-    print(f"venvs are in {bold(str(venv_container))}")
-    print(f"apps are exposed on your $PATH at {bold(str(constants.LOCAL_BIN_DIR))}")
+    if not clean:
+        print(f"venvs are in {bold(str(venv_container))}")
+        print(f"apps are exposed on your $PATH at {bold(str(constants.LOCAL_BIN_DIR))}")
 
     venv_container.verify_shared_libs()
 
