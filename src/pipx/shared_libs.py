@@ -32,7 +32,12 @@ class _SharedLibs:
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
                 run([DEFAULT_PYTHON, "-m", "venv", "--clear", self.root])
-            self.upgrade(pip_args, verbose)
+            # Note: -I is needed here to replace the patched Debian pip with
+            # the upstream one, even when the Debian pip version matches the
+            # current upstream pip version.  Otherwise there's a flood of
+            # bug reports about things not working, like
+            # https://github.com/pipxproject/pipx/issues/386
+            self.upgrade(["-I"] + pip_args, verbose)
 
     @property
     def is_valid(self):
