@@ -20,6 +20,7 @@ from . import constants
 from .util import PipxError, mkdir
 from .venv import VenvContainer
 from .version import __version__
+from .animate import hide_cursor, show_cursor
 
 
 def print_version() -> None:
@@ -103,7 +104,7 @@ def get_venv_args(parsed_args: Dict) -> List[str]:
     return venv_args
 
 
-def run_pipx_command(args):  # noqa: C901
+def run_pipx_command(args: argparse.Namespace):  # noqa: C901
     setup(args)
     verbose = args.verbose if "verbose" in args else False
     pip_args = get_pip_args(vars(args))
@@ -199,7 +200,7 @@ def run_pipx_command(args):  # noqa: C901
         return commands.run_pip(package, venv_dir, args.pipargs, args.verbose)
     elif args.command == "ensurepath":
         try:
-            return commands.ensurepath(constants.LOCAL_BIN_DIR, force=args.force)
+            return commands.ensure_path(constants.LOCAL_BIN_DIR, force=args.force)
         except Exception as e:
             raise PipxError(e)
     elif args.command == "completions":
@@ -563,6 +564,7 @@ def check_args(parsed_pipx_args: argparse.Namespace):
 def cli() -> int:
     """Entry point from command line"""
     try:
+        hide_cursor()
         parser = get_command_parser()
         argcomplete.autocomplete(parser)
         parsed_pipx_args = parser.parse_args()
@@ -577,6 +579,8 @@ def cli() -> int:
         return 1
     except KeyboardInterrupt:
         return 1
+    finally:
+        show_cursor()
 
 
 if __name__ == "__main__":

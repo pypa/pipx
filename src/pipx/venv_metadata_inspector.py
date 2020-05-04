@@ -2,6 +2,7 @@
 
 import json
 import sys
+import traceback
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -165,9 +166,11 @@ if __name__ == "__main__":
                 {
                     "apps": [],
                     "app_paths": [],
+                    "apps_of_dependencies": [],
                     "app_paths_of_dependencies": {},
                     "package_version": None,
                     "python_version": None,
+                    "exception_traceback": traceback.format_exc().rstrip(),
                 }
             )
         )
