@@ -48,7 +48,7 @@ PIPX_HOME: Overrides default pipx location. Virtual Environments
 will be installed to $PIPX_HOME/venvs.
 PIPX_BIN_DIR: Overrides location of app installations. Apps are symlinked
 or copied here.
-USE_EMOJI: Override emoji behavior. Default value is True.
+USE_EMOJI: Override emoji behavior. Default value varies based on platform.
 """
 )
 
