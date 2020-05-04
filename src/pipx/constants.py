@@ -23,9 +23,19 @@ except NameError:
 else:
     WINDOWS = True
 
+
+def strtobool(val: str) -> bool:
+    val = val.lower()
+    if val in ("y", "yes", "t", "true", "on", "1"):
+        return True
+    elif val in ("n", "no", "f", "false", "off", "0"):
+        return False
+    else:
+        return True
+
+
 platform_emoji_support = not WINDOWS and sys.getdefaultencoding() == "utf-8"
-# The "USE_EMOJI" environment variable allows you to override default emoji behavior.
-emoji_support = os.environ.get('USE_EMOJI', platform_emoji_support)
+emoji_support = strtobool(str(os.environ.get("USE_EMOJI", platform_emoji_support)))
 
 completion_instructions = dedent(
     """
