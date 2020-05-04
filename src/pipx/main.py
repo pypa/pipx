@@ -20,6 +20,7 @@ from . import constants
 from .util import PipxError, mkdir
 from .venv import VenvContainer
 from .version import __version__
+from .animate import hide_cursor, show_cursor
 
 
 def print_version() -> None:
@@ -563,6 +564,7 @@ def check_args(parsed_pipx_args: argparse.Namespace):
 def cli() -> int:
     """Entry point from command line"""
     try:
+        hide_cursor()
         parser = get_command_parser()
         argcomplete.autocomplete(parser)
         parsed_pipx_args = parser.parse_args()
@@ -577,6 +579,8 @@ def cli() -> int:
         return 1
     except KeyboardInterrupt:
         return 1
+    finally:
+        show_cursor()
 
 
 if __name__ == "__main__":

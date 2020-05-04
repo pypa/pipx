@@ -48,7 +48,6 @@ def animate(
         "animate_at_beginning_of_line": animate_at_beginning_of_line,
     }
 
-    hide_cursor()
     t = Thread(target=print_animation, kwargs=thread_kwargs)
     t.start()
 
@@ -57,7 +56,6 @@ def animate(
     finally:
         event.set()
         clear_line()
-        show_cursor()
         sys.stderr.write("\r")
         sys.stdout.write("\r")
 
