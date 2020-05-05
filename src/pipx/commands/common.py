@@ -8,6 +8,7 @@ import userpath  # type: ignore
 
 from pathlib import Path
 from shutil import which
+from tempfile import TemporaryDirectory
 from typing import List
 
 from pipx import constants
@@ -20,10 +21,34 @@ from pipx.venv import Venv
 def expose_apps_globally(
     local_bin_dir: Path, app_paths: List[Path], package: str, *, force: bool
 ):
-    if WINDOWS:
+    if not _can_symlink(local_bin_dir):
         _copy_package_apps(local_bin_dir, app_paths, package)
     else:
         _symlink_package_apps(local_bin_dir, app_paths, package, force=force)
+
+
+_can_symlink_cache = {}
+
+
+def _can_symlink(local_bin_dir: Path) -> bool:
+
+    if not WINDOWS:
+        # Technically, even on Unix this depends on the filesystem
+        return True
+
+    if local_bin_dir not in _can_symlink_cache:
+        with TemporaryDirectory(dir=local_bin_dir) as d:
+            p = Path(d)
+            target = p / "a"
+            target.touch()
+            lnk = p / "b"
+            try:
+                lnk.symlink_to(target)
+                _can_symlink_cache[local_bin_dir] = True
+            except (OSError, NotImplementedError):
+                _can_symlink_cache[local_bin_dir] = False
+
+    return _can_symlink_cache[local_bin_dir]
 
 
 def _copy_package_apps(local_bin_dir: Path, app_paths: List[Path], package: str):
