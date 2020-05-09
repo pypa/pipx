@@ -10,6 +10,7 @@ except ImportError:
     from multiprocessing.dummy import Pool
 else:
     from multiprocessing import Pool
+from functools import partial
 
 from pipx import constants
 from pipx.colors import bold
@@ -18,7 +19,7 @@ from pipx.emojies import sleep
 from pipx.venv import VenvContainer
 
 
-def list_packages(venv_container: VenvContainer):
+def list_packages(venv_container: VenvContainer, include_injected: bool):
     dirs = list(sorted(venv_container.iter_venv_dirs()))
     if not dirs:
         print(f"nothing has been installed with pipx {sleep}")
@@ -30,5 +31,7 @@ def list_packages(venv_container: VenvContainer):
     venv_container.verify_shared_libs()
 
     with Pool() as p:
-        for package_summary in p.map(get_package_summary, dirs):
+        for package_summary in p.map(
+            partial(get_package_summary, include_injected=include_injected), dirs
+        ):
             print(package_summary)

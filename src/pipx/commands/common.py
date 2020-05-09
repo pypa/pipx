@@ -8,7 +8,7 @@ import userpath  # type: ignore
 
 from pathlib import Path
 from shutil import which
-from typing import List
+from typing import Collection, List, Optional
 
 from pipx import constants
 from pipx.colors import bold, red
@@ -87,7 +87,11 @@ def _symlink_package_apps(
 
 
 def get_package_summary(
-    path: Path, *, package: str = None, new_install: bool = False
+    path: Path,
+    *,
+    package: str = None,
+    new_install: bool = False,
+    include_injected: bool = False,
 ) -> str:
     venv = Venv(path)
     python_path = venv.python_path.resolve()
@@ -125,6 +129,7 @@ def get_package_summary(
         new_install,
         exposed_binary_names,
         unavailable_binary_names,
+        venv.pipx_metadata.injected_packages.keys() if include_injected else None,
     )
 
 
@@ -158,6 +163,7 @@ def _get_list_output(
     new_install: bool,
     exposed_binary_names: List[str],
     unavailable_binary_names: List[str],
+    injected_package_names: Optional[Collection[str]] = None,
 ) -> str:
     output = []
     output.append(
@@ -175,6 +181,10 @@ def _get_list_output(
         output.append(
             f"    - {red(name)} (symlink missing or pointing to unexpected location)"
         )
+    if injected_package_names:
+        output.append(f"    {bold('Injected Packages')}")
+        for name in injected_package_names:
+            output.append(f"      - {name}")
     return "\n".join(output)
 
 

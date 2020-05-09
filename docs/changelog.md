@@ -6,6 +6,7 @@ dev
 - [refactor] Moved all commands to separate files within the commands module (#255).
 - [bugfix] Continue reinstalling packages after failure
 - [bugfix] Hide cursor while pipx runs
+- [feature] `list` now has a new option `--include_injected` to show the injected packages in the main apps
 
 0.15.1.3
 
