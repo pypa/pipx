@@ -16,14 +16,36 @@ PIPX_SHARED_PTH = "pipx_shared.pth"
 LOCAL_BIN_DIR = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resolve()
 PIPX_VENV_CACHEDIR = PIPX_HOME / ".cache"
 TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 14
-try:
-    WindowsError
-except NameError:
-    WINDOWS = False
-else:
-    WINDOWS = True
 
-emoji_support = not WINDOWS and sys.getdefaultencoding() == "utf-8"
+
+def is_windows() -> bool:
+    try:
+        WindowsError  # noqa
+    except NameError:
+        return False
+    else:
+        return True
+
+
+WINDOWS: bool = is_windows()
+
+
+def strtobool(val: str) -> bool:
+    val = val.lower()
+    if val in ("y", "yes", "t", "true", "on", "1"):
+        return True
+    elif val in ("n", "no", "f", "false", "off", "0"):
+        return False
+    else:
+        return False
+
+
+def use_emjois():
+    platform_emoji_support = not is_windows() and sys.getdefaultencoding() == "utf-8"
+    return strtobool(str(os.getenv("USE_EMOJI", platform_emoji_support)))
+
+
+emoji_support = use_emjois()
 
 completion_instructions = dedent(
     """

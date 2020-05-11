@@ -6,6 +6,7 @@ dev
 - [refactor] Moved all commands to separate files within the commands module (#255).
 - [bugfix] Continue reinstalling packages after failure
 - [bugfix] Hide cursor while pipx runs
+- [feature] Add environment variable `USE_EMOJI` to allow enabling/disabling emojies (#376)
 
 0.15.1.3
 
