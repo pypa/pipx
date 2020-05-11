@@ -6,7 +6,7 @@ from pipx.util import WINDOWS, rmdir
 
 
 from pipx import constants
-from pipx.emojies import hazard, stars
+from pipx.emojies import hazard, stars, sleep
 from pipx.venv import Venv, VenvContainer
 
 
@@ -15,7 +15,7 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
     packages.
     """
     if not venv_dir.exists():
-        print(f"Nothing to uninstall for {package} 😴")
+        print(f"Nothing to uninstall for {package} {sleep}")
         app = which(package)
         if app:
             print(
