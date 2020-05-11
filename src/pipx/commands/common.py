@@ -182,7 +182,7 @@ def _get_list_output(
             f"    - {red(name)} (symlink missing or pointing to unexpected location)"
         )
     if injected_package_names:
-        output.append(f"    {bold('Injected Packages')}")
+        output.append("    Injected Packages:")
         for name in injected_package_names:
             output.append(f"      - {name}")
     return "\n".join(output)

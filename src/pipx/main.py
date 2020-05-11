@@ -395,7 +395,7 @@ def _add_list(subparsers):
     p.add_argument(
         "--include-injected",
         action="store_true",
-        help="show the injected packages in the main apps",
+        help="Show packages injected into the main app's environment",
     )
     p.add_argument("--verbose", action="store_true")
 
