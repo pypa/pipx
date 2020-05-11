@@ -1,11 +1,13 @@
 dev
 
-- Improved error reporting during venv metadata inspection.
+0.15.1.4
+
+- [bugfix] Improved error reporting during venv metadata inspection.
 - [bugfix] Fixed incompatibility with pypy as venv interpreter (#372).
 - [bugfix] Replaced implicit dependency on setuptools with an explicit dependency on packaging (#339).
-- [refactor] Moved all commands to separate files within the commands module (#255).
 - [bugfix] Continue reinstalling packages after failure
 - [bugfix] Hide cursor while pipx runs
+- [refactor] Moved all commands to separate files within the commands module (#255).
 
 0.15.1.3
 
