@@ -42,9 +42,13 @@ or run directly in an temporary Virtual Environment.
 
 Virtual Environment location is {str(constants.PIPX_LOCAL_VENVS)}.
 Symlinks to apps are placed in {str(constants.LOCAL_BIN_DIR)}.
-These locations can be overridden with the environment variables
-PIPX_HOME and PIPX_BIN_DIR, respectively. (Virtual Environments will
-be installed to $PIPX_HOME/venvs)
+
+Optional Environment Variables:
+PIPX_HOME: Overrides default pipx location. Virtual Environments
+will be installed to $PIPX_HOME/venvs.
+PIPX_BIN_DIR: Overrides location of app installations. Apps are symlinked
+or copied here.
+USE_EMOJI: Override emoji behavior. Default value varies based on platform.
 """
 )
 
