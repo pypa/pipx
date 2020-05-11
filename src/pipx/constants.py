@@ -30,7 +30,6 @@ def is_windows() -> bool:
 WINDOWS: bool = is_windows()
 
 
-
 def strtobool(val: str) -> bool:
     val = val.lower()
     if val in ("y", "yes", "t", "true", "on", "1"):
