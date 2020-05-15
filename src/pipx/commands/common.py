@@ -9,7 +9,7 @@ import userpath  # type: ignore
 from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
-from typing import List
+from typing import Dict, List
 
 from pipx import constants
 from pipx.colors import bold, red
@@ -27,7 +27,7 @@ def expose_apps_globally(
         _symlink_package_apps(local_bin_dir, app_paths, package, force=force)
 
 
-_can_symlink_cache = {}
+_can_symlink_cache: Dict[Path, bool] = {}
 
 
 def _can_symlink(local_bin_dir: Path) -> bool:
@@ -162,11 +162,13 @@ def _get_exposed_app_paths_for_package(
             # sometimes symlinks can resolve to a file of a different name
             # (in the case of ansible for example) so checking the resolved paths
             # is not a reliable way to determine if the symlink exists.
-            # windows doesn't use symlinks, so the check is less strict.
-            if WINDOWS and b.name in package_binary_names:
-                is_same_file = True
-            else:
+            # We always use the stricter check on non-Windows systems. On
+            # Windows, we use a less strict check if we don't have a symlink.
+            if not WINDOWS or b.is_symlink():
                 is_same_file = b.resolve().parent.samefile(venv_bin_path)
+            elif WINDOWS and b.name in package_binary_names:
+                is_same_file = True
+
             if is_same_file:
                 bin_symlinks.add(b)
 
