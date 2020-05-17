@@ -1,12 +1,15 @@
 dev
 
-- Improved error reporting during venv metadata inspection.
+0.15.2.0
+
+- [feature] Use symlinks on Windows when symlinks are available
+- [bugfix] Improved error reporting during venv metadata inspection.
 - [bugfix] Fixed incompatibility with pypy as venv interpreter (#372).
 - [bugfix] Replaced implicit dependency on setuptools with an explicit dependency on packaging (#339).
-- [refactor] Moved all commands to separate files within the commands module (#255).
 - [bugfix] Continue reinstalling packages after failure
 - [bugfix] Hide cursor while pipx runs
 - [feature] Add environment variable `USE_EMOJI` to allow enabling/disabling emojies (#376)
+- [refactor] Moved all commands to separate files within the commands module (#255).
 
 0.15.1.3
 
