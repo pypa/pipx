@@ -1,5 +1,6 @@
 dev
 
+- Use the the phrase virtual environment instead of sandbox to avoid security connotations in README.
 - Improved error reporting during venv metadata inspection.
 - [bugfix] Fixed incompatibility with pypy as venv interpreter (#372).
 - [bugfix] Replaced implicit dependency on setuptools with an explicit dependency on packaging (#339).
