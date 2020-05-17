@@ -1,8 +1,10 @@
 dev
 
+0.15.3.0
+- [feature] Use symlinks on Windows when symlinks are available
+
 0.15.2.0
 
-- [feature] Use symlinks on Windows when symlinks are available
 - [bugfix] Improved error reporting during venv metadata inspection.
 - [bugfix] Fixed incompatibility with pypy as venv interpreter (#372).
 - [bugfix] Replaced implicit dependency on setuptools with an explicit dependency on packaging (#339).
