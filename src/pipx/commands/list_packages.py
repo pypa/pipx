@@ -1,21 +1,16 @@
-try:
-    # Instantiating a Pool() attempts to import multiprocessing.synchronize,
-    # which fails if the underlying OS does not support semaphores.
-    # Here, we import ahead of time to decide which Pool implementation to use:
-    # one backed by Processes (the default), or one backed by Threads
-    import multiprocessing.synchronize  # noqa: F401
-except ImportError:
-    # Fallback to Threads on platforms that do not support semaphores
-    # https://github.com/pipxproject/pipx/issues/229
-    from multiprocessing.dummy import Pool
-else:
-    from multiprocessing import Pool
-
+from typing import Optional, Callable
 from pipx import constants
 from pipx.colors import bold
 from pipx.commands.common import get_package_summary
 from pipx.emojies import sleep
 from pipx.venv import VenvContainer
+
+Pool: Optional[Callable]
+try:
+    import multiprocessing.synchronize  # noqa: F401
+    from multiprocessing import Pool
+except ImportError:
+    Pool = None
 
 
 def list_packages(venv_container: VenvContainer):
@@ -29,6 +24,11 @@ def list_packages(venv_container: VenvContainer):
 
     venv_container.verify_shared_libs()
 
-    with Pool() as p:
-        for package_summary in p.map(get_package_summary, dirs):
+    if Pool:
+        with Pool() as p:
+            for package_summary in p.map(get_package_summary, dirs):
+                print(package_summary)
+    else:
+        for d in dirs:
+            package_summary = get_package_summary(d)
             print(package_summary)
