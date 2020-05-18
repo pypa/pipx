@@ -8,10 +8,9 @@ from pipx.venv import VenvContainer
 Pool: Optional[Callable]
 try:
     import multiprocessing.synchronize  # noqa: F401
+    from multiprocessing import Pool
 except ImportError:
     Pool = None
-else:
-    from multiprocessing import Pool
 
 
 def list_packages(venv_container: VenvContainer):
