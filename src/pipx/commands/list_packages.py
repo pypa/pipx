@@ -7,10 +7,6 @@ from pipx.venv import VenvContainer
 
 Pool: Optional[Callable]
 try:
-    # Instantiating a Pool() attempts to import multiprocessing.synchronize,
-    # which fails if the underlying OS does not support semaphores.
-    # Here, we import ahead of time to decide which Pool implementation to use:
-    # one backed by Processes (the default), or one backed by Threads
     import multiprocessing.synchronize  # noqa: F401
 except ImportError:
     Pool = None

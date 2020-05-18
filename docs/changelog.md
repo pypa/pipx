@@ -1,5 +1,8 @@
 dev
 
+0.15.3.1
+- [bugfix] Workaround multiprocessing issues on certain platforms (#229)
+
 0.15.3.0
 - [feature] Use symlinks on Windows when symlinks are available
 
