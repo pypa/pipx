@@ -321,7 +321,7 @@ List packages and apps installed with pipx
 
 optional arguments:
   -h, --help          show this help message and exit
-  --include-injected  show the injected packages in the main apps
+  --include-injected  Show packages injected into the main app's environment
   --verbose
 
 ```
