@@ -1,6 +1,6 @@
 dev
 
-0.15.3.2
+0.15.4.0
 - [feature] `list` now has a new option `--include-injected` to show the injected packages in the main apps
 - [bugfix] Fixed bug that can cause crash when installing an app
 
