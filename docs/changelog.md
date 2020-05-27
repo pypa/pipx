@@ -1,9 +1,13 @@
 dev
 
+- [feature] `list` now has a new option `--include-injected` to show the injected packages in the main apps
+
 0.15.3.1
+
 - [bugfix] Workaround multiprocessing issues on certain platforms (#229)
 
 0.15.3.0
+
 - [feature] Use symlinks on Windows when symlinks are available
 
 0.15.2.0

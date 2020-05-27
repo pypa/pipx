@@ -1,4 +1,7 @@
-from typing import Optional, Callable
+from functools import partial
+from pathlib import Path
+from typing import Callable, Collection, Optional
+
 from pipx import constants
 from pipx.colors import bold
 from pipx.commands.common import get_package_summary
@@ -13,8 +16,8 @@ except ImportError:
     Pool = None
 
 
-def list_packages(venv_container: VenvContainer):
-    dirs = list(sorted(venv_container.iter_venv_dirs()))
+def list_packages(venv_container: VenvContainer, include_injected: bool) -> None:
+    dirs: Collection[Path] = sorted(venv_container.iter_venv_dirs())
     if not dirs:
         print(f"nothing has been installed with pipx {sleep}")
         return
@@ -26,9 +29,12 @@ def list_packages(venv_container: VenvContainer):
 
     if Pool:
         with Pool() as p:
-            for package_summary in p.map(get_package_summary, dirs):
+            for package_summary in p.map(
+                partial(get_package_summary, include_injected=include_injected), dirs,
+            ):
                 print(package_summary)
     else:
-        for d in dirs:
-            package_summary = get_package_summary(d)
+        for package_summary in map(
+            partial(get_package_summary, include_injected=include_injected), dirs,
+        ):
             print(package_summary)

@@ -181,7 +181,7 @@ def run_pipx_command(args: argparse.Namespace):  # noqa: C901
             venv_dir, package, pip_args, verbose, upgrading_all=False, force=args.force
         )
     elif args.command == "list":
-        return commands.list_packages(venv_container)
+        return commands.list_packages(venv_container, args.include_injected)
     elif args.command == "uninstall":
         return commands.uninstall(venv_dir, package, constants.LOCAL_BIN_DIR, verbose)
     elif args.command == "uninstall-all":
@@ -391,6 +391,11 @@ def _add_list(subparsers):
         "list",
         help="List installed packages",
         description="List packages and apps installed with pipx",
+    )
+    p.add_argument(
+        "--include-injected",
+        action="store_true",
+        help="Show packages injected into the main app's environment",
     )
     p.add_argument("--verbose", action="store_true")
 
