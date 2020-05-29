@@ -40,6 +40,9 @@ def upgrade(
         return 0
 
     package_metadata = venv.package_metadata[package]
+    if package_metadata.package_or_url is None:
+        raise PipxError(f"Internal Error: package {package} has corrupt pipx metadata.")
+
     package_or_url = package_metadata.package_or_url
     old_version = package_metadata.package_version
     include_apps = package_metadata.include_apps
