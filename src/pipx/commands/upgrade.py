@@ -5,6 +5,7 @@ from typing import List
 
 
 from pipx import constants
+from pipx.colors import bold, red
 from pipx.commands.common import expose_apps_globally
 from pipx.emojies import sleep
 from pipx.util import PipxError
@@ -30,18 +31,22 @@ def upgrade(
 
     venv = Venv(venv_dir, verbose=verbose)
 
+    if not venv.package_metadata:
+        print(
+            f"Not upgrading {red(bold(package))}.  It has missing internal pipx metadata.\n"
+            f"    It was likely installed using a pipx version before 0.15.0.0.\n"
+            f"    Please uninstall and install this package, or reinstall-all to fix."
+        )
+        return 0
+
     package_metadata = venv.package_metadata[package]
-    if package_metadata.package_or_url is not None:
-        package_or_url = package_metadata.package_or_url
-        old_version = package_metadata.package_version
-        include_apps = package_metadata.include_apps
-        include_dependencies = package_metadata.include_dependencies
-    else:
-        # fallback if no metadata
-        package_or_url = package
-        old_version = ""
-        include_apps = True
-        include_dependencies = False
+    if package_metadata.package_or_url is None:
+        raise PipxError(f"Internal Error: package {package} has corrupt pipx metadata.")
+
+    package_or_url = package_metadata.package_or_url
+    old_version = package_metadata.package_version
+    include_apps = package_metadata.include_apps
+    include_dependencies = package_metadata.include_dependencies
 
     if package == "pipx":
         package_or_url = "pipx"
