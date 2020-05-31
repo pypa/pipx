@@ -60,7 +60,7 @@ def run(
 
     if WINDOWS and not app.endswith(".exe"):
         app = f"{app}.exe"
-        logging.warning(f"Assuming app is {app!r} (Windows only)")
+        logging.info(f"Assuming app is {app!r} (Windows only)")
 
     pypackage_bin_path = get_pypackage_bin_path(app)
     if pypackage_bin_path.exists():
