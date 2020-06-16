@@ -8,6 +8,7 @@ from typing import Generator, List, NamedTuple, Dict, Set, Optional
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH
+from pipx.package_specifier import parse_specifier
 from pipx.pipx_metadata_file import PipxMetadata, PackageInfo
 from pipx.shared_libs import shared_libs
 from pipx.util import (
@@ -288,7 +289,7 @@ class Venv:
         venv_package_metadata = self.get_venv_metadata_for_package(package)
         package_info = PackageInfo(
             package=package,
-            package_or_url=abs_path_if_local(package_or_url, self, pip_args),
+            package_or_url=parse_specifier(package_or_url),
             pip_args=pip_args,
             include_apps=include_apps,
             include_dependencies=include_dependencies,
