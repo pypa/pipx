@@ -18,7 +18,11 @@ import re  # noqa E402
 
 CURDIR = Path(__file__).parent
 
-REQUIRED = ["userpath", "argcomplete>=1.9.4, <2.0", "packaging>=20.0"]  # type: List[str]
+REQUIRED = [
+    "userpath",
+    "argcomplete>=1.9.4, <2.0",
+    "packaging>=20.0",
+]  # type: List[str]
 
 
 def get_version():
