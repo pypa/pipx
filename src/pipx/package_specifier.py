@@ -10,6 +10,18 @@ from packaging.utils import canonicalize_name
 
 
 def parse_specifier(package_spec: str) -> str:
+    """Return package_or_url suitable for pipx metadata
+
+    Specifically:
+    * Strip any version specifiers (e.g. package == 1.5.4)
+    * Strip any markers (e.g. python_version > 3.4)
+    * Convert local paths to absolute paths
+    """
+    # NOTE: If package_spec to valid pypi name, pip will always treat it as a
+    #       pypi package, not checking for local path.
+    #       We replicate pypi precedence here (only non-valid-pypi names
+    #       initiate check for local path, e.g. './package-name')
+
     valid_pep508 = False
     valid_url = False
     valid_local_path = False
