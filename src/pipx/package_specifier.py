@@ -38,14 +38,14 @@ def parse_specifier(package_spec: str) -> str:
         # valid PEP508 package specification
         valid_pep508 = True
         if package_req.url:
-            package_or_url = package_spec.url
+            package_or_url = package_req.url
         else:
-            if package_spec.extras:
+            if package_req.extras:
                 package_or_url = canonicalize_name(
-                    package_spec.name + "[" + ",".join(package_spec.extras) + "]"
+                    package_req.name + "[" + ",".join(package_req.extras) + "]"
                 )
             else:
-                package_or_url = canonicalize_name(package_spec.name)
+                package_or_url = canonicalize_name(package_req.name)
 
     if not valid_pep508:
         try:
@@ -63,6 +63,6 @@ def parse_specifier(package_spec: str) -> str:
             package_or_url = str(package_path.resolve())
 
     if not valid_pep508 and not valid_url and not valid_local_path:
-        raise PipxError(f"Internal Error: unable to parse package: {package_spec}")
+        raise PipxError(f"Internal Error: unable to parse package spec: {package_spec}")
 
     return package_or_url
