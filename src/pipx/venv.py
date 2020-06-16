@@ -1,8 +1,6 @@
 import json
 import logging
 import pkgutil
-import re
-import urllib.parse
 from pathlib import Path
 from typing import Generator, List, NamedTuple, Dict, Set, Optional
 
@@ -19,7 +17,6 @@ from pipx.util import (
     rmdir,
     run,
     run_subprocess,
-    valid_pypi_name,
 )
 
 
