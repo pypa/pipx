@@ -228,6 +228,8 @@ def package_name_from_spec(
 
     # shortcut if valid PyPI name and not a local path
     if valid_pypi_name(package_spec) and not Path(package_spec).exists():
+        # NOTE: if pypi name and installed package name differ, this means pipx
+        #       will use the pypi name
         package_name = package_spec
         logging.info(f"Determined package name: {package_name}")
         logging.info(f"Package name determined in {time.time()-start_time:.1f}s")
