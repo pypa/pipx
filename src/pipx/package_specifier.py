@@ -8,6 +8,8 @@ from pathlib import Path
 from packaging.requirements import Requirement, InvalidRequirement
 from packaging.utils import canonicalize_name
 
+from pipx.util import PipxError
+
 
 def parse_specifier(package_spec: str) -> str:
     """Return package_or_url suitable for pipx metadata
@@ -48,7 +50,7 @@ def parse_specifier(package_spec: str) -> str:
     if not valid_pep508:
         try:
             package_req = Requirement("notapackagename @ " + package_spec)
-        except InvalidRequirement as e:
+        except InvalidRequirement:
             valid_url = False
         else:
             valid_url = True
@@ -59,5 +61,8 @@ def parse_specifier(package_spec: str) -> str:
         if package_path.exists:
             valid_local_path = True
             package_or_url = str(package_path.resolve())
+
+    if not valid_pep508 and not valid_url and not valid_local_path:
+        raise PipxError(f"Internal Error: unable to parse package: {package_spec}")
 
     return package_or_url
