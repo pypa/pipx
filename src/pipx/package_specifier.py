@@ -7,6 +7,7 @@
 from pathlib import Path
 from packaging.requirements import Requirement, InvalidRequirement
 from packaging.utils import canonicalize_name
+from typing import Optional
 
 from pipx.util import PipxError
 
@@ -66,3 +67,13 @@ def parse_specifier(package_spec: str) -> str:
         raise PipxError(f"Internal Error: unable to parse package spec: {package_spec}")
 
     return package_or_url
+
+
+def valid_pypi_name(package_spec: str) -> Optional[str]:
+    try:
+        package_req = Requirement(package_spec)
+    except InvalidRequirement:
+        # not a valid PEP508 package specification
+        return None
+
+    return package_req.name
