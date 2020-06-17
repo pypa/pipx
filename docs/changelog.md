@@ -1,5 +1,6 @@
 dev
 - [bugfix] Prevent python error in case where package has no pipx metadata and advise user how to fix.
+- Change metadata recorded from version-specified install to allow upgrades in future.
 
 0.15.4.0
 - [feature] `list` now has a new option `--include-injected` to show the injected packages in the main apps
