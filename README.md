@@ -195,12 +195,12 @@ Re-running the same app is quick because pipx caches Virtual Environments on a p
 
 If the app name does not match that package name, you can use the `--spec` arguemnt:
 ```
-pipx run --spec $PACKAGE $APP
+pipx run --spec PACKAGE APP
 ```
 
 You can also use the `--spec` argument to run a specific version, or use any other `pip`-specifier:
 ```
-pipx run --spec PACKAGE==1.0.0 $APP
+pipx run --spec PACKAGE==1.0.0 APP
 ```
 
 ### Running from Source Control
