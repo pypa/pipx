@@ -71,7 +71,7 @@ tcsh:
     eval `register-python-argcomplete --shell tcsh pipx`
 
 fish:
-    register-python-argcomplete --shell fish pipx | .
+    register-python-argcomplete --shell fish pipx | source
 
 """
 )
