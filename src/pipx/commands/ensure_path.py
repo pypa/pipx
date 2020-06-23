@@ -39,6 +39,8 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
 
 
 def ensure_pipx_paths(force: bool):
+    # NOTE: using this method to detect pip user-installed pipx will return
+    #   False if pipx was installed as editable using `pip install -e`
     script_path = Path(__file__).resolve()
     pip_user_path = Path(site.getuserbase()).resolve()
     try:
@@ -53,7 +55,7 @@ def ensure_pipx_paths(force: bool):
     (path_added1, need_shell_restart1) = ensure_path(
         constants.LOCAL_BIN_DIR, force=force
     )
-    if pip_user_installed:
+    if pip_user_installed and (pip_user_path / "bin").exists():
         (path_added2, need_shell_restart2) = ensure_path(
             pip_user_path / "bin", force=force
         )
