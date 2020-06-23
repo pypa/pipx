@@ -1,8 +1,10 @@
 import logging
 from pathlib import Path
+import site
 
 import userpath  # type: ignore
 from pipx.emojies import stars
+from pipx import constants
 
 
 def ensure_path(location: Path, *, force: bool):
@@ -40,3 +42,19 @@ def ensure_path(location: Path, *, force: bool):
     )
     print()
     print(f"{post_install_message} {stars}")
+
+
+def ensure_pipx_paths(force: bool):
+    ensure_path(constants.LOCAL_BIN_DIR, force=force)
+
+    script_path = Path(__file__).resolve()
+    pip_user_path = Path(site.getuserbase()).resolve()
+    try:
+        _ = script_path.relative_to(pip_user_path)
+    except ValueError:
+        pip_user_installed = False
+    else:
+        pip_user_installed = True
+
+    if pip_user_installed:
+        ensure_path(pip_user_path / "bin", force=force)
