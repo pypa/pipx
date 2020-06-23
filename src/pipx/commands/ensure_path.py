@@ -1,52 +1,44 @@
 import logging
 from pathlib import Path
 import site
+from typing import Tuple
 
 import userpath  # type: ignore
 from pipx.emojies import stars
 from pipx import constants
 
 
-def ensure_path(location: Path, *, force: bool):
+def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
+    """Ensure location is in user's PATH or add it to PATH.
+    Returns True if location was added to PATH
+    """
     location_str = str(location)
+    path_appended = False
+    need_shell_restart = userpath.need_shell_restart(location_str)
+    in_current_path = userpath.in_current_path(location_str)
 
-    post_install_message = (
-        "You likely need to open a new terminal or re-login for "
-        "the changes to take effect."
-    )
-    if userpath.in_current_path(location_str) or userpath.need_shell_restart(
-        location_str
-    ):
-        if not force:
-            if userpath.need_shell_restart(location_str):
-                print(
-                    f"{location_str} has been already been added to PATH. "
-                    f"{post_install_message}"
+    if force or not in_current_path:
+        userpath.append(location_str)
+        print(f"Success! Added {location_str} to the PATH environment variable.")
+        path_appended = True
+        need_shell_restart = userpath.need_shell_restart(location_str)
+    else:
+        # not force and in_current_path
+        if need_shell_restart:
+            logging.warning(
+                (
+                    f"The directory `{location_str}` is already in PATH.\n"
+                    "    If you are sure you want add it again, try again with "
+                    "the '--force' flag.\n\n"
                 )
-            else:
-                logging.warning(
-                    (
-                        f"The directory `{location_str}` is already in PATH. If you "
-                        "are sure you want to proceed, try again with "
-                        "the '--force' flag.\n\n"
-                        f"Otherwise pipx is ready to go! {stars}"
-                    )
-                )
-            return
+            )
+        else:
+            print(f"{location_str} has been already been added to PATH. ")
 
-    userpath.append(location_str)
-    print(f"Success! Added {location_str} to the PATH environment variable.")
-    print(
-        "Consider adding shell completions for pipx. "
-        "Run 'pipx completions' for instructions."
-    )
-    print()
-    print(f"{post_install_message} {stars}")
+    return (path_appended, need_shell_restart)
 
 
 def ensure_pipx_paths(force: bool):
-    ensure_path(constants.LOCAL_BIN_DIR, force=force)
-
     script_path = Path(__file__).resolve()
     pip_user_path = Path(site.getuserbase()).resolve()
     try:
@@ -55,6 +47,27 @@ def ensure_pipx_paths(force: bool):
         pip_user_installed = False
     else:
         pip_user_installed = True
+    # DEBUG DELETEME
+    print(f"pip_user_installed={pip_user_installed}")
 
+    (path_added1, need_shell_restart1) = ensure_path(
+        constants.LOCAL_BIN_DIR, force=force
+    )
     if pip_user_installed:
-        ensure_path(pip_user_path / "bin", force=force)
+        (path_added2, need_shell_restart2) = ensure_path(
+            pip_user_path / "bin", force=force
+        )
+
+    if path_added1 or path_added2:
+        print(
+            "Consider adding shell completions for pipx. "
+            "Run 'pipx completions' for instructions.\n"
+        )
+
+    if need_shell_restart1 or need_shell_restart2:
+        print(
+            "You likely need to open a new terminal or re-login for "
+            "the changes to take effect.\n"
+        )
+
+    print(f"Otherwise pipx is ready to go! {stars}")
