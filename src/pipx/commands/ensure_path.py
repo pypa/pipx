@@ -57,6 +57,8 @@ def ensure_pipx_paths(force: bool):
         (path_added2, need_shell_restart2) = ensure_path(
             pip_user_path / "bin", force=force
         )
+    else:
+        (path_added2, need_shell_restart2) = (False, False)
 
     if path_added1 or path_added2:
         print(
