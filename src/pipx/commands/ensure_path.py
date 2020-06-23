@@ -29,7 +29,7 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
                 (
                     f"The directory `{location_str}` is already in PATH.\n"
                     "    If you are sure you want add it again, try again with "
-                    "the '--force' flag.\n\n"
+                    "the '--force' flag."
                 )
             )
         else:
@@ -49,8 +49,6 @@ def ensure_pipx_paths(force: bool):
         pip_user_installed = False
     else:
         pip_user_installed = True
-    # DEBUG DELETEME
-    print(f"pip_user_installed={pip_user_installed}")
 
     (path_added1, need_shell_restart1) = ensure_path(
         constants.LOCAL_BIN_DIR, force=force
@@ -64,14 +62,14 @@ def ensure_pipx_paths(force: bool):
 
     if path_added1 or path_added2:
         print(
-            "Consider adding shell completions for pipx. "
-            "Run 'pipx completions' for instructions.\n"
+            "\nConsider adding shell completions for pipx.\n"
+            "Run 'pipx completions' for instructions."
         )
 
     if need_shell_restart1 or need_shell_restart2:
         print(
-            "You likely need to open a new terminal or re-login for "
-            "the changes to take effect.\n"
+            "\nYou likely need to open a new terminal or re-login for "
+            "the changes to take\neffect."
         )
 
-    print(f"Otherwise pipx is ready to go! {stars}")
+    print(f"\nOtherwise pipx is ready to go! {stars}")
