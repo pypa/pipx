@@ -480,8 +480,10 @@ def _add_ensurepath(subparsers):
     p = subparsers.add_parser(
         "ensurepath",
         help=(
-            "Ensure directory where pipx stores apps is on your "
-            "PATH environment variable. Note that running this may modify "
+            "Ensure directory where pipx stores apps is in your "
+            "PATH environment variable. Also if pipx was installed via "
+            "`pip install --user`, ensure pipx itself is in your PATH. "
+            "Note that running this may modify "
             "your shell's configuration file(s) such as '~/.bashrc'."
         ),
     )
@@ -491,7 +493,7 @@ def _add_ensurepath(subparsers):
         action="store_true",
         help=(
             "Add text to your shell's config file even if it looks like your "
-            f"PATH already has {str(constants.LOCAL_BIN_DIR)}"
+            "PATH already contains pipx binary path(s)."
         ),
     )
 
