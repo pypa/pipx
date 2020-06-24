@@ -1,5 +1,6 @@
 dev
 - [bugfix] Prevent python error in case where package has no pipx metadata and advise user how to fix.
+- [feature] `ensurepath` now also ensures that pip user binary path containing pipx itself is in user's PATH if pipx was installed using `pip install --user`.
 
 0.15.4.0
 - [feature] `list` now has a new option `--include-injected` to show the injected packages in the main apps
