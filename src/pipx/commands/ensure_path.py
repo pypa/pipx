@@ -1,11 +1,39 @@
 import logging
 from pathlib import Path
 import site
-from typing import Tuple
+from typing import Tuple, Optional
 
 import userpath  # type: ignore
 from pipx.emojies import stars
 from pipx import constants
+
+
+def get_pipx_user_bin_path() -> Optional[Path]:
+    """Returns None if pipx is not installed using `pip --user`
+    Otherwise returns parent dir of pipx binary
+    """
+    # NOTE: using this method to detect pip user-installed pipx will return
+    #   None if pipx was installed as editable using `pip install --user -e`
+    script_path = Path(__file__).resolve()
+    pip_user_path = Path(site.getuserbase()).resolve()
+    try:
+        _ = script_path.relative_to(pip_user_path)
+    except ValueError:
+        pip_user_installed = False
+    else:
+        pip_user_installed = True
+    if pip_user_installed:
+        test_paths = (
+            pip_user_path / "bin" / "pipx",
+            Path(site.getusersitepackages()).resolve().parent / "Scripts" / "pipx.exe",
+        )
+        pipx_bin_path = None
+        for test_path in test_paths:
+            if test_path.exists():
+                pipx_bin_path = test_path.parent
+                break
+
+    return pipx_bin_path
 
 
 def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
@@ -39,26 +67,17 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
 
 
 def ensure_pipx_paths(force: bool):
-    # NOTE: using this method to detect pip user-installed pipx will return
-    #   False if pipx was installed as editable using `pip install -e`
-    script_path = Path(__file__).resolve()
-    pip_user_path = Path(site.getuserbase()).resolve()
-    try:
-        _ = script_path.relative_to(pip_user_path)
-    except ValueError:
-        pip_user_installed = False
+    pipx_user_bin_path = get_pipx_user_bin_path()
+    if pipx_user_bin_path is not None:
+        (path_added2, need_shell_restart2) = ensure_path(
+            pipx_user_bin_path, force=force
+        )
     else:
-        pip_user_installed = True
+        (path_added2, need_shell_restart2) = (False, False)
 
     (path_added1, need_shell_restart1) = ensure_path(
         constants.LOCAL_BIN_DIR, force=force
     )
-    if pip_user_installed and (pip_user_path / "bin").exists():
-        (path_added2, need_shell_restart2) = ensure_path(
-            pip_user_path / "bin", force=force
-        )
-    else:
-        (path_added2, need_shell_restart2) = (False, False)
 
     if path_added1 or path_added2:
         print(
@@ -69,7 +88,7 @@ def ensure_pipx_paths(force: bool):
     if need_shell_restart1 or need_shell_restart2:
         print(
             "\nYou likely need to open a new terminal or re-login for "
-            "the changes to take\neffect."
+            "the PATH changes to take\neffect."
         )
 
     print(f"\nOtherwise pipx is ready to go! {stars}")
