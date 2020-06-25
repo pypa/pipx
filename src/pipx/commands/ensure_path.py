@@ -81,8 +81,8 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
         print(
             wrap_indent(
                 f"{location_str} has been been added to PATH, but you "
-                "need to open a new terminal or re-login for the PATH "
-                "changes to take effect."
+                "need to open a new terminal or re-login for this PATH "
+                "change to take effect."
             )
         )
     else:
