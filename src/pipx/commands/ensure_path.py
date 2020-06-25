@@ -34,6 +34,9 @@ def get_pipx_user_bin_path() -> Optional[Path]:
     #   Windows:
     #       scripts in <userbase>/Python<XY>/Scripts
     #       modules in <userbase>/Python<XY>/site-packages
+
+    pipx_bin_path = None
+
     script_path = Path(__file__).resolve()
     userbase_path = Path(site.getuserbase()).resolve()
     try:
@@ -47,7 +50,6 @@ def get_pipx_user_bin_path() -> Optional[Path]:
             userbase_path / "bin" / "pipx",
             Path(site.getusersitepackages()).resolve().parent / "Scripts" / "pipx.exe",
         )
-        pipx_bin_path = None
         for test_path in test_paths:
             if test_path.exists():
                 pipx_bin_path = test_path.parent
