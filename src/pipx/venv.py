@@ -210,6 +210,12 @@ class Venv:
             )
 
     def install_package_no_deps(self, package_or_url: str, pip_args: List[str]) -> str:
+        # Remove possible -e/--editable flag for pip package determination, so
+        #   we do not need #egg=<package_name> with a URL (#438)
+        print(f"pip_args={pip_args}")
+        pip_args = [x for x in pip_args if x != "--editable" and x != "-e"]
+        print(f"pip_args={pip_args}")
+
         try:
             with animate(
                 f"determining package name from {package_or_url!r}", self.do_animation
