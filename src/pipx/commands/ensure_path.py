@@ -112,7 +112,7 @@ def ensure_pipx_paths(force: bool):
             )
             + "\n"
         )
-    else:
+    elif not (need_shell_restart_pipx or need_shell_restart_bindir):
         logging.warning(
             textwrap.fill(
                 "All pipx binary directories have been added to PATH. "
@@ -125,7 +125,7 @@ def ensure_pipx_paths(force: bool):
     if need_shell_restart_pipx or need_shell_restart_bindir:
         print(
             textwrap.fill(
-                "You likely need to open a new terminal or re-login for "
+                "You will need to open a new terminal or re-login for "
                 "the PATH changes to take effect."
             )
             + "\n"
