@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 import site
+import sys
 import textwrap
 from typing import Tuple, Optional
 
@@ -117,6 +118,7 @@ def ensure_pipx_paths(force: bool):
             + "\n"
         )
     elif not need_shell_restart:
+        sys.stdout.flush()
         logging.warning(
             textwrap.fill(
                 "All pipx binary directories have been added to PATH. "
