@@ -61,7 +61,7 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
     Returns True if location was added to PATH
     """
     location_str = str(location)
-    path_appended = False
+    path_added = False
     need_shell_restart = userpath.need_shell_restart(location_str)
     in_current_path = userpath.in_current_path(location_str)
 
@@ -72,7 +72,7 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
                 f"Success! Added {location_str} to the PATH environment variable."
             )
         )
-        path_appended = True
+        path_added = True
         need_shell_restart = userpath.need_shell_restart(location_str)
     elif not in_current_path and need_shell_restart:
         print(
@@ -85,7 +85,7 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
     else:
         print(wrap_indent(f"{location_str} is already in PATH."))
 
-    return (path_appended, need_shell_restart)
+    return (path_added, need_shell_restart)
 
 
 def ensure_pipx_paths(force: bool):
