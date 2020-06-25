@@ -91,20 +91,24 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
 
 
 def ensure_pipx_paths(force: bool):
+    bin_paths = [constants.LOCAL_BIN_DIR]
+
     pipx_user_bin_path = get_pipx_user_bin_path()
     if pipx_user_bin_path is not None:
-        (path_added_pipx, need_shell_restart_pipx) = ensure_path(
-            pipx_user_bin_path, force=force
-        )
-    else:
-        (path_added_pipx, need_shell_restart_pipx) = (False, False)
+        ensure_paths.append(pipx_user_bin_path)
 
-    (path_added_bindir, need_shell_restart_bindir) = ensure_path(
-        constants.LOCAL_BIN_DIR, force=force
-    )
+    path_added = False
+    need_shell_restart = False
+    for bin_path in bin_paths:
+        (path_added_current, need_shell_restart_current) = ensure_path(
+            bin_path, force=force
+        )
+        path_added |= path_added_current
+        need_shell_restart |= need_shell_restart_current
+
     print()
 
-    if path_added_pipx or path_added_bindir:
+    if path_added:
         print(
             textwrap.fill(
                 "Consider adding shell completions for pipx. "
@@ -112,7 +116,7 @@ def ensure_pipx_paths(force: bool):
             )
             + "\n"
         )
-    elif not (need_shell_restart_pipx or need_shell_restart_bindir):
+    elif not need_shell_restart:
         logging.warning(
             textwrap.fill(
                 "All pipx binary directories have been added to PATH. "
@@ -122,7 +126,7 @@ def ensure_pipx_paths(force: bool):
             + "\n"
         )
 
-    if need_shell_restart_pipx or need_shell_restart_bindir:
+    if need_shell_restart:
         print(
             textwrap.fill(
                 "You will need to open a new terminal or re-login for "
