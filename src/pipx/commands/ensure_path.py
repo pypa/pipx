@@ -27,17 +27,24 @@ def get_pipx_user_bin_path() -> Optional[Path]:
     """
     # NOTE: using this method to detect pip user-installed pipx will return
     #   None if pipx was installed as editable using `pip install --user -e`
+
+    # https://docs.python.org/3/install/index.html#inst-alt-install-user
+    #   Linux + Mac:
+    #       scripts in <userbase>/bin
+    #   Windows:
+    #       scripts in <userbase>/Python<XY>/Scripts
+    #       modules in <userbase>/Python<XY>/site-packages
     script_path = Path(__file__).resolve()
-    pip_user_path = Path(site.getuserbase()).resolve()
+    userbase_path = Path(site.getuserbase()).resolve()
     try:
-        _ = script_path.relative_to(pip_user_path)
+        _ = script_path.relative_to(userbase_path)
     except ValueError:
         pip_user_installed = False
     else:
         pip_user_installed = True
     if pip_user_installed:
         test_paths = (
-            pip_user_path / "bin" / "pipx",
+            userbase_path / "bin" / "pipx",
             Path(site.getusersitepackages()).resolve().parent / "Scripts" / "pipx.exe",
         )
         pipx_bin_path = None
