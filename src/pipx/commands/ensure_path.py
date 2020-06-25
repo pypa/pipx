@@ -114,7 +114,7 @@ def ensure_pipx_paths(force: bool):
         logging.warning(
             textwrap.fill(
                 "All pipx binary directories have been added to PATH. "
-                "If you are sure you want add them again, try again with "
+                "If you are sure you want to proceed, try again with "
                 "the '--force' flag."
             )
             + "\n"
