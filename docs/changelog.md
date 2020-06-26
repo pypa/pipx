@@ -1,5 +1,6 @@
 dev
 - [bugfix] Prevent python error in case where package has no pipx metadata and advise user how to fix.
+- [bugfix] For `pipx install`, fixed failure to install if user has `PIP_USER=1` or `user=true` in pip.conf. (#110)
 - [bugfix] Requiring userpath v1.4.1 or later so ensure Windows bug is fixed for `ensurepath` (#437)
 
 0.15.4.0
