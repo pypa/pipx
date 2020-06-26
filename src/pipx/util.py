@@ -105,6 +105,8 @@ def run_subprocess(
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
     # Make sure that Python writes output in UTF-8
     env["PYTHONIOENCODING"] = "utf-8"
+    # Make sure we install package to venv, not userbase dir
+    env["PIP_USER"] = "0"
 
     if log_cmd_str is None:
         log_cmd_str = " ".join(str(c) for c in cmd)
