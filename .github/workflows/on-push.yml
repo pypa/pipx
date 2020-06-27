@@ -89,7 +89,7 @@ jobs:
     - name: Experiment
       run: |
         xcode-select --print-path
-        find /Applications/Xcode*.app -name 'stdio.h'
+        find `xcode-select --print-path` -name 'stdio.h'
   tests-windows:
     runs-on: windows-2019
     strategy:
