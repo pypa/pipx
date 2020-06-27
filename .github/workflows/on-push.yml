@@ -88,8 +88,11 @@ jobs:
 #        nox --non-interactive --session tests-${{ matrix.python-version }}
     - name: Experiment
       run: |
+        echo SDKROOT = $SDKROOT
+        echo SDK_ROOT = $SDK_ROOT
+        xcrun --sdk macosx --show-sdk-path
         xcode-select --print-path
-        find `xcode-select --print-path` -name 'stdio.h'
+#        find `xcode-select --print-path` -name 'stdio.h'
   tests-windows:
     runs-on: windows-2019
     strategy:
