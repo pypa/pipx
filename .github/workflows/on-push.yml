@@ -77,18 +77,18 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-#    - name: Install special version of nox
-#      run: |
-#        python -m pip install --upgrade pip
-#        pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
-## Need to install Command Line Tools (XCode) for clang to find stdio.h for
-#   installing some python packages
-#    - name: Execute Tests
-#      run: |
-#        nox --non-interactive --session tests-${{ matrix.python-version }}
+    - name: Install special version of nox
+      run: |
+        python -m pip install --upgrade pip
+        pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
+        export SDK_ROOT='/Applications/Xcode_11.5.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/'
+# Need to install Command Line Tools (XCode) for clang to find stdio.h for
+   installing some python packages
+    - name: Execute Tests
+      run: |
+        nox --non-interactive --session tests-${{ matrix.python-version }}
     - name: Experiment
       run: |
-        echo SDKROOT = $SDKROOT
         echo SDK_ROOT = $SDK_ROOT
         xcrun --sdk macosx --show-sdk-path
         xcode-select --print-path
