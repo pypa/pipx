@@ -21,6 +21,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8
         pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
+    - name: Lint with nox
+      run: |
+        nox --non-interactive --session lint
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
