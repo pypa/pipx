@@ -3,6 +3,22 @@ name: Python package
 on: [push]
 
 jobs:
+  nox-lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Lint with nox
+      run: |
+        nox --non-interactive --session lint
+
   build:
 
     runs-on: ubuntu-latest
@@ -21,9 +37,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8
         pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
-    - name: Lint with nox
-      run: |
-        nox --non-interactive --session lint
+#    - name: Lint with nox
+#      run: |
+#        nox --non-interactive --session lint
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
