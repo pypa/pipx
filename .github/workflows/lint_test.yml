@@ -3,11 +3,11 @@ name: Python package
 on: [push]
 
 jobs:
-  nox-lint:
+  lint:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: [3.7]
 
     steps:
     - uses: actions/checkout@v2
@@ -23,8 +23,27 @@ jobs:
       run: |
         nox --non-interactive --session lint
 
-  build:
+  docs:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7]
 
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install special version of nox
+      run: |
+        python -m pip install --upgrade pip
+        pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
+    - name: Lint with nox
+      run: |
+        nox --non-interactive --session docs
+
+  tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -36,21 +55,10 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    - name: Install special version of nox
       run: |
         python -m pip install --upgrade pip
-        pip install flake8
         pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
-#    - name: Lint with nox
-#      run: |
-#        nox --non-interactive --session lint
-    - name: Lint with flake8
+    - name: Execute tests
       run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 ./src/pipx --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 ./src/pipx --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Try some experiments
-      run: |
-        pwd
-        ls -l
+        nox --non-interactive --session tests-${{ matrix.python-version }}
