@@ -19,7 +19,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
-    - name: Lint with nox
+    - name: Lint
       run: |
         nox --non-interactive --session lint
 
@@ -39,7 +39,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
-    - name: Lint with nox
+    - name: Verify Docs
       run: |
         nox --non-interactive --session docs
 
@@ -59,6 +59,26 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
-    - name: Execute tests
+    - name: Execute Tests
+      run: |
+        nox --non-interactive --session tests-${{ matrix.python-version }}
+
+  tests-windows:
+    runs-on: windows-2019
+    strategy:
+      matrix:
+        python-version: [3.7]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install special version of nox
+      run: |
+        python -m pip install --upgrade pip
+        pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
+    - name: Execute Tests
       run: |
         nox --non-interactive --session tests-${{ matrix.python-version }}
