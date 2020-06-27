@@ -94,6 +94,7 @@ jobs:
 #        find `xcode-select --print-path` -name 'stdio.h'
     - name: Execute Tests
       run: |
+        export SDK_ROOT=/Applications/Xcode_11.5.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/
         nox --non-interactive --session tests-${{ matrix.python-version }}
   tests-windows:
     runs-on: windows-2019
