@@ -86,9 +86,8 @@ jobs:
         #   compile problems from missing header includes (stdio.h)
         # This builds a wheel for regex--possibly the cached wheel fixes 
         #   the future install tests?
-        python -m pip install regex
+        #python -m pip install regex
     - name: Execute Tests
-#        export SDK_ROOT=/Applications/Xcode_11.5.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/
       run: |
         nox --non-interactive --session tests-${{ matrix.python-version }}
   tests-windows:
