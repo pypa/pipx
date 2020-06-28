@@ -91,6 +91,7 @@ jobs:
         echo SDK_ROOT = $SDK_ROOT
         xcrun --sdk macosx --show-sdk-path
         xcode-select --print-path
+        python -m pip install regex
 #        find `xcode-select --print-path` -name 'stdio.h'
     - name: Execute Tests
       run: |
