@@ -54,6 +54,9 @@ jobs:
         include:
           - os: windows-2019
             python-version: 3.7
+        include:
+          - os: macos-10.15
+            python-version: 3.7
 
     steps:
     - uses: actions/checkout@v2
@@ -61,36 +64,45 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install native-venv version of nox
+    - name: Upgrade pip
+      run: python -m pip install --upgrade pip
+    # macos: Install wheel to allow wheel-building for nox and regex
+    # Build regex wheel into pip cache, so future pipx installs don't compile.
+    # This avoids future compile errors in nox tests because of missing
+    #   header files.
+    - name: Install wheel and build wheel for regex to pip cache
+      if: ${{ matrix.os == 'macos-10.15' }}
       run: |
-        python -m pip install --upgrade pip
-        pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
-    - name: Execute Tests
-      run: |
-        nox --non-interactive --session tests-${{ matrix.python-version }}
-
-  tests-macos:
-    runs-on: macos-10.15
-    strategy:
-      matrix:
-        python-version: [3.7]
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install native-venv version of nox
-      run: |
-        python -m pip install --upgrade pip
-        # Install wheel to allow wheel-building for nox and regex
         python -m pip install wheel
-        pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
-        # Build regex wheel into pip cache, so future installs don't compile.
-        # This avoids future compile errors in nox tests because of missing
-        #   header files.
         python -m pip install regex
+    - name: Install native-venv version of nox
+      run: pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
     - name: Execute Tests
       run: |
         nox --non-interactive --session tests-${{ matrix.python-version }}
+
+#  tests-macos:
+#    runs-on: macos-10.15
+#    strategy:
+#      matrix:
+#        python-version: [3.7]
+#
+#    steps:
+#    - uses: actions/checkout@v2
+#    - name: Set up Python ${{ matrix.python-version }}
+#      uses: actions/setup-python@v2
+#      with:
+#        python-version: ${{ matrix.python-version }}
+#    - name: Install native-venv version of nox
+#      run: |
+#        python -m pip install --upgrade pip
+#        # Install wheel to allow wheel-building for nox and regex
+#        python -m pip install wheel
+#        pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
+#        # Build regex wheel into pip cache, so future installs don't compile.
+#        # This avoids future compile errors in nox tests because of missing
+#        #   header files.
+#        python -m pip install regex
+#    - name: Execute Tests
+#      run: |
+#        nox --non-interactive --session tests-${{ matrix.python-version }}
