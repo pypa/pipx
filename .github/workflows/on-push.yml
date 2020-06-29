@@ -51,9 +51,9 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: [3.6, 3.7, 3.8]
-      include:
-        os: windows-2019
-        python-version: 3.7
+        include:
+          - os: windows-2019
+            python-version: 3.7
 
     steps:
     - uses: actions/checkout@v2
