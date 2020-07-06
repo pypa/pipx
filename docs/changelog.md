@@ -3,6 +3,7 @@ dev
 - [feature] `ensurepath` now also ensures that pip user binary path containing pipx itself is in user's PATH if pipx was installed using `pip install --user`.
 - [bugfix] For `pipx install`, fixed failure to install if user has `PIP_USER=1` or `user=true` in pip.conf. (#110)
 - [bugfix] Requiring userpath v1.4.1 or later so ensure Windows bug is fixed for `ensurepath` (#437)
+- [feature] log pipx version (#423)
 
 0.15.4.0
 - [feature] `list` now has a new option `--include-injected` to show the injected packages in the main apps
