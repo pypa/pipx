@@ -10,8 +10,8 @@ now = time.time()
 @pytest.mark.parametrize(
     "mtime,needs_upgrade",
     [
-        (now - shared_libs.SHARED_LIBS_MAX_AGE_SEC - 600, True),
-        (now - shared_libs.SHARED_LIBS_MAX_AGE_SEC + 600, False),
+        (now - shared_libs.SHARED_LIBS_MAX_AGE_SEC - 20 * 60, True),
+        (now - shared_libs.SHARED_LIBS_MAX_AGE_SEC + 20 * 60, False),
     ],
 )
 def test_auto_update_shared_libs(capsys, pipx_temp_env, mtime, needs_upgrade):
