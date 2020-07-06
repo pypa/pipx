@@ -543,6 +543,7 @@ def setup(args):
     else:
         logging.basicConfig(level=logging.WARNING, format="%(message)s")
 
+    logging.info(f"pipx version is {__version__}")
     mkdir(constants.PIPX_LOCAL_VENVS)
     mkdir(constants.LOCAL_BIN_DIR)
     mkdir(constants.PIPX_VENV_CACHEDIR)
