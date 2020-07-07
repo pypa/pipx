@@ -99,8 +99,8 @@ def run_subprocess(
     #   dependencies are in the venv path (#233)
     # Remove __PYVENV_LAUNCHER__ because it can cause the wrong python binary
     #   to be used (#334)
-    env_blacklist = ["PYTHONPATH", "__PYVENV_LAUNCHER__"]
-    for env_to_remove in env_blacklist:
+    env_blocklist = ["PYTHONPATH", "__PYVENV_LAUNCHER__"]
+    for env_to_remove in env_blocklist:
         env.pop(env_to_remove, None)
 
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
