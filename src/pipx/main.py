@@ -159,6 +159,7 @@ def run_pipx_command(args: argparse.Namespace):  # noqa: C901
             verbose,
             force=args.force,
             include_dependencies=args.include_deps,
+            suffix=args.suffix,
         )
     elif args.command == "inject":
         if not args.include_apps and args.include_deps:
@@ -260,6 +261,9 @@ def _add_install(subparsers):
         "-f",
         action="store_true",
         help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+    )
+    p.add_argument(
+        "--suffix", help="Optional suffix for virtual environment and executable names"
     )
     p.add_argument(
         "--python",
