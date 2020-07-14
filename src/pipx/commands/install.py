@@ -18,6 +18,7 @@ def install(
     *,
     force: bool,
     include_dependencies: bool,
+    suffix: Optional[str] = None,
 ):
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
@@ -28,6 +29,8 @@ def install(
         )
         venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
         venv_dir = venv_container.get_venv_dir(package_name)
+        if suffix is not None:
+            venv_dir = venv_dir.parent / f"{venv_dir.stem}{suffix}"
 
     try:
         exists = venv_dir.exists() and next(venv_dir.iterdir())
@@ -63,6 +66,7 @@ def install(
             venv_dir,
             include_dependencies,
             force=force,
+            suffix=suffix,
         )
     except (Exception, KeyboardInterrupt):
         print("")
