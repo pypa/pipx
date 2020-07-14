@@ -63,8 +63,9 @@ subcommands:
 ```
 pipx install --help
 usage: pipx install [-h] [--include-deps] [--verbose] [--force]
-                    [--python PYTHON] [--system-site-packages]
-                    [--index-url INDEX_URL] [--editable] [--pip-args PIP_ARGS]
+                    [--suffix SUFFIX] [--python PYTHON]
+                    [--system-site-packages] [--index-url INDEX_URL]
+                    [--editable] [--pip-args PIP_ARGS]
                     package_spec
 
 The install command is the preferred way to globally install apps
@@ -101,6 +102,8 @@ optional arguments:
   --verbose
   --force, -f           Modify existing virtual environment and files in
                         PIPX_BIN_DIR
+  --suffix SUFFIX       Optional suffix for virtual environment and executable
+                        names
   --python PYTHON       The Python executable used to create the Virtual
                         Environment and run the associated app/apps. Must be
                         v3.5+.
