@@ -52,9 +52,9 @@ jobs:
         os: [ubuntu-latest]
         python-version: [3.6, 3.7, 3.8]
         include:
-          - os: windows-2019
+          - os: windows-latest
             python-version: 3.7
-          - os: macos-10.15
+          - os: macos-latest
             python-version: 3.7
 
     steps:
@@ -70,7 +70,7 @@ jobs:
     # This avoids future compile errors in nox tests because of missing
     #   header files.
     - name: Install wheel and build wheel for regex to pip cache
-      if: ${{ matrix.os == 'macos-10.15' }}
+      if: ${{ matrix.os == 'macos-latest' }}
       run: |
         python -m pip install wheel
         python -m pip install regex
