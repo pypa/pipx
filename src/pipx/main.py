@@ -493,7 +493,7 @@ def _add_ensurepath(subparsers):
         action="store_true",
         help=(
             "Add text to your shell's config file even if it looks like your "
-            "PATH already contains pipx binary path(s)."
+            "PATH already contains paths to pipx and pipx-install apps."
         ),
     )
 
