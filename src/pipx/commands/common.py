@@ -20,12 +20,19 @@ from pipx.venv import Venv
 
 
 def expose_apps_globally(
-    local_bin_dir: Path, app_paths: List[Path], package: str, *, force: bool
-):
+    local_bin_dir: Path,
+    app_paths: List[Path],
+    package: str,
+    *,
+    force: bool,
+    suffix: str = "",
+) -> None:
     if not _can_symlink(local_bin_dir):
-        _copy_package_apps(local_bin_dir, app_paths, package)
+        _copy_package_apps(local_bin_dir, app_paths, package, suffix=suffix)
     else:
-        _symlink_package_apps(local_bin_dir, app_paths, package, force=force)
+        _symlink_package_apps(
+            local_bin_dir, app_paths, package, force=force, suffix=suffix
+        )
 
 
 _can_symlink_cache: Dict[Path, bool] = {}
@@ -52,11 +59,13 @@ def _can_symlink(local_bin_dir: Path) -> bool:
     return _can_symlink_cache[local_bin_dir]
 
 
-def _copy_package_apps(local_bin_dir: Path, app_paths: List[Path], package: str):
+def _copy_package_apps(
+    local_bin_dir: Path, app_paths: List[Path], package: str, suffix: str = "",
+) -> None:
     for src_unresolved in app_paths:
         src = src_unresolved.resolve()
         app = src.name
-        dest = Path(local_bin_dir / app)
+        dest = Path(local_bin_dir / add_suffix(app, suffix))
         if not dest.parent.is_dir():
             mkdir(dest.parent)
         if dest.exists():
@@ -67,11 +76,16 @@ def _copy_package_apps(local_bin_dir: Path, app_paths: List[Path], package: str)
 
 
 def _symlink_package_apps(
-    local_bin_dir: Path, app_paths: List[Path], package: str, *, force: bool
-):
+    local_bin_dir: Path,
+    app_paths: List[Path],
+    package: str,
+    *,
+    force: bool,
+    suffix: str = "",
+) -> None:
     for app_path in app_paths:
         app_name = app_path.name
-        symlink_path = Path(local_bin_dir / app_name)
+        symlink_path = Path(local_bin_dir / add_suffix(app_name, suffix))
         if not symlink_path.parent.is_dir():
             mkdir(symlink_path.parent)
 
@@ -118,6 +132,7 @@ def get_package_summary(
     package: str = None,
     new_install: bool = False,
     include_injected: bool = False,
+    suffix: str = "",
 ) -> str:
     venv = Venv(path)
     python_path = venv.python_path.resolve()
@@ -144,7 +159,8 @@ def get_package_summary(
     )
     exposed_binary_names = sorted(p.name for p in exposed_app_paths)
     unavailable_binary_names = sorted(
-        set(package_metadata.apps) - set(exposed_binary_names)
+        set(add_suffix(name, suffix) for name in package_metadata.apps)
+        - set(exposed_binary_names)
     )
     # The following is to satisfy mypy that python_version is str and not
     #   Optional[str]
@@ -256,6 +272,7 @@ def run_post_install_actions(
     include_dependencies: bool,
     *,
     force: bool,
+    suffix: Optional[str] = None,
 ):
     package_metadata = venv.package_metadata[package]
 
@@ -302,15 +319,21 @@ def run_post_install_actions(
             "Consider using pip or a similar tool instead."
         )
 
+    if suffix is None:
+        suffix = ""
     expose_apps_globally(
-        local_bin_dir, package_metadata.app_paths, package, force=force
+        local_bin_dir, package_metadata.app_paths, package, force=force, suffix=suffix
     )
 
     if include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
-            expose_apps_globally(local_bin_dir, app_paths, package, force=force)
+            expose_apps_globally(
+                local_bin_dir, app_paths, package, force=force, suffix=suffix
+            )
 
-    print(get_package_summary(venv_dir, package=package, new_install=True))
+    print(
+        get_package_summary(venv_dir, package=package, new_install=True, suffix=suffix)
+    )
     warn_if_not_on_path(local_bin_dir)
     print(f"done! {stars}", file=sys.stderr)
 
@@ -324,3 +347,10 @@ def warn_if_not_on_path(local_bin_dir: Path):
             "automatically add it, or manually modify your PATH in your shell's "
             "config file (i.e. ~/.bashrc)."
         )
+
+
+def add_suffix(name: str, suffix: str) -> str:
+    """Add suffix to app."""
+
+    app = Path(name)
+    return f"{app.stem}{suffix}{app.suffix}"

@@ -167,3 +167,22 @@ def test_pip_args_forwarded_to_package_name_determination(
     )
     captured = capsys.readouterr()
     assert "Cannot determine package name from spec" in captured.err
+
+
+def test_install_suffix(pipx_temp_env, capsys):
+    name = "pbr"
+
+    suffix = "_a"
+    assert not run_pipx_cli(["install", "pbr", f"--suffix={suffix}"])
+    captured = capsys.readouterr()
+    name_a = f"{name}{suffix}{'.exe' if constants.WINDOWS else ''}"
+    assert f"- {name_a}" in captured.out
+
+    suffix = "_b"
+    assert not run_pipx_cli(["install", "pbr", f"--suffix={suffix}"])
+    captured = capsys.readouterr()
+    name_b = f"{name}{suffix}{'.exe' if constants.WINDOWS else ''}"
+    assert f"- {name_b}" in captured.out
+
+    assert (constants.LOCAL_BIN_DIR / name_a).exists()
+    assert (constants.LOCAL_BIN_DIR / name_b).exists()

@@ -1,4 +1,4 @@
-from .ensure_path import ensure_path
+from .ensure_path import ensure_pipx_paths
 from .inject import inject
 from .install import install
 from .list_packages import list_packages
@@ -20,5 +20,5 @@ __all__ = [
     "reinstall_all",
     "list_packages",
     "run_pip",
-    "ensure_path",
+    "ensure_pipx_paths",
 ]

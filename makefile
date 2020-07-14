@@ -4,7 +4,7 @@ develop:
 	pipx run --spec=git+https://github.com/cs01/nox.git@5ea70723e9e6 nox -s develop
 
 lint:
-	pipx run --spec=git+https://github.com/cs01/nox.git@5ea70723e9e6 nox -s lint
+	pipx run nox -s lint
 
 test:
 	# TODO use `pipx run nox` when nox supports venv creation (and thus
