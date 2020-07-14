@@ -3,7 +3,7 @@
 name: Push Verifications
 
 on:
-    pull-request:
+    pull_request:
     push:
     release:
 
