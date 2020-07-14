@@ -2,7 +2,10 @@
 
 name: Push Verifications
 
-on: [push]
+on:
+    pull-request:
+    push:
+    release:
 
 jobs:
   lint:
