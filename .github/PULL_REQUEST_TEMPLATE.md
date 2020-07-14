@@ -1,4 +1,11 @@
-<!---
-Thank you for your soon-to-be pull request. Before you submit this, please
-double check to make sure that you've added an entry to docs/changelog.md.
--->
+<!-- add an 'x' in the brackets below -->
+[] I have added an entry to `docs/changelog.md`
+
+## Summary of changes
+
+## Test plan
+<!-- provide evidence of testing, preferably with command(s) that can be copy+pasted by others -->
+Tested by running
+```
+# command(s) to exercise these changes
+```
