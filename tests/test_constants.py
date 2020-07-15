@@ -4,6 +4,8 @@ from unittest import mock
 import sys
 import pytest  # type: ignore
 
+from helpers import run_pipx_cli
+
 
 @pytest.mark.parametrize(
     "windows, USE_EMOJI, encoding, expected",
@@ -40,3 +42,10 @@ def test_use_emjois(monkeypatch, windows, USE_EMOJI, encoding, expected):
         if USE_EMOJI is not None:
             monkeypatch.setenv("USE_EMOJI", USE_EMOJI)
         assert use_emjois() is expected
+
+
+def test_default_python():
+    with mock.patch.object(constants, "DEFAULT_PYTHON", "bad_python"), pytest.raises(
+        FileNotFoundError
+    ):
+        run_pipx_cli(["install", "pycowsay"])
