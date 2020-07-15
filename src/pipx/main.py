@@ -77,6 +77,10 @@ and can be overridden by setting the environment variable `PIPX_HOME`
 
 The default app location is {constants.DEFAULT_PIPX_BIN_DIR} and can be
 overridden by setting the environment variable `PIPX_BIN_DIR`.
+
+The default python executable used to install a package is
+{constants.DEFAULT_PYTHON} and can be overridden by setting the environment
+variable `PIPX_DEFAULT_PYTHON`.
 """
 
 
