@@ -44,8 +44,7 @@ def test_use_emjois(monkeypatch, windows, USE_EMOJI, encoding, expected):
         assert use_emjois() is expected
 
 
-def test_default_python():
-    with mock.patch.object(constants, "DEFAULT_PYTHON", "bad_python"), pytest.raises(
-        FileNotFoundError
-    ):
+def test_default_python(monkeypatch):
+    monkeypatch.setattr(constants, "DEFAULT_PYTHON", "bad_python")
+    with pytest.raises(FileNotFoundError):
         run_pipx_cli(["install", "pycowsay"])
