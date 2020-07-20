@@ -4,12 +4,12 @@ import shutil
 import sys
 import tempfile
 import time
-from typing import Collection, Dict, List, Optional
-import userpath  # type: ignore
-
 from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
+from typing import Collection, Dict, List, Optional
+
+import userpath  # type: ignore
 
 from pipx import constants
 from pipx.colors import bold, red
