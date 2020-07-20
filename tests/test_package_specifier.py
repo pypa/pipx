@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest  # type: ignore
 
-from pipx.package_specifier import parse_specifier
+from pipx.package_specifier import parse_specifier_for_metadata
 from pipx.util import PipxError
 
 
@@ -53,12 +53,14 @@ from pipx.util import PipxError
         ),
     ],
 )
-def test_parse_specifier(package_spec_in, package_or_url_correct, valid_spec):
+def test_parse_specifier_for_metadata(
+    package_spec_in, package_or_url_correct, valid_spec
+):
     if valid_spec:
-        package_or_url = parse_specifier(package_spec_in)
+        package_or_url = parse_specifier_for_metadata(package_spec_in)
         assert package_or_url == package_or_url_correct
     else:
         # print package_spec_in for info in case no error is raised
         print(f"package_spec_in = {package_spec_in}")
         with pytest.raises(PipxError, match=r"^Unable to parse package spec"):
-            package_or_url = parse_specifier(package_spec_in)
+            package_or_url = parse_specifier_for_metadata(package_spec_in)

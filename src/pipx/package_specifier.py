@@ -15,7 +15,7 @@ from packaging.utils import canonicalize_name
 from pipx.util import PipxError
 
 
-def parse_specifier(package_spec: str) -> str:
+def parse_specifier_for_metadata(package_spec: str) -> str:
     """Return package_or_url suitable for pipx metadata
 
     Specifically:

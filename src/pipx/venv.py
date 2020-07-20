@@ -6,7 +6,7 @@ from typing import Dict, Generator, List, NamedTuple, Optional, Set
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH
-from pipx.package_specifier import parse_specifier
+from pipx.package_specifier import parse_specifier_for_metadata
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 from pipx.shared_libs import shared_libs
 from pipx.util import (
@@ -285,7 +285,7 @@ class Venv:
         venv_package_metadata = self.get_venv_metadata_for_package(package)
         package_info = PackageInfo(
             package=package,
-            package_or_url=parse_specifier(package_or_url),
+            package_or_url=parse_specifier_for_metadata(package_or_url),
             pip_args=pip_args,
             include_apps=include_apps,
             include_dependencies=include_dependencies,
