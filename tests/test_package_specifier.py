@@ -38,16 +38,8 @@ from pipx.util import PipxError
             "https://github.com/ambv/black/archive/18.9b0.zip",
             True,
         ),
-        (
-            "path/doesnt/exist",
-            "NA",
-            False,
-        ),
-        (
-            "https:/github.com/ambv/black/archive/18.9b0.zip",
-            "NA",
-            False,
-        ),
+        ("path/doesnt/exist", "NA", False,),
+        ("https:/github.com/ambv/black/archive/18.9b0.zip", "NA", False,),
     ],
 )
 def test_parse_specifier(package_spec_in, package_or_url_correct, valid_spec):
@@ -55,5 +47,7 @@ def test_parse_specifier(package_spec_in, package_or_url_correct, valid_spec):
         package_or_url = parse_specifier(package_spec_in)
         assert package_or_url == package_or_url_correct
     else:
-        with pytest.raises(PipxError):
+        # print package_spec_in for info in case no error is raised
+        print(f"package_spec_in = {package_spec_in}")
+        with pytest.raises(PipxError, match=r"^Unable to parse package spec"):
             package_or_url = parse_specifier(package_spec_in)
