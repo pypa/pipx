@@ -59,12 +59,12 @@ def parse_specifier(package_spec: str) -> str:
 
     if not valid_pep508 and not valid_url:
         package_path = Path(package_spec)
-        if package_path.exists:
+        if package_path.exists():
             valid_local_path = True
             package_or_url = str(package_path.resolve())
 
     if not valid_pep508 and not valid_url and not valid_local_path:
-        raise PipxError(f"Internal Error: unable to parse package spec: {package_spec}")
+        raise PipxError(f"Unable to parse package spec: {package_spec}")
 
     return package_or_url
 
