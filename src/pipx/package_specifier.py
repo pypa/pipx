@@ -63,7 +63,12 @@ def parse_specifier(package_spec: str) -> str:
 
     if not valid_pep508 and not valid_url:
         package_path = Path(package_spec)
-        if package_path.exists():
+        try:
+            package_path_exists = package_path.exists()
+        except OSError:
+            package_path_exists = False
+
+        if package_path_exists:
             valid_local_path = True
             package_or_url = str(package_path.resolve())
 
