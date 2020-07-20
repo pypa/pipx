@@ -64,7 +64,7 @@ def test_install_tricky_packages(capsys, pipx_temp_env, caplog, package):
 @pytest.mark.parametrize(
     "package_name,package_spec",
     [
-        ("nox", "git+https://github.com/cs01/nox.git@5ea70723e9e6"),
+        # ("nox", "git+https://github.com/cs01/nox.git@5ea70723e9e6"),
         ("pylint", "pylint==2.3.1"),
         ("black", "https://github.com/ambv/black/archive/18.9b0.zip"),
     ],
