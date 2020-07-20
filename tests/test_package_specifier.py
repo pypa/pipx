@@ -3,6 +3,7 @@ import pytest  # type: ignore
 from pipx.package_specifier import parse_specifier
 from pipx.util import PipxError
 
+
 # TODO: Make sure git+ works with tests, correct in test_install as well
 @pytest.mark.parametrize(
     "package_spec_in,package_or_url_correct,valid_spec",
