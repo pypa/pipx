@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest  # type: ignore
 
 from pipx.package_specifier import parse_specifier
@@ -9,11 +11,15 @@ from pipx.util import PipxError
     "package_spec_in,package_or_url_correct,valid_spec",
     [
         ("pipx", "pipx", True),
+        ("PiPx_stylized.name", "pipx-stylized-name", True),
         ("pipx==0.15.0", "pipx", True),
         ("pipx>=0.15.0", "pipx", True),
         ("pipx<=0.15.0", "pipx", True),
         ('pipx;python_version>="3.6"', "pipx", True),
         ('pipx==0.15.0;python_version>="3.6"', "pipx", True),
+        ("pipx[extra1]", "pipx[extra1]", True),
+        ("pipx[extra1, extra2]", "pipx[extra1,extra2]", True),
+        ("src/pipx", str(Path("src/pipx").resolve()), True),
         (
             "git+https://github.com/cs01/nox.git@5ea70723e9e6",
             "git+https://github.com/cs01/nox.git@5ea70723e9e6",
@@ -39,8 +45,12 @@ from pipx.util import PipxError
             "https://github.com/ambv/black/archive/18.9b0.zip",
             True,
         ),
-        ("path/doesnt/exist", "NA", False,),
-        ("https:/github.com/ambv/black/archive/18.9b0.zip", "NA", False,),
+        ("path/doesnt/exist", "non-existent-path", False,),
+        (
+            "https:/github.com/ambv/black/archive/18.9b0.zip",
+            "URL-syntax-error-slash",
+            False,
+        ),
     ],
 )
 def test_parse_specifier(package_spec_in, package_or_url_correct, valid_spec):
