@@ -1,13 +1,15 @@
 # Valid package specifiers for pipx:
+#   PEP508-compliant
 #   git+<URL>
 #   <URL>
 #   <pypi_package_name>
 #   <pypi_package_name><version_specifier>
 
 from pathlib import Path
-from packaging.requirements import Requirement, InvalidRequirement
-from packaging.utils import canonicalize_name
 from typing import Optional
+
+from packaging.requirements import InvalidRequirement, Requirement
+from packaging.utils import canonicalize_name
 
 from pipx.util import PipxError
 
