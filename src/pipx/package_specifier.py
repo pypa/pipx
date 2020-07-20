@@ -5,6 +5,7 @@
 #   <pypi_package_name>
 #   <pypi_package_name><version_specifier>
 
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -76,6 +77,8 @@ def parse_specifier(package_spec: str) -> str:
 
     if not valid_pep508 and not valid_url and not valid_local_path:
         raise PipxError(f"Unable to parse package spec: {package_spec}")
+
+    logging.info(f"cleaned package spec: {package_or_url}")
 
     return package_or_url
 
