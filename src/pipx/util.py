@@ -4,7 +4,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Sequence, Tuple, Union, Optional
+from typing import List, Optional, Sequence, Tuple, Union
 
 from pipx.constants import WINDOWS
 
