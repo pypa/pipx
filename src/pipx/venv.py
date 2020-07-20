@@ -2,12 +2,12 @@ import json
 import logging
 import pkgutil
 from pathlib import Path
-from typing import Generator, List, NamedTuple, Dict, Set, Optional
+from typing import Dict, Generator, List, NamedTuple, Optional, Set
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH
 from pipx.package_specifier import parse_specifier
-from pipx.pipx_metadata_file import PipxMetadata, PackageInfo
+from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 from pipx.shared_libs import shared_libs
 from pipx.util import (
     PipxError,
@@ -18,7 +18,6 @@ from pipx.util import (
     run,
     run_subprocess,
 )
-
 
 venv_metadata_inspector_raw = pkgutil.get_data("pipx", "venv_metadata_inspector.py")
 assert venv_metadata_inspector_raw is not None, (
