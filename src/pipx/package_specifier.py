@@ -43,13 +43,13 @@ def parse_specifier(package_spec: str) -> str:
         else:
             if package_req.extras:
                 package_or_url = canonicalize_name(
-                    package_req.name + "[" + ",".join(package_req.extras) + "]"
+                    package_req.name + "[" + ",".join(sorted(package_req.extras)) + "]"
                 )
             else:
                 package_or_url = canonicalize_name(package_req.name)
 
-    # NOTE: packaging currently (2020-07-19) does basic checks on the URL for
-    #   form but some examples of what it will not catch:
+    # NOTE: packaging currently (2020-07-19) does basic syntax checks on the URL.
+    #   Some examples of what it will not catch:
     #       - invalid RCS string (e.g. "gat+https://...")
     #       - non-existent scheme (e.g. "zzzzz://...")
     if not valid_pep508:
