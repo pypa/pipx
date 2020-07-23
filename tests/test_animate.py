@@ -25,7 +25,9 @@ def check_animate_output(
     print(f"chars_to_test: {chars_to_test}")
     print(f"expected_string[:20]: {repr(expected_string[:20])}")
     print(f"captured.err[:20]   : {repr(captured.err[:20])}")
-    print(f"expected_string tail: {repr(expected_string[chars_to_test-20:chars_to_test])}")
+    print(
+        f"expected_string tail: {repr(expected_string[chars_to_test-20:chars_to_test])}"
+    )
     print(f"captured.err tail   : {repr(captured.err[chars_to_test-20:chars_to_test])}")
 
     assert captured.err[:chars_to_test] == expected_string[:chars_to_test]
