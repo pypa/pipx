@@ -18,8 +18,15 @@ def check_animate_output(
     chars_to_test = 1 + len("".join(frame_strings[:frames_to_test]))
 
     with pipx.animate.animate(test_string, do_animation=True):
-        time.sleep(frame_period * (frames_to_test - 1) + 0.75)
+        time.sleep(frame_period * (frames_to_test - 1) + 0.5)
     captured = capsys.readouterr()
+    print("check_animate_output() Test Debug Output:")
+    print(f"captured characters: {len(captured.err)}")
+    print(f"chars_to_test: {chars_to_test}")
+    print(f"expected_string[:20]: {repr(expected_string[:20])}")
+    print(f"captured.err[:20]   : {repr(captured.err[:20])}")
+    print(f"expected_string tail: {repr(expected_string[chars_to_test-20:chars_to_test])}")
+    print(f"captured.err tail   : {repr(captured.err[chars_to_test-20:chars_to_test])}")
 
     assert captured.err[:chars_to_test] == expected_string[:chars_to_test]
 
