@@ -23,7 +23,7 @@ def parse_specifier_for_metadata(package_spec: str) -> str:
     * Strip any markers (e.g. python_version > 3.4)
     * Convert local paths to absolute paths
     """
-    # NOTE: If package_spec to valid pypi name, pip will always treat it as a
+    # NOTE: If package_spec is valid pypi name, pip will always treat it as a
     #       pypi package, not checking for local path.
     #       We replicate pypi precedence here (only non-valid-pypi names
     #       initiate check for local path, e.g. './package-name')
