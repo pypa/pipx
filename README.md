@@ -13,8 +13,8 @@
 </p>
 
 <p align="center">
-<a href="https://github.com/pipxproject/pipx/actions?query=workflow%3ATest"><img src="https://github.com/pipxproject/pipx/workflows/Test/badge.svg?branch=master"></a>
-<a href="https://badge.fury.io/py/pipx"><img src="https://badge.fury.io/py/pipx.svg" alt="PyPI version" height="18"></a>
+<a href="https://github.com/pipxproject/pipx/actions?query=workflow%3ATest"><img src="https://github.com/pipxproject/pipx/workflows/Test/badge.svg?branch=master" alt="Test CI" ></a>
+<a href="https://badge.fury.io/py/pipx"><img src="https://badge.fury.io/py/pipx.svg" alt="PyPI version"></a>
 </p>
 
 **Documentation**: https://pipxproject.github.io/pipx/
