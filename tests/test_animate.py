@@ -77,6 +77,10 @@ def test_delay_suppresses_output(capsys, monkeypatch):
         (0.4, 0.2),
         (0.5, 0.1),
         (0.5, 0.2),
+        (0.4, 0.1),
+        (0.4, 0.2),
+        (0.5, 0.1),
+        (0.5, 0.2),
     ],
 )
 def test_line_lengths_emoji(capsys, monkeypatch, extra_animate_time, extra_wait_time):
