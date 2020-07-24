@@ -1,5 +1,7 @@
 import time
 
+import pytest
+
 import pipx.animate
 from pipx.animate import (
     CLEAR_LINE,
@@ -11,18 +13,24 @@ from pipx.animate import (
 
 
 def check_animate_output(
-    capsys, test_string, frame_strings, frame_period, frames_to_test
+    capsys,
+    test_string,
+    frame_strings,
+    frame_period,
+    frames_to_test,
+    extra_animate_time=0.5,
+    extra_wait_time=0.5,
 ):
     expected_string = "".join(frame_strings)
 
     chars_to_test = 1 + len("".join(frame_strings[:frames_to_test]))
 
     with pipx.animate.animate(test_string, do_animation=True):
-        time.sleep(frame_period * (frames_to_test - 1) + 0.5)
+        time.sleep(frame_period * (frames_to_test - 1) + extra_animate_time)
     # Wait 0.5s before capturing stderr to ensure animate thread is finished
-    #   and to capture all characters. If some are left over they can cause
+    #   and to capture all its characters. If some are left over they can cause
     #   false fail in the next call of check_animate_output()
-    time.sleep(0.5)
+    time.sleep(extra_wait_time)
     captured = capsys.readouterr()
     print("check_animate_output() Test Debug Output:")
     print(f"captured characters: {len(captured.err)}")
@@ -46,7 +54,37 @@ def test_delay_suppresses_output(capsys, monkeypatch):
     assert test_string not in captured.err
 
 
-def test_line_lengths_emoji(capsys, monkeypatch):
+@pytest.mark.parametrize(
+    "extra_animate_time,extra_wait_time",
+    [
+        (0.1, 0.1),
+        (0.1, 0.2),
+        (0.1, 0.3),
+        (0.1, 0.4),
+        (0.1, 0.5),
+        (0.2, 0.1),
+        (0.2, 0.2),
+        (0.2, 0.3),
+        (0.2, 0.4),
+        (0.2, 0.5),
+        (0.3, 0.1),
+        (0.3, 0.2),
+        (0.3, 0.3),
+        (0.3, 0.4),
+        (0.3, 0.5),
+        (0.4, 0.1),
+        (0.4, 0.2),
+        (0.4, 0.3),
+        (0.4, 0.4),
+        (0.4, 0.5),
+        (0.5, 0.1),
+        (0.5, 0.2),
+        (0.5, 0.3),
+        (0.5, 0.4),
+        (0.5, 0.5),
+    ],
+)
+def test_line_lengths_emoji(capsys, monkeypatch, extra_animate_time, extra_wait_time):
     # emoji_support and stderr_is_tty is set only at import animate.py
     # since we are already after that, we must override both here
     monkeypatch.setattr(pipx.animate, "stderr_is_tty", True)
@@ -67,7 +105,13 @@ def test_line_lengths_emoji(capsys, monkeypatch):
             f"{CLEAR_LINE}\r{x} {expected_message[i]}" for x in EMOJI_ANIMATION_FRAMES
         ]
         check_animate_output(
-            capsys, test_string, frame_strings, EMOJI_FRAME_PERIOD, frames_to_test
+            capsys,
+            test_string,
+            frame_strings,
+            EMOJI_FRAME_PERIOD,
+            frames_to_test,
+            extra_animate_time,
+            extra_wait_time,
         )
 
 
