@@ -21,7 +21,7 @@ def check_animate_output(
     extra_animate_time=0.5,
     extra_wait_time=0.5,
 ):
-    # NOTE: extra_animate_time <= 0.1 failed on macos
+    # NOTE: extra_animate_time <= 0.2 failed on macos
     #       extra_wait_time <= 0.0 failed on macos
     expected_string = "".join(frame_strings)
 
@@ -34,6 +34,11 @@ def check_animate_output(
     #   false fail in the next call of check_animate_output()
     time.sleep(extra_wait_time)
     captured = capsys.readouterr()
+
+    if len(captured.err) < chars_to_test:
+        print(
+            "Not enough captured characters--Likely need to increase extra_animate_time"
+        )
     print("check_animate_output() Test Debug Output:")
     print(f"captured characters: {len(captured.err)}")
     print(f"chars_to_test: {chars_to_test}")
@@ -59,11 +64,6 @@ def test_delay_suppresses_output(capsys, monkeypatch):
 @pytest.mark.parametrize(
     "extra_animate_time,extra_wait_time",
     [
-        (0.2, 0.1),
-        (0.2, 0.2),
-        (0.2, 0.3),
-        (0.2, 0.4),
-        (0.2, 0.5),
         (0.3, 0.1),
         (0.3, 0.2),
         (0.3, 0.3),
