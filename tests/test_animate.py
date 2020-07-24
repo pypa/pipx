@@ -19,6 +19,10 @@ def check_animate_output(
 
     with pipx.animate.animate(test_string, do_animation=True):
         time.sleep(frame_period * (frames_to_test - 1) + 0.5)
+    # Wait 0.5s before capturing stderr to ensure animate thread is finished
+    #   and to capture all characters. If some are left over they can cause
+    #   false fail in the next call of check_animate_output()
+    time.sleep(0.5)
     captured = capsys.readouterr()
     print("check_animate_output() Test Debug Output:")
     print(f"captured characters: {len(captured.err)}")
