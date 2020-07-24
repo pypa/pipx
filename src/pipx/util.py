@@ -1,11 +1,10 @@
 import logging
 import os
-import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Sequence, Tuple, Union, Optional
+from typing import List, Optional, Sequence, Tuple, Union
 
 from pipx.constants import WINDOWS
 
@@ -135,13 +134,6 @@ def run(cmd: Sequence[Union[str, Path]], check=True) -> int:
         cmd_str = " ".join(str(c) for c in cmd)
         raise PipxError(f"{cmd_str!r} failed")
     return returncode
-
-
-def valid_pypi_name(package_name: str) -> bool:
-    # https://www.python.org/dev/peps/pep-0508/#names
-    return bool(
-        re.search(r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$", package_name, re.I)
-    )
 
 
 def full_package_description(package: str, package_spec: str) -> str:

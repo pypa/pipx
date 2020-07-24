@@ -4,17 +4,18 @@ import shutil
 import sys
 import tempfile
 import time
-import userpath  # type: ignore
-
 from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
 from typing import Collection, Dict, List, Optional
 
+import userpath  # type: ignore
+
 from pipx import constants
 from pipx.colors import bold, red
 from pipx.emojies import hazard, stars
-from pipx.util import WINDOWS, PipxError, mkdir, rmdir, valid_pypi_name
+from pipx.package_specifier import valid_pypi_name
+from pipx.util import WINDOWS, PipxError, mkdir, rmdir
 from pipx.venv import Venv
 
 
@@ -243,8 +244,11 @@ def package_name_from_spec(
     start_time = time.time()
 
     # shortcut if valid PyPI name and not a local path
-    if valid_pypi_name(package_spec) and not Path(package_spec).exists():
-        package_name = package_spec
+    pypi_name = valid_pypi_name(package_spec)
+    if pypi_name is not None and not Path(package_spec).exists():
+        # NOTE: if pypi name and installed package name differ, this means pipx
+        #       will use the pypi name
+        package_name = pypi_name
         logging.info(f"Determined package name: {package_name}")
         logging.info(f"Package name determined in {time.time()-start_time:.1f}s")
         return package_name
