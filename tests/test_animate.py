@@ -45,7 +45,6 @@ def check_animate_output(
         != expected_string[: len(frame_strings[0])]
     ):
         print("Error in first frame--Might need to increase extra_wait_time")
-
     print(f"captured characters: {len(captured.err)}")
     print(f"chars_to_test: {chars_to_test}")
     for i in range(0, chars_to_test, 40):
@@ -70,18 +69,14 @@ def test_delay_suppresses_output(capsys, monkeypatch):
 @pytest.mark.parametrize(
     "extra_animate_time,extra_wait_time",
     [
-        (0.4, 0.0),
         (0.4, 0.1),
         (0.4, 0.2),
-        (0.4, 0.3),
-        (0.4, 0.4),
-        (0.4, 0.5),
-        (0.5, 0.0),
         (0.5, 0.1),
         (0.5, 0.2),
-        (0.5, 0.3),
-        (0.5, 0.4),
-        (0.5, 0.5),
+        (0.4, 0.1),
+        (0.4, 0.2),
+        (0.5, 0.1),
+        (0.5, 0.2),
     ],
 )
 def test_line_lengths_emoji(capsys, monkeypatch, extra_animate_time, extra_wait_time):
