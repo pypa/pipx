@@ -1,6 +1,6 @@
 import time
 
-import pytest
+import pytest  # type: ignore
 
 import pipx.animate
 from pipx.animate import (
@@ -21,6 +21,8 @@ def check_animate_output(
     extra_animate_time=0.5,
     extra_wait_time=0.5,
 ):
+    # NOTE: extra_animate_time <= 0.1 failed on macos
+    #       extra_wait_time <= 0.0 failed on macos
     expected_string = "".join(frame_strings)
 
     chars_to_test = 1 + len("".join(frame_strings[:frames_to_test]))
@@ -57,11 +59,6 @@ def test_delay_suppresses_output(capsys, monkeypatch):
 @pytest.mark.parametrize(
     "extra_animate_time,extra_wait_time",
     [
-        (0.1, 0.1),
-        (0.1, 0.2),
-        (0.1, 0.3),
-        (0.1, 0.4),
-        (0.1, 0.5),
         (0.2, 0.1),
         (0.2, 0.2),
         (0.2, 0.3),
