@@ -40,7 +40,10 @@ def check_animate_output(
         print(
             "Not enough captured characters--Likely need to increase extra_animate_time"
         )
-    if captured.err[:len(frame_strings[0])] != expected_string[:len(frame_strings[0])]]:
+    if (
+        captured.err[: len(frame_strings[0])]
+        != expected_string[: len(frame_strings[0])]
+    ):
         print("Error in first frame--Might need to increase extra_wait_time")
 
     print(f"captured characters: {len(captured.err)}")
