@@ -1,4 +1,5 @@
 dev
+- Fixed bug where pipx would crash if terminal size reported 0 columns.
 - Version of each injected package is now listed after name for `pipx list --include-injected`
 - Change metadata recorded from version-specified install to allow upgrades in future.  Adds pipx dependency on `packaging` package.
 - [bugfix] Prevent python error in case where package has no pipx metadata and advise user how to fix.
