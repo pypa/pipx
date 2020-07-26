@@ -1,4 +1,5 @@
 dev
+- Version of each injected package is now listed after name for `pipx list --include-injected`
 - Change metadata recorded from version-specified install to allow upgrades in future.  Adds pipx dependency on `packaging` package.
 - [bugfix] Prevent python error in case where package has no pipx metadata and advise user how to fix.
 - [feature] `ensurepath` now also ensures that pip user binary path containing pipx itself is in user's PATH if pipx was installed using `pip install --user`.
