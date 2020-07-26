@@ -1,4 +1,5 @@
 dev
+- Version of each injected package is now listed after name for `pipx list --include-injected`
 - Change metadata recorded from version-specified install to allow upgrades in future.  Adds pipx dependency on `packaging` package.
 - [bugfix] Prevent python error in case where package has no pipx metadata and advise user how to fix.
 - [feature] `ensurepath` now also ensures that pip user binary path containing pipx itself is in user's PATH if pipx was installed using `pip install --user`.
@@ -28,6 +29,7 @@ dev
 - [bugfix] Hide cursor while pipx runs
 - [feature] Add environment variable `USE_EMOJI` to allow enabling/disabling emojies (#376)
 - [refactor] Moved all commands to separate files within the commands module (#255).
+- [bugfix] Ignore system shared libraries when installing shared libraries pip, wheel, and setuptools. This also fixes an incompatibility with Debian/Ubuntu's version of pip (#386).
 
 0.15.1.3
 

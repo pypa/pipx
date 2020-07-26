@@ -177,7 +177,7 @@ def get_package_summary(
         new_install,
         exposed_binary_names,
         unavailable_binary_names,
-        venv.pipx_metadata.injected_packages.keys() if include_injected else None,
+        venv.pipx_metadata.injected_packages if include_injected else None,
     )
 
 
@@ -234,7 +234,7 @@ def _get_list_output(
     if injected_package_names:
         output.append("    Injected Packages:")
         for name in injected_package_names:
-            output.append(f"      - {name}")
+            output.append(f"      - {name} {injected_package_names[name].package_version}")
     return "\n".join(output)
 
 
