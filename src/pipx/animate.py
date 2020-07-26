@@ -69,17 +69,22 @@ def print_animation(
     period: float,
     animate_at_beginning_of_line: bool,
 ):
-    (term_cols, _) = shutil.get_terminal_size(fallback=(9999, 24))
+    default_term_cols = 9999
+    (term_cols, _) = shutil.get_terminal_size(fallback=(default_term_cols, 24))
     event.wait(delay)
     while not event.wait(0):
         for s in symbols:
             if animate_at_beginning_of_line:
                 max_message_len = term_cols - len(f"{s} ... ")
+                if max_message_len <= 0:
+                    max_message_len = default_term_cols - len(f"{s} ... ")
                 cur_line = f"{s} {message:.{max_message_len}}"
                 if len(message) > max_message_len:
                     cur_line += "..."
             else:
                 max_message_len = term_cols - len("... ")
+                if max_message_len <= 0:
+                    max_message_len = default_term_cols - len("... ")
                 cur_line = f"{message:.{max_message_len}}{s}"
 
             clear_line()
