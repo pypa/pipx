@@ -32,7 +32,9 @@ class _SharedLibs:
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
                 run([DEFAULT_PYTHON, "-m", "venv", "--clear", self.root])
-            self.upgrade(pip_args, verbose)
+            # ignore installed packages to ensure no unexpected patches from the OS vendor
+            # are used
+            self.upgrade(["--ignore-installed"] + pip_args, verbose)
 
     @property
     def is_valid(self):
