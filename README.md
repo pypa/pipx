@@ -193,7 +193,7 @@ Any arguments after the application name will be passed directly to the applicat
 
 Re-running the same app is quick because pipx caches Virtual Environments on a per-app basis. The caches only last a few days, and when they expire, pipx will again use the latest version of the package. This way you can be sure you're always running a new version of the package without having to manually upgrade.
 
-If the app name does not match that package name, you can use the `--spec` arguemnt:
+If the app name does not match that package name, you can use the `--spec` argument:
 ```
 pipx run --spec PACKAGE APP
 ```
