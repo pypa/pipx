@@ -121,7 +121,6 @@ def test_line_lengths_no_emoji(
     )
 
 
-# def test_env_no_animate(capsys, monkeypatch, env_columns, expected_message):
 @pytest.mark.parametrize("env_columns", [0, 8, 16])
 def test_env_no_animate(capsys, monkeypatch, env_columns):
     monkeypatch.setattr(pipx.animate, "stderr_is_tty", True)
