@@ -118,3 +118,23 @@ def test_line_lengths_no_emoji(
         NONEMOJI_FRAME_PERIOD,
         frames_to_test,
     )
+
+
+# def test_env_no_animate(capsys, monkeypatch, env_columns, expected_message):
+@pytest.mark.parametrize("env_columns", [0, 5, 10])
+def test_env_no_animate(capsys, monkeypatch, env_columns):
+    monkeypatch.setattr(pipx.animate, "stderr_is_tty", True)
+    monkeypatch.setenv("COLUMNS", str(env_columns))
+
+    frames_to_test = 4
+    expected_string = f"{TEST_STRING_40_CHAR}...\n"
+    extra_animate_time = 0.4
+    extra_after_thread_time = 0.1
+
+    with pipx.animate.animate(TEST_STRING_40_CHAR, do_animation=True):
+        time.sleep(EMOJI_FRAME_PERIOD * (frames_to_test - 1) + extra_animate_time)
+    time.sleep(extra_after_thread_time)
+    captured = capsys.readouterr()
+
+    assert captured.out == expected_string
+    assert captured.err == ""
