@@ -24,8 +24,9 @@ def check_animate_output(
     extra_animate_time=0.4,
     extra_after_thread_time=0.1,
 ):
-    # NOTE: extra_animate_time <= 0.3 failed on macos
-    #       extra_after_thread_time <= 0.0 failed on macos
+    # github workflow history (2020-07-27):
+    #     extra_animate_time <= 0.3 failed on macos
+    #     extra_after_thread_time <= 0.0 failed on macos
     expected_string = "".join(frame_strings)
 
     chars_to_test = 1 + len("".join(frame_strings[:frames_to_test]))
@@ -121,7 +122,7 @@ def test_line_lengths_no_emoji(
 
 
 # def test_env_no_animate(capsys, monkeypatch, env_columns, expected_message):
-@pytest.mark.parametrize("env_columns", [0, 5, 10])
+@pytest.mark.parametrize("env_columns", [0, 8, 16])
 def test_env_no_animate(capsys, monkeypatch, env_columns):
     monkeypatch.setattr(pipx.animate, "stderr_is_tty", True)
     monkeypatch.setenv("COLUMNS", str(env_columns))
