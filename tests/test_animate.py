@@ -33,8 +33,7 @@ def check_animate_output(
     with pipx.animate.animate(test_string, do_animation=True):
         time.sleep(frame_period * (frames_to_test - 1) + extra_animate_time)
     # Wait before capturing stderr to ensure animate thread is finished
-    #   and to capture all its characters. If some are left over they can cause
-    #   false fail in the next call of check_animate_output()
+    #   and to capture all its characters.
     time.sleep(extra_after_thread_time)
     captured = capsys.readouterr()
 
@@ -43,11 +42,6 @@ def check_animate_output(
         print(
             "Not enough captured characters--Likely need to increase extra_animate_time"
         )
-    if (
-        captured.err[: len(frame_strings[0])]
-        != expected_string[: len(frame_strings[0])]
-    ):
-        print("Error in first frame--Might need to increase extra_after_thread_time")
     print(f"captured characters: {len(captured.err)}")
     print(f"chars_to_test: {chars_to_test}")
     for i in range(0, chars_to_test, 40):
