@@ -20,7 +20,7 @@ NONEMOJI_FRAME_PERIOD = 1
 
 def _env_supports_animation():
     (term_cols, _) = shutil.get_terminal_size(fallback=(0, 0))
-    return sys.stderr.isatty() and term_cols > 10
+    return stderr_is_tty and term_cols > 10
 
 
 @contextmanager
