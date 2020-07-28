@@ -64,14 +64,14 @@ def test_delay_suppresses_output(capsys, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "env_columns,expected_message",
+    "env_columns,expected_frame_message",
     [
         (45, f"{TEST_STRING_40_CHAR:.{45-6}}..."),
         (46, f"{TEST_STRING_40_CHAR}"),
         (47, f"{TEST_STRING_40_CHAR}"),
     ],
 )
-def test_line_lengths_emoji(capsys, monkeypatch, env_columns, expected_message):
+def test_line_lengths_emoji(capsys, monkeypatch, env_columns, expected_frame_message):
     # emoji_support and stderr_is_tty is set only at import animate.py
     # since we are already after that, we must override both here
     monkeypatch.setattr(pipx.animate, "stderr_is_tty", True)
@@ -81,7 +81,7 @@ def test_line_lengths_emoji(capsys, monkeypatch, env_columns, expected_message):
 
     frames_to_test = 4
     frame_strings = [
-        f"{CLEAR_LINE}\r{x} {expected_message}" for x in EMOJI_ANIMATION_FRAMES
+        f"{CLEAR_LINE}\r{x} {expected_frame_message}" for x in EMOJI_ANIMATION_FRAMES
     ]
     check_animate_output(
         capsys, TEST_STRING_40_CHAR, frame_strings, EMOJI_FRAME_PERIOD, frames_to_test
@@ -89,14 +89,16 @@ def test_line_lengths_emoji(capsys, monkeypatch, env_columns, expected_message):
 
 
 @pytest.mark.parametrize(
-    "env_columns,expected_message",
+    "env_columns,expected_frame_message",
     [
         (43, f"{TEST_STRING_40_CHAR:.{43-4}}"),
         (44, f"{TEST_STRING_40_CHAR}"),
         (45, f"{TEST_STRING_40_CHAR}"),
     ],
 )
-def test_line_lengths_no_emoji(capsys, monkeypatch, env_columns, expected_message):
+def test_line_lengths_no_emoji(
+    capsys, monkeypatch, env_columns, expected_frame_message
+):
     # emoji_support and stderr_is_tty is set only at import animate.py
     # since we are already after that, we must override both here
     monkeypatch.setattr(pipx.animate, "stderr_is_tty", True)
@@ -106,7 +108,7 @@ def test_line_lengths_no_emoji(capsys, monkeypatch, env_columns, expected_messag
 
     frames_to_test = 2
     frame_strings = [
-        f"{CLEAR_LINE}\r{expected_message}{x}" for x in NONEMOJI_ANIMATION_FRAMES
+        f"{CLEAR_LINE}\r{expected_frame_message}{x}" for x in NONEMOJI_ANIMATION_FRAMES
     ]
 
     check_animate_output(
