@@ -121,9 +121,11 @@ def test_line_lengths_no_emoji(
     )
 
 
-@pytest.mark.parametrize("env_columns", [0, 8, 16])
-def test_env_no_animate(capsys, monkeypatch, env_columns):
-    monkeypatch.setattr(pipx.animate, "stderr_is_tty", True)
+@pytest.mark.parametrize(
+    "env_columns,stderr_is_tty", [(0, True), (8, True), (16, True), (17, False)]
+)
+def test_env_no_animate(capsys, monkeypatch, env_columns, stderr_is_tty):
+    monkeypatch.setattr(pipx.animate, "stderr_is_tty", stderr_is_tty)
     monkeypatch.setenv("COLUMNS", str(env_columns))
 
     frames_to_test = 4
