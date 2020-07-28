@@ -83,10 +83,9 @@ def test_line_lengths_emoji(capsys, monkeypatch, env_columns, expected_message):
     monkeypatch.setattr(pipx.animate, "stderr_is_tty", True)
     monkeypatch.setattr(pipx.animate, "emoji_support", True)
 
-    frames_to_test = 4
-
     monkeypatch.setenv("COLUMNS", str(env_columns))
 
+    frames_to_test = 4
     frame_strings = [
         f"{CLEAR_LINE}\r{x} {expected_message}" for x in EMOJI_ANIMATION_FRAMES
     ]
@@ -95,27 +94,31 @@ def test_line_lengths_emoji(capsys, monkeypatch, env_columns, expected_message):
     )
 
 
-def test_line_lengths_no_emoji(capsys, monkeypatch):
+@pytest.mark.parametrize(
+    "env_columns,expected_message",
+    [
+        (43, f"{TEST_STRING_40_CHAR:.{43-4}}"),
+        (44, f"{TEST_STRING_40_CHAR}"),
+        (45, f"{TEST_STRING_40_CHAR}"),
+    ],
+)
+def test_line_lengths_no_emoji(capsys, monkeypatch, env_columns, expected_message):
     # emoji_support and stderr_is_tty is set only at import animate.py
     # since we are already after that, we must override both here
     monkeypatch.setattr(pipx.animate, "stderr_is_tty", True)
     monkeypatch.setattr(pipx.animate, "emoji_support", False)
 
+    monkeypatch.setenv("COLUMNS", str(env_columns))
+
     frames_to_test = 2
+    frame_strings = [
+        f"{CLEAR_LINE}\r{expected_message}{x}" for x in NONEMOJI_ANIMATION_FRAMES
+    ]
 
-    # 40-char test_string counts columns e.g.: "0204060810 ... 363840"
-    test_string = "".join([f"{x:02}" for x in range(2, 41, 2)])
-
-    columns_to_test = [43, 44, 45]
-    expected_message = [f"{test_string:.{43-4}}", f"{test_string}", f"{test_string}"]
-
-    for i, columns in enumerate(columns_to_test):
-        monkeypatch.setenv("COLUMNS", str(columns))
-
-        frame_strings = [
-            f"{CLEAR_LINE}\r{expected_message[i]}{x}" for x in NONEMOJI_ANIMATION_FRAMES
-        ]
-
-        check_animate_output(
-            capsys, test_string, frame_strings, NONEMOJI_FRAME_PERIOD, frames_to_test
-        )
+    check_animate_output(
+        capsys,
+        TEST_STRING_40_CHAR,
+        frame_strings,
+        NONEMOJI_FRAME_PERIOD,
+        frames_to_test,
+    )
