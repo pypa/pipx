@@ -16,11 +16,12 @@ EMOJI_ANIMATION_FRAMES = ["⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"
 NONEMOJI_ANIMATION_FRAMES = ["", ".", "..", "..."]
 EMOJI_FRAME_PERIOD = 0.1
 NONEMOJI_FRAME_PERIOD = 1
+MINIMUM_COLS_ALLOW_ANIMATION = 16
 
 
 def _env_supports_animation():
     (term_cols, _) = shutil.get_terminal_size(fallback=(0, 0))
-    return stderr_is_tty and term_cols > 16
+    return stderr_is_tty and term_cols > MINIMUM_COLS_ALLOW_ANIMATION
 
 
 @contextmanager
