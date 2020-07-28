@@ -1,13 +1,18 @@
 import time
 
+import pytest
+
 import pipx.animate
 from pipx.animate import (
     CLEAR_LINE,
     EMOJI_ANIMATION_FRAMES,
-    NONEMOJI_ANIMATION_FRAMES,
     EMOJI_FRAME_PERIOD,
+    NONEMOJI_ANIMATION_FRAMES,
     NONEMOJI_FRAME_PERIOD,
 )
+
+# 40-char test_string counts columns e.g.: "0204060810 ... 363840"
+TEST_STRING_40_CHAR = "".join([f"{x:02}" for x in range(2, 41, 2)])
 
 
 def check_animate_output(
@@ -64,7 +69,15 @@ def test_delay_suppresses_output(capsys, monkeypatch):
     assert test_string not in captured.err
 
 
-def test_line_lengths_emoji(capsys, monkeypatch):
+@pytest.mark.parametrize(
+    "env_columns,expected_message",
+    [
+        (45, f"{TEST_STRING_40_CHAR:.{45-6}}..."),
+        (46, f"{TEST_STRING_40_CHAR}"),
+        (47, f"{TEST_STRING_40_CHAR}"),
+    ],
+)
+def test_line_lengths_emoji(capsys, monkeypatch, env_columns, expected_message):
     # emoji_support and stderr_is_tty is set only at import animate.py
     # since we are already after that, we must override both here
     monkeypatch.setattr(pipx.animate, "stderr_is_tty", True)
@@ -72,21 +85,14 @@ def test_line_lengths_emoji(capsys, monkeypatch):
 
     frames_to_test = 4
 
-    # 40-char test_string counts columns e.g.: "0204060810 ... 363840"
-    test_string = "".join([f"{x:02}" for x in range(2, 41, 2)])
+    monkeypatch.setenv("COLUMNS", str(env_columns))
 
-    columns_to_test = [45, 46, 47]
-    expected_message = [f"{test_string:.{45-6}}...", f"{test_string}", f"{test_string}"]
-
-    for i, columns in enumerate(columns_to_test):
-        monkeypatch.setenv("COLUMNS", str(columns))
-
-        frame_strings = [
-            f"{CLEAR_LINE}\r{x} {expected_message[i]}" for x in EMOJI_ANIMATION_FRAMES
-        ]
-        check_animate_output(
-            capsys, test_string, frame_strings, EMOJI_FRAME_PERIOD, frames_to_test
-        )
+    frame_strings = [
+        f"{CLEAR_LINE}\r{x} {expected_message[i]}" for x in EMOJI_ANIMATION_FRAMES
+    ]
+    check_animate_output(
+        capsys, TEST_STRING_40_CHAR, frame_strings, EMOJI_FRAME_PERIOD, frames_to_test
+    )
 
 
 def test_line_lengths_no_emoji(capsys, monkeypatch):
