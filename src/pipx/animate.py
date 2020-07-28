@@ -18,12 +18,17 @@ EMOJI_FRAME_PERIOD = 0.1
 NONEMOJI_FRAME_PERIOD = 1
 
 
+def _env_supports_animation():
+    (term_cols, _) = shutil.get_terminal_size(fallback=(0, 0))
+    return sys.stderr.isatty() and term_cols > 10
+
+
 @contextmanager
 def animate(
     message: str, do_animation: bool, *, delay: float = 0
 ) -> Generator[None, None, None]:
 
-    if not do_animation or not stderr_is_tty:
+    if not do_animation or not _env_supports_animation():
         # no op
         yield
         return
