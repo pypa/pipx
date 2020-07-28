@@ -29,7 +29,8 @@ def animate(
 ) -> Generator[None, None, None]:
 
     if not do_animation or not _env_supports_animation():
-        # no op
+        # No animation, just a single print of message
+        print(f"{message}...")
         yield
         return
 
