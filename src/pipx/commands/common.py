@@ -234,10 +234,8 @@ def _get_list_output(
         )
     if injected_packages:
         output.append("    Injected Packages:")
-        for name in injected_package_names:
-            output.append(
-                f"      - {name} {injected_package_names[name].package_version}"
-            )
+        for name in injected_packages:
+            output.append(f"      - {name} {injected_packages[name].package_version}")
     return "\n".join(output)
 
 
