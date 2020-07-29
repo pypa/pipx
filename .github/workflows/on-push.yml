@@ -20,10 +20,10 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install native-venv version of nox
+    - name: Install nox
       run: |
         python -m pip install --upgrade pip
-        pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
+        pip install nox
     - name: Lint
       run: |
         nox --non-interactive --session lint
@@ -40,10 +40,10 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install native-venv version of nox
+    - name: Install nox
       run: |
         python -m pip install --upgrade pip
-        pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
+        pip install nox
     - name: Verify Docs
       run: |
         nox --non-interactive --session docs
