@@ -7,7 +7,7 @@
 
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import NamedTuple, Optional
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
@@ -15,10 +15,18 @@ from packaging.utils import canonicalize_name
 from pipx.util import PipxError
 
 
-def parse_specifier_for_metadata(package_spec: str) -> str:
-    """Return package_or_url suitable for pipx metadata
+class ParsedPackage(NamedTuple):
+    valid_pep508: bool
+    valid_url: bool
+    valid_local_path: bool
+    package_or_url: str
+    package_requirement: Optional[Requirement]
 
-    Specifically:
+
+def parse_specifier(package_spec: str) -> ParsedPackage:
+    """Parse package_spec as would be given to pip/pipx
+
+    For ParsedPackage.package_or_url:
     * Strip any version specifiers (e.g. package == 1.5.4)
     * Strip any markers (e.g. python_version > 3.4)
     * Convert local paths to absolute paths
@@ -32,6 +40,7 @@ def parse_specifier_for_metadata(package_spec: str) -> str:
     valid_url = False
     valid_local_path = False
     package_or_url = ""
+    package_req = None
 
     try:
         package_req = Requirement(package_spec)
@@ -77,6 +86,29 @@ def parse_specifier_for_metadata(package_spec: str) -> str:
 
     if not valid_pep508 and not valid_url and not valid_local_path:
         raise PipxError(f"Unable to parse package spec: {package_spec}")
+
+    return ParsedPackage(
+        valid_pep508=valid_pep508,
+        valid_url=valid_url,
+        valid_local_path=valid_local_path,
+        package_or_url=package_or_url,
+        package_requirement=package_req,
+    )
+
+
+def package_is_local_path(package_spec: str) -> bool:
+    return parse_specifier(package_spec).valid_local_path
+
+
+def parse_specifier_for_metadata(package_spec: str) -> str:
+    """Return package_or_url suitable for pipx metadata
+
+    Specifically:
+    * Strip any version specifiers (e.g. package == 1.5.4)
+    * Strip any markers (e.g. python_version > 3.4)
+    * Convert local paths to absolute paths
+    """
+    package_or_url = parse_specifier(package_spec).package_or_url
 
     logging.info(f"cleaned package spec: {package_or_url}")
 
