@@ -26,7 +26,7 @@ jobs:
         pip install nox
     - name: Lint
       run: |
-        nox --non-interactive --session lint
+        nox --error-on-missing-interpreters --non-interactive --session lint
 
   docs:
     runs-on: ubuntu-latest
@@ -46,7 +46,7 @@ jobs:
         pip install nox
     - name: Verify Docs
       run: |
-        nox --non-interactive --session docs
+        nox --error-on-missing-interpreters --non-interactive --session docs
 
   tests:
     runs-on: ${{ matrix.os }}
