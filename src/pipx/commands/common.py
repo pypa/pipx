@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
-from typing import Collection, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import userpath  # type: ignore
 
@@ -17,6 +17,7 @@ from pipx.emojies import hazard, stars
 from pipx.package_specifier import valid_pypi_name
 from pipx.util import WINDOWS, PipxError, mkdir, rmdir
 from pipx.venv import Venv
+from pipx.pipx_metadata_file import PackageInfo
 
 
 def expose_apps_globally(
@@ -213,7 +214,7 @@ def _get_list_output(
     new_install: bool,
     exposed_binary_names: List[str],
     unavailable_binary_names: List[str],
-    injected_package_names: Optional[Collection[str]] = None,
+    injected_packages: Optional[Dict[str, PackageInfo]] = None,
 ) -> str:
     output = []
     output.append(
@@ -231,7 +232,7 @@ def _get_list_output(
         output.append(
             f"    - {red(name)} (symlink missing or pointing to unexpected location)"
         )
-    if injected_package_names:
+    if injected_packages:
         output.append("    Injected Packages:")
         for name in injected_package_names:
             output.append(

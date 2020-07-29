@@ -59,7 +59,7 @@ def cover(session):
     session.run("coverage", "erase")
 
 
-@nox.session(python="3.7")
+@nox.session(python="3.8")
 def lint(session):
     session.install(*lint_dependencies)
     files = [str(Path("src") / "pipx"), "tests"] + [
@@ -72,7 +72,7 @@ def lint(session):
     session.run("python", "setup.py", "check", "--metadata", "--strict")
 
 
-@nox.session(python="3.7")
+@nox.session(python="3.8")
 def docs(session):
     session.install(*doc_dependencies)
     session.run("python", "generate_docs.py")
@@ -85,7 +85,7 @@ def develop(session):
     session.install("-e", ".")
 
 
-@nox.session(python="3.7")
+@nox.session(python="3.8")
 def build(session):
     session.install("setuptools")
     session.install("wheel")
@@ -118,7 +118,7 @@ def get_branch():
     )
 
 
-@nox.session(python="3.7")
+@nox.session(python="3.8")
 def publish(session):
     if has_changes():
         session.error("All changes must be committed or removed before publishing")
@@ -131,13 +131,13 @@ def publish(session):
     publish_docs(session)
 
 
-@nox.session(python="3.7")
+@nox.session(python="3.8")
 def watch_docs(session):
     session.install(*doc_dependencies)
     session.run("mkdocs", "serve")
 
 
-@nox.session(python="3.7")
+@nox.session(python="3.8")
 def publish_docs(session):
     session.install(*doc_dependencies)
     session.run("python", "generate_docs.py")
