@@ -59,7 +59,7 @@ def cover(session):
     session.run("coverage", "erase")
 
 
-@nox.session(python="3.8")
+@nox.session(python="3.7")
 def lint(session):
     session.install(*lint_dependencies)
     files = [str(Path("src") / "pipx"), "tests"] + [
