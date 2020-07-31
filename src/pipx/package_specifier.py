@@ -7,7 +7,7 @@
 
 import logging
 from pathlib import Path
-from typing import NamedTuple, Optional
+from typing import List, NamedTuple, Optional, Tuple
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
@@ -81,6 +81,48 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
 
 def package_is_local_path(package_spec: str) -> bool:
     return _parse_specifier(package_spec).valid_local_path is not None
+
+
+def parse_specifier_for_install(
+    package_spec: str, pip_args: List[str]
+) -> Tuple[str, List[str]]:
+    """Return package_or_url suitable for pipx install
+
+    Specifically:
+    * Strip any markers (e.g. python_version > 3.4)
+    * Ensure --editable is not used with non-local path
+    """
+    parsed_package = _parse_specifier(package_spec)
+    if parsed_package.valid_pep508 is not None:
+        if parsed_package.valid_pep508.url:
+            package_or_url = parsed_package.valid_pep508.url
+        else:
+            package_or_url = canonicalize_name(parsed_package.valid_pep508.name)
+            if parsed_package.valid_pep508.extras:
+                package_or_url = (
+                    package_or_url
+                    + "["
+                    + ",".join(sorted(parsed_package.valid_pep508.extras))
+                    + "]"
+                )
+            if parsed_package.valid_pep508.specifier:
+                package_or_url = package_or_url + str(
+                    parsed_package.valid_pep508.specifier
+                )
+    elif parsed_package.valid_url is not None:
+        package_or_url = parsed_package.valid_url
+    elif parsed_package.valid_local_path is not None:
+        package_or_url = parsed_package.valid_local_path
+
+    logging.info(f"cleaned package spec: {package_or_url}")
+
+    if "--editable" in pip_args and not parsed_package.valid_local_path:
+        logging.warning(
+            "Removing --editable install option, it is disallowed for a non-local path."
+        )
+        pip_args.remove("--editable")
+
+    return (package_or_url, pip_args)
 
 
 def parse_specifier_for_metadata(package_spec: str) -> str:
