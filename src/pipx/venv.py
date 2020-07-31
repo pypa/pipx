@@ -176,7 +176,7 @@ class Venv:
 
         if "--editable" in pip_args and not package_is_local_path(package_or_url):
             logging.warning(
-                "Removing --editable, it is disallowed for a non-local package."
+                "Removing --editable install option, it is disallowed for a non-local path."
             )
             pip_args.remove("--editable")
 
