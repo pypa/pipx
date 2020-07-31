@@ -6,7 +6,7 @@ from typing import Dict, Generator, List, NamedTuple, Optional, Set
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH
-from pipx.package_specifier import parse_specifier_for_metadata
+from pipx.package_specifier import package_is_local_path, parse_specifier_for_metadata
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 from pipx.shared_libs import shared_libs
 from pipx.util import (
@@ -173,6 +173,12 @@ class Venv:
             # If no package name is supplied, install only main package
             #   first in order to see what its name is
             package = self.install_package_no_deps(package_or_url, pip_args)
+
+        if "--editable" in pip_args and not package_is_local_path(package_or_url):
+            logging.warning(
+                "Removing --editable, it is disallowed for a non-local package."
+            )
+            pip_args.remove("--editable")
 
         try:
             with animate(
