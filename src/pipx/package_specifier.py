@@ -16,9 +16,9 @@ from pipx.util import PipxError
 
 
 class ParsedPackage(NamedTuple):
-    valid_pep508: bool
-    valid_url: bool
-    valid_local_path: bool
+    valid_pep508: Optional[Requirement]
+    valid_url: Optional[str]
+    valid_local_path: Optional[str]
 
 
 def _parse_specifier(package_spec: str) -> ParsedPackage:
@@ -42,19 +42,10 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
         package_req = Requirement(package_spec)
     except InvalidRequirement:
         # not a valid PEP508 package specification
-        valid_pep508 = False
+        valid_pep508 = None
     else:
         # valid PEP508 package specification
         valid_pep508 = package_req
-        if package_req.url:
-            package_or_url = package_req.url
-        else:
-            if package_req.extras:
-                package_or_url = canonicalize_name(
-                    package_req.name + "[" + ",".join(sorted(package_req.extras)) + "]"
-                )
-            else:
-                package_or_url = canonicalize_name(package_req.name)
 
     # NOTE: packaging currently (2020-07-19) does basic syntax checks on the URL.
     #   Some examples of what it will not catch:
@@ -100,20 +91,19 @@ def parse_specifier_for_metadata(package_spec: str) -> str:
     * Strip any markers (e.g. python_version > 3.4)
     * Convert local paths to absolute paths
     """
-    parsed_package = _parse_specifier(package_spec).package_or_url
+    parsed_package = _parse_specifier(package_spec)
     if parsed_package.valid_pep508 is not None:
         if parsed_package.valid_pep508.url:
             package_or_url = parsed_package.valid_pep508.url
         else:
+            package_or_url = canonicalize_name(parsed_package.valid_pep508.name)
             if parsed_package.valid_pep508.extras:
-                package_or_url = canonicalize_name(
-                    parsed_package.valid_pep508.name
+                package_or_url = (
+                    package_or_url
                     + "["
                     + ",".join(sorted(parsed_package.valid_pep508.extras))
                     + "]"
                 )
-            else:
-                package_or_url = canonicalize_name(parsed_package.valid_pep508.name)
     elif parsed_package.valid_url is not None:
         package_or_url = parsed_package.valid_url
     elif parsed_package.valid_local_path is not None:
