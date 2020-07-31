@@ -42,7 +42,7 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
         package_req = Requirement(package_spec)
     except InvalidRequirement:
         # not a valid PEP508 package specification
-        valid_pep508 = None
+        pass
     else:
         # valid PEP508 package specification
         valid_pep508 = package_req
@@ -55,7 +55,8 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
         try:
             package_req = Requirement("notapackagename @ " + package_spec)
         except InvalidRequirement:
-            valid_url = None
+            # not a valid url
+            pass
         else:
             valid_url = package_spec
 
