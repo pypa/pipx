@@ -81,7 +81,7 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
 
 
 def _extras_to_str(extras: Set):
-    if extras is None:
+    if not extras:
         return ""
     else:
         return "[" + ",".join(sorted(extras)) + "]"
