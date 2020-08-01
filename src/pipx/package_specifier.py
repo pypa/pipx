@@ -120,7 +120,7 @@ def parse_specifier_for_install(
 
     if "--editable" in pip_args and not parsed_package.valid_local_path:
         logging.warning(
-            "Removing --editable install option, it is disallowed for a non-local path."
+            "Ignoring --editable install option, pipx disallows it for a non-local path."
         )
         pip_args.remove("--editable")
 
