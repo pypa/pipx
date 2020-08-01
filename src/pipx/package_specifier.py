@@ -7,7 +7,7 @@
 
 import logging
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Tuple, Set
+from typing import List, NamedTuple, Optional, Set, Tuple
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
@@ -81,10 +81,10 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
 
 
 def _extras_to_str(extras: Set):
-    if not extras:
-        return ""
-    else:
+    if extras:
         return "[" + ",".join(sorted(extras)) + "]"
+    else:
+        return ""
 
 
 def package_is_local_path(package_spec: str) -> bool:
