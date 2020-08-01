@@ -7,7 +7,7 @@
 
 import logging
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Tuple
+from typing import List, NamedTuple, Optional, Tuple, Set
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
@@ -80,6 +80,13 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
     )
 
 
+def _extras_to_str(extras: Set):
+    if extras is None:
+        return ""
+    else:
+        return "[" + ",".join(sorted(extras)) + "]"
+
+
 def package_is_local_path(package_spec: str) -> bool:
     return _parse_specifier(package_spec).valid_local_path is not None
 
@@ -99,13 +106,7 @@ def parse_specifier_for_install(
             package_or_url = parsed_package.valid_pep508.url
         else:
             package_or_url = canonicalize_name(parsed_package.valid_pep508.name)
-            if parsed_package.valid_pep508.extras:
-                package_or_url = (
-                    package_or_url
-                    + "["
-                    + ",".join(sorted(parsed_package.valid_pep508.extras))
-                    + "]"
-                )
+            package_or_url += _extras_to_str(parsed_package.valid_pep508.extras)
             if parsed_package.valid_pep508.specifier:
                 package_or_url = package_or_url + str(
                     parsed_package.valid_pep508.specifier
@@ -140,13 +141,7 @@ def parse_specifier_for_metadata(package_spec: str) -> str:
             package_or_url = parsed_package.valid_pep508.url
         else:
             package_or_url = canonicalize_name(parsed_package.valid_pep508.name)
-            if parsed_package.valid_pep508.extras:
-                package_or_url = (
-                    package_or_url
-                    + "["
-                    + ",".join(sorted(parsed_package.valid_pep508.extras))
-                    + "]"
-                )
+            package_or_url += _extras_to_str(parsed_package.valid_pep508.extras)
     elif parsed_package.valid_url is not None:
         package_or_url = parsed_package.valid_url
     elif parsed_package.valid_local_path is not None:
