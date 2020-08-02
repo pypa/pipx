@@ -1,6 +1,6 @@
 import time
 
-import pytest
+import pytest  # type: ignore
 
 import pipx.animate
 from pipx.animate import (
