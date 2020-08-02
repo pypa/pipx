@@ -1,10 +1,8 @@
-import os
 import subprocess
 import sys
 from pathlib import Path
 
 import nox  # type: ignore
-
 
 # NOTE: these tests require nox to create virtual environments
 # with venv. nox currently uses virtualenv. pipx
@@ -15,12 +13,7 @@ import nox  # type: ignore
 # until this is fixed in nox. See
 # https://github.com/theacodes/nox/issues/199
 
-
-travis_python_version = os.environ.get("TRAVIS_PYTHON_VERSION")
-if travis_python_version:
-    python = [travis_python_version]
-else:
-    python = ["3.6", "3.7", "3.8"]
+python = ["3.6", "3.7", "3.8"]
 
 if sys.platform == "win32":
     # docs fail on Windows, even if `chcp.com 65001` is used
