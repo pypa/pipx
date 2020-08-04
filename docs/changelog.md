@@ -19,6 +19,7 @@ dev
 - [bugfix] Requiring userpath v1.4.1 or later so ensure Windows bug is fixed for `ensurepath` (#437)
 - [feature] log pipx version (#423)
 - [feature] `--suffix` option for `install` to allow multiple versions of same tool to be installed (#445)
+- [feature] pipx can now be used with the Windows embeddable Python distribution
 
 0.15.4.0
 

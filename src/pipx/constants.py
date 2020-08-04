@@ -3,7 +3,6 @@ import sys
 from pathlib import Path
 from textwrap import dedent
 
-DEFAULT_PYTHON = sys.executable
 DEFAULT_PIPX_HOME = Path.home() / ".local/pipx"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 PIPX_HOME = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve()

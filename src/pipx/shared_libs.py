@@ -5,7 +5,8 @@ import time
 import datetime
 
 from pipx.animate import animate
-from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_LIBS, WINDOWS
+from pipx.constants import PIPX_SHARED_LIBS, WINDOWS
+from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import get_site_packages, get_venv_paths, run
 
 SHARED_LIBS_MAX_AGE_SEC = datetime.timedelta(days=30).total_seconds()

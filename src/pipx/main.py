@@ -17,6 +17,7 @@ import argcomplete  # type: ignore
 from . import commands, constants
 from .animate import hide_cursor, show_cursor
 from .colors import bold, green
+from .interpreter import DEFAULT_PYTHON
 from .util import PipxError, mkdir
 from .venv import VenvContainer
 from .version import __version__
@@ -266,7 +267,7 @@ def _add_install(subparsers):
     )
     p.add_argument(
         "--python",
-        default=constants.DEFAULT_PYTHON,
+        default=DEFAULT_PYTHON,
         help=(
             "The Python executable used to create the Virtual Environment and run the "
             "associated app/apps. Must be v3.5+."
@@ -379,7 +380,7 @@ def _add_reinstall_all(subparsers):
     )
     p.add_argument(
         "--python",
-        default=constants.DEFAULT_PYTHON,
+        default=DEFAULT_PYTHON,
         help=(
             "The Python executable used to recreate the Virtual Environment "
             "and run the associated app/apps. Must be v3.5+."
@@ -448,7 +449,7 @@ def _add_run(subparsers):
     p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--python",
-        default=constants.DEFAULT_PYTHON,
+        default=DEFAULT_PYTHON,
         help="The Python version to run package's CLI app with. Must be v3.5+.",
     )
     add_pip_venv_args(p)

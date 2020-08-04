@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Dict, Generator, List, NamedTuple, Set
 
 from pipx.animate import animate
-from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH
+from pipx.constants import PIPX_SHARED_PTH
+from pipx.interpreter import DEFAULT_PYTHON
 from pipx.package_specifier import (
     parse_specifier_for_install,
     parse_specifier_for_metadata,
