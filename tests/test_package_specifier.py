@@ -70,10 +70,17 @@ def test_parse_specifier_for_metadata(
     "package_spec_in,pip_args_in,package_spec_expected,pip_args_expected",
     [
         ('pipx==0.15.0;python_version>="3.6"', [], "pipx==0.15.0", []),
+        ('pipx==0.15.0;python_version>="3.6"', ["--editable"], "pipx==0.15.0", []),
         (
             "git+https://github.com/cs01/nox.git@5ea70723e9e6",
             ["--editable"],
             "git+https://github.com/cs01/nox.git@5ea70723e9e6",
+            [],
+        ),
+        (
+            "https://github.com/ambv/black/archive/18.9b0.zip",
+            ["--editable"],
+            "https://github.com/ambv/black/archive/18.9b0.zip",
             [],
         ),
         ("src/pipx", ["--editable"], str(Path("src/pipx").resolve()), ["--editable"]),
