@@ -111,7 +111,7 @@ def parse_specifier_for_install(
                 package_or_url = package_or_url + str(
                     parsed_package.valid_pep508.specifier
                 )
-            if parsed_package.valid_pep508.markers:
+            if parsed_package.valid_pep508.marker:
                 logging.warning(
                     "Ignoring environment markers in package specification."
                 )
