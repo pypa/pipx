@@ -64,3 +64,22 @@ def test_parse_specifier_for_metadata(
         print(f"package_spec_in = {package_spec_in}")
         with pytest.raises(PipxError, match=r"^Unable to parse package spec"):
             package_or_url = parse_specifier_for_metadata(package_spec_in)
+
+
+@pytest.mark.parametrize(
+    "package_spec_in,pip_args_in,package_spec_expected,pip_args_expected",
+    [
+        ('pipx==0.15.0;python_version>="3.6"', [], "pipx==0.15.0", []),
+        (
+            "git+https://github.com/cs01/nox.git@5ea70723e9e6",
+            ["--editable"],
+            "git+https://github.com/cs01/nox.git@5ea70723e9e6",
+            [],
+        ),
+        ("src/pipx", ["--editable"], str(Path("src/pipx").resolve()), ["--editable"]),
+    ],
+)
+def test_parse_specifier_for_install(
+    package_spec_in, pip_args_in, package_spec_expected, pip_args_expected
+):
+    pass
