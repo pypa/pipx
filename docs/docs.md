@@ -48,10 +48,11 @@ subcommands:
                         directory (experimental).
     runpip              Run pip in an existing pipx-managed Virtual
                         Environment
-    ensurepath          Ensure directory where pipx stores apps is on your
-                        PATH environment variable. Note that running this may
-                        modify your shell's configuration file(s) such as
-                        '~/.bashrc'.
+    ensurepath          Ensure directory where pipx stores apps is in your
+                        PATH environment variable. Also if pipx was installed
+                        via `pip install --user`, ensure pipx itself is in
+                        your PATH. Note that running this may modify your
+                        shell's configuration file(s) such as '~/.bashrc'.
     completions         Print instructions on enabling shell completions for
                         pipx
 
