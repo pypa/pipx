@@ -31,7 +31,7 @@ pipx installs packages to environments created with venv. `pipx install black --
 * pipx installs packages in virtual environments and exposes their entrypoints on your PATH
 
 Example interaction:
-Install a Python interpreter with pyenv, then install a package using pipx and that new interpreter: `pipx install black --python3.7` where python3.7 was installed on the system with pyenv
+Install a Python interpreter with pyenv, then install a package using pipx and that new interpreter: `pipx install black --python python3.7` where python3.7 was installed on the system with pyenv
 
 ## pipx vs pipsi
 * pipx and pipsi both install packages in a similar way
