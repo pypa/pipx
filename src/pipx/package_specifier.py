@@ -92,7 +92,7 @@ def parse_specifier_for_install(
 
     Specifically:
     * Strip any markers (e.g. python_version > 3.4)
-    * Ensure --editable is removed for use with non-local path
+    * Ensure --editable is removed for any package_spec not a local path
     * Convert local paths to absolute paths
     """
     parsed_package = _parse_specifier(package_spec)
