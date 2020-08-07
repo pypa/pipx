@@ -16,6 +16,12 @@ EMOJI_ANIMATION_FRAMES = ["⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"
 NONEMOJI_ANIMATION_FRAMES = ["", ".", "..", "..."]
 EMOJI_FRAME_PERIOD = 0.1
 NONEMOJI_FRAME_PERIOD = 1
+MINIMUM_COLS_ALLOW_ANIMATION = 16
+
+
+def _env_supports_animation():
+    (term_cols, _) = shutil.get_terminal_size(fallback=(0, 0))
+    return stderr_is_tty and term_cols > MINIMUM_COLS_ALLOW_ANIMATION
 
 
 @contextmanager
@@ -23,8 +29,9 @@ def animate(
     message: str, do_animation: bool, *, delay: float = 0
 ) -> Generator[None, None, None]:
 
-    if not do_animation or not stderr_is_tty:
-        # no op
+    if not do_animation or not _env_supports_animation():
+        # No animation, just a single print of message
+        print(f"{message}...")
         yield
         return
 
