@@ -22,18 +22,12 @@ class ParsedPackage(NamedTuple):
 
 
 def _parse_specifier(package_spec: str) -> ParsedPackage:
-    """Parse package_spec as would be given to pip/pipx
-
-    For ParsedPackage.package_or_url:
-    * Strip any version specifiers (e.g. package == 1.5.4)
-    * Strip any markers (e.g. python_version > 3.4)
-    * Convert local paths to absolute paths
+    """Parse package_spec as would be given to pipx
     """
     # NOTE: If package_spec is valid pypi name, pip will always treat it as a
     #       pypi package, not checking for local path.
     #       We replicate pypi precedence here (only non-valid-pypi names
     #       initiate check for local path, e.g. './package-name')
-
     valid_pep508 = None
     valid_url = None
     valid_local_path = None
@@ -47,7 +41,7 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
         # valid PEP508 package specification
         valid_pep508 = package_req
 
-    # NOTE: packaging currently (2020-07-19) does basic syntax checks on the URL.
+    # NOTE: packaging currently (2020-07-19) only does basic syntax checks on URL.
     #   Some examples of what it will not catch:
     #       - invalid RCS string (e.g. "gat+https://...")
     #       - non-existent scheme (e.g. "zzzzz://...")
@@ -94,11 +88,12 @@ def package_is_local_path(package_spec: str) -> bool:
 def parse_specifier_for_install(
     package_spec: str, pip_args: List[str]
 ) -> Tuple[str, List[str]]:
-    """Return package_or_url suitable for pipx install
+    """Return package_or_url and pip_args suitable for pip install
 
     Specifically:
     * Strip any markers (e.g. python_version > 3.4)
-    * Ensure --editable is not used with non-local path
+    * Ensure --editable is removed for use with non-local path
+    * Convert local paths to absolute paths
     """
     parsed_package = _parse_specifier(package_spec)
     if parsed_package.valid_pep508 is not None:
