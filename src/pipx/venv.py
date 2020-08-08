@@ -227,7 +227,7 @@ class Venv:
         installed_packages = self.list_installed_packages() - old_package_set
         if len(installed_packages) == 1:
             package = installed_packages.pop()
-            logging.info(f"Determined package name: '{package}'")
+            logging.info(f"Determined package name: {package}")
         else:
             logging.info(f"old_package_set = {old_package_set}")
             logging.info(f"install_packages = {installed_packages}")
