@@ -1,4 +1,5 @@
 dev
+- pipx now parses package specification before install.   It removes (with warning) the `--editable` install option for any package specification that is not a local path.   It also removes (with warning) any environment markers.
 - Disabled animation when we cannot determine terminal size or if the number of columns is too small. (Fixes #444)
 - Version of each injected package is now listed after name for `pipx list --include-injected`
 - Change metadata recorded from version-specified install to allow upgrades in future.  Adds pipx dependency on `packaging` package.
