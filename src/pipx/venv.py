@@ -2,7 +2,7 @@ import json
 import logging
 import pkgutil
 from pathlib import Path
-from typing import Dict, Generator, List, NamedTuple, Optional, Set
+from typing import Dict, Generator, List, NamedTuple, Set
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH
@@ -162,7 +162,7 @@ class Venv:
 
     def install_package(
         self,
-        package: Optional[str],  # if None, will be determined in this function
+        package: str,
         package_or_url: str,
         pip_args: List[str],
         include_dependencies: bool,
@@ -176,11 +176,6 @@ class Venv:
         (package_or_url, pip_args) = parse_specifier_for_install(
             package_or_url, pip_args
         )
-
-        if package is None:
-            # If no package name is supplied, install only main package
-            #   first in order to see what its name is
-            package = self.install_package_no_deps(package_or_url, pip_args)
 
         try:
             with animate(
