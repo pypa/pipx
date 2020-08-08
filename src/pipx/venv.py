@@ -169,17 +169,18 @@ class Venv:
         include_apps: bool,
         is_main_package: bool,
     ) -> None:
-
         if pip_args is None:
             pip_args = []
+
+        # check syntax and clean up spec and pip_args
+        (package_or_url, pip_args) = parse_specifier_for_install(
+            package_or_url, pip_args
+        )
+
         if package is None:
             # If no package name is supplied, install only main package
             #   first in order to see what its name is
             package = self.install_package_no_deps(package_or_url, pip_args)
-
-        (package_or_url, pip_args) = parse_specifier_for_install(
-            package_or_url, pip_args
-        )
 
         try:
             with animate(
