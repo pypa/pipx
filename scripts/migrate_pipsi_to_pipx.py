@@ -13,17 +13,17 @@ import sys
 
 def main():
     if not which("pipx"):
-        exit("pipx must be installed to migrate from pipsi to pipx")
+        sys.exit("pipx must be installed to migrate from pipsi to pipx")
 
     if not sys.stdout.isatty():
-        exit("Must be run from a terminal, not a script")
+        sys.exit("Must be run from a terminal, not a script")
 
     pipsi_home = os.environ.get("PIPSI_HOME", os.path.expanduser("~/.local/venvs/"))
     packages = [p.name for p in Path(pipsi_home).iterdir()]
 
     if not packages:
         print("No packages installed with pipsi")
-        exit(0)
+        sys.exit(0)
 
     print("Attempting to migrate the following packages from pipsi to pipx:")
     for package in packages:
@@ -34,7 +34,7 @@ def main():
         answer = input("Continue? [y/n] ")
 
     if answer == "n":
-        exit(0)
+        sys.exit(0)
 
     error = False
     for package in packages:
