@@ -123,9 +123,8 @@ def parse_specifier_for_install(
     if "--editable" in pip_args and not parsed_package.valid_local_path:
         logging.warning(
             f"{hazard}  Ignoring --editable install option. pipx disallows it "
-            "for anything but a local path.  For URLs its effect is to create a new "
-            "src/ subdirectory in the pipx-managed venv directory which is not "
-            "very useful."
+            "for anything but a local path, to avoid having to create a new "
+            "src/ directory for a URL specification."
         )
         pip_args.remove("--editable")
 
