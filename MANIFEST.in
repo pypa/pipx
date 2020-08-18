@@ -1,6 +1,6 @@
 graft src
 include *.md pipx_demo.gif logo.png LICENSE
-include *.toml
+include .deepsource.toml
 
 exclude get-pipx.py makefile generate_docs.py .flake8 mkdocs.yml noxfile.py .coveragerc
 prune templates

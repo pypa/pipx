@@ -290,7 +290,7 @@ def run_post_install_actions(
         if venv.safe_to_remove():
             venv.remove_venv()
 
-        if package_metadata.app_paths_of_dependencies.keys():
+        if package_metadata.app_paths_of_dependencies:
             raise PipxError(
                 f"No apps associated with package {package}. "
                 "Try again with '--include-deps' to include apps of dependent packages, "
