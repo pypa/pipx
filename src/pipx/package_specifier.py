@@ -124,7 +124,7 @@ def parse_specifier_for_install(
         logging.warning(
             f"{hazard}  Ignoring --editable install option. pipx disallows it "
             "for anything but a local path, to avoid having to create a new "
-            "src/ directory for a URL specification."
+            "src/ directory."
         )
         pip_args.remove("--editable")
 
