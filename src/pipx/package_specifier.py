@@ -109,7 +109,7 @@ def parse_specifier_for_install(
                 )
             if parsed_package.valid_pep508.marker:
                 logging.warning(
-                    f"{hazard} Ignoring environment markers in package specification: "
+                    f"{hazard}  Ignoring environment markers in package specification: "
                     f"'{parsed_package.valid_pep508.marker}'  Use pipx options "
                     "instead."
                 )
@@ -122,7 +122,7 @@ def parse_specifier_for_install(
 
     if "--editable" in pip_args and not parsed_package.valid_local_path:
         logging.warning(
-            "{hazard} Ignoring --editable install option. pipx disallows it "
+            "{hazard}  Ignoring --editable install option. pipx disallows it "
             "for anything but a local path.  For URLs its effect is to create a new "
             "src/ subdirectory in the pipx-managed venv directory which is not "
             "very useful."
