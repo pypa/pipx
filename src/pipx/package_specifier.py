@@ -12,6 +12,7 @@ from typing import List, NamedTuple, Optional, Set, Tuple
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
+from pipx.emojies import hazard
 from pipx.util import PipxError
 
 
@@ -108,8 +109,9 @@ def parse_specifier_for_install(
                 )
             if parsed_package.valid_pep508.marker:
                 logging.warning(
-                    "Ignoring environment markers in package specification: "
-                    f"{parsed_package.valid_pep508.marker}"
+                    f"{hazard} Ignoring environment markers in package specification: "
+                    f"'{parsed_package.valid_pep508.marker}'  Use pipx options "
+                    "instead."
                 )
     elif parsed_package.valid_url is not None:
         package_or_url = parsed_package.valid_url
@@ -120,7 +122,10 @@ def parse_specifier_for_install(
 
     if "--editable" in pip_args and not parsed_package.valid_local_path:
         logging.warning(
-            "Ignoring --editable install option, pipx disallows it for a non-local path."
+            "{hazard} Ignoring --editable install option. pipx disallows it "
+            "for anything but a local path.  For URLs its effect is to create a new "
+            "src/ subdirectory in the pipx-managed venv directory which is not "
+            "very useful."
         )
         pip_args.remove("--editable")
 
