@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-import os
 import logging
-import sys
+import os
 import subprocess
+import sys
 from unittest import mock
 
 import pytest  # type: ignore
-
 from helpers import run_pipx_cli
 
 import pipx.main
@@ -123,4 +122,4 @@ def test_package_determination(
     run_pipx_cli(["run", "--verbose", "--spec", package_or_url, "--"] + app_appargs)
 
     assert "Cannot determine package name" not in caplog.text
-    assert f"Determined package name: '{package}'" in caplog.text
+    assert f"Determined package name: {package}" in caplog.text

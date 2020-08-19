@@ -14,10 +14,10 @@ import userpath  # type: ignore
 from pipx import constants
 from pipx.colors import bold, red
 from pipx.emojies import hazard, stars
-from pipx.package_specifier import valid_pypi_name
+from pipx.package_specifier import parse_specifier_for_install, valid_pypi_name
+from pipx.pipx_metadata_file import PackageInfo
 from pipx.util import WINDOWS, PipxError, mkdir, rmdir
 from pipx.venv import Venv
-from pipx.pipx_metadata_file import PackageInfo
 
 
 def expose_apps_globally(
@@ -244,15 +244,18 @@ def package_name_from_spec(
 ) -> str:
     start_time = time.time()
 
-    # shortcut if valid PyPI name and not a local path
+    # shortcut if valid PyPI name
     pypi_name = valid_pypi_name(package_spec)
-    if pypi_name is not None and not Path(package_spec).exists():
+    if pypi_name is not None:
         # NOTE: if pypi name and installed package name differ, this means pipx
         #       will use the pypi name
         package_name = pypi_name
         logging.info(f"Determined package name: {package_name}")
         logging.info(f"Package name determined in {time.time()-start_time:.1f}s")
         return package_name
+
+    # check syntax and clean up spec and pip_args
+    (package_spec, pip_args) = parse_specifier_for_install(package_spec, pip_args)
 
     with tempfile.TemporaryDirectory() as temp_venv_dir:
         venv = Venv(Path(temp_venv_dir), python=python, verbose=verbose)
