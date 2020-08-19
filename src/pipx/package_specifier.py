@@ -109,9 +109,10 @@ def parse_specifier_for_install(
                 )
             if parsed_package.valid_pep508.marker:
                 logging.warning(
-                    f"{hazard}  Ignoring environment markers in package specification "
-                    f"({parsed_package.valid_pep508.marker}). Use pipx options "
-                    "to specify this type of information."
+                    f"{hazard}  Ignoring environment markers "
+                    f"({parsed_package.valid_pep508.marker}) in package "
+                    "specification. Use pipx options to specify this type of "
+                    "information."
                 )
     elif parsed_package.valid_url is not None:
         package_or_url = parsed_package.valid_url
