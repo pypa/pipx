@@ -79,7 +79,7 @@ def test_parse_specifier_for_metadata(
             [],
             "pipx==0.15.0",
             [],
-            'Ignoring environment markers (python_version >= "3.6") in package specification.',
+            'Ignoring environment markers (python_version >= "3.6") in package',
         ),
         (
             "pipx==0.15.0",

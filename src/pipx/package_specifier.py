@@ -6,6 +6,7 @@
 #   <pypi_package_name><version_specifier>
 
 import logging
+import textwrap
 from pathlib import Path
 from typing import List, NamedTuple, Optional, Set, Tuple
 
@@ -109,10 +110,13 @@ def parse_specifier_for_install(
                 )
             if parsed_package.valid_pep508.marker:
                 logging.warning(
-                    f"{hazard}  Ignoring environment markers "
-                    f"({parsed_package.valid_pep508.marker}) in package "
-                    "specification. Use pipx options to specify this type of "
-                    "information."
+                    textwrap.fill(
+                        f"{hazard}  Ignoring environment markers "
+                        f"({parsed_package.valid_pep508.marker}) in package "
+                        "specification. Use pipx options to specify this type of "
+                        "information.",
+                        subsequent_indent="    ",
+                    )
                 )
     elif parsed_package.valid_url is not None:
         package_or_url = parsed_package.valid_url
@@ -123,9 +127,12 @@ def parse_specifier_for_install(
 
     if "--editable" in pip_args and not parsed_package.valid_local_path:
         logging.warning(
-            f"{hazard}  Ignoring --editable install option. pipx disallows it "
-            "for anything but a local path, to avoid having to create a new "
-            "src/ directory."
+            textwrap.fill(
+                f"{hazard}  Ignoring --editable install option. pipx disallows it "
+                "for anything but a local path, to avoid having to create a new "
+                "src/ directory.",
+                subsequent_indent="    ",
+            )
         )
         pip_args.remove("--editable")
 
