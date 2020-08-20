@@ -1,25 +1,14 @@
 import logging
-from pathlib import Path
 import site
 import sys
 import textwrap
-from typing import Tuple, Optional
+from pathlib import Path
+from typing import Optional, Tuple
 
 import userpath  # type: ignore
-from pipx.emojies import stars
+
 from pipx import constants
-
-
-def wrap_indent(text: str) -> str:
-    text_wrapped = textwrap.wrap(text)
-    if len(text_wrapped) > 1:
-        return (
-            text_wrapped[0]
-            + "\n"
-            + textwrap.indent("\n".join(text_wrapped[1:]), "    ")
-        )
-    else:
-        return text_wrapped[0]
+from pipx.emojies import stars
 
 
 def get_pipx_user_bin_path() -> Optional[Path]:
@@ -71,22 +60,28 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
     if force or (not in_current_path and not need_shell_restart):
         userpath.append(location_str)
         print(
-            wrap_indent(
-                f"Success! Added {location_str} to the PATH environment variable."
+            textwrap.fill(
+                f"Success! Added {location_str} to the PATH environment variable.",
+                subsequent_indent="    ",
             )
         )
         path_added = True
         need_shell_restart = userpath.need_shell_restart(location_str)
     elif not in_current_path and need_shell_restart:
         print(
-            wrap_indent(
+            textwrap.fill(
                 f"{location_str} has been been added to PATH, but you "
                 "need to open a new terminal or re-login for this PATH "
-                "change to take effect."
+                "change to take effect.",
+                subsequent_indent="    ",
             )
         )
     else:
-        print(wrap_indent(f"{location_str} is already in PATH."))
+        print(
+            textwrap.fill(
+                f"{location_str} is already in PATH.", subsequent_indent="    "
+            )
+        )
 
     return (path_added, need_shell_restart)
 
