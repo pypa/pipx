@@ -2,11 +2,14 @@ import json
 import logging
 import pkgutil
 from pathlib import Path
-from typing import Dict, Generator, List, NamedTuple, Optional, Set
+from typing import Dict, Generator, List, NamedTuple, Set
 
 from pipx.animate import animate
 from pipx.constants import DEFAULT_PYTHON, PIPX_SHARED_PTH
-from pipx.package_specifier import parse_specifier_for_metadata
+from pipx.package_specifier import (
+    parse_specifier_for_install,
+    parse_specifier_for_metadata,
+)
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 from pipx.shared_libs import shared_libs
 from pipx.util import (
@@ -159,20 +162,20 @@ class Venv:
 
     def install_package(
         self,
-        package: Optional[str],  # if None, will be determined in this function
+        package: str,
         package_or_url: str,
         pip_args: List[str],
         include_dependencies: bool,
         include_apps: bool,
         is_main_package: bool,
     ) -> None:
-
         if pip_args is None:
             pip_args = []
-        if package is None:
-            # If no package name is supplied, install only main package
-            #   first in order to see what its name is
-            package = self.install_package_no_deps(package_or_url, pip_args)
+
+        # check syntax and clean up spec and pip_args
+        (package_or_url, pip_args) = parse_specifier_for_install(
+            package_or_url, pip_args
+        )
 
         try:
             with animate(
@@ -224,7 +227,7 @@ class Venv:
         installed_packages = self.list_installed_packages() - old_package_set
         if len(installed_packages) == 1:
             package = installed_packages.pop()
-            logging.info(f"Determined package name: '{package}'")
+            logging.info(f"Determined package name: {package}")
         else:
             logging.info(f"old_package_set = {old_package_set}")
             logging.info(f"install_packages = {installed_packages}")
