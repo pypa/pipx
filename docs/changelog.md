@@ -1,7 +1,7 @@
-dev
+0.15.5.0
 - pipx now parses package specification before install.   It removes (with warning) the `--editable` install option for any package specification that is not a local path.   It also removes (with warning) any environment markers.
 - Disabled animation when we cannot determine terminal size or if the number of columns is too small. (Fixes #444)
-- Version of each injected package is now listed after name for `pipx list --include-injected`
+- [feature] Version of each injected package is now listed after name for `pipx list --include-injected`
 - Change metadata recorded from version-specified install to allow upgrades in future.  Adds pipx dependency on `packaging` package.
 - [bugfix] Prevent python error in case where package has no pipx metadata and advise user how to fix.
 - [feature] `ensurepath` now also ensures that pip user binary path containing pipx itself is in user's PATH if pipx was installed using `pip install --user`.
