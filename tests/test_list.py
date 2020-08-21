@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
 from helpers import run_pipx_cli
+
 from pipx import constants, util
 
 
