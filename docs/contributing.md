@@ -103,7 +103,7 @@ nox -s publish_docs
 ## Releasing New `pipx` Versions
 To create a new release
 
-* update pipx's version in `main.py` and regenerate documentation
+* update pipx's version in `src/pipx/version.py` and regenerate documentation
 * make sure the changelog is updated
 
 Finally, run
