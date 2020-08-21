@@ -75,7 +75,7 @@ nox -s lint
 ```
 
 ## Testing pipx on Continuous Integration builds
-When you push a new git branch, tests will automatically be run against your code as defined in `.travis`.
+When you push a new git branch, tests will automatically be run against your code as defined in `.github/workflows/on-push.yml`.
 
 ## Building Documentation
 
