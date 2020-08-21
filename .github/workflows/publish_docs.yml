@@ -4,21 +4,31 @@
 name: Publish Docs
 
 on:
-  workflow_dispatch:
-    inputs:
-      name:
-        description: 'Person to greet'
-        required: true
-        default: 'Mona the Octocat'
-      home:
-        description: 'location'
-        required: false
+  [workflow_dispatch]
 
 jobs:
-  say_hello:
+  build_publish_docs:
     runs-on: ubuntu-latest
-    steps:
-    - run: |
-        echo "Hello ${{ github.event.inputs.name }}!"
-        echo "- in ${{ github.event.inputs.home }}!"
-    
+    strategy:
+      matrix:
+        python-version: [3.8]
+
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install nox
+      run: |
+        python -m pip install --upgrade pip
+        pip install nox
+    - name: Build and Publish Docs
+      steps:
+        - name: Build Docs
+          run: |
+            nox --error-on-missing-interpreters --non-interactive --session docs
+        - name: Publish Docs
+          if: ${{ success() }}
+          run: |
+            nox --error-on-missing-interpreters --non-interactive --session publish_docs
