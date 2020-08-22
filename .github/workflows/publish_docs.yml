@@ -1,34 +1,31 @@
-# https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#manually-running-a-workflow
-# https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/
-
-name: Publish Docs
-
+name: Publish docs via GitHub Pages
 on:
   [workflow_dispatch]
 
 jobs:
-  build_publish_docs:
+  build:
+    name: Deploy docs
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: [3.8]
 
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install nox
-      run: |
-        python -m pip install --upgrade pip
-        pip install nox
-    - name: Build and Publish Docs
-      steps:
-        - name: Build Docs
-          run: |
-            nox --error-on-missing-interpreters --non-interactive --session docs
-        - name: Publish Docs
-          if: ${{ success() }}
-          run: |
-            nox --error-on-missing-interpreters --non-interactive --session publish_docs
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install nox
+        run: |
+          python -m pip install --upgrade pip
+          pip install nox
+      - name: Build Docs
+        run: |
+          nox --error-on-missing-interpreters --non-interactive --session docs
+      - name: Deploy docs
+        if: ${{ success() }}
+        uses: mhausenblas/mkdocs-deploy-gh-pages@1.13
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
