@@ -1,4 +1,5 @@
 0.15.5.0
+
 - pipx now parses package specification before install.   It removes (with warning) the `--editable` install option for any package specification that is not a local path.   It also removes (with warning) any environment markers.
 - Disabled animation when we cannot determine terminal size or if the number of columns is too small. (Fixes #444)
 - [feature] Version of each injected package is now listed after name for `pipx list --include-injected`
@@ -11,6 +12,7 @@
 - [feature] `--suffix` option for `install` to allow multiple versions of same tool to be installed (#445)
 
 0.15.4.0
+
 - [feature] `list` now has a new option `--include-injected` to show the injected packages in the main apps
 - [bugfix] Fixed bug that can cause crash when installing an app
 
