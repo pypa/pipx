@@ -105,8 +105,8 @@ To create a new release
 
 * Update pipx's version in `src/pipx/version.py` and regenerate documentation.
 * Make sure the changelog is updated
-  * Add new version to head the latest block of changes (instead of "dev").
-  * Make sure all notable changes are listed.
+    * Add new version to head the latest block of changes (instead of "dev").
+    * Make sure all notable changes are listed.
 
 Finally, run
 ```bash
