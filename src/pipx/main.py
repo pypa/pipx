@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
 
 """The command line interface to pipx"""
@@ -6,21 +5,21 @@
 import argparse
 import functools
 import logging
-import shlex
 import re
+import shlex
 import sys
 import textwrap
 import urllib.parse
 from typing import Dict, List
 
 import argcomplete  # type: ignore
+
+from . import commands, constants
+from .animate import hide_cursor, show_cursor
 from .colors import bold, green
-from . import commands
-from . import constants
 from .util import PipxError, mkdir
 from .venv import VenvContainer
 from .version import __version__
-from .animate import hide_cursor, show_cursor
 
 
 def print_version() -> None:
