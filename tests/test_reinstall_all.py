@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import sys
 
 from helpers import run_pipx_cli

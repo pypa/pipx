@@ -1,11 +1,8 @@
-#!/usr/bin/env python3
-
 import json
 import sys
 import traceback
 from pathlib import Path
 from typing import Dict, List, Optional
-
 
 try:
     WindowsError

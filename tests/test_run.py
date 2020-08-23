@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import logging
 import os
 import subprocess
@@ -6,9 +5,9 @@ import sys
 from unittest import mock
 
 import pytest  # type: ignore
-from helpers import run_pipx_cli
 
 import pipx.main
+from helpers import run_pipx_cli
 
 
 def test_help_text(pipx_temp_env, monkeypatch, capsys):
