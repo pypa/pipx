@@ -9,7 +9,9 @@ from pipx import main
 
 def assert_not_in_virtualenv():
     assert not hasattr(sys, "real_prefix"), "Tests cannot run under virtualenv"
-    assert getattr(sys, "base_prefix", sys.prefix) != sys.prefix, "Tests require venv"
+    # venv has been part of the stdlib since python3.3 https://www.python.org/dev/peps/pep-0405/
+    assert getattr(sys, "base_prefix", sys.prefix) != sys.prefix or \
+        sys.version_info >= (3,3), "Tests require venv"
 
 
 def run_pipx_cli(pipx_args: List[str]):
