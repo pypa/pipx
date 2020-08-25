@@ -8,6 +8,8 @@ from pipx.package_specifier import (
 )
 from pipx.util import PipxError
 
+TEST_DATA_PATH = "./testdata/test_package_specifier"
+
 
 # TODO: Make sure git+ works with tests, correct in test_install as well
 @pytest.mark.parametrize(
@@ -106,6 +108,34 @@ def test_parse_specifier_for_metadata(
             "src/pipx",
             ["--editable"],
             str(Path("src/pipx").resolve()),
+            ["--editable"],
+            None,
+        ),
+        (
+            TEST_DATA_PATH + "/local_extras",
+            [],
+            str(Path(TEST_DATA_PATH + "/local_extras").resolve),
+            [],
+            None,
+        ),
+        (
+            TEST_DATA_PATH + "/local_extras[cow]",
+            [],
+            str(Path(TEST_DATA_PATH + "/local_extras").resolve) + "[cow]",
+            [],
+            None,
+        ),
+        (
+            TEST_DATA_PATH + "/local_extras",
+            ["--editable"],
+            str(Path(TEST_DATA_PATH + "/local_extras").resolve),
+            ["--editable"],
+            None,
+        ),
+        (
+            TEST_DATA_PATH + "/local_extras[cow]",
+            ["--editable"],
+            str(Path(TEST_DATA_PATH + "/local_extras").resolve) + "[cow]",
             ["--editable"],
             None,
         ),
