@@ -72,12 +72,12 @@ jobs:
       id: pip-cache
       run: |
         echo "::set-output name=dir::$(pip cache dir)"
-    - name: Persistent pip cache
+    - name: Persistent Github pip cache
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip
-    # macos: Install wheel to allow wheel-building for nox and regex
+        key: ${{ runner.os }}-pip${{ matrix.python-version }}
+    # macOS: Install wheel to allow wheel-building for nox and regex
     # Build regex wheel into pip cache, so future pipx installs don't compile.
     # This avoids future compile errors in nox tests because of missing
     #   header files.
