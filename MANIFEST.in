@@ -1,7 +1,7 @@
 graft src
 include *.md pipx_demo.gif logo.png LICENSE
 
-exclude .isort.cfg .pre-commit-config.yaml get-pipx.py makefile generate_docs.py .flake8 mkdocs.yml noxfile.py .coveragerc
+exclude testdata .isort.cfg .pre-commit-config.yaml get-pipx.py makefile generate_docs.py .flake8 mkdocs.yml noxfile.py .coveragerc
 prune templates
 prune tests
 prune docs
