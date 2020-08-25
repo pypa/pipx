@@ -4,6 +4,7 @@
 #   <URL>
 #   <pypi_package_name>
 #   <pypi_package_name><version_specifier>
+#   <local_path>
 
 import logging
 import re
