@@ -25,6 +25,16 @@ class ParsedPackage(NamedTuple):
     valid_local_path: Optional[str]
 
 
+def _split_path_extras(package_spec: str) -> Tuple[str, str]:
+    """Returns (path, extras_string)
+    """
+    package_spec_extras_re = re.search(r"(.+)(\[.+\])", package_spec)
+    if package_spec_extras_re:
+        return (package_spec_extras_re.group(1), package_spec_extras_re.group(2))
+    else:
+        return (package_spec, "")
+
+
 def _parse_specifier(package_spec: str) -> ParsedPackage:
     """Parse package_spec as would be given to pipx
     """
@@ -59,23 +69,16 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
             valid_url = package_spec
 
     if not valid_pep508 and not valid_url:
-        # strip any extras if they exist
-        package_spec_extras_re = re.search(r"(.+)(\[.+\])", package_spec)
-        if package_spec_extras_re:
-            package_spec_path = package_spec_extras_re.group(1)
-            package_spec_extras = package_spec_extras_re.group(2)
-        else:
-            package_spec_path = package_spec
-            package_spec_extras = ""
+        (package_path_str, package_extras_str) = _split_path_extras(package_spec)
 
-        package_path = Path(package_spec_path)
+        package_path = Path(package_path_str)
         try:
             package_path_exists = package_path.exists()
         except OSError:
             package_path_exists = False
 
         if package_path_exists:
-            valid_local_path = str(package_path.resolve()) + package_spec_extras
+            valid_local_path = str(package_path.resolve()) + package_extras_str
 
     if not valid_pep508 and not valid_url and not valid_local_path:
         raise PipxError(f"Unable to parse package spec: {package_spec}")
