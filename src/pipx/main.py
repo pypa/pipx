@@ -556,7 +556,9 @@ def setup(args):
     logging.info(f"Default python interpreter is {constants.DEFAULT_PYTHON}")
 
     if not constants.DEFAULT_PYTHON:
-        raise PipxError(f"Default python interpreter '{constants.DEFAULT_PYTHON}' is invalid")
+        raise PipxError(
+            f"Default python interpreter '{constants.DEFAULT_PYTHON}' is invalid"
+        )
 
     mkdir(constants.PIPX_LOCAL_VENVS)
     mkdir(constants.LOCAL_BIN_DIR)
