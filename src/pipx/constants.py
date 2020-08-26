@@ -1,11 +1,10 @@
 import os
 import sys
 from pathlib import Path
+from shutil import which
 from textwrap import dedent
 
-DEFAULT_PYTHON = str(
-    Path(os.environ.get("PIPX_DEFAULT_PYTHON", sys.executable)).resolve()
-)
+DEFAULT_PYTHON = which(os.environ.get("PIPX_DEFAULT_PYTHON", sys.executable))
 DEFAULT_PIPX_HOME = Path.home() / ".local/pipx"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 PIPX_HOME = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve()

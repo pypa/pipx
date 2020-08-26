@@ -554,6 +554,11 @@ def setup(args):
         logging.basicConfig(level=logging.WARNING, format="%(message)s")
 
     logging.info(f"pipx version is {__version__}")
+    logging.info(f"Default python interpreter is {constants.DEFAULT_PYTHON}")
+
+    if not constants.DEFAULT_PYTHON:
+        raise PipxError(f"Default python interpreter '{constants.DEFAULT_PYTHON}' is invalid")
+
     mkdir(constants.PIPX_LOCAL_VENVS)
     mkdir(constants.LOCAL_BIN_DIR)
     mkdir(constants.PIPX_VENV_CACHEDIR)
