@@ -113,7 +113,6 @@ def get_venv_args(parsed_args: Dict) -> List[str]:
 
 
 def run_pipx_command(args: argparse.Namespace):  # noqa: C901
-    setup(args)
     verbose = args.verbose if "verbose" in args else False
     pip_args = get_pip_args(vars(args))
     venv_args = get_venv_args(vars(args))
