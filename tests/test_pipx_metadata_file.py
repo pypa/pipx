@@ -1,9 +1,10 @@
 from pathlib import Path
+
 import pytest  # type: ignore
 
-from helpers import assert_not_in_virtualenv, run_pipx_cli
 import pipx.constants
-from pipx.pipx_metadata_file import PipxMetadata, PackageInfo
+from helpers import assert_not_in_virtualenv, run_pipx_cli
+from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 from pipx.util import PipxError
 
 assert_not_in_virtualenv()
@@ -57,7 +58,7 @@ BLACK_PACKAGE_REF = PackageInfo(
     app_paths=[Path("black/bin/black")],  # Placeholder, not real path
     apps_of_dependencies=[],
     app_paths_of_dependencies={},
-    package_version="19.10b3",
+    package_version="19.10b0",
 )
 
 
@@ -149,7 +150,7 @@ def test_package_inject(monkeypatch, tmp_path, pipx_temp_env):
     pipx_venvs_dir = pipx.constants.PIPX_HOME / "venvs"
 
     run_pipx_cli(["install", "pycowsay"])
-    run_pipx_cli(["inject", "pycowsay", "black"])
+    run_pipx_cli(["inject", "pycowsay", "black==19.10b0"])
     assert (pipx_venvs_dir / "pycowsay" / "pipx_metadata.json").is_file()
 
     pipx_metadata = PipxMetadata(pipx_venvs_dir / "pycowsay")
