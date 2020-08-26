@@ -4,8 +4,10 @@
 #   <URL>
 #   <pypi_package_name>
 #   <pypi_package_name><version_specifier>
+#   <local_path>
 
 import logging
+import re
 import textwrap
 from pathlib import Path
 from typing import List, NamedTuple, Optional, Set, Tuple
@@ -21,6 +23,16 @@ class ParsedPackage(NamedTuple):
     valid_pep508: Optional[Requirement]
     valid_url: Optional[str]
     valid_local_path: Optional[str]
+
+
+def _split_path_extras(package_spec: str) -> Tuple[str, str]:
+    """Returns (path, extras_string)
+    """
+    package_spec_extras_re = re.search(r"(.+)(\[.+\])", package_spec)
+    if package_spec_extras_re:
+        return (package_spec_extras_re.group(1), package_spec_extras_re.group(2))
+    else:
+        return (package_spec, "")
 
 
 def _parse_specifier(package_spec: str) -> ParsedPackage:
@@ -57,14 +69,16 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
             valid_url = package_spec
 
     if not valid_pep508 and not valid_url:
-        package_path = Path(package_spec)
+        (package_path_str, package_extras_str) = _split_path_extras(package_spec)
+
+        package_path = Path(package_path_str)
         try:
             package_path_exists = package_path.exists()
         except OSError:
             package_path_exists = False
 
         if package_path_exists:
-            valid_local_path = str(package_path.resolve())
+            valid_local_path = str(package_path.resolve()) + package_extras_str
 
     if not valid_pep508 and not valid_url and not valid_local_path:
         raise PipxError(f"Unable to parse package spec: {package_spec}")

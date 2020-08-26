@@ -1,3 +1,7 @@
+dev
+
+- [bugfix] Fixed regression of 0.15.5.0 which erroneously made installing from a local path with package extras not possible.
+
 0.15.5.0
 
 - pipx now parses package specification before install.   It removes (with warning) the `--editable` install option for any package specification that is not a local path.   It also removes (with warning) any environment markers.
