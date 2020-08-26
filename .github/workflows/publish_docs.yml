@@ -1,0 +1,33 @@
+name: Publish docs via GitHub Pages
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Deploy docs
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8]
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install nox
+        run: |
+          python -m pip install --upgrade pip
+          pip install nox
+      - name: Build Docs
+        run: |
+          nox --error-on-missing-interpreters --non-interactive --session docs
+      - name: Deploy docs
+        if: ${{ success() }}
+        uses: mhausenblas/mkdocs-deploy-gh-pages@1.13
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
