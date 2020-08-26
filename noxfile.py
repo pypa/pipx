@@ -25,7 +25,7 @@ nox.options.reuse_existing_virtualenvs = True
 
 doc_dependencies = [".", "jinja2", "mkdocs", "mkdocs-material"]
 lint_dependencies = [
-    "black",
+    "black==19.10b0",
     "flake8",
     "flake8-bugbear",
     "mypy",
