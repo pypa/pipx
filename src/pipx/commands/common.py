@@ -160,7 +160,7 @@ def get_package_summary(
     )
     exposed_binary_names = sorted(p.name for p in exposed_app_paths)
     unavailable_binary_names = sorted(
-        set(add_suffix(name, suffix) for name in package_metadata.apps)
+        {add_suffix(name, suffix) for name in package_metadata.apps}
         - set(exposed_binary_names)
     )
     # The following is to satisfy mypy that python_version is str and not
@@ -293,7 +293,7 @@ def run_post_install_actions(
         if venv.safe_to_remove():
             venv.remove_venv()
 
-        if len(package_metadata.app_paths_of_dependencies.keys()):
+        if package_metadata.app_paths_of_dependencies:
             raise PipxError(
                 f"No apps associated with package {package}. "
                 "Try again with '--include-deps' to include apps of dependent packages, "

@@ -66,14 +66,23 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Get pip cache dir
+      id: pip-cache
+      run: |
+        echo "::set-output name=dir::$(pip cache dir)"
+    - name: Persistent Github pip cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: ${{ runner.os }}-pip${{ matrix.python-version }}
     - name: Upgrade pip
       run: python -m pip install --upgrade pip
-    # macos: Install wheel to allow wheel-building for nox and regex
+    # macOS: Install wheel to allow wheel-building for nox and regex
     # Build regex wheel into pip cache, so future pipx installs don't compile.
     # This avoids future compile errors in nox tests because of missing
     #   header files.
     - name: Install wheel and build wheel for regex to pip cache
-      if: ${{ matrix.os == 'macos-latest' }}
+      if: ${{ runner.os == 'macOS' }}
       run: |
         python -m pip install wheel
         python -m pip install regex
