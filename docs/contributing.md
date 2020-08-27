@@ -101,17 +101,22 @@ nox -s publish_docs
 ```
 
 ## Releasing New `pipx` Versions
-To create a new release
+### Pre-release
 
-* Update pipx's version in `src/pipx/version.py` and regenerate documentation.
+* Update pipx's version in `src/pipx/version.py` to the new version
 * Make sure the changelog is updated
     * Add new version to head the latest block of changes (instead of "dev").
     * Make sure all notable changes are listed.
+* Regenerate documentation.
 
-Finally, run
+### Release
+Finally, from a clone of the main pipxproject pipx repo (not a fork), run
 ```bash
 nox -s publish
-nox -s publish_docs
 ```
 
 and create a new release in GitHub.
+
+### Post-release
+* Update pipx's version in `src/pipx/version.py` by adding a suffix `"dev0"` for unreleased development.
+* Update the changelog to start a new section at the top temporarily entitled `dev`
