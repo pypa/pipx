@@ -119,4 +119,4 @@ and create a new release in GitHub.
 
 ### Post-release
 * Update pipx's version in `src/pipx/version.py` by adding a suffix `"dev0"` for unreleased development.
-* Update the changelog to start a new section at the top temporarily entitled `dev`
+* Update the changelog to start a new section at the top entitled `dev`
