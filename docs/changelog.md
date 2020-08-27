@@ -1,4 +1,4 @@
-dev
+0.15.5.1
 
 - [bugfix] Fixed regression of 0.15.5.0 which erroneously made installing from a local path with package extras not possible.
 
