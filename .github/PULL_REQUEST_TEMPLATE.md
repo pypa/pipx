@@ -1,5 +1,5 @@
 <!-- add an 'x' in the brackets below -->
-[] I have added an entry to `docs/changelog.md`
+* [ ] I have added an entry to `docs/changelog.md`
 
 ## Summary of changes
 

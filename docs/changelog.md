@@ -1,5 +1,6 @@
 dev
 
+- [docs] Update license
 
 
 0.15.5.1
