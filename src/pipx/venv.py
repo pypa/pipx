@@ -2,7 +2,7 @@ import json
 import logging
 import pkgutil
 from pathlib import Path
-from typing import Dict, Generator, List, NamedTuple, Set
+from typing import Dict, Generator, List, NamedTuple, Optional, Set
 
 from pipx.animate import animate
 from pipx.constants import PIPX_SHARED_PTH
@@ -121,6 +121,18 @@ class Venv:
             ] = self.pipx_metadata.main_package
         return return_dict
 
+    def get_package_metadata(self, package: Optional[str] = None) -> PackageInfo:
+        if package is None or package == self.root.name:
+            return self.pipx_metadata.main_package
+
+        try:
+            return self.package_metadata[package]
+        except KeyError:
+            raise PipxError(
+                f"Package is not installed. Expected to find package {package}, "
+                "but it does not exist."
+            )
+
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
             cmd = [self.python, "-m", "venv", "--without-pip"]
@@ -169,6 +181,7 @@ class Venv:
         include_dependencies: bool,
         include_apps: bool,
         is_main_package: bool,
+        suffix: str = "",
     ) -> None:
         if pip_args is None:
             pip_args = []
@@ -199,6 +212,7 @@ class Venv:
             include_dependencies=include_dependencies,
             include_apps=include_apps,
             is_main_package=is_main_package,
+            suffix=suffix,
         )
 
         # Verify package installed ok
@@ -285,6 +299,7 @@ class Venv:
         include_dependencies: bool,
         include_apps: bool,
         is_main_package: bool,
+        suffix: str = "",
     ) -> None:
         venv_package_metadata = self.get_venv_metadata_for_package(package)
         package_info = PackageInfo(
@@ -298,6 +313,7 @@ class Venv:
             apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
             app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
             package_version=venv_package_metadata.package_version,
+            suffix=suffix or "",
         )
         if is_main_package:
             self.pipx_metadata.main_package = package_info
@@ -345,6 +361,7 @@ class Venv:
         include_dependencies: bool,
         include_apps: bool,
         is_main_package: bool,
+        suffix: str = "",
     ) -> None:
         with animate(
             f"upgrading {full_package_description(package, package_or_url)}",
@@ -359,6 +376,7 @@ class Venv:
             include_dependencies=include_dependencies,
             include_apps=include_apps,
             is_main_package=is_main_package,
+            suffix=suffix or "",
         )
 
     def _run_pip(self, cmd: List[str]) -> int:

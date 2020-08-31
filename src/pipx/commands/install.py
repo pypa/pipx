@@ -58,6 +58,7 @@ def install(
             include_dependencies=include_dependencies,
             include_apps=True,
             is_main_package=True,
+            suffix=suffix or "",
         )
         run_post_install_actions(
             venv,
@@ -66,7 +67,6 @@ def install(
             venv_dir,
             include_dependencies,
             force=force,
-            suffix=suffix,
         )
     except (Exception, KeyboardInterrupt):
         print("")

@@ -35,6 +35,7 @@ class PackageInfo(NamedTuple):
     apps_of_dependencies: List[str]
     app_paths_of_dependencies: Dict[str, List[Path]]
     package_version: str
+    suffix: str = ""
 
 
 class PipxMetadata:
@@ -100,11 +101,18 @@ class PipxMetadata:
         }
 
     def from_dict(self, input_dict: Dict[str, Any]) -> None:
-        self.main_package = PackageInfo(**input_dict["main_package"])
+        main_package_data = input_dict["main_package"]
+        if main_package_data["package"] != self.venv_dir.name:
+            # handle older suffixed packages gracefully
+            main_package_data["suffix"] = self.venv_dir.name.replace(
+                main_package_data["package"], ""
+            )
+
+        self.main_package = PackageInfo(**main_package_data)
         self.python_version = input_dict["python_version"]
         self.venv_args = input_dict["venv_args"]
         self.injected_packages = {
-            name: PackageInfo(**data)
+            f"{name}{data.get('suffix', '')}": PackageInfo(**data)
             for (name, data) in input_dict["injected_packages"].items()
         }
 

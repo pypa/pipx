@@ -1,6 +1,7 @@
 dev
 
 - [docs] Update license
+- [bugfix] Fixed regression in list, inject and upgrade commands when suffixed packages are used.
 
 
 0.15.5.1
