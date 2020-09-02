@@ -1,4 +1,5 @@
 import shutil
+import subprocess
 import sys
 import pytest  # type: ignore
 import pipx.interpreter
@@ -42,4 +43,39 @@ def test_windows_python_no_venv_no_python(monkeypatch):
         _find_default_windows_python()
 
 
-# TODO: We don't test the checks for the store Python.
+# Test the checks for the store Python.
+def test_windows_python_no_venv_store_python(monkeypatch):
+    def which(name):
+        if name == "python":
+            return "WindowsApps"
+
+    class dummy_runner:
+        def __init__(self, rc, out):
+            self.rc = rc
+            self.out = out
+
+        def __call__(self, *args, **kw):
+            class Ret:
+                pass
+
+            ret = Ret()
+            ret.returncode = self.rc
+            ret.stdout = self.out
+            return ret
+
+    monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: False)
+    monkeypatch.setattr(shutil, "which", which)
+
+    # Store version stub gives return code 9009
+    monkeypatch.setattr(subprocess, "run", dummy_runner(9009, ""))
+    with pytest.raises(PipxError):
+        _find_default_windows_python()
+
+    # Even if it doesn't, it returns no output
+    monkeypatch.setattr(subprocess, "run", dummy_runner(0, ""))
+    with pytest.raises(PipxError):
+        _find_default_windows_python()
+
+    # If it *does* pass the tests, we use it as it's not the stub
+    monkeypatch.setattr(subprocess, "run", dummy_runner(0, "3.8"))
+    assert _find_default_windows_python() == "WindowsApps"
