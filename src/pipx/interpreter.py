@@ -15,14 +15,14 @@ def has_venv() -> bool:
         return False
 
 
+# The following code was copied from https://github.com/uranusjr/pipx-standalone
+# which uses the same technique to build a completely standalone pipx
+# distribution.
+#
 # If we are running under the Windows embeddable distribution,
 # venv isn't available (and we probably don't want to use the
 # embeddable distribution as our applications' base Python anyway)
 # so we try to locate the system Python and use that instead.
-
-# This code was copied from https://github.com/uranusjr/pipx-standalone
-# which uses this technique to build a completely standalone pipx
-# distribution
 
 
 def _find_default_windows_python() -> str:
@@ -37,8 +37,10 @@ def _find_default_windows_python() -> str:
     if python is None:
         raise PipxError("no suitable Python found")
 
+    # If the path contains "WindowsApps", it's the store python
     if "WindowsApps" not in python:
         return python
+
     # Special treatment to detect Windows Store stub.
     # https://twitter.com/zooba/status/1212454929379581952
 
