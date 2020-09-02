@@ -39,6 +39,9 @@ class PackageInfo(NamedTuple):
 
 
 class PipxMetadata:
+    # Only change this if file format changes
+    __METADATA_VERSION__: str = "0.2"
+
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
         # We init this instance with reasonable fallback defaults for all
@@ -61,9 +64,6 @@ class PipxMetadata:
         self.python_version: Optional[str] = None
         self.venv_args: List[str] = []
         self.injected_packages: Dict[str, PackageInfo] = {}
-
-        # Only change this if file format changes
-        self._pipx_metadata_version: str = "0.1"
 
         if read:
             self.read()
@@ -97,7 +97,7 @@ class PipxMetadata:
             "injected_packages": {
                 name: data._asdict() for (name, data) in self.injected_packages.items()
             },
-            "pipx_metadata_version": self._pipx_metadata_version,
+            "pipx_metadata_version": self.__METADATA_VERSION__,
         }
 
     def from_dict(self, input_dict: Dict[str, Any]) -> None:
