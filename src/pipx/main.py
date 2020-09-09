@@ -7,6 +7,7 @@ import functools
 import logging
 import re
 import shlex
+from shutil import which
 import sys
 import textwrap
 import urllib.parse
@@ -555,10 +556,12 @@ def setup(args):
     logging.info(f"pipx version is {__version__}")
     logging.info(f"Default python interpreter is {constants.DEFAULT_PYTHON}")
 
-    if not constants.DEFAULT_PYTHON:
+    temp_python = which(constants.DEFAULT_PYTHON)
+    if not temp_python:
         raise PipxError(
             f"Default python interpreter '{constants.DEFAULT_PYTHON}' is invalid"
         )
+    constants.DEFAULT_PYTHON = temp_python
 
     mkdir(constants.PIPX_LOCAL_VENVS)
     mkdir(constants.LOCAL_BIN_DIR)

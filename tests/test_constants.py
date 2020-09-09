@@ -4,6 +4,8 @@ from unittest import mock
 import sys
 import pytest  # type: ignore
 
+from pipx.util import PipxError
+
 from helpers import run_pipx_cli
 
 
@@ -44,7 +46,8 @@ def test_use_emjois(monkeypatch, windows, USE_EMOJI, encoding, expected):
         assert use_emjois() is expected
 
 
-def test_default_python(monkeypatch):
+def test_default_python(monkeypatch, capsys):
     monkeypatch.setattr(constants, "DEFAULT_PYTHON", "bad_python")
-    with pytest.raises(FileNotFoundError):
-        run_pipx_cli(["install", "pycowsay"])
+    run_pipx_cli(["install", "pycowsay"])
+    captured = capsys.readouterr()
+    assert "Default python interpreter 'bad_python' is invalid" in captured.err
