@@ -4,8 +4,6 @@ from unittest import mock
 import sys
 import pytest  # type: ignore
 
-from pipx.util import PipxError
-
 from helpers import run_pipx_cli
 
 
