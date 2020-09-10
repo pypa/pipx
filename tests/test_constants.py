@@ -4,8 +4,6 @@ from unittest import mock
 import sys
 import pytest  # type: ignore
 
-from helpers import run_pipx_cli
-
 
 @pytest.mark.parametrize(
     "windows, USE_EMOJI, encoding, expected",
@@ -42,10 +40,3 @@ def test_use_emjois(monkeypatch, windows, USE_EMOJI, encoding, expected):
         if USE_EMOJI is not None:
             monkeypatch.setenv("USE_EMOJI", USE_EMOJI)
         assert use_emjois() is expected
-
-
-def test_default_python(monkeypatch, capsys):
-    monkeypatch.setattr(constants, "DEFAULT_PYTHON", "bad_python")
-    run_pipx_cli(["install", "pycowsay"])
-    captured = capsys.readouterr()
-    assert "Default python interpreter 'bad_python' is invalid" in captured.err

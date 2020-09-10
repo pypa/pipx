@@ -7,7 +7,6 @@ import functools
 import logging
 import re
 import shlex
-from shutil import which
 import sys
 import textwrap
 import urllib.parse
@@ -80,7 +79,7 @@ The default app location is {constants.DEFAULT_PIPX_BIN_DIR} and can be
 overridden by setting the environment variable `PIPX_BIN_DIR`.
 
 The default python executable used to install a package is
-{constants.DEFAULT_PYTHON} and can be overridden by setting the environment
+{DEFAULT_PYTHON} and can be overridden by setting the environment
 variable `PIPX_DEFAULT_PYTHON`.
 """
 
@@ -554,14 +553,7 @@ def setup(args):
         logging.basicConfig(level=logging.WARNING, format="%(message)s")
 
     logging.info(f"pipx version is {__version__}")
-    logging.info(f"Default python interpreter is {constants.DEFAULT_PYTHON}")
-
-    temp_python = which(constants.DEFAULT_PYTHON)
-    if not temp_python:
-        raise PipxError(
-            f"Default python interpreter '{constants.DEFAULT_PYTHON}' is invalid"
-        )
-    constants.DEFAULT_PYTHON = temp_python
+    logging.info(f"Default python interpreter is {DEFAULT_PYTHON}")
 
     mkdir(constants.PIPX_LOCAL_VENVS)
     mkdir(constants.LOCAL_BIN_DIR)

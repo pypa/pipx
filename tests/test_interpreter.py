@@ -3,7 +3,10 @@ import subprocess
 import sys
 import pytest  # type: ignore
 import pipx.interpreter
-from pipx.interpreter import _find_default_windows_python
+from pipx.interpreter import (
+    _find_default_windows_python,
+    _get_absolute_python_interpreter,
+)
 from pipx.util import PipxError
 
 
@@ -79,3 +82,13 @@ def test_windows_python_no_venv_store_python(monkeypatch):
     # If it *does* pass the tests, we use it as it's not the stub
     monkeypatch.setattr(subprocess, "run", dummy_runner(0, "3.8"))
     assert _find_default_windows_python() == "WindowsApps"
+
+
+def test_bad_env_python(monkeypatch, capsys):
+    with pytest.raises(PipxError):
+        _get_absolute_python_interpreter("bad_python")
+
+
+def test_good_env_python(monkeypatch, capsys):
+    good_exec = _get_absolute_python_interpreter(sys.executable)
+    assert good_exec == sys.executable

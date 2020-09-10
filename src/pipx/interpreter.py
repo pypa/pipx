@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 import sys
@@ -56,7 +57,23 @@ def _find_default_windows_python() -> str:
     return python  # This executable seems to work.
 
 
-if WINDOWS:
-    DEFAULT_PYTHON = _find_default_windows_python()
+def _get_sys_executable() -> str:
+    if WINDOWS:
+        return _find_default_windows_python()
+    else:
+        return sys.executable
+
+
+def _get_absolute_python_interpreter(env_python: str) -> str:
+    which_python = shutil.which(env_python)
+    if not which_python:
+        raise PipxError(f"Default python interpreter '{env_python}' is invalid")
+    return which_python
+
+
+env_default_python = os.environ.get("PIPX_DEFAULT_PYTHON")
+
+if not env_default_python:
+    DEFAULT_PYTHON = _get_sys_executable()
 else:
-    DEFAULT_PYTHON = sys.executable
+    DEFAULT_PYTHON = _get_absolute_python_interpreter(env_default_python)
