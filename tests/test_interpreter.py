@@ -84,7 +84,7 @@ def test_windows_python_no_venv_store_python(monkeypatch):
     assert _find_default_windows_python() == "WindowsApps"
 
 
-def test_bad_env_python(monkeypatch, capsys):
+def test_bad_env_python(monkeypatch):
     with pytest.raises(PipxError):
         _get_absolute_python_interpreter("bad_python")
 
