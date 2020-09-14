@@ -86,7 +86,8 @@ def _symlink_package_apps(
 ) -> None:
     for app_path in app_paths:
         app_name = app_path.name
-        symlink_path = Path(local_bin_dir / add_suffix(app_name, suffix))
+        app_name_suffixed = add_suffix(app_name, suffix)
+        symlink_path = Path(local_bin_dir / app_name_suffixed)
         if not symlink_path.parent.is_dir():
             mkdir(symlink_path.parent)
 
@@ -117,12 +118,12 @@ def _symlink_package_apps(
             )
             symlink_path.unlink()
 
-        existing_executable_on_path = which(app_name)
+        existing_executable_on_path = which(app_name_suffixed)
         symlink_path.symlink_to(app_path)
 
         if existing_executable_on_path:
             logging.warning(
-                f"{hazard}  Note: {app_name} was already on your PATH at "
+                f"{hazard}  Note: {app_name_suffixed} was already on your PATH at "
                 f"{existing_executable_on_path}"
             )
 
@@ -133,12 +134,13 @@ def get_package_summary(
     package: str = None,
     new_install: bool = False,
     include_injected: bool = False,
-    suffix: str = "",
 ) -> str:
     venv = Venv(path)
     python_path = venv.python_path.resolve()
-    if package is None:
-        package = path.name
+
+    package_metadata = venv.get_package_metadata(package)
+    package = package_metadata.package or venv.root.name
+
     if not python_path.is_file():
         return f"   package {red(bold(package))} has invalid interpreter {str(python_path)}"
     if not venv.package_metadata:
@@ -147,8 +149,6 @@ def get_package_summary(
             f"       It was likely installed using a pipx version before 0.15.0.0.\n"
             f"       Please uninstall and install this package, or reinstall-all to fix."
         )
-
-    package_metadata = venv.package_metadata[package]
 
     if package_metadata.package_version is None:
         not_installed = red("is not installed")
@@ -160,7 +160,7 @@ def get_package_summary(
     )
     exposed_binary_names = sorted(p.name for p in exposed_app_paths)
     unavailable_binary_names = sorted(
-        {add_suffix(name, suffix) for name in package_metadata.apps}
+        {add_suffix(name, package_metadata.suffix) for name in package_metadata.apps}
         - set(exposed_binary_names)
     )
     # The following is to satisfy mypy that python_version is str and not
@@ -179,6 +179,7 @@ def get_package_summary(
         exposed_binary_names,
         unavailable_binary_names,
         venv.pipx_metadata.injected_packages if include_injected else None,
+        suffix=package_metadata.suffix,
     )
 
 
@@ -215,10 +216,13 @@ def _get_list_output(
     exposed_binary_names: List[str],
     unavailable_binary_names: List[str],
     injected_packages: Optional[Dict[str, PackageInfo]] = None,
+    suffix: str = "",
 ) -> str:
     output = []
+    suffix = f" ({bold(shlex.quote(package + suffix))})" if suffix else ""
     output.append(
-        f"  {'installed' if new_install else ''} package {bold(shlex.quote(package))} {bold(package_version)}, {python_version}"
+        f"  {'installed' if new_install else ''} package {bold(shlex.quote(package))}"
+        f" {bold(package_version)}{suffix}, {python_version}"
     )
 
     if not python_path.exists():
@@ -276,9 +280,10 @@ def run_post_install_actions(
     include_dependencies: bool,
     *,
     force: bool,
-    suffix: Optional[str] = None,
 ):
-    package_metadata = venv.package_metadata[package]
+    package_metadata = venv.get_package_metadata(package)
+    package = package_metadata.package or package
+    display_name = f"{package}{package_metadata.suffix}"
 
     if not package_metadata.app_paths and not include_dependencies:
         # No apps associated with this package and we aren't including dependencies.
@@ -295,7 +300,7 @@ def run_post_install_actions(
 
         if package_metadata.app_paths_of_dependencies:
             raise PipxError(
-                f"No apps associated with package {package}. "
+                f"No apps associated with package {display_name}. "
                 "Try again with '--include-deps' to include apps of dependent packages, "
                 "which are listed above. "
                 "If you are attempting to install a library, pipx should not be used. "
@@ -303,7 +308,7 @@ def run_post_install_actions(
             )
         else:
             raise PipxError(
-                f"No apps associated with package {package}. "
+                f"No apps associated with package {display_name}. "
                 "If you are attempting to install a library, pipx should not be used. "
                 "Consider using pip or a similar tool instead."
             )
@@ -318,26 +323,30 @@ def run_post_install_actions(
         if venv.safe_to_remove():
             venv.remove_venv()
         raise PipxError(
-            f"No apps associated with package {package} or its dependencies."
+            f"No apps associated with package {display_name} or its dependencies."
             "If you are attempting to install a library, pipx should not be used. "
             "Consider using pip or a similar tool instead."
         )
 
-    if suffix is None:
-        suffix = ""
     expose_apps_globally(
-        local_bin_dir, package_metadata.app_paths, package, force=force, suffix=suffix
+        local_bin_dir,
+        package_metadata.app_paths,
+        package,
+        force=force,
+        suffix=package_metadata.suffix,
     )
 
     if include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             expose_apps_globally(
-                local_bin_dir, app_paths, package, force=force, suffix=suffix
+                local_bin_dir,
+                app_paths,
+                package,
+                force=force,
+                suffix=package_metadata.suffix,
             )
 
-    print(
-        get_package_summary(venv_dir, package=package, new_install=True, suffix=suffix)
-    )
+    print(get_package_summary(venv_dir, package=package, new_install=True,))
     warn_if_not_on_path(local_bin_dir)
     print(f"done! {stars}", file=sys.stderr)
 

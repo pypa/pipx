@@ -39,7 +39,9 @@ def upgrade(
         )
         return 0
 
-    package_metadata = venv.package_metadata[package]
+    package_metadata = venv.get_package_metadata(package)
+    package = package_metadata.package or package
+
     if package_metadata.package_or_url is None:
         raise PipxError(f"Internal Error: package {package} has corrupt pipx metadata.")
 
@@ -61,20 +63,31 @@ def upgrade(
         include_dependencies=include_dependencies,
         include_apps=include_apps,
         is_main_package=True,
+        suffix=package_metadata.suffix,
     )
     # TODO 20191026: upgrade injected packages also (Issue #79)
 
-    package_metadata = venv.package_metadata[package]
+    package_metadata = venv.get_package_metadata(package)
+    package = package_metadata.package or package
+    display_name = f"{package_metadata.package}{package_metadata.suffix}"
     new_version = package_metadata.package_version
 
     expose_apps_globally(
-        constants.LOCAL_BIN_DIR, package_metadata.app_paths, package, force=force
+        constants.LOCAL_BIN_DIR,
+        package_metadata.app_paths,
+        package,
+        force=force,
+        suffix=package_metadata.suffix,
     )
 
     if include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             expose_apps_globally(
-                constants.LOCAL_BIN_DIR, app_paths, package, force=force
+                constants.LOCAL_BIN_DIR,
+                app_paths,
+                package,
+                force=force,
+                suffix=package_metadata.suffix,
             )
 
     if old_version == new_version:
@@ -82,12 +95,12 @@ def upgrade(
             pass
         else:
             print(
-                f"{package} is already at latest version {old_version} (location: {str(venv_dir)})"
+                f"{display_name} is already at latest version {old_version} (location: {str(venv_dir)})"
             )
         return 0
     else:
         print(
-            f"upgraded package {package} from {old_version} to {new_version} (location: {str(venv_dir)})"
+            f"upgraded package {display_name} from {old_version} to {new_version} (location: {str(venv_dir)})"
         )
         return 1
 
