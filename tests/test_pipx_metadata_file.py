@@ -63,14 +63,17 @@ BLACK_PACKAGE_REF = PackageInfo(
 
 
 def test_pipx_metadata_file_create(tmp_path):
-    pipx_metadata = PipxMetadata(tmp_path)
+    venv_dir = tmp_path / TEST_PACKAGE1.package
+    venv_dir.mkdir()
+
+    pipx_metadata = PipxMetadata(venv_dir)
     pipx_metadata.main_package = TEST_PACKAGE1
     pipx_metadata.python_version = "3.4.5"
     pipx_metadata.venv_args = ["--system-site-packages"]
     pipx_metadata.injected_packages = {"injected": TEST_PACKAGE2}
     pipx_metadata.write()
 
-    pipx_metadata2 = PipxMetadata(tmp_path)
+    pipx_metadata2 = PipxMetadata(venv_dir)
 
     for attribute in [
         "venv_dir",

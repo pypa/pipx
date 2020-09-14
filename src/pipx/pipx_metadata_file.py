@@ -35,9 +35,13 @@ class PackageInfo(NamedTuple):
     apps_of_dependencies: List[str]
     app_paths_of_dependencies: Dict[str, List[Path]]
     package_version: str
+    suffix: str = ""
 
 
 class PipxMetadata:
+    # Only change this if file format changes
+    __METADATA_VERSION__: str = "0.2"
+
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
         # We init this instance with reasonable fallback defaults for all
@@ -60,9 +64,6 @@ class PipxMetadata:
         self.python_version: Optional[str] = None
         self.venv_args: List[str] = []
         self.injected_packages: Dict[str, PackageInfo] = {}
-
-        # Only change this if file format changes
-        self._pipx_metadata_version: str = "0.1"
 
         if read:
             self.read()
@@ -96,15 +97,22 @@ class PipxMetadata:
             "injected_packages": {
                 name: data._asdict() for (name, data) in self.injected_packages.items()
             },
-            "pipx_metadata_version": self._pipx_metadata_version,
+            "pipx_metadata_version": self.__METADATA_VERSION__,
         }
 
     def from_dict(self, input_dict: Dict[str, Any]) -> None:
-        self.main_package = PackageInfo(**input_dict["main_package"])
+        main_package_data = input_dict["main_package"]
+        if main_package_data["package"] != self.venv_dir.name:
+            # handle older suffixed packages gracefully
+            main_package_data["suffix"] = self.venv_dir.name.replace(
+                main_package_data["package"], ""
+            )
+
+        self.main_package = PackageInfo(**main_package_data)
         self.python_version = input_dict["python_version"]
         self.venv_args = input_dict["venv_args"]
         self.injected_packages = {
-            name: PackageInfo(**data)
+            f"{name}{data.get('suffix', '')}": PackageInfo(**data)
             for (name, data) in input_dict["injected_packages"].items()
         }
 
