@@ -13,11 +13,10 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool):
     """Uninstall entire venv_dir, including main package and all injected
     packages.
     """
-    venv_name = venv_dir.name
     if not venv_dir.exists():
-        print(f"Nothing to uninstall for {venv_name} {sleep}")
+        print(f"Nothing to uninstall for {venv_dir.name} {sleep}")
         # TODO: is the following correct?  Shouldn't there be multiple apps?
-        app = which(venv_name)
+        app = which(venv_dir.name)
         if app:
             print(
                 f"{hazard}  Note: '{app}' still exists on your system and is on your PATH"
@@ -36,9 +35,9 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool):
         # fallback if not metadata from pipx_metadata.json
         if venv.python_path.is_file():
             # has a valid python interpreter and can get metadata about the package
-            # TODO: this should be a real package name, not the venv_name
+            # In pre-metadata-pipx venv_dir.name is name of main package
             metadata = venv.get_venv_metadata_for_package(
-                venv_name
+                venv_dir.name
             )  # TODO: this should fail for suffix
             app_paths = metadata.app_paths
             for dep_paths in metadata.app_paths_of_dependencies.values():
@@ -72,7 +71,7 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool):
                     symlink.unlink()
 
     rmdir(venv_dir)
-    print(f"uninstalled {venv_name}! {stars}")
+    print(f"uninstalled {venv_dir.name}! {stars}")
 
 
 def uninstall_all(venv_container: VenvContainer, local_bin_dir: Path, verbose: bool):
