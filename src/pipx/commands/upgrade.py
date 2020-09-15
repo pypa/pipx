@@ -91,7 +91,6 @@ def upgrade(
         if upgrading_all:
             pass
         else:
-            # TODO: say package (display_name) is already at
             print(
                 f"{display_name} is already at latest version {old_version} (location: {str(venv_dir)})"
             )
@@ -106,18 +105,18 @@ def upgrade(
 def upgrade_all(
     venv_container: VenvContainer, verbose: bool, *, skip: List[str], force: bool
 ):
-    packages_upgraded = 0
+    venvs_upgraded = 0
     num_packages = 0
     for venv_dir in venv_container.iter_venv_dirs():
         num_packages += 1
         venv = Venv(venv_dir, verbose=verbose)
-        # TODO: package really should be suffixed venv name
-        package = venv.main_package_name
-        # TODO: 20200914 do we skip on package name or package+suffix?
-        if package in skip or "--editable" in venv.pipx_metadata.main_package.pip_args:
+        if (
+            venv_dir.name in skip
+            or "--editable" in venv.pipx_metadata.main_package.pip_args
+        ):
             continue
         try:
-            packages_upgraded += upgrade(
+            venvs_upgraded += upgrade(
                 venv_dir,
                 venv.pipx_metadata.main_package.pip_args,
                 verbose,
@@ -126,10 +125,9 @@ def upgrade_all(
             )
 
         except Exception:
-            # TODO: package really should be suffixed venv name
-            logging.error(f"Error encountered when upgrading {package}")
+            logging.error(f"Error encountered when upgrading {venv_dir.name}")
 
-    if packages_upgraded == 0:
+    if venvs_upgraded == 0:
         print(
             f"Versions did not change after running 'pip upgrade' for each package {sleep}"
         )
