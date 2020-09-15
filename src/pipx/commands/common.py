@@ -128,7 +128,6 @@ def _symlink_package_apps(
             )
 
 
-# TODO: 20200914 Error messages here need to refer to suffix also
 def get_package_summary(
     venv_dir: Path,
     *,
