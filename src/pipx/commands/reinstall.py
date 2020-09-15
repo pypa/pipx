@@ -17,7 +17,6 @@ def reinstall(
     if venv.pipx_metadata.main_package.package_or_url is not None:
         package_or_url = venv.pipx_metadata.main_package.package_or_url
     else:
-        # TODO: this should be venv.pipx_metadata.main_package.package
         package_or_url = venv_dir.name
 
     uninstall(venv_dir, local_bin_dir, verbose)
