@@ -1,11 +1,10 @@
 import json
 import logging
-from pathlib import Path
 import textwrap
-from typing import List, Dict, NamedTuple, Any, Optional
+from pathlib import Path
+from typing import Any, Dict, List, NamedTuple, Optional
 
 from pipx.util import PipxError
-
 
 PIPX_INFO_FILENAME = "pipx_metadata.json"
 
@@ -147,6 +146,8 @@ class PipxMetadata:
             pass
 
     def read(self, verbose: bool = False) -> None:
+        # TODO: if no file is present or old version, try to deduce what a modern
+        #       metadata would look like and recreate
         try:
             with open(self.venv_dir / PIPX_INFO_FILENAME, "r") as pipx_metadata_fh:
                 self.from_dict(

@@ -130,13 +130,13 @@ def _symlink_package_apps(
 
 # TODO: 20200914 Error messages here need to refer to suffix also
 def get_package_summary(
-    path: Path,
+    venv_dir: Path,
     *,
     package: str = None,
     new_install: bool = False,
     include_injected: bool = False,
 ) -> str:
-    venv = Venv(path)
+    venv = Venv(venv_dir)
     python_path = venv.python_path.resolve()
 
     if package is None:
@@ -145,17 +145,19 @@ def get_package_summary(
     package_metadata = venv.package_metadata[package]
 
     if not python_path.is_file():
-        return f"   package {red(bold(package))} has invalid interpreter {str(python_path)}"
+        return (
+            f"   {red(bold(venv_dir.name))} has invalid interpreter {str(python_path)}"
+        )
     if not venv.package_metadata:
         return (
-            f"   package {red(bold(package))} has missing internal pipx metadata.\n"
+            f"   {red(bold(venv_dir.name))} has missing internal pipx metadata.\n"
             f"       It was likely installed using a pipx version before 0.15.0.0.\n"
             f"       Please uninstall and install this package, or reinstall-all to fix."
         )
 
     if package_metadata.package_version is None:
         not_installed = red("is not installed")
-        return f"   package {bold(package)} {not_installed} in the venv {str(path)}"
+        return f"   package {bold(package)} {not_installed} in the venv {venv_dir.name}"
 
     apps = package_metadata.apps + package_metadata.apps_of_dependencies
     exposed_app_paths = _get_exposed_app_paths_for_package(
