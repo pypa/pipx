@@ -116,6 +116,9 @@ def run_pipx_command(args: argparse.Namespace):  # noqa: C901
 
     venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
 
+    # TODO:
+    #   package means a pypi package name for install
+    #   package means a venv_name for other commands (possibly incl. suffix)
     if "package" in args:
         package = args.package
         if urllib.parse.urlparse(package).scheme:
@@ -183,7 +186,7 @@ def run_pipx_command(args: argparse.Namespace):  # noqa: C901
     elif args.command == "list":
         return commands.list_packages(venv_container, args.include_injected)
     elif args.command == "uninstall":
-        return commands.uninstall(venv_dir, package, constants.LOCAL_BIN_DIR, verbose)
+        return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, verbose)
     elif args.command == "uninstall-all":
         return commands.uninstall_all(venv_container, constants.LOCAL_BIN_DIR, verbose)
     elif args.command == "upgrade-all":

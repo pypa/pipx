@@ -9,10 +9,11 @@ from pipx.util import WINDOWS, rmdir
 from pipx.venv import Venv, VenvContainer
 
 
-def uninstall(venv_dir: Path, venv_name: str, local_bin_dir: Path, verbose: bool):
+def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool):
     """Uninstall entire venv_dir, including main package and all injected
     packages.
     """
+    venv_name = venv_dir.name
     if not venv_dir.exists():
         print(f"Nothing to uninstall for {venv_name} {sleep}")
         # TODO: is the following correct?  Shouldn't there be multiple apps?
@@ -35,7 +36,7 @@ def uninstall(venv_dir: Path, venv_name: str, local_bin_dir: Path, verbose: bool
         # fallback if not metadata from pipx_metadata.json
         if venv.python_path.is_file():
             # has a valid python interpreter and can get metadata about the package
-            # TODO: is this redundant with venv.package_metadata[venv_name] ?
+            # TODO: this should be a real package name, not the venv_name
             metadata = venv.get_venv_metadata_for_package(
                 venv_name
             )  # TODO: this should fail for suffix
@@ -76,5 +77,4 @@ def uninstall(venv_dir: Path, venv_name: str, local_bin_dir: Path, verbose: bool
 
 def uninstall_all(venv_container: VenvContainer, local_bin_dir: Path, verbose: bool):
     for venv_dir in venv_container.iter_venv_dirs():
-        venv_name = venv_dir.name
-        uninstall(venv_dir, venv_name, local_bin_dir, verbose)
+        uninstall(venv_dir, local_bin_dir, verbose)

@@ -19,7 +19,7 @@ def reinstall(
     else:
         package_or_url = venv_dir.name
 
-    uninstall(venv_dir, venv_dir.name, local_bin_dir, verbose)
+    uninstall(venv_dir, local_bin_dir, verbose)
 
     # install main package first
     install(
