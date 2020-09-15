@@ -118,7 +118,7 @@ def run_pipx_command(args: argparse.Namespace):  # noqa: C901
 
     # TODO:
     #   package means a pypi package name for install
-    #   package means a venv_name for other commands (possibly incl. suffix)
+    #   package means a venv_name (incl. any suffix) for other commands
     if "package" in args:
         package = args.package
         if urllib.parse.urlparse(package).scheme:
