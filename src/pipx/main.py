@@ -179,7 +179,7 @@ def run_pipx_command(args: argparse.Namespace):  # noqa: C901
             )
     elif args.command == "upgrade":
         return commands.upgrade(
-            venv_dir, package, pip_args, verbose, upgrading_all=False, force=args.force
+            venv_dir, pip_args, verbose, upgrading_all=False, force=args.force
         )
     elif args.command == "list":
         return commands.list_packages(venv_container, args.include_injected)
@@ -282,6 +282,7 @@ def _add_inject(subparsers, autocomplete_list_of_installed_packages):
         help="Install packages into an existing Virtual Environment",
         description="Installs packages to an existing pipx-managed virtual environment.",
     )
+    # TODO: 20200914 specify package_with_suffix
     p.add_argument(
         "package",
         help="Name of the existing pipx-managed Virtual Environment to inject into",
@@ -313,6 +314,7 @@ def _add_upgrade(subparsers, autocomplete_list_of_installed_packages):
         help="Upgrade a package",
         description="Upgrade a package in a pipx-managed Virtual Environment by running 'pip install --upgrade PACKAGE'",
     )
+    # TODO: 20200914 specify package_with_suffix
     p.add_argument("package").completer = autocomplete_list_of_installed_packages
     p.add_argument(
         "--force",
@@ -348,6 +350,7 @@ def _add_uninstall(subparsers, autocomplete_list_of_installed_packages):
         help="Uninstall a package",
         description="Uninstalls a pipx-managed Virtual Environment by deleting it and any files that point to its apps.",
     )
+    # TODO: 20200914 specify package_with_suffix
     p.add_argument("package").completer = autocomplete_list_of_installed_packages
     p.add_argument("--verbose", action="store_true")
 
@@ -467,6 +470,7 @@ def _add_runpip(subparsers, autocomplete_list_of_installed_packages):
         help="Run pip in an existing pipx-managed Virtual Environment",
         description="Run pip in an existing pipx-managed Virtual Environment",
     )
+    # TODO: 20200914 specify package_with_suffix
     p.add_argument(
         "package",
         help="Name of the existing pipx-managed Virtual Environment to run pip in",

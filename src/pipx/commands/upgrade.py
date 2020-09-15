@@ -12,7 +12,6 @@ from pipx.venv import Venv, VenvContainer
 
 def upgrade(
     venv_dir: Path,
-    package: str,
     pip_args: List[str],
     verbose: bool,
     *,
@@ -28,6 +27,7 @@ def upgrade(
         )
 
     venv = Venv(venv_dir, verbose=verbose)
+    package = venv.main_package_name
 
     if not venv.package_metadata:
         print(
@@ -91,6 +91,7 @@ def upgrade(
         if upgrading_all:
             pass
         else:
+            # TODO: say package (display_name) is already at
             print(
                 f"{display_name} is already at latest version {old_version} (location: {str(venv_dir)})"
             )
@@ -110,6 +111,7 @@ def upgrade_all(
     for venv_dir in venv_container.iter_venv_dirs():
         num_packages += 1
         venv = Venv(venv_dir, verbose=verbose)
+        # TODO: package really should be suffixed venv name
         package = venv.main_package_name
         # TODO: 20200914 do we skip on package name or package+suffix?
         if package in skip or "--editable" in venv.pipx_metadata.main_package.pip_args:
@@ -117,7 +119,6 @@ def upgrade_all(
         try:
             packages_upgraded += upgrade(
                 venv_dir,
-                package,
                 venv.pipx_metadata.main_package.pip_args,
                 verbose,
                 upgrading_all=True,
@@ -125,6 +126,7 @@ def upgrade_all(
             )
 
         except Exception:
+            # TODO: package really should be suffixed venv name
             logging.error(f"Error encountered when upgrading {package}")
 
     if packages_upgraded == 0:
