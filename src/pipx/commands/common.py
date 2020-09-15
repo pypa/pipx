@@ -144,9 +144,7 @@ def get_package_summary(
     package_metadata = venv.package_metadata[package]
 
     if not python_path.is_file():
-        return (
-            f"   {red(bold(venv_dir.name))} has invalid interpreter {str(python_path)}"
-        )
+        return f"   package {red(bold(venv_dir.name))} has invalid interpreter {str(python_path)}"
     if not venv.package_metadata:
         return (
             f"   {red(bold(venv_dir.name))} has missing internal pipx metadata.\n"

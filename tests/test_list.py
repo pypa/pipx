@@ -16,12 +16,12 @@ def test_missing_interpreter(pipx_temp_env, monkeypatch, capsys):
 
     assert not run_pipx_cli(["list"])
     captured = capsys.readouterr()
-    assert "pycowsay has invalid interpreter" not in captured.out
+    assert "package pycowsay has invalid interpreter" not in captured.out
 
     python_path.unlink()
     assert not run_pipx_cli(["list"])
     captured = capsys.readouterr()
-    assert "pycowsay has invalid interpreter" in captured.out
+    assert "package pycowsay has invalid interpreter" in captured.out
 
 
 def test_list_suffix(pipx_temp_env, monkeypatch, capsys):
