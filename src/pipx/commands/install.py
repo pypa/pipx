@@ -8,7 +8,6 @@ from pipx.venv import Venv, VenvContainer
 
 def install(
     venv_dir: Optional[Path],
-    package_name: Optional[str],
     package_spec: str,
     local_bin_dir: Path,
     python: str,
@@ -22,19 +21,21 @@ def install(
 ):
     """ TODO: Description:
                 Create venv_name of package_name+suffix
-                Install package_name using package_or_url
+                Install package_name using spec package_or_url
     """
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
-    # Determine package_name to properly name venv directory.
-    if venv_dir is None or package_name is None:
-        package_name = package_name_from_spec(
-            package_spec, python, pip_args=pip_args, verbose=verbose
-        )
+
+    package_name = package_name_from_spec(
+        package_spec, python, pip_args=pip_args, verbose=verbose
+    )
+    if venv_dir is None:
         venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
         venv_dir = venv_container.get_venv_dir(package_name)
         if suffix is not None:
             venv_dir = venv_dir.parent / f"{venv_dir.stem}{suffix}"
+
+    venv_name = venv_dir.name
 
     try:
         exists = venv_dir.exists() and next(venv_dir.iterdir())
@@ -46,7 +47,7 @@ def install(
             print(f"Installing to existing directory {str(venv_dir)!r}")
         else:
             print(
-                f"{package_name!r} already seems to be installed. "
+                f"{venv_name!r} already seems to be installed. "
                 f"Not modifying existing installation in {str(venv_dir)!r}. "
                 "Pass '--force' to force installation."
             )

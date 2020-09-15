@@ -24,7 +24,6 @@ def reinstall(
     # install main package first
     install(
         venv_dir,
-        venv_name,
         package_or_url,
         local_bin_dir,
         python,

@@ -15,9 +15,8 @@ def uninstall(venv_dir: Path, venv_name: str, local_bin_dir: Path, verbose: bool
     """
     if not venv_dir.exists():
         print(f"Nothing to uninstall for {venv_name} {sleep}")
-        app = which(
-            venv_name
-        )  # TODO: is this correct?  Shouldn't there be multiple apps?
+        # TODO: is the following correct?  Shouldn't there be multiple apps?
+        app = which(venv_name)
         if app:
             print(
                 f"{hazard}  Note: '{app}' still exists on your system and is on your PATH"

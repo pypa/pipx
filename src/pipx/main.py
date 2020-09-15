@@ -150,7 +150,6 @@ def run_pipx_command(args: argparse.Namespace):  # noqa: C901
     elif args.command == "install":
         return commands.install(
             None,
-            None,
             args.package_spec,
             constants.LOCAL_BIN_DIR,
             args.python,
