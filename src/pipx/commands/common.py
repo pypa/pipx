@@ -138,8 +138,10 @@ def get_package_summary(
     venv = Venv(path)
     python_path = venv.python_path.resolve()
 
-    package_metadata = venv.get_package_metadata(package)
-    package = package_metadata.package or venv.root.name
+    if package is None:
+        package = venv.main_package_name
+
+    package_metadata = venv.package_metadata[package]
 
     if not python_path.is_file():
         return f"   package {red(bold(package))} has invalid interpreter {str(python_path)}"
@@ -281,8 +283,8 @@ def run_post_install_actions(
     *,
     force: bool,
 ):
-    package_metadata = venv.get_package_metadata(package)
-    package = package_metadata.package or package
+    package_metadata = venv.package_metadata[package]
+
     display_name = f"{package}{package_metadata.suffix}"
 
     if not package_metadata.app_paths and not include_dependencies:

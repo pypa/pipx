@@ -1,8 +1,6 @@
 import logging
-
 from pathlib import Path
 from typing import List
-
 
 from pipx import constants
 from pipx.colors import bold, red
@@ -39,8 +37,7 @@ def upgrade(
         )
         return 0
 
-    package_metadata = venv.get_package_metadata(package)
-    package = package_metadata.package or package
+    package_metadata = venv.package_metadata[package]
 
     if package_metadata.package_or_url is None:
         raise PipxError(f"Internal Error: package {package} has corrupt pipx metadata.")
@@ -67,8 +64,8 @@ def upgrade(
     )
     # TODO 20191026: upgrade injected packages also (Issue #79)
 
-    package_metadata = venv.get_package_metadata(package)
-    package = package_metadata.package or package
+    package_metadata = venv.package_metadata[package]
+
     display_name = f"{package_metadata.package}{package_metadata.suffix}"
     new_version = package_metadata.package_version
 
@@ -112,8 +109,9 @@ def upgrade_all(
     num_packages = 0
     for venv_dir in venv_container.iter_venv_dirs():
         num_packages += 1
-        package = venv_dir.name
         venv = Venv(venv_dir, verbose=verbose)
+        package = venv.main_package_name
+        # TODO: 20200914 do we skip on package name or package+suffix?
         if package in skip or "--editable" in venv.pipx_metadata.main_package.pip_args:
             continue
         try:

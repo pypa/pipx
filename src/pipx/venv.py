@@ -2,7 +2,7 @@ import json
 import logging
 import pkgutil
 from pathlib import Path
-from typing import Dict, Generator, List, NamedTuple, Optional, Set
+from typing import Dict, Generator, List, NamedTuple, Set
 
 from pipx.animate import animate
 from pipx.constants import PIPX_SHARED_PTH
@@ -121,17 +121,13 @@ class Venv:
             ] = self.pipx_metadata.main_package
         return return_dict
 
-    def get_package_metadata(self, package: Optional[str] = None) -> PackageInfo:
-        if package is None or package == self.root.name:
-            return self.pipx_metadata.main_package
-
-        try:
-            return self.package_metadata[package]
-        except KeyError:
+    @property
+    def main_package_name(self) -> str:
+        if self.pipx_metadata.main_package.package is None:
             raise PipxError(
-                f"Package is not installed. Expected to find package {package}, "
-                "but it does not exist."
+                "Internal error: main_package_name requested but None found."
             )
+        return self.pipx_metadata.main_package.package
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
