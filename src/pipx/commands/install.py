@@ -20,6 +20,10 @@ def install(
     include_dependencies: bool,
     suffix: Optional[str] = None,
 ):
+    """ TODO: Description:
+                Create venv_name of package_name+suffix
+                Install package_name using package_or_url
+    """
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
     # Determine package_name to properly name venv directory.

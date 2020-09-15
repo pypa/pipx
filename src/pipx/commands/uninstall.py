@@ -2,21 +2,22 @@ import logging
 from pathlib import Path
 from shutil import which
 from typing import List
-from pipx.util import WINDOWS, rmdir
-
 
 from pipx import constants
-from pipx.emojies import hazard, stars, sleep
+from pipx.emojies import hazard, sleep, stars
+from pipx.util import WINDOWS, rmdir
 from pipx.venv import Venv, VenvContainer
 
 
-def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
+def uninstall(venv_dir: Path, venv_name: str, local_bin_dir: Path, verbose: bool):
     """Uninstall entire venv_dir, including main package and all injected
     packages.
     """
     if not venv_dir.exists():
-        print(f"Nothing to uninstall for {package} {sleep}")
-        app = which(package)
+        print(f"Nothing to uninstall for {venv_name} {sleep}")
+        app = which(
+            venv_name
+        )  # TODO: is this correct?  Shouldn't there be multiple apps?
         if app:
             print(
                 f"{hazard}  Note: '{app}' still exists on your system and is on your PATH"
@@ -35,7 +36,10 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
         # fallback if not metadata from pipx_metadata.json
         if venv.python_path.is_file():
             # has a valid python interpreter and can get metadata about the package
-            metadata = venv.get_venv_metadata_for_package(package)
+            # TODO: is this redundant with venv.package_metadata[venv_name] ?
+            metadata = venv.get_venv_metadata_for_package(
+                venv_name
+            )  # TODO: this should fail for suffix
             app_paths = metadata.app_paths
             for dep_paths in metadata.app_paths_of_dependencies.values():
                 app_paths += dep_paths
@@ -43,7 +47,7 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
             # Doesn't have a valid python interpreter. We'll take our best guess on what to uninstall
             # here based on symlink location. pipx doesn't use symlinks on windows, so this is for
             # non-windows only.
-            # The heuristic here is any symlink in ~/.local/bin pointing to .local/pipx/venvs/PACKAGE/bin
+            # The heuristic here is any symlink in ~/.local/bin pointing to .local/pipx/venvs/VENV_NAME/bin
             # should be uninstalled.
             if WINDOWS:
                 app_paths = []
@@ -68,10 +72,10 @@ def uninstall(venv_dir: Path, package: str, local_bin_dir: Path, verbose: bool):
                     symlink.unlink()
 
     rmdir(venv_dir)
-    print(f"uninstalled {package}! {stars}")
+    print(f"uninstalled {venv_name}! {stars}")
 
 
 def uninstall_all(venv_container: VenvContainer, local_bin_dir: Path, verbose: bool):
     for venv_dir in venv_container.iter_venv_dirs():
-        package = venv_dir.name
-        uninstall(venv_dir, package, local_bin_dir, verbose)
+        venv_name = venv_dir.name
+        uninstall(venv_dir, venv_name, local_bin_dir, verbose)

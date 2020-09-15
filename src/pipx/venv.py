@@ -31,6 +31,11 @@ assert venv_metadata_inspector_raw is not None, (
 VENV_METADATA_INSPECTOR = venv_metadata_inspector_raw.decode("utf-8")
 
 
+# TODO: 20200914 here we will never deal with suffix, or venv_name
+#   only with the directory name of the venv in __init__,
+#   and actual package names and package_or_url in methods
+
+
 class VenvContainer:
     """A collection of venvs managed by pipx.
     """

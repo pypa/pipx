@@ -263,7 +263,11 @@ def _add_install(subparsers):
         help="Modify existing virtual environment and files in PIPX_BIN_DIR",
     )
     p.add_argument(
-        "--suffix", help="Optional suffix for virtual environment and executable names"
+        "--suffix",
+        help=(
+            "Optional suffix for virtual environment and executable names."
+            "NOTE: The suffix feature is experimental and subject to change."
+        ),
     )
     p.add_argument(
         "--python",
