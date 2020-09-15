@@ -147,7 +147,7 @@ def get_package_summary(
         return f"   package {red(bold(venv_dir.name))} has invalid interpreter {str(python_path)}"
     if not venv.package_metadata:
         return (
-            f"   {red(bold(venv_dir.name))} has missing internal pipx metadata.\n"
+            f"   package {red(bold(venv_dir.name))} has missing internal pipx metadata.\n"
             f"       It was likely installed using a pipx version before 0.15.0.0.\n"
             f"       Please uninstall and install this package, or reinstall-all to fix."
         )
