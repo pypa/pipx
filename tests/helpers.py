@@ -64,7 +64,9 @@ def mock_legacy_package_info(
     if metadata_version == "0.1":
         mock_package_info_template = MOCK_PACKAGE_INFO_0_1
     else:
-        assert False
+        raise Exception(
+            f"Internal Test Error: Unknown metadata_version={metadata_version}"
+        )
 
     mock_package_info = {}
     for key in mock_package_info_template:
@@ -85,7 +87,9 @@ def mock_legacy_venv(venv_name: str, metadata_version: Optional[str] = None) -> 
     if metadata_version == "0.1":
         mock_pipx_metadata_template = MOCK_PIPXMETADATA_0_1
     else:
-        assert False
+        raise Exception(
+            f"Internal Test Error: Unknown metadata_version={metadata_version}"
+        )
 
     # Convert to mock old metadata
     mock_pipx_metadata = {}
