@@ -58,7 +58,7 @@ def which_python(python_exe: str) -> Optional[str]:
         return None
 
 
-def mock_legacy_package_info(
+def _mock_legacy_package_info(
     modern_package_info: Dict[str, Any], metadata_version: str
 ) -> Dict[str, Any]:
     if metadata_version == "0.1":
@@ -95,12 +95,12 @@ def mock_legacy_venv(venv_name: str, metadata_version: Optional[str] = None) -> 
     mock_pipx_metadata = {}
     for key in mock_pipx_metadata_template:
         if key == "main_package":
-            mock_pipx_metadata[key] = mock_legacy_package_info(
+            mock_pipx_metadata[key] = _mock_legacy_package_info(
                 modern_metadata[key], metadata_version=metadata_version
             )
         if key == "injected_packages":
             for injected in modern_metadata[key]:
-                mock_pipx_metadata[key][injected] = mock_legacy_package_info(
+                mock_pipx_metadata[key][injected] = _mock_legacy_package_info(
                     modern_metadata[key][injected], metadata_version=metadata_version
                 )
         else:
