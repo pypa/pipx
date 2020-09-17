@@ -105,6 +105,7 @@ def upgrade(
 def upgrade_all(
     venv_container: VenvContainer, verbose: bool, *, skip: List[str], force: bool
 ):
+    venv_error = False
     venvs_upgraded = 0
     num_packages = 0
     for venv_dir in venv_container.iter_venv_dirs():
@@ -125,9 +126,15 @@ def upgrade_all(
             )
 
         except Exception:
+            venv_error = True
             logging.error(f"Error encountered when upgrading {venv_dir.name}")
 
     if venvs_upgraded == 0:
         print(
             f"Versions did not change after running 'pip upgrade' for each package {sleep}"
+        )
+    if venv_error:
+        raise PipxError(
+            "Some packages encountered errors during upgrade.  "
+            "See specific error messages above."
         )
