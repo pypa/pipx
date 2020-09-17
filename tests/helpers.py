@@ -99,6 +99,7 @@ def mock_legacy_venv(venv_name: str, metadata_version: Optional[str] = None) -> 
                 modern_metadata[key], metadata_version=metadata_version
             )
         if key == "injected_packages":
+            mock_pipx_metadata[key] = {}
             for injected in modern_metadata[key]:
                 mock_pipx_metadata[key][injected] = _mock_legacy_package_info(
                     modern_metadata[key][injected], metadata_version=metadata_version
