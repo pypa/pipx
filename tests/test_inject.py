@@ -3,13 +3,13 @@ import pytest  # type: ignore
 from helpers import mock_legacy_venv, run_pipx_cli
 
 
-def test_simple(pipx_temp_env, capsys):
+def test_inject_simple(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", "black"])
 
 
 @pytest.mark.parametrize("metadata_version", [None, "0.1"])
-def test_simple_legacy_venv(pipx_temp_env, capsys, metadata_version):
+def test_inject_simple_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
     assert not run_pipx_cli(["inject", "pycowsay", "black"])
@@ -21,7 +21,7 @@ def test_spec(pipx_temp_env, capsys):
 
 
 @pytest.mark.parametrize("with_suffix,", [(False,), (True,)])
-def test_include_apps(pipx_temp_env, capsys, with_suffix):
+def test_inject_include_apps(pipx_temp_env, capsys, with_suffix):
     install_args = []
     suffix = ""
 
