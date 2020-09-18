@@ -23,7 +23,7 @@ def test_reinstall_all_suffix(pipx_temp_env, capsys):
     assert not run_pipx_cli(["reinstall-all", "--python", sys.executable])
 
 
-@pytest.mark.parametrize("metadata_version", [None, "0.1"])
+@pytest.mark.parametrize("metadata_version", ["0.1"])
 def test_reinstall_all_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
     suffix = "_x"
     assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
