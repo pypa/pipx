@@ -50,9 +50,6 @@ def upgrade(
     include_apps = package_metadata.include_apps
     include_dependencies = package_metadata.include_dependencies
 
-    if package == "pipx":
-        package_or_url = "pipx"
-
     # Upgrade shared libraries (pip, setuptools and wheel)
     venv.upgrade_packaging_libraries(pip_args)
 
