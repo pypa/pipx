@@ -333,8 +333,7 @@ def _add_upgrade(subparsers, autocomplete_list_of_installed_packages):
 def _add_upgrade_all(subparsers):
     p = subparsers.add_parser(
         "upgrade-all",
-        help="Upgrade all packages. "
-        "Runs `pip install -U <pkgname>` for each package.",
+        help="Upgrade all packages. Runs `pip install -U <pkgname>` for each package.",
         description="Upgrades all packages within their virtual environments by running 'pip install --upgrade PACKAGE'",
     )
 

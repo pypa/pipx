@@ -325,7 +325,7 @@ def run_post_install_actions(
         if venv.safe_to_remove():
             venv.remove_venv()
         raise PipxError(
-            f"No apps associated with package {display_name} or its dependencies."
+            f"No apps associated with package {display_name} or its dependencies. "
             "If you are attempting to install a library, pipx should not be used. "
             "Consider using pip or a similar tool instead."
         )

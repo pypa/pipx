@@ -132,6 +132,6 @@ def upgrade_all(
         )
     if venv_error:
         raise PipxError(
-            "Some packages encountered errors during upgrade.  "
+            "Some packages encountered errors during upgrade. "
             "See specific error messages above."
         )
