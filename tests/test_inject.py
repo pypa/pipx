@@ -12,7 +12,12 @@ def test_inject_simple(pipx_temp_env, capsys):
 def test_inject_simple_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
-    assert not run_pipx_cli(["inject", "pycowsay", "black"])
+    if metadata_version is not None:
+        assert not run_pipx_cli(["inject", "pycowsay", "black"])
+    else:
+        # No metadata is should end in PipxError with message
+        assert run_pipx_cli(["inject", "pycowsay", "black"])
+        assert "Please uninstall and install" in capsys.readouterr().err
 
 
 def test_spec(pipx_temp_env, capsys):

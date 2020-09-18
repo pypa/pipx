@@ -41,7 +41,6 @@ def inject(
             "    It was likely installed using a pipx version before 0.15.0.0.\n"
             f"    Please uninstall and install {venv_dir.name!r}, or reinstall-all to fix."
         )
-        return
 
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
