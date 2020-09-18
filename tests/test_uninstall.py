@@ -35,7 +35,7 @@ def test_uninstall_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
     executable = f"{name}{suffix}{'.exe' if constants.WINDOWS else ''}"
 
     assert not run_pipx_cli(["install", "pbr", f"--suffix={suffix}"])
-    mock_legacy_venv(name + suffix, metadata_version=metadata_version)
+    mock_legacy_venv(f"{name}{suffix}", metadata_version=metadata_version)
     assert (constants.LOCAL_BIN_DIR / executable).exists()
 
     assert not run_pipx_cli(["uninstall", f"{name}{suffix}"])

@@ -50,7 +50,7 @@ def test_list_suffix_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_ve
     suffix = "_x"
     assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
     assert not run_pipx_cli(["list"])
-    mock_legacy_venv("pycowsay" + suffix, metadata_version=metadata_version)
+    mock_legacy_venv(f"pycowsay{suffix}", metadata_version=metadata_version)
 
     captured = capsys.readouterr()
     assert f"package pycowsay 0.0.0.1 (pycowsay{suffix})," in captured.out
