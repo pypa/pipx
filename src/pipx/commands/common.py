@@ -141,8 +141,6 @@ def get_package_summary(
     if package is None:
         package = venv.main_package_name
 
-    package_metadata = venv.package_metadata[package]
-
     if not python_path.is_file():
         return f"   package {red(bold(venv_dir.name))} has invalid interpreter {str(python_path)}"
     if not venv.package_metadata:
@@ -151,6 +149,8 @@ def get_package_summary(
             f"       It was likely installed using a pipx version before 0.15.0.0.\n"
             f"       Please uninstall and install this package, or reinstall-all to fix."
         )
+
+    package_metadata = venv.package_metadata[package]
 
     if package_metadata.package_version is None:
         not_installed = red("is not installed")
