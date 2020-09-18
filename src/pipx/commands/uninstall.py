@@ -15,7 +15,6 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool):
     """
     if not venv_dir.exists():
         print(f"Nothing to uninstall for {venv_dir.name} {sleep}")
-        # TODO: is the following correct?  Shouldn't there be multiple apps?
         app = which(venv_dir.name)
         if app:
             print(

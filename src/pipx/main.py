@@ -66,6 +66,7 @@ packages. 'sudo' is not required to do this.
 pipx install PACKAGE_NAME
 pipx install --python PYTHON PACKAGE_NAME
 pipx install VCS_URL
+pipx install ./LOCAL_PATH
 pipx install ZIP_FILE
 pipx install TAR_GZ_FILE
 
@@ -116,9 +117,6 @@ def run_pipx_command(args: argparse.Namespace):  # noqa: C901
 
     venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
 
-    # TODO:
-    #   package means a pypi package name for install
-    #   package means a venv_name (incl. any suffix) for other commands
     if "package" in args:
         package = args.package
         if urllib.parse.urlparse(package).scheme:
