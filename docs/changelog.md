@@ -2,6 +2,7 @@ dev
 
 - [docs] Update license
 - [bugfix] Fixed regression in list, inject and upgrade commands when suffixed packages are used.
+- [bugfix] Do not reset package url during upgrade when main package is `pipx`
 
 
 0.15.5.1
