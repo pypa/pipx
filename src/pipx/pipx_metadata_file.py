@@ -112,7 +112,9 @@ class PipxMetadata:
             return metadata_dict
         else:
             raise PipxError(
-                f"{self.venv_dir.name}: Unknown metadata version {metadata_dict['pipx_metadata_version']}"
+                f"{self.venv_dir.name}: Unknown metadata version "
+                f"{metadata_dict['pipx_metadata_version']}. "
+                "Perhaps it was installed with a later version of pipx."
             )
 
     def from_dict(self, input_dict: Dict[str, Any]) -> None:
