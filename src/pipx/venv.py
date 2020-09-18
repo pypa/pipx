@@ -124,6 +124,8 @@ class Venv:
     @property
     def main_package_name(self) -> str:
         if self.pipx_metadata.main_package.package is None:
+            # This is OK, because if no metadata, we are pipx < v0.15.0.0 and
+            #   venv_name==main_package_name
             return self.root.name
         else:
             return self.pipx_metadata.main_package.package
