@@ -29,8 +29,8 @@ def test_missing_interpreter(pipx_temp_env, monkeypatch, capsys):
 def test_list_suffix(pipx_temp_env, monkeypatch, capsys):
     suffix = "_x"
     assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
-    assert not run_pipx_cli(["list"])
 
+    assert not run_pipx_cli(["list"])
     captured = capsys.readouterr()
     assert f"package pycowsay 0.0.0.1 (pycowsay{suffix})," in captured.out
 
@@ -38,9 +38,9 @@ def test_list_suffix(pipx_temp_env, monkeypatch, capsys):
 @pytest.mark.parametrize("metadata_version", [None, "0.1"])
 def test_list_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay"])
-    assert not run_pipx_cli(["list"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
 
+    assert not run_pipx_cli(["list"])
     captured = capsys.readouterr()
     assert "package pycowsay 0.0.0.1," in captured.out
 
@@ -49,8 +49,8 @@ def test_list_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
 def test_list_suffix_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
     suffix = "_x"
     assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
-    assert not run_pipx_cli(["list"])
     mock_legacy_venv(f"pycowsay{suffix}", metadata_version=metadata_version)
 
+    assert not run_pipx_cli(["list"])
     captured = capsys.readouterr()
     assert f"package pycowsay 0.0.0.1 (pycowsay{suffix})," in captured.out

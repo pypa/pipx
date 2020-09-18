@@ -14,12 +14,14 @@ def test_reinstall_all(pipx_temp_env, capsys):
 def test_reinstall_all_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
+
     assert not run_pipx_cli(["reinstall-all", "--python", sys.executable])
 
 
 def test_reinstall_all_suffix(pipx_temp_env, capsys):
     suffix = "_x"
     assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
+
     assert not run_pipx_cli(["reinstall-all", "--python", sys.executable])
 
 
@@ -28,4 +30,5 @@ def test_reinstall_all_suffix_legacy_venv(pipx_temp_env, capsys, metadata_versio
     suffix = "_x"
     assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
     mock_legacy_venv(f"pycowsay{suffix}", metadata_version=metadata_version)
+
     assert not run_pipx_cli(["reinstall-all", "--python", sys.executable])
