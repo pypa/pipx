@@ -129,10 +129,9 @@ class Venv:
     @property
     def main_package_name(self) -> str:
         if self.pipx_metadata.main_package.package is None:
-            raise PipxError(
-                "Internal error: main_package_name requested but None found."
-            )
-        return self.pipx_metadata.main_package.package
+            return self.root.name
+        else:
+            return self.pipx_metadata.main_package.package
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
