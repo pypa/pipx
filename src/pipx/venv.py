@@ -308,7 +308,7 @@ class Venv:
             apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
             app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
             package_version=venv_package_metadata.package_version,
-            suffix=suffix or "",  # TODO 20200917: is this 'or' necessary?
+            suffix=suffix,
         )
         if is_main_package:
             self.pipx_metadata.main_package = package_info
@@ -371,7 +371,7 @@ class Venv:
             include_dependencies=include_dependencies,
             include_apps=include_apps,
             is_main_package=is_main_package,
-            suffix=suffix or "",
+            suffix=suffix,
         )
 
     def _run_pip(self, cmd: List[str]) -> int:
