@@ -308,7 +308,7 @@ class Venv:
             apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
             app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
             package_version=venv_package_metadata.package_version,
-            suffix=suffix or "",
+            suffix=suffix or "",  # TODO 20200917: is this 'or' necessary?
         )
         if is_main_package:
             self.pipx_metadata.main_package = package_info
