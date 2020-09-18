@@ -265,7 +265,7 @@ def _add_install(subparsers):
     p.add_argument(
         "--suffix",
         help=(
-            "Optional suffix for virtual environment and executable names."
+            "Optional suffix for virtual environment and executable names. "
             "NOTE: The suffix feature is experimental and subject to change."
         ),
     )
