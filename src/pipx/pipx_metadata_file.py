@@ -99,15 +99,25 @@ class PipxMetadata:
             "pipx_metadata_version": self.__METADATA_VERSION__,
         }
 
-    def from_dict(self, input_dict: Dict[str, Any]) -> None:
-        main_package_data = input_dict["main_package"]
-        if main_package_data["package"] != self.venv_dir.name:
-            # handle older suffixed packages gracefully
-            main_package_data["suffix"] = self.venv_dir.name.replace(
-                main_package_data["package"], ""
+    def _convert_legacy_metadata(self, metadata_dict: Dict[str, Any]) -> Dict[str, Any]:
+        if metadata_dict["pipx_metadata_version"] == self.__METADATA_VERSION__:
+            return metadata_dict
+        elif metadata_dict["pipx_metadata_version"] == "0.1":
+            main_package_data = metadata_dict["main_package"]
+            if main_package_data["package"] != self.venv_dir.name:
+                # handle older suffixed packages gracefully
+                main_package_data["suffix"] = self.venv_dir.name.replace(
+                    main_package_data["package"], ""
+                )
+            return metadata_dict
+        else:
+            raise PipxError(
+                f"{self.venv_dir.name}: Unknown metadata version {metadata_dict['pipx_metadata_version']}"
             )
 
-        self.main_package = PackageInfo(**main_package_data)
+    def from_dict(self, input_dict: Dict[str, Any]) -> None:
+        input_dict = self._convert_legacy_metadata(input_dict)
+        self.main_package = PackageInfo(**input_dict["main_package"])
         self.python_version = input_dict["python_version"]
         self.venv_args = input_dict["venv_args"]
         self.injected_packages = {
