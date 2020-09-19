@@ -31,6 +31,7 @@ lint_dependencies = [
     "mypy",
     "check-manifest",
     "packaging>=20.0",
+    "isort",
 ]
 
 
@@ -58,6 +59,7 @@ def lint(session):
     files = [str(Path("src") / "pipx"), "tests"] + [
         str(p) for p in Path(".").glob("*.py")
     ]
+    session.run("isort", "--check-only", "--profile", "black", *files)
     session.run("black", "--check", *files)
     session.run("flake8", *files)
     session.run("mypy", *files)
