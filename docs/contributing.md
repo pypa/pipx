@@ -115,7 +115,7 @@ Finally, from a clone of the main pipxproject pipx repo (not a fork), run
 nox -s publish
 ```
 
-and create a new release in GitHub.
+Additionally, create a new release in GitHub.
 
 ### Post-release
 * Update pipx's version in `src/pipx/version.py` by adding a suffix `"dev0"` for unreleased development.
