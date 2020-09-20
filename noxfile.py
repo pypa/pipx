@@ -60,7 +60,7 @@ def lint(session):
     files = [str(Path("src") / "pipx"), "tests"] + [
         str(p) for p in Path(".").glob("*.py")
     ]
-    session.run("isort", "--diff", "--profile", "black", *files)
+    session.run("isort", "--check", "--diff", "--profile", "black", *files)
     session.run("black", "--check", *files)
     session.run("flake8", *files)
     session.run("mypy", *files)
