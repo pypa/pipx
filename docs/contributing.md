@@ -110,7 +110,7 @@ nox -s publish_docs
 * Regenerate documentation.
 
 ### Release
-Finally, from a clone of the main pipxproject pipx repo (not a fork), run
+To publish to PyPI: From a clone of the main pipxproject pipx repo (not a fork), run
 ```bash
 nox -s publish
 ```
