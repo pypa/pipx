@@ -105,7 +105,7 @@ nox -s publish_docs
 
 * Update pipx's version in `src/pipx/version.py` to the new version
 * Make sure the changelog is updated
-    * Add new version to head the latest block of changes (instead of "dev").
+    * Put the version of the new release as the header for the latest block of changes (instead of "dev").
     * Make sure all notable changes are listed.
 * Regenerate documentation.
 
