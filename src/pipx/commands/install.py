@@ -17,7 +17,7 @@ def install(
     *,
     force: bool,
     include_dependencies: bool,
-    suffix: Optional[str] = None,
+    suffix: str = "",
 ):
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
@@ -28,7 +28,7 @@ def install(
     if venv_dir is None:
         venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
         venv_dir = venv_container.get_venv_dir(package_name)
-        if suffix is not None:
+        if suffix != "":
             venv_dir = venv_dir.parent / f"{venv_dir.stem}{suffix}"
 
     try:
@@ -57,7 +57,7 @@ def install(
             include_dependencies=include_dependencies,
             include_apps=True,
             is_main_package=True,
-            suffix=suffix or "",
+            suffix=suffix,
         )
         run_post_install_actions(
             venv,
