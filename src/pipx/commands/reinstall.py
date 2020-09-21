@@ -32,6 +32,7 @@ def reinstall(
         verbose,
         force=True,
         include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
+        suffix=venv.pipx_metadata.main_package.suffix,
     )
 
     # now install injected packages
