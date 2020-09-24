@@ -218,6 +218,12 @@ def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
             verbose,
             skip=args.skip,
         )
+    elif args.command == "select":
+        return commands.select(
+            args.package_name_with_suffix,
+            include_dependencies=args.include_deps,
+            verbose=args.verbose,
+        )
     elif args.command == "runpip":
         if not venv_dir:
             raise PipxError("developer error: venv dir is not defined")
@@ -440,6 +446,19 @@ def _add_reinstall_all(subparsers):
     p.add_argument("--verbose", action="store_true")
 
 
+def _add_select(subparsers):
+    p = subparsers.add_parser(
+        "select",
+        description="Select a package and suffix as default",
+        help="Installs binaries with no suffix for packages that were installed with a suffix.",
+    )
+    p.add_argument("package_name_with_suffix", help="the name of the package with the suffix appended")
+    p.add_argument(
+        "--include-deps", help="Include apps of dependent packages", action="store_true"
+    )
+    p.add_argument("--verbose", action="store_true")
+
+
 def _add_list(subparsers):
     p = subparsers.add_parser(
         "list",
@@ -579,6 +598,7 @@ def get_command_parser():
     _add_uninstall_all(subparsers)
     _add_reinstall(subparsers, autocomplete_list_of_installed_packages)
     _add_reinstall_all(subparsers)
+    _add_select(subparsers)
     _add_list(subparsers)
     _add_run(subparsers)
     _add_runpip(subparsers, autocomplete_list_of_installed_packages)
