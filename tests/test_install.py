@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from unittest import mock
 
@@ -55,7 +56,9 @@ def test_install_tricky_packages(capsys, pipx_temp_env, caplog, package):
     if sys.platform.startswith("win") and package == "ansible==2.9.13":
         pytest.skip("Ansible is not installable on Windows")
 
-    install_package(capsys, pipx_temp_env, caplog, package)
+    install_package(
+        capsys, pipx_temp_env, caplog, package, re.sub(r"==.+$", "", package)
+    )
 
 
 # TODO: Add git+... spec when git is in binpath of tests (Issue #303)
