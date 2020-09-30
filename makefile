@@ -1,7 +1,7 @@
 .PHONY: test docs develop build publish publish_docs lint
 
 develop:
-	pipx run --spec=git+https://github.com/cs01/nox.git@5ea70723e9e6 nox -s develop
+	pipx run nox -s develop
 
 lint:
 	pipx run nox -s lint
@@ -9,7 +9,7 @@ lint:
 test:
 	# TODO use `pipx run nox` when nox supports venv creation (and thus
 	# pipx tests pass)
-	pipx run --spec=git+https://github.com/cs01/nox.git@5ea70723e9e6 nox
+	pipx run nox
 
 publish:
 	pipx run nox -s publish-3.7
