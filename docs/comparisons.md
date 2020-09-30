@@ -68,7 +68,7 @@ brew can be used to install pipx, but they generally don't interact much.
 ## pipx vs npx
 * Both can run cli tools (npx will search for them in node_modules, and if not found run in a temporary environment. `pipx run` wil search in `__pypackages__` and if not found run in a temporary environment)
 * npx works with JavaScript and pipx works with Python
-* Both tools attempt to make runnning executables written in a dynamic language (JS/Python) as easy as possible
+* Both tools attempt to make running executables written in a dynamic language (JS/Python) as easy as possible
 * pipx can also install tools globally; npx cannot
 
 Example interaction:
