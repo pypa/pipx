@@ -87,7 +87,7 @@ jobs:
         python -m pip install wheel
         python -m pip install regex
     - name: Install native-venv version of nox
-      run: pip install git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
+      run: pip install --use-feature=2020-resolver git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
     - name: Execute Tests
       run: |
         nox --non-interactive --session tests-${{ matrix.python-version }}
