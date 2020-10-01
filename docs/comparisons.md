@@ -12,7 +12,7 @@ Install pipx with pip: `pip install --user pipx`
 ## pipx vs poetry and pipenv
 * pipx is used solely for application consumption: you install cli apps with it
 * pipenv and poetry are cli apps used to develop applications and libraries
-* all three tools wrap pip and virtual envrionments for more convenient workflows
+* all three tools wrap pip and virtual environments for more convenient workflows
 
 Example interaction:
 Install pipenv and poetry with pipx: `pipx install poetry`
@@ -66,7 +66,7 @@ Example interaction:
 brew can be used to install pipx, but they generally don't interact much.
 
 ## pipx vs npx
-* Both can run cli tools (npx will search for them in node_modules, and if not found run in a temporary environment. `pipx run` wil search in `__pypackages__` and if not found run in a temporary environment)
+* Both can run cli tools (npx will search for them in node_modules, and if not found run in a temporary environment. `pipx run` will search in `__pypackages__` and if not found run in a temporary environment)
 * npx works with JavaScript and pipx works with Python
 * Both tools attempt to make running executables written in a dynamic language (JS/Python) as easy as possible
 * pipx can also install tools globally; npx cannot
