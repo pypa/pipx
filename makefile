@@ -7,8 +7,6 @@ lint:
 	pipx run nox -s lint
 
 test:
-	# TODO use `pipx run nox` when nox supports venv creation (and thus
-	# pipx tests pass)
 	pipx run nox
 
 publish:
