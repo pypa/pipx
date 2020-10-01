@@ -22,7 +22,7 @@ python3 -m pipx ensurepath
 ```
 
 ### Installation Options
-The default binary location for pipx-installed apps is `~/.local/bin`. This can be overriden with the environment variable `PIPX_BIN_DIR`.
+The default binary location for pipx-installed apps is `~/.local/bin`. This can be overridden with the environment variable `PIPX_BIN_DIR`.
 
 pipx's default virtual environment location is `~/.local/pipx`. This can be overridden with the environment variable `PIPX_HOME`.
 
