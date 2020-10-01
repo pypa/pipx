@@ -25,7 +25,7 @@ lint_dependencies = [
 ]
 
 
-@nox.session(python=python, venv_backend="venv")
+@nox.session(python=python)
 def tests(session):
     session.install("-e", ".", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
