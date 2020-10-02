@@ -8,6 +8,7 @@ from pipx.venv import Venv, VenvContainer
 
 def install(
     venv_dir: Optional[Path],
+    package_name: Optional[str],
     package_spec: str,
     local_bin_dir: Path,
     python: str,
@@ -22,9 +23,10 @@ def install(
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
 
-    package_name = package_name_from_spec(
-        package_spec, python, pip_args=pip_args, verbose=verbose
-    )
+    if package_name is None:
+        package_name = package_name_from_spec(
+            package_spec, python, pip_args=pip_args, verbose=verbose
+        )
     if venv_dir is None:
         venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
         venv_dir = venv_container.get_venv_dir(package_name)
