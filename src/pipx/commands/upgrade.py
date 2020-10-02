@@ -69,7 +69,6 @@ def upgrade(
     expose_apps_globally(
         constants.LOCAL_BIN_DIR,
         package_metadata.app_paths,
-        package,
         force=force,
         suffix=package_metadata.suffix,
     )
@@ -79,7 +78,6 @@ def upgrade(
             expose_apps_globally(
                 constants.LOCAL_BIN_DIR,
                 app_paths,
-                package,
                 force=force,
                 suffix=package_metadata.suffix,
             )

@@ -21,19 +21,12 @@ from pipx.venv import Venv
 
 
 def expose_apps_globally(
-    local_bin_dir: Path,
-    app_paths: List[Path],
-    package: str,
-    *,
-    force: bool,
-    suffix: str = "",
+    local_bin_dir: Path, app_paths: List[Path], *, force: bool, suffix: str = "",
 ) -> None:
     if not _can_symlink(local_bin_dir):
-        _copy_package_apps(local_bin_dir, app_paths, package, suffix=suffix)
+        _copy_package_apps(local_bin_dir, app_paths, suffix=suffix)
     else:
-        _symlink_package_apps(
-            local_bin_dir, app_paths, package, force=force, suffix=suffix
-        )
+        _symlink_package_apps(local_bin_dir, app_paths, force=force, suffix=suffix)
 
 
 _can_symlink_cache: Dict[Path, bool] = {}
@@ -61,7 +54,7 @@ def _can_symlink(local_bin_dir: Path) -> bool:
 
 
 def _copy_package_apps(
-    local_bin_dir: Path, app_paths: List[Path], package: str, suffix: str = "",
+    local_bin_dir: Path, app_paths: List[Path], suffix: str = "",
 ) -> None:
     for src_unresolved in app_paths:
         src = src_unresolved.resolve()
@@ -77,12 +70,7 @@ def _copy_package_apps(
 
 
 def _symlink_package_apps(
-    local_bin_dir: Path,
-    app_paths: List[Path],
-    package: str,
-    *,
-    force: bool,
-    suffix: str = "",
+    local_bin_dir: Path, app_paths: List[Path], *, force: bool, suffix: str = "",
 ) -> None:
     for app_path in app_paths:
         app_name = app_path.name
@@ -333,7 +321,6 @@ def run_post_install_actions(
     expose_apps_globally(
         local_bin_dir,
         package_metadata.app_paths,
-        package,
         force=force,
         suffix=package_metadata.suffix,
     )
@@ -341,11 +328,7 @@ def run_post_install_actions(
     if include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             expose_apps_globally(
-                local_bin_dir,
-                app_paths,
-                package,
-                force=force,
-                suffix=package_metadata.suffix,
+                local_bin_dir, app_paths, force=force, suffix=package_metadata.suffix,
             )
 
     print(get_package_summary(venv_dir, package=package, new_install=True,))
