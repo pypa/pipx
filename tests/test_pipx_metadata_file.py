@@ -3,12 +3,9 @@ from pathlib import Path
 import pytest  # type: ignore
 
 import pipx.constants
-from helpers import assert_not_in_virtualenv, run_pipx_cli
+from helpers import run_pipx_cli
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 from pipx.util import PipxError
-
-assert_not_in_virtualenv()
-
 
 TEST_PACKAGE1 = PackageInfo(
     package="test_package",

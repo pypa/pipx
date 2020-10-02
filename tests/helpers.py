@@ -7,10 +7,6 @@ from unittest import mock
 from pipx import main
 
 
-def assert_not_in_virtualenv():
-    assert True
-
-
 def run_pipx_cli(pipx_args: List[str]):
     with mock.patch.object(sys, "argv", ["pipx"] + pipx_args):
         return main.cli()
