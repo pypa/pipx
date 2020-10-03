@@ -16,11 +16,8 @@ pipx uses an automation tool called [nox](https://pypi.org/project/nox/) for dev
 
 Install nox for pipx development:
 ```
-python -m pip install --user git+https://github.com/cs01/nox.git@5ea70723e9e6 nox
+python -m pip install --user nox
 ```
-
-!!! note
-    A specific version of nox must be used for pipx development until [nox issue 233](https://github.com/theacodes/nox/issues/233) is resolved.
 
 Tests are defined as `nox` sessions. You can see all nox sessions with
 ```
