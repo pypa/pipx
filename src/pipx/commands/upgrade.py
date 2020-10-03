@@ -102,9 +102,7 @@ def upgrade_all(
 ):
     venv_error = False
     venvs_upgraded = 0
-    num_packages = 0
     for venv_dir in venv_container.iter_venv_dirs():
-        num_packages += 1
         venv = Venv(venv_dir, verbose=verbose)
         if (
             venv_dir.name in skip
