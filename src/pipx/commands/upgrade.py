@@ -1,8 +1,6 @@
 import logging
-
 from pathlib import Path
 from typing import List
-
 
 from pipx import constants
 from pipx.colors import bold, red
@@ -106,9 +104,7 @@ def upgrade_all(
     venv_container: VenvContainer, verbose: bool, *, skip: List[str], force: bool
 ):
     packages_upgraded = 0
-    num_packages = 0
     for venv_dir in venv_container.iter_venv_dirs():
-        num_packages += 1
         package = venv_dir.name
         venv = Venv(venv_dir, verbose=verbose)
         if package in skip or "--editable" in venv.pipx_metadata.main_package.pip_args:

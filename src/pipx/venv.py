@@ -325,14 +325,6 @@ class Venv:
     def get_python_version(self) -> str:
         return run_subprocess([str(self.python_path), "--version"]).stdout.strip()
 
-    def pip_search(self, search_term: str, pip_search_args: List[str]) -> str:
-        cmd_run = run_subprocess(
-            [str(self.python_path), "-m", "pip", "search"]
-            + pip_search_args
-            + [search_term]
-        )
-        return cmd_run.stdout.strip()
-
     def list_installed_packages(self) -> Set[str]:
         cmd_run = run_subprocess(
             [str(self.python_path), "-m", "pip", "list", "--format=json"]
