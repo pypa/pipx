@@ -1,14 +1,10 @@
-from shutil import which
 import subprocess
 import sys
+from shutil import which
 from typing import List
 from unittest import mock
 
 from pipx import main
-
-
-def assert_not_in_virtualenv():
-    assert not hasattr(sys, "real_prefix"), "Tests cannot run under virtualenv"
 
 
 def run_pipx_cli(pipx_args: List[str]):
