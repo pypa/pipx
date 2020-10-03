@@ -29,7 +29,7 @@ lint_dependencies = [
 def tests(session):
     if sys.platform == "darwin":
         # For macOS, we need /usr/bin in PATH to compile some packages,
-        #   but tests clear PATH.  So we pre-build wheels here first.
+        #   but pytest setup clears PATH.  So we pre-build some wheels first.
         session.install("wheel")
         session.install("regex")
         session.install("argon2-cffi")
