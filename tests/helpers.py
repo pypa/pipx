@@ -31,10 +31,6 @@ MOCK_PACKAGE_INFO_0_1: Dict[str, Any] = {
 }
 
 
-def assert_not_in_virtualenv() -> None:
-    assert not hasattr(sys, "real_prefix"), "Tests cannot run under virtualenv"
-
-
 def run_pipx_cli(pipx_args: List[str]) -> int:
     with mock.patch.object(sys, "argv", ["pipx"] + pipx_args):
         return main.cli()

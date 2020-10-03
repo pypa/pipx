@@ -81,13 +81,16 @@ jobs:
     # Build regex wheel into pip cache, so future pipx installs don't compile.
     # This avoids future compile errors in nox tests because of missing
     #   header files.
+    # Inside a pytest session, tests/conftest.py removes all existing paths from
+    #   the system PATH, which can cause C compilation to fail.  So here we
+    #   pre-build some packages' wheels outside of pytest.
     - name: Install wheel and build wheel for regex to pip cache
       if: ${{ runner.os == 'macOS' }}
       run: |
         python -m pip install wheel
         python -m pip install regex
-    - name: Install native-venv version of nox
-      run: pip install --use-feature=2020-resolver git+https://github.com/cs01/nox.git@5ea70723e9e6#egg=nox
+    - name: Install nox
+      run: pip install nox
     - name: Execute Tests
       run: |
         nox --non-interactive --session tests-${{ matrix.python-version }}
