@@ -51,13 +51,13 @@ nox -s tests-3.7
 ```
 
 !!! tip
-    You can running a specific unit test by passing arguments to pytest, the test runner pipx uses:
+    You can run a specific unit test by passing arguments to pytest, the test runner pipx uses:
 
     ```
     nox -s tests-3.8 -- -k EXPRESSION
     ```
 
-    Expression can be a test name, such as
+    `EXPRESSION` can be a test name, such as
 
     ```
     nox -s tests-3.8 -- -k test_uninstall
