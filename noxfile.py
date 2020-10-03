@@ -23,6 +23,8 @@ lint_dependencies = [
     "check-manifest",
     "packaging>=20.0",
 ]
+# Packages that need to be compiled and need an intact system PATH on macOS
+macos_prebuild_packages = ["regex", "argon2-cffi"]
 
 
 @nox.session(python=python)
@@ -31,8 +33,8 @@ def tests(session):
         # For macOS, we need /usr/bin in PATH to compile some packages,
         #   but pytest setup clears PATH.  So we pre-build some wheels first.
         session.install("wheel")
-        session.install("regex")
-        session.install("argon2-cffi")
+        for prebuild_package in macos_prebuild_packages:
+            session.install(prebuild_package)
     session.install("-e", ".", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
     session.run(
