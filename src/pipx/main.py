@@ -484,6 +484,10 @@ def _add_ensurepath(subparsers):
     p = subparsers.add_parser(
         "ensurepath",
         help=(
+            "Ensure directories necessary for pipx operation are in your "
+            "PATH environment variable."
+        ),
+        description=(
             "Ensure directory where pipx stores apps is in your "
             "PATH environment variable. Also if pipx was installed via "
             "`pip install --user`, ensure pipx itself is in your PATH. "
@@ -531,7 +535,9 @@ def get_command_parser():
 
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     subparsers.add_parser(
-        "completions", help="Print instructions on enabling shell completions for pipx"
+        "completions",
+        help="Print instructions on enabling shell completions for pipx",
+        description="Print instructions on enabling shell completions for pipx",
     )
     return parser
 
