@@ -1,8 +1,12 @@
+import os
 from pathlib import Path
 
 import pytest  # type: ignore
 
 from pipx import constants
+
+# we keep /usr/bin because it enables C-compiling python modules on macOS
+PATH_KEEPLIST = ["/usr/bin"]
 
 
 @pytest.fixture
@@ -22,4 +26,7 @@ def pipx_temp_env(tmp_path, monkeypatch):
     monkeypatch.setattr(constants, "PIPX_LOCAL_VENVS", home_dir / "venvs")
     monkeypatch.setattr(constants, "PIPX_VENV_CACHEDIR", home_dir / ".cache")
 
-    monkeypatch.setenv("PATH", str(bin_dir))
+    path_keep = [
+        x for x in os.getenv("PATH", "").split(os.pathsep) if x in PATH_KEEPLIST
+    ]
+    monkeypatch.setenv("PATH", ":".join([str(bin_dir)] + path_keep))
