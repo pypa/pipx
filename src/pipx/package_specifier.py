@@ -97,10 +97,6 @@ def _extras_to_str(extras: Set):
         return ""
 
 
-def package_is_local_path(package_spec: str) -> bool:
-    return _parse_specifier(package_spec).valid_local_path is not None
-
-
 def parse_specifier_for_install(
     package_spec: str, pip_args: List[str]
 ) -> Tuple[str, List[str]]:
