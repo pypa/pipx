@@ -3,6 +3,7 @@ dev
 - [docs] Update license
 - [bugfix] Fixed regression in list, inject and upgrade commands when suffixed packages are used.
 - [bugfix] Do not reset package url during upgrade when main package is `pipx`
+- Update help text to show description for `ensurepath` and `completions` help
 
 
 0.15.5.1
