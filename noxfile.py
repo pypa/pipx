@@ -27,6 +27,12 @@ lint_dependencies = [
 
 @nox.session(python=python)
 def tests(session):
+    if sys.platform == "darwin":
+        # For macOS, we need /usr/bin in PATH to compile some packages,
+        #   but tests clear PATH.  So we pre-build wheels here first.
+        session.install("wheel")
+        session.install("regex")
+        session.install("argon2-cffi")
     session.install("-e", ".", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
     session.run(
