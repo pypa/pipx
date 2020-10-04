@@ -114,7 +114,7 @@ def get_venv_args(parsed_args: Dict) -> List[str]:
     return venv_args
 
 
-def run_pipx_command(args: argparse.Namespace):  # noqa: C901
+def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
     verbose = args.verbose if "verbose" in args else False
     pip_args = get_pip_args(vars(args))
     venv_args = get_venv_args(vars(args))
@@ -182,12 +182,16 @@ def run_pipx_command(args: argparse.Namespace):  # noqa: C901
                 include_dependencies=args.include_deps,
                 force=args.force,
             )
+        # TODO: Issue #503 make pipx commands have proper exit codes
+        return 0
     elif args.command == "upgrade":
         return commands.upgrade(
             venv_dir, pip_args, verbose, upgrading_all=False, force=args.force
         )
     elif args.command == "list":
-        return commands.list_packages(venv_container, args.include_injected)
+        commands.list_packages(venv_container, args.include_injected)
+        # TODO: Issue #503 make pipx commands have proper exit codes
+        return 0
     elif args.command == "uninstall":
         return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, verbose)
     elif args.command == "uninstall-all":
