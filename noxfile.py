@@ -24,7 +24,7 @@ lint_dependencies = [
     "packaging>=20.0",
 ]
 # Packages that need an intact system PATH to compile on macOS
-macos_prebuild_packages = ["argon2-cffi"]
+macos_prebuild_packages = ["argon2-cffi", "regex"]
 
 
 @nox.session(python=python)
