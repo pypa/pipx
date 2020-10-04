@@ -5,6 +5,7 @@ from typing import List
 from pipx.commands.inject import inject
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
+from pipx.emojies import sleep
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
@@ -12,6 +13,11 @@ from pipx.venv import Venv, VenvContainer
 def reinstall(
     *, venv_dir: Path, local_bin_dir: Path, python: str, verbose: bool,
 ) -> int:
+    """Returns pipx shell exit code"""
+    if not venv_dir.exists():
+        print(f"Nothing to reinstall for {venv_dir.name} {sleep}")
+        return 1
+
     venv = Venv(venv_dir, verbose=verbose)
 
     if venv.pipx_metadata.main_package.package_or_url is not None:
@@ -57,7 +63,7 @@ def reinstall(
             include_dependencies=injected_package.include_dependencies,
             force=True,
         )
-    # exit code
+
     return 0
 
 
@@ -69,6 +75,7 @@ def reinstall_all(
     *,
     skip: List[str],
 ) -> int:
+    """Returns pipx shell exit code"""
     failed: List[str] = []
     for venv_dir in venv_container.iter_venv_dirs():
         if venv_dir.name in skip:
@@ -87,5 +94,4 @@ def reinstall_all(
         raise PipxError(
             f"The following package(s) failed to reinstall: {', '.join(failed)}"
         )
-    # exit code
     return 0
