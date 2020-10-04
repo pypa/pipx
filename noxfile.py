@@ -27,15 +27,22 @@ lint_dependencies = [
 macos_prebuild_packages = ["argon2-cffi", "regex"]
 
 
+def prebuild_wheels(session, package_list):
+    wheel_dir = Path(session.virtualenv.location) / "prebuild_wheels"
+    wheel_dir.mkdir()
+    session.install("wheel")
+    for prebuild_package in package_list:
+        session.run(
+            "pip", "wheel", f"--wheel-dir={wheel_dir}", prebuild_package, silent=True,
+        )
+
+
 @nox.session(python=python)
 def tests(session):
     if sys.platform == "darwin":
-        # For macOS, we need /usr/bin in PATH to compile some packages,
-        #   but pytest setup clears PATH.  So we pre-build some wheels first.
-        #   They will end up in the pip cache.
-        session.install("wheel")
-        for prebuild_package in macos_prebuild_packages:
-            session.run("pip", "wheel", prebuild_package, silent=True)
+        # For macOS, need /usr/bin in PATH to compile some packages, but pytest
+        #   setup clears PATH.  So pre-build some wheels to the pip cache.
+        prebuild_wheels(session, macos_prebuild_packages)
     session.install("-e", ".", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
     session.run(
