@@ -5,7 +5,7 @@ dev
 - [bugfix] Do not reset package url during upgrade when main package is `pipx`
 - Update help text to show description for `ensurepath` and `completions` help
 - Add support for user-defined default python interpreter via new PIPX_DEFAULT_PYTHON.  Helpful for use with pyenv among other uses.
-
+- Add reinstall command for reinstalling a single venv.
 
 0.15.5.1
 
