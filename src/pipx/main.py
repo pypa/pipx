@@ -49,6 +49,7 @@ will be installed to $PIPX_HOME/venvs.
 PIPX_BIN_DIR: Overrides location of app installations. Apps are symlinked
 or copied here.
 USE_EMOJI: Override emoji behavior. Default value varies based on platform.
+PIPX_DEFAULT_PYTHON: Overrides default python used for commands.
 """
 )
 
