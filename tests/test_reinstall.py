@@ -10,6 +10,11 @@ def test_reinstall(pipx_temp_env, capsys):
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
 
+def test_reinstall_nonexistent(pipx_temp_env, capsys):
+    assert run_pipx_cli(["reinstall", "--python", sys.executable, "nonexistent"])
+    assert "Nothing to reinstall for nonexistent" in capsys.readouterr().out
+
+
 @pytest.mark.parametrize("metadata_version", [None, "0.1"])
 def test_reinstall_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay"])
