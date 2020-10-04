@@ -4,6 +4,7 @@ dev
 - [bugfix] Fixed regression in list, inject, upgrade, reinstall-all commands when suffixed packages are used.
 - [bugfix] Do not reset package url during upgrade when main package is `pipx`
 - Update help text to show description for `ensurepath` and `completions` help
+- Add support for user-defined default python interpreter via new PIPX_DEFAULT_PYTHON.  Helpful for use with pyenv among other uses.
 
 
 0.15.5.1
