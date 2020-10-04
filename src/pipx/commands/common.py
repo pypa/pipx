@@ -21,19 +21,12 @@ from pipx.venv import Venv
 
 
 def expose_apps_globally(
-    local_bin_dir: Path,
-    app_paths: List[Path],
-    package: str,
-    *,
-    force: bool,
-    suffix: str = "",
+    local_bin_dir: Path, app_paths: List[Path], *, force: bool, suffix: str = "",
 ) -> None:
     if not _can_symlink(local_bin_dir):
-        _copy_package_apps(local_bin_dir, app_paths, package, suffix=suffix)
+        _copy_package_apps(local_bin_dir, app_paths, suffix=suffix)
     else:
-        _symlink_package_apps(
-            local_bin_dir, app_paths, package, force=force, suffix=suffix
-        )
+        _symlink_package_apps(local_bin_dir, app_paths, force=force, suffix=suffix)
 
 
 _can_symlink_cache: Dict[Path, bool] = {}
@@ -61,7 +54,7 @@ def _can_symlink(local_bin_dir: Path) -> bool:
 
 
 def _copy_package_apps(
-    local_bin_dir: Path, app_paths: List[Path], package: str, suffix: str = "",
+    local_bin_dir: Path, app_paths: List[Path], suffix: str = "",
 ) -> None:
     for src_unresolved in app_paths:
         src = src_unresolved.resolve()
@@ -77,12 +70,7 @@ def _copy_package_apps(
 
 
 def _symlink_package_apps(
-    local_bin_dir: Path,
-    app_paths: List[Path],
-    package: str,
-    *,
-    force: bool,
-    suffix: str = "",
+    local_bin_dir: Path, app_paths: List[Path], *, force: bool, suffix: str = "",
 ) -> None:
     for app_path in app_paths:
         app_name = app_path.name
@@ -129,30 +117,32 @@ def _symlink_package_apps(
 
 
 def get_package_summary(
-    path: Path,
+    venv_dir: Path,
     *,
     package: str = None,
     new_install: bool = False,
     include_injected: bool = False,
 ) -> str:
-    venv = Venv(path)
+    venv = Venv(venv_dir)
     python_path = venv.python_path.resolve()
 
-    package_metadata = venv.get_package_metadata(package)
-    package = package_metadata.package or venv.root.name
+    if package is None:
+        package = venv.main_package_name
 
     if not python_path.is_file():
-        return f"   package {red(bold(package))} has invalid interpreter {str(python_path)}"
+        return f"   package {red(bold(venv_dir.name))} has invalid interpreter {str(python_path)}"
     if not venv.package_metadata:
         return (
-            f"   package {red(bold(package))} has missing internal pipx metadata.\n"
+            f"   package {red(bold(venv_dir.name))} has missing internal pipx metadata.\n"
             f"       It was likely installed using a pipx version before 0.15.0.0.\n"
             f"       Please uninstall and install this package, or reinstall-all to fix."
         )
 
+    package_metadata = venv.package_metadata[package]
+
     if package_metadata.package_version is None:
         not_installed = red("is not installed")
-        return f"   package {bold(package)} {not_installed} in the venv {str(path)}"
+        return f"   package {bold(package)} {not_installed} in the venv {venv_dir.name}"
 
     apps = package_metadata.apps + package_metadata.apps_of_dependencies
     exposed_app_paths = _get_exposed_app_paths_for_package(
@@ -281,8 +271,8 @@ def run_post_install_actions(
     *,
     force: bool,
 ):
-    package_metadata = venv.get_package_metadata(package)
-    package = package_metadata.package or package
+    package_metadata = venv.package_metadata[package]
+
     display_name = f"{package}{package_metadata.suffix}"
 
     if not package_metadata.app_paths and not include_dependencies:
@@ -323,7 +313,7 @@ def run_post_install_actions(
         if venv.safe_to_remove():
             venv.remove_venv()
         raise PipxError(
-            f"No apps associated with package {display_name} or its dependencies."
+            f"No apps associated with package {display_name} or its dependencies. "
             "If you are attempting to install a library, pipx should not be used. "
             "Consider using pip or a similar tool instead."
         )
@@ -331,7 +321,6 @@ def run_post_install_actions(
     expose_apps_globally(
         local_bin_dir,
         package_metadata.app_paths,
-        package,
         force=force,
         suffix=package_metadata.suffix,
     )
@@ -339,11 +328,7 @@ def run_post_install_actions(
     if include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             expose_apps_globally(
-                local_bin_dir,
-                app_paths,
-                package,
-                force=force,
-                suffix=package_metadata.suffix,
+                local_bin_dir, app_paths, force=force, suffix=package_metadata.suffix,
             )
 
     print(get_package_summary(venv_dir, package=package, new_install=True,))
