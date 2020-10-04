@@ -1,14 +1,12 @@
 import os
+import re
 import sys
 from unittest import mock
 
 import pytest  # type: ignore
 
-from helpers import assert_not_in_virtualenv, run_pipx_cli, which_python
+from helpers import run_pipx_cli, which_python
 from pipx import constants
-
-assert_not_in_virtualenv()
-
 
 PYTHON3_5 = which_python("python3.5")
 
@@ -47,15 +45,17 @@ def test_install_easy_packages(capsys, pipx_temp_env, caplog, package):
 
 
 @pytest.mark.parametrize(
-    "package", ["cloudtoken", "awscli", "ansible", "shell-functools"]
+    "package", ["cloudtoken", "awscli", "ansible==2.9.13", "shell-functools"]
 )
 def test_install_tricky_packages(capsys, pipx_temp_env, caplog, package):
     if os.getenv("FAST"):
         pytest.skip("skipping slow tests")
-    if sys.platform.startswith("win") and package == "ansible":
+    if sys.platform.startswith("win") and package == "ansible==2.9.13":
         pytest.skip("Ansible is not installable on Windows")
 
-    install_package(capsys, pipx_temp_env, caplog, package)
+    install_package(
+        capsys, pipx_temp_env, caplog, package, re.sub(r"==.+$", "", package)
+    )
 
 
 # TODO: Add git+... spec when git is in binpath of tests (Issue #303)

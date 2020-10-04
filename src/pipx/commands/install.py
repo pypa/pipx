@@ -18,18 +18,19 @@ def install(
     *,
     force: bool,
     include_dependencies: bool,
-    suffix: Optional[str] = None,
+    suffix: str = "",
 ):
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
-    # Determine package_name to properly name venv directory.
-    if venv_dir is None or package_name is None:
+
+    if package_name is None:
         package_name = package_name_from_spec(
             package_spec, python, pip_args=pip_args, verbose=verbose
         )
+    if venv_dir is None:
         venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
         venv_dir = venv_container.get_venv_dir(package_name)
-        if suffix is not None:
+        if suffix != "":
             venv_dir = venv_dir.parent / f"{venv_dir.stem}{suffix}"
 
     try:
@@ -42,7 +43,7 @@ def install(
             print(f"Installing to existing directory {str(venv_dir)!r}")
         else:
             print(
-                f"{package_name!r} already seems to be installed. "
+                f"{venv_dir.name!r} already seems to be installed. "
                 f"Not modifying existing installation in {str(venv_dir)!r}. "
                 "Pass '--force' to force installation."
             )
@@ -58,6 +59,7 @@ def install(
             include_dependencies=include_dependencies,
             include_apps=True,
             is_main_package=True,
+            suffix=suffix,
         )
         run_post_install_actions(
             venv,
@@ -66,7 +68,6 @@ def install(
             venv_dir,
             include_dependencies,
             force=force,
-            suffix=suffix,
         )
     except (Exception, KeyboardInterrupt):
         print("")

@@ -1,11 +1,10 @@
 import json
 import logging
-from pathlib import Path
 import textwrap
-from typing import List, Dict, NamedTuple, Any, Optional
+from pathlib import Path
+from typing import Any, Dict, List, NamedTuple, Optional
 
 from pipx.util import PipxError
-
 
 PIPX_INFO_FILENAME = "pipx_metadata.json"
 
@@ -35,9 +34,13 @@ class PackageInfo(NamedTuple):
     apps_of_dependencies: List[str]
     app_paths_of_dependencies: Dict[str, List[Path]]
     package_version: str
+    suffix: str = ""
 
 
 class PipxMetadata:
+    # Only change this if file format changes
+    __METADATA_VERSION__: str = "0.2"
+
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
         # We init this instance with reasonable fallback defaults for all
@@ -61,32 +64,8 @@ class PipxMetadata:
         self.venv_args: List[str] = []
         self.injected_packages: Dict[str, PackageInfo] = {}
 
-        # Only change this if file format changes
-        self._pipx_metadata_version: str = "0.1"
-
         if read:
             self.read()
-
-    def reset(self) -> None:
-        # We init this instance with reasonable fallback defaults for all
-        #   members, EXCEPT for those we cannot know:
-        #       self.main_package.package_or_url=None
-        #       self.venv_metadata.package_or_url=None
-        self.main_package = PackageInfo(
-            package=None,
-            package_or_url=None,
-            pip_args=[],
-            include_dependencies=False,
-            include_apps=True,  # always True for main_package
-            apps=[],
-            app_paths=[],
-            apps_of_dependencies=[],
-            app_paths_of_dependencies={},
-            package_version="",
-        )
-        self.python_version = None
-        self.venv_args = []
-        self.injected_packages = {}
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -96,15 +75,34 @@ class PipxMetadata:
             "injected_packages": {
                 name: data._asdict() for (name, data) in self.injected_packages.items()
             },
-            "pipx_metadata_version": self._pipx_metadata_version,
+            "pipx_metadata_version": self.__METADATA_VERSION__,
         }
 
+    def _convert_legacy_metadata(self, metadata_dict: Dict[str, Any]) -> Dict[str, Any]:
+        if metadata_dict["pipx_metadata_version"] == self.__METADATA_VERSION__:
+            return metadata_dict
+        elif metadata_dict["pipx_metadata_version"] == "0.1":
+            main_package_data = metadata_dict["main_package"]
+            if main_package_data["package"] != self.venv_dir.name:
+                # handle older suffixed packages gracefully
+                main_package_data["suffix"] = self.venv_dir.name.replace(
+                    main_package_data["package"], ""
+                )
+            return metadata_dict
+        else:
+            raise PipxError(
+                f"{self.venv_dir.name}: Unknown metadata version "
+                f"{metadata_dict['pipx_metadata_version']}. "
+                "Perhaps it was installed with a later version of pipx."
+            )
+
     def from_dict(self, input_dict: Dict[str, Any]) -> None:
+        input_dict = self._convert_legacy_metadata(input_dict)
         self.main_package = PackageInfo(**input_dict["main_package"])
         self.python_version = input_dict["python_version"]
         self.venv_args = input_dict["venv_args"]
         self.injected_packages = {
-            name: PackageInfo(**data)
+            f"{name}{data.get('suffix', '')}": PackageInfo(**data)
             for (name, data) in input_dict["injected_packages"].items()
         }
 

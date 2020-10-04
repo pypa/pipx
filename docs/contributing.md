@@ -16,11 +16,8 @@ pipx uses an automation tool called [nox](https://pypi.org/project/nox/) for dev
 
 Install nox for pipx development:
 ```
-python -m pip install --user git+https://github.com/cs01/nox.git@5ea70723e9e6 nox
+python -m pip install --user nox
 ```
-
-!!! note
-    A specific version of nox must be used for pipx development until [nox issue 233](https://github.com/theacodes/nox/issues/233) is resolved.
 
 Tests are defined as `nox` sessions. You can see all nox sessions with
 ```
@@ -54,13 +51,13 @@ nox -s tests-3.7
 ```
 
 !!! tip
-    You can running a specific unit test by passing arguments to pytest, the test runner pipx uses:
+    You can run a specific unit test by passing arguments to pytest, the test runner pipx uses:
 
     ```
     nox -s tests-3.8 -- -k EXPRESSION
     ```
 
-    Expression can be a test name, such as
+    `EXPRESSION` can be a test name, such as
 
     ```
     nox -s tests-3.8 -- -k test_uninstall
@@ -101,17 +98,22 @@ nox -s publish_docs
 ```
 
 ## Releasing New `pipx` Versions
-To create a new release
+### Pre-release
 
-* Update pipx's version in `src/pipx/version.py` and regenerate documentation.
+* Update pipx's version in `src/pipx/version.py` to the new version
 * Make sure the changelog is updated
-    * Add new version to head the latest block of changes (instead of "dev").
+    * Put the version of the new release as the header for the latest block of changes (instead of "dev").
     * Make sure all notable changes are listed.
+* Regenerate documentation.
 
-Finally, run
+### Release
+To publish to PyPI: From a clone of the main pipxproject pipx repo (not a fork), run
 ```bash
 nox -s publish
-nox -s publish_docs
 ```
 
-and create a new release in GitHub.
+Additionally, create a new release in GitHub.
+
+### Post-release
+* Update pipx's version in `src/pipx/version.py` by adding a suffix `"dev0"` for unreleased development.
+* Update the changelog to start a new section at the top entitled `dev`

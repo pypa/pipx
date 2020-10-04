@@ -121,6 +121,15 @@ class Venv:
             ] = self.pipx_metadata.main_package
         return return_dict
 
+    @property
+    def main_package_name(self) -> str:
+        if self.pipx_metadata.main_package.package is None:
+            # This is OK, because if no metadata, we are pipx < v0.15.0.0 and
+            #   venv_name==main_package_name
+            return self.root.name
+        else:
+            return self.pipx_metadata.main_package.package
+
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
             cmd = [self.python, "-m", "venv", "--without-pip"]
@@ -169,6 +178,7 @@ class Venv:
         include_dependencies: bool,
         include_apps: bool,
         is_main_package: bool,
+        suffix: str = "",
     ) -> None:
         if pip_args is None:
             pip_args = []
@@ -199,6 +209,7 @@ class Venv:
             include_dependencies=include_dependencies,
             include_apps=include_apps,
             is_main_package=is_main_package,
+            suffix=suffix,
         )
 
         # Verify package installed ok
@@ -285,6 +296,7 @@ class Venv:
         include_dependencies: bool,
         include_apps: bool,
         is_main_package: bool,
+        suffix: str = "",
     ) -> None:
         venv_package_metadata = self.get_venv_metadata_for_package(package)
         package_info = PackageInfo(
@@ -298,6 +310,7 @@ class Venv:
             apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
             app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
             package_version=venv_package_metadata.package_version,
+            suffix=suffix,
         )
         if is_main_package:
             self.pipx_metadata.main_package = package_info
@@ -308,14 +321,6 @@ class Venv:
 
     def get_python_version(self) -> str:
         return run_subprocess([str(self.python_path), "--version"]).stdout.strip()
-
-    def pip_search(self, search_term: str, pip_search_args: List[str]) -> str:
-        cmd_run = run_subprocess(
-            [str(self.python_path), "-m", "pip", "search"]
-            + pip_search_args
-            + [search_term]
-        )
-        return cmd_run.stdout.strip()
 
     def list_installed_packages(self) -> Set[str]:
         cmd_run = run_subprocess(
@@ -345,6 +350,7 @@ class Venv:
         include_dependencies: bool,
         include_apps: bool,
         is_main_package: bool,
+        suffix: str = "",
     ) -> None:
         with animate(
             f"upgrading {full_package_description(package, package_or_url)}",
@@ -359,6 +365,7 @@ class Venv:
             include_dependencies=include_dependencies,
             include_apps=include_apps,
             is_main_package=is_main_package,
+            suffix=suffix,
         )
 
     def _run_pip(self, cmd: List[str]) -> int:

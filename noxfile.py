@@ -4,15 +4,6 @@ from pathlib import Path
 
 import nox  # type: ignore
 
-# NOTE: these tests require nox to create virtual environments
-# with venv. nox currently uses virtualenv. pipx
-# uses a fork of nox at https://github.com/cs01/nox
-# on the branch cs01/use-venv
-# To invoke nox for pipx, use:
-# pipx run --spec=git+https://github.com/cs01/nox.git@2ba8984a nox
-# until this is fixed in nox. See
-# https://github.com/theacodes/nox/issues/199
-
 python = ["3.6", "3.7", "3.8"]
 
 if sys.platform == "win32":
@@ -32,10 +23,26 @@ lint_dependencies = [
     "check-manifest",
     "packaging>=20.0",
 ]
+# Packages that need an intact system PATH to compile on macOS
+macos_prebuild_packages = ["argon2-cffi", "regex"]
+
+
+def prebuild_wheels(session, package_list):
+    wheel_dir = Path(session.virtualenv.location) / "prebuild_wheels"
+    wheel_dir.mkdir()
+    session.install("wheel")
+    for prebuild_package in package_list:
+        session.run(
+            "pip", "wheel", f"--wheel-dir={wheel_dir}", prebuild_package, silent=True,
+        )
 
 
 @nox.session(python=python)
 def tests(session):
+    if sys.platform == "darwin":
+        # For macOS, need /usr/bin in PATH to compile some packages, but pytest
+        #   setup clears PATH.  So pre-build some wheels to the pip cache.
+        prebuild_wheels(session, macos_prebuild_packages)
     session.install("-e", ".", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
     session.run(

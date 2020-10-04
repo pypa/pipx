@@ -1,8 +1,6 @@
 import logging
-
 from pathlib import Path
 from typing import List
-
 
 from pipx import constants
 from pipx.colors import bold, red
@@ -14,7 +12,6 @@ from pipx.venv import Venv, VenvContainer
 
 def upgrade(
     venv_dir: Path,
-    package: str,
     pip_args: List[str],
     verbose: bool,
     *,
@@ -30,6 +27,7 @@ def upgrade(
         )
 
     venv = Venv(venv_dir, verbose=verbose)
+    package = venv.main_package_name
 
     if not venv.package_metadata:
         print(
@@ -40,6 +38,7 @@ def upgrade(
         return 0
 
     package_metadata = venv.package_metadata[package]
+
     if package_metadata.package_or_url is None:
         raise PipxError(f"Internal Error: package {package} has corrupt pipx metadata.")
 
@@ -47,9 +46,6 @@ def upgrade(
     old_version = package_metadata.package_version
     include_apps = package_metadata.include_apps
     include_dependencies = package_metadata.include_dependencies
-
-    if package == "pipx":
-        package_or_url = "pipx"
 
     # Upgrade shared libraries (pip, setuptools and wheel)
     venv.upgrade_packaging_libraries(pip_args)
@@ -61,20 +57,29 @@ def upgrade(
         include_dependencies=include_dependencies,
         include_apps=include_apps,
         is_main_package=True,
+        suffix=package_metadata.suffix,
     )
     # TODO 20191026: upgrade injected packages also (Issue #79)
 
     package_metadata = venv.package_metadata[package]
+
+    display_name = f"{package_metadata.package}{package_metadata.suffix}"
     new_version = package_metadata.package_version
 
     expose_apps_globally(
-        constants.LOCAL_BIN_DIR, package_metadata.app_paths, package, force=force
+        constants.LOCAL_BIN_DIR,
+        package_metadata.app_paths,
+        force=force,
+        suffix=package_metadata.suffix,
     )
 
     if include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             expose_apps_globally(
-                constants.LOCAL_BIN_DIR, app_paths, package, force=force
+                constants.LOCAL_BIN_DIR,
+                app_paths,
+                force=force,
+                suffix=package_metadata.suffix,
             )
 
     if old_version == new_version:
@@ -82,12 +87,12 @@ def upgrade(
             pass
         else:
             print(
-                f"{package} is already at latest version {old_version} (location: {str(venv_dir)})"
+                f"{display_name} is already at latest version {old_version} (location: {str(venv_dir)})"
             )
         return 0
     else:
         print(
-            f"upgraded package {package} from {old_version} to {new_version} (location: {str(venv_dir)})"
+            f"upgraded package {display_name} from {old_version} to {new_version} (location: {str(venv_dir)})"
         )
         return 1
 
@@ -95,18 +100,18 @@ def upgrade(
 def upgrade_all(
     venv_container: VenvContainer, verbose: bool, *, skip: List[str], force: bool
 ):
-    packages_upgraded = 0
-    num_packages = 0
+    venv_error = False
+    venvs_upgraded = 0
     for venv_dir in venv_container.iter_venv_dirs():
-        num_packages += 1
-        package = venv_dir.name
         venv = Venv(venv_dir, verbose=verbose)
-        if package in skip or "--editable" in venv.pipx_metadata.main_package.pip_args:
+        if (
+            venv_dir.name in skip
+            or "--editable" in venv.pipx_metadata.main_package.pip_args
+        ):
             continue
         try:
-            packages_upgraded += upgrade(
+            venvs_upgraded += upgrade(
                 venv_dir,
-                package,
                 venv.pipx_metadata.main_package.pip_args,
                 verbose,
                 upgrading_all=True,
@@ -114,9 +119,15 @@ def upgrade_all(
             )
 
         except Exception:
-            logging.error(f"Error encountered when upgrading {package}")
+            venv_error = True
+            logging.error(f"Error encountered when upgrading {venv_dir.name}")
 
-    if packages_upgraded == 0:
+    if venvs_upgraded == 0:
         print(
             f"Versions did not change after running 'pip upgrade' for each package {sleep}"
+        )
+    if venv_error:
+        raise PipxError(
+            "Some packages encountered errors during upgrade. "
+            "See specific error messages above."
         )

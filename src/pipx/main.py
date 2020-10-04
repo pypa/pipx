@@ -67,6 +67,7 @@ packages. 'sudo' is not required to do this.
 pipx install PACKAGE_NAME
 pipx install --python PYTHON PACKAGE_NAME
 pipx install VCS_URL
+pipx install ./LOCAL_PATH
 pipx install ZIP_FILE
 pipx install TAR_GZ_FILE
 
@@ -183,12 +184,12 @@ def run_pipx_command(args: argparse.Namespace):  # noqa: C901
             )
     elif args.command == "upgrade":
         return commands.upgrade(
-            venv_dir, package, pip_args, verbose, upgrading_all=False, force=args.force
+            venv_dir, pip_args, verbose, upgrading_all=False, force=args.force
         )
     elif args.command == "list":
         return commands.list_packages(venv_container, args.include_injected)
     elif args.command == "uninstall":
-        return commands.uninstall(venv_dir, package, constants.LOCAL_BIN_DIR, verbose)
+        return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, verbose)
     elif args.command == "uninstall-all":
         return commands.uninstall_all(venv_container, constants.LOCAL_BIN_DIR, verbose)
     elif args.command == "upgrade-all":
@@ -267,7 +268,12 @@ def _add_install(subparsers):
         help="Modify existing virtual environment and files in PIPX_BIN_DIR",
     )
     p.add_argument(
-        "--suffix", help="Optional suffix for virtual environment and executable names"
+        "--suffix",
+        default="",
+        help=(
+            "Optional suffix for virtual environment and executable names. "
+            "NOTE: The suffix feature is experimental and subject to change."
+        ),
     )
     p.add_argument(
         "--python",
@@ -331,8 +337,7 @@ def _add_upgrade(subparsers, autocomplete_list_of_installed_packages):
 def _add_upgrade_all(subparsers):
     p = subparsers.add_parser(
         "upgrade-all",
-        help="Upgrade all packages. "
-        "Runs `pip install -U <pkgname>` for each package.",
+        help="Upgrade all packages. Runs `pip install -U <pkgname>` for each package.",
         description="Upgrades all packages within their virtual environments by running 'pip install --upgrade PACKAGE'",
     )
 
@@ -488,6 +493,10 @@ def _add_ensurepath(subparsers):
     p = subparsers.add_parser(
         "ensurepath",
         help=(
+            "Ensure directories necessary for pipx operation are in your "
+            "PATH environment variable."
+        ),
+        description=(
             "Ensure directory where pipx stores apps is in your "
             "PATH environment variable. Also if pipx was installed via "
             "`pip install --user`, ensure pipx itself is in your PATH. "
@@ -535,7 +544,9 @@ def get_command_parser():
 
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     subparsers.add_parser(
-        "completions", help="Print instructions on enabling shell completions for pipx"
+        "completions",
+        help="Print instructions on enabling shell completions for pipx",
+        description="Print instructions on enabling shell completions for pipx",
     )
     return parser
 
