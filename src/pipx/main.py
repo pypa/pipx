@@ -49,6 +49,7 @@ will be installed to $PIPX_HOME/venvs.
 PIPX_BIN_DIR: Overrides location of app installations. Apps are symlinked
 or copied here.
 USE_EMOJI: Override emoji behavior. Default value varies based on platform.
+PIPX_DEFAULT_PYTHON: Overrides default python used for commands.
 """
 )
 
@@ -78,6 +79,10 @@ and can be overridden by setting the environment variable `PIPX_HOME`
 
 The default app location is {constants.DEFAULT_PIPX_BIN_DIR} and can be
 overridden by setting the environment variable `PIPX_BIN_DIR`.
+
+The default python executable used to install a package is
+{DEFAULT_PYTHON} and can be overridden by setting the environment
+variable `PIPX_DEFAULT_PYTHON`.
 """
 
 
@@ -110,7 +115,6 @@ def get_venv_args(parsed_args: Dict) -> List[str]:
 
 
 def run_pipx_command(args: argparse.Namespace):  # noqa: C901
-    setup(args)
     verbose = args.verbose if "verbose" in args else False
     pip_args = get_pip_args(vars(args))
     venv_args = get_venv_args(vars(args))
@@ -596,6 +600,8 @@ def setup(args):
         logging.basicConfig(level=logging.WARNING, format="%(message)s")
 
     logging.info(f"pipx version is {__version__}")
+    logging.info(f"Default python interpreter is {repr(DEFAULT_PYTHON)}")
+
     mkdir(constants.PIPX_LOCAL_VENVS)
     mkdir(constants.LOCAL_BIN_DIR)
     mkdir(constants.PIPX_VENV_CACHEDIR)
