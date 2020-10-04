@@ -1,9 +1,18 @@
-from helpers import run_pipx_cli
+import pytest  # type: ignore
+
+from helpers import mock_legacy_venv, run_pipx_cli
 from pipx import constants, util
 
 
 def test_uninstall(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["uninstall", "pycowsay"])
+
+
+@pytest.mark.parametrize("metadata_version", [None, "0.1"])
+def test_uninstall_legacy_venv(pipx_temp_env, capsys, metadata_version):
+    assert not run_pipx_cli(["install", "pycowsay"])
+    mock_legacy_venv("pycowsay", metadata_version=metadata_version)
     assert not run_pipx_cli(["uninstall", "pycowsay"])
 
 
@@ -13,6 +22,20 @@ def test_uninstall_suffix(pipx_temp_env, capsys):
     executable = f"{name}{suffix}{'.exe' if constants.WINDOWS else ''}"
 
     assert not run_pipx_cli(["install", "pbr", f"--suffix={suffix}"])
+    assert (constants.LOCAL_BIN_DIR / executable).exists()
+
+    assert not run_pipx_cli(["uninstall", f"{name}{suffix}"])
+    assert not (constants.LOCAL_BIN_DIR / executable).exists()
+
+
+@pytest.mark.parametrize("metadata_version", ["0.1"])
+def test_uninstall_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
+    name = "pbr"
+    suffix = "_a"
+    executable = f"{name}{suffix}{'.exe' if constants.WINDOWS else ''}"
+
+    assert not run_pipx_cli(["install", "pbr", f"--suffix={suffix}"])
+    mock_legacy_venv(f"{name}{suffix}", metadata_version=metadata_version)
     assert (constants.LOCAL_BIN_DIR / executable).exists()
 
     assert not run_pipx_cli(["uninstall", f"{name}{suffix}"])
