@@ -35,7 +35,7 @@ def tests(session):
         #   They will end up in the pip cache.
         session.install("wheel")
         for prebuild_package in macos_prebuild_packages:
-            session.run("pip", "wheel", prebuild_package)
+            session.run("pip", "wheel", prebuild_package, silent=True)
     session.install("-e", ".", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
     session.run(
