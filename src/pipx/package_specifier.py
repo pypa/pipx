@@ -182,4 +182,29 @@ def valid_pypi_name(package_spec: str) -> Optional[str]:
         # not a valid PEP508 package specification
         return None
 
-    return package_req.name
+    if package_req.url:
+        # package name supplied by user might not match package found in URL,
+        #   so force package name determination the long way
+        return None
+
+    return canonicalize_name(package_req.name)
+
+
+def fix_package_name(package_or_url: str, package: str) -> str:
+    try:
+        package_req = Requirement(package_or_url)
+    except InvalidRequirement:
+        # not a valid PEP508 package specification
+        return package_or_url
+
+    if canonicalize_name(package_req.name) != canonicalize_name(package):
+        logging.warning(
+            textwrap.fill(
+                f"Name supplied in package specifier was {package_req.name} but "
+                f"package found has name {package}.  Using {package}.",
+                subsequent_indent="    ",
+            )
+        )
+    package_req.name = package
+
+    return str(package_req)
