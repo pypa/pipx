@@ -3,12 +3,50 @@ from pathlib import Path
 import pytest  # type: ignore
 
 from pipx.package_specifier import (
+    fix_package_name,
     parse_specifier_for_install,
     parse_specifier_for_metadata,
+    valid_pypi_name,
 )
 from pipx.util import PipxError
 
 TEST_DATA_PATH = "./testdata/test_package_specifier"
+
+
+@pytest.mark.parametrize(
+    "package_spec_in,package_name_out",
+    [
+        ("Black", "black"),
+        ("https://github.com/ambv/black/archive/18.9b0.zip", None),
+        ("black @ https://github.com/ambv/black/archive/18.9b0.zip", None),
+    ],
+)
+def test_valid_pypi_name(package_spec_in, package_name_out):
+    assert valid_pypi_name(package_spec_in) == package_name_out
+
+
+@pytest.mark.parametrize(
+    "package_spec_in,package_name,package_spec_out",
+    [
+        (
+            "https://github.com/ambv/black/archive/18.9b0.zip",
+            "black",
+            "https://github.com/ambv/black/archive/18.9b0.zip",
+        ),
+        (
+            "nox@https://github.com/ambv/black/archive/18.9b0.zip",
+            "black",
+            "black@ https://github.com/ambv/black/archive/18.9b0.zip",
+        ),
+        (
+            "nox[extra]@https://github.com/ambv/black/archive/18.9b0.zip",
+            "black",
+            "black[extra]@ https://github.com/ambv/black/archive/18.9b0.zip",
+        ),
+    ],
+)
+def test_fix_package_name(package_spec_in, package_name, package_spec_out):
+    assert fix_package_name(package_spec_in, package_name) == package_spec_out
 
 
 # TODO: Make sure git+ works with tests, correct in test_install as well
