@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import List, NamedTuple, Optional, Set, Tuple
 
 from packaging.requirements import InvalidRequirement, Requirement
+from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
 
 from pipx.emojies import hazard
@@ -97,6 +98,16 @@ def _extras_to_str(extras: Set):
         return ""
 
 
+def package_or_url_from_pep508(
+    requirement: Requirement, remove_version_specifiers=False
+) -> str:
+    requirement.marker = None
+    requirement.name = canonicalize_name(requirement.name)
+    if remove_version_specifiers:
+        requirement.specifier = SpecifierSet("")
+    return str(requirement)
+
+
 def parse_specifier_for_install(
     package_spec: str, pip_args: List[str]
 ) -> Tuple[str, List[str]]:
@@ -109,25 +120,17 @@ def parse_specifier_for_install(
     """
     parsed_package = _parse_specifier(package_spec)
     if parsed_package.valid_pep508 is not None:
-        if parsed_package.valid_pep508.url:
-            package_or_url = parsed_package.valid_pep508.url
-        else:
-            package_or_url = canonicalize_name(parsed_package.valid_pep508.name)
-            package_or_url += _extras_to_str(parsed_package.valid_pep508.extras)
-            if parsed_package.valid_pep508.specifier:
-                package_or_url = package_or_url + str(
-                    parsed_package.valid_pep508.specifier
+        if parsed_package.valid_pep508.marker is not None:
+            logging.warning(
+                textwrap.fill(
+                    f"{hazard}  Ignoring environment markers "
+                    f"({parsed_package.valid_pep508.marker}) in package "
+                    "specification. Use pipx options to specify this type of "
+                    "information.",
+                    subsequent_indent="    ",
                 )
-            if parsed_package.valid_pep508.marker:
-                logging.warning(
-                    textwrap.fill(
-                        f"{hazard}  Ignoring environment markers "
-                        f"({parsed_package.valid_pep508.marker}) in package "
-                        "specification. Use pipx options to specify this type of "
-                        "information.",
-                        subsequent_indent="    ",
-                    )
-                )
+            )
+        package_or_url = package_or_url_from_pep508(parsed_package.valid_pep508)
     elif parsed_package.valid_url is not None:
         package_or_url = parsed_package.valid_url
     elif parsed_package.valid_local_path is not None:
@@ -159,11 +162,9 @@ def parse_specifier_for_metadata(package_spec: str) -> str:
     """
     parsed_package = _parse_specifier(package_spec)
     if parsed_package.valid_pep508 is not None:
-        if parsed_package.valid_pep508.url:
-            package_or_url = parsed_package.valid_pep508.url
-        else:
-            package_or_url = canonicalize_name(parsed_package.valid_pep508.name)
-            package_or_url += _extras_to_str(parsed_package.valid_pep508.extras)
+        package_or_url = package_or_url_from_pep508(
+            parsed_package.valid_pep508, remove_version_specifiers=True
+        )
     elif parsed_package.valid_url is not None:
         package_or_url = parsed_package.valid_url
     elif parsed_package.valid_local_path is not None:
