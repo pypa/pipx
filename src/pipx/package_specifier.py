@@ -141,7 +141,7 @@ def parse_specifier_for_install(
     """Return package_or_url and pip_args suitable for pip install
 
     Specifically:
-    * Strip any markers (e.g. python_version > 3.4)
+    * Strip any markers (e.g. python_version > "3.4")
     * Ensure --editable is removed for any package_spec not a local path
     * Convert local paths to absolute paths
     """
