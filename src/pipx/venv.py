@@ -184,7 +184,7 @@ class Venv:
         if pip_args is None:
             pip_args = []
 
-        # fix package name in package specifier if necessary
+        # package name in package specifier can mismatch URL due to user error
         package_or_url = fix_package_name(package_or_url, package)
 
         # check syntax and clean up spec and pip_args

@@ -108,17 +108,9 @@ def package_or_url_from_pep508(
     return str(requirement)
 
 
-def parse_specifier_for_install(
-    package_spec: str, pip_args: List[str]
-) -> Tuple[str, List[str]]:
-    """Return package_or_url and pip_args suitable for pip install
-
-    Specifically:
-    * Strip any markers (e.g. python_version > 3.4)
-    * Ensure --editable is removed for any package_spec not a local path
-    * Convert local paths to absolute paths
-    """
-    parsed_package = _parse_specifier(package_spec)
+def _parsed_package_to_package_or_url(
+    parsed_package: ParsedPackage, remove_version_specifiers: bool
+) -> str:
     if parsed_package.valid_pep508 is not None:
         if parsed_package.valid_pep508.marker is not None:
             logging.warning(
@@ -130,14 +122,33 @@ def parse_specifier_for_install(
                     subsequent_indent="    ",
                 )
             )
-        package_or_url = package_or_url_from_pep508(parsed_package.valid_pep508)
+        package_or_url = package_or_url_from_pep508(
+            parsed_package.valid_pep508,
+            remove_version_specifiers=remove_version_specifiers,
+        )
     elif parsed_package.valid_url is not None:
         package_or_url = parsed_package.valid_url
     elif parsed_package.valid_local_path is not None:
         package_or_url = parsed_package.valid_local_path
 
     logging.info(f"cleaned package spec: {package_or_url}")
+    return package_or_url
 
+
+def parse_specifier_for_install(
+    package_spec: str, pip_args: List[str]
+) -> Tuple[str, List[str]]:
+    """Return package_or_url and pip_args suitable for pip install
+
+    Specifically:
+    * Strip any markers (e.g. python_version > 3.4)
+    * Ensure --editable is removed for any package_spec not a local path
+    * Convert local paths to absolute paths
+    """
+    parsed_package = _parse_specifier(package_spec)
+    package_or_url = _parsed_package_to_package_or_url(
+        parsed_package, remove_version_specifiers=False
+    )
     if "--editable" in pip_args and not parsed_package.valid_local_path:
         logging.warning(
             textwrap.fill(
@@ -161,17 +172,9 @@ def parse_specifier_for_metadata(package_spec: str) -> str:
     * Convert local paths to absolute paths
     """
     parsed_package = _parse_specifier(package_spec)
-    if parsed_package.valid_pep508 is not None:
-        package_or_url = package_or_url_from_pep508(
-            parsed_package.valid_pep508, remove_version_specifiers=True
-        )
-    elif parsed_package.valid_url is not None:
-        package_or_url = parsed_package.valid_url
-    elif parsed_package.valid_local_path is not None:
-        package_or_url = parsed_package.valid_local_path
-
-    logging.info(f"cleaned package spec: {package_or_url}")
-
+    package_or_url = _parsed_package_to_package_or_url(
+        parsed_package, remove_version_specifiers=True
+    )
     return package_or_url
 
 
