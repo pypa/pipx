@@ -32,7 +32,7 @@ TEST_DATA_PATH = "./testdata/test_package_specifier"
         ),
         (
             "nox@git+https://github.com/cs01/nox.git@5ea70723e9e6",
-            "git+https://github.com/cs01/nox.git@5ea70723e9e6",
+            "nox@ git+https://github.com/cs01/nox.git@5ea70723e9e6",
             True,
         ),
         (
@@ -42,12 +42,12 @@ TEST_DATA_PATH = "./testdata/test_package_specifier"
         ),
         (
             "black@https://github.com/ambv/black/archive/18.9b0.zip",
-            "https://github.com/ambv/black/archive/18.9b0.zip",
+            "black@ https://github.com/ambv/black/archive/18.9b0.zip",
             True,
         ),
         (
             "black @ https://github.com/ambv/black/archive/18.9b0.zip",
-            "https://github.com/ambv/black/archive/18.9b0.zip",
+            "black@ https://github.com/ambv/black/archive/18.9b0.zip",
             True,
         ),
         ("path/doesnt/exist", "non-existent-path", False,),
