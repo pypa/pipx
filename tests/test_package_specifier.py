@@ -50,6 +50,16 @@ TEST_DATA_PATH = "./testdata/test_package_specifier"
             "black@ https://github.com/ambv/black/archive/18.9b0.zip",
             True,
         ),
+        (
+            "black[extra] @ https://github.com/ambv/black/archive/18.9b0.zip",
+            "black[extra]@ https://github.com/ambv/black/archive/18.9b0.zip",
+            True,
+        ),
+        (
+            'my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git ; python_version<"3.7"',
+            "my-project[cli]@ git+ssh://git@bitbucket.org/my-company/myproject.git",
+            True,
+        ),
         ("path/doesnt/exist", "non-existent-path", False,),
         (
             "https:/github.com/ambv/black/archive/18.9b0.zip",
