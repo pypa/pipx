@@ -8,6 +8,7 @@ from pipx.animate import animate
 from pipx.constants import PIPX_SHARED_PTH
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.package_specifier import (
+    fix_package_name,
     parse_specifier_for_install,
     parse_specifier_for_metadata,
 )
@@ -182,6 +183,9 @@ class Venv:
     ) -> None:
         if pip_args is None:
             pip_args = []
+
+        # package name in package specifier can mismatch URL due to user error
+        package_or_url = fix_package_name(package_or_url, package)
 
         # check syntax and clean up spec and pip_args
         (package_or_url, pip_args) = parse_specifier_for_install(
