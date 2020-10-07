@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import List, NamedTuple, Optional, Set, Tuple
 
 from packaging.requirements import InvalidRequirement, Requirement
+from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
 
 from pipx.emojies import hazard
@@ -97,44 +98,57 @@ def _extras_to_str(extras: Set):
         return ""
 
 
-def parse_specifier_for_install(
-    package_spec: str, pip_args: List[str]
-) -> Tuple[str, List[str]]:
-    """Return package_or_url and pip_args suitable for pip install
+def package_or_url_from_pep508(
+    requirement: Requirement, remove_version_specifiers=False
+) -> str:
+    requirement.marker = None
+    requirement.name = canonicalize_name(requirement.name)
+    if remove_version_specifiers:
+        requirement.specifier = SpecifierSet("")
+    return str(requirement)
 
-    Specifically:
-    * Strip any markers (e.g. python_version > 3.4)
-    * Ensure --editable is removed for any package_spec not a local path
-    * Convert local paths to absolute paths
-    """
-    parsed_package = _parse_specifier(package_spec)
+
+def _parsed_package_to_package_or_url(
+    parsed_package: ParsedPackage, remove_version_specifiers: bool
+) -> str:
     if parsed_package.valid_pep508 is not None:
-        if parsed_package.valid_pep508.url:
-            package_or_url = parsed_package.valid_pep508.url
-        else:
-            package_or_url = canonicalize_name(parsed_package.valid_pep508.name)
-            package_or_url += _extras_to_str(parsed_package.valid_pep508.extras)
-            if parsed_package.valid_pep508.specifier:
-                package_or_url = package_or_url + str(
-                    parsed_package.valid_pep508.specifier
+        if parsed_package.valid_pep508.marker is not None:
+            logging.warning(
+                textwrap.fill(
+                    f"{hazard}  Ignoring environment markers "
+                    f"({parsed_package.valid_pep508.marker}) in package "
+                    "specification. Use pipx options to specify this type of "
+                    "information.",
+                    subsequent_indent="    ",
                 )
-            if parsed_package.valid_pep508.marker:
-                logging.warning(
-                    textwrap.fill(
-                        f"{hazard}  Ignoring environment markers "
-                        f"({parsed_package.valid_pep508.marker}) in package "
-                        "specification. Use pipx options to specify this type of "
-                        "information.",
-                        subsequent_indent="    ",
-                    )
-                )
+            )
+        package_or_url = package_or_url_from_pep508(
+            parsed_package.valid_pep508,
+            remove_version_specifiers=remove_version_specifiers,
+        )
     elif parsed_package.valid_url is not None:
         package_or_url = parsed_package.valid_url
     elif parsed_package.valid_local_path is not None:
         package_or_url = parsed_package.valid_local_path
 
     logging.info(f"cleaned package spec: {package_or_url}")
+    return package_or_url
 
+
+def parse_specifier_for_install(
+    package_spec: str, pip_args: List[str]
+) -> Tuple[str, List[str]]:
+    """Return package_or_url and pip_args suitable for pip install
+
+    Specifically:
+    * Strip any markers (e.g. python_version > "3.4")
+    * Ensure --editable is removed for any package_spec not a local path
+    * Convert local paths to absolute paths
+    """
+    parsed_package = _parse_specifier(package_spec)
+    package_or_url = _parsed_package_to_package_or_url(
+        parsed_package, remove_version_specifiers=False
+    )
     if "--editable" in pip_args and not parsed_package.valid_local_path:
         logging.warning(
             textwrap.fill(
@@ -158,19 +172,9 @@ def parse_specifier_for_metadata(package_spec: str) -> str:
     * Convert local paths to absolute paths
     """
     parsed_package = _parse_specifier(package_spec)
-    if parsed_package.valid_pep508 is not None:
-        if parsed_package.valid_pep508.url:
-            package_or_url = parsed_package.valid_pep508.url
-        else:
-            package_or_url = canonicalize_name(parsed_package.valid_pep508.name)
-            package_or_url += _extras_to_str(parsed_package.valid_pep508.extras)
-    elif parsed_package.valid_url is not None:
-        package_or_url = parsed_package.valid_url
-    elif parsed_package.valid_local_path is not None:
-        package_or_url = parsed_package.valid_local_path
-
-    logging.info(f"cleaned package spec: {package_or_url}")
-
+    package_or_url = _parsed_package_to_package_or_url(
+        parsed_package, remove_version_specifiers=True
+    )
     return package_or_url
 
 
@@ -181,4 +185,30 @@ def valid_pypi_name(package_spec: str) -> Optional[str]:
         # not a valid PEP508 package specification
         return None
 
-    return package_req.name
+    if package_req.url:
+        # package name supplied by user might not match package found in URL,
+        #   so force package name determination the long way
+        return None
+
+    return canonicalize_name(package_req.name)
+
+
+def fix_package_name(package_or_url: str, package: str) -> str:
+    try:
+        package_req = Requirement(package_or_url)
+    except InvalidRequirement:
+        # not a valid PEP508 package specification
+        return package_or_url
+
+    if canonicalize_name(package_req.name) != canonicalize_name(package):
+        logging.warning(
+            textwrap.fill(
+                f"{hazard}  Name supplied in package specifier was "
+                f"{package_req.name!r} but package found has name "
+                f"{package!r}.  Using {package!r}.",
+                subsequent_indent="    ",
+            )
+        )
+    package_req.name = package
+
+    return str(package_req)
