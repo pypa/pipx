@@ -203,8 +203,9 @@ def fix_package_name(package_or_url: str, package: str) -> str:
     if canonicalize_name(package_req.name) != canonicalize_name(package):
         logging.warning(
             textwrap.fill(
-                f"Name supplied in package specifier was {package_req.name} but "
-                f"package found has name {package}.  Using {package}.",
+                f"{hazard}  Name supplied in package specifier was "
+                f"{package_req.name!r} but package found has name "
+                f"{package!r}.  Using {package!r}.",
                 subsequent_indent="    ",
             )
         )
