@@ -10,7 +10,7 @@ import logging
 import re
 import textwrap
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Set, Tuple
+from typing import List, NamedTuple, Optional, Tuple
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
@@ -39,7 +39,7 @@ def _split_path_extras(package_spec: str) -> Tuple[str, str]:
 def _parse_specifier(package_spec: str) -> ParsedPackage:
     """Parse package_spec as would be given to pipx
     """
-    # NOTE: If package_spec is valid pypi name, pip will always treat it as a
+    # If package_spec is valid pypi name, pip will always treat it as a
     #       pypi package, not checking for local path.
     #       We replicate pypi precedence here (only non-valid-pypi names
     #       initiate check for local path, e.g. './package-name')
@@ -56,7 +56,7 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
         # valid PEP508 package specification
         valid_pep508 = package_req
 
-    # NOTE: packaging currently (2020-07-19) only does basic syntax checks on URL.
+    # packaging currently (2020-07-19) only does basic syntax checks on URL.
     #   Some examples of what it will not catch:
     #       - invalid RCS string (e.g. "gat+https://...")
     #       - non-existent scheme (e.g. "zzzzz://...")
@@ -89,13 +89,6 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
         valid_url=valid_url,
         valid_local_path=valid_local_path,
     )
-
-
-def _extras_to_str(extras: Set):
-    if extras:
-        return "[" + ",".join(sorted(extras)) + "]"
-    else:
-        return ""
 
 
 def package_or_url_from_pep508(
