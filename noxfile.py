@@ -4,7 +4,7 @@ from pathlib import Path
 
 import nox  # type: ignore
 
-python = ["3.6", "3.7", "3.8"]
+python = ["3.6", "3.7", "3.8", "3.9"]
 
 if sys.platform == "win32":
     # docs fail on Windows, even if `chcp.com 65001` is used
