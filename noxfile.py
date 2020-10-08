@@ -30,7 +30,7 @@ macos_prebuild_packages = ["argon2-cffi", "regex"]
 
 def prebuild_wheels(session, package_list):
     wheel_dir = Path(session.virtualenv.location) / "prebuild_wheels"
-    wheel_dir.mkdir()
+    wheel_dir.mkdir(exist_ok=True)
     session.install("wheel")
     for prebuild_package in package_list:
         session.run(
