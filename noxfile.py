@@ -23,7 +23,8 @@ lint_dependencies = [
     "check-manifest",
     "packaging>=20.0",
 ]
-# Packages that need an intact system PATH to compile on macOS
+# Packages that need an intact system PATH to compile
+all_prebuild_packages = ["typed-ast", "pyzmq"]
 macos_prebuild_packages = ["argon2-cffi", "regex"]
 
 
@@ -39,6 +40,7 @@ def prebuild_wheels(session, package_list):
 
 @nox.session(python=python)
 def tests(session):
+    prebuild_wheels(session, all_prebuild_packages)
     if sys.platform == "darwin":
         # For macOS, need /usr/bin in PATH to compile some packages, but pytest
         #   setup clears PATH.  So pre-build some wheels to the pip cache.
