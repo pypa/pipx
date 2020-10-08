@@ -24,27 +24,29 @@ lint_dependencies = [
     "packaging>=20.0",
 ]
 # Packages that need an intact system PATH to compile
-all_prebuild_packages = ["typed-ast", "pyzmq"]
-macos_prebuild_packages = ["argon2-cffi", "regex"]
+# pytest setup clears PATH.  So pre-build some wheels to the pip cache.
+prebuild_packages = {"all": ["typed-ast", "pyzmq"], "darwin": ["argon2-cffi", "regex"]}
 
 
-def prebuild_wheels(session, package_list):
+def prebuild_wheels(session, package_dict):
+    session.install("wheel")
     wheel_dir = Path(session.virtualenv.location) / "prebuild_wheels"
     wheel_dir.mkdir(exist_ok=True)
-    session.install("wheel")
-    for prebuild_package in package_list:
-        session.run(
-            "pip", "wheel", f"--wheel-dir={wheel_dir}", prebuild_package, silent=True,
-        )
+    for platform in package_dict:
+        if platform == "all" or platform == sys.platform:
+            for prebuild_package in package_dict[platform]:
+                session.run(
+                    "pip",
+                    "wheel",
+                    f"--wheel-dir={wheel_dir}",
+                    prebuild_package,
+                    silent=True,
+                )
 
 
 @nox.session(python=python)
 def tests(session):
-    prebuild_wheels(session, all_prebuild_packages)
-    if sys.platform == "darwin":
-        # For macOS, need /usr/bin in PATH to compile some packages, but pytest
-        #   setup clears PATH.  So pre-build some wheels to the pip cache.
-        prebuild_wheels(session, macos_prebuild_packages)
+    prebuild_wheels(session, prebuild_packages)
     session.install("-e", ".", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
     session.run(
