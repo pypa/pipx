@@ -337,6 +337,7 @@ class Venv:
         cmd = [str(self.bin_path / app)] + app_args
         try:
             # TODO: replace this with exec*
+            # https://docs.python.org/3.9/library/os.html#os.execl
             return run(cmd, check=False)
         except KeyboardInterrupt:
             return 130  # shell code for Ctrl-C
