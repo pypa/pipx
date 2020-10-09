@@ -336,6 +336,7 @@ class Venv:
     def run_app(self, app: str, app_args: List[str]) -> int:
         cmd = [str(self.bin_path / app)] + app_args
         try:
+            # TODO: replace this with exec*
             return run(cmd, check=False)
         except KeyboardInterrupt:
             return 130  # shell code for Ctrl-C
