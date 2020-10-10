@@ -4,7 +4,7 @@ from pathlib import Path
 
 import nox  # type: ignore
 
-python = ["3.6", "3.7", "3.8"]
+python = ["3.6", "3.7", "3.8", "3.9"]
 
 if sys.platform == "win32":
     # docs fail on Windows, even if `chcp.com 65001` is used
@@ -25,26 +25,30 @@ lint_dependencies = [
     "packaging>=20.0",
     "isort",
 ]
-# Packages that need an intact system PATH to compile on macOS
-macos_prebuild_packages = ["argon2-cffi", "regex"]
+# Packages that need an intact system PATH to compile
+# pytest setup clears PATH.  So pre-build some wheels to the pip cache.
+prebuild_packages = {"all": ["typed-ast", "pyzmq"], "darwin": ["argon2-cffi", "regex"]}
 
 
-def prebuild_wheels(session, package_list):
-    wheel_dir = Path(session.virtualenv.location) / "prebuild_wheels"
-    wheel_dir.mkdir()
+def prebuild_wheels(session, package_dict):
     session.install("wheel")
-    for prebuild_package in package_list:
-        session.run(
-            "pip", "wheel", f"--wheel-dir={wheel_dir}", prebuild_package, silent=True,
-        )
+    wheel_dir = Path(session.virtualenv.location) / "prebuild_wheels"
+    wheel_dir.mkdir(exist_ok=True)
+    for platform in package_dict:
+        if platform == "all" or platform == sys.platform:
+            for prebuild_package in package_dict[platform]:
+                session.run(
+                    "pip",
+                    "wheel",
+                    f"--wheel-dir={wheel_dir}",
+                    prebuild_package,
+                    silent=True,
+                )
 
 
 @nox.session(python=python)
 def tests(session):
-    if sys.platform == "darwin":
-        # For macOS, need /usr/bin in PATH to compile some packages, but pytest
-        #   setup clears PATH.  So pre-build some wheels to the pip cache.
-        prebuild_wheels(session, macos_prebuild_packages)
+    prebuild_wheels(session, prebuild_packages)
     session.install("-e", ".", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
     session.run(
