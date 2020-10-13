@@ -1,7 +1,6 @@
 import datetime
 import hashlib
 import logging
-import subprocess
 import time
 import urllib.parse
 import urllib.request
@@ -16,6 +15,7 @@ from pipx.emojies import hazard
 from pipx.util import (
     WINDOWS,
     PipxError,
+    exec_app,
     get_pypackage_bin_path,
     rmdir,
     run_pypackage_bin,
@@ -33,7 +33,7 @@ def run(
     pypackages: bool,
     verbose: bool,
     use_cache: bool,
-):
+) -> None:
     """Installs venv to temporary dir (or reuses cache), then runs app from
     package
     """
@@ -47,10 +47,7 @@ def run(
         logging.info("Detected url. Downloading and executing as a Python file.")
 
         content = _http_get_request(app)
-        try:
-            return subprocess.run([str(python), "-c", content]).returncode
-        except KeyboardInterrupt:
-            return 1
+        exec_app([str(python), "-c", content])
 
     elif which(app):
         logging.warning(
@@ -68,7 +65,7 @@ def run(
         logging.info(
             f"Using app in local __pypackages__ directory at {str(pypackage_bin_path)}"
         )
-        return run_pypackage_bin(pypackage_bin_path, app_args)
+        run_pypackage_bin(pypackage_bin_path, app_args)
     if pypackages:
         raise PipxError(
             f"'--pypackages' flag was passed, but {str(pypackage_bin_path)!r} was "
@@ -84,10 +81,10 @@ def run(
 
     if bin_path.exists():
         logging.info(f"Reusing cached venv {venv_dir}")
-        retval = venv.run_app(app, app_args)
+        venv.run_app(app, app_args)
     else:
         logging.info(f"venv location is {venv_dir}")
-        retval = _download_and_run(
+        _download_and_run(
             Path(venv_dir),
             package_or_url,
             app,
@@ -100,7 +97,6 @@ def run(
 
     if not use_cache:
         rmdir(venv_dir)
-    return retval
 
 
 def _download_and_run(
@@ -112,7 +108,7 @@ def _download_and_run(
     pip_args: List[str],
     venv_args: List[str],
     verbose: bool,
-):
+) -> None:
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv(venv_args, pip_args)
 
@@ -139,7 +135,7 @@ def _download_and_run(
             "Available executable scripts: "
             f"{', '.join(b for b in apps)}"
         )
-    return venv.run_app(app, app_args)
+    venv.run_app(app, app_args)
 
 
 def _get_temporary_venv_path(

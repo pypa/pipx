@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple, Union
 
+from pipx.animate import show_cursor
 from pipx.constants import WINDOWS
 
 
@@ -41,7 +42,7 @@ def get_pypackage_bin_path(binary_name: str) -> Path:
     )
 
 
-def run_pypackage_bin(bin_path: Path, args: List[str]) -> int:
+def run_pypackage_bin(bin_path: Path, args: List[str]):
     def _get_env():
         env = dict(os.environ)
         env["PYTHONPATH"] = os.path.pathsep.join(
@@ -50,12 +51,7 @@ def run_pypackage_bin(bin_path: Path, args: List[str]) -> int:
         )
         return env
 
-    try:
-        return subprocess.run(
-            [str(bin_path.resolve())] + args, env=_get_env()
-        ).returncode
-    except KeyboardInterrupt:
-        return 1
+    exec_app([str(bin_path.resolve())] + args, env=_get_env())
 
 
 if WINDOWS:
@@ -134,6 +130,34 @@ def run(cmd: Sequence[Union[str, Path]], check=True) -> int:
         cmd_str = " ".join(str(c) for c in cmd)
         raise PipxError(f"{cmd_str!r} failed")
     return returncode
+
+
+def exec_app(cmd: Sequence[Union[str, Path]], env=None) -> None:
+    """Run command, replacing current processs, do not return"""
+
+    if env is None:
+        env = dict(os.environ)
+
+    # TODO: are all these env adjustments necessary for exec* ?
+
+    # Remove PYTHONPATH because some platforms (macOS with Homebrew) add pipx
+    #   directories to it, and can make it appear to venvs as though pipx
+    #   dependencies are in the venv path (#233)
+    # Remove __PYVENV_LAUNCHER__ because it can cause the wrong python binary
+    #   to be used (#334)
+    env_blocklist = ["PYTHONPATH", "__PYVENV_LAUNCHER__"]
+    for env_to_remove in env_blocklist:
+        env.pop(env_to_remove, None)
+    env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
+    # Make sure that Python writes output in UTF-8
+    env["PYTHONIOENCODING"] = "utf-8"
+    # Make sure we install package to venv, not userbase dir
+    env["PIP_USER"] = "0"
+
+    # make sure we show cursor again before handing over control
+    show_cursor()
+
+    os.execvpe(str(cmd[0]), [str(x) for x in cmd], env)
 
 
 def full_package_description(package: str, package_spec: str) -> str:

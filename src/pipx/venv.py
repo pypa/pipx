@@ -16,6 +16,7 @@ from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 from pipx.shared_libs import shared_libs
 from pipx.util import (
     PipxError,
+    exec_app,
     full_package_description,
     get_site_packages,
     get_venv_paths,
@@ -33,8 +34,7 @@ VENV_METADATA_INSPECTOR = venv_metadata_inspector_raw.decode("utf-8")
 
 
 class VenvContainer:
-    """A collection of venvs managed by pipx.
-    """
+    """A collection of venvs managed by pipx."""
 
     def __init__(self, root: Path):
         self._root = root
@@ -46,16 +46,14 @@ class VenvContainer:
         return str(self._root)
 
     def iter_venv_dirs(self) -> Generator[Path, None, None]:
-        """Iterate venv directories in this container.
-        """
+        """Iterate venv directories in this container."""
         for entry in self._root.iterdir():
             if not entry.is_dir():
                 continue
             yield entry
 
     def get_venv_dir(self, package: str) -> Path:
-        """Return the expected venv path for given `package`.
-        """
+        """Return the expected venv path for given `package`."""
         return self._root.joinpath(package)
 
     def verify_shared_libs(self):
@@ -333,14 +331,8 @@ class Venv:
         pip_list = json.loads(cmd_run.stdout.strip())
         return set([x["name"] for x in pip_list])
 
-    def run_app(self, app: str, app_args: List[str]) -> int:
-        cmd = [str(self.bin_path / app)] + app_args
-        try:
-            # TODO: replace this with exec*
-            # https://docs.python.org/3.9/library/os.html#os.execl
-            return run(cmd, check=False)
-        except KeyboardInterrupt:
-            return 130  # shell code for Ctrl-C
+    def run_app(self, app: str, app_args: List[str]) -> None:
+        exec_app([str(self.bin_path / app)] + app_args)
 
     def _upgrade_package_no_metadata(self, package: str, pip_args: List[str]) -> None:
         with animate(
