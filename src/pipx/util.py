@@ -51,7 +51,8 @@ def run_pypackage_bin(bin_path: Path, args: List[str]):
         )
         return env
 
-    exec_app([str(bin_path.resolve())] + args, env=_get_env())
+    # This never returns, but use return so it can be mocked
+    return exec_app([str(bin_path.resolve())] + args, env=_get_env())
 
 
 if WINDOWS:
@@ -132,7 +133,7 @@ def run(cmd: Sequence[Union[str, Path]], check=True) -> int:
     return returncode
 
 
-def exec_app(cmd: Sequence[Union[str, Path]], env=None) -> None:
+def exec_app(cmd: Sequence[Union[str, Path]], env=None):
     """Run command, replacing current processs, do not return"""
 
     if env is None:
@@ -157,7 +158,8 @@ def exec_app(cmd: Sequence[Union[str, Path]], env=None) -> None:
     # make sure we show cursor again before handing over control
     show_cursor()
 
-    os.execvpe(str(cmd[0]), [str(x) for x in cmd], env)
+    # This never returns, but use return so it can be mocked
+    return os.execvpe(str(cmd[0]), [str(x) for x in cmd], env)
 
 
 def full_package_description(package: str, package_spec: str) -> str:

@@ -22,14 +22,17 @@ def test_help_text(pipx_temp_env, monkeypatch, capsys):
 
 
 def execvpe_mock(cmd_path, cmd_args, env):
-    subprocess.run(
+    return_code = subprocess.run(
         [str(x) for x in cmd_args],
         env=env,
         stdout=None,
         stderr=None,
         encoding="utf-8",
         universal_newlines=True,
-    )
+    ).returncode
+    print(cmd_args)
+    print(return_code)
+    return return_code
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
