@@ -59,13 +59,7 @@ def tests(session):
 def cover(session):
     """Coverage analysis"""
     session.install("coverage")
-    session.run(
-        "coverage",
-        "report",
-        "--show-missing",
-        "--fail-under=70",
-        "--omit=tests/test_run.py",
-    )
+    session.run("coverage", "report", "--show-missing", "--fail-under=70")
     session.run("coverage", "erase")
 
 

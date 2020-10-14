@@ -7,6 +7,7 @@ from unittest import mock
 import pytest  # type: ignore
 
 import pipx.main
+import pipx.util
 from helpers import run_pipx_cli
 
 
@@ -20,8 +21,44 @@ def test_help_text(pipx_temp_env, monkeypatch, capsys):
     assert "Download the latest version of a package" in captured.out
 
 
+def exec_app_mock(cmd, env=None):
+    """Mock function for pipx.util.exec_app"""
+
+    if env is None:
+        env = dict(os.environ)
+
+    # TODO: are all these env adjustments necessary for exec* ?
+
+    # Remove PYTHONPATH because some platforms (macOS with Homebrew) add pipx
+    #   directories to it, and can make it appear to venvs as though pipx
+    #   dependencies are in the venv path (#233)
+    # Remove __PYVENV_LAUNCHER__ because it can cause the wrong python binary
+    #   to be used (#334)
+    env_blocklist = ["PYTHONPATH", "__PYVENV_LAUNCHER__"]
+    for env_to_remove in env_blocklist:
+        env.pop(env_to_remove, None)
+    env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
+    # Make sure that Python writes output in UTF-8
+    env["PYTHONIOENCODING"] = "utf-8"
+    # Make sure we install package to venv, not userbase dir
+    env["PIP_USER"] = "0"
+
+    # make sure we show cursor again before handing over control
+    # show_cursor()
+
+    return subprocess.run(
+        [str(x) for x in cmd],
+        env=env,
+        stdout=None,
+        stderr=None,
+        encoding="utf-8",
+        universal_newlines=True,
+    )
+
+
 def test_simple_run(pipx_temp_env, monkeypatch, capsys):
-    run_pipx_cli(["run", "pycowsay", "--help"])
+    with mock.patch("pipx.util.exec_app", new=exec_app_mock):
+        run_pipx_cli(["run", "pycowsay", "--help"])
     captured = capsys.readouterr()
     assert "Download the latest version of a package" not in captured.out
 
