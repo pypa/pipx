@@ -21,33 +21,9 @@ def test_help_text(pipx_temp_env, monkeypatch, capsys):
     assert "Download the latest version of a package" in captured.out
 
 
-def exec_app_mock(cmd, env=None):
-    """Mock function for pipx.util.exec_app"""
-
-    if env is None:
-        env = dict(os.environ)
-
-    # TODO: are all these env adjustments necessary for exec* ?
-
-    # Remove PYTHONPATH because some platforms (macOS with Homebrew) add pipx
-    #   directories to it, and can make it appear to venvs as though pipx
-    #   dependencies are in the venv path (#233)
-    # Remove __PYVENV_LAUNCHER__ because it can cause the wrong python binary
-    #   to be used (#334)
-    env_blocklist = ["PYTHONPATH", "__PYVENV_LAUNCHER__"]
-    for env_to_remove in env_blocklist:
-        env.pop(env_to_remove, None)
-    env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
-    # Make sure that Python writes output in UTF-8
-    env["PYTHONIOENCODING"] = "utf-8"
-    # Make sure we install package to venv, not userbase dir
-    env["PIP_USER"] = "0"
-
-    # make sure we show cursor again before handing over control
-    # show_cursor()
-
-    return subprocess.run(
-        [str(x) for x in cmd],
+def execvpe_mock(cmd_path, cmd_args, env):
+    subprocess.run(
+        [str(x) for x in cmd_args],
         env=env,
         stdout=None,
         stderr=None,
@@ -56,13 +32,16 @@ def exec_app_mock(cmd, env=None):
     )
 
 
+@mock.patch("os.execvpe", new=execvpe_mock)
 def test_simple_run(pipx_temp_env, monkeypatch, capsys):
-    with mock.patch("pipx.util.exec_app", new=exec_app_mock):
-        run_pipx_cli(["run", "pycowsay", "--help"])
+    run_pipx_cli(["run", "pycowsay", "--help"])
     captured = capsys.readouterr()
+    print(captured.err)
+    print(captured.out)
     assert "Download the latest version of a package" not in captured.out
 
 
+@mock.patch("os.execvpe", new=execvpe_mock)
 def test_cache(pipx_temp_env, monkeypatch, capsys, caplog):
     run_pipx_cli(["run", "pycowsay", "cowsay", "args"])
     caplog.set_level(logging.DEBUG)
@@ -73,6 +52,7 @@ def test_cache(pipx_temp_env, monkeypatch, capsys, caplog):
     assert "Removing cached venv" in caplog.text
 
 
+@mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_script_from_internet(pipx_temp_env, capsys):
     assert not run_pipx_cli(
         [
@@ -150,6 +130,7 @@ def test_run_ensure_null_pythonpath():
         # ("ansible", "ansible", ["ansible", "--help"]), # takes too long
     ],
 )
+@mock.patch("os.execvpe", new=execvpe_mock)
 def test_package_determination(
     caplog, pipx_temp_env, package, package_or_url, app_appargs
 ):
