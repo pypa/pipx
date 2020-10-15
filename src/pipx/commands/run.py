@@ -47,8 +47,8 @@ def run(
         logging.info("Detected url. Downloading and executing as a Python file.")
 
         content = _http_get_request(app)
-        # This never returns, but use return so it can be mocked
-        return exec_app([str(python), "-c", content])
+        # This never returns
+        exec_app([str(python), "-c", content])
 
     elif which(app):
         logging.warning(
@@ -66,8 +66,8 @@ def run(
         logging.info(
             f"Using app in local __pypackages__ directory at {str(pypackage_bin_path)}"
         )
-        # This never returns, but use return so it can be mocked
-        return run_pypackage_bin(pypackage_bin_path, app_args)
+        # This never returns
+        run_pypackage_bin(pypackage_bin_path, app_args)
     if pypackages:
         raise PipxError(
             f"'--pypackages' flag was passed, but {str(pypackage_bin_path)!r} was "
@@ -83,11 +83,12 @@ def run(
 
     if bin_path.exists():
         logging.info(f"Reusing cached venv {venv_dir}")
-        # This never returns, but use return so it can be mocked
-        return venv.run_app(app, app_args)
+        # This never returns
+        venv.run_app(app, app_args)
     else:
         logging.info(f"venv location is {venv_dir}")
-        return _download_and_run(
+        # This never returns
+        _download_and_run(
             Path(venv_dir),
             package_or_url,
             app,
@@ -98,6 +99,7 @@ def run(
             verbose,
         )
 
+    # TODO: we will never reach this!!
     if not use_cache:
         rmdir(venv_dir)
 
@@ -138,8 +140,8 @@ def _download_and_run(
             "Available executable scripts: "
             f"{', '.join(b for b in apps)}"
         )
-    # This never returns, but use return so it can be mocked
-    return venv.run_app(app, app_args)
+    # This never returns
+    venv.run_app(app, app_args)
 
 
 def _get_temporary_venv_path(

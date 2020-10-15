@@ -141,8 +141,8 @@ def run_pipx_command(args: argparse.Namespace):  # noqa: C901
             else args.app_with_args[0]
         )
         use_cache = not args.no_cache
-        # This never returns, but use return so it can be mocked
-        return commands.run(
+        # This never returns
+        commands.run(
             args.app_with_args[0],
             package_or_url,
             args.app_with_args[1:],
@@ -153,6 +153,8 @@ def run_pipx_command(args: argparse.Namespace):  # noqa: C901
             verbose,
             use_cache,
         )
+        # error, we should never reach it
+        return 1
     elif args.command == "install":
         return commands.install(
             None,

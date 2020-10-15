@@ -30,40 +30,45 @@ def execvpe_mock(cmd_path, cmd_args, env):
         encoding="utf-8",
         universal_newlines=True,
     ).returncode
-    print(cmd_args)
-    print(return_code)
-    return return_code
+    sys.exit(return_code)
+
+
+def run_pipx_cli_exit(pipx_cmd_list, assert_exit=None):
+    with pytest.raises(SystemExit) as sys_exit:
+        run_pipx_cli(pipx_cmd_list)
+    if assert_exit is not None:
+        assert sys_exit.type == SystemExit
+        assert sys_exit.value.code == assert_exit
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_simple_run(pipx_temp_env, monkeypatch, capsys):
-    run_pipx_cli(["run", "pycowsay", "--help"])
+    run_pipx_cli_exit(["run", "pycowsay", "--help"])
     captured = capsys.readouterr()
-    print(captured.err)
-    print(captured.out)
     assert "Download the latest version of a package" not in captured.out
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_cache(pipx_temp_env, monkeypatch, capsys, caplog):
-    run_pipx_cli(["run", "pycowsay", "cowsay", "args"])
+    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
     caplog.set_level(logging.DEBUG)
-    assert not run_pipx_cli(["run", "--verbose", "pycowsay", "cowsay", "args"])
+    run_pipx_cli_exit(["run", "--verbose", "pycowsay", "cowsay", "args"])
     assert "Reusing cached venv" in caplog.text
 
-    run_pipx_cli(["run", "--no-cache", "pycowsay", "cowsay", "args"])
+    run_pipx_cli_exit(["run", "--no-cache", "pycowsay", "cowsay", "args"])
     assert "Removing cached venv" in caplog.text
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_script_from_internet(pipx_temp_env, capsys):
-    assert not run_pipx_cli(
+    run_pipx_cli_exit(
         [
             "run",
             "https://gist.githubusercontent.com/cs01/"
             "fa721a17a326e551ede048c5088f9e0f/raw/"
             "6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py",
-        ]
+        ],
+        assert_exit=0,
     )
 
 
@@ -96,7 +101,7 @@ def test_appargs_doubledash(
 
 
 def test_run_ensure_null_pythonpath():
-    # TODO: How to make this work on Windows?
+    # TODO: Make this work on Windows
     if sys.platform.startswith("win"):
         pytest.skip("Skipping test_run_ensure_null_pythonpath on Windows")
     env = os.environ.copy()
@@ -142,7 +147,9 @@ def test_package_determination(
 ):
     caplog.set_level(logging.INFO)
 
-    run_pipx_cli(["run", "--verbose", "--spec", package_or_url, "--"] + app_appargs)
+    run_pipx_cli_exit(
+        ["run", "--verbose", "--spec", package_or_url, "--"] + app_appargs
+    )
 
     assert "Cannot determine package name" not in caplog.text
     assert f"Determined package name: {package}" in caplog.text

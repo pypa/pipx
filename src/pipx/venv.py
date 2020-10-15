@@ -332,8 +332,7 @@ class Venv:
         return set([x["name"] for x in pip_list])
 
     def run_app(self, app: str, app_args: List[str]) -> None:
-        # This never returns, but use return so it can be mocked
-        return exec_app([str(self.bin_path / app)] + app_args)
+        exec_app([str(self.bin_path / app)] + app_args)
 
     def _upgrade_package_no_metadata(self, package: str, pip_args: List[str]) -> None:
         with animate(
