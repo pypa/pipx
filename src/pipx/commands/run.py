@@ -22,6 +22,8 @@ from pipx.util import (
 )
 from pipx.venv import Venv
 
+VENV_EXPIRED_FILENAME = "pipx_expired_venv"
+
 
 def run(
     app: str,
@@ -96,12 +98,9 @@ def run(
             python,
             pip_args,
             venv_args,
+            use_cache,
             verbose,
         )
-
-    # TODO: we will never reach this!!
-    if not use_cache:
-        rmdir(venv_dir)
 
 
 def _download_and_run(
@@ -112,6 +111,7 @@ def _download_and_run(
     python: str,
     pip_args: List[str],
     venv_args: List[str],
+    use_cache: bool,
     verbose: bool,
 ) -> None:
     venv = Venv(venv_dir, python=python, verbose=verbose)
@@ -140,6 +140,11 @@ def _download_and_run(
             "Available executable scripts: "
             f"{', '.join(b for b in apps)}"
         )
+
+    if not use_cache:
+        # Let future _remove_all_expired_venvs know to remove this
+        (venv_dir / VENV_EXPIRED_FILENAME).touch()
+
     # This never returns
     venv.run_app(app, app_args)
 
@@ -166,7 +171,7 @@ def _is_temporary_venv_expired(venv_dir: Path):
     current_time_sec = time.mktime(datetime.datetime.now().timetuple())
     age = current_time_sec - created_time_sec
     expiration_threshold_sec = 60 * 60 * 24 * TEMP_VENV_EXPIRATION_THRESHOLD_DAYS
-    return age > expiration_threshold_sec
+    return age > expiration_threshold_sec or (venv_dir / VENV_EXPIRED_FILENAME).exists()
 
 
 def _prepare_venv_cache(venv: Venv, bin_path: Path, use_cache: bool):
