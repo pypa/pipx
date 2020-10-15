@@ -101,9 +101,6 @@ def test_appargs_doubledash(
 
 
 def test_run_ensure_null_pythonpath():
-    # TODO: Make this work on Windows
-    if sys.platform.startswith("win"):
-        pytest.skip("Skipping test_run_ensure_null_pythonpath on Windows")
     env = os.environ.copy()
     env["PYTHONPATH"] = "test"
     assert (
