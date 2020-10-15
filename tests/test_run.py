@@ -52,7 +52,7 @@ def test_simple_run(pipx_temp_env, monkeypatch, capsys):
 def test_cache(pipx_temp_env, monkeypatch, capsys, caplog):
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
     caplog.set_level(logging.DEBUG)
-    run_pipx_cli_exit(["run", "--verbose", "pycowsay", "cowsay", "args"])
+    run_pipx_cli_exit(["run", "--verbose", "pycowsay", "cowsay", "args"], assert_exit=0)
     assert "Reusing cached venv" in caplog.text
 
     run_pipx_cli_exit(["run", "--no-cache", "pycowsay", "cowsay", "args"])

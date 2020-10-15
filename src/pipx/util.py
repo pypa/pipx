@@ -158,6 +158,8 @@ def exec_app(cmd: Sequence[Union[str, Path]], env=None) -> None:
     show_cursor()
     sys.stderr.flush()
 
+    logging.info("exec_app: " + " ".join([str(c) for c in cmd]))
+
     if WINDOWS:
         sys.exit(
             subprocess.run(
