@@ -158,8 +158,19 @@ def exec_app(cmd: Sequence[Union[str, Path]], env=None) -> None:
     show_cursor()
     sys.stderr.flush()
 
-    # TODO: Make this work on Windows
-    os.execvpe(str(cmd[0]), [str(x) for x in cmd], env)
+    if WINDOWS:
+        sys.exit(
+            subprocess.run(
+                cmd,
+                env=env,
+                stdout=None,
+                stderr=None,
+                encoding="utf-8",
+                universal_newlines=True,
+            ).returncode
+        )
+    else:
+        os.execvpe(str(cmd[0]), [str(x) for x in cmd], env)
 
 
 def full_package_description(package: str, package_spec: str) -> str:
