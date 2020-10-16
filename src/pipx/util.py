@@ -123,17 +123,16 @@ def run_subprocess(
     )
 
 
-def run(cmd: Sequence[Union[str, Path]], check=True) -> int:
-    """Run arbitrary command as subprocess"""
+def run(cmd: Sequence[Union[str, Path]]) -> None:
+    """Run arbitrary command as subprocess, raise PipxError if error exit code"""
 
     returncode = run_subprocess(
         cmd, capture_stdout=False, capture_stderr=False
     ).returncode
 
-    if check and returncode:
+    if returncode:
         cmd_str = " ".join(str(c) for c in cmd)
         raise PipxError(f"{cmd_str!r} failed")
-    return returncode
 
 
 def exec_app(cmd: Sequence[Union[str, Path]], env=None) -> None:

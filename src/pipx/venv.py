@@ -366,8 +366,8 @@ class Venv:
             suffix=suffix,
         )
 
-    def _run_pip(self, cmd: List[str]) -> int:
+    def _run_pip(self, cmd: List[str]) -> None:
         cmd = [str(self.python_path), "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
-        return run(cmd)
+        run(cmd)
