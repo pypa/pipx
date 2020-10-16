@@ -21,8 +21,8 @@ from pipx.util import (
     get_site_packages,
     get_venv_paths,
     rmdir,
-    run,
     run_subprocess,
+    run_verify,
 )
 
 venv_metadata_inspector_raw = pkgutil.get_data("pipx", "venv_metadata_inspector.py")
@@ -132,7 +132,7 @@ class Venv:
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
             cmd = [self.python, "-m", "venv", "--without-pip"]
-            run(cmd + venv_args + [str(self.root)])
+            run_verify(cmd + venv_args + [str(self.root)])
         shared_libs.create(pip_args, self.verbose)
         pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
         # write path pointing to the shared libs site-packages directory
@@ -370,4 +370,4 @@ class Venv:
         cmd = [str(self.python_path), "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
-        run(cmd)
+        run_verify(cmd)

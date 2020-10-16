@@ -123,7 +123,7 @@ def run_subprocess(
     )
 
 
-def run(cmd: Sequence[Union[str, Path]]) -> None:
+def run_verify(cmd: Sequence[Union[str, Path]]) -> None:
     """Run arbitrary command as subprocess, raise PipxError if error exit code"""
 
     returncode = run_subprocess(
