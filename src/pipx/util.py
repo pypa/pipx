@@ -149,6 +149,7 @@ def exec_app(cmd: Sequence[Union[str, Path]], env=None) -> None:
     logging.info("exec_app: " + " ".join([str(c) for c in cmd]))
 
     if WINDOWS:
+        # TODO: do we need to specially handle Ctrl-C
         sys.exit(
             subprocess.run(
                 cmd,
