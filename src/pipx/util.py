@@ -80,15 +80,7 @@ def get_site_packages(python: Path) -> Path:
     return path
 
 
-def run_subprocess(
-    cmd: Sequence[Union[str, Path]],
-    capture_stdout: bool = True,
-    capture_stderr: bool = True,
-    log_cmd_str: Optional[str] = None,
-) -> subprocess.CompletedProcess:
-    """Run arbitrary command as subprocess, capturing stderr and stout"""
-    env = dict(os.environ)
-
+def _fix_subprocess_env(env):
     # Remove PYTHONPATH because some platforms (macOS with Homebrew) add pipx
     #   directories to it, and can make it appear to venvs as though pipx
     #   dependencies are in the venv path (#233)
@@ -103,6 +95,18 @@ def run_subprocess(
     env["PYTHONIOENCODING"] = "utf-8"
     # Make sure we install package to venv, not userbase dir
     env["PIP_USER"] = "0"
+    return env
+
+
+def run_subprocess(
+    cmd: Sequence[Union[str, Path]],
+    capture_stdout: bool = True,
+    capture_stderr: bool = True,
+    log_cmd_str: Optional[str] = None,
+) -> subprocess.CompletedProcess:
+    """Run arbitrary command as subprocess, capturing stderr and stout"""
+    env = dict(os.environ)
+    env = _fix_subprocess_env(env)
 
     if log_cmd_str is None:
         log_cmd_str = " ".join(str(c) for c in cmd)
@@ -137,22 +141,7 @@ def exec_app(cmd: Sequence[Union[str, Path]], env=None) -> None:
 
     if env is None:
         env = dict(os.environ)
-
-    # TODO: are all these env adjustments necessary for exec* ?
-
-    # Remove PYTHONPATH because some platforms (macOS with Homebrew) add pipx
-    #   directories to it, and can make it appear to venvs as though pipx
-    #   dependencies are in the venv path (#233)
-    # Remove __PYVENV_LAUNCHER__ because it can cause the wrong python binary
-    #   to be used (#334)
-    env_blocklist = ["PYTHONPATH", "__PYVENV_LAUNCHER__"]
-    for env_to_remove in env_blocklist:
-        env.pop(env_to_remove, None)
-    env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
-    # Make sure that Python writes output in UTF-8
-    env["PYTHONIOENCODING"] = "utf-8"
-    # Make sure we install package to venv, not userbase dir
-    env["PIP_USER"] = "0"
+    env = _fix_subprocess_env(env)
 
     # make sure we show cursor again before handing over control
     show_cursor()
