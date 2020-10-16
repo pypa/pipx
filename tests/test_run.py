@@ -144,7 +144,7 @@ def test_package_determination(
 ):
     if sys.platform.startswith("win") and skip_win:
         # Skip packages with 'scripts' in setup.py that don't work on Windows
-        pytest.session.skip()
+        pytest.skip()
 
     caplog.set_level(logging.INFO)
 
