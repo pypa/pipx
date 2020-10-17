@@ -1,5 +1,9 @@
 dev
 
+
+
+0.15.6.0
+
 - [docs] Update license
 - [bugfix] Fixed regression in list, inject, upgrade, reinstall-all commands when suffixed packages are used.
 - [bugfix] Do not reset package url during upgrade when main package is `pipx`
@@ -7,7 +11,6 @@ dev
 - Added support for user-defined default python interpreter via new PIPX_DEFAULT_PYTHON.  Helpful for use with pyenv among other uses.
 - [bugfix] Fixed bug where extras were ignored with a PEP 508 package specification with a URL.
 - Changed `pipx run` on non-Windows systems to actually replace pipx process with the app process instead of running it as a subprocess.  (Now using python's `os.exec*`)
-
 
 0.15.5.1
 
