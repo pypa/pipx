@@ -130,6 +130,7 @@ def publish(session):
     if branch != "master":
         session.error(f"Must be on 'master' branch. Currently on {branch!r} branch")
     build(session)
+    docs(session)
     print("REMINDER: Has the changelog been updated?")
     session.run("python", "-m", "twine", "upload", "dist/*")
     publish_docs(session)
