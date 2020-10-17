@@ -24,6 +24,7 @@ will be installed to $PIPX_HOME/venvs.
 PIPX_BIN_DIR: Overrides location of app installations. Apps are symlinked
 or copied here.
 USE_EMOJI: Override emoji behavior. Default value varies based on platform.
+PIPX_DEFAULT_PYTHON: Overrides default python used for commands.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -48,11 +49,8 @@ subcommands:
                         directory (experimental).
     runpip              Run pip in an existing pipx-managed Virtual
                         Environment
-    ensurepath          Ensure directory where pipx stores apps is in your
-                        PATH environment variable. Also if pipx was installed
-                        via `pip install --user`, ensure pipx itself is in
-                        your PATH. Note that running this may modify your
-                        shell's configuration file(s) such as '~/.bashrc'.
+    ensurepath          Ensure directories necessary for pipx operation are in
+                        your PATH environment variable.
     completions         Print instructions on enabling shell completions for
                         pipx
 
@@ -82,6 +80,7 @@ packages. 'sudo' is not required to do this.
 pipx install PACKAGE_NAME
 pipx install --python PYTHON PACKAGE_NAME
 pipx install VCS_URL
+pipx install ./LOCAL_PATH
 pipx install ZIP_FILE
 pipx install TAR_GZ_FILE
 
@@ -94,6 +93,10 @@ and can be overridden by setting the environment variable `PIPX_HOME`
 The default app location is ~/.local/bin and can be
 overridden by setting the environment variable `PIPX_BIN_DIR`.
 
+The default python executable used to install a package is
+~/git/pipx-pipxproject/.nox/docs/bin/python and can be overridden by setting the environment
+variable `PIPX_DEFAULT_PYTHON`.
+
 positional arguments:
   package_spec          package name or pip installation spec
 
@@ -104,7 +107,8 @@ optional arguments:
   --force, -f           Modify existing virtual environment and files in
                         PIPX_BIN_DIR
   --suffix SUFFIX       Optional suffix for virtual environment and executable
-                        names
+                        names. NOTE: The suffix feature is experimental and
+                        subject to change.
   --python PYTHON       The Python executable used to create the Virtual
                         Environment and run the associated app/apps. Must be
                         v3.5+.
