@@ -1,4 +1,4 @@
-dev
+0.15.6.0
 
 - [docs] Update license
 - [bugfix] Fixed regression in list, inject, upgrade, reinstall-all commands when suffixed packages are used.
@@ -6,7 +6,6 @@ dev
 - Updated help text to show description for `ensurepath` and `completions` help
 - Added support for user-defined default python interpreter via new PIPX_DEFAULT_PYTHON.  Helpful for use with pyenv among other uses.
 - [bugfix] Fixed bug where extras were ignored with a PEP 508 package specification with a URL.
-
 
 0.15.5.1
 
