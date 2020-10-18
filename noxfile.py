@@ -155,14 +155,21 @@ def publish_docs(session):
 def pre_release(session):
     on_master_no_changes(session)
     if session.posargs:
-        session.run("python", "scripts/pipx_prerelease.py", session.posargs[0])
+        new_version = session.posargs[0]
     else:
-        session.run("python", "scripts/pipx_prerelease.py")
+        new_version = input("Enter new version: ")
+    session.run("python", "scripts/pipx_prerelease.py", new_version)
+    print("\ngit diff:\n")
     session.run("git", "diff", external=True)
+    print("\n\nIf `git diff` looks ok, execute the following command:\n")
+    print(f"    git commit -a -m 'Pre-release {new_version}.'\n")
 
 
 @nox.session(python="3.8")
 def post_release(session):
     on_master_no_changes(session)
     session.run("python", "scripts/pipx_postrelease.py")
+    print("\ngit diff:\n")
     session.run("git", "diff", external=True)
+    print("\n\nIf `git diff` looks ok, execute the following command:\n")
+    print("    git commit -a -m 'Post-release.'\n")
