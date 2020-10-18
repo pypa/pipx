@@ -122,13 +122,17 @@ def get_branch():
     )
 
 
-@nox.session(python="3.8")
-def publish(session):
+def on_master_no_changes(session):
     if has_changes():
         session.error("All changes must be committed or removed before publishing")
     branch = get_branch()
     if branch != "master":
         session.error(f"Must be on 'master' branch. Currently on {branch!r} branch")
+
+
+@nox.session(python="3.8")
+def publish(session):
+    on_master_no_changes(session)
     build(session)
     print("REMINDER: Has the changelog been updated?")
     session.run("python", "-m", "twine", "upload", "dist/*")
@@ -150,19 +154,11 @@ def publish_docs(session):
 
 @nox.session(python="3.8")
 def pre_release(session):
-    # if has_changes():
-    #    session.error("All changes must be committed or removed before publishing")
-    # branch = get_branch()
-    # if branch != "master":
-    #    session.error(f"Must be on 'master' branch. Currently on {branch!r} branch")
-    session.run("python", "scripts/pre_release.py")
+    on_master_no_changes(session)
+    session.run("python", "scripts/pipx_prerelease.py")
 
 
 @nox.session(python="3.8")
 def post_release(session):
-    # if has_changes():
-    #    session.error("All changes must be committed or removed before publishing")
-    # branch = get_branch()
-    # if branch != "master":
-    #    session.error(f"Must be on 'master' branch. Currently on {branch!r} branch")
-    session.run("python", "scripts/post_release.py")
+    on_master_no_changes(session)
+    session.run("python", "scripts/pipx_postrelease.py")
