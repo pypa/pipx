@@ -2,7 +2,7 @@ import py_compile
 import re
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import List
 
 
 def python_syntax_ok(filepath: Path) -> bool:
@@ -28,10 +28,10 @@ def copy_file_replace_line(
     new_version_fh.close()
 
 
-def fix_version_py(current_version: str) -> bool:
+def fix_version_py(current_version_list: List[str]) -> bool:
     version_code_file = Path("src/pipx/version.py")
     new_version_code_file = Path("src/pipx/version.py.new")
-    new_version_list = current_version.split(".") + ['"dev0"']
+    new_version_list = current_version_list + ['"dev0"']
 
     copy_file_replace_line(
         version_code_file,
@@ -64,7 +64,7 @@ def fix_changelog() -> bool:
     return True
 
 
-def get_current_version() -> Optional[str]:
+def get_current_version() -> List[str]:
     version_code_file = Path("src/pipx/version.py")
     version_fh = version_code_file.open("r")
 
@@ -75,18 +75,17 @@ def get_current_version() -> Optional[str]:
             version = version_re.group(1)
 
     if version is not None:
-        version = re.sub(r", ", ".", version)
-        version = re.sub(r'"', "", version)
-
-    return version
+        return version.split(", ")
+    else:
+        return []
 
 
 def post_release() -> int:
-    current_version = get_current_version()
-    if current_version is None:
+    current_version_list = get_current_version()
+    if not current_version_list:
         return 1
 
-    if fix_version_py(current_version) and fix_changelog():
+    if fix_version_py(current_version_list) and fix_changelog():
         return 0
     else:
         return 1
