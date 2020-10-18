@@ -21,7 +21,7 @@ def copy_file_replace_line(
     new_version_fh = new_file.open("w")
     for line in old_version_fh:
         if re.search(line_re, line):
-            new_version_fh.write(new_line)
+            new_version_fh.write(new_line + "\n")
         else:
             new_version_fh.write(line)
     old_version_fh.close()
@@ -37,7 +37,7 @@ def fix_version_py(current_version: str) -> bool:
         version_code_file,
         new_version_code_file,
         line_re=r"^\s*__version_info__\s*=",
-        new_line=f'__version_info__ = ({", ".join(new_version_list)})\n',
+        new_line=f'__version_info__ = ({", ".join(new_version_list)})',
     )
     if python_syntax_ok(new_version_code_file):
         new_version_code_file.rename(version_code_file)
