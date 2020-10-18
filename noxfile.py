@@ -156,9 +156,11 @@ def publish_docs(session):
 def pre_release(session):
     on_master_no_changes(session)
     session.run("python", "scripts/pipx_prerelease.py")
+    session.run("git", "diff", external=True)
 
 
 @nox.session(python="3.8")
 def post_release(session):
     on_master_no_changes(session)
     session.run("python", "scripts/pipx_postrelease.py")
+    session.run("git", "diff", external=True)
