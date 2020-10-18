@@ -66,7 +66,10 @@ def pre_release(new_version: str) -> int:
 
 
 def main(argv) -> int:
-    new_version = input("Enter new version: ")
+    if len(argv) > 1:
+        new_version = argv[1]
+    else:
+        new_version = input("Enter new version: ")
     return pre_release(new_version)
 
 

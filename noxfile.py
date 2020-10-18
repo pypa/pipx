@@ -154,7 +154,10 @@ def publish_docs(session):
 @nox.session(python="3.8")
 def pre_release(session):
     on_master_no_changes(session)
-    session.run("python", "scripts/pipx_prerelease.py")
+    if session.posargs:
+        session.run("python", "scripts/pipx_prerelease.py", session.posargs[0])
+    else:
+        session.run("python", "scripts/pipx_prerelease.py")
     session.run("git", "diff", external=True)
 
 
