@@ -12,3 +12,4 @@ venv
 .tox
 __pycache__
 site
+docs/docs.md

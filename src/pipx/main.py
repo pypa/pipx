@@ -114,7 +114,7 @@ def get_venv_args(parsed_args: Dict) -> List[str]:
     return venv_args
 
 
-def run_pipx_command(args: argparse.Namespace):  # noqa: C901
+def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
     verbose = args.verbose if "verbose" in args else False
     pip_args = get_pip_args(vars(args))
     venv_args = get_venv_args(vars(args))
@@ -185,12 +185,16 @@ def run_pipx_command(args: argparse.Namespace):  # noqa: C901
                 include_dependencies=args.include_deps,
                 force=args.force,
             )
+        # TODO: Issue #503 make pipx commands have proper exit codes
+        return 0
     elif args.command == "upgrade":
         return commands.upgrade(
             venv_dir, pip_args, verbose, upgrading_all=False, force=args.force
         )
     elif args.command == "list":
-        return commands.list_packages(venv_container, args.include_injected)
+        commands.list_packages(venv_container, args.include_injected)
+        # TODO: Issue #503 make pipx commands have proper exit codes
+        return 0
     elif args.command == "uninstall":
         return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, verbose)
     elif args.command == "uninstall-all":
@@ -198,6 +202,13 @@ def run_pipx_command(args: argparse.Namespace):  # noqa: C901
     elif args.command == "upgrade-all":
         return commands.upgrade_all(
             venv_container, verbose, skip=args.skip, force=args.force
+        )
+    elif args.command == "reinstall":
+        return commands.reinstall(
+            venv_dir=venv_dir,
+            local_bin_dir=constants.LOCAL_BIN_DIR,
+            python=args.python,
+            verbose=verbose,
         )
     elif args.command == "reinstall-all":
         return commands.reinstall_all(
@@ -373,6 +384,33 @@ def _add_uninstall_all(subparsers):
     p.add_argument("--verbose", action="store_true")
 
 
+def _add_reinstall(subparsers, autocomplete_list_of_installed_packages):
+    p = subparsers.add_parser(
+        "reinstall",
+        formatter_class=LineWrapRawTextHelpFormatter,
+        help="Reinstall a package",
+        description=textwrap.dedent(
+            """
+        Reinstalls a package.
+
+        Package is uninstalled, then installed with pipx install PACKAGE
+        with the same options used in the original install of PACKAGE.
+
+        """
+        ),
+    )
+    p.add_argument("package").completer = autocomplete_list_of_installed_packages
+    p.add_argument(
+        "--python",
+        default=DEFAULT_PYTHON,
+        help=(
+            "The Python executable used to recreate the Virtual Environment "
+            "and run the associated app/apps. Must be v3.5+."
+        ),
+    )
+    p.add_argument("--verbose", action="store_true")
+
+
 def _add_reinstall_all(subparsers):
     p = subparsers.add_parser(
         "reinstall-all",
@@ -539,6 +577,7 @@ def get_command_parser():
     _add_upgrade_all(subparsers)
     _add_uninstall(subparsers, autocomplete_list_of_installed_packages)
     _add_uninstall_all(subparsers)
+    _add_reinstall(subparsers, autocomplete_list_of_installed_packages)
     _add_reinstall_all(subparsers)
     _add_list(subparsers)
     _add_run(subparsers)
