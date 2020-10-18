@@ -1,6 +1,6 @@
 dev
 
-
+- Added reinstall command for reinstalling a single venv.
 
 0.15.6.0
 
