@@ -70,7 +70,8 @@ tcsh:
     eval `register-python-argcomplete --shell tcsh pipx`
 
 fish:
-    register-python-argcomplete --shell fish pipx | source
+    # Not required to be in the config file, only run once
+    register-python-argcomplete --shell fish pipx >~/.config/fish/completions/pipx.fish
 
 """
 )

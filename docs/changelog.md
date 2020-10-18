@@ -5,6 +5,7 @@ dev
 0.15.6.0
 
 - [docs] Update license
+- [docs] Display a more idomatic command for registering completions on fish.
 - [bugfix] Fixed regression in list, inject, upgrade, reinstall-all commands when suffixed packages are used.
 - [bugfix] Do not reset package url during upgrade when main package is `pipx`
 - Updated help text to show description for `ensurepath` and `completions` help
