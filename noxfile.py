@@ -146,3 +146,23 @@ def publish_docs(session):
     session.install(*doc_dependencies)
     session.run("python", "generate_docs.py")
     session.run("mkdocs", "gh-deploy")
+
+
+@nox.session(python="3.8")
+def pre_release(session):
+    # if has_changes():
+    #    session.error("All changes must be committed or removed before publishing")
+    # branch = get_branch()
+    # if branch != "master":
+    #    session.error(f"Must be on 'master' branch. Currently on {branch!r} branch")
+    session.run("python", "scripts/pre_release.py")
+
+
+@nox.session(python="3.8")
+def post_release(session):
+    # if has_changes():
+    #    session.error("All changes must be committed or removed before publishing")
+    # branch = get_branch()
+    # if branch != "master":
+    #    session.error(f"Must be on 'master' branch. Currently on {branch!r} branch")
+    session.run("python", "scripts/post_release.py")
