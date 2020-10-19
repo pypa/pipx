@@ -1,7 +1,13 @@
 import py_compile
 import re
+import subprocess
 import sys
 from pathlib import Path
+
+
+def python_mypy_ok(filepath: Path) -> bool:
+    mypy_proc = subprocess.run(["mypy", filepath])
+    return True if mypy_proc.returncode == 0 else False
 
 
 def python_syntax_ok(filepath: Path) -> bool:
@@ -38,7 +44,7 @@ def fix_version_py(new_version: str) -> bool:
         line_re=r"^\s*__version_info__\s*=",
         new_line=f'__version_info__ = ({", ".join(new_version_list)})',
     )
-    if python_syntax_ok(new_version_code_file):
+    if python_mypy_ok(new_version_code_file):
         new_version_code_file.rename(version_code_file)
         return True
     else:
