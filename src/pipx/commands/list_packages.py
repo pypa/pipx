@@ -28,11 +28,15 @@ def list_packages(venv_container: VenvContainer, include_injected: bool) -> None
     venv_container.verify_shared_libs()
 
     if Pool:
-        with Pool() as p:
+        p = Pool()
+        try:
             for package_summary in p.map(
                 partial(get_package_summary, include_injected=include_injected), dirs,
             ):
                 print(package_summary)
+        finally:
+            p.close()
+            p.join()
     else:
         for package_summary in map(
             partial(get_package_summary, include_injected=include_injected), dirs,
