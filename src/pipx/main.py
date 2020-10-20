@@ -551,6 +551,7 @@ def _add_ensurepath(subparsers):
             "PATH already contains paths to pipx and pipx-install apps."
         ),
     )
+    p.add_argument("--verbose", action="store_true")
 
 
 def get_command_parser():
