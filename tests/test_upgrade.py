@@ -40,8 +40,9 @@ def test_upgrade_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
 def test_upgrade_specifier(pipx_temp_env, capsys):
     name = "pylint"
     specifier = "==2.3.1"
+    initial_version = "2.3.1"
 
     assert not run_pipx_cli(["install", f"{name}{specifier}"])
     assert run_pipx_cli(["upgrade", f"{name}"])
     captured = capsys.readouterr()
-    assert "upgraded package pathlib2 from 2.3.1 to" in captured.out
+    assert f"upgraded package {name} from {initial_version} to" in captured.out
