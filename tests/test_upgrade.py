@@ -35,3 +35,13 @@ def test_upgrade_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
     mock_legacy_venv(f"{name}{suffix}", metadata_version=metadata_version)
     assert run_pipx_cli(["upgrade", f"{name}"])
     assert not run_pipx_cli(["upgrade", f"{name}{suffix}"])
+
+
+def test_upgrade_specifier(pipx_temp_env, capsys):
+    name = "pathlib2"
+    specifier = "==2.0.1"
+
+    assert not run_pipx_cli(["install", f"{name}{specifier}"])
+    assert run_pipx_cli(["upgrade", f"{name}"])
+    captured = capsys.readouterr()
+    assert "upgraded package pathlib2 from 2.3.1 to" in captured.out
