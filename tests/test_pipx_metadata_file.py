@@ -47,7 +47,7 @@ PYCOWSAY_PACKAGE_REF = PackageInfo(
 )
 BLACK_PACKAGE_REF = PackageInfo(
     package="black",
-    package_or_url="black",
+    package_or_url="black==19.10b0",
     pip_args=[],
     include_dependencies=False,
     include_apps=True,
