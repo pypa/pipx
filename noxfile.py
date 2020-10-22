@@ -49,9 +49,7 @@ def tests(session):
     prebuild_wheels(session, prebuild_packages)
     session.install("-e", ".", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
-    session.run(
-        "pytest", "--cov=pipx", "--cov-config=.coveragerc", "--cov-report=", *tests
-    )
+    session.run("pytest", "--cov=pipx", "--cov-report=", *tests)
     session.notify("cover")
 
 
