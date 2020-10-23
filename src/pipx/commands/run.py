@@ -1,7 +1,6 @@
 import datetime
 import hashlib
 import logging
-import subprocess
 import time
 import urllib.parse
 import urllib.request
@@ -16,11 +15,14 @@ from pipx.emojies import hazard
 from pipx.util import (
     WINDOWS,
     PipxError,
+    exec_app,
     get_pypackage_bin_path,
     rmdir,
     run_pypackage_bin,
 )
 from pipx.venv import Venv
+
+VENV_EXPIRED_FILENAME = "pipx_expired_venv"
 
 
 def run(
@@ -33,7 +35,7 @@ def run(
     pypackages: bool,
     verbose: bool,
     use_cache: bool,
-):
+) -> None:
     """Installs venv to temporary dir (or reuses cache), then runs app from
     package
     """
@@ -47,10 +49,8 @@ def run(
         logging.info("Detected url. Downloading and executing as a Python file.")
 
         content = _http_get_request(app)
-        try:
-            return subprocess.run([str(python), "-c", content]).returncode
-        except KeyboardInterrupt:
-            return 1
+        # This never returns
+        exec_app([str(python), "-c", content])
 
     elif which(app):
         logging.warning(
@@ -68,7 +68,8 @@ def run(
         logging.info(
             f"Using app in local __pypackages__ directory at {str(pypackage_bin_path)}"
         )
-        return run_pypackage_bin(pypackage_bin_path, app_args)
+        # This never returns
+        run_pypackage_bin(pypackage_bin_path, app_args)
     if pypackages:
         raise PipxError(
             f"'--pypackages' flag was passed, but {str(pypackage_bin_path)!r} was "
@@ -84,10 +85,12 @@ def run(
 
     if bin_path.exists():
         logging.info(f"Reusing cached venv {venv_dir}")
-        retval = venv.run_app(app, app_args)
+        # This never returns
+        venv.run_app(app, app_args)
     else:
         logging.info(f"venv location is {venv_dir}")
-        retval = _download_and_run(
+        # This never returns
+        _download_and_run(
             Path(venv_dir),
             package_or_url,
             app,
@@ -95,12 +98,9 @@ def run(
             python,
             pip_args,
             venv_args,
+            use_cache,
             verbose,
         )
-
-    if not use_cache:
-        rmdir(venv_dir)
-    return retval
 
 
 def _download_and_run(
@@ -111,8 +111,9 @@ def _download_and_run(
     python: str,
     pip_args: List[str],
     venv_args: List[str],
+    use_cache: bool,
     verbose: bool,
-):
+) -> None:
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv(venv_args, pip_args)
 
@@ -139,7 +140,13 @@ def _download_and_run(
             "Available executable scripts: "
             f"{', '.join(b for b in apps)}"
         )
-    return venv.run_app(app, app_args)
+
+    if not use_cache:
+        # Let future _remove_all_expired_venvs know to remove this
+        (venv_dir / VENV_EXPIRED_FILENAME).touch()
+
+    # This never returns
+    venv.run_app(app, app_args)
 
 
 def _get_temporary_venv_path(
@@ -164,7 +171,7 @@ def _is_temporary_venv_expired(venv_dir: Path):
     current_time_sec = time.mktime(datetime.datetime.now().timetuple())
     age = current_time_sec - created_time_sec
     expiration_threshold_sec = 60 * 60 * 24 * TEMP_VENV_EXPIRATION_THRESHOLD_DAYS
-    return age > expiration_threshold_sec
+    return age > expiration_threshold_sec or (venv_dir / VENV_EXPIRED_FILENAME).exists()
 
 
 def _prepare_venv_cache(venv: Venv, bin_path: Path, use_cache: bool):
