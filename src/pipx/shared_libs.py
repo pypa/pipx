@@ -7,7 +7,7 @@ from typing import List
 from pipx.animate import animate
 from pipx.constants import PIPX_SHARED_LIBS, WINDOWS
 from pipx.interpreter import DEFAULT_PYTHON
-from pipx.util import get_site_packages, get_venv_paths, run
+from pipx.util import get_site_packages, get_venv_paths, run_verify
 
 SHARED_LIBS_MAX_AGE_SEC = datetime.timedelta(days=30).total_seconds()
 
@@ -32,7 +32,7 @@ class _SharedLibs:
     def create(self, pip_args: List[str], verbose: bool = False):
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
-                run([DEFAULT_PYTHON, "-m", "venv", "--clear", self.root])
+                run_verify([DEFAULT_PYTHON, "-m", "venv", "--clear", self.root])
             # ignore installed packages to ensure no unexpected patches from the OS vendor
             # are used
             self.upgrade(["--ignore-installed"] + pip_args, verbose)
@@ -70,7 +70,7 @@ class _SharedLibs:
             _pip_args.append("-q")
         try:
             with animate("upgrading shared libraries", not verbose):
-                run(
+                run_verify(
                     [
                         self.python_path,
                         "-m",

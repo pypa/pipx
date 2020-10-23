@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple, Union
 
+from pipx.animate import show_cursor
 from pipx.constants import WINDOWS
 
 
@@ -41,7 +42,7 @@ def get_pypackage_bin_path(binary_name: str) -> Path:
     )
 
 
-def run_pypackage_bin(bin_path: Path, args: List[str]) -> int:
+def run_pypackage_bin(bin_path: Path, args: List[str]) -> None:
     def _get_env():
         env = dict(os.environ)
         env["PYTHONPATH"] = os.path.pathsep.join(
@@ -50,12 +51,7 @@ def run_pypackage_bin(bin_path: Path, args: List[str]) -> int:
         )
         return env
 
-    try:
-        return subprocess.run(
-            [str(bin_path.resolve())] + args, env=_get_env()
-        ).returncode
-    except KeyboardInterrupt:
-        return 1
+    exec_app([str(bin_path.resolve())] + args, env=_get_env())
 
 
 if WINDOWS:
@@ -84,15 +80,7 @@ def get_site_packages(python: Path) -> Path:
     return path
 
 
-def run_subprocess(
-    cmd: Sequence[Union[str, Path]],
-    capture_stdout: bool = True,
-    capture_stderr: bool = True,
-    log_cmd_str: Optional[str] = None,
-) -> subprocess.CompletedProcess:
-    """Run arbitrary command as subprocess, capturing stderr and stout"""
-    env = dict(os.environ)
-
+def _fix_subprocess_env(env):
     # Remove PYTHONPATH because some platforms (macOS with Homebrew) add pipx
     #   directories to it, and can make it appear to venvs as though pipx
     #   dependencies are in the venv path (#233)
@@ -107,6 +95,18 @@ def run_subprocess(
     env["PYTHONIOENCODING"] = "utf-8"
     # Make sure we install package to venv, not userbase dir
     env["PIP_USER"] = "0"
+    return env
+
+
+def run_subprocess(
+    cmd: Sequence[Union[str, Path]],
+    capture_stdout: bool = True,
+    capture_stderr: bool = True,
+    log_cmd_str: Optional[str] = None,
+) -> subprocess.CompletedProcess:
+    """Run arbitrary command as subprocess, capturing stderr and stout"""
+    env = dict(os.environ)
+    env = _fix_subprocess_env(env)
 
     if log_cmd_str is None:
         log_cmd_str = " ".join(str(c) for c in cmd)
@@ -123,17 +123,48 @@ def run_subprocess(
     )
 
 
-def run(cmd: Sequence[Union[str, Path]], check=True) -> int:
-    """Run arbitrary command as subprocess"""
+def run_verify(cmd: Sequence[Union[str, Path]]) -> None:
+    """Run arbitrary command as subprocess, raise PipxError if error exit code"""
 
     returncode = run_subprocess(
         cmd, capture_stdout=False, capture_stderr=False
     ).returncode
 
-    if check and returncode:
+    if returncode:
         cmd_str = " ".join(str(c) for c in cmd)
         raise PipxError(f"{cmd_str!r} failed")
-    return returncode
+
+
+def exec_app(cmd: Sequence[Union[str, Path]], env=None) -> None:
+    """Run command, do not return
+
+    POSIX: replace current processs with command using os.exec*()
+    Windows: Use subprocess and sys.exit() to run command
+    """
+
+    if env is None:
+        env = dict(os.environ)
+    env = _fix_subprocess_env(env)
+
+    # make sure we show cursor again before handing over control
+    show_cursor()
+    sys.stderr.flush()
+
+    logging.info("exec_app: " + " ".join([str(c) for c in cmd]))
+
+    if WINDOWS:
+        sys.exit(
+            subprocess.run(
+                cmd,
+                env=env,
+                stdout=None,
+                stderr=None,
+                encoding="utf-8",
+                universal_newlines=True,
+            ).returncode
+        )
+    else:
+        os.execvpe(str(cmd[0]), [str(x) for x in cmd], env)
 
 
 def full_package_description(package: str, package_spec: str) -> str:
