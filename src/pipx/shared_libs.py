@@ -1,8 +1,8 @@
+import datetime
 import logging
+import time
 from pathlib import Path
 from typing import List
-import time
-import datetime
 
 from pipx.animate import animate
 from pipx.constants import PIPX_SHARED_LIBS, WINDOWS
@@ -82,6 +82,7 @@ class _SharedLibs:
                         "pip",
                         "setuptools",
                         "wheel",
+                        "importlib-metadata",
                     ]
                 )
                 self.has_been_updated_this_run = True
