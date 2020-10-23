@@ -185,9 +185,6 @@ def parse_specifier_for_upgrade(package_spec: str) -> str:
     return package_or_url
 
 
-#
-
-
 def valid_pypi_name(package_spec: str) -> Optional[str]:
     try:
         package_req = Requirement(package_spec)
