@@ -9,6 +9,8 @@ try:
 except ImportError:
     import importlib_metadata as metadata  # type: ignore
 
+from packaging.requirements import Requirement
+
 try:
     WindowsError
 except NameError:
@@ -16,13 +18,20 @@ except NameError:
 else:
     WINDOWS = True
 
+# TODO: make sure to test with package with extras
+
 
 def get_package_dependencies(package: str) -> List[str]:
+    extras = Requirement(package).extras
     try:
-        import pkg_resources
+        # TODO: what is going on here
+        return [
+            str(req)
+            for req in map(Requirement, metadata.requires(package) or [])  # type: ignore
+            if not req.marker or req.marker.evaluate({"extra": extras})
+        ]
     except Exception:
         return []
-    return [str(r) for r in pkg_resources.get_distribution(package).requires()]
 
 
 def get_package_version(package: str) -> Optional[str]:

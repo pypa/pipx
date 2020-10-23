@@ -82,6 +82,7 @@ class _SharedLibs:
                         "pip",
                         "setuptools",
                         "wheel",
+                        "packaging",
                         "importlib-metadata",
                     ]
                 )
