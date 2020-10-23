@@ -36,7 +36,7 @@ def get_package_version(package: str) -> Optional[str]:
 
 
 def get_apps(package: str, bin_path: Path) -> List[str]:
-    dist = metadata.distribution(package)  # type: ignore
+    dist = metadata.distribution(package)
 
     apps = set()
     sections = {"console_scripts", "gui_scripts"}
