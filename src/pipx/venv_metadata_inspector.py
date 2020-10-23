@@ -25,17 +25,56 @@ def get_package_dependencies(package: str) -> List[Requirement]:
     extras = Requirement(package).extras
 
     return [
-        str(req)
-        for req in map(Requirement, metadata.requires(package) or [])  # type: ignore
+        req
+        for req in map(Requirement, metadata.requires(package) or [])
         if not req.marker or req.marker.evaluate({"extra": extras})
     ]
 
 
 def get_package_version(package: str) -> Optional[str]:
-    return metadata.version(package)  # type: ignore
+    return metadata.version(package)
 
 
 def get_apps(package: str, bin_path: Path) -> List[str]:
+    dist = metadata.distribution(package)  # type: ignore
+
+    apps = set()
+    sections = {"console_scripts", "gui_scripts"}
+    # "entry_points" entry in setup.py are found here
+    for ep in dist.entry_points:
+        if ep.group not in sections:
+            continue
+        if (bin_path / ep.name).exists():
+            apps.add(ep.name)
+        if WINDOWS and (bin_path / (ep.name + ".exe")).exists():
+            # WINDOWS adds .exe to entry_point name
+            apps.add(ep.name + ".exe")
+
+    # search installed files
+    # "scripts" entry in setup.py is found here (test w/ awscli)
+    for path in dist.files or []:
+        dist_file_path = Path(path).resolve()
+        try:
+            if dist_file_path.samefile(bin_path):
+                apps.add(path.name)
+        except FileNotFoundError:
+            pass
+
+    # not sure what is found here
+    inst_files = dist.read_text("installed-files.txt") or ""
+    for line in inst_files.splitlines():
+        entry = line.split(",")[0]  # noqa: T484
+        inst_file_path = Path(dist.locate_file(entry))
+        try:
+            if inst_file_path.parent.samefile(bin_path):
+                apps.add(Path(entry).name)
+        except FileNotFoundError:
+            pass
+
+    return sorted(apps)
+
+
+def get_apps_old(package: str, bin_path: Path) -> List[str]:
     import pkg_resources
 
     dist = pkg_resources.get_distribution(package)
@@ -88,6 +127,10 @@ def _dfs_package_apps(
     dependencies = get_package_dependencies(package)
     for req in dependencies:
         app_names = get_apps(req.name, bin_path)
+
+        # TODO: debugging
+        assert app_names == get_apps_old(req.name, bin_path)
+
         if app_names:
             app_paths_of_dependencies[req.name] = [bin_path / app for app in app_names]
         # recursively search for more
