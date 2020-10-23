@@ -136,7 +136,11 @@ def run_verify(cmd: Sequence[Union[str, Path]]) -> None:
 
 
 def exec_app(cmd: Sequence[Union[str, Path]], env=None) -> None:
-    """Run command, replacing current processs, do not return"""
+    """Run command, do not return
+
+    POSIX: replace current processs with command using os.exec*()
+    Windows: Use subprocess and sys.exit() to run command
+    """
 
     if env is None:
         env = dict(os.environ)
