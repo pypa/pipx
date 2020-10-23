@@ -5,6 +5,11 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 try:
+    from importlib import metadata  # type: ignore
+except ImportError:
+    import importlib_metadata as metadata  # type: ignore
+
+try:
     WindowsError
 except NameError:
     WINDOWS = False
@@ -21,10 +26,9 @@ def get_package_dependencies(package: str) -> List[str]:
 
 
 def get_package_version(package: str) -> Optional[str]:
+    # TODO: does this need to be wrapped in try/except?
     try:
-        import pkg_resources
-
-        return pkg_resources.get_distribution(package).version
+        return metadata.version(package)  # type: ignore
     except Exception:
         return None
 
