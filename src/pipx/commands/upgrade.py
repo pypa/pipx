@@ -6,6 +6,7 @@ from pipx import constants
 from pipx.colors import bold, red
 from pipx.commands.common import expose_apps_globally
 from pipx.emojies import sleep
+from pipx.package_specifier import parse_specifier_for_upgrade
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
@@ -42,7 +43,7 @@ def upgrade(
     if package_metadata.package_or_url is None:
         raise PipxError(f"Internal Error: package {package} has corrupt pipx metadata.")
 
-    package_or_url = package_metadata.package_or_url
+    package_or_url = parse_specifier_for_upgrade(package_metadata.package_or_url)
     old_version = package_metadata.package_version
     include_apps = package_metadata.include_apps
     include_dependencies = package_metadata.include_dependencies
