@@ -2,6 +2,7 @@ dev
 
 - Added reinstall command for reinstalling a single venv.
 - Changed `pipx run` on non-Windows systems to actually replace pipx process with the app process instead of running it as a subprocess.  (Now using python's `os.exec*`)
+- [bugfix] Fixed bug with reinstall-all command when package have been installed using a specifier. Now the initial specifier is used.
 
 0.15.6.0
 
