@@ -21,32 +21,23 @@ else:
 # TODO: make sure to test with package with extras
 
 
-def get_package_dependencies(package: str) -> List[str]:
+def get_package_dependencies(package: str) -> List[Requirement]:
     extras = Requirement(package).extras
-    try:
-        # TODO: what is going on here
-        return [
-            str(req)
-            for req in map(Requirement, metadata.requires(package) or [])  # type: ignore
-            if not req.marker or req.marker.evaluate({"extra": extras})
-        ]
-    except Exception:
-        return []
+
+    return [
+        str(req)
+        for req in map(Requirement, metadata.requires(package) or [])  # type: ignore
+        if not req.marker or req.marker.evaluate({"extra": extras})
+    ]
 
 
 def get_package_version(package: str) -> Optional[str]:
-    # TODO: does this need to be wrapped in try/except?
-    try:
-        return metadata.version(package)  # type: ignore
-    except Exception:
-        return None
+    return metadata.version(package)  # type: ignore
 
 
 def get_apps(package: str, bin_path: Path) -> List[str]:
-    try:
-        import pkg_resources
-    except Exception:
-        return []
+    import pkg_resources
+
     dist = pkg_resources.get_distribution(package)
 
     apps = set()
@@ -95,17 +86,17 @@ def _dfs_package_apps(
         dep_visited = {}
 
     dependencies = get_package_dependencies(package)
-    for d in dependencies:
-        app_names = get_apps(d, bin_path)
+    for req in dependencies:
+        app_names = get_apps(req.name, bin_path)
         if app_names:
-            app_paths_of_dependencies[d] = [bin_path / app for app in app_names]
+            app_paths_of_dependencies[req.name] = [bin_path / app for app in app_names]
         # recursively search for more
-        if d not in dep_visited:
+        if req.name not in dep_visited:
             # only search if this package isn't already listed to avoid
             # infinite recursion
-            dep_visited[d] = True
+            dep_visited[req.name] = True
             app_paths_of_dependencies = _dfs_package_apps(
-                bin_path, d, app_paths_of_dependencies, dep_visited
+                bin_path, req.name, app_paths_of_dependencies, dep_visited
             )
     return app_paths_of_dependencies
 
