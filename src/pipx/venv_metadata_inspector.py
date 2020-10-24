@@ -2,7 +2,7 @@ import json
 import sys
 import traceback
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 try:
     from importlib import metadata  # type: ignore
@@ -20,9 +20,30 @@ else:
     WINDOWS = True
 
 
+def get_dist(package: str) -> metadata.Distribution:
+    # metadata.distribution will not match a packaging.utils canonicalized
+    #   package name if the original name has a period in it (10/24/2020)
+    dist: Optional[metadata.Distribution] = None
+
+    try:
+        dist = metadata.distribution(package)
+    except metadata.PackageNotFoundError:
+        for test_dist in metadata.distributions():
+            if canonicalize_name(test_dist.metadata["name"]) == canonicalize_name(
+                package
+            ):
+                dist = test_dist
+                break
+
+    if dist is None:
+        raise metadata.PackageNotFoundError
+
+    return dist
+
+
 def semi_canonicalize_name(package: str) -> str:
-    # metadata.distribution will not match a canonicalized package name
-    #   if the original name has a period in it (10/24/2020)
+    # metadata.distribution will not match a packaging.utils canonicalized
+    #   package name if the original name has a period in it (10/24/2020)
     new_package: Optional[str] = None
 
     try:
@@ -43,23 +64,17 @@ def semi_canonicalize_name(package: str) -> str:
     return new_package
 
 
-def get_package_dependencies(package: str) -> List[str]:
-    extras = Requirement(package).extras
-
+def get_package_dependencies(
+    dist: metadata.Distribution, extras: Set[Any]
+) -> List[Requirement]:
     return [
-        req.name
-        for req in map(Requirement, metadata.requires(package) or [])
+        req
+        for req in map(Requirement, dist.requires or [])
         if not req.marker or req.marker.evaluate({"extra": extras})
     ]
 
 
-def get_package_version(package: str) -> Optional[str]:
-    return metadata.version(package)
-
-
-def get_apps(package: str, bin_path: Path) -> List[str]:
-    dist = metadata.distribution(package)
-
+def get_apps(dist: metadata.Distribution, bin_path: Path) -> List[str]:
     apps = set()
 
     sections = {"console_scripts", "gui_scripts"}
@@ -99,26 +114,30 @@ def get_apps(package: str, bin_path: Path) -> List[str]:
 
 def _dfs_package_apps(
     bin_path: Path,
-    package: str,
+    dist: metadata.Distribution,
+    package_req: Requirement,
     app_paths_of_dependencies: Dict[str, List[Path]],
     dep_visited: Optional[Dict[str, bool]] = None,
 ) -> Dict[str, List[Path]]:
     if dep_visited is None:
         dep_visited = {}
 
-    dependencies = get_package_dependencies(package)
-    for package in dependencies:
-        app_names = get_apps(package, bin_path)
+    dependencies = get_package_dependencies(dist, package_req.extras)
+    for dep_req in dependencies:
+        dep_dist = metadata.distribution(dep_req.name)
 
+        app_names = get_apps(dep_dist, bin_path)
         if app_names:
-            app_paths_of_dependencies[package] = [bin_path / app for app in app_names]
+            app_paths_of_dependencies[dep_req.name] = [
+                bin_path / app for app in app_names
+            ]
         # recursively search for more
-        if package not in dep_visited:
-            # only search if this package isn't already listed to avoid
+        if dep_req.name not in dep_visited:
+            # only search if this dep_req.name isn't already listed to avoid
             # infinite recursion
-            dep_visited[package] = True
+            dep_visited[dep_req.name] = True
             app_paths_of_dependencies = _dfs_package_apps(
-                bin_path, package, app_paths_of_dependencies, dep_visited
+                bin_path, dep_dist, dep_req, app_paths_of_dependencies, dep_visited
             )
     return app_paths_of_dependencies
 
@@ -140,10 +159,11 @@ def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
 
 
 def main():
-    package = semi_canonicalize_name(sys.argv[1])
+    package_req = Requirement(semi_canonicalize_name(sys.argv[1]))
+    dist = metadata.distribution(package_req.name)
     bin_path = Path(sys.argv[2])
 
-    apps = get_apps(package, bin_path)
+    apps = get_apps(dist, bin_path)
     app_paths = [Path(bin_path) / app for app in apps]
     if WINDOWS:
         app_paths = _windows_extra_app_paths(app_paths)
@@ -152,7 +172,7 @@ def main():
     app_paths_of_dependencies = {}  # type: Dict[str, List[str]]
     apps_of_dependencies = []  # type: List[str]
     app_paths_of_dependencies = _dfs_package_apps(
-        bin_path, package, app_paths_of_dependencies
+        bin_path, dist, package_req, app_paths_of_dependencies
     )
     for dep in app_paths_of_dependencies:
         apps_of_dependencies += [
@@ -171,7 +191,7 @@ def main():
         "app_paths": app_paths,
         "apps_of_dependencies": apps_of_dependencies,
         "app_paths_of_dependencies": app_paths_of_dependencies,
-        "package_version": get_package_version(package),
+        "package_version": dist.version,
         "python_version": "Python {}.{}.{}".format(
             sys.version_info.major, sys.version_info.minor, sys.version_info.micro
         ),
