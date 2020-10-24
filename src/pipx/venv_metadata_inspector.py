@@ -10,6 +10,7 @@ except ImportError:
     import importlib_metadata as metadata  # type: ignore
 
 from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name
 
 try:
     WindowsError
@@ -17,6 +18,29 @@ except NameError:
     WINDOWS = False
 else:
     WINDOWS = True
+
+
+def semi_canonicalize_name(package: str) -> str:
+    # metadata.distribution will not match a canonicalized package name
+    #   if the original name has a period in it (10/24/2020)
+    new_package: Optional[str] = None
+
+    try:
+        _ = metadata.distribution(package)
+    except metadata.PackageNotFoundError:
+        for test_dist in metadata.distributions():
+            if canonicalize_name(test_dist.metadata["name"]) == canonicalize_name(
+                package
+            ):
+                new_package = test_dist.metadata["name"]
+                break
+    else:
+        new_package = package
+
+    if new_package is None:
+        raise metadata.PackageNotFoundError
+
+    return new_package
 
 
 def get_package_dependencies(package: str) -> List[str]:
@@ -116,7 +140,7 @@ def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
 
 
 def main():
-    package = sys.argv[1]
+    package = semi_canonicalize_name(sys.argv[1])
     bin_path = Path(sys.argv[2])
 
     apps = get_apps(package, bin_path)
