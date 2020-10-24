@@ -19,11 +19,11 @@ else:
     WINDOWS = True
 
 
-def get_package_dependencies(package: str) -> List[Requirement]:
+def get_package_dependencies(package: str) -> List[str]:
     extras = Requirement(package).extras
 
     return [
-        req
+        req.name
         for req in map(Requirement, metadata.requires(package) or [])
         if not req.marker or req.marker.evaluate({"extra": extras})
     ]
@@ -73,47 +73,6 @@ def get_apps(package: str, bin_path: Path) -> List[str]:
     return sorted(apps)
 
 
-def get_apps_old(package: str, bin_path: Path) -> List[str]:
-    import pkg_resources
-
-    dist = pkg_resources.get_distribution(package)
-
-    apps = set()
-    for section in ["console_scripts", "gui_scripts"]:
-        # "entry_points" entry in setup.py are found here
-        for name in pkg_resources.get_entry_map(dist).get(section, []):
-            if (bin_path / name).exists():
-                apps.add(name)
-            if WINDOWS and (bin_path / (name + ".exe")).exists():
-                # WINDOWS adds .exe to entry_point name
-                apps.add(name + ".exe")
-
-    if dist.has_metadata("RECORD"):
-        # for non-editable package installs, RECORD is list of installed files
-        # "scripts" entry in setup.py is found here (test w/ awscli)
-        for line in dist.get_metadata_lines("RECORD"):
-            entry = line.split(",")[0]  # noqa: T484
-            path = (Path(dist.location) / entry).resolve()
-            try:
-                if path.parent.samefile(bin_path):
-                    apps.add(Path(entry).name)
-            except FileNotFoundError:
-                pass
-
-    if dist.has_metadata("installed-files.txt"):
-        # not sure what is found here
-        for line in dist.get_metadata_lines("installed-files.txt"):
-            entry = line.split(",")[0]  # noqa: T484
-            path = (Path(dist.egg_info) / entry).resolve()  # type: ignore
-            try:
-                if path.parent.samefile(bin_path):
-                    apps.add(Path(entry).name)
-            except FileNotFoundError:
-                pass
-
-    return sorted(apps)
-
-
 def _dfs_package_apps(
     bin_path: Path,
     package: str,
@@ -124,18 +83,18 @@ def _dfs_package_apps(
         dep_visited = {}
 
     dependencies = get_package_dependencies(package)
-    for req in dependencies:
-        app_names = get_apps(req.name, bin_path)
+    for package in dependencies:
+        app_names = get_apps(package, bin_path)
 
         if app_names:
-            app_paths_of_dependencies[req.name] = [bin_path / app for app in app_names]
+            app_paths_of_dependencies[package] = [bin_path / app for app in app_names]
         # recursively search for more
-        if req.name not in dep_visited:
+        if package not in dep_visited:
             # only search if this package isn't already listed to avoid
             # infinite recursion
-            dep_visited[req.name] = True
+            dep_visited[package] = True
             app_paths_of_dependencies = _dfs_package_apps(
-                bin_path, req.name, app_paths_of_dependencies, dep_visited
+                bin_path, package, app_paths_of_dependencies, dep_visited
             )
     return app_paths_of_dependencies
 
