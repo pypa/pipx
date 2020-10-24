@@ -1,4 +1,3 @@
-import py_compile
 import re
 import subprocess
 from pathlib import Path
@@ -7,15 +6,6 @@ from pathlib import Path
 def python_mypy_ok(filepath: Path) -> bool:
     mypy_proc = subprocess.run(["mypy", filepath])
     return True if mypy_proc.returncode == 0 else False
-
-
-def python_syntax_ok(filepath: Path) -> bool:
-    compiled_file = filepath.with_suffix(".pyc")
-    if py_compile.compile(str(filepath), cfile=str(compiled_file)) is None:
-        return False
-    else:
-        compiled_file.unlink()
-        return True
 
 
 def copy_file_replace_line(
