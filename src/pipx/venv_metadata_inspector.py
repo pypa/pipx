@@ -18,8 +18,6 @@ except NameError:
 else:
     WINDOWS = True
 
-# TODO: make sure to test with package with extras
-
 
 def get_package_dependencies(package: str) -> List[Requirement]:
     extras = Requirement(package).extras
@@ -39,6 +37,7 @@ def get_apps(package: str, bin_path: Path) -> List[str]:
     dist = metadata.distribution(package)
 
     apps = set()
+
     sections = {"console_scripts", "gui_scripts"}
     # "entry_points" entry in setup.py are found here
     for ep in dist.entry_points:
@@ -62,19 +61,12 @@ def get_apps(package: str, bin_path: Path) -> List[str]:
 
     # not sure what is found here
     inst_files = dist.read_text("installed-files.txt") or ""
-
-    # TODO: debug
-    if inst_files:
-        print("FOUND installed-files.txt", file=sys.stderr)
-
     for line in inst_files.splitlines():
         entry = line.split(",")[0]  # noqa: T484
-        print(f"{entry}", file=sys.stderr)
         inst_file_path = Path(dist.locate_file(entry)).resolve()
-        print(f"{inst_file_path}", file=sys.stderr)
         try:
             if inst_file_path.parent.samefile(bin_path):
-                apps.add(Path(entry).name)
+                apps.add(inst_file_path.name)
         except FileNotFoundError:
             pass
 
@@ -169,15 +161,6 @@ def main():
     bin_path = Path(sys.argv[2])
 
     apps = get_apps(package, bin_path)
-    apps_old = get_apps_old(package, bin_path)
-
-    # TODO: debugging
-    if apps != apps_old:
-        print("apps!=apps_old", file=sys.stderr)
-        print(f"    {apps}", file=sys.stderr)
-        print(f"    {apps_old}", file=sys.stderr)
-        raise Exception
-
     app_paths = [Path(bin_path) / app for app in apps]
     if WINDOWS:
         app_paths = _windows_extra_app_paths(app_paths)
