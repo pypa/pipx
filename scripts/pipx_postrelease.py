@@ -69,7 +69,7 @@ def post_release() -> int:
         return 1
 
 
-def main(argv) -> int:
+def main(argv: List[str]) -> int:
     return post_release()
 
 

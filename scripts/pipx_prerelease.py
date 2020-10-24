@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from typing import List
 
 from pipx_release import copy_file_replace_line, python_mypy_ok
 
@@ -42,7 +43,7 @@ def pre_release(new_version: str) -> int:
         return 1
 
 
-def main(argv) -> int:
+def main(argv: List[str]) -> int:
     if len(argv) > 1:
         new_version = argv[1]
     else:
