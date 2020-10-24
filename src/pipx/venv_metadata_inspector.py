@@ -20,27 +20,6 @@ else:
     WINDOWS = True
 
 
-def get_dist(package: str) -> metadata.Distribution:
-    # metadata.distribution will not match a packaging.utils canonicalized
-    #   package name if the original name has a period in it (10/24/2020)
-    dist: Optional[metadata.Distribution] = None
-
-    try:
-        dist = metadata.distribution(package)
-    except metadata.PackageNotFoundError:
-        for test_dist in metadata.distributions():
-            if canonicalize_name(test_dist.metadata["name"]) == canonicalize_name(
-                package
-            ):
-                dist = test_dist
-                break
-
-    if dist is None:
-        raise metadata.PackageNotFoundError
-
-    return dist
-
-
 def semi_canonicalize_name(package: str) -> str:
     # metadata.distribution will not match a packaging.utils canonicalized
     #   package name if the original name has a period in it (10/24/2020)
@@ -67,11 +46,17 @@ def semi_canonicalize_name(package: str) -> str:
 def get_package_dependencies(
     dist: metadata.Distribution, extras: Set[Any]
 ) -> List[Requirement]:
-    return [
-        req
-        for req in map(Requirement, dist.requires or [])
-        if not req.marker or req.marker.evaluate({"extra": extras})
-    ]
+    dependencies = []
+    for req in map(Requirement, dist.requires or []):
+        if not req.marker:
+            dependencies.append(req)
+        else:
+            for extra in extras:
+                if req.marker.evaluate({"extra": extra}):
+                    dependencies.append(req)
+                    break
+
+    return dependencies
 
 
 def get_apps(dist: metadata.Distribution, bin_path: Path) -> List[str]:
@@ -159,7 +144,8 @@ def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
 
 
 def main():
-    package_req = Requirement(semi_canonicalize_name(sys.argv[1]))
+    package_req = Requirement(sys.argv[1])
+    package_req.name = semi_canonicalize_name(package_req.name)
     dist = metadata.distribution(package_req.name)
     bin_path = Path(sys.argv[2])
 

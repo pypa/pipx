@@ -10,6 +10,7 @@ from pipx.animate import animate
 from pipx.constants import PIPX_SHARED_PTH
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.package_specifier import (
+    append_extras,
     fix_package_name,
     parse_specifier_for_install,
     parse_specifier_for_metadata,
@@ -391,7 +392,9 @@ class Venv:
         is_main_package: bool,
         suffix: str = "",
     ) -> None:
-        venv_package_metadata = self.get_venv_metadata_for_package(package)
+        venv_package_metadata = self.get_venv_metadata_for_package(
+            append_extras(package, package_or_url)
+        )
         package_info = PackageInfo(
             package=package,
             package_or_url=parse_specifier_for_metadata(package_or_url),
