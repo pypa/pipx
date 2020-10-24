@@ -53,18 +53,25 @@ def get_apps(package: str, bin_path: Path) -> List[str]:
     # search installed files
     # "scripts" entry in setup.py is found here (test w/ awscli)
     for path in dist.files or []:
-        dist_file_path = Path(path).resolve()
+        dist_file_path = Path(dist.locate_file(path)).resolve()
         try:
-            if dist_file_path.samefile(bin_path):
+            if dist_file_path.parent.samefile(bin_path):
                 apps.add(path.name)
         except FileNotFoundError:
             pass
 
     # not sure what is found here
     inst_files = dist.read_text("installed-files.txt") or ""
+
+    # TODO: debug
+    if inst_files:
+        print("FOUND installed-files.txt", file=sys.stderr)
+
     for line in inst_files.splitlines():
         entry = line.split(",")[0]  # noqa: T484
-        inst_file_path = Path(dist.locate_file(entry))
+        print(f"{entry}", file=sys.stderr)
+        inst_file_path = Path(dist.locate_file(entry)).resolve()
+        print(f"{inst_file_path}", file=sys.stderr)
         try:
             if inst_file_path.parent.samefile(bin_path):
                 apps.add(Path(entry).name)
@@ -128,9 +135,6 @@ def _dfs_package_apps(
     for req in dependencies:
         app_names = get_apps(req.name, bin_path)
 
-        # TODO: debugging
-        assert app_names == get_apps_old(req.name, bin_path)
-
         if app_names:
             app_paths_of_dependencies[req.name] = [bin_path / app for app in app_names]
         # recursively search for more
@@ -165,6 +169,15 @@ def main():
     bin_path = Path(sys.argv[2])
 
     apps = get_apps(package, bin_path)
+    apps_old = get_apps_old(package, bin_path)
+
+    # TODO: debugging
+    if apps != apps_old:
+        print("apps!=apps_old", file=sys.stderr)
+        print(f"    {apps}", file=sys.stderr)
+        print(f"    {apps_old}", file=sys.stderr)
+        raise Exception
+
     app_paths = [Path(bin_path) / app for app in apps]
     if WINDOWS:
         app_paths = _windows_extra_app_paths(app_paths)
