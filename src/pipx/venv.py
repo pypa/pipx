@@ -303,6 +303,7 @@ class Venv:
                     print(json.dumps(data[field], sort_keys=True, indent=4))
                     print("OLD DATA[{field}]:")
                     print(json.dumps(data_old[field], sort_keys=True, indent=4))
+                    raise PipxError("Problem with new venv_metadata_inspector.'")
             else:
                 if data[field] != data_old[field]:
                     print(f"Data Inconsistency for {field}:", file=sys.stderr)
