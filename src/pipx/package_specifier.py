@@ -160,6 +160,20 @@ def parse_specifier_for_metadata(package_spec: str) -> str:
     """Return package_or_url suitable for pipx metadata
 
     Specifically:
+    * Strip any markers (e.g. python_version > 3.4)
+    * Convert local paths to absolute paths
+    """
+    parsed_package = _parse_specifier(package_spec)
+    package_or_url = _parsed_package_to_package_or_url(
+        parsed_package, remove_version_specifiers=False
+    )
+    return package_or_url
+
+
+def parse_specifier_for_upgrade(package_spec: str) -> str:
+    """Return package_or_url suitable for pip upgrade
+
+    Specifically:
     * Strip any version specifiers (e.g. package == 1.5.4)
     * Strip any markers (e.g. python_version > 3.4)
     * Convert local paths to absolute paths
