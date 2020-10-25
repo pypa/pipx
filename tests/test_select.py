@@ -34,9 +34,6 @@ def test_reselect(pipx_temp_env, capsys):
     assert len(selected_venvs) == 1
 
     # check if all required links are there
-    import os
-
-    print(f"binaries: {os.listdir(constants.LOCAL_BIN_DIR)}")
     for app in ["filter", "foldl", "ft-functions", "map"]:
         app_path = constants.LOCAL_BIN_DIR / app
         app_path_2 = constants.LOCAL_BIN_DIR / f"{app}_2"
