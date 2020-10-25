@@ -52,7 +52,7 @@ def install(
             return
 
     if not suffix:
-        selected_venvs = find_selected_venvs_for_package(venv_container, package_name)
+        selected_venvs = find_selected_venvs_for_package(venv_container, package_name, verbose=verbose)
         if len(selected_venvs) > 0:
             suffixed_package_name = selected_venvs[0].root.name
             raise PipxError(

@@ -4,6 +4,7 @@ from .install import install
 from .list_packages import list_packages
 from .reinstall import reinstall, reinstall_all
 from .select import select
+from .deselect import deselect
 from .run import run
 from .run_pip import run_pip
 from .uninstall import uninstall, uninstall_all

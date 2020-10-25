@@ -11,19 +11,19 @@ def select(
 ):
     venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
     venv_dir = venv_container.get_venv_dir(package_name_with_suffix)
-    venv = Venv(venv_dir, verbose=verbose)
 
     # check package with suffix exists
     if not venv_dir.is_dir():
         raise PipxError(f"Package and suffix '{package_name_with_suffix}' are not installed.")
 
+    venv = Venv(venv_dir, verbose=verbose)
     if not venv.package_metadata:
         print(
             f"Not selecting {red(bold(venv.main_package_name))}.  It has missing internal pipx metadata.\n"
             f"    It was likely installed using a pipx version before 0.15.0.0.\n"
             f"    Please uninstall and install this package, or reinstall-all to fix."
         )
-        return 0
+        return 1
     package_metadata = venv.package_metadata[venv.main_package_name]
 
     # check if we are trying to select a non-suffixed version
@@ -38,7 +38,7 @@ def select(
     print(f"Selecting apps from venv '{package_name_with_suffix}' for package '{package_metadata.package}':")
 
     # deselect other package if selected
-    selected_venvs = find_selected_venvs_for_package(venv_container, package_metadata.package)
+    selected_venvs = find_selected_venvs_for_package(venv_container, package_metadata.package, verbose=verbose)
     for selected_venv in selected_venvs:
         selected_package_metadata = selected_venv.package_metadata[selected_venv.main_package_name]
 

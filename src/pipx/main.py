@@ -223,6 +223,11 @@ def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
             args.package_name_with_suffix,
             verbose=args.verbose,
         )
+    elif args.command == "deselect":
+        return commands.deselect(
+            args.package_name,
+            verbose=args.verbose,
+        )
     elif args.command == "runpip":
         if not venv_dir:
             raise PipxError("developer error: venv dir is not defined")
@@ -455,6 +460,15 @@ def _add_select(subparsers):
     p.add_argument("--verbose", action="store_true")
 
 
+def _add_deselect(subparsers):
+    p = subparsers.add_parser(
+        "deselect",
+        description="Deselect a selected package",
+    )
+    p.add_argument("package_name", help="the name of the package with or without the suffix")
+    p.add_argument("--verbose", action="store_true")
+
+
 def _add_list(subparsers):
     p = subparsers.add_parser(
         "list",
@@ -595,6 +609,7 @@ def get_command_parser():
     _add_reinstall(subparsers, autocomplete_list_of_installed_packages)
     _add_reinstall_all(subparsers)
     _add_select(subparsers)
+    _add_deselect(subparsers)
     _add_list(subparsers)
     _add_run(subparsers)
     _add_runpip(subparsers, autocomplete_list_of_installed_packages)

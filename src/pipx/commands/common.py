@@ -54,7 +54,7 @@ def unexpose_package_globally(local_bin_dir: Path, package_metadata: PackageInfo
     if package_metadata.include_apps:
         app_paths_str.extend(package_metadata.apps_of_dependencies)
 
-    app_paths = [Path(app_path_str) for app_path_str in app_paths_str]
+    app_paths = [local_bin_dir / app_path_str for app_path_str in app_paths_str]
     unexpose_apps_globally(local_bin_dir, app_paths)
 
 
@@ -159,7 +159,7 @@ def _symlink_package_apps(
             )
 
 
-def find_selected_venvs_for_package(venv_container: VenvContainer, package: str) -> List[Venv]:
+def find_selected_venvs_for_package(venv_container: VenvContainer, package: str, *, verbose=False) -> List[Venv]:
     """
     Returns all venvs that are selected as default for a package. If all venv metadata is valid, then only one venv is
     selected. However, this function still searches for multiple ones to be able to recover from an invalid state.
@@ -171,7 +171,7 @@ def find_selected_venvs_for_package(venv_container: VenvContainer, package: str)
         if not venv_dir.name.startswith(package):
             continue
 
-        venv = Venv(venv_dir)
+        venv = Venv(venv_dir, verbose=verbose)
         package_metadata = venv.package_metadata
         if not package_metadata:
             print(
