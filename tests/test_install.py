@@ -110,7 +110,7 @@ def test_include_deps(pipx_temp_env, capsys):
     "package_name, package_spec",
     [
         ("jaraco-clipboard", "jaraco.clipboard==2.0.1"),
-        ("tox-ini-fmt", "tox-ini-fmt==2.0.1"),
+        ("tox-ini-fmt", "tox-ini-fmt==0.5.0"),
     ],
 )
 def test_name_tricky_characters(
