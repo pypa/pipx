@@ -453,8 +453,12 @@ def _add_reinstall_all(subparsers):
 def _add_select(subparsers):
     p = subparsers.add_parser(
         "select",
-        description="Select a package and suffix as default",
-        help="Installs binaries with no suffix for packages that were installed with a suffix.",
+        description=(
+            "Selects a package installed with a suffix as the default. For the selected package, the binaries will "
+            "then be callable without the suffix. This way you can have two different installations of the same "
+            "application and quickly switch between them."
+        ),
+        help="Select a package and suffix as default",
     )
     p.add_argument("package_name_with_suffix", help="the name of the package with the suffix appended")
     p.add_argument("--verbose", action="store_true")
