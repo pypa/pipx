@@ -668,7 +668,8 @@ def cli() -> int:
         if not parsed_pipx_args.command:
             parser.print_help()
             return 1
-        return run_pipx_command(parsed_pipx_args)
+        # return exit code of command or 0 if none provided
+        return run_pipx_command(parsed_pipx_args) or 0
     except PipxError as e:
         print(str(e), file=sys.stderr)
         return 1
@@ -676,6 +677,7 @@ def cli() -> int:
         return 1
     finally:
         show_cursor()
+    return 0
 
 
 if __name__ == "__main__":
