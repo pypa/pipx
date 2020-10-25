@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 
 import userpath  # type: ignore
 
-from pipx import constants
+from pipx import constants, emojies
 from pipx.colors import bold, red
 from pipx.emojies import hazard, stars
 from pipx.package_specifier import parse_specifier_for_install, valid_pypi_name
@@ -169,14 +169,16 @@ def find_selected_venvs_for_package(venv_container: VenvContainer, package: str)
     for venv_dir in venv_container.iter_venv_dirs():
         # optimization: don't check packages that are not of the format f'{package}{suffix}'
         if not venv_dir.name.startswith(package):
-            print(f'skipping {venv_dir.name}')
             continue
 
         venv = Venv(venv_dir)
         package_metadata = venv.package_metadata
         if not package_metadata:
-            print(f'skipping2 {venv_dir.name}')
-            # TODO: print warning message
+            print(
+                f"{emojies.hazard} Package '{venv_dir.name}' has missing internal pipx metadata.\n"
+                f"    It was likely installed using a pipx version before 0.15.0.0.\n"
+                f"    Please uninstall and install this package, or reinstall-all to fix."
+            )
             continue
 
         package_info = package_metadata[venv.main_package_name]

@@ -18,7 +18,6 @@ def select(
         raise PipxError(f"Package and suffix '{package_name_with_suffix}' are not installed.")
 
     if not venv.package_metadata:
-        # TODO: create common function
         print(
             f"Not selecting {red(bold(venv.main_package_name))}.  It has missing internal pipx metadata.\n"
             f"    It was likely installed using a pipx version before 0.15.0.0.\n"
