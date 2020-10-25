@@ -267,17 +267,20 @@ class Venv:
 
     # TODO: debugging
     def _debug_compare_metadata(self, data, data_old):
+        problem = False
         for field in data_old:
+            problem_field = False
             if isinstance(data_old[field], list):
                 if set(data[field]) != set(data_old[field]):
-                    print(f"Data Inconsistency for {field}:", file=sys.stderr)
+                    print(f"\nData Inconsistency for {field}:", file=sys.stderr)
                     print(f"    new: {data[field]}", file=sys.stderr)
                     print(f"    old: {data_old[field]}", file=sys.stderr)
-                    raise PipxError("Problem with new venv_metadata_inspector.'")
+                    problem_field = True
+                    problem = True
             elif isinstance(data_old[field], dict):
+                problem_dict = False
                 new_keys = sorted(data[field].keys())
                 old_keys = sorted(data_old[field].keys())
-                problem = False
                 for new_key in new_keys:
                     if new_key in old_keys:
                         old_key_compare = new_key
@@ -298,19 +301,29 @@ class Venv:
                             f"    old[{old_key_compare}]: {data_old[field][old_key_compare]}",
                             file=sys.stderr,
                         )
-                        problem = True
-                if problem:
+                        problem_dict = True
+                        break
+                if problem_dict:
+                    print(f"\nData Inconsistency for {field}:", file=sys.stderr)
                     print("NEW DATA[{field}]:")
                     print(json.dumps(data[field], sort_keys=True, indent=4))
                     print("OLD DATA[{field}]:")
                     print(json.dumps(data_old[field], sort_keys=True, indent=4))
-                    raise PipxError("Problem with new venv_metadata_inspector.'")
+                    problem_field = True
+                    problem = True
             else:
-                if data[field] != data_old[field]:
-                    print(f"Data Inconsistency for {field}:", file=sys.stderr)
-                    print(f"    new: {data[field]}", file=sys.stderr)
-                    print(f"    old: {data_old[field]}", file=sys.stderr)
-                    raise PipxError("Problem with new venv_metadata_inspector.'")
+                if data.get(field, None) != data_old.get(field, None):
+                    print(f"\nData Inconsistency for {field}:", file=sys.stderr)
+                    print(f"    new: {data.get(field, None)}", file=sys.stderr)
+                    print(f"    old: {data_old.get(field, None)}", file=sys.stderr)
+                    problem_field = True
+                    problem = True
+            if not problem_field:
+                print(f"\nFIELD: {field}")
+                print(f"    new: {data.get(field, None)}")
+                print(f"    old: {data_old.get(field, None)}")
+        if problem:
+            raise PipxError("Problem with new venv_metadata_inspector.")
 
     def get_venv_metadata_for_package(self, package: str) -> VenvMetadata:
         data_start = time.time()  # TODO: debugging
