@@ -88,18 +88,21 @@ jobs:
     needs: [tests, lint]
     runs-on: ubuntu-latest
     steps:
-      - name: Setup python to build package
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
-      - name: Install https://pypi.org/project/build
-        run: python -m pip install build
-      - uses: actions/checkout@v2
-      - name: Build sdist and wheel
-        run: python -m build -s -w . -o dist
-      - name: Publish to PyPi
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          skip_existing: true
-          user: __token__
-          password: ${{ secrets.pypi_password }}
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install nox
+      run: |
+        python -m pip install --upgrade pip
+        pip install nox
+    - name: Build  sdist and wheel
+      run: |
+        nox --error-on-missing-interpreters --non-interactive --session build
+    - name: Publish to PyPi
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        skip_existing: true
+        user: __token__
+        password: ${{ secrets.pypi_password }}
