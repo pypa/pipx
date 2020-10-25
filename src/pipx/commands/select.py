@@ -22,9 +22,10 @@ def select(
         )
 
     venv = Venv(venv_dir, verbose=verbose)
+    package = venv.main_package_name
     if not venv.package_metadata:
         print(
-            f"Not selecting {red(bold(venv.main_package_name))}.  It has missing internal pipx metadata.\n"
+            f"Not selecting {red(bold(package))}.  It has missing internal pipx metadata.\n"
             f"    It was likely installed using a pipx version before 0.15.0.0.\n"
             f"    Please uninstall and install this package, or reinstall-all to fix."
         )
@@ -32,25 +33,23 @@ def select(
     package_metadata = venv.package_metadata[venv.main_package_name]
 
     # check if we are trying to select a non-suffixed version
-    if package_name_with_suffix == package_metadata.package:
+    if package_name_with_suffix == package:
         raise PipxError(
             f"Cannot select '{package_name_with_suffix}' as it already has no suffix."
         )
 
     # check package without suffix does not exist
-    venv_non_suffix = venv_container.get_venv_dir(package_metadata.package)
+    venv_non_suffix = venv_container.get_venv_dir(package)
     if venv_non_suffix.is_dir():
-        raise PipxError(
-            f"Package '{package_metadata.package}' is already installed without suffix."
-        )
+        raise PipxError(f"Package '{package}' is already installed without suffix.")
 
     print(
-        f"Selecting apps from venv '{package_name_with_suffix}' for package '{package_metadata.package}':"
+        f"Selecting apps from venv '{package_name_with_suffix}' for package '{package}':"
     )
 
     # deselect other package if selected
     selected_venvs = find_selected_venvs_for_package(
-        venv_container, package_metadata.package, verbose=verbose
+        venv_container, package, verbose=verbose
     )
     for selected_venv in selected_venvs:
         selected_package_metadata = selected_venv.package_metadata[
@@ -58,9 +57,10 @@ def select(
         ]
 
         # mark package as not selected
+        selected_package = selected_venv.main_package_name
         selected_venv.update_package_metadata(
-            package=selected_package_metadata.package,
-            package_or_url=selected_package_metadata.package_or_url,
+            package=selected_package,
+            package_or_url=selected_package_metadata.package_or_url or selected_package,
             pip_args=selected_package_metadata.pip_args,
             include_dependencies=selected_package_metadata.include_dependencies,
             include_apps=selected_package_metadata.include_apps,
@@ -80,8 +80,8 @@ def select(
 
     # mark package as selected
     venv.update_package_metadata(
-        package=package_metadata.package,
-        package_or_url=package_metadata.package_or_url,
+        package=package,
+        package_or_url=package_metadata.package_or_url or package,
         pip_args=package_metadata.pip_args,
         include_dependencies=package_metadata.include_dependencies,
         include_apps=package_metadata.include_apps,

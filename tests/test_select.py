@@ -37,7 +37,7 @@ def test_reselect(pipx_temp_env, capsys):
     for app in ["filter", "foldl", "ft-functions", "map"]:
         app_path = constants.LOCAL_BIN_DIR / app
         app_path_2 = constants.LOCAL_BIN_DIR / f"{app}_2"
-        app_path_3 = constants.LOCAL_BIN_DIR / f"{app}_2"
+        app_path_3 = constants.LOCAL_BIN_DIR / f"{app}_3"
         assert app_path.exists()
         assert app_path_2.exists()
         assert app_path_3.exists()

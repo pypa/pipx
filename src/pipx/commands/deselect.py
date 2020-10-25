@@ -39,14 +39,13 @@ def deselect(
         return 1
 
     package_metadata = venv.package_metadata[venv.main_package_name]
-    print(
-        f"Deselecting apps from venv '{venv.root.name}' for package '{package_metadata.package}':"
-    )
+    package = venv.main_package_name
+    print(f"Deselecting apps from venv '{venv.root.name}' for package '{package}':")
 
     # mark package as not selected
     venv.update_package_metadata(
-        package=package_metadata.package,
-        package_or_url=package_metadata.package_or_url,
+        package=package,
+        package_or_url=package_metadata.package_or_url or package,
         pip_args=package_metadata.pip_args,
         include_dependencies=package_metadata.include_dependencies,
         include_apps=package_metadata.include_apps,
