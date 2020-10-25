@@ -71,6 +71,12 @@ def select(
 
         # remove links of previously selected package
         unexpose_package_globally(constants.LOCAL_BIN_DIR, selected_package_metadata)
+        expose_package_globally(
+            constants.LOCAL_BIN_DIR,
+            package_metadata,
+            force=True,
+            suffix=package_metadata.suffix,
+        )
 
     # mark package as selected
     venv.update_package_metadata(

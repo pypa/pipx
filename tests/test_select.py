@@ -1,5 +1,3 @@
-from unittest import mock
-
 from helpers import run_pipx_cli
 from pipx import constants
 from pipx.commands.common import find_selected_venvs_for_package
@@ -34,6 +32,15 @@ def test_reselect(pipx_temp_env, capsys):
     venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
     selected_venvs = find_selected_venvs_for_package(venv_container, "shell-functools")
     assert len(selected_venvs) == 1
+
+    # check if all required links are there
+    for app in ["filter", "foldl", "ft-functions", "map"]:
+        app_path = constants.LOCAL_BIN_DIR / app
+        app_path_2 = constants.LOCAL_BIN_DIR / f"{app}_2"
+        app_path_3 = constants.LOCAL_BIN_DIR / f"{app}_2"
+        assert app_path.exists()
+        assert app_path_2.exists()
+        assert app_path_3.exists()
 
 
 def test_select_no_shadow(pipx_temp_env, capsys):

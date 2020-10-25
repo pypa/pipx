@@ -21,6 +21,7 @@ __all__ = [
     "reinstall",
     "reinstall_all",
     "select",
+    "deselect",
     "list_packages",
     "run_pip",
     "ensure_pipx_paths",
