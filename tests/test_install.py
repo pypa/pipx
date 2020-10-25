@@ -109,7 +109,7 @@ def test_include_deps(pipx_temp_env, capsys):
 @pytest.mark.parametrize(
     "package_name, package_spec",
     [
-        ("jaraco-clipboard", "jaraco.clipboard==2.0.1"),
+        ("jaraco-financial", "jaraco.financial==2.0"),
         ("tox-ini-fmt", "tox-ini-fmt==0.5.0"),
     ],
 )
