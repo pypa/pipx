@@ -46,6 +46,8 @@ def semi_canonicalize_name(package: str) -> str:
 def get_package_dependencies(
     dist: metadata.Distribution, extras: Set[Any]
 ) -> List[Requirement]:
+    # Add an empty extra to enable evaluation of non-extra markers
+    extras.add("")
     dependencies = []
     for req in map(Requirement, dist.requires or []):
         if not req.marker:
