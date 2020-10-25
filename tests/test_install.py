@@ -117,7 +117,7 @@ def test_name_tricky_characters(
     caplog, capsys, pipx_temp_env, package_name, package_spec
 ):
     # TODO: remove skip when debug venv_metadata_inspector_legacy.py is removed
-    if package_spec == "jaraco.clipboard==2.0.1":
+    if package_name == "jaraco-financial":
         pytest.skip(
             "Remove this skip when venv_metadata_inspector_legacy.py is removed"
         )
