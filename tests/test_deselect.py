@@ -1,9 +1,5 @@
-from unittest import mock
-
 from helpers import run_pipx_cli
 from pipx import constants
-from pipx.commands.common import find_selected_venvs_for_package
-from pipx.venv import VenvContainer
 
 
 def test_deselect(pipx_temp_env, capsys):

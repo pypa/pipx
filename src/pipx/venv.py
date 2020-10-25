@@ -2,7 +2,7 @@ import json
 import logging
 import pkgutil
 from pathlib import Path
-from typing import Dict, Generator, List, NamedTuple, Set, Optional
+from typing import Dict, Generator, List, NamedTuple, Set
 
 from pipx.animate import animate
 from pipx.constants import PIPX_SHARED_PTH

@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 from shutil import which
 from typing import List
