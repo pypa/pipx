@@ -106,12 +106,16 @@ def test_include_deps(pipx_temp_env, capsys):
 
 
 def test_dot(pipx_temp_env, capsys):
+    # TODO: remove skip when debug venv_metadata_inspector_legacy.py is removed
+    pytest.skip("Remove this skip when venv_metadata_inspector_legacy.py is removed")
+
     assert not run_pipx_cli(["install", "jaraco.clipboard==2.0.1"])
 
 
 def test_extra(pipx_temp_env, capsys):
     # TODO: remove skip when debug venv_metadata_inspector_legacy.py is removed
     pytest.skip("Remove this skip when venv_metadata_inspector_legacy.py is removed")
+
     assert not run_pipx_cli(["install", "nox[tox_to_nox]==2020.8.22", "--include-deps"])
     captured = capsys.readouterr()
     assert "- tox\n" in captured.out
