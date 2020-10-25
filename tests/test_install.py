@@ -106,11 +106,23 @@ def test_include_deps(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "jupyter==1.0.0", "--include-deps"])
 
 
-def test_dot(pipx_temp_env, capsys):
+@pytest.mark.parametrize(
+    "package_name, package_spec",
+    [
+        ("jaraco-clipboard", "jaraco.clipboard==2.0.1"),
+        ("tox-ini-fmt", "tox-ini-fmt==2.0.1"),
+    ],
+)
+def test_name_tricky_characters(
+    caplog, capsys, pipx_temp_env, package_name, package_spec
+):
     # TODO: remove skip when debug venv_metadata_inspector_legacy.py is removed
-    pytest.skip("Remove this skip when venv_metadata_inspector_legacy.py is removed")
+    if package_spec == "jaraco.clipboard==2.0.1":
+        pytest.skip(
+            "Remove this skip when venv_metadata_inspector_legacy.py is removed"
+        )
 
-    assert not run_pipx_cli(["install", "jaraco.clipboard==2.0.1"])
+    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
 
 
 def test_extra(pipx_temp_env, capsys):
