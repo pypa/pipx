@@ -43,15 +43,15 @@ def select(
     if venv_non_suffix.is_dir():
         raise PipxError(f"Package '{package}' is already installed without suffix.")
 
-    print(
-        f"Selecting apps from venv '{package_name_with_suffix}' for package '{package}':"
-    )
-
     # deselect other package if selected
     selected_venvs = find_selected_venvs_for_package(
         venv_container, package, verbose=verbose
     )
     for selected_venv in selected_venvs:
+        print(
+            f"Deselecting previously selected venv '{package_name_with_suffix}' for package '{package}'."
+        )
+
         selected_package_metadata = selected_venv.package_metadata[
             selected_venv.main_package_name
         ]
@@ -77,6 +77,10 @@ def select(
             force=True,
             suffix=package_metadata.suffix,
         )
+
+    print(
+        f"Selecting apps from venv '{package_name_with_suffix}' for package '{package}':"
+    )
 
     # mark package as selected
     venv.update_package_metadata(
