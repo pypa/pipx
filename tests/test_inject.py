@@ -20,6 +20,11 @@ def test_inject_simple_legacy_venv(pipx_temp_env, capsys, metadata_version):
         assert "Please uninstall and install" in capsys.readouterr().err
 
 
+def test_inject_tricky_character(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["inject", "pycowsay", "jaraco.clipboard==2.0.1"])
+
+
 def test_spec(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", "pylint==2.3.1"])
