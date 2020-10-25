@@ -14,7 +14,7 @@ def test_deselect(pipx_temp_env, capsys):
 
     for app in ["filter", "foldl", "ft-functions", "map"]:
         app_path_no_suffix = constants.LOCAL_BIN_DIR / app
-        app_path_with_suffix = constants.LOCAL_BIN_DIR / f'{app}_2'
+        app_path_with_suffix = constants.LOCAL_BIN_DIR / f"{app}_2"
         assert not app_path_no_suffix.exists()
         assert app_path_with_suffix.exists()
 

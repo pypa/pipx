@@ -79,10 +79,7 @@ def upgrade(
     # if the package is selected as the default, also expose without suffix
     if package_metadata.selected_as_default:
         expose_package_globally(
-            constants.LOCAL_BIN_DIR,
-            package_metadata,
-            force=force,
-            suffix="",
+            constants.LOCAL_BIN_DIR, package_metadata, force=force, suffix="",
         )
 
     if old_version == new_version:

@@ -21,22 +21,16 @@ from pipx.venv import Venv, VenvContainer
 
 
 def expose_package_globally(
-        local_bin_dir: Path, package_metadata: PackageInfo, *, force: bool, suffix: str = ""
+    local_bin_dir: Path, package_metadata: PackageInfo, *, force: bool, suffix: str = ""
 ) -> None:
     _expose_apps_globally(
-        local_bin_dir,
-        package_metadata.app_paths,
-        force=force,
-        suffix=suffix,
+        local_bin_dir, package_metadata.app_paths, force=force, suffix=suffix,
     )
 
     if package_metadata.include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             _expose_apps_globally(
-                local_bin_dir,
-                app_paths,
-                force=force,
-                suffix=suffix,
+                local_bin_dir, app_paths, force=force, suffix=suffix,
             )
 
 
@@ -159,7 +153,9 @@ def _symlink_package_apps(
             )
 
 
-def find_selected_venvs_for_package(venv_container: VenvContainer, package: str, *, verbose=False) -> List[Venv]:
+def find_selected_venvs_for_package(
+    venv_container: VenvContainer, package: str, *, verbose=False
+) -> List[Venv]:
     """
     Returns all venvs that are selected as default for a package. If all venv metadata is valid, then only one venv is
     selected. However, this function still searches for multiple ones to be able to recover from an invalid state.
@@ -391,10 +387,7 @@ def run_post_install_actions(
         )
 
     expose_package_globally(
-        local_bin_dir,
-        package_metadata,
-        force=force,
-        suffix=package_metadata.suffix,
+        local_bin_dir, package_metadata, force=force, suffix=package_metadata.suffix,
     )
 
     print(get_package_summary(venv_dir, package=package, new_install=True,))

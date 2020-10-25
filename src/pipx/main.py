@@ -220,15 +220,9 @@ def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
             skip=args.skip,
         )
     elif args.command == "select":
-        return commands.select(
-            args.package_name_with_suffix,
-            verbose=args.verbose,
-        )
+        return commands.select(args.package_name_with_suffix, verbose=args.verbose,)
     elif args.command == "deselect":
-        return commands.deselect(
-            args.package_name,
-            verbose=args.verbose,
-        )
+        return commands.deselect(args.package_name, verbose=args.verbose,)
     elif args.command == "runpip":
         if not venv_dir:
             raise PipxError("developer error: venv dir is not defined")
@@ -293,14 +287,14 @@ def _autocomplete_list_of_selected_packages(
     venv_container: VenvContainer, *args, **kwargs
 ) -> List[str]:
     metadata_list = _get_installed_package_metadata(venv_container)
-    return [f'{p.package}{p.suffix}' for p in metadata_list if p.selected_as_default]
+    return [f"{p.package}{p.suffix}" for p in metadata_list if p.selected_as_default]
 
 
 def _autocomplete_list_of_installed_packages_with_suffix(
     venv_container: VenvContainer, *args, **kwargs
 ) -> List[str]:
     metadata_list = _get_installed_package_metadata(venv_container)
-    return [f'{p.package}{p.suffix}' for p in metadata_list if p.suffix]
+    return [f"{p.package}{p.suffix}" for p in metadata_list if p.suffix]
 
 
 def _add_install(subparsers):
@@ -490,19 +484,15 @@ def _add_select(subparsers, autocomplete_list_of_installed_packages_with_suffix)
     )
     p.add_argument(
         "package_name_with_suffix",
-        help="the name of the package with the suffix appended"
+        help="the name of the package with the suffix appended",
     ).completer = autocomplete_list_of_installed_packages_with_suffix
     p.add_argument("--verbose", action="store_true")
 
 
 def _add_deselect(subparsers, autocomplete_list_of_selected_packages):
-    p = subparsers.add_parser(
-        "deselect",
-        description="Deselect a selected package",
-    )
+    p = subparsers.add_parser("deselect", description="Deselect a selected package",)
     p.add_argument(
-        "package_name",
-        help="the name of the package with or without the suffix"
+        "package_name", help="the name of the package with or without the suffix"
     ).completer = autocomplete_list_of_selected_packages
     p.add_argument("--verbose", action="store_true")
 

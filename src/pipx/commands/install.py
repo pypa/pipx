@@ -2,7 +2,11 @@ from pathlib import Path
 from typing import List, Optional
 
 from pipx import constants
-from pipx.commands.common import package_name_from_spec, run_post_install_actions, find_selected_venvs_for_package
+from pipx.commands.common import (
+    package_name_from_spec,
+    run_post_install_actions,
+    find_selected_venvs_for_package,
+)
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
@@ -52,7 +56,9 @@ def install(
             return
 
     if not suffix:
-        selected_venvs = find_selected_venvs_for_package(venv_container, package_name, verbose=verbose)
+        selected_venvs = find_selected_venvs_for_package(
+            venv_container, package_name, verbose=verbose
+        )
         if len(selected_venvs) > 0:
             suffixed_package_name = selected_venvs[0].root.name
             raise PipxError(

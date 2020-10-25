@@ -1,13 +1,16 @@
 from pipx import constants
 from pipx.colors import red, bold
-from pipx.commands.common import find_selected_venvs_for_package, expose_package_globally, unexpose_package_globally
+from pipx.commands.common import (
+    find_selected_venvs_for_package,
+    expose_package_globally,
+    unexpose_package_globally,
+)
 from pipx.util import PipxError
 from pipx.venv import VenvContainer, Venv
 
 
 def deselect(
-    package_name: str,
-    verbose: bool,
+    package_name: str, verbose: bool,
 ):
     venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
     venv_dir = venv_container.get_venv_dir(package_name)
@@ -17,9 +20,13 @@ def deselect(
         venv = Venv(venv_dir, verbose=verbose)
     else:
         # package_name is bare package name
-        selected_venvs = find_selected_venvs_for_package(venv_container, package_name, verbose=verbose)
+        selected_venvs = find_selected_venvs_for_package(
+            venv_container, package_name, verbose=verbose
+        )
         if len(selected_venvs) == 0:
-            raise PipxError(f"No package with suffix selected for package {package_name}.")
+            raise PipxError(
+                f"No package with suffix selected for package {package_name}."
+            )
 
         venv = selected_venvs[0]
 
@@ -32,7 +39,9 @@ def deselect(
         return 1
 
     package_metadata = venv.package_metadata[venv.main_package_name]
-    print(f"Deselecting apps from venv '{venv.root.name}' for package '{package_metadata.package}':")
+    print(
+        f"Deselecting apps from venv '{venv.root.name}' for package '{package_metadata.package}':"
+    )
 
     # mark package as not selected
     venv.update_package_metadata(
@@ -60,5 +69,4 @@ def deselect(
         removed_links.extend(package_metadata.apps_of_dependencies)
 
     for app in removed_links:
-        print(f'  - unlinked {app}')
-
+        print(f"  - unlinked {app}")
