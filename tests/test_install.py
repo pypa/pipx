@@ -9,6 +9,7 @@ from helpers import run_pipx_cli, which_python
 from pipx import constants
 
 PYTHON3_5 = which_python("python3.5")
+TEST_DATA_PATH = "./testdata/test_package_specifier"
 
 
 def test_help_text(monkeypatch, capsys):
@@ -119,6 +120,17 @@ def test_extra(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "nox[tox_to_nox]==2020.8.22", "--include-deps"])
     captured = capsys.readouterr()
     assert "- tox\n" in captured.out
+
+
+def test_install_local_extra(pipx_temp_env, capsys):
+    # TODO: remove skip when debug venv_metadata_inspector_legacy.py is removed
+    pytest.skip("Remove this skip when venv_metadata_inspector_legacy.py is removed")
+
+    assert not run_pipx_cli(
+        ["install", TEST_DATA_PATH + "/local_extras[cow]", "--include-deps"]
+    )
+    captured = capsys.readouterr()
+    assert "- pycowsay\n" in captured.out
 
 
 def test_path_warning(pipx_temp_env, capsys, monkeypatch, caplog):
