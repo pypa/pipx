@@ -78,6 +78,3 @@ def test_select_uninstall(pipx_temp_env, capsys):
     for app in ["filter", "foldl", "ft-functions", "map"]:
         app_path = constants.LOCAL_BIN_DIR / app
         assert not app_path.exists()
-
-
-# TODO: add deselect command

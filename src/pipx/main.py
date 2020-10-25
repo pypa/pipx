@@ -14,12 +14,13 @@ from typing import Dict, List
 
 import argcomplete  # type: ignore
 
+from pipx.pipx_metadata_file import PackageInfo
 from . import commands, constants
 from .animate import hide_cursor, show_cursor
 from .colors import bold, green
 from .interpreter import DEFAULT_PYTHON
 from .util import PipxError, mkdir
-from .venv import VenvContainer
+from .venv import VenvContainer, Venv
 from .version import __version__
 
 
@@ -275,6 +276,33 @@ def _autocomplete_list_of_installed_packages(
     return list(str(p.name) for p in sorted(venv_container.iter_venv_dirs()))
 
 
+def _get_installed_package_metadata(venv_container: VenvContainer) -> List[PackageInfo]:
+    package_metadata_list = []
+
+    for venv_dir in venv_container.iter_venv_dirs():
+        venv = Venv(venv_dir)
+        package_metadata = venv.package_metadata
+        if package_metadata:
+            main_package_metadata = package_metadata[venv.main_package_name]
+            package_metadata_list.append(main_package_metadata)
+
+    return package_metadata_list
+
+
+def _autocomplete_list_of_selected_packages(
+    venv_container: VenvContainer, *args, **kwargs
+) -> List[str]:
+    metadata_list = _get_installed_package_metadata(venv_container)
+    return [f'{p.package}{p.suffix}' for p in metadata_list if p.selected_as_default]
+
+
+def _autocomplete_list_of_installed_packages_with_suffix(
+    venv_container: VenvContainer, *args, **kwargs
+) -> List[str]:
+    metadata_list = _get_installed_package_metadata(venv_container)
+    return [f'{p.package}{p.suffix}' for p in metadata_list if p.suffix]
+
+
 def _add_install(subparsers):
     p = subparsers.add_parser(
         "install",
@@ -450,7 +478,7 @@ def _add_reinstall_all(subparsers):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_select(subparsers):
+def _add_select(subparsers, autocomplete_list_of_installed_packages_with_suffix):
     p = subparsers.add_parser(
         "select",
         description=(
@@ -460,16 +488,22 @@ def _add_select(subparsers):
         ),
         help="Select a package and suffix as default",
     )
-    p.add_argument("package_name_with_suffix", help="the name of the package with the suffix appended")
+    p.add_argument(
+        "package_name_with_suffix",
+        help="the name of the package with the suffix appended"
+    ).completer = autocomplete_list_of_installed_packages_with_suffix
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_deselect(subparsers):
+def _add_deselect(subparsers, autocomplete_list_of_selected_packages):
     p = subparsers.add_parser(
         "deselect",
         description="Deselect a selected package",
     )
-    p.add_argument("package_name", help="the name of the package with or without the suffix")
+    p.add_argument(
+        "package_name",
+        help="the name of the package with or without the suffix"
+    ).completer = autocomplete_list_of_selected_packages
     p.add_argument("--verbose", action="store_true")
 
 
@@ -595,6 +629,12 @@ def get_command_parser():
     autocomplete_list_of_installed_packages = functools.partial(
         _autocomplete_list_of_installed_packages, venv_container
     )
+    autocomplete_list_of_selected_packages = functools.partial(
+        _autocomplete_list_of_selected_packages, venv_container
+    )
+    autocomplete_list_of_installed_packages_with_suffix = functools.partial(
+        _autocomplete_list_of_installed_packages_with_suffix, venv_container
+    )
 
     parser = argparse.ArgumentParser(
         formatter_class=LineWrapRawTextHelpFormatter, description=PIPX_DESCRIPTION
@@ -612,8 +652,8 @@ def get_command_parser():
     _add_uninstall_all(subparsers)
     _add_reinstall(subparsers, autocomplete_list_of_installed_packages)
     _add_reinstall_all(subparsers)
-    _add_select(subparsers)
-    _add_deselect(subparsers)
+    _add_select(subparsers, autocomplete_list_of_installed_packages_with_suffix)
+    _add_deselect(subparsers, autocomplete_list_of_selected_packages)
     _add_list(subparsers)
     _add_run(subparsers)
     _add_runpip(subparsers, autocomplete_list_of_installed_packages)
