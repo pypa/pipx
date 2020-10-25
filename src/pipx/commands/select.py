@@ -48,9 +48,7 @@ def select(
         venv_container, package, verbose=verbose
     )
     for selected_venv in selected_venvs:
-        print(
-            f"Deselecting previously selected venv '{package_name_with_suffix}' for package '{package}'."
-        )
+        print(f"Deselecting previously selected package '{package_name_with_suffix}'.")
 
         selected_package_metadata = selected_venv.package_metadata[
             selected_venv.main_package_name
@@ -69,13 +67,13 @@ def select(
             selected_as_default=False,
         )
 
-        # remove links of previously selected package
+        # remove links of previously selected package, add back those with suffix
         unexpose_package_globally(constants.LOCAL_BIN_DIR, selected_package_metadata)
         expose_package_globally(
             constants.LOCAL_BIN_DIR,
-            package_metadata,
+            selected_package_metadata,
             force=True,
-            suffix=package_metadata.suffix,
+            suffix=selected_package_metadata.suffix,
         )
 
     print(
