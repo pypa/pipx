@@ -2,7 +2,7 @@ import json
 import logging
 import pkgutil
 from pathlib import Path
-from typing import Dict, Generator, List, NamedTuple, Set
+from typing import Dict, Generator, List, NamedTuple, Set, Optional
 
 from pipx.animate import animate
 from pipx.constants import PIPX_SHARED_PTH
@@ -204,7 +204,7 @@ class Venv:
                 f"{full_package_description(package, package_or_url)}."
             )
 
-        self._update_package_metadata(
+        self.update_package_metadata(
             package=package,
             package_or_url=package_or_url,
             pip_args=pip_args,
@@ -212,6 +212,7 @@ class Venv:
             include_apps=include_apps,
             is_main_package=is_main_package,
             suffix=suffix,
+            selected_as_default=False,
         )
 
         # Verify package installed ok
@@ -290,7 +291,7 @@ class Venv:
 
         return VenvMetadata(**data)
 
-    def _update_package_metadata(
+    def update_package_metadata(
         self,
         package: str,
         package_or_url: str,
@@ -298,7 +299,8 @@ class Venv:
         include_dependencies: bool,
         include_apps: bool,
         is_main_package: bool,
-        suffix: str = "",
+        suffix: str,
+        selected_as_default: bool,
     ) -> None:
         venv_package_metadata = self.get_venv_metadata_for_package(package)
         package_info = PackageInfo(
@@ -313,6 +315,7 @@ class Venv:
             app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
             package_version=venv_package_metadata.package_version,
             suffix=suffix,
+            selected_as_default=selected_as_default,
         )
         if is_main_package:
             self.pipx_metadata.main_package = package_info
@@ -348,7 +351,8 @@ class Venv:
         include_dependencies: bool,
         include_apps: bool,
         is_main_package: bool,
-        suffix: str = "",
+        suffix: str,
+        selected_as_default: bool,
     ) -> None:
         with animate(
             f"upgrading {full_package_description(package, package_or_url)}",
@@ -356,7 +360,7 @@ class Venv:
         ):
             self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
 
-        self._update_package_metadata(
+        self.update_package_metadata(
             package=package,
             package_or_url=package_or_url,
             pip_args=pip_args,
@@ -364,6 +368,7 @@ class Venv:
             include_apps=include_apps,
             is_main_package=is_main_package,
             suffix=suffix,
+            selected_as_default=selected_as_default,
         )
 
     def _run_pip(self, cmd: List[str]) -> None:

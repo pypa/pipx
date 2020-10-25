@@ -17,16 +17,59 @@ from pipx.emojies import hazard, stars
 from pipx.package_specifier import parse_specifier_for_install, valid_pypi_name
 from pipx.pipx_metadata_file import PackageInfo
 from pipx.util import WINDOWS, PipxError, mkdir, rmdir
-from pipx.venv import Venv
+from pipx.venv import Venv, VenvContainer
 
 
-def expose_apps_globally(
+def expose_package_globally(
+        local_bin_dir: Path, package_metadata: PackageInfo, *, force: bool, suffix: str = ""
+) -> None:
+    _expose_apps_globally(
+        local_bin_dir,
+        package_metadata.app_paths,
+        force=force,
+        suffix=suffix,
+    )
+
+    if package_metadata.include_dependencies:
+        for _, app_paths in package_metadata.app_paths_of_dependencies.items():
+            _expose_apps_globally(
+                local_bin_dir,
+                app_paths,
+                force=force,
+                suffix=suffix,
+            )
+
+
+def _expose_apps_globally(
     local_bin_dir: Path, app_paths: List[Path], *, force: bool, suffix: str = "",
 ) -> None:
     if not _can_symlink(local_bin_dir):
         _copy_package_apps(local_bin_dir, app_paths, suffix=suffix)
     else:
         _symlink_package_apps(local_bin_dir, app_paths, force=force, suffix=suffix)
+
+
+def unexpose_package_globally(local_bin_dir: Path, package_metadata: PackageInfo):
+    app_paths_str = package_metadata.apps.copy()
+    if package_metadata.include_apps:
+        app_paths_str.extend(package_metadata.apps_of_dependencies)
+
+    app_paths = [Path(app_path_str) for app_path_str in app_paths_str]
+    unexpose_apps_globally(local_bin_dir, app_paths)
+
+
+def unexpose_apps_globally(local_bin_dir: Path, app_paths: List[Path]):
+    for file in local_bin_dir.iterdir():
+        if WINDOWS:
+            for b in app_paths:
+                if file.name == b.name:
+                    file.unlink()
+        else:
+            symlink = file
+            for b in app_paths:
+                if symlink.exists() and b.exists() and symlink.samefile(b):
+                    logging.info(f"removing symlink {str(symlink)}")
+                    symlink.unlink()
 
 
 _can_symlink_cache: Dict[Path, bool] = {}
@@ -114,6 +157,35 @@ def _symlink_package_apps(
                 f"{hazard}  Note: {app_name_suffixed} was already on your PATH at "
                 f"{existing_executable_on_path}"
             )
+
+
+def find_selected_venvs_for_package(venv_container: VenvContainer, package: str) -> List[Venv]:
+    """
+    Returns all venvs that are selected as default for a package. If all venv metadata is valid, then only one venv is
+    selected. However, this function still searches for multiple ones to be able to recover from an invalid state.
+    """
+    selected_venvs = []
+
+    for venv_dir in venv_container.iter_venv_dirs():
+        # optimization: don't check packages that are not of the format f'{package}{suffix}'
+        if not venv_dir.name.startswith(package):
+            print(f'skipping {venv_dir.name}')
+            continue
+
+        venv = Venv(venv_dir)
+        package_metadata = venv.package_metadata
+        if not package_metadata:
+            print(f'skipping2 {venv_dir.name}')
+            # TODO: print warning message
+            continue
+
+        package_info = package_metadata[venv.main_package_name]
+        print(f'package: {package_info.package} == {package} and {package_info.selected}')
+        if package_info.package == package and package_info.selected:
+            print(f'added')
+            selected_venvs.append(venv)
+
+    return selected_venvs
 
 
 def get_package_summary(
@@ -318,18 +390,12 @@ def run_post_install_actions(
             "Consider using pip or a similar tool instead."
         )
 
-    expose_apps_globally(
+    expose_package_globally(
         local_bin_dir,
-        package_metadata.app_paths,
+        package_metadata,
         force=force,
         suffix=package_metadata.suffix,
     )
-
-    if include_dependencies:
-        for _, app_paths in package_metadata.app_paths_of_dependencies.items():
-            expose_apps_globally(
-                local_bin_dir, app_paths, force=force, suffix=package_metadata.suffix,
-            )
 
     print(get_package_summary(venv_dir, package=package, new_install=True,))
     warn_if_not_on_path(local_bin_dir)

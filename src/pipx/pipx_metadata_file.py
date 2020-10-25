@@ -35,11 +35,13 @@ class PackageInfo(NamedTuple):
     app_paths_of_dependencies: Dict[str, List[Path]]
     package_version: str
     suffix: str = ""
+    # whether the package was selected with `pipx select`
+    selected_as_default: bool = False
 
 
 class PipxMetadata:
     # Only change this if file format changes
-    __METADATA_VERSION__: str = "0.2"
+    __METADATA_VERSION__: str = "0.2"  # TODO: does version need to be increased if field with default is added?
 
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir

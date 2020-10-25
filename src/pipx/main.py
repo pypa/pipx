@@ -221,7 +221,6 @@ def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
     elif args.command == "select":
         return commands.select(
             args.package_name_with_suffix,
-            include_dependencies=args.include_deps,
             verbose=args.verbose,
         )
     elif args.command == "runpip":
@@ -453,9 +452,6 @@ def _add_select(subparsers):
         help="Installs binaries with no suffix for packages that were installed with a suffix.",
     )
     p.add_argument("package_name_with_suffix", help="the name of the package with the suffix appended")
-    p.add_argument(
-        "--include-deps", help="Include apps of dependent packages", action="store_true"
-    )
     p.add_argument("--verbose", action="store_true")
 
 

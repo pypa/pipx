@@ -4,6 +4,7 @@ from shutil import which
 from typing import List
 
 from pipx import constants
+from pipx.commands.common import unexpose_apps_globally
 from pipx.emojies import hazard, sleep, stars
 from pipx.util import WINDOWS, rmdir
 from pipx.venv import Venv, VenvContainer
@@ -55,17 +56,7 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool):
                 ]
                 app_paths = apps_linking_to_venv_bin_dir
 
-    for file in local_bin_dir.iterdir():
-        if WINDOWS:
-            for b in app_paths:
-                if file.name == b.name:
-                    file.unlink()
-        else:
-            symlink = file
-            for b in app_paths:
-                if symlink.exists() and b.exists() and symlink.samefile(b):
-                    logging.info(f"removing symlink {str(symlink)}")
-                    symlink.unlink()
+    unexpose_apps_globally(local_bin_dir, app_paths)
 
     rmdir(venv_dir)
     print(f"uninstalled {venv_dir.name}! {stars}")

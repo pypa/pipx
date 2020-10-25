@@ -2,7 +2,8 @@ from pathlib import Path
 from typing import List, Optional
 
 from pipx import constants
-from pipx.commands.common import package_name_from_spec, run_post_install_actions
+from pipx.commands.common import package_name_from_spec, run_post_install_actions, find_selected_venvs_for_package
+from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
 
@@ -27,8 +28,9 @@ def install(
         package_name = package_name_from_spec(
             package_spec, python, pip_args=pip_args, verbose=verbose
         )
+
+    venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
     if venv_dir is None:
-        venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
         venv_dir = venv_container.get_venv_dir(package_name)
         if suffix != "":
             venv_dir = venv_dir.parent / f"{venv_dir.stem}{suffix}"
@@ -48,6 +50,15 @@ def install(
                 "Pass '--force' to force installation."
             )
             return
+
+    if not suffix:
+        selected_venvs = find_selected_venvs_for_package(venv_container, package_name)
+        if len(selected_venvs) > 0:
+            suffixed_package_name = selected_venvs[0].root.name
+            raise PipxError(
+                f"Cannot install '{package_name}' as the suffixed package '{suffixed_package_name}' is selected as the "
+                f"default. Please deselect it before installing this package without suffix."
+            )
 
     venv = Venv(venv_dir, python=python, verbose=verbose)
     try:

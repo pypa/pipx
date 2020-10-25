@@ -4,7 +4,7 @@ from typing import List
 
 from pipx import constants
 from pipx.colors import bold, red
-from pipx.commands.common import expose_apps_globally
+from pipx.commands.common import expose_package_globally, unexpose_package_globally
 from pipx.emojies import sleep
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
@@ -58,6 +58,7 @@ def upgrade(
         include_apps=include_apps,
         is_main_package=True,
         suffix=package_metadata.suffix,
+        selected_as_default=package_metadata.selected,
     )
     # TODO 20191026: upgrade injected packages also (Issue #79)
 
@@ -66,21 +67,23 @@ def upgrade(
     display_name = f"{package_metadata.package}{package_metadata.suffix}"
     new_version = package_metadata.package_version
 
-    expose_apps_globally(
+    # remove existing links, in case a binary is not provided in new version
+    unexpose_package_globally(constants.LOCAL_BIN_DIR, package_metadata)
+
+    expose_package_globally(
         constants.LOCAL_BIN_DIR,
-        package_metadata.app_paths,
+        package_metadata,
         force=force,
         suffix=package_metadata.suffix,
     )
-
-    if include_dependencies:
-        for _, app_paths in package_metadata.app_paths_of_dependencies.items():
-            expose_apps_globally(
-                constants.LOCAL_BIN_DIR,
-                app_paths,
-                force=force,
-                suffix=package_metadata.suffix,
-            )
+    # if the package is selected as the default, also expose without suffix
+    if package_metadata.selected:
+        expose_package_globally(
+            constants.LOCAL_BIN_DIR,
+            package_metadata,
+            force=force,
+            suffix="",
+        )
 
     if old_version == new_version:
         if upgrading_all:
