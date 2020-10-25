@@ -180,8 +180,8 @@ def find_selected_venvs_for_package(venv_container: VenvContainer, package: str)
             continue
 
         package_info = package_metadata[venv.main_package_name]
-        print(f'package: {package_info.package} == {package} and {package_info.selected}')
-        if package_info.package == package and package_info.selected:
+        print(f'package: {package_info.package} == {package} and {package_info.selected_as_default}')
+        if package_info.package == package and package_info.selected_as_default:
             print(f'added')
             selected_venvs.append(venv)
 

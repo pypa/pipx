@@ -58,7 +58,7 @@ def upgrade(
         include_apps=include_apps,
         is_main_package=True,
         suffix=package_metadata.suffix,
-        selected_as_default=package_metadata.selected,
+        selected_as_default=package_metadata.selected_as_default,
     )
     # TODO 20191026: upgrade injected packages also (Issue #79)
 
@@ -77,7 +77,7 @@ def upgrade(
         suffix=package_metadata.suffix,
     )
     # if the package is selected as the default, also expose without suffix
-    if package_metadata.selected:
+    if package_metadata.selected_as_default:
         expose_package_globally(
             constants.LOCAL_BIN_DIR,
             package_metadata,
