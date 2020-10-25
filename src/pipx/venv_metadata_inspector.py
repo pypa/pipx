@@ -20,9 +20,10 @@ else:
     WINDOWS = True
 
 
-def semi_canonicalize_name(package: str) -> str:
-    # metadata.distribution will not match a packaging.utils canonicalized
-    #   package name if the original name has a period in it (10/24/2020)
+def distribution_name(package: str) -> str:
+    # metadata.distribution name will not match packaging.utils.canonicalize_name()
+    #   package name, e.g. if the original name has a period in it (10/24/2020)
+    # Here we return the metadata.distribution matching name
     new_package: Optional[str] = None
 
     try:
@@ -148,7 +149,7 @@ def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
 
 def main():
     package_req = Requirement(sys.argv[1])
-    package_req.name = semi_canonicalize_name(package_req.name)
+    package_req.name = distribution_name(package_req.name)
     dist = metadata.distribution(package_req.name)
     bin_path = Path(sys.argv[2])
 
