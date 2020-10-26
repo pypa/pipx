@@ -41,7 +41,8 @@ class PackageInfo(NamedTuple):
 
 class PipxMetadata:
     # Only change this if file format changes
-    __METADATA_VERSION__: str = "0.2"  # TODO: does version need to be increased if field with default is added?
+    # This is also necessary when adding a field that has a default value
+    __METADATA_VERSION__: str = "0.3"
 
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
