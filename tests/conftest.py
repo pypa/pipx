@@ -17,7 +17,6 @@ def pipx_temp_env(tmp_path, monkeypatch):
     bin_dir = Path(tmp_path) / "otherdir" / "pipxbindir"
 
     monkeypatch.setattr(constants, "PIPX_SHARED_LIBS", shared_dir)
-    # re-initialize shared_libs to get new monkeypatched PIPX_SHARED_LIBS
     monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())
     monkeypatch.setattr(venv, "shared_libs", shared_libs.shared_libs)
 
