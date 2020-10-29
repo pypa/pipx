@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest  # type: ignore
 
-from pipx import constants
+from pipx import constants, shared_libs, venv
 
 
 @pytest.fixture
@@ -17,6 +17,10 @@ def pipx_temp_env(tmp_path, monkeypatch):
     bin_dir = Path(tmp_path) / "otherdir" / "pipxbindir"
 
     monkeypatch.setattr(constants, "PIPX_SHARED_LIBS", shared_dir)
+    # re-initialize shared_libs to get new monkeypatched PIPX_SHARED_LIBS
+    monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())
+    monkeypatch.setattr(venv, "shared_libs", shared_libs.shared_libs)
+
     monkeypatch.setattr(constants, "PIPX_HOME", home_dir)
     monkeypatch.setattr(constants, "LOCAL_BIN_DIR", bin_dir)
     monkeypatch.setattr(constants, "PIPX_LOCAL_VENVS", home_dir / "venvs")
