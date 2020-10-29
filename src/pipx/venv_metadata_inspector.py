@@ -114,17 +114,16 @@ def _dfs_package_apps(
     dependencies = get_package_dependencies(dist, package_req.extras)
     for dep_req in dependencies:
         dep_dist = metadata.distribution(dep_req.name)
+        dep_name = canonicalize_name(dep_req.name)
 
         app_names = get_apps(dep_dist, bin_path)
         if app_names:
-            app_paths_of_dependencies[dep_req.name] = [
-                bin_path / app for app in app_names
-            ]
+            app_paths_of_dependencies[dep_name] = [bin_path / app for app in app_names]
         # recursively search for more
-        if dep_req.name not in dep_visited:
-            # only search if this dep_req.name isn't already listed to avoid
+        if dep_name not in dep_visited:
+            # only search if this dep_name isn't already listed to avoid
             # infinite recursion
-            dep_visited[dep_req.name] = True
+            dep_visited[dep_name] = True
             app_paths_of_dependencies = _dfs_package_apps(
                 bin_path, dep_dist, dep_req, app_paths_of_dependencies, dep_visited
             )
