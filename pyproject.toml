@@ -1,0 +1,4 @@
+[tool.pytest.ini_options]
+markers = [
+    "all_packages: test install with maximum number of packages",
+]
