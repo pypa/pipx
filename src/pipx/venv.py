@@ -290,6 +290,7 @@ class Venv:
                 new_keys = sorted(data[field].keys())
                 old_keys = sorted(data_old[field].keys())
                 for new_key in new_keys:
+                    old_key_compare = "???"
                     if new_key in old_keys:
                         old_key_compare = new_key
                     else:
@@ -297,25 +298,34 @@ class Venv:
                             if old_key.startswith(new_key):
                                 old_key_compare = old_key
                                 break
-                    if set(data[field][new_key]) != set(
+                    if old_key_compare == "???":
+                        # print(f"Data Inconsistency for {field}:", file=sys.stderr)
+                        # print(
+                        #    f"    new[{new_key}]: {data[field][new_key]}",
+                        #    file=sys.stderr,
+                        # )
+                        # print(f"    old[{new_key}]: ???", file=sys.stderr)
+                        problem_dict = True
+                        break
+                    elif set(data[field][new_key]) != set(
                         data_old[field][old_key_compare]
                     ):
-                        print(f"Data Inconsistency for {field}:", file=sys.stderr)
-                        print(
-                            f"    new[{new_key}]: {data[field][new_key]}",
-                            file=sys.stderr,
-                        )
-                        print(
-                            f"    old[{old_key_compare}]: {data_old[field][old_key_compare]}",
-                            file=sys.stderr,
-                        )
+                        # print(f"Data Inconsistency for {field}:", file=sys.stderr)
+                        # print(
+                        #    f"    new[{new_key}]: {data[field][new_key]}",
+                        #    file=sys.stderr,
+                        # )
+                        # print(
+                        #    f"    old[{old_key_compare}]: {data_old[field][old_key_compare]}",
+                        #    file=sys.stderr,
+                        # )
                         problem_dict = True
                         break
                 if problem_dict:
                     print(f"\nData Inconsistency for {field}:", file=sys.stderr)
-                    print("NEW DATA[{field}]:")
+                    print(f"NEW DATA[{field}]:")
                     print(json.dumps(data[field], sort_keys=True, indent=4))
-                    print("OLD DATA[{field}]:")
+                    print(f"OLD DATA[{field}]:")
                     print(json.dumps(data_old[field], sort_keys=True, indent=4))
                     problem_field = True
                     problem = True
