@@ -271,6 +271,14 @@ class Venv:
         for field in data_old:
             problem_field = False
             if isinstance(data_old[field], list):
+                if len(set(data[field])) != len(data[field]):
+                    print(
+                        f"\nDuplicate entries inside of list for {field}:",
+                        file=sys.stderr,
+                    )
+                    print(f"    new: {data[field]}", file=sys.stderr)
+                    problem_field = True
+                    problem = True
                 if set(data[field]) != set(data_old[field]):
                     print(f"\nData Inconsistency for {field}:", file=sys.stderr)
                     print(f"    new: {data[field]}", file=sys.stderr)
