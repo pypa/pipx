@@ -295,7 +295,7 @@ class Venv:
                         old_key_compare = new_key
                     else:
                         for old_key in old_keys:
-                            if old_key.startswith(new_key):
+                            if old_key.lower().startswith(new_key):
                                 old_key_compare = old_key
                                 break
                     if old_key_compare == "???":
