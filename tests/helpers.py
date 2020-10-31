@@ -30,6 +30,7 @@ MOCK_PACKAGE_INFO_0_1: Dict[str, Any] = {
     "package_version": "",
 }
 
+# Versions of all packages possibly used in our tests
 PKGSPEC: Dict[str, str] = {
     "lektor": "Lektor==3.2.0",
     "retext": "ReText==7.1.0",
