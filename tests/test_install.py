@@ -328,8 +328,6 @@ def test_all_packages(capsys, pipx_temp_env, caplog, package_name, package_spec)
 # FAILED PACKAGES TO INVESTIGATE
 # jaraco.financial
 #   GOOD old doesn't work, but new venv_metadata_inspector.py works!
-# kaggle
-#   could just be that slugify is in two separate deps, so debug flags error
 # mkdocs
 #   GOOD (old metadata missing extras in deps)
 @pytest.mark.parametrize(
