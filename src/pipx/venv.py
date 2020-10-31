@@ -298,27 +298,9 @@ class Venv:
                             if old_key.lower().startswith(new_key):
                                 old_key_compare = old_key
                                 break
-                    if old_key_compare == "???":
-                        # print(f"Data Inconsistency for {field}:", file=sys.stderr)
-                        # print(
-                        #    f"    new[{new_key}]: {data[field][new_key]}",
-                        #    file=sys.stderr,
-                        # )
-                        # print(f"    old[{new_key}]: ???", file=sys.stderr)
-                        problem_dict = True
-                        break
-                    elif set(data[field][new_key]) != set(
+                    if old_key_compare == "???" or set(data[field][new_key]) != set(
                         data_old[field][old_key_compare]
                     ):
-                        # print(f"Data Inconsistency for {field}:", file=sys.stderr)
-                        # print(
-                        #    f"    new[{new_key}]: {data[field][new_key]}",
-                        #    file=sys.stderr,
-                        # )
-                        # print(
-                        #    f"    old[{old_key_compare}]: {data_old[field][old_key_compare]}",
-                        #    file=sys.stderr,
-                        # )
                         problem_dict = True
                         break
                 if problem_dict:
