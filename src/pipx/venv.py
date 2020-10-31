@@ -271,7 +271,7 @@ class Venv:
             problem_field = False
             if isinstance(data_old[field], list):
                 # apps, app_paths, or apps_of_dependencies
-                if sorted(data[field]) != sorted(data_old[field]):
+                if set(data[field]) != set(data_old[field]):
                     print(f"\nData Inconsistency for {field}:")
                     print(f"    new: {data[field]}")
                     print(f"    old: {data_old[field]}")
