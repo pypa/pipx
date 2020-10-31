@@ -5,6 +5,7 @@
 import argparse
 import functools
 import logging
+import os
 import re
 import shlex
 import sys
@@ -53,7 +54,11 @@ PIPX_DEFAULT_PYTHON: Overrides default python used for commands.
 """
 )
 
-INSTALL_DESCRIPTION = textwrap.dedent(f"""
+
+DOC_DEFAULT_PYTHON = os.getenv("PIPX__DOC_DEFAULT_PYTHON", DEFAULT_PYTHON)
+
+INSTALL_DESCRIPTION = textwrap.dedent(
+    f"""
     The install command is the preferred way to globally install apps
     from python packages on your system. It creates an isolated virtual
     environment for the package, then ensures the package's apps are
@@ -81,9 +86,10 @@ INSTALL_DESCRIPTION = textwrap.dedent(f"""
     overridden by setting the environment variable `PIPX_BIN_DIR`.
 
     The default python executable used to install a package is
-    {DEFAULT_PYTHON} and can be overridden by setting the environment
+    {DOC_DEFAULT_PYTHON} and can be overridden by setting the environment
     variable `PIPX_DEFAULT_PYTHON`.
-    """)
+    """
+)
 
 
 class LineWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
