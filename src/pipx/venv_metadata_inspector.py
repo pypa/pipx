@@ -7,10 +7,18 @@ from typing import Any, Dict, List, Optional, Set
 try:
     from importlib import metadata  # type: ignore
 except ImportError:
-    import importlib_metadata as metadata  # type: ignore
+    try:
+        import importlib_metadata as metadata  # type: ignore
+    except ImportError:
+        print(json.dumps({"exception_traceback": "ImportError"}))
+        exit(1)
 
-from packaging.requirements import Requirement
-from packaging.utils import canonicalize_name
+try:
+    from packaging.requirements import Requirement
+    from packaging.utils import canonicalize_name
+except ImportError:
+    print(json.dumps({"exception_traceback": "ImportError"}))
+    exit(1)
 
 try:
     WindowsError
