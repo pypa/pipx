@@ -53,37 +53,37 @@ PIPX_DEFAULT_PYTHON: Overrides default python used for commands.
 """
 )
 
-INSTALL_DESCRIPTION = f"""
-The install command is the preferred way to globally install apps
-from python packages on your system. It creates an isolated virtual
-environment for the package, then ensures the package's apps are
-accessible on your $PATH.
+INSTALL_DESCRIPTION = textwrap.dedent(f"""
+    The install command is the preferred way to globally install apps
+    from python packages on your system. It creates an isolated virtual
+    environment for the package, then ensures the package's apps are
+    accessible on your $PATH.
 
-The result: apps you can run from anywhere, located in packages
-you can cleanly upgrade or uninstall. Guaranteed to not have
-dependency version conflicts or interfere with your OS's python
-packages. 'sudo' is not required to do this.
+    The result: apps you can run from anywhere, located in packages
+    you can cleanly upgrade or uninstall. Guaranteed to not have
+    dependency version conflicts or interfere with your OS's python
+    packages. 'sudo' is not required to do this.
 
-pipx install PACKAGE_NAME
-pipx install --python PYTHON PACKAGE_NAME
-pipx install VCS_URL
-pipx install ./LOCAL_PATH
-pipx install ZIP_FILE
-pipx install TAR_GZ_FILE
+    pipx install PACKAGE_NAME
+    pipx install --python PYTHON PACKAGE_NAME
+    pipx install VCS_URL
+    pipx install ./LOCAL_PATH
+    pipx install ZIP_FILE
+    pipx install TAR_GZ_FILE
 
-The PACKAGE_SPEC argument is passed directly to `pip install`.
+    The PACKAGE_SPEC argument is passed directly to `pip install`.
 
-The default virtual environment location is {constants.DEFAULT_PIPX_HOME}
-and can be overridden by setting the environment variable `PIPX_HOME`
- (Virtual Environments will be installed to `$PIPX_HOME/venvs`).
+    The default virtual environment location is {constants.DEFAULT_PIPX_HOME}
+    and can be overridden by setting the environment variable `PIPX_HOME`
+    (Virtual Environments will be installed to `$PIPX_HOME/venvs`).
 
-The default app location is {constants.DEFAULT_PIPX_BIN_DIR} and can be
-overridden by setting the environment variable `PIPX_BIN_DIR`.
+    The default app location is {constants.DEFAULT_PIPX_BIN_DIR} and can be
+    overridden by setting the environment variable `PIPX_BIN_DIR`.
 
-The default python executable used to install a package is
-{DEFAULT_PYTHON} and can be overridden by setting the environment
-variable `PIPX_DEFAULT_PYTHON`.
-"""
+    The default python executable used to install a package is
+    {DEFAULT_PYTHON} and can be overridden by setting the environment
+    variable `PIPX_DEFAULT_PYTHON`.
+    """)
 
 
 class LineWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
