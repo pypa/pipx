@@ -271,21 +271,15 @@ class Venv:
         for field in data_old:
             problem_field = False
             if isinstance(data_old[field], list):
-                if len(set(data[field])) != len(data[field]):
-                    print(
-                        f"\nDuplicate entries inside of list for {field}:",
-                        file=sys.stderr,
-                    )
-                    print(f"    new: {data[field]}", file=sys.stderr)
-                    problem_field = True
-                    problem = True
-                if set(data[field]) != set(data_old[field]):
+                # apps, app_paths, or apps_of_dependencies
+                if sorted(data[field]) != sorted(data_old[field]):
                     print(f"\nData Inconsistency for {field}:", file=sys.stderr)
                     print(f"    new: {data[field]}", file=sys.stderr)
                     print(f"    old: {data_old[field]}", file=sys.stderr)
                     problem_field = True
                     problem = True
             elif isinstance(data_old[field], dict):
+                # app_paths_of_dependencies
                 problem_dict = False
                 new_keys = sorted(data[field].keys())
                 old_keys = sorted(data_old[field].keys())
@@ -312,6 +306,7 @@ class Venv:
                     problem_field = True
                     problem = True
             else:
+                # package_version, python_version, exception_traceback
                 if data.get(field, None) != data_old.get(field, None):
                     print(f"\nData Inconsistency for {field}:", file=sys.stderr)
                     print(f"    new: {data.get(field, None)}", file=sys.stderr)
