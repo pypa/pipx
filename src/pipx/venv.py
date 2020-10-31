@@ -1,7 +1,6 @@
 import json
 import logging
 import pkgutil
-import sys  # TODO: debug
 import time  # TODO: debug
 from pathlib import Path
 from typing import Dict, Generator, List, NamedTuple, Set
@@ -273,9 +272,9 @@ class Venv:
             if isinstance(data_old[field], list):
                 # apps, app_paths, or apps_of_dependencies
                 if sorted(data[field]) != sorted(data_old[field]):
-                    print(f"\nData Inconsistency for {field}:", file=sys.stderr)
-                    print(f"    new: {data[field]}", file=sys.stderr)
-                    print(f"    old: {data_old[field]}", file=sys.stderr)
+                    print(f"\nData Inconsistency for {field}:")
+                    print(f"    new: {data[field]}")
+                    print(f"    old: {data_old[field]}")
                     problem_field = True
                     problem = True
             elif isinstance(data_old[field], dict):
@@ -298,7 +297,7 @@ class Venv:
                         problem_dict = True
                         break
                 if problem_dict:
-                    print(f"\nData Inconsistency for {field}:", file=sys.stderr)
+                    print(f"\nData Inconsistency for {field}:")
                     print(f"NEW DATA[{field}]:")
                     print(json.dumps(data[field], sort_keys=True, indent=4))
                     print(f"OLD DATA[{field}]:")
@@ -308,9 +307,9 @@ class Venv:
             else:
                 # package_version, python_version, exception_traceback
                 if data.get(field, None) != data_old.get(field, None):
-                    print(f"\nData Inconsistency for {field}:", file=sys.stderr)
-                    print(f"    new: {data.get(field, None)}", file=sys.stderr)
-                    print(f"    old: {data_old.get(field, None)}", file=sys.stderr)
+                    print(f"\nData Inconsistency for {field}:")
+                    print(f"    new: {data.get(field, None)}")
+                    print(f"    old: {data_old.get(field, None)}")
                     problem_field = True
                     problem = True
             if not problem_field:
