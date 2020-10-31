@@ -77,7 +77,7 @@ def lint(session):
 @nox.session(python="3.8")
 def docs(session):
     session.install(*doc_dependencies)
-    session.env["PIPX__DOC_DEFAULT_PYTHON"] = "/usr/bin/python"
+    session.env["PIPX__DOC_DEFAULT_PYTHON"] = "typically the python used to execute pipx"
     session.run("python", "generate_docs.py")
     session.run("mkdocs", "build")
 

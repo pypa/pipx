@@ -86,8 +86,8 @@ INSTALL_DESCRIPTION = textwrap.dedent(
     overridden by setting the environment variable `PIPX_BIN_DIR`.
 
     The default python executable used to install a package is
-    {DOC_DEFAULT_PYTHON} and can be overridden by setting the environment
-    variable `PIPX_DEFAULT_PYTHON`.
+    {DOC_DEFAULT_PYTHON} and can be overridden
+    by setting the environment variable `PIPX_DEFAULT_PYTHON`.
     """
 )
 
