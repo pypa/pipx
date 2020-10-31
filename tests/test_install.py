@@ -276,6 +276,7 @@ def test_install_suffix(pipx_temp_env, capsys):
         ("hyde", PKGSPEC["hyde"]),  # py3.9 FAIL pyyaml
         ("ipython", PKGSPEC["ipython"]),
         ("isort", PKGSPEC["isort"]),
+        ("kaggle", PKGSPEC["kaggle"]),
         ("kibitzr", PKGSPEC["kibitzr"]),  # py3.9 FAIL lxml
         ("klaus", PKGSPEC["klaus"]),
         ("kolibri", PKGSPEC["kolibri"]),
@@ -333,11 +334,7 @@ def test_all_packages(capsys, pipx_temp_env, caplog, package_name, package_spec)
 #   GOOD (old metadata missing extras in deps)
 @pytest.mark.parametrize(
     "package_name, package_spec",
-    [
-        ("jaraco-financial", "jaraco.financial==2.0"),
-        ("kaggle", PKGSPEC["kaggle"]),
-        ("mkdocs", PKGSPEC["mkdocs"]),
-    ],
+    [("jaraco-financial", "jaraco.financial==2.0"), ("mkdocs", PKGSPEC["mkdocs"])],
 )
 @pytest.mark.all_packages
 def test_all_packages_problem(
