@@ -83,7 +83,7 @@ class _SharedLibs:
                         *_pip_args,
                         "--upgrade",
                         "pip",
-                        "setuptools",
+                        # "setuptools",
                         "wheel",
                         "packaging",
                         "importlib-metadata",
