@@ -40,6 +40,7 @@ class _SharedLibs:
 
     @property
     def is_valid(self):
+        # TODO: check if it has all installed packages
         return self.python_path.is_file() and self.pip_path.is_file()
 
     @property
@@ -71,6 +72,7 @@ class _SharedLibs:
             _pip_args.append("-q")
         try:
             with animate("upgrading shared libraries", not verbose):
+                # TODO: can we remove setuptools? (wheel?)
                 run_verify(
                     [
                         self.python_path,
