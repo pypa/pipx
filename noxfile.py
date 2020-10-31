@@ -26,7 +26,8 @@ LINT_DEPENDENCIES = [
 ]
 # Packages that need an intact system PATH to compile
 # pytest setup clears PATH.  So pre-build some wheels to the pip cache.
-PREBUILD_PACKAGES = ["typed-ast", "pyzmq", "argon2-cffi", "regex"]
+# PREBUILD_PACKAGES = ["jupyter==1.0.0", "black==20.8b1"]
+PREBUILD_PACKAGES = ["jupyter==1.0.0"]
 
 
 def prebuild_wheels(session, prebuild_list):
