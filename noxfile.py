@@ -24,7 +24,7 @@ LINT_DEPENDENCIES = [
     "check-manifest",
     "packaging>=20.0",
 ]
-# Packages that need an intact system PATH to compile
+# Packages whose dependencies need an intact system PATH to compile
 # pytest setup clears PATH.  So pre-build some wheels to the pip cache.
 PREBUILD_PACKAGES = ["jupyter==1.0.0", "black==20.8b1"]
 
