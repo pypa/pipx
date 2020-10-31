@@ -4,7 +4,8 @@ from pathlib import Path
 
 import nox  # type: ignore
 
-python = ["3.6", "3.7", "3.8", "3.9"]
+PYTHON_ALL = ["3.6", "3.7", "3.8", "3.9"]
+PYTHON_DEFAULT = "3.8"
 
 if sys.platform == "win32":
     # docs fail on Windows, even if `chcp.com 65001` is used
@@ -14,8 +15,8 @@ else:
 
 nox.options.reuse_existing_virtualenvs = True
 
-doc_dependencies = [".", "jinja2", "mkdocs", "mkdocs-material"]
-lint_dependencies = [
+DOC_DEPENDENCIES = [".", "jinja2", "mkdocs", "mkdocs-material"]
+LINT_DEPENDENCIES = [
     "black==19.10b0",
     "flake8",
     "flake8-bugbear",
@@ -25,31 +26,42 @@ lint_dependencies = [
 ]
 # Packages that need an intact system PATH to compile
 # pytest setup clears PATH.  So pre-build some wheels to the pip cache.
-prebuild_packages = {"all": ["typed-ast", "pyzmq"], "darwin": ["argon2-cffi", "regex"]}
+PREBUILD_PACKAGES = ["typed-ast", "pyzmq", "argon2-cffi", "regex"]
 
 
-def prebuild_wheels(session, package_dict):
+def prebuild_wheels(session, prebuild_list):
     session.install("wheel")
     wheel_dir = Path(session.virtualenv.location) / "prebuild_wheels"
     wheel_dir.mkdir(exist_ok=True)
-    for platform in package_dict:
-        if platform == "all" or platform == sys.platform:
-            for prebuild_package in package_dict[platform]:
-                session.run(
-                    "pip",
-                    "wheel",
-                    f"--wheel-dir={wheel_dir}",
-                    prebuild_package,
-                    silent=True,
-                )
+
+    for prebuild in prebuild_list:
+        session.run("pip", "wheel", f"--wheel-dir={wheel_dir}", prebuild, silent=True)
 
 
-@nox.session(python=python)
+@nox.session(python=PYTHON_ALL)
 def tests(session):
-    prebuild_wheels(session, prebuild_packages)
+    prebuild_wheels(session, PREBUILD_PACKAGES)
     session.install("-e", ".", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
-    session.run("pytest", "--cov=pipx", "--cov-report=", *tests)
+    session.run(
+        "pytest", "--cov=pipx", "--cov-report=", "-m", "not all_packages", *tests
+    )
+    session.notify("cover")
+
+
+@nox.session(python=PYTHON_ALL)
+def test_all_packages(session):
+    prebuilds = PREBUILD_PACKAGES.copy()
+    prebuilds.extend(
+        ["lektor==3.2.0", "gdbgui==0.14.0.1", "gns3-gui==2.2.15", "grow==1.0.0a10"]
+    )
+    if session.python != "3.9":
+        # Fail to build under py3.9 (2020-10-29)
+        prebuilds.extend(["weblate==4.3.1", "nikola==8.1.1"])
+    prebuild_wheels(session, prebuilds)
+    session.install("-e", ".", "pytest", "pytest-cov")
+    tests = session.posargs or ["tests"]
+    session.run("pytest", "--cov=pipx", "--cov-report=", "-m", "all_packages", *tests)
     session.notify("cover")
 
 
@@ -61,9 +73,9 @@ def cover(session):
     session.run("coverage", "erase")
 
 
-@nox.session(python="3.8")
+@nox.session(python=PYTHON_DEFAULT)
 def lint(session):
-    session.install(*lint_dependencies)
+    session.install(*LINT_DEPENDENCIES)
     files = [str(Path("src") / "pipx"), "tests"] + [
         str(p) for p in Path(".").glob("*.py")
     ]
@@ -74,20 +86,20 @@ def lint(session):
     session.run("python", "setup.py", "check", "--metadata", "--strict")
 
 
-@nox.session(python="3.8")
+@nox.session(python=PYTHON_DEFAULT)
 def docs(session):
-    session.install(*doc_dependencies)
+    session.install(*DOC_DEPENDENCIES)
     session.run("python", "generate_docs.py")
     session.run("mkdocs", "build")
 
 
-@nox.session(python=python)
+@nox.session(python=PYTHON_ALL)
 def develop(session):
-    session.install(*doc_dependencies, *lint_dependencies)
+    session.install(*DOC_DEPENDENCIES, *LINT_DEPENDENCIES)
     session.install("-e", ".")
 
 
-@nox.session(python="3.8")
+@nox.session(python=PYTHON_DEFAULT)
 def build(session):
     session.install("setuptools")
     session.install("wheel")
@@ -120,7 +132,7 @@ def get_branch():
     )
 
 
-@nox.session(python="3.8")
+@nox.session(python=PYTHON_DEFAULT)
 def publish(session):
     if has_changes():
         session.error("All changes must be committed or removed before publishing")
@@ -132,14 +144,14 @@ def publish(session):
     session.run("python", "-m", "twine", "upload", "dist/*")
 
 
-@nox.session(python="3.8")
+@nox.session(python=PYTHON_DEFAULT)
 def watch_docs(session):
-    session.install(*doc_dependencies)
+    session.install(*DOC_DEPENDENCIES)
     session.run("mkdocs", "serve")
 
 
-@nox.session(python="3.8")
+@nox.session(python=PYTHON_DEFAULT)
 def publish_docs(session):
-    session.install(*doc_dependencies)
+    session.install(*DOC_DEPENDENCIES)
     session.run("python", "generate_docs.py")
     session.run("mkdocs", "gh-deploy")

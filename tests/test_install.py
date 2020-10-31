@@ -1,11 +1,10 @@
 import os
-import re
 import sys
 from unittest import mock
 
 import pytest  # type: ignore
 
-from helpers import run_pipx_cli, which_python
+from helpers import PKGSPEC, run_pipx_cli, which_python
 from pipx import constants
 
 PYTHON3_5 = which_python("python3.5")
@@ -40,31 +39,42 @@ def install_package(capsys, pipx_temp_env, caplog, package, package_name=""):
         assert "WARNING" not in record.message
 
 
-@pytest.mark.parametrize("package", ["pycowsay", "black"])
-def test_install_easy_packages(capsys, pipx_temp_env, caplog, package):
-    install_package(capsys, pipx_temp_env, caplog, package)
+@pytest.mark.parametrize(
+    "package_name, package_spec",
+    [("pycowsay", "pycowsay"), ("black", PKGSPEC["black"])],
+)
+def test_install_easy_packages(
+    capsys, pipx_temp_env, caplog, package_name, package_spec
+):
+    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
 
 
 @pytest.mark.parametrize(
-    "package", ["cloudtoken", "awscli", "ansible==2.9.13", "shell-functools"]
+    "package_name, package_spec",
+    [
+        ("cloudtoken", PKGSPEC["cloudtoken"]),
+        ("awscli", PKGSPEC["awscli"]),
+        ("ansible", PKGSPEC["ansible"]),
+        ("shell-functools", PKGSPEC["shell-functools"]),
+    ],
 )
-def test_install_tricky_packages(capsys, pipx_temp_env, caplog, package):
+def test_install_tricky_packages(
+    capsys, pipx_temp_env, caplog, package_name, package_spec
+):
     if os.getenv("FAST"):
         pytest.skip("skipping slow tests")
-    if sys.platform.startswith("win") and package == "ansible==2.9.13":
+    if sys.platform.startswith("win") and package_name == "ansible":
         pytest.skip("Ansible is not installable on Windows")
 
-    install_package(
-        capsys, pipx_temp_env, caplog, package, re.sub(r"==.+$", "", package)
-    )
+    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
 
 
 # TODO: Add git+... spec when git is in binpath of tests (Issue #303)
 @pytest.mark.parametrize(
-    "package_name,package_spec",
+    "package_name, package_spec",
     [
         # ("nox", "git+https://github.com/cs01/nox.git@5ea70723e9e6"),
-        ("pylint", "pylint==2.3.1"),
+        ("pylint", PKGSPEC["pylint"]),
         ("black", "https://github.com/ambv/black/archive/18.9b0.zip"),
     ],
 )
@@ -102,15 +112,15 @@ def test_install_same_package_twice_no_error(pipx_temp_env, capsys):
 
 
 def test_include_deps(pipx_temp_env, capsys):
-    assert run_pipx_cli(["install", "jupyter==1.0.0"]) == 1
-    assert not run_pipx_cli(["install", "jupyter==1.0.0", "--include-deps"])
+    assert run_pipx_cli(["install", PKGSPEC["jupyter"]]) == 1
+    assert not run_pipx_cli(["install", PKGSPEC["jupyter"], "--include-deps"])
 
 
 @pytest.mark.parametrize(
     "package_name, package_spec",
     [
-        ("jaraco-financial", "jaraco.financial==2.0"),
-        ("tox-ini-fmt", "tox-ini-fmt==0.5.0"),
+        ("jaraco-financial", "jaraco.financial==2.0.0"),
+        ("tox-ini-fmt", PKGSPEC["tox-ini-fmt"]),
     ],
 )
 def test_name_tricky_characters(
@@ -224,3 +234,114 @@ def test_install_suffix(pipx_temp_env, capsys):
 
     assert (constants.LOCAL_BIN_DIR / name_a).exists()
     assert (constants.LOCAL_BIN_DIR / name_b).exists()
+
+
+# Packages that need prebuilt wheels before pytest is run
+#   lektor==3.2.0
+#   weblate==4.3.1
+#   gns3-gu==2.2.15
+#   grow==1.0.0a10
+#   nikola==8.1.1
+@pytest.mark.parametrize(
+    "package_name, package_spec",
+    [
+        ("lektor", PKGSPEC["lektor"]),
+        ("retext", PKGSPEC["retext"]),
+        ("sphinx", PKGSPEC["sphinx"]),
+        ("weblate", PKGSPEC["weblate"]),  # py3.9 FAIL lxml<4.7.0,>=4.0
+        ("zeo", PKGSPEC["zeo"]),
+        ("ansible", PKGSPEC["ansible"]),
+        ("awscli", PKGSPEC["awscli"]),
+        ("b2", PKGSPEC["b2"]),
+        ("beancount", PKGSPEC["beancount"]),  # py3.9 FAIL lxml
+        ("beets", PKGSPEC["beets"]),
+        ("black", PKGSPEC["black"]),
+        ("cactus", PKGSPEC["cactus"]),
+        ("chert", PKGSPEC["chert"]),
+        ("cloudtoken", PKGSPEC["cloudtoken"]),
+        ("coala", PKGSPEC["coala"]),
+        ("cookiecutter", PKGSPEC["cookiecutter"]),
+        ("cython", PKGSPEC["cython"]),
+        ("datasette", PKGSPEC["datasette"]),
+        ("diffoscope", PKGSPEC["diffoscope"]),
+        ("doc2dash", PKGSPEC["doc2dash"]),
+        ("doitlive", PKGSPEC["doitlive"]),
+        ("gdbgui", PKGSPEC["gdbgui"]),
+        ("gns3-gui", PKGSPEC["gns3-gui"]),
+        ("grow", PKGSPEC["grow"]),
+        ("guake", PKGSPEC["guake"]),
+        ("gunicorn", PKGSPEC["gunicorn"]),
+        ("howdoi", PKGSPEC["howdoi"]),  # py3.9 FAIL lxml
+        ("httpie", PKGSPEC["httpie"]),
+        ("hyde", PKGSPEC["hyde"]),  # py3.9 FAIL pyyaml
+        ("ipython", PKGSPEC["ipython"]),
+        ("isort", PKGSPEC["isort"]),
+        ("kibitzr", PKGSPEC["kibitzr"]),  # py3.9 FAIL lxml
+        ("klaus", PKGSPEC["klaus"]),
+        ("kolibri", PKGSPEC["kolibri"]),
+        ("localstack", PKGSPEC["localstack"]),
+        # ("mackup", PKGSPEC["mackup"]),  # NOTE: ONLY FOR mac, linux
+        ("magic-wormhole", PKGSPEC["magic-wormhole"]),
+        ("mayan-edms", PKGSPEC["mayan-edms"]),  # py3.9 FAIL pillow
+        ("mycli", PKGSPEC["mycli"]),
+        ("nikola", PKGSPEC["nikola"]),  # py3.9 FAIL lxml
+        ("nox", PKGSPEC["nox"]),
+        ("pelican", PKGSPEC["pelican"]),
+        ("platformio", PKGSPEC["platformio"]),
+        ("ppci", PKGSPEC["ppci"]),
+        ("prosopopee", PKGSPEC["prosopopee"]),
+        ("ptpython", PKGSPEC["ptpython"]),
+        ("pycowsay", PKGSPEC["pycowsay"]),
+        ("pylint", PKGSPEC["pylint"]),
+        ("robotframework", PKGSPEC["robotframework"]),
+        ("shell-functools", PKGSPEC["shell-functools"]),
+        ("speedtest-cli", PKGSPEC["speedtest-cli"]),
+        ("sqlmap", PKGSPEC["sqlmap"]),
+        ("streamlink", PKGSPEC["streamlink"]),
+        ("taguette", PKGSPEC["taguette"]),
+        ("term2048", PKGSPEC["term2048"]),
+        ("tox-ini-fmt", PKGSPEC["tox-ini-fmt"]),
+        ("visidata", PKGSPEC["visidata"]),
+        ("vulture", PKGSPEC["vulture"]),
+        ("youtube-dl", PKGSPEC["youtube-dl"]),
+    ],
+)
+@pytest.mark.all_packages
+def test_all_packages(capsys, pipx_temp_env, caplog, package_name, package_spec):
+    # as many cross-platform packages as possible installable with pipx
+    print(sys.version_info[:2])
+    if sys.version_info[:2] == (3, 9) and package_name in (
+        # Fail to build under py3.9 (2020-10-29)
+        "weblate",
+        "beancount",
+        "howdoi",
+        "hyde",
+        "kibitzr",
+        "mayan-edms",
+        "nikola",
+    ):
+        pytest.skip("This package currently won't compile under Python3.9")
+    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
+
+
+# FAILED PACKAGES TO INVESTIGATE
+# jaraco.financial
+#   GOOD old doesn't work, but new venv_metadata_inspector.py works!
+# kaggle
+#   could just be that slugify is in two separate deps, so debug flags error
+# mkdocs
+#   GOOD (old metadata missing extras in deps)
+@pytest.mark.parametrize(
+    "package_name, package_spec",
+    [
+        ("jaraco-financial", "jaraco.financial==2.0"),
+        ("kaggle", PKGSPEC["kaggle"]),
+        ("mkdocs", PKGSPEC["mkdocs"]),
+    ],
+)
+@pytest.mark.all_packages
+def test_all_packages_problem(
+    capsys, pipx_temp_env, caplog, package_name, package_spec
+):
+    # as many cross-platform packages as possible installable with pipx
+    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
