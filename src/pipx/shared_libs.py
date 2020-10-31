@@ -10,6 +10,7 @@ from pipx.constants import WINDOWS
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import get_site_packages, get_venv_paths, run_verify
 
+PIPX_PACKAGE_LIST_FILE = "pipx_package_list.txt"
 SHARED_LIBS_MAX_AGE_SEC = datetime.timedelta(days=30).total_seconds()
 
 
@@ -22,6 +23,15 @@ class _SharedLibs:
         # i.e. python_path is ~/.local/pipx/shared/python
         self._site_packages = None
         self.has_been_updated_this_run = False
+        # TODO: remove setuptools (wheel?)
+        self.required_packages = [
+            "pip",
+            "wheel",
+            "packaging",
+            "importlib-metadata",
+            "setuptools",
+        ]
+        self._has_required_packages = None
 
     @property
     def site_packages(self) -> Path:
@@ -29,6 +39,20 @@ class _SharedLibs:
             self._site_packages = get_site_packages(self.python_path)
 
         return self._site_packages
+
+    @property
+    def has_required_packages(self) -> bool:
+        if self._has_required_packages is None:
+            self._has_required_packages = self.test_has_required_packages()
+        return self._has_required_packages
+
+    def test_has_required_packages(self) -> bool:
+        package_list_path = Path(self.root) / PIPX_PACKAGE_LIST_FILE
+        if not package_list_path.exists():
+            return False
+        with package_list_path.open("r") as package_list_fh:
+            installed_packages = package_list_fh.read().split("\n")
+        return set(self.required_packages).issubset(set(installed_packages))
 
     def create(self, pip_args: List[str], verbose: bool = False):
         if not self.is_valid:
@@ -40,8 +64,11 @@ class _SharedLibs:
 
     @property
     def is_valid(self):
-        # TODO: check if it has all installed packages
-        return self.python_path.is_file() and self.pip_path.is_file()
+        return (
+            self.python_path.is_file()
+            and self.pip_path.is_file()
+            and self.has_required_packages
+        )
 
     @property
     def needs_upgrade(self):
@@ -54,10 +81,16 @@ class _SharedLibs:
         now = time.time()
         time_since_last_update_sec = now - self.pip_path.stat().st_mtime
         logging.info(
-            f"Time since last upgrade of shared libs, in seconds: {time_since_last_update_sec}. "
-            f"Upgrade will be run by pipx if greater than {SHARED_LIBS_MAX_AGE_SEC}."
+            f"Time since last upgrade of shared libs, in seconds: {time_since_last_update_sec:.0f}. "
+            f"Upgrade will be run by pipx if greater than {SHARED_LIBS_MAX_AGE_SEC:.0f}."
         )
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
+
+    def _write_package_list(self, installed_packages: List[str]) -> None:
+        package_list_path = Path(self.root) / PIPX_PACKAGE_LIST_FILE
+        with package_list_path.open("w") as package_list_fh:
+            package_list_fh.write("\n".join(installed_packages))
+        self._has_required_packages = True
 
     def upgrade(self, pip_args: List[str], verbose: bool = False):
         # Don't try to upgrade multiple times per run
@@ -72,7 +105,6 @@ class _SharedLibs:
             _pip_args.append("-q")
         try:
             with animate("upgrading shared libraries", not verbose):
-                # TODO: can we remove setuptools? (wheel?)
                 run_verify(
                     [
                         self.python_path,
@@ -82,14 +114,12 @@ class _SharedLibs:
                         "install",
                         *_pip_args,
                         "--upgrade",
-                        "pip",
-                        # "setuptools",
-                        "wheel",
-                        "packaging",
-                        "importlib-metadata",
+                        *self.required_packages,
                     ]
                 )
+                self._write_package_list(self.required_packages)
                 self.has_been_updated_this_run = True
+
             self.pip_path.touch()
 
         except Exception:
