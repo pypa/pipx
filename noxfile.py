@@ -57,7 +57,10 @@ def test_all_packages(session):
     )
     if session.python != "3.9":
         # Fail to build under py3.9 (2020-10-29)
-        prebuilds.extend(["weblate==4.3.1", "nikola==8.1.1"])
+        if not sys.platform == "win32":
+            prebuilds.extend(["weblate==4.3.1", "nikola==8.1.1"])
+        else:
+            prebuilds.extend(["nikola==8.1.1"])
     prebuild_wheels(session, prebuilds)
     session.install("-e", ".", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
