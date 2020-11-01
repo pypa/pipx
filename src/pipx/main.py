@@ -31,7 +31,8 @@ def print_version() -> None:
 
 def indented_wrap(text, subsequent_indent="", split="\n", **kwargs):
     text = textwrap.dedent(text).strip()
-    width = shutil.get_terminal_size().columns - 2
+    minimum_width = 40
+    width = max(shutil.get_terminal_size((80, 40)).columns, minimum_width) - 2
     return "\n".join(
         [
             textwrap.fill(line, width=width, subsequent_indent=subsequent_indent)
