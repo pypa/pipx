@@ -323,9 +323,12 @@ def test_all_packages(
         "mayan-edms",
         "nikola",
     ):
-        pytest.skip("This package currently won't compile under Python3.9")
-    if windows_ok or not sys.platform.startswith("win"):
-        install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
+        pytest.skip(f"{package_name} currently won't compile under Python3.9")
+
+    if not windows_ok and sys.platform.startswith("win"):
+        pytest.skip(f"{package_name} won't compile under Windows")
+
+    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
 
 
 # FAILED PACKAGES TO INVESTIGATE
