@@ -243,72 +243,72 @@ def test_install_suffix(pipx_temp_env, capsys):
 #   grow==1.0.0a10
 #   nikola==8.1.1
 @pytest.mark.parametrize(
-    "package_name, package_spec",
+    "package_name, package_spec, windows_ok",
     [
-        ("lektor", PKGSPEC["lektor"]),
-        ("retext", PKGSPEC["retext"]),
-        ("sphinx", PKGSPEC["sphinx"]),
-        ("weblate", PKGSPEC["weblate"]),  # py3.9 FAIL lxml<4.7.0,>=4.0
-        ("zeo", PKGSPEC["zeo"]),
-        ("ansible", PKGSPEC["ansible"]),
-        ("awscli", PKGSPEC["awscli"]),
-        ("b2", PKGSPEC["b2"]),
-        ("beancount", PKGSPEC["beancount"]),  # py3.9 FAIL lxml
-        ("beets", PKGSPEC["beets"]),
-        ("black", PKGSPEC["black"]),
-        ("cactus", PKGSPEC["cactus"]),
-        ("chert", PKGSPEC["chert"]),
-        ("cloudtoken", PKGSPEC["cloudtoken"]),
-        ("coala", PKGSPEC["coala"]),
-        ("cookiecutter", PKGSPEC["cookiecutter"]),
-        ("cython", PKGSPEC["cython"]),
-        ("datasette", PKGSPEC["datasette"]),
-        ("diffoscope", PKGSPEC["diffoscope"]),
-        ("doc2dash", PKGSPEC["doc2dash"]),
-        ("doitlive", PKGSPEC["doitlive"]),
-        ("gdbgui", PKGSPEC["gdbgui"]),
-        ("gns3-gui", PKGSPEC["gns3-gui"]),
-        ("grow", PKGSPEC["grow"]),
-        ("guake", PKGSPEC["guake"]),
-        ("gunicorn", PKGSPEC["gunicorn"]),
-        ("howdoi", PKGSPEC["howdoi"]),  # py3.9 FAIL lxml
-        ("httpie", PKGSPEC["httpie"]),
-        ("hyde", PKGSPEC["hyde"]),  # py3.9 FAIL pyyaml
-        ("ipython", PKGSPEC["ipython"]),
-        ("isort", PKGSPEC["isort"]),
-        ("kaggle", PKGSPEC["kaggle"]),
-        ("kibitzr", PKGSPEC["kibitzr"]),  # py3.9 FAIL lxml
-        ("klaus", PKGSPEC["klaus"]),
-        ("kolibri", PKGSPEC["kolibri"]),
-        ("localstack", PKGSPEC["localstack"]),
-        # ("mackup", PKGSPEC["mackup"]),  # NOTE: ONLY FOR mac, linux
-        ("magic-wormhole", PKGSPEC["magic-wormhole"]),
-        ("mayan-edms", PKGSPEC["mayan-edms"]),  # py3.9 FAIL pillow
-        ("mycli", PKGSPEC["mycli"]),
-        ("nikola", PKGSPEC["nikola"]),  # py3.9 FAIL lxml
-        ("nox", PKGSPEC["nox"]),
-        ("pelican", PKGSPEC["pelican"]),
-        ("platformio", PKGSPEC["platformio"]),
-        ("ppci", PKGSPEC["ppci"]),
-        ("prosopopee", PKGSPEC["prosopopee"]),
-        ("ptpython", PKGSPEC["ptpython"]),
-        ("pycowsay", PKGSPEC["pycowsay"]),
-        ("pylint", PKGSPEC["pylint"]),
-        ("robotframework", PKGSPEC["robotframework"]),
-        ("shell-functools", PKGSPEC["shell-functools"]),
-        ("speedtest-cli", PKGSPEC["speedtest-cli"]),
-        ("sqlmap", PKGSPEC["sqlmap"]),
-        ("streamlink", PKGSPEC["streamlink"]),
-        ("taguette", PKGSPEC["taguette"]),
-        ("term2048", PKGSPEC["term2048"]),
-        ("tox-ini-fmt", PKGSPEC["tox-ini-fmt"]),
-        ("visidata", PKGSPEC["visidata"]),
-        ("vulture", PKGSPEC["vulture"]),
-        ("youtube-dl", PKGSPEC["youtube-dl"]),
+        ("lektor", PKGSPEC["lektor"], True),
+        ("retext", PKGSPEC["retext"], True),
+        ("sphinx", PKGSPEC["sphinx"], True),
+        ("weblate", PKGSPEC["weblate"], False),  # py3.9 FAIL lxml<4.7.0,>=4.0
+        ("zeo", PKGSPEC["zeo"], True),
+        ("ansible", PKGSPEC["ansible"], False),
+        ("awscli", PKGSPEC["awscli"], True),
+        ("b2", PKGSPEC["b2"], True),
+        ("beancount", PKGSPEC["beancount"], False),  # py3.9 FAIL lxml
+        ("beets", PKGSPEC["beets"], True),
+        ("black", PKGSPEC["black"], True),
+        ("cactus", PKGSPEC["cactus"], True),
+        ("chert", PKGSPEC["chert"], True),
+        ("cloudtoken", PKGSPEC["cloudtoken"], True),
+        ("coala", PKGSPEC["coala"], True),
+        ("cookiecutter", PKGSPEC["cookiecutter"], True),
+        ("cython", PKGSPEC["cython"], True),
+        ("datasette", PKGSPEC["datasette"], True),
+        ("diffoscope", PKGSPEC["diffoscope"], True),
+        ("doc2dash", PKGSPEC["doc2dash"], True),
+        ("doitlive", PKGSPEC["doitlive"], True),
+        ("gdbgui", PKGSPEC["gdbgui"], True),
+        ("gns3-gui", PKGSPEC["gns3-gui"], True),
+        ("grow", PKGSPEC["grow"], True),
+        ("guake", PKGSPEC["guake"], True),
+        ("gunicorn", PKGSPEC["gunicorn"], True),
+        ("howdoi", PKGSPEC["howdoi"], True),  # py3.9 FAIL lxml
+        ("httpie", PKGSPEC["httpie"], True),
+        ("hyde", PKGSPEC["hyde"], True),  # py3.9 FAIL pyyaml
+        ("ipython", PKGSPEC["ipython"], True),
+        ("isort", PKGSPEC["isort"], True),
+        ("kaggle", PKGSPEC["kaggle"], True),
+        ("kibitzr", PKGSPEC["kibitzr"], True),  # py3.9 FAIL lxml
+        ("klaus", PKGSPEC["klaus"], False), # WIN problem making dep dulwich
+        ("kolibri", PKGSPEC["kolibri"], True),
+        ("localstack", PKGSPEC["localstack"], True),
+        ("mackup", PKGSPEC["mackup"], False),
+        ("magic-wormhole", PKGSPEC["magic-wormhole"], True),
+        ("mayan-edms", PKGSPEC["mayan-edms"], True),  # py3.9 FAIL pillow
+        ("mycli", PKGSPEC["mycli"], True),
+        ("nikola", PKGSPEC["nikola"], True),  # py3.9 FAIL lxml
+        ("nox", PKGSPEC["nox"], True),
+        ("pelican", PKGSPEC["pelican"], True),
+        ("platformio", PKGSPEC["platformio"], True),
+        ("ppci", PKGSPEC["ppci"], True),
+        ("prosopopee", PKGSPEC["prosopopee"], True),
+        ("ptpython", PKGSPEC["ptpython"], True),
+        ("pycowsay", PKGSPEC["pycowsay"], True),
+        ("pylint", PKGSPEC["pylint"], True),
+        ("robotframework", PKGSPEC["robotframework"], True),
+        ("shell-functools", PKGSPEC["shell-functools"], True),
+        ("speedtest-cli", PKGSPEC["speedtest-cli"], True),
+        ("sqlmap", PKGSPEC["sqlmap"], True),
+        ("streamlink", PKGSPEC["streamlink"], True),
+        ("taguette", PKGSPEC["taguette"], True),
+        ("term2048", PKGSPEC["term2048"], True),
+        ("tox-ini-fmt", PKGSPEC["tox-ini-fmt"], True),
+        ("visidata", PKGSPEC["visidata"], True),
+        ("vulture", PKGSPEC["vulture"], True),
+        ("youtube-dl", PKGSPEC["youtube-dl"], True),
     ],
 )
 @pytest.mark.all_packages
-def test_all_packages(capsys, pipx_temp_env, caplog, package_name, package_spec):
+def test_all_packages(capsys, pipx_temp_env, caplog, package_name, package_spec, windows_ok):
     # as many cross-platform packages as possible installable with pipx
     print(sys.version_info[:2])
     if sys.version_info[:2] == (3, 9) and package_name in (
@@ -322,7 +322,8 @@ def test_all_packages(capsys, pipx_temp_env, caplog, package_name, package_spec)
         "nikola",
     ):
         pytest.skip("This package currently won't compile under Python3.9")
-    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
+    if windows_ok or not sys.platform.startswith("win"):
+        install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
 
 
 # FAILED PACKAGES TO INVESTIGATE
