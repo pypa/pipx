@@ -278,7 +278,7 @@ def test_install_suffix(pipx_temp_env, capsys):
         ("isort", PKGSPEC["isort"], True),
         ("kaggle", PKGSPEC["kaggle"], True),
         ("kibitzr", PKGSPEC["kibitzr"], True),  # py3.9 FAIL lxml
-        ("klaus", PKGSPEC["klaus"], False), # WIN problem making dep dulwich
+        ("klaus", PKGSPEC["klaus"], False),  # WIN problem making dep dulwich
         ("kolibri", PKGSPEC["kolibri"], True),
         ("localstack", PKGSPEC["localstack"], True),
         ("mackup", PKGSPEC["mackup"], False),
@@ -308,7 +308,9 @@ def test_install_suffix(pipx_temp_env, capsys):
     ],
 )
 @pytest.mark.all_packages
-def test_all_packages(capsys, pipx_temp_env, caplog, package_name, package_spec, windows_ok):
+def test_all_packages(
+    capsys, pipx_temp_env, caplog, package_name, package_spec, windows_ok
+):
     # as many cross-platform packages as possible installable with pipx
     print(sys.version_info[:2])
     if sys.version_info[:2] == (3, 9) and package_name in (
