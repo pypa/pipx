@@ -72,7 +72,6 @@ def install_package_debug(
         else:
             INSTALL_DATA[package]["sys_path_ok"] = False
             print(captured_sys_path.out)
-            assert 0 == 1
 
     with REPORT_PATH.open("a") as report_fh:
         clear_path = "PASS" if INSTALL_DATA[package]["clear_path_ok"] else "FAIL"
@@ -88,6 +87,8 @@ def install_package_debug(
             f"{install_time1} {install_time2}",
             file=report_fh,
         )
+
+    assert install_success or install_success_orig_path
 
 
 @pytest.mark.parametrize(
@@ -164,9 +165,7 @@ def test_all_packages(
     monkeypatch, capsys, pipx_temp_env, caplog, package_name, package_spec
 ):
     if package_name == "START" and package_spec == "START":
-        # datetime object containing current date and time
-        now = datetime.now()
-        dt_string = now.strftime("%Y-%m-%d %H:%M:%S")
+        dt_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         with REPORT_PATH.open("a") as report_fh:
             py_version = f"Python {sys.version_info[0]}.{sys.version_info[1]}"
@@ -197,6 +196,8 @@ def test_all_packages(
                     and not INSTALL_DATA[package_spec]["sys_path_ok"]
                 ):
                     print(f"{package_spec} FAILS", file=report_fh)
+            dt_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"\nFinished {dt_string}", file=report_fh)
     else:
         pip_cache_purge()
         install_package_debug(
