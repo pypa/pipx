@@ -31,3 +31,8 @@ def pipx_temp_env(tmp_path, monkeypatch):
     #   which make tests fail (e.g. on Github ansible apps exist in /usr/bin)
     monkeypatch.setenv("PATH_OLD", str(bin_dir) + os.pathsep + os.getenv("PATH"))
     monkeypatch.setenv("PATH", str(bin_dir))
+
+
+@pytest.fixture(scope="module")
+def pipx_globals():
+    return {"test_start": 0, "report_path": "", "install_data": {}}
