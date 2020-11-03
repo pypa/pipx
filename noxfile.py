@@ -26,10 +26,48 @@ LINT_DEPENDENCIES = [
 ]
 # Packages whose dependencies need an intact system PATH to compile
 # pytest setup clears PATH.  So pre-build some wheels to the pip cache.
-PREBUILD_PACKAGES = ["jupyter==1.0.0", "black==20.8b1"]
+#
+# BREAK[version] == Always breaks for specific version or all versions
+# Pre[version] == Works with prebuilt wheels for specific version or all versions
+#
+# PACKAGE               WIN             MACOS               UNIX
+#                       Pre/BREAK       Pre/BREAK           Pre/BREAK
+# ----------------------------------------------------------------------
+# ansible==2.9.13       BREAK           .
+# beancount==2.3.3      BREAK            BREAK3.9
+# black==20.8b1         .               .
+# coala==0.11.0         BREAK3.7
+# gdbgui==0.14.0.1      .               Pre3.9
+# gns3-gui==2.2.15      .               Pre3.[67]
+# grow==1.0.0a10        .               Pre3.[67]
+# howdoi==2.0.7         .                BREAK3.9
+# hyde==0.8.9           .                BREAK3.9
+# jupyter==1.0.0        .               Pre
+# kibitzr==6.0.0        .                BREAK3.9
+# klaus=1.5.2           BREAK           .
+# lektor==3.2.0         .               Pre3.[67]
+# mackup==0.8.29        BREAK3.7        .
+# mayan-edms==3.5.2     .                BREAK3.9
+# nikola==8.1.1         .               Pre3.[67]/BREAK3.9
+# weblate==4.3.1        BREAK           Pre3.[678]/BREAK3.9
+# ----------------------------------------------------------------------
+
+PREBUILD_PACKAGES = {
+    "all": ["jupyter==1.0.0"],
+    "macos": ["black==20.8b1"],
+    "unix": [],
+}
 
 
 def prebuild_wheels(session, prebuild_list):
+    if sys.platform == "darwin":
+        platform = "macos"
+    elif sys.platform == "win32":
+        platform = "win"
+    else:
+        platform = "unix"
+    print(platform)
+
     session.install("wheel")
     wheel_dir = Path(session.virtualenv.location) / "prebuild_wheels"
     wheel_dir.mkdir(exist_ok=True)
@@ -51,21 +89,10 @@ def tests(session):
 
 @nox.session(python=PYTHON_ALL)
 def test_all_packages(session):
-    prebuilds = PREBUILD_PACKAGES.copy()
-    prebuilds.extend(
-        ["lektor==3.2.0", "gdbgui==0.14.0.1", "gns3-gui==2.2.15", "grow==1.0.0a10"]
-    )
-    if session.python != "3.9":
-        # Fail to build under py3.9 (2020-10-29)
-        if not sys.platform == "win32":
-            prebuilds.extend(["weblate==4.3.1", "nikola==8.1.1"])
-        else:
-            prebuilds.extend(["nikola==8.1.1"])
-    prebuild_wheels(session, prebuilds)
-    session.install("-e", ".", "pytest", "pytest-cov")
+    session.install("-U", "pip")
+    session.install("-e", ".", "pytest")
     tests = session.posargs or ["tests"]
-    session.run("pytest", "--cov=pipx", "--cov-report=", "-m", "all_packages", *tests)
-    session.notify("cover")
+    session.run("pytest", *tests)
 
 
 @nox.session
