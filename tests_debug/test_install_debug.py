@@ -116,12 +116,18 @@ def install_package_debug(
 
 @pytest.fixture(scope="module")
 def start_end_report(pipx_globals):
-    pipx_globals["report_path"] = Path("./test_install_debug_report.txt")
-    pipx_globals["error_report_path"] = Path("./test_install_debug_errors.txt")
     pipx_globals["test_start"] = datetime.now()
+    dt_string = pipx_globals["test_start"].strftime("%Y-%m-%d %H:%M:%S")
+    date_string = pipx_globals["test_start"].strftime("%Y%m%d")
+
+    pipx_globals["report_path"] = Path(
+        f"./test_install_debug_report_{sys.platform}_{date_string}.txt"
+    )
+    pipx_globals["error_report_path"] = Path(
+        f"./test_install_debug_errors_{sys.platform}_{date_string}.txt"
+    )
 
     install_data = pipx_globals["install_data"]
-    dt_string = pipx_globals["test_start"].strftime("%Y-%m-%d %H:%M:%S")
 
     with pipx_globals["report_path"].open("a") as report_fh:
         py_version = f"Python {sys.version_info[0]}.{sys.version_info[1]}"
