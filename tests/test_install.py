@@ -245,11 +245,6 @@ def test_install_suffix(pipx_temp_env, capsys):
 @pytest.mark.parametrize(
     "package_name, package_spec, windows_ok",
     [
-        ("lektor", PKGSPEC["lektor"], True),
-        ("retext", PKGSPEC["retext"], True),
-        ("sphinx", PKGSPEC["sphinx"], True),
-        ("weblate", PKGSPEC["weblate"], False),  # py3.9 FAIL lxml<4.7.0,>=4.0
-        ("zeo", PKGSPEC["zeo"], True),
         ("ansible", PKGSPEC["ansible"], False),
         ("awscli", PKGSPEC["awscli"], True),
         ("b2", PKGSPEC["b2"], True),
@@ -259,7 +254,6 @@ def test_install_suffix(pipx_temp_env, capsys):
         ("cactus", PKGSPEC["cactus"], True),
         ("chert", PKGSPEC["chert"], True),
         ("cloudtoken", PKGSPEC["cloudtoken"], True),
-        ("coala", PKGSPEC["coala"], True),
         ("cookiecutter", PKGSPEC["cookiecutter"], True),
         ("cython", PKGSPEC["cython"], True),
         ("datasette", PKGSPEC["datasette"], True),
@@ -280,6 +274,7 @@ def test_install_suffix(pipx_temp_env, capsys):
         ("kibitzr", PKGSPEC["kibitzr"], True),  # py3.9 FAIL lxml
         ("klaus", PKGSPEC["klaus"], False),  # WIN problem making dep dulwich
         ("kolibri", PKGSPEC["kolibri"], True),
+        ("lektor", PKGSPEC["lektor"], True),
         ("localstack", PKGSPEC["localstack"], True),
         ("mackup", PKGSPEC["mackup"], False),
         ("magic-wormhole", PKGSPEC["magic-wormhole"], True),
@@ -294,9 +289,11 @@ def test_install_suffix(pipx_temp_env, capsys):
         ("ptpython", PKGSPEC["ptpython"], True),
         ("pycowsay", PKGSPEC["pycowsay"], True),
         ("pylint", PKGSPEC["pylint"], True),
+        ("retext", PKGSPEC["retext"], True),
         ("robotframework", PKGSPEC["robotframework"], True),
         ("shell-functools", PKGSPEC["shell-functools"], True),
         ("speedtest-cli", PKGSPEC["speedtest-cli"], True),
+        ("sphinx", PKGSPEC["sphinx"], True),
         ("sqlmap", PKGSPEC["sqlmap"], True),
         ("streamlink", PKGSPEC["streamlink"], True),
         ("taguette", PKGSPEC["taguette"], True),
@@ -304,7 +301,9 @@ def test_install_suffix(pipx_temp_env, capsys):
         ("tox-ini-fmt", PKGSPEC["tox-ini-fmt"], True),
         ("visidata", PKGSPEC["visidata"], True),
         ("vulture", PKGSPEC["vulture"], True),
+        ("weblate", PKGSPEC["weblate"], False),  # py3.9 FAIL lxml<4.7.0,>=4.0
         ("youtube-dl", PKGSPEC["youtube-dl"], True),
+        ("zeo", PKGSPEC["zeo"], True),
     ],
 )
 @pytest.mark.all_packages
@@ -312,18 +311,18 @@ def test_all_packages(
     capsys, pipx_temp_env, caplog, package_name, package_spec, windows_ok
 ):
     # as many cross-platform packages as possible installable with pipx
-    print(sys.version_info[:2])
-    if sys.version_info[:2] == (3, 9) and package_name in (
-        # Fail to build under py3.9 (2020-10-29)
-        "weblate",
-        "beancount",
-        "howdoi",
-        "hyde",
-        "kibitzr",
-        "mayan-edms",
-        "nikola",
-    ):
-        pytest.skip(f"{package_name} currently won't compile under Python3.9")
+    # print(sys.version_info[:2])
+    # if sys.version_info[:2] == (3, 9) and package_name in (
+    #    # Fail to build under py3.9 (2020-10-29)
+    #    "weblate",
+    #    "beancount",
+    #    "howdoi",
+    #    "hyde",
+    #    "kibitzr",
+    #    "mayan-edms",
+    #    "nikola",
+    # ):
+    #    pytest.skip(f"{package_name} currently won't compile under Python3.9")
 
     if not windows_ok and sys.platform.startswith("win"):
         pytest.skip(f"{package_name} won't compile under Windows")
@@ -338,7 +337,11 @@ def test_all_packages(
 #   GOOD (old metadata missing extras in deps)
 @pytest.mark.parametrize(
     "package_name, package_spec",
-    [("jaraco-financial", "jaraco.financial==2.0"), ("mkdocs", PKGSPEC["mkdocs"])],
+    [
+        ("jaraco-financial", "jaraco.financial==2.0"),
+        ("mkdocs", PKGSPEC["mkdocs"]),
+        ("coala", PKGSPEC["coala"], True),  # problem on win
+    ],
 )
 @pytest.mark.all_packages
 def test_all_packages_problem(
