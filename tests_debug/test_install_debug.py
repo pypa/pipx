@@ -60,12 +60,12 @@ def install_package_debug(
     else:
         install_data[package]["clear_path_ok"] = False
         monkeypatch.setenv("PATH", orig_path)
-        print_error_report(
-            pipx_globals["error_report_path"],
-            captured_clear_path,
-            package,
-            "clear PATH",
-        )
+        # print_error_report(
+        #    pipx_globals["error_report_path"],
+        #    captured_clear_path,
+        #    package,
+        #    "clear PATH",
+        # )
 
         start_time = time.time()
         run_pipx_cli(["install", package, "--verbose"])
