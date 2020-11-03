@@ -9,27 +9,6 @@ from unittest import mock
 
 from pipx import constants, main, pipx_metadata_file
 
-MOCK_PIPXMETADATA_0_1: Dict[str, Any] = {
-    "main_package": None,
-    "python_version": None,
-    "venv_args": [],
-    "injected_packages": {},
-    "pipx_metadata_version": "0.1",
-}
-
-MOCK_PACKAGE_INFO_0_1: Dict[str, Any] = {
-    "package": None,
-    "package_or_url": None,
-    "pip_args": [],
-    "include_dependencies": False,
-    "include_apps": True,
-    "apps": [],
-    "app_paths": [],
-    "apps_of_dependencies": [],
-    "app_paths_of_dependencies": {},
-    "package_version": "",
-}
-
 # Versions of all packages possibly used in our tests
 PKGSPEC: Dict[str, str] = {
     "ansible": "ansible==2.9.13",
@@ -94,6 +73,27 @@ PKGSPEC: Dict[str, str] = {
     "weblate": "Weblate==4.3.1",  # py3.9 FAIL lxml<4.7.0,>=
     "youtube-dl": "youtube-dl==2020.9.20",
     "zeo": "ZEO==5.2.2",
+}
+
+MOCK_PIPXMETADATA_0_1: Dict[str, Any] = {
+    "main_package": None,
+    "python_version": None,
+    "venv_args": [],
+    "injected_packages": {},
+    "pipx_metadata_version": "0.1",
+}
+
+MOCK_PACKAGE_INFO_0_1: Dict[str, Any] = {
+    "package": None,
+    "package_or_url": None,
+    "pip_args": [],
+    "include_dependencies": False,
+    "include_apps": True,
+    "apps": [],
+    "app_paths": [],
+    "apps_of_dependencies": [],
+    "app_paths_of_dependencies": {},
+    "package_version": "",
 }
 
 

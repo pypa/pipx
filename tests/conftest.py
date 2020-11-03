@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest  # type: ignore
@@ -28,4 +29,5 @@ def pipx_temp_env(tmp_path, monkeypatch):
     # TODO: macOS needs /usr/bin in PATH to compile certain packages, but
     #   applications in /usr/bin cause test_install.py tests to raise warnings
     #   which make tests fail (e.g. on Github ansible apps exist in /usr/bin)
+    monkeypatch.setenv("PATH_ORIG", str(bin_dir) + os.pathsep + os.getenv("PATH"))
     monkeypatch.setenv("PATH", str(bin_dir))

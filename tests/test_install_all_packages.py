@@ -58,7 +58,7 @@ def install_package_debug(
     package_spec,
     package_name="",
 ):
-    orig_path = os.getenv("PATH_OLD")
+    orig_path = os.getenv("PATH_ORIG")
 
     install_data = module_globals["install_data"]
     install_data[package_spec] = {}
