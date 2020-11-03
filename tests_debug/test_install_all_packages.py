@@ -10,6 +10,16 @@ import pytest  # type: ignore
 from helpers import PKGSPEC, run_pipx_cli
 
 
+@pytest.fixture(scope="module")
+def module_globals():
+    return {
+        "test_start": 0,
+        "error_report_path": Path("."),
+        "report_path": Path("."),
+        "install_data": {},
+    }
+
+
 def pip_cache_purge():
     return subprocess.run([sys.executable, "-m", "pip", "cache", "purge"])
 
@@ -40,7 +50,7 @@ def print_error_report(error_report_path, captured_out_err, package_spec, header
 
 
 def install_package_debug(
-    pipx_globals,
+    module_globals,
     monkeypatch,
     capfd,
     pipx_temp_env,
@@ -50,7 +60,7 @@ def install_package_debug(
 ):
     orig_path = os.getenv("PATH_OLD")
 
-    install_data = pipx_globals["install_data"]
+    install_data = module_globals["install_data"]
     install_data[package_spec] = {}
     if not package_name:
         package_name = package_spec
@@ -69,7 +79,7 @@ def install_package_debug(
         install_data[package_spec]["clear_path_ok"] = False
         monkeypatch.setenv("PATH", orig_path)
         # print_error_report(
-        #    pipx_globals["error_report_path"],
+        #    module_globals["error_report_path"],
         #    captured_clear_path,
         #    package_spec,
         #    "clear PATH",
@@ -89,13 +99,13 @@ def install_package_debug(
         else:
             install_data[package_spec]["sys_path_ok"] = False
             print_error_report(
-                pipx_globals["error_report_path"],
+                module_globals["error_report_path"],
                 captured_sys_path,
                 package_spec,
                 "sys PATH",
             )
 
-    with pipx_globals["report_path"].open("a") as report_fh:
+    with module_globals["report_path"].open("a") as report_fh:
         clear_path = "PASS" if install_data[package_spec]["clear_path_ok"] else "FAIL"
         install_time1 = f"{elapsed_time1:>3.0f}s"
         if install_data[package_spec]["clear_path_ok"]:
@@ -115,21 +125,21 @@ def install_package_debug(
 
 
 @pytest.fixture(scope="module")
-def start_end_report(pipx_globals):
-    pipx_globals["test_start"] = datetime.now()
-    dt_string = pipx_globals["test_start"].strftime("%Y-%m-%d %H:%M:%S")
-    date_string = pipx_globals["test_start"].strftime("%Y%m%d")
+def start_end_report(module_globals):
+    module_globals["test_start"] = datetime.now()
+    dt_string = module_globals["test_start"].strftime("%Y-%m-%d %H:%M:%S")
+    date_string = module_globals["test_start"].strftime("%Y%m%d")
 
-    pipx_globals["report_path"] = Path(
+    module_globals["report_path"] = Path(
         f"./test_install_debug_report_{sys.platform}_{date_string}.txt"
     )
-    pipx_globals["error_report_path"] = Path(
+    module_globals["error_report_path"] = Path(
         f"./test_install_debug_errors_{sys.platform}_{date_string}.txt"
     )
 
-    install_data = pipx_globals["install_data"]
+    install_data = module_globals["install_data"]
 
-    with pipx_globals["report_path"].open("a") as report_fh:
+    with module_globals["report_path"].open("a") as report_fh:
         py_version = f"Python {sys.version_info[0]}.{sys.version_info[1]}"
         print("\n\n", file=report_fh)
         print("=" * 72, file=report_fh)
@@ -144,7 +154,7 @@ def start_end_report(pipx_globals):
 
     yield
 
-    with pipx_globals["report_path"].open("a") as report_fh:
+    with module_globals["report_path"].open("a") as report_fh:
         print("\nSummary", file=report_fh)
         print("-" * 72, file=report_fh)
         for package_spec in install_data:
@@ -162,7 +172,7 @@ def start_end_report(pipx_globals):
                 print(f"{package_spec} FAILS", file=report_fh)
         test_end = datetime.now()
         dt_string = test_end.strftime("%Y-%m-%d %H:%M:%S")
-        el_datetime = test_end - pipx_globals["test_start"]
+        el_datetime = test_end - module_globals["test_start"]
         el_datetime = el_datetime - timedelta(microseconds=el_datetime.microseconds)
         print(f"\nFinished {dt_string}", file=report_fh)
         print(f"Elapsed: {el_datetime}", file=report_fh)
@@ -171,73 +181,73 @@ def start_end_report(pipx_globals):
 @pytest.mark.parametrize(
     "package_name, package_spec",
     [
-        ("ansible", PKGSPEC["ansible"]),
-        ("awscli", PKGSPEC["awscli"]),
-        ("b2", PKGSPEC["b2"]),
-        ("beancount", PKGSPEC["beancount"]),  # py3.9 FAIL lxml
-        ("beets", PKGSPEC["beets"]),
-        ("black", PKGSPEC["black"]),
-        ("cactus", PKGSPEC["cactus"]),
-        ("chert", PKGSPEC["chert"]),
-        ("cloudtoken", PKGSPEC["cloudtoken"]),
-        ("coala", PKGSPEC["coala"]),  # problem on win
-        ("cookiecutter", PKGSPEC["cookiecutter"]),
-        ("cython", PKGSPEC["cython"]),
-        ("datasette", PKGSPEC["datasette"]),
-        ("diffoscope", PKGSPEC["diffoscope"]),
-        ("doc2dash", PKGSPEC["doc2dash"]),
-        ("doitlive", PKGSPEC["doitlive"]),
-        ("gdbgui", PKGSPEC["gdbgui"]),
-        ("gns3-gui", PKGSPEC["gns3-gui"]),
-        ("grow", PKGSPEC["grow"]),
-        ("guake", PKGSPEC["guake"]),
-        ("gunicorn", PKGSPEC["gunicorn"]),
-        ("howdoi", PKGSPEC["howdoi"]),  # py3.9 FAIL lxml
-        ("httpie", PKGSPEC["httpie"]),
-        ("hyde", PKGSPEC["hyde"]),  # py3.9 FAIL pyyaml
-        ("ipython", PKGSPEC["ipython"]),
+        # ("ansible", PKGSPEC["ansible"]),
+        # ("awscli", PKGSPEC["awscli"]),
+        # ("b2", PKGSPEC["b2"]),
+        # ("beancount", PKGSPEC["beancount"]),  # py3.9 FAIL lxml
+        # ("beets", PKGSPEC["beets"]),
+        # ("black", PKGSPEC["black"]),
+        # ("cactus", PKGSPEC["cactus"]),
+        # ("chert", PKGSPEC["chert"]),
+        # ("cloudtoken", PKGSPEC["cloudtoken"]),
+        # ("coala", PKGSPEC["coala"]),  # problem on win
+        # ("cookiecutter", PKGSPEC["cookiecutter"]),
+        # ("cython", PKGSPEC["cython"]),
+        # ("datasette", PKGSPEC["datasette"]),
+        # ("diffoscope", PKGSPEC["diffoscope"]),
+        # ("doc2dash", PKGSPEC["doc2dash"]),
+        # ("doitlive", PKGSPEC["doitlive"]),
+        # ("gdbgui", PKGSPEC["gdbgui"]),
+        # ("gns3-gui", PKGSPEC["gns3-gui"]),
+        # ("grow", PKGSPEC["grow"]),
+        # ("guake", PKGSPEC["guake"]),
+        # ("gunicorn", PKGSPEC["gunicorn"]),
+        # ("howdoi", PKGSPEC["howdoi"]),  # py3.9 FAIL lxml
+        # ("httpie", PKGSPEC["httpie"]),
+        # ("hyde", PKGSPEC["hyde"]),  # py3.9 FAIL pyyaml
+        # ("ipython", PKGSPEC["ipython"]),
         ("isort", PKGSPEC["isort"]),
-        ("jaraco-financial", "jaraco.financial==2.0"),
-        ("kaggle", PKGSPEC["kaggle"]),
-        ("kibitzr", PKGSPEC["kibitzr"]),  # py3.9 FAIL lxml
-        ("klaus", PKGSPEC["klaus"]),  # WIN problem making dep dulwich
-        ("kolibri", PKGSPEC["kolibri"]),
-        ("lektor", PKGSPEC["lektor"]),
-        ("localstack", PKGSPEC["localstack"]),
-        ("mackup", PKGSPEC["mackup"]),
-        ("magic-wormhole", PKGSPEC["magic-wormhole"]),
-        ("mayan-edms", PKGSPEC["mayan-edms"]),  # py3.9 FAIL pillow
-        ("mkdocs", PKGSPEC["mkdocs"]),
-        ("mycli", PKGSPEC["mycli"]),
-        ("nikola", PKGSPEC["nikola"]),  # py3.9 FAIL lxml
-        ("nox", PKGSPEC["nox"]),
-        ("pelican", PKGSPEC["pelican"]),
-        ("platformio", PKGSPEC["platformio"]),
-        ("ppci", PKGSPEC["ppci"]),
-        ("prosopopee", PKGSPEC["prosopopee"]),
-        ("ptpython", PKGSPEC["ptpython"]),
-        ("pycowsay", PKGSPEC["pycowsay"]),
-        ("pylint", PKGSPEC["pylint"]),
-        ("retext", PKGSPEC["retext"]),
-        ("robotframework", PKGSPEC["robotframework"]),
-        ("shell-functools", PKGSPEC["shell-functools"]),
-        ("speedtest-cli", PKGSPEC["speedtest-cli"]),
-        ("sphinx", PKGSPEC["sphinx"]),
-        ("sqlmap", PKGSPEC["sqlmap"]),
-        ("streamlink", PKGSPEC["streamlink"]),
-        ("taguette", PKGSPEC["taguette"]),
-        ("term2048", PKGSPEC["term2048"]),
-        ("tox-ini-fmt", PKGSPEC["tox-ini-fmt"]),
-        ("visidata", PKGSPEC["visidata"]),
-        ("vulture", PKGSPEC["vulture"]),
-        ("weblate", PKGSPEC["weblate"]),  # py3.9 FAIL lxml<4.7.0,>=4.0
-        ("youtube-dl", PKGSPEC["youtube-dl"]),
-        ("zeo", PKGSPEC["zeo"]),
+        # ("jaraco-financial", "jaraco.financial==2.0"),
+        # ("kaggle", PKGSPEC["kaggle"]),
+        # ("kibitzr", PKGSPEC["kibitzr"]),  # py3.9 FAIL lxml
+        # ("klaus", PKGSPEC["klaus"]),  # WIN problem making dep dulwich
+        # ("kolibri", PKGSPEC["kolibri"]),
+        # ("lektor", PKGSPEC["lektor"]),
+        # ("localstack", PKGSPEC["localstack"]),
+        # ("mackup", PKGSPEC["mackup"]),
+        # ("magic-wormhole", PKGSPEC["magic-wormhole"]),
+        # ("mayan-edms", PKGSPEC["mayan-edms"]),  # py3.9 FAIL pillow
+        # ("mkdocs", PKGSPEC["mkdocs"]),
+        # ("mycli", PKGSPEC["mycli"]),
+        # ("nikola", PKGSPEC["nikola"]),  # py3.9 FAIL lxml
+        # ("nox", PKGSPEC["nox"]),
+        # ("pelican", PKGSPEC["pelican"]),
+        # ("platformio", PKGSPEC["platformio"]),
+        # ("ppci", PKGSPEC["ppci"]),
+        # ("prosopopee", PKGSPEC["prosopopee"]),
+        # ("ptpython", PKGSPEC["ptpython"]),
+        # ("pycowsay", PKGSPEC["pycowsay"]),
+        # ("pylint", PKGSPEC["pylint"]),
+        # ("retext", PKGSPEC["retext"]),
+        # ("robotframework", PKGSPEC["robotframework"]),
+        # ("shell-functools", PKGSPEC["shell-functools"]),
+        # ("speedtest-cli", PKGSPEC["speedtest-cli"]),
+        # ("sphinx", PKGSPEC["sphinx"]),
+        # ("sqlmap", PKGSPEC["sqlmap"]),
+        # ("streamlink", PKGSPEC["streamlink"]),
+        # ("taguette", PKGSPEC["taguette"]),
+        # ("term2048", PKGSPEC["term2048"]),
+        # ("tox-ini-fmt", PKGSPEC["tox-ini-fmt"]),
+        # ("visidata", PKGSPEC["visidata"]),
+        # ("vulture", PKGSPEC["vulture"]),
+        # ("weblate", PKGSPEC["weblate"]),  # py3.9 FAIL lxml<4.7.0,>=4.0
+        # ("youtube-dl", PKGSPEC["youtube-dl"]),
+        # ("zeo", PKGSPEC["zeo"]),
     ],
 )
 @pytest.mark.all_packages
 def test_all_packages(
-    pipx_globals,
+    module_globals,
     start_end_report,
     monkeypatch,
     capfd,
@@ -248,7 +258,7 @@ def test_all_packages(
 ):
     pip_cache_purge()
     install_package_debug(
-        pipx_globals,
+        module_globals,
         monkeypatch,
         capfd,
         pipx_temp_env,
