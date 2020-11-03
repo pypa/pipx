@@ -23,12 +23,14 @@ def verify_install(captured_outerr, caplog, package_name):
     return install_success and not caplog_problem
 
 
-def print_error_report(error_report_path, captured_out_err, package, header):
+def print_error_report(error_report_path, captured_out_err, package_spec, header):
     py_version = f"Python {sys.version_info[0]}.{sys.version_info[1]}"
     with error_report_path.open("a") as error_fh:
         print("\n\n", file=error_fh)
         print("=" * 76, file=error_fh)
-        print(f"{package:24}{header:16}{sys.platform:16}{py_version:}", file=error_fh)
+        print(
+            f"{package_spec:24}{header:16}{sys.platform:16}{py_version:}", file=error_fh
+        )
         print("\nSTDOUT:", file=error_fh)
         print("-" * 76, file=error_fh)
         print(captured_out_err.out, end="", file=error_fh)
@@ -38,17 +40,23 @@ def print_error_report(error_report_path, captured_out_err, package, header):
 
 
 def install_package_debug(
-    pipx_globals, monkeypatch, capfd, pipx_temp_env, caplog, package, package_name=""
+    pipx_globals,
+    monkeypatch,
+    capfd,
+    pipx_temp_env,
+    caplog,
+    package_spec,
+    package_name="",
 ):
     orig_path = os.getenv("PATH_OLD")
 
     install_data = pipx_globals["install_data"]
-    install_data[package] = {}
+    install_data[package_spec] = {}
     if not package_name:
-        package_name = package
+        package_name = package_spec
 
     start_time = time.time()
-    run_pipx_cli(["install", package, "--verbose"])
+    run_pipx_cli(["install", package_spec, "--verbose"])
     elapsed_time1 = time.time() - start_time
     elapsed_time2 = 0
 
@@ -56,19 +64,19 @@ def install_package_debug(
     install_success = verify_install(captured_clear_path, caplog, package_name)
 
     if install_success:
-        install_data[package]["clear_path_ok"] = True
+        install_data[package_spec]["clear_path_ok"] = True
     else:
-        install_data[package]["clear_path_ok"] = False
+        install_data[package_spec]["clear_path_ok"] = False
         monkeypatch.setenv("PATH", orig_path)
         # print_error_report(
         #    pipx_globals["error_report_path"],
         #    captured_clear_path,
-        #    package,
+        #    package_spec,
         #    "clear PATH",
         # )
 
         start_time = time.time()
-        run_pipx_cli(["install", package, "--verbose"])
+        run_pipx_cli(["install", package_spec, "--verbose"])
         elapsed_time2 = time.time() - start_time
 
         captured_sys_path = capfd.readouterr()
@@ -77,27 +85,27 @@ def install_package_debug(
         )
 
         if install_success_orig_path:
-            install_data[package]["sys_path_ok"] = True
+            install_data[package_spec]["sys_path_ok"] = True
         else:
-            install_data[package]["sys_path_ok"] = False
+            install_data[package_spec]["sys_path_ok"] = False
             print_error_report(
                 pipx_globals["error_report_path"],
                 captured_sys_path,
-                package,
+                package_spec,
                 "sys PATH",
             )
 
     with pipx_globals["report_path"].open("a") as report_fh:
-        clear_path = "PASS" if install_data[package]["clear_path_ok"] else "FAIL"
+        clear_path = "PASS" if install_data[package_spec]["clear_path_ok"] else "FAIL"
         install_time1 = f"{elapsed_time1:>3.0f}s"
-        if install_data[package]["clear_path_ok"]:
+        if install_data[package_spec]["clear_path_ok"]:
             sys_path = ""
             install_time2 = ""
         else:
-            sys_path = "PASS" if install_data[package]["sys_path_ok"] else "FAIL"
+            sys_path = "PASS" if install_data[package_spec]["sys_path_ok"] else "FAIL"
             install_time2 = f"{elapsed_time2:>3.0f}s"
         print(
-            f"{package:24}{clear_path:16}{sys_path:16}"
+            f"{package_spec:24}{clear_path:16}{sys_path:16}"
             f"{install_time1} {install_time2}",
             file=report_fh,
             flush=True,
