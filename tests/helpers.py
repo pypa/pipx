@@ -32,11 +32,6 @@ MOCK_PACKAGE_INFO_0_1: Dict[str, Any] = {
 
 # Versions of all packages possibly used in our tests
 PKGSPEC: Dict[str, str] = {
-    "lektor": "Lektor==3.2.0",
-    "retext": "ReText==7.1.0",
-    "sphinx": "Sphinx==3.2.1",
-    "weblate": "Weblate==4.3.1",  # py3.9 FAIL lxml<4.7.0,>=
-    "zeo": "ZEO==5.2.2",
     "ansible": "ansible==2.9.13",
     "awscli": "awscli==1.18.168",
     "b2": "b2==2.0.2",
@@ -68,6 +63,7 @@ PKGSPEC: Dict[str, str] = {
     "kibitzr": "kibitzr==6.0.0",  # py3.9 FAIL lxml
     "klaus": "klaus==1.5.2",
     "kolibri": "kolibri==0.14.3",
+    "lektor": "Lektor==3.2.0",
     "localstack": "localstack==0.12.1",
     "mackup": "mackup==0.8.29",  # NOTE: ONLY FOR mac, linux
     "magic-wormhole": "magic-wormhole==0.12.0",
@@ -83,9 +79,11 @@ PKGSPEC: Dict[str, str] = {
     "ptpython": "ptpython==3.0.7",
     "pycowsay": "pycowsay==0.0.0.1",
     "pylint": "pylint==2.3.1",
+    "retext": "ReText==7.1.0",
     "robotframework": "robotframework==3.2.2",
     "shell-functools": "shell-functools==0.3.0",
     "speedtest-cli": "speedtest-cli==2.1.2",
+    "sphinx": "Sphinx==3.2.1",
     "sqlmap": "sqlmap==1.4.10",
     "streamlink": "streamlink==1.7.0",
     "taguette": "taguette==0.9.2",
@@ -93,7 +91,9 @@ PKGSPEC: Dict[str, str] = {
     "tox-ini-fmt": "tox-ini-fmt==0.5.0",
     "visidata": "visidata==2.0.1",
     "vulture": "vulture==2.1",
+    "weblate": "Weblate==4.3.1",  # py3.9 FAIL lxml<4.7.0,>=
     "youtube-dl": "youtube-dl==2020.9.20",
+    "zeo": "ZEO==5.2.2",
 }
 
 
