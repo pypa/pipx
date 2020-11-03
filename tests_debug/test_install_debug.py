@@ -38,7 +38,7 @@ def print_error_report(error_report_path, captured_out_err, package, header):
 
 
 def install_package_debug(
-    pipx_globals, monkeypatch, capsys, pipx_temp_env, caplog, package, package_name=""
+    pipx_globals, monkeypatch, capfd, pipx_temp_env, caplog, package, package_name=""
 ):
     orig_path = os.getenv("PATH_OLD")
 
@@ -52,7 +52,7 @@ def install_package_debug(
     elapsed_time1 = time.time() - start_time
     elapsed_time2 = 0
 
-    captured_clear_path = capsys.readouterr()
+    captured_clear_path = capfd.readouterr()
     install_success = verify_install(captured_clear_path, caplog, package_name)
 
     if install_success:
@@ -71,7 +71,7 @@ def install_package_debug(
         run_pipx_cli(["install", package, "--verbose"])
         elapsed_time2 = time.time() - start_time
 
-        captured_sys_path = capsys.readouterr()
+        captured_sys_path = capfd.readouterr()
         install_success_orig_path = verify_install(
             captured_sys_path, caplog, package_name
         )
@@ -226,7 +226,7 @@ def test_all_packages(
     pipx_globals,
     start_end_report,
     monkeypatch,
-    capsys,
+    capfd,
     pipx_temp_env,
     caplog,
     package_name,
@@ -236,7 +236,7 @@ def test_all_packages(
     install_package_debug(
         pipx_globals,
         monkeypatch,
-        capsys,
+        capfd,
         pipx_temp_env,
         caplog,
         package_spec,
