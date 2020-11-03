@@ -35,4 +35,9 @@ def pipx_temp_env(tmp_path, monkeypatch):
 
 @pytest.fixture(scope="module")
 def pipx_globals():
-    return {"test_start": 0, "report_path": "", "install_data": {}}
+    return {
+        "test_start": 0,
+        "error_report_path": Path("."),
+        "report_path": Path("."),
+        "install_data": {},
+    }

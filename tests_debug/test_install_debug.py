@@ -23,6 +23,20 @@ def verify_install(captured_outerr, caplog, package_name):
     return install_success and not caplog_problem
 
 
+def print_error_report(error_report_path, captured_out_err, package, header):
+    py_version = f"Python {sys.version_info[0]}.{sys.version_info[1]}"
+    with error_report_path.open("a") as error_fh:
+        print("\n\n", file=error_fh)
+        print("=" * 76, file=error_fh)
+        print(f"{package:24}{header:16}{sys.platform:16}{py_version:}", file=error_fh)
+        print("\nSTDOUT:", file=error_fh)
+        print("-" * 76, file=error_fh)
+        print(captured_out_err.out, end="", file=error_fh)
+        print("\nSTDERR:", file=error_fh)
+        print("-" * 76, file=error_fh)
+        print(captured_out_err.err, end="", file=error_fh)
+
+
 def install_package_debug(
     pipx_globals, monkeypatch, capsys, pipx_temp_env, caplog, package, package_name=""
 ):
@@ -46,6 +60,12 @@ def install_package_debug(
     else:
         install_data[package]["clear_path_ok"] = False
         monkeypatch.setenv("PATH", orig_path)
+        print_error_report(
+            pipx_globals["error_report_path"],
+            captured_clear_path,
+            package,
+            "clear PATH",
+        )
 
         start_time = time.time()
         run_pipx_cli(["install", package, "--verbose"])
@@ -60,7 +80,12 @@ def install_package_debug(
             install_data[package]["sys_path_ok"] = True
         else:
             install_data[package]["sys_path_ok"] = False
-            print(captured_sys_path.out)
+            print_error_report(
+                pipx_globals["error_report_path"],
+                captured_sys_path,
+                package,
+                "sys PATH",
+            )
 
     with pipx_globals["report_path"].open("a") as report_fh:
         clear_path = "PASS" if install_data[package]["clear_path_ok"] else "FAIL"
@@ -84,6 +109,7 @@ def install_package_debug(
 @pytest.fixture(scope="module")
 def start_end_report(pipx_globals):
     pipx_globals["report_path"] = Path("./test_install_debug_report.txt")
+    pipx_globals["error_report_path"] = Path("./test_install_debug_errors.txt")
     pipx_globals["test_start"] = datetime.now()
 
     install_data = pipx_globals["install_data"]
@@ -131,7 +157,6 @@ def start_end_report(pipx_globals):
 @pytest.mark.parametrize(
     "package_name, package_spec",
     [
-        ("START", "START"),
         ("ansible", PKGSPEC["ansible"]),
         ("awscli", PKGSPEC["awscli"]),
         ("b2", PKGSPEC["b2"]),
@@ -194,7 +219,6 @@ def start_end_report(pipx_globals):
         ("weblate", PKGSPEC["weblate"]),  # py3.9 FAIL lxml<4.7.0,>=4.0
         ("youtube-dl", PKGSPEC["youtube-dl"]),
         ("zeo", PKGSPEC["zeo"]),
-        ("FINISH", "FINISH"),
     ],
 )
 @pytest.mark.all_packages
