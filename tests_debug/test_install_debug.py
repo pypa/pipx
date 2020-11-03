@@ -81,6 +81,53 @@ def install_package_debug(
     assert install_success or install_success_orig_path
 
 
+@pytest.fixture(scope="module")
+def start_end_report(pipx_globals):
+    pipx_globals["report_path"] = Path("./test_install_debug_report.txt")
+    pipx_globals["test_start"] = datetime.now()
+
+    install_data = pipx_globals["install_data"]
+    dt_string = pipx_globals["test_start"].strftime("%Y-%m-%d %H:%M:%S")
+
+    with pipx_globals["report_path"].open("a") as report_fh:
+        py_version = f"Python {sys.version_info[0]}.{sys.version_info[1]}"
+        print("\n\n", file=report_fh)
+        print("=" * 72, file=report_fh)
+        print(f"{sys.platform:16}{py_version:16}{dt_string}", file=report_fh)
+        print("", file=report_fh)
+        print(
+            f"{'package_spec':24}{'cleared PATH':16}{'system PATH':16}"
+            f"{'install time':16}",
+            file=report_fh,
+        )
+        print("-" * 72, file=report_fh)
+
+    yield
+
+    with pipx_globals["report_path"].open("a") as report_fh:
+        print("\nSummary", file=report_fh)
+        print("-" * 72, file=report_fh)
+        for package_spec in install_data:
+            if install_data[package_spec]["clear_path_ok"]:
+                continue
+            elif (
+                not install_data[package_spec]["clear_path_ok"]
+                and install_data[package_spec]["sys_path_ok"]
+            ):
+                print(f"{package_spec} needs prebuilt wheel", file=report_fh)
+            elif (
+                not install_data[package_spec]["clear_path_ok"]
+                and not install_data[package_spec]["sys_path_ok"]
+            ):
+                print(f"{package_spec} FAILS", file=report_fh)
+        test_end = datetime.now()
+        dt_string = test_end.strftime("%Y-%m-%d %H:%M:%S")
+        el_datetime = test_end - pipx_globals["test_start"]
+        el_datetime = el_datetime - timedelta(microseconds=el_datetime.microseconds)
+        print(f"\nFinished {dt_string}", file=report_fh)
+        print(f"Elapsed: {el_datetime}", file=report_fh)
+
+
 @pytest.mark.parametrize(
     "package_name, package_spec",
     [
@@ -152,58 +199,22 @@ def install_package_debug(
 )
 @pytest.mark.all_packages
 def test_all_packages(
-    pipx_globals, monkeypatch, capsys, pipx_temp_env, caplog, package_name, package_spec
+    pipx_globals,
+    start_end_report,
+    monkeypatch,
+    capsys,
+    pipx_temp_env,
+    caplog,
+    package_name,
+    package_spec,
 ):
-    install_data = pipx_globals["install_data"]
-
-    if package_name == "START" and package_spec == "START":
-        pipx_globals["report_path"] = Path("./test_install_debug_report.txt")
-        pipx_globals["test_start"] = datetime.now()
-        dt_string = pipx_globals["test_start"].strftime("%Y-%m-%d %H:%M:%S")
-
-        with pipx_globals["report_path"].open("a") as report_fh:
-            py_version = f"Python {sys.version_info[0]}.{sys.version_info[1]}"
-            print("\n\n", file=report_fh)
-            print("=" * 72, file=report_fh)
-            print(f"{sys.platform:16}{py_version:16}{dt_string}", file=report_fh)
-            print("", file=report_fh)
-            print(
-                f"{'package_spec':24}{'cleared PATH':16}{'system PATH':16}"
-                f"{'install time':16}",
-                file=report_fh,
-            )
-            print("-" * 72, file=report_fh)
-    elif package_name == "FINISH" and package_spec == "FINISH":
-        with pipx_globals["report_path"].open("a") as report_fh:
-            print("\nSummary", file=report_fh)
-            print("-" * 72, file=report_fh)
-            for package_spec in install_data:
-                if install_data[package_spec]["clear_path_ok"]:
-                    continue
-                elif (
-                    not install_data[package_spec]["clear_path_ok"]
-                    and install_data[package_spec]["sys_path_ok"]
-                ):
-                    print(f"{package_spec} needs prebuilt wheel", file=report_fh)
-                elif (
-                    not install_data[package_spec]["clear_path_ok"]
-                    and not install_data[package_spec]["sys_path_ok"]
-                ):
-                    print(f"{package_spec} FAILS", file=report_fh)
-            test_end = datetime.now()
-            dt_string = test_end.strftime("%Y-%m-%d %H:%M:%S")
-            el_datetime = test_end - pipx_globals["test_start"]
-            el_datetime = el_datetime - timedelta(microseconds=el_datetime.microseconds)
-            print(f"\nFinished {dt_string}", file=report_fh)
-            print(f"Elapsed: {el_datetime}", file=report_fh)
-    else:
-        pip_cache_purge()
-        install_package_debug(
-            pipx_globals,
-            monkeypatch,
-            capsys,
-            pipx_temp_env,
-            caplog,
-            package_spec,
-            package_name,
-        )
+    pip_cache_purge()
+    install_package_debug(
+        pipx_globals,
+        monkeypatch,
+        capsys,
+        pipx_temp_env,
+        caplog,
+        package_spec,
+        package_name,
+    )
