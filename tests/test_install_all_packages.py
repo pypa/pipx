@@ -9,6 +9,8 @@ import pytest  # type: ignore
 
 from helpers import PKGSPEC, run_pipx_cli
 
+REPORT_FILENAME_ROOT = "test_install_all_packages"
+
 
 @pytest.fixture(scope="module")
 def module_globals():
@@ -131,10 +133,10 @@ def start_end_report(module_globals):
     date_string = module_globals["test_start"].strftime("%Y%m%d")
 
     module_globals["report_path"] = Path(
-        f"./test_install_debug_report_{sys.platform}_{date_string}.txt"
+        f"./{REPORT_FILENAME_ROOT}_report_{sys.platform}_{date_string}.txt"
     )
     module_globals["error_report_path"] = Path(
-        f"./test_install_debug_errors_{sys.platform}_{date_string}.txt"
+        f"./{REPORT_FILENAME_ROOT}_errors_{sys.platform}_{date_string}.txt"
     )
 
     install_data = module_globals["install_data"]
