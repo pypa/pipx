@@ -59,14 +59,17 @@ PREBUILD_PACKAGES = {
 }
 
 
-def prebuild_wheels(session, prebuild_list):
+def prebuild_wheels(session, prebuild_dict):
     if sys.platform == "darwin":
         platform = "macos"
     elif sys.platform == "win32":
         platform = "win"
     else:
         platform = "unix"
-    print(platform)
+
+    prebuild_list = PREBUILD_PACKAGES.get("all", []) + PREBUILD_PACKAGES.get(
+        platform, []
+    )
 
     session.install("wheel")
     wheel_dir = Path(session.virtualenv.location) / "prebuild_wheels"
