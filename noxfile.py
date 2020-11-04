@@ -56,6 +56,7 @@ PREBUILD_PACKAGES = {
     "all": ["jupyter==1.0.0"],
     "macos": ["black==20.8b1"],
     "unix": [],
+    "win": [],
 }
 
 
