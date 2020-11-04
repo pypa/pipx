@@ -51,7 +51,7 @@ def print_error_report(error_report_path, captured_out_err, package_spec, header
         print(captured_out_err.err, end="", file=error_fh)
 
 
-def install_package_debug(
+def install_package(
     module_globals,
     monkeypatch,
     capfd,
@@ -259,7 +259,7 @@ def test_all_packages(
     package_spec,
 ):
     pip_cache_purge()
-    install_package_debug(
+    install_package(
         module_globals,
         monkeypatch,
         capfd,
