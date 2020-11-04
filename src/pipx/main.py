@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import shlex
+import shutil
 import sys
 import textwrap
 import urllib.parse
@@ -28,32 +29,48 @@ def print_version() -> None:
     print(__version__)
 
 
+def indented_wrap(text, subsequent_indent="", split="\n", **kwargs):
+    text = textwrap.dedent(text).strip()
+    minimum_width = 40
+    width = max(shutil.get_terminal_size((80, 40)).columns, minimum_width) - 2
+    return "\n".join(
+        [
+            textwrap.fill(line, width=width, subsequent_indent=subsequent_indent)
+            for line in text.splitlines()
+        ]
+    )
+
+
 SPEC_HELP = textwrap.dedent(
     """The package name or specific installation source passed to pip.
     Runs `pip install -U SPEC`.
     For example `--spec mypackage==2.0.0` or `--spec  git+https://github.com/user/repo.git@branch`
     """
 )
+
 PIPX_DESCRIPTION = textwrap.dedent(
     f"""
-Install and execute apps from Python packages.
+        Install and execute apps from Python packages.
 
-Binaries can either be installed globally into isolated Virtual Environments
-or run directly in an temporary Virtual Environment.
+        Binaries can either be installed globally into isolated Virtual Environments
+        or run directly in an temporary Virtual Environment.
 
-Virtual Environment location is {str(constants.PIPX_LOCAL_VENVS)}.
-Symlinks to apps are placed in {str(constants.LOCAL_BIN_DIR)}.
+        Virtual Environment location is {str(constants.PIPX_LOCAL_VENVS)}.
+        Symlinks to apps are placed in {str(constants.LOCAL_BIN_DIR)}.
 
-Optional Environment Variables:
-PIPX_HOME: Overrides default pipx location. Virtual Environments
-will be installed to $PIPX_HOME/venvs.
-PIPX_BIN_DIR: Overrides location of app installations. Apps are symlinked
-or copied here.
-USE_EMOJI: Override emoji behavior. Default value varies based on platform.
-PIPX_DEFAULT_PYTHON: Overrides default python used for commands.
-"""
+        """
 )
-
+PIPX_DESCRIPTION += "\n"
+PIPX_DESCRIPTION += indented_wrap(
+    """
+        optional environment variables:
+          PIPX_HOME             Overrides default pipx location. Virtual Environments will be installed to $PIPX_HOME/venvs.
+          PIPX_BIN_DIR          Overrides location of app installations. Apps are symlinked or copied here.
+          USE_EMOJI             Overrides emoji behavior. Default value varies based on platform.
+          PIPX_DEFAULT_PYTHON   Overrides default python used for commands.
+    """,
+    " " * 24,  # match the indent of argparse options
+)
 
 DOC_DEFAULT_PYTHON = os.getenv("PIPX__DOC_DEFAULT_PYTHON", DEFAULT_PYTHON)
 
