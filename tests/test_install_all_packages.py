@@ -80,12 +80,6 @@ def install_package(
     else:
         install_data[package_spec]["clear_path_ok"] = False
         monkeypatch.setenv("PATH", orig_path)
-        # print_error_report(
-        #    module_globals["error_report_path"],
-        #    captured_clear_path,
-        #    package_spec,
-        #    "clear PATH",
-        # )
 
         start_time = time.time()
         run_pipx_cli(["install", package_spec, "--verbose"])
@@ -186,13 +180,13 @@ def start_end_report(module_globals):
         ("ansible", PKGSPEC["ansible"]),
         ("awscli", PKGSPEC["awscli"]),
         ("b2", PKGSPEC["b2"]),
-        ("beancount", PKGSPEC["beancount"]),  # py3.9 FAIL lxml
+        ("beancount", PKGSPEC["beancount"]),
         ("beets", PKGSPEC["beets"]),
         ("black", PKGSPEC["black"]),
         ("cactus", PKGSPEC["cactus"]),
         ("chert", PKGSPEC["chert"]),
         ("cloudtoken", PKGSPEC["cloudtoken"]),
-        ("coala", PKGSPEC["coala"]),  # problem on win
+        ("coala", PKGSPEC["coala"]),
         ("cookiecutter", PKGSPEC["cookiecutter"]),
         ("cython", PKGSPEC["cython"]),
         ("datasette", PKGSPEC["datasette"]),
@@ -204,24 +198,24 @@ def start_end_report(module_globals):
         ("grow", PKGSPEC["grow"]),
         ("guake", PKGSPEC["guake"]),
         ("gunicorn", PKGSPEC["gunicorn"]),
-        ("howdoi", PKGSPEC["howdoi"]),  # py3.9 FAIL lxml
+        ("howdoi", PKGSPEC["howdoi"]),
         ("httpie", PKGSPEC["httpie"]),
-        ("hyde", PKGSPEC["hyde"]),  # py3.9 FAIL pyyaml
+        ("hyde", PKGSPEC["hyde"]),
         ("ipython", PKGSPEC["ipython"]),
         ("isort", PKGSPEC["isort"]),
         ("jaraco-financial", "jaraco.financial==2.0"),
         ("kaggle", PKGSPEC["kaggle"]),
-        ("kibitzr", PKGSPEC["kibitzr"]),  # py3.9 FAIL lxml
-        ("klaus", PKGSPEC["klaus"]),  # WIN problem making dep dulwich
+        ("kibitzr", PKGSPEC["kibitzr"]),
+        ("klaus", PKGSPEC["klaus"]),
         ("kolibri", PKGSPEC["kolibri"]),
         ("lektor", PKGSPEC["lektor"]),
         ("localstack", PKGSPEC["localstack"]),
         ("mackup", PKGSPEC["mackup"]),
         ("magic-wormhole", PKGSPEC["magic-wormhole"]),
-        ("mayan-edms", PKGSPEC["mayan-edms"]),  # py3.9 FAIL pillow
+        ("mayan-edms", PKGSPEC["mayan-edms"]),
         ("mkdocs", PKGSPEC["mkdocs"]),
         ("mycli", PKGSPEC["mycli"]),
-        ("nikola", PKGSPEC["nikola"]),  # py3.9 FAIL lxml
+        ("nikola", PKGSPEC["nikola"]),
         ("nox", PKGSPEC["nox"]),
         ("pelican", PKGSPEC["pelican"]),
         ("platformio", PKGSPEC["platformio"]),
@@ -242,7 +236,7 @@ def start_end_report(module_globals):
         ("tox-ini-fmt", PKGSPEC["tox-ini-fmt"]),
         ("visidata", PKGSPEC["visidata"]),
         ("vulture", PKGSPEC["vulture"]),
-        ("weblate", PKGSPEC["weblate"]),  # py3.9 FAIL lxml<4.7.0,>=4.0
+        ("weblate", PKGSPEC["weblate"]),
         ("youtube-dl", PKGSPEC["youtube-dl"]),
         ("zeo", PKGSPEC["zeo"]),
     ],
