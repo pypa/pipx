@@ -37,12 +37,13 @@ def verify_install(captured_outerr, caplog, package_name):
 
 
 def print_error_report(error_report_path, captured_out_err, package_spec, header):
-    py_version = f"Python {sys.version_info[0]}.{sys.version_info[1]}"
+    py_version_str = f"Python {sys.version_info[0]}.{sys.version_info[1]}"
     with error_report_path.open("a") as error_fh:
         print("\n\n", file=error_fh)
         print("=" * 76, file=error_fh)
         print(
-            f"{package_spec:24}{header:16}{sys.platform:16}{py_version:}", file=error_fh
+            f"{package_spec:24}{header:16}{sys.platform:16}{py_version_str:}",
+            file=error_fh,
         )
         print("\nSTDOUT:", file=error_fh)
         print("-" * 76, file=error_fh)
@@ -126,7 +127,7 @@ def start_end_report(module_globals):
     module_globals["test_start"] = datetime.now()
     dt_string = module_globals["test_start"].strftime("%Y-%m-%d %H:%M:%S")
     date_string = module_globals["test_start"].strftime("%Y%m%d")
-    py_version = f"Python {sys.version_info[0]}.{sys.version_info[1]}"
+    py_version = f"{sys.version_info[0]}.{sys.version_info[1]}"
     py_version_str = f"Python {py_version}"
 
     reports_path = Path(REPORTS_DIR, exist_ok=True, parents=True)
