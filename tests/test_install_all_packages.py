@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 import time
@@ -6,8 +7,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest  # type: ignore
+from package_info import PKG
 
-from helpers import PKGSPEC, run_pipx_cli
+from helpers import run_pipx_cli
 
 REPORTS_DIR = "./reports"
 REPORT_FILENAME_ROOT = "test_install_all_packages"
@@ -28,12 +30,35 @@ def pip_cache_purge():
 
 
 def verify_install(captured_outerr, caplog, package_name):
+    app_success = True
     caplog_problem = False
+
     install_success = f"installed package {package_name}" in captured_outerr.out
     for record in caplog.records:
         if "⚠️" in record.message or "WARNING" in record.message:
             caplog_problem = True
-    return install_success and not caplog_problem
+            print("verify_install: WARNINGS IN CAPLOG")
+    if install_success and PKG["package_name"].get("apps", None) is not None:
+        install_strings = []
+        for app in PKG["package_name"]["apps"]:
+            if sys.platform == "win32":
+                app_str = f"- {app}.exe"
+            else:
+                app_str = f"- {app}"
+            install_strings.append(app_str)
+
+        reported_apps_str = re.search(
+            r"These apps are now globally available(.+)",
+            captured_outerr.out,
+            re.MULTILINE,
+        )
+        reported_apps = [x.strip() for x in reported_apps_str.split("\n")]
+
+        if set(reported_apps) != set(install_strings):
+            print("verify_install: REPORTED APPS DO NOT MATCH PACKAGE")
+            app_success = False
+
+    return install_success and not caplog_problem and app_success
 
 
 def print_error_report(error_report_path, captured_out_err, package_spec, header):
@@ -184,68 +209,68 @@ def start_end_report(module_globals):
 @pytest.mark.parametrize(
     "package_name, package_spec",
     [
-        ("ansible", PKGSPEC["ansible"]),
-        ("awscli", PKGSPEC["awscli"]),
-        ("b2", PKGSPEC["b2"]),
-        ("beancount", PKGSPEC["beancount"]),
-        ("beets", PKGSPEC["beets"]),
-        ("black", PKGSPEC["black"]),
-        ("cactus", PKGSPEC["cactus"]),
-        ("chert", PKGSPEC["chert"]),
-        ("cloudtoken", PKGSPEC["cloudtoken"]),
-        ("coala", PKGSPEC["coala"]),
-        ("cookiecutter", PKGSPEC["cookiecutter"]),
-        ("cython", PKGSPEC["cython"]),
-        ("datasette", PKGSPEC["datasette"]),
-        ("diffoscope", PKGSPEC["diffoscope"]),
-        ("doc2dash", PKGSPEC["doc2dash"]),
-        ("doitlive", PKGSPEC["doitlive"]),
-        ("gdbgui", PKGSPEC["gdbgui"]),
-        ("gns3-gui", PKGSPEC["gns3-gui"]),
-        ("grow", PKGSPEC["grow"]),
-        ("guake", PKGSPEC["guake"]),
-        ("gunicorn", PKGSPEC["gunicorn"]),
-        ("howdoi", PKGSPEC["howdoi"]),
-        ("httpie", PKGSPEC["httpie"]),
-        ("hyde", PKGSPEC["hyde"]),
-        ("ipython", PKGSPEC["ipython"]),
-        ("isort", PKGSPEC["isort"]),
-        ("jaraco-financial", "jaraco.financial==2.0"),
-        ("kaggle", PKGSPEC["kaggle"]),
-        ("kibitzr", PKGSPEC["kibitzr"]),
-        ("klaus", PKGSPEC["klaus"]),
-        ("kolibri", PKGSPEC["kolibri"]),
-        ("lektor", PKGSPEC["lektor"]),
-        ("localstack", PKGSPEC["localstack"]),
-        ("mackup", PKGSPEC["mackup"]),
-        ("magic-wormhole", PKGSPEC["magic-wormhole"]),
-        ("mayan-edms", PKGSPEC["mayan-edms"]),
-        ("mkdocs", PKGSPEC["mkdocs"]),
-        ("mycli", PKGSPEC["mycli"]),
-        ("nikola", PKGSPEC["nikola"]),
-        ("nox", PKGSPEC["nox"]),
-        ("pelican", PKGSPEC["pelican"]),
-        ("platformio", PKGSPEC["platformio"]),
-        ("ppci", PKGSPEC["ppci"]),
-        ("prosopopee", PKGSPEC["prosopopee"]),
-        ("ptpython", PKGSPEC["ptpython"]),
-        ("pycowsay", PKGSPEC["pycowsay"]),
-        ("pylint", PKGSPEC["pylint"]),
-        ("retext", PKGSPEC["retext"]),
-        ("robotframework", PKGSPEC["robotframework"]),
-        ("shell-functools", PKGSPEC["shell-functools"]),
-        ("speedtest-cli", PKGSPEC["speedtest-cli"]),
-        ("sphinx", PKGSPEC["sphinx"]),
-        ("sqlmap", PKGSPEC["sqlmap"]),
-        ("streamlink", PKGSPEC["streamlink"]),
-        ("taguette", PKGSPEC["taguette"]),
-        ("term2048", PKGSPEC["term2048"]),
-        ("tox-ini-fmt", PKGSPEC["tox-ini-fmt"]),
-        ("visidata", PKGSPEC["visidata"]),
-        ("vulture", PKGSPEC["vulture"]),
-        ("weblate", PKGSPEC["weblate"]),
-        ("youtube-dl", PKGSPEC["youtube-dl"]),
-        ("zeo", PKGSPEC["zeo"]),
+        ("ansible", PKG["ansible"]["spec"]),
+        ("awscli", PKG["awscli"]["spec"]),
+        ("b2", PKG["b2"]["spec"]),
+        ("beancount", PKG["beancount"]["spec"]),
+        ("beets", PKG["beets"]["spec"]),
+        ("black", PKG["black"]["spec"]),
+        ("cactus", PKG["cactus"]["spec"]),
+        ("chert", PKG["chert"]["spec"]),
+        ("cloudtoken", PKG["cloudtoken"]["spec"]),
+        ("coala", PKG["coala"]["spec"]),
+        ("cookiecutter", PKG["cookiecutter"]["spec"]),
+        ("cython", PKG["cython"]["spec"]),
+        ("datasette", PKG["datasette"]["spec"]),
+        ("diffoscope", PKG["diffoscope"]["spec"]),
+        ("doc2dash", PKG["doc2dash"]["spec"]),
+        ("doitlive", PKG["doitlive"]["spec"]),
+        ("gdbgui", PKG["gdbgui"]["spec"]),
+        ("gns3-gui", PKG["gns3-gui"]["spec"]),
+        ("grow", PKG["grow"]["spec"]),
+        ("guake", PKG["guake"]["spec"]),
+        ("gunicorn", PKG["gunicorn"]["spec"]),
+        ("howdoi", PKG["howdoi"]["spec"]),
+        ("httpie", PKG["httpie"]["spec"]),
+        ("hyde", PKG["hyde"]["spec"]),
+        ("ipython", PKG["ipython"]["spec"]),
+        ("isort", PKG["isort"]["spec"]),
+        ("jaraco-financial", PKG["jaraco-financial"]["spec"]),
+        ("kaggle", PKG["kaggle"]["spec"]),
+        ("kibitzr", PKG["kibitzr"]["spec"]),
+        ("klaus", PKG["klaus"]["spec"]),
+        ("kolibri", PKG["kolibri"]["spec"]),
+        ("lektor", PKG["lektor"]["spec"]),
+        ("localstack", PKG["localstack"]["spec"]),
+        ("mackup", PKG["mackup"]["spec"]),
+        ("magic-wormhole", PKG["magic-wormhole"]["spec"]),
+        ("mayan-edms", PKG["mayan-edms"]["spec"]),
+        ("mkdocs", PKG["mkdocs"]["spec"]),
+        ("mycli", PKG["mycli"]["spec"]),
+        ("nikola", PKG["nikola"]["spec"]),
+        ("nox", PKG["nox"]["spec"]),
+        ("pelican", PKG["pelican"]["spec"]),
+        ("platformio", PKG["platformio"]["spec"]),
+        ("ppci", PKG["ppci"]["spec"]),
+        ("prosopopee", PKG["prosopopee"]["spec"]),
+        ("ptpython", PKG["ptpython"]["spec"]),
+        ("pycowsay", PKG["pycowsay"]["spec"]),
+        ("pylint", PKG["pylint"]["spec"]),
+        ("retext", PKG["retext"]["spec"]),
+        ("robotframework", PKG["robotframework"]["spec"]),
+        ("shell-functools", PKG["shell-functools"]["spec"]),
+        ("speedtest-cli", PKG["speedtest-cli"]["spec"]),
+        ("sphinx", PKG["sphinx"]["spec"]),
+        ("sqlmap", PKG["sqlmap"]["spec"]),
+        ("streamlink", PKG["streamlink"]["spec"]),
+        ("taguette", PKG["taguette"]["spec"]),
+        ("term2048", PKG["term2048"]["spec"]),
+        ("tox-ini-fmt", PKG["tox-ini-fmt"]["spec"]),
+        ("visidata", PKG["visidata"]["spec"]),
+        ("vulture", PKG["vulture"]["spec"]),
+        ("weblate", PKG["weblate"]["spec"]),
+        ("youtube-dl", PKG["youtube-dl"]["spec"]),
+        ("zeo", PKG["zeo"]["spec"]),
     ],
 )
 @pytest.mark.all_packages
