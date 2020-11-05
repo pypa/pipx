@@ -29,5 +29,27 @@ jobs:
     - name: Store reports as artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: reports
+        name: reports-raw
+        path: reports
+
+  report_all_packages:
+    name: Collate test reports
+    needs: test_all_packages
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Get report artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: reports-raw
+        path: reports
+    - name: Collate reports
+      run: |
+        ls *
+        cat reports/test_install_all_packages_report_* > reports/all_reports.txt
+        cat reports/test_install_all_packages_errors_* > reports/all_errors.txt
+    - name: Store collated and raw reports as artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: reports-final
         path: reports
