@@ -43,10 +43,12 @@ jobs:
         name: reports-raw
     - name: Collate reports
       run: |
-        ls *
+        ls # DEBUG
         mkdir reports
-        cat test_install_all_packages_report_* > reports/all_reports.txt
-        cat test_install_all_packages_errors_* > reports/all_errors.txt
+        cat test_install_all_packages_report_* > all_reports_lf.txt
+        cat test_install_all_packages_errors_* > all_errors_lf.txt
+        tr -d '\r' < all_reports_lf.txt > reports/all_reports.txt
+        tr -d '\r' < all_errors_lf.txt > reports/all_errors.txt
     - name: Store collated and raw reports as artifacts
       uses: actions/upload-artifact@v2
       with:
