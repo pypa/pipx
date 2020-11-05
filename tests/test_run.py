@@ -5,10 +5,11 @@ import sys
 from unittest import mock
 
 import pytest  # type: ignore
+from package_info import PKG
 
 import pipx.main
 import pipx.util
-from helpers import PKGSPEC, run_pipx_cli
+from helpers import run_pipx_cli
 
 
 def test_help_text(pipx_temp_env, monkeypatch, capsys):
@@ -128,14 +129,14 @@ def test_run_ensure_null_pythonpath():
     "package, package_or_url, app_appargs, skip_win",
     [
         ("pycowsay", "pycowsay", ["pycowsay", "hello"], False),
-        ("shell-functools", PKGSPEC["shell-functools"], ["filter", "--help"], True),
-        ("black", PKGSPEC["black"], ["black", "--help"], False),
-        ("pylint", PKGSPEC["pylint"], ["pylint", "--help"], False),
-        ("kaggle", PKGSPEC["kaggle"], ["kaggle", "--help"], False),
-        ("ipython", PKGSPEC["ipython"], ["ipython", "--version"], False),
-        ("cloudtoken", PKGSPEC["cloudtoken"], ["cloudtoken", "--help"], True),
-        ("awscli", PKGSPEC["awscli"], ["aws", "--help"], True),
-        # ("ansible", PKGSPEC["ansible"], ["ansible", "--help"]), # takes too long
+        ("shell-functools", PKG["shell-functools"]["spec"], ["filter", "--help"], True),
+        ("black", PKG["black"]["spec"], ["black", "--help"], False),
+        ("pylint", PKG["pylint"]["spec"], ["pylint", "--help"], False),
+        ("kaggle", PKG["kaggle"]["spec"], ["kaggle", "--help"], False),
+        ("ipython", PKG["ipython"]["spec"], ["ipython", "--version"], False),
+        ("cloudtoken", PKG["cloudtoken"]["spec"], ["cloudtoken", "--help"], True),
+        ("awscli", PKG["awscli"]["spec"], ["aws", "--help"], True),
+        # ("ansible", PKG["ansible"]["spec"], ["ansible", "--help"]), # takes too long
     ],
 )
 @mock.patch("os.execvpe", new=execvpe_mock)

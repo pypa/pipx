@@ -3,8 +3,9 @@ import sys
 from unittest import mock
 
 import pytest  # type: ignore
+from package_info import PKG
 
-from helpers import PKGSPEC, run_pipx_cli, which_python
+from helpers import run_pipx_cli, which_python
 from pipx import constants
 
 PYTHON3_5 = which_python("python3.5")
@@ -41,7 +42,7 @@ def install_package(capsys, pipx_temp_env, caplog, package, package_name=""):
 
 @pytest.mark.parametrize(
     "package_name, package_spec",
-    [("pycowsay", "pycowsay"), ("black", PKGSPEC["black"])],
+    [("pycowsay", "pycowsay"), ("black", PKG["black"]["spec"])],
 )
 def test_install_easy_packages(
     capsys, pipx_temp_env, caplog, package_name, package_spec
@@ -52,10 +53,10 @@ def test_install_easy_packages(
 @pytest.mark.parametrize(
     "package_name, package_spec",
     [
-        ("cloudtoken", PKGSPEC["cloudtoken"]),
-        ("awscli", PKGSPEC["awscli"]),
-        ("ansible", PKGSPEC["ansible"]),
-        ("shell-functools", PKGSPEC["shell-functools"]),
+        ("cloudtoken", PKG["cloudtoken"]["spec"]),
+        ("awscli", PKG["awscli"]["spec"]),
+        ("ansible", PKG["ansible"]["spec"]),
+        ("shell-functools", PKG["shell-functools"]["spec"]),
     ],
 )
 def test_install_tricky_packages(
@@ -74,7 +75,7 @@ def test_install_tricky_packages(
     "package_name, package_spec",
     [
         # ("nox", "git+https://github.com/cs01/nox.git@5ea70723e9e6"),
-        ("pylint", PKGSPEC["pylint"]),
+        ("pylint", PKG["pylint"]["spec"]),
         ("black", "https://github.com/ambv/black/archive/18.9b0.zip"),
     ],
 )
@@ -112,15 +113,15 @@ def test_install_same_package_twice_no_error(pipx_temp_env, capsys):
 
 
 def test_include_deps(pipx_temp_env, capsys):
-    assert run_pipx_cli(["install", PKGSPEC["jupyter"]]) == 1
-    assert not run_pipx_cli(["install", PKGSPEC["jupyter"], "--include-deps"])
+    assert run_pipx_cli(["install", PKG["jupyter"]["spec"]]) == 1
+    assert not run_pipx_cli(["install", PKG["jupyter"]["spec"], "--include-deps"])
 
 
 @pytest.mark.parametrize(
     "package_name, package_spec",
     [
         ("jaraco-financial", "jaraco.financial==2.0.0"),
-        ("tox-ini-fmt", PKGSPEC["tox-ini-fmt"]),
+        ("tox-ini-fmt", PKG["tox-ini-fmt"]["spec"]),
     ],
 )
 def test_name_tricky_characters(
