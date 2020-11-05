@@ -69,8 +69,16 @@ PKG: Dict[str, Dict[str, Any]] = {
     "ppci": {"spec": "ppci==0.5.8"},
     "prosopopee": {"spec": "prosopopee==1.1.3"},
     "ptpython": {"spec": "ptpython==3.0.7"},
-    "pycowsay": {"spec": "pycowsay==0.0.0.1", "apps": ["pycowsay"]},
-    "pylint": {"spec": "pylint==2.3.1"},
+    "pycowsay": {
+        "spec": "pycowsay==0.0.0.1",
+        "apps": ["pycowsay"],
+        "apps_of_dependencies": [],
+    },
+    "pylint": {
+        "spec": "pylint==2.3.1",
+        "apps": ["epylint", "pylint", "pyreverse", "symilar"],
+        "apps_of_dependencies": ["isort"],
+    },
     "retext": {"spec": "ReText==7.1.0"},
     "robotframework": {"spec": "robotframework==3.2.2"},
     "shell-functools": {"spec": "shell-functools==0.3.0"},
