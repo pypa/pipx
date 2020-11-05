@@ -29,34 +29,56 @@ def pip_cache_purge():
     return subprocess.run([sys.executable, "-m", "pip", "cache", "purge"])
 
 
-def verify_install(captured_outerr, caplog, package_name):
-    app_success = True
-    caplog_problem = False
+def verify_installed_apps(captured_outerr, package_name):
+    install_strings = []
+    for app in PKG[package_name]["apps"]:
+        if sys.platform == "win32":
+            app_str = f"- {app}.exe"
+        else:
+            app_str = f"- {app}"
+        install_strings.append(app_str)
 
+    reported_apps_re = re.search(
+        r"These apps are now globally available(.+)", captured_outerr.out, re.DOTALL
+    )
+    if reported_apps_re:
+        reported_apps = [
+            x.strip() for x in reported_apps_re.group(1).strip().split("\n")
+        ]
+        if set(reported_apps) != set(install_strings):
+            app_success = False
+            print("verify_install: REPORTED APPS DO NOT MATCH PACKAGE")
+        else:
+            app_success = True
+    else:
+        app_success = False
+        print("verify_install: APPS TESTING ERROR")
+
+    # TODO: DEBUG
+    with Path("debug.txt").open("a") as debug_fh:
+        print(f"package_name = {package_name}", file=debug_fh)
+        if reported_apps_re:
+            print("reported_apps_re.group(1)", file=debug_fh)
+            print(repr(reported_apps_re.group(1)), file=debug_fh)
+            print("reported_apps", file=debug_fh)
+            print(repr(reported_apps), file=debug_fh)
+            print("install_strings", file=debug_fh)
+            print(repr(install_strings), file=debug_fh)
+
+    return app_success
+
+
+def verify_install(captured_outerr, caplog, package_name):
+    caplog_problem = False
     install_success = f"installed package {package_name}" in captured_outerr.out
     for record in caplog.records:
         if "⚠️" in record.message or "WARNING" in record.message:
             caplog_problem = True
             print("verify_install: WARNINGS IN CAPLOG")
-    if install_success and PKG["package_name"].get("apps", None) is not None:
-        install_strings = []
-        for app in PKG["package_name"]["apps"]:
-            if sys.platform == "win32":
-                app_str = f"- {app}.exe"
-            else:
-                app_str = f"- {app}"
-            install_strings.append(app_str)
-
-        reported_apps_str = re.search(
-            r"These apps are now globally available(.+)",
-            captured_outerr.out,
-            re.MULTILINE,
-        )
-        reported_apps = [x.strip() for x in reported_apps_str.split("\n")]
-
-        if set(reported_apps) != set(install_strings):
-            print("verify_install: REPORTED APPS DO NOT MATCH PACKAGE")
-            app_success = False
+    if install_success and PKG[package_name].get("apps", None) is not None:
+        app_success = verify_installed_apps(captured_outerr, package_name)
+    else:
+        app_success = True
 
     return install_success and not caplog_problem and app_success
 
@@ -155,8 +177,8 @@ def start_end_report(module_globals):
     py_version = f"{sys.version_info[0]}.{sys.version_info[1]}"
     py_version_str = f"Python {py_version}"
 
-    reports_path = Path(REPORTS_DIR, exist_ok=True, parents=True)
-    reports_path.mkdir()
+    reports_path = Path(REPORTS_DIR)
+    reports_path.mkdir(exist_ok=True, parents=True)
     module_globals["report_path"] = (
         reports_path
         / f"./{REPORT_FILENAME_ROOT}_report_{sys.platform}_{py_version}_{date_string}.txt"
