@@ -9,9 +9,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        #os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: [3.8, 3.9]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.6, 3.7, 3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v2
@@ -31,7 +30,6 @@ jobs:
       with:
         name: reports-raw
         path: reports
-        retention-days: 2
 
   report_all_packages:
     name: Collate test reports
@@ -43,12 +41,12 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: reports-raw
-        path: reports
     - name: Collate reports
       run: |
         ls *
-        cat reports/test_install_all_packages_report_* > reports/all_reports.txt
-        cat reports/test_install_all_packages_errors_* > reports/all_errors.txt
+        mkdir reports
+        cat test_install_all_packages_report_* > reports/all_reports.txt
+        cat test_install_all_packages_errors_* > reports/all_errors.txt
     - name: Store collated and raw reports as artifacts
       uses: actions/upload-artifact@v2
       with:
