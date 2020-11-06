@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest  # type: ignore
 
-from helpers import run_pipx_cli, which_python
+from helpers import app_name, run_pipx_cli, which_python  # noqa: F401
 from package_info import PKG
 from pipx import constants
 
@@ -142,7 +142,7 @@ def test_extra(pipx_temp_env, capsys):
 
     assert not run_pipx_cli(["install", "nox[tox_to_nox]==2020.8.22", "--include-deps"])
     captured = capsys.readouterr()
-    assert "- tox\n" in captured.out
+    assert "- {app_name('tox')}\n" in captured.out
 
 
 def test_install_local_extra(pipx_temp_env, capsys):
@@ -153,7 +153,7 @@ def test_install_local_extra(pipx_temp_env, capsys):
         ["install", TEST_DATA_PATH + "/local_extras[cow]", "--include-deps"]
     )
     captured = capsys.readouterr()
-    assert "- pycowsay\n" in captured.out
+    assert "- {app_name('pycowsay')}\n" in captured.out
 
 
 def test_path_warning(pipx_temp_env, capsys, monkeypatch, caplog):

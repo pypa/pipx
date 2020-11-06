@@ -31,6 +31,10 @@ MOCK_PACKAGE_INFO_0_1: Dict[str, Any] = {
 }
 
 
+def app_name(app: str) -> str:
+    return f"{app}.exe" if sys.platform.startswith("win") else app
+
+
 def run_pipx_cli(pipx_args: List[str]) -> int:
     with mock.patch.object(sys, "argv", ["pipx"] + pipx_args):
         return main.cli()
