@@ -1,12 +1,18 @@
 import pytest  # type: ignore
 
 from helpers import mock_legacy_venv, run_pipx_cli
+from package_info import PKG
 from pipx import constants, util
 
 
 def test_uninstall(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["uninstall", "pycowsay"])
+
+
+def test_uninstall_circular_deps(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", PKG["cloudtoken"]["spec"]])
+    assert not run_pipx_cli(["uninstall", "cloudtoken"])
 
 
 @pytest.mark.parametrize("metadata_version", [None, "0.1"])
