@@ -44,24 +44,13 @@ def verify_installed_apps(captured_outerr, package_name):
         if set(reported_apps) != set(package_apps):
             app_success = False
             print("verify_install: REPORTED APPS DO NOT MATCH PACKAGE")
-            print(f"reported_apps: {reported_apps}")
-            print(f" package_apps: {package_apps}")
+            print(f"pipx reported apps: {reported_apps}")
+            print(f" true package apps: {package_apps}")
         else:
             app_success = True
     else:
         app_success = False
         print("verify_install: APPS TESTING ERROR")
-
-    # TODO: DEBUG
-    with Path("debug.txt").open("a") as debug_fh:
-        print(f"package_name = {package_name}", file=debug_fh)
-        if reported_apps_re:
-            print("reported_apps_re.group(1)", file=debug_fh)
-            print(repr(reported_apps_re.group(1)), file=debug_fh)
-            print("reported_apps", file=debug_fh)
-            print(repr(reported_apps), file=debug_fh)
-            print("package_apps", file=debug_fh)
-            print(repr(package_apps), file=debug_fh)
 
     return app_success
 
