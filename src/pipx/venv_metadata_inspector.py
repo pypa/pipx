@@ -117,7 +117,8 @@ def _dfs_package_apps(
     dep_visited: Optional[Dict[str, bool]] = None,
 ) -> Dict[str, List[Path]]:
     if dep_visited is None:
-        dep_visited = {}
+        # Initialize: we have already visited root
+        dep_visited = {canonicalize_name(package_req.name): True}
 
     dependencies = get_package_dependencies(dist, package_req.extras)
     for dep_req in dependencies:
@@ -156,8 +157,7 @@ def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
 
 def main():
     package_req = Requirement(sys.argv[1])
-    package_req.name = distribution_name(package_req.name)
-    dist = metadata.distribution(package_req.name)
+    dist = metadata.distribution(distribution_name(package_req.name))
     bin_path = Path(sys.argv[2])
 
     apps = get_apps(dist, bin_path)
