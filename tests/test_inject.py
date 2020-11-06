@@ -23,7 +23,7 @@ def test_inject_simple_legacy_venv(pipx_temp_env, capsys, metadata_version):
 
 def test_inject_tricky_character(pipx_temp_env, capsys):
     # TODO: remove skip when debug venv_metadata_inspector_legacy.py is removed
-    pytest.skip("Remove this skip when venv_metadata_inspector_legacy.py is removed")
+    # pytest.skip("Remove this skip when venv_metadata_inspector_legacy.py is removed")
 
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", "jaraco.clipboard==2.0.1"])
