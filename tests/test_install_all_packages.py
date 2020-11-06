@@ -30,24 +30,22 @@ def pip_cache_purge():
 
 
 def verify_installed_apps(captured_outerr, package_name):
-    install_strings = []
-    for app in PKG[package_name]["apps"]:
-        if sys.platform == "win32":
-            app_str = f"- {app}.exe"
-        else:
-            app_str = f"- {app}"
-        install_strings.append(app_str)
+    package_apps = PKG[package_name]["apps"]
+    if sys.platform == "win32":
+        package_apps = [f"{app}.exe" for app in package_apps]
 
     reported_apps_re = re.search(
         r"These apps are now globally available(.+)", captured_outerr.out, re.DOTALL
     )
     if reported_apps_re:
         reported_apps = [
-            x.strip() for x in reported_apps_re.group(1).strip().split("\n")
+            x.strip()[2:] for x in reported_apps_re.group(1).strip().split("\n")
         ]
-        if set(reported_apps) != set(install_strings):
+        if set(reported_apps) != set(package_apps):
             app_success = False
             print("verify_install: REPORTED APPS DO NOT MATCH PACKAGE")
+            print(f"reported_apps: {reported_apps}")
+            print(f" package_apps: {package_apps}")
         else:
             app_success = True
     else:
@@ -62,8 +60,8 @@ def verify_installed_apps(captured_outerr, package_name):
             print(repr(reported_apps_re.group(1)), file=debug_fh)
             print("reported_apps", file=debug_fh)
             print(repr(reported_apps), file=debug_fh)
-            print("install_strings", file=debug_fh)
-            print(repr(install_strings), file=debug_fh)
+            print("package_apps", file=debug_fh)
+            print(repr(package_apps), file=debug_fh)
 
     return app_success
 
@@ -100,7 +98,7 @@ def print_error_report(
         print("\nSTDERR:", file=error_fh)
         print("-" * 76, file=error_fh)
         print(command_captured.err, end="", file=error_fh)
-        print("\nTEST ERRORS:", file=error_fh)
+        print("\n\nTEST ERRORS:", file=error_fh)
         print("-" * 76, file=error_fh)
         print(test_captured.out, end="", file=error_fh)
 
