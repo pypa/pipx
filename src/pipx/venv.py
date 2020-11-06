@@ -347,32 +347,32 @@ class Venv:
         )  # TODO: debugging
 
         # TODO: debugging
-        data_start = time.time()
-        data_legacy = json.loads(
-            run_subprocess(
-                [
-                    self.python_path,
-                    "-c",
-                    VENV_METADATA_INSPECTOR_LEGACY,
-                    package,
-                    self.bin_path,
-                ],
-                capture_stderr=False,
-                log_cmd_str=" ".join(
-                    [
-                        str(self.python_path),
-                        "-c",
-                        "<contents of venv_metadata_inspector_legacy.py>",
-                        package,
-                        str(self.bin_path),
-                    ]
-                ),
-            ).stdout
-        )
-        logging.info(
-            f"venv_metadata_inspector_legacy: {1e3*(time.time()-data_start):.0f}ms"
-        )
-        self._debug_compare_metadata(data, data_legacy)
+        # data_start = time.time()
+        # data_legacy = json.loads(
+        #     run_subprocess(
+        #         [
+        #             self.python_path,
+        #             "-c",
+        #             VENV_METADATA_INSPECTOR_LEGACY,
+        #             package,
+        #             self.bin_path,
+        #         ],
+        #         capture_stderr=False,
+        #         log_cmd_str=" ".join(
+        #             [
+        #                 str(self.python_path),
+        #                 "-c",
+        #                 "<contents of venv_metadata_inspector_legacy.py>",
+        #                 package,
+        #                 str(self.bin_path),
+        #             ]
+        #         ),
+        #     ).stdout
+        # )
+        # logging.info(
+        #     f"venv_metadata_inspector_legacy: {1e3*(time.time()-data_start):.0f}ms"
+        # )
+        # self._debug_compare_metadata(data, data_legacy)
 
         venv_metadata_traceback = data.pop("exception_traceback", None)
         if venv_metadata_traceback is not None:
