@@ -5,11 +5,11 @@ import sys
 from unittest import mock
 
 import pytest  # type: ignore
-from package_info import PKG
 
 import pipx.main
 import pipx.util
 from helpers import run_pipx_cli
+from package_info import PKG
 
 
 def test_help_text(pipx_temp_env, monkeypatch, capsys):

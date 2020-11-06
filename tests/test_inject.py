@@ -1,7 +1,7 @@
 import pytest  # type: ignore
-from package_info import PKG
 
 from helpers import mock_legacy_venv, run_pipx_cli
+from package_info import PKG
 
 
 def test_inject_simple(pipx_temp_env, capsys):

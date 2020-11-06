@@ -3,9 +3,9 @@ import sys
 from unittest import mock
 
 import pytest  # type: ignore
-from package_info import PKG
 
 from helpers import run_pipx_cli, which_python
+from package_info import PKG
 from pipx import constants
 
 PYTHON3_5 = which_python("python3.5")
