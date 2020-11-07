@@ -13,7 +13,7 @@ from helpers import run_pipx_cli
 from package_info import PKG
 
 REPORTS_DIR = "./reports"
-REPORT_FILENAME_ROOT = "test_install_all_packages"
+REPORT_FILENAME_ROOT = "all_packages"
 # "package_name, package_spec",
 PACKAGE_PARAMETRIZE_LIST = [
     ("ansible", PKG["ansible"]["spec"]),
@@ -251,6 +251,7 @@ def install_package(
         )
 
 
+# use class scope to start and finish at end of all parametrized tests
 @pytest.fixture(scope="class")
 def start_end_report(module_globals, request):
     module_globals["test_start"] = datetime.now()
@@ -262,17 +263,15 @@ def start_end_report(module_globals, request):
     reports_path = Path(REPORTS_DIR)
     reports_path.mkdir(exist_ok=True, parents=True)
 
-    if getattr(request.cls, "deps", False):
-        dep_str = "_deps_"
-    else:
-        dep_str = "_"
+    test_class = getattr(request.cls, "test_class", "unknown")
+
     module_globals["report_path"] = (
         reports_path
-        / f"./{REPORT_FILENAME_ROOT}{dep_str}report_{sys.platform}_{py_version}_{date_string}.txt"
+        / f"./{REPORT_FILENAME_ROOT}_{test_class}_report_{sys.platform}_{py_version}_{date_string}.txt"
     )
     module_globals["error_path"] = (
         reports_path
-        / f"./{REPORT_FILENAME_ROOT}{dep_str}errors_{sys.platform}_{py_version}_{date_string}.txt"
+        / f"./{REPORT_FILENAME_ROOT}_{test_class}_errors_{sys.platform}_{py_version}_{date_string}.txt"
     )
 
     install_data = module_globals["install_data"]
@@ -314,7 +313,7 @@ def start_end_report(module_globals, request):
 
 
 class TestAllPackagesNoDeps:
-    deps = False
+    test_class = "nodeps"
 
     @pytest.mark.parametrize("package_name, package_spec", PACKAGE_PARAMETRIZE_LIST)
     @pytest.mark.all_packages
@@ -343,7 +342,7 @@ class TestAllPackagesNoDeps:
 
 
 class TestAllPackagesDeps:
-    deps = True
+    test_class = "deps"
 
     @pytest.mark.parametrize("package_name, package_spec", PACKAGE_PARAMETRIZE_LIST)
     @pytest.mark.all_packages
