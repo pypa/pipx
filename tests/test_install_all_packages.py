@@ -7,9 +7,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest  # type: ignore
-from package_info import PKG
 
 from helpers import run_pipx_cli
+from package_info import PKG
 
 REPORTS_DIR = "./reports"
 REPORT_FILENAME_ROOT = "test_install_all_packages"
@@ -206,17 +206,15 @@ def start_end_report(module_globals):
         print("\nSummary", file=report_fh)
         print("-" * 72, file=report_fh)
         for package_spec in install_data:
-            if install_data[package_spec]["clear_path_ok"]:
+            if install_data[package_spec].get("clear_path_ok", False):
                 continue
-            elif (
-                not install_data[package_spec]["clear_path_ok"]
-                and install_data[package_spec]["sys_path_ok"]
-            ):
+            elif not install_data[package_spec].get(
+                "clear_path_ok", False
+            ) and install_data[package_spec].get("sys_path_ok", False):
                 print(f"{package_spec} needs prebuilt wheel", file=report_fh)
-            elif (
-                not install_data[package_spec]["clear_path_ok"]
-                and not install_data[package_spec]["sys_path_ok"]
-            ):
+            elif not install_data[package_spec].get(
+                "clear_path_ok", False
+            ) and not install_data[package_spec].get("sys_path_ok", False):
                 print(f"{package_spec} FAILS", file=report_fh)
         test_end = datetime.now()
         dt_string = test_end.strftime("%Y-%m-%d %H:%M:%S")
