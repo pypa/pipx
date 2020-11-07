@@ -168,7 +168,7 @@ def print_error_report(
         print(command_captured.err, end="", file=error_fh)
         print("\n\nTEST ERRORS:", file=error_fh)
         print("-" * 76, file=error_fh)
-        print(test_error_fh.get_value(), end="", file=error_fh)
+        print(test_error_fh.getvalue(), end="", file=error_fh)
 
 
 def install_package(
