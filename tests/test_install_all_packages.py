@@ -31,8 +31,6 @@ def pip_cache_purge():
 
 def verify_installed_apps(captured_outerr, package_name):
     package_apps = PKG[package_name]["apps"]
-    if sys.platform == "win32":
-        package_apps = [f"{app}.exe" for app in package_apps]
 
     reported_apps_re = re.search(
         r"These apps are now globally available(.+)", captured_outerr.out, re.DOTALL
