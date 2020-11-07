@@ -30,4 +30,5 @@ def pipx_temp_env(tmp_path, monkeypatch):
     #   applications in /usr/bin cause test_install.py tests to raise warnings
     #   which make tests fail (e.g. on Github ansible apps exist in /usr/bin)
     monkeypatch.setenv("PATH_ORIG", str(bin_dir) + os.pathsep + os.getenv("PATH"))
+    monkeypatch.setenv("PATH_TEST", str(bin_dir))
     monkeypatch.setenv("PATH", str(bin_dir))

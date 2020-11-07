@@ -45,14 +45,14 @@ jobs:
       run: |
         ls # DEBUG
         mkdir reports
-        cat all_packages_report_nodeps_* > all_reports_nodeps_lf.txt
-        tr -d '\r' < all_reports_nodeps_lf.txt > reports/all_reports_nodeps.txt
-        cat all_packages_errors_nodeps_* > all_errors_nodeps_lf.txt
-        tr -d '\r' < all_errors_nodeps_lf.txt > reports/all_errors_nodeps.txt
-        cat all_packages_report_deps_* > all_reports_deps_lf.txt
-        tr -d '\r' < all_reports_deps_lf.txt > reports/all_reports_deps.txt
-        cat all_packages_errors_deps_* > all_errors_deps_lf.txt
-        tr -d '\r' < all_errors_deps_lf.txt > reports/all_errors_deps.txt
+        cat all_packages_nodeps_report_* > all_nodeps_reports_lf.txt
+        tr -d '\r' < all_nodeps_reports_lf.txt > reports/all_nodeps_reports.txt
+        cat all_packages_nodeps_errors_* > all_nodeps_errors_lf.txt
+        tr -d '\r' < all_nodeps_errors_lf.txt > reports/all_nodeps_errors.txt
+        cat all_packages_deps_report_* > all_deps_reports_lf.txt
+        tr -d '\r' < all_deps_reports_lf.txt > reports/all_deps_reports.txt
+        cat all_packages_deps_errors_* > all_deps_errors_lf.txt
+        tr -d '\r' < all_deps_errors_lf.txt > reports/all_deps_errors.txt
     - name: Store collated and raw reports as artifacts
       uses: actions/upload-artifact@v2
       with:

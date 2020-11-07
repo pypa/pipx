@@ -181,7 +181,8 @@ def install_package(
     package_name="",
     deps=False,
 ):
-    orig_path = os.getenv("PATH_ORIG")
+    sys_path = os.getenv("PATH_ORIG")
+    clear_path = os.getenv("PATH_TEST")
 
     test_error_fh = io.StringIO()
     install_data = module_globals["install_data"]
@@ -189,6 +190,7 @@ def install_package(
     if not package_name:
         package_name = package_spec
 
+    monkeypatch.setenv("PATH", clear_path)
     start_time = time.time()
     run_pipx_cli(
         ["install", package_spec, "--verbose"] + (["--include-deps"] if deps else [])
@@ -211,10 +213,13 @@ def install_package(
         run_pipx_cli(["uninstall", package_name])
         _ = capfd.readouterr()
 
-        monkeypatch.setenv("PATH", orig_path)
+        monkeypatch.setenv("PATH", sys_path)
 
         start_time = time.time()
-        run_pipx_cli(["install", package_spec, "--verbose"])
+        run_pipx_cli(
+            ["install", package_spec, "--verbose"]
+            + (["--include-deps"] if deps else [])
+        )
         elapsed_time_sys = time.time() - start_time
         captured_sys_path = capfd.readouterr()
 
@@ -368,3 +373,27 @@ class TestAllPackagesDeps:
             package_name,
             deps=True,
         )
+
+
+class TestAllPackagesUninstall:
+    test_class = "uninstall"
+
+    @pytest.mark.parametrize("package_name, package_spec", PACKAGE_PARAMETRIZE_LIST)
+    @pytest.mark.all_packages
+    def test_uninstall_all_packages(
+        self,
+        module_globals,
+        start_end_report,
+        monkeypatch,
+        capfd,
+        pipx_temp_env,
+        caplog,
+        package_name,
+        package_spec,
+    ):
+        # use system path for everything to ensure most install
+        monkeypatch.setenv("PATH", os.getenv("PATH_ORIG"))
+        run_pipx_cli(["install", package_spec, "--verbose"])
+        run_pipx_cli(["uninstall", package_name])
+        run_pipx_cli(["install", package_spec, "--verbose", "--include-deps"])
+        run_pipx_cli(["uninstall", package_name])

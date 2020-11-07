@@ -342,7 +342,9 @@ PKG: Dict[str, Dict[str, Any]] = {
     "kaggle": {
         "spec": "kaggle==1.5.9",
         "apps": _exe_if_win(["kaggle"]),
-        "apps_of_dependencies": _exe_if_win(["chardetect", "slugify", "tqdm"]),
+        "apps_of_dependencies": list(
+            set(_exe_if_win(["chardetect", "slugify", "tqdm"]) + ["slugify"])
+        ),
     },
     "kibitzr": {
         "spec": "kibitzr==6.0.0",
