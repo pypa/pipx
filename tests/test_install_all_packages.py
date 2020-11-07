@@ -80,10 +80,10 @@ PACKAGE_PARAMETRIZE_LIST = [
     ("zeo", PKG["zeo"]["spec"]),
 ]
 # TODO: DEBUG ONLY
-PACKAGE_PARAMETRIZE_LIST = [
-    ("pycowsay", PKG["pycowsay"]["spec"]),
-    ("sphinx", PKG["sphinx"]["spec"]),
-]
+# PACKAGE_PARAMETRIZE_LIST = [
+#    ("pycowsay", PKG["pycowsay"]["spec"]),
+#    ("sphinx", PKG["sphinx"]["spec"]),
+# ]
 
 
 @pytest.fixture(scope="module")
@@ -313,7 +313,7 @@ def start_end_report(module_globals, request):
         print(f"Elapsed: {el_datetime}", file=report_fh)
 
 
-class TestAllPackages:
+class TestAllPackagesNoDeps:
     deps = False
 
     @pytest.mark.parametrize("package_name, package_spec", PACKAGE_PARAMETRIZE_LIST)
