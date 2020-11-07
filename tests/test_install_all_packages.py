@@ -79,6 +79,11 @@ PACKAGE_PARAMETRIZE_LIST = [
     ("youtube-dl", PKG["youtube-dl"]["spec"]),
     ("zeo", PKG["zeo"]["spec"]),
 ]
+# TODO: DEBUG ONLY
+PACKAGE_PARAMETRIZE_LIST = [
+    ("pycowsay", PKG["pycowsay"]["spec"]),
+    ("sphinx", PKG["sphinx"]["spec"]),
+]
 
 
 @pytest.fixture(scope="module")
@@ -246,8 +251,8 @@ def install_package(
         )
 
 
-@pytest.fixture(scope="module")
-def start_end_report(module_globals):
+@pytest.fixture(scope="class")
+def start_end_report(module_globals, request):
     module_globals["test_start"] = datetime.now()
     dt_string = module_globals["test_start"].strftime("%Y-%m-%d %H:%M:%S")
     date_string = module_globals["test_start"].strftime("%Y%m%d")
@@ -257,17 +262,17 @@ def start_end_report(module_globals):
     reports_path = Path(REPORTS_DIR)
     reports_path.mkdir(exist_ok=True, parents=True)
 
-    if module_globals["doing_dep_test"]:
-        deps = "_deps_"
+    if getattr(request.cls, "deps", False):
+        dep_str = "_deps_"
     else:
-        deps = "_"
+        dep_str = "_"
     module_globals["report_path"] = (
         reports_path
-        / f"./{REPORT_FILENAME_ROOT}{deps}report_{sys.platform}_{py_version}_{date_string}.txt"
+        / f"./{REPORT_FILENAME_ROOT}{dep_str}report_{sys.platform}_{py_version}_{date_string}.txt"
     )
     module_globals["error_path"] = (
         reports_path
-        / f"./{REPORT_FILENAME_ROOT}{deps}errors_{sys.platform}_{py_version}_{date_string}.txt"
+        / f"./{REPORT_FILENAME_ROOT}{dep_str}errors_{sys.platform}_{py_version}_{date_string}.txt"
     )
 
     install_data = module_globals["install_data"]
@@ -308,53 +313,59 @@ def start_end_report(module_globals):
         print(f"Elapsed: {el_datetime}", file=report_fh)
 
 
-@pytest.mark.parametrize("package_name, package_spec", PACKAGE_PARAMETRIZE_LIST)
-@pytest.mark.all_packages
-def test_all_packages(
-    module_globals,
-    start_end_report,
-    monkeypatch,
-    capfd,
-    pipx_temp_env,
-    caplog,
-    package_name,
-    package_spec,
-):
-    pip_cache_purge()
-    module_globals["doing_dep_test"] = False
-    install_package(
+class TestAllPackages:
+    deps = False
+
+    @pytest.mark.parametrize("package_name, package_spec", PACKAGE_PARAMETRIZE_LIST)
+    @pytest.mark.all_packages
+    def test_all_packages(
+        self,
         module_globals,
+        start_end_report,
         monkeypatch,
         capfd,
         pipx_temp_env,
         caplog,
-        package_spec,
         package_name,
-        deps=False,
-    )
+        package_spec,
+    ):
+        pip_cache_purge()
+        install_package(
+            module_globals,
+            monkeypatch,
+            capfd,
+            pipx_temp_env,
+            caplog,
+            package_spec,
+            package_name,
+            deps=False,
+        )
 
 
-@pytest.mark.parametrize("package_name, package_spec", PACKAGE_PARAMETRIZE_LIST)
-@pytest.mark.all_packages
-def test_deps_all_packages(
-    module_globals,
-    start_end_report,
-    monkeypatch,
-    capfd,
-    pipx_temp_env,
-    caplog,
-    package_name,
-    package_spec,
-):
-    module_globals["doing_dep_test"] = True
-    pip_cache_purge()
-    install_package(
+class TestAllPackagesDeps:
+    deps = True
+
+    @pytest.mark.parametrize("package_name, package_spec", PACKAGE_PARAMETRIZE_LIST)
+    @pytest.mark.all_packages
+    def test_deps_all_packages(
+        self,
         module_globals,
+        start_end_report,
         monkeypatch,
         capfd,
         pipx_temp_env,
         caplog,
-        package_spec,
         package_name,
-        deps=True,
-    )
+        package_spec,
+    ):
+        pip_cache_purge()
+        install_package(
+            module_globals,
+            monkeypatch,
+            capfd,
+            pipx_temp_env,
+            caplog,
+            package_spec,
+            package_name,
+            deps=True,
+        )
