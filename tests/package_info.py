@@ -236,9 +236,7 @@ PKG: Dict[str, Dict[str, Any]] = {
     "gns3-gui": {
         "spec": "gns3-gui==2.2.15",
         "apps": _exe_if_win(["gns3"]),
-        "apps_of_dependencies": _exe_if_win(
-            ["distro", "jsonschema"]  # jsonschema EXE
-        ),  # TODO: check if _exe_if_win (can't install)
+        "apps_of_dependencies": _exe_if_win(["distro", "jsonschema"]),
     },
     "grow": {
         "spec": "grow==1.0.0a10",
@@ -389,41 +387,41 @@ PKG: Dict[str, Dict[str, Any]] = {
     "magic-wormhole": {
         "spec": "magic-wormhole==0.12.0",
         "apps": _exe_if_win(["wormhole"]),
-        "apps_of_dependencies": _exe_if_win(  # TODO: check if _exe_if_win (can't install)
+        "apps_of_dependencies": _exe_if_win(
             [
-                "automat-visualize",
-                "cftp",
-                "ckeygen",
-                "conch",
-                "mailmail",
-                "pyhtmlizer",
-                "tkconch",
+                "automat-visualize",  # EXE
+                "cftp",  # EXE
+                "ckeygen",  # EXE
+                "conch",  # EXE
+                "mailmail",  # EXE
+                "pyhtmlizer",  # EXE
+                "tkconch",  # EXE
                 "tqdm",  # tqdm EXE
-                "trial",
-                "twist",
-                "twistd",
-                "wamp",
-                "xbrnetwork",
+                "trial",  # EXE
+                "twist",  # EXE
+                "twistd",  # EXE
+                "wamp",  # EXE
+                "xbrnetwork",  # EXE
             ]
-        ),
+        )
+        + ["pywin32_postinstall.py", "pywin32_testall.py"],
     },
     "mayan-edms": {
         "spec": "mayan-edms==3.5.2",
         "apps": ["mayan-edms.py"],
-        "apps_of_dependencies": _exe_if_win(  # TODO: check if _exe_if_win (can't install)
+        "apps_of_dependencies": _exe_if_win(
             [
-                "celery",
+                "celery",  # EXE
                 "chardetect",  # chardet EXE
-                "django-admin",
-                "django-admin.py",  # NO_EXE
-                "gunicorn",
-                "jsonpointer",
+                "django-admin",  # EXE
+                "gunicorn",  # EXE
                 "jsonschema",  # jsonschema EXE
                 "sqlformat",  # sqlparse EXE
-                "swagger-flex",
-                "update-tld-names",
+                "swagger-flex",  # EXE
+                "update-tld-names",  # # EXE
             ]
-        ),
+        )
+        + ["django-admin.py", "jsonpointer"],
     },
     "mkdocs": {
         "spec": "mkdocs==1.1.2",
@@ -806,7 +804,7 @@ PKG: Dict[str, Dict[str, Any]] = {
     "zeo": {
         "spec": "ZEO==5.2.2",
         "apps": _exe_if_win(["runzeo", "zeo-nagios", "zeoctl", "zeopack"]),
-        "apps_of_dependencies": _exe_if_win(  # TODO: check if _exe_if_win (can't install)
+        "apps_of_dependencies": _exe_if_win(
             [
                 "fsdump",
                 "fsoids",
