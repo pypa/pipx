@@ -9,6 +9,11 @@ def test_uninstall(pipx_temp_env, capsys):
     assert not run_pipx_cli(["uninstall", "pycowsay"])
 
 
+def test_uninstall_multiple_same_app(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "kaggle=1.5.9", "--include-deps"])
+    assert not run_pipx_cli(["uninstall", "kaggle"])
+
+
 @pytest.mark.parametrize("metadata_version", [None, "0.1"])
 def test_uninstall_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay"])
