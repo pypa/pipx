@@ -34,16 +34,6 @@ assert venv_metadata_inspector_raw is not None, (
 )
 VENV_METADATA_INSPECTOR = venv_metadata_inspector_raw.decode("utf-8")
 
-# TODO: debugging
-venv_metadata_inspector_legacy_raw = pkgutil.get_data(
-    "pipx", "venv_metadata_inspector_legacy.py"
-)
-assert venv_metadata_inspector_legacy_raw is not None, (
-    "pipx could not find required file venv_metadata_inspector_legacy.py. "
-    "Please report this error at https://github.com/pipxproject/pipx. Exiting."
-)
-VENV_METADATA_INSPECTOR_LEGACY = venv_metadata_inspector_legacy_raw.decode("utf-8")
-
 
 class VenvContainer:
     """A collection of venvs managed by pipx."""
@@ -264,61 +254,6 @@ class Venv:
 
         return package
 
-    # TODO: debugging
-    def _debug_compare_metadata(self, data, data_old):
-        problem = False
-        for field in data_old:
-            problem_field = False
-            if isinstance(data_old[field], list):
-                # apps, app_paths, or apps_of_dependencies
-                if set(data[field]) != set(data_old[field]):
-                    print(f"\nData Inconsistency for {field}:")
-                    print(f"    new: {data[field]}")
-                    print(f"    old: {data_old[field]}")
-                    problem_field = True
-                    problem = True
-            elif isinstance(data_old[field], dict):
-                # app_paths_of_dependencies
-                problem_dict = False
-                new_keys = sorted(data[field].keys())
-                old_keys = sorted(data_old[field].keys())
-                for new_key in new_keys:
-                    old_key_compare = "???"
-                    if new_key in old_keys:
-                        old_key_compare = new_key
-                    else:
-                        for old_key in old_keys:
-                            if old_key.lower().startswith(new_key):
-                                old_key_compare = old_key
-                                break
-                    if old_key_compare == "???" or set(data[field][new_key]) != set(
-                        data_old[field][old_key_compare]
-                    ):
-                        problem_dict = True
-                        break
-                if problem_dict:
-                    print(f"\nData Inconsistency for {field}:")
-                    print(f"NEW DATA[{field}]:")
-                    print(json.dumps(data[field], sort_keys=True, indent=4))
-                    print(f"OLD DATA[{field}]:")
-                    print(json.dumps(data_old[field], sort_keys=True, indent=4))
-                    problem_field = True
-                    problem = True
-            else:
-                # package_version, python_version, exception_traceback
-                if data.get(field, None) != data_old.get(field, None):
-                    print(f"\nData Inconsistency for {field}:")
-                    print(f"    new: {data.get(field, None)}")
-                    print(f"    old: {data_old.get(field, None)}")
-                    problem_field = True
-                    problem = True
-            if not problem_field:
-                print(f"\nFIELD: {field}")
-                print(f"    new: {data.get(field, None)}")
-                print(f"    old: {data_old.get(field, None)}")
-        if problem:
-            raise PipxError("Problem with new venv_metadata_inspector.")
-
     def get_venv_metadata_for_package(self, package: str) -> VenvMetadata:
         data_start = time.time()  # TODO: debugging
         data = json.loads(
@@ -345,34 +280,6 @@ class Venv:
         logging.info(
             f"venv_metadata_inspector: {1e3*(time.time()-data_start):.0f}ms"
         )  # TODO: debugging
-
-        # TODO: debugging
-        # data_start = time.time()
-        # data_legacy = json.loads(
-        #     run_subprocess(
-        #         [
-        #             self.python_path,
-        #             "-c",
-        #             VENV_METADATA_INSPECTOR_LEGACY,
-        #             package,
-        #             self.bin_path,
-        #         ],
-        #         capture_stderr=False,
-        #         log_cmd_str=" ".join(
-        #             [
-        #                 str(self.python_path),
-        #                 "-c",
-        #                 "<contents of venv_metadata_inspector_legacy.py>",
-        #                 package,
-        #                 str(self.bin_path),
-        #             ]
-        #         ),
-        #     ).stdout
-        # )
-        # logging.info(
-        #     f"venv_metadata_inspector_legacy: {1e3*(time.time()-data_start):.0f}ms"
-        # )
-        # self._debug_compare_metadata(data, data_legacy)
 
         venv_metadata_traceback = data.pop("exception_traceback", None)
         if venv_metadata_traceback is not None:
