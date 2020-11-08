@@ -132,12 +132,15 @@ def verify_installed_apps(captured_outerr, package_name, test_error_fh, deps=Fal
     return app_success
 
 
-def verify_install(captured_outerr, caplog, package_name, test_error_fh, deps=False):
+def verify_install(
+    captured_outerr, caplog, package_name, test_error_fh, using_clear_path, deps=False
+):
     caplog_problem = False
     install_success = f"installed package {package_name}" in captured_outerr.out
     for record in caplog.records:
         if "⚠️" in record.message or "WARNING" in record.message:
-            caplog_problem = True
+            if using_clear_path or "was already in your path" not in record.message:
+                caplog_problem = True
             print("verify_install: WARNING IN CAPLOG:", file=test_error_fh)
             print(record.message, file=test_error_fh)
     if install_success and PKG[package_name].get("apps", None) is not None:
@@ -167,7 +170,7 @@ def print_error_report(
         print("\nSTDERR:", file=error_fh)
         print("-" * 76, file=error_fh)
         print(command_captured.err, end="", file=error_fh)
-        print("\n\nTEST ERRORS:", file=error_fh)
+        print("\n\nTEST WARNINGS / ERRORS:", file=error_fh)
         print("-" * 76, file=error_fh)
         print(test_error_fh.getvalue(), end="", file=error_fh)
 
@@ -201,7 +204,12 @@ def install_package(
 
     captured_clear_path = capfd.readouterr()
     install_success = verify_install(
-        captured_clear_path, caplog, package_name, test_error_fh, deps=deps
+        captured_clear_path,
+        caplog,
+        package_name,
+        test_error_fh,
+        using_clear_path=True,
+        deps=deps,
     )
 
     if install_success:
@@ -225,7 +233,12 @@ def install_package(
         captured_sys_path = capfd.readouterr()
 
         install_success_orig_path = verify_install(
-            captured_sys_path, caplog, package_name, test_error_fh, deps=deps
+            captured_sys_path,
+            caplog,
+            package_name,
+            test_error_fh,
+            using_clear_path=False,
+            deps=deps,
         )
 
         if install_success_orig_path:
