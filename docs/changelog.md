@@ -6,6 +6,7 @@ dev
 - [bugfix] Override display of DEFAULT_PYTHON value when generating web documentation for `pipx install` #523
 - [bugfix] Wrap help documentation for environment variables.
 - [bugfix] Fixed uninstall crash that could happen on Windows for certain packages
+- [feature] Venv package name arguments now do not have to match pipx's canonical package name format, but can be specified in any python-package-name-equivalent way. (e.g. case does not matter, certain punctuation does not matter.)
 
 0.15.6.0
 
