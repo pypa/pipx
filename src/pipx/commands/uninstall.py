@@ -55,13 +55,13 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool):
                 ]
                 app_paths = apps_linking_to_venv_bin_dir
 
-    for file in local_bin_dir.iterdir():
+    for filepath in local_bin_dir.iterdir():
         if WINDOWS:
             for b in app_paths:
-                if file.name == b.name:
-                    file.unlink()
+                if filepath.exists() and filepath.name == b.name:
+                    filepath.unlink()
         else:
-            symlink = file
+            symlink = filepath
             for b in app_paths:
                 if symlink.exists() and b.exists() and symlink.samefile(b):
                     logging.info(f"removing symlink {str(symlink)}")
