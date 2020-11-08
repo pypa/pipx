@@ -123,13 +123,17 @@ def get_branch():
     )
 
 
-@nox.session(python="3.8")
-def publish(session):
+def on_master_no_changes(session):
     if has_changes():
         session.error("All changes must be committed or removed before publishing")
     branch = get_branch()
     if branch != "master":
         session.error(f"Must be on 'master' branch. Currently on {branch!r} branch")
+
+
+@nox.session(python="3.8")
+def publish(session):
+    on_master_no_changes(session)
     build(session)
     print("REMINDER: Has the changelog been updated?")
     session.run("python", "-m", "twine", "upload", "dist/*")
@@ -146,3 +150,31 @@ def publish_docs(session):
     session.install(*doc_dependencies)
     session.run("python", "generate_docs.py")
     session.run("mkdocs", "gh-deploy")
+
+
+@nox.session(python="3.8")
+def pre_release(session):
+    on_master_no_changes(session)
+    if session.posargs:
+        new_version = session.posargs[0]
+    else:
+        new_version = input("Enter new version: ")
+    session.run("python", "scripts/pipx_prerelease.py", new_version)
+    session.run("git", "--no-pager", "diff", external=True)
+    print("")
+    session.log(
+        "If `git diff` above looks ok, execute the following command:\n\n"
+        f"    git commit -a -m 'Pre-release {new_version}.'\n"
+    )
+
+
+@nox.session(python="3.8")
+def post_release(session):
+    on_master_no_changes(session)
+    session.run("python", "scripts/pipx_postrelease.py")
+    session.run("git", "--no-pager", "diff", external=True)
+    print("")
+    session.log(
+        "If `git diff` above looks ok, execute the following command:\n\n"
+        "    git commit -a -m 'Post-release.'\n"
+    )
