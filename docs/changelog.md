@@ -5,6 +5,7 @@ dev
 - [bugfix] Fixed bug with reinstall-all command when package have been installed using a specifier. Now the initial specifier is used.
 - [bugfix] Override display of DEFAULT_PYTHON value when generating web documentation for `pipx install` #523
 - [bugfix] Wrap help documentation for environment variables.
+- [bugfix] Fixed uninstall crash that could happen on Windows for certain packages
 
 0.15.6.0
 
