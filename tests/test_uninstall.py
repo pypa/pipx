@@ -10,7 +10,7 @@ def test_uninstall(pipx_temp_env, capsys):
 
 
 def test_uninstall_multiple_same_app(pipx_temp_env, capsys):
-    assert not run_pipx_cli(["install", "kaggle=1.5.9", "--include-deps"])
+    assert not run_pipx_cli(["install", "kaggle==1.5.9", "--include-deps"])
     assert not run_pipx_cli(["uninstall", "kaggle"])
 
 
