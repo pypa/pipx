@@ -139,7 +139,7 @@ def verify_install(
     install_success = f"installed package {package_name}" in captured_outerr.out
     for record in caplog.records:
         if "⚠️" in record.message or "WARNING" in record.message:
-            if using_clear_path or "was already in your path" not in record.message:
+            if using_clear_path or "was already on your path" not in record.message:
                 caplog_problem = True
             print("verify_install: WARNING IN CAPLOG:", file=test_error_fh)
             print(record.message, file=test_error_fh)
