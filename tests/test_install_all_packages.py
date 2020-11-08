@@ -280,6 +280,8 @@ def start_end_report(module_globals, request):
         / f"./{REPORT_FILENAME_ROOT}_{test_class}_errors_{sys.platform}_{py_version}_{date_string}.txt"
     )
 
+    # Reset global data
+    module_globals["install_data"] = {}
     install_data = module_globals["install_data"]
 
     with module_globals["report_path"].open("a") as report_fh:

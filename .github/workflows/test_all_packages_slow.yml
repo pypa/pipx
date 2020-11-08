@@ -53,6 +53,8 @@ jobs:
         tr -d '\r' < all_deps_reports_lf.txt > reports/all_deps_reports.txt
         cat all_packages_deps_errors_* > all_deps_errors_lf.txt
         tr -d '\r' < all_deps_errors_lf.txt > reports/all_deps_errors.txt
+        cat all_packages_uninstall_report_* > all_uninstall_reports_lf.txt
+        tr -d '\r' < all_uninstall_reports_lf.txt > reports/all_uninstall_reports.txt
     - name: Store collated and raw reports as artifacts
       uses: actions/upload-artifact@v2
       with:
