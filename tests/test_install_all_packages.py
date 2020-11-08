@@ -138,7 +138,8 @@ def verify_install(captured_outerr, caplog, package_name, test_error_fh, deps=Fa
     for record in caplog.records:
         if "⚠️" in record.message or "WARNING" in record.message:
             caplog_problem = True
-            print("verify_install: WARNINGS IN CAPLOG", file=test_error_fh)
+            print("verify_install: WARNING IN CAPLOG:", file=test_error_fh)
+            print(record.message, file=test_error_fh)
     if install_success and PKG[package_name].get("apps", None) is not None:
         app_success = verify_installed_apps(
             captured_outerr, package_name, test_error_fh, deps=deps

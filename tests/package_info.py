@@ -406,7 +406,7 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "xbrnetwork",  # EXE
             ]
         )
-        + ["pywin32_postinstall.py", "pywin32_testall.py"],
+        + (["pywin32_postinstall.py", "pywin32_testall.py"] if WIN else []),
     },
     "mayan-edms": {
         "spec": "mayan-edms==3.5.2",
