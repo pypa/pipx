@@ -105,6 +105,17 @@ class Venv:
                 )
 
     @property
+    def name(self) -> str:
+        if self.pipx_metadata.main_package is not None:
+            venv_name = (
+                f"{self.main_package_name}"
+                f"{self.package_metadata[self.main_package_name].suffix}"
+            )
+        else:
+            venv_name = self.root.name
+        return venv_name
+
+    @property
     def uses_shared_libs(self) -> bool:
         if self._existing:
             pth_files = self.root.glob("**/" + PIPX_SHARED_PTH)

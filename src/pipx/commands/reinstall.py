@@ -51,7 +51,7 @@ def reinstall(
             # This should never happen, but package_or_url is type
             #   Optional[str] so mypy thinks it could be None
             raise PipxError(
-                f"Internal Error injecting package {injected_package} into {venv_dir.name}"
+                f"Internal Error injecting package {injected_package} into {venv.name}"
             )
         inject(
             venv_dir,
