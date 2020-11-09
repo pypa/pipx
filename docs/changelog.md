@@ -7,6 +7,7 @@ dev
 - [bugfix] Wrap help documentation for environment variables.
 - [bugfix] Fixed uninstall crash that could happen on Windows for certain packages
 - [feature] Venv package name arguments now do not have to match exactly as pipx has them stored, but can be specified in any python-package-name-equivalent way. (e.g. case does not matter, certain punctuation does not matter.)
+- [change] Venvs with a suffix: A suffix can contain any characters, but for purposes of uniqueness, python package name rules apply--upper- and lower-case letters are equivalent, and any number of ., -, or _ characters in a row are equivalent.  (e.g. if you have a suffixed venv `pylint_1.0A you could not add another suffixed venv called pylint--1-0a, as it would not be a unique name.)
 
 0.15.6.0
 
