@@ -56,12 +56,7 @@ class VenvContainer:
 
     def get_venv_dir(self, package: str) -> Path:
         """Return the expected venv path for given `package`."""
-        # We cannot just canonicalize the whole name because suffix may not
-        #   be canonicalized
-        if not self._root.joinpath(package).exists():
-            if self._root.joinpath(canonicalize_name(package)).exists():
-                return self._root.joinpath(canonicalize_name(package))
-        return self._root.joinpath(package)
+        return self._root.joinpath(canonicalize_name(package))
 
     def verify_shared_libs(self):
         for p in self.iter_venv_dirs():

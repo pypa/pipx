@@ -29,9 +29,7 @@ def install(
         )
     if venv_dir is None:
         venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
-        venv_dir = venv_container.get_venv_dir(package_name)
-        if suffix != "":
-            venv_dir = venv_dir.parent / f"{venv_dir.stem}{suffix}"
+        venv_dir = venv_container.get_venv_dir(f"{package_name}{suffix}")
 
     try:
         exists = venv_dir.exists() and next(venv_dir.iterdir())
