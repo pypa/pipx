@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+
 from setuptools import find_packages, setup  # type: ignore
 
 if sys.version_info < (3, 6, 0):
@@ -13,8 +14,6 @@ if sys.version_info < (3, 6, 0):
 from pathlib import Path  # noqa E402
 from runpy import run_path  # noqa E402
 from typing import List  # noqa E402
-import ast  # noqa E402
-import re  # noqa E402
 
 CURDIR = Path(__file__).parent
 
