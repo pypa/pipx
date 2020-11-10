@@ -66,7 +66,7 @@ def cover(session):
 @nox.session(python="3.8")
 def lint(session):
     session.install(*lint_dependencies)
-    files = [str(Path("src") / "pipx"), "tests"] + [
+    files = [str(Path("src") / "pipx"), "tests", "scripts"] + [
         str(p) for p in Path(".").glob("*.py")
     ]
     session.run("isort", "--check", "--diff", "--profile", "black", *files)
