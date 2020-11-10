@@ -9,17 +9,10 @@ def test_uninstall(pipx_temp_env, capsys):
     assert not run_pipx_cli(["uninstall", "pycowsay"])
 
 
-def test_uninstall_multiple_same_app(pipx_temp_env, capsys):
-    # TODO: remove pip-args when 2020-resolver is default in pip
-    assert not run_pipx_cli(
-        [
-            "install",
-            "kaggle==1.5.9",
-            "--include-deps",
-            "--pip-args='--use-feature=2020-resolver'",
-        ]
-    )
-    assert not run_pipx_cli(["uninstall", "kaggle"])
+# TODO: uncomment when 2020-resolver is default in pip
+# def test_uninstall_multiple_same_app(pipx_temp_env, capsys):
+#    assert not run_pipx_cli(["install", "kaggle==1.5.9", "--include-deps"])
+#    assert not run_pipx_cli(["uninstall", "kaggle"])
 
 
 @pytest.mark.parametrize("metadata_version", [None, "0.1"])
