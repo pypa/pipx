@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
 import subprocess
 import textwrap
 from typing import Optional
-from pipx.main import __version__
-import os
+
 from jinja2 import Environment, FileSystemLoader
+
+from pipx.main import __version__
 
 
 def get_help(pipxcmd: Optional[str]) -> str:
