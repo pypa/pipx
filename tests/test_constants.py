@@ -1,8 +1,10 @@
-from pipx.constants import use_emjois
-from pipx import constants
-from unittest import mock
 import sys
+from unittest import mock
+
 import pytest  # type: ignore
+
+from pipx import constants
+from pipx.constants import use_emjois
 
 
 @pytest.mark.parametrize(

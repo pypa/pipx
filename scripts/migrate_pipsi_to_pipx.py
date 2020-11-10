@@ -4,11 +4,11 @@
 Script to migrate from pipsi to pipx
 """
 
-from pathlib import Path
 import os
 import subprocess
-from shutil import which
 import sys
+from pathlib import Path
+from shutil import which
 
 
 def main():
