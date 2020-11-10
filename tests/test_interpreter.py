@@ -1,7 +1,9 @@
 import shutil
 import subprocess
 import sys
+
 import pytest  # type: ignore
+
 import pipx.interpreter
 from pipx.interpreter import (
     _find_default_windows_python,
