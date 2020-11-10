@@ -22,6 +22,7 @@ lint_dependencies = [
     "mypy",
     "check-manifest",
     "packaging>=20.0",
+    "isort",
 ]
 # Packages that need an intact system PATH to compile
 # pytest setup clears PATH.  So pre-build some wheels to the pip cache.
@@ -64,9 +65,10 @@ def cover(session):
 @nox.session(python="3.8")
 def lint(session):
     session.install(*lint_dependencies)
-    files = [str(Path("src") / "pipx"), "tests"] + [
+    files = [str(Path("src") / "pipx"), "tests", "scripts"] + [
         str(p) for p in Path(".").glob("*.py")
     ]
+    session.run("isort", "--check", "--diff", "--profile", "black", *files)
     session.run("black", "--check", *files)
     session.run("flake8", *files)
     session.run("mypy", *files)

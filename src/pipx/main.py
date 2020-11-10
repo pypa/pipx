@@ -17,13 +17,13 @@ from typing import Dict, List
 import argcomplete  # type: ignore
 from packaging.utils import canonicalize_name
 
-from . import commands, constants
-from .animate import hide_cursor, show_cursor
-from .colors import bold, green
-from .interpreter import DEFAULT_PYTHON
-from .util import PipxError, mkdir
-from .venv import VenvContainer
-from .version import __version__
+from pipx import commands, constants
+from pipx.animate import hide_cursor, show_cursor
+from pipx.colors import bold, green
+from pipx.interpreter import DEFAULT_PYTHON
+from pipx.util import PipxError, mkdir
+from pipx.venv import VenvContainer
+from pipx.version import __version__
 
 
 def print_version() -> None:

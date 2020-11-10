@@ -1,12 +1,12 @@
-from .ensure_path import ensure_pipx_paths
-from .inject import inject
-from .install import install
-from .list_packages import list_packages
-from .reinstall import reinstall, reinstall_all
-from .run import run
-from .run_pip import run_pip
-from .uninstall import uninstall, uninstall_all
-from .upgrade import upgrade, upgrade_all
+from pipx.commands.ensure_path import ensure_pipx_paths
+from pipx.commands.inject import inject
+from pipx.commands.install import install
+from pipx.commands.list_packages import list_packages
+from pipx.commands.reinstall import reinstall, reinstall_all
+from pipx.commands.run import run
+from pipx.commands.run_pip import run_pip
+from pipx.commands.uninstall import uninstall, uninstall_all
+from pipx.commands.upgrade import upgrade, upgrade_all
 
 __all__ = [
     "upgrade",

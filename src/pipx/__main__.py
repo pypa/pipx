@@ -10,6 +10,5 @@ if not __package__:
 
 from pipx.main import cli  # noqa
 
-
 if __name__ == "__main__":
     sys.exit(cli())

@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import List
 
-from pipx.venv import Venv
 from pipx.util import PipxError
+from pipx.venv import Venv
 
 
 def run_pip(package: str, venv_dir: Path, pip_args: List[str], verbose: bool):

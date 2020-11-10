@@ -1,8 +1,8 @@
+import shutil
 import sys
 from contextlib import contextmanager
 from threading import Event, Thread
 from typing import Generator, List
-import shutil
 
 from pipx.constants import emoji_support
 
