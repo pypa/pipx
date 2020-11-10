@@ -68,7 +68,7 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool):
                     symlink.unlink()
 
     rmdir(venv_dir)
-    print(f"uninstalled {venv_dir.name}! {stars}")
+    print(f"uninstalled {venv.name}! {stars}")
 
 
 def uninstall_all(venv_container: VenvContainer, local_bin_dir: Path, verbose: bool):

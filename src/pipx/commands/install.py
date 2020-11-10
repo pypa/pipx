@@ -29,27 +29,25 @@ def install(
         )
     if venv_dir is None:
         venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
-        venv_dir = venv_container.get_venv_dir(package_name)
-        if suffix != "":
-            venv_dir = venv_dir.parent / f"{venv_dir.stem}{suffix}"
+        venv_dir = venv_container.get_venv_dir(f"{package_name}{suffix}")
 
     try:
         exists = venv_dir.exists() and next(venv_dir.iterdir())
     except StopIteration:
         exists = False
 
+    venv = Venv(venv_dir, python=python, verbose=verbose)
     if exists:
         if force:
-            print(f"Installing to existing directory {str(venv_dir)!r}")
+            print(f"Installing to existing venv {venv.name!r}")
         else:
             print(
-                f"{venv_dir.name!r} already seems to be installed. "
+                f"{venv.name!r} already seems to be installed. "
                 f"Not modifying existing installation in {str(venv_dir)!r}. "
                 "Pass '--force' to force installation."
             )
             return
 
-    venv = Venv(venv_dir, python=python, verbose=verbose)
     try:
         venv.create_venv(venv_args, pip_args)
         venv.install_package(

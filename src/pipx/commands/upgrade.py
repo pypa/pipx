@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Sequence
 
 from pipx import constants
 from pipx.colors import bold, red
@@ -99,7 +99,7 @@ def upgrade(
 
 
 def upgrade_all(
-    venv_container: VenvContainer, verbose: bool, *, skip: List[str], force: bool
+    venv_container: VenvContainer, verbose: bool, *, skip: Sequence[str], force: bool
 ):
     venv_error = False
     venvs_upgraded = 0
