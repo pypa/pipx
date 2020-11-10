@@ -86,7 +86,7 @@ def test_force_install(pipx_temp_env, capsys):
 
     run_pipx_cli(["install", "pycowsay", "--force"])
     captured = capsys.readouterr()
-    assert "Installing to existing directory" in captured.out
+    assert "Installing to existing venv" in captured.out
 
 
 def test_install_no_packages_found(pipx_temp_env, capsys):

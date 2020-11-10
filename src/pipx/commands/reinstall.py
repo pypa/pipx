@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from typing import List
+from typing import List, Sequence
 
 from pipx.commands.inject import inject
 from pipx.commands.install import install
@@ -51,7 +51,7 @@ def reinstall(
             # This should never happen, but package_or_url is type
             #   Optional[str] so mypy thinks it could be None
             raise PipxError(
-                f"Internal Error injecting package {injected_package} into {venv_dir.name}"
+                f"Internal Error injecting package {injected_package} into {venv.name}"
             )
         inject(
             venv_dir,
@@ -73,7 +73,7 @@ def reinstall_all(
     python: str,
     verbose: bool,
     *,
-    skip: List[str],
+    skip: Sequence[str],
 ) -> int:
     """Returns pipx shell exit code"""
     failed: List[str] = []
