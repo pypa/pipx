@@ -114,7 +114,6 @@ jobs:
   publish-test:
     name: Publish to Test PyPI
     if: github.event_name == 'workflow_dispatch'
-    needs: [docs, lint, tests]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
