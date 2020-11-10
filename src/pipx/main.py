@@ -15,6 +15,7 @@ import urllib.parse
 from typing import Dict, List
 
 import argcomplete  # type: ignore
+from packaging.utils import canonicalize_name
 
 from . import commands, constants
 from .animate import hide_cursor, show_cursor
@@ -156,6 +157,8 @@ def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
 
         venv_dir = venv_container.get_venv_dir(package)
         logging.info(f"Virtual Environment location is {venv_dir}")
+    if "skip" in args:
+        skip_list = [canonicalize_name(x) for x in args.skip]
 
     if args.command == "run":
         package_or_url = (
@@ -224,7 +227,7 @@ def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
         return commands.uninstall_all(venv_container, constants.LOCAL_BIN_DIR, verbose)
     elif args.command == "upgrade-all":
         return commands.upgrade_all(
-            venv_container, verbose, skip=args.skip, force=args.force
+            venv_container, verbose, skip=skip_list, force=args.force
         )
     elif args.command == "reinstall":
         return commands.reinstall(
@@ -239,7 +242,7 @@ def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
             constants.LOCAL_BIN_DIR,
             args.python,
             verbose,
-            skip=args.skip,
+            skip=skip_list,
         )
     elif args.command == "runpip":
         if not venv_dir:
