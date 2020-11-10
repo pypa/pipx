@@ -5,6 +5,8 @@ import time  # TODO: debug
 from pathlib import Path
 from typing import Dict, Generator, List, NamedTuple, Set
 
+from packaging.utils import canonicalize_name
+
 from pipx.animate import animate
 from pipx.constants import PIPX_SHARED_PTH
 from pipx.interpreter import DEFAULT_PYTHON
@@ -56,7 +58,7 @@ class VenvContainer:
 
     def get_venv_dir(self, package: str) -> Path:
         """Return the expected venv path for given `package`."""
-        return self._root.joinpath(package)
+        return self._root.joinpath(canonicalize_name(package))
 
     def verify_shared_libs(self):
         for p in self.iter_venv_dirs():
@@ -103,6 +105,17 @@ class Venv:
                     "package. For example,\n"
                     f"  pipx install {self.root.name} --force"
                 )
+
+    @property
+    def name(self) -> str:
+        if self.pipx_metadata.main_package.package is not None:
+            venv_name = (
+                f"{self.pipx_metadata.main_package.package}"
+                f"{self.pipx_metadata.main_package.suffix}"
+            )
+        else:
+            venv_name = self.root.name
+        return venv_name
 
     @property
     def uses_shared_libs(self) -> bool:

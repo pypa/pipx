@@ -36,10 +36,10 @@ def inject(
 
     if not venv.package_metadata:
         raise PipxError(
-            f"Can't inject {package_spec!r} into Virtual Environment {venv_dir.name!r}.\n"
-            f"    {venv_dir.name!r} has missing internal pipx metadata.\n"
+            f"Can't inject {package_spec!r} into Virtual Environment {venv.name!r}.\n"
+            f"    {venv.name!r} has missing internal pipx metadata.\n"
             "    It was likely installed using a pipx version before 0.15.0.0.\n"
-            f"    Please uninstall and install {venv_dir.name!r}, or reinstall-all to fix."
+            f"    Please uninstall and install {venv.name!r}, or reinstall-all to fix."
         )
 
     # package_spec is anything pip-installable, including package_name, vcs spec,
@@ -67,5 +67,5 @@ def inject(
             force=force,
         )
 
-    print(f"  injected package {bold(package_name)} into venv {bold(venv_dir.name)}")
+    print(f"  injected package {bold(package_name)} into venv {bold(venv.name)}")
     print(f"done! {stars}", file=sys.stderr)

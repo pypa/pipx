@@ -7,6 +7,8 @@ from shutil import which
 from typing import Any, Dict, List, Optional
 from unittest import mock
 
+from packaging.utils import canonicalize_name
+
 from pipx import constants, main, pipx_metadata_file
 
 WIN = sys.platform.startswith("win")
@@ -82,7 +84,7 @@ def mock_legacy_venv(venv_name: str, metadata_version: Optional[str] = None) -> 
     one with a previous metadata version.
     metadata_version=None refers to no metadata file (pipx pre-0.15.0.0)
     """
-    venv_dir = Path(constants.PIPX_LOCAL_VENVS) / venv_name
+    venv_dir = Path(constants.PIPX_LOCAL_VENVS) / canonicalize_name(venv_name)
 
     if metadata_version is None:
         os.remove(venv_dir / "pipx_metadata.json")
