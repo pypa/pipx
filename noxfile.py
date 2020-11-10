@@ -19,7 +19,6 @@ lint_dependencies = [
     "black==19.10b0",
     "flake8",
     "flake8-bugbear",
-    "flake8-isort",
     "mypy",
     "check-manifest",
     "packaging>=20.0",
