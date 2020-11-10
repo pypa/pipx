@@ -108,8 +108,7 @@ class Venv:
     def name(self) -> str:
         if self.pipx_metadata.main_package is not None:
             venv_name = (
-                f"{self.main_package_name}"
-                f"{self.package_metadata[self.main_package_name].suffix}"
+                f"{self.main_package_name}" f"{self.pipx_metadata.main_package.suffix}"
             )
         else:
             venv_name = self.root.name
