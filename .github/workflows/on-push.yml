@@ -6,11 +6,9 @@ on:
     pull_request:
     push:
     release:
-    workflow_dispatch:
 
 jobs:
   lint:
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'release'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -31,7 +29,6 @@ jobs:
         nox --error-on-missing-interpreters --non-interactive --session lint
 
   docs:
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'release'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -52,7 +49,6 @@ jobs:
         nox --error-on-missing-interpreters --non-interactive --session docs
 
   tests:
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'release'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -88,7 +84,7 @@ jobs:
         nox --non-interactive --session tests-${{ matrix.python-version }}
 
   publish:
-    name: Publish to PyPI on release
+    name: Publish pipx to PyPI on release
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
     needs: [docs, lint, tests]
     runs-on: ubuntu-latest
@@ -110,26 +106,3 @@ jobs:
       with:
         user: __token__
         password: ${{ secrets.pypi_password }}
-
-  publish-test:
-    name: Publish to Test PyPI
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
-    - name: Upgrade pip, Install nox
-      run: |
-        python -m pip install --upgrade pip
-        pip install nox
-    - name: Build  sdist and wheel
-      run: |
-        nox --error-on-missing-interpreters --non-interactive --session build
-    - name: Publish to Test PyPi
-      uses: pypa/gh-action-pypi-publish@v1.4.1
-      with:
-        user: __token__
-        password: ${{ secrets.test_pypi_password }}

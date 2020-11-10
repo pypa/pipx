@@ -1,0 +1,30 @@
+# https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Publish pipx to Test PyPI
+
+on:
+    workflow_dispatch:
+
+jobs:
+  publish-test:
+    name: Publish to Test PyPI
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Upgrade pip, Install nox
+      run: |
+        python -m pip install --upgrade pip
+        pip install nox
+    - name: Build  sdist and wheel
+      run: |
+        nox --error-on-missing-interpreters --non-interactive --session build
+    - name: Publish to Test PyPi
+      uses: pypa/gh-action-pypi-publish@v1.4.1
+      with:
+        user: __token__
+        password: ${{ secrets.test_pypi_password }}
