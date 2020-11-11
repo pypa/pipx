@@ -53,8 +53,8 @@ class _SharedLibs:
         now = time.time()
         time_since_last_update_sec = now - self.pip_path.stat().st_mtime
         logging.info(
-            f"Time since last upgrade of shared libs, in seconds: {time_since_last_update_sec}. "
-            f"Upgrade will be run by pipx if greater than {SHARED_LIBS_MAX_AGE_SEC}."
+            f"Time since last upgrade of shared libs, in seconds: {time_since_last_update_sec:.0f}. "
+            f"Upgrade will be run by pipx if greater than {SHARED_LIBS_MAX_AGE_SEC:.0f}."
         )
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
