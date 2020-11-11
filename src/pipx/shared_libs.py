@@ -36,7 +36,7 @@ class _SharedLibs:
                 run_verify([DEFAULT_PYTHON, "-m", "venv", "--clear", self.root])
             # ignore installed packages to ensure no unexpected patches from the OS vendor
             # are used
-            self.upgrade(pip_args=["--ignore-installed"], verbose=verbose)
+            self.upgrade(pip_args=["--force-reinstall"], verbose=verbose)
 
     @property
     def is_valid(self):
