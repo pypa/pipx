@@ -148,8 +148,17 @@ def test_package_determination(
 
     caplog.set_level(logging.INFO)
 
+    # TODO: remove "--feature=2020-resolver" when pip 20.3 is released
     run_pipx_cli_exit(
-        ["run", "--verbose", "--spec", package_or_url, "--"] + app_appargs
+        [
+            "run",
+            "--verbose",
+            "--pip-args='--use-feature=2020-resolver'",
+            "--spec",
+            package_or_url,
+            "--",
+        ]
+        + app_appargs
     )
 
     assert "Cannot determine package name" not in caplog.text
