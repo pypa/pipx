@@ -131,8 +131,7 @@ def test_run_ensure_null_pythonpath():
         ("shell-functools", "shell-functools", ["filter", "--help"], True),
         ("black", "black", ["black", "--help"], False),
         ("pylint", "pylint", ["pylint", "--help"], False),
-        # TODO: 2020-11-10 uncomment kaggle when problem is solved
-        # ("kaggle", "kaggle", ["kaggle", "--help"], False),
+        ("kaggle", "kaggle", ["kaggle", "--help"], False),
         ("ipython", "ipython", ["ipython", "--version"], False),
         ("cloudtoken", "cloudtoken", ["cloudtoken", "--help"], True),
         ("awscli", "awscli", ["aws", "--help"], True),
@@ -149,8 +148,17 @@ def test_package_determination(
 
     caplog.set_level(logging.INFO)
 
+    # TODO: remove "--feature=2020-resolver" when pip 20.3 is released
     run_pipx_cli_exit(
-        ["run", "--verbose", "--spec", package_or_url, "--"] + app_appargs
+        [
+            "run",
+            "--verbose",
+            "--pip-args='--use-feature=2020-resolver'",
+            "--spec",
+            package_or_url,
+            "--",
+        ]
+        + app_appargs
     )
 
     assert "Cannot determine package name" not in caplog.text
