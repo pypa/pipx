@@ -2,7 +2,7 @@ import datetime
 import logging
 import time
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from pipx import constants
 from pipx.animate import animate
@@ -54,13 +54,13 @@ class _SharedLibs:
             installed_packages = package_list_fh.read().split("\n")
         return set(self.required_packages).issubset(set(installed_packages))
 
-    def create(self, pip_args: List[str], verbose: bool = False):
+    def create(self, verbose: bool = False):
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
                 run_verify([DEFAULT_PYTHON, "-m", "venv", "--clear", self.root])
             # ignore installed packages to ensure no unexpected patches from the OS vendor
             # are used
-            self.upgrade(["--ignore-installed"] + pip_args, verbose)
+            self.upgrade(pip_args=["--force-reinstall"], verbose=verbose)
 
     @property
     def is_valid(self):
@@ -92,11 +92,15 @@ class _SharedLibs:
             package_list_fh.write("\n".join(installed_packages))
         self._has_required_packages = True
 
-    def upgrade(self, pip_args: List[str], verbose: bool = False):
+    def upgrade(self, *, pip_args: Optional[List[str]] = None, verbose: bool = False):
         # Don't try to upgrade multiple times per run
         if self.has_been_updated_this_run:
             logging.info(f"Already upgraded libraries in {self.root}")
             return
+
+        if pip_args is None:
+            pip_args = []
+
         logging.info(f"Upgrading shared libraries in {self.root}")
 
         ignored_args = ["--editable"]

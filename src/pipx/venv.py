@@ -94,9 +94,9 @@ class Venv:
         if self._existing and self.uses_shared_libs:
             if shared_libs.is_valid:
                 if shared_libs.needs_upgrade:
-                    shared_libs.upgrade([], verbose)
+                    shared_libs.upgrade(verbose=verbose)
             else:
-                shared_libs.create([], verbose)
+                shared_libs.create(verbose)
 
             if not shared_libs.is_valid:
                 raise PipxError(
@@ -148,7 +148,7 @@ class Venv:
         with animate("creating virtual environment", self.do_animation):
             cmd = [self.python, "-m", "venv", "--without-pip"]
             run_verify(cmd + venv_args + [str(self.root)])
-        shared_libs.create(pip_args, self.verbose)
+        shared_libs.create(self.verbose)
         pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
         # write path pointing to the shared libs site-packages directory
         # example pipx_pth location:
@@ -178,7 +178,7 @@ class Venv:
 
     def upgrade_packaging_libraries(self, pip_args: List[str]) -> None:
         if self.uses_shared_libs:
-            shared_libs.upgrade(pip_args, self.verbose)
+            shared_libs.upgrade(verbose=self.verbose)
         else:
             # TODO: setuptools and wheel? Original code didn't bother
             # but shared libs code does.

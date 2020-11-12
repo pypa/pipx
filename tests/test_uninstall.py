@@ -11,7 +11,15 @@ def test_uninstall(pipx_temp_env, capsys):
 
 
 def test_uninstall_multiple_same_app(pipx_temp_env, capsys):
-    assert not run_pipx_cli(["install", "kaggle==1.5.9", "--include-deps"])
+    # TODO: remove --pip-args when 2020-resolver is default in new pip
+    assert not run_pipx_cli(
+        [
+            "install",
+            "kaggle==1.5.9",
+            "--include-deps",
+            "--pip-args='--use-feature=2020-resolver'",
+        ]
+    )
     assert not run_pipx_cli(["uninstall", "kaggle"])
 
 
