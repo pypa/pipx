@@ -26,7 +26,9 @@ def install_package(capsys, pipx_temp_env, caplog, package, package_name=""):
         package_name = package
 
     # TODO: remove "--feature=2020-resolver" when pip 20.3 is released
-    run_pipx_cli(["install", package, "--verbose", "--feature=2020-resolver"])
+    run_pipx_cli(
+        ["install", package, "--verbose", "--pip-args='--use-feature=2020-resolver'"]
+    )
     captured = capsys.readouterr()
     assert f"installed package {package_name}" in captured.out
     if not sys.platform.startswith("win"):
