@@ -3,12 +3,12 @@ dev
 - Added reinstall command for reinstalling a single venv.
 - Changed `pipx run` on non-Windows systems to actually replace pipx process with the app process instead of running it as a subprocess.  (Now using python's `os.exec*`)
 - [bugfix] Fixed bug with reinstall-all command when package have been installed using a specifier. Now the initial specifier is used.
-- [bugfix] Override display of DEFAULT_PYTHON value when generating web documentation for `pipx install` #523
+- [bugfix] Override display of `PIPX_DEFAULT_PYTHON` value when generating web documentation for `pipx install` #523
 - [bugfix] Wrap help documentation for environment variables.
 - [bugfix] Fixed uninstall crash that could happen on Windows for certain packages
 - [feature] Venv package name arguments now do not have to match exactly as pipx has them stored, but can be specified in any python-package-name-equivalent way. (i.e. case does not matter, and `.`, `-`, `_` characters are interchangeable.)
 - [change] Venvs with a suffix: A suffix can contain any characters, but for purposes of uniqueness, python package name rules apply--upper- and lower-case letters are equivalent, and any number of `.`, `-`, or `_` characters in a row are equivalent.  (e.g. if you have a suffixed venv `pylint_1.0A` you could not add another suffixed venv called `pylint--1-0a`, as it would not be a unique name.)
-- [implementation detail] Pipx shared libraries are no longer installed using pip arguments taken from the last regular pipx install.
+- [implementation detail] Pipx shared libraries (providing pip, setuptools, wheel to pipx) are no longer installed using pip arguments taken from the last regular pipx install.  If you need to apply pip arguments to pipx's use of pip for its internal shared libraries, use PIP_\* environment variables.
 
 0.15.6.0
 
@@ -17,7 +17,7 @@ dev
 - [bugfix] Fixed regression in list, inject, upgrade, reinstall-all commands when suffixed packages are used.
 - [bugfix] Do not reset package url during upgrade when main package is `pipx`
 - Updated help text to show description for `ensurepath` and `completions` help
-- Added support for user-defined default python interpreter via new PIPX_DEFAULT_PYTHON.  Helpful for use with pyenv among other uses.
+- Added support for user-defined default python interpreter via new `PIPX_DEFAULT_PYTHON`.  Helpful for use with pyenv among other uses.
 - [bugfix] Fixed bug where extras were ignored with a PEP 508 package specification with a URL.
 
 0.15.5.1
