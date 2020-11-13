@@ -1,7 +1,7 @@
 # https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions
 # https://packaging.python.org/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
 #
-# Needed Repository Secret:
+# Needed GitHub Repository Secret:
 #   PYPI_PASSWORD - PyPI API token allowing write, release access to PyPI.
 #                   Limit scope to just project.
 #                   (See package.python.org example link above.)
