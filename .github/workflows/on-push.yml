@@ -3,9 +3,10 @@
 name: Test and possibly Publish
 
 on:
-    pull_request:
-    push:
-    release:
+  pull_request:
+  push:
+  release:
+    types: [published]
 
 jobs:
   lint:
