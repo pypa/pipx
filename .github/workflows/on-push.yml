@@ -56,9 +56,9 @@ jobs:
         python-version: [3.6, 3.7, 3.8, 3.9]
         include:
           - os: windows-latest
-            python-version: 3.8
+            python-version: ${{ env.default-python }}
           - os: macos-latest
-            python-version: 3.8
+            python-version: ${{ env.default-python }}
 
     steps:
     - uses: actions/checkout@v2
