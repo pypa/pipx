@@ -12,19 +12,18 @@ on:
   pull_request:
   push:
 
+env:
+  default-python: 3.8
+
 jobs:
   lint:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.8]
-
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python ${{ env.default-python }}
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ env.default-python }}
     - name: Upgrade pip, Install nox
       run: |
         python -m pip install --upgrade pip
@@ -35,16 +34,12 @@ jobs:
 
   docs:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.8]
-
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python ${{ env.default-python }}
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ env.default-python }}
     - name: Upgrade pip, Install nox
       run: |
         python -m pip install --upgrade pip
@@ -96,10 +91,10 @@ jobs:
     steps:
     - name: Checkout ${{ github.ref }}
       uses: actions/checkout@v2
-    - name: Set up Python 3.8
+    - name: Set up Python ${{ env.default-python }}
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: ${{ env.default-python }}
     - name: Upgrade pip, Install nox
       run: |
         python -m pip install --upgrade pip

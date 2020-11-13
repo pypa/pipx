@@ -5,6 +5,9 @@ name: Publish pipx to Test PyPI
 on:
     workflow_dispatch:
 
+env:
+  default-python: 3.8
+
 jobs:
   publish-test:
     name: Publish to Test PyPI
@@ -13,10 +16,10 @@ jobs:
     steps:
     - name: Checkout ${{ github.ref }}
       uses: actions/checkout@v2
-    - name: Set up Python 3.8
+    - name: Set up Python ${{ env.default-python }}
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: ${{ env.default-python }}
     - name: Upgrade pip, Install nox
       run: |
         python -m pip install --upgrade pip
