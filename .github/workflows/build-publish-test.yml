@@ -1,4 +1,9 @@
 # https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions
+#
+# Needed GitHub Repository Secret:
+#   TEST_PYPI_PASSWORD - PyPI API token allowing write, release access to PyPI.
+#     Limit scope to just project.
+#     (See package.python.org example link above.)
 
 name: Publish pipx to Test PyPI
 

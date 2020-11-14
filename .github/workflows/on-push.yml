@@ -3,8 +3,8 @@
 #
 # Needed GitHub Repository Secret:
 #   PYPI_PASSWORD - PyPI API token allowing write, release access to PyPI.
-#                   Limit scope to just project.
-#                   (See package.python.org example link above.)
+#     Limit scope to just project.
+#     (See package.python.org example link above.)
 
 name: Test and possibly Publish
 
