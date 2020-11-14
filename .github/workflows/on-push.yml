@@ -6,7 +6,7 @@
 #     Limit scope to just project.
 #     (See package.python.org example link above.)
 
-name: Test and possibly Publish
+name: Check, possibly Publish
 
 on:
   pull_request:
@@ -33,7 +33,7 @@ jobs:
       run: |
         nox --error-on-missing-interpreters --non-interactive --session lint
 
-  docs:
+  verify-docs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
