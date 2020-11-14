@@ -8,7 +8,7 @@
 name: Publish pipx to Test PyPI
 
 on:
-    workflow_dispatch:
+  workflow_dispatch:
 
 env:
   default-python: 3.8
