@@ -95,7 +95,6 @@ def develop(session):
 @nox.session(python="3.8")
 def build(session):
     session.install("build")
-    session.install("twine")
     session.run("rm", "-rf", "dist", "build", external=True)
     session.run("python", "-m", "build")
 
@@ -135,6 +134,7 @@ def on_master_no_changes(session):
 @nox.session(python="3.8")
 def publish(session):
     on_master_no_changes(session)
+    session.install("twine")
     build(session)
     print("REMINDER: Has the changelog been updated?")
     session.run("python", "-m", "twine", "upload", "dist/*")
