@@ -2,6 +2,8 @@ import sys
 from pathlib import Path
 from typing import List, Sequence
 
+from packaging.utils import canonicalize_name
+
 from pipx.commands.inject import inject
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
@@ -32,7 +34,7 @@ def reinstall(
         venv_dir,
         venv.main_package_name,
         package_or_url,
-        local_bin_dir,
+        canonicalize_name(local_bin_dir),  # in case legacy original dir name
         python,
         venv.pipx_metadata.main_package.pip_args,
         venv.pipx_metadata.venv_args,
