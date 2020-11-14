@@ -30,7 +30,7 @@ def reinstall(
     uninstall(venv_dir, local_bin_dir, verbose)
 
     # in case legacy original dir name
-    local_bin_dir = local_bin_dir.with_name(canonicalize_name(local_bin_dir.name))
+    venv_dir = venv_dir.with_name(canonicalize_name(venv_dir.name))
 
     # install main package first
     install(
