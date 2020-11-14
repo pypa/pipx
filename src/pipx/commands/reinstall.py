@@ -13,7 +13,7 @@ from pipx.venv import Venv, VenvContainer
 
 
 def reinstall(
-    *, venv_dir: Path, local_bin_dir: Path, python: str, verbose: bool,
+    *, venv_dir: Path, local_bin_dir: Path, python: str, verbose: bool
 ) -> int:
     """Returns pipx shell exit code"""
     if not venv_dir.exists():
@@ -29,12 +29,15 @@ def reinstall(
 
     uninstall(venv_dir, local_bin_dir, verbose)
 
+    # in case legacy original dir name
+    local_bin_dir = local_bin_dir.with_name(canonicalize_name(local_bin_dir.name))
+
     # install main package first
     install(
         venv_dir,
         venv.main_package_name,
         package_or_url,
-        canonicalize_name(local_bin_dir),  # in case legacy original dir name
+        local_bin_dir,
         python,
         venv.pipx_metadata.main_package.pip_args,
         venv.pipx_metadata.venv_args,
