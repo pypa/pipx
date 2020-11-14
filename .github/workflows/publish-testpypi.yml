@@ -14,7 +14,7 @@ env:
   default-python: 3.8
 
 jobs:
-  publish-test:
+  testpypi-publish:
     name: Publish to Test PyPI
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
