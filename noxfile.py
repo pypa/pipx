@@ -89,8 +89,8 @@ def tests(session):
 
 @nox.session
 def cover(session):
-    session.install("--upgrade", "pip")
     """Coverage analysis"""
+    session.install("--upgrade", "pip")
     session.install("coverage")
     session.run("coverage", "report", "--show-missing", "--fail-under=70")
     session.run("coverage", "erase")
