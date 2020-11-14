@@ -45,60 +45,6 @@ def prebuild_wheels(session, package_dict):
                 )
 
 
-@nox.session(python=python)
-def tests(session):
-    prebuild_wheels(session, prebuild_packages)
-    session.install("-e", ".", "pytest", "pytest-cov")
-    tests = session.posargs or ["tests"]
-    session.run("pytest", "--cov=pipx", "--cov-report=", *tests)
-    session.notify("cover")
-
-
-@nox.session
-def cover(session):
-    """Coverage analysis"""
-    session.install("coverage")
-    session.run("coverage", "report", "--show-missing", "--fail-under=70")
-    session.run("coverage", "erase")
-
-
-@nox.session(python="3.8")
-def lint(session):
-    session.install(*lint_dependencies)
-    files = [str(Path("src") / "pipx"), "tests", "scripts"] + [
-        str(p) for p in Path(".").glob("*.py")
-    ]
-    session.run("isort", "--check", "--diff", "--profile", "black", *files)
-    session.run("black", "--check", *files)
-    session.run("flake8", *files)
-    session.run("mypy", *files)
-    session.run("check-manifest")
-    session.run("python", "setup.py", "check", "--metadata", "--strict")
-
-
-@nox.session(python="3.8")
-def docs(session):
-    session.install(*doc_dependencies)
-    session.env[
-        "PIPX__DOC_DEFAULT_PYTHON"
-    ] = "typically the python used to execute pipx"
-    session.run("python", "generate_docs.py")
-    session.run("mkdocs", "build")
-
-
-@nox.session(python=python)
-def develop(session):
-    session.install(*doc_dependencies, *lint_dependencies)
-    session.install("-e", ".")
-
-
-@nox.session(python="3.8")
-def build(session):
-    session.install("build")
-    session.run("rm", "-rf", "dist", "build", external=True)
-    session.run("python", "-m", "build")
-
-
 def has_changes():
     status = (
         subprocess.run(
@@ -131,8 +77,69 @@ def on_master_no_changes(session):
         session.error(f"Must be on 'master' branch. Currently on {branch!r} branch")
 
 
+@nox.session(python=python)
+def tests(session):
+    session.install("--upgrade", "pip")
+    prebuild_wheels(session, prebuild_packages)
+    session.install("-e", ".", "pytest", "pytest-cov")
+    tests = session.posargs or ["tests"]
+    session.run("pytest", "--cov=pipx", "--cov-report=", *tests)
+    session.notify("cover")
+
+
+@nox.session
+def cover(session):
+    session.install("--upgrade", "pip")
+    """Coverage analysis"""
+    session.install("coverage")
+    session.run("coverage", "report", "--show-missing", "--fail-under=70")
+    session.run("coverage", "erase")
+
+
+@nox.session(python="3.8")
+def lint(session):
+    session.install("--upgrade", "pip")
+    session.install(*lint_dependencies)
+    files = [str(Path("src") / "pipx"), "tests", "scripts"] + [
+        str(p) for p in Path(".").glob("*.py")
+    ]
+    session.run("isort", "--check", "--diff", "--profile", "black", *files)
+    session.run("black", "--check", *files)
+    session.run("flake8", *files)
+    session.run("mypy", *files)
+    session.run("check-manifest")
+    session.run("python", "setup.py", "check", "--metadata", "--strict")
+
+
+@nox.session(python="3.8")
+def docs(session):
+    session.install("--upgrade", "pip")
+    session.install(*doc_dependencies)
+    session.env[
+        "PIPX__DOC_DEFAULT_PYTHON"
+    ] = "typically the python used to execute pipx"
+    session.run("python", "generate_docs.py")
+    session.run("mkdocs", "build")
+
+
+@nox.session(python=python)
+def develop(session):
+    session.install("--upgrade", "pip")
+    session.install(*doc_dependencies, *lint_dependencies)
+    session.install("-e", ".")
+
+
+@nox.session(python="3.8")
+def build(session):
+    session.install("--upgrade", "pip")
+    session.install("build")
+    session.run("rm", "-rf", "dist", "build", external=True)
+    session.run("python", "-m", "build")
+
+
 @nox.session(python="3.8")
 def publish(session):
+    session.install("--upgrade", "pip")
     on_master_no_changes(session)
     session.install("twine")
     build(session)
@@ -148,6 +155,7 @@ def watch_docs(session):
 
 @nox.session(python="3.8")
 def publish_docs(session):
+    session.install("--upgrade", "pip")
     session.install(*doc_dependencies)
     session.run("python", "generate_docs.py")
     session.run("mkdocs", "gh-deploy")
