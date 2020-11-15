@@ -134,5 +134,5 @@ def ensure_pipx_paths(force: bool) -> int:
         )
 
     print(f"Otherwise pipx is ready to go! {stars}")
-    # TODO: verify
+
     return 0

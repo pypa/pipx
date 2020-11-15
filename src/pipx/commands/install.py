@@ -47,7 +47,7 @@ def install(
                 f"Not modifying existing installation in {str(venv_dir)!r}. "
                 "Pass '--force' to force installation."
             )
-            # TODO: verify
+            # TODO: should existing installation be error or not?
             return 1
 
     try:
@@ -74,5 +74,5 @@ def install(
         venv.remove_venv()
         raise
 
-    # TODO: verify
+    # Any failure to install will raise PipxError, otherwise success
     return 0

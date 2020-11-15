@@ -21,7 +21,6 @@ def list_packages(venv_container: VenvContainer, include_injected: bool) -> int:
     dirs: Collection[Path] = sorted(venv_container.iter_venv_dirs())
     if not dirs:
         print(f"nothing has been installed with pipx {sleep}")
-        # TODO: confirm this should be 0
         return 0
 
     print(f"venvs are in {bold(str(venv_container))}")
@@ -45,6 +44,5 @@ def list_packages(venv_container: VenvContainer, include_injected: bool) -> int:
         ):
             print(package_summary)
 
-    # TODO: Issue #503 make pipx commands have proper exit codes
     # TODO: if there are issues that list raises, yield non-zero exit code?
     return 0

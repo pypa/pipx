@@ -65,7 +65,7 @@ def reinstall(
             force=True,
         )
 
-    # TODO: verify
+    # Any failure to install will raise PipxError, otherwise success
     return 0
 
 
@@ -96,5 +96,5 @@ def reinstall_all(
         raise PipxError(
             f"The following package(s) failed to reinstall: {', '.join(failed)}"
         )
-    # TODO: verify
+    # Any failure to install will raise PipxError, otherwise success
     return 0
