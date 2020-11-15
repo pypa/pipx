@@ -30,7 +30,9 @@ def print_version() -> None:
     print(__version__)
 
 
-def indented_wrap(text, subsequent_indent="", split="\n", **kwargs):
+def indented_wrap(
+    text: str, subsequent_indent: str = "", split: str = "\n", **kwargs
+) -> str:
     text = textwrap.dedent(text).strip()
     minimum_width = 40
     width = max(shutil.get_terminal_size((80, 40)).columns, minimum_width) - 2
@@ -111,7 +113,7 @@ INSTALL_DESCRIPTION = textwrap.dedent(
 
 
 class LineWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
-    def _split_lines(self, text, width):
+    def _split_lines(self, text: str, width: int) -> List[str]:
         text = self._whitespace_matcher.sub(" ", text).strip()
         return textwrap.wrap(text, width)
 
@@ -251,7 +253,7 @@ def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
         raise PipxError(f"Unknown command {args.command}")
 
 
-def add_pip_venv_args(parser):
+def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--system-site-packages",
         action="store_true",
@@ -270,7 +272,7 @@ def add_pip_venv_args(parser):
     )
 
 
-def add_include_dependencies(parser):
+def add_include_dependencies(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--include-deps", help="Include apps of dependent packages", action="store_true"
     )
@@ -282,7 +284,7 @@ def _autocomplete_list_of_installed_packages(
     return list(str(p.name) for p in sorted(venv_container.iter_venv_dirs()))
 
 
-def _add_install(subparsers):
+def _add_install(subparsers) -> None:
     p = subparsers.add_parser(
         "install",
         help="Install a package",
@@ -317,7 +319,7 @@ def _add_install(subparsers):
     add_pip_venv_args(p)
 
 
-def _add_inject(subparsers, autocomplete_list_of_installed_packages):
+def _add_inject(subparsers, autocomplete_list_of_installed_packages) -> None:
     p = subparsers.add_parser(
         "inject",
         help="Install packages into an existing Virtual Environment",
@@ -348,7 +350,7 @@ def _add_inject(subparsers, autocomplete_list_of_installed_packages):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_upgrade(subparsers, autocomplete_list_of_installed_packages):
+def _add_upgrade(subparsers, autocomplete_list_of_installed_packages) -> None:
     p = subparsers.add_parser(
         "upgrade",
         help="Upgrade a package",
@@ -365,7 +367,7 @@ def _add_upgrade(subparsers, autocomplete_list_of_installed_packages):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_upgrade_all(subparsers):
+def _add_upgrade_all(subparsers) -> None:
     p = subparsers.add_parser(
         "upgrade-all",
         help="Upgrade all packages. Runs `pip install -U <pkgname>` for each package.",
@@ -382,7 +384,7 @@ def _add_upgrade_all(subparsers):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_uninstall(subparsers, autocomplete_list_of_installed_packages):
+def _add_uninstall(subparsers, autocomplete_list_of_installed_packages) -> None:
     p = subparsers.add_parser(
         "uninstall",
         help="Uninstall a package",
@@ -392,7 +394,7 @@ def _add_uninstall(subparsers, autocomplete_list_of_installed_packages):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_uninstall_all(subparsers):
+def _add_uninstall_all(subparsers) -> None:
     p = subparsers.add_parser(
         "uninstall-all",
         help="Uninstall all packages",
@@ -401,7 +403,7 @@ def _add_uninstall_all(subparsers):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_reinstall(subparsers, autocomplete_list_of_installed_packages):
+def _add_reinstall(subparsers, autocomplete_list_of_installed_packages) -> None:
     p = subparsers.add_parser(
         "reinstall",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -428,7 +430,7 @@ def _add_reinstall(subparsers, autocomplete_list_of_installed_packages):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_reinstall_all(subparsers):
+def _add_reinstall_all(subparsers) -> None:
     p = subparsers.add_parser(
         "reinstall-all",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -457,7 +459,7 @@ def _add_reinstall_all(subparsers):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_list(subparsers):
+def _add_list(subparsers) -> None:
     p = subparsers.add_parser(
         "list",
         help="List installed packages",
@@ -471,7 +473,7 @@ def _add_list(subparsers):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_run(subparsers):
+def _add_run(subparsers) -> None:
     p = subparsers.add_parser(
         "run",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -528,7 +530,7 @@ def _add_run(subparsers):
     p.usage = re.sub(r"\.\.\.", "app ...", p.usage)
 
 
-def _add_runpip(subparsers, autocomplete_list_of_installed_packages):
+def _add_runpip(subparsers, autocomplete_list_of_installed_packages) -> None:
     p = subparsers.add_parser(
         "runpip",
         help="Run pip in an existing pipx-managed Virtual Environment",
@@ -547,7 +549,7 @@ def _add_runpip(subparsers, autocomplete_list_of_installed_packages):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_ensurepath(subparsers):
+def _add_ensurepath(subparsers) -> None:
     p = subparsers.add_parser(
         "ensurepath",
         help=(
@@ -573,7 +575,7 @@ def _add_ensurepath(subparsers):
     )
 
 
-def get_command_parser():
+def get_command_parser() -> argparse.ArgumentParser:
     venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
 
     autocomplete_list_of_installed_packages = functools.partial(
@@ -610,7 +612,7 @@ def get_command_parser():
     return parser
 
 
-def setup(args):
+def setup(args) -> None:
     if "version" in args and args.version:
         print_version()
         sys.exit(0)
@@ -639,7 +641,7 @@ def setup(args):
         )
 
 
-def check_args(parsed_pipx_args: argparse.Namespace):
+def check_args(parsed_pipx_args: argparse.Namespace) -> None:
     if parsed_pipx_args.command == "run":
         # we manually discard a first -- because using nargs=argparse.REMAINDER
         #   will not do it automatically
