@@ -11,7 +11,7 @@ from pipx.util import PipxError
 from pipx.venv import Venv
 
 
-def inject(
+def inject_dep(
     venv_dir: Path,
     package_name: Optional[str],
     package_spec: str,
@@ -21,7 +21,7 @@ def inject(
     include_apps: bool,
     include_dependencies: bool,
     force: bool,
-):
+) -> bool:
     if not venv_dir.exists() or not next(venv_dir.iterdir()):
         raise PipxError(
             textwrap.dedent(
@@ -69,3 +69,37 @@ def inject(
 
     print(f"  injected package {bold(package_name)} into venv {bold(venv.name)}")
     print(f"done! {stars}", file=sys.stderr)
+
+    # TODO: No way to return False except PipxError?
+    return True
+
+
+def inject(
+    venv_dir: Path,
+    package_name: Optional[str],
+    package_specs: List[str],
+    pip_args: List[str],
+    *,
+    verbose: bool,
+    include_apps: bool,
+    include_dependencies: bool,
+    force: bool,
+) -> int:
+    if not include_apps and include_dependencies:
+        raise PipxError(
+            "Cannot pass --include-deps if --include-apps is not passed as well"
+        )
+    all_success = True
+    for dep in package_specs:
+        all_success &= inject_dep(
+            venv_dir,
+            None,
+            dep,
+            pip_args,
+            verbose=verbose,
+            include_apps=include_apps,
+            include_dependencies=include_dependencies,
+            force=force,
+        )
+
+    return 0 if all_success else 1

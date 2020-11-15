@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 from typing import List, Sequence
 
-from pipx.commands.inject import inject
+from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
 from pipx.emojies import sleep
@@ -11,7 +11,7 @@ from pipx.venv import Venv, VenvContainer
 
 
 def reinstall(
-    *, venv_dir: Path, local_bin_dir: Path, python: str, verbose: bool,
+    *, venv_dir: Path, local_bin_dir: Path, python: str, verbose: bool
 ) -> int:
     """Returns pipx shell exit code"""
     if not venv_dir.exists():
@@ -53,7 +53,7 @@ def reinstall(
             raise PipxError(
                 f"Internal Error injecting package {injected_package} into {venv.name}"
             )
-        inject(
+        inject_dep(
             venv_dir,
             injected_name,
             injected_package.package_or_url,

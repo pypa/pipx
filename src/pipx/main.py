@@ -196,23 +196,16 @@ def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
             suffix=args.suffix,
         )
     elif args.command == "inject":
-        if not args.include_apps and args.include_deps:
-            raise PipxError(
-                "Cannot pass --include-deps if --include-apps is not passed as well"
-            )
-        for dep in args.dependencies:
-            commands.inject(
-                venv_dir,
-                None,
-                dep,
-                pip_args,
-                verbose=verbose,
-                include_apps=args.include_apps,
-                include_dependencies=args.include_deps,
-                force=args.force,
-            )
-        # TODO: Issue #503 make pipx commands have proper exit codes
-        return 0
+        return commands.inject(
+            venv_dir,
+            None,
+            args.dependencies,
+            pip_args,
+            verbose=verbose,
+            include_apps=args.include_apps,
+            include_dependencies=args.include_deps,
+            force=args.force,
+        )
     elif args.command == "upgrade":
         return commands.upgrade(
             venv_dir, pip_args, verbose, upgrading_all=False, force=args.force
