@@ -12,7 +12,7 @@ on:
   pull_request:
   push:
 
-# If changing default-python be sure to change job tests, matrix: include: also
+# If changing default-python be sure to change job "tests" matrix: include: also
 env:
   default-python: 3.8
 
