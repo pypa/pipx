@@ -7,10 +7,10 @@ import nox  # type: ignore
 python = ["3.6", "3.7", "3.8", "3.9"]
 
 if sys.platform == "win32":
-    # docs fail on Windows, even if `chcp.com 65001` is used
+    # build_docs fail on Windows, even if `chcp.com 65001` is used
     nox.options.sessions = ["tests", "lint"]
 else:
-    nox.options.sessions = ["tests", "lint", "docs"]
+    nox.options.sessions = ["tests", "lint", "build_docs"]
 
 nox.options.reuse_existing_virtualenvs = True
 
