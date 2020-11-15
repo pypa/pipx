@@ -70,7 +70,7 @@ def inject_dep(
     print(f"  injected package {bold(package_name)} into venv {bold(venv.name)}")
     print(f"done! {stars}", file=sys.stderr)
 
-    # TODO: No way to return False except PipxError?
+    # Any failure to install will raise PipxError, otherwise success
     return True
 
 
@@ -103,5 +103,5 @@ def inject(
             force=force,
         )
 
-    # TODO: verify
+    # Any failure to install will raise PipxError, otherwise success
     return 0 if all_success else 1
