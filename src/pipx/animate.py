@@ -19,7 +19,7 @@ NONEMOJI_FRAME_PERIOD = 1
 MINIMUM_COLS_ALLOW_ANIMATION = 16
 
 
-def _env_supports_animation():
+def _env_supports_animation() -> bool:
     (term_cols, _) = shutil.get_terminal_size(fallback=(0, 0))
     return stderr_is_tty and term_cols > MINIMUM_COLS_ALLOW_ANIMATION
 
@@ -75,7 +75,7 @@ def print_animation(
     delay: float,
     period: float,
     animate_at_beginning_of_line: bool,
-):
+) -> None:
     (term_cols, _) = shutil.get_terminal_size(fallback=(9999, 24))
     event.wait(delay)
     while not event.wait(0):
@@ -96,14 +96,14 @@ def print_animation(
                 break
 
 
-def hide_cursor():
+def hide_cursor() -> None:
     sys.stderr.write(f"{HIDE_CURSOR}")
 
 
-def show_cursor():
+def show_cursor() -> None:
     sys.stderr.write(f"{SHOW_CURSOR}")
 
 
-def clear_line():
+def clear_line() -> None:
     sys.stderr.write(f"{CLEAR_LINE}")
     sys.stdout.write(f"{CLEAR_LINE}")
