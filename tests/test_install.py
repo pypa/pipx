@@ -98,9 +98,14 @@ def test_install_no_packages_found(pipx_temp_env, capsys):
     assert "No apps associated with package pygdbmi" in captured.err
 
 
-def test_install_same_package_twice_no_error(pipx_temp_env, capsys):
+def test_install_same_package_twice_no_force(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
-    assert not run_pipx_cli(["install", "pycowsay"])
+    assert run_pipx_cli(["install", "pycowsay"])
+    captured = capsys.readouterr()
+    assert (
+        "'pycowsay' already seems to be installed. Not modifying existing installation"
+        in captured.out
+    )
 
 
 def test_include_deps(pipx_temp_env, capsys):
