@@ -211,9 +211,7 @@ def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
             venv_dir, pip_args, verbose, upgrading_all=False, force=args.force
         )
     elif args.command == "list":
-        commands.list_packages(venv_container, args.include_injected)
-        # TODO: Issue #503 make pipx commands have proper exit codes
-        return 0
+        return commands.list_packages(venv_container, args.include_injected)
     elif args.command == "uninstall":
         return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, verbose)
     elif args.command == "uninstall-all":
