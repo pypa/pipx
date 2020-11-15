@@ -90,17 +90,19 @@ def upgrade(
             print(
                 f"{display_name} is already at latest version {old_version} (location: {str(venv_dir)})"
             )
+        # TODO: verify is non-upgrade also non-error?
         return 0
     else:
         print(
             f"upgraded package {display_name} from {old_version} to {new_version} (location: {str(venv_dir)})"
         )
+        # TODO: This needs to be changed to 0!!!
         return 1
 
 
 def upgrade_all(
     venv_container: VenvContainer, verbose: bool, *, skip: Sequence[str], force: bool
-):
+) -> int:
     venv_error = False
     venvs_upgraded = 0
     for venv_dir in venv_container.iter_venv_dirs():
@@ -132,3 +134,6 @@ def upgrade_all(
             "Some packages encountered errors during upgrade. "
             "See specific error messages above."
         )
+
+    # TODO: verify that this will always be zero except for PipxError
+    return 0
