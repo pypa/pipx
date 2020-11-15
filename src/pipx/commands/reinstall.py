@@ -16,6 +16,7 @@ def reinstall(
     """Returns pipx shell exit code"""
     if not venv_dir.exists():
         print(f"Nothing to reinstall for {venv_dir.name} {sleep}")
+        # TODO: verify should this be 0?
         return 1
 
     venv = Venv(venv_dir, verbose=verbose)
@@ -64,6 +65,7 @@ def reinstall(
             force=True,
         )
 
+    # TODO: verify
     return 0
 
 
@@ -94,4 +96,5 @@ def reinstall_all(
         raise PipxError(
             f"The following package(s) failed to reinstall: {', '.join(failed)}"
         )
+    # TODO: verify
     return 0
