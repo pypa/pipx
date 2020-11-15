@@ -4,7 +4,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 from pipx.animate import show_cursor
 from pipx.constants import WINDOWS
@@ -14,7 +14,7 @@ class PipxError(Exception):
     pass
 
 
-def rmdir(path: Path):
+def rmdir(path: Path) -> None:
     logging.info(f"removing directory {path}")
     try:
         if WINDOWS:
@@ -43,7 +43,7 @@ def get_pypackage_bin_path(binary_name: str) -> Path:
 
 
 def run_pypackage_bin(bin_path: Path, args: List[str]) -> None:
-    def _get_env():
+    def _get_env() -> Dict[str, str]:
         env = dict(os.environ)
         env["PYTHONPATH"] = os.path.pathsep.join(
             [".", str(bin_path.parent.parent)]
@@ -80,7 +80,7 @@ def get_site_packages(python: Path) -> Path:
     return path
 
 
-def _fix_subprocess_env(env):
+def _fix_subprocess_env(env: Dict[str, str]) -> Dict[str, str]:
     # Remove PYTHONPATH because some platforms (macOS with Homebrew) add pipx
     #   directories to it, and can make it appear to venvs as though pipx
     #   dependencies are in the venv path (#233)
