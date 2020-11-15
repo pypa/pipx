@@ -149,6 +149,8 @@ def build_docs(session):
 
 @nox.session(python="3.8")
 def publish_docs(session):
+    session.install("--upgrade", "pip")
+    session.install(*doc_dependencies)
     build_docs(session)
     session.run("mkdocs", "gh-deploy")
 
