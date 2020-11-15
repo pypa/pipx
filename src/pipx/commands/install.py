@@ -19,7 +19,7 @@ def install(
     force: bool,
     include_dependencies: bool,
     suffix: str = "",
-):
+) -> int:
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
 
@@ -46,7 +46,8 @@ def install(
                 f"Not modifying existing installation in {str(venv_dir)!r}. "
                 "Pass '--force' to force installation."
             )
-            return
+            # TODO: verify
+            return 1
 
     try:
         venv.create_venv(venv_args, pip_args)
@@ -71,3 +72,6 @@ def install(
         print("")
         venv.remove_venv()
         raise
+
+    # TODO: verify
+    return 0
