@@ -6,6 +6,7 @@ from pipx.venv import Venv
 
 
 def run_pip(package: str, venv_dir: Path, pip_args: List[str], verbose: bool) -> int:
+    """Returns pipx exit code."""
     venv = Venv(venv_dir, verbose=verbose)
     if not venv.python_path.exists():
         raise PipxError(

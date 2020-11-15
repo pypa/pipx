@@ -20,6 +20,7 @@ def install(
     include_dependencies: bool,
     suffix: str = "",
 ) -> int:
+    """Returns pipx exit code."""
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
 

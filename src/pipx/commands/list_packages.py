@@ -17,6 +17,7 @@ except ImportError:
 
 
 def list_packages(venv_container: VenvContainer, include_injected: bool) -> int:
+    """Returns pipx exit code."""
     dirs: Collection[Path] = sorted(venv_container.iter_venv_dirs())
     if not dirs:
         print(f"nothing has been installed with pipx {sleep}")

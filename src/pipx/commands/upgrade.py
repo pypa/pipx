@@ -19,7 +19,9 @@ def upgrade(
     upgrading_all: bool,
     force: bool,
 ) -> int:
-    """Returns nonzero if package was upgraded, 0 if version did not change"""
+    """Returns pipx exit code."""
+
+    # TODO: wrong! fix:"""Returns nonzero if package was upgraded, 0 if version did not change"""
 
     if not venv_dir.is_dir():
         raise PipxError(
@@ -103,6 +105,7 @@ def upgrade(
 def upgrade_all(
     venv_container: VenvContainer, verbose: bool, *, skip: Sequence[str], force: bool
 ) -> int:
+    """Returns pipx exit code."""
     venv_error = False
     venvs_upgraded = 0
     for venv_dir in venv_container.iter_venv_dirs():

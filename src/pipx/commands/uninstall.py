@@ -12,6 +12,8 @@ from pipx.venv import Venv, VenvContainer
 def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> int:
     """Uninstall entire venv_dir, including main package and all injected
     packages.
+
+    Returns pipx exit code.
     """
     if not venv_dir.exists():
         print(f"Nothing to uninstall for {venv_dir.name} {sleep}")
@@ -77,6 +79,7 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> int:
 def uninstall_all(
     venv_container: VenvContainer, local_bin_dir: Path, verbose: bool
 ) -> int:
+    """Returns pipx exit code."""
     all_success = True
     for venv_dir in venv_container.iter_venv_dirs():
         return_val = uninstall(venv_dir, local_bin_dir, verbose)

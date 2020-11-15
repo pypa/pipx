@@ -13,7 +13,7 @@ from pipx.venv import Venv, VenvContainer
 def reinstall(
     *, venv_dir: Path, local_bin_dir: Path, python: str, verbose: bool
 ) -> int:
-    """Returns pipx shell exit code"""
+    """Returns pipx exit code."""
     if not venv_dir.exists():
         print(f"Nothing to reinstall for {venv_dir.name} {sleep}")
         # TODO: verify should this be 0?
@@ -77,7 +77,7 @@ def reinstall_all(
     *,
     skip: Sequence[str],
 ) -> int:
-    """Returns pipx shell exit code"""
+    """Returns pipx exit code."""
     failed: List[str] = []
     for venv_dir in venv_container.iter_venv_dirs():
         if venv_dir.name in skip:

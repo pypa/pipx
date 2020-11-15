@@ -85,6 +85,7 @@ def inject(
     include_dependencies: bool,
     force: bool,
 ) -> int:
+    """Returns pipx exit code."""
     if not include_apps and include_dependencies:
         raise PipxError(
             "Cannot pass --include-deps if --include-apps is not passed as well"
