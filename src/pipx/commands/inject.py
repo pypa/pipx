@@ -102,4 +102,5 @@ def inject(
             force=force,
         )
 
+    # TODO: verify
     return 0 if all_success else 1
