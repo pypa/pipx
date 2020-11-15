@@ -30,7 +30,7 @@ class _SharedLibs:
 
         return self._site_packages
 
-    def create(self, verbose: bool = False):
+    def create(self, verbose: bool = False) -> None:
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
                 run_verify([DEFAULT_PYTHON, "-m", "venv", "--clear", self.root])
@@ -39,11 +39,11 @@ class _SharedLibs:
             self.upgrade(pip_args=["--force-reinstall"], verbose=verbose)
 
     @property
-    def is_valid(self):
+    def is_valid(self) -> bool:
         return self.python_path.is_file() and self.pip_path.is_file()
 
     @property
-    def needs_upgrade(self):
+    def needs_upgrade(self) -> bool:
         if self.has_been_updated_this_run:
             return False
 
@@ -58,7 +58,9 @@ class _SharedLibs:
         )
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
-    def upgrade(self, *, pip_args: Optional[List[str]] = None, verbose: bool = False):
+    def upgrade(
+        self, *, pip_args: Optional[List[str]] = None, verbose: bool = False
+    ) -> None:
         # Don't try to upgrade multiple times per run
         if self.has_been_updated_this_run:
             logging.info(f"Already upgraded libraries in {self.root}")
