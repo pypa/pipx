@@ -12,7 +12,7 @@ def run_pip(package: str, venv_dir: Path, pip_args: List[str], verbose: bool) ->
             f"venv for {package!r} was not found. Was {package!r} installed with pipx?"
         )
     venv.verbose = True
-    venv._run_pip(pip_args)
+    venv.run_pip(pip_args)
 
     # TODO: verify
     # TODO: venv._run_pip() will raise PipxError for any non-zero pip error code
