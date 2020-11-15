@@ -210,16 +210,16 @@ def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
         return commands.upgrade(
             venv_dir, pip_args, verbose, upgrading_all=False, force=args.force
         )
+    elif args.command == "upgrade-all":
+        return commands.upgrade_all(
+            venv_container, verbose, skip=skip_list, force=args.force
+        )
     elif args.command == "list":
         return commands.list_packages(venv_container, args.include_injected)
     elif args.command == "uninstall":
         return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, verbose)
     elif args.command == "uninstall-all":
         return commands.uninstall_all(venv_container, constants.LOCAL_BIN_DIR, verbose)
-    elif args.command == "upgrade-all":
-        return commands.upgrade_all(
-            venv_container, verbose, skip=skip_list, force=args.force
-        )
     elif args.command == "reinstall":
         return commands.reinstall(
             venv_dir=venv_dir,
