@@ -39,7 +39,7 @@ def strtobool(val: str) -> bool:
         return False
 
 
-def use_emjois():
+def use_emjois() -> bool:
     platform_emoji_support = not is_windows() and sys.getdefaultencoding() == "utf-8"
     return strtobool(str(os.getenv("USE_EMOJI", platform_emoji_support)))
 
