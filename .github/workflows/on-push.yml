@@ -47,7 +47,7 @@ jobs:
         pip install nox
     - name: Verify Docs
       run: |
-        nox --error-on-missing-interpreters --non-interactive --session docs
+        nox --error-on-missing-interpreters --non-interactive --session build_docs
 
   tests:
     runs-on: ${{ matrix.os }}

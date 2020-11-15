@@ -111,17 +111,6 @@ def lint(session):
     session.run("python", "setup.py", "check", "--metadata", "--strict")
 
 
-@nox.session(python="3.8")
-def docs(session):
-    session.install("--upgrade", "pip")
-    session.install(*doc_dependencies)
-    session.env[
-        "PIPX__DOC_DEFAULT_PYTHON"
-    ] = "typically the python used to execute pipx"
-    session.run("python", "generate_docs.py")
-    session.run("mkdocs", "build")
-
-
 @nox.session(python=python)
 def develop(session):
     session.install("--upgrade", "pip")
@@ -139,8 +128,8 @@ def build(session):
 
 @nox.session(python="3.8")
 def publish(session):
-    session.install("--upgrade", "pip")
     on_master_no_changes(session)
+    session.install("--upgrade", "pip")
     session.install("twine")
     build(session)
     print("REMINDER: Has the changelog been updated?")
@@ -148,17 +137,26 @@ def publish(session):
 
 
 @nox.session(python="3.8")
-def watch_docs(session):
+def build_docs(session):
+    session.install("--upgrade", "pip")
     session.install(*doc_dependencies)
-    session.run("mkdocs", "serve")
+    session.env[
+        "PIPX__DOC_DEFAULT_PYTHON"
+    ] = "typically the python used to execute pipx"
+    session.run("python", "generate_docs.py")
+    session.run("mkdocs", "build")
 
 
 @nox.session(python="3.8")
 def publish_docs(session):
-    session.install("--upgrade", "pip")
-    session.install(*doc_dependencies)
-    session.run("python", "generate_docs.py")
+    build_docs(session)
     session.run("mkdocs", "gh-deploy")
+
+
+@nox.session(python="3.8")
+def watch_docs(session):
+    session.install(*doc_dependencies)
+    session.run("mkdocs", "serve")
 
 
 @nox.session(python="3.8")
