@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 from typing import List, Sequence
 
+import pipx.shared_libs.shared_libs
 from pipx.commands.inject import inject
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
@@ -11,7 +12,7 @@ from pipx.venv import Venv, VenvContainer
 
 
 def reinstall(
-    *, venv_dir: Path, local_bin_dir: Path, python: str, verbose: bool,
+    *, venv_dir: Path, local_bin_dir: Path, python: str, verbose: bool
 ) -> int:
     """Returns pipx shell exit code"""
     if not venv_dir.exists():
@@ -76,6 +77,8 @@ def reinstall_all(
     skip: Sequence[str],
 ) -> int:
     """Returns pipx shell exit code"""
+    pipx.shared_libs.shared_libs.upgrade(verbose=verbose)
+
     failed: List[str] = []
     for venv_dir in venv_container.iter_venv_dirs():
         if venv_dir.name in skip:
@@ -94,4 +97,5 @@ def reinstall_all(
         raise PipxError(
             f"The following package(s) failed to reinstall: {', '.join(failed)}"
         )
+
     return 0
