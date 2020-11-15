@@ -22,7 +22,7 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> int:
             print(
                 f"{hazard}  Note: '{app}' still exists on your system and is on your PATH"
             )
-        # TODO: verify
+        # TODO: should non-existent directory be error?
         return 1
 
     venv = Venv(venv_dir, verbose=verbose)
@@ -72,7 +72,6 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> int:
 
     rmdir(venv_dir)
     print(f"uninstalled {venv.name}! {stars}")
-    # TODO: verify
     return 0
 
 
@@ -85,5 +84,4 @@ def uninstall_all(
         return_val = uninstall(venv_dir, local_bin_dir, verbose)
         all_success &= return_val == 0
 
-    # TODO: verify
     return 0 if all_success else 1
