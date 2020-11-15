@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 from typing import List, Sequence
 
-import pipx.shared_libs.shared_libs
+import pipx.shared_libs
 from pipx.commands.inject import inject
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
