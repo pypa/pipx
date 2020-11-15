@@ -106,7 +106,7 @@ class PipxMetadata:
             for (name, data) in input_dict["injected_packages"].items()
         }
 
-    def _validate_before_write(self):
+    def _validate_before_write(self) -> None:
         if (
             self.main_package.package is None
             or self.main_package.package_or_url is None
