@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 import userpath  # type: ignore
 
@@ -21,7 +21,7 @@ from pipx.venv import Venv
 
 
 def expose_apps_globally(
-    local_bin_dir: Path, app_paths: List[Path], *, force: bool, suffix: str = "",
+    local_bin_dir: Path, app_paths: List[Path], *, force: bool, suffix: str = ""
 ) -> None:
     if not _can_symlink(local_bin_dir):
         _copy_package_apps(local_bin_dir, app_paths, suffix=suffix)
@@ -54,7 +54,7 @@ def _can_symlink(local_bin_dir: Path) -> bool:
 
 
 def _copy_package_apps(
-    local_bin_dir: Path, app_paths: List[Path], suffix: str = "",
+    local_bin_dir: Path, app_paths: List[Path], suffix: str = ""
 ) -> None:
     for src_unresolved in app_paths:
         src = src_unresolved.resolve()
@@ -70,7 +70,7 @@ def _copy_package_apps(
 
 
 def _symlink_package_apps(
-    local_bin_dir: Path, app_paths: List[Path], *, force: bool, suffix: str = "",
+    local_bin_dir: Path, app_paths: List[Path], *, force: bool, suffix: str = ""
 ) -> None:
     for app_path in app_paths:
         app_name = app_path.name
@@ -175,7 +175,7 @@ def get_package_summary(
 
 def _get_exposed_app_paths_for_package(
     venv_bin_path: Path, package_binary_names: List[str], local_bin_dir: Path
-):
+) -> Set[Path]:
     bin_symlinks = set()
     for b in local_bin_dir.iterdir():
         try:
@@ -328,15 +328,15 @@ def run_post_install_actions(
     if include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             expose_apps_globally(
-                local_bin_dir, app_paths, force=force, suffix=package_metadata.suffix,
+                local_bin_dir, app_paths, force=force, suffix=package_metadata.suffix
             )
 
-    print(get_package_summary(venv_dir, package=package, new_install=True,))
+    print(get_package_summary(venv_dir, package=package, new_install=True))
     warn_if_not_on_path(local_bin_dir)
     print(f"done! {stars}", file=sys.stderr)
 
 
-def warn_if_not_on_path(local_bin_dir: Path):
+def warn_if_not_on_path(local_bin_dir: Path) -> None:
     if not userpath.in_current_path(str(local_bin_dir)):
         logging.warning(
             f"{hazard}  Note: {str(local_bin_dir)!r} is not on your PATH environment "
