@@ -86,7 +86,7 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
     return (path_added, need_shell_restart)
 
 
-def ensure_pipx_paths(force: bool):
+def ensure_pipx_paths(force: bool) -> int:
     bin_paths = [constants.LOCAL_BIN_DIR]
 
     pipx_user_bin_path = get_pipx_user_bin_path()
@@ -133,3 +133,5 @@ def ensure_pipx_paths(force: bool):
         )
 
     print(f"Otherwise pipx is ready to go! {stars}")
+    # TODO: verify
+    return 0
