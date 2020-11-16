@@ -5,6 +5,9 @@ from pipx import constants
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.venv import Venv, VenvContainer
 
+PIPX_EXIT_CODE_OK = 0
+PIPX_EXIT_CODE_PREEXISTING = 1  # TODO: should existing installation be error?
+
 
 def install(
     venv_dir: Optional[Path],
@@ -47,8 +50,7 @@ def install(
                 f"Not modifying existing installation in {str(venv_dir)!r}. "
                 "Pass '--force' to force installation."
             )
-            # TODO: should existing installation be error or not?
-            return 1
+            return PIPX_EXIT_CODE_PREEXISTING
 
     try:
         venv.create_venv(venv_args, pip_args)
@@ -75,4 +77,4 @@ def install(
         raise
 
     # Any failure to install will raise PipxError, otherwise success
-    return 0
+    return PIPX_EXIT_CODE_OK

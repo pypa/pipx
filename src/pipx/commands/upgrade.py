@@ -10,8 +10,10 @@ from pipx.package_specifier import parse_specifier_for_upgrade
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
+PIPX_EXIT_CODE_OK = 0
 
-def upgrade(
+
+def _upgrade_venv(
     venv_dir: Path,
     pip_args: List[str],
     verbose: bool,
@@ -19,10 +21,6 @@ def upgrade(
     upgrading_all: bool,
     force: bool,
 ) -> int:
-    """Returns pipx exit code."""
-
-    # TODO: wrong! fix:"""Returns nonzero if package was upgraded, 0 if version did not change"""
-
     if not venv_dir.is_dir():
         raise PipxError(
             f"Package is not installed. Expected to find {str(venv_dir)}, "
@@ -38,6 +36,7 @@ def upgrade(
             f"    It was likely installed using a pipx version before 0.15.0.0.\n"
             f"    Please uninstall and install this package, or reinstall-all to fix."
         )
+        # TODO: this should be an error or warning
         return 0
 
     package_metadata = venv.package_metadata[package]
@@ -92,14 +91,19 @@ def upgrade(
             print(
                 f"{display_name} is already at latest version {old_version} (location: {str(venv_dir)})"
             )
-        # TODO: verify is non-upgrade also non-error?
         return 0
     else:
         print(
             f"upgraded package {display_name} from {old_version} to {new_version} (location: {str(venv_dir)})"
         )
-        # TODO: This needs to be changed to 0!!!
         return 1
+
+
+def upgrade(venv_dir: Path, pip_args: List[str], verbose: bool, *, force: bool) -> int:
+    """Returns pipx exit code."""
+
+    _ = _upgrade_venv(venv_dir, pip_args, verbose, upgrading_all=False, force=force,)
+    return PIPX_EXIT_CODE_OK
 
 
 def upgrade_all(
@@ -116,7 +120,7 @@ def upgrade_all(
         ):
             continue
         try:
-            venvs_upgraded += upgrade(
+            venvs_upgraded += _upgrade_venv(
                 venv_dir,
                 venv.pipx_metadata.main_package.pip_args,
                 verbose,
@@ -138,5 +142,4 @@ def upgrade_all(
             "See specific error messages above."
         )
 
-    # TODO: verify that this will always be zero except for PipxError
-    return 0
+    return PIPX_EXIT_CODE_OK

@@ -9,6 +9,8 @@ from pipx.emojies import sleep
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
+PIPX_EXIT_CODE_OK = 0
+
 
 def reinstall(
     *, venv_dir: Path, local_bin_dir: Path, python: str, verbose: bool
@@ -66,7 +68,7 @@ def reinstall(
         )
 
     # Any failure to install will raise PipxError, otherwise success
-    return 0
+    return PIPX_EXIT_CODE_OK
 
 
 def reinstall_all(
@@ -97,4 +99,4 @@ def reinstall_all(
             f"The following package(s) failed to reinstall: {', '.join(failed)}"
         )
     # Any failure to install will raise PipxError, otherwise success
-    return 0
+    return PIPX_EXIT_CODE_OK

@@ -209,9 +209,7 @@ def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
             force=args.force,
         )
     elif args.command == "upgrade":
-        return commands.upgrade(
-            venv_dir, pip_args, verbose, upgrading_all=False, force=args.force
-        )
+        return commands.upgrade(venv_dir, pip_args, verbose, force=args.force)
     elif args.command == "upgrade-all":
         return commands.upgrade_all(
             venv_container, verbose, skip=skip_list, force=args.force

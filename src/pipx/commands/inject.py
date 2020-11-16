@@ -10,6 +10,9 @@ from pipx.emojies import stars
 from pipx.util import PipxError
 from pipx.venv import Venv
 
+PIPX_EXIT_CODE_OK = 0
+PIPX_EXIT_CODE_INJECT_ERROR = 1
+
 
 def inject_dep(
     venv_dir: Path,
@@ -104,4 +107,4 @@ def inject(
         )
 
     # Any failure to install will raise PipxError, otherwise success
-    return 0 if all_success else 1
+    return PIPX_EXIT_CODE_OK if all_success else PIPX_EXIT_CODE_INJECT_ERROR
