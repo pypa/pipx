@@ -4,18 +4,10 @@ from pathlib import Path
 
 import nox  # type: ignore
 
-python = ["3.6", "3.7", "3.8", "3.9"]
-
-if sys.platform == "win32":
-    # docs fail on Windows, even if `chcp.com 65001` is used
-    nox.options.sessions = ["tests", "lint"]
-else:
-    nox.options.sessions = ["tests", "lint", "docs"]
-
-nox.options.reuse_existing_virtualenvs = True
-
-doc_dependencies = [".", "jinja2", "mkdocs", "mkdocs-material"]
-lint_dependencies = [
+PYTHON_ALL_VERSIONS = ["3.6", "3.7", "3.8", "3.9"]
+PYTHON_DEFAULT_VERSION = "3.8"
+DOC_DEPENDENCIES = [".", "jinja2", "mkdocs", "mkdocs-material"]
+LINT_DEPENDENCIES = [
     "black==19.10b0",
     "flake8",
     "flake8-bugbear",
@@ -26,7 +18,16 @@ lint_dependencies = [
 ]
 # Packages that need an intact system PATH to compile
 # pytest setup clears PATH.  So pre-build some wheels to the pip cache.
-prebuild_packages = {"all": ["typed-ast", "pyzmq"], "darwin": ["argon2-cffi", "regex"]}
+PREBUILD_PACKAGES = {"all": ["typed-ast", "pyzmq"], "darwin": ["argon2-cffi", "regex"]}
+
+
+# Set nox options
+if sys.platform == "win32":
+    # build_docs fail on Windows, even if `chcp.com 65001` is used
+    nox.options.sessions = ["tests", "lint"]
+else:
+    nox.options.sessions = ["tests", "lint", "build_docs"]
+nox.options.reuse_existing_virtualenvs = True
 
 
 def prebuild_wheels(session, package_dict):
@@ -43,61 +44,6 @@ def prebuild_wheels(session, package_dict):
                     prebuild_package,
                     silent=True,
                 )
-
-
-@nox.session(python=python)
-def tests(session):
-    prebuild_wheels(session, prebuild_packages)
-    session.install("-e", ".", "pytest", "pytest-cov")
-    tests = session.posargs or ["tests"]
-    session.run("pytest", "--cov=pipx", "--cov-report=", *tests)
-    session.notify("cover")
-
-
-@nox.session
-def cover(session):
-    """Coverage analysis"""
-    session.install("coverage")
-    session.run("coverage", "report", "--show-missing", "--fail-under=70")
-    session.run("coverage", "erase")
-
-
-@nox.session(python="3.8")
-def lint(session):
-    session.install(*lint_dependencies)
-    files = [str(Path("src") / "pipx"), "tests", "scripts"] + [
-        str(p) for p in Path(".").glob("*.py")
-    ]
-    session.run("isort", "--check", "--diff", "--profile", "black", *files)
-    session.run("black", "--check", *files)
-    session.run("flake8", *files)
-    session.run("mypy", *files)
-    session.run("check-manifest")
-    session.run("python", "setup.py", "check", "--metadata", "--strict")
-
-
-@nox.session(python="3.8")
-def docs(session):
-    session.install(*doc_dependencies)
-    session.env[
-        "PIPX__DOC_DEFAULT_PYTHON"
-    ] = "typically the python used to execute pipx"
-    session.run("python", "scripts/generate_docs.py")
-    session.run("mkdocs", "build")
-
-
-@nox.session(python=python)
-def develop(session):
-    session.install(*doc_dependencies, *lint_dependencies)
-    session.install("-e", ".")
-
-
-@nox.session(python="3.8")
-def build(session):
-    session.install("build")
-    session.install("twine")
-    session.run("rm", "-rf", "dist", "build", external=True)
-    session.run("python", "-m", "build")
 
 
 def has_changes():
@@ -132,28 +78,91 @@ def on_master_no_changes(session):
         session.error(f"Must be on 'master' branch. Currently on {branch!r} branch")
 
 
-@nox.session(python="3.8")
+@nox.session(python=PYTHON_ALL_VERSIONS)
+def tests(session):
+    session.install("--upgrade", "pip")
+    prebuild_wheels(session, PREBUILD_PACKAGES)
+    session.install("-e", ".", "pytest", "pytest-cov")
+    tests = session.posargs or ["tests"]
+    session.run("pytest", "--cov=pipx", "--cov-report=", *tests)
+    session.notify("cover")
+
+
+@nox.session
+def cover(session):
+    """Coverage analysis"""
+    session.install("--upgrade", "pip")
+    session.install("coverage")
+    session.run("coverage", "report", "--show-missing", "--fail-under=70")
+    session.run("coverage", "erase")
+
+
+@nox.session(python=PYTHON_DEFAULT_VERSION)
+def lint(session):
+    session.install("--upgrade", "pip")
+    session.install(*LINT_DEPENDENCIES)
+    files = [str(Path("src") / "pipx"), "tests", "scripts"] + [
+        str(p) for p in Path(".").glob("*.py")
+    ]
+    session.run("isort", "--check", "--diff", "--profile", "black", *files)
+    session.run("black", "--check", *files)
+    session.run("flake8", *files)
+    session.run("mypy", *files)
+    session.run("check-manifest")
+    session.run("python", "setup.py", "check", "--metadata", "--strict")
+
+
+@nox.session(python=PYTHON_ALL_VERSIONS)
+def develop(session):
+    session.install("--upgrade", "pip")
+    session.install(*DOC_DEPENDENCIES, *LINT_DEPENDENCIES)
+    session.install("-e", ".")
+
+
+@nox.session(python=PYTHON_DEFAULT_VERSION)
+def build(session):
+    session.install("--upgrade", "pip")
+    session.install("build")
+    session.run("rm", "-rf", "dist", "build", external=True)
+    session.run("python", "-m", "build")
+
+
+@nox.session(python=PYTHON_DEFAULT_VERSION)
 def publish(session):
     on_master_no_changes(session)
+    session.install("--upgrade", "pip")
+    session.install("twine")
     build(session)
     print("REMINDER: Has the changelog been updated?")
     session.run("python", "-m", "twine", "upload", "dist/*")
 
 
-@nox.session(python="3.8")
-def watch_docs(session):
-    session.install(*doc_dependencies)
-    session.run("mkdocs", "serve")
-
-
-@nox.session(python="3.8")
-def publish_docs(session):
-    session.install(*doc_dependencies)
+@nox.session(python=PYTHON_DEFAULT_VERSION)
+def build_docs(session):
+    session.install("--upgrade", "pip")
+    session.install(*DOC_DEPENDENCIES)
+    session.env[
+        "PIPX__DOC_DEFAULT_PYTHON"
+    ] = "typically the python used to execute pipx"
     session.run("python", "scripts/generate_docs.py")
+    session.run("mkdocs", "build")
+
+
+@nox.session(python=PYTHON_DEFAULT_VERSION)
+def publish_docs(session):
+    session.install("--upgrade", "pip")
+    session.install(*DOC_DEPENDENCIES)
+    build_docs(session)
     session.run("mkdocs", "gh-deploy")
 
 
-@nox.session(python="3.8")
+@nox.session(python=PYTHON_DEFAULT_VERSION)
+def watch_docs(session):
+    session.install(*DOC_DEPENDENCIES)
+    session.run("mkdocs", "serve")
+
+
+@nox.session(python=PYTHON_DEFAULT_VERSION)
 def pre_release(session):
     on_master_no_changes(session)
     if session.posargs:
@@ -169,7 +178,7 @@ def pre_release(session):
     )
 
 
-@nox.session(python="3.8")
+@nox.session(python=PYTHON_DEFAULT_VERSION)
 def post_release(session):
     on_master_no_changes(session)
     session.run("python", "scripts/pipx_postrelease.py")
