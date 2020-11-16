@@ -5,11 +5,10 @@ from typing import List, Sequence
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
+from pipx.constants import EXIT_CODE_OK, EXIT_CODE_REINSTALL_VENV_NONEXISTENT
 from pipx.emojies import sleep
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
-
-PIPX_EXIT_CODE_OK = 0
 
 
 def reinstall(
@@ -18,8 +17,7 @@ def reinstall(
     """Returns pipx exit code."""
     if not venv_dir.exists():
         print(f"Nothing to reinstall for {venv_dir.name} {sleep}")
-        # TODO: verify should this be 0?
-        return 1
+        return EXIT_CODE_REINSTALL_VENV_NONEXISTENT
 
     venv = Venv(venv_dir, verbose=verbose)
 
@@ -68,7 +66,7 @@ def reinstall(
         )
 
     # Any failure to install will raise PipxError, otherwise success
-    return PIPX_EXIT_CODE_OK
+    return EXIT_CODE_OK
 
 
 def reinstall_all(
@@ -99,4 +97,4 @@ def reinstall_all(
             f"The following package(s) failed to reinstall: {', '.join(failed)}"
         )
     # Any failure to install will raise PipxError, otherwise success
-    return PIPX_EXIT_CODE_OK
+    return EXIT_CODE_OK

@@ -2,6 +2,8 @@ import pytest  # type: ignore
 
 from helpers import mock_legacy_venv, run_pipx_cli
 
+# TODO: add/revamp these tests, some to use pipx.upgrade._upgrade_venv() ?
+
 
 def test_upgrade(pipx_temp_env, capsys):
     assert run_pipx_cli(["upgrade", "pycowsay"])
@@ -43,6 +45,6 @@ def test_upgrade_specifier(pipx_temp_env, capsys):
     initial_version = "2.3.1"
 
     assert not run_pipx_cli(["install", f"{name}{specifier}"])
-    assert run_pipx_cli(["upgrade", f"{name}"])
+    assert not run_pipx_cli(["upgrade", f"{name}"])
     captured = capsys.readouterr()
     assert f"upgraded package {name} from {initial_version} to" in captured.out

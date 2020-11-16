@@ -6,12 +6,10 @@ from typing import List, Optional
 from pipx import constants
 from pipx.colors import bold
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
+from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK
 from pipx.emojies import stars
 from pipx.util import PipxError
 from pipx.venv import Venv
-
-PIPX_EXIT_CODE_OK = 0
-PIPX_EXIT_CODE_INJECT_ERROR = 1
 
 
 def inject_dep(
@@ -107,4 +105,4 @@ def inject(
         )
 
     # Any failure to install will raise PipxError, otherwise success
-    return PIPX_EXIT_CODE_OK if all_success else PIPX_EXIT_CODE_INJECT_ERROR
+    return EXIT_CODE_OK if all_success else EXIT_CODE_INJECT_ERROR

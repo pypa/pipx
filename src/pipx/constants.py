@@ -16,6 +16,19 @@ LOCAL_BIN_DIR = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resol
 PIPX_VENV_CACHEDIR = PIPX_HOME / ".cache"
 TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 14
 
+# pipx shell exit codes
+EXIT_CODE_OK = 0
+EXIT_CODE_INJECT_ERROR = 1
+# TODO: should existing installation be error?
+EXIT_CODE_INSTALL_DIR_EXISTS = 1
+# TODO: should problems identified during list make error exit code?
+EXIT_CODE_LIST_PROBLEM = 1
+# TODO: should non-existent directory be error?
+EXIT_CODE_UNINSTALL_VENV_NONEXISTENT = 1
+EXIT_CODE_UNINSTALL_ERROR = 1
+# TODO: verify should this be 0?
+EXIT_CODE_REINSTALL_VENV_NONEXISTENT = 0
+
 
 def is_windows() -> bool:
     try:

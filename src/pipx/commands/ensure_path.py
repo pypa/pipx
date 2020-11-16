@@ -8,9 +8,8 @@ from typing import Optional, Tuple
 import userpath  # type: ignore
 
 from pipx import constants
+from pipx.constants import EXIT_CODE_OK
 from pipx.emojies import stars
-
-PIPX_EXIT_CODE_OK = 0
 
 
 def get_pipx_user_bin_path() -> Optional[Path]:
@@ -137,4 +136,4 @@ def ensure_pipx_paths(force: bool) -> int:
 
     print(f"Otherwise pipx is ready to go! {stars}")
 
-    return PIPX_EXIT_CODE_OK
+    return EXIT_CODE_OK

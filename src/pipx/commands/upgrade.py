@@ -5,12 +5,11 @@ from typing import List, Sequence
 from pipx import constants
 from pipx.colors import bold, red
 from pipx.commands.common import expose_apps_globally
+from pipx.constants import EXIT_CODE_OK
 from pipx.emojies import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
-
-PIPX_EXIT_CODE_OK = 0
 
 
 def _upgrade_venv(
@@ -31,12 +30,12 @@ def _upgrade_venv(
     package = venv.main_package_name
 
     if not venv.package_metadata:
+        # TODO: this should be an error or warning
         print(
             f"Not upgrading {red(bold(package))}.  It has missing internal pipx metadata.\n"
             f"    It was likely installed using a pipx version before 0.15.0.0.\n"
             f"    Please uninstall and install this package, or reinstall-all to fix."
         )
-        # TODO: this should be an error or warning
         return 0
 
     package_metadata = venv.package_metadata[package]
@@ -103,7 +102,7 @@ def upgrade(venv_dir: Path, pip_args: List[str], verbose: bool, *, force: bool) 
     """Returns pipx exit code."""
 
     _ = _upgrade_venv(venv_dir, pip_args, verbose, upgrading_all=False, force=force,)
-    return PIPX_EXIT_CODE_OK
+    return EXIT_CODE_OK
 
 
 def upgrade_all(
@@ -142,4 +141,4 @@ def upgrade_all(
             "See specific error messages above."
         )
 
-    return PIPX_EXIT_CODE_OK
+    return EXIT_CODE_OK
