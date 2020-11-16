@@ -1,0 +1,38 @@
+# https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions
+#
+# Needed GitHub Repository Secret:
+#   TEST_PYPI_PASSWORD - TestPyPI API token allowing access to TestPyPI.
+#     Limit scope to just project.
+#     (See package.python.org example link above.)
+
+name: Publish pipx to Test PyPI
+
+on:
+  workflow_dispatch:
+
+env:
+  default-python: 3.8
+
+jobs:
+  testpypi-publish:
+    name: Publish to Test PyPI
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout ${{ github.ref }}
+      uses: actions/checkout@v2
+    - name: Set up Python ${{ env.default-python }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ env.default-python }}
+    - name: Upgrade pip, Install nox
+      run: |
+        python -m pip install --upgrade pip
+        pip install nox
+    - name: Build  sdist and wheel
+      run: |
+        nox --error-on-missing-interpreters --non-interactive --session build
+    - name: Publish to Test PyPi
+      uses: pypa/gh-action-pypi-publish@v1.4.1
+      with:
+        user: __token__
+        password: ${{ secrets.test_pypi_password }}
