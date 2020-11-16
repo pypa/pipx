@@ -30,7 +30,7 @@ def _upgrade_venv(
     package = venv.main_package_name
 
     if not venv.package_metadata:
-        # TODO: this should be an error or warning
+        # TODO: should this be raise PipxError()?
         print(
             f"Not upgrading {red(bold(package))}.  It has missing internal pipx metadata.\n"
             f"    It was likely installed using a pipx version before 0.15.0.0.\n"
