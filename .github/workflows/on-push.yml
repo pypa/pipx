@@ -1,26 +1,31 @@
 # https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions
+# https://packaging.python.org/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
+#
+# Needed GitHub Repository Secret:
+#   PYPI_PASSWORD - PyPI API token allowing write, release access to PyPI.
+#     Limit scope to just project.
+#     (See package.python.org example link above.)
 
-name: Test
+name: Check, possibly Publish
 
 on:
-    pull_request:
-    push:
-    release:
+  pull_request:
+  push:
+
+# If changing default-python be sure to change job "tests" matrix: include: also
+env:
+  default-python: 3.8
 
 jobs:
   lint:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.8]
-
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python ${{ env.default-python }}
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install nox
+        python-version: ${{ env.default-python }}
+    - name: Upgrade pip, Install nox
       run: |
         python -m pip install --upgrade pip
         pip install nox
@@ -28,25 +33,21 @@ jobs:
       run: |
         nox --error-on-missing-interpreters --non-interactive --session lint
 
-  docs:
+  verify-docs:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.8]
-
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python ${{ env.default-python }}
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install nox
+        python-version: ${{ env.default-python }}
+    - name: Upgrade pip, Install nox
       run: |
         python -m pip install --upgrade pip
         pip install nox
     - name: Verify Docs
       run: |
-        nox --error-on-missing-interpreters --non-interactive --session docs
+        nox --error-on-missing-interpreters --non-interactive --session build_docs
 
   tests:
     runs-on: ${{ matrix.os }}
@@ -75,10 +76,35 @@ jobs:
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: ${{ runner.os }}-pip${{ matrix.python-version }}
-    - name: Upgrade pip
-      run: python -m pip install --upgrade pip
-    - name: Install nox
-      run: pip install nox
+    - name: Upgrade pip, Install nox
+      run: |
+        python -m pip install --upgrade pip
+        pip install nox
     - name: Execute Tests
       run: |
         nox --non-interactive --session tests-${{ matrix.python-version }}
+
+  pypi-publish:
+    name: Publish pipx to PyPI on release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+    needs: [verify-docs, lint, tests]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout ${{ github.ref }}
+      uses: actions/checkout@v2
+    - name: Set up Python ${{ env.default-python }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ env.default-python }}
+    - name: Upgrade pip, Install nox
+      run: |
+        python -m pip install --upgrade pip
+        pip install nox
+    - name: Build  sdist and wheel
+      run: |
+        nox --error-on-missing-interpreters --non-interactive --session build
+    - name: Publish to PyPi
+      uses: pypa/gh-action-pypi-publish@v1.4.1
+      with:
+        user: __token__
+        password: ${{ secrets.pypi_password }}
