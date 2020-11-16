@@ -160,7 +160,7 @@ def build_docs(session):
     session.env[
         "PIPX__DOC_DEFAULT_PYTHON"
     ] = "typically the python used to execute pipx"
-    session.run("python", "generate_docs.py")
+    session.run("python", "scripts/generate_docs.py")
     session.run("mkdocs", "build")
 
 
