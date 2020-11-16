@@ -21,7 +21,7 @@ def test_missing_interpreter(pipx_temp_env, monkeypatch, capsys):
     assert "package pycowsay has invalid interpreter" not in captured.out
 
     python_path.unlink()
-    assert not run_pipx_cli(["list"])
+    assert run_pipx_cli(["list"])
     captured = capsys.readouterr()
     assert "package pycowsay has invalid interpreter" in captured.out
 
@@ -40,9 +40,14 @@ def test_list_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
 
-    assert not run_pipx_cli(["list"])
-    captured = capsys.readouterr()
-    assert "package pycowsay 0.0.0.1," in captured.out
+    if metadata_version is None:
+        assert not run_pipx_cli(["list"])
+        captured = capsys.readouterr()
+        assert "package pycowsay has missing internal pipx metadata" in captured.out
+    else:
+        assert not run_pipx_cli(["list"])
+        captured = capsys.readouterr()
+        assert "package pycowsay 0.0.0.1," in captured.out
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])
