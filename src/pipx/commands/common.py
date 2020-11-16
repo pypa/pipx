@@ -116,6 +116,8 @@ def _symlink_package_apps(
             )
 
 
+# TODO: get_package_summary should return object of problems for each package
+#       in addition to message
 def get_package_summary(
     venv_dir: Path,
     *,
