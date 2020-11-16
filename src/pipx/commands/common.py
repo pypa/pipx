@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 import userpath  # type: ignore
 
@@ -124,7 +124,7 @@ def get_package_summary(
     package: str = None,
     new_install: bool = False,
     include_injected: bool = False,
-) -> str:
+) -> Tuple[str, Dict[str, bool]]:
     venv = Venv(venv_dir)
     python_path = venv.python_path.resolve()
 
@@ -132,19 +132,24 @@ def get_package_summary(
         package = venv.main_package_name
 
     if not python_path.is_file():
-        return f"   package {red(bold(venv_dir.name))} has invalid interpreter {str(python_path)}"
+        return (
+            f"   package {red(bold(venv_dir.name))} has invalid interpreter {str(python_path)}",
+            {"invalid_interpreter": True},
+        )
     if not venv.package_metadata:
         return (
-            f"   package {red(bold(venv_dir.name))} has missing internal pipx metadata.\n"
-            f"       It was likely installed using a pipx version before 0.15.0.0.\n"
-            f"       Please uninstall and install this package, or reinstall-all to fix."
+            f"   package {red(bold(venv_dir.name))} has missing internal pipx metadata.",
+            {"missing_metadata": True},
         )
 
     package_metadata = venv.package_metadata[package]
 
     if package_metadata.package_version is None:
         not_installed = red("is not installed")
-        return f"   package {bold(package)} {not_installed} in the venv {venv_dir.name}"
+        return (
+            f"   package {bold(package)} {not_installed} in the venv {venv_dir.name}",
+            {"not_installed": True},
+        )
 
     apps = package_metadata.apps + package_metadata.apps_of_dependencies
     exposed_app_paths = _get_exposed_app_paths_for_package(
@@ -162,16 +167,19 @@ def get_package_summary(
         if venv.pipx_metadata.python_version is not None
         else ""
     )
-    return _get_list_output(
-        python_version,
-        python_path,
-        package_metadata.package_version,
-        package,
-        new_install,
-        exposed_binary_names,
-        unavailable_binary_names,
-        venv.pipx_metadata.injected_packages if include_injected else None,
-        suffix=package_metadata.suffix,
+    return (
+        _get_list_output(
+            python_version,
+            python_path,
+            package_metadata.package_version,
+            package,
+            new_install,
+            exposed_binary_names,
+            unavailable_binary_names,
+            venv.pipx_metadata.injected_packages if include_injected else None,
+            suffix=package_metadata.suffix,
+        ),
+        {},
     )
 
 
@@ -333,7 +341,10 @@ def run_post_install_actions(
                 local_bin_dir, app_paths, force=force, suffix=package_metadata.suffix
             )
 
-    print(get_package_summary(venv_dir, package=package, new_install=True))
+    package_summary, _ = get_package_summary(
+        venv_dir, package=package, new_install=True
+    )
+    print(package_summary)
     warn_if_not_on_path(local_bin_dir)
     print(f"done! {stars}", file=sys.stderr)
 

@@ -29,22 +29,67 @@ def list_packages(venv_container: VenvContainer, include_injected: bool) -> int:
 
     venv_container.verify_shared_libs()
 
-    venv_problems = False
-    # TODO: get any venv_problems from get_package_summary
+    all_venv_errors = {
+        "invalid_interpreter": False,
+        "missing_metadata": False,
+        "not_installed": False,
+    }
     if Pool:
         p = Pool()
         try:
-            for package_summary in p.map(
+            for package_summary, venv_errors in p.map(
                 partial(get_package_summary, include_injected=include_injected), dirs
             ):
                 print(package_summary)
+                all_venv_errors["invalid_interpreter"] |= venv_errors.get(
+                    "invalid_interpreter", False
+                )
+                all_venv_errors["missing_metadata"] |= venv_errors.get(
+                    "missing_metadata", False
+                )
+                all_venv_errors["not_installed"] |= venv_errors.get(
+                    "not_installed", False
+                )
+
         finally:
             p.close()
             p.join()
     else:
-        for package_summary in map(
+        for package_summary, venv_errors in map(
             partial(get_package_summary, include_injected=include_injected), dirs
         ):
             print(package_summary)
+            all_venv_errors["invalid_interpreter"] |= venv_errors.get(
+                "invalid_interpreter", False
+            )
+            all_venv_errors["missing_metadata"] |= venv_errors.get(
+                "missing_metadata", False
+            )
+            all_venv_errors["not_installed"] |= venv_errors.get("not_installed", False)
 
-    return EXIT_CODE_OK if not venv_problems else EXIT_CODE_LIST_PROBLEM
+    if all_venv_errors["invalid_interpreter"]:
+        print(
+            "\nOne or more packages have a missing python interpreter.\n"
+            "    To fix, execute: pipx reinstall-all"
+        )
+    if all_venv_errors["missing_metadata"]:
+        print(
+            "\nOne or more packages have a missing internal pipx metadata.\n"
+            "   They were likely installed using a pipx version before 0.15.0.0.\n"
+            "   Please uninstall and install these package(s) manually to fix."
+        )
+    if all_venv_errors["not_installed"]:
+        print(
+            "\nOne or more packages are not installed properly."
+            "   Please uninstall and install these package(s) manually to fix."
+        )
+
+    if (
+        all_venv_errors["invalid_interpreter"]
+        or all_venv_errors["missing_metadata"]
+        or all_venv_errors["not_installed"]
+    ):
+        print()
+        return EXIT_CODE_LIST_PROBLEM
+
+    return EXIT_CODE_OK
