@@ -41,7 +41,7 @@ def test_list_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
 
     if metadata_version is None:
-        assert not run_pipx_cli(["list"])
+        assert run_pipx_cli(["list"])
         captured = capsys.readouterr()
         assert "package pycowsay has missing internal pipx metadata" in captured.out
     else:
