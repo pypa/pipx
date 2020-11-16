@@ -3,7 +3,6 @@
 """The command line interface to pipx"""
 
 import argparse
-import functools
 import logging
 import os
 import re
@@ -114,6 +113,18 @@ class LineWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
     def _split_lines(self, text, width):
         text = self._whitespace_matcher.sub(" ", text).strip()
         return textwrap.wrap(text, width)
+
+
+class InstalledVenvsCompleter:
+    def __init__(self, venv_container: VenvContainer) -> None:
+        self.packages = [str(p.name) for p in sorted(venv_container.iter_venv_dirs())]
+
+    def use(self, prefix: str, **kwargs) -> List[str]:
+        return [
+            f"{prefix}{x[len(prefix):]}"
+            for x in self.packages
+            if x.startswith(canonicalize_name(prefix))
+        ]
 
 
 def get_pip_args(parsed_args: Dict) -> List[str]:
@@ -285,12 +296,6 @@ def add_include_dependencies(parser):
     )
 
 
-def _autocomplete_list_of_installed_packages(
-    venv_container: VenvContainer, *args, **kwargs
-) -> List[str]:
-    return list(str(p.name) for p in sorted(venv_container.iter_venv_dirs()))
-
-
 def _add_install(subparsers):
     p = subparsers.add_parser(
         "install",
@@ -326,7 +331,7 @@ def _add_install(subparsers):
     add_pip_venv_args(p)
 
 
-def _add_inject(subparsers, autocomplete_list_of_installed_packages):
+def _add_inject(subparsers, venv_completer):
     p = subparsers.add_parser(
         "inject",
         help="Install packages into an existing Virtual Environment",
@@ -335,7 +340,7 @@ def _add_inject(subparsers, autocomplete_list_of_installed_packages):
     p.add_argument(
         "package",
         help="Name of the existing pipx-managed Virtual Environment to inject into",
-    ).completer = autocomplete_list_of_installed_packages
+    ).completer = venv_completer
     p.add_argument(
         "dependencies",
         nargs="+",
@@ -357,13 +362,13 @@ def _add_inject(subparsers, autocomplete_list_of_installed_packages):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_upgrade(subparsers, autocomplete_list_of_installed_packages):
+def _add_upgrade(subparsers, venv_completer):
     p = subparsers.add_parser(
         "upgrade",
         help="Upgrade a package",
         description="Upgrade a package in a pipx-managed Virtual Environment by running 'pip install --upgrade PACKAGE'",
     )
-    p.add_argument("package").completer = autocomplete_list_of_installed_packages
+    p.add_argument("package").completer = venv_completer
     p.add_argument(
         "--force",
         "-f",
@@ -391,13 +396,13 @@ def _add_upgrade_all(subparsers):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_uninstall(subparsers, autocomplete_list_of_installed_packages):
+def _add_uninstall(subparsers, venv_completer):
     p = subparsers.add_parser(
         "uninstall",
         help="Uninstall a package",
         description="Uninstalls a pipx-managed Virtual Environment by deleting it and any files that point to its apps.",
     )
-    p.add_argument("package").completer = autocomplete_list_of_installed_packages
+    p.add_argument("package").completer = venv_completer
     p.add_argument("--verbose", action="store_true")
 
 
@@ -410,7 +415,7 @@ def _add_uninstall_all(subparsers):
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_reinstall(subparsers, autocomplete_list_of_installed_packages):
+def _add_reinstall(subparsers, venv_completer):
     p = subparsers.add_parser(
         "reinstall",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -425,7 +430,7 @@ def _add_reinstall(subparsers, autocomplete_list_of_installed_packages):
         """
         ),
     )
-    p.add_argument("package").completer = autocomplete_list_of_installed_packages
+    p.add_argument("package").completer = venv_completer
     p.add_argument(
         "--python",
         default=DEFAULT_PYTHON,
@@ -537,7 +542,7 @@ def _add_run(subparsers):
     p.usage = re.sub(r"\.\.\.", "app ...", p.usage)
 
 
-def _add_runpip(subparsers, autocomplete_list_of_installed_packages):
+def _add_runpip(subparsers, venv_completer):
     p = subparsers.add_parser(
         "runpip",
         help="Run pip in an existing pipx-managed Virtual Environment",
@@ -546,7 +551,7 @@ def _add_runpip(subparsers, autocomplete_list_of_installed_packages):
     p.add_argument(
         "package",
         help="Name of the existing pipx-managed Virtual Environment to run pip in",
-    ).completer = autocomplete_list_of_installed_packages
+    ).completer = venv_completer
     p.add_argument(
         "pipargs",
         nargs=argparse.REMAINDER,
@@ -585,9 +590,7 @@ def _add_ensurepath(subparsers):
 def get_command_parser():
     venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
 
-    autocomplete_list_of_installed_packages = functools.partial(
-        _autocomplete_list_of_installed_packages, venv_container
-    )
+    completer_venvs = InstalledVenvsCompleter(venv_container)
 
     parser = argparse.ArgumentParser(
         formatter_class=LineWrapRawTextHelpFormatter, description=PIPX_DESCRIPTION
@@ -598,16 +601,16 @@ def get_command_parser():
     )
 
     _add_install(subparsers)
-    _add_inject(subparsers, autocomplete_list_of_installed_packages)
-    _add_upgrade(subparsers, autocomplete_list_of_installed_packages)
+    _add_inject(subparsers, completer_venvs.use)
+    _add_upgrade(subparsers, completer_venvs.use)
     _add_upgrade_all(subparsers)
-    _add_uninstall(subparsers, autocomplete_list_of_installed_packages)
+    _add_uninstall(subparsers, completer_venvs.use)
     _add_uninstall_all(subparsers)
-    _add_reinstall(subparsers, autocomplete_list_of_installed_packages)
+    _add_reinstall(subparsers, completer_venvs.use)
     _add_reinstall_all(subparsers)
     _add_list(subparsers)
     _add_run(subparsers)
-    _add_runpip(subparsers, autocomplete_list_of_installed_packages)
+    _add_runpip(subparsers, completer_venvs.use)
     _add_ensurepath(subparsers)
 
     parser.add_argument("--version", action="store_true", help="Print version and exit")
