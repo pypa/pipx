@@ -32,22 +32,26 @@ Sessions defined in /home/csmith/git/pipx/noxfile.py:
 * tests-3.6
 * tests-3.7
 * tests-3.8
+* tests-3.9
 - cover -> Coverage analysis
 * lint
-* docs
 - develop-3.6
 - develop-3.7
 - develop-3.8
+- develop-3.9
 - build
 - publish
-- watch_docs
+* build_docs
 - publish_docs
+- watch_docs
+- pre_release
+- post_release
 ```
 
 ### Unit Tests
-To run unit tests in Python3.7, you can run
+To run unit tests in Python3.9, you can run
 ```
-nox -s tests-3.7
+nox -s tests-3.9
 ```
 
 !!! tip
@@ -82,7 +86,7 @@ When updating pipx docs, make sure you are either modifying a file in the `templ
 
 You can generate the documentation with
 ```
-nox -s docs
+nox -s build_docs
 ```
 
 This will capture CLI documentation for any pipx argument modifications, as well as generate templates to the docs directory.
