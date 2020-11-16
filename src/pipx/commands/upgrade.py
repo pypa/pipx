@@ -5,7 +5,7 @@ from typing import List, Sequence
 from pipx import constants
 from pipx.colors import bold, red
 from pipx.commands.common import expose_apps_globally
-from pipx.constants import EXIT_CODE_OK
+from pipx.constants import EXIT_CODE_OK, EXIT_CODE_UPGRADE_MISSING_METADATA
 from pipx.emojies import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
 from pipx.util import PipxError
@@ -36,7 +36,7 @@ def _upgrade_venv(
             f"    It was likely installed using a pipx version before 0.15.0.0.\n"
             f"    Please uninstall and install this package, or reinstall-all to fix."
         )
-        return 0
+        return EXIT_CODE_UPGRADE_MISSING_METADATA
 
     package_metadata = venv.package_metadata[package]
 
@@ -101,7 +101,7 @@ def _upgrade_venv(
 def upgrade(venv_dir: Path, pip_args: List[str], verbose: bool, *, force: bool) -> int:
     """Returns pipx exit code."""
 
-    _ = _upgrade_venv(venv_dir, pip_args, verbose, upgrading_all=False, force=force,)
+    _ = _upgrade_venv(venv_dir, pip_args, verbose, upgrading_all=False, force=force)
     return EXIT_CODE_OK
 
 
