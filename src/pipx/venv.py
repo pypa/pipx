@@ -209,7 +209,7 @@ class Venv:
                 self.do_animation,
             ):
                 cmd = ["install"] + pip_args + [package_or_url]
-                self.run_pip(cmd)
+                self._run_pip(cmd)
         except PipxError as e:
             logging.info(e)
             raise PipxError(
@@ -243,7 +243,7 @@ class Venv:
             ):
                 old_package_set = self.list_installed_packages()
                 cmd = ["install"] + ["--no-dependencies"] + pip_args + [package_or_url]
-                self.run_pip(cmd)
+                self._run_pip(cmd)
         except PipxError as e:
             logging.info(e)
             raise PipxError(
@@ -351,7 +351,7 @@ class Venv:
         with animate(
             f"upgrading {full_package_description(package, package)}", self.do_animation
         ):
-            self.run_pip(["install"] + pip_args + ["--upgrade", package])
+            self._run_pip(["install"] + pip_args + ["--upgrade", package])
 
     def upgrade_package(
         self,
@@ -367,7 +367,7 @@ class Venv:
             f"upgrading {full_package_description(package, package_or_url)}",
             self.do_animation,
         ):
-            self.run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
+            self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
 
         self._update_package_metadata(
             package=package,
@@ -379,8 +379,16 @@ class Venv:
             suffix=suffix,
         )
 
-    def run_pip(self, cmd: List[str]) -> None:
+    def _run_pip(self, cmd: List[str]) -> None:
         cmd = [str(self.python_path), "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
         run_verify(cmd)
+
+    def run_pip_with_exit_code(self, cmd: List[str]) -> int:
+        cmd = [str(self.python_path), "-m", "pip"] + cmd
+        if not self.verbose:
+            cmd.append("-q")
+        return run_subprocess(
+            cmd, capture_stdout=False, capture_stderr=False
+        ).returncode
