@@ -116,8 +116,6 @@ def _symlink_package_apps(
             )
 
 
-# TODO: get_package_summary should return object of problems for each package
-#       in addition to message
 def get_package_summary(
     venv_dir: Path,
     *,
@@ -147,7 +145,7 @@ def get_package_summary(
     if package_metadata.package_version is None:
         not_installed = red("is not installed")
         return (
-            f"   package {bold(package)} {not_installed} in the venv {venv_dir.name}",
+            f"   package {red(bold(package))} {not_installed} in the venv {venv_dir.name}",
             {"not_installed": True},
         )
 

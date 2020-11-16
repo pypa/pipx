@@ -80,7 +80,7 @@ def list_packages(venv_container: VenvContainer, include_injected: bool) -> int:
         )
     if all_venv_errors["not_installed"]:
         print(
-            "\nOne or more packages are not installed properly."
+            "\nOne or more packages are not installed properly.\n"
             "   Please uninstall and install these package(s) manually to fix."
         )
 
