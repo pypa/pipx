@@ -385,7 +385,7 @@ class Venv:
             cmd.append("-q")
         run_verify(cmd)
 
-    def run_pip_with_exit_code(self, cmd: List[str]) -> int:
+    def run_pip_get_exit_code(self, cmd: List[str]) -> int:
         cmd = [str(self.python_path), "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")

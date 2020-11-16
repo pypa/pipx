@@ -13,4 +13,4 @@ def run_pip(package: str, venv_dir: Path, pip_args: List[str], verbose: bool) ->
             f"venv for {package!r} was not found. Was {package!r} installed with pipx?"
         )
     venv.verbose = True
-    return venv.run_pip_with_exit_code(pip_args)
+    return venv.run_pip_get_exit_code(pip_args)
