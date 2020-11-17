@@ -17,8 +17,7 @@ def test_upgrade_all_legacy_venv(pipx_temp_env, capsys, caplog, metadata_version
         mock_legacy_venv("pycowsay", metadata_version=metadata_version)
         capsys.readouterr()
         assert run_pipx_cli(["upgrade-all"])
-        # TODO: fix assertion for caplog
-        # assert "Error encountered when upgrading pycowsay" in captured.err
+        assert "Error encountered when upgrading pycowsay" in caplog.text
     else:
         assert run_pipx_cli(["upgrade", "pycowsay"])
         assert not run_pipx_cli(["install", "pycowsay"])
