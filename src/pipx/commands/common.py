@@ -20,6 +20,26 @@ from pipx.util import WINDOWS, PipxError, mkdir, rmdir
 from pipx.venv import Venv
 
 
+class VenvProblems:
+    def __init__(
+        self, invalid_interpreter=False, missing_metadata=False, not_installed=False
+    ) -> None:
+        self.invalid_interpreter = invalid_interpreter
+        self.missing_metadata = missing_metadata
+        self.not_installed = not_installed
+
+    def any_(self) -> bool:
+        return any(self.__dict__.values())
+
+    def or_(self, venv_problems: "VenvProblems") -> None:
+        for attribute in self.__dict__:
+            setattr(
+                self,
+                attribute,
+                getattr(self, attribute) or getattr(venv_problems, attribute),
+            )
+
+
 def expose_apps_globally(
     local_bin_dir: Path, app_paths: List[Path], *, force: bool, suffix: str = ""
 ) -> None:
@@ -122,7 +142,7 @@ def get_package_summary(
     package: str = None,
     new_install: bool = False,
     include_injected: bool = False,
-) -> Tuple[str, Dict[str, bool]]:
+) -> Tuple[str, VenvProblems]:
     venv = Venv(venv_dir)
     python_path = venv.python_path.resolve()
 
@@ -132,12 +152,12 @@ def get_package_summary(
     if not python_path.is_file():
         return (
             f"   package {red(bold(venv_dir.name))} has invalid interpreter {str(python_path)}",
-            {"invalid_interpreter": True},
+            VenvProblems(invalid_interpreter=True),
         )
     if not venv.package_metadata:
         return (
             f"   package {red(bold(venv_dir.name))} has missing internal pipx metadata.",
-            {"missing_metadata": True},
+            VenvProblems(missing_metadata=True),
         )
 
     package_metadata = venv.package_metadata[package]
@@ -146,7 +166,7 @@ def get_package_summary(
         return (
             f"   package {red(bold(package))} {red('is not installed')} "
             f"in the venv {venv_dir.name}",
-            {"not_installed": True},
+            VenvProblems(not_installed=True),
         )
 
     apps = package_metadata.apps + package_metadata.apps_of_dependencies
@@ -177,7 +197,7 @@ def get_package_summary(
             venv.pipx_metadata.injected_packages if include_injected else None,
             suffix=package_metadata.suffix,
         ),
-        {},
+        VenvProblems(),
     )
 
 
