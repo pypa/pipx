@@ -126,9 +126,10 @@ def upgrade_all(
                 force=force,
             )
 
-        except Exception:
+        except Exception as e:
             venv_error = True
-            logging.error(f"Error encountered when upgrading {venv_dir.name}")
+            logging.error(f"Error encountered when upgrading {venv_dir.name}:")
+            logging.error(f"{e}\n")
 
     if venvs_upgraded == 0:
         print(
@@ -136,8 +137,8 @@ def upgrade_all(
         )
     if venv_error:
         raise PipxError(
-            "Some packages encountered errors during upgrade. "
-            "See specific error messages above."
+            "\nSome packages encountered errors during upgrade.\n"
+            "    See specific error messages above."
         )
 
     return EXIT_CODE_OK
