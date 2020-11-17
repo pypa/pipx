@@ -19,15 +19,10 @@ TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 14
 # pipx shell exit codes
 EXIT_CODE_OK = 0
 EXIT_CODE_INJECT_ERROR = 1
-# TODO: should existing installation be error?
 EXIT_CODE_INSTALL_VENV_EXISTS = 1
-# TODO: should problems identified during list make error exit code?
 EXIT_CODE_LIST_PROBLEM = 1
-# TODO: should non-existent directory be error?
 EXIT_CODE_UNINSTALL_VENV_NONEXISTENT = 1
 EXIT_CODE_UNINSTALL_ERROR = 1
-EXIT_CODE_UPGRADE_MISSING_METADATA = 1
-# TODO: verify should this be error?  (was before)
 EXIT_CODE_REINSTALL_VENV_NONEXISTENT = 1
 
 

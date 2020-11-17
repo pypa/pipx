@@ -5,7 +5,7 @@ from typing import List, Sequence
 from pipx import constants
 from pipx.colors import bold, red
 from pipx.commands.common import expose_apps_globally
-from pipx.constants import EXIT_CODE_OK, EXIT_CODE_UPGRADE_MISSING_METADATA
+from pipx.constants import EXIT_CODE_OK
 from pipx.emojies import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
 from pipx.util import PipxError
@@ -20,6 +20,7 @@ def _upgrade_venv(
     upgrading_all: bool,
     force: bool,
 ) -> int:
+    """Returns 1 if package version changed, 0 if same version"""
     if not venv_dir.is_dir():
         raise PipxError(
             f"Package is not installed. Expected to find {str(venv_dir)}, "
@@ -30,13 +31,11 @@ def _upgrade_venv(
     package = venv.main_package_name
 
     if not venv.package_metadata:
-        # TODO: should this be raise PipxError()?
-        print(
+        raise PipxError(
             f"Not upgrading {red(bold(package))}.  It has missing internal pipx metadata.\n"
             f"    It was likely installed using a pipx version before 0.15.0.0.\n"
             f"    Please uninstall and install this package, or reinstall-all to fix."
         )
-        return EXIT_CODE_UPGRADE_MISSING_METADATA
 
     package_metadata = venv.package_metadata[package]
 
