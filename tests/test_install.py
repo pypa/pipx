@@ -37,9 +37,8 @@ def install_package(capsys, pipx_temp_env, caplog, package, package_name=""):
         assert "symlink missing or pointing to unexpected location" not in captured.out
     assert "not modifying" not in captured.out
     assert "is not on your PATH environment variable" not in captured.out
-    for record in caplog.records:
-        assert "⚠️" not in record.message
-        assert "WARNING" not in record.message
+    assert "⚠️" not in caplog.text
+    assert "WARNING" not in caplog.text
 
 
 @pytest.mark.parametrize("package", ["pycowsay", "black"])
