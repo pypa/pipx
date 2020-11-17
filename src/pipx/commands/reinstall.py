@@ -2,6 +2,8 @@ import sys
 from pathlib import Path
 from typing import List, Sequence
 
+from packaging.utils import canonicalize_name
+
 import pipx.shared_libs  # import instead of from so mockable in tests
 from pipx.commands.inject import inject
 from pipx.commands.install import install
@@ -27,6 +29,9 @@ def reinstall(
         package_or_url = venv.main_package_name
 
     uninstall(venv_dir, local_bin_dir, verbose)
+
+    # in case legacy original dir name
+    venv_dir = venv_dir.with_name(canonicalize_name(venv_dir.name))
 
     # install main package first
     install(
