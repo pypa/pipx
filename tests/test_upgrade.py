@@ -16,12 +16,16 @@ def test_upgrade_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
     captured = capsys.readouterr()
-    assert run_pipx_cli(["upgrade", "pycowsay"])
-    captured = capsys.readouterr()
-    assert (
-        "Not upgrading pycowsay.  It has missing internal pipx metadata."
-        in captured.err
-    )
+    if metadata_version is None:
+        assert run_pipx_cli(["upgrade", "pycowsay"])
+        captured = capsys.readouterr()
+        assert (
+            "Not upgrading pycowsay.  It has missing internal pipx metadata."
+            in captured.err
+        )
+    else:
+        assert not run_pipx_cli(["upgrade", "pycowsay"])
+        captured = capsys.readouterr()
 
 
 def test_upgrade_suffix(pipx_temp_env, capsys):

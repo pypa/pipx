@@ -128,6 +128,7 @@ def upgrade_all(
 
         except Exception as e:
             venv_error = True
+            # TODO: should this be logging.error or just stderr?
             logging.error(f"Error encountered when upgrading {venv_dir.name}:")
             logging.error(f"{e}\n")
 
