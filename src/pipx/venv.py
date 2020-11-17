@@ -91,7 +91,6 @@ class Venv:
 
         if self._existing and self.uses_shared_libs:
             if shared_libs.is_valid:
-                # TODO: this can make race condition if used from subprocess(es)
                 if shared_libs.needs_upgrade:
                     shared_libs.upgrade(verbose=verbose)
             else:
