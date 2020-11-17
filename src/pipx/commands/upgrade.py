@@ -39,7 +39,6 @@ def _upgrade_venv(
 
     package_metadata = venv.package_metadata[package]
 
-    # TODO: is this the proper way to check for corrupt metadata?
     if package_metadata.package_or_url is None:
         raise PipxError(f"Internal Error: package {package} has corrupt pipx metadata.")
 
@@ -129,7 +128,6 @@ def upgrade_all(
 
         except Exception as e:
             venv_error = True
-            # TODO: should this be logging.error or just stderr?
             logging.error(f"Error encountered when upgrading {venv_dir.name}:")
             logging.error(f"{e}\n")
 

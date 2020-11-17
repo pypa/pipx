@@ -2,8 +2,6 @@ import pytest  # type: ignore
 
 from helpers import mock_legacy_venv, run_pipx_cli
 
-# TODO: add/revamp these tests, some to use pipx.upgrade._upgrade_venv() ?
-
 
 def test_upgrade(pipx_temp_env, capsys):
     assert run_pipx_cli(["upgrade", "pycowsay"])
