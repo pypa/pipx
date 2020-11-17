@@ -389,6 +389,10 @@ class Venv:
         cmd = [str(self.python_path), "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
-        return run_subprocess(
+        returncode = run_subprocess(
             cmd, capture_stdout=False, capture_stderr=False
         ).returncode
+        if returncode:
+            cmd_str = " ".join(str(c) for c in cmd)
+            logging.error(f"{cmd_str!r} failed")
+        return returncode
