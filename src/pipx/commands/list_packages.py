@@ -76,12 +76,12 @@ def list_packages(venv_container: VenvContainer, include_injected: bool) -> int:
         print(
             "\nOne or more packages have a missing internal pipx metadata.\n"
             "   They were likely installed using a pipx version before 0.15.0.0.\n"
-            "   Please uninstall and install these package(s) manually to fix."
+            "   Please uninstall and install these package(s) to fix."
         )
     if all_venv_errors["not_installed"]:
         print(
             "\nOne or more packages are not installed properly.\n"
-            "   Please uninstall and install these package(s) manually to fix."
+            "   Please uninstall and install these package(s) to fix."
         )
 
     if (
