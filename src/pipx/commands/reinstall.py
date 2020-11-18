@@ -4,6 +4,7 @@ from typing import List, Sequence
 
 from packaging.utils import canonicalize_name
 
+import pipx.shared_libs  # import instead of from so mockable in tests
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
@@ -83,6 +84,8 @@ def reinstall_all(
     skip: Sequence[str],
 ) -> int:
     """Returns pipx exit code."""
+    pipx.shared_libs.shared_libs.upgrade(verbose=verbose)
+
     failed: List[str] = []
     for venv_dir in venv_container.iter_venv_dirs():
         if venv_dir.name in skip:
