@@ -135,7 +135,7 @@ def run_verify(cmd: Sequence[Union[str, Path]]) -> None:
         raise PipxError(f"{cmd_str!r} failed")
 
 
-def exec_app(cmd: Sequence[Union[str, Path]], env=None) -> None:
+def exec_app(cmd: Sequence[Union[str, Path]], env: Dict[str, str] = None) -> None:
     """Run command, do not return
 
     POSIX: replace current processs with command using os.exec*()
