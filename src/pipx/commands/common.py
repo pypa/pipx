@@ -70,7 +70,7 @@ def _copy_package_apps(
 
 
 def _symlink_package_apps(
-    local_bin_dir: Path, app_paths: List[Path], *, force: bool, suffix: str = "",
+    local_bin_dir: Path, app_paths: List[Path], *, force: bool, suffix: str = ""
 ) -> None:
     for app_path in app_paths:
         app_name = app_path.name
@@ -270,7 +270,7 @@ def run_post_install_actions(
     include_dependencies: bool,
     *,
     force: bool,
-):
+) -> None:
     package_metadata = venv.package_metadata[package]
 
     display_name = f"{package}{package_metadata.suffix}"
