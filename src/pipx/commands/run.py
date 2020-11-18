@@ -151,7 +151,7 @@ def _download_and_run(
 
 def _get_temporary_venv_path(
     package_or_url: str, python: str, pip_args: List[str], venv_args: List[str]
-):
+) -> Path:
     """Computes deterministic path using hashing function on arguments relevant
     to virtual environment's end state. Arguments used should result in idempotent
     virtual environment. (i.e. args passed to app aren't relevant, but args
@@ -166,7 +166,7 @@ def _get_temporary_venv_path(
     return Path(constants.PIPX_VENV_CACHEDIR) / venv_folder_name
 
 
-def _is_temporary_venv_expired(venv_dir: Path):
+def _is_temporary_venv_expired(venv_dir: Path) -> bool:
     created_time_sec = venv_dir.stat().st_ctime
     current_time_sec = time.mktime(datetime.datetime.now().timetuple())
     age = current_time_sec - created_time_sec
@@ -174,7 +174,7 @@ def _is_temporary_venv_expired(venv_dir: Path):
     return age > expiration_threshold_sec or (venv_dir / VENV_EXPIRED_FILENAME).exists()
 
 
-def _prepare_venv_cache(venv: Venv, bin_path: Path, use_cache: bool):
+def _prepare_venv_cache(venv: Venv, bin_path: Path, use_cache: bool) -> None:
     venv_dir = venv.root
     if not use_cache and bin_path.exists():
         logging.info(f"Removing cached venv {str(venv_dir)}")
@@ -182,14 +182,14 @@ def _prepare_venv_cache(venv: Venv, bin_path: Path, use_cache: bool):
     _remove_all_expired_venvs()
 
 
-def _remove_all_expired_venvs():
+def _remove_all_expired_venvs() -> None:
     for venv_dir in Path(constants.PIPX_VENV_CACHEDIR).iterdir():
         if _is_temporary_venv_expired(venv_dir):
             logging.info(f"Removing expired venv {str(venv_dir)}")
             rmdir(venv_dir)
 
 
-def _http_get_request(url: str):
+def _http_get_request(url: str) -> str:
     try:
         res = urllib.request.urlopen(url)
         charset = res.headers.get_content_charset() or "utf-8"  # type: ignore

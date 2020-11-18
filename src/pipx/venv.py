@@ -41,10 +41,10 @@ class VenvContainer:
     def __init__(self, root: Path):
         self._root = root
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"VenvContainer({str(self._root)!r})"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self._root)
 
     def iter_venv_dirs(self) -> Generator[Path, None, None]:
@@ -60,7 +60,7 @@ class VenvContainer:
         """Return the expected venv path for given `package`."""
         return self._root.joinpath(canonicalize_name(package))
 
-    def verify_shared_libs(self):
+    def verify_shared_libs(self) -> None:
         for p in self.iter_venv_dirs():
             Venv(p)
 
