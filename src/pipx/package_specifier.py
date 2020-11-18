@@ -90,7 +90,7 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
 
 
 def package_or_url_from_pep508(
-    requirement: Requirement, remove_version_specifiers=False
+    requirement: Requirement, remove_version_specifiers: bool = False
 ) -> str:
     requirement.marker = None
     requirement.name = canonicalize_name(requirement.name)

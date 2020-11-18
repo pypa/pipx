@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import Callable
 
 USING_WINDOWS = os.name == "nt"
 PRINT_COLOR = not USING_WINDOWS and sys.stdout.isatty()
@@ -17,8 +18,8 @@ class c:
     end = "\033[0m"
 
 
-def mkcolorfunc(style):
-    def stylize_text(x):
+def mkcolorfunc(style: str) -> Callable[[str], str]:
+    def stylize_text(x: str) -> str:
         if PRINT_COLOR:
             return f"{style}{x}{c.end}"
         else:
