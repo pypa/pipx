@@ -101,6 +101,8 @@ def upgrade(venv_dir: Path, pip_args: List[str], verbose: bool, *, force: bool) 
     """Returns pipx exit code."""
 
     _ = _upgrade_venv(venv_dir, pip_args, verbose, upgrading_all=False, force=force)
+
+    # Any error in upgrade will raise PipxError from vevn._run_pip()
     return EXIT_CODE_OK
 
 
