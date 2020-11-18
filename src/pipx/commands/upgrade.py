@@ -128,7 +128,7 @@ def upgrade_all(
                 force=force,
             )
 
-        except Exception as e:
+        except PipxError as e:
             venv_error = True
             logging.error(f"Error encountered when upgrading {venv_dir.name}:")
             logging.error(f"{e}\n")
