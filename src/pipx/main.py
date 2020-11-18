@@ -610,7 +610,7 @@ def get_command_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def setup(args) -> None:
+def setup(args: argparse.Namespace) -> None:
     if "version" in args and args.version:
         print_version()
         sys.exit(0)
