@@ -2,7 +2,7 @@ import json
 import logging
 import textwrap
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional, Union
 
 from pipx.util import PipxError
 
@@ -17,7 +17,7 @@ class JsonEncoderHandlesPath(json.JSONEncoder):
         return super().default(obj)
 
 
-def _json_decoder_object_hook(json_dict):
+def _json_decoder_object_hook(json_dict: Dict[str, Any]) -> Union[Dict[str, Any], Path]:
     if json_dict.get("__type__", None) == "Path" and "__Path__" in json_dict:
         return Path(json_dict["__Path__"])
     return json_dict
