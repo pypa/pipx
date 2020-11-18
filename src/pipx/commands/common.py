@@ -22,7 +22,10 @@ from pipx.venv import Venv
 
 class VenvProblems:
     def __init__(
-        self, invalid_interpreter=False, missing_metadata=False, not_installed=False
+        self,
+        invalid_interpreter: bool = False,
+        missing_metadata: bool = False,
+        not_installed: bool = False,
     ) -> None:
         self.invalid_interpreter = invalid_interpreter
         self.missing_metadata = missing_metadata
@@ -298,7 +301,7 @@ def run_post_install_actions(
     include_dependencies: bool,
     *,
     force: bool,
-):
+) -> None:
     package_metadata = venv.package_metadata[package]
 
     display_name = f"{package}{package_metadata.suffix}"
