@@ -91,7 +91,7 @@ def reinstall_all(
         if venv_dir.name in skip:
             continue
         try:
-            reinstall(
+            package_exit = reinstall(
                 venv_dir=venv_dir,
                 local_bin_dir=local_bin_dir,
                 python=python,
@@ -99,6 +99,8 @@ def reinstall_all(
             )
         except PipxError as e:
             print(e, file=sys.stderr)
+            failed.append(venv_dir.name)
+        if package_exit != 0:
             failed.append(venv_dir.name)
     if len(failed) > 0:
         raise PipxError(
