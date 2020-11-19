@@ -11,6 +11,7 @@ dev
 - [implementation detail] Pipx shared libraries (providing pip, setuptools, wheel to pipx) are no longer installed using pip arguments taken from the last regular pipx install.  If you need to apply pip arguments to pipx's use of pip for its internal shared libraries, use PIP_\* environment variables.
 - [feature] Autocomplete for venv names is no longer restricted to an exact match to the literal venv name, but will autocomplete any logically-similar python package name (i.e. case does not matter, and `.`, `-`, `_` characters are all equivalent.)
 - pipx now reinstalls its internal shared libraries when the user executes `reinstall-all`.
+- Made sure shell exit codes from every pipx command are correct.  In the past some (like from `pipx upgrade`) were wrong.  The exit code from `pipx runpip` is now the exit code from the `pip` command run.  The exit code from `pipx list` will be 1 if one or more venvs have problems that need to be addressed.
 
 0.15.6.0
 
