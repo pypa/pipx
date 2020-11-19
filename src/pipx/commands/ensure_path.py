@@ -8,7 +8,7 @@ from typing import Optional, Tuple
 import userpath  # type: ignore
 
 from pipx import constants
-from pipx.constants import EXIT_CODE_OK
+from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojies import stars
 
 
@@ -87,7 +87,7 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
     return (path_added, need_shell_restart)
 
 
-def ensure_pipx_paths(force: bool) -> int:
+def ensure_pipx_paths(force: bool) -> ExitCode:
     """Returns pipx exit code."""
     bin_paths = [constants.LOCAL_BIN_DIR]
 

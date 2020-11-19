@@ -8,13 +8,14 @@ from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_UNINSTALL_ERROR,
     EXIT_CODE_UNINSTALL_VENV_NONEXISTENT,
+    ExitCode,
 )
 from pipx.emojies import hazard, sleep, stars
 from pipx.util import WINDOWS, rmdir
 from pipx.venv import Venv, VenvContainer
 
 
-def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> int:
+def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> ExitCode:
     """Uninstall entire venv_dir, including main package and all injected
     packages.
 
@@ -81,7 +82,7 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> int:
 
 def uninstall_all(
     venv_container: VenvContainer, local_bin_dir: Path, verbose: bool
-) -> int:
+) -> ExitCode:
     """Returns pipx exit code."""
     all_success = True
     for venv_dir in venv_container.iter_venv_dirs():

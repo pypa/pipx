@@ -5,7 +5,7 @@ from typing import Callable, Collection, Optional
 from pipx import constants
 from pipx.colors import bold
 from pipx.commands.common import VenvProblems, get_package_summary
-from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK
+from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK, ExitCode
 from pipx.emojies import sleep
 from pipx.venv import VenvContainer
 
@@ -17,7 +17,7 @@ except ImportError:
     Pool = None
 
 
-def list_packages(venv_container: VenvContainer, include_injected: bool) -> int:
+def list_packages(venv_container: VenvContainer, include_injected: bool) -> ExitCode:
     """Returns pipx exit code."""
     dirs: Collection[Path] = sorted(venv_container.iter_venv_dirs())
     if not dirs:

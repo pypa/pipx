@@ -5,7 +5,7 @@ from typing import List, Sequence
 from pipx import constants
 from pipx.colors import bold, red
 from pipx.commands.common import expose_apps_globally
-from pipx.constants import EXIT_CODE_OK
+from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojies import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
 from pipx.util import PipxError
@@ -97,7 +97,9 @@ def _upgrade_venv(
         return 1
 
 
-def upgrade(venv_dir: Path, pip_args: List[str], verbose: bool, *, force: bool) -> int:
+def upgrade(
+    venv_dir: Path, pip_args: List[str], verbose: bool, *, force: bool
+) -> ExitCode:
     """Returns pipx exit code."""
 
     _ = _upgrade_venv(venv_dir, pip_args, verbose, upgrading_all=False, force=force)
@@ -108,7 +110,7 @@ def upgrade(venv_dir: Path, pip_args: List[str], verbose: bool, *, force: bool) 
 
 def upgrade_all(
     venv_container: VenvContainer, verbose: bool, *, skip: Sequence[str], force: bool
-) -> int:
+) -> ExitCode:
     """Returns pipx exit code."""
     venv_error = False
     venvs_upgraded = 0

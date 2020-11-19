@@ -6,7 +6,7 @@ from typing import List, Optional
 from pipx import constants
 from pipx.colors import bold
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
-from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK
+from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK, ExitCode
 from pipx.emojies import stars
 from pipx.util import PipxError
 from pipx.venv import Venv
@@ -85,7 +85,7 @@ def inject(
     include_apps: bool,
     include_dependencies: bool,
     force: bool,
-) -> int:
+) -> ExitCode:
     """Returns pipx exit code."""
     if not include_apps and include_dependencies:
         raise PipxError(

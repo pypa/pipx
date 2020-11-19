@@ -8,7 +8,7 @@ import pipx.shared_libs  # import instead of from so mockable in tests
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
-from pipx.constants import EXIT_CODE_OK, EXIT_CODE_REINSTALL_VENV_NONEXISTENT
+from pipx.constants import EXIT_CODE_OK, EXIT_CODE_REINSTALL_VENV_NONEXISTENT, ExitCode
 from pipx.emojies import sleep
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
@@ -16,7 +16,7 @@ from pipx.venv import Venv, VenvContainer
 
 def reinstall(
     *, venv_dir: Path, local_bin_dir: Path, python: str, verbose: bool
-) -> int:
+) -> ExitCode:
     """Returns pipx exit code."""
     if not venv_dir.exists():
         print(f"Nothing to reinstall for {venv_dir.name} {sleep}")
@@ -82,7 +82,7 @@ def reinstall_all(
     verbose: bool,
     *,
     skip: Sequence[str],
-) -> int:
+) -> ExitCode:
     """Returns pipx exit code."""
     pipx.shared_libs.shared_libs.upgrade(verbose=verbose)
 
