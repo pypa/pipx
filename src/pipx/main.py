@@ -19,6 +19,7 @@ from packaging.utils import canonicalize_name
 from pipx import commands, constants
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
+from pipx.constants import ExitCode
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import PipxError, mkdir
 from pipx.venv import VenvContainer
@@ -151,7 +152,7 @@ def get_venv_args(parsed_args: Dict) -> List[str]:
     return venv_args
 
 
-def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
+def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
     verbose = args.verbose if "verbose" in args else False
     pip_args = get_pip_args(vars(args))
     venv_args = get_venv_args(vars(args))
@@ -193,7 +194,7 @@ def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
             use_cache,
         )
         # error, we should never reach it
-        return 1
+        return ExitCode(1)
     elif args.command == "install":
         return commands.install(
             None,
@@ -209,39 +210,28 @@ def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
             suffix=args.suffix,
         )
     elif args.command == "inject":
-        if not args.include_apps and args.include_deps:
-            raise PipxError(
-                "Cannot pass --include-deps if --include-apps is not passed as well"
-            )
-        for dep in args.dependencies:
-            commands.inject(
-                venv_dir,
-                None,
-                dep,
-                pip_args,
-                verbose=verbose,
-                include_apps=args.include_apps,
-                include_dependencies=args.include_deps,
-                force=args.force,
-            )
-        # TODO: Issue #503 make pipx commands have proper exit codes
-        return 0
-    elif args.command == "upgrade":
-        return commands.upgrade(
-            venv_dir, pip_args, verbose, upgrading_all=False, force=args.force
+        return commands.inject(
+            venv_dir,
+            None,
+            args.dependencies,
+            pip_args,
+            verbose=verbose,
+            include_apps=args.include_apps,
+            include_dependencies=args.include_deps,
+            force=args.force,
         )
-    elif args.command == "list":
-        commands.list_packages(venv_container, args.include_injected)
-        # TODO: Issue #503 make pipx commands have proper exit codes
-        return 0
-    elif args.command == "uninstall":
-        return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, verbose)
-    elif args.command == "uninstall-all":
-        return commands.uninstall_all(venv_container, constants.LOCAL_BIN_DIR, verbose)
+    elif args.command == "upgrade":
+        return commands.upgrade(venv_dir, pip_args, verbose, force=args.force)
     elif args.command == "upgrade-all":
         return commands.upgrade_all(
             venv_container, verbose, skip=skip_list, force=args.force
         )
+    elif args.command == "list":
+        return commands.list_packages(venv_container, args.include_injected)
+    elif args.command == "uninstall":
+        return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, verbose)
+    elif args.command == "uninstall-all":
+        return commands.uninstall_all(venv_container, constants.LOCAL_BIN_DIR, verbose)
     elif args.command == "reinstall":
         return commands.reinstall(
             venv_dir=venv_dir,
@@ -268,7 +258,7 @@ def run_pipx_command(args: argparse.Namespace) -> int:  # noqa: C901
             raise PipxError(e)
     elif args.command == "completions":
         print(constants.completion_instructions)
-        return 0
+        return ExitCode(0)
     else:
         raise PipxError(f"Unknown command {args.command}")
 
@@ -667,7 +657,7 @@ def check_args(parsed_pipx_args: argparse.Namespace) -> None:
             )
 
 
-def cli() -> int:
+def cli() -> ExitCode:
     """Entry point from command line"""
     try:
         hide_cursor()
@@ -678,13 +668,13 @@ def cli() -> int:
         check_args(parsed_pipx_args)
         if not parsed_pipx_args.command:
             parser.print_help()
-            return 1
+            return ExitCode(1)
         return run_pipx_command(parsed_pipx_args)
     except PipxError as e:
         print(str(e), file=sys.stderr)
-        return 1
+        return ExitCode(1)
     except KeyboardInterrupt:
-        return 1
+        return ExitCode(1)
     finally:
         show_cursor()
 
