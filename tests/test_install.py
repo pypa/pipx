@@ -38,9 +38,8 @@ def install_package(capsys, pipx_temp_env, caplog, package, package_name=""):
         assert "symlink missing or pointing to unexpected location" not in captured.out
     assert "not modifying" not in captured.out
     assert "is not on your PATH environment variable" not in captured.out
-    for record in caplog.records:
-        assert "⚠️" not in record.message
-        assert "WARNING" not in record.message
+    assert "⚠️" not in caplog.text
+    assert "WARNING" not in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -110,9 +109,14 @@ def test_install_no_packages_found(pipx_temp_env, capsys):
     assert "No apps associated with package pygdbmi" in captured.err
 
 
-def test_install_same_package_twice_no_error(pipx_temp_env, capsys):
+def test_install_same_package_twice_no_force(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
-    assert not run_pipx_cli(["install", "pycowsay"])
+    assert run_pipx_cli(["install", "pycowsay"])
+    captured = capsys.readouterr()
+    assert (
+        "'pycowsay' already seems to be installed. Not modifying existing installation"
+        in captured.out
+    )
 
 
 def test_include_deps(pipx_temp_env, capsys):

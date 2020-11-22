@@ -5,13 +5,14 @@ from typing import List, Sequence
 from pipx import constants
 from pipx.colors import bold, red
 from pipx.commands.common import expose_apps_globally
+from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojies import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
 
-def upgrade(
+def _upgrade_venv(
     venv_dir: Path,
     pip_args: List[str],
     verbose: bool,
@@ -19,8 +20,7 @@ def upgrade(
     upgrading_all: bool,
     force: bool,
 ) -> int:
-    """Returns nonzero if package was upgraded, 0 if version did not change"""
-
+    """Returns 1 if package version changed, 0 if same version"""
     if not venv_dir.is_dir():
         raise PipxError(
             f"Package is not installed. Expected to find {str(venv_dir)}, "
@@ -31,12 +31,11 @@ def upgrade(
     package = venv.main_package_name
 
     if not venv.package_metadata:
-        print(
+        raise PipxError(
             f"Not upgrading {red(bold(package))}.  It has missing internal pipx metadata.\n"
             f"    It was likely installed using a pipx version before 0.15.0.0.\n"
-            f"    Please uninstall and install this package, or reinstall-all to fix."
+            f"    Please uninstall and install this package to fix."
         )
-        return 0
 
     package_metadata = venv.package_metadata[package]
 
@@ -98,9 +97,21 @@ def upgrade(
         return 1
 
 
+def upgrade(
+    venv_dir: Path, pip_args: List[str], verbose: bool, *, force: bool
+) -> ExitCode:
+    """Returns pipx exit code."""
+
+    _ = _upgrade_venv(venv_dir, pip_args, verbose, upgrading_all=False, force=force)
+
+    # Any error in upgrade will raise PipxError from vevn._run_pip()
+    return EXIT_CODE_OK
+
+
 def upgrade_all(
     venv_container: VenvContainer, verbose: bool, *, skip: Sequence[str], force: bool
-):
+) -> ExitCode:
+    """Returns pipx exit code."""
     venv_error = False
     venvs_upgraded = 0
     for venv_dir in venv_container.iter_venv_dirs():
@@ -111,7 +122,7 @@ def upgrade_all(
         ):
             continue
         try:
-            venvs_upgraded += upgrade(
+            venvs_upgraded += _upgrade_venv(
                 venv_dir,
                 venv.pipx_metadata.main_package.pip_args,
                 verbose,
@@ -119,9 +130,10 @@ def upgrade_all(
                 force=force,
             )
 
-        except Exception:
+        except PipxError as e:
             venv_error = True
-            logging.error(f"Error encountered when upgrading {venv_dir.name}")
+            logging.error(f"Error encountered when upgrading {venv_dir.name}:")
+            logging.error(f"{e}\n")
 
     if venvs_upgraded == 0:
         print(
@@ -129,6 +141,8 @@ def upgrade_all(
         )
     if venv_error:
         raise PipxError(
-            "Some packages encountered errors during upgrade. "
-            "See specific error messages above."
+            "\nSome packages encountered errors during upgrade.\n"
+            "    See specific error messages above."
         )
+
+    return EXIT_CODE_OK

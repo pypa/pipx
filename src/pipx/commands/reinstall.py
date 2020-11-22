@@ -5,9 +5,10 @@ from typing import List, Sequence
 from packaging.utils import canonicalize_name
 
 import pipx.shared_libs  # import instead of from so mockable in tests
-from pipx.commands.inject import inject
+from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
+from pipx.constants import EXIT_CODE_OK, EXIT_CODE_REINSTALL_VENV_NONEXISTENT, ExitCode
 from pipx.emojies import sleep
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
@@ -15,11 +16,11 @@ from pipx.venv import Venv, VenvContainer
 
 def reinstall(
     *, venv_dir: Path, local_bin_dir: Path, python: str, verbose: bool
-) -> int:
-    """Returns pipx shell exit code"""
+) -> ExitCode:
+    """Returns pipx exit code."""
     if not venv_dir.exists():
         print(f"Nothing to reinstall for {venv_dir.name} {sleep}")
-        return 1
+        return EXIT_CODE_REINSTALL_VENV_NONEXISTENT
 
     venv = Venv(venv_dir, verbose=verbose)
 
@@ -59,7 +60,7 @@ def reinstall(
             raise PipxError(
                 f"Internal Error injecting package {injected_package} into {venv.name}"
             )
-        inject(
+        inject_dep(
             venv_dir,
             injected_name,
             injected_package.package_or_url,
@@ -70,7 +71,8 @@ def reinstall(
             force=True,
         )
 
-    return 0
+    # Any failure to install will raise PipxError, otherwise success
+    return EXIT_CODE_OK
 
 
 def reinstall_all(
@@ -80,8 +82,8 @@ def reinstall_all(
     verbose: bool,
     *,
     skip: Sequence[str],
-) -> int:
-    """Returns pipx shell exit code"""
+) -> ExitCode:
+    """Returns pipx exit code."""
     pipx.shared_libs.shared_libs.upgrade(verbose=verbose)
 
     failed: List[str] = []
@@ -89,7 +91,7 @@ def reinstall_all(
         if venv_dir.name in skip:
             continue
         try:
-            reinstall(
+            package_exit = reinstall(
                 venv_dir=venv_dir,
                 local_bin_dir=local_bin_dir,
                 python=python,
@@ -98,9 +100,11 @@ def reinstall_all(
         except PipxError as e:
             print(e, file=sys.stderr)
             failed.append(venv_dir.name)
+        if package_exit != 0:
+            failed.append(venv_dir.name)
     if len(failed) > 0:
         raise PipxError(
             f"The following package(s) failed to reinstall: {', '.join(failed)}"
         )
-
-    return 0
+    # Any failure to install will raise PipxError, otherwise success
+    return EXIT_CODE_OK

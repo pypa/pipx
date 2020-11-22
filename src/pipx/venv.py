@@ -8,7 +8,7 @@ from typing import Dict, Generator, List, NamedTuple, Set
 from packaging.utils import canonicalize_name
 
 from pipx.animate import animate
-from pipx.constants import PIPX_SHARED_PTH
+from pipx.constants import PIPX_SHARED_PTH, ExitCode
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.package_specifier import (
     append_extras,
@@ -394,3 +394,15 @@ class Venv:
         if not self.verbose:
             cmd.append("-q")
         run_verify(cmd)
+
+    def run_pip_get_exit_code(self, cmd: List[str]) -> ExitCode:
+        cmd = [str(self.python_path), "-m", "pip"] + cmd
+        if not self.verbose:
+            cmd.append("-q")
+        returncode = run_subprocess(
+            cmd, capture_stdout=False, capture_stderr=False
+        ).returncode
+        if returncode:
+            cmd_str = " ".join(str(c) for c in cmd)
+            logging.error(f"{cmd_str!r} failed")
+        return ExitCode(returncode)

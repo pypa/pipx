@@ -4,14 +4,22 @@ from shutil import which
 from typing import List
 
 from pipx import constants
+from pipx.constants import (
+    EXIT_CODE_OK,
+    EXIT_CODE_UNINSTALL_ERROR,
+    EXIT_CODE_UNINSTALL_VENV_NONEXISTENT,
+    ExitCode,
+)
 from pipx.emojies import hazard, sleep, stars
 from pipx.util import WINDOWS, rmdir
 from pipx.venv import Venv, VenvContainer
 
 
-def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool):
+def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> ExitCode:
     """Uninstall entire venv_dir, including main package and all injected
     packages.
+
+    Returns pipx exit code.
     """
     if not venv_dir.exists():
         print(f"Nothing to uninstall for {venv_dir.name} {sleep}")
@@ -20,7 +28,7 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool):
             print(
                 f"{hazard}  Note: '{app}' still exists on your system and is on your PATH"
             )
-        return
+        return EXIT_CODE_UNINSTALL_VENV_NONEXISTENT
 
     venv = Venv(venv_dir, verbose=verbose)
 
@@ -69,8 +77,16 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool):
 
     rmdir(venv_dir)
     print(f"uninstalled {venv.name}! {stars}")
+    return EXIT_CODE_OK
 
 
-def uninstall_all(venv_container: VenvContainer, local_bin_dir: Path, verbose: bool):
+def uninstall_all(
+    venv_container: VenvContainer, local_bin_dir: Path, verbose: bool
+) -> ExitCode:
+    """Returns pipx exit code."""
+    all_success = True
     for venv_dir in venv_container.iter_venv_dirs():
-        uninstall(venv_dir, local_bin_dir, verbose)
+        return_val = uninstall(venv_dir, local_bin_dir, verbose)
+        all_success &= return_val == 0
+
+    return EXIT_CODE_OK if all_success else EXIT_CODE_UNINSTALL_ERROR
