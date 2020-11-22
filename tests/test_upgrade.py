@@ -11,10 +11,19 @@ def test_upgrade(pipx_temp_env, capsys):
 
 @pytest.mark.parametrize("metadata_version", [None, "0.1"])
 def test_upgrade_legacy_venv(pipx_temp_env, capsys, metadata_version):
-    assert run_pipx_cli(["upgrade", "pycowsay"])
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
-    assert not run_pipx_cli(["upgrade", "pycowsay"])
+    captured = capsys.readouterr()
+    if metadata_version is None:
+        assert run_pipx_cli(["upgrade", "pycowsay"])
+        captured = capsys.readouterr()
+        assert (
+            "Not upgrading pycowsay.  It has missing internal pipx metadata."
+            in captured.err
+        )
+    else:
+        assert not run_pipx_cli(["upgrade", "pycowsay"])
+        captured = capsys.readouterr()
 
 
 def test_upgrade_suffix(pipx_temp_env, capsys):
@@ -43,6 +52,6 @@ def test_upgrade_specifier(pipx_temp_env, capsys):
     initial_version = "2.3.1"
 
     assert not run_pipx_cli(["install", f"{name}{specifier}"])
-    assert run_pipx_cli(["upgrade", f"{name}"])
+    assert not run_pipx_cli(["upgrade", f"{name}"])
     captured = capsys.readouterr()
     assert f"upgraded package {name} from {initial_version} to" in captured.out

@@ -2,6 +2,7 @@ import os
 import sys
 from pathlib import Path
 from textwrap import dedent
+from typing import NewType
 
 DEFAULT_PIPX_HOME = Path.home() / ".local/pipx"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
@@ -15,6 +16,16 @@ PIPX_SHARED_PTH = "pipx_shared.pth"
 LOCAL_BIN_DIR = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resolve()
 PIPX_VENV_CACHEDIR = PIPX_HOME / ".cache"
 TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 14
+
+ExitCode = NewType("ExitCode", int)
+# pipx shell exit codes
+EXIT_CODE_OK = ExitCode(0)
+EXIT_CODE_INJECT_ERROR = ExitCode(1)
+EXIT_CODE_INSTALL_VENV_EXISTS = ExitCode(1)
+EXIT_CODE_LIST_PROBLEM = ExitCode(1)
+EXIT_CODE_UNINSTALL_VENV_NONEXISTENT = ExitCode(1)
+EXIT_CODE_UNINSTALL_ERROR = ExitCode(1)
+EXIT_CODE_REINSTALL_VENV_NONEXISTENT = ExitCode(1)
 
 
 def is_windows() -> bool:
