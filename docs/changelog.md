@@ -12,6 +12,7 @@ dev
 - [feature] Autocomplete for venv names is no longer restricted to an exact match to the literal venv name, but will autocomplete any logically-similar python package name (i.e. case does not matter, and `.`, `-`, `_` characters are all equivalent.)
 - pipx now reinstalls its internal shared libraries when the user executes `reinstall-all`.
 - Made sure shell exit codes from every pipx command are correct.  In the past some (like from `pipx upgrade`) were wrong.  The exit code from `pipx runpip` is now the exit code from the `pip` command run.  The exit code from `pipx list` will be 1 if one or more venvs have problems that need to be addressed.
+- Add `--upgrade-injected` option to `pipx upgrade` and `pipx upgrade-all` to direct pipx to also upgrade injected packages.
 
 0.15.6.0
 
