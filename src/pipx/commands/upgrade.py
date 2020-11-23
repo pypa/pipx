@@ -12,31 +12,9 @@ from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
 
-def _upgrade_venv(
-    venv_dir: Path,
-    pip_args: List[str],
-    verbose: bool,
-    *,
-    upgrading_all: bool,
-    force: bool,
-) -> int:
-    """Returns 1 if package version changed, 0 if same version"""
-    if not venv_dir.is_dir():
-        raise PipxError(
-            f"Package is not installed. Expected to find {str(venv_dir)}, "
-            "but it does not exist."
-        )
-
-    venv = Venv(venv_dir, verbose=verbose)
-    package = venv.main_package_name
-
-    if not venv.package_metadata:
-        raise PipxError(
-            f"Not upgrading {red(bold(package))}.  It has missing internal pipx metadata.\n"
-            f"    It was likely installed using a pipx version before 0.15.0.0.\n"
-            f"    Please uninstall and install this package to fix."
-        )
-
+def _upgrade_package(
+    venv: Venv, package: str, pip_args: List[str], force: bool, upgrading_all: bool
+) -> bool:
     package_metadata = venv.package_metadata[package]
 
     if package_metadata.package_or_url is None:
@@ -59,7 +37,6 @@ def _upgrade_venv(
         is_main_package=True,
         suffix=package_metadata.suffix,
     )
-    # TODO 20191026: upgrade injected packages also (Issue #79)
 
     package_metadata = venv.package_metadata[package]
 
@@ -87,29 +64,81 @@ def _upgrade_venv(
             pass
         else:
             print(
-                f"{display_name} is already at latest version {old_version} (location: {str(venv_dir)})"
+                f"{display_name} is already at latest version {old_version} "
+                f"(location: {str(venv.root)})"
             )
-        return 0
+        return False
     else:
         print(
-            f"upgraded package {display_name} from {old_version} to {new_version} (location: {str(venv_dir)})"
+            f"upgraded package {display_name} from {old_version} to {new_version} "
+            f"(location: {str(venv.root)})"
         )
-        return 1
+        return True
+
+
+def _upgrade_venv(
+    venv_dir: Path,
+    pip_args: List[str],
+    verbose: bool,
+    *,
+    include_injected: bool,
+    upgrading_all: bool,
+    force: bool,
+) -> int:
+    """Returns 1 if package version changed, 0 if same version"""
+    if not venv_dir.is_dir():
+        raise PipxError(
+            f"Package is not installed. Expected to find {str(venv_dir)}, "
+            "but it does not exist."
+        )
+
+    venv = Venv(venv_dir, verbose=verbose)
+
+    if not venv.package_metadata:
+        raise PipxError(
+            f"Not upgrading {red(bold(venv_dir.name))}.  It has missing internal pipx metadata.\n"
+            f"    It was likely installed using a pipx version before 0.15.0.0.\n"
+            f"    Please uninstall and install this package to fix."
+        )
+
+    # TODO 20191026: upgrade injected packages also (Issue #79)
+    package = venv.main_package_name
+
+    version_change = _upgrade_package(venv, package, pip_args, force, upgrading_all)
+
+    return 1 if version_change else 0
 
 
 def upgrade(
-    venv_dir: Path, pip_args: List[str], verbose: bool, *, force: bool
+    venv_dir: Path,
+    pip_args: List[str],
+    verbose: bool,
+    *,
+    include_injected: bool,
+    force: bool,
 ) -> ExitCode:
     """Returns pipx exit code."""
 
-    _ = _upgrade_venv(venv_dir, pip_args, verbose, upgrading_all=False, force=force)
+    _ = _upgrade_venv(
+        venv_dir,
+        pip_args,
+        verbose,
+        include_injected=include_injected,
+        upgrading_all=False,
+        force=force,
+    )
 
     # Any error in upgrade will raise PipxError from vevn._run_pip()
     return EXIT_CODE_OK
 
 
 def upgrade_all(
-    venv_container: VenvContainer, verbose: bool, *, skip: Sequence[str], force: bool
+    venv_container: VenvContainer,
+    verbose: bool,
+    *,
+    include_injected: bool,
+    skip: Sequence[str],
+    force: bool,
 ) -> ExitCode:
     """Returns pipx exit code."""
     venv_error = False
@@ -126,6 +155,7 @@ def upgrade_all(
                 venv_dir,
                 venv.pipx_metadata.main_package.pip_args,
                 verbose,
+                include_injected=include_injected,
                 upgrading_all=True,
                 force=force,
             )

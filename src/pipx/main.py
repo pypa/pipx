@@ -221,10 +221,20 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             force=args.force,
         )
     elif args.command == "upgrade":
-        return commands.upgrade(venv_dir, pip_args, verbose, force=args.force)
+        return commands.upgrade(
+            venv_dir,
+            pip_args,
+            verbose,
+            include_injected=args.include_injected,
+            force=args.force,
+        )
     elif args.command == "upgrade-all":
         return commands.upgrade_all(
-            venv_container, verbose, skip=skip_list, force=args.force
+            venv_container,
+            verbose,
+            include_injected=args.include_injected,
+            skip=skip_list,
+            force=args.force,
         )
     elif args.command == "list":
         return commands.list_packages(venv_container, args.include_injected)
