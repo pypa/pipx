@@ -120,7 +120,6 @@ def _upgrade_venv(
     )
     versions_updated += 1 if version_change else 0
 
-    # TODO 20191026: upgrade injected packages also (Issue #79)
     if include_injected:
         for package in venv.package_metadata:
             if package == venv.main_package_name:
