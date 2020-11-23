@@ -372,6 +372,11 @@ def _add_upgrade(subparsers, venv_completer) -> None:
     )
     p.add_argument("package").completer = venv_completer
     p.add_argument(
+        "--include-injected",
+        action="store_true",
+        help="Also upgrade packages injected into the main app's environment",
+    )
+    p.add_argument(
         "--force",
         "-f",
         action="store_true",
@@ -387,7 +392,11 @@ def _add_upgrade_all(subparsers) -> None:
         help="Upgrade all packages. Runs `pip install -U <pkgname>` for each package.",
         description="Upgrades all packages within their virtual environments by running 'pip install --upgrade PACKAGE'",
     )
-
+    p.add_argument(
+        "--include-injected",
+        action="store_true",
+        help="Also upgrade packages injected into the main app's environment",
+    )
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
     p.add_argument(
         "--force",
