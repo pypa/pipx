@@ -19,7 +19,8 @@ def _upgrade_package(
     is_main_package: bool,
     force: bool,
     upgrading_all: bool,
-) -> bool:
+) -> int:
+    """Returns 1 if updated version changed, 0 otherwise"""
     package_metadata = venv.package_metadata[package]
 
     if package_metadata.package_or_url is None:
@@ -70,13 +71,13 @@ def _upgrade_package(
                 f"{display_name} is already at latest version {old_version} "
                 f"(location: {str(venv.root)})"
             )
-        return False
+        return 0
     else:
         print(
             f"upgraded package {display_name} from {old_version} to {new_version} "
             f"(location: {str(venv.root)})"
         )
-        return True
+        return 1
 
 
 def _upgrade_venv(
@@ -110,7 +111,7 @@ def _upgrade_venv(
     versions_updated = 0
 
     package = venv.main_package_name
-    version_change = _upgrade_package(
+    versions_updated += _upgrade_package(
         venv,
         package,
         pip_args,
@@ -118,13 +119,12 @@ def _upgrade_venv(
         force=force,
         upgrading_all=upgrading_all,
     )
-    versions_updated += 1 if version_change else 0
 
     if include_injected:
         for package in venv.package_metadata:
             if package == venv.main_package_name:
                 continue
-            version_change = _upgrade_package(
+            versions_updated += _upgrade_package(
                 venv,
                 package,
                 pip_args,
@@ -132,7 +132,6 @@ def _upgrade_venv(
                 force=force,
                 upgrading_all=upgrading_all,
             )
-            versions_updated += 1 if version_change else 0
 
     return versions_updated
 
