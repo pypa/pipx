@@ -13,7 +13,12 @@ from pipx.venv import Venv, VenvContainer
 
 
 def _upgrade_package(
-    venv: Venv, package: str, pip_args: List[str], force: bool, upgrading_all: bool
+    venv: Venv,
+    package: str,
+    pip_args: List[str],
+    is_main_package: bool,
+    force: bool,
+    upgrading_all: bool,
 ) -> bool:
     package_metadata = venv.package_metadata[package]
 
@@ -25,16 +30,13 @@ def _upgrade_package(
     include_apps = package_metadata.include_apps
     include_dependencies = package_metadata.include_dependencies
 
-    # Upgrade shared libraries (pip, setuptools and wheel)
-    venv.upgrade_packaging_libraries(pip_args)
-
     venv.upgrade_package(
         package,
         package_or_url,
         pip_args,
         include_dependencies=include_dependencies,
         include_apps=include_apps,
-        is_main_package=True,
+        is_main_package=is_main_package,
         suffix=package_metadata.suffix,
     )
 
@@ -43,12 +45,13 @@ def _upgrade_package(
     display_name = f"{package_metadata.package}{package_metadata.suffix}"
     new_version = package_metadata.package_version
 
-    expose_apps_globally(
-        constants.LOCAL_BIN_DIR,
-        package_metadata.app_paths,
-        force=force,
-        suffix=package_metadata.suffix,
-    )
+    if include_apps:
+        expose_apps_globally(
+            constants.LOCAL_BIN_DIR,
+            package_metadata.app_paths,
+            force=force,
+            suffix=package_metadata.suffix,
+        )
 
     if include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
@@ -94,6 +97,9 @@ def _upgrade_venv(
 
     venv = Venv(venv_dir, verbose=verbose)
 
+    # Upgrade shared libraries (pip, setuptools and wheel)
+    venv.upgrade_packaging_libraries(pip_args)
+
     if not venv.package_metadata:
         raise PipxError(
             f"Not upgrading {red(bold(venv_dir.name))}.  It has missing internal pipx metadata.\n"
@@ -101,12 +107,35 @@ def _upgrade_venv(
             f"    Please uninstall and install this package to fix."
         )
 
-    # TODO 20191026: upgrade injected packages also (Issue #79)
+    versions_updated = 0
+
     package = venv.main_package_name
+    version_change = _upgrade_package(
+        venv,
+        package,
+        pip_args,
+        is_main_package=True,
+        force=force,
+        upgrading_all=upgrading_all,
+    )
+    versions_updated += 1 if version_change else 0
 
-    version_change = _upgrade_package(venv, package, pip_args, force, upgrading_all)
+    # TODO 20191026: upgrade injected packages also (Issue #79)
+    if include_injected:
+        for package in venv.package_metadata:
+            if package == venv.main_package_name:
+                continue
+            version_change = _upgrade_package(
+                venv,
+                package,
+                pip_args,
+                is_main_package=False,
+                force=force,
+                upgrading_all=upgrading_all,
+            )
+            versions_updated += 1 if version_change else 0
 
-    return 1 if version_change else 0
+    return versions_updated
 
 
 def upgrade(
