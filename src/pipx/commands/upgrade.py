@@ -98,15 +98,15 @@ def _upgrade_venv(
 
     venv = Venv(venv_dir, verbose=verbose)
 
-    # Upgrade shared libraries (pip, setuptools and wheel)
-    venv.upgrade_packaging_libraries(pip_args)
-
     if not venv.package_metadata:
         raise PipxError(
             f"Not upgrading {red(bold(venv_dir.name))}.  It has missing internal pipx metadata.\n"
             f"    It was likely installed using a pipx version before 0.15.0.0.\n"
             f"    Please uninstall and install this package to fix."
         )
+
+    # Upgrade shared libraries (pip, setuptools and wheel)
+    venv.upgrade_packaging_libraries(pip_args)
 
     versions_updated = 0
 
@@ -155,7 +155,7 @@ def upgrade(
         force=force,
     )
 
-    # Any error in upgrade will raise PipxError from venv._run_pip()
+    # Any error in upgrade will raise PipxError (e.g. from venv._run_pip())
     return EXIT_CODE_OK
 
 
