@@ -20,7 +20,7 @@ def _upgrade_package(
     force: bool,
     upgrading_all: bool,
 ) -> int:
-    """Returns 1 if updated version changed, 0 otherwise"""
+    """Returns 1 if package version changed, 0 if same version"""
     package_metadata = venv.package_metadata[package]
 
     if package_metadata.package_or_url is None:
@@ -89,7 +89,7 @@ def _upgrade_venv(
     upgrading_all: bool,
     force: bool,
 ) -> int:
-    """Returns 1 if package version changed, 0 if same version"""
+    """Returns number of packages with changed versions."""
     if not venv_dir.is_dir():
         raise PipxError(
             f"Package is not installed. Expected to find {str(venv_dir)}, "
