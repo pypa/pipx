@@ -79,11 +79,6 @@ PACKAGE_PARAMETRIZE_LIST = [
     ("youtube-dl", PKG["youtube-dl"]["spec"]),
     ("zeo", PKG["zeo"]["spec"]),
 ]
-# TODO: DEBUG ONLY
-# PACKAGE_PARAMETRIZE_LIST = [
-#    ("pycowsay", PKG["pycowsay"]["spec"]),
-#    ("sphinx", PKG["sphinx"]["spec"]),
-# ]
 
 
 @pytest.fixture(scope="module")

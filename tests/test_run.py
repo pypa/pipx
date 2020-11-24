@@ -147,12 +147,6 @@ def test_package_determination(
         # Skip packages with 'scripts' in setup.py that don't work on Windows
         pytest.skip()
 
-    # TODO: remove skip when debug venv_metadata_inspector_legacy.py is removed
-    # if package == "kaggle":
-    #    pytest.skip(
-    #        "Remove this skip when venv_metadata_inspector_legacy.py is removed"
-    #    )
-
     caplog.set_level(logging.INFO)
 
     # TODO: remove "--feature=2020-resolver" when pip 20.3 is released
