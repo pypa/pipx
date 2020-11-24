@@ -624,7 +624,8 @@ def setup(args: argparse.Namespace) -> None:
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
 
-    mkdir(constants.PIPX_LOG_DIR)
+    # don't use utils.mkdir, to prevent emit of log message
+    constants.PIPX_LOG_DIR.mkdir(parents=True, exist_ok=True)
     file_handler = RotatingFileHandler(
         constants.PIPX_LOG_DIR / "command.log", backupCount=5
     )
@@ -632,7 +633,7 @@ def setup(args: argparse.Namespace) -> None:
     file_handler.doRollover()
     file_handler.setFormatter(
         logging.Formatter(
-            "{relativeCreated: >8.1f}ms ({funcName}:{lineno}): {message}", style="{",
+            "{relativeCreated: >8.1f}ms ({funcName}:{lineno}): {message}", style="{"
         )
     )
     root_logger.addHandler(file_handler)
