@@ -28,15 +28,13 @@ def _upgrade_package(
 
     package_or_url = parse_specifier_for_upgrade(package_metadata.package_or_url)
     old_version = package_metadata.package_version
-    include_apps = package_metadata.include_apps
-    include_dependencies = package_metadata.include_dependencies
 
     venv.upgrade_package(
         package,
         package_or_url,
         pip_args,
-        include_dependencies=include_dependencies,
-        include_apps=include_apps,
+        include_dependencies=package_metadata.include_dependencies,
+        include_apps=package_metadata.include_apps,
         is_main_package=is_main_package,
         suffix=package_metadata.suffix,
     )
@@ -46,7 +44,7 @@ def _upgrade_package(
     display_name = f"{package_metadata.package}{package_metadata.suffix}"
     new_version = package_metadata.package_version
 
-    if include_apps:
+    if package_metadata.include_apps:
         expose_apps_globally(
             constants.LOCAL_BIN_DIR,
             package_metadata.app_paths,
@@ -54,7 +52,7 @@ def _upgrade_package(
             suffix=package_metadata.suffix,
         )
 
-    if include_dependencies:
+    if package_metadata.include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             expose_apps_globally(
                 constants.LOCAL_BIN_DIR,
