@@ -723,7 +723,7 @@ def cli() -> ExitCode:
         return run_pipx_command(parsed_pipx_args)
     except PipxError as e:
         print(str(e), file=sys.stderr)
-        logging.debug(f"PipxError: {e}")
+        logging.debug(f"PipxError: {e}", exc_info=True)
         return ExitCode(1)
     except KeyboardInterrupt:
         return ExitCode(1)
