@@ -719,19 +719,15 @@ def cli() -> ExitCode:
         if not parsed_pipx_args.command:
             parser.print_help()
             return ExitCode(1)
-        # TODO: need show_cursor() ?
         return run_pipx_command(parsed_pipx_args)
     except PipxError as e:
         print(str(e), file=sys.stderr)
         logging.debug(f"PipxError: {e}")
-        # TODO: need show_cursor() ?
         return ExitCode(1)
     except KeyboardInterrupt:
-        # TODO: need show_cursor() ?
         return ExitCode(1)
     except Exception:
-        logging.debug("Uncaught Exception", exc_info=True)
-        # TODO: need show_cursor() ?
+        logging.debug("Uncaught Exception:", exc_info=True)
         raise
     finally:
         show_cursor()
