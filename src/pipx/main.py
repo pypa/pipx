@@ -620,13 +620,13 @@ def setup_file_logging(logger: logging.Logger) -> None:
     # don't use utils.mkdir, to prevent emit of log message
     constants.PIPX_LOG_DIR.mkdir(parents=True, exist_ok=True)
     log_file = constants.PIPX_LOG_DIR / "command.log"
-    log_file_exists = log_file.exists()
+    # log_file_exists = log_file.exists()
     # delay=True so file won't be open and doRollover works on Windows without
     #   PermissionError
     file_handler = RotatingFileHandler(log_file, backupCount=5, delay=True)
     file_handler.setLevel(logging.DEBUG)
-    if log_file_exists:
-        file_handler.doRollover()
+    # if log_file_exists:
+    #     file_handler.doRollover()
     file_handler.setFormatter(
         logging.Formatter(
             "{relativeCreated: >8.1f}ms ({funcName}:{lineno}): {message}", style="{"
