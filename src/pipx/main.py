@@ -616,33 +616,29 @@ def get_command_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def setup(args: argparse.Namespace) -> None:
-    if "version" in args and args.version:
-        print_version()
-        sys.exit(0)
-
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
-
+def setup_file_logging(logger: logging.Logger) -> None:
     # don't use utils.mkdir, to prevent emit of log message
     constants.PIPX_LOG_DIR.mkdir(parents=True, exist_ok=True)
-    file_handler = RotatingFileHandler(
-        constants.PIPX_LOG_DIR / "command.log", backupCount=5
-    )
+    log_file = constants.PIPX_LOG_DIR / "command.log"
+    log_file_exists = log_file.exists()
+    file_handler = RotatingFileHandler(log_file, backupCount=5)
     file_handler.setLevel(logging.DEBUG)
-    file_handler.doRollover()
+    if log_file_exists:
+        file_handler.doRollover()
     file_handler.setFormatter(
         logging.Formatter(
             "{relativeCreated: >8.1f}ms ({funcName}:{lineno}): {message}", style="{"
         )
     )
-    root_logger.addHandler(file_handler)
+    logger.addHandler(file_handler)
     # log these infos only to file
     logging.info(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
     logging.info(f"{' '.join(sys.argv)}")
 
+
+def setup_stream_logging(logger: logging.Logger, verbose: bool) -> None:
     stream_handler = logging.StreamHandler()
-    if "verbose" in args and args.verbose:
+    if verbose:
         pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
         stream_handler.setLevel(logging.DEBUG)
         stream_handler.setFormatter(
@@ -651,7 +647,18 @@ def setup(args: argparse.Namespace) -> None:
     else:
         stream_handler.setLevel(logging.WARNING)
         stream_handler.setFormatter(logging.Formatter("{message}", style="{"))
-    root_logger.addHandler(stream_handler)
+    logger.addHandler(stream_handler)
+
+
+def setup(args: argparse.Namespace) -> None:
+    if "version" in args and args.version:
+        print_version()
+        sys.exit(0)
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+    setup_file_logging(root_logger)
+    setup_stream_logging(root_logger, "verbose" in args and args.verbose)
 
     logging.info(f"pipx version is {__version__}")
     logging.info(f"Default python interpreter is {repr(DEFAULT_PYTHON)}")
