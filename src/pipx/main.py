@@ -650,7 +650,7 @@ def setup_stream_handler(verbose: bool) -> logging.Handler:
     stream_handler = logging.StreamHandler()
     if verbose:
         pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
-        stream_handler.setLevel(logging.DEBUG)
+        stream_handler.setLevel(logging.INFO)
         stream_handler.setFormatter(
             logging.Formatter(pipx_str + "({funcName}:{lineno}): {message}", style="{")
         )
@@ -665,19 +665,18 @@ def setup(args: argparse.Namespace) -> None:
         print_version()
         sys.exit(0)
 
+    # Setup logging so debug and above go to log file,
+    #   info (verbose) or warning (non-verbose) and above go to console
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
-    file_logger = logging.getLogger("file")
-    file_logger.setLevel(logging.DEBUG)
-    file_logger.propagate = False
 
     file_handler = setup_file_handler()
-    file_logger.addHandler(file_handler)
+    stream_handler = setup_stream_handler("verbose" in args and args.verbose)
     root_logger.addHandler(file_handler)
-    root_logger.addHandler(setup_stream_handler("verbose" in args and args.verbose))
+    root_logger.addHandler(stream_handler)
 
-    file_logger.info(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
-    file_logger.info(f"{' '.join(sys.argv)}")
+    logging.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logging.debug(f"{' '.join(sys.argv)}")
     logging.info(f"pipx version is {__version__}")
     logging.info(f"Default python interpreter is {repr(DEFAULT_PYTHON)}")
 
@@ -720,12 +719,20 @@ def cli() -> ExitCode:
         if not parsed_pipx_args.command:
             parser.print_help()
             return ExitCode(1)
+        # TODO: need show_cursor() ?
         return run_pipx_command(parsed_pipx_args)
     except PipxError as e:
         print(str(e), file=sys.stderr)
+        logging.debug(f"PipxError: {e}")
+        # TODO: need show_cursor() ?
         return ExitCode(1)
     except KeyboardInterrupt:
+        # TODO: need show_cursor() ?
         return ExitCode(1)
+    except Exception:
+        logging.debug("Uncaught Exception", exc_info=True)
+        # TODO: need show_cursor() ?
+        raise
     finally:
         show_cursor()
 
