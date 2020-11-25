@@ -12,7 +12,6 @@ import sys
 import textwrap
 import time
 import urllib.parse
-from logging.handlers import RotatingFileHandler
 from typing import Dict, List
 
 import argcomplete  # type: ignore
@@ -616,29 +615,38 @@ def get_command_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def setup_file_logging(logger: logging.Logger) -> None:
-    # don't use utils.mkdir, to prevent emit of log message
+def setup_file_handler() -> logging.Handler:
+    max_logs = 10
+    # don't use utils.mkdir, to prevent emission of log message
     constants.PIPX_LOG_DIR.mkdir(parents=True, exist_ok=True)
-    log_file = constants.PIPX_LOG_DIR / "command.log"
-    # log_file_exists = log_file.exists()
-    # delay=True so file won't be open and doRollover works on Windows without
-    #   PermissionError
-    file_handler = RotatingFileHandler(log_file, backupCount=5, delay=True)
+
+    existing_logs = sorted(constants.PIPX_LOG_DIR.glob("cmd_*.log"))
+    if len(existing_logs) > max_logs:
+        for existing_log in existing_logs[:-max_logs]:
+            try:
+                existing_log.unlink()
+                print(f"Removed file {existing_log}", file=sys.stderr)
+            except FileNotFoundError:
+                pass
+
+    datetime_str = time.strftime("%Y-%m-%d_%H.%M.%S")
+    log_file = constants.PIPX_LOG_DIR / f"cmd_{datetime_str}.log"
+    counter = 1
+    while log_file.exists():
+        log_file = constants.PIPX_LOG_DIR / f"cmd_{datetime_str}_{counter}.log"
+        counter += 1
+
+    file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(logging.DEBUG)
-    # if log_file_exists:
-    #     file_handler.doRollover()
     file_handler.setFormatter(
         logging.Formatter(
             "{relativeCreated: >8.1f}ms ({funcName}:{lineno}): {message}", style="{"
         )
     )
-    logger.addHandler(file_handler)
-    # log these infos only to file
-    logging.info(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
-    logging.info(f"{' '.join(sys.argv)}")
+    return file_handler
 
 
-def setup_stream_logging(logger: logging.Logger, verbose: bool) -> None:
+def setup_stream_handler(verbose: bool) -> logging.Handler:
     stream_handler = logging.StreamHandler()
     if verbose:
         pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
@@ -649,7 +657,7 @@ def setup_stream_logging(logger: logging.Logger, verbose: bool) -> None:
     else:
         stream_handler.setLevel(logging.WARNING)
         stream_handler.setFormatter(logging.Formatter("{message}", style="{"))
-    logger.addHandler(stream_handler)
+    return stream_handler
 
 
 def setup(args: argparse.Namespace) -> None:
@@ -659,9 +667,17 @@ def setup(args: argparse.Namespace) -> None:
 
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
-    setup_file_logging(root_logger)
-    setup_stream_logging(root_logger, "verbose" in args and args.verbose)
+    file_logger = logging.getLogger("file")
+    file_logger.setLevel(logging.DEBUG)
+    file_logger.propagate = False
 
+    file_handler = setup_file_handler()
+    file_logger.addHandler(file_handler)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(setup_stream_handler("verbose" in args and args.verbose))
+
+    file_logger.info(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
+    file_logger.info(f"{' '.join(sys.argv)}")
     logging.info(f"pipx version is {__version__}")
     logging.info(f"Default python interpreter is {repr(DEFAULT_PYTHON)}")
 
