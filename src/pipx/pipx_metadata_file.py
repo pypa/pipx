@@ -134,7 +134,6 @@ class PipxMetadata:
                     width=79,
                 )
             )
-            pass
 
     def read(self, verbose: bool = False) -> None:
         try:

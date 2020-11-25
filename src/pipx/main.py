@@ -256,6 +256,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         try:
             return commands.ensure_pipx_paths(force=args.force)
         except Exception as e:
+            logging.debug("Uncaught Exception:", exc_info=True)
             raise PipxError(e)
     elif args.command == "completions":
         print(constants.completion_instructions)

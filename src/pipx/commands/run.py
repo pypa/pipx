@@ -195,4 +195,5 @@ def _http_get_request(url: str) -> str:
         charset = res.headers.get_content_charset() or "utf-8"  # type: ignore
         return res.read().decode(charset)
     except Exception as e:
+        logging.debug("Uncaught Exception:", exc_info=True)
         raise PipxError(str(e))
