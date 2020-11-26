@@ -10,6 +10,7 @@ import shlex
 import shutil
 import sys
 import textwrap
+import time
 import urllib.parse
 from typing import Dict, List
 
@@ -255,6 +256,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         try:
             return commands.ensure_pipx_paths(force=args.force)
         except Exception as e:
+            logging.debug("Uncaught Exception:", exc_info=True)
             raise PipxError(e)
     elif args.command == "completions":
         print(constants.completion_instructions)
@@ -614,19 +616,68 @@ def get_command_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def setup_file_handler() -> logging.Handler:
+    max_logs = 10
+    # don't use utils.mkdir, to prevent emission of log message
+    constants.PIPX_LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+    existing_logs = sorted(constants.PIPX_LOG_DIR.glob("cmd_*.log"))
+    if len(existing_logs) > max_logs:
+        for existing_log in existing_logs[:-max_logs]:
+            try:
+                existing_log.unlink()
+                print(f"Removed file {existing_log}", file=sys.stderr)
+            except FileNotFoundError:
+                pass
+
+    datetime_str = time.strftime("%Y-%m-%d_%H.%M.%S")
+    log_file = constants.PIPX_LOG_DIR / f"cmd_{datetime_str}.log"
+    counter = 1
+    while log_file.exists():
+        log_file = constants.PIPX_LOG_DIR / f"cmd_{datetime_str}_{counter}.log"
+        counter += 1
+
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(
+        logging.Formatter(
+            "{relativeCreated: >8.1f}ms ({funcName}:{lineno}): {message}", style="{"
+        )
+    )
+    return file_handler
+
+
+def setup_stream_handler(verbose: bool) -> logging.Handler:
+    stream_handler = logging.StreamHandler()
+    if verbose:
+        pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
+        stream_handler.setLevel(logging.INFO)
+        stream_handler.setFormatter(
+            logging.Formatter(pipx_str + "({funcName}:{lineno}): {message}", style="{")
+        )
+    else:
+        stream_handler.setLevel(logging.WARNING)
+        stream_handler.setFormatter(logging.Formatter("{message}", style="{"))
+    return stream_handler
+
+
 def setup(args: argparse.Namespace) -> None:
     if "version" in args and args.version:
         print_version()
         sys.exit(0)
 
-    if "verbose" in args and args.verbose:
-        pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
-        format_str = f"{pipx_str} (%(funcName)s:%(lineno)d): %(message)s"
+    # Setup logging so debug and above go to log file,
+    #   info (verbose) or warning (non-verbose) and above go to console
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
 
-        logging.basicConfig(level=logging.DEBUG, format=format_str)
-    else:
-        logging.basicConfig(level=logging.WARNING, format="%(message)s")
+    file_handler = setup_file_handler()
+    stream_handler = setup_stream_handler("verbose" in args and args.verbose)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(stream_handler)
 
+    logging.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logging.debug(f"{' '.join(sys.argv)}")
     logging.info(f"pipx version is {__version__}")
     logging.info(f"Default python interpreter is {repr(DEFAULT_PYTHON)}")
 
@@ -672,9 +723,13 @@ def cli() -> ExitCode:
         return run_pipx_command(parsed_pipx_args)
     except PipxError as e:
         print(str(e), file=sys.stderr)
+        logging.debug(f"PipxError: {e}", exc_info=True)
         return ExitCode(1)
     except KeyboardInterrupt:
         return ExitCode(1)
+    except Exception:
+        logging.debug("Uncaught Exception:", exc_info=True)
+        raise
     finally:
         show_cursor()
 
