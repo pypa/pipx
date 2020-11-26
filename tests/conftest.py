@@ -24,6 +24,7 @@ def pipx_temp_env(tmp_path, monkeypatch):
     monkeypatch.setattr(constants, "LOCAL_BIN_DIR", bin_dir)
     monkeypatch.setattr(constants, "PIPX_LOCAL_VENVS", home_dir / "venvs")
     monkeypatch.setattr(constants, "PIPX_VENV_CACHEDIR", home_dir / ".cache")
+    monkeypatch.setattr(constants, "PIPX_LOG_DIR", home_dir / "logs")
 
     # TODO: macOS needs /usr/bin in PATH to compile certain packages, but
     #   applications in /usr/bin cause test_install.py tests to raise warnings

@@ -112,6 +112,7 @@ class PipxMetadata:
             or self.main_package.package_or_url is None
             or not self.main_package.include_apps
         ):
+            logging.debug(f"PipxMetadata corrupt:\n{self.to_dict()}")
             raise PipxError("Internal Error: PipxMetadata is corrupt, cannot write.")
 
     def write(self) -> None:
@@ -134,7 +135,6 @@ class PipxMetadata:
                     width=79,
                 )
             )
-            pass
 
     def read(self, verbose: bool = False) -> None:
         try:
