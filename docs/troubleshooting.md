@@ -6,9 +6,9 @@ The following command fixes most problems you may encounter as a pipx user:
 pipx reinstall-all
 ```
 
-If your pipx-installed package is **very** old (it was installed using a pipx
-version before 0.15.0.0) and you want to specify particular options, then you
-may want to uninstall and install manually:
+If your pipx-installed package was installed using a pipx version before
+0.15.0.0 and you want to specify particular options, then you may want to
+uninstall and install manually:
 
 ```
 pipx uninstall <mypackage>
