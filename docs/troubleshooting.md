@@ -1,4 +1,4 @@
-## Fixes most issues
+## Fix for most issues
 
 The following command fixes most problems you may encounter as a pipx user:
 
