@@ -1,0 +1,83 @@
+## Fixes most issues
+
+The following command fixes most problems you may encounter as a user:
+
+```
+pipx reinstall-all
+```
+
+If your pipx-installed package is **very** old (it was installed using a pipx
+version before 0.15.0.0) and you want to specify particular options, then you
+may want to uninstall and install manually:
+
+```
+pipx uninstall <mypackage>
+pipx install <mypackage>
+```
+
+This is a good fix for the following problems:
+
+* System python was upgraded and the python used with a pipx-package is no longer available
+* pipx upgrade causes issues with old pipx-installed packages
+
+pipx has been upgraded a lot over the years.  If you are a long-standing pipx
+user (thanks, by the way!) then you may have old pipx-installed packages that
+have internal data that is different than what pipx currently expects.  By
+executing `pipx reinstall-all`, pipx will re-do its internal data and this
+should fix a majority of issues you may encounter.
+
+## Specifying pipx options
+
+The most reliable method to specify command-line options that require an
+argument is to use an `=`-sign.  An example:
+```
+pipx install pycowsay --pip-args="--no-cache-dir"
+```
+
+## Check for `PIP_*` environment variables
+
+pipx uses `pip` to install and manage packages.  If you see pipx exhibiting
+strange behavior on install or upgrade, check that you don't have special
+environment variables that affect `pip`'s behavior in your environment.
+
+To check on unix or macOS for `pip` environment variables, execute:
+```
+env | grep '^PIP_'
+```
+
+Reference: [pip Environment Variables](https://pip.pypa.io/en/stable/user_guide/#environment-variables)
+
+## Debian, Ubuntu issues
+
+If you have issues using pipx on Debian, Ubuntu, or other Debian-based linux
+distributions, make sure you have the following packages installed on your
+system.  (Debian systems do not install these by default with their python
+installations.)
+
+```
+sudo apt install python3-venv python3-pip
+```
+
+Reference: [Python Packaging User Guide: Installing pip/setuptools/wheel with Linux Package Managers](https://packaging.python.org/guides/installing-using-linux-tools)
+
+## Does it work to install your package with `pip`?
+
+This is a tip for advanced users.  An easy way to check if pipx is the problem
+or a package you're trying to install is the problem, is to try installing it
+using `pip`.  For example:
+
+```
+python3 -m venv test_venv
+source test_venv/bin/activate
+python3 -m pip install <problem-package>
+```
+
+If installation into this "virtual environment" using pip fails, then it's most
+probably that the problem is with the package or your host system.
+
+To clean up after this experiment:
+
+```
+deactivate
+rm -rf test_venv
+```
