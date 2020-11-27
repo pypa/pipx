@@ -1,6 +1,6 @@
 ## Fixes most issues
 
-The following command fixes most problems you may encounter as a user:
+The following command fixes most problems you may encounter as a pipx user:
 
 ```
 pipx reinstall-all
@@ -23,7 +23,7 @@ This is a good fix for the following problems:
 pipx has been upgraded a lot over the years.  If you are a long-standing pipx
 user (thanks, by the way!) then you may have old pipx-installed packages that
 have internal data that is different than what pipx currently expects.  By
-executing `pipx reinstall-all`, pipx will re-do its internal data and this
+executing `pipx reinstall-all`, pipx will re-write its internal data and this
 should fix a majority of issues you may encounter.
 
 ## Specifying pipx options
@@ -72,8 +72,8 @@ source test_venv/bin/activate
 python3 -m pip install <problem-package>
 ```
 
-If installation into this "virtual environment" using pip fails, then it's most
-probably that the problem is with the package or your host system.
+If installation into this "virtual environment" using pip fails, then it's
+likely that the problem is with the package or your host system.
 
 To clean up after this experiment:
 
