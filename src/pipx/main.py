@@ -645,14 +645,13 @@ def setup_file_handler() -> logging.Handler:
         for existing_log in existing_logs[:-max_logs]:
             try:
                 existing_log.unlink()
-                print(f"Removed file {existing_log}", file=sys.stderr)
             except FileNotFoundError:
                 pass
 
     datetime_str = time.strftime("%Y-%m-%d_%H.%M.%S")
     log_file = constants.PIPX_LOG_DIR / f"cmd_{datetime_str}.log"
     counter = 1
-    while log_file.exists():
+    while log_file.exists() and counter < 10:
         log_file = constants.PIPX_LOG_DIR / f"cmd_{datetime_str}_{counter}.log"
         counter += 1
 
