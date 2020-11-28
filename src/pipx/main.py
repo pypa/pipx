@@ -50,8 +50,6 @@ PIPX_DESCRIPTION = textwrap.dedent(
 
     """
 )
-PIPX_DESCRIPTION += "\n"
-
 PIPX_DESCRIPTION += wrap(
     """
     optional environment variables:
