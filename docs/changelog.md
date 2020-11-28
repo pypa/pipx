@@ -13,7 +13,7 @@ dev
 - pipx now reinstalls its internal shared libraries when the user executes `reinstall-all`.
 - Made sure shell exit codes from every pipx command are correct.  In the past some (like from `pipx upgrade`) were wrong.  The exit code from `pipx runpip` is now the exit code from the `pip` command run.  The exit code from `pipx list` will be 1 if one or more venvs have problems that need to be addressed.
 - pipx now writes a log file for each pipx command executed to `$PIPX_HOME/logs`, typically `~/.local/pipx/logs`.  pipx keeps the most recent 10 logs and deletes others.
-- `pipx list` now detects, identifies, and suggests a remedy for old-internal data (internal venv names) for old pipx-installed packages that need to be updated.
+- `pipx list` now detects, identifies, and suggests a remedy for old-internal data (internal venv names) that need to be updated.
 
 0.15.6.0
 
