@@ -55,7 +55,7 @@ For more details, see the [installation instructions](https://pipxproject.github
 
 pipx is a tool to help you install and run end-user applications written in Python. It's roughly similar to macOS's `brew`, JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b), and Linux's `apt`.
 
-It's closely related to pip. In fact, it uses pip, but is focused on installing and managing Python packages that can be run from the command line directly as applications. 
+It's closely related to pip. In fact, it uses pip, but is focused on installing and managing Python packages that can be run from the command line directly as applications.
 
 ### How is it Different from pip?
 
@@ -264,9 +264,8 @@ pipx is maintained by a team of volunteers (in alphabetical order)
 
 - [Bernát Gábor](https://github.com/gaborbernat)
 - [Chad Smith](https://github.com/cs01)
-- [Diego Fernandez](https://github.com/aiguofer)
-- [Matthew Clapp](https://github.com/itsayellow)
-- [Shawn Hensley](https://github.com/sahensley)
+- [Matthew Clapp](https://github.com/itsayellow) - lead maintainer
+- [Tzu-ping Chung](https://github.com/uranusjr)
 
 ## Contributing
 Issues and Pull Requests are definitely welcome! Check out [Contributing](https://pipxproject.github.io/pipx/contributing/) to get started.
