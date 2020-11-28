@@ -26,6 +26,15 @@ have internal data that is different than what pipx currently expects.  By
 executing `pipx reinstall-all`, pipx will re-write its internal data and this
 should fix many of issues you may encounter.
 
+## Diagnosing problems using `list`
+
+```
+pipx list
+```
+
+will not only list all of your pipx-installed packages, but can also diagnose
+some problems with them, as well as suggest solutions.
+
 ## Specifying pipx options
 
 The most reliable method to specify command-line options that require an
