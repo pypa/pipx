@@ -336,7 +336,8 @@ def run_post_install_actions(
                     packages, which are listed above.  If you are attempting to
                     install a library, pipx should not be used.  Consider using
                     pip or a similar tool instead.
-                    """
+                    """,
+                    subsequent_indent="",
                 )
             )
         else:
@@ -346,7 +347,8 @@ def run_post_install_actions(
                     No apps associated with package {display_name}.  If you are
                     attempting to install a library, pipx should not be used.
                     Consider using pip or a similar tool instead.
-                    """
+                    """,
+                    subsequent_indent="",
                 )
             )
 
@@ -365,7 +367,8 @@ def run_post_install_actions(
                 No apps associated with package {display_name} or its dependencies.
                 If you are attempting to install a library, pipx should not be used.
                 Consider using pip or a similar tool instead.
-                """
+                """,
+                subsequent_indent="",
             )
         )
 
@@ -400,7 +403,8 @@ def warn_if_not_on_path(local_bin_dir: Path) -> None:
                 accessible until your PATH is updated. Run `pipx ensurepath` to
                 automatically add it, or manually modify your PATH in your
                 shell's config file (i.e. ~/.bashrc).
-                """
+                """,
+                subsequent_indent=" " * 4,
             )
         )
 
