@@ -108,7 +108,7 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
         print(
             wrap(
                 """
-                Consider adding shell completions for pipx.  Run 'pipx
+                Consider adding shell completions for pipx. Run 'pipx
                 completions' for instructions.
                 """
             )
@@ -119,7 +119,7 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
         logging.warning(
             wrap(
                 """
-                All pipx binary directories have been added to PATH.  If you
+                All pipx binary directories have been added to PATH. If you
                 are sure you want to proceed, try again with the '--force'
                 flag.
                 """
