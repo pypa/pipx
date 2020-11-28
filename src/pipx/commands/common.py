@@ -10,6 +10,7 @@ from tempfile import TemporaryDirectory
 from typing import Dict, List, Optional, Set, Tuple
 
 import userpath  # type: ignore
+from packaging.utils import canonicalize_name
 
 from pipx import constants
 from pipx.colors import bold, red
@@ -23,10 +24,12 @@ from pipx.venv import Venv
 class VenvProblems:
     def __init__(
         self,
+        bad_venv_name: bool = False,
         invalid_interpreter: bool = False,
         missing_metadata: bool = False,
         not_installed: bool = False,
     ) -> None:
+        self.bad_venv_name = bad_venv_name
         self.invalid_interpreter = invalid_interpreter
         self.missing_metadata = missing_metadata
         self.not_installed = not_installed
@@ -161,6 +164,11 @@ def get_package_summary(
         return (
             f"   package {red(bold(venv_dir.name))} has missing internal pipx metadata.",
             VenvProblems(missing_metadata=True),
+        )
+    if venv_dir.name != canonicalize_name(venv_dir.name):
+        return (
+            f"   package {red(bold(venv_dir.name))} needs its internal data updated.",
+            VenvProblems(bad_venv_name=True),
         )
 
     package_metadata = venv.package_metadata[package]

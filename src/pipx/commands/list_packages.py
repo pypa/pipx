@@ -48,6 +48,12 @@ def list_packages(venv_container: VenvContainer, include_injected: bool) -> Exit
             print(package_summary)
             all_venv_problems.or_(venv_problems)
 
+    if all_venv_problems.bad_venv_name:
+        print(
+            "\nOne or more packages contain out-of-date internal data installed from a\n"
+            "previous pipx version and need to be updated.\n"
+            "    To fix, execute: pipx reinstall-all"
+        )
     if all_venv_problems.invalid_interpreter:
         print(
             "\nOne or more packages have a missing python interpreter.\n"
