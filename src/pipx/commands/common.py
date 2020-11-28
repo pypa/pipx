@@ -314,11 +314,7 @@ def run_post_install_actions(
 
     display_name = f"{package}{package_metadata.suffix}"
 
-    if (
-        not package_metadata.apps
-        and package_metadata.apps_of_dependencies
-        and not include_dependencies
-    ):
+    if not package_metadata.app_paths and not include_dependencies:
         # No apps associated with this package and we aren't including dependencies.
         # This package has nothing for pipx to use, so this is an error.
         for dep, dependent_apps in package_metadata.app_paths_of_dependencies.items():
@@ -330,27 +326,45 @@ def run_post_install_actions(
 
         if venv.safe_to_remove():
             venv.remove_venv()
-        raise PipxError(
-            wrap(
-                f"""
-                No apps associated with package {display_name}. Try again
-                with '--include-deps' to include apps of dependent packages,
-                which are listed above. If you are attempting to install a
-                library, pipx should not be used. Consider using pip or a
-                similar tool instead.
-                """
+
+        if package_metadata.app_paths_of_dependencies:
+            raise PipxError(
+                wrap(
+                    f"""
+                    No apps associated with package {display_name}.  Try again
+                    with '--include-deps' to include apps of dependent
+                    packages, which are listed above.  If you are attempting to
+                    install a library, pipx should not be used.  Consider using
+                    pip or a similar tool instead.
+                    """
+                )
             )
-        )
-    if not package_metadata.apps and not package_metadata.apps_of_dependencies:
+        else:
+            raise PipxError(
+                wrap(
+                    f"""
+                    No apps associated with package {display_name}.  If you are
+                    attempting to install a library, pipx should not be used.
+                    Consider using pip or a similar tool instead.
+                    """
+                )
+            )
+
+    if package_metadata.apps:
+        pass
+    elif package_metadata.apps_of_dependencies and include_dependencies:
+        pass
+    else:
+        # No apps associated with this package and we aren't including dependencies.
+        # This package has nothing for pipx to use, so this is an error.
         if venv.safe_to_remove():
             venv.remove_venv()
         raise PipxError(
             wrap(
                 f"""
-                No apps associated with package {display_name} or its
-                dependencies. If you are attempting to install a library, pipx
-                should not be used. Consider using pip or a similar tool
-                instead.
+                No apps associated with package {display_name} or its dependencies.
+                If you are attempting to install a library, pipx should not be used.
+                Consider using pip or a similar tool instead.
                 """
             )
         )
