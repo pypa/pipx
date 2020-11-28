@@ -18,7 +18,7 @@ tailored just for pipx and its lint requirements.  To use pre-commit in your
 clone of the pipx repository, you need to do the following **one-time setup
 procedure**:
 
-1. Install pre-commit using `pipx install pre-commit`.
+1. Install pre-commit using `pipx install pre-commit`
 2. In the top level directory of your clone of the pipx repository, execute `pre-commit install`
 
 Afterwards whenever you commit in this repository, it will first run pipx's
