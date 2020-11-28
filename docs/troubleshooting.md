@@ -1,6 +1,6 @@
-## Fix for most issues
+## `reinstall-all` fixes most issues
 
-The following command fixes most problems you may encounter as a pipx user:
+The following command should fix most problems you may encounter as a pipx user:
 
 ```
 pipx reinstall-all
@@ -8,7 +8,7 @@ pipx reinstall-all
 
 If your pipx-installed package was installed using a pipx version before
 0.15.0.0 and you want to specify particular options, then you may want to
-uninstall and install manually:
+uninstall and install it manually:
 
 ```
 pipx uninstall <mypackage>
@@ -24,7 +24,7 @@ pipx has been upgraded a lot over the years.  If you are a long-standing pipx
 user (thanks, by the way!) then you may have old pipx-installed packages that
 have internal data that is different than what pipx currently expects.  By
 executing `pipx reinstall-all`, pipx will re-write its internal data and this
-should fix a majority of issues you may encounter.
+should fix many of issues you may encounter.
 
 ## Specifying pipx options
 
@@ -40,9 +40,21 @@ pipx uses `pip` to install and manage packages.  If you see pipx exhibiting
 strange behavior on install or upgrade, check that you don't have special
 environment variables that affect `pip`'s behavior in your environment.
 
-To check on unix or macOS for `pip` environment variables, execute:
+To check for `pip` environment variables, execute the following depending on your system:
+
+### Unix or macOS
 ```
 env | grep '^PIP_'
+```
+
+### Windows PowerShell
+```
+ls env:PIP_*
+```
+
+### Windows `cmd`
+```
+set PIP_
 ```
 
 Reference: [pip Environment Variables](https://pip.pypa.io/en/stable/user_guide/#environment-variables)
