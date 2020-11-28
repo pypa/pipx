@@ -1,6 +1,6 @@
 ## `reinstall-all` fixes most issues
 
-The following command should fix most problems you may encounter as a pipx user:
+The following command should fix many problems you may encounter as a pipx user:
 
 ```
 pipx reinstall-all
