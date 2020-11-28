@@ -31,7 +31,7 @@ def print_version() -> None:
 
 
 SPEC_HELP = textwrap.dedent(
-    """
+    """\
     The package name or specific installation source passed to pip.
     Runs `pip install -U SPEC`.
     For example `--spec mypackage==2.0.0` or `--spec  git+https://github.com/user/repo.git@branch`

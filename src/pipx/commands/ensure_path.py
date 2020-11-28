@@ -9,7 +9,7 @@ import userpath  # type: ignore
 from pipx import constants
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojies import stars
-from pipx.utils import wrap
+from pipx.util import wrap
 
 
 def get_pipx_user_bin_path() -> Optional[Path]:

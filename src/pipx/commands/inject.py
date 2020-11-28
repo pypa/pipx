@@ -1,5 +1,4 @@
 import sys
-import textwrap
 from pathlib import Path
 from typing import List, Optional
 
@@ -8,7 +7,7 @@ from pipx.colors import bold
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK, ExitCode
 from pipx.emojies import stars
-from pipx.util import PipxError
+from pipx.util import PipxError, wrap
 from pipx.venv import Venv
 
 
@@ -25,13 +24,14 @@ def inject_dep(
 ) -> bool:
     if not venv_dir.exists() or not next(venv_dir.iterdir()):
         raise PipxError(
-            textwrap.dedent(
+            wrap(
                 f"""\
                 Can't inject {package_spec!r} into nonexistent Virtual
                 Environment {str(venv_dir)!r}.  Be sure to install the package
                 first with pipx install {venv_dir.name!r} before injecting into
                 it.
-                """
+                """,
+                subsequent_indent="",
             )
         )
 
