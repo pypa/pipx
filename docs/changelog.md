@@ -16,6 +16,7 @@ dev
 - `pipx upgrade` and `pipx upgrade-all` now have a `--upgrade-injected` option which directs pipx to also upgrade injected packages.
 - `pipx list` now detects, identifies, and suggests a remedy for venvs with old-internal data (internal venv names) that need to be updated.
 - Added a "Troubleshooting" page to the pipx web documentation for common problems pipx users may encounter.
+- Added `--format` option to `pipx list` to control the format of the output (`human`, `freeze` or `json`).
 
 0.15.6.0
 

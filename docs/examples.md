@@ -47,6 +47,8 @@ After running the above commands, you will be able to import and use the `reques
 
 
 ## `pipx list` example
+To list the installed packages use the list command.
+
 ```
 > pipx list
 venvs are in /Users/user/.local/pipx/venvs
@@ -56,4 +58,12 @@ binaries are exposed on your $PATH at /Users/user/.local/bin
     - blackd
    package pipx 0.10.0, Python 3.7.0
     - pipx
+```
+
+The list can also be printed in machine readable formats with the `--format freeze` and `--format json` options:
+
+``` 
+> pipx list --format freeze
+black==20.8b1
+poetry==1.1.4
 ```
