@@ -175,6 +175,9 @@ def full_package_description(package: str, package_spec: str) -> str:
         return f"{package} from spec {package_spec!r}"
 
 
+# Errors are a single block of text and can have no subsequent_indent
+# Other blocks of text should get 4 spaces as subsequent_indent to
+#   differentiate them from previous and subsequent blocks of text
 def wrap(
     text: str, subsequent_indent: str = "    ", keep_newlines: bool = False
 ) -> str:
