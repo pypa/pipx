@@ -4,7 +4,12 @@ about: Report a bug or unexpected behavior.
 
 ---
 
-<!-- Thank you for filing a bug! Please feel free to answer as much or as little of this template as you can. -->
+<!--
+Thank you for filing a bug! Please feel free to answer as much or as little of this template as you can.
+
+Please check pipx's Troubleshooting page to see if any of those solutions help solve your issue:
+https://pipxproject.github.io/pipx/troubleshooting/
+-->
 
 **Describe the bug**
 <!-- Please be as detailed as possible! -->
