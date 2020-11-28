@@ -25,7 +25,7 @@ def inject_dep(
     if not venv_dir.exists() or not next(venv_dir.iterdir()):
         raise PipxError(
             wrap(
-                f"""\
+                f"""
                 Can't inject {package_spec!r} into nonexistent Virtual
                 Environment {venv_dir.name!r}. Be sure to install the package
                 first with 'pipx install {venv_dir.name}' before injecting into
