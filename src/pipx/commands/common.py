@@ -17,7 +17,7 @@ from pipx.colors import bold, red
 from pipx.emojies import hazard, stars
 from pipx.package_specifier import parse_specifier_for_install, valid_pypi_name
 from pipx.pipx_metadata_file import PackageInfo
-from pipx.util import WINDOWS, PipxError, mkdir, rmdir
+from pipx.util import WINDOWS, PipxError, mkdir, rmdir, wrap
 from pipx.venv import Venv
 
 
@@ -331,19 +331,28 @@ def run_post_install_actions(
         if venv.safe_to_remove():
             venv.remove_venv()
         raise PipxError(
-            f"No apps associated with package {display_name}. "
-            "Try again with '--include-deps' to include apps of dependent packages, "
-            "which are listed above. "
-            "If you are attempting to install a library, pipx should not be used. "
-            "Consider using pip or a similar tool instead."
+            wrap(
+                f"""
+                No apps associated with package {display_name}. Try again
+                with '--include-deps' to include apps of dependent packages,
+                which are listed above. If you are attempting to install a
+                library, pipx should not be used. Consider using pip or a
+                similar tool instead.
+                """
+            )
         )
     if not package_metadata.apps and not package_metadata.apps_of_dependencies:
         if venv.safe_to_remove():
             venv.remove_venv()
         raise PipxError(
-            f"No apps associated with package {display_name} or its dependencies. "
-            "If you are attempting to install a library, pipx should not be used. "
-            "Consider using pip or a similar tool instead."
+            wrap(
+                f"""
+                No apps associated with package {display_name} or its
+                dependencies. If you are attempting to install a library, pipx
+                should not be used. Consider using pip or a similar tool
+                instead.
+                """
+            )
         )
 
     expose_apps_globally(
@@ -370,11 +379,15 @@ def run_post_install_actions(
 def warn_if_not_on_path(local_bin_dir: Path) -> None:
     if not userpath.in_current_path(str(local_bin_dir)):
         logging.warning(
-            f"{hazard}  Note: {str(local_bin_dir)!r} is not on your PATH environment "
-            "variable. These apps will not be globally accessible until "
-            "your PATH is updated. Run `pipx ensurepath` to "
-            "automatically add it, or manually modify your PATH in your shell's "
-            "config file (i.e. ~/.bashrc)."
+            wrap(
+                f"""
+                {hazard}  Note: {str(local_bin_dir)!r} is not on your PATH
+                environment variable. These apps will not be globally
+                accessible until your PATH is updated. Run `pipx ensurepath` to
+                automatically add it, or manually modify your PATH in your
+                shell's config file (i.e. ~/.bashrc).
+                """
+            )
         )
 
 
