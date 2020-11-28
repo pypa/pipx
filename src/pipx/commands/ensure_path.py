@@ -60,7 +60,12 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
 
     if force or (not in_current_path and not need_shell_restart):
         userpath.append(location_str)
-        print(wrap(f"Success! Added {location_str} to the PATH environment variable.",))
+        print(
+            wrap(
+                f"Success! Added {location_str} to the PATH environment variable.",
+                subsequent_indent=" " * 4,
+            )
+        )
         path_added = True
         need_shell_restart = userpath.need_shell_restart(location_str)
     elif not in_current_path and need_shell_restart:
@@ -71,10 +76,11 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
                 open a new terminal or re-login for this PATH change to take
                 effect.
                 """,
+                subsequent_indent=" " * 4,
             )
         )
     else:
-        print(wrap(f"{location_str} is already in PATH."))
+        print(wrap(f"{location_str} is already in PATH.", subsequent_indent=" " * 4))
 
     return (path_added, need_shell_restart)
 
