@@ -27,7 +27,7 @@ def inject_dep(
             wrap(
                 f"""\
                 Can't inject {package_spec!r} into nonexistent Virtual
-                Environment {str(venv_dir)!r}.  Be sure to install the package
+                Environment {venv_dir.name!r}.  Be sure to install the package
                 first with pipx install {venv_dir.name!r} before injecting into
                 it.
                 """,
