@@ -178,6 +178,7 @@ def full_package_description(package: str, package_spec: str) -> str:
 def wrap(
     text: str, subsequent_indent: str = "    ", keep_newlines: bool = False
 ) -> str:
+    """Dedent, strip, wrap to shell width, default subsequent indent of 4 spaces"""
     minimum_width = 40
     width = max(shutil.get_terminal_size((80, 40)).columns, minimum_width) - 2
 
