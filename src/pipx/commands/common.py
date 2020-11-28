@@ -336,8 +336,7 @@ def run_post_install_actions(
                     packages, which are listed above.  If you are attempting to
                     install a library, pipx should not be used.  Consider using
                     pip or a similar tool instead.
-                    """,
-                    subsequent_indent="",
+                    """
                 )
             )
         else:
@@ -347,8 +346,7 @@ def run_post_install_actions(
                     No apps associated with package {display_name}.  If you are
                     attempting to install a library, pipx should not be used.
                     Consider using pip or a similar tool instead.
-                    """,
-                    subsequent_indent="",
+                    """
                 )
             )
 
@@ -367,8 +365,7 @@ def run_post_install_actions(
                 No apps associated with package {display_name} or its dependencies.
                 If you are attempting to install a library, pipx should not be used.
                 Consider using pip or a similar tool instead.
-                """,
-                subsequent_indent="",
+                """
             )
         )
 

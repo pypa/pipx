@@ -110,8 +110,7 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
                 """
                 Consider adding shell completions for pipx.  Run 'pipx
                 completions' for instructions.
-                """,
-                subsequent_indent="",
+                """
             )
             + "\n"
         )
@@ -123,8 +122,7 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
                 All pipx binary directories have been added to PATH.  If you
                 are sure you want to proceed, try again with the '--force'
                 flag.
-                """,
-                subsequent_indent="",
+                """
             )
             + "\n"
         )
@@ -135,8 +133,7 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
                 """
                 You will need to open a new terminal or re-login for the PATH
                 changes to take effect.
-                """,
-                subsequent_indent="",
+                """
             )
             + "\n"
         )
