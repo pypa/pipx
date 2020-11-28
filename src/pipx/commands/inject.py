@@ -27,7 +27,7 @@ def inject_dep(
             wrap(
                 f"""\
                 Can't inject {package_spec!r} into nonexistent Virtual
-                Environment {venv_dir.name!r}.  Be sure to install the package
+                Environment {venv_dir.name!r}. Be sure to install the package
                 first with 'pipx install {venv_dir.name}' before injecting into
                 it.
                 """
@@ -38,10 +38,15 @@ def inject_dep(
 
     if not venv.package_metadata:
         raise PipxError(
-            f"Can't inject {package_spec!r} into Virtual Environment {venv.name!r}.\n"
-            f"    {venv.name!r} has missing internal pipx metadata.\n"
-            "    It was likely installed using a pipx version before 0.15.0.0.\n"
-            f"    Please uninstall and install {venv.name!r}, or reinstall-all to fix."
+            wrap(
+                f"""
+                Can't inject {package_spec!r} into Virtual Environment
+                {venv.name!r}. {venv.name!r} has missing internal pipx
+                metadata. It was likely installed using a pipx version before
+                0.15.0.0. Please uninstall and install {venv.name!r}, or
+                reinstall-all to fix.
+                """
+            )
         )
 
     # package_spec is anything pip-installable, including package_name, vcs spec,
