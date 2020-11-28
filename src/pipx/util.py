@@ -178,10 +178,8 @@ def full_package_description(package: str, package_spec: str) -> str:
 # Errors are a single block of text and can have no subsequent_indent
 # Other blocks of text should get 4 spaces as subsequent_indent to
 #   differentiate them from previous and subsequent blocks of text
-def wrap(
-    text: str, subsequent_indent: str = "    ", keep_newlines: bool = False
-) -> str:
-    """Dedent, strip, wrap to shell width, default subsequent indent of 4 spaces"""
+def wrap(text: str, subsequent_indent: str = "", keep_newlines: bool = False) -> str:
+    """Dedent, strip, wrap to shell width"""
     minimum_width = 40
     width = max(shutil.get_terminal_size((80, 40)).columns, minimum_width) - 2
 
