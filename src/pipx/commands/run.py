@@ -17,9 +17,9 @@ from pipx.util import (
     PipxError,
     exec_app,
     get_pypackage_bin_path,
+    pipx_wrap,
     rmdir,
     run_pypackage_bin,
-    wrap,
 )
 from pipx.venv import Venv
 
@@ -44,13 +44,10 @@ def run(
     if urllib.parse.urlparse(app).scheme:
         if not app.endswith(".py"):
             raise PipxError(
-                wrap(
-                    """
-                    pipx will only execute apps from the internet directly if
-                    they end with '.py'. To run from an SVN, try pipx --spec
-                    URL BINARY
-                    """
-                )
+                """
+                pipx will only execute apps from the internet directly if they
+                end with '.py'. To run from an SVN, try pipx --spec URL BINARY
+                """
             )
         logging.info("Detected url. Downloading and executing as a Python file.")
 
@@ -60,7 +57,7 @@ def run(
 
     elif which(app):
         logging.warning(
-            wrap(
+            pipx_wrap(
                 f"""
                 {hazard}  {app} is already on your PATH and installed at
                 {which(app)}. Downloading and running anyway.
@@ -82,13 +79,11 @@ def run(
         run_pypackage_bin(pypackage_bin_path, app_args)
     if pypackages:
         raise PipxError(
-            wrap(
-                f"""
-                '--pypackages' flag was passed, but {str(pypackage_bin_path)!r}
-                was not found. See https://github.com/cs01/pythonloc to learn
-                how to install here, or omit the flag.
-                """
-            )
+            f"""
+            '--pypackages' flag was passed, but {str(pypackage_bin_path)!r} was
+            not found. See https://github.com/cs01/pythonloc to learn how to
+            install here, or omit the flag.
+            """
         )
 
     venv_dir = _get_temporary_venv_path(package_or_url, python, pip_args, venv_args)
@@ -150,12 +145,10 @@ def _download_and_run(
     if not (venv.bin_path / app).exists():
         apps = venv.pipx_metadata.main_package.apps
         raise PipxError(
-            wrap(
-                f"""
-                '{app}' executable script not found in package '{package_or_url}'.
-                Available executable scripts: {', '.join(b for b in apps)}
-                """
-            )
+            f"""
+            '{app}' executable script not found in package '{package_or_url}'.
+            Available executable scripts: {', '.join(b for b in apps)}
+            """
         )
 
     if not use_cache:

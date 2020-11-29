@@ -12,7 +12,11 @@ from pipx.constants import WINDOWS
 
 
 class PipxError(Exception):
-    pass
+    def __init__(self, message: str, wrap: bool = True):
+        if wrap:
+            super().__init__(pipx_wrap(message))
+        else:
+            super().__init__(message)
 
 
 def rmdir(path: Path) -> None:
@@ -178,7 +182,9 @@ def full_package_description(package: str, package_spec: str) -> str:
 # Errors are a single block of text and can have no subsequent_indent
 # Other blocks of text should get 4 spaces as subsequent_indent to
 #   differentiate them from previous and subsequent blocks of text
-def wrap(text: str, subsequent_indent: str = "", keep_newlines: bool = False) -> str:
+def pipx_wrap(
+    text: str, subsequent_indent: str = "", keep_newlines: bool = False
+) -> str:
     """Dedent, strip, wrap to shell width. Don't break on hyphens, only spaces"""
     minimum_width = 40
     width = max(shutil.get_terminal_size((80, 40)).columns, minimum_width) - 2

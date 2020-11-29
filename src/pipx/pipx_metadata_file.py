@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Union
 
-from pipx.util import PipxError, wrap
+from pipx.util import PipxError, pipx_wrap
 
 PIPX_INFO_FILENAME = "pipx_metadata.json"
 
@@ -90,13 +90,11 @@ class PipxMetadata:
             return metadata_dict
         else:
             raise PipxError(
-                wrap(
-                    f"""
-                    {self.venv_dir.name}: Unknown metadata version
-                    {metadata_dict['pipx_metadata_version']}. Perhaps it was
-                    installed with a later version of pipx.
-                    """
-                )
+                f"""
+                {self.venv_dir.name}: Unknown metadata version
+                {metadata_dict['pipx_metadata_version']}. Perhaps it was
+                installed with a later version of pipx.
+                """
             )
 
     def from_dict(self, input_dict: Dict[str, Any]) -> None:
@@ -131,7 +129,7 @@ class PipxMetadata:
                 )
         except IOError:
             logging.warning(
-                wrap(
+                pipx_wrap(
                     f"""
                     Unable to write {PIPX_INFO_FILENAME} to {self.venv_dir}.
                     This may cause future pipx operations involving
@@ -150,7 +148,7 @@ class PipxMetadata:
         except IOError:  # Reset self if problem reading
             if verbose:
                 logging.warning(
-                    wrap(
+                    pipx_wrap(
                         f"""
                         Unable to read {PIPX_INFO_FILENAME} in {self.venv_dir}.
                         This may cause this or future pipx operations involving

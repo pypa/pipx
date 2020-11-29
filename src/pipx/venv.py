@@ -22,10 +22,10 @@ from pipx.util import (
     full_package_description,
     get_site_packages,
     get_venv_paths,
+    pipx_wrap,
     rmdir,
     run_subprocess,
     run_verify,
-    wrap,
 )
 
 venv_metadata_inspector_raw = pkgutil.get_data("pipx", "venv_metadata_inspector.py")
@@ -101,14 +101,15 @@ class Venv:
 
             if not shared_libs.is_valid:
                 raise PipxError(
-                    wrap(
+                    pipx_wrap(
                         f"""
                         Error: pipx's shared venv {shared_libs.root} is invalid
                         and needs re-installation. To fix this, install or
                         reinstall a package. For example:
                         """
                     )
-                    + f"\n  pipx install {self.root.name} --force"
+                    + f"\n  pipx install {self.root.name} --force",
+                    wrap=False,
                 )
 
     @property
@@ -177,7 +178,7 @@ class Venv:
             rmdir(self.root)
         else:
             logging.warning(
-                wrap(
+                pipx_wrap(
                     f"""
                     Not removing existing venv {self.root} because it was not
                     created in this session
@@ -225,8 +226,7 @@ class Venv:
         except PipxError as e:
             logging.info(e)
             raise PipxError(
-                f"Error installing "
-                f"{full_package_description(package, package_or_url)}."
+                f"Error installing {full_package_description(package, package_or_url)}."
             )
 
         self._update_package_metadata(
@@ -245,7 +245,8 @@ class Venv:
                 f"Unable to install "
                 f"{full_package_description(package, package_or_url)}.\n"
                 f"Check the name or spec for errors, and verify that it can "
-                f"be installed with pip."
+                f"be installed with pip.",
+                wrap=False,
             )
 
     def install_package_no_deps(self, package_or_url: str, pip_args: List[str]) -> str:
@@ -259,12 +260,10 @@ class Venv:
         except PipxError as e:
             logging.info(e)
             raise PipxError(
-                wrap(
-                    f"""
-                    Cannot determine package name from spec {package_or_url!r}.
-                    Check package spec for errors.
-                    """
-                )
+                f"""
+                Cannot determine package name from spec {package_or_url!r}.
+                Check package spec for errors.
+                """
             )
 
         installed_packages = self.list_installed_packages() - old_package_set
@@ -275,12 +274,10 @@ class Venv:
             logging.info(f"old_package_set = {old_package_set}")
             logging.info(f"install_packages = {installed_packages}")
             raise PipxError(
-                wrap(
-                    f"""
-                    Cannot determine package name from spec {package_or_url!r}.
-                    Check package spec for errors.
-                    """
-                )
+                f"""
+                Cannot determine package name from spec {package_or_url!r}.
+                Check package spec for errors.
+                """
             )
 
         return package

@@ -7,7 +7,7 @@ from pipx.colors import bold
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK, ExitCode
 from pipx.emojies import stars
-from pipx.util import PipxError, wrap
+from pipx.util import PipxError
 from pipx.venv import Venv
 
 
@@ -24,29 +24,23 @@ def inject_dep(
 ) -> bool:
     if not venv_dir.exists() or not next(venv_dir.iterdir()):
         raise PipxError(
-            wrap(
-                f"""
-                Can't inject {package_spec!r} into nonexistent Virtual
-                Environment {venv_dir.name!r}. Be sure to install the package
-                first with 'pipx install {venv_dir.name}' before injecting into
-                it.
-                """
-            )
+            f"""
+            Can't inject {package_spec!r} into nonexistent Virtual Environment
+            {venv_dir.name!r}. Be sure to install the package first with 'pipx
+            install {venv_dir.name}' before injecting into it.
+            """
         )
 
     venv = Venv(venv_dir, verbose=verbose)
 
     if not venv.package_metadata:
         raise PipxError(
-            wrap(
-                f"""
-                Can't inject {package_spec!r} into Virtual Environment
-                {venv.name!r}. {venv.name!r} has missing internal pipx
-                metadata. It was likely installed using a pipx version before
-                0.15.0.0. Please uninstall and install {venv.name!r}, or
-                reinstall-all to fix.
-                """
-            )
+            f"""
+            Can't inject {package_spec!r} into Virtual Environment
+            {venv.name!r}. {venv.name!r} has missing internal pipx metadata. It
+            was likely installed using a pipx version before 0.15.0.0. Please
+            uninstall and install {venv.name!r}, or reinstall-all to fix.
+            """
         )
 
     # package_spec is anything pip-installable, including package_name, vcs spec,

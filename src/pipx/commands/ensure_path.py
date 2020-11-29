@@ -9,7 +9,7 @@ import userpath  # type: ignore
 from pipx import constants
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojies import stars
-from pipx.util import wrap
+from pipx.util import pipx_wrap
 
 
 def get_pipx_user_bin_path() -> Optional[Path]:
@@ -61,7 +61,7 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
     if force or (not in_current_path and not need_shell_restart):
         userpath.append(location_str)
         print(
-            wrap(
+            pipx_wrap(
                 f"Success! Added {location_str} to the PATH environment variable.",
                 subsequent_indent=" " * 4,
             )
@@ -70,7 +70,7 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
         need_shell_restart = userpath.need_shell_restart(location_str)
     elif not in_current_path and need_shell_restart:
         print(
-            wrap(
+            pipx_wrap(
                 f"""
                 {location_str} has been been added to PATH, but you need to
                 open a new terminal or re-login for this PATH change to take
@@ -80,7 +80,9 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
             )
         )
     else:
-        print(wrap(f"{location_str} is already in PATH.", subsequent_indent=" " * 4))
+        print(
+            pipx_wrap(f"{location_str} is already in PATH.", subsequent_indent=" " * 4)
+        )
 
     return (path_added, need_shell_restart)
 
@@ -106,7 +108,7 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
 
     if path_added:
         print(
-            wrap(
+            pipx_wrap(
                 """
                 Consider adding shell completions for pipx. Run 'pipx
                 completions' for instructions.
@@ -117,7 +119,7 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
     elif not need_shell_restart:
         sys.stdout.flush()
         logging.warning(
-            wrap(
+            pipx_wrap(
                 """
                 All pipx binary directories have been added to PATH. If you
                 are sure you want to proceed, try again with the '--force'
@@ -129,7 +131,7 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
 
     if need_shell_restart:
         print(
-            wrap(
+            pipx_wrap(
                 """
                 You will need to open a new terminal or re-login for the PATH
                 changes to take effect.

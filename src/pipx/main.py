@@ -21,7 +21,7 @@ from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
 from pipx.constants import ExitCode
 from pipx.interpreter import DEFAULT_PYTHON
-from pipx.util import PipxError, mkdir, wrap
+from pipx.util import PipxError, mkdir, pipx_wrap
 from pipx.venv import VenvContainer
 from pipx.version import __version__
 
@@ -50,7 +50,7 @@ PIPX_DESCRIPTION = textwrap.dedent(
 
     """
 )
-PIPX_DESCRIPTION += wrap(
+PIPX_DESCRIPTION += pipx_wrap(
     """
     optional environment variables:
       PIPX_HOME             Overrides default pipx location. Virtual Environments will be installed to $PIPX_HOME/venvs.
@@ -253,7 +253,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             return commands.ensure_pipx_paths(force=args.force)
         except Exception as e:
             logging.debug("Uncaught Exception:", exc_info=True)
-            raise PipxError(e)
+            raise PipxError(str(e), wrap=False)
     elif args.command == "completions":
         print(constants.completion_instructions)
         return ExitCode(0)
@@ -692,7 +692,7 @@ def setup(args: argparse.Namespace) -> None:
     old_pipx_venv_location = constants.PIPX_LOCAL_VENVS / "pipx-app"
     if old_pipx_venv_location.exists():
         logging.warning(
-            wrap(
+            pipx_wrap(
                 f"""
                 A virtual environment for pipx was detected at
                 {str(old_pipx_venv_location)}. The 'pipx-app' package has been
