@@ -502,9 +502,9 @@ def _add_run(subparsers) -> None:
             since they can re-use the cached Virtual Environment.
 
             In support of PEP 582 'run' will use apps found in a local __pypackages__
-             directory, if present. Please note that this behavior is experimental,
-             and is a acts as a companion tool to pythonloc. It may be modified or
-             removed in the future. See https://github.com/cs01/pythonloc.
+            directory, if present. Please note that this behavior is experimental,
+            and acts as a companion tool to pythonloc. It may be modified or
+            removed in the future. See https://github.com/cs01/pythonloc.
             """
         ),
     )
