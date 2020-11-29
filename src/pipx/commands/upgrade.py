@@ -111,8 +111,8 @@ def _upgrade_venv(
     if not venv.package_metadata:
         raise PipxError(
             f"Not upgrading {red(bold(venv_dir.name))}. It has missing internal pipx metadata.\n"
-            f"    It was likely installed using a pipx version before 0.15.0.0.\n"
-            f"    Please uninstall and install this package to fix."
+            f"It was likely installed using a pipx version before 0.15.0.0.\n"
+            f"Please uninstall and install this package to fix."
         )
 
     # Upgrade shared libraries (pip, setuptools and wheel)
