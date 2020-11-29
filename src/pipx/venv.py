@@ -8,6 +8,7 @@ from packaging.utils import canonicalize_name
 
 from pipx.animate import animate
 from pipx.constants import PIPX_SHARED_PTH, ExitCode
+from pipx.emojies import hazard
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.package_specifier import (
     fix_package_name,
@@ -180,8 +181,8 @@ class Venv:
             logging.warning(
                 pipx_wrap(
                     f"""
-                    Not removing existing venv {self.root} because it was not
-                    created in this session
+                    {hazard}  Not removing existing venv {self.root} because it
+                    was not created in this session
                     """,
                     subsequent_indent=" " * 4,
                 )

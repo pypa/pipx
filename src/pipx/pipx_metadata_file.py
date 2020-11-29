@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Union
 
+from pipx.emojies import hazard
 from pipx.util import PipxError, pipx_wrap
 
 PIPX_INFO_FILENAME = "pipx_metadata.json"
@@ -131,9 +132,10 @@ class PipxMetadata:
             logging.warning(
                 pipx_wrap(
                     f"""
-                    Unable to write {PIPX_INFO_FILENAME} to {self.venv_dir}.
-                    This may cause future pipx operations involving
-                    {self.venv_dir.name} to fail or behave incorrectly.
+                    {hazard}  Unable to write {PIPX_INFO_FILENAME} to
+                    {self.venv_dir}.  This may cause future pipx operations
+                    involving {self.venv_dir.name} to fail or behave
+                    incorrectly.
                     """,
                     subsequent_indent=" " * 4,
                 )
@@ -150,9 +152,10 @@ class PipxMetadata:
                 logging.warning(
                     pipx_wrap(
                         f"""
-                        Unable to read {PIPX_INFO_FILENAME} in {self.venv_dir}.
-                        This may cause this or future pipx operations involving
-                        {self.venv_dir.name} to fail or behave incorrectly.
+                        {hazard}  Unable to read {PIPX_INFO_FILENAME} in
+                        {self.venv_dir}.  This may cause this or future pipx
+                        operations involving {self.venv_dir.name} to fail or
+                        behave incorrectly.
                         """,
                         subsequent_indent=" " * 4,
                     )

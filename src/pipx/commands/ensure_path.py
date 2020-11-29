@@ -8,7 +8,7 @@ import userpath  # type: ignore
 
 from pipx import constants
 from pipx.constants import EXIT_CODE_OK, ExitCode
-from pipx.emojies import stars
+from pipx.emojies import hazard, stars
 from pipx.util import pipx_wrap
 
 
@@ -120,8 +120,8 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
         sys.stdout.flush()
         logging.warning(
             pipx_wrap(
-                """
-                All pipx binary directories have been added to PATH. If you
+                f"""
+                {hazard}  All pipx binary directories have been added to PATH. If you
                 are sure you want to proceed, try again with the '--force'
                 flag.
                 """

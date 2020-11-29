@@ -20,6 +20,7 @@ from pipx import commands, constants
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
 from pipx.constants import ExitCode
+from pipx.emojies import hazard
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import PipxError, mkdir, pipx_wrap
 from pipx.venv import VenvContainer
@@ -694,7 +695,7 @@ def setup(args: argparse.Namespace) -> None:
         logging.warning(
             pipx_wrap(
                 f"""
-                A virtual environment for pipx was detected at
+                {hazard}  A virtual environment for pipx was detected at
                 {str(old_pipx_venv_location)}. The 'pipx-app' package has been
                 renamed back to 'pipx'
                 (https://github.com/pipxproject/pipx/issues/82).
