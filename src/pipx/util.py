@@ -179,7 +179,7 @@ def full_package_description(package: str, package_spec: str) -> str:
 # Other blocks of text should get 4 spaces as subsequent_indent to
 #   differentiate them from previous and subsequent blocks of text
 def wrap(text: str, subsequent_indent: str = "", keep_newlines: bool = False) -> str:
-    """Dedent, strip, wrap to shell width"""
+    """Dedent, strip, wrap to shell width.  Don't break on hyphens, only spaces"""
     minimum_width = 40
     width = max(shutil.get_terminal_size((80, 40)).columns, minimum_width) - 2
 
@@ -187,9 +187,19 @@ def wrap(text: str, subsequent_indent: str = "", keep_newlines: bool = False) ->
     if keep_newlines:
         return "\n".join(
             [
-                textwrap.fill(line, width=width, subsequent_indent=subsequent_indent)
+                textwrap.fill(
+                    line,
+                    width=width,
+                    subsequent_indent=subsequent_indent,
+                    break_on_hyphens=False,
+                )
                 for line in text.splitlines()
             ]
         )
     else:
-        return textwrap.fill(text, width=width, subsequent_indent=subsequent_indent)
+        return textwrap.fill(
+            text,
+            width=width,
+            subsequent_indent=subsequent_indent,
+            break_on_hyphens=False,
+        )
