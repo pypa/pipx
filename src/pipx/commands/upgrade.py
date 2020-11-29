@@ -8,7 +8,7 @@ from pipx.commands.common import expose_apps_globally
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojies import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
-from pipx.util import PipxError
+from pipx.util import PipxError, wrap
 from pipx.venv import Venv, VenvContainer
 
 
@@ -90,8 +90,12 @@ def _upgrade_venv(
     """Returns number of packages with changed versions."""
     if not venv_dir.is_dir():
         raise PipxError(
-            f"Package is not installed. Expected to find {str(venv_dir)}, "
-            "but it does not exist."
+            wrap(
+                f"""
+                Package is not installed. Expected to find {str(venv_dir)}, but
+                it does not exist.
+                """
+            )
         )
 
     venv = Venv(venv_dir, verbose=verbose)

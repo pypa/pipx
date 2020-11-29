@@ -246,7 +246,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         )
     elif args.command == "runpip":
         if not venv_dir:
-            raise PipxError("developer error: venv dir is not defined")
+            raise PipxError("Developer error: venv_dir is not defined.")
         return commands.run_pip(package, venv_dir, args.pipargs, args.verbose)
     elif args.command == "ensurepath":
         try:

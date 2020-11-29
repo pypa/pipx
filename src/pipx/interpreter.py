@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 from pipx.constants import WINDOWS
-from pipx.util import PipxError
+from pipx.util import PipxError, wrap
 
 
 def has_venv() -> bool:
@@ -36,7 +36,7 @@ def _find_default_windows_python() -> str:
         return py
     python = shutil.which("python")
     if python is None:
-        raise PipxError("no suitable Python found")
+        raise PipxError("No suitable Python found")
 
     # If the path contains "WindowsApps", it's the store python
     if "WindowsApps" not in python:
@@ -46,14 +46,14 @@ def _find_default_windows_python() -> str:
     # https://twitter.com/zooba/status/1212454929379581952
 
     proc = subprocess.run(
-        [python, "-V"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        [python, "-V"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
     )
     if proc.returncode != 0:
         # Cover the 9009 return code pre-emptively.
-        raise PipxError("no suitable Python found")
+        raise PipxError("No suitable Python found")
     if not proc.stdout.strip():
         # A real Python should print version, Windows Store stub won't.
-        raise PipxError("no suitable Python found")
+        raise PipxError("No suitable Python found")
     return python  # This executable seems to work.
 
 
@@ -67,7 +67,9 @@ def _get_sys_executable() -> str:
 def _get_absolute_python_interpreter(env_python: str) -> str:
     which_python = shutil.which(env_python)
     if not which_python:
-        raise PipxError(f"Default python interpreter {repr(env_python)} is invalid")
+        raise PipxError(
+            wrap(f"Default python interpreter {repr(env_python)} is invalid.")
+        )
     return which_python
 
 

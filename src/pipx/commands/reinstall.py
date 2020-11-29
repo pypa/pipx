@@ -10,7 +10,7 @@ from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
 from pipx.constants import EXIT_CODE_OK, EXIT_CODE_REINSTALL_VENV_NONEXISTENT, ExitCode
 from pipx.emojies import sleep
-from pipx.util import PipxError
+from pipx.util import PipxError, wrap
 from pipx.venv import Venv, VenvContainer
 
 
@@ -104,7 +104,7 @@ def reinstall_all(
             failed.append(venv_dir.name)
     if len(failed) > 0:
         raise PipxError(
-            f"The following package(s) failed to reinstall: {', '.join(failed)}"
+            wrap(f"The following package(s) failed to reinstall: {', '.join(failed)}")
         )
     # Any failure to install will raise PipxError, otherwise success
     return EXIT_CODE_OK

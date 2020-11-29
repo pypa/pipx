@@ -110,7 +110,7 @@ def _parsed_package_to_package_or_url(
                     f"({parsed_package.valid_pep508.marker}) in package "
                     "specification. Use pipx options to specify this type of "
                     "information.",
-                    subsequent_indent="    ",
+                    subsequent_indent=" " * 4,
                 )
             )
         package_or_url = package_or_url_from_pep508(
@@ -146,7 +146,7 @@ def parse_specifier_for_install(
                 f"{hazard}  Ignoring --editable install option. pipx disallows it "
                 "for anything but a local path, to avoid having to create a new "
                 "src/ directory.",
-                subsequent_indent="    ",
+                subsequent_indent=" " * 4,
             )
         )
         pip_args.remove("--editable")
@@ -211,7 +211,7 @@ def fix_package_name(package_or_url: str, package: str) -> str:
                 f"{hazard}  Name supplied in package specifier was "
                 f"{package_req.name!r} but package found has name "
                 f"{package!r}. Using {package!r}.",
-                subsequent_indent="    ",
+                subsequent_indent=" " * 4,
             )
         )
     package_req.name = package

@@ -25,6 +25,7 @@ from pipx.util import (
     rmdir,
     run_subprocess,
     run_verify,
+    wrap,
 )
 
 venv_metadata_inspector_raw = pkgutil.get_data("pipx", "venv_metadata_inspector.py")
@@ -100,10 +101,14 @@ class Venv:
 
             if not shared_libs.is_valid:
                 raise PipxError(
-                    f"Error: pipx's shared venv {shared_libs.root} is invalid and "
-                    "needs re-installation. To fix this, install or reinstall a "
-                    "package. For example,\n"
-                    f"  pipx install {self.root.name} --force"
+                    wrap(
+                        f"""
+                        Error: pipx's shared venv {shared_libs.root} is invalid
+                        and needs re-installation. To fix this, install or
+                        reinstall a package. For example:
+                        """
+                    )
+                    + f"\n  pipx install {self.root.name} --force"
                 )
 
     @property
@@ -249,8 +254,12 @@ class Venv:
         except PipxError as e:
             logging.info(e)
             raise PipxError(
-                f"Cannot determine package name from spec {package_or_url!r}. "
-                f"Check package spec for errors."
+                wrap(
+                    f"""
+                    Cannot determine package name from spec {package_or_url!r}.
+                    Check package spec for errors.
+                    """
+                )
             )
 
         installed_packages = self.list_installed_packages() - old_package_set
@@ -261,8 +270,12 @@ class Venv:
             logging.info(f"old_package_set = {old_package_set}")
             logging.info(f"install_packages = {installed_packages}")
             raise PipxError(
-                f"Cannot determine package name from spec {package_or_url!r}. "
-                f"Check package spec for errors."
+                wrap(
+                    f"""
+                    Cannot determine package name from spec {package_or_url!r}.
+                    Check package spec for errors.
+                    """
+                )
             )
 
         return package
