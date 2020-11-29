@@ -143,8 +143,13 @@ def _symlink_package_apps(
 
         if existing_executable_on_path:
             logging.warning(
-                f"{hazard}  Note: {app_name_suffixed} was already on your PATH at "
-                f"{existing_executable_on_path}"
+                wrap(
+                    f"""
+                    {hazard}  Note: {app_name_suffixed} was already on your
+                    PATH at {existing_executable_on_path}
+                    """,
+                    subsequent_indent=" " * 4,
+                )
             )
 
 

@@ -177,8 +177,13 @@ class Venv:
             rmdir(self.root)
         else:
             logging.warning(
-                f"Not removing existing venv {self.root} because "
-                "it was not created in this session"
+                wrap(
+                    f"""
+                    Not removing existing venv {self.root} because it was not
+                    created in this session
+                    """,
+                    subsequent_indent=" " * 4,
+                )
             )
 
     def upgrade_packaging_libraries(self, pip_args: List[str]) -> None:

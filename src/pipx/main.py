@@ -692,9 +692,15 @@ def setup(args: argparse.Namespace) -> None:
     old_pipx_venv_location = constants.PIPX_LOCAL_VENVS / "pipx-app"
     if old_pipx_venv_location.exists():
         logging.warning(
-            "A virtual environment for pipx was detected at "
-            f"{str(old_pipx_venv_location)}. The 'pipx-app' package has been renamed "
-            "back to 'pipx' (https://github.com/pipxproject/pipx/issues/82)."
+            wrap(
+                f"""
+                A virtual environment for pipx was detected at
+                {str(old_pipx_venv_location)}. The 'pipx-app' package has been
+                renamed back to 'pipx'
+                (https://github.com/pipxproject/pipx/issues/82).
+                """,
+                subsequent_indent=" " * 4,
+            )
         )
 
 

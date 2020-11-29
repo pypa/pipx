@@ -60,9 +60,13 @@ def run(
 
     elif which(app):
         logging.warning(
-            f"{hazard}  {app} is already on your PATH and installed at "
-            f"{which(app)}. Downloading and "
-            "running anyway."
+            wrap(
+                f"""
+                {hazard}  {app} is already on your PATH and installed at
+                {which(app)}. Downloading and running anyway.
+                """,
+                subsequent_indent=" " * 4,
+            )
         )
 
     if WINDOWS and not app.endswith(".exe"):

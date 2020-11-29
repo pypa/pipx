@@ -1,6 +1,5 @@
 import json
 import logging
-import textwrap
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Union
 
@@ -132,11 +131,13 @@ class PipxMetadata:
                 )
         except IOError:
             logging.warning(
-                textwrap.fill(
-                    f"Unable to write {PIPX_INFO_FILENAME} to {self.venv_dir}. "
-                    f"This may cause future pipx operations involving "
-                    f"{self.venv_dir.name} to fail or behave incorrectly.",
-                    width=79,
+                wrap(
+                    f"""
+                    Unable to write {PIPX_INFO_FILENAME} to {self.venv_dir}.
+                    This may cause future pipx operations involving
+                    {self.venv_dir.name} to fail or behave incorrectly.
+                    """,
+                    subsequent_indent=" " * 4,
                 )
             )
 
@@ -149,11 +150,13 @@ class PipxMetadata:
         except IOError:  # Reset self if problem reading
             if verbose:
                 logging.warning(
-                    textwrap.fill(
-                        f"Unable to read {PIPX_INFO_FILENAME} in {self.venv_dir}. "
-                        f"This may cause this or future pipx operations involving "
-                        f"{self.venv_dir.name} to fail or behave incorrectly.",
-                        width=79,
+                    wrap(
+                        f"""
+                        Unable to read {PIPX_INFO_FILENAME} in {self.venv_dir}.
+                        This may cause this or future pipx operations involving
+                        {self.venv_dir.name} to fail or behave incorrectly.
+                        """,
+                        subsequent_indent=" " * 4,
                     )
                 )
             return
