@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -54,6 +55,18 @@ def which_python(python_exe: str) -> Optional[str]:
     else:
         # pyenv on system, but pyenv has no path to python_exe
         return None
+
+
+def unwrap_log_text(log_text: str):
+    """Remove line-break + indent space from log messages
+
+    Captured log lines always start with the 'severity' so if a line starts
+    with any spaces assume it is due to an indented pipx wrapped message.
+    """
+
+    log_text = re.sub(r"([^-])\n\s+", r"\1 ", log_text)
+    log_text = re.sub(r"(-)\n\s+", r"\1", log_text)
+    return log_text
 
 
 def _mock_legacy_package_info(
