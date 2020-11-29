@@ -66,14 +66,22 @@ def _upgrade_package(
             pass
         else:
             print(
-                f"{display_name} is already at latest version {old_version} "
-                f"(location: {str(venv.root)})"
+                wrap(
+                    f"""
+                    {display_name} is already at latest version {old_version}
+                    (location: {str(venv.root)})
+                    """
+                )
             )
         return 0
     else:
         print(
-            f"upgraded package {display_name} from {old_version} to {new_version} "
-            f"(location: {str(venv.root)})"
+            wrap(
+                f"""
+                upgraded package {display_name} from {old_version} to
+                {new_version} (location: {str(venv.root)})
+                """
+            )
         )
         return 1
 
