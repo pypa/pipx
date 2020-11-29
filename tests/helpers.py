@@ -64,8 +64,7 @@ def unwrap_log_text(log_text: str):
     with any spaces assume it is due to an indented pipx wrapped message.
     """
 
-    log_text = re.sub(r"([^-])\n\s+", r"\1 ", log_text)
-    log_text = re.sub(r"(-)\n\s+", r"\1", log_text)
+    return re.sub(r"\n\s+", " ", log_text)
     return log_text
 
 
