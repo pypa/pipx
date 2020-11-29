@@ -110,7 +110,7 @@ class Venv:
                         """
                     )
                     + f"\n  pipx install {self.root.name} --force",
-                    wrap=False,
+                    wrap_message=False,
                 )
 
     @property
@@ -247,7 +247,7 @@ class Venv:
                 f"{full_package_description(package, package_or_url)}.\n"
                 f"Check the name or spec for errors, and verify that it can "
                 f"be installed with pip.",
-                wrap=False,
+                wrap_message=False,
             )
 
     def install_package_no_deps(self, package_or_url: str, pip_args: List[str]) -> str:

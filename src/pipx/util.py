@@ -12,8 +12,8 @@ from pipx.constants import WINDOWS
 
 
 class PipxError(Exception):
-    def __init__(self, message: str, wrap: bool = True):
-        if wrap:
+    def __init__(self, message: str, wrap_message: bool = True):
+        if wrap_message:
             super().__init__(pipx_wrap(message))
         else:
             super().__init__(message)
