@@ -65,7 +65,6 @@ def unwrap_log_text(log_text: str):
     """
 
     return re.sub(r"\n\s+", " ", log_text)
-    return log_text
 
 
 def _mock_legacy_package_info(
