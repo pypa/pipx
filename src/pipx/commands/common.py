@@ -121,8 +121,14 @@ def _symlink_package_apps(
                 logging.info(f"Same path {str(symlink_path)} and {str(app_path)}")
             else:
                 logging.warning(
-                    f"{hazard}  File exists at {str(symlink_path)} and points "
-                    f"to {symlink_path.resolve()}, not {str(app_path)}. Not modifying."
+                    wrap(
+                        f"""
+                        {hazard}  File exists at {str(symlink_path)} and points
+                        to {symlink_path.resolve()}, not {str(app_path)}. Not
+                        modifying.
+                        """,
+                        subsequent_indent=" " * 4,
+                    )
                 )
             continue
         if is_symlink and not exists:
