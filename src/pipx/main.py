@@ -43,7 +43,7 @@ PIPX_DESCRIPTION = textwrap.dedent(
     Install and execute apps from Python packages.
 
     Binaries can either be installed globally into isolated Virtual Environments
-    or run directly in an temporary Virtual Environment.
+    or run directly in a temporary Virtual Environment.
 
     Virtual Environment location is {str(constants.PIPX_LOCAL_VENVS)}.
     Symlinks to apps are placed in {str(constants.LOCAL_BIN_DIR)}.
