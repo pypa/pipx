@@ -263,8 +263,8 @@ pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https
 pipx is maintained by a team of volunteers (in alphabetical order)
 
 - [Bernát Gábor](https://github.com/gaborbernat)
-- [Chad Smith](https://github.com/cs01)
-- [Matthew Clapp](https://github.com/itsayellow) - lead maintainer
+- [Chad Smith](https://github.com/cs01) - co-lead maintainer
+- [Matthew Clapp](https://github.com/itsayellow) - co-lead maintainer
 - [Tzu-ping Chung](https://github.com/uranusjr)
 
 ## Contributing
