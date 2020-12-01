@@ -86,7 +86,7 @@ def on_master_no_changes(session):
 
 @nox.session(python=PYTHON_ALL_VERSIONS)
 def tests(session):
-    session.install("--upgrade", "pip")
+    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     prebuild_wheels(session, PREBUILD_PACKAGES)
     session.install("-e", ".", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
@@ -107,7 +107,7 @@ def test_all_packages(session):
 @nox.session
 def cover(session):
     """Coverage analysis"""
-    session.install("--upgrade", "pip")
+    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install("coverage")
     session.run("coverage", "report", "--show-missing", "--fail-under=70")
     session.run("coverage", "erase")
@@ -115,7 +115,7 @@ def cover(session):
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def lint(session):
-    session.install("--upgrade", "pip")
+    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install(*LINT_DEPENDENCIES)
     files = [str(Path("src") / "pipx"), "tests", "scripts"] + [
         str(p) for p in Path(".").glob("*.py")
@@ -130,14 +130,14 @@ def lint(session):
 
 @nox.session(python=PYTHON_ALL_VERSIONS)
 def develop(session):
-    session.install("--upgrade", "pip")
+    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install(*DOC_DEPENDENCIES, *LINT_DEPENDENCIES)
     session.install("-e", ".")
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def build(session):
-    session.install("--upgrade", "pip")
+    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install("build")
     session.run("rm", "-rf", "dist", "build", external=True)
     session.run("python", "-m", "build")
@@ -146,7 +146,7 @@ def build(session):
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def publish(session):
     on_master_no_changes(session)
-    session.install("--upgrade", "pip")
+    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install("twine")
     build(session)
     print("REMINDER: Has the changelog been updated?")
@@ -155,7 +155,7 @@ def publish(session):
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def build_docs(session):
-    session.install("--upgrade", "pip")
+    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install(*DOC_DEPENDENCIES)
     session.env[
         "PIPX__DOC_DEFAULT_PYTHON"
@@ -166,7 +166,7 @@ def build_docs(session):
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def publish_docs(session):
-    session.install("--upgrade", "pip")
+    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install(*DOC_DEPENDENCIES)
     build_docs(session)
     session.run("mkdocs", "gh-deploy")
