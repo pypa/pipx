@@ -87,10 +87,16 @@ This is a tip for advanced users.  An easy way to check if pipx is the problem
 or a package you're trying to install is the problem, is to try installing it
 using `pip`.  For example:
 
+### Unix or macOS
 ```
 python3 -m venv test_venv
-source test_venv/bin/activate
-python3 -m pip install <problem-package>
+test_venv/bin/python3 -m pip install <problem-package>
+```
+
+### Windows
+```
+python -m venv test_venv
+test_venv/Scripts/python -m pip install <problem-package>
 ```
 
 If installation into this "virtual environment" using pip fails, then it's
@@ -99,6 +105,5 @@ likely that the problem is with the package or your host system.
 To clean up after this experiment:
 
 ```
-deactivate
 rm -rf test_venv
 ```
