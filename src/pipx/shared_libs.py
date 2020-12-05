@@ -8,9 +8,9 @@ from pipx import constants
 from pipx.animate import animate
 from pipx.constants import WINDOWS
 from pipx.interpreter import DEFAULT_PYTHON
-from pipx.util import get_site_packages, get_venv_paths, run_verify
+from pipx.util import get_site_packages, get_venv_paths, run_subprocess, run_verify
 
-PIPX_PACKAGE_LIST_FILE = "pipx_package_list.txt"
+PIPX_PACKAGE_LIST_FILE = "pipx_freeze.txt"
 SHARED_LIBS_MAX_AGE_SEC = datetime.timedelta(days=30).total_seconds()
 
 
@@ -52,6 +52,7 @@ class _SharedLibs:
             return False
         with package_list_path.open("r") as package_list_fh:
             installed_packages = package_list_fh.read().split("\n")
+        installed_packages = [x.split("==")[0] for x in installed_packages]
         return set(self.required_packages).issubset(set(installed_packages))
 
     def create(self, verbose: bool = False) -> None:
@@ -86,11 +87,13 @@ class _SharedLibs:
         )
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
-    def _write_package_list(self, installed_packages: List[str]) -> None:
+    def _write_package_list(self) -> None:
+        installed_packages = run_subprocess(
+            [self.python_path, "-m", "pip", "freeze", "--all"]
+        ).stdout
         package_list_path = Path(self.root) / PIPX_PACKAGE_LIST_FILE
         with package_list_path.open("w") as package_list_fh:
-            package_list_fh.write("\n".join(installed_packages))
-        self._has_required_packages = True
+            package_list_fh.write(installed_packages)
 
     def upgrade(
         self, *, pip_args: Optional[List[str]] = None, verbose: bool = False
@@ -100,6 +103,10 @@ class _SharedLibs:
             logging.info(f"Already upgraded libraries in {self.root}")
             return
 
+        if not self.python_path.exists():
+            self.create(verbose=verbose)
+            return
+
         if pip_args is None:
             pip_args = []
 
@@ -107,6 +114,7 @@ class _SharedLibs:
 
         ignored_args = ["--editable"]
         _pip_args = [arg for arg in pip_args if arg not in ignored_args]
+
         if not verbose:
             _pip_args.append("-q")
         try:
@@ -123,7 +131,8 @@ class _SharedLibs:
                         *self.required_packages,
                     ]
                 )
-                self._write_package_list(self.required_packages)
+                self._write_package_list()
+                self._has_required_packages = True
                 self.has_been_updated_this_run = True
 
             self.pip_path.touch()
