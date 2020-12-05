@@ -29,7 +29,7 @@ class _SharedLibs:
             "wheel",
             "packaging",
             "importlib-metadata",
-            # "setuptools",
+            "setuptools",
         ]
         self._has_required_packages: Optional[bool] = None
 
