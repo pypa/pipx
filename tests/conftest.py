@@ -16,7 +16,7 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_config(config):
+def pytest_configure(config):
     markexpr = getattr(config.option, "markexpr", None)
 
     if config.option.all_packages:
