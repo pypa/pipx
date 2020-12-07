@@ -90,9 +90,7 @@ def tests(session):
     prebuild_wheels(session, PREBUILD_PACKAGES)
     session.install("-e", ".", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
-    session.run(
-        "pytest", "--cov=pipx", "--cov-report=", "-m", "not all_packages", *tests
-    )
+    session.run("pytest", "--cov=pipx", "--cov-report=", *tests)
     session.notify("cover")
 
 
@@ -101,7 +99,7 @@ def test_all_packages(session):
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install("-e", ".", "pytest")
     tests = session.posargs or ["tests"]
-    session.run("pytest", "-v", "-m", "all_packages", *tests)
+    session.run("pytest", "-v", "--all-packages", *tests)
 
 
 @nox.session

@@ -6,6 +6,33 @@ import pytest  # type: ignore
 from pipx import constants, shared_libs, venv
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--all-packages",
+        action="store_true",
+        dest="all_packages",
+        default=False,
+        help="Run only the long, slow tests installing the maximum list of packages.",
+    )
+
+
+def pytest_config(config):
+    markexpr = getattr(config.option, "markexpr", None)
+
+    if config.option.all_packages:
+        if markexpr:
+            new_markexpr = f"{markexpr} or all_packages"
+        else:
+            new_markexpr = "all_packages"
+    else:
+        if markexpr:
+            new_markexpr = f"{markexpr} and not all_packages"
+        else:
+            new_markexpr = "not all_packages"
+
+    config.option.markexpr = new_markexpr
+
+
 @pytest.fixture
 def pipx_temp_env(tmp_path, monkeypatch):
     """Sets up temporary paths for pipx to install into.
