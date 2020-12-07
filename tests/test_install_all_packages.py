@@ -386,7 +386,7 @@ class TestAllPackagesDeps:
         )
 
 
-class TestAllPackagesUninstall:
+class TestAllPackagesUninstallNoDeps:
     test_class = "uninstall"
 
     @pytest.mark.parametrize("package_name, package_spec", PACKAGE_PARAMETRIZE_LIST)
@@ -406,5 +406,25 @@ class TestAllPackagesUninstall:
         monkeypatch.setenv("PATH", os.getenv("PATH_ORIG"))
         run_pipx_cli(["install", package_spec, "--verbose"])
         run_pipx_cli(["uninstall", package_name])
+
+
+class TestAllPackagesUninstallDeps:
+    test_class = "uninstall"
+
+    @pytest.mark.parametrize("package_name, package_spec", PACKAGE_PARAMETRIZE_LIST)
+    @pytest.mark.all_packages
+    def test_uninstall_all_packages(
+        self,
+        module_globals,
+        start_end_report,
+        monkeypatch,
+        capfd,
+        pipx_temp_env,
+        caplog,
+        package_name,
+        package_spec,
+    ):
+        # use system path for everything to ensure most install
+        monkeypatch.setenv("PATH", os.getenv("PATH_ORIG"))
         run_pipx_cli(["install", package_spec, "--verbose", "--include-deps"])
         run_pipx_cli(["uninstall", package_name])
