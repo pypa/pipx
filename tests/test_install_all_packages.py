@@ -392,15 +392,7 @@ class TestAllPackagesUninstallNoDeps:
     @pytest.mark.parametrize("package_name, package_spec", PACKAGE_PARAMETRIZE_LIST)
     @pytest.mark.all_packages
     def test_uninstall_all_packages(
-        self,
-        module_globals,
-        start_end_report,
-        monkeypatch,
-        capfd,
-        pipx_temp_env,
-        caplog,
-        package_name,
-        package_spec,
+        self, start_end_report, monkeypatch, pipx_temp_env, package_name, package_spec,
     ):
         # use system path for everything to ensure most install
         monkeypatch.setenv("PATH", os.getenv("PATH_ORIG"))
@@ -414,15 +406,7 @@ class TestAllPackagesUninstallDeps:
     @pytest.mark.parametrize("package_name, package_spec", PACKAGE_PARAMETRIZE_LIST)
     @pytest.mark.all_packages
     def test_uninstall_all_packages(
-        self,
-        module_globals,
-        start_end_report,
-        monkeypatch,
-        capfd,
-        pipx_temp_env,
-        caplog,
-        package_name,
-        package_spec,
+        self, start_end_report, monkeypatch, pipx_temp_env, package_name, package_spec,
     ):
         # use system path for everything to ensure most install
         monkeypatch.setenv("PATH", os.getenv("PATH_ORIG"))
