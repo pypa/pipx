@@ -26,7 +26,7 @@ from pipx.util import PipxError, mkdir
 from pipx.venv import VenvContainer
 from pipx.version import __version__
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("pipx")
 
 
 def print_version() -> None:
