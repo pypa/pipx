@@ -26,7 +26,7 @@ from pipx.util import PipxError, mkdir
 from pipx.venv import VenvContainer
 from pipx.version import __version__
 
-logger = logging.getLogger("pipx")
+logger = logging.getLogger(__name__)
 
 
 def print_version() -> None:
@@ -688,12 +688,13 @@ def setup(args: argparse.Namespace) -> None:
 
     # Setup logging so debug and above go to log file,
     #   info (verbose) or warning (non-verbose) and above go to console
-    logger.setLevel(logging.DEBUG)
+    pipx_root_logger = logging.getLogger("pipx")
+    pipx_root_logger.setLevel(logging.DEBUG)
 
     file_handler = setup_file_handler()
     stream_handler = setup_stream_handler("verbose" in args and args.verbose)
-    logger.addHandler(file_handler)
-    logger.addHandler(stream_handler)
+    pipx_root_logger.addHandler(file_handler)
+    pipx_root_logger.addHandler(stream_handler)
 
     logger.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
     logger.debug(f"{' '.join(sys.argv)}")
