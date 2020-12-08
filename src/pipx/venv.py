@@ -27,6 +27,8 @@ from pipx.util import (
     run_verify,
 )
 
+logger = logging.getLogger(__name__)
+
 venv_metadata_inspector_raw = pkgutil.get_data("pipx", "venv_metadata_inspector.py")
 assert venv_metadata_inspector_raw is not None, (
     "pipx could not find required file venv_metadata_inspector.py. "
@@ -171,7 +173,7 @@ class Venv:
         if self.safe_to_remove():
             rmdir(self.root)
         else:
-            logging.warning(
+            logger.warning(
                 f"Not removing existing venv {self.root} because "
                 "it was not created in this session"
             )
@@ -213,7 +215,7 @@ class Venv:
                 cmd = ["install"] + pip_args + [package_or_url]
                 self._run_pip(cmd)
         except PipxError as e:
-            logging.info(e)
+            logger.info(e)
             raise PipxError(
                 f"Error installing "
                 f"{full_package_description(package, package_or_url)}."
@@ -247,7 +249,7 @@ class Venv:
                 cmd = ["install"] + ["--no-dependencies"] + pip_args + [package_or_url]
                 self._run_pip(cmd)
         except PipxError as e:
-            logging.info(e)
+            logger.info(e)
             raise PipxError(
                 f"Cannot determine package name from spec {package_or_url!r}. "
                 f"Check package spec for errors."
@@ -256,10 +258,10 @@ class Venv:
         installed_packages = self.list_installed_packages() - old_package_set
         if len(installed_packages) == 1:
             package = installed_packages.pop()
-            logging.info(f"Determined package name: {package}")
+            logger.info(f"Determined package name: {package}")
         else:
-            logging.info(f"old_package_set = {old_package_set}")
-            logging.info(f"install_packages = {installed_packages}")
+            logger.info(f"old_package_set = {old_package_set}")
+            logger.info(f"install_packages = {installed_packages}")
             raise PipxError(
                 f"Cannot determine package name from spec {package_or_url!r}. "
                 f"Check package spec for errors."
@@ -292,8 +294,8 @@ class Venv:
 
         venv_metadata_traceback = data.pop("exception_traceback", None)
         if venv_metadata_traceback is not None:
-            logging.error("Internal error with venv metadata inspection.")
-            logging.info(
+            logger.error("Internal error with venv metadata inspection.")
+            logger.info(
                 f"venv_metadata_inspector.py Traceback:\n{venv_metadata_traceback}"
             )
 
@@ -396,5 +398,5 @@ class Venv:
         ).returncode
         if returncode:
             cmd_str = " ".join(str(c) for c in cmd)
-            logging.error(f"{cmd_str!r} failed")
+            logger.error(f"{cmd_str!r} failed")
         return ExitCode(returncode)

@@ -26,6 +26,8 @@ from pipx.util import PipxError, mkdir
 from pipx.venv import VenvContainer
 from pipx.version import __version__
 
+logger = logging.getLogger(__name__)
+
 
 def print_version() -> None:
     print(__version__)
@@ -171,7 +173,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
                     args.spec = args.spec + f"#egg={package}"
 
         venv_dir = venv_container.get_venv_dir(package)
-        logging.info(f"Virtual Environment location is {venv_dir}")
+        logger.info(f"Virtual Environment location is {venv_dir}")
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
 
@@ -266,7 +268,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         try:
             return commands.ensure_pipx_paths(force=args.force)
         except Exception as e:
-            logging.debug("Uncaught Exception:", exc_info=True)
+            logger.debug("Uncaught Exception:", exc_info=True)
             raise PipxError(e)
     elif args.command == "completions":
         print(constants.completion_instructions)
@@ -686,18 +688,17 @@ def setup(args: argparse.Namespace) -> None:
 
     # Setup logging so debug and above go to log file,
     #   info (verbose) or warning (non-verbose) and above go to console
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
 
     file_handler = setup_file_handler()
     stream_handler = setup_stream_handler("verbose" in args and args.verbose)
-    root_logger.addHandler(file_handler)
-    root_logger.addHandler(stream_handler)
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
 
-    logging.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
-    logging.debug(f"{' '.join(sys.argv)}")
-    logging.info(f"pipx version is {__version__}")
-    logging.info(f"Default python interpreter is {repr(DEFAULT_PYTHON)}")
+    logger.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.debug(f"{' '.join(sys.argv)}")
+    logger.info(f"pipx version is {__version__}")
+    logger.info(f"Default python interpreter is {repr(DEFAULT_PYTHON)}")
 
     mkdir(constants.PIPX_LOCAL_VENVS)
     mkdir(constants.LOCAL_BIN_DIR)
@@ -705,7 +706,7 @@ def setup(args: argparse.Namespace) -> None:
 
     old_pipx_venv_location = constants.PIPX_LOCAL_VENVS / "pipx-app"
     if old_pipx_venv_location.exists():
-        logging.warning(
+        logger.warning(
             "A virtual environment for pipx was detected at "
             f"{str(old_pipx_venv_location)}. The 'pipx-app' package has been renamed "
             "back to 'pipx' (https://github.com/pipxproject/pipx/issues/82)."
@@ -741,12 +742,12 @@ def cli() -> ExitCode:
         return run_pipx_command(parsed_pipx_args)
     except PipxError as e:
         print(str(e), file=sys.stderr)
-        logging.debug(f"PipxError: {e}", exc_info=True)
+        logger.debug(f"PipxError: {e}", exc_info=True)
         return ExitCode(1)
     except KeyboardInterrupt:
         return ExitCode(1)
     except Exception:
-        logging.debug("Uncaught Exception:", exc_info=True)
+        logger.debug("Uncaught Exception:", exc_info=True)
         raise
     finally:
         show_cursor()

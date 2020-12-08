@@ -9,13 +9,15 @@ from typing import Dict, List, Optional, Sequence, Tuple, Union
 from pipx.animate import show_cursor
 from pipx.constants import WINDOWS
 
+logger = logging.getLogger(__name__)
+
 
 class PipxError(Exception):
     pass
 
 
 def rmdir(path: Path) -> None:
-    logging.info(f"removing directory {path}")
+    logger.info(f"removing directory {path}")
     try:
         if WINDOWS:
             os.system(f'rmdir /S /Q "{str(path)}"')
@@ -28,7 +30,7 @@ def rmdir(path: Path) -> None:
 def mkdir(path: Path) -> None:
     if path.is_dir():
         return
-    logging.info(f"creating directory {path}")
+    logger.info(f"creating directory {path}")
     path.mkdir(parents=True, exist_ok=True)
 
 
@@ -110,7 +112,7 @@ def run_subprocess(
 
     if log_cmd_str is None:
         log_cmd_str = " ".join(str(c) for c in cmd)
-    logging.info(f"running {log_cmd_str}")
+    logger.info(f"running {log_cmd_str}")
     # windows cannot take Path objects, only strings
     cmd_str_list = [str(c) for c in cmd]
     return subprocess.run(
@@ -150,7 +152,7 @@ def exec_app(cmd: Sequence[Union[str, Path]], env: Dict[str, str] = None) -> Non
     show_cursor()
     sys.stderr.flush()
 
-    logging.info("exec_app: " + " ".join([str(c) for c in cmd]))
+    logger.info("exec_app: " + " ".join([str(c) for c in cmd]))
 
     if WINDOWS:
         sys.exit(
