@@ -696,6 +696,9 @@ def setup(args: argparse.Namespace) -> None:
     pipx_root_logger.addHandler(file_handler)
     pipx_root_logger.addHandler(stream_handler)
 
+    # DEBUG: DELETEME TODO
+    logger.info(f"len(pipx_root_logger.handlers) = {len(pipx_root_logger.handlers)}")
+
     logger.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
     logger.debug(f"{' '.join(sys.argv)}")
     logger.info(f"pipx version is {__version__}")
