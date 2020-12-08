@@ -655,6 +655,8 @@ def setup_file_handler() -> logging.Handler:
         log_file = constants.PIPX_LOG_DIR / f"cmd_{datetime_str}_{counter}.log"
         counter += 1
 
+    print(f"DEBUG: log_file = {log_file}")
+    print(f"DEBUG: log_file.exists() = {log_file.exists()}")
     file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(
