@@ -1,3 +1,10 @@
+"""
+This module uses the pytest infrastructure to produce reports on a large list
+of packages.  It verifies installation with and without an intact system PATH.
+
+It is not meant to ever fail in the normal pytest sense.  Instead failing
+installs will be recorded in the reports
+"""
 import io
 import os
 import re
@@ -384,31 +391,3 @@ class TestAllPackagesDeps:
             package_name,
             deps=True,
         )
-
-
-class TestAllPackagesUninstallNoDeps:
-    test_class = "uninstall"
-
-    @pytest.mark.parametrize("package_name, package_spec", PACKAGE_PARAMETRIZE_LIST)
-    @pytest.mark.all_packages
-    def test_uninstall_all_packages(
-        self, start_end_report, monkeypatch, pipx_temp_env, package_name, package_spec,
-    ):
-        # use system path for everything to ensure most install
-        monkeypatch.setenv("PATH", os.getenv("PATH_ORIG"))
-        run_pipx_cli(["install", package_spec, "--verbose"])
-        run_pipx_cli(["uninstall", package_name])
-
-
-class TestAllPackagesUninstallDeps:
-    test_class = "uninstall"
-
-    @pytest.mark.parametrize("package_name, package_spec", PACKAGE_PARAMETRIZE_LIST)
-    @pytest.mark.all_packages
-    def test_uninstall_all_packages(
-        self, start_end_report, monkeypatch, pipx_temp_env, package_name, package_spec,
-    ):
-        # use system path for everything to ensure most install
-        monkeypatch.setenv("PATH", os.getenv("PATH_ORIG"))
-        run_pipx_cli(["install", package_spec, "--verbose", "--include-deps"])
-        run_pipx_cli(["uninstall", package_name])
