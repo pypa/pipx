@@ -180,7 +180,7 @@ def print_error_report(
 def install_package(
     module_globals,
     monkeypatch,
-    capfd,
+    capsys,
     pipx_temp_env,
     caplog,
     package_spec,
@@ -204,7 +204,7 @@ def install_package(
     elapsed_time_clear = time.time() - start_time
     elapsed_time_sys = 0
 
-    captured_clear_path = capfd.readouterr()
+    captured_clear_path = capsys.readouterr()
     install_success = verify_install(
         captured_clear_path,
         caplog,
@@ -222,7 +222,7 @@ def install_package(
         # uninstall in case problems found by verify_install did not prevent
         #   pipx installation
         run_pipx_cli(["uninstall", package_name])
-        _ = capfd.readouterr()
+        _ = capsys.readouterr()
 
         monkeypatch.setenv("PATH", sys_path)
 
@@ -232,7 +232,7 @@ def install_package(
             + (["--include-deps"] if deps else [])
         )
         elapsed_time_sys = time.time() - start_time
-        captured_sys_path = capfd.readouterr()
+        captured_sys_path = capsys.readouterr()
 
         install_success_orig_path = verify_install(
             captured_sys_path,
@@ -345,7 +345,7 @@ class TestAllPackagesNoDeps:
         module_globals,
         start_end_report,
         monkeypatch,
-        capfd,
+        capsys,
         pipx_temp_env,
         caplog,
         package_name,
@@ -355,7 +355,7 @@ class TestAllPackagesNoDeps:
         install_package(
             module_globals,
             monkeypatch,
-            capfd,
+            capsys,
             pipx_temp_env,
             caplog,
             package_spec,
@@ -374,7 +374,7 @@ class TestAllPackagesDeps:
         module_globals,
         start_end_report,
         monkeypatch,
-        capfd,
+        capsys,
         pipx_temp_env,
         caplog,
         package_name,
@@ -384,7 +384,7 @@ class TestAllPackagesDeps:
         install_package(
             module_globals,
             monkeypatch,
-            capfd,
+            capsys,
             pipx_temp_env,
             caplog,
             package_spec,
