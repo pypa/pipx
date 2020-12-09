@@ -123,10 +123,12 @@ def run_subprocess(
         encoding="utf-8",
         universal_newlines=True,
     )
+
     if capture_stdout:
         logger.debug(f"stdout: {completed_process.stdout}".rstrip())
     if capture_stderr:
         logger.debug(f"stderr: {completed_process.stderr}".rstrip())
+    logger.debug(f"returncode: {completed_process.returncode}".rstrip())
 
     return completed_process
 
