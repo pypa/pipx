@@ -133,18 +133,6 @@ def run_subprocess(
     return completed_process
 
 
-# def run_verify(cmd: Sequence[Union[str, Path]]) -> None:
-#    """Run arbitrary command as subprocess, raise PipxError if error exit code"""
-#
-#    returncode = run_subprocess(
-#        cmd, capture_stdout=False, capture_stderr=False
-#    ).returncode
-#
-#    if returncode:
-#        cmd_str = " ".join(str(c) for c in cmd)
-#        raise PipxError(f"{cmd_str!r} failed")
-
-
 def subprocess_post_check(
     completed_process: subprocess.CompletedProcess, raise_error: bool = True
 ) -> None:
