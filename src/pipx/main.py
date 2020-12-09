@@ -691,13 +691,15 @@ def setup(args: argparse.Namespace) -> None:
     pipx_root_logger = logging.getLogger("pipx")
     pipx_root_logger.setLevel(logging.DEBUG)
 
+    # There should be no existing handlers, if some are found they are
+    #   pytest artifacts from previous tests, so remove them
+    for handler in pipx_root_logger.handlers[:]:
+        pipx_root_logger.removeHandler(handler)
+
     file_handler = setup_file_handler()
     stream_handler = setup_stream_handler("verbose" in args and args.verbose)
     pipx_root_logger.addHandler(file_handler)
     pipx_root_logger.addHandler(stream_handler)
-
-    # DEBUG: DELETEME TODO
-    logger.info(f"len(pipx_root_logger.handlers) = {len(pipx_root_logger.handlers)}")
 
     logger.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
     logger.debug(f"{' '.join(sys.argv)}")
