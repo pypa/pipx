@@ -4,6 +4,7 @@
 
 import argparse
 import logging
+import logging.config
 import os
 import re
 import shlex
@@ -12,6 +13,7 @@ import sys
 import textwrap
 import time
 import urllib.parse
+from pathlib import Path
 from typing import Dict, List
 
 import argcomplete  # type: ignore
@@ -637,7 +639,7 @@ def get_command_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def setup_file_handler() -> logging.Handler:
+def setup_log_file() -> Path:
     max_logs = 10
     # don't use utils.mkdir, to prevent emission of log message
     constants.PIPX_LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -656,6 +658,12 @@ def setup_file_handler() -> logging.Handler:
     while log_file.exists() and counter < 10:
         log_file = constants.PIPX_LOG_DIR / f"cmd_{datetime_str}_{counter}.log"
         counter += 1
+
+    return log_file
+
+
+def setup_file_handler() -> logging.Handler:
+    log_file = setup_log_file()
 
     file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(logging.DEBUG)
@@ -698,12 +706,56 @@ def setup_logging(verbose: bool) -> None:
     pipx_root_logger.addHandler(stream_handler)
 
 
+def setup_logging2(verbose: bool) -> None:
+    pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
+    log_file = setup_log_file()
+
+    # "incremental" is False so previous pytest tests don't accumulate handlers
+    logging_config = {
+        "version": 1,
+        "formatters": {
+            "stream_nonverbose": {
+                "class": "logging.Formatter",
+                "format": "{message}",
+                "style": "{",
+            },
+            "stream_verbose": {
+                "class": "logging.Formatter",
+                "format": pipx_str + "({funcName}:{lineno}): {message}",
+                "style": "{",
+            },
+            "file": {
+                "class": "logging.Formatter",
+                "format": "{relativeCreated: >8.1f}ms ({funcName}:{lineno}): {message}",
+                "style": "{",
+            },
+        },
+        "handlers": {
+            "stream": {
+                "class": "logging.StreamHandler",
+                "formatter": "stream_verbose" if verbose else "stream_nonverbose",
+                "level": "INFO" if verbose else "WARNING",
+            },
+            "file": {
+                "class": "logging.FileHandler",
+                "formatter": "file",
+                "filename": str(log_file),
+                "level": "DEBUG",
+            },
+        },
+        "loggers": {"pipx": {"handlers": ["stream", "file"], "level": "DEBUG"}},
+        "incremental": False,
+    }
+    logging.config.dictConfig(logging_config)
+
+
 def setup(args: argparse.Namespace) -> None:
     if "version" in args and args.version:
         print_version()
         sys.exit(0)
 
-    setup_logging("verbose" in args and args.verbose)
+    # setup_logging("verbose" in args and args.verbose)
+    setup_logging2("verbose" in args and args.verbose)
 
     logger.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
     logger.debug(f"{' '.join(sys.argv)}")
