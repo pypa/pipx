@@ -662,51 +662,7 @@ def setup_log_file() -> Path:
     return log_file
 
 
-def setup_file_handler() -> logging.Handler:
-    log_file = setup_log_file()
-
-    file_handler = logging.FileHandler(log_file)
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(
-        logging.Formatter(
-            "{relativeCreated: >8.1f}ms ({funcName}:{lineno}): {message}", style="{"
-        )
-    )
-    return file_handler
-
-
-def setup_stream_handler(verbose: bool) -> logging.Handler:
-    stream_handler = logging.StreamHandler()
-    if verbose:
-        pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
-        stream_handler.setLevel(logging.INFO)
-        stream_handler.setFormatter(
-            logging.Formatter(pipx_str + "({funcName}:{lineno}): {message}", style="{")
-        )
-    else:
-        stream_handler.setLevel(logging.WARNING)
-        stream_handler.setFormatter(logging.Formatter("{message}", style="{"))
-    return stream_handler
-
-
 def setup_logging(verbose: bool) -> None:
-    # Setup logging so debug and above go to log file,
-    #   info (verbose) or warning (non-verbose) and above go to console
-    pipx_root_logger = logging.getLogger("pipx")
-    pipx_root_logger.setLevel(logging.DEBUG)
-
-    # There should be no existing handlers, if some are found they are
-    #   pytest artifacts from previous tests, so remove them
-    for handler in pipx_root_logger.handlers.copy():
-        pipx_root_logger.removeHandler(handler)
-
-    file_handler = setup_file_handler()
-    stream_handler = setup_stream_handler(verbose)
-    pipx_root_logger.addHandler(file_handler)
-    pipx_root_logger.addHandler(stream_handler)
-
-
-def setup_logging2(verbose: bool) -> None:
     pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
     log_file = setup_log_file()
 
@@ -754,8 +710,7 @@ def setup(args: argparse.Namespace) -> None:
         print_version()
         sys.exit(0)
 
-    # setup_logging("verbose" in args and args.verbose)
-    setup_logging2("verbose" in args and args.verbose)
+    setup_logging("verbose" in args and args.verbose)
 
     logger.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
     logger.debug(f"{' '.join(sys.argv)}")
