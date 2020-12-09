@@ -155,7 +155,7 @@ def upgrade(
         force=force,
     )
 
-    # Any error in upgrade will raise PipxError (e.g. from venv._run_pip())
+    # Any error in upgrade will raise PipxError (e.g. from venv.upgrade_package())
     return EXIT_CODE_OK
 
 

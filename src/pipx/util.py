@@ -124,9 +124,9 @@ def run_subprocess(
         universal_newlines=True,
     )
     if capture_stdout:
-        logger.debug(f"stdout: {completed_process.stdout}")
+        logger.debug(f"stdout: {completed_process.stdout}".rstrip())
     if capture_stderr:
-        logger.debug(f"stderr: {completed_process.stderr}")
+        logger.debug(f"stderr: {completed_process.stderr}".rstrip())
 
     return completed_process
 
@@ -141,6 +141,13 @@ def run_verify(cmd: Sequence[Union[str, Path]]) -> None:
     if returncode:
         cmd_str = " ".join(str(c) for c in cmd)
         raise PipxError(f"{cmd_str!r} failed")
+
+
+def print_completed_process(completed_process: subprocess.CompletedProcess):
+    print(completed_process.stdout, file=sys.stdout, end="")
+    print(completed_process.stderr, file=sys.stderr, end="")
+    if completed_process.returncode:
+        logger.info(f"{' '.join(completed_process.args)!r} failed")
 
 
 def exec_app(cmd: Sequence[Union[str, Path]], env: Dict[str, str] = None) -> None:
