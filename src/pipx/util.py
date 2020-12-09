@@ -128,7 +128,7 @@ def run_subprocess(
         logger.debug(f"stdout: {completed_process.stdout}".rstrip())
     if capture_stderr:
         logger.debug(f"stderr: {completed_process.stderr}".rstrip())
-    logger.debug(f"returncode: {completed_process.returncode}".rstrip())
+    logger.debug(f"returncode: {completed_process.returncode}")
 
     return completed_process
 
