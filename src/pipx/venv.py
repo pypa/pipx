@@ -26,7 +26,6 @@ from pipx.util import (
     print_completed_process,
     rmdir,
     run_subprocess,
-    run_verify,
 )
 
 logger = logging.getLogger(__name__)
@@ -151,7 +150,13 @@ class Venv:
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
             cmd = [self.python, "-m", "venv", "--without-pip"]
-            run_verify(cmd + venv_args + [str(self.root)])
+            venv_process = run_subprocess(
+                cmd + venv_args + [str(self.root)],
+                capture_stdout=True,
+                capture_stderr=True,
+            )
+        if venv_process.returncode:
+            raise PipxError(f"{' '.join([str(x) for x in venv_process.args])!r} failed")
         shared_libs.create(self.verbose)
         pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
         # write path pointing to the shared libs site-packages directory
