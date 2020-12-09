@@ -693,7 +693,7 @@ def setup(args: argparse.Namespace) -> None:
 
     # There should be no existing handlers, if some are found they are
     #   pytest artifacts from previous tests, so remove them
-    for handler in pipx_root_logger.handlers[:]:
+    for handler in pipx_root_logger.handlers.copy():
         pipx_root_logger.removeHandler(handler)
 
     file_handler = setup_file_handler()
