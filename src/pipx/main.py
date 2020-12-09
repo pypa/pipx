@@ -681,11 +681,7 @@ def setup_stream_handler(verbose: bool) -> logging.Handler:
     return stream_handler
 
 
-def setup(args: argparse.Namespace) -> None:
-    if "version" in args and args.version:
-        print_version()
-        sys.exit(0)
-
+def setup_logging(verbose: bool) -> None:
     # Setup logging so debug and above go to log file,
     #   info (verbose) or warning (non-verbose) and above go to console
     pipx_root_logger = logging.getLogger("pipx")
@@ -697,9 +693,17 @@ def setup(args: argparse.Namespace) -> None:
         pipx_root_logger.removeHandler(handler)
 
     file_handler = setup_file_handler()
-    stream_handler = setup_stream_handler("verbose" in args and args.verbose)
+    stream_handler = setup_stream_handler(verbose)
     pipx_root_logger.addHandler(file_handler)
     pipx_root_logger.addHandler(stream_handler)
+
+
+def setup(args: argparse.Namespace) -> None:
+    if "version" in args and args.version:
+        print_version()
+        sys.exit(0)
+
+    setup_logging("verbose" in args and args.verbose)
 
     logger.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
     logger.debug(f"{' '.join(sys.argv)}")
