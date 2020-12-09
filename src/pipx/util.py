@@ -115,7 +115,7 @@ def run_subprocess(
     logger.info(f"running {log_cmd_str}")
     # windows cannot take Path objects, only strings
     cmd_str_list = [str(c) for c in cmd]
-    return subprocess.run(
+    completed_process = subprocess.run(
         cmd_str_list,
         env=env,
         stdout=subprocess.PIPE if capture_stdout else None,
@@ -123,6 +123,12 @@ def run_subprocess(
         encoding="utf-8",
         universal_newlines=True,
     )
+    if capture_stdout:
+        logger.debug(f"stdout: {completed_process.stdout}")
+    if capture_stderr:
+        logger.debug(f"stderr: {completed_process.stdout}")
+
+    return completed_process
 
 
 def run_verify(cmd: Sequence[Union[str, Path]]) -> None:
