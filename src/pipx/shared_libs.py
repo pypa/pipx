@@ -8,7 +8,12 @@ from pipx import constants
 from pipx.animate import animate
 from pipx.constants import WINDOWS
 from pipx.interpreter import DEFAULT_PYTHON
-from pipx.util import get_site_packages, get_venv_paths, run_verify
+from pipx.util import (
+    get_site_packages,
+    get_venv_paths,
+    run_subprocess,
+    subprocess_post_check,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +41,11 @@ class _SharedLibs:
     def create(self, verbose: bool = False) -> None:
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
-                run_verify([DEFAULT_PYTHON, "-m", "venv", "--clear", self.root])
+                create_process = run_subprocess(
+                    [DEFAULT_PYTHON, "-m", "venv", "--clear", self.root]
+                )
+            subprocess_post_check(create_process)
+
             # ignore installed packages to ensure no unexpected patches from the OS vendor
             # are used
             self.upgrade(pip_args=["--force-reinstall"], verbose=verbose)
@@ -80,7 +89,7 @@ class _SharedLibs:
             _pip_args.append("-q")
         try:
             with animate("upgrading shared libraries", not verbose):
-                run_verify(
+                upgrade_process = run_subprocess(
                     [
                         self.python_path,
                         "-m",
@@ -94,7 +103,9 @@ class _SharedLibs:
                         "wheel",
                     ]
                 )
-                self.has_been_updated_this_run = True
+            subprocess_post_check(upgrade_process)
+
+            self.has_been_updated_this_run = True
             self.pip_path.touch()
 
         except Exception:

@@ -133,23 +133,32 @@ def run_subprocess(
     return completed_process
 
 
-def run_verify(cmd: Sequence[Union[str, Path]]) -> None:
-    """Run arbitrary command as subprocess, raise PipxError if error exit code"""
+# def run_verify(cmd: Sequence[Union[str, Path]]) -> None:
+#    """Run arbitrary command as subprocess, raise PipxError if error exit code"""
+#
+#    returncode = run_subprocess(
+#        cmd, capture_stdout=False, capture_stderr=False
+#    ).returncode
+#
+#    if returncode:
+#        cmd_str = " ".join(str(c) for c in cmd)
+#        raise PipxError(f"{cmd_str!r} failed")
 
-    returncode = run_subprocess(
-        cmd, capture_stdout=False, capture_stderr=False
-    ).returncode
 
-    if returncode:
-        cmd_str = " ".join(str(c) for c in cmd)
-        raise PipxError(f"{cmd_str!r} failed")
-
-
-def print_completed_process(completed_process: subprocess.CompletedProcess):
-    print(completed_process.stdout, file=sys.stdout, end="")
-    print(completed_process.stderr, file=sys.stderr, end="")
+def subprocess_post_check(
+    completed_process: subprocess.CompletedProcess, raise_error: bool = True
+) -> None:
     if completed_process.returncode:
-        logger.info(f"{' '.join(completed_process.args)!r} failed")
+        if completed_process.stdout is not None:
+            print(completed_process.stdout, file=sys.stdout, end="")
+        if completed_process.stderr is not None:
+            print(completed_process.stderr, file=sys.stderr, end="")
+        if raise_error:
+            raise PipxError(
+                f"{' '.join([str(x) for x in completed_process.args])!r} failed"
+            )
+        else:
+            logger.info(f"{' '.join(completed_process.args)!r} failed")
 
 
 def exec_app(cmd: Sequence[Union[str, Path]], env: Dict[str, str] = None) -> None:

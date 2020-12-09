@@ -23,9 +23,9 @@ from pipx.util import (
     full_package_description,
     get_site_packages,
     get_venv_paths,
-    print_completed_process,
     rmdir,
     run_subprocess,
+    subprocess_post_check,
 )
 
 logger = logging.getLogger(__name__)
@@ -150,13 +150,9 @@ class Venv:
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
             cmd = [self.python, "-m", "venv", "--without-pip"]
-            venv_process = run_subprocess(
-                cmd + venv_args + [str(self.root)],
-                capture_stdout=True,
-                capture_stderr=True,
-            )
-        if venv_process.returncode:
-            raise PipxError(f"{' '.join([str(x) for x in venv_process.args])!r} failed")
+            venv_process = run_subprocess(cmd + venv_args + [str(self.root)])
+        subprocess_post_check(venv_process)
+
         shared_libs.create(self.verbose)
         pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
         # write path pointing to the shared libs site-packages directory
@@ -220,8 +216,8 @@ class Venv:
         ):
             cmd = ["install"] + pip_args + [package_or_url]
             pip_process = self._run_pip(cmd)
+        subprocess_post_check(pip_process, raise_error=False)
         if pip_process.returncode:
-            print_completed_process(pip_process)
             raise PipxError(
                 f"Error installing "
                 f"{full_package_description(package, package_or_url)}."
@@ -253,8 +249,8 @@ class Venv:
             old_package_set = self.list_installed_packages()
             cmd = ["install"] + ["--no-dependencies"] + pip_args + [package_or_url]
             pip_process = self._run_pip(cmd)
+        subprocess_post_check(pip_process, raise_error=False)
         if pip_process.returncode:
-            print_completed_process(pip_process)
             raise PipxError(
                 f"Cannot determine package name from spec {package_or_url!r}. "
                 f"Check package spec for errors."
@@ -361,8 +357,7 @@ class Venv:
             f"upgrading {full_package_description(package, package)}", self.do_animation
         ):
             pip_process = self._run_pip(["install"] + pip_args + ["--upgrade", package])
-        if pip_process.returncode:
-            raise PipxError(f"{' '.join([str(x) for x in pip_process.args])!r} failed")
+        subprocess_post_check(pip_process)
 
     def upgrade_package(
         self,
@@ -381,8 +376,7 @@ class Venv:
             pip_process = self._run_pip(
                 ["install"] + pip_args + ["--upgrade", package_or_url]
             )
-        if pip_process.returncode:
-            raise PipxError(f"{' '.join([str(x) for x in pip_process.args])!r} failed")
+        subprocess_post_check(pip_process)
 
         self._update_package_metadata(
             package=package,
@@ -398,7 +392,7 @@ class Venv:
         cmd = [str(self.python_path), "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
-        return run_subprocess(cmd, capture_stdout=True, capture_stderr=True)
+        return run_subprocess(cmd)
 
     def run_pip_get_exit_code(self, cmd: List[str]) -> ExitCode:
         cmd = [str(self.python_path), "-m", "pip"] + cmd
