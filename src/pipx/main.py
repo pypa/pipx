@@ -4,6 +4,7 @@
 
 import argparse
 import logging
+import logging.config
 import os
 import re
 import shlex
@@ -12,6 +13,7 @@ import sys
 import textwrap
 import time
 import urllib.parse
+from pathlib import Path
 from typing import Dict, List
 
 import argcomplete  # type: ignore
@@ -25,6 +27,8 @@ from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import PipxError, mkdir
 from pipx.venv import VenvContainer
 from pipx.version import __version__
+
+logger = logging.getLogger(__name__)
 
 
 def print_version() -> None:
@@ -171,7 +175,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
                     args.spec = args.spec + f"#egg={package}"
 
         venv_dir = venv_container.get_venv_dir(package)
-        logging.info(f"Virtual Environment location is {venv_dir}")
+        logger.info(f"Virtual Environment location is {venv_dir}")
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
 
@@ -266,7 +270,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         try:
             return commands.ensure_pipx_paths(force=args.force)
         except Exception as e:
-            logging.debug("Uncaught Exception:", exc_info=True)
+            logger.debug("Uncaught Exception:", exc_info=True)
             raise PipxError(e)
     elif args.command == "completions":
         print(constants.completion_instructions)
@@ -635,7 +639,7 @@ def get_command_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def setup_file_handler() -> logging.Handler:
+def setup_log_file() -> Path:
     max_logs = 10
     # don't use utils.mkdir, to prevent emission of log message
     constants.PIPX_LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -655,28 +659,50 @@ def setup_file_handler() -> logging.Handler:
         log_file = constants.PIPX_LOG_DIR / f"cmd_{datetime_str}_{counter}.log"
         counter += 1
 
-    file_handler = logging.FileHandler(log_file)
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(
-        logging.Formatter(
-            "{relativeCreated: >8.1f}ms ({funcName}:{lineno}): {message}", style="{"
-        )
-    )
-    return file_handler
+    return log_file
 
 
-def setup_stream_handler(verbose: bool) -> logging.Handler:
-    stream_handler = logging.StreamHandler()
-    if verbose:
-        pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
-        stream_handler.setLevel(logging.INFO)
-        stream_handler.setFormatter(
-            logging.Formatter(pipx_str + "({funcName}:{lineno}): {message}", style="{")
-        )
-    else:
-        stream_handler.setLevel(logging.WARNING)
-        stream_handler.setFormatter(logging.Formatter("{message}", style="{"))
-    return stream_handler
+def setup_logging(verbose: bool) -> None:
+    pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
+    log_file = setup_log_file()
+
+    # "incremental" is False so previous pytest tests don't accumulate handlers
+    logging_config = {
+        "version": 1,
+        "formatters": {
+            "stream_nonverbose": {
+                "class": "logging.Formatter",
+                "format": "{message}",
+                "style": "{",
+            },
+            "stream_verbose": {
+                "class": "logging.Formatter",
+                "format": pipx_str + "({funcName}:{lineno}): {message}",
+                "style": "{",
+            },
+            "file": {
+                "class": "logging.Formatter",
+                "format": "{relativeCreated: >8.1f}ms ({funcName}:{lineno}): {message}",
+                "style": "{",
+            },
+        },
+        "handlers": {
+            "stream": {
+                "class": "logging.StreamHandler",
+                "formatter": "stream_verbose" if verbose else "stream_nonverbose",
+                "level": "INFO" if verbose else "WARNING",
+            },
+            "file": {
+                "class": "logging.FileHandler",
+                "formatter": "file",
+                "filename": str(log_file),
+                "level": "DEBUG",
+            },
+        },
+        "loggers": {"pipx": {"handlers": ["stream", "file"], "level": "DEBUG"}},
+        "incremental": False,
+    }
+    logging.config.dictConfig(logging_config)
 
 
 def setup(args: argparse.Namespace) -> None:
@@ -684,20 +710,12 @@ def setup(args: argparse.Namespace) -> None:
         print_version()
         sys.exit(0)
 
-    # Setup logging so debug and above go to log file,
-    #   info (verbose) or warning (non-verbose) and above go to console
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
+    setup_logging("verbose" in args and args.verbose)
 
-    file_handler = setup_file_handler()
-    stream_handler = setup_stream_handler("verbose" in args and args.verbose)
-    root_logger.addHandler(file_handler)
-    root_logger.addHandler(stream_handler)
-
-    logging.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
-    logging.debug(f"{' '.join(sys.argv)}")
-    logging.info(f"pipx version is {__version__}")
-    logging.info(f"Default python interpreter is {repr(DEFAULT_PYTHON)}")
+    logger.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.debug(f"{' '.join(sys.argv)}")
+    logger.info(f"pipx version is {__version__}")
+    logger.info(f"Default python interpreter is {repr(DEFAULT_PYTHON)}")
 
     mkdir(constants.PIPX_LOCAL_VENVS)
     mkdir(constants.LOCAL_BIN_DIR)
@@ -705,7 +723,7 @@ def setup(args: argparse.Namespace) -> None:
 
     old_pipx_venv_location = constants.PIPX_LOCAL_VENVS / "pipx-app"
     if old_pipx_venv_location.exists():
-        logging.warning(
+        logger.warning(
             "A virtual environment for pipx was detected at "
             f"{str(old_pipx_venv_location)}. The 'pipx-app' package has been renamed "
             "back to 'pipx' (https://github.com/pipxproject/pipx/issues/82)."
@@ -741,12 +759,12 @@ def cli() -> ExitCode:
         return run_pipx_command(parsed_pipx_args)
     except PipxError as e:
         print(str(e), file=sys.stderr)
-        logging.debug(f"PipxError: {e}", exc_info=True)
+        logger.debug(f"PipxError: {e}", exc_info=True)
         return ExitCode(1)
     except KeyboardInterrupt:
         return ExitCode(1)
     except Exception:
-        logging.debug("Uncaught Exception:", exc_info=True)
+        logger.debug("Uncaught Exception:", exc_info=True)
         raise
     finally:
         show_cursor()

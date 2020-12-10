@@ -19,6 +19,8 @@ from packaging.utils import canonicalize_name
 from pipx.emojies import hazard
 from pipx.util import PipxError
 
+logger = logging.getLogger(__name__)
+
 
 class ParsedPackage(NamedTuple):
     valid_pep508: Optional[Requirement]
@@ -27,8 +29,7 @@ class ParsedPackage(NamedTuple):
 
 
 def _split_path_extras(package_spec: str) -> Tuple[str, str]:
-    """Returns (path, extras_string)
-    """
+    """Returns (path, extras_string)"""
     package_spec_extras_re = re.search(r"(.+)(\[.+\])", package_spec)
     if package_spec_extras_re:
         return (package_spec_extras_re.group(1), package_spec_extras_re.group(2))
@@ -37,8 +38,7 @@ def _split_path_extras(package_spec: str) -> Tuple[str, str]:
 
 
 def _parse_specifier(package_spec: str) -> ParsedPackage:
-    """Parse package_spec as would be given to pipx
-    """
+    """Parse package_spec as would be given to pipx"""
     # If package_spec is valid pypi name, pip will always treat it as a
     #       pypi package, not checking for local path.
     #       We replicate pypi precedence here (only non-valid-pypi names
@@ -106,7 +106,7 @@ def _parsed_package_to_package_or_url(
 ) -> str:
     if parsed_package.valid_pep508 is not None:
         if parsed_package.valid_pep508.marker is not None:
-            logging.warning(
+            logger.warning(
                 textwrap.fill(
                     f"{hazard}  Ignoring environment markers "
                     f"({parsed_package.valid_pep508.marker}) in package "
@@ -124,7 +124,7 @@ def _parsed_package_to_package_or_url(
     elif parsed_package.valid_local_path is not None:
         package_or_url = parsed_package.valid_local_path
 
-    logging.info(f"cleaned package spec: {package_or_url}")
+    logger.info(f"cleaned package spec: {package_or_url}")
     return package_or_url
 
 
@@ -143,7 +143,7 @@ def parse_specifier_for_install(
         parsed_package, remove_version_specifiers=False
     )
     if "--editable" in pip_args and not parsed_package.valid_local_path:
-        logging.warning(
+        logger.warning(
             textwrap.fill(
                 f"{hazard}  Ignoring --editable install option. pipx disallows it "
                 "for anything but a local path, to avoid having to create a new "
@@ -208,7 +208,7 @@ def fix_package_name(package_or_url: str, package: str) -> str:
         return package_or_url
 
     if canonicalize_name(package_req.name) != canonicalize_name(package):
-        logging.warning(
+        logger.warning(
             textwrap.fill(
                 f"{hazard}  Name supplied in package specifier was "
                 f"{package_req.name!r} but package found has name "
