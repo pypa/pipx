@@ -14,6 +14,8 @@ from pipx.emojies import hazard, sleep, stars
 from pipx.util import WINDOWS, rmdir
 from pipx.venv import Venv, VenvContainer
 
+logger = logging.getLogger(__name__)
+
 
 def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> ExitCode:
     """Uninstall entire venv_dir, including main package and all injected
@@ -72,7 +74,7 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> ExitCode:
             symlink = filepath
             for b in app_paths:
                 if symlink.exists() and b.exists() and symlink.samefile(b):
-                    logging.info(f"removing symlink {str(symlink)}")
+                    logger.info(f"removing symlink {str(symlink)}")
                     symlink.unlink()
 
     rmdir(venv_dir)

@@ -11,6 +11,8 @@ from pipx import constants
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojies import stars
 
+logger = logging.getLogger(__name__)
+
 
 def get_pipx_user_bin_path() -> Optional[Path]:
     """Returns None if pipx is not installed using `pip --user`
@@ -116,7 +118,7 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
         )
     elif not need_shell_restart:
         sys.stdout.flush()
-        logging.warning(
+        logger.warning(
             textwrap.fill(
                 "All pipx binary directories have been added to PATH. "
                 "If you are sure you want to proceed, try again with "
