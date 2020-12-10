@@ -18,6 +18,8 @@ from packaging.utils import canonicalize_name
 from pipx.emojies import hazard
 from pipx.util import PipxError, pipx_wrap
 
+logger = logging.getLogger(__name__)
+
 
 class ParsedPackage(NamedTuple):
     valid_pep508: Optional[Requirement]
@@ -103,7 +105,7 @@ def _parsed_package_to_package_or_url(
 ) -> str:
     if parsed_package.valid_pep508 is not None:
         if parsed_package.valid_pep508.marker is not None:
-            logging.warning(
+            logger.warning(
                 pipx_wrap(
                     f"""
                     {hazard}  Ignoring environment markers
@@ -123,7 +125,7 @@ def _parsed_package_to_package_or_url(
     elif parsed_package.valid_local_path is not None:
         package_or_url = parsed_package.valid_local_path
 
-    logging.info(f"cleaned package spec: {package_or_url}")
+    logger.info(f"cleaned package spec: {package_or_url}")
     return package_or_url
 
 
@@ -142,7 +144,7 @@ def parse_specifier_for_install(
         parsed_package, remove_version_specifiers=False
     )
     if "--editable" in pip_args and not parsed_package.valid_local_path:
-        logging.warning(
+        logger.warning(
             pipx_wrap(
                 f"""
                 {hazard}  Ignoring --editable install option. pipx disallows it
@@ -209,7 +211,7 @@ def fix_package_name(package_or_url: str, package: str) -> str:
         return package_or_url
 
     if canonicalize_name(package_req.name) != canonicalize_name(package):
-        logging.warning(
+        logger.warning(
             pipx_wrap(
                 f"""
                 {hazard}  Name supplied in package specifier was

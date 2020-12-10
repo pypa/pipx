@@ -11,6 +11,8 @@ from pipx.package_specifier import parse_specifier_for_upgrade
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv, VenvContainer
 
+logger = logging.getLogger(__name__)
+
 
 def _upgrade_package(
     venv: Venv,
@@ -164,7 +166,7 @@ def upgrade(
         force=force,
     )
 
-    # Any error in upgrade will raise PipxError (e.g. from venv._run_pip())
+    # Any error in upgrade will raise PipxError (e.g. from venv.upgrade_package())
     return EXIT_CODE_OK
 
 
@@ -198,8 +200,8 @@ def upgrade_all(
 
         except PipxError as e:
             venv_error = True
-            logging.error(f"Error encountered when upgrading {venv_dir.name}:")
-            logging.error(f"{e}\n")
+            logger.error(f"Error encountered when upgrading {venv_dir.name}:")
+            logger.error(f"{e}\n")
 
     if venvs_upgraded == 0:
         print(

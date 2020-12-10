@@ -20,6 +20,8 @@ from pipx.pipx_metadata_file import PackageInfo
 from pipx.util import WINDOWS, PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import Venv
 
+logger = logging.getLogger(__name__)
+
 
 class VenvProblems:
     def __init__(
@@ -89,7 +91,7 @@ def _copy_package_apps(
         if not dest.parent.is_dir():
             mkdir(dest.parent)
         if dest.exists():
-            logging.warning(f"{hazard}  Overwriting file {str(dest)} with {str(src)}")
+            logger.warning(f"{hazard}  Overwriting file {str(dest)} with {str(src)}")
             dest.unlink()
         if src.exists():
             shutil.copy(src, dest)
@@ -106,7 +108,7 @@ def _symlink_package_apps(
             mkdir(symlink_path.parent)
 
         if force:
-            logging.info(f"Force is true. Removing {str(symlink_path)}.")
+            logger.info(f"Force is true. Removing {str(symlink_path)}.")
             try:
                 symlink_path.unlink()
             except FileNotFoundError:
@@ -118,9 +120,9 @@ def _symlink_package_apps(
         is_symlink = symlink_path.is_symlink()
         if exists:
             if symlink_path.samefile(app_path):
-                logging.info(f"Same path {str(symlink_path)} and {str(app_path)}")
+                logger.info(f"Same path {str(symlink_path)} and {str(app_path)}")
             else:
-                logging.warning(
+                logger.warning(
                     pipx_wrap(
                         f"""
                         {hazard}  File exists at {str(symlink_path)} and points
@@ -132,7 +134,7 @@ def _symlink_package_apps(
                 )
             continue
         if is_symlink and not exists:
-            logging.info(
+            logger.info(
                 f"Removing existing symlink {str(symlink_path)} since it "
                 "pointed non-existent location"
             )
@@ -142,7 +144,7 @@ def _symlink_package_apps(
         symlink_path.symlink_to(app_path)
 
         if existing_executable_on_path:
-            logging.warning(
+            logger.warning(
                 pipx_wrap(
                     f"""
                     {hazard}  Note: {app_name_suffixed} was already on your
@@ -294,8 +296,8 @@ def package_name_from_spec(
         # NOTE: if pypi name and installed package name differ, this means pipx
         #       will use the pypi name
         package_name = pypi_name
-        logging.info(f"Determined package name: {package_name}")
-        logging.info(f"Package name determined in {time.time()-start_time:.1f}s")
+        logger.info(f"Determined package name: {package_name}")
+        logger.info(f"Package name determined in {time.time()-start_time:.1f}s")
         return package_name
 
     # check syntax and clean up spec and pip_args
@@ -308,7 +310,7 @@ def package_name_from_spec(
             package_or_url=package_spec, pip_args=pip_args
         )
 
-    logging.info(f"Package name determined in {time.time()-start_time:.1f}s")
+    logger.info(f"Package name determined in {time.time()-start_time:.1f}s")
     return package_name
 
 
@@ -397,7 +399,7 @@ def run_post_install_actions(
 
 def warn_if_not_on_path(local_bin_dir: Path) -> None:
     if not userpath.in_current_path(str(local_bin_dir)):
-        logging.warning(
+        logger.warning(
             pipx_wrap(
                 f"""
                 {hazard}  Note: {str(local_bin_dir)!r} is not on your PATH

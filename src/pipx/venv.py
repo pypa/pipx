@@ -2,6 +2,7 @@ import json
 import logging
 import pkgutil
 from pathlib import Path
+from subprocess import CompletedProcess
 from typing import Dict, Generator, List, NamedTuple, Set
 
 from packaging.utils import canonicalize_name
@@ -26,8 +27,10 @@ from pipx.util import (
     pipx_wrap,
     rmdir,
     run_subprocess,
-    run_verify,
+    subprocess_post_check,
 )
+
+logger = logging.getLogger(__name__)
 
 venv_metadata_inspector_raw = pkgutil.get_data("pipx", "venv_metadata_inspector.py")
 assert venv_metadata_inspector_raw is not None, (
@@ -154,7 +157,9 @@ class Venv:
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
             cmd = [self.python, "-m", "venv", "--without-pip"]
-            run_verify(cmd + venv_args + [str(self.root)])
+            venv_process = run_subprocess(cmd + venv_args + [str(self.root)])
+        subprocess_post_check(venv_process)
+
         shared_libs.create(self.verbose)
         pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
         # write path pointing to the shared libs site-packages directory
@@ -178,7 +183,7 @@ class Venv:
         if self.safe_to_remove():
             rmdir(self.root)
         else:
-            logging.warning(
+            logger.warning(
                 pipx_wrap(
                     f"""
                     {hazard}  Not removing existing venv {self.root} because it
@@ -217,15 +222,14 @@ class Venv:
             package_or_url, pip_args
         )
 
-        try:
-            with animate(
-                f"installing {full_package_description(package, package_or_url)}",
-                self.do_animation,
-            ):
-                cmd = ["install"] + pip_args + [package_or_url]
-                self._run_pip(cmd)
-        except PipxError as e:
-            logging.info(e)
+        with animate(
+            f"installing {full_package_description(package, package_or_url)}",
+            self.do_animation,
+        ):
+            cmd = ["install"] + pip_args + [package_or_url]
+            pip_process = self._run_pip(cmd)
+        subprocess_post_check(pip_process, raise_error=False)
+        if pip_process.returncode:
             raise PipxError(
                 f"Error installing {full_package_description(package, package_or_url)}."
             )
@@ -251,15 +255,14 @@ class Venv:
             )
 
     def install_package_no_deps(self, package_or_url: str, pip_args: List[str]) -> str:
-        try:
-            with animate(
-                f"determining package name from {package_or_url!r}", self.do_animation
-            ):
-                old_package_set = self.list_installed_packages()
-                cmd = ["install"] + ["--no-dependencies"] + pip_args + [package_or_url]
-                self._run_pip(cmd)
-        except PipxError as e:
-            logging.info(e)
+        with animate(
+            f"determining package name from {package_or_url!r}", self.do_animation
+        ):
+            old_package_set = self.list_installed_packages()
+            cmd = ["install"] + ["--no-dependencies"] + pip_args + [package_or_url]
+            pip_process = self._run_pip(cmd)
+        subprocess_post_check(pip_process, raise_error=False)
+        if pip_process.returncode:
             raise PipxError(
                 f"""
                 Cannot determine package name from spec {package_or_url!r}.
@@ -270,10 +273,10 @@ class Venv:
         installed_packages = self.list_installed_packages() - old_package_set
         if len(installed_packages) == 1:
             package = installed_packages.pop()
-            logging.info(f"Determined package name: {package}")
+            logger.info(f"Determined package name: {package}")
         else:
-            logging.info(f"old_package_set = {old_package_set}")
-            logging.info(f"install_packages = {installed_packages}")
+            logger.info(f"old_package_set = {old_package_set}")
+            logger.info(f"install_packages = {installed_packages}")
             raise PipxError(
                 f"""
                 Cannot determine package name from spec {package_or_url!r}.
@@ -308,8 +311,8 @@ class Venv:
 
         venv_metadata_traceback = data.pop("exception_traceback", None)
         if venv_metadata_traceback is not None:
-            logging.error("Internal error with venv metadata inspection.")
-            logging.info(
+            logger.error("Internal error with venv metadata inspection.")
+            logger.info(
                 f"venv_metadata_inspector.py Traceback:\n{venv_metadata_traceback}"
             )
 
@@ -369,7 +372,8 @@ class Venv:
         with animate(
             f"upgrading {full_package_description(package, package)}", self.do_animation
         ):
-            self._run_pip(["install"] + pip_args + ["--upgrade", package])
+            pip_process = self._run_pip(["install"] + pip_args + ["--upgrade", package])
+        subprocess_post_check(pip_process)
 
     def upgrade_package(
         self,
@@ -385,7 +389,10 @@ class Venv:
             f"upgrading {full_package_description(package, package_or_url)}",
             self.do_animation,
         ):
-            self._run_pip(["install"] + pip_args + ["--upgrade", package_or_url])
+            pip_process = self._run_pip(
+                ["install"] + pip_args + ["--upgrade", package_or_url]
+            )
+        subprocess_post_check(pip_process)
 
         self._update_package_metadata(
             package=package,
@@ -397,11 +404,11 @@ class Venv:
             suffix=suffix,
         )
 
-    def _run_pip(self, cmd: List[str]) -> None:
+    def _run_pip(self, cmd: List[str]) -> CompletedProcess:
         cmd = [str(self.python_path), "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
-        run_verify(cmd)
+        return run_subprocess(cmd)
 
     def run_pip_get_exit_code(self, cmd: List[str]) -> ExitCode:
         cmd = [str(self.python_path), "-m", "pip"] + cmd
@@ -412,5 +419,5 @@ class Venv:
         ).returncode
         if returncode:
             cmd_str = " ".join(str(c) for c in cmd)
-            logging.error(f"{cmd_str!r} failed")
+            logger.error(f"{cmd_str!r} failed")
         return ExitCode(returncode)
