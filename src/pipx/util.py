@@ -9,13 +9,15 @@ from typing import Dict, List, Optional, Sequence, Tuple, Union
 from pipx.animate import show_cursor
 from pipx.constants import WINDOWS
 
+logger = logging.getLogger(__name__)
+
 
 class PipxError(Exception):
     pass
 
 
 def rmdir(path: Path) -> None:
-    logging.info(f"removing directory {path}")
+    logger.info(f"removing directory {path}")
     try:
         if WINDOWS:
             os.system(f'rmdir /S /Q "{str(path)}"')
@@ -28,7 +30,7 @@ def rmdir(path: Path) -> None:
 def mkdir(path: Path) -> None:
     if path.is_dir():
         return
-    logging.info(f"creating directory {path}")
+    logger.info(f"creating directory {path}")
     path.mkdir(parents=True, exist_ok=True)
 
 
@@ -110,10 +112,10 @@ def run_subprocess(
 
     if log_cmd_str is None:
         log_cmd_str = " ".join(str(c) for c in cmd)
-    logging.info(f"running {log_cmd_str}")
+    logger.info(f"running {log_cmd_str}")
     # windows cannot take Path objects, only strings
     cmd_str_list = [str(c) for c in cmd]
-    return subprocess.run(
+    completed_process = subprocess.run(
         cmd_str_list,
         env=env,
         stdout=subprocess.PIPE if capture_stdout else None,
@@ -122,17 +124,29 @@ def run_subprocess(
         universal_newlines=True,
     )
 
+    if capture_stdout:
+        logger.debug(f"stdout: {completed_process.stdout}".rstrip())
+    if capture_stderr:
+        logger.debug(f"stderr: {completed_process.stderr}".rstrip())
+    logger.debug(f"returncode: {completed_process.returncode}")
 
-def run_verify(cmd: Sequence[Union[str, Path]]) -> None:
-    """Run arbitrary command as subprocess, raise PipxError if error exit code"""
+    return completed_process
 
-    returncode = run_subprocess(
-        cmd, capture_stdout=False, capture_stderr=False
-    ).returncode
 
-    if returncode:
-        cmd_str = " ".join(str(c) for c in cmd)
-        raise PipxError(f"{cmd_str!r} failed")
+def subprocess_post_check(
+    completed_process: subprocess.CompletedProcess, raise_error: bool = True
+) -> None:
+    if completed_process.returncode:
+        if completed_process.stdout is not None:
+            print(completed_process.stdout, file=sys.stdout, end="")
+        if completed_process.stderr is not None:
+            print(completed_process.stderr, file=sys.stderr, end="")
+        if raise_error:
+            raise PipxError(
+                f"{' '.join([str(x) for x in completed_process.args])!r} failed"
+            )
+        else:
+            logger.info(f"{' '.join(completed_process.args)!r} failed")
 
 
 def exec_app(cmd: Sequence[Union[str, Path]], env: Dict[str, str] = None) -> None:
@@ -150,7 +164,7 @@ def exec_app(cmd: Sequence[Union[str, Path]], env: Dict[str, str] = None) -> Non
     show_cursor()
     sys.stderr.flush()
 
-    logging.info("exec_app: " + " ".join([str(c) for c in cmd]))
+    logger.info("exec_app: " + " ".join([str(c) for c in cmd]))
 
     if WINDOWS:
         sys.exit(

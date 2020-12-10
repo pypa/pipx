@@ -6,6 +6,9 @@ from typing import Any, Dict, List, NamedTuple, Optional, Union
 
 from pipx.util import PipxError
 
+logger = logging.getLogger(__name__)
+
+
 PIPX_INFO_FILENAME = "pipx_metadata.json"
 
 
@@ -112,7 +115,7 @@ class PipxMetadata:
             or self.main_package.package_or_url is None
             or not self.main_package.include_apps
         ):
-            logging.debug(f"PipxMetadata corrupt:\n{self.to_dict()}")
+            logger.debug(f"PipxMetadata corrupt:\n{self.to_dict()}")
             raise PipxError("Internal Error: PipxMetadata is corrupt, cannot write.")
 
     def write(self) -> None:
@@ -127,7 +130,7 @@ class PipxMetadata:
                     cls=JsonEncoderHandlesPath,
                 )
         except IOError:
-            logging.warning(
+            logger.warning(
                 textwrap.fill(
                     f"Unable to write {PIPX_INFO_FILENAME} to {self.venv_dir}. "
                     f"This may cause future pipx operations involving "
@@ -144,7 +147,7 @@ class PipxMetadata:
                 )
         except IOError:  # Reset self if problem reading
             if verbose:
-                logging.warning(
+                logger.warning(
                     textwrap.fill(
                         f"Unable to read {PIPX_INFO_FILENAME} in {self.venv_dir}. "
                         f"This may cause this or future pipx operations involving "

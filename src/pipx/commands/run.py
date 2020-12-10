@@ -22,6 +22,9 @@ from pipx.util import (
 )
 from pipx.venv import Venv
 
+logger = logging.getLogger(__name__)
+
+
 VENV_EXPIRED_FILENAME = "pipx_expired_venv"
 
 
@@ -46,14 +49,14 @@ def run(
                 "pipx will only execute apps from the internet directly if "
                 "they end with '.py'. To run from an SVN, try pipx --spec URL BINARY"
             )
-        logging.info("Detected url. Downloading and executing as a Python file.")
+        logger.info("Detected url. Downloading and executing as a Python file.")
 
         content = _http_get_request(app)
         # This never returns
         exec_app([str(python), "-c", content])
 
     elif which(app):
-        logging.warning(
+        logger.warning(
             f"{hazard}  {app} is already on your PATH and installed at "
             f"{which(app)}. Downloading and "
             "running anyway."
@@ -61,11 +64,11 @@ def run(
 
     if WINDOWS and not app.endswith(".exe"):
         app = f"{app}.exe"
-        logging.info(f"Assuming app is {app!r} (Windows only)")
+        logger.info(f"Assuming app is {app!r} (Windows only)")
 
     pypackage_bin_path = get_pypackage_bin_path(app)
     if pypackage_bin_path.exists():
-        logging.info(
+        logger.info(
             f"Using app in local __pypackages__ directory at {str(pypackage_bin_path)}"
         )
         # This never returns
@@ -84,11 +87,11 @@ def run(
     _prepare_venv_cache(venv, bin_path, use_cache)
 
     if bin_path.exists():
-        logging.info(f"Reusing cached venv {venv_dir}")
+        logger.info(f"Reusing cached venv {venv_dir}")
         # This never returns
         venv.run_app(app, app_args)
     else:
-        logging.info(f"venv location is {venv_dir}")
+        logger.info(f"venv location is {venv_dir}")
         # This never returns
         _download_and_run(
             Path(venv_dir),
@@ -177,7 +180,7 @@ def _is_temporary_venv_expired(venv_dir: Path) -> bool:
 def _prepare_venv_cache(venv: Venv, bin_path: Path, use_cache: bool) -> None:
     venv_dir = venv.root
     if not use_cache and bin_path.exists():
-        logging.info(f"Removing cached venv {str(venv_dir)}")
+        logger.info(f"Removing cached venv {str(venv_dir)}")
         rmdir(venv_dir)
     _remove_all_expired_venvs()
 
@@ -185,7 +188,7 @@ def _prepare_venv_cache(venv: Venv, bin_path: Path, use_cache: bool) -> None:
 def _remove_all_expired_venvs() -> None:
     for venv_dir in Path(constants.PIPX_VENV_CACHEDIR).iterdir():
         if _is_temporary_venv_expired(venv_dir):
-            logging.info(f"Removing expired venv {str(venv_dir)}")
+            logger.info(f"Removing expired venv {str(venv_dir)}")
             rmdir(venv_dir)
 
 
@@ -195,5 +198,5 @@ def _http_get_request(url: str) -> str:
         charset = res.headers.get_content_charset() or "utf-8"  # type: ignore
         return res.read().decode(charset)
     except Exception as e:
-        logging.debug("Uncaught Exception:", exc_info=True)
+        logger.debug("Uncaught Exception:", exc_info=True)
         raise PipxError(str(e))
