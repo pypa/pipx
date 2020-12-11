@@ -515,13 +515,10 @@ PKG: Dict[str, Dict[str, Any]] = {
     "platformio": {
         "spec": "platformio==5.0.1",
         "apps": _exe_if_win(["pio", "piodebuggdb", "platformio"]),
-        "apps_of_dependencies": _exe_if_win(["chardetect", "tabulate"])
-        + [
-            "bottle.py",  # bottle NO_EXE
-            "miniterm.py",  # NO_EXE
-            "miniterm.pyc",  # TODO: is this supposed to be a binary?
-            "readelf.py",  # NO_EXE
-        ],
+        "apps_of_dependencies": _exe_if_win(
+            ["chardetect", "pyserial-miniterm", "pyserial-ports", "tabulate"]
+        )
+        + ["bottle.py", "readelf.py"],
     },
     "ppci": {
         "spec": "ppci==0.5.8",
