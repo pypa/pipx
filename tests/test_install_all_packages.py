@@ -19,6 +19,8 @@ import pytest  # type: ignore
 from helpers import run_pipx_cli
 from package_info import PKG
 
+CLEAR_PATH = os.getenv("PATH_TEST")
+SYS_PATH = os.getenv("PATH_ORIG")
 REPORTS_DIR = "./reports"
 REPORT_FILENAME_ROOT = "all_packages"
 # "package_name, package_spec",
@@ -104,12 +106,9 @@ def pip_cache_purge():
 
 
 def verify_installed_apps(captured_outerr, package_name, test_error_fh, deps=False):
+    package_apps = PKG[package_name]["apps"]
     if deps:
-        package_apps = (
-            PKG[package_name]["apps"] + PKG[package_name]["apps_of_dependencies"]
-        )
-    else:
-        package_apps = PKG[package_name]["apps"]
+        package_apps += PKG[package_name]["apps_of_dependencies"]
 
     reported_apps_re = re.search(
         r"These apps are now globally available(.+)", captured_outerr.out, re.DOTALL
@@ -185,14 +184,12 @@ def install_and_verify(
     using_clear_path,
     package_spec,
     package_name,
-    deps=False,
+    deps,
 ):
     _ = capsys.readouterr()
     caplog.clear()
 
-    monkeypatch.setenv(
-        "PATH", os.getenv("PATH_TEST" if using_clear_path else "PATH_ORIG")
-    )
+    monkeypatch.setenv("PATH", CLEAR_PATH if using_clear_path else SYS_PATH)
 
     start_time = time.time()
     run_pipx_cli(
