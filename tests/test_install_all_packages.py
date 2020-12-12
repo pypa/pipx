@@ -177,6 +177,41 @@ def print_error_report(
         print(test_error_fh.getvalue(), end="", file=error_fh)
 
 
+def install_and_verify(
+    capsys,
+    caplog,
+    monkeypatch,
+    test_error_fh,
+    using_clear_path,
+    package_spec,
+    package_name,
+    deps=False,
+):
+    _ = capsys.readouterr()
+    caplog.clear()
+
+    monkeypatch.setenv(
+        "PATH", os.getenv("PATH_TEST" if using_clear_path else "PATH_ORIG")
+    )
+
+    start_time = time.time()
+    run_pipx_cli(
+        ["install", package_spec, "--verbose"] + (["--include-deps"] if deps else [])
+    )
+    elapsed_time = time.time() - start_time
+    captured = capsys.readouterr()
+
+    install_success = verify_install(
+        captured,
+        caplog,
+        package_name,
+        test_error_fh,
+        using_clear_path=using_clear_path,
+        deps=deps,
+    )
+    return install_success, elapsed_time, captured
+
+
 def install_package(
     module_globals,
     monkeypatch,
@@ -187,70 +222,53 @@ def install_package(
     package_name="",
     deps=False,
 ):
-    sys_path = os.getenv("PATH_ORIG")
-    clear_path = os.getenv("PATH_TEST")
-
     test_error_fh = io.StringIO()
     install_data = module_globals["install_data"]
     install_data[package_spec] = {}
     if not package_name:
         package_name = package_spec
 
-    monkeypatch.setenv("PATH", clear_path)
-    start_time = time.time()
-    run_pipx_cli(
-        ["install", package_spec, "--verbose"] + (["--include-deps"] if deps else [])
-    )
-    elapsed_time_clear = time.time() - start_time
-    elapsed_time_sys = 0
-
-    captured_clear_path = capsys.readouterr()
-    install_success = verify_install(
-        captured_clear_path,
+    (
+        install_data[package_spec]["clear_path_ok"],
+        elapsed_time_clear,
+        _,
+    ) = install_and_verify(
+        capsys,
         caplog,
-        package_name,
+        monkeypatch,
         test_error_fh,
         using_clear_path=True,
+        package_spec=package_spec,
+        package_name=package_name,
         deps=deps,
     )
 
-    if install_success:
-        install_data[package_spec]["clear_path_ok"] = True
-    else:
-        install_data[package_spec]["clear_path_ok"] = False
+    elapsed_time_sys = 0
 
+    if not install_data[package_spec]["clear_path_ok"]:
         # uninstall in case problems found by verify_install did not prevent
         #   pipx installation
         run_pipx_cli(["uninstall", package_name])
-        _ = capsys.readouterr()
-        caplog.clear()
 
-        monkeypatch.setenv("PATH", sys_path)
-
-        start_time = time.time()
-        run_pipx_cli(
-            ["install", package_spec, "--verbose"]
-            + (["--include-deps"] if deps else [])
-        )
-        elapsed_time_sys = time.time() - start_time
-        captured_sys_path = capsys.readouterr()
-
-        install_success_orig_path = verify_install(
-            captured_sys_path,
+        (
+            install_data[package_spec]["sys_path_ok"],
+            elapsed_time_sys,
+            captured_sys,
+        ) = install_and_verify(
+            capsys,
             caplog,
-            package_name,
+            monkeypatch,
             test_error_fh,
             using_clear_path=False,
+            package_spec=package_spec,
+            package_name=package_name,
             deps=deps,
         )
 
-        if install_success_orig_path:
-            install_data[package_spec]["sys_path_ok"] = True
-        else:
-            install_data[package_spec]["sys_path_ok"] = False
+        if not install_data[package_spec]["sys_path_ok"]:
             print_error_report(
                 module_globals["error_path"],
-                captured_sys_path,
+                captured_sys,
                 test_error_fh,
                 package_spec,
                 "sys PATH",
