@@ -223,6 +223,7 @@ def install_package(
         #   pipx installation
         run_pipx_cli(["uninstall", package_name])
         _ = capsys.readouterr()
+        caplog.clear()
 
         monkeypatch.setenv("PATH", sys_path)
 
