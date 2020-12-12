@@ -22,69 +22,69 @@ from package_info import PKG
 REPORTS_DIR = "./reports"
 REPORT_FILENAME_ROOT = "all_packages"
 # "package_name, package_spec",
-PACKAGE_PARAMETRIZE_LIST = [
-    ("ansible", PKG["ansible"]["spec"]),
-    ("awscli", PKG["awscli"]["spec"]),
-    ("b2", PKG["b2"]["spec"]),
-    ("beancount", PKG["beancount"]["spec"]),
-    ("beets", PKG["beets"]["spec"]),
-    ("black", PKG["black"]["spec"]),
-    ("cactus", PKG["cactus"]["spec"]),
-    ("chert", PKG["chert"]["spec"]),
-    ("cloudtoken", PKG["cloudtoken"]["spec"]),
-    ("coala", PKG["coala"]["spec"]),
-    ("cookiecutter", PKG["cookiecutter"]["spec"]),
-    ("cython", PKG["cython"]["spec"]),
-    ("datasette", PKG["datasette"]["spec"]),
-    ("diffoscope", PKG["diffoscope"]["spec"]),
-    ("doc2dash", PKG["doc2dash"]["spec"]),
-    ("doitlive", PKG["doitlive"]["spec"]),
-    ("gdbgui", PKG["gdbgui"]["spec"]),
-    ("gns3-gui", PKG["gns3-gui"]["spec"]),
-    ("grow", PKG["grow"]["spec"]),
-    ("guake", PKG["guake"]["spec"]),
-    ("gunicorn", PKG["gunicorn"]["spec"]),
-    ("howdoi", PKG["howdoi"]["spec"]),
-    ("httpie", PKG["httpie"]["spec"]),
-    ("hyde", PKG["hyde"]["spec"]),
-    ("ipython", PKG["ipython"]["spec"]),
-    ("isort", PKG["isort"]["spec"]),
-    ("jaraco-financial", PKG["jaraco-financial"]["spec"]),
-    ("kaggle", PKG["kaggle"]["spec"]),
-    ("kibitzr", PKG["kibitzr"]["spec"]),
-    ("klaus", PKG["klaus"]["spec"]),
-    ("kolibri", PKG["kolibri"]["spec"]),
-    ("lektor", PKG["lektor"]["spec"]),
-    ("localstack", PKG["localstack"]["spec"]),
-    ("mackup", PKG["mackup"]["spec"]),
-    ("magic-wormhole", PKG["magic-wormhole"]["spec"]),
-    ("mayan-edms", PKG["mayan-edms"]["spec"]),
-    ("mkdocs", PKG["mkdocs"]["spec"]),
-    ("mycli", PKG["mycli"]["spec"]),
-    ("nikola", PKG["nikola"]["spec"]),
-    ("nox", PKG["nox"]["spec"]),
-    ("pelican", PKG["pelican"]["spec"]),
-    ("platformio", PKG["platformio"]["spec"]),
-    ("ppci", PKG["ppci"]["spec"]),
-    ("prosopopee", PKG["prosopopee"]["spec"]),
-    ("ptpython", PKG["ptpython"]["spec"]),
-    ("pycowsay", PKG["pycowsay"]["spec"]),
-    ("pylint", PKG["pylint"]["spec"]),
-    ("retext", PKG["retext"]["spec"]),
-    ("robotframework", PKG["robotframework"]["spec"]),
-    ("shell-functools", PKG["shell-functools"]["spec"]),
-    ("speedtest-cli", PKG["speedtest-cli"]["spec"]),
-    ("sphinx", PKG["sphinx"]["spec"]),
-    ("sqlmap", PKG["sqlmap"]["spec"]),
-    ("streamlink", PKG["streamlink"]["spec"]),
-    ("taguette", PKG["taguette"]["spec"]),
-    ("term2048", PKG["term2048"]["spec"]),
-    ("tox-ini-fmt", PKG["tox-ini-fmt"]["spec"]),
-    ("visidata", PKG["visidata"]["spec"]),
-    ("vulture", PKG["vulture"]["spec"]),
-    ("weblate", PKG["weblate"]["spec"]),
-    ("youtube-dl", PKG["youtube-dl"]["spec"]),
-    ("zeo", PKG["zeo"]["spec"]),
+PACKAGE_NAME_LIST = [
+    "ansible",
+    "awscli",
+    "b2",
+    "beancount",
+    "beets",
+    "black",
+    "cactus",
+    "chert",
+    "cloudtoken",
+    "coala",
+    "cookiecutter",
+    "cython",
+    "datasette",
+    "diffoscope",
+    "doc2dash",
+    "doitlive",
+    "gdbgui",
+    "gns3-gui",
+    "grow",
+    "guake",
+    "gunicorn",
+    "howdoi",
+    "httpie",
+    "hyde",
+    "ipython",
+    "isort",
+    "jaraco-financial",
+    "kaggle",
+    "kibitzr",
+    "klaus",
+    "kolibri",
+    "lektor",
+    "localstack",
+    "mackup",
+    "magic-wormhole",
+    "mayan-edms",
+    "mkdocs",
+    "mycli",
+    "nikola",
+    "nox",
+    "pelican",
+    "platformio",
+    "ppci",
+    "prosopopee",
+    "ptpython",
+    "pycowsay",
+    "pylint",
+    "retext",
+    "robotframework",
+    "shell-functools",
+    "speedtest-cli",
+    "sphinx",
+    "sqlmap",
+    "streamlink",
+    "taguette",
+    "term2048",
+    "tox-ini-fmt",
+    "visidata",
+    "vulture",
+    "weblate",
+    "youtube-dl",
+    "zeo",
 ]
 
 
@@ -134,7 +134,7 @@ def verify_installed_apps(captured_outerr, package_name, test_error_fh, deps=Fal
     return app_success
 
 
-def verify_install(
+def verify_post_install(
     captured_outerr, caplog, package_name, test_error_fh, using_clear_path, deps=False
 ):
     caplog_problem = False
@@ -201,7 +201,7 @@ def install_and_verify(
     elapsed_time = time.time() - start_time
     captured = capsys.readouterr()
 
-    install_success = verify_install(
+    install_success = verify_post_install(
         captured,
         caplog,
         package_name,
@@ -212,21 +212,19 @@ def install_and_verify(
     return install_success, elapsed_time, captured
 
 
-def install_package(
+def install_package_both_paths(
     module_globals,
     monkeypatch,
     capsys,
     pipx_temp_env,
     caplog,
-    package_spec,
     package_name="",
     deps=False,
 ):
     test_error_fh = io.StringIO()
+    package_spec = PKG[package_name]["spec"]
     install_data = module_globals["install_data"]
     install_data[package_spec] = {}
-    if not package_name:
-        package_name = package_spec
 
     (
         install_data[package_spec]["clear_path_ok"],
@@ -246,7 +244,7 @@ def install_package(
     elapsed_time_sys = 0
 
     if not install_data[package_spec]["clear_path_ok"]:
-        # uninstall in case problems found by verify_install did not prevent
+        # uninstall in case problems found by verify_post_install did not prevent
         #   pipx installation
         run_pipx_cli(["uninstall", package_name])
 
@@ -357,7 +355,7 @@ def start_end_report(module_globals, request):
 class TestAllPackagesNoDeps:
     test_class = "nodeps"
 
-    @pytest.mark.parametrize("package_name, package_spec", PACKAGE_PARAMETRIZE_LIST)
+    @pytest.mark.parametrize("package_name", PACKAGE_NAME_LIST)
     @pytest.mark.all_packages
     def test_all_packages(
         self,
@@ -368,16 +366,14 @@ class TestAllPackagesNoDeps:
         pipx_temp_env,
         caplog,
         package_name,
-        package_spec,
     ):
         pip_cache_purge()
-        install_package(
+        install_package_both_paths(
             module_globals,
             monkeypatch,
             capsys,
             pipx_temp_env,
             caplog,
-            package_spec,
             package_name,
             deps=False,
         )
@@ -386,7 +382,7 @@ class TestAllPackagesNoDeps:
 class TestAllPackagesDeps:
     test_class = "deps"
 
-    @pytest.mark.parametrize("package_name, package_spec", PACKAGE_PARAMETRIZE_LIST)
+    @pytest.mark.parametrize("package_name", PACKAGE_NAME_LIST)
     @pytest.mark.all_packages
     def test_deps_all_packages(
         self,
@@ -397,16 +393,14 @@ class TestAllPackagesDeps:
         pipx_temp_env,
         caplog,
         package_name,
-        package_spec,
     ):
         pip_cache_purge()
-        install_package(
+        install_package_both_paths(
             module_globals,
             monkeypatch,
             capsys,
             pipx_temp_env,
             caplog,
-            package_spec,
             package_name,
             deps=True,
         )
