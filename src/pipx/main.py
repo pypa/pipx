@@ -8,7 +8,6 @@ import logging.config
 import os
 import re
 import shlex
-import shutil
 import sys
 import textwrap
 import time
@@ -23,8 +22,9 @@ from pipx import commands, constants
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
 from pipx.constants import ExitCode
+from pipx.emojies import hazard
 from pipx.interpreter import DEFAULT_PYTHON
-from pipx.util import PipxError, mkdir
+from pipx.util import PipxError, mkdir, pipx_wrap
 from pipx.venv import VenvContainer
 from pipx.version import __version__
 
@@ -35,22 +35,9 @@ def print_version() -> None:
     print(__version__)
 
 
-def indented_wrap(
-    text: str, subsequent_indent: str = "", split: str = "\n", **kwargs
-) -> str:
-    text = textwrap.dedent(text).strip()
-    minimum_width = 40
-    width = max(shutil.get_terminal_size((80, 40)).columns, minimum_width) - 2
-    return "\n".join(
-        [
-            textwrap.fill(line, width=width, subsequent_indent=subsequent_indent)
-            for line in text.splitlines()
-        ]
-    )
-
-
 SPEC_HELP = textwrap.dedent(
-    """The package name or specific installation source passed to pip.
+    """\
+    The package name or specific installation source passed to pip.
     Runs `pip install -U SPEC`.
     For example `--spec mypackage==2.0.0` or `--spec  git+https://github.com/user/repo.git@branch`
     """
@@ -58,26 +45,26 @@ SPEC_HELP = textwrap.dedent(
 
 PIPX_DESCRIPTION = textwrap.dedent(
     f"""
-        Install and execute apps from Python packages.
+    Install and execute apps from Python packages.
 
-        Binaries can either be installed globally into isolated Virtual Environments
-        or run directly in an temporary Virtual Environment.
+    Binaries can either be installed globally into isolated Virtual Environments
+    or run directly in a temporary Virtual Environment.
 
-        Virtual Environment location is {str(constants.PIPX_LOCAL_VENVS)}.
-        Symlinks to apps are placed in {str(constants.LOCAL_BIN_DIR)}.
+    Virtual Environment location is {str(constants.PIPX_LOCAL_VENVS)}.
+    Symlinks to apps are placed in {str(constants.LOCAL_BIN_DIR)}.
 
-        """
-)
-PIPX_DESCRIPTION += "\n"
-PIPX_DESCRIPTION += indented_wrap(
     """
-        optional environment variables:
-          PIPX_HOME             Overrides default pipx location. Virtual Environments will be installed to $PIPX_HOME/venvs.
-          PIPX_BIN_DIR          Overrides location of app installations. Apps are symlinked or copied here.
-          USE_EMOJI             Overrides emoji behavior. Default value varies based on platform.
-          PIPX_DEFAULT_PYTHON   Overrides default python used for commands.
+)
+PIPX_DESCRIPTION += pipx_wrap(
+    """
+    optional environment variables:
+      PIPX_HOME             Overrides default pipx location. Virtual Environments will be installed to $PIPX_HOME/venvs.
+      PIPX_BIN_DIR          Overrides location of app installations. Apps are symlinked or copied here.
+      USE_EMOJI             Overrides emoji behavior. Default value varies based on platform.
+      PIPX_DEFAULT_PYTHON   Overrides default python used for commands.
     """,
-    " " * 24,  # match the indent of argparse options
+    subsequent_indent=" " * 24,  # match the indent of argparse options
+    keep_newlines=True,
 )
 
 DOC_DEFAULT_PYTHON = os.getenv("PIPX__DOC_DEFAULT_PYTHON", DEFAULT_PYTHON)
@@ -264,14 +251,14 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         )
     elif args.command == "runpip":
         if not venv_dir:
-            raise PipxError("developer error: venv dir is not defined")
+            raise PipxError("Developer error: venv_dir is not defined.")
         return commands.run_pip(package, venv_dir, args.pipargs, args.verbose)
     elif args.command == "ensurepath":
         try:
             return commands.ensure_pipx_paths(force=args.force)
         except Exception as e:
             logger.debug("Uncaught Exception:", exc_info=True)
-            raise PipxError(e)
+            raise PipxError(str(e), wrap_message=False)
     elif args.command == "completions":
         print(constants.completion_instructions)
         return ExitCode(0)
@@ -439,12 +426,12 @@ def _add_reinstall(subparsers, venv_completer) -> None:
         help="Reinstall a package",
         description=textwrap.dedent(
             """
-        Reinstalls a package.
+            Reinstalls a package.
 
-        Package is uninstalled, then installed with pipx install PACKAGE
-        with the same options used in the original install of PACKAGE.
+            Package is uninstalled, then installed with pipx install PACKAGE
+            with the same options used in the original install of PACKAGE.
 
-        """
+            """
         ),
     )
     p.add_argument("package").completer = venv_completer
@@ -466,14 +453,14 @@ def _add_reinstall_all(subparsers) -> None:
         help="Reinstall all packages",
         description=textwrap.dedent(
             """
-        Reinstalls all packages.
+            Reinstalls all packages.
 
-        Packages are uninstalled, then installed with pipx install PACKAGE
-        with the same options used in the original install of PACKAGE.
-        This is useful if you upgraded to a new version of Python and want
-        all your packages to use the latest as well.
+            Packages are uninstalled, then installed with pipx install PACKAGE
+            with the same options used in the original install of PACKAGE.
+            This is useful if you upgraded to a new version of Python and want
+            all your packages to use the latest as well.
 
-        """
+            """
         ),
     )
     p.add_argument(
@@ -513,17 +500,17 @@ def _add_run(subparsers) -> None:
         ),
         description=textwrap.dedent(
             f"""
-        Download the latest version of a package to a temporary virtual environment,
-        then run an app from it. The environment will be cached
-        and re-used for up to {constants.TEMP_VENV_EXPIRATION_THRESHOLD_DAYS} days. This
-        means subsequent calls to 'run' for the same package will be faster
-        since they can re-use the cached Virtual Environment.
+            Download the latest version of a package to a temporary virtual environment,
+            then run an app from it. The environment will be cached
+            and re-used for up to {constants.TEMP_VENV_EXPIRATION_THRESHOLD_DAYS} days. This
+            means subsequent calls to 'run' for the same package will be faster
+            since they can re-use the cached Virtual Environment.
 
-        In support of PEP 582 'run' will use apps found in a local __pypackages__
-         directory, if present. Please note that this behavior is experimental,
-         and is a acts as a companion tool to pythonloc. It may be modified or
-         removed in the future. See https://github.com/cs01/pythonloc.
-        """
+            In support of PEP 582 'run' will use apps found in a local __pypackages__
+            directory, if present. Please note that this behavior is experimental,
+            and acts as a companion tool to pythonloc. It may be modified or
+            removed in the future. See https://github.com/cs01/pythonloc.
+            """
         ),
     )
     p.add_argument(
@@ -724,9 +711,15 @@ def setup(args: argparse.Namespace) -> None:
     old_pipx_venv_location = constants.PIPX_LOCAL_VENVS / "pipx-app"
     if old_pipx_venv_location.exists():
         logger.warning(
-            "A virtual environment for pipx was detected at "
-            f"{str(old_pipx_venv_location)}. The 'pipx-app' package has been renamed "
-            "back to 'pipx' (https://github.com/pipxproject/pipx/issues/82)."
+            pipx_wrap(
+                f"""
+                {hazard}  A virtual environment for pipx was detected at
+                {str(old_pipx_venv_location)}. The 'pipx-app' package has been
+                renamed back to 'pipx'
+                (https://github.com/pipxproject/pipx/issues/82).
+                """,
+                subsequent_indent=" " * 4,
+            )
         )
 
 

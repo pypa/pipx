@@ -1,7 +1,6 @@
 import logging
 import site
 import sys
-import textwrap
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -9,7 +8,8 @@ import userpath  # type: ignore
 
 from pipx import constants
 from pipx.constants import EXIT_CODE_OK, ExitCode
-from pipx.emojies import stars
+from pipx.emojies import hazard, stars
+from pipx.util import pipx_wrap
 
 logger = logging.getLogger(__name__)
 
@@ -63,27 +63,27 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
     if force or (not in_current_path and not need_shell_restart):
         userpath.append(location_str)
         print(
-            textwrap.fill(
+            pipx_wrap(
                 f"Success! Added {location_str} to the PATH environment variable.",
-                subsequent_indent="    ",
+                subsequent_indent=" " * 4,
             )
         )
         path_added = True
         need_shell_restart = userpath.need_shell_restart(location_str)
     elif not in_current_path and need_shell_restart:
         print(
-            textwrap.fill(
-                f"{location_str} has been been added to PATH, but you "
-                "need to open a new terminal or re-login for this PATH "
-                "change to take effect.",
-                subsequent_indent="    ",
+            pipx_wrap(
+                f"""
+                {location_str} has been been added to PATH, but you need to
+                open a new terminal or re-login for this PATH change to take
+                effect.
+                """,
+                subsequent_indent=" " * 4,
             )
         )
     else:
         print(
-            textwrap.fill(
-                f"{location_str} is already in PATH.", subsequent_indent="    "
-            )
+            pipx_wrap(f"{location_str} is already in PATH.", subsequent_indent=" " * 4)
         )
 
     return (path_added, need_shell_restart)
@@ -110,28 +110,34 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
 
     if path_added:
         print(
-            textwrap.fill(
-                "Consider adding shell completions for pipx. "
-                "Run 'pipx completions' for instructions."
+            pipx_wrap(
+                """
+                Consider adding shell completions for pipx. Run 'pipx
+                completions' for instructions.
+                """
             )
             + "\n"
         )
     elif not need_shell_restart:
         sys.stdout.flush()
         logger.warning(
-            textwrap.fill(
-                "All pipx binary directories have been added to PATH. "
-                "If you are sure you want to proceed, try again with "
-                "the '--force' flag."
+            pipx_wrap(
+                f"""
+                {hazard}  All pipx binary directories have been added to PATH. If you
+                are sure you want to proceed, try again with the '--force'
+                flag.
+                """
             )
             + "\n"
         )
 
     if need_shell_restart:
         print(
-            textwrap.fill(
-                "You will need to open a new terminal or re-login for "
-                "the PATH changes to take effect."
+            pipx_wrap(
+                """
+                You will need to open a new terminal or re-login for the PATH
+                changes to take effect.
+                """
             )
             + "\n"
         )

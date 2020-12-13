@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest  # type: ignore
 
-from helpers import run_pipx_cli, which_python
+from helpers import run_pipx_cli, unwrap_log_text, which_python
 from pipx import constants
 
 PYTHON3_5 = which_python("python3.5")
@@ -111,11 +111,13 @@ def test_include_deps(pipx_temp_env, capsys):
 
 def test_path_warning(pipx_temp_env, capsys, monkeypatch, caplog):
     assert not run_pipx_cli(["install", "pycowsay"])
-    assert "is not on your PATH environment variable" not in caplog.text
+    assert "is not on your PATH environment variable" not in unwrap_log_text(
+        caplog.text
+    )
 
     monkeypatch.setenv("PATH", "")
     assert not run_pipx_cli(["install", "pycowsay", "--force"])
-    assert "is not on your PATH environment variable" in caplog.text
+    assert "is not on your PATH environment variable" in unwrap_log_text(caplog.text)
 
 
 def test_existing_symlink_points_to_existing_wrong_location_warning(
@@ -128,14 +130,14 @@ def test_existing_symlink_points_to_existing_wrong_location_warning(
     (constants.LOCAL_BIN_DIR / "pycowsay").symlink_to(os.devnull)
     assert not run_pipx_cli(["install", "pycowsay"])
     captured = capsys.readouterr()
-    assert "File exists at" in caplog.text
+    assert "File exists at" in unwrap_log_text(caplog.text)
     assert "symlink missing or pointing to unexpected location" in captured.out
     # bin dir was on path, so the warning should NOT appear (even though the symlink
     # pointed to the wrong location)
     assert "is not on your PATH environment variable" not in captured.err
 
 
-def test_existing_symlink_points_to_nothing(pipx_temp_env, caplog, capsys):
+def test_existing_symlink_points_to_nothing(pipx_temp_env, capsys):
     if sys.platform.startswith("win"):
         pytest.skip("pipx does not use symlinks on Windows")
 
@@ -155,9 +157,7 @@ def test_install_python3_5(pipx_temp_env):
         pytest.skip("python3.5 not on PATH")
 
 
-def test_pip_args_forwarded_to_package_name_determination(
-    pipx_temp_env, caplog, capsys
-):
+def test_pip_args_forwarded_to_package_name_determination(pipx_temp_env, capsys):
     assert run_pipx_cli(
         [
             "install",

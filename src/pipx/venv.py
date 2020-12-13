@@ -9,6 +9,7 @@ from packaging.utils import canonicalize_name
 
 from pipx.animate import animate
 from pipx.constants import PIPX_SHARED_PTH, ExitCode
+from pipx.emojies import hazard
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.package_specifier import (
     fix_package_name,
@@ -23,6 +24,7 @@ from pipx.util import (
     full_package_description,
     get_site_packages,
     get_venv_paths,
+    pipx_wrap,
     rmdir,
     run_subprocess,
     subprocess_post_check,
@@ -103,10 +105,15 @@ class Venv:
 
             if not shared_libs.is_valid:
                 raise PipxError(
-                    f"Error: pipx's shared venv {shared_libs.root} is invalid and "
-                    "needs re-installation. To fix this, install or reinstall a "
-                    "package. For example,\n"
-                    f"  pipx install {self.root.name} --force"
+                    pipx_wrap(
+                        f"""
+                        Error: pipx's shared venv {shared_libs.root} is invalid
+                        and needs re-installation. To fix this, install or
+                        reinstall a package. For example:
+                        """
+                    )
+                    + f"\n  pipx install {self.root.name} --force",
+                    wrap_message=False,
                 )
 
     @property
@@ -177,8 +184,13 @@ class Venv:
             rmdir(self.root)
         else:
             logger.warning(
-                f"Not removing existing venv {self.root} because "
-                "it was not created in this session"
+                pipx_wrap(
+                    f"""
+                    {hazard}  Not removing existing venv {self.root} because it
+                    was not created in this session
+                    """,
+                    subsequent_indent=" " * 4,
+                )
             )
 
     def upgrade_packaging_libraries(self, pip_args: List[str]) -> None:
@@ -219,8 +231,7 @@ class Venv:
         subprocess_post_check(pip_process, raise_error=False)
         if pip_process.returncode:
             raise PipxError(
-                f"Error installing "
-                f"{full_package_description(package, package_or_url)}."
+                f"Error installing {full_package_description(package, package_or_url)}."
             )
 
         self._update_package_metadata(
@@ -239,7 +250,8 @@ class Venv:
                 f"Unable to install "
                 f"{full_package_description(package, package_or_url)}.\n"
                 f"Check the name or spec for errors, and verify that it can "
-                f"be installed with pip."
+                f"be installed with pip.",
+                wrap_message=False,
             )
 
     def install_package_no_deps(self, package_or_url: str, pip_args: List[str]) -> str:
@@ -252,8 +264,10 @@ class Venv:
         subprocess_post_check(pip_process, raise_error=False)
         if pip_process.returncode:
             raise PipxError(
-                f"Cannot determine package name from spec {package_or_url!r}. "
-                f"Check package spec for errors."
+                f"""
+                Cannot determine package name from spec {package_or_url!r}.
+                Check package spec for errors.
+                """
             )
 
         installed_packages = self.list_installed_packages() - old_package_set
@@ -264,8 +278,10 @@ class Venv:
             logger.info(f"old_package_set = {old_package_set}")
             logger.info(f"install_packages = {installed_packages}")
             raise PipxError(
-                f"Cannot determine package name from spec {package_or_url!r}. "
-                f"Check package spec for errors."
+                f"""
+                Cannot determine package name from spec {package_or_url!r}.
+                Check package spec for errors.
+                """
             )
 
         return package

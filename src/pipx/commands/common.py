@@ -17,7 +17,7 @@ from pipx.colors import bold, red
 from pipx.emojies import hazard, stars
 from pipx.package_specifier import parse_specifier_for_install, valid_pypi_name
 from pipx.pipx_metadata_file import PackageInfo
-from pipx.util import WINDOWS, PipxError, mkdir, rmdir
+from pipx.util import WINDOWS, PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import Venv
 
 logger = logging.getLogger(__name__)
@@ -123,8 +123,14 @@ def _symlink_package_apps(
                 logger.info(f"Same path {str(symlink_path)} and {str(app_path)}")
             else:
                 logger.warning(
-                    f"{hazard}  File exists at {str(symlink_path)} and points "
-                    f"to {symlink_path.resolve()}, not {str(app_path)}. Not modifying."
+                    pipx_wrap(
+                        f"""
+                        {hazard}  File exists at {str(symlink_path)} and points
+                        to {symlink_path.resolve()}, not {str(app_path)}. Not
+                        modifying.
+                        """,
+                        subsequent_indent=" " * 4,
+                    )
                 )
             continue
         if is_symlink and not exists:
@@ -139,8 +145,13 @@ def _symlink_package_apps(
 
         if existing_executable_on_path:
             logger.warning(
-                f"{hazard}  Note: {app_name_suffixed} was already on your PATH at "
-                f"{existing_executable_on_path}"
+                pipx_wrap(
+                    f"""
+                    {hazard}  Note: {app_name_suffixed} was already on your
+                    PATH at {existing_executable_on_path}
+                    """,
+                    subsequent_indent=" " * 4,
+                )
             )
 
 
@@ -331,17 +342,21 @@ def run_post_install_actions(
 
         if package_metadata.app_paths_of_dependencies:
             raise PipxError(
-                f"No apps associated with package {display_name}. "
-                "Try again with '--include-deps' to include apps of dependent packages, "
-                "which are listed above. "
-                "If you are attempting to install a library, pipx should not be used. "
-                "Consider using pip or a similar tool instead."
+                f"""
+                No apps associated with package {display_name}. Try again with
+                '--include-deps' to include apps of dependent packages, which
+                are listed above. If you are attempting to install a library,
+                pipx should not be used. Consider using pip or a similar tool
+                instead.
+                """
             )
         else:
             raise PipxError(
-                f"No apps associated with package {display_name}. "
-                "If you are attempting to install a library, pipx should not be used. "
-                "Consider using pip or a similar tool instead."
+                f"""
+                No apps associated with package {display_name}. If you are
+                attempting to install a library, pipx should not be used.
+                Consider using pip or a similar tool instead.
+                """
             )
 
     if package_metadata.apps:
@@ -354,9 +369,11 @@ def run_post_install_actions(
         if venv.safe_to_remove():
             venv.remove_venv()
         raise PipxError(
-            f"No apps associated with package {display_name} or its dependencies. "
-            "If you are attempting to install a library, pipx should not be used. "
-            "Consider using pip or a similar tool instead."
+            f"""
+            No apps associated with package {display_name} or its dependencies.
+            If you are attempting to install a library, pipx should not be
+            used.  Consider using pip or a similar tool instead.
+            """
         )
 
     expose_apps_globally(
@@ -383,11 +400,16 @@ def run_post_install_actions(
 def warn_if_not_on_path(local_bin_dir: Path) -> None:
     if not userpath.in_current_path(str(local_bin_dir)):
         logger.warning(
-            f"{hazard}  Note: {str(local_bin_dir)!r} is not on your PATH environment "
-            "variable. These apps will not be globally accessible until "
-            "your PATH is updated. Run `pipx ensurepath` to "
-            "automatically add it, or manually modify your PATH in your shell's "
-            "config file (i.e. ~/.bashrc)."
+            pipx_wrap(
+                f"""
+                {hazard}  Note: {str(local_bin_dir)!r} is not on your PATH
+                environment variable. These apps will not be globally
+                accessible until your PATH is updated. Run `pipx ensurepath` to
+                automatically add it, or manually modify your PATH in your
+                shell's config file (i.e. ~/.bashrc).
+                """,
+                subsequent_indent=" " * 4,
+            )
         )
 
 
