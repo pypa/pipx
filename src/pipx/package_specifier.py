@@ -8,7 +8,6 @@
 
 import logging
 import re
-import textwrap
 from pathlib import Path
 from typing import Any, List, NamedTuple, Optional, Set, Tuple
 
@@ -17,7 +16,7 @@ from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
 
 from pipx.emojies import hazard
-from pipx.util import PipxError
+from pipx.util import PipxError, pipx_wrap
 
 logger = logging.getLogger(__name__)
 
@@ -107,12 +106,14 @@ def _parsed_package_to_package_or_url(
     if parsed_package.valid_pep508 is not None:
         if parsed_package.valid_pep508.marker is not None:
             logger.warning(
-                textwrap.fill(
-                    f"{hazard}  Ignoring environment markers "
-                    f"({parsed_package.valid_pep508.marker}) in package "
-                    "specification. Use pipx options to specify this type of "
-                    "information.",
-                    subsequent_indent="    ",
+                pipx_wrap(
+                    f"""
+                    {hazard}  Ignoring environment markers
+                    ({parsed_package.valid_pep508.marker}) in package
+                    specification. Use pipx options to specify this type of
+                    information.
+                    """,
+                    subsequent_indent=" " * 4,
                 )
             )
         package_or_url = package_or_url_from_pep508(
@@ -144,11 +145,13 @@ def parse_specifier_for_install(
     )
     if "--editable" in pip_args and not parsed_package.valid_local_path:
         logger.warning(
-            textwrap.fill(
-                f"{hazard}  Ignoring --editable install option. pipx disallows it "
-                "for anything but a local path, to avoid having to create a new "
-                "src/ directory.",
-                subsequent_indent="    ",
+            pipx_wrap(
+                f"""
+                {hazard}  Ignoring --editable install option. pipx disallows it
+                for anything but a local path, to avoid having to create a new
+                src/ directory.
+                """,
+                subsequent_indent=" " * 4,
             )
         )
         pip_args.remove("--editable")
@@ -226,11 +229,13 @@ def fix_package_name(package_or_url: str, package: str) -> str:
 
     if canonicalize_name(package_req.name) != canonicalize_name(package):
         logger.warning(
-            textwrap.fill(
-                f"{hazard}  Name supplied in package specifier was "
-                f"{package_req.name!r} but package found has name "
-                f"{package!r}.  Using {package!r}.",
-                subsequent_indent="    ",
+            pipx_wrap(
+                f"""
+                {hazard}  Name supplied in package specifier was
+                {package_req.name!r} but package found has name {package!r}.
+                Using {package!r}.
+                """,
+                subsequent_indent=" " * 4,
             )
         )
     package_req.name = package
