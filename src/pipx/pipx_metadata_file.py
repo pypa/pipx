@@ -1,10 +1,10 @@
 import json
 import logging
-import textwrap
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Union
 
-from pipx.util import PipxError
+from pipx.emojies import hazard
+from pipx.util import PipxError, pipx_wrap
 
 logger = logging.getLogger(__name__)
 
@@ -94,9 +94,11 @@ class PipxMetadata:
             return metadata_dict
         else:
             raise PipxError(
-                f"{self.venv_dir.name}: Unknown metadata version "
-                f"{metadata_dict['pipx_metadata_version']}. "
-                "Perhaps it was installed with a later version of pipx."
+                f"""
+                {self.venv_dir.name}: Unknown metadata version
+                {metadata_dict['pipx_metadata_version']}. Perhaps it was
+                installed with a later version of pipx.
+                """
             )
 
     def from_dict(self, input_dict: Dict[str, Any]) -> None:
@@ -131,11 +133,14 @@ class PipxMetadata:
                 )
         except IOError:
             logger.warning(
-                textwrap.fill(
-                    f"Unable to write {PIPX_INFO_FILENAME} to {self.venv_dir}. "
-                    f"This may cause future pipx operations involving "
-                    f"{self.venv_dir.name} to fail or behave incorrectly.",
-                    width=79,
+                pipx_wrap(
+                    f"""
+                    {hazard}  Unable to write {PIPX_INFO_FILENAME} to
+                    {self.venv_dir}.  This may cause future pipx operations
+                    involving {self.venv_dir.name} to fail or behave
+                    incorrectly.
+                    """,
+                    subsequent_indent=" " * 4,
                 )
             )
 
@@ -148,11 +153,14 @@ class PipxMetadata:
         except IOError:  # Reset self if problem reading
             if verbose:
                 logger.warning(
-                    textwrap.fill(
-                        f"Unable to read {PIPX_INFO_FILENAME} in {self.venv_dir}. "
-                        f"This may cause this or future pipx operations involving "
-                        f"{self.venv_dir.name} to fail or behave incorrectly.",
-                        width=79,
+                    pipx_wrap(
+                        f"""
+                        {hazard}  Unable to read {PIPX_INFO_FILENAME} in
+                        {self.venv_dir}.  This may cause this or future pipx
+                        operations involving {self.venv_dir.name} to fail or
+                        behave incorrectly.
+                        """,
+                        subsequent_indent=" " * 4,
                     )
                 )
             return

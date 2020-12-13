@@ -4,6 +4,7 @@ from typing import List, Optional
 from pipx import constants
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.constants import EXIT_CODE_INSTALL_VENV_EXISTS, EXIT_CODE_OK, ExitCode
+from pipx.util import pipx_wrap
 from pipx.venv import Venv, VenvContainer
 
 
@@ -44,9 +45,13 @@ def install(
             print(f"Installing to existing venv {venv.name!r}")
         else:
             print(
-                f"{venv.name!r} already seems to be installed. "
-                f"Not modifying existing installation in {str(venv_dir)!r}. "
-                "Pass '--force' to force installation."
+                pipx_wrap(
+                    f"""
+                    {venv.name!r} already seems to be installed. Not modifying
+                    existing installation in {str(venv_dir)!r}. Pass '--force'
+                    to force installation.
+                    """
+                )
             )
             return EXIT_CODE_INSTALL_VENV_EXISTS
 
@@ -70,7 +75,7 @@ def install(
             force=force,
         )
     except (Exception, KeyboardInterrupt):
-        print("")
+        print()
         venv.remove_venv()
         raise
 

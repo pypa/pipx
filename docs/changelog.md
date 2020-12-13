@@ -16,6 +16,7 @@ dev
 - `pipx upgrade` and `pipx upgrade-all` now have a `--upgrade-injected` option which directs pipx to also upgrade injected packages.
 - `pipx list` now detects, identifies, and suggests a remedy for venvs with old-internal data (internal venv names) that need to be updated.
 - Added a "Troubleshooting" page to the pipx web documentation for common problems pipx users may encounter.
+- pipx error, warning, and other messages now word-wrap so words are not split across lines.  Their appearance is also now more consistent.
 
 0.15.6.0
 
