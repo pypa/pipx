@@ -95,7 +95,6 @@ def module_globals():
         "error_path": Path("."),
         "report_path": Path("."),
         "install_data": {},
-        "doing_dep_test": False,
     }
 
 
