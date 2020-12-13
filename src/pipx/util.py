@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import sys
+import textwrap
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
@@ -13,7 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 class PipxError(Exception):
-    pass
+    def __init__(self, message: str, wrap_message: bool = True):
+        if wrap_message:
+            super().__init__(pipx_wrap(message))
+        else:
+            super().__init__(message)
 
 
 def rmdir(path: Path) -> None:
@@ -186,3 +191,32 @@ def full_package_description(package: str, package_spec: str) -> str:
         return package
     else:
         return f"{package} from spec {package_spec!r}"
+
+
+def pipx_wrap(
+    text: str, subsequent_indent: str = "", keep_newlines: bool = False
+) -> str:
+    """Dedent, strip, wrap to shell width. Don't break on hyphens, only spaces"""
+    minimum_width = 40
+    width = max(shutil.get_terminal_size((80, 40)).columns, minimum_width) - 2
+
+    text = textwrap.dedent(text).strip()
+    if keep_newlines:
+        return "\n".join(
+            [
+                textwrap.fill(
+                    line,
+                    width=width,
+                    subsequent_indent=subsequent_indent,
+                    break_on_hyphens=False,
+                )
+                for line in text.splitlines()
+            ]
+        )
+    else:
+        return textwrap.fill(
+            text,
+            width=width,
+            subsequent_indent=subsequent_indent,
+            break_on_hyphens=False,
+        )
