@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest  # type: ignore
 
-from helpers import app_name, run_pipx_cli, which_python
+from helpers import run_pipx_cli, which_python
 from package_info import PKG
 from pipx import constants
 
@@ -119,33 +119,6 @@ def test_install_same_package_twice_no_force(pipx_temp_env, capsys):
 def test_include_deps(pipx_temp_env, capsys):
     assert run_pipx_cli(["install", PKG["jupyter"]["spec"]]) == 1
     assert not run_pipx_cli(["install", PKG["jupyter"]["spec"], "--include-deps"])
-
-
-@pytest.mark.parametrize(
-    "package_name, package_spec",
-    [
-        ("jaraco-financial", "jaraco.financial==2.0.0"),
-        ("tox-ini-fmt", PKG["tox-ini-fmt"]["spec"]),
-    ],
-)
-def test_name_tricky_characters(
-    caplog, capsys, pipx_temp_env, package_name, package_spec
-):
-    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
-
-
-def test_extra(pipx_temp_env, capsys):
-    assert not run_pipx_cli(["install", "nox[tox_to_nox]==2020.8.22", "--include-deps"])
-    captured = capsys.readouterr()
-    assert f"- {app_name('tox')}\n" in captured.out
-
-
-def test_install_local_extra(pipx_temp_env, capsys):
-    assert not run_pipx_cli(
-        ["install", TEST_DATA_PATH + "/local_extras[cow]", "--include-deps"]
-    )
-    captured = capsys.readouterr()
-    assert f"- {app_name('pycowsay')}\n" in captured.out
 
 
 def test_path_warning(pipx_temp_env, capsys, monkeypatch, caplog):
