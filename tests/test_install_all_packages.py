@@ -21,7 +21,6 @@ from package_info import PKG
 
 REPORTS_DIR = "./reports"
 REPORT_FILENAME_ROOT = "all_packages"
-# "package_name, package_spec",
 PACKAGE_NAME_LIST = [
     "ansible",
     "awscli",
