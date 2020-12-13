@@ -1,7 +1,6 @@
 import json
 import logging
 import pkgutil
-import time  # TODO: debug
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Dict, Generator, List, NamedTuple, Set
@@ -12,7 +11,6 @@ from pipx.animate import animate
 from pipx.constants import PIPX_SHARED_PTH, ExitCode
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.package_specifier import (
-    append_extras,
     fix_package_name,
     parse_specifier_for_install,
     parse_specifier_for_metadata,
@@ -273,7 +271,6 @@ class Venv:
         return package
 
     def get_venv_metadata_for_package(self, package: str) -> VenvMetadata:
-        data_start = time.time()  # TODO: debugging
         data = json.loads(
             run_subprocess(
                 [
@@ -295,9 +292,6 @@ class Venv:
                 ),
             ).stdout
         )
-        logging.info(
-            f"venv_metadata_inspector: {1e3*(time.time()-data_start):.0f}ms"
-        )  # TODO: debugging
 
         venv_metadata_traceback = data.pop("exception_traceback", None)
         if venv_metadata_traceback is not None:
@@ -324,9 +318,7 @@ class Venv:
         is_main_package: bool,
         suffix: str = "",
     ) -> None:
-        venv_package_metadata = self.get_venv_metadata_for_package(
-            append_extras(package, package_or_url)
-        )
+        venv_package_metadata = self.get_venv_metadata_for_package(package)
         package_info = PackageInfo(
             package=package,
             package_or_url=parse_specifier_for_metadata(package_or_url),
