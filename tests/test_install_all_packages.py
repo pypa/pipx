@@ -281,6 +281,10 @@ def install_package_both_paths(
             file=report_fh,
             flush=True,
         )
+    return (
+        install_data[package_spec]["clear_path_ok"]
+        or install_data[package_spec]["sys_path_ok"]
+    )
 
 
 # use class scope to start and finish at end of all parametrized tests
@@ -362,7 +366,7 @@ class TestAllPackagesNoDeps:
         package_name,
     ):
         pip_cache_purge()
-        install_package_both_paths(
+        assert install_package_both_paths(
             module_globals,
             monkeypatch,
             capsys,
@@ -389,7 +393,7 @@ class TestAllPackagesDeps:
         package_name,
     ):
         pip_cache_purge()
-        install_package_both_paths(
+        assert install_package_both_paths(
             module_globals,
             monkeypatch,
             capsys,
