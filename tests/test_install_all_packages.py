@@ -102,7 +102,7 @@ def pip_cache_purge():
 
 
 def verify_installed_apps(captured_outerr, package_name, test_error_fh, deps=False):
-    package_apps = PKG[package_name]["apps"]
+    package_apps = PKG[package_name]["apps"].copy()
     if deps:
         package_apps += PKG[package_name]["apps_of_dependencies"]
 
