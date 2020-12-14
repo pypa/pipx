@@ -177,7 +177,6 @@ def install_and_verify(
     caplog,
     monkeypatch,
     error_path,
-    do_error_report,
     using_clear_path,
     package_spec,
     package_name,
@@ -208,7 +207,7 @@ def install_and_verify(
         deps=deps,
     )
 
-    if do_error_report and not install_success:
+    if error_path is not None and not install_success:
         print_error_report(
             error_path,
             captured,
@@ -240,8 +239,7 @@ def install_package_both_paths(
         capsys,
         caplog,
         monkeypatch,
-        module_globals["error_path"],
-        do_error_report=False,
+        None,
         using_clear_path=True,
         package_spec=package_spec,
         package_name=package_name,
@@ -261,7 +259,6 @@ def install_package_both_paths(
             caplog,
             monkeypatch,
             module_globals["error_path"],
-            do_error_report=True,
             using_clear_path=False,
             package_spec=package_spec,
             package_name=package_name,
