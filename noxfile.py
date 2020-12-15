@@ -16,10 +16,14 @@ LINT_DEPENDENCIES = [
     "packaging>=20.0",
     "isort",
 ]
-# Packages that need an intact system PATH to compile
+# Packages whose dependencies need an intact system PATH to compile
 # pytest setup clears PATH.  So pre-build some wheels to the pip cache.
-PREBUILD_PACKAGES = {"all": ["typed-ast", "pyzmq"], "darwin": ["argon2-cffi", "regex"]}
-
+PREBUILD_PACKAGES = {
+    "all": ["jupyter==1.0.0"],
+    "macos": ["black==20.8b1"],
+    "unix": [],
+    "win": [],
+}
 
 # Set nox options
 if sys.platform == "win32":
@@ -30,20 +34,22 @@ else:
 nox.options.reuse_existing_virtualenvs = True
 
 
-def prebuild_wheels(session, package_dict):
+def prebuild_wheels(session, prebuild_dict):
+    if sys.platform == "darwin":
+        platform = "macos"
+    elif sys.platform == "win32":
+        platform = "win"
+    else:
+        platform = "unix"
+
+    prebuild_list = prebuild_dict.get("all", []) + prebuild_dict.get(platform, [])
+
     session.install("wheel")
     wheel_dir = Path(session.virtualenv.location) / "prebuild_wheels"
     wheel_dir.mkdir(exist_ok=True)
-    for platform in package_dict:
-        if platform == "all" or platform == sys.platform:
-            for prebuild_package in package_dict[platform]:
-                session.run(
-                    "pip",
-                    "wheel",
-                    f"--wheel-dir={wheel_dir}",
-                    prebuild_package,
-                    silent=True,
-                )
+
+    for prebuild in prebuild_list:
+        session.run("pip", "wheel", f"--wheel-dir={wheel_dir}", prebuild, silent=True)
 
 
 def has_changes():
@@ -86,6 +92,16 @@ def tests(session):
     tests = session.posargs or ["tests"]
     session.run("pytest", "--cov=pipx", "--cov-report=", *tests)
     session.notify("cover")
+
+
+@nox.session(python=PYTHON_ALL_VERSIONS)
+def test_all_packages(session):
+    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
+    session.install("-e", ".", "pytest")
+    tests = session.posargs or ["tests"]
+    session.run(
+        "pytest", "-v", "--tb=no", "--show-capture=no", "--all-packages", *tests
+    )
 
 
 @nox.session

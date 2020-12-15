@@ -1,6 +1,7 @@
 import pytest  # type: ignore
 
 from helpers import mock_legacy_venv, run_pipx_cli
+from package_info import PKG
 from pipx import constants, util
 
 
@@ -12,6 +13,11 @@ def test_uninstall(pipx_temp_env, capsys):
 def test_uninstall_multiple_same_app(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "kaggle==1.5.9", "--include-deps"])
     assert not run_pipx_cli(["uninstall", "kaggle"])
+
+
+def test_uninstall_circular_deps(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", PKG["cloudtoken"]["spec"]])
+    assert not run_pipx_cli(["uninstall", "cloudtoken"])
 
 
 @pytest.mark.parametrize("metadata_version", [None, "0.1"])

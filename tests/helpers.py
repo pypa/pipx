@@ -12,6 +12,8 @@ from packaging.utils import canonicalize_name
 
 from pipx import constants, main, pipx_metadata_file
 
+WIN = sys.platform.startswith("win")
+
 MOCK_PIPXMETADATA_0_1: Dict[str, Any] = {
     "main_package": None,
     "python_version": None,
@@ -32,6 +34,10 @@ MOCK_PACKAGE_INFO_0_1: Dict[str, Any] = {
     "app_paths_of_dependencies": {},
     "package_version": "",
 }
+
+
+def app_name(app: str) -> str:
+    return f"{app}.exe" if WIN else app
 
 
 def run_pipx_cli(pipx_args: List[str]) -> int:

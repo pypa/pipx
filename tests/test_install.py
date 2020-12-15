@@ -1,14 +1,15 @@
 import os
-import re
 import sys
 from unittest import mock
 
 import pytest  # type: ignore
 
 from helpers import run_pipx_cli, unwrap_log_text, which_python
+from package_info import PKG
 from pipx import constants
 
 PYTHON3_5 = which_python("python3.5")
+TEST_DATA_PATH = "./testdata/test_package_specifier"
 
 
 def test_help_text(monkeypatch, capsys):
@@ -38,31 +39,42 @@ def install_package(capsys, pipx_temp_env, caplog, package, package_name=""):
     assert "WARNING" not in caplog.text
 
 
-@pytest.mark.parametrize("package", ["pycowsay", "black"])
-def test_install_easy_packages(capsys, pipx_temp_env, caplog, package):
-    install_package(capsys, pipx_temp_env, caplog, package)
+@pytest.mark.parametrize(
+    "package_name, package_spec",
+    [("pycowsay", "pycowsay"), ("black", PKG["black"]["spec"])],
+)
+def test_install_easy_packages(
+    capsys, pipx_temp_env, caplog, package_name, package_spec
+):
+    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
 
 
 @pytest.mark.parametrize(
-    "package", ["cloudtoken", "awscli", "ansible==2.9.13", "shell-functools"]
+    "package_name, package_spec",
+    [
+        ("cloudtoken", PKG["cloudtoken"]["spec"]),
+        ("awscli", PKG["awscli"]["spec"]),
+        ("ansible", PKG["ansible"]["spec"]),
+        ("shell-functools", PKG["shell-functools"]["spec"]),
+    ],
 )
-def test_install_tricky_packages(capsys, pipx_temp_env, caplog, package):
+def test_install_tricky_packages(
+    capsys, pipx_temp_env, caplog, package_name, package_spec
+):
     if os.getenv("FAST"):
         pytest.skip("skipping slow tests")
-    if sys.platform.startswith("win") and package == "ansible==2.9.13":
+    if sys.platform.startswith("win") and package_name == "ansible":
         pytest.skip("Ansible is not installable on Windows")
 
-    install_package(
-        capsys, pipx_temp_env, caplog, package, re.sub(r"==.+$", "", package)
-    )
+    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
 
 
 # TODO: Add git+... spec when git is in binpath of tests (Issue #303)
 @pytest.mark.parametrize(
-    "package_name,package_spec",
+    "package_name, package_spec",
     [
         # ("nox", "git+https://github.com/cs01/nox.git@5ea70723e9e6"),
-        ("pylint", "pylint==2.3.1"),
+        ("pylint", PKG["pylint"]["spec"]),
         ("black", "https://github.com/ambv/black/archive/18.9b0.zip"),
     ],
 )
@@ -105,8 +117,8 @@ def test_install_same_package_twice_no_force(pipx_temp_env, capsys):
 
 
 def test_include_deps(pipx_temp_env, capsys):
-    assert run_pipx_cli(["install", "jupyter==1.0.0"]) == 1
-    assert not run_pipx_cli(["install", "jupyter==1.0.0", "--include-deps"])
+    assert run_pipx_cli(["install", PKG["jupyter"]["spec"]]) == 1
+    assert not run_pipx_cli(["install", PKG["jupyter"]["spec"], "--include-deps"])
 
 
 def test_path_warning(pipx_temp_env, capsys, monkeypatch, caplog):
