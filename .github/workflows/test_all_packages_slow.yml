@@ -23,6 +23,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install nox
     - name: Execute Tests
+      continue-on-error: true
       run: |
         nox --non-interactive --session test_all_packages-${{ matrix.python-version }}
     - name: Store reports as artifacts
@@ -34,7 +35,6 @@ jobs:
   report_all_packages:
     name: Collate test reports
     needs: test_all_packages
-    if: ${{ needs.test_all_packages != 'cancelled' }}
     runs-on: ubuntu-latest
 
     steps:

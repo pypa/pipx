@@ -99,7 +99,9 @@ def test_all_packages(session):
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install("-e", ".", "pytest")
     tests = session.posargs or ["tests"]
-    session.run("pytest", "-v", "--all-packages", *tests)
+    session.run(
+        "pytest", "-v", "--tb=no", "--show-capture=no", "--all-packages", *tests
+    )
 
 
 @nox.session
