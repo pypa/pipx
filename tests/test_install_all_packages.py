@@ -102,7 +102,7 @@ def pip_cache_purge():
 
 
 def verify_installed_apps(captured_outerr, package_name, test_error_fh, deps=False):
-    package_apps = PKG[package_name]["apps"]
+    package_apps = PKG[package_name]["apps"].copy()
     if deps:
         package_apps += PKG[package_name]["apps_of_dependencies"]
 
@@ -176,7 +176,7 @@ def install_and_verify(
     capsys,
     caplog,
     monkeypatch,
-    test_error_fh,
+    error_path,
     using_clear_path,
     package_spec,
     package_name,
@@ -184,6 +184,8 @@ def install_and_verify(
 ):
     _ = capsys.readouterr()
     caplog.clear()
+
+    test_error_fh = io.StringIO()
 
     monkeypatch.setenv(
         "PATH", os.getenv("PATH_TEST" if using_clear_path else "PATH_ORIG")
@@ -204,7 +206,17 @@ def install_and_verify(
         using_clear_path=using_clear_path,
         deps=deps,
     )
-    return install_success, elapsed_time, captured
+
+    if error_path is not None and not install_success:
+        print_error_report(
+            error_path,
+            captured,
+            test_error_fh,
+            package_spec,
+            "clear PATH" if using_clear_path else "sys PATH",
+        )
+
+    return install_success, elapsed_time
 
 
 def install_package_both_paths(
@@ -216,7 +228,6 @@ def install_package_both_paths(
     package_name="",
     deps=False,
 ):
-    test_error_fh = io.StringIO()
     package_spec = PKG[package_name]["spec"]
     install_data = module_globals["install_data"]
     install_data[package_spec] = {}
@@ -224,19 +235,16 @@ def install_package_both_paths(
     (
         install_data[package_spec]["clear_path_ok"],
         elapsed_time_clear,
-        _,
     ) = install_and_verify(
         capsys,
         caplog,
         monkeypatch,
-        test_error_fh,
+        None,
         using_clear_path=True,
         package_spec=package_spec,
         package_name=package_name,
         deps=deps,
     )
-
-    elapsed_time_sys = 0
 
     if not install_data[package_spec]["clear_path_ok"]:
         # uninstall in case problems found by verify_post_install did not prevent
@@ -246,31 +254,22 @@ def install_package_both_paths(
         (
             install_data[package_spec]["sys_path_ok"],
             elapsed_time_sys,
-            captured_sys,
         ) = install_and_verify(
             capsys,
             caplog,
             monkeypatch,
-            test_error_fh,
+            module_globals["error_path"],
             using_clear_path=False,
             package_spec=package_spec,
             package_name=package_name,
             deps=deps,
         )
 
-        if not install_data[package_spec]["sys_path_ok"]:
-            print_error_report(
-                module_globals["error_path"],
-                captured_sys,
-                test_error_fh,
-                package_spec,
-                "sys PATH",
-            )
-
     with module_globals["report_path"].open("a") as report_fh:
         pf_clear = "PASS" if install_data[package_spec]["clear_path_ok"] else "FAIL"
         install_time_clear = f"{elapsed_time_clear:>3.0f}s"
         if install_data[package_spec]["clear_path_ok"]:
+            elapsed_time_sys = 0
             pf_sys = ""
             install_time_sys = ""
         else:
@@ -282,6 +281,10 @@ def install_package_both_paths(
             file=report_fh,
             flush=True,
         )
+    return (
+        install_data[package_spec]["clear_path_ok"]
+        or install_data[package_spec]["sys_path_ok"]
+    )
 
 
 # use class scope to start and finish at end of all parametrized tests
@@ -363,7 +366,7 @@ class TestAllPackagesNoDeps:
         package_name,
     ):
         pip_cache_purge()
-        install_package_both_paths(
+        assert install_package_both_paths(
             module_globals,
             monkeypatch,
             capsys,
@@ -390,7 +393,7 @@ class TestAllPackagesDeps:
         package_name,
     ):
         pip_cache_purge()
-        install_package_both_paths(
+        assert install_package_both_paths(
             module_globals,
             monkeypatch,
             capsys,

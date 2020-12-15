@@ -23,6 +23,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install nox
     - name: Execute Tests
+      continue-on-error: true
       run: |
         nox --non-interactive --session test_all_packages-${{ matrix.python-version }}
     - name: Store reports as artifacts
