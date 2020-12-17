@@ -311,7 +311,7 @@ class Venv:
                 ),
             ).stdout
         )
-        logging.info(
+        logger.info(
             f"venv_metadata_inspector: {1e3*(time.time()-data_start):.0f}ms"
         )  # TODO: debugging
 
