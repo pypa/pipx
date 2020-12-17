@@ -1,7 +1,7 @@
 import json
 import logging
 import pkgutil
-import time  # TODO: debug
+import time
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Dict, Generator, List, NamedTuple, Set
@@ -289,7 +289,7 @@ class Venv:
         return package
 
     def get_venv_metadata_for_package(self, package: str) -> VenvMetadata:
-        data_start = time.time()  # TODO: debugging
+        data_start = time.time()
         data = json.loads(
             run_subprocess(
                 [
@@ -311,9 +311,7 @@ class Venv:
                 ),
             ).stdout
         )
-        logger.info(
-            f"venv_metadata_inspector: {1e3*(time.time()-data_start):.0f}ms"
-        )  # TODO: debugging
+        logger.info(f"venv_metadata_inspector: {1e3*(time.time()-data_start):.0f}ms")
 
         venv_metadata_traceback = data.pop("exception_traceback", None)
         if venv_metadata_traceback is not None:

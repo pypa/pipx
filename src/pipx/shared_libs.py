@@ -56,10 +56,11 @@ class _SharedLibs:
 
     def test_has_required_packages(self) -> bool:
         package_list_path = Path(self.root) / PIPX_PACKAGE_LIST_FILE
-        if not package_list_path.exists():
+        try:
+            with package_list_path.open("r") as package_list_fh:
+                installed_packages = package_list_fh.read().split("\n")
+        except IOError:
             return False
-        with package_list_path.open("r") as package_list_fh:
-            installed_packages = package_list_fh.read().split("\n")
         installed_packages = [x.split("==")[0] for x in installed_packages]
         return set(self.required_packages).issubset(set(installed_packages))
 
