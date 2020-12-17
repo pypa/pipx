@@ -22,15 +22,10 @@ def print_error_json(traceback_str: str) -> None:
 
 
 try:
-    from importlib import metadata  # type: ignore
-except ImportError:
     try:
-        import importlib_metadata as metadata  # type: ignore
+        from importlib import metadata  # type: ignore
     except ImportError:
-        print_error_json(traceback.format_exc().rstrip())
-        exit(1)
-
-try:
+        import importlib_metadata as metadata  # type: ignore
     from packaging.requirements import Requirement
     from packaging.utils import canonicalize_name
 except ImportError:
