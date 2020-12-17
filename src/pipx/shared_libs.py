@@ -126,7 +126,6 @@ class _SharedLibs:
 
         ignored_args = ["--editable"]
         _pip_args = [arg for arg in pip_args if arg not in ignored_args]
-
         if not verbose:
             _pip_args.append("-q")
         try:
