@@ -4,20 +4,37 @@ import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
+
+def emit_error_json(traceback_str: str) -> None:
+    print(
+        json.dumps(
+            {
+                "apps": [],
+                "app_paths": [],
+                "apps_of_dependencies": [],
+                "app_paths_of_dependencies": {},
+                "package_version": None,
+                "python_version": None,
+                "exception_traceback": traceback_str,
+            }
+        )
+    )
+
+
 try:
     from importlib import metadata  # type: ignore
 except ImportError:
     try:
         import importlib_metadata as metadata  # type: ignore
     except ImportError:
-        print(json.dumps({"exception_traceback": "ImportError"}))
+        emit_error_json(traceback.format_exc().rstrip())
         exit(1)
 
 try:
     from packaging.requirements import Requirement
     from packaging.utils import canonicalize_name
 except ImportError:
-    print(json.dumps({"exception_traceback": "ImportError"}))
+    emit_error_json(traceback.format_exc().rstrip())
     exit(1)
 
 try:
@@ -201,16 +218,4 @@ if __name__ == "__main__":
     try:
         main()
     except Exception:
-        print(
-            json.dumps(
-                {
-                    "apps": [],
-                    "app_paths": [],
-                    "apps_of_dependencies": [],
-                    "app_paths_of_dependencies": {},
-                    "package_version": None,
-                    "python_version": None,
-                    "exception_traceback": traceback.format_exc().rstrip(),
-                }
-            )
-        )
+        emit_error_json(traceback.format_exc().rstrip())
