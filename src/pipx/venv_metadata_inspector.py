@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 
-def emit_error_json(traceback_str: str) -> None:
+def print_error_json(traceback_str: str) -> None:
     print(
         json.dumps(
             {
@@ -27,14 +27,14 @@ except ImportError:
     try:
         import importlib_metadata as metadata  # type: ignore
     except ImportError:
-        emit_error_json(traceback.format_exc().rstrip())
+        print_error_json(traceback.format_exc().rstrip())
         exit(1)
 
 try:
     from packaging.requirements import Requirement
     from packaging.utils import canonicalize_name
 except ImportError:
-    emit_error_json(traceback.format_exc().rstrip())
+    print_error_json(traceback.format_exc().rstrip())
     exit(1)
 
 try:
@@ -218,4 +218,4 @@ if __name__ == "__main__":
     try:
         main()
     except Exception:
-        emit_error_json(traceback.format_exc().rstrip())
+        print_error_json(traceback.format_exc().rstrip())
