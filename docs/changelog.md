@@ -1,5 +1,6 @@
 dev
 
+- New venv inspection!  The code that pipx uses to examine and determine metadata in an installed venv has been much improved and is much more reliable.  It now uses modern python libraries like `packaging` and `importlib.metadata` to examine installed venvs.  It also now properly handles installed package extras.  In addition, some problems pipx has had with certain characters (like periods) in package names should be remedied.
 - Added reinstall command for reinstalling a single venv.
 - Changed `pipx run` on non-Windows systems to actually replace pipx process with the app process instead of running it as a subprocess.  (Now using python's `os.exec*`)
 - [bugfix] Fixed bug with reinstall-all command when package have been installed using a specifier. Now the initial specifier is used.
