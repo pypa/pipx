@@ -374,14 +374,16 @@ class Venv:
         is_main_package: bool,
         suffix: str = "",
     ) -> None:
-        venv_package_metadata = self.get_venv_metadata_for_package(
+        venv_package_metadata_old = self.get_venv_metadata_for_package(
+            append_extras(package, package_or_url)
+        )
+        print(f"venv_package_metadata_old = {venv_package_metadata_old}")
+        venv_package_metadata = self.get_venv_metadata_for_package2(
             append_extras(package, package_or_url)
         )
         print(f"venv_package_metadata = {venv_package_metadata}")
-        venv_package_metadata_old = self.get_venv_metadata_for_package2(
-            append_extras(package, package_or_url)
-        )
-        print(f"venv_package_metadata = {venv_package_metadata}")
+        if venv_package_metadata != venv_package_metadata_old:
+            print("venv_package_metadata != venv_package_metadata_old")
         package_info = PackageInfo(
             package=package,
             package_or_url=parse_specifier_for_metadata(package_or_url),

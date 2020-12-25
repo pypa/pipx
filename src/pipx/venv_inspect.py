@@ -170,27 +170,13 @@ def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
 def inspect_venv(venv_req: str, venv_bin_path: Path, venv_sys_path: List[str]):
     package_req = Requirement(venv_req)
 
-    original_sys_path = sys.path
+    app_paths_of_dependencies: Dict[str, List[Path]] = {}
+    apps_of_dependencies: List[str] = []
 
+    original_sys_path = sys.path
     try:
         sys.path = venv_sys_path
         dist = metadata.distribution(distribution_name(package_req.name))
-        apps = get_apps(dist, venv_bin_path)
-    except Exception:
-        raise
-    finally:
-        sys.path = original_sys_path
-
-    app_paths = [venv_bin_path / app for app in apps]
-    if WINDOWS:
-        app_paths = _windows_extra_app_paths(app_paths)
-    app_paths = [str(app_path) for app_path in app_paths]
-
-    app_paths_of_dependencies = {}  # type: Dict[str, List[str]]
-    apps_of_dependencies = []  # type: List[str]
-
-    try:
-        sys.path = venv_sys_path
         app_paths_of_dependencies = _dfs_package_apps(
             venv_bin_path, dist, package_req, app_paths_of_dependencies
         )
@@ -199,6 +185,13 @@ def inspect_venv(venv_req: str, venv_bin_path: Path, venv_sys_path: List[str]):
     finally:
         sys.path = original_sys_path
 
+    apps = get_apps(dist, venv_bin_path)
+    app_paths = [venv_bin_path / app for app in apps]
+    if WINDOWS:
+        app_paths = _windows_extra_app_paths(app_paths)
+    app_paths_str = [str(app_path) for app_path in app_paths]
+
+    app_paths_of_dependencies_str = {}
     for dep in app_paths_of_dependencies:
         apps_of_dependencies += [
             dep_path.name for dep_path in app_paths_of_dependencies[dep]
@@ -207,15 +200,15 @@ def inspect_venv(venv_req: str, venv_bin_path: Path, venv_sys_path: List[str]):
             app_paths_of_dependencies[dep] = _windows_extra_app_paths(
                 app_paths_of_dependencies[dep]
             )
-        app_paths_of_dependencies[dep] = [
+        app_paths_of_dependencies_str[dep] = [
             str(dep_path) for dep_path in app_paths_of_dependencies[dep]
         ]
 
     output = {
         "apps": apps,
-        "app_paths": app_paths,
+        "app_paths": app_paths_str,
         "apps_of_dependencies": apps_of_dependencies,
-        "app_paths_of_dependencies": app_paths_of_dependencies,
+        "app_paths_of_dependencies": app_paths_of_dependencies_str,
         "package_version": dist.version,
         "python_version": "Python {}.{}.{}".format(
             sys.version_info.major, sys.version_info.minor, sys.version_info.micro
@@ -223,51 +216,3 @@ def inspect_venv(venv_req: str, venv_bin_path: Path, venv_sys_path: List[str]):
     }
 
     return output
-
-
-# def main():
-#     package_req = Requirement(sys.argv[1])
-#     dist = metadata.distribution(distribution_name(package_req.name))
-#     bin_path = Path(sys.argv[2])
-#
-#     apps = get_apps(dist, bin_path)
-#     app_paths = [Path(bin_path) / app for app in apps]
-#     if WINDOWS:
-#         app_paths = _windows_extra_app_paths(app_paths)
-#     app_paths = [str(app_path) for app_path in app_paths]
-#
-#     app_paths_of_dependencies = {}  # type: Dict[str, List[str]]
-#     apps_of_dependencies = []  # type: List[str]
-#     app_paths_of_dependencies = _dfs_package_apps(
-#         bin_path, dist, package_req, app_paths_of_dependencies
-#     )
-#     for dep in app_paths_of_dependencies:
-#         apps_of_dependencies += [
-#             dep_path.name for dep_path in app_paths_of_dependencies[dep]
-#         ]
-#         if WINDOWS:
-#             app_paths_of_dependencies[dep] = _windows_extra_app_paths(
-#                 app_paths_of_dependencies[dep]
-#             )
-#         app_paths_of_dependencies[dep] = [
-#             str(dep_path) for dep_path in app_paths_of_dependencies[dep]
-#         ]
-#
-#     output = {
-#         "apps": apps,
-#         "app_paths": app_paths,
-#         "apps_of_dependencies": apps_of_dependencies,
-#         "app_paths_of_dependencies": app_paths_of_dependencies,
-#         "package_version": dist.version,
-#         "python_version": "Python {}.{}.{}".format(
-#             sys.version_info.major, sys.version_info.minor, sys.version_info.micro
-#         ),
-#     }
-#
-#     print(json.dumps(output))
-
-# if __name__ == "__main__":
-#     try:
-#         main()
-#     except Exception:
-#         print_error_json(traceback.format_exc().rstrip())
