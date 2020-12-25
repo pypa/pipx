@@ -345,7 +345,9 @@ class Venv:
             append_extras(package, package_or_url)
         )
         if venv_package_metadata != venv_package_metadata_old:
-            print("venv_package_metadata != venv_package_metadata_old")
+            logger.debug(
+                "DEBUG WARNING: venv_package_metadata != venv_package_metadata_old"
+            )
         package_info = PackageInfo(
             package=package,
             package_or_url=parse_specifier_for_metadata(package_or_url),
