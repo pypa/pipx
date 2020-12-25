@@ -18,7 +18,6 @@ from pipx.util import (
 logger = logging.getLogger(__name__)
 
 
-PIPX_PACKAGE_LIST_FILE = "pipx_freeze.txt"
 SHARED_LIBS_MAX_AGE_SEC = datetime.timedelta(days=30).total_seconds()
 
 
@@ -31,15 +30,6 @@ class _SharedLibs:
         # i.e. python_path is ~/.local/pipx/shared/python
         self._site_packages: Optional[Path] = None
         self.has_been_updated_this_run = False
-        # TODO: remove setuptools (wheel?)
-        self.required_packages = [
-            "pip",
-            "wheel",
-            "packaging",
-            "importlib-metadata",
-            "setuptools",
-        ]
-        self._has_required_packages: Optional[bool] = None
 
     @property
     def site_packages(self) -> Path:
@@ -47,22 +37,6 @@ class _SharedLibs:
             self._site_packages = get_site_packages(self.python_path)
 
         return self._site_packages
-
-    @property
-    def has_required_packages(self) -> bool:
-        if self._has_required_packages is None:
-            self._has_required_packages = self.test_has_required_packages()
-        return self._has_required_packages
-
-    def test_has_required_packages(self) -> bool:
-        package_list_path = Path(self.root) / PIPX_PACKAGE_LIST_FILE
-        try:
-            with package_list_path.open("r") as package_list_fh:
-                installed_packages = package_list_fh.read().split("\n")
-        except IOError:
-            return False
-        installed_packages = [x.split("==")[0] for x in installed_packages]
-        return set(self.required_packages).issubset(set(installed_packages))
 
     def create(self, verbose: bool = False) -> None:
         if not self.is_valid:
@@ -78,11 +52,7 @@ class _SharedLibs:
 
     @property
     def is_valid(self) -> bool:
-        return (
-            self.python_path.is_file()
-            and self.pip_path.is_file()
-            and self.has_required_packages
-        )
+        return self.python_path.is_file() and self.pip_path.is_file()
 
     @property
     def needs_upgrade(self) -> bool:
@@ -100,14 +70,6 @@ class _SharedLibs:
         )
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
-    def _write_package_list(self) -> None:
-        installed_packages = run_subprocess(
-            [self.python_path, "-m", "pip", "freeze", "--all"]
-        ).stdout
-        package_list_path = Path(self.root) / PIPX_PACKAGE_LIST_FILE
-        with package_list_path.open("w") as package_list_fh:
-            package_list_fh.write(installed_packages)
-
     def upgrade(
         self, *, pip_args: Optional[List[str]] = None, verbose: bool = False
     ) -> None:
@@ -116,6 +78,7 @@ class _SharedLibs:
             logger.info(f"Already upgraded libraries in {self.root}")
             return
 
+        # TODO: check if this is necessary
         if not self.python_path.exists():
             self.create(verbose=verbose)
             return
@@ -140,12 +103,13 @@ class _SharedLibs:
                         "install",
                         *_pip_args,
                         "--upgrade",
-                        *self.required_packages,
+                        "pip",
+                        "setuptools",
+                        "wheel",
                     ]
                 )
             subprocess_post_check(upgrade_process)
-            self._write_package_list()
-            self._has_required_packages = True
+
             self.has_been_updated_this_run = True
             self.pip_path.touch()
 
