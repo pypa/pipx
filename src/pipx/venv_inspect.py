@@ -204,16 +204,16 @@ def inspect_venv(
                 app_paths_of_dependencies[dep]
             )
 
-    output: Dict[str, Any] = {
-        "apps": apps,
-        "app_paths": app_paths,
-        "apps_of_dependencies": apps_of_dependencies,
-        "app_paths_of_dependencies": app_paths_of_dependencies,
-        "package_version": dist.version,
-        "python_version": f"Python {venv_info['python_version'][0]}.{venv_info['python_version'][1]}.{venv_info['python_version'][2]}",
-    }
+    venv_metadata = VenvMetadata(
+        apps=apps,
+        app_paths=app_paths,
+        apps_of_dependencies=apps_of_dependencies,
+        app_paths_of_dependencies=app_paths_of_dependencies,
+        package_version=dist.version,
+        python_version=f"Python {venv_info['python_version'][0]}.{venv_info['python_version'][1]}.{venv_info['python_version'][2]}",
+    )
 
     # TODO: consider removing debug message
-    logger.debug(f"output = {output}")
+    logger.debug(f"venv_metadata = {venv_metadata}")
 
-    return VenvMetadata(**output)
+    return venv_metadata
