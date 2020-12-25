@@ -164,9 +164,9 @@ def inspect_venv(
     venv_req: str, venv_bin_path: Path, venv_python_path: Path
 ) -> VenvMetadata:
     package_req = Requirement(venv_req)
-
     app_paths_of_dependencies: Dict[str, List[Path]] = {}
     apps_of_dependencies: List[str] = []
+
     venv_info = json.loads(
         run_subprocess(
             [
