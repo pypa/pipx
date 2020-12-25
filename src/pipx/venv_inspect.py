@@ -1,6 +1,5 @@
 import json
 import logging
-import sys
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Set
 
@@ -12,7 +11,7 @@ try:
 except ImportError:
     import importlib_metadata as metadata  # type: ignore
 
-from pipx.util import run_subprocess
+from pipx.util import PipxError, run_subprocess
 
 try:
     WindowsError
@@ -24,6 +23,11 @@ else:
 logger = logging.getLogger(__name__)
 
 
+class VenvInspectInformation(NamedTuple):
+    distributions: List[metadata.Distribution]
+    bin_path: Path
+
+
 class VenvMetadata(NamedTuple):
     apps: List[str]
     app_paths: List[Path]
@@ -33,28 +37,14 @@ class VenvMetadata(NamedTuple):
     python_version: str
 
 
-def distribution_name(package: str) -> str:
-    # metadata.distribution name will not match packaging.utils.canonicalize_name()
-    #   package name, e.g. if the original name has a period in it (10/24/2020)
-    # Here we return the metadata.distribution matching name
-    new_package: Optional[str] = None
-
-    try:
-        _ = metadata.distribution(package)
-    except metadata.PackageNotFoundError:
-        for test_dist in metadata.distributions():
-            if canonicalize_name(test_dist.metadata["name"]) == canonicalize_name(
-                package
-            ):
-                new_package = test_dist.metadata["name"]
-                break
-    else:
-        new_package = package
-
-    if new_package is None:
-        raise metadata.PackageNotFoundError
-
-    return new_package
+def get_dist(
+    package: str, distributions: List[metadata.Distribution]
+) -> Optional[metadata.Distribution]:
+    """Find matching distribution in the canonicalized sense."""
+    for dist in distributions:
+        if canonicalize_name(dist.metadata["name"]) == canonicalize_name(package):
+            return dist
+    return None
 
 
 def get_package_dependencies(
@@ -115,9 +105,9 @@ def get_apps(dist: metadata.Distribution, bin_path: Path) -> List[str]:
 
 
 def _dfs_package_apps(
-    bin_path: Path,
     dist: metadata.Distribution,
     package_req: Requirement,
+    venv_inspect_info: VenvInspectInformation,
     app_paths_of_dependencies: Dict[str, List[Path]],
     dep_visited: Optional[Dict[str, bool]] = None,
 ) -> Dict[str, List[Path]]:
@@ -132,14 +122,18 @@ def _dfs_package_apps(
             # avoid infinite recursion, avoid duplicates in info
             continue
 
-        dep_dist = metadata.distribution(dep_req.name)
-        app_names = get_apps(dep_dist, bin_path)
+        dep_dist = get_dist(dep_req.name, venv_inspect_info.distributions)
+        if dep_dist is None:
+            raise PipxError("Pipx Internal Error: cannot find dependent package.")
+        app_names = get_apps(dep_dist, venv_inspect_info.bin_path)
         if app_names:
-            app_paths_of_dependencies[dep_name] = [bin_path / app for app in app_names]
+            app_paths_of_dependencies[dep_name] = [
+                venv_inspect_info.bin_path / app for app in app_names
+            ]
         # recursively search for more
         dep_visited[dep_name] = True
         app_paths_of_dependencies = _dfs_package_apps(
-            bin_path, dep_dist, dep_req, app_paths_of_dependencies, dep_visited
+            dep_dist, dep_req, venv_inspect_info, app_paths_of_dependencies, dep_visited
         )
     return app_paths_of_dependencies
 
@@ -161,9 +155,9 @@ def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
 
 
 def inspect_venv(
-    venv_req: str, venv_bin_path: Path, venv_python_path: Path
+    main_req_str: str, venv_bin_path: Path, venv_python_path: Path
 ) -> VenvMetadata:
-    package_req = Requirement(venv_req)
+    main_req = Requirement(main_req_str)
     app_paths_of_dependencies: Dict[str, List[Path]] = {}
     apps_of_dependencies: List[str] = []
 
@@ -178,19 +172,19 @@ def inspect_venv(
         ).stdout
     )
 
-    original_sys_path = sys.path
-    try:
-        sys.path = venv_info["sys_path"]
-        dist = metadata.distribution(distribution_name(package_req.name))
-        app_paths_of_dependencies = _dfs_package_apps(
-            venv_bin_path, dist, package_req, app_paths_of_dependencies
-        )
-    except Exception:
-        raise
-    finally:
-        sys.path = original_sys_path
+    venv_inspect_info = VenvInspectInformation(
+        bin_path=venv_bin_path,
+        distributions=list(metadata.distributions(path=venv_info["sys_path"])),
+    )
 
-    apps = get_apps(dist, venv_bin_path)
+    main_dist = get_dist(main_req.name, venv_inspect_info.distributions)
+    if main_dist is None:
+        raise PipxError("Pipx Internal Error: cannot find dependent package.")
+    app_paths_of_dependencies = _dfs_package_apps(
+        main_dist, main_req, venv_inspect_info, app_paths_of_dependencies
+    )
+
+    apps = get_apps(main_dist, venv_bin_path)
     app_paths = [venv_bin_path / app for app in apps]
     if WINDOWS:
         app_paths = _windows_extra_app_paths(app_paths)
@@ -209,7 +203,7 @@ def inspect_venv(
         app_paths=app_paths,
         apps_of_dependencies=apps_of_dependencies,
         app_paths_of_dependencies=app_paths_of_dependencies,
-        package_version=dist.version,
+        package_version=main_dist.version,
         python_version=f"Python {venv_info['python_version'][0]}.{venv_info['python_version'][1]}.{venv_info['python_version'][2]}",
     )
 
