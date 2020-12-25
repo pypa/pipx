@@ -1,6 +1,7 @@
 import json
 import logging
 import pkgutil
+import sys
 import time
 from pathlib import Path
 from subprocess import CompletedProcess
@@ -31,6 +32,7 @@ from pipx.util import (
     run_subprocess,
     subprocess_post_check,
 )
+from pipx.venv_inspect import inspect_venv
 
 logger = logging.getLogger(__name__)
 
@@ -328,6 +330,40 @@ class Venv:
 
         return VenvMetadata(**data)
 
+    def get_venv_metadata_for_package2(self, package: str) -> VenvMetadata:
+        data_start = time.time()
+        venv_sys_path = json.loads(
+            run_subprocess(
+                [
+                    self.python_path,
+                    "-c",
+                    "import sys;import json;print(json.dumps(sys.path))",
+                ],
+                capture_stderr=False,
+            ).stdout
+        )
+        print(f"venv_sys_path = {venv_sys_path}", file=sys.stderr)
+        data = inspect_venv(package, self.bin_path, venv_sys_path)
+        print(f"data = {data}", file=sys.stderr)
+        logger.info(
+            f"get_venv_metadata_for_package2: {1e3*(time.time()-data_start):.0f}ms"
+        )
+
+        venv_metadata_traceback = data.pop("exception_traceback", None)
+        if venv_metadata_traceback is not None:
+            logger.error("Internal error with venv metadata inspection.")
+            logger.info(
+                f"venv_metadata_inspector.py Traceback:\n{venv_metadata_traceback}"
+            )
+
+        data["app_paths"] = [Path(p) for p in data["app_paths"]]
+        for dep in data["app_paths_of_dependencies"]:
+            data["app_paths_of_dependencies"][dep] = [
+                Path(p) for p in data["app_paths_of_dependencies"][dep]
+            ]
+
+        return VenvMetadata(**data)
+
     def _update_package_metadata(
         self,
         package: str,
@@ -341,6 +377,11 @@ class Venv:
         venv_package_metadata = self.get_venv_metadata_for_package(
             append_extras(package, package_or_url)
         )
+        print(f"venv_package_metadata = {venv_package_metadata}")
+        venv_package_metadata_old = self.get_venv_metadata_for_package2(
+            append_extras(package, package_or_url)
+        )
+        print(f"venv_package_metadata = {venv_package_metadata}")
         package_info = PackageInfo(
             package=package,
             package_or_url=parse_specifier_for_metadata(package_or_url),
