@@ -1,36 +1,18 @@
 import json
+import logging
 import sys
-import traceback
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, NamedTuple, Optional, Set
 
-
-def print_error_json(traceback_str: str) -> None:
-    print(
-        json.dumps(
-            {
-                "apps": [],
-                "app_paths": [],
-                "apps_of_dependencies": [],
-                "app_paths_of_dependencies": {},
-                "package_version": None,
-                "python_version": None,
-                "exception_traceback": traceback_str,
-            }
-        )
-    )
-
+from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name
 
 try:
-    try:
-        from importlib import metadata  # type: ignore
-    except ImportError:
-        import importlib_metadata as metadata  # type: ignore
-    from packaging.requirements import Requirement
-    from packaging.utils import canonicalize_name
+    from importlib import metadata  # type: ignore
 except ImportError:
-    print_error_json(traceback.format_exc().rstrip())
-    exit(1)
+    import importlib_metadata as metadata  # type: ignore
+
+from pipx.util import run_subprocess
 
 try:
     WindowsError
@@ -38,6 +20,17 @@ except NameError:
     WINDOWS = False
 else:
     WINDOWS = True
+
+logger = logging.getLogger(__name__)
+
+
+class VenvMetadata(NamedTuple):
+    apps: List[str]
+    app_paths: List[Path]
+    apps_of_dependencies: List[str]
+    app_paths_of_dependencies: Dict[str, List[Path]]
+    package_version: str
+    python_version: str
 
 
 def distribution_name(package: str) -> str:
@@ -167,15 +160,27 @@ def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
     return app_paths_output
 
 
-def inspect_venv(venv_req: str, venv_bin_path: Path, venv_sys_path: List[str]):
+def inspect_venv(
+    venv_req: str, venv_bin_path: Path, venv_python_path: Path
+) -> VenvMetadata:
     package_req = Requirement(venv_req)
 
     app_paths_of_dependencies: Dict[str, List[Path]] = {}
     apps_of_dependencies: List[str] = []
+    venv_info = json.loads(
+        run_subprocess(
+            [
+                venv_python_path,
+                "-c",
+                "import sys;import json;print(json.dumps({'sys_path':sys.path,'python_version':[sys.version_info.major, sys.version_info.minor, sys.version_info.micro]}))",
+            ],
+            capture_stderr=False,
+        ).stdout
+    )
 
     original_sys_path = sys.path
     try:
-        sys.path = venv_sys_path
+        sys.path = venv_info["sys_path"]
         dist = metadata.distribution(distribution_name(package_req.name))
         app_paths_of_dependencies = _dfs_package_apps(
             venv_bin_path, dist, package_req, app_paths_of_dependencies
@@ -189,9 +194,7 @@ def inspect_venv(venv_req: str, venv_bin_path: Path, venv_sys_path: List[str]):
     app_paths = [venv_bin_path / app for app in apps]
     if WINDOWS:
         app_paths = _windows_extra_app_paths(app_paths)
-    app_paths_str = [str(app_path) for app_path in app_paths]
 
-    app_paths_of_dependencies_str = {}
     for dep in app_paths_of_dependencies:
         apps_of_dependencies += [
             dep_path.name for dep_path in app_paths_of_dependencies[dep]
@@ -200,19 +203,17 @@ def inspect_venv(venv_req: str, venv_bin_path: Path, venv_sys_path: List[str]):
             app_paths_of_dependencies[dep] = _windows_extra_app_paths(
                 app_paths_of_dependencies[dep]
             )
-        app_paths_of_dependencies_str[dep] = [
-            str(dep_path) for dep_path in app_paths_of_dependencies[dep]
-        ]
 
-    output = {
+    output: Dict[str, Any] = {
         "apps": apps,
-        "app_paths": app_paths_str,
+        "app_paths": app_paths,
         "apps_of_dependencies": apps_of_dependencies,
-        "app_paths_of_dependencies": app_paths_of_dependencies_str,
+        "app_paths_of_dependencies": app_paths_of_dependencies,
         "package_version": dist.version,
-        "python_version": "Python {}.{}.{}".format(
-            sys.version_info.major, sys.version_info.minor, sys.version_info.micro
-        ),
+        "python_version": f"Python {venv_info['python_version'][0]}.{venv_info['python_version'][1]}.{venv_info['python_version'][2]}",
     }
 
-    return output
+    # TODO: consider removing debug message
+    logger.debug(f"output = {output}")
+
+    return VenvMetadata(**output)

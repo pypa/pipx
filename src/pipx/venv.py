@@ -1,11 +1,10 @@
 import json
 import logging
 import pkgutil
-import sys
 import time
 from pathlib import Path
 from subprocess import CompletedProcess
-from typing import Dict, Generator, List, NamedTuple, Set
+from typing import Dict, Generator, List, Set
 
 from packaging.utils import canonicalize_name
 
@@ -32,7 +31,7 @@ from pipx.util import (
     run_subprocess,
     subprocess_post_check,
 )
-from pipx.venv_inspect import inspect_venv
+from pipx.venv_inspect import VenvMetadata, inspect_venv
 
 logger = logging.getLogger(__name__)
 
@@ -72,15 +71,6 @@ class VenvContainer:
     def verify_shared_libs(self) -> None:
         for p in self.iter_venv_dirs():
             Venv(p)
-
-
-class VenvMetadata(NamedTuple):
-    apps: List[str]
-    app_paths: List[Path]
-    apps_of_dependencies: List[str]
-    app_paths_of_dependencies: Dict[str, List[Path]]
-    package_version: str
-    python_version: str
 
 
 class Venv:
@@ -332,37 +322,11 @@ class Venv:
 
     def get_venv_metadata_for_package2(self, package: str) -> VenvMetadata:
         data_start = time.time()
-        venv_sys_path = json.loads(
-            run_subprocess(
-                [
-                    self.python_path,
-                    "-c",
-                    "import sys;import json;print(json.dumps(sys.path))",
-                ],
-                capture_stderr=False,
-            ).stdout
-        )
-        print(f"venv_sys_path = {venv_sys_path}", file=sys.stderr)
-        data = inspect_venv(package, self.bin_path, venv_sys_path)
-        print(f"data = {data}", file=sys.stderr)
+        venv_metadata = inspect_venv(package, self.bin_path, self.python_path)
         logger.info(
             f"get_venv_metadata_for_package2: {1e3*(time.time()-data_start):.0f}ms"
         )
-
-        venv_metadata_traceback = data.pop("exception_traceback", None)
-        if venv_metadata_traceback is not None:
-            logger.error("Internal error with venv metadata inspection.")
-            logger.info(
-                f"venv_metadata_inspector.py Traceback:\n{venv_metadata_traceback}"
-            )
-
-        data["app_paths"] = [Path(p) for p in data["app_paths"]]
-        for dep in data["app_paths_of_dependencies"]:
-            data["app_paths_of_dependencies"][dep] = [
-                Path(p) for p in data["app_paths_of_dependencies"][dep]
-            ]
-
-        return VenvMetadata(**data)
+        return venv_metadata
 
     def _update_package_metadata(
         self,
