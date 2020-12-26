@@ -1,6 +1,5 @@
 import json
 import logging
-import pkgutil
 import time
 from pathlib import Path
 from subprocess import CompletedProcess
@@ -34,13 +33,6 @@ from pipx.util import (
 from pipx.venv_inspect import VenvMetadata, inspect_venv
 
 logger = logging.getLogger(__name__)
-
-venv_metadata_inspector_raw = pkgutil.get_data("pipx", "venv_metadata_inspector.py")
-assert venv_metadata_inspector_raw is not None, (
-    "pipx could not find required file venv_metadata_inspector.py. "
-    "Please report this error at https://github.com/pipxproject/pipx. Exiting."
-)
-VENV_METADATA_INSPECTOR = venv_metadata_inspector_raw.decode("utf-8")
 
 
 class VenvContainer:
@@ -282,49 +274,9 @@ class Venv:
 
     def get_venv_metadata_for_package(self, package: str) -> VenvMetadata:
         data_start = time.time()
-        data = json.loads(
-            run_subprocess(
-                [
-                    self.python_path,
-                    "-c",
-                    VENV_METADATA_INSPECTOR,
-                    package,
-                    self.bin_path,
-                ],
-                capture_stderr=False,
-                log_cmd_str=" ".join(
-                    [
-                        str(self.python_path),
-                        "-c",
-                        "<contents of venv_metadata_inspector.py>",
-                        package,
-                        str(self.bin_path),
-                    ]
-                ),
-            ).stdout
-        )
-        logger.info(f"venv_metadata_inspector: {1e3*(time.time()-data_start):.0f}ms")
-
-        venv_metadata_traceback = data.pop("exception_traceback", None)
-        if venv_metadata_traceback is not None:
-            logger.error("Internal error with venv metadata inspection.")
-            logger.info(
-                f"venv_metadata_inspector.py Traceback:\n{venv_metadata_traceback}"
-            )
-
-        data["app_paths"] = [Path(p) for p in data["app_paths"]]
-        for dep in data["app_paths_of_dependencies"]:
-            data["app_paths_of_dependencies"][dep] = [
-                Path(p) for p in data["app_paths_of_dependencies"][dep]
-            ]
-
-        return VenvMetadata(**data)
-
-    def get_venv_metadata_for_package2(self, package: str) -> VenvMetadata:
-        data_start = time.time()
         venv_metadata = inspect_venv(package, self.bin_path, self.python_path)
         logger.info(
-            f"get_venv_metadata_for_package2: {1e3*(time.time()-data_start):.0f}ms"
+            f"get_venv_metadata_for_package: {1e3*(time.time()-data_start):.0f}ms"
         )
         return venv_metadata
 
@@ -338,16 +290,9 @@ class Venv:
         is_main_package: bool,
         suffix: str = "",
     ) -> None:
-        venv_package_metadata_old = self.get_venv_metadata_for_package(
+        venv_package_metadata = self.get_venv_metadata_for_package(
             append_extras(package, package_or_url)
         )
-        venv_package_metadata = self.get_venv_metadata_for_package2(
-            append_extras(package, package_or_url)
-        )
-        if venv_package_metadata != venv_package_metadata_old:
-            logger.debug(
-                "DEBUG WARNING: venv_package_metadata != venv_package_metadata_old"
-            )
         package_info = PackageInfo(
             package=package,
             package_or_url=parse_specifier_for_metadata(package_or_url),
