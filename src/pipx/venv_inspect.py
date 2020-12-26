@@ -7,7 +7,7 @@ from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 
 try:
-    from importlib import metadata  # type: ignore
+    from importlib import metadata
 except ImportError:
     import importlib_metadata as metadata  # type: ignore
 
