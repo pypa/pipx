@@ -1,6 +1,5 @@
 import json
 import logging
-import time
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Set
 
@@ -81,11 +80,11 @@ def get_apps(dist: metadata.Distribution, bin_path: Path) -> List[str]:
             # WINDOWS adds .exe to entry_point name
             apps.add(ep.name + ".exe")
 
-    start_time = time.time()
     # search installed files
     # "scripts" entry in setup.py is found here (test w/ awscli)
     for path in dist.files or []:
         # vast speedup by ignoring all paths not above distribution root dir
+        #   (venv/bin or venv/Scripts is above distribution root)
         if Path(path).parts[0] != "..":
             continue
 
@@ -95,7 +94,6 @@ def get_apps(dist: metadata.Distribution, bin_path: Path) -> List[str]:
                 apps.add(path.name)
         except FileNotFoundError:
             pass
-    logger.debug(f"installed files time: {(time.time()-start_time)*1e3:.1f}ms")
 
     # not sure what is found here
     inst_files = dist.read_text("installed-files.txt") or ""
@@ -168,7 +166,6 @@ def inspect_venv(
     app_paths_of_dependencies: Dict[str, List[Path]] = {}
     apps_of_dependencies: List[str] = []
 
-    start_time = time.time()
     venv_info = json.loads(
         run_subprocess(
             [
@@ -179,27 +176,20 @@ def inspect_venv(
             capture_stderr=False,
         ).stdout
     )
-    logger.debug(f"run_subprocess time: {(time.time()-start_time)*1e3:.1f}ms")
 
-    start_time = time.time()
     venv_inspect_info = VenvInspectInformation(
         bin_path=venv_bin_path,
         distributions=list(metadata.distributions(path=venv_info["sys_path"])),
     )
-    logger.debug(f"distributions time: {(time.time()-start_time)*1e3:.1f}ms")
 
     main_dist = get_dist(main_req.name, venv_inspect_info.distributions)
     if main_dist is None:
         raise PipxError("Pipx Internal Error: cannot find dependent package.")
-    start_time = time.time()
     app_paths_of_dependencies = _dfs_package_apps(
         main_dist, main_req, venv_inspect_info, app_paths_of_dependencies
     )
-    logger.debug(f"_dfs_package_apps time: {(time.time()-start_time)*1e3:.1f}ms")
 
-    start_time = time.time()
     apps = get_apps(main_dist, venv_bin_path)
-    logger.debug(f"get_apps (main) time: {(time.time()-start_time)*1e3:.1f}ms")
     app_paths = [venv_bin_path / app for app in apps]
     if WINDOWS:
         app_paths = _windows_extra_app_paths(app_paths)
@@ -221,8 +211,5 @@ def inspect_venv(
         package_version=main_dist.version,
         python_version=f"Python {venv_info['python_version'][0]}.{venv_info['python_version'][1]}.{venv_info['python_version'][2]}",
     )
-
-    # TODO: consider removing debug message
-    # logger.debug(f"venv_metadata = {venv_metadata}")
 
     return venv_metadata
