@@ -172,8 +172,10 @@ def fetch_info_in_venv(venv_python_path) -> Tuple[List[str], str]:
             capture_stderr=False,
         ).stdout
     )
-    venv_python_version = "Python {}.{}.{}".format(*venv_info["python_version"])
-    return (venv_info["sys_path"], venv_python_version)
+    return (
+        venv_info["sys_path"],
+        "Python {}.{}.{}".format(*venv_info["python_version"]),
+    )
 
 
 def inspect_venv(
