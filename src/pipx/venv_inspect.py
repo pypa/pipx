@@ -129,7 +129,9 @@ def _dfs_package_apps(
 
         dep_dist = get_dist(dep_req.name, venv_inspect_info.distributions)
         if dep_dist is None:
-            raise PipxError("Pipx Internal Error: cannot find dependent package.")
+            raise PipxError(
+                "Pipx Internal Error: cannot find package {dep_req.name!r} metadata."
+            )
         app_names = get_apps(dep_dist, venv_inspect_info.bin_path)
         if app_names:
             app_paths_of_dependencies[dep_name] = [
@@ -184,7 +186,9 @@ def inspect_venv(
 
     main_dist = get_dist(main_req.name, venv_inspect_info.distributions)
     if main_dist is None:
-        raise PipxError("Pipx Internal Error: cannot find dependent package.")
+        raise PipxError(
+            "Pipx Internal Error: cannot find package {main_req.name!r} metadata."
+        )
     app_paths_of_dependencies = _dfs_package_apps(
         main_dist, main_req, venv_inspect_info, app_paths_of_dependencies
     )
@@ -209,7 +213,7 @@ def inspect_venv(
         apps_of_dependencies=apps_of_dependencies,
         app_paths_of_dependencies=app_paths_of_dependencies,
         package_version=main_dist.version,
-        python_version=f"Python {venv_info['python_version'][0]}.{venv_info['python_version'][1]}.{venv_info['python_version'][2]}",
+        python_version="Python {}.{}.{}".format(*venv_info["python_version"]),
     )
 
     return venv_metadata
