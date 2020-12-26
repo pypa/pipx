@@ -88,7 +88,7 @@ def get_apps(dist: metadata.Distribution, bin_path: Path) -> List[str]:
         if Path(path).parts[0] != "..":
             continue
 
-        dist_file_path = Path(dist.locate_file(path)).resolve()
+        dist_file_path = Path(dist.locate_file(path))
         try:
             if dist_file_path.parent.samefile(bin_path):
                 apps.add(path.name)
