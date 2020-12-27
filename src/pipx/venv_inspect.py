@@ -179,10 +179,17 @@ def fetch_info_in_venv(venv_python_path) -> Tuple[List[str], Dict[str, str], str
         implementation_version = "{0.major}.{0.minor}.{0.micro}".format(impl_ver)
         if impl_ver.releaselevel != "final":
             implementation_version += impl_ver.releaselevel[0] + impl_ver.serial
+
+        sys_path = sys.path
+        try:
+            sys_path.remove("")
+        except ValueError:
+            pass
+
         print(
             json.dumps(
                 {
-                    'sys_path':sys.path,
+                    'sys_path':sys_path,
                     'python_version':"{0.major}.{0.minor}.{0.micro}".format(sys.version_info),
                     'environment': {
                         "implementation_name": sys.implementation.name,
