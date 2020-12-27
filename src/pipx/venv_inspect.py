@@ -1,7 +1,8 @@
 import json
 import logging
+import textwrap
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import Dict, List, NamedTuple, Optional, Set, Tuple
 
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 class VenvInspectInformation(NamedTuple):
     distributions: List[metadata.Distribution]
+    env: Dict[str, str]
     bin_path: Path
 
 
@@ -48,8 +50,9 @@ def get_dist(
 
 
 def get_package_dependencies(
-    dist: metadata.Distribution, extras: Set[Any]
+    dist: metadata.Distribution, extras: Set[str], env: Dict[str, str]
 ) -> List[Requirement]:
+    eval_env = env.copy()
     # Add an empty extra to enable evaluation of non-extra markers
     if not extras:
         extras.add("")
@@ -59,7 +62,8 @@ def get_package_dependencies(
             dependencies.append(req)
         else:
             for extra in extras:
-                if req.marker.evaluate({"extra": extra}):
+                eval_env["extra"] = extra
+                if req.marker.evaluate(eval_env):
                     dependencies.append(req)
                     break
 
@@ -120,7 +124,9 @@ def _dfs_package_apps(
         # Initialize: we have already visited root
         dep_visited = {canonicalize_name(package_req.name): True}
 
-    dependencies = get_package_dependencies(dist, package_req.extras)
+    dependencies = get_package_dependencies(
+        dist, package_req.extras, venv_inspect_info.env
+    )
     for dep_req in dependencies:
         dep_name = canonicalize_name(dep_req.name)
         if dep_name in dep_visited:
@@ -161,20 +167,52 @@ def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
     return app_paths_output
 
 
-def fetch_info_in_venv(venv_python_path) -> Tuple[List[str], str]:
+def fetch_info_in_venv(venv_python_path) -> Tuple[List[str], Dict[str, str], str]:
+    command_str = textwrap.dedent(
+        """
+        import json
+        import os
+        import platform
+        import sys
+
+        impl_ver = sys.implementation.version
+        implementation_version = "{0.major}.{0.minor}.{0.micro}".format(impl_ver)
+        if impl_ver.releaselevel != "final":
+            implementation_version += impl_ver.releaselevel[0] + impl_ver.serial
+        print(
+            json.dumps(
+                {
+                    'sys_path':sys.path,
+                    'python_version':"{0.major}.{0.minor}.{0.micro}".format(sys.version_info),
+                    'environment': {
+                        "implementation_name": sys.implementation.name,
+                        "implementation_version": implementation_version,
+                        "os_name": os.name,
+                        "platform_machine": platform.machine(),
+                        "platform_release": platform.release(),
+                        "platform_system": platform.system(),
+                        "platform_version": platform.version(),
+                        "python_full_version": platform.python_version(),
+                        "platform_python_implementation": platform.python_implementation(),
+                        "python_version": ".".join(platform.python_version_tuple()[:2]),
+                        "sys_platform": sys.platform,
+                    }
+                }
+            )
+        )
+        """
+    )
     venv_info = json.loads(
         run_subprocess(
-            [
-                venv_python_path,
-                "-c",
-                "import sys;import json;print(json.dumps({'sys_path':sys.path,'python_version':[sys.version_info.major, sys.version_info.minor, sys.version_info.micro]}))",
-            ],
+            [venv_python_path, "-c", command_str],
             capture_stderr=False,
+            log_cmd_str="<inline fetch_info_in_venv commands>",
         ).stdout
     )
     return (
         venv_info["sys_path"],
-        "Python {}.{}.{}".format(*venv_info["python_version"]),
+        venv_info["environment"],
+        f"Python {venv_info['python_version']}",
     )
 
 
@@ -185,10 +223,13 @@ def inspect_venv(
     app_paths_of_dependencies: Dict[str, List[Path]] = {}
     apps_of_dependencies: List[str] = []
 
-    (venv_sys_path, venv_python_version) = fetch_info_in_venv(venv_python_path)
+    (venv_sys_path, venv_env, venv_python_version) = fetch_info_in_venv(
+        venv_python_path
+    )
 
     venv_inspect_info = VenvInspectInformation(
         bin_path=venv_bin_path,
+        env=venv_env,
         distributions=list(metadata.distributions(path=venv_sys_path)),
     )
 
