@@ -9,7 +9,7 @@
 import logging
 import re
 from pathlib import Path
-from typing import Any, List, NamedTuple, Optional, Set, Tuple
+from typing import List, NamedTuple, Optional, Set, Tuple
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
@@ -188,7 +188,7 @@ def parse_specifier_for_upgrade(package_spec: str) -> str:
     return package_or_url
 
 
-def get_extras(package_spec: str) -> Set[Any]:
+def get_extras(package_spec: str) -> Set[str]:
     parsed_package = _parse_specifier(package_spec)
     if parsed_package.valid_pep508 and parsed_package.valid_pep508.extras is not None:
         return parsed_package.valid_pep508.extras
