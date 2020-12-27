@@ -78,11 +78,6 @@ class _SharedLibs:
             logger.info(f"Already upgraded libraries in {self.root}")
             return
 
-        # TODO: check if this is necessary
-        if not self.python_path.exists():
-            self.create(verbose=verbose)
-            return
-
         if pip_args is None:
             pip_args = []
 
