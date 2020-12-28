@@ -189,9 +189,9 @@ def fetch_info_in_venv(venv_python_path) -> Tuple[List[str], Dict[str, str], str
         print(
             json.dumps(
                 {
-                    'sys_path':sys_path,
-                    'python_version':"{0.major}.{0.minor}.{0.micro}".format(sys.version_info),
-                    'environment': {
+                    "sys_path": sys_path,
+                    "python_version": "{0.major}.{0.minor}.{0.micro}".format(sys.version_info),
+                    "environment": {
                         "implementation_name": sys.implementation.name,
                         "implementation_version": implementation_version,
                         "os_name": os.name,
@@ -203,7 +203,7 @@ def fetch_info_in_venv(venv_python_path) -> Tuple[List[str], Dict[str, str], str
                         "platform_python_implementation": platform.python_implementation(),
                         "python_version": ".".join(platform.python_version_tuple()[:2]),
                         "sys_platform": sys.platform,
-                    }
+                    },
                 }
             )
         )
