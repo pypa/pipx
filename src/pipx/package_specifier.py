@@ -199,12 +199,6 @@ def get_extras(package_spec: str) -> Set[str]:
     return set()
 
 
-def append_extras(package: str, package_or_url: str) -> str:
-    package_spec = Requirement(package)
-    package_spec.extras = get_extras(package_or_url)
-    return str(package_spec)
-
-
 def valid_pypi_name(package_spec: str) -> Optional[str]:
     try:
         package_req = Requirement(package_spec)

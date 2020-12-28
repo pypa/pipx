@@ -224,11 +224,16 @@ def fetch_info_in_venv(venv_python_path) -> Tuple[List[str], Dict[str, str], str
 
 
 def inspect_venv(
-    main_req_str: str, venv_bin_path: Path, venv_python_path: Path
+    root_package_name: str,
+    root_package_extras: Set[str],
+    venv_bin_path: Path,
+    venv_python_path: Path,
 ) -> VenvMetadata:
-    main_req = Requirement(main_req_str)
     app_paths_of_dependencies: Dict[str, List[Path]] = {}
     apps_of_dependencies: List[str] = []
+
+    root_req = Requirement(root_package_name)
+    root_req.extras = root_package_extras
 
     (venv_sys_path, venv_env, venv_python_version) = fetch_info_in_venv(
         venv_python_path
@@ -240,16 +245,16 @@ def inspect_venv(
         distributions=list(metadata.distributions(path=venv_sys_path)),
     )
 
-    main_dist = get_dist(main_req.name, venv_inspect_info.distributions)
-    if main_dist is None:
+    root_dist = get_dist(root_req.name, venv_inspect_info.distributions)
+    if root_dist is None:
         raise PipxError(
-            "Pipx Internal Error: cannot find package {main_req.name!r} metadata."
+            "Pipx Internal Error: cannot find package {root_req.name!r} metadata."
         )
     app_paths_of_dependencies = _dfs_package_apps(
-        main_dist, main_req, venv_inspect_info, app_paths_of_dependencies
+        root_dist, root_req, venv_inspect_info, app_paths_of_dependencies
     )
 
-    apps = get_apps(main_dist, venv_bin_path)
+    apps = get_apps(root_dist, venv_bin_path)
     app_paths = [venv_bin_path / app for app in apps]
     if WINDOWS:
         app_paths = _windows_extra_app_paths(app_paths)
@@ -268,7 +273,7 @@ def inspect_venv(
         app_paths=app_paths,
         apps_of_dependencies=apps_of_dependencies,
         app_paths_of_dependencies=app_paths_of_dependencies,
-        package_version=main_dist.version,
+        package_version=root_dist.version,
         python_version=venv_python_version,
     )
 

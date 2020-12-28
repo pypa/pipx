@@ -12,8 +12,8 @@ from pipx.constants import PIPX_SHARED_PTH, ExitCode
 from pipx.emojies import hazard
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.package_specifier import (
-    append_extras,
     fix_package_name,
+    get_extras,
     parse_specifier_for_install,
     parse_specifier_for_metadata,
 )
@@ -272,9 +272,13 @@ class Venv:
 
         return package
 
-    def get_venv_metadata_for_package(self, package: str) -> VenvMetadata:
+    def get_venv_metadata_for_package(
+        self, package: str, package_extras: Set[str]
+    ) -> VenvMetadata:
         data_start = time.time()
-        venv_metadata = inspect_venv(package, self.bin_path, self.python_path)
+        venv_metadata = inspect_venv(
+            package, package_extras, self.bin_path, self.python_path
+        )
         logger.info(
             f"get_venv_metadata_for_package: {1e3*(time.time()-data_start):.0f}ms"
         )
@@ -291,7 +295,7 @@ class Venv:
         suffix: str = "",
     ) -> None:
         venv_package_metadata = self.get_venv_metadata_for_package(
-            append_extras(package, package_or_url)
+            package, get_extras(package_or_url)
         )
         package_info = PackageInfo(
             package=package,
