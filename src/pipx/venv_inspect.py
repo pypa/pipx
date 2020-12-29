@@ -213,7 +213,7 @@ def fetch_info_in_venv(venv_python_path) -> Tuple[List[str], Dict[str, str], str
         run_subprocess(
             [venv_python_path, "-c", command_str],
             capture_stderr=False,
-            log_cmd_str="<inline fetch_info_in_venv commands>",
+            log_cmd_str="<fetch_info_in_venv commands>",
         ).stdout
     )
     return (
