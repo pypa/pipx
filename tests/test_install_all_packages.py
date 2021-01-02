@@ -130,7 +130,13 @@ def verify_installed_apps(captured_outerr, package_name, test_error_fh, deps=Fal
 
 
 def verify_post_install(
-    captured_outerr, caplog, package_name, test_error_fh, using_clear_path, deps=False
+    pipx_exit_code,
+    captured_outerr,
+    caplog,
+    package_name,
+    test_error_fh,
+    using_clear_path,
+    deps=False,
 ):
     caplog_problem = False
     install_success = f"installed package {package_name}" in captured_outerr.out
@@ -147,7 +153,12 @@ def verify_post_install(
     else:
         app_success = True
 
-    return install_success and not caplog_problem and app_success
+    pipx_problem = not (install_success and not caplog_problem and app_success)
+    pip_error = (
+        pipx_exit_code != 0
+    ) and "Error installing {package_name}" in captured_outerr.err
+
+    return pipx_problem, pip_error
 
 
 def print_error_report(
@@ -192,13 +203,14 @@ def install_and_verify(
     )
 
     start_time = time.time()
-    run_pipx_cli(
+    pipx_exit_code = run_pipx_cli(
         ["install", package_spec, "--verbose"] + (["--include-deps"] if deps else [])
     )
     elapsed_time = time.time() - start_time
     captured = capsys.readouterr()
 
-    install_success = verify_post_install(
+    pipx_problem, pip_error = verify_post_install(
+        pipx_exit_code,
         captured,
         caplog,
         package_name,
@@ -207,7 +219,7 @@ def install_and_verify(
         deps=deps,
     )
 
-    if error_path is not None and not install_success:
+    if error_path is not None and (pipx_problem or pip_error):
         print_error_report(
             error_path,
             captured,
@@ -216,7 +228,7 @@ def install_and_verify(
             "clear PATH" if using_clear_path else "sys PATH",
         )
 
-    return install_success, elapsed_time
+    return pipx_problem, pip_error, elapsed_time
 
 
 def install_package_both_paths(
@@ -232,10 +244,7 @@ def install_package_both_paths(
     install_data = module_globals["install_data"]
     install_data[package_spec] = {}
 
-    (
-        install_data[package_spec]["clear_path_ok"],
-        elapsed_time_clear,
-    ) = install_and_verify(
+    (pipx_problem, pip_error, elapsed_time_clear) = install_and_verify(
         capsys,
         caplog,
         monkeypatch,
@@ -246,15 +255,14 @@ def install_package_both_paths(
         deps=deps,
     )
 
+    install_data[package_spec]["clear_path_ok"] = not (pipx_problem or pip_error)
+
     if not install_data[package_spec]["clear_path_ok"]:
         # uninstall in case problems found by verify_post_install did not prevent
         #   pipx installation
         run_pipx_cli(["uninstall", package_name])
 
-        (
-            install_data[package_spec]["sys_path_ok"],
-            elapsed_time_sys,
-        ) = install_and_verify(
+        (pipx_problem, pip_error, elapsed_time_sys) = install_and_verify(
             capsys,
             caplog,
             monkeypatch,
@@ -264,6 +272,7 @@ def install_package_both_paths(
             package_name=package_name,
             deps=deps,
         )
+        install_data[package_spec]["sys_path_ok"] = not (pipx_problem or pip_error)
 
     with module_globals["report_path"].open("a") as report_fh:
         pf_clear = "PASS" if install_data[package_spec]["clear_path_ok"] else "FAIL"
@@ -281,6 +290,11 @@ def install_package_both_paths(
             file=report_fh,
             flush=True,
         )
+
+    if pip_error:
+        # Use xfail to specify error that is from a pip installation problem
+        pytest.xfail("pip installation error")
+
     return (
         install_data[package_spec]["clear_path_ok"]
         or install_data[package_spec]["sys_path_ok"]
