@@ -153,12 +153,16 @@ def verify_post_install(
     else:
         app_success = True
 
-    pipx_problem = not (install_success and not caplog_problem and app_success)
-    pip_error = (
-        pipx_exit_code != 0
-    ) and f"Error installing {package_name}" in captured_outerr.err
+    pip_pass = not (
+        (pipx_exit_code != 0)
+        and f"Error installing {package_name}" in captured_outerr.err
+    )
+    if pip_pass:
+        pipx_pass = install_success and not caplog_problem and app_success
+    else:
+        pipx_pass = None
 
-    return pipx_problem, pip_error
+    return pipx_pass, pip_pass
 
 
 def print_error_report(
@@ -209,7 +213,7 @@ def install_and_verify(
     elapsed_time = time.time() - start_time
     captured = capsys.readouterr()
 
-    pipx_problem, pip_error = verify_post_install(
+    pipx_pass, pip_pass = verify_post_install(
         pipx_exit_code,
         captured,
         caplog,
@@ -219,7 +223,7 @@ def install_and_verify(
         deps=deps,
     )
 
-    if error_path is not None and (pipx_problem or pip_error):
+    if error_path is not None and (not pipx_pass or not pip_pass):
         print_error_report(
             error_path,
             captured,
@@ -228,7 +232,7 @@ def install_and_verify(
             "clear PATH" if using_clear_path else "sys PATH",
         )
 
-    return pipx_problem, pip_error, elapsed_time
+    return pipx_pass, pip_pass, elapsed_time
 
 
 def key_pass_fail(test_dict, test_key):
@@ -236,6 +240,27 @@ def key_pass_fail(test_dict, test_key):
         return "PASS" if test_dict[test_key] else "FAIL"
     else:
         return ""
+
+
+def format_report_table_row(package_spec, package_install_data, overall_pass):
+    clear_pip_pf = key_pass_fail(package_install_data, "clear_pip_pass")
+    clear_pipx_pf = key_pass_fail(package_install_data, "clear_pipx_pass")
+    clear_install_time = f"{package_install_data['clear_elapsed_time']:>3.0f}s"
+    sys_pip_pf = key_pass_fail(package_install_data, "sys_pip_pass")
+    sys_pipx_pf = key_pass_fail(package_install_data, "sys_pipx_pass")
+    if package_install_data.get("sys_elapsed_time", None) is not None:
+        sys_install_time = f"{package_install_data['sys_elapsed_time']:>3.0f}s"
+    else:
+        sys_install_time = ""
+    overall_pf = "PASS" if overall_pass else "FAIL"
+
+    row_string = (
+        f"{package_spec:24}{overall_pf:12}"
+        f"{clear_pip_pf:8}{clear_pipx_pf:8}{clear_install_time:8}"
+        f"{sys_pip_pf:8}{sys_pipx_pf:8}{sys_install_time:8}"
+    )
+
+    return row_string
 
 
 def install_package_both_paths(
@@ -249,9 +274,20 @@ def install_package_both_paths(
 ):
     package_spec = PKG[package_name]["spec"]
     install_data = module_globals["install_data"]
-    install_data[package_spec] = {}
+    install_data[package_spec] = {
+        "clear_elapsed_time": None,
+        "clear_pip_pass": None,
+        "clear_pipx_pass": None,
+        "sys_elapsed_time": None,
+        "sys_pip_pass": None,
+        "sys_pipx_pass": None,
+    }
 
-    (pipx_problem, pip_error, elapsed_time_clear) = install_and_verify(
+    (
+        install_data[package_spec]["clear_pipx_pass"],
+        install_data[package_spec]["clear_pip_pass"],
+        install_data[package_spec]["clear_elapsed_time"],
+    ) = install_and_verify(
         capsys,
         caplog,
         monkeypatch,
@@ -262,15 +298,19 @@ def install_package_both_paths(
         deps=deps,
     )
 
-    install_data[package_spec]["clear_elapsed_time"] = elapsed_time_clear
-    install_data[package_spec]["clear_pip_pass"] = not pip_error
-    install_data[package_spec]["clear_pipx_pass"] = not pipx_problem
-    clear_path_ok = not (pipx_problem or pip_error)
+    clear_path_ok = (
+        install_data[package_spec]["clear_pipx_pass"]
+        and install_data[package_spec]["clear_pip_pass"]
+    )
 
     if not install_data[package_spec]["clear_pip_pass"]:
         # if we fail to install due to pip install error, try again with
         #   full system path
-        (pipx_problem, pip_error, elapsed_time_sys) = install_and_verify(
+        (
+            install_data[package_spec]["sys_pipx_pass"],
+            install_data[package_spec]["sys_pip_pass"],
+            install_data[package_spec]["sys_elapsed_time"],
+        ) = install_and_verify(
             capsys,
             caplog,
             monkeypatch,
@@ -280,42 +320,28 @@ def install_package_both_paths(
             package_name=package_name,
             deps=deps,
         )
-        install_data[package_spec]["sys_elapsed_time"] = elapsed_time_sys
-        install_data[package_spec]["sys_pip_pass"] = not pip_error
-        install_data[package_spec]["sys_pipx_pass"] = not pipx_problem
-        sys_path_ok = not (pipx_problem or pip_error)
+        sys_path_ok = (
+            install_data[package_spec]["sys_pipx_pass"]
+            and install_data[package_spec]["sys_pip_pass"]
+        )
     else:
         sys_path_ok = False
 
     overall_pass = clear_path_ok or sys_path_ok
 
     with module_globals["report_path"].open("a") as report_fh:
-        clear_pip_pf = key_pass_fail(install_data[package_spec], "clear_pip_pass")
-        clear_pipx_pf = key_pass_fail(install_data[package_spec], "clear_pipx_pass")
-        clear_install_time = (
-            f"{install_data[package_spec]['clear_elapsed_time']:>3.0f}s"
-        )
-
-        sys_pip_pf = key_pass_fail(install_data[package_spec], "sys_pip_pass")
-        sys_pipx_pf = key_pass_fail(install_data[package_spec], "sys_pipx_pass")
-        if install_data[package_spec].get("sys_elapsed_time", None) is not None:
-            sys_install_time = (
-                f"{install_data[package_spec]['sys_elapsed_time']:>3.0f}s"
-            )
-        else:
-            sys_install_time = ""
-
-        overall_pf = "PASS" if overall_pass else "FAIL"
-
         print(
-            f"{package_spec:24}{overall_pf:12}"
-            f"{clear_pip_pf:8}{clear_pipx_pf:8}{clear_install_time:8}"
-            f"{sys_pip_pf:8}{sys_pipx_pf:8}{sys_install_time:8}",
+            format_report_table_row(
+                package_spec, install_data[package_spec], overall_pass
+            ),
             file=report_fh,
             flush=True,
         )
 
-    if pip_error:
+    if (
+        not install_data[package_spec]["clear_pip_pass"]
+        and not install_data[package_spec]["sys_pip_pass"]
+    ):
         # Use xfail to specify error that is from a pip installation problem
         pytest.xfail("pip installation error")
 
