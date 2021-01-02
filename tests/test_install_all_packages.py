@@ -156,7 +156,7 @@ def verify_post_install(
     pipx_problem = not (install_success and not caplog_problem and app_success)
     pip_error = (
         pipx_exit_code != 0
-    ) and "Error installing {package_name}" in captured_outerr.err
+    ) and f"Error installing {package_name}" in captured_outerr.err
 
     return pipx_problem, pip_error
 
@@ -231,6 +231,13 @@ def install_and_verify(
     return pipx_problem, pip_error, elapsed_time
 
 
+def key_pass_fail(test_dict, test_key):
+    if test_dict.get(test_key, None) is not None:
+        return "PASS" if test_dict[test_key] else "FAIL"
+    else:
+        return ""
+
+
 def install_package_both_paths(
     module_globals,
     monkeypatch,
@@ -255,13 +262,14 @@ def install_package_both_paths(
         deps=deps,
     )
 
-    install_data[package_spec]["clear_path_ok"] = not (pipx_problem or pip_error)
+    install_data[package_spec]["clear_elapsed_time"] = elapsed_time_clear
+    install_data[package_spec]["clear_pip_pass"] = not pip_error
+    install_data[package_spec]["clear_pipx_pass"] = not pipx_problem
+    clear_path_ok = not (pipx_problem or pip_error)
 
-    if not install_data[package_spec]["clear_path_ok"]:
-        # uninstall in case problems found by verify_post_install did not prevent
-        #   pipx installation
-        run_pipx_cli(["uninstall", package_name])
-
+    if not install_data[package_spec]["clear_pip_pass"]:
+        # if we fail to install due to pip install error, try again with
+        #   full system path
         (pipx_problem, pip_error, elapsed_time_sys) = install_and_verify(
             capsys,
             caplog,
@@ -272,21 +280,37 @@ def install_package_both_paths(
             package_name=package_name,
             deps=deps,
         )
-        install_data[package_spec]["sys_path_ok"] = not (pipx_problem or pip_error)
+        install_data[package_spec]["sys_elapsed_time"] = elapsed_time_sys
+        install_data[package_spec]["sys_pip_pass"] = not pip_error
+        install_data[package_spec]["sys_pipx_pass"] = not pipx_problem
+        sys_path_ok = not (pipx_problem or pip_error)
+    else:
+        sys_path_ok = False
+
+    overall_pass = clear_path_ok or sys_path_ok
 
     with module_globals["report_path"].open("a") as report_fh:
-        pf_clear = "PASS" if install_data[package_spec]["clear_path_ok"] else "FAIL"
-        install_time_clear = f"{elapsed_time_clear:>3.0f}s"
-        if install_data[package_spec]["clear_path_ok"]:
-            elapsed_time_sys = 0
-            pf_sys = ""
-            install_time_sys = ""
+        clear_pip_pf = key_pass_fail(install_data[package_spec], "clear_pip_pass")
+        clear_pipx_pf = key_pass_fail(install_data[package_spec], "clear_pipx_pass")
+        clear_install_time = (
+            f"{install_data[package_spec]['clear_elapsed_time']:>3.0f}s"
+        )
+
+        sys_pip_pf = key_pass_fail(install_data[package_spec], "sys_pip_pass")
+        sys_pipx_pf = key_pass_fail(install_data[package_spec], "sys_pipx_pass")
+        if install_data[package_spec].get("sys_elapsed_time", None) is not None:
+            sys_install_time = (
+                f"{install_data[package_spec]['sys_elapsed_time']:>3.0f}s"
+            )
         else:
-            pf_sys = "PASS" if install_data[package_spec]["sys_path_ok"] else "FAIL"
-            install_time_sys = f"{elapsed_time_sys:>3.0f}s"
+            sys_install_time = ""
+
+        overall_pf = "PASS" if overall_pass else "FAIL"
+
         print(
-            f"{package_spec:24}{pf_clear:16}{pf_sys:16}"
-            f"{install_time_clear} {install_time_sys}",
+            f"{package_spec:24}{overall_pf:12}"
+            f"{clear_pip_pf:8}{clear_pipx_pf:8}{clear_install_time:8}"
+            f"{sys_pip_pf:8}{sys_pipx_pf:8}{sys_install_time:8}",
             file=report_fh,
             flush=True,
         )
@@ -295,10 +319,7 @@ def install_package_both_paths(
         # Use xfail to specify error that is from a pip installation problem
         pytest.xfail("pip installation error")
 
-    return (
-        install_data[package_spec]["clear_path_ok"]
-        or install_data[package_spec]["sys_path_ok"]
-    )
+    return overall_pass
 
 
 # use class scope to start and finish at end of all parametrized tests
@@ -330,31 +351,35 @@ def start_end_report(module_globals, request):
 
     with module_globals["report_path"].open("a") as report_fh:
         print("\n\n", file=report_fh)
-        print("=" * 72, file=report_fh)
+        print("=" * 79, file=report_fh)
         print(f"{sys.platform:16}{py_version_str:16}{dt_string}", file=report_fh)
         print("", file=report_fh)
         print(
-            f"{'package_spec':24}{'cleared PATH':16}{'system PATH':16}"
-            f"{'install time':16}",
+            f"{'package_spec':24}{'overall':12}{'cleared PATH':24}{'system PATH':24}",
             file=report_fh,
         )
-        print("-" * 72, file=report_fh)
+        print(
+            f"{'':24}{'':12}{'pip':8}{'pipx':8}{'time':8}{'pip':8}{'pipx':8}{'time':8}",
+            file=report_fh,
+        )
+        print("-" * 79, file=report_fh)
 
     yield
 
     with module_globals["report_path"].open("a") as report_fh:
         print("\nSummary", file=report_fh)
-        print("-" * 72, file=report_fh)
+        print("-" * 79, file=report_fh)
         for package_spec in install_data:
-            if install_data[package_spec].get("clear_path_ok", False):
+            clear_pip_error = install_data[package_spec]["clear_pip_error"]
+            clear_pipx_problem = install_data[package_spec]["clear_pipx_problem"]
+            sys_pip_error = install_data[package_spec].get("sys_pip_error", True)
+            sys_pipx_problem = install_data[package_spec].get("sys_pipx_problem", True)
+
+            if not clear_pip_error and not clear_pipx_problem:
                 continue
-            elif not install_data[package_spec].get(
-                "clear_path_ok", False
-            ) and install_data[package_spec].get("sys_path_ok", False):
+            elif clear_pip_error and not sys_pip_error and not sys_pipx_problem:
                 print(f"{package_spec} needs prebuilt wheel", file=report_fh)
-            elif not install_data[package_spec].get(
-                "clear_path_ok", False
-            ) and not install_data[package_spec].get("sys_path_ok", False):
+            else:
                 print(f"{package_spec} FAILS", file=report_fh)
         test_end = datetime.now()
         dt_string = test_end.strftime("%Y-%m-%d %H:%M:%S")
