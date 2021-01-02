@@ -370,14 +370,14 @@ def start_end_report(module_globals, request):
         print("\nSummary", file=report_fh)
         print("-" * 79, file=report_fh)
         for package_spec in install_data:
-            clear_pip_error = install_data[package_spec]["clear_pip_error"]
-            clear_pipx_problem = install_data[package_spec]["clear_pipx_problem"]
-            sys_pip_error = install_data[package_spec].get("sys_pip_error", True)
-            sys_pipx_problem = install_data[package_spec].get("sys_pipx_problem", True)
+            clear_pip_pass = install_data[package_spec]["clear_pip_pass"]
+            clear_pipx_pass = install_data[package_spec]["clear_pipx_pass"]
+            sys_pip_pass = install_data[package_spec].get("sys_pip_pass", False)
+            sys_pipx_pass = install_data[package_spec].get("sys_pipx_pass", False)
 
-            if not clear_pip_error and not clear_pipx_problem:
+            if clear_pip_pass and clear_pipx_pass:
                 continue
-            elif clear_pip_error and not sys_pip_error and not sys_pipx_problem:
+            elif not clear_pip_pass and sys_pip_pass and sys_pipx_pass:
                 print(f"{package_spec} needs prebuilt wheel", file=report_fh)
             else:
                 print(f"{package_spec} FAILS", file=report_fh)
