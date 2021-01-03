@@ -142,7 +142,6 @@ class ModuleGlobalsData:
         self.errors_path = Path(".")
         self.install_data = {}
         self.report_path = Path(".")
-        self.sys_platform = sys.platform
         self.test_class = test_class
         self.test_start = datetime.now()
 
@@ -312,21 +311,18 @@ def format_report_table_header(module_globals):
 
 
 def format_report_table_row(package_spec, package_data):
-    clear_pip_pf = package_data.clear_pip_pf_str
-    clear_pipx_pf = package_data.clear_pipx_pf_str
     clear_install_time = f"{package_data.clear_elapsed_time:>3.0f}s"
-    sys_pip_pf = package_data.sys_pip_pf_str
-    sys_pipx_pf = package_data.sys_pipx_pf_str
     if package_data.sys_elapsed_time is not None:
         sys_install_time = f"{package_data.sys_elapsed_time:>3.0f}s"
     else:
         sys_install_time = ""
-    overall_pf = package_data.overall_pf_str
 
     row_string = (
-        f"{package_spec:24}{overall_pf:12}"
-        f"{clear_pip_pf:8}{clear_pipx_pf:8}{clear_install_time:8}"
-        f"{sys_pip_pf:8}{sys_pipx_pf:8}{sys_install_time:8}"
+        f"{package_spec:24}{package_data.overall_pf_str:12}"
+        f"{package_data.clear_pip_pf_str:8}{package_data.clear_pipx_pf_str:8}"
+        f"{clear_install_time:8}"
+        f"{package_data.sys_pip_pf_str:8}{package_data.sys_pipx_pf_str:8}"
+        f"{sys_install_time:8}"
     )
 
     return row_string
@@ -439,17 +435,13 @@ def install_package_both_paths(
 # use class scope to start and finish at end of all parametrized tests
 @pytest.fixture(scope="class")
 def start_end_report(module_globals, request):
-    module_globals.install_data = {}
-    module_globals.test_start = datetime.now()
-    module_globals.sys_platform = sys.platform
-    module_globals.py_version_short = "{0.major}.{0.minor}".format(sys.version_info)
-    module_globals.py_version_display = "Python {0.major}.{0.minor}.{0.micro}".format(
-        sys.version_info
-    )
-    module_globals.test_class = getattr(request.cls, "test_class", "unknown")
-
     reports_path = Path(REPORTS_DIR)
     reports_path.mkdir(exist_ok=True, parents=True)
+
+    module_globals.reset()
+    module_globals.install_data = {}
+    module_globals.test_start = datetime.now()
+    module_globals.test_class = getattr(request.cls, "test_class", "unknown")
     report_filename = (
         f"{REPORT_FILENAME_ROOT}_"
         f"{module_globals.test_class}_"
