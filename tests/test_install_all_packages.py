@@ -166,32 +166,34 @@ def verify_post_install(
 
 
 def print_error_report(
-    errors_path, command_captured, test_error_fh, package_spec, test_type
+    module_globals, command_captured, test_error_fh, package_spec, test_type
 ):
-    py_version_str = f"Python {sys.version_info[0]}.{sys.version_info[1]}"
-    with errors_path.open("a") as error_fh:
-        print("\n\n", file=error_fh)
-        print("=" * 76, file=error_fh)
+    py_version_str = module_globals["py_version_display"]
+    sys_platform = module_globals["sys_platform"]
+
+    with module_globals["errors_path"].open("a") as errors_fh:
+        print("\n\n", file=errors_fh)
+        print("=" * 79, file=errors_fh)
         print(
-            f"{package_spec:24}{test_type:16}{sys.platform:16}{py_version_str:}",
-            file=error_fh,
+            f"{package_spec:24}{test_type:16}{sys_platform:16}{py_version_str}",
+            file=errors_fh,
         )
-        print("\nSTDOUT:", file=error_fh)
-        print("-" * 76, file=error_fh)
-        print(command_captured.out, end="", file=error_fh)
-        print("\nSTDERR:", file=error_fh)
-        print("-" * 76, file=error_fh)
-        print(command_captured.err, end="", file=error_fh)
-        print("\n\nTEST WARNINGS / ERRORS:", file=error_fh)
-        print("-" * 76, file=error_fh)
-        print(test_error_fh.getvalue(), end="", file=error_fh)
+        print("\nSTDOUT:", file=errors_fh)
+        print("-" * 76, file=errors_fh)
+        print(command_captured.out, end="", file=errors_fh)
+        print("\nSTDERR:", file=errors_fh)
+        print("-" * 76, file=errors_fh)
+        print(command_captured.err, end="", file=errors_fh)
+        print("\n\nTEST WARNINGS / ERRORS:", file=errors_fh)
+        print("-" * 76, file=errors_fh)
+        print(test_error_fh.getvalue(), end="", file=errors_fh)
 
 
 def install_and_verify(
     capsys,
     caplog,
     monkeypatch,
-    errors_path,
+    module_globals,
     using_clear_path,
     package_spec,
     package_name,
@@ -225,7 +227,7 @@ def install_and_verify(
 
     if not pipx_pass or not pip_pass:
         print_error_report(
-            errors_path,
+            module_globals,
             captured,
             test_error_fh,
             package_spec,
@@ -337,7 +339,7 @@ def install_package_both_paths(
         capsys,
         caplog,
         monkeypatch,
-        module_globals["errors_path"],
+        module_globals,
         using_clear_path=True,
         package_spec=package_spec,
         package_name=package_name,
@@ -355,7 +357,7 @@ def install_package_both_paths(
             capsys,
             caplog,
             monkeypatch,
-            module_globals["errors_path"],
+            module_globals,
             using_clear_path=False,
             package_spec=package_spec,
             package_name=package_name,
