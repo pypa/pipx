@@ -162,7 +162,7 @@ def verify_post_install(
     else:
         pipx_pass = None
 
-    return pipx_pass, pip_pass
+    return pip_pass, pipx_pass
 
 
 def print_error_report(
@@ -215,7 +215,7 @@ def install_and_verify(
     elapsed_time = time.time() - start_time
     captured = capsys.readouterr()
 
-    pipx_pass, pip_pass = verify_post_install(
+    pip_pass, pipx_pass = verify_post_install(
         pipx_exit_code,
         captured,
         caplog,
@@ -225,7 +225,7 @@ def install_and_verify(
         deps=deps,
     )
 
-    if not pipx_pass or not pip_pass:
+    if not pip_pass or not pipx_pass:
         print_error_report(
             module_globals,
             captured,
@@ -234,7 +234,7 @@ def install_and_verify(
             "clear PATH" if using_clear_path else "sys PATH",
         )
 
-    return pipx_pass, pip_pass, elapsed_time
+    return pip_pass, pipx_pass, elapsed_time
 
 
 def key_pass_fail(test_dict, test_key):
@@ -287,20 +287,32 @@ def format_report_table_row(package_spec, package_data, overall_pass):
 def format_report_table_footer(module_globals):
     install_data = module_globals["install_data"]
 
+    fail_list = []
+    prebuild_list = []
+
     footer_string = "\nSummary\n"
     footer_string += "-" * 79 + "\n"
     for package_spec in install_data:
         clear_pip_pass = install_data[package_spec]["clear_pip_pass"]
         clear_pipx_pass = install_data[package_spec]["clear_pipx_pass"]
-        sys_pip_pass = install_data[package_spec].get("sys_pip_pass", False)
-        sys_pipx_pass = install_data[package_spec].get("sys_pipx_pass", False)
+        sys_pip_pass = install_data[package_spec]["sys_pip_pass"]
+        sys_pipx_pass = install_data[package_spec]["sys_pipx_pass"]
 
         if clear_pip_pass and clear_pipx_pass:
             continue
         elif not clear_pip_pass and sys_pip_pass and sys_pipx_pass:
-            footer_string += f"{package_spec} needs prebuilt wheel\n"
+            prebuild_list.append(package_spec)
         else:
-            footer_string += f"{package_spec} FAILS\n"
+            fail_list.append(package_spec)
+    if fail_list:
+        footer_string += "FAILS:\n"
+        for failed_package_spec in sorted(fail_list, key=str.lower):
+            footer_string += f"    {failed_package_spec}\n"
+    if prebuild_list:
+        footer_string += "Needs prebuilt wheel:\n"
+        for prebuild_package_spec in sorted(prebuild_list, key=str.lower):
+            footer_string += f"    {prebuild_package_spec}\n"
+
     test_end = datetime.now()
     dt_string = test_end.strftime("%Y-%m-%d %H:%M:%S")
     el_datetime = test_end - module_globals["test_start"]
@@ -332,8 +344,8 @@ def install_package_both_paths(
     package_data = module_globals["install_data"][package_spec]
 
     (
-        package_data["clear_pipx_pass"],
         package_data["clear_pip_pass"],
+        package_data["clear_pipx_pass"],
         package_data["clear_elapsed_time"],
     ) = install_and_verify(
         capsys,
@@ -350,8 +362,8 @@ def install_package_both_paths(
         # if we fail to install due to pip install error, try again with
         #   full system path
         (
-            package_data["sys_pipx_pass"],
             package_data["sys_pip_pass"],
+            package_data["sys_pipx_pass"],
             package_data["sys_elapsed_time"],
         ) = install_and_verify(
             capsys,
@@ -365,8 +377,8 @@ def install_package_both_paths(
         )
 
     overall_pass = (
-        package_data["clear_pipx_pass"] and package_data["clear_pip_pass"]
-    ) or (package_data["sys_pipx_pass"] and package_data["sys_pip_pass"])
+        package_data["clear_pip_pass"] and package_data["clear_pipx_pass"]
+    ) or (package_data["sys_pip_pass"] and package_data["sys_pipx_pass"])
 
     with module_globals["report_path"].open("a") as report_fh:
         print(
