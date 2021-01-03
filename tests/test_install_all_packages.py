@@ -311,12 +311,11 @@ def install_package_both_paths(
     capsys,
     pipx_temp_env,
     caplog,
-    package_name="",
+    package_name,
     deps=False,
 ):
     package_spec = PKG[package_name]["spec"]
-    install_data = module_globals["install_data"]
-    install_data[package_spec] = {
+    module_globals["install_data"][package_spec] = {
         "clear_elapsed_time": None,
         "clear_pip_pass": None,
         "clear_pipx_pass": None,
@@ -324,11 +323,12 @@ def install_package_both_paths(
         "sys_pip_pass": None,
         "sys_pipx_pass": None,
     }
+    package_data = module_globals["install_data"][package_spec]
 
     (
-        install_data[package_spec]["clear_pipx_pass"],
-        install_data[package_spec]["clear_pip_pass"],
-        install_data[package_spec]["clear_elapsed_time"],
+        package_data["clear_pipx_pass"],
+        package_data["clear_pip_pass"],
+        package_data["clear_elapsed_time"],
     ) = install_and_verify(
         capsys,
         caplog,
@@ -340,13 +340,13 @@ def install_package_both_paths(
         deps=deps,
     )
 
-    if not install_data[package_spec]["clear_pip_pass"]:
+    if not package_data["clear_pip_pass"]:
         # if we fail to install due to pip install error, try again with
         #   full system path
         (
-            install_data[package_spec]["sys_pipx_pass"],
-            install_data[package_spec]["sys_pip_pass"],
-            install_data[package_spec]["sys_elapsed_time"],
+            package_data["sys_pipx_pass"],
+            package_data["sys_pip_pass"],
+            package_data["sys_elapsed_time"],
         ) = install_and_verify(
             capsys,
             caplog,
@@ -359,26 +359,17 @@ def install_package_both_paths(
         )
 
     overall_pass = (
-        install_data[package_spec]["clear_pipx_pass"]
-        and install_data[package_spec]["clear_pip_pass"]
-    ) or (
-        install_data[package_spec]["sys_pipx_pass"]
-        and install_data[package_spec]["sys_pip_pass"]
-    )
+        package_data["clear_pipx_pass"] and package_data["clear_pip_pass"]
+    ) or (package_data["sys_pipx_pass"] and package_data["sys_pip_pass"])
 
     with module_globals["report_path"].open("a") as report_fh:
         print(
-            format_report_table_row(
-                package_spec, install_data[package_spec], overall_pass
-            ),
+            format_report_table_row(package_spec, package_data, overall_pass),
             file=report_fh,
             flush=True,
         )
 
-    if (
-        not install_data[package_spec]["clear_pip_pass"]
-        and not install_data[package_spec]["sys_pip_pass"]
-    ):
+    if not package_data["clear_pip_pass"] and not package_data["sys_pip_pass"]:
         # Use xfail to specify error that is from a pip installation problem
         pytest.xfail("pip installation error")
 
@@ -392,8 +383,8 @@ def start_end_report(module_globals, request):
     module_globals["install_data"] = {}
 
     test_class = getattr(request.cls, "test_class", "unknown")
-    py_version = f"{sys.version_info[0]}.{sys.version_info[1]}"
-    py_version_str = f"Python {py_version}"
+    py_version = f"{sys.version_info.major}.{sys.version_info.minor}"
+    py_version_str = f"Python {py_version}.{sys.version_info.micro}"
     date_string = module_globals["test_start"].strftime("%Y%m%d")
 
     reports_path = Path(REPORTS_DIR)
