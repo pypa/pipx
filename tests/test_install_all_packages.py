@@ -96,6 +96,33 @@ class InstallData:
         self.sys_elapsed_time: Optional[timedelta] = None
         self.sys_pip_pass: Optional[bool] = None
         self.sys_pipx_pass: Optional[bool] = None
+        self.overall_pass: Optional[bool] = None
+
+    @property
+    def clear_pip_pf_str(self) -> str:
+        return self._get_pass_fail_str("clear_pip_pass")
+
+    @property
+    def clear_pipx_pf_str(self) -> str:
+        return self._get_pass_fail_str("clear_pipx_pass")
+
+    @property
+    def sys_pip_pf_str(self) -> str:
+        return self._get_pass_fail_str("sys_pip_pass")
+
+    @property
+    def sys_pipx_pf_str(self) -> str:
+        return self._get_pass_fail_str("sys_pipx_pass")
+
+    @property
+    def overall_pf_str(self) -> str:
+        return self._get_pass_fail_str("overall_pass")
+
+    def _get_pass_fail_str(self, test_attr) -> str:
+        if getattr(self, test_attr) is not None:
+            return "PASS" if getattr(self, test_attr) else "FAIL"
+        else:
+            return ""
 
 
 class ModuleGlobalsData:
@@ -265,13 +292,6 @@ def install_and_verify(
     return pip_pass, pipx_pass, elapsed_time
 
 
-def get_pass_fail(test_obj, test_attr):
-    if getattr(test_obj, test_attr) is not None:
-        return "PASS" if getattr(test_obj, test_attr) else "FAIL"
-    else:
-        return ""
-
-
 def format_report_table_header(module_globals):
     py_version_str = module_globals.py_version_display
     sys_platform = module_globals.sys_platform
@@ -291,17 +311,17 @@ def format_report_table_header(module_globals):
     return header_string
 
 
-def format_report_table_row(package_spec, package_data, overall_pass):
-    clear_pip_pf = get_pass_fail(package_data, "clear_pip_pass")
-    clear_pipx_pf = get_pass_fail(package_data, "clear_pipx_pass")
+def format_report_table_row(package_spec, package_data):
+    clear_pip_pf = package_data.clear_pip_pf_str
+    clear_pipx_pf = package_data.clear_pipx_pf_str
     clear_install_time = f"{package_data.clear_elapsed_time:>3.0f}s"
-    sys_pip_pf = get_pass_fail(package_data, "sys_pip_pass")
-    sys_pipx_pf = get_pass_fail(package_data, "sys_pipx_pass")
+    sys_pip_pf = package_data.sys_pip_pf_str
+    sys_pipx_pf = package_data.sys_pipx_pf_str
     if package_data.sys_elapsed_time is not None:
         sys_install_time = f"{package_data.sys_elapsed_time:>3.0f}s"
     else:
         sys_install_time = ""
-    overall_pf = "PASS" if overall_pass else "FAIL"
+    overall_pf = package_data.overall_pf_str
 
     row_string = (
         f"{package_spec:24}{overall_pf:12}"
@@ -397,15 +417,14 @@ def install_package_both_paths(
             deps=deps,
         )
 
-    # TODO: this will return None if clear_pip_pass and clear_pipx_pass == False
-    #       but there are no sys_pip*_pass
-    overall_pass = (package_data.clear_pip_pass and package_data.clear_pipx_pass) or (
-        package_data.sys_pip_pass and package_data.sys_pipx_pass
+    package_data.overall_pass = bool(
+        (package_data.clear_pip_pass and package_data.clear_pipx_pass)
+        or (package_data.sys_pip_pass and package_data.sys_pipx_pass)
     )
 
     with module_globals.report_path.open("a") as report_fh:
         print(
-            format_report_table_row(package_spec, package_data, overall_pass),
+            format_report_table_row(package_spec, package_data),
             file=report_fh,
             flush=True,
         )
@@ -414,7 +433,7 @@ def install_package_both_paths(
         # Use xfail to specify error that is from a pip installation problem
         pytest.xfail("pip installation error")
 
-    return overall_pass
+    return package_data.overall_pass
 
 
 # use class scope to start and finish at end of all parametrized tests
