@@ -242,6 +242,23 @@ def key_pass_fail(test_dict, test_key):
         return ""
 
 
+def format_report_table_header(test_start, test_class, py_version_str):
+    dt_string = test_start.strftime("%Y-%m-%d %H:%M:%S")
+
+    header_string = "\n\n"
+    header_string += "=" * 79 + "\n"
+    header_string += f"{sys.platform:16}{py_version_str:16}{dt_string}\n\n"
+    header_string += (
+        f"{'package_spec':24}{'overall':12}{'cleared_PATH':24}{'system_PATH':24}\n"
+    )
+    header_string += (
+        f"{'':24}{'':12}{'pip':8}{'pipx':8}{'time':8}{'pip':8}{'pipx':8}{'time':8}\n"
+    )
+    header_string += "-" * 79 + "\n"
+
+    return header_string
+
+
 def format_report_table_row(package_spec, package_install_data, overall_pass):
     clear_pip_pf = key_pass_fail(package_install_data, "clear_pip_pass")
     clear_pipx_pf = key_pass_fail(package_install_data, "clear_pipx_pass")
@@ -261,6 +278,31 @@ def format_report_table_row(package_spec, package_install_data, overall_pass):
     )
 
     return row_string
+
+
+def format_report_table_footer(install_data, test_start):
+    footer_string = "\nSummary\n"
+    footer_string += "-" * 79 + "\n"
+    for package_spec in install_data:
+        clear_pip_pass = install_data[package_spec]["clear_pip_pass"]
+        clear_pipx_pass = install_data[package_spec]["clear_pipx_pass"]
+        sys_pip_pass = install_data[package_spec].get("sys_pip_pass", False)
+        sys_pipx_pass = install_data[package_spec].get("sys_pipx_pass", False)
+
+        if clear_pip_pass and clear_pipx_pass:
+            continue
+        elif not clear_pip_pass and sys_pip_pass and sys_pipx_pass:
+            footer_string += f"{package_spec} needs prebuilt wheel\n"
+        else:
+            footer_string += f"{package_spec} FAILS\n"
+    test_end = datetime.now()
+    dt_string = test_end.strftime("%Y-%m-%d %H:%M:%S")
+    el_datetime = test_end - test_start
+    el_datetime = el_datetime - timedelta(microseconds=el_datetime.microseconds)
+    footer_string += f"\nFinished {dt_string}\n"
+    footer_string += f"Elapsed: {el_datetime}\n"
+
+    return footer_string
 
 
 def install_package_both_paths(
@@ -298,11 +340,6 @@ def install_package_both_paths(
         deps=deps,
     )
 
-    clear_path_ok = (
-        install_data[package_spec]["clear_pipx_pass"]
-        and install_data[package_spec]["clear_pip_pass"]
-    )
-
     if not install_data[package_spec]["clear_pip_pass"]:
         # if we fail to install due to pip install error, try again with
         #   full system path
@@ -320,14 +357,14 @@ def install_package_both_paths(
             package_name=package_name,
             deps=deps,
         )
-        sys_path_ok = (
-            install_data[package_spec]["sys_pipx_pass"]
-            and install_data[package_spec]["sys_pip_pass"]
-        )
-    else:
-        sys_path_ok = False
 
-    overall_pass = clear_path_ok or sys_path_ok
+    overall_pass = (
+        install_data[package_spec]["clear_pipx_pass"]
+        and install_data[package_spec]["clear_pip_pass"]
+    ) or (
+        install_data[package_spec]["sys_pipx_pass"]
+        and install_data[package_spec]["sys_pip_pass"]
+    )
 
     with module_globals["report_path"].open("a") as report_fh:
         print(
@@ -352,16 +389,15 @@ def install_package_both_paths(
 @pytest.fixture(scope="class")
 def start_end_report(module_globals, request):
     module_globals["test_start"] = datetime.now()
-    dt_string = module_globals["test_start"].strftime("%Y-%m-%d %H:%M:%S")
-    date_string = module_globals["test_start"].strftime("%Y%m%d")
+    module_globals["install_data"] = {}
+
+    test_class = getattr(request.cls, "test_class", "unknown")
     py_version = f"{sys.version_info[0]}.{sys.version_info[1]}"
     py_version_str = f"Python {py_version}"
+    date_string = module_globals["test_start"].strftime("%Y%m%d")
 
     reports_path = Path(REPORTS_DIR)
     reports_path.mkdir(exist_ok=True, parents=True)
-
-    test_class = getattr(request.cls, "test_class", "unknown")
-
     module_globals["report_path"] = (
         reports_path
         / f"./{REPORT_FILENAME_ROOT}_{test_class}_report_{sys.platform}_{py_version}_{date_string}.txt"
@@ -371,48 +407,23 @@ def start_end_report(module_globals, request):
         / f"./{REPORT_FILENAME_ROOT}_{test_class}_errors_{sys.platform}_{py_version}_{date_string}.txt"
     )
 
-    # Reset global data
-    module_globals["install_data"] = {}
-    install_data = module_globals["install_data"]
-
     with module_globals["report_path"].open("a") as report_fh:
-        print("\n\n", file=report_fh)
-        print("=" * 79, file=report_fh)
-        print(f"{sys.platform:16}{py_version_str:16}{dt_string}", file=report_fh)
-        print("", file=report_fh)
         print(
-            f"{'package_spec':24}{'overall':12}{'cleared PATH':24}{'system PATH':24}",
+            format_report_table_header(
+                module_globals["test_start"], test_class, py_version_str
+            ),
             file=report_fh,
         )
-        print(
-            f"{'':24}{'':12}{'pip':8}{'pipx':8}{'time':8}{'pip':8}{'pipx':8}{'time':8}",
-            file=report_fh,
-        )
-        print("-" * 79, file=report_fh)
 
     yield
 
     with module_globals["report_path"].open("a") as report_fh:
-        print("\nSummary", file=report_fh)
-        print("-" * 79, file=report_fh)
-        for package_spec in install_data:
-            clear_pip_pass = install_data[package_spec]["clear_pip_pass"]
-            clear_pipx_pass = install_data[package_spec]["clear_pipx_pass"]
-            sys_pip_pass = install_data[package_spec].get("sys_pip_pass", False)
-            sys_pipx_pass = install_data[package_spec].get("sys_pipx_pass", False)
-
-            if clear_pip_pass and clear_pipx_pass:
-                continue
-            elif not clear_pip_pass and sys_pip_pass and sys_pipx_pass:
-                print(f"{package_spec} needs prebuilt wheel", file=report_fh)
-            else:
-                print(f"{package_spec} FAILS", file=report_fh)
-        test_end = datetime.now()
-        dt_string = test_end.strftime("%Y-%m-%d %H:%M:%S")
-        el_datetime = test_end - module_globals["test_start"]
-        el_datetime = el_datetime - timedelta(microseconds=el_datetime.microseconds)
-        print(f"\nFinished {dt_string}", file=report_fh)
-        print(f"Elapsed: {el_datetime}", file=report_fh)
+        print(
+            format_report_table_footer(
+                module_globals["install_data"], module_globals["test_start"]
+            ),
+            file=report_fh,
+        )
 
 
 class TestAllPackagesNoDeps:
