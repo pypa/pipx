@@ -13,6 +13,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any, Dict
 
 import pytest  # type: ignore
 
@@ -87,14 +88,35 @@ PACKAGE_NAME_LIST = [
 ]
 
 
+class ModuleGlobalsData:
+    def __init__(self):
+        self.errors_path = Path(".")
+        self.install_data: Dict[str, Any] = {}
+        self.py_version_display = "Python {0.major}.{0.minor}.{0.micro}".format(
+            sys.version_info
+        )
+        self.py_version_short = "{0.major}.{0.minor}".format(sys.version_info)
+        self.report_path = Path(".")
+        self.sys_platform = sys.platform
+        self.test_class = ""
+        self.test_start = datetime.now()
+
+    def reset(self, test_class: str = ""):
+        self.errors_path = Path(".")
+        self.install_data = {}
+        self.py_version_display = "Python {0.major}.{0.minor}.{0.micro}".format(
+            sys.version_info
+        )
+        self.py_version_short = "{0.major}.{0.minor}".format(sys.version_info)
+        self.report_path = Path(".")
+        self.sys_platform = sys.platform
+        self.test_class = test_class
+        self.test_start = datetime.now()
+
+
 @pytest.fixture(scope="module")
 def module_globals():
-    return {
-        "test_start": 0,
-        "errors_path": Path("."),
-        "report_path": Path("."),
-        "install_data": {},
-    }
+    return ModuleGlobalsData()
 
 
 def pip_cache_purge():
@@ -168,10 +190,10 @@ def verify_post_install(
 def print_error_report(
     module_globals, command_captured, test_error_fh, package_spec, test_type
 ):
-    py_version_str = module_globals["py_version_display"]
-    sys_platform = module_globals["sys_platform"]
+    py_version_str = module_globals.py_version_display
+    sys_platform = module_globals.sys_platform
 
-    with module_globals["errors_path"].open("a") as errors_fh:
+    with module_globals.errors_path.open("a") as errors_fh:
         print("\n\n", file=errors_fh)
         print("=" * 79, file=errors_fh)
         print(
@@ -245,9 +267,9 @@ def key_pass_fail(test_dict, test_key):
 
 
 def format_report_table_header(module_globals):
-    py_version_str = module_globals["py_version_display"]
-    sys_platform = module_globals["sys_platform"]
-    dt_string = module_globals["test_start"].strftime("%Y-%m-%d %H:%M:%S")
+    py_version_str = module_globals.py_version_display
+    sys_platform = module_globals.sys_platform
+    dt_string = module_globals.test_start.strftime("%Y-%m-%d %H:%M:%S")
 
     header_string = "\n\n"
     header_string += "=" * 79 + "\n"
@@ -285,7 +307,7 @@ def format_report_table_row(package_spec, package_data, overall_pass):
 
 
 def format_report_table_footer(module_globals):
-    install_data = module_globals["install_data"]
+    install_data = module_globals.install_data
 
     fail_list = []
     prebuild_list = []
@@ -315,7 +337,7 @@ def format_report_table_footer(module_globals):
 
     test_end = datetime.now()
     dt_string = test_end.strftime("%Y-%m-%d %H:%M:%S")
-    el_datetime = test_end - module_globals["test_start"]
+    el_datetime = test_end - module_globals.test_start
     el_datetime = el_datetime - timedelta(microseconds=el_datetime.microseconds)
     footer_string += f"\nFinished {dt_string}\n"
     footer_string += f"Elapsed: {el_datetime}"
@@ -333,7 +355,7 @@ def install_package_both_paths(
     deps=False,
 ):
     package_spec = PKG[package_name]["spec"]
-    module_globals["install_data"][package_spec] = {
+    module_globals.install_data[package_spec] = {
         "clear_elapsed_time": None,
         "clear_pip_pass": None,
         "clear_pipx_pass": None,
@@ -341,7 +363,7 @@ def install_package_both_paths(
         "sys_pip_pass": None,
         "sys_pipx_pass": None,
     }
-    package_data = module_globals["install_data"][package_spec]
+    package_data = module_globals.install_data[package_spec]
 
     (
         package_data["clear_pip_pass"],
@@ -376,11 +398,13 @@ def install_package_both_paths(
             deps=deps,
         )
 
+    # TODO: this will return None if clear_pip_pass and clear_pipx_pass == False
+    #       but there are no sys_pip*_pass
     overall_pass = (
         package_data["clear_pip_pass"] and package_data["clear_pipx_pass"]
     ) or (package_data["sys_pip_pass"] and package_data["sys_pipx_pass"])
 
-    with module_globals["report_path"].open("a") as report_fh:
+    with module_globals.report_path.open("a") as report_fh:
         print(
             format_report_table_row(package_spec, package_data, overall_pass),
             file=report_fh,
@@ -397,42 +421,42 @@ def install_package_both_paths(
 # use class scope to start and finish at end of all parametrized tests
 @pytest.fixture(scope="class")
 def start_end_report(module_globals, request):
-    module_globals["install_data"] = {}
-    module_globals["test_start"] = datetime.now()
-    module_globals["sys_platform"] = sys.platform
-    module_globals["py_version_short"] = "{0.major}.{0.minor}".format(sys.version_info)
-    module_globals[
-        "py_version_display"
-    ] = "Python {0.major}.{0.minor}.{0.micro}".format(sys.version_info)
-    module_globals["test_class"] = getattr(request.cls, "test_class", "unknown")
+    module_globals.install_data = {}
+    module_globals.test_start = datetime.now()
+    module_globals.sys_platform = sys.platform
+    module_globals.py_version_short = "{0.major}.{0.minor}".format(sys.version_info)
+    module_globals.py_version_display = "Python {0.major}.{0.minor}.{0.micro}".format(
+        sys.version_info
+    )
+    module_globals.test_class = getattr(request.cls, "test_class", "unknown")
 
     reports_path = Path(REPORTS_DIR)
     reports_path.mkdir(exist_ok=True, parents=True)
     report_filename = (
         f"{REPORT_FILENAME_ROOT}_"
-        f"{module_globals['test_class']}_"
+        f"{module_globals.test_class}_"
         f"report_"
-        f"{module_globals['sys_platform']}_"
-        f"{module_globals['py_version_short']}_"
-        f"{module_globals['test_start'].strftime('%Y%m%d')}.txt"
+        f"{module_globals.sys_platform}_"
+        f"{module_globals.py_version_short}_"
+        f"{module_globals.test_start.strftime('%Y%m%d')}.txt"
     )
     errors_filename = (
         f"{REPORT_FILENAME_ROOT}_"
-        f"{module_globals['test_class']}_"
+        f"{module_globals.test_class}_"
         f"errors_"
-        f"{module_globals['sys_platform']}_"
-        f"{module_globals['py_version_short']}_"
-        f"{module_globals['test_start'].strftime('%Y%m%d')}.txt"
+        f"{module_globals.sys_platform}_"
+        f"{module_globals.py_version_short}_"
+        f"{module_globals.test_start.strftime('%Y%m%d')}.txt"
     )
-    module_globals["report_path"] = reports_path / report_filename
-    module_globals["errors_path"] = reports_path / errors_filename
+    module_globals.report_path = reports_path / report_filename
+    module_globals.errors_path = reports_path / errors_filename
 
-    with module_globals["report_path"].open("a") as report_fh:
+    with module_globals.report_path.open("a") as report_fh:
         print(format_report_table_header(module_globals), file=report_fh)
 
     yield
 
-    with module_globals["report_path"].open("a") as report_fh:
+    with module_globals.report_path.open("a") as report_fh:
         print(format_report_table_footer(module_globals), file=report_fh)
 
 
