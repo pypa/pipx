@@ -13,7 +13,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict
+from typing import Dict, Optional
 
 import pytest  # type: ignore
 
@@ -88,10 +88,20 @@ PACKAGE_NAME_LIST = [
 ]
 
 
+class InstallData:
+    def __init__(self):
+        self.clear_elapsed_time: Optional[timedelta] = None
+        self.clear_pip_pass: Optional[bool] = None
+        self.clear_pipx_pass: Optional[bool] = None
+        self.sys_elapsed_time: Optional[timedelta] = None
+        self.sys_pip_pass: Optional[bool] = None
+        self.sys_pipx_pass: Optional[bool] = None
+
+
 class ModuleGlobalsData:
     def __init__(self):
         self.errors_path = Path(".")
-        self.install_data: Dict[str, Any] = {}
+        self.install_data: Dict[str, InstallData] = {}
         self.py_version_display = "Python {0.major}.{0.minor}.{0.micro}".format(
             sys.version_info
         )
@@ -104,10 +114,6 @@ class ModuleGlobalsData:
     def reset(self, test_class: str = ""):
         self.errors_path = Path(".")
         self.install_data = {}
-        self.py_version_display = "Python {0.major}.{0.minor}.{0.micro}".format(
-            sys.version_info
-        )
-        self.py_version_short = "{0.major}.{0.minor}".format(sys.version_info)
         self.report_path = Path(".")
         self.sys_platform = sys.platform
         self.test_class = test_class
@@ -259,9 +265,9 @@ def install_and_verify(
     return pip_pass, pipx_pass, elapsed_time
 
 
-def key_pass_fail(test_dict, test_key):
-    if test_dict.get(test_key, None) is not None:
-        return "PASS" if test_dict[test_key] else "FAIL"
+def get_pass_fail(test_obj, test_attr):
+    if getattr(test_obj, test_attr) is not None:
+        return "PASS" if getattr(test_obj, test_attr) else "FAIL"
     else:
         return ""
 
@@ -286,13 +292,13 @@ def format_report_table_header(module_globals):
 
 
 def format_report_table_row(package_spec, package_data, overall_pass):
-    clear_pip_pf = key_pass_fail(package_data, "clear_pip_pass")
-    clear_pipx_pf = key_pass_fail(package_data, "clear_pipx_pass")
-    clear_install_time = f"{package_data['clear_elapsed_time']:>3.0f}s"
-    sys_pip_pf = key_pass_fail(package_data, "sys_pip_pass")
-    sys_pipx_pf = key_pass_fail(package_data, "sys_pipx_pass")
-    if package_data.get("sys_elapsed_time", None) is not None:
-        sys_install_time = f"{package_data['sys_elapsed_time']:>3.0f}s"
+    clear_pip_pf = get_pass_fail(package_data, "clear_pip_pass")
+    clear_pipx_pf = get_pass_fail(package_data, "clear_pipx_pass")
+    clear_install_time = f"{package_data.clear_elapsed_time:>3.0f}s"
+    sys_pip_pf = get_pass_fail(package_data, "sys_pip_pass")
+    sys_pipx_pf = get_pass_fail(package_data, "sys_pipx_pass")
+    if package_data.sys_elapsed_time is not None:
+        sys_install_time = f"{package_data.sys_elapsed_time:>3.0f}s"
     else:
         sys_install_time = ""
     overall_pf = "PASS" if overall_pass else "FAIL"
@@ -315,10 +321,10 @@ def format_report_table_footer(module_globals):
     footer_string = "\nSummary\n"
     footer_string += "-" * 79 + "\n"
     for package_spec in install_data:
-        clear_pip_pass = install_data[package_spec]["clear_pip_pass"]
-        clear_pipx_pass = install_data[package_spec]["clear_pipx_pass"]
-        sys_pip_pass = install_data[package_spec]["sys_pip_pass"]
-        sys_pipx_pass = install_data[package_spec]["sys_pipx_pass"]
+        clear_pip_pass = install_data[package_spec].clear_pip_pass
+        clear_pipx_pass = install_data[package_spec].clear_pipx_pass
+        sys_pip_pass = install_data[package_spec].sys_pip_pass
+        sys_pipx_pass = install_data[package_spec].sys_pipx_pass
 
         if clear_pip_pass and clear_pipx_pass:
             continue
@@ -355,20 +361,13 @@ def install_package_both_paths(
     deps=False,
 ):
     package_spec = PKG[package_name]["spec"]
-    module_globals.install_data[package_spec] = {
-        "clear_elapsed_time": None,
-        "clear_pip_pass": None,
-        "clear_pipx_pass": None,
-        "sys_elapsed_time": None,
-        "sys_pip_pass": None,
-        "sys_pipx_pass": None,
-    }
+    module_globals.install_data[package_spec] = InstallData()
     package_data = module_globals.install_data[package_spec]
 
     (
-        package_data["clear_pip_pass"],
-        package_data["clear_pipx_pass"],
-        package_data["clear_elapsed_time"],
+        package_data.clear_pip_pass,
+        package_data.clear_pipx_pass,
+        package_data.clear_elapsed_time,
     ) = install_and_verify(
         capsys,
         caplog,
@@ -380,13 +379,13 @@ def install_package_both_paths(
         deps=deps,
     )
 
-    if not package_data["clear_pip_pass"]:
+    if not package_data.clear_pip_pass:
         # if we fail to install due to pip install error, try again with
         #   full system path
         (
-            package_data["sys_pip_pass"],
-            package_data["sys_pipx_pass"],
-            package_data["sys_elapsed_time"],
+            package_data.sys_pip_pass,
+            package_data.sys_pipx_pass,
+            package_data.sys_elapsed_time,
         ) = install_and_verify(
             capsys,
             caplog,
@@ -400,9 +399,9 @@ def install_package_both_paths(
 
     # TODO: this will return None if clear_pip_pass and clear_pipx_pass == False
     #       but there are no sys_pip*_pass
-    overall_pass = (
-        package_data["clear_pip_pass"] and package_data["clear_pipx_pass"]
-    ) or (package_data["sys_pip_pass"] and package_data["sys_pipx_pass"])
+    overall_pass = (package_data.clear_pip_pass and package_data.clear_pipx_pass) or (
+        package_data.sys_pip_pass and package_data.sys_pipx_pass
+    )
 
     with module_globals.report_path.open("a") as report_fh:
         print(
@@ -411,7 +410,7 @@ def install_package_both_paths(
             flush=True,
         )
 
-    if not package_data["clear_pip_pass"] and not package_data["sys_pip_pass"]:
+    if not package_data.clear_pip_pass and not package_data.sys_pip_pass:
         # Use xfail to specify error that is from a pip installation problem
         pytest.xfail("pip installation error")
 
