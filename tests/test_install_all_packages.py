@@ -254,7 +254,7 @@ def format_report_table_header(test_start, test_class, py_version_str):
     header_string += (
         f"{'':24}{'':12}{'pip':8}{'pipx':8}{'time':8}{'pip':8}{'pipx':8}{'time':8}\n"
     )
-    header_string += "-" * 79 + "\n"
+    header_string += "-" * 79
 
     return header_string
 
@@ -300,7 +300,7 @@ def format_report_table_footer(install_data, test_start):
     el_datetime = test_end - test_start
     el_datetime = el_datetime - timedelta(microseconds=el_datetime.microseconds)
     footer_string += f"\nFinished {dt_string}\n"
-    footer_string += f"Elapsed: {el_datetime}\n"
+    footer_string += f"Elapsed: {el_datetime}"
 
     return footer_string
 
