@@ -13,7 +13,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import pytest  # type: ignore
 
@@ -92,10 +92,10 @@ class PackageData:
     def __init__(self):
         self.package_name: str = ""
         self.package_spec: str = ""
-        self.clear_elapsed_time: Optional[timedelta] = None
+        self.clear_elapsed_time: Optional[float] = None
         self.clear_pip_pass: Optional[bool] = None
         self.clear_pipx_pass: Optional[bool] = None
-        self.sys_elapsed_time: Optional[timedelta] = None
+        self.sys_elapsed_time: Optional[float] = None
         self.sys_pip_pass: Optional[bool] = None
         self.sys_pipx_pass: Optional[bool] = None
         self.overall_pass: Optional[bool] = None
@@ -140,7 +140,7 @@ class ModuleGlobalsData:
         self.test_class = ""
         self.test_start = datetime.now()
 
-    def reset(self, test_class: str = ""):
+    def reset(self, test_class: str = "") -> None:
         self.errors_path = Path(".")
         self.install_data = []
         self.report_path = Path(".")
@@ -153,11 +153,11 @@ def module_globals() -> ModuleGlobalsData:
     return ModuleGlobalsData()
 
 
-def pip_cache_purge():
-    return subprocess.run([sys.executable, "-m", "pip", "cache", "purge"])
+def pip_cache_purge() -> None:
+    subprocess.run([sys.executable, "-m", "pip", "cache", "purge"])
 
 
-def format_report_table_header(module_globals: ModuleGlobalsData):
+def format_report_table_header(module_globals: ModuleGlobalsData) -> str:
     py_version_str = module_globals.py_version_display
     sys_platform = module_globals.sys_platform
     dt_string = module_globals.test_start.strftime("%Y-%m-%d %H:%M:%S")
@@ -176,7 +176,7 @@ def format_report_table_header(module_globals: ModuleGlobalsData):
     return header_string
 
 
-def format_report_table_row(package_data: PackageData):
+def format_report_table_row(package_data: PackageData) -> str:
     clear_install_time = f"{package_data.clear_elapsed_time:>3.0f}s"
     if package_data.sys_elapsed_time is not None:
         sys_install_time = f"{package_data.sys_elapsed_time:>3.0f}s"
@@ -194,7 +194,7 @@ def format_report_table_row(package_data: PackageData):
     return row_string
 
 
-def format_report_table_footer(module_globals: ModuleGlobalsData):
+def format_report_table_footer(module_globals: ModuleGlobalsData) -> str:
     fail_list = []
     prebuild_list = []
 
@@ -232,8 +232,11 @@ def format_report_table_footer(module_globals: ModuleGlobalsData):
 
 
 def verify_installed_apps(
-    captured_outerr, package_name: str, test_error_fh: io.StringIO, deps: bool = False
-):
+    captured_outerr: pytest.CaptureResult,
+    package_name: str,
+    test_error_fh: io.StringIO,
+    deps: bool = False,
+) -> bool:
     package_apps = PKG[package_name]["apps"].copy()
     if deps:
         package_apps += PKG[package_name]["apps_of_dependencies"]
@@ -263,13 +266,13 @@ def verify_installed_apps(
 
 def verify_post_install(
     pipx_exit_code: int,
-    captured_outerr,
+    captured_outerr: pytest.CaptureResult,
     caplog,
     package_name: str,
     test_error_fh: io.StringIO,
     using_clear_path: bool,
     deps: bool = False,
-):
+) -> Tuple[bool, Optional[bool]]:
     caplog_problem = False
     install_success = f"installed package {package_name}" in captured_outerr.out
     for record in caplog.records:
@@ -289,6 +292,7 @@ def verify_post_install(
         (pipx_exit_code != 0)
         and f"Error installing {package_name}" in captured_outerr.err
     )
+    pipx_pass: Optional[bool]
     if pip_pass:
         pipx_pass = install_success and not caplog_problem and app_success
     else:
@@ -299,11 +303,11 @@ def verify_post_install(
 
 def print_error_report(
     module_globals: ModuleGlobalsData,
-    command_captured,
+    command_captured: pytest.CaptureResult,
     test_error_fh: io.StringIO,
     package_spec: str,
     test_type: str,
-):
+) -> None:
     py_version_str = module_globals.py_version_display
     sys_platform = module_globals.sys_platform
 
@@ -326,7 +330,7 @@ def print_error_report(
 
 
 def install_and_verify(
-    capsys,
+    capsys: pytest.CaptureFixture,
     caplog,
     monkeypatch,
     module_globals: ModuleGlobalsData,
@@ -334,7 +338,7 @@ def install_and_verify(
     package_spec: str,
     package_name: str,
     deps: bool,
-):
+) -> Tuple[bool, Optional[bool], float]:
     _ = capsys.readouterr()
     caplog.clear()
 
@@ -375,13 +379,13 @@ def install_and_verify(
 
 def install_package_both_paths(
     monkeypatch,
-    capsys,
+    capsys: pytest.CaptureFixture,
     caplog,
     module_globals: ModuleGlobalsData,
     pipx_temp_env,
     package_name: str,
     deps: bool = False,
-):
+) -> bool:
     package_data = PackageData()
     module_globals.install_data.append(package_data)
     package_data.package_name = package_name
@@ -478,7 +482,7 @@ class TestAllPackagesNoDeps:
     def test_all_packages(
         self,
         monkeypatch,
-        capsys,
+        capsys: pytest.CaptureFixture,
         caplog,
         module_globals: ModuleGlobalsData,
         start_end_report,
@@ -505,7 +509,7 @@ class TestAllPackagesDeps:
     def test_deps_all_packages(
         self,
         monkeypatch,
-        capsys,
+        capsys: pytest.CaptureFixture,
         caplog,
         module_globals: ModuleGlobalsData,
         start_end_report,
