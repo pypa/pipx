@@ -13,7 +13,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Optional
+from typing import List, Optional
 
 import pytest  # type: ignore
 
@@ -88,8 +88,10 @@ PACKAGE_NAME_LIST = [
 ]
 
 
-class InstallData:
+class PackageData:
     def __init__(self):
+        self.package_name: Optional[str] = None
+        self.package_spec: Optional[str] = None
         self.clear_elapsed_time: Optional[timedelta] = None
         self.clear_pip_pass: Optional[bool] = None
         self.clear_pipx_pass: Optional[bool] = None
@@ -128,7 +130,7 @@ class InstallData:
 class ModuleGlobalsData:
     def __init__(self):
         self.errors_path = Path(".")
-        self.install_data: Dict[str, InstallData] = {}
+        self.install_data: List[PackageData] = []
         self.py_version_display = "Python {0.major}.{0.minor}.{0.micro}".format(
             sys.version_info
         )
@@ -140,7 +142,7 @@ class ModuleGlobalsData:
 
     def reset(self, test_class: str = ""):
         self.errors_path = Path(".")
-        self.install_data = {}
+        self.install_data = []
         self.report_path = Path(".")
         self.test_class = test_class
         self.test_start = datetime.now()
@@ -310,7 +312,7 @@ def format_report_table_header(module_globals):
     return header_string
 
 
-def format_report_table_row(package_spec, package_data):
+def format_report_table_row(package_data):
     clear_install_time = f"{package_data.clear_elapsed_time:>3.0f}s"
     if package_data.sys_elapsed_time is not None:
         sys_install_time = f"{package_data.sys_elapsed_time:>3.0f}s"
@@ -318,7 +320,7 @@ def format_report_table_row(package_spec, package_data):
         sys_install_time = ""
 
     row_string = (
-        f"{package_spec:24}{package_data.overall_pf_str:12}"
+        f"{package_data.package_spec:24}{package_data.overall_pf_str:12}"
         f"{package_data.clear_pip_pf_str:8}{package_data.clear_pipx_pf_str:8}"
         f"{clear_install_time:8}"
         f"{package_data.sys_pip_pf_str:8}{package_data.sys_pipx_pf_str:8}"
@@ -329,25 +331,23 @@ def format_report_table_row(package_spec, package_data):
 
 
 def format_report_table_footer(module_globals):
-    install_data = module_globals.install_data
-
     fail_list = []
     prebuild_list = []
 
     footer_string = "\nSummary\n"
     footer_string += "-" * 79 + "\n"
-    for package_spec in install_data:
-        clear_pip_pass = install_data[package_spec].clear_pip_pass
-        clear_pipx_pass = install_data[package_spec].clear_pipx_pass
-        sys_pip_pass = install_data[package_spec].sys_pip_pass
-        sys_pipx_pass = install_data[package_spec].sys_pipx_pass
+    for package_data in module_globals.install_data:
+        clear_pip_pass = package_data.clear_pip_pass
+        clear_pipx_pass = package_data.clear_pipx_pass
+        sys_pip_pass = package_data.sys_pip_pass
+        sys_pipx_pass = package_data.sys_pipx_pass
 
         if clear_pip_pass and clear_pipx_pass:
             continue
         elif not clear_pip_pass and sys_pip_pass and sys_pipx_pass:
-            prebuild_list.append(package_spec)
+            prebuild_list.append(package_data.package_spec)
         else:
-            fail_list.append(package_spec)
+            fail_list.append(package_data.package_spec)
     if fail_list:
         footer_string += "FAILS:\n"
         for failed_package_spec in sorted(fail_list, key=str.lower):
@@ -376,9 +376,10 @@ def install_package_both_paths(
     package_name,
     deps=False,
 ):
-    package_spec = PKG[package_name]["spec"]
-    module_globals.install_data[package_spec] = InstallData()
-    package_data = module_globals.install_data[package_spec]
+    package_data = PackageData()
+    module_globals.install_data.append(package_data)
+    package_data.package_name = package_name
+    package_data.package_spec = PKG[package_name]["spec"]
 
     (
         package_data.clear_pip_pass,
@@ -390,11 +391,10 @@ def install_package_both_paths(
         monkeypatch,
         module_globals,
         using_clear_path=True,
-        package_spec=package_spec,
-        package_name=package_name,
+        package_spec=package_data.package_spec,
+        package_name=package_data.package_name,
         deps=deps,
     )
-
     if not package_data.clear_pip_pass:
         # if we fail to install due to pip install error, try again with
         #   full system path
@@ -408,8 +408,8 @@ def install_package_both_paths(
             monkeypatch,
             module_globals,
             using_clear_path=False,
-            package_spec=package_spec,
-            package_name=package_name,
+            package_spec=package_data.package_spec,
+            package_name=package_data.package_name,
             deps=deps,
         )
 
@@ -419,11 +419,7 @@ def install_package_both_paths(
     )
 
     with module_globals.report_path.open("a") as report_fh:
-        print(
-            format_report_table_row(package_spec, package_data),
-            file=report_fh,
-            flush=True,
-        )
+        print(format_report_table_row(package_data), file=report_fh, flush=True)
 
     if not package_data.clear_pip_pass and not package_data.sys_pip_pass:
         # Use xfail to specify error that is from a pip installation problem
@@ -439,8 +435,6 @@ def start_end_report(module_globals, request):
     reports_path.mkdir(exist_ok=True, parents=True)
 
     module_globals.reset()
-    module_globals.install_data = {}
-    module_globals.test_start = datetime.now()
     module_globals.test_class = getattr(request.cls, "test_class", "unknown")
     report_filename = (
         f"{REPORT_FILENAME_ROOT}_"
