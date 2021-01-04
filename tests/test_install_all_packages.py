@@ -90,8 +90,8 @@ PACKAGE_NAME_LIST = [
 
 class PackageData:
     def __init__(self):
-        self.package_name: Optional[str] = None
-        self.package_spec: Optional[str] = None
+        self.package_name: str = ""
+        self.package_spec: str = ""
         self.clear_elapsed_time: Optional[timedelta] = None
         self.clear_pip_pass: Optional[bool] = None
         self.clear_pipx_pass: Optional[bool] = None
@@ -149,7 +149,7 @@ class ModuleGlobalsData:
 
 
 @pytest.fixture(scope="module")
-def module_globals():
+def module_globals() -> ModuleGlobalsData:
     return ModuleGlobalsData()
 
 
@@ -157,7 +157,7 @@ def pip_cache_purge():
     return subprocess.run([sys.executable, "-m", "pip", "cache", "purge"])
 
 
-def format_report_table_header(module_globals):
+def format_report_table_header(module_globals: ModuleGlobalsData):
     py_version_str = module_globals.py_version_display
     sys_platform = module_globals.sys_platform
     dt_string = module_globals.test_start.strftime("%Y-%m-%d %H:%M:%S")
@@ -176,7 +176,7 @@ def format_report_table_header(module_globals):
     return header_string
 
 
-def format_report_table_row(package_data):
+def format_report_table_row(package_data: PackageData):
     clear_install_time = f"{package_data.clear_elapsed_time:>3.0f}s"
     if package_data.sys_elapsed_time is not None:
         sys_install_time = f"{package_data.sys_elapsed_time:>3.0f}s"
@@ -194,7 +194,7 @@ def format_report_table_row(package_data):
     return row_string
 
 
-def format_report_table_footer(module_globals):
+def format_report_table_footer(module_globals: ModuleGlobalsData):
     fail_list = []
     prebuild_list = []
 
@@ -231,7 +231,9 @@ def format_report_table_footer(module_globals):
     return footer_string
 
 
-def verify_installed_apps(captured_outerr, package_name, test_error_fh, deps=False):
+def verify_installed_apps(
+    captured_outerr, package_name: str, test_error_fh, deps: bool = False
+):
     package_apps = PKG[package_name]["apps"].copy()
     if deps:
         package_apps += PKG[package_name]["apps_of_dependencies"]
@@ -260,13 +262,13 @@ def verify_installed_apps(captured_outerr, package_name, test_error_fh, deps=Fal
 
 
 def verify_post_install(
-    pipx_exit_code,
+    pipx_exit_code: int,
     captured_outerr,
     caplog,
-    package_name,
+    package_name: str,
     test_error_fh,
-    using_clear_path,
-    deps=False,
+    using_clear_path: bool,
+    deps: bool = False,
 ):
     caplog_problem = False
     install_success = f"installed package {package_name}" in captured_outerr.out
@@ -296,7 +298,11 @@ def verify_post_install(
 
 
 def print_error_report(
-    module_globals, command_captured, test_error_fh, package_spec, test_type
+    module_globals: ModuleGlobalsData,
+    command_captured,
+    test_error_fh,
+    package_spec: str,
+    test_type: str,
 ):
     py_version_str = module_globals.py_version_display
     sys_platform = module_globals.sys_platform
@@ -323,11 +329,11 @@ def install_and_verify(
     capsys,
     caplog,
     monkeypatch,
-    module_globals,
-    using_clear_path,
-    package_spec,
-    package_name,
-    deps,
+    module_globals: ModuleGlobalsData,
+    using_clear_path: bool,
+    package_spec: str,
+    package_name: str,
+    deps: bool,
 ):
     _ = capsys.readouterr()
     caplog.clear()
@@ -368,13 +374,13 @@ def install_and_verify(
 
 
 def install_package_both_paths(
-    module_globals,
+    module_globals: ModuleGlobalsData,
     monkeypatch,
     capsys,
     pipx_temp_env,
     caplog,
-    package_name,
-    deps=False,
+    package_name: str,
+    deps: bool = False,
 ):
     package_data = PackageData()
     module_globals.install_data.append(package_data)
@@ -430,7 +436,7 @@ def install_package_both_paths(
 
 # use class scope to start and finish at end of all parametrized tests
 @pytest.fixture(scope="class")
-def start_end_report(module_globals, request):
+def start_end_report(module_globals: ModuleGlobalsData, request):
     reports_path = Path(REPORTS_DIR)
     reports_path.mkdir(exist_ok=True, parents=True)
 
@@ -477,7 +483,7 @@ class TestAllPackagesNoDeps:
         capsys,
         pipx_temp_env,
         caplog,
-        package_name,
+        package_name: str,
     ):
         pip_cache_purge()
         assert install_package_both_paths(
@@ -504,7 +510,7 @@ class TestAllPackagesDeps:
         capsys,
         pipx_temp_env,
         caplog,
-        package_name,
+        package_name: str,
     ):
         pip_cache_purge()
         assert install_package_both_paths(
