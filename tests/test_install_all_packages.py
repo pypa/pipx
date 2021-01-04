@@ -2,8 +2,18 @@
 This module uses the pytest infrastructure to produce reports on a large list
 of packages.  It verifies installation with and without an intact system PATH.
 
-It is not meant to ever fail in the normal pytest sense.  Instead failing
-installs will be recorded in the reports
+Test output pytest conditions:
+    PASS - if no pip errors, and no pipx issues, and package apps verified
+            all installed correctly
+    XFAIL - if there is a pip error, i.e. an installation problem out of pipx's
+            control
+    FAIL - if there is no pip error, but there is a problem due to pipx,
+            including a pipx error, incorrect list of installed apps, etc.
+
+In the report files, 'Overall' is whether everything succeeded--the package
+    was completely installed correctly.  'pip' PASS / FAIL refers to whether
+    pip succeded installing the package without error.  All other errors are
+    attributed to the 'pipx' PASS / FAIL.
 """
 import io
 import os
@@ -232,7 +242,7 @@ def format_report_table_footer(module_globals: ModuleGlobalsData) -> str:
 
 
 def verify_installed_apps(
-    captured_outerr, package_name: str, test_error_fh: io.StringIO, deps: bool = False,
+    captured_outerr, package_name: str, test_error_fh: io.StringIO, deps: bool = False
 ) -> bool:
     package_apps = PKG[package_name]["apps"].copy()
     if deps:
