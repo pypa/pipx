@@ -1,6 +1,7 @@
 """
 This module uses the pytest infrastructure to produce reports on a large list
 of packages.  It verifies installation with and without an intact system PATH.
+It also generates report summaries and error reports files.
 
 Test pytest outcomes:
     PASS - if no pip errors, and no pipx issues, and package apps verified
@@ -9,17 +10,13 @@ Test pytest outcomes:
             control
     FAIL - if there is no pip error, but there is a problem due to pipx,
             including a pipx error, incorrect list of installed apps, etc.
-
-In the report files, 'Overall' is whether everything succeeded--the package
-    was completely installed correctly.  'pip' PASS / FAIL refers to whether
-    pip succeded installing the package without error.  All other errors are
-    attributed to the 'pipx' PASS / FAIL, including wrong exposed apps, etc.
 """
 import io
 import os
 import re
 import subprocess
 import sys
+import textwrap
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -165,6 +162,29 @@ def module_globals() -> ModuleGlobalsData:
 
 def pip_cache_purge() -> None:
     subprocess.run([sys.executable, "-m", "pip", "cache", "purge"])
+
+
+def write_report_legend(report_legend_path: Path) -> None:
+    with report_legend_path.open("w") as report_legend_fh:
+        print(
+            textwrap.dedent(
+                """
+                LEGEND
+                ===========
+                cleared_PATH = PATH used for pipx tests with only pipx bin dir and nothing else
+                sys_PATH = Normal system PATH with all default directories included
+
+                overall = PASS or FAIL for complete end-to-end pipx install, PASS if no errors
+                        or warnings and all the proper apps were installed and linked
+                pip = PASS or FAIL sub-category based only if pip inside of pipx installs
+                        package with/without error
+                pipx = PASS or FAIL sub-category based on the non-pip parts of pipx, including
+                        whether any errors or warnings are present, and if all the proper apps
+                        were installed and linked
+                """
+            ).strip(),
+            file=report_legend_fh,
+        )
 
 
 def format_report_table_header(module_globals: ModuleGlobalsData) -> str:
@@ -471,6 +491,8 @@ def start_end_report(module_globals: ModuleGlobalsData, request):
     )
     module_globals.report_path = reports_path / report_filename
     module_globals.errors_path = reports_path / errors_filename
+
+    write_report_legend(reports_path / f"{REPORT_FILENAME_ROOT}_report_legend.txt")
 
     with module_globals.report_path.open("a") as report_fh:
         print(format_report_table_header(module_globals), file=report_fh)
