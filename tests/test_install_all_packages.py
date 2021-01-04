@@ -120,7 +120,7 @@ class PackageData:
     def overall_pf_str(self) -> str:
         return self._get_pass_fail_str("overall_pass")
 
-    def _get_pass_fail_str(self, test_attr) -> str:
+    def _get_pass_fail_str(self, test_attr: str) -> str:
         if getattr(self, test_attr) is not None:
             return "PASS" if getattr(self, test_attr) else "FAIL"
         else:
@@ -232,7 +232,7 @@ def format_report_table_footer(module_globals: ModuleGlobalsData):
 
 
 def verify_installed_apps(
-    captured_outerr, package_name: str, test_error_fh, deps: bool = False
+    captured_outerr, package_name: str, test_error_fh: io.StringIO, deps: bool = False
 ):
     package_apps = PKG[package_name]["apps"].copy()
     if deps:
@@ -266,7 +266,7 @@ def verify_post_install(
     captured_outerr,
     caplog,
     package_name: str,
-    test_error_fh,
+    test_error_fh: io.StringIO,
     using_clear_path: bool,
     deps: bool = False,
 ):
@@ -300,7 +300,7 @@ def verify_post_install(
 def print_error_report(
     module_globals: ModuleGlobalsData,
     command_captured,
-    test_error_fh,
+    test_error_fh: io.StringIO,
     package_spec: str,
     test_type: str,
 ):
@@ -374,11 +374,11 @@ def install_and_verify(
 
 
 def install_package_both_paths(
-    module_globals: ModuleGlobalsData,
     monkeypatch,
     capsys,
-    pipx_temp_env,
     caplog,
+    module_globals: ModuleGlobalsData,
+    pipx_temp_env,
     package_name: str,
     deps: bool = False,
 ):
@@ -477,21 +477,21 @@ class TestAllPackagesNoDeps:
     @pytest.mark.all_packages
     def test_all_packages(
         self,
-        module_globals,
-        start_end_report,
         monkeypatch,
         capsys,
-        pipx_temp_env,
         caplog,
+        module_globals: ModuleGlobalsData,
+        start_end_report,
+        pipx_temp_env,
         package_name: str,
     ):
         pip_cache_purge()
         assert install_package_both_paths(
-            module_globals,
             monkeypatch,
             capsys,
-            pipx_temp_env,
             caplog,
+            module_globals,
+            pipx_temp_env,
             package_name,
             deps=False,
         )
@@ -504,21 +504,21 @@ class TestAllPackagesDeps:
     @pytest.mark.all_packages
     def test_deps_all_packages(
         self,
-        module_globals,
-        start_end_report,
         monkeypatch,
         capsys,
-        pipx_temp_env,
         caplog,
+        module_globals: ModuleGlobalsData,
+        start_end_report,
+        pipx_temp_env,
         package_name: str,
     ):
         pip_cache_purge()
         assert install_package_both_paths(
-            module_globals,
             monkeypatch,
             capsys,
-            pipx_temp_env,
             caplog,
+            module_globals,
+            pipx_temp_env,
             package_name,
             deps=True,
         )
