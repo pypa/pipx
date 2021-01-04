@@ -2,7 +2,7 @@
 This module uses the pytest infrastructure to produce reports on a large list
 of packages.  It verifies installation with and without an intact system PATH.
 
-Test output pytest conditions:
+Test pytest outcomes:
     PASS - if no pip errors, and no pipx issues, and package apps verified
             all installed correctly
     XFAIL - if there is a pip error, i.e. an installation problem out of pipx's
@@ -13,7 +13,7 @@ Test output pytest conditions:
 In the report files, 'Overall' is whether everything succeeded--the package
     was completely installed correctly.  'pip' PASS / FAIL refers to whether
     pip succeded installing the package without error.  All other errors are
-    attributed to the 'pipx' PASS / FAIL.
+    attributed to the 'pipx' PASS / FAIL, including wrong exposed apps, etc.
 """
 import io
 import os
