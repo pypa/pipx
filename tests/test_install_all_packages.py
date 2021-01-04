@@ -146,6 +146,7 @@ class ModuleGlobalsData:
         self.sys_platform = sys.platform
         self.test_class = ""
         self.test_start = datetime.now()
+        self.test_end = datetime.now()  # default, must be set later
 
     def reset(self, test_class: str = "") -> None:
         self.errors_path = Path(".")
@@ -188,19 +189,20 @@ def write_report_legend(report_legend_path: Path) -> None:
 
 
 def format_report_table_header(module_globals: ModuleGlobalsData) -> str:
-    py_version_str = module_globals.py_version_display
-    sys_platform = module_globals.sys_platform
     dt_string = module_globals.test_start.strftime("%Y-%m-%d %H:%M:%S")
 
     header_string = "\n\n"
     header_string += "=" * 79 + "\n"
-    header_string += f"{sys_platform:16}{py_version_str:16}{dt_string}\n\n"
-    header_string += (
-        f"{'package_spec':24}{'overall':12}{'cleared_PATH':24}{'system_PATH':24}\n"
-    )
-    header_string += (
-        f"{'':24}{'':12}{'pip':8}{'pipx':8}{'time':8}{'pip':8}{'pipx':8}{'time':8}\n"
-    )
+
+    header_string += f"{module_globals.sys_platform:16}"
+    header_string += f"{module_globals.py_version_display:16}{dt_string}\n\n"
+
+    header_string += f"{'package_spec':24}{'overall':12}{'cleared_PATH':24}"
+    header_string += f"{'system_PATH':24}\n"
+
+    header_string += f"{'':24}{'':12}{'pip':8}{'pipx':8}{'time':8}"
+    header_string += f"{'pip':8}{'pipx':8}{'time':8}\n"
+
     header_string += "-" * 79
 
     return header_string
@@ -251,9 +253,8 @@ def format_report_table_footer(module_globals: ModuleGlobalsData) -> str:
         for prebuild_package_spec in sorted(prebuild_list, key=str.lower):
             footer_string += f"    {prebuild_package_spec}\n"
 
-    test_end = datetime.now()
-    dt_string = test_end.strftime("%Y-%m-%d %H:%M:%S")
-    el_datetime = test_end - module_globals.test_start
+    dt_string = module_globals.test_end.strftime("%Y-%m-%d %H:%M:%S")
+    el_datetime = module_globals.test_end - module_globals.test_start
     el_datetime = el_datetime - timedelta(microseconds=el_datetime.microseconds)
     footer_string += f"\nFinished {dt_string}\n"
     footer_string += f"Elapsed: {el_datetime}"
@@ -335,14 +336,12 @@ def print_error_report(
     package_spec: str,
     test_type: str,
 ) -> None:
-    py_version_str = module_globals.py_version_display
-    sys_platform = module_globals.sys_platform
-
     with module_globals.errors_path.open("a") as errors_fh:
         print("\n\n", file=errors_fh)
         print("=" * 79, file=errors_fh)
         print(
-            f"{package_spec:24}{test_type:16}{sys_platform:16}{py_version_str}",
+            f"{package_spec:24}{test_type:16}{module_globals.sys_platform:16}"
+            f"{module_globals.py_version_display}",
             file=errors_fh,
         )
         print("\nSTDOUT:", file=errors_fh)
@@ -362,8 +361,7 @@ def install_and_verify(
     monkeypatch,
     module_globals: ModuleGlobalsData,
     using_clear_path: bool,
-    package_spec: str,
-    package_name: str,
+    package_data: PackageData,
     deps: bool,
 ) -> Tuple[bool, Optional[bool], float]:
     _ = capsys.readouterr()
@@ -377,7 +375,8 @@ def install_and_verify(
 
     start_time = time.time()
     pipx_exit_code = run_pipx_cli(
-        ["install", package_spec, "--verbose"] + (["--include-deps"] if deps else [])
+        ["install", package_data.package_spec, "--verbose"]
+        + (["--include-deps"] if deps else [])
     )
     elapsed_time = time.time() - start_time
     captured = capsys.readouterr()
@@ -386,7 +385,7 @@ def install_and_verify(
         pipx_exit_code,
         captured,
         caplog,
-        package_name,
+        package_data.package_name,
         test_error_fh,
         using_clear_path=using_clear_path,
         deps=deps,
@@ -397,7 +396,7 @@ def install_and_verify(
             module_globals,
             captured,
             test_error_fh,
-            package_spec,
+            package_data.package_spec,
             "clear PATH" if using_clear_path else "sys PATH",
         )
 
@@ -428,8 +427,7 @@ def install_package_both_paths(
         monkeypatch,
         module_globals,
         using_clear_path=True,
-        package_spec=package_data.package_spec,
-        package_name=package_data.package_name,
+        package_data=package_data,
         deps=deps,
     )
     if not package_data.clear_pip_pass:
@@ -445,8 +443,7 @@ def install_package_both_paths(
             monkeypatch,
             module_globals,
             using_clear_path=False,
-            package_spec=package_data.package_spec,
-            package_name=package_data.package_name,
+            package_data=package_data,
             deps=deps,
         )
 
@@ -467,7 +464,7 @@ def install_package_both_paths(
 
 # use class scope to start and finish at end of all parametrized tests
 @pytest.fixture(scope="class")
-def start_end_report(module_globals: ModuleGlobalsData, request):
+def start_end_test_class(module_globals: ModuleGlobalsData, request):
     reports_path = Path(REPORTS_DIR)
     reports_path.mkdir(exist_ok=True, parents=True)
 
@@ -499,6 +496,7 @@ def start_end_report(module_globals: ModuleGlobalsData, request):
 
     yield
 
+    module_globals.test_end = datetime.now()
     with module_globals.report_path.open("a") as report_fh:
         print(format_report_table_footer(module_globals), file=report_fh)
 
@@ -514,7 +512,7 @@ class TestAllPackagesNoDeps:
         capsys: pytest.CaptureFixture,
         caplog,
         module_globals: ModuleGlobalsData,
-        start_end_report,
+        start_end_test_class,
         pipx_temp_env,
         package_name: str,
     ):
@@ -541,7 +539,7 @@ class TestAllPackagesDeps:
         capsys: pytest.CaptureFixture,
         caplog,
         module_globals: ModuleGlobalsData,
-        start_end_report,
+        start_end_test_class,
         pipx_temp_env,
         package_name: str,
     ):
