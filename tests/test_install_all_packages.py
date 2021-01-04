@@ -157,6 +157,80 @@ def pip_cache_purge():
     return subprocess.run([sys.executable, "-m", "pip", "cache", "purge"])
 
 
+def format_report_table_header(module_globals):
+    py_version_str = module_globals.py_version_display
+    sys_platform = module_globals.sys_platform
+    dt_string = module_globals.test_start.strftime("%Y-%m-%d %H:%M:%S")
+
+    header_string = "\n\n"
+    header_string += "=" * 79 + "\n"
+    header_string += f"{sys_platform:16}{py_version_str:16}{dt_string}\n\n"
+    header_string += (
+        f"{'package_spec':24}{'overall':12}{'cleared_PATH':24}{'system_PATH':24}\n"
+    )
+    header_string += (
+        f"{'':24}{'':12}{'pip':8}{'pipx':8}{'time':8}{'pip':8}{'pipx':8}{'time':8}\n"
+    )
+    header_string += "-" * 79
+
+    return header_string
+
+
+def format_report_table_row(package_data):
+    clear_install_time = f"{package_data.clear_elapsed_time:>3.0f}s"
+    if package_data.sys_elapsed_time is not None:
+        sys_install_time = f"{package_data.sys_elapsed_time:>3.0f}s"
+    else:
+        sys_install_time = ""
+
+    row_string = (
+        f"{package_data.package_spec:24}{package_data.overall_pf_str:12}"
+        f"{package_data.clear_pip_pf_str:8}{package_data.clear_pipx_pf_str:8}"
+        f"{clear_install_time:8}"
+        f"{package_data.sys_pip_pf_str:8}{package_data.sys_pipx_pf_str:8}"
+        f"{sys_install_time:8}"
+    )
+
+    return row_string
+
+
+def format_report_table_footer(module_globals):
+    fail_list = []
+    prebuild_list = []
+
+    footer_string = "\nSummary\n"
+    footer_string += "-" * 79 + "\n"
+    for package_data in module_globals.install_data:
+        clear_pip_pass = package_data.clear_pip_pass
+        clear_pipx_pass = package_data.clear_pipx_pass
+        sys_pip_pass = package_data.sys_pip_pass
+        sys_pipx_pass = package_data.sys_pipx_pass
+
+        if clear_pip_pass and clear_pipx_pass:
+            continue
+        elif not clear_pip_pass and sys_pip_pass and sys_pipx_pass:
+            prebuild_list.append(package_data.package_spec)
+        else:
+            fail_list.append(package_data.package_spec)
+    if fail_list:
+        footer_string += "FAILS:\n"
+        for failed_package_spec in sorted(fail_list, key=str.lower):
+            footer_string += f"    {failed_package_spec}\n"
+    if prebuild_list:
+        footer_string += "Needs prebuilt wheel:\n"
+        for prebuild_package_spec in sorted(prebuild_list, key=str.lower):
+            footer_string += f"    {prebuild_package_spec}\n"
+
+    test_end = datetime.now()
+    dt_string = test_end.strftime("%Y-%m-%d %H:%M:%S")
+    el_datetime = test_end - module_globals.test_start
+    el_datetime = el_datetime - timedelta(microseconds=el_datetime.microseconds)
+    footer_string += f"\nFinished {dt_string}\n"
+    footer_string += f"Elapsed: {el_datetime}"
+
+    return footer_string
+
+
 def verify_installed_apps(captured_outerr, package_name, test_error_fh, deps=False):
     package_apps = PKG[package_name]["apps"].copy()
     if deps:
@@ -291,80 +365,6 @@ def install_and_verify(
         )
 
     return pip_pass, pipx_pass, elapsed_time
-
-
-def format_report_table_header(module_globals):
-    py_version_str = module_globals.py_version_display
-    sys_platform = module_globals.sys_platform
-    dt_string = module_globals.test_start.strftime("%Y-%m-%d %H:%M:%S")
-
-    header_string = "\n\n"
-    header_string += "=" * 79 + "\n"
-    header_string += f"{sys_platform:16}{py_version_str:16}{dt_string}\n\n"
-    header_string += (
-        f"{'package_spec':24}{'overall':12}{'cleared_PATH':24}{'system_PATH':24}\n"
-    )
-    header_string += (
-        f"{'':24}{'':12}{'pip':8}{'pipx':8}{'time':8}{'pip':8}{'pipx':8}{'time':8}\n"
-    )
-    header_string += "-" * 79
-
-    return header_string
-
-
-def format_report_table_row(package_data):
-    clear_install_time = f"{package_data.clear_elapsed_time:>3.0f}s"
-    if package_data.sys_elapsed_time is not None:
-        sys_install_time = f"{package_data.sys_elapsed_time:>3.0f}s"
-    else:
-        sys_install_time = ""
-
-    row_string = (
-        f"{package_data.package_spec:24}{package_data.overall_pf_str:12}"
-        f"{package_data.clear_pip_pf_str:8}{package_data.clear_pipx_pf_str:8}"
-        f"{clear_install_time:8}"
-        f"{package_data.sys_pip_pf_str:8}{package_data.sys_pipx_pf_str:8}"
-        f"{sys_install_time:8}"
-    )
-
-    return row_string
-
-
-def format_report_table_footer(module_globals):
-    fail_list = []
-    prebuild_list = []
-
-    footer_string = "\nSummary\n"
-    footer_string += "-" * 79 + "\n"
-    for package_data in module_globals.install_data:
-        clear_pip_pass = package_data.clear_pip_pass
-        clear_pipx_pass = package_data.clear_pipx_pass
-        sys_pip_pass = package_data.sys_pip_pass
-        sys_pipx_pass = package_data.sys_pipx_pass
-
-        if clear_pip_pass and clear_pipx_pass:
-            continue
-        elif not clear_pip_pass and sys_pip_pass and sys_pipx_pass:
-            prebuild_list.append(package_data.package_spec)
-        else:
-            fail_list.append(package_data.package_spec)
-    if fail_list:
-        footer_string += "FAILS:\n"
-        for failed_package_spec in sorted(fail_list, key=str.lower):
-            footer_string += f"    {failed_package_spec}\n"
-    if prebuild_list:
-        footer_string += "Needs prebuilt wheel:\n"
-        for prebuild_package_spec in sorted(prebuild_list, key=str.lower):
-            footer_string += f"    {prebuild_package_spec}\n"
-
-    test_end = datetime.now()
-    dt_string = test_end.strftime("%Y-%m-%d %H:%M:%S")
-    el_datetime = test_end - module_globals.test_start
-    el_datetime = el_datetime - timedelta(microseconds=el_datetime.microseconds)
-    footer_string += f"\nFinished {dt_string}\n"
-    footer_string += f"Elapsed: {el_datetime}"
-
-    return footer_string
 
 
 def install_package_both_paths(
