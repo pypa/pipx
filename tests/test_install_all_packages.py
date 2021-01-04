@@ -232,10 +232,7 @@ def format_report_table_footer(module_globals: ModuleGlobalsData) -> str:
 
 
 def verify_installed_apps(
-    captured_outerr: pytest.CaptureResult,
-    package_name: str,
-    test_error_fh: io.StringIO,
-    deps: bool = False,
+    captured_outerr, package_name: str, test_error_fh: io.StringIO, deps: bool = False,
 ) -> bool:
     package_apps = PKG[package_name]["apps"].copy()
     if deps:
@@ -266,7 +263,7 @@ def verify_installed_apps(
 
 def verify_post_install(
     pipx_exit_code: int,
-    captured_outerr: pytest.CaptureResult,
+    captured_outerr,
     caplog,
     package_name: str,
     test_error_fh: io.StringIO,
@@ -303,7 +300,7 @@ def verify_post_install(
 
 def print_error_report(
     module_globals: ModuleGlobalsData,
-    command_captured: pytest.CaptureResult,
+    command_captured,
     test_error_fh: io.StringIO,
     package_spec: str,
     test_type: str,
