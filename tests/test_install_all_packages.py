@@ -189,13 +189,12 @@ def write_report_legend(report_legend_path: Path) -> None:
 
 
 def format_report_table_header(module_globals: ModuleGlobalsData) -> str:
-    dt_string = module_globals.test_start.strftime("%Y-%m-%d %H:%M:%S")
-
     header_string = "\n\n"
     header_string += "=" * 79 + "\n"
 
     header_string += f"{module_globals.sys_platform:16}"
-    header_string += f"{module_globals.py_version_display:16}{dt_string}\n\n"
+    header_string += f"{module_globals.py_version_display:16}"
+    header_string += f"{module_globals.test_start.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
 
     header_string += f"{'package_spec':24}{'overall':12}{'cleared_PATH':24}"
     header_string += f"{'system_PATH':24}\n"
