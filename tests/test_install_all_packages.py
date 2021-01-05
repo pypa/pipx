@@ -9,7 +9,8 @@ Test pytest outcomes:
     XFAIL - if there is a pip error, i.e. an installation problem out of pipx's
             control
     FAIL - if there is no pip error, but there is a problem due to pipx,
-            including a pipx error, incorrect list of installed apps, etc.
+            including a pipx error or warning, incorrect list of
+            installed apps, etc.
 """
 import io
 import os
