@@ -46,11 +46,13 @@ jobs:
       run: |
         ls # DEBUG
         mkdir reports
-        cat all_packages_nodeps_report_* > all_nodeps_reports_lf.txt
+        cat all_packages_report_legend.txt > all_nodeps_reports_lf.txt
+        cat all_packages_nodeps_report_* >> all_nodeps_reports_lf.txt
         tr -d '\r' < all_nodeps_reports_lf.txt > reports/all_nodeps_reports.txt
         cat all_packages_nodeps_errors_* > all_nodeps_errors_lf.txt
         tr -d '\r' < all_nodeps_errors_lf.txt > reports/all_nodeps_errors.txt
-        cat all_packages_deps_report_* > all_deps_reports_lf.txt
+        cat all_packages_report_legend.txt > all_deps_reports_lf.txt
+        cat all_packages_deps_report_* >> all_deps_reports_lf.txt
         tr -d '\r' < all_deps_reports_lf.txt > reports/all_deps_reports.txt
         cat all_packages_deps_errors_* > all_deps_errors_lf.txt
         tr -d '\r' < all_deps_errors_lf.txt > reports/all_deps_errors.txt

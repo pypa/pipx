@@ -1,18 +1,27 @@
 """
 This module uses the pytest infrastructure to produce reports on a large list
 of packages.  It verifies installation with and without an intact system PATH.
+It also generates report summaries and error reports files.
 
-It is not meant to ever fail in the normal pytest sense.  Instead failing
-installs will be recorded in the reports
+Test pytest outcomes:
+    PASS - if no pip errors, and no pipx issues, and package apps verified
+            all installed correctly
+    XFAIL - if there is a pip error, i.e. an installation problem out of pipx's
+            control
+    FAIL - if there is no pip error, but there is a problem due to pipx,
+            including a pipx error or warning, incorrect list of
+            installed apps, etc.
 """
 import io
 import os
 import re
 import subprocess
 import sys
+import textwrap
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import List, Optional, Tuple
 
 import pytest  # type: ignore
 
@@ -87,21 +96,175 @@ PACKAGE_NAME_LIST = [
 ]
 
 
+class PackageData:
+    def __init__(self):
+        self.package_name: str = ""
+        self.package_spec: str = ""
+        self.clear_elapsed_time: Optional[float] = None
+        self.clear_pip_pass: Optional[bool] = None
+        self.clear_pipx_pass: Optional[bool] = None
+        self.sys_elapsed_time: Optional[float] = None
+        self.sys_pip_pass: Optional[bool] = None
+        self.sys_pipx_pass: Optional[bool] = None
+        self.overall_pass: Optional[bool] = None
+
+    @property
+    def clear_pip_pf_str(self) -> str:
+        return self._get_pass_fail_str("clear_pip_pass")
+
+    @property
+    def clear_pipx_pf_str(self) -> str:
+        return self._get_pass_fail_str("clear_pipx_pass")
+
+    @property
+    def sys_pip_pf_str(self) -> str:
+        return self._get_pass_fail_str("sys_pip_pass")
+
+    @property
+    def sys_pipx_pf_str(self) -> str:
+        return self._get_pass_fail_str("sys_pipx_pass")
+
+    @property
+    def overall_pf_str(self) -> str:
+        return self._get_pass_fail_str("overall_pass")
+
+    def _get_pass_fail_str(self, test_attr: str) -> str:
+        if getattr(self, test_attr) is not None:
+            return "PASS" if getattr(self, test_attr) else "FAIL"
+        else:
+            return ""
+
+
+class ModuleGlobalsData:
+    def __init__(self):
+        self.errors_path = Path(".")
+        self.install_data: List[PackageData] = []
+        self.py_version_display = "Python {0.major}.{0.minor}.{0.micro}".format(
+            sys.version_info
+        )
+        self.py_version_short = "{0.major}.{0.minor}".format(sys.version_info)
+        self.report_path = Path(".")
+        self.sys_platform = sys.platform
+        self.test_class = ""
+        self.test_start = datetime.now()
+        self.test_end = datetime.now()  # default, must be set later
+
+    def reset(self, test_class: str = "") -> None:
+        self.errors_path = Path(".")
+        self.install_data = []
+        self.report_path = Path(".")
+        self.test_class = test_class
+        self.test_start = datetime.now()
+
+
 @pytest.fixture(scope="module")
-def module_globals():
-    return {
-        "test_start": 0,
-        "error_path": Path("."),
-        "report_path": Path("."),
-        "install_data": {},
-    }
+def module_globals() -> ModuleGlobalsData:
+    return ModuleGlobalsData()
 
 
-def pip_cache_purge():
-    return subprocess.run([sys.executable, "-m", "pip", "cache", "purge"])
+def pip_cache_purge() -> None:
+    subprocess.run([sys.executable, "-m", "pip", "cache", "purge"])
 
 
-def verify_installed_apps(captured_outerr, package_name, test_error_fh, deps=False):
+def write_report_legend(report_legend_path: Path) -> None:
+    with report_legend_path.open("w") as report_legend_fh:
+        print(
+            textwrap.dedent(
+                """
+                LEGEND
+                ===========
+                cleared_PATH = PATH used for pipx tests with only pipx bin dir and nothing else
+                sys_PATH = Normal system PATH with all default directories included
+
+                overall = PASS or FAIL for complete end-to-end pipx install, PASS if no errors
+                        or warnings and all the proper apps were installed and linked
+                pip = PASS or FAIL sub-category based only if pip inside of pipx installs
+                        package with/without error
+                pipx = PASS or FAIL sub-category based on the non-pip parts of pipx, including
+                        whether any errors or warnings are present, and if all the proper apps
+                        were installed and linked
+                """
+            ).strip(),
+            file=report_legend_fh,
+        )
+
+
+def format_report_table_header(module_globals: ModuleGlobalsData) -> str:
+    header_string = "\n\n"
+    header_string += "=" * 79 + "\n"
+
+    header_string += f"{module_globals.sys_platform:16}"
+    header_string += f"{module_globals.py_version_display:16}"
+    header_string += f"{module_globals.test_start.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+
+    header_string += f"{'package_spec':24}{'overall':12}{'cleared_PATH':24}"
+    header_string += f"{'system_PATH':24}\n"
+
+    header_string += f"{'':24}{'':12}{'pip':8}{'pipx':8}{'time':8}"
+    header_string += f"{'pip':8}{'pipx':8}{'time':8}\n"
+
+    header_string += "-" * 79
+
+    return header_string
+
+
+def format_report_table_row(package_data: PackageData) -> str:
+    clear_install_time = f"{package_data.clear_elapsed_time:>3.0f}s"
+    if package_data.sys_elapsed_time is not None:
+        sys_install_time = f"{package_data.sys_elapsed_time:>3.0f}s"
+    else:
+        sys_install_time = ""
+
+    row_string = (
+        f"{package_data.package_spec:24}{package_data.overall_pf_str:12}"
+        f"{package_data.clear_pip_pf_str:8}{package_data.clear_pipx_pf_str:8}"
+        f"{clear_install_time:8}"
+        f"{package_data.sys_pip_pf_str:8}{package_data.sys_pipx_pf_str:8}"
+        f"{sys_install_time:8}"
+    )
+
+    return row_string
+
+
+def format_report_table_footer(module_globals: ModuleGlobalsData) -> str:
+    fail_list = []
+    prebuild_list = []
+
+    footer_string = "\nSummary\n"
+    footer_string += "-" * 79 + "\n"
+    for package_data in module_globals.install_data:
+        clear_pip_pass = package_data.clear_pip_pass
+        clear_pipx_pass = package_data.clear_pipx_pass
+        sys_pip_pass = package_data.sys_pip_pass
+        sys_pipx_pass = package_data.sys_pipx_pass
+
+        if clear_pip_pass and clear_pipx_pass:
+            continue
+        elif not clear_pip_pass and sys_pip_pass and sys_pipx_pass:
+            prebuild_list.append(package_data.package_spec)
+        else:
+            fail_list.append(package_data.package_spec)
+    if fail_list:
+        footer_string += "FAILS:\n"
+        for failed_package_spec in sorted(fail_list, key=str.lower):
+            footer_string += f"    {failed_package_spec}\n"
+    if prebuild_list:
+        footer_string += "Needs prebuilt wheel:\n"
+        for prebuild_package_spec in sorted(prebuild_list, key=str.lower):
+            footer_string += f"    {prebuild_package_spec}\n"
+
+    dt_string = module_globals.test_end.strftime("%Y-%m-%d %H:%M:%S")
+    el_datetime = module_globals.test_end - module_globals.test_start
+    el_datetime = el_datetime - timedelta(microseconds=el_datetime.microseconds)
+    footer_string += f"\nFinished {dt_string}\n"
+    footer_string += f"Elapsed: {el_datetime}"
+
+    return footer_string
+
+
+def verify_installed_apps(
+    captured_outerr, package_name: str, test_error_fh: io.StringIO, deps: bool = False
+) -> bool:
     package_apps = PKG[package_name]["apps"].copy()
     if deps:
         package_apps += PKG[package_name]["apps_of_dependencies"]
@@ -130,8 +293,14 @@ def verify_installed_apps(captured_outerr, package_name, test_error_fh, deps=Fal
 
 
 def verify_post_install(
-    captured_outerr, caplog, package_name, test_error_fh, using_clear_path, deps=False
-):
+    pipx_exit_code: int,
+    captured_outerr,
+    caplog,
+    package_name: str,
+    test_error_fh: io.StringIO,
+    using_clear_path: bool,
+    deps: bool = False,
+) -> Tuple[bool, Optional[bool]]:
     caplog_problem = False
     install_success = f"installed package {package_name}" in captured_outerr.out
     for record in caplog.records:
@@ -147,41 +316,54 @@ def verify_post_install(
     else:
         app_success = True
 
-    return install_success and not caplog_problem and app_success
+    pip_pass = not (
+        (pipx_exit_code != 0)
+        and f"Error installing {package_name}" in captured_outerr.err
+    )
+    pipx_pass: Optional[bool]
+    if pip_pass:
+        pipx_pass = install_success and not caplog_problem and app_success
+    else:
+        pipx_pass = None
+
+    return pip_pass, pipx_pass
 
 
 def print_error_report(
-    error_path, command_captured, test_error_fh, package_spec, header
-):
-    py_version_str = f"Python {sys.version_info[0]}.{sys.version_info[1]}"
-    with error_path.open("a") as error_fh:
-        print("\n\n", file=error_fh)
-        print("=" * 76, file=error_fh)
+    module_globals: ModuleGlobalsData,
+    command_captured,
+    test_error_fh: io.StringIO,
+    package_spec: str,
+    test_type: str,
+) -> None:
+    with module_globals.errors_path.open("a") as errors_fh:
+        print("\n\n", file=errors_fh)
+        print("=" * 79, file=errors_fh)
         print(
-            f"{package_spec:24}{header:16}{sys.platform:16}{py_version_str:}",
-            file=error_fh,
+            f"{package_spec:24}{test_type:16}{module_globals.sys_platform:16}"
+            f"{module_globals.py_version_display}",
+            file=errors_fh,
         )
-        print("\nSTDOUT:", file=error_fh)
-        print("-" * 76, file=error_fh)
-        print(command_captured.out, end="", file=error_fh)
-        print("\nSTDERR:", file=error_fh)
-        print("-" * 76, file=error_fh)
-        print(command_captured.err, end="", file=error_fh)
-        print("\n\nTEST WARNINGS / ERRORS:", file=error_fh)
-        print("-" * 76, file=error_fh)
-        print(test_error_fh.getvalue(), end="", file=error_fh)
+        print("\nSTDOUT:", file=errors_fh)
+        print("-" * 76, file=errors_fh)
+        print(command_captured.out, end="", file=errors_fh)
+        print("\nSTDERR:", file=errors_fh)
+        print("-" * 76, file=errors_fh)
+        print(command_captured.err, end="", file=errors_fh)
+        print("\n\nTEST WARNINGS / ERRORS:", file=errors_fh)
+        print("-" * 76, file=errors_fh)
+        print(test_error_fh.getvalue(), end="", file=errors_fh)
 
 
 def install_and_verify(
-    capsys,
+    capsys: pytest.CaptureFixture,
     caplog,
     monkeypatch,
-    error_path,
-    using_clear_path,
-    package_spec,
-    package_name,
-    deps,
-):
+    module_globals: ModuleGlobalsData,
+    using_clear_path: bool,
+    package_data: PackageData,
+    deps: bool,
+) -> Tuple[bool, Optional[bool], float]:
     _ = capsys.readouterr()
     caplog.clear()
 
@@ -192,162 +374,131 @@ def install_and_verify(
     )
 
     start_time = time.time()
-    run_pipx_cli(
-        ["install", package_spec, "--verbose"] + (["--include-deps"] if deps else [])
+    pipx_exit_code = run_pipx_cli(
+        ["install", package_data.package_spec, "--verbose"]
+        + (["--include-deps"] if deps else [])
     )
     elapsed_time = time.time() - start_time
     captured = capsys.readouterr()
 
-    install_success = verify_post_install(
+    pip_pass, pipx_pass = verify_post_install(
+        pipx_exit_code,
         captured,
         caplog,
-        package_name,
+        package_data.package_name,
         test_error_fh,
         using_clear_path=using_clear_path,
         deps=deps,
     )
 
-    if error_path is not None and not install_success:
+    if not pip_pass or not pipx_pass:
         print_error_report(
-            error_path,
+            module_globals,
             captured,
             test_error_fh,
-            package_spec,
+            package_data.package_spec,
             "clear PATH" if using_clear_path else "sys PATH",
         )
 
-    return install_success, elapsed_time
+    return pip_pass, pipx_pass, elapsed_time
 
 
 def install_package_both_paths(
-    module_globals,
     monkeypatch,
-    capsys,
-    pipx_temp_env,
+    capsys: pytest.CaptureFixture,
     caplog,
-    package_name="",
-    deps=False,
-):
-    package_spec = PKG[package_name]["spec"]
-    install_data = module_globals["install_data"]
-    install_data[package_spec] = {}
+    module_globals: ModuleGlobalsData,
+    pipx_temp_env,
+    package_name: str,
+    deps: bool = False,
+) -> bool:
+    package_data = PackageData()
+    module_globals.install_data.append(package_data)
+    package_data.package_name = package_name
+    package_data.package_spec = PKG[package_name]["spec"]
 
     (
-        install_data[package_spec]["clear_path_ok"],
-        elapsed_time_clear,
+        package_data.clear_pip_pass,
+        package_data.clear_pipx_pass,
+        package_data.clear_elapsed_time,
     ) = install_and_verify(
         capsys,
         caplog,
         monkeypatch,
-        None,
+        module_globals,
         using_clear_path=True,
-        package_spec=package_spec,
-        package_name=package_name,
+        package_data=package_data,
         deps=deps,
     )
-
-    if not install_data[package_spec]["clear_path_ok"]:
-        # uninstall in case problems found by verify_post_install did not prevent
-        #   pipx installation
-        run_pipx_cli(["uninstall", package_name])
-
+    if not package_data.clear_pip_pass:
+        # if we fail to install due to pip install error, try again with
+        #   full system path
         (
-            install_data[package_spec]["sys_path_ok"],
-            elapsed_time_sys,
+            package_data.sys_pip_pass,
+            package_data.sys_pipx_pass,
+            package_data.sys_elapsed_time,
         ) = install_and_verify(
             capsys,
             caplog,
             monkeypatch,
-            module_globals["error_path"],
+            module_globals,
             using_clear_path=False,
-            package_spec=package_spec,
-            package_name=package_name,
+            package_data=package_data,
             deps=deps,
         )
 
-    with module_globals["report_path"].open("a") as report_fh:
-        pf_clear = "PASS" if install_data[package_spec]["clear_path_ok"] else "FAIL"
-        install_time_clear = f"{elapsed_time_clear:>3.0f}s"
-        if install_data[package_spec]["clear_path_ok"]:
-            elapsed_time_sys = 0
-            pf_sys = ""
-            install_time_sys = ""
-        else:
-            pf_sys = "PASS" if install_data[package_spec]["sys_path_ok"] else "FAIL"
-            install_time_sys = f"{elapsed_time_sys:>3.0f}s"
-        print(
-            f"{package_spec:24}{pf_clear:16}{pf_sys:16}"
-            f"{install_time_clear} {install_time_sys}",
-            file=report_fh,
-            flush=True,
-        )
-    return (
-        install_data[package_spec]["clear_path_ok"]
-        or install_data[package_spec]["sys_path_ok"]
+    package_data.overall_pass = bool(
+        (package_data.clear_pip_pass and package_data.clear_pipx_pass)
+        or (package_data.sys_pip_pass and package_data.sys_pipx_pass)
     )
+
+    with module_globals.report_path.open("a") as report_fh:
+        print(format_report_table_row(package_data), file=report_fh, flush=True)
+
+    if not package_data.clear_pip_pass and not package_data.sys_pip_pass:
+        # Use xfail to specify error that is from a pip installation problem
+        pytest.xfail("pip installation error")
+
+    return package_data.overall_pass
 
 
 # use class scope to start and finish at end of all parametrized tests
 @pytest.fixture(scope="class")
-def start_end_report(module_globals, request):
-    module_globals["test_start"] = datetime.now()
-    dt_string = module_globals["test_start"].strftime("%Y-%m-%d %H:%M:%S")
-    date_string = module_globals["test_start"].strftime("%Y%m%d")
-    py_version = f"{sys.version_info[0]}.{sys.version_info[1]}"
-    py_version_str = f"Python {py_version}"
-
+def start_end_test_class(module_globals: ModuleGlobalsData, request):
     reports_path = Path(REPORTS_DIR)
     reports_path.mkdir(exist_ok=True, parents=True)
 
-    test_class = getattr(request.cls, "test_class", "unknown")
-
-    module_globals["report_path"] = (
-        reports_path
-        / f"./{REPORT_FILENAME_ROOT}_{test_class}_report_{sys.platform}_{py_version}_{date_string}.txt"
+    module_globals.reset()
+    module_globals.test_class = getattr(request.cls, "test_class", "unknown")
+    report_filename = (
+        f"{REPORT_FILENAME_ROOT}_"
+        f"{module_globals.test_class}_"
+        f"report_"
+        f"{module_globals.sys_platform}_"
+        f"{module_globals.py_version_short}_"
+        f"{module_globals.test_start.strftime('%Y%m%d')}.txt"
     )
-    module_globals["error_path"] = (
-        reports_path
-        / f"./{REPORT_FILENAME_ROOT}_{test_class}_errors_{sys.platform}_{py_version}_{date_string}.txt"
+    errors_filename = (
+        f"{REPORT_FILENAME_ROOT}_"
+        f"{module_globals.test_class}_"
+        f"errors_"
+        f"{module_globals.sys_platform}_"
+        f"{module_globals.py_version_short}_"
+        f"{module_globals.test_start.strftime('%Y%m%d')}.txt"
     )
+    module_globals.report_path = reports_path / report_filename
+    module_globals.errors_path = reports_path / errors_filename
 
-    # Reset global data
-    module_globals["install_data"] = {}
-    install_data = module_globals["install_data"]
+    write_report_legend(reports_path / f"{REPORT_FILENAME_ROOT}_report_legend.txt")
 
-    with module_globals["report_path"].open("a") as report_fh:
-        print("\n\n", file=report_fh)
-        print("=" * 72, file=report_fh)
-        print(f"{sys.platform:16}{py_version_str:16}{dt_string}", file=report_fh)
-        print("", file=report_fh)
-        print(
-            f"{'package_spec':24}{'cleared PATH':16}{'system PATH':16}"
-            f"{'install time':16}",
-            file=report_fh,
-        )
-        print("-" * 72, file=report_fh)
+    with module_globals.report_path.open("a") as report_fh:
+        print(format_report_table_header(module_globals), file=report_fh)
 
     yield
 
-    with module_globals["report_path"].open("a") as report_fh:
-        print("\nSummary", file=report_fh)
-        print("-" * 72, file=report_fh)
-        for package_spec in install_data:
-            if install_data[package_spec].get("clear_path_ok", False):
-                continue
-            elif not install_data[package_spec].get(
-                "clear_path_ok", False
-            ) and install_data[package_spec].get("sys_path_ok", False):
-                print(f"{package_spec} needs prebuilt wheel", file=report_fh)
-            elif not install_data[package_spec].get(
-                "clear_path_ok", False
-            ) and not install_data[package_spec].get("sys_path_ok", False):
-                print(f"{package_spec} FAILS", file=report_fh)
-        test_end = datetime.now()
-        dt_string = test_end.strftime("%Y-%m-%d %H:%M:%S")
-        el_datetime = test_end - module_globals["test_start"]
-        el_datetime = el_datetime - timedelta(microseconds=el_datetime.microseconds)
-        print(f"\nFinished {dt_string}", file=report_fh)
-        print(f"Elapsed: {el_datetime}", file=report_fh)
+    module_globals.test_end = datetime.now()
+    with module_globals.report_path.open("a") as report_fh:
+        print(format_report_table_footer(module_globals), file=report_fh)
 
 
 class TestAllPackagesNoDeps:
@@ -357,21 +508,21 @@ class TestAllPackagesNoDeps:
     @pytest.mark.all_packages
     def test_all_packages(
         self,
-        module_globals,
-        start_end_report,
         monkeypatch,
-        capsys,
-        pipx_temp_env,
+        capsys: pytest.CaptureFixture,
         caplog,
-        package_name,
+        module_globals: ModuleGlobalsData,
+        start_end_test_class,
+        pipx_temp_env,
+        package_name: str,
     ):
         pip_cache_purge()
         assert install_package_both_paths(
-            module_globals,
             monkeypatch,
             capsys,
-            pipx_temp_env,
             caplog,
+            module_globals,
+            pipx_temp_env,
             package_name,
             deps=False,
         )
@@ -384,21 +535,21 @@ class TestAllPackagesDeps:
     @pytest.mark.all_packages
     def test_deps_all_packages(
         self,
-        module_globals,
-        start_end_report,
         monkeypatch,
-        capsys,
-        pipx_temp_env,
+        capsys: pytest.CaptureFixture,
         caplog,
-        package_name,
+        module_globals: ModuleGlobalsData,
+        start_end_test_class,
+        pipx_temp_env,
+        package_name: str,
     ):
         pip_cache_purge()
         assert install_package_both_paths(
-            module_globals,
             monkeypatch,
             capsys,
-            pipx_temp_env,
             caplog,
+            module_globals,
+            pipx_temp_env,
             package_name,
             deps=True,
         )
