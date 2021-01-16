@@ -9,7 +9,7 @@
 import logging
 import re
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Tuple
+from typing import List, NamedTuple, Optional, Set, Tuple
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
@@ -186,6 +186,17 @@ def parse_specifier_for_upgrade(package_spec: str) -> str:
         parsed_package, remove_version_specifiers=True
     )
     return package_or_url
+
+
+def get_extras(package_spec: str) -> Set[str]:
+    parsed_package = _parse_specifier(package_spec)
+    if parsed_package.valid_pep508 and parsed_package.valid_pep508.extras is not None:
+        return parsed_package.valid_pep508.extras
+    elif parsed_package.valid_local_path:
+        (_, package_extras_str) = _split_path_extras(parsed_package.valid_local_path)
+        return Requirement("notapackage" + package_extras_str).extras
+
+    return set()
 
 
 def valid_pypi_name(package_spec: str) -> Optional[str]:
