@@ -181,6 +181,8 @@ def watch_docs(session):
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def pre_release(session):
     on_master_no_changes(session)
+    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
+    session.install("mypy")
     if session.posargs:
         new_version = session.posargs[0]
     else:
@@ -197,6 +199,8 @@ def pre_release(session):
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def post_release(session):
     on_master_no_changes(session)
+    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
+    session.install("mypy")
     session.run("python", "scripts/pipx_postrelease.py")
     session.run("git", "--no-pager", "diff", external=True)
     print("")
