@@ -1,4 +1,4 @@
-dev
+0.16.0.0
 
 - New venv inspection!  The code that pipx uses to examine and determine metadata in an installed venv has been made faster, better, and more reliable.  It now uses modern python libraries like `packaging` and `importlib.metadata` to examine installed venvs.  It also now properly handles installed package extras.  In addition, some problems pipx has had with certain characters (like periods) in package names should be remedied.
 - Added reinstall command for reinstalling a single venv.
