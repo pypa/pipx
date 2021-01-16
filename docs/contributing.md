@@ -127,20 +127,35 @@ nox -s publish_docs
 ## Releasing New `pipx` Versions
 ### Pre-release
 
-* Update pipx's version in `src/pipx/version.py` to the new version
-* Make sure the changelog is updated
-    * Put the version of the new release as the header for the latest block of changes (instead of "dev").
-    * Make sure all notable changes are listed.
-* Regenerate documentation.
-
-### Release
-To publish to PyPI: From a clone of the main pipxproject pipx repo (not a fork), run
-```bash
-nox -s publish
+First, make sure the changelog is complete.  Next decide what the next version
+number will be.  Then, from a clone of the main pipxproject pipx repo (not a
+fork) execute:
+```
+nox -s pre_release
 ```
 
-Additionally, create a new release in GitHub.
+Enter the new version number when asked. When the script is finished, check the
+diff it produces.  If the diff looks correct, commit the changes as the
+script instructs, and push the result.
+
+The script will modify `src/pipx/version.py` to contain the new version, and
+also update the changelog (`docs/changelog.md`) to specify the new version.
+
+### Release
+To publish to PyPI simply create a "published" release on Github.  This will
+trigger Github workflows that both publish the pipx version to PyPI and publish
+the pipx documentation to the pipx website.
 
 ### Post-release
-* Update pipx's version in `src/pipx/version.py` by adding a suffix `"dev0"` for unreleased development.
-* Update the changelog to start a new section at the top entitled `dev`
+From a clone of the main pipxproject pipx repo (not a
+fork) execute:
+```
+nox -s post_release
+```
+
+When the script is finished, check the diff it produces.  If the diff looks
+correct, commit the changes as the script instructs, and push the result.
+
+This will update pipx's version in `src/pipx/version.py` by adding a suffix
+`"dev0"` for unreleased development, and will update the changelog to start a
+new section at the top entitled `dev`.

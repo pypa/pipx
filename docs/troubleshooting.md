@@ -6,18 +6,9 @@ The following command should fix many problems you may encounter as a pipx user:
 pipx reinstall-all
 ```
 
-If your pipx-installed package was installed using a pipx version before
-0.15.0.0 and you want to specify particular options, then you may want to
-uninstall and install it manually:
-
-```
-pipx uninstall <mypackage>
-pipx install <mypackage>
-```
-
 This is a good fix for the following problems:
 
-* System python was upgraded and the python used with a pipx-package is no longer available
+* System python was upgraded and the python used with a pipx-installed package is no longer available
 * pipx upgrade causes issues with old pipx-installed packages
 
 pipx has been upgraded a lot over the years.  If you are a long-standing pipx
@@ -25,6 +16,15 @@ user (thanks, by the way!) then you may have old pipx-installed packages that
 have internal data that is different than what pipx currently expects.  By
 executing `pipx reinstall-all`, pipx will re-write its internal data and this
 should fix many of issues you may encounter.
+
+**Note:** If your pipx-installed package was installed using a pipx version
+before 0.15.0.0 and you want to specify particular options, then you may want
+to uninstall and install it manually:
+
+```
+pipx uninstall <mypackage>
+pipx install <mypackage>
+```
 
 ## Diagnosing problems using `list`
 
