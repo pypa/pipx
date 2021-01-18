@@ -12,7 +12,7 @@ def fix_version_py(current_version_list: List[str]) -> bool:
     # Version with "dev0" suffix precedes version without "dev0" suffix,
     #   so to follow previous version we must add to version number before
     #   appending "dev0".
-    new_version_list = current_version_list + ['"1"', '"dev0"']
+    new_version_list = current_version_list + ["1", '"dev0"']
 
     copy_file_replace_line(
         version_code_file,
