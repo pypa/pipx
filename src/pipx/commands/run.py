@@ -69,10 +69,6 @@ def run(
             )
         )
 
-    if WINDOWS and not app.endswith(".exe"):
-        app = f"{app}.exe"
-        logger.info(f"Assuming app is {app!r} (Windows only)")
-
     pypackage_bin_path = get_pypackage_bin_path(app)
     if pypackage_bin_path.exists():
         logger.info(
@@ -144,6 +140,10 @@ def _download_and_run(
         include_apps=True,
         is_main_package=True,
     )
+
+    if WINDOWS and not app.endswith(".exe"):
+        app = f"{app}.exe"
+        logger.info(f"Assuming app is {app!r} (Windows only)")
 
     if not (venv.bin_path / app).exists():
         apps = venv.pipx_metadata.main_package.apps
