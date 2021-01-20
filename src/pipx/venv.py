@@ -1,9 +1,15 @@
 import json
 import logging
+import re
 import time
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Dict, Generator, List, Set
+
+try:
+    from importlib.metadata import EntryPoint
+except ImportError:
+    from importlib_metadata import EntryPoint  # type: ignore
 
 from packaging.utils import canonicalize_name
 
@@ -33,6 +39,13 @@ from pipx.util import (
 from pipx.venv_inspect import VenvMetadata, inspect_venv
 
 logger = logging.getLogger(__name__)
+
+# This regex was only introduced into importlib.metadata in Python 3.9.
+_entry_point_value_pattern = re.compile(
+    r"(?P<module>[\w.]+)\s*"
+    r"(:\s*(?P<attr>[\w.]+))?\s*"
+    r"(?P<extras>\[.*\])?\s*$",
+)
 
 
 class VenvContainer:
@@ -329,6 +342,17 @@ class Venv:
 
     def run_app(self, app: str, app_args: List[str]) -> None:
         exec_app([str(self.bin_path / app)] + app_args)
+
+    def run_entry_point(self, ep: EntryPoint, app_args: List[str]) -> None:
+        match = _entry_point_value_pattern.match(ep.value)
+        assert match is not None, "invalid entry point"
+        module, attr = match.group("module", "attr")
+        code = (
+            f"import sys, {module}\n"
+            f"sys.argv[0] = {ep.name!r}\n"
+            f"sys.exit({module}.{attr}())\n"
+        )
+        exec_app([str(self.python_path), "-c", code] + app_args)
 
     def _upgrade_package_no_metadata(self, package: str, pip_args: List[str]) -> None:
         with animate(

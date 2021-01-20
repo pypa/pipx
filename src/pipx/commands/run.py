@@ -6,7 +6,12 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 from shutil import which
-from typing import List
+from typing import List, Optional, Union
+
+try:
+    from importlib.metadata import Distribution, EntryPoint
+except ImportError:
+    from importlib_metadata import Distribution, EntryPoint  # type: ignore
 
 from pipx import constants
 from pipx.commands.common import package_name_from_spec
@@ -17,6 +22,7 @@ from pipx.util import (
     PipxError,
     exec_app,
     get_pypackage_bin_path,
+    get_site_packages,
     pipx_wrap,
     rmdir,
     run_pypackage_bin,
@@ -91,24 +97,66 @@ def run(
     bin_path = venv.bin_path / app
     _prepare_venv_cache(venv, bin_path, use_cache)
 
+    entry_point = _find_entry_point(venv, app)
+    if entry_point is not None:
+        logger.info(f"Reusing cached venv {venv_dir}")
+        # This never returns
+        venv.run_entry_point(entry_point, app_args)
+
     if bin_path.exists():
         logger.info(f"Reusing cached venv {venv_dir}")
         # This never returns
         venv.run_app(app, app_args)
-    else:
-        logger.info(f"venv location is {venv_dir}")
-        # This never returns
-        _download_and_run(
-            Path(venv_dir),
-            package_or_url,
-            app,
-            app_args,
-            python,
-            pip_args,
-            venv_args,
-            use_cache,
-            verbose,
+
+    logger.info(f"venv location is {venv_dir}")
+    # This never returns
+    _download_and_run(
+        Path(venv_dir),
+        package_or_url,
+        app,
+        app_args,
+        python,
+        pip_args,
+        venv_args,
+        use_cache,
+        verbose,
+    )
+
+
+def _find_entry_point(venv: Venv, app: str) -> Optional[EntryPoint]:
+    if not venv.python_path.exists():
+        return None
+    site_packages = get_site_packages(venv.python_path)
+    for dist in Distribution.discover(path=[str(site_packages)]):
+        for ep in dist.entry_points:
+            if ep.group == "pipx.run" and ep.name == app:
+                return ep
+    return None
+
+
+def _resolve_command(
+    venv: Venv,
+    package_or_url: str,
+    app: str,
+) -> Union[EntryPoint, str]:
+    entry_point = _find_entry_point(venv, app)
+    if entry_point is not None:
+        return entry_point
+
+    if WINDOWS and not app.endswith(".exe"):
+        app = f"{app}.exe"
+        logger.info(f"Assuming app is {app!r} (Windows only)")
+
+    if not (venv.bin_path / app).exists():
+        apps = venv.pipx_metadata.main_package.apps
+        raise PipxError(
+            f"""
+            '{app}' executable script not found in package '{package_or_url}'.
+            Available executable scripts: {', '.join(b for b in apps)}
+            """
         )
+
+    return app
 
 
 def _download_and_run(
@@ -141,25 +189,17 @@ def _download_and_run(
         is_main_package=True,
     )
 
-    if WINDOWS and not app.endswith(".exe"):
-        app = f"{app}.exe"
-        logger.info(f"Assuming app is {app!r} (Windows only)")
-
-    if not (venv.bin_path / app).exists():
-        apps = venv.pipx_metadata.main_package.apps
-        raise PipxError(
-            f"""
-            '{app}' executable script not found in package '{package_or_url}'.
-            Available executable scripts: {', '.join(b for b in apps)}
-            """
-        )
+    command = _resolve_command(venv, package_or_url, app)
 
     if not use_cache:
         # Let future _remove_all_expired_venvs know to remove this
         (venv_dir / VENV_EXPIRED_FILENAME).touch()
 
-    # This never returns
-    venv.run_app(app, app_args)
+    # These never return
+    if isinstance(command, EntryPoint):
+        venv.run_entry_point(command, app_args)
+    else:
+        venv.run_app(app, app_args)
 
 
 def _get_temporary_venv_path(
