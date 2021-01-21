@@ -1,0 +1,22 @@
+name: Cluster API
+
+on: [push]
+
+jobs:
+    cluster-api-tests:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v1
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v1
+              with:
+                  php-version: '7.4'
+                  extensions: mbstring, intl
+            - name: Install Dependencies
+              run: composer install -q --no-ansi --no-interaction --no-scripts --no-suggest --no-progress
+            - name: Execute tests (Unit and Feature tests) via PHPUnit
+              run: |
+                  vendor/bin/phpunit

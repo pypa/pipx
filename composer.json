@@ -1,0 +1,48 @@
+{
+    "name": "vdhicts/cyberfusion-cluster-api-client",
+    "description": "A client for the cluster API of Cyberfusion",
+    "keywords": [
+        "cyberfusion",
+        "cluster",
+        "api"
+    ],
+    "homepage": "https://github.com/vdhicts/cyberfusion-cluster-api-client",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Dick van der Heiden",
+            "email": "info@vdhicts.nl",
+            "homepage": "https://www.vdhicts.nl",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^7.4 || ^8.0",
+        "ext-json": "*",
+        "guzzlehttp/guzzle": "^7.2",
+        "illuminate/support": "^8.22",
+        "nesbot/carbon": "^2.43"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Vdhicts\\Cyberfusion\\ClusterApi\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Vdhicts\\Cyberfusion\\ClusterApi\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
