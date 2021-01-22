@@ -3,7 +3,7 @@ import logging
 import time
 from pathlib import Path
 from subprocess import CompletedProcess
-from typing import Dict, Generator, List, Set
+from typing import Dict, Generator, List, NoReturn, Set
 
 from packaging.utils import canonicalize_name
 
@@ -327,7 +327,7 @@ class Venv:
         pip_list = json.loads(cmd_run.stdout.strip())
         return set([x["name"] for x in pip_list])
 
-    def run_app(self, app: str, app_args: List[str]) -> None:
+    def run_app(self, app: str, app_args: List[str]) -> NoReturn:
         exec_app([str(self.bin_path / app)] + app_args)
 
     def _upgrade_package_no_metadata(self, package: str, pip_args: List[str]) -> None:

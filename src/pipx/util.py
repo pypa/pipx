@@ -5,7 +5,7 @@ import subprocess
 import sys
 import textwrap
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from typing import Dict, List, NoReturn, Optional, Sequence, Tuple, Union
 
 from pipx.animate import show_cursor
 from pipx.constants import WINDOWS
@@ -49,7 +49,7 @@ def get_pypackage_bin_path(binary_name: str) -> Path:
     )
 
 
-def run_pypackage_bin(bin_path: Path, args: List[str]) -> None:
+def run_pypackage_bin(bin_path: Path, args: List[str]) -> NoReturn:
     def _get_env() -> Dict[str, str]:
         env = dict(os.environ)
         env["PYTHONPATH"] = os.path.pathsep.join(
@@ -154,7 +154,9 @@ def subprocess_post_check(
             logger.info(f"{' '.join(completed_process.args)!r} failed")
 
 
-def exec_app(cmd: Sequence[Union[str, Path]], env: Dict[str, str] = None) -> None:
+def exec_app(
+    cmd: Sequence[Union[str, Path]], env: Optional[Dict[str, str]] = None,
+) -> NoReturn:
     """Run command, do not return
 
     POSIX: replace current processs with command using os.exec*()

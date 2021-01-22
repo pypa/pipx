@@ -6,7 +6,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 from shutil import which
-from typing import List
+from typing import List, NoReturn
 
 from pipx import constants
 from pipx.commands.common import package_name_from_spec
@@ -39,7 +39,7 @@ def run(
     pypackages: bool,
     verbose: bool,
     use_cache: bool,
-) -> None:
+) -> NoReturn:
     """Installs venv to temporary dir (or reuses cache), then runs app from
     package
     """
@@ -55,7 +55,6 @@ def run(
         logger.info("Detected url. Downloading and executing as a Python file.")
 
         content = _http_get_request(app)
-        # This never returns
         exec_app([str(python), "-c", content])
 
     elif which(app):
@@ -78,7 +77,6 @@ def run(
         logger.info(
             f"Using app in local __pypackages__ directory at {str(pypackage_bin_path)}"
         )
-        # This never returns
         run_pypackage_bin(pypackage_bin_path, app_args)
     if pypackages:
         raise PipxError(
@@ -97,11 +95,9 @@ def run(
 
     if bin_path.exists():
         logger.info(f"Reusing cached venv {venv_dir}")
-        # This never returns
         venv.run_app(app, app_args)
     else:
         logger.info(f"venv location is {venv_dir}")
-        # This never returns
         _download_and_run(
             Path(venv_dir),
             package_or_url,
@@ -125,7 +121,7 @@ def _download_and_run(
     venv_args: List[str],
     use_cache: bool,
     verbose: bool,
-) -> None:
+) -> NoReturn:
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.create_venv(venv_args, pip_args)
 
@@ -158,7 +154,6 @@ def _download_and_run(
         # Let future _remove_all_expired_venvs know to remove this
         (venv_dir / VENV_EXPIRED_FILENAME).touch()
 
-    # This never returns
     venv.run_app(app, app_args)
 
 
