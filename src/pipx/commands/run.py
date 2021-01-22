@@ -67,9 +67,11 @@ def run(
             )
         )
 
-    if WINDOWS and not app.endswith(".exe"):
-        app = f"{app}.exe"
-        logger.info(f"Assuming app is {app!r} (Windows only)")
+    if WINDOWS:
+        app_filename = f"{app}.exe"
+        logger.info(f"Assuming app is {app_filename!r} (Windows only)")
+    else:
+        app_filename = app
 
     pypackage_bin_path = get_pypackage_bin_path(app)
     if pypackage_bin_path.exists():
@@ -89,18 +91,19 @@ def run(
     venv_dir = _get_temporary_venv_path(package_or_url, python, pip_args, venv_args)
 
     venv = Venv(venv_dir)
-    bin_path = venv.bin_path / app
+    bin_path = venv.bin_path / app_filename
     _prepare_venv_cache(venv, bin_path, use_cache)
 
     if bin_path.exists():
         logger.info(f"Reusing cached venv {venv_dir}")
-        venv.run_app(app, app_args)
+        venv.run_app(app, app_filename, app_args)
     else:
         logger.info(f"venv location is {venv_dir}")
         _download_and_run(
             Path(venv_dir),
             package_or_url,
             app,
+            app_filename,
             app_args,
             python,
             pip_args,
@@ -114,6 +117,7 @@ def _download_and_run(
     venv_dir: Path,
     package_or_url: str,
     app: str,
+    app_filename: str,
     app_args: List[str],
     python: str,
     pip_args: List[str],
@@ -140,7 +144,7 @@ def _download_and_run(
         is_main_package=True,
     )
 
-    if not (venv.bin_path / app).exists():
+    if not (venv.bin_path / app_filename).exists():
         apps = venv.pipx_metadata.main_package.apps
         raise PipxError(
             f"""
@@ -153,7 +157,7 @@ def _download_and_run(
         # Let future _remove_all_expired_venvs know to remove this
         (venv_dir / VENV_EXPIRED_FILENAME).touch()
 
-    venv.run_app(app, app_args)
+    venv.run_app(app, app_filename, app_args)
 
 
 def _get_temporary_venv_path(
