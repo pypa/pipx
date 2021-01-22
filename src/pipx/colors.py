@@ -1,9 +1,9 @@
-import os
 import sys
 from typing import Callable
 
-USING_WINDOWS = os.name == "nt"
-PRINT_COLOR = not USING_WINDOWS and sys.stdout.isatty()
+from pipx.constants import WINDOWS
+
+PRINT_COLOR = not WINDOWS and sys.stdout.isatty()
 
 
 class c:

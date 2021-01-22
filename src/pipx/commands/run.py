@@ -10,10 +10,9 @@ from typing import List
 
 from pipx import constants
 from pipx.commands.common import package_name_from_spec
-from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS
+from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
 from pipx.emojies import hazard
 from pipx.util import (
-    WINDOWS,
     PipxError,
     exec_app,
     get_pypackage_bin_path,

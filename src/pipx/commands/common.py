@@ -14,10 +14,11 @@ from packaging.utils import canonicalize_name
 
 from pipx import constants
 from pipx.colors import bold, red
+from pipx.constants import WINDOWS
 from pipx.emojies import hazard, stars
 from pipx.package_specifier import parse_specifier_for_install, valid_pypi_name
 from pipx.pipx_metadata_file import PackageInfo
-from pipx.util import WINDOWS, PipxError, mkdir, pipx_wrap, rmdir
+from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import Venv
 
 logger = logging.getLogger(__name__)
