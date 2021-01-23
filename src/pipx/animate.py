@@ -103,10 +103,10 @@ def print_animation(
 # for Windows: https://stackoverflow.com/a/10455937
 def win_cursor(visible: bool) -> None:
     ci = _CursorInfo()
-    handle = ctypes.windll.kernel32.GetStdHandle(-11)  # type: ignore
-    ctypes.windll.kernel32.GetConsoleCursorInfo(handle, ctypes.byref(ci))  # type: ignore
+    handle = ctypes.windll.kernel32.GetStdHandle(-11)  # type: ignore[attr-defined]
+    ctypes.windll.kernel32.GetConsoleCursorInfo(handle, ctypes.byref(ci))  # type: ignore[attr-defined]
     ci.visible = visible
-    ctypes.windll.kernel32.SetConsoleCursorInfo(handle, ctypes.byref(ci))  # type: ignore
+    ctypes.windll.kernel32.SetConsoleCursorInfo(handle, ctypes.byref(ci))  # type: ignore[attr-defined]
 
 
 def hide_cursor() -> None:
