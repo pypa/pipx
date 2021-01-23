@@ -100,7 +100,8 @@ def print_animation(
                 break
 
 
-# for Windows: https://stackoverflow.com/a/10455937
+# for Windows pre-ANSI-terminal-support (before Windows 10 TH2 (v1511))
+# https://stackoverflow.com/a/10455937
 def win_cursor(visible: bool) -> None:
     ci = _CursorInfo()
     handle = ctypes.windll.kernel32.GetStdHandle(-11)  # type: ignore[attr-defined]
