@@ -12,14 +12,8 @@ try:
 except ImportError:
     import importlib_metadata as metadata  # type: ignore
 
+from pipx.constants import WINDOWS
 from pipx.util import PipxError, run_subprocess
-
-try:
-    WindowsError
-except NameError:
-    WINDOWS = False
-else:
-    WINDOWS = True
 
 logger = logging.getLogger(__name__)
 

@@ -8,10 +8,11 @@ from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_UNINSTALL_ERROR,
     EXIT_CODE_UNINSTALL_VENV_NONEXISTENT,
+    WINDOWS,
     ExitCode,
 )
 from pipx.emojies import hazard, sleep, stars
-from pipx.util import WINDOWS, rmdir
+from pipx.util import rmdir
 from pipx.venv import Venv, VenvContainer
 
 logger = logging.getLogger(__name__)
