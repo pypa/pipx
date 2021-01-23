@@ -169,7 +169,6 @@ def exec_app(
 
     # make sure we show cursor again before handing over control
     show_cursor()
-    sys.stderr.flush()
 
     logger.info("exec_app: " + " ".join([str(c) for c in cmd]))
 
