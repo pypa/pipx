@@ -1,6 +1,6 @@
 dev
 
-- Fix cursor show/hide to work with older versions of Windows.
+- Fix cursor show/hide to work with older versions of Windows. (#610)
 
 0.16.0.0
 
