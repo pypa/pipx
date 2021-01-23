@@ -9,7 +9,10 @@ from pipx_release import copy_file_replace_line, python_mypy_ok
 def fix_version_py(current_version_list: List[str]) -> bool:
     version_code_file = Path("src/pipx/version.py")
     new_version_code_file = Path("src/pipx/version.py.new")
-    new_version_list = current_version_list + ['"dev0"']
+    # Version with "dev0" suffix precedes version without "dev0" suffix,
+    #   so to follow previous version we must add to version number before
+    #   appending "dev0".
+    new_version_list = current_version_list + ["1", '"dev0"']
 
     copy_file_replace_line(
         version_code_file,
