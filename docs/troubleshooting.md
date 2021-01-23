@@ -68,6 +68,13 @@ set PIP_
 
 Reference: [pip Environment Variables](https://pip.pypa.io/en/stable/user_guide/#environment-variables)
 
+## `pipx` log files
+Pipx records a verbose log file for every `pipx` command invocation.  The logs
+for the last 10 `pipx` commands can be found in `$PIPX_HOME/logs`.
+
+For most users this location is `~/.local/pipx/logs`, where `~` is your home
+directory.
+
 ## Debian, Ubuntu issues
 
 If you have issues using pipx on Debian, Ubuntu, or other Debian-based linux
