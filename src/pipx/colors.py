@@ -1,7 +1,7 @@
 import sys
 from typing import Callable
 
-import colorama
+import colorama  # type: ignore
 
 PRINT_COLOR = sys.stdout.isatty()
 
