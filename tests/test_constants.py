@@ -1,5 +1,6 @@
 import sys
 from io import BytesIO, TextIOWrapper
+from unittest import mock
 
 import pytest  # type: ignore
 
@@ -39,7 +40,7 @@ from pipx.constants import use_emjois
     ],
 )
 def test_use_emjois(monkeypatch, USE_EMOJI, encoding, expected):
-    sys.stderr = TextIOWrapper(BytesIO(), encoding=encoding)
-    if USE_EMOJI is not None:
-        monkeypatch.setenv("USE_EMOJI", USE_EMOJI)
-    assert use_emjois() is expected
+    with mock.patch.object(sys, "stderr", TextIOWrapper(BytesIO(), encoding=encoding)):
+        if USE_EMOJI is not None:
+            monkeypatch.setenv("USE_EMOJI", USE_EMOJI)
+        assert use_emjois() is expected
