@@ -24,7 +24,8 @@
         "nesbot/carbon": "^2.43"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.0"
+        "phpunit/phpunit": "^9.0",
+        "vimeo/psalm": "^4.4"
     },
     "autoload": {
         "psr-4": {

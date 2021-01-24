@@ -4,16 +4,21 @@ namespace Vdhicts\Cyberfusion\ClusterApi;
 
 class Configuration
 {
-    private string $url = 'https://cluster-api.cyberfusion.nl/api/v1/';
+    private const URL_LIVE = 'https://cluster-api.cyberfusion.nl/api/v1/';
+    private const URL_SANDBOX = 'https://test-cluster-api.cyberfusion.nl/api/v1/';
+
+    private string $url = self::URL_LIVE;
     private string $username;
     private string $password;
     private ?string $accessToken;
+    private bool $sandbox = false;
 
-    public static function withCredentials(string $username, string $password): Configuration
+    public static function withCredentials(string $username, string $password, bool $sandbox = false): Configuration
     {
         return (new self())
             ->setUsername($username)
-            ->setPassword($password);
+            ->setPassword($password)
+            ->setSandbox($sandbox);
     }
 
     public static function withAccessToken(string $accessToken): Configuration
@@ -75,6 +80,29 @@ class Configuration
     public function setAccessToken(?string $accessToken): Configuration
     {
         $this->accessToken = $accessToken;
+
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isSandbox(): bool
+    {
+        return $this->sandbox;
+    }
+
+    /**
+     * @param bool $sandbox
+     * @return Configuration
+     */
+    public function setSandbox(bool $sandbox): Configuration
+    {
+        $this->sandbox = $sandbox;
+
+        $this->url = $sandbox
+            ? self::URL_SANDBOX
+            : self::URL_LIVE;
 
         return $this;
     }
