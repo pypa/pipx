@@ -52,6 +52,7 @@ def strtobool(val: str) -> bool:
 
 
 def use_emjois() -> bool:
+    # All emojis that pipx might possibly use
     emoji_test_str = "✨🌟✨⚠️😴"
     try:
         platform_emoji_support = (
