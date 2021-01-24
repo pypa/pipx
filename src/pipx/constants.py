@@ -52,7 +52,14 @@ def strtobool(val: str) -> bool:
 
 
 def use_emjois() -> bool:
-    platform_emoji_support = not is_windows() and sys.getdefaultencoding() == "utf-8"
+    emoji_test_str = "✨🌟✨⚠️😴"
+    try:
+        platform_emoji_support = (
+            emoji_test_str.encode(sys.stderr.encoding).decode(sys.stderr.encoding)
+            == emoji_test_str
+        )
+    except UnicodeEncodeError:
+        platform_emoji_support = False
     return strtobool(str(os.getenv("USE_EMOJI", platform_emoji_support)))
 
 
