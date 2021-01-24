@@ -1,9 +1,12 @@
 import sys
 from typing import Callable
 
-from pipx.constants import WINDOWS
+import colorama
 
-PRINT_COLOR = not WINDOWS and sys.stdout.isatty()
+PRINT_COLOR = sys.stdout.isatty()
+
+if PRINT_COLOR:
+    colorama.init()
 
 
 class c:
