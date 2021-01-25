@@ -55,10 +55,8 @@ def use_emjois() -> bool:
     # All emojis that pipx might possibly use
     emoji_test_str = "✨🌟⚠️😴"
     try:
-        platform_emoji_support = (
-            emoji_test_str.encode(sys.stderr.encoding).decode(sys.stderr.encoding)
-            == emoji_test_str
-        )
+        emoji_test_str.encode(sys.stderr.encoding)
+        platform_emoji_support = True
     except UnicodeEncodeError:
         platform_emoji_support = False
     return strtobool(str(os.getenv("USE_EMOJI", platform_emoji_support)))
