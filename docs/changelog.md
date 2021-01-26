@@ -1,6 +1,6 @@
 dev
 
-- Support text colors on Windows.
+- Support text colors on Windows. (#612)
 
 0.16.0.0
 
