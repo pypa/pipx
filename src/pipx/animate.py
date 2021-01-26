@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from threading import Event, Thread
 from typing import Generator, List
 
-from pipx.constants import emoji_support
+from pipx.emojies import EMOJI_SUPPORT
 
 stderr_is_tty = sys.stderr.isatty()
 
@@ -37,7 +37,7 @@ def animate(
 
     event = Event()
 
-    if emoji_support:
+    if EMOJI_SUPPORT:
         animate_at_beginning_of_line = True
         symbols = EMOJI_ANIMATION_FRAMES
         period = EMOJI_FRAME_PERIOD
