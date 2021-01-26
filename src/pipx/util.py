@@ -167,7 +167,7 @@ def subprocess_post_check_filter(
             stderr_lines = completed_process.stderr.split("\n")
             for line in stderr_lines:
                 if "error" in line.lower() or "failed" in line.lower():
-                    print(line, file=sys.stderr)
+                    print(line, file=sys.stdout)
         if raise_error:
             raise PipxError(
                 f"{' '.join([str(x) for x in completed_process.args])!r} failed"
