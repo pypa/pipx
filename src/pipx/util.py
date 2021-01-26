@@ -154,6 +154,28 @@ def subprocess_post_check(
             logger.info(f"{' '.join(completed_process.args)!r} failed")
 
 
+def subprocess_post_check_filter(
+    completed_process: subprocess.CompletedProcess, raise_error: bool = True,
+) -> None:
+    if completed_process.returncode:
+        if completed_process.stdout is not None:
+            stdout_lines = completed_process.stdout.split("\n")
+            for line in stdout_lines:
+                if "error" in line.lower() or "failed" in line.lower():
+                    print(line, file=sys.stdout)
+        if completed_process.stderr is not None:
+            stderr_lines = completed_process.stderr.split("\n")
+            for line in stderr_lines:
+                if "error" in line.lower() or "failed" in line.lower():
+                    print(line, file=sys.stderr)
+        if raise_error:
+            raise PipxError(
+                f"{' '.join([str(x) for x in completed_process.args])!r} failed"
+            )
+        else:
+            logger.info(f"{' '.join(completed_process.args)!r} failed")
+
+
 def exec_app(
     cmd: Sequence[Union[str, Path]], env: Optional[Dict[str, str]] = None,
 ) -> NoReturn:

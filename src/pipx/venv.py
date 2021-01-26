@@ -29,6 +29,7 @@ from pipx.util import (
     rmdir,
     run_subprocess,
     subprocess_post_check,
+    subprocess_post_check_filter,
 )
 from pipx.venv_inspect import VenvMetadata, inspect_venv
 
@@ -213,8 +214,8 @@ class Venv:
             self.do_animation,
         ):
             cmd = ["install"] + pip_args + [package_or_url]
-            pip_process = self._run_pip(cmd)
-        subprocess_post_check(pip_process, raise_error=False)
+            pip_process = self._run_pip_verbose(cmd)
+        subprocess_post_check_filter(pip_process, raise_error=False)
         if pip_process.returncode:
             raise PipxError(
                 f"Error installing {full_package_description(package, package_or_url)}."
@@ -370,6 +371,10 @@ class Venv:
         cmd = [str(self.python_path), "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
+        return run_subprocess(cmd)
+
+    def _run_pip_verbose(self, cmd: List[str]) -> CompletedProcess:
+        cmd = [str(self.python_path), "-m", "pip"] + cmd
         return run_subprocess(cmd)
 
     def run_pip_get_exit_code(self, cmd: List[str]) -> ExitCode:
