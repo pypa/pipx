@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -154,20 +155,30 @@ def subprocess_post_check(
             logger.info(f"{' '.join(completed_process.args)!r} failed")
 
 
+def filter_errors_nop(lines):
+    return lines
+
+def filter_errors(lines):
+    lines_out = []
+    for line in lines:
+        if "failed" in line.lower():
+            lines_out.append(line)
+            continue
+        if re.search(r"\berror\b", line, re.I):
+            lines_out.append(line)
+            continue
+    return lines_out
+
 def subprocess_post_check_filter(
     completed_process: subprocess.CompletedProcess, raise_error: bool = True,
 ) -> None:
     if completed_process.returncode:
         if completed_process.stdout is not None:
-            stdout_lines = completed_process.stdout.split("\n")
-            for line in stdout_lines:
-                if "error" in line.lower() or "failed" in line.lower():
-                    print(line, file=sys.stdout)
+            stdout_lines = filter_errors_nop(completed_process.stdout.split("\n"))
+            print("\n".join(stdout_lines))
         if completed_process.stderr is not None:
-            stderr_lines = completed_process.stderr.split("\n")
-            for line in stderr_lines:
-                if "error" in line.lower() or "failed" in line.lower():
-                    print(line, file=sys.stdout)
+            stderr_lines = filter_errors_nop(completed_process.stdout.split("\n"))
+            print("\n".join(stderr_lines))
         if raise_error:
             raise PipxError(
                 f"{' '.join([str(x) for x in completed_process.args])!r} failed"
