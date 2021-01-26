@@ -1,6 +1,6 @@
 dev
 
-- Better platform unicode detection to avoid errors and allow showing emojis when possible.
+- Better platform unicode detection to avoid errors and allow showing emojis when possible. (#614)
 
 0.16.0.0
 
