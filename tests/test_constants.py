@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest  # type: ignore
 
-from pipx.constants import use_emjois
+from pipx.emojies import use_emjois
 
 
 @pytest.mark.parametrize(
