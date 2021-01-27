@@ -24,7 +24,7 @@ class UnixUsers extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('unix-users/?%s', http_build_query($filter->toArray())));
+            ->setUrl(sprintf('unix-users?%s', http_build_query($filter->toArray())));
 
         $response = $this
             ->client
@@ -106,7 +106,7 @@ class UnixUsers extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('unix-users/')
+            ->setUrl('unix-users')
             ->setBody($this->filterFields($unixUser->toArray(), [
                 'username',
                 'password',

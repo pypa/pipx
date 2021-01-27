@@ -23,7 +23,7 @@ class Certificates extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('certificates/?%s', http_build_query($filter->toArray())));
+            ->setUrl(sprintf('certificates?%s', http_build_query($filter->toArray())));
 
         $response = $this
             ->client

@@ -23,7 +23,7 @@ class VirtualHosts extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('virtual-hosts/?%s', http_build_query($filter->toArray())));
+            ->setUrl(sprintf('virtual-hosts?%s', http_build_query($filter->toArray())));
 
         $response = $this
             ->client
@@ -83,7 +83,7 @@ class VirtualHosts extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('virtual-hosts/')
+            ->setUrl('virtual-hosts')
             ->setBody($this->filterFields($virtualHost->toArray(), [
                 'domain',
                 'server_aliases',

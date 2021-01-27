@@ -8,7 +8,7 @@ use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 class Cluster implements Model
 {
     public string $name;
-    public ?string $group = null;
+    public ?array $groups = [];
     public ?string $dataDirectory = null;
     public ?int $id = null;
     public ?string $createdAt = null;
@@ -18,7 +18,7 @@ class Cluster implements Model
     {
         $cluster = new self();
         $cluster->name = Arr::get($data, 'name');
-        $cluster->group = Arr::get($data, 'group');
+        $cluster->groups = Arr::get($data, 'groups', []);
         $cluster->dataDirectory = Arr::get($data, 'data_directory');
         $cluster->id = Arr::get($data, 'id');
         $cluster->createdAt = Arr::get($data, 'created_at');
@@ -30,7 +30,7 @@ class Cluster implements Model
     {
         return [
             'name' => $this->name,
-            'group' => $this->group,
+            'groups' => $this->groups,
             'data_directory' => $this->dataDirectory,
             'id' => $this->id,
             'created_at' => $this->createdAt,

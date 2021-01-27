@@ -23,7 +23,7 @@ class Cmses extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('cmses/?%s', http_build_query($filter->toArray())));
+            ->setUrl(sprintf('cmses?%s', http_build_query($filter->toArray())));
 
         $response = $this
             ->client

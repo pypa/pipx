@@ -23,7 +23,7 @@ class Crons extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('crons/?%s', http_build_query($filter->toArray())));
+            ->setUrl(sprintf('crons?%s', http_build_query($filter->toArray())));
 
         $response = $this
             ->client

@@ -23,7 +23,7 @@ class MailDomains extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('mail-domains/?%s', http_build_query($filter->toArray())));
+            ->setUrl(sprintf('mail-domains?%s', http_build_query($filter->toArray())));
 
         $response = $this
             ->client
@@ -80,7 +80,7 @@ class MailDomains extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('mail-domains/')
+            ->setUrl('mail-domains')
             ->setBody($this->filterFields($mailDomain->toArray(), [
                 'domain',
                 'unix_user_id',

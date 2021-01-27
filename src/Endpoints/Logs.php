@@ -25,7 +25,7 @@ class Logs extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('logs/access/%d/?%s', $virtualHostId, http_build_query($filter->toArray())));
+            ->setUrl(sprintf('logs/access/%d?%s', $virtualHostId, http_build_query($filter->toArray())));
 
         $response = $this
             ->client
@@ -58,7 +58,7 @@ class Logs extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('logs/error/%d/?%s', $virtualHostId, http_build_query($filter->toArray())));
+            ->setUrl(sprintf('logs/error/%d?%s', $virtualHostId, http_build_query($filter->toArray())));
 
         $response = $this
             ->client
