@@ -173,11 +173,13 @@ def subprocess_post_check_filter(
     completed_process: subprocess.CompletedProcess, raise_error: bool = True,
 ) -> None:
     if completed_process.returncode:
+        print("STDOUT")
         if completed_process.stdout is not None:
             stdout_lines = filter_errors_nop(completed_process.stdout.split("\n"))
             print("\n".join(stdout_lines))
+        print("STDERR")
         if completed_process.stderr is not None:
-            stderr_lines = filter_errors_nop(completed_process.stdout.split("\n"))
+            stderr_lines = filter_errors_nop(completed_process.stderr.split("\n"))
             print("\n".join(stderr_lines))
         if raise_error:
             raise PipxError(
