@@ -4,6 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Enums\HealthStatus;
 
 class Health implements Model
 {
@@ -14,6 +15,11 @@ class Health implements Model
         $health = new self();
         $health->status = Arr::get($data, 'status');
         return $health;
+    }
+
+    public function isUp(): bool
+    {
+        return $this->status === HealthStatus::UP;
     }
 
     public function toArray(): array

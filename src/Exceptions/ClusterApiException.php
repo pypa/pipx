@@ -13,4 +13,6 @@ class ClusterApiException extends Exception
 
     protected const REQUEST_FAILED = 200;
     protected const REQUEST_INVALID = 201;
+
+    protected const API_NOT_UP = 300;
 }

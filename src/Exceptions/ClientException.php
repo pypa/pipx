@@ -32,4 +32,13 @@ class ClientException extends ClusterApiException
             $previous
         );
     }
+
+    public static function apiNotUp(Throwable $previous = null): ClientException
+    {
+        return new self(
+            'The API is not available at this moment',
+            self::API_NOT_UP,
+            $previous
+        );
+    }
 }

@@ -6,6 +6,7 @@ use GuzzleHttp\Client as GuzzleClient;
 use Psr\Http\Message\ResponseInterface;
 use Throwable;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
+use Vdhicts\Cyberfusion\ClusterApi\Endpoints\Health;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ClientException;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ClusterApiException;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
@@ -24,6 +25,7 @@ class Client implements ClientContract
      * Client constructor.
      * @param Configuration $configuration
      * @param bool $manuallyAuthenticate
+     * @throws ClientException
      * @throws ClusterApiException
      */
     public function __construct(Configuration $configuration, bool $manuallyAuthenticate = false)
@@ -32,6 +34,11 @@ class Client implements ClientContract
 
         // Initialize the HTTP client
         $this->initHttpClient();
+
+        // Check if the API is available
+        if (! $this->isUp()) {
+            throw ClientException::apiNotUp();
+        }
 
         // Start authentication unless the authentication is done manually
         if (! $manuallyAuthenticate) {
@@ -57,7 +64,29 @@ class Client implements ClientContract
     }
 
     /**
-     * @throws ClusterApiException
+     * Determines if the API is up.
+     *
+     * @return bool
+     */
+    private function isUp(): bool
+    {
+        // Retrieve the health status
+        $healthEndpoint = new Health($this);
+        try {
+            $response = $healthEndpoint->get();
+        } catch (RequestException $exception) {
+            return false;
+        }
+
+        // Store and return if the API is up
+        return $response
+            ->getData('health')
+            ->isUp();
+    }
+
+    /**
+     * @throws ClientException
+     * @throws RequestException
      */
     private function authenticate(): void
     {
