@@ -158,6 +158,7 @@ def subprocess_post_check(
 def filter_errors_nop(lines):
     return lines
 
+
 def filter_errors(lines):
     lines_out = []
     for line in lines:
@@ -168,6 +169,7 @@ def filter_errors(lines):
             lines_out.append(line)
             continue
     return lines_out
+
 
 def subprocess_post_check_filter(
     completed_process: subprocess.CompletedProcess, raise_error: bool = True,
