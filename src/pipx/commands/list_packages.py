@@ -6,7 +6,7 @@ from pipx import constants
 from pipx.colors import bold
 from pipx.commands.common import VenvProblems, get_package_summary
 from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK, ExitCode
-from pipx.emojies import sleep
+from pipx.emojis import sleep
 from pipx.venv import VenvContainer
 
 Pool: Optional[Callable]

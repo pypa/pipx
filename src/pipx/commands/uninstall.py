@@ -11,7 +11,7 @@ from pipx.constants import (
     WINDOWS,
     ExitCode,
 )
-from pipx.emojies import hazard, sleep, stars
+from pipx.emojis import hazard, sleep, stars
 from pipx.util import rmdir
 from pipx.venv import Venv, VenvContainer
 

@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest  # type: ignore
 
-from pipx.emojies import use_emojis
+from pipx.emojis import use_emojis
 
 
 @pytest.mark.parametrize(

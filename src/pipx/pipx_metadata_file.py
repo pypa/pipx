@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Union
 
-from pipx.emojies import hazard
+from pipx.emojis import hazard
 from pipx.util import PipxError, pipx_wrap
 
 logger = logging.getLogger(__name__)

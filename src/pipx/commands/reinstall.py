@@ -9,7 +9,7 @@ from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
 from pipx.constants import EXIT_CODE_OK, EXIT_CODE_REINSTALL_VENV_NONEXISTENT, ExitCode
-from pipx.emojies import sleep
+from pipx.emojis import sleep
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 

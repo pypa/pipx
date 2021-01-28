@@ -11,7 +11,7 @@ from typing import List, NoReturn
 from pipx import constants
 from pipx.commands.common import package_name_from_spec
 from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
-from pipx.emojies import hazard
+from pipx.emojis import hazard
 from pipx.util import (
     PipxError,
     exec_app,

@@ -15,7 +15,7 @@ from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
 
-from pipx.emojies import hazard
+from pipx.emojis import hazard
 from pipx.util import PipxError, pipx_wrap
 
 logger = logging.getLogger(__name__)
