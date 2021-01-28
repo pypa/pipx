@@ -4,19 +4,23 @@ from contextlib import contextmanager
 from threading import Event, Thread
 from typing import Generator, List
 
-from pipx.constants import emoji_support
+from pipx.constants import WINDOWS, emoji_support
 
 stderr_is_tty = sys.stderr.isatty()
 
-
-HIDE_CURSOR = "\033[?25l"
-SHOW_CURSOR = "\033[?25h"
 CLEAR_LINE = "\033[K"
 EMOJI_ANIMATION_FRAMES = ["⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"]
 NONEMOJI_ANIMATION_FRAMES = ["", ".", "..", "..."]
 EMOJI_FRAME_PERIOD = 0.1
 NONEMOJI_FRAME_PERIOD = 1
 MINIMUM_COLS_ALLOW_ANIMATION = 16
+
+
+if WINDOWS:
+    import ctypes
+
+    class _CursorInfo(ctypes.Structure):
+        _fields_ = [("size", ctypes.c_int), ("visible", ctypes.c_byte)]
 
 
 def _env_supports_animation() -> bool:
@@ -96,12 +100,30 @@ def print_animation(
                 break
 
 
+# for Windows pre-ANSI-terminal-support (before Windows 10 TH2 (v1511))
+# https://stackoverflow.com/a/10455937
+def win_cursor(visible: bool) -> None:
+    ci = _CursorInfo()
+    handle = ctypes.windll.kernel32.GetStdHandle(-11)  # type: ignore[attr-defined]
+    ctypes.windll.kernel32.GetConsoleCursorInfo(handle, ctypes.byref(ci))  # type: ignore[attr-defined]
+    ci.visible = visible
+    ctypes.windll.kernel32.SetConsoleCursorInfo(handle, ctypes.byref(ci))  # type: ignore[attr-defined]
+
+
 def hide_cursor() -> None:
-    sys.stderr.write(f"{HIDE_CURSOR}")
+    if WINDOWS:
+        win_cursor(visible=False)
+    else:
+        sys.stderr.write("\033[?25l")
+        sys.stderr.flush()
 
 
 def show_cursor() -> None:
-    sys.stderr.write(f"{SHOW_CURSOR}")
+    if WINDOWS:
+        win_cursor(visible=True)
+    else:
+        sys.stderr.write("\033[?25h")
+        sys.stderr.flush()
 
 
 def clear_line() -> None:

@@ -1,5 +1,6 @@
 dev
 
+- Fix cursor show/hide to work with older versions of Windows. (#610)
 - Support text colors on Windows. (#612)
 
 0.16.0.0
