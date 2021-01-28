@@ -12,7 +12,7 @@ def strtobool(val: str) -> bool:
         return False
 
 
-def use_emjois() -> bool:
+def use_emojis() -> bool:
     # All emojis that pipx might possibly use
     emoji_test_str = "✨🌟⚠️😴⣷⣯⣟⡿⢿⣻⣽⣾"
     try:
@@ -23,7 +23,7 @@ def use_emjois() -> bool:
     return strtobool(str(os.getenv("USE_EMOJI", platform_emoji_support)))
 
 
-EMOJI_SUPPORT = use_emjois()
+EMOJI_SUPPORT = use_emojis()
 
 if EMOJI_SUPPORT:
     stars = "✨ 🌟 ✨"
