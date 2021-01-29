@@ -94,7 +94,7 @@ def run(
     bin_path = venv.bin_path / app_filename
     _prepare_venv_cache(venv, bin_path, use_cache)
 
-    if bin_path.exists():
+    if venv.has_app(app, app_filename):
         logger.info(f"Reusing cached venv {venv_dir}")
         venv.run_app(app, app_filename, app_args)
     else:
@@ -144,7 +144,7 @@ def _download_and_run(
         is_main_package=True,
     )
 
-    if not (venv.bin_path / app_filename).exists():
+    if not venv.has_app(app, app_filename):
         apps = venv.pipx_metadata.main_package.apps
         raise PipxError(
             f"""

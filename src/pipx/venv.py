@@ -330,6 +330,11 @@ class Venv:
     def run_app(self, app: str, filename: str, app_args: List[str]) -> NoReturn:
         exec_app([str(self.bin_path / filename)] + app_args)
 
+    def has_app(self, app: str, filename: str) -> bool:
+        if self._find_entry_point(app) is not None:
+            return True
+        return (self.bin_path / filename).is_file()
+
     def _upgrade_package_no_metadata(self, package: str, pip_args: List[str]) -> None:
         with animate(
             f"upgrading {full_package_description(package, package)}", self.do_animation
