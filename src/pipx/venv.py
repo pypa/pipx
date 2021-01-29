@@ -1,9 +1,15 @@
 import json
 import logging
+import re
 import time
 from pathlib import Path
 from subprocess import CompletedProcess
-from typing import Dict, Generator, List, NoReturn, Set
+from typing import Dict, Generator, List, NoReturn, Optional, Set
+
+try:
+    from importlib.metadata import Distribution, EntryPoint
+except ImportError:
+    from importlib_metadata import Distribution, EntryPoint  # type: ignore
 
 from packaging.utils import canonicalize_name
 
@@ -33,6 +39,16 @@ from pipx.util import (
 from pipx.venv_inspect import VenvMetadata, inspect_venv
 
 logger = logging.getLogger(__name__)
+
+# This regex was only introduced into importlib.metadata in Python 3.9.
+_entry_point_value_pattern = re.compile(
+    r"""
+    ^(?P<module>[\w.]+)\s*
+    (:\s*(?P<attr>[\w.]+))?\s*
+    (?P<extras>\[.*\])?\s*$
+    """,
+    re.VERBOSE,
+)
 
 
 class VenvContainer:
@@ -327,8 +343,33 @@ class Venv:
         pip_list = json.loads(cmd_run.stdout.strip())
         return set([x["name"] for x in pip_list])
 
+    def _find_entry_point(self, app: str) -> Optional[EntryPoint]:
+        if not self.python_path.exists():
+            return None
+        site_packages = get_site_packages(self.python_path)
+        for dist in Distribution.discover(path=[str(site_packages)]):
+            for ep in dist.entry_points:
+                if ep.group == "pipx.run" and ep.name == app:
+                    return ep
+        return None
+
     def run_app(self, app: str, filename: str, app_args: List[str]) -> NoReturn:
-        exec_app([str(self.bin_path / filename)] + app_args)
+        entry_point = self._find_entry_point(app)
+
+        # No [pipx.run] entry point; default to run console script.
+        if entry_point is None:
+            exec_app([str(self.bin_path / filename)] + app_args)
+
+        # Evaluate and execute the entry point.
+        match = _entry_point_value_pattern.match(entry_point.value)
+        assert match is not None, "invalid entry point"
+        module, attr = match.group("module", "attr")
+        code = (
+            f"import sys, {module}\n"
+            f"sys.argv[0] = {entry_point.name!r}\n"
+            f"sys.exit({module}.{attr}())\n"
+        )
+        exec_app([str(self.python_path), "-c", code] + app_args)
 
     def has_app(self, app: str, filename: str) -> bool:
         if self._find_entry_point(app) is not None:
