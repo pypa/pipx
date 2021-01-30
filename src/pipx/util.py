@@ -156,8 +156,29 @@ def subprocess_post_check(
             logger.info(f"{' '.join(completed_process.args)!r} failed")
 
 
+def analyze_pip_output(pip_stdout, pip_stderr):
+    failed_lines = []
+
+    # analyze pip errors for relevant info
+    for line in pip_stdout.split("\n"):
+        failed_re = re.search(r"Failed to build\s+(\S+)", line)
+        if failed_re:
+            failed_lines.append(line)
+        # TODO: search also for other "failed" or "error"
+        # if "failed" in line.lower():
+        #     lines_out.append(line)
+        #     continue
+        # if re.search(r"\berror\b", line, re.I):
+        #     lines_out.append(line)
+        #     continue
+    if failed_lines:
+        print("Notable pip errors:", file=sys.stderr)
+        for failed_line in failed_lines:
+            print(f"    {failed_line}", file=sys.stderr)
+
+
 def subprocess_post_check_handle_pip_error(
-    completed_process: subprocess.CompletedProcess, raise_error: bool = True
+    completed_process: subprocess.CompletedProcess,
 ) -> None:
     if completed_process.returncode:
         # Save STDOUT and STDERR to file in pipx/logs/
@@ -179,26 +200,10 @@ def subprocess_post_check_handle_pip_error(
             file=sys.stderr,
         )
         print(f"{pip_error_file}", file=sys.stderr)
-        print("Notable pip errors:", file=sys.stderr)
-        # analyze pip errors for relevant info
-        for line in completed_process.stdout.split("\n"):
-            failed_re = re.search(r"Failed to build\s+(\S+)", line)
-            if failed_re:
-                print(f"    {line}", file=sys.stderr)
-            # TODO: search also for other "failed" or "error"
-            # if "failed" in line.lower():
-            #     lines_out.append(line)
-            #     continue
-            # if re.search(r"\berror\b", line, re.I):
-            #     lines_out.append(line)
-            #     continue
 
-        if raise_error:
-            raise PipxError(
-                f"{' '.join([str(x) for x in completed_process.args])!r} failed"
-            )
-        else:
-            logger.info(f"{' '.join(completed_process.args)!r} failed")
+        analyze_pip_output(completed_process.stdout, completed_process.stderr)
+
+        logger.info(f"{' '.join(completed_process.args)!r} failed")
 
 
 def exec_app(

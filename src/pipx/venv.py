@@ -215,7 +215,7 @@ class Venv:
         ):
             cmd = ["install"] + pip_args + [package_or_url]
             pip_process = self._run_pip_verbose(cmd)
-        subprocess_post_check_handle_pip_error(pip_process, raise_error=False)
+        subprocess_post_check_handle_pip_error(pip_process)
         if pip_process.returncode:
             raise PipxError(
                 f"Error installing {full_package_description(package, package_or_url)}."

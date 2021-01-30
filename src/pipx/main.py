@@ -631,7 +631,8 @@ def setup_log_file() -> Path:
     # don't use utils.mkdir, to prevent emission of log message
     constants.PIPX_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-    existing_logs = sorted(constants.PIPX_LOG_DIR.glob("cmd_*.log"))
+    # TODO: also expire old *_pip_errors.log
+    existing_logs = sorted(constants.PIPX_LOG_DIR.glob("cmd_*[0-9].log"))
     if len(existing_logs) > max_logs:
         for existing_log in existing_logs[:-max_logs]:
             try:
