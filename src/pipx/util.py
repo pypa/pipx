@@ -8,7 +8,7 @@ import textwrap
 from pathlib import Path
 from typing import Dict, List, NoReturn, Optional, Sequence, Tuple, Union
 
-import pipx.main
+import pipx.constants
 from pipx.animate import show_cursor
 from pipx.constants import WINDOWS
 
@@ -161,10 +161,10 @@ def subprocess_post_check_handle_pip_error(
 ) -> None:
     if completed_process.returncode:
         # Save STDOUT and STDERR to file in pipx/logs/
-        if pipx.main.log_file is None:
+        if pipx.constants.pipx_log_file is None:
             raise PipxError("Pipx internal error: No log_file present.")
-        pip_error_file = pipx.main.log_file.parent / (
-            pipx.main.log_file.stem + "_pip_errors.log"
+        pip_error_file = pipx.constants.pipx_log_file.parent / (
+            pipx.constants.pipx_log_file.stem + "_pip_errors.log"
         )
         with pip_error_file.open("w") as pip_error_fh:
             print("STDOUT", file=pip_error_fh)

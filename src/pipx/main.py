@@ -13,11 +13,12 @@ import textwrap
 import time
 import urllib.parse
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import argcomplete  # type: ignore
 from packaging.utils import canonicalize_name
 
+import pipx.constants
 from pipx import commands, constants
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
@@ -29,7 +30,6 @@ from pipx.venv import VenvContainer
 from pipx.version import __version__
 
 logger = logging.getLogger(__name__)
-log_file: Optional[Path] = None
 
 
 def print_version() -> None:
@@ -650,9 +650,8 @@ def setup_log_file() -> Path:
 
 
 def setup_logging(verbose: bool) -> None:
-    global log_file
     pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
-    log_file = setup_log_file()
+    pipx.constants.pipx_log_file = setup_log_file()
 
     # "incremental" is False so previous pytest tests don't accumulate handlers
     logging_config = {
@@ -683,7 +682,7 @@ def setup_logging(verbose: bool) -> None:
             "file": {
                 "class": "logging.FileHandler",
                 "formatter": "file",
-                "filename": str(log_file),
+                "filename": str(pipx.constants.pipx_log_file),
                 "level": "DEBUG",
             },
         },

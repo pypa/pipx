@@ -2,7 +2,7 @@ import os
 import sys
 from pathlib import Path
 from textwrap import dedent
-from typing import NewType
+from typing import NewType, Optional
 
 DEFAULT_PIPX_HOME = Path.home() / ".local/pipx"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
@@ -27,6 +27,8 @@ EXIT_CODE_LIST_PROBLEM = ExitCode(1)
 EXIT_CODE_UNINSTALL_VENV_NONEXISTENT = ExitCode(1)
 EXIT_CODE_UNINSTALL_ERROR = ExitCode(1)
 EXIT_CODE_REINSTALL_VENV_NONEXISTENT = ExitCode(1)
+
+pipx_log_file: Optional[Path] = None
 
 
 def is_windows() -> bool:
