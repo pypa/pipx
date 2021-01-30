@@ -40,7 +40,6 @@ from pipx.venv_inspect import VenvMetadata, inspect_venv
 
 logger = logging.getLogger(__name__)
 
-# This regex was only introduced into importlib.metadata in Python 3.9.
 _entry_point_value_pattern = re.compile(
     r"""
     ^(?P<module>[\w.]+)\s*
@@ -361,6 +360,8 @@ class Venv:
             exec_app([str(self.bin_path / filename)] + app_args)
 
         # Evaluate and execute the entry point.
+        # TODO: After dropping support for Python < 3.9, use
+        # "entry_point.module" and "entry_point.attr" instead.
         match = _entry_point_value_pattern.match(entry_point.value)
         assert match is not None, "invalid entry point"
         module, attr = match.group("module", "attr")
