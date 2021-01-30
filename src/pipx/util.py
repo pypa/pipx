@@ -8,6 +8,7 @@ import textwrap
 from pathlib import Path
 from typing import Dict, List, NoReturn, Optional, Sequence, Tuple, Union
 
+import pipx.main
 from pipx.animate import show_cursor
 from pipx.constants import WINDOWS
 
@@ -155,34 +156,43 @@ def subprocess_post_check(
             logger.info(f"{' '.join(completed_process.args)!r} failed")
 
 
-def filter_errors_nop(lines):
-    return lines
-
-
-def filter_errors(lines):
-    lines_out = []
-    for line in lines:
-        if "failed" in line.lower():
-            lines_out.append(line)
-            continue
-        if re.search(r"\berror\b", line, re.I):
-            lines_out.append(line)
-            continue
-    return lines_out
-
-
-def subprocess_post_check_filter(
-    completed_process: subprocess.CompletedProcess, raise_error: bool = True,
+def subprocess_post_check_handle_pip_error(
+    completed_process: subprocess.CompletedProcess, raise_error: bool = True
 ) -> None:
     if completed_process.returncode:
-        print("STDOUT")
-        if completed_process.stdout is not None:
-            stdout_lines = filter_errors_nop(completed_process.stdout.split("\n"))
-            print("\n".join(stdout_lines))
-        print("STDERR")
-        if completed_process.stderr is not None:
-            stderr_lines = filter_errors_nop(completed_process.stderr.split("\n"))
-            print("\n".join(stderr_lines))
+        # Save STDOUT and STDERR to file in pipx/logs/
+        if pipx.main.log_file is None:
+            raise PipxError("Pipx internal error: No log_file present.")
+        pip_error_file = pipx.main.log_file.parent / (
+            pipx.main.log_file.stem + "_pip_errors.log"
+        )
+        with pip_error_file.open("w") as pip_error_fh:
+            print("STDOUT", file=pip_error_fh)
+            if completed_process.stdout is not None:
+                print(completed_process.stdout, file=pip_error_fh, end="")
+            print("STDERR", file=pip_error_fh)
+            if completed_process.stderr is not None:
+                print(completed_process.stderr, file=pip_error_fh, end="")
+
+        print(
+            "Fatal error from pip prevented installation. Full pip output in file:",
+            file=sys.stderr,
+        )
+        print(f"{pip_error_file}", file=sys.stderr)
+        print("Notable pip errors:", file=sys.stderr)
+        # analyze pip errors for relevant info
+        for line in completed_process.stdout.split("\n"):
+            failed_re = re.search(r"Failed to build\s+(\S+)", line)
+            if failed_re:
+                print(f"    {line}", file=sys.stderr)
+            # TODO: search also for other "failed" or "error"
+            # if "failed" in line.lower():
+            #     lines_out.append(line)
+            #     continue
+            # if re.search(r"\berror\b", line, re.I):
+            #     lines_out.append(line)
+            #     continue
+
         if raise_error:
             raise PipxError(
                 f"{' '.join([str(x) for x in completed_process.args])!r} failed"

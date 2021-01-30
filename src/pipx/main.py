@@ -13,7 +13,7 @@ import textwrap
 import time
 import urllib.parse
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import argcomplete  # type: ignore
 from packaging.utils import canonicalize_name
@@ -29,6 +29,7 @@ from pipx.venv import VenvContainer
 from pipx.version import __version__
 
 logger = logging.getLogger(__name__)
+log_file: Optional[Path] = None
 
 
 def print_version() -> None:
@@ -649,6 +650,7 @@ def setup_log_file() -> Path:
 
 
 def setup_logging(verbose: bool) -> None:
+    global log_file
     pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
     log_file = setup_log_file()
 
