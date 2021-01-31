@@ -158,7 +158,7 @@ def subprocess_post_check(
             logger.info(f"{' '.join(completed_process.args)!r} failed")
 
 
-def dedup_with_order(input_list: List[Any]) -> List[Any]:
+def dedup_ordered(input_list: List[Any]) -> List[Any]:
     output_list = []
     seen = set()
     for x in input_list:
@@ -176,7 +176,6 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     exception_error_lines = []
     exception_error2_lines = []
 
-    # analyze pip output for relevant info
     for line in pip_stdout.split("\n"):
         failed_re = re.search(r"Failed to build\s+(\S+)", line)
         collecting_re = re.search(r"^\s*Collecting\s+(\S+)", line)
@@ -197,9 +196,9 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         if exception_error2_re:
             exception_error2_lines.append(line.strip())
 
-    exception_error_lines = dedup_with_order(exception_error_lines)
-    exception_error2_lines = dedup_with_order(exception_error2_lines)
-    error_lines = dedup_with_order(error_lines)
+    exception_error_lines = dedup_ordered(exception_error_lines)
+    exception_error2_lines = dedup_ordered(exception_error2_lines)
+    error_lines = dedup_ordered(error_lines)
 
     if failed_to_build is not None:
         logger.error(f"pip failed to build package:\n    {failed_to_build}")
@@ -228,6 +227,7 @@ def subprocess_post_check_handle_pip_error(
     completed_process: subprocess.CompletedProcess,
 ) -> None:
     if completed_process.returncode:
+        logger.info(f"{' '.join(completed_process.args)!r} failed")
         # Save STDOUT and STDERR to file in pipx/logs/
         if pipx.constants.pipx_log_file is None:
             raise PipxError("Pipx internal error: No log_file present.")
@@ -248,8 +248,6 @@ def subprocess_post_check_handle_pip_error(
         )
 
         analyze_pip_output(completed_process.stdout, completed_process.stderr)
-
-        logger.info(f"{' '.join(completed_process.args)!r} failed")
 
 
 def exec_app(
