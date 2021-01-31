@@ -375,7 +375,7 @@ class Venv:
 
     def _run_pip_verbose(self, cmd: List[str]) -> CompletedProcess:
         cmd = [str(self.python_path), "-m", "pip"] + cmd
-        return run_subprocess(cmd)
+        return run_subprocess(cmd, log_stdout=False, log_stderr=False)
 
     def run_pip_get_exit_code(self, cmd: List[str]) -> ExitCode:
         cmd = [str(self.python_path), "-m", "pip"] + cmd

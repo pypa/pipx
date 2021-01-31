@@ -112,6 +112,8 @@ def run_subprocess(
     capture_stdout: bool = True,
     capture_stderr: bool = True,
     log_cmd_str: Optional[str] = None,
+    log_stdout: bool = True,
+    log_stderr: bool = True,
 ) -> subprocess.CompletedProcess:
     """Run arbitrary command as subprocess, capturing stderr and stout"""
     env = dict(os.environ)
@@ -131,9 +133,9 @@ def run_subprocess(
         universal_newlines=True,
     )
 
-    if capture_stdout:
+    if capture_stdout and log_stdout:
         logger.debug(f"stdout: {completed_process.stdout}".rstrip())
-    if capture_stderr:
+    if capture_stderr and log_stderr:
         logger.debug(f"stderr: {completed_process.stderr}".rstrip())
     logger.debug(f"returncode: {completed_process.returncode}")
 
@@ -159,7 +161,7 @@ def subprocess_post_check(
 def analyze_pip_output(pip_stdout, pip_stderr):
     failed_lines = []
 
-    # analyze pip errors for relevant info
+    # analyze pip output for relevant info
     for line in pip_stdout.split("\n"):
         failed_re = re.search(r"Failed to build\s+(\S+)", line)
         if failed_re:
