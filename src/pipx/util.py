@@ -197,7 +197,8 @@ def analyze_pip_output(pip_stdout, pip_stderr):
         if error_re:
             error_lines.append(line.strip())
         if error2_re:
-            error2_lines.append(line.strip())
+            if not re.search(r"Command errored out", line):
+                error2_lines.append(line.strip())
         if capital_error_re:
             capital_error_lines.append(line.strip())
         if exception_re:
@@ -210,6 +211,7 @@ def analyze_pip_output(pip_stdout, pip_stderr):
     failed_lines = dedup_with_order(failed_lines)
     exception_error_lines = dedup_with_order(exception_error_lines)
     exception_error2_lines = dedup_with_order(exception_error2_lines)
+    error2_lines = dedup_with_order(error2_lines)
 
     if failed_lines:
         print("Notable pip errors:", file=sys.stderr)
@@ -228,10 +230,10 @@ def analyze_pip_output(pip_stdout, pip_stderr):
         for exception_error2_line in exception_error2_lines:
             print(f"    {exception_error2_line}", file=sys.stderr)
     # A lot of garbage here
-    # elif error2_lines:
-    #     print("Possibly relevant errors from pip install:", file=sys.stderr)
-    #     for error2_line in error2_lines:
-    #         print(f"    {error2_line}", file=sys.stderr)
+    elif error2_lines:
+        print("Possibly relevant errors from pip install:", file=sys.stderr)
+        for error2_line in error2_lines:
+            print(f"    {error2_line}", file=sys.stderr)
 
     # TODO: remove this for final code
     # print("\nDEBUG:", file=sys.stderr)
