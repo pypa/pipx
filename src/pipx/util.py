@@ -176,6 +176,9 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     exception_error_lines = []
     exception_error2_lines = []
 
+    # failed_re could also search for every instance of
+    #   "Building wheel for (\S+)\s+.+finished with status 'error'"
+
     for line in pip_stdout.split("\n"):
         failed_re = re.search(r"Failed to build\s+(\S.+)$", line)
         collecting_re = re.search(r"^\s*Collecting\s+(\S+)", line)
