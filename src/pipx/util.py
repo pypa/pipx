@@ -160,23 +160,29 @@ def subprocess_post_check(
 
 def analyze_pip_output(pip_stdout, pip_stderr):
     failed_lines = []
+    error_lines = []
 
     # analyze pip output for relevant info
     for line in pip_stdout.split("\n"):
         failed_re = re.search(r"Failed to build\s+(\S+)", line)
+        error_re = re.search(r"^\s*(error.+)$", line, re.I)
         if failed_re:
             failed_lines.append(line)
+        if error_re:
+            error_lines.append(error_re.group(1))
+            continue
         # TODO: search also for other "failed" or "error"
         # if "failed" in line.lower():
         #     lines_out.append(line)
         #     continue
-        # if re.search(r"\berror\b", line, re.I):
-        #     lines_out.append(line)
-        #     continue
-    if failed_lines:
+    if failed_lines or error_lines:
         print("Notable pip errors:", file=sys.stderr)
+    if failed_lines:
         for failed_line in failed_lines:
             print(f"    {failed_line}", file=sys.stderr)
+    elif not failed_lines and error_lines:
+        for error_line in error_lines:
+            print(f"    {error_line}", file=sys.stderr)
 
 
 def subprocess_post_check_handle_pip_error(
