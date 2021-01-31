@@ -626,19 +626,25 @@ def get_command_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def delete_oldest_logs(file_list: List[Path], keep_number: int) -> None:
+    file_list = sorted(file_list)
+    if len(file_list) > keep_number:
+        for existing_file in file_list[:-keep_number]:
+            try:
+                existing_file.unlink()
+            except FileNotFoundError:
+                pass
+
+
 def setup_log_file() -> Path:
     max_logs = 10
     # don't use utils.mkdir, to prevent emission of log message
     constants.PIPX_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-    # TODO: also expire old *_pip_errors.log
-    existing_logs = sorted(constants.PIPX_LOG_DIR.glob("cmd_*[0-9].log"))
-    if len(existing_logs) > max_logs:
-        for existing_log in existing_logs[:-max_logs]:
-            try:
-                existing_log.unlink()
-            except FileNotFoundError:
-                pass
+    delete_oldest_logs(list(constants.PIPX_LOG_DIR.glob("cmd_*[0-9].log")), max_logs)
+    delete_oldest_logs(
+        list(constants.PIPX_LOG_DIR.glob("cmd_*_pip_errors.log")), max_logs
+    )
 
     datetime_str = time.strftime("%Y-%m-%d_%H.%M.%S")
     log_file = constants.PIPX_LOG_DIR / f"cmd_{datetime_str}.log"
