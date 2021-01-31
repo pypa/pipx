@@ -170,17 +170,17 @@ def dedup_ordered(input_list: List[Any]) -> List[Any]:
 
 
 def analyze_pip_output(pip_stdout: str, pip_stderr: str):
-    failed_to_build: Optional[str] = None
+    failed_to_build: Optional[List[str]] = None
     last_collecting_dep: Optional[str] = None
     error_lines = []
     exception_error_lines = []
     exception_error2_lines = []
 
     for line in pip_stdout.split("\n"):
-        failed_re = re.search(r"Failed to build\s+(\S+)", line)
+        failed_re = re.search(r"Failed to build\s+(\S.+)$", line)
         collecting_re = re.search(r"^\s*Collecting\s+(\S+)", line)
         if failed_re:
-            failed_to_build = failed_re.group(1)
+            failed_to_build = failed_re.group(1).strip().split()
         if collecting_re:
             last_collecting_dep = collecting_re.group(1)
     for line in pip_stderr.split("\n"):
@@ -201,7 +201,11 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     error_lines = dedup_ordered(error_lines)
 
     if failed_to_build is not None:
-        logger.error(f"pip failed to build package:\n    {failed_to_build}")
+        if len(failed_to_build) == 1:
+            logger.error(f"pip failed to build package:\n    {failed_to_build[0]}")
+        else:
+            failed_to_build_str = "\n    ".join(failed_to_build)
+            logger.error(f"pip failed to build packages:\n    {failed_to_build_str}")
     elif last_collecting_dep is not None:
         logger.error(
             "pip seemed to fail during the build of package:\n"
