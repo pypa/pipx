@@ -6,7 +6,7 @@ import subprocess
 import sys
 import textwrap
 from pathlib import Path
-from typing import Dict, List, NoReturn, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, NoReturn, Optional, Sequence, Tuple, Union
 
 import pipx.constants
 from pipx.animate import show_cursor
@@ -158,6 +158,17 @@ def subprocess_post_check(
             logger.info(f"{' '.join(completed_process.args)!r} failed")
 
 
+def dedup_with_order(input_list: List[Any]) -> List[Any]:
+    output_list = []
+    seen = set()
+    for x in input_list:
+        if x not in seen:
+            output_list.append(x)
+            seen.add(x)
+
+    return output_list
+
+
 def analyze_pip_output(pip_stdout, pip_stderr):
     failed_lines = []
     error_lines = []
@@ -196,6 +207,10 @@ def analyze_pip_output(pip_stdout, pip_stderr):
         if exception_error2_re:
             exception_error2_lines.append(line.strip())
 
+    failed_lines = dedup_with_order(failed_lines)
+    exception_error_lines = dedup_with_order(exception_error_lines)
+    exception_error2_lines = dedup_with_order(exception_error2_lines)
+
     if failed_lines:
         print("Notable pip errors:", file=sys.stderr)
         for failed_line in failed_lines:
@@ -212,10 +227,11 @@ def analyze_pip_output(pip_stdout, pip_stderr):
         print("Possibly relevant errors from pip install:", file=sys.stderr)
         for exception_error2_line in exception_error2_lines:
             print(f"    {exception_error2_line}", file=sys.stderr)
-    elif error2_lines:
-        print("Possibly relevant errors from pip install:", file=sys.stderr)
-        for error2_line in error2_lines:
-            print(f"    {error2_line}", file=sys.stderr)
+    # A lot of garbage here
+    # elif error2_lines:
+    #     print("Possibly relevant errors from pip install:", file=sys.stderr)
+    #     for error2_line in error2_lines:
+    #         print(f"    {error2_line}", file=sys.stderr)
 
     # TODO: remove this for final code
     # print("\nDEBUG:", file=sys.stderr)
