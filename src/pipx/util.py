@@ -172,9 +172,9 @@ def dedup_ordered(input_list: List[Any]) -> List[Any]:
 def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     failed_to_build: Optional[List[str]] = None
     last_collecting_dep: Optional[str] = None
-    error_lines = []
     exception_error_lines = []
     exception_error2_lines = []
+    error_lines = []
 
     # failed_re could also search for every instance of
     #   "Building wheel for (\S+)\s+.+finished with status 'error'"
@@ -191,13 +191,13 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         exception_error2_re = re.search(r"(Exception|Error)", line)
         error_re = re.search(r"error:.+[^:]$", line, re.I)
 
-        if error_re:
-            if not re.search(r"Command errored out", line):
-                error_lines.append(line.strip())
         if exception_error_re:
             exception_error_lines.append(line.strip())
         if exception_error2_re:
             exception_error2_lines.append(line.strip())
+        if error_re:
+            if not re.search(r"Command errored out", line):
+                error_lines.append(line.strip())
 
     exception_error_lines = dedup_ordered(exception_error_lines)
     exception_error2_lines = dedup_ordered(exception_error2_lines)
@@ -215,17 +215,16 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
             f"    {last_collecting_dep}"
         )
 
-    if exception_error_lines:
+    if exception_error_lines or exception_error2_lines or error_lines:
         print("Possibly relevant errors from pip install:", file=sys.stderr)
+    if exception_error_lines:
         for exception_error_line in exception_error_lines:
             print(f"    {exception_error_line}", file=sys.stderr)
     elif exception_error2_lines:
-        print("Possibly relevant errors from pip install:", file=sys.stderr)
         for exception_error2_line in exception_error2_lines:
             print(f"    {exception_error2_line}", file=sys.stderr)
     elif error_lines:
         # A lot of garbage here
-        print("Possibly relevant errors from pip install:", file=sys.stderr)
         for error2_line in error_lines:
             print(f"    {error2_line}", file=sys.stderr)
 
