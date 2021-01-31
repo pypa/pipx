@@ -169,49 +169,48 @@ def dedup_with_order(input_list: List[Any]) -> List[Any]:
     return output_list
 
 
-def analyze_pip_output(pip_stdout, pip_stderr):
-    failed_lines = []
-    error2_lines = []
+def analyze_pip_output(pip_stdout: str, pip_stderr: str):
+    failed_to_build: Optional[str] = None
+    last_collecting_dep: Optional[str] = None
+    error_lines = []
     exception_error_lines = []
     exception_error2_lines = []
-    last_collecting_dep = None
 
     # analyze pip output for relevant info
     for line in pip_stdout.split("\n"):
         failed_re = re.search(r"Failed to build\s+(\S+)", line)
         collecting_re = re.search(r"^\s*Collecting\s+(\S+)", line)
         if failed_re:
-            failed_lines.append(line.strip())
+            failed_to_build = failed_re.group(1)
         if collecting_re:
             last_collecting_dep = collecting_re.group(1)
     for line in pip_stderr.split("\n"):
         exception_error_re = re.search(r"(Exception|Error):", line)
         exception_error2_re = re.search(r"(Exception|Error)", line)
-        error2_re = re.search(r"error:.+[^:]$", line, re.I)
+        error_re = re.search(r"error:.+[^:]$", line, re.I)
 
         error_re = re.search(r"^\s*(error.+)$", line, re.I)
         capital_error_re = re.search(r"Error", line)
         exception_re = re.search(r"Exception", line)
-        if error2_re:
+        if error_re:
             if not re.search(r"Command errored out", line):
-                error2_lines.append(line.strip())
+                error_lines.append(line.strip())
         if exception_error_re:
             exception_error_lines.append(line.strip())
         if exception_error2_re:
             exception_error2_lines.append(line.strip())
 
-    failed_lines = dedup_with_order(failed_lines)
     exception_error_lines = dedup_with_order(exception_error_lines)
     exception_error2_lines = dedup_with_order(exception_error2_lines)
-    error2_lines = dedup_with_order(error2_lines)
+    error_lines = dedup_with_order(error_lines)
 
-    if failed_lines:
-        print("Notable pip errors:", file=sys.stderr)
-        for failed_line in failed_lines:
-            print(f"    {failed_line}", file=sys.stderr)
+    if failed_to_build is not None:
+        logger.error(f"pip failed to build package:\n    {failed_to_build}")
     elif last_collecting_dep is not None:
-        print("pip seemed to fail during the build of package:", file=sys.stderr)
-        print(f"    {last_collecting_dep}", file=sys.stderr)
+        logger.error(
+            f"pip seemed to fail during the build of package:\n"
+            "    {last_collecting_dep}"
+        )
 
     if exception_error_lines:
         print("Possibly relevant errors from pip install:", file=sys.stderr)
@@ -221,10 +220,10 @@ def analyze_pip_output(pip_stdout, pip_stderr):
         print("Possibly relevant errors from pip install:", file=sys.stderr)
         for exception_error2_line in exception_error2_lines:
             print(f"    {exception_error2_line}", file=sys.stderr)
-    elif error2_lines:
+    elif error_lines:
         # A lot of garbage here
         print("Possibly relevant errors from pip install:", file=sys.stderr)
-        for error2_line in error2_lines:
+        for error2_line in error_lines:
             print(f"    {error2_line}", file=sys.stderr)
 
 
