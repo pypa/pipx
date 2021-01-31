@@ -170,11 +170,15 @@ def analyze_pip_output(pip_stdout, pip_stderr):
             failed_lines.append(line)
         if error_re:
             error_lines.append(error_re.group(1))
-            continue
         # TODO: search also for other "failed" or "error"
         # if "failed" in line.lower():
         #     lines_out.append(line)
         #     continue
+    for line in pip_stderr.split("\n"):
+        error_re = re.search(r"^\s*(error.+)$", line, re.I)
+        if error_re:
+            error_lines.append(error_re.group(1))
+
     if failed_lines or error_lines:
         print("Notable pip errors:", file=sys.stderr)
     if failed_lines:
