@@ -161,6 +161,8 @@ def subprocess_post_check(
 def analyze_pip_output(pip_stdout, pip_stderr):
     failed_lines = []
     error_lines = []
+    capital_error_lines = []
+    exception_lines = []
 
     # analyze pip output for relevant info
     for line in pip_stdout.split("\n"):
@@ -176,17 +178,48 @@ def analyze_pip_output(pip_stdout, pip_stderr):
         #     continue
     for line in pip_stderr.split("\n"):
         error_re = re.search(r"^\s*(error.+)$", line, re.I)
+        capital_error_re = re.search(r"Error", line)
+        exception_re = re.search(r"Exception", line)
         if error_re:
             error_lines.append(error_re.group(1))
+        if capital_error_re:
+            capital_error_lines.append(capital_error_re.group(1))
+        if exception_re:
+            exception_lines.append(exception_re.group(1))
 
-    if failed_lines or error_lines:
-        print("Notable pip errors:", file=sys.stderr)
+    last_collecting_dep = None
+    if not failed_lines:
+        # Last "Collected <dep>" line shows which dependency was being
+        #   installed during fatal pip error
+        for line in pip_stdout.split("\n"):
+            collecting_re = re.search(r"Collecting\s+(\S+)", line)
+            if collecting_re:
+                last_collecting_dep = collecting_re.group(1)
+
     if failed_lines:
+        print("Notable pip errors:", file=sys.stderr)
         for failed_line in failed_lines:
             print(f"    {failed_line}", file=sys.stderr)
-    elif not failed_lines and error_lines:
-        for error_line in error_lines:
-            print(f"    {error_line}", file=sys.stderr)
+    elif last_collecting_dep is not None:
+        print("pip seemed to fail during the build of package:", file=sys.stderr)
+        print(f"    {last_collecting_dep}", file=sys.stderr)
+
+    # TODO: remove this for final code
+    print("\nDEBUG:", file=sys.stderr)
+    print("failed_lines:", file=sys.stderr)
+    for failed_line in failed_lines:
+        print(f"    {failed_line}", file=sys.stderr)
+    print("error_lines:", file=sys.stderr)
+    for error_line in error_lines:
+        print(f"    {error_line}", file=sys.stderr)
+    print("Error_lines:", file=sys.stderr)
+    for capital_error_line in capital_error_lines:
+        print(f"    {capital_error_line}", file=sys.stderr)
+    print("exception_lines:", file=sys.stderr)
+    for exception_line in exception_lines:
+        print(f"    {exception_line}", file=sys.stderr)
+    print("last_collecting_dep:", file=sys.stderr)
+    print(f"    {last_collecting_dep}", file=sys.stderr)
 
 
 def subprocess_post_check_handle_pip_error(
