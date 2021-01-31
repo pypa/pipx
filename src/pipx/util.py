@@ -190,7 +190,7 @@ def analyze_pip_output(pip_stdout, pip_stderr):
     for line in pip_stderr.split("\n"):
         exception_error_re = re.search(r"(Exception|Error):", line)
         exception_error2_re = re.search(r"(Exception|Error)", line)
-        error2_re = re.search(r"error:", line, re.I)
+        error2_re = re.search(r"error:.+[^:]$", line, re.I)
         error_re = re.search(r"^\s*(error.+)$", line, re.I)
         capital_error_re = re.search(r"Error", line)
         exception_re = re.search(r"Exception", line)
