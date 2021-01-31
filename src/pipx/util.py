@@ -169,7 +169,7 @@ def analyze_pip_output(pip_stdout, pip_stderr):
         failed_re = re.search(r"Failed to build\s+(\S+)", line)
         error_re = re.search(r"^\s*(error.+)$", line, re.I)
         if failed_re:
-            failed_lines.append(line.lstrip())
+            failed_lines.append(line.strip())
         if error_re:
             error_lines.append(error_re.group(1))
     for line in pip_stderr.split("\n"):
@@ -177,11 +177,11 @@ def analyze_pip_output(pip_stdout, pip_stderr):
         capital_error_re = re.search(r"Error", line)
         exception_re = re.search(r"Exception", line)
         if error_re:
-            error_lines.append(line.lstrip())
+            error_lines.append(line.strip())
         if capital_error_re:
-            capital_error_lines.append(line.lstrip())
+            capital_error_lines.append(line.strip())
         if exception_re:
-            exception_lines.append(line.lstrip())
+            exception_lines.append(line.strip())
 
     last_collecting_dep = None
     if not failed_lines:
@@ -202,19 +202,19 @@ def analyze_pip_output(pip_stdout, pip_stderr):
 
     # TODO: remove this for final code
     print("\nDEBUG:", file=sys.stderr)
-    print("failed_lines:", file=sys.stderr)
+    print("\nfailed_lines:", file=sys.stderr)
     for failed_line in failed_lines:
         print(f"    {failed_line}", file=sys.stderr)
-    print("error_lines:", file=sys.stderr)
+    print("\nerror_lines:", file=sys.stderr)
     for error_line in error_lines:
         print(f"    {error_line}", file=sys.stderr)
-    print("Error_lines:", file=sys.stderr)
+    print("\nError_lines:", file=sys.stderr)
     for capital_error_line in capital_error_lines:
         print(f"    {capital_error_line}", file=sys.stderr)
-    print("exception_lines:", file=sys.stderr)
+    print("\nexception_lines:", file=sys.stderr)
     for exception_line in exception_lines:
         print(f"    {exception_line}", file=sys.stderr)
-    print("last_collecting_dep:", file=sys.stderr)
+    print("\nlast_collecting_dep:", file=sys.stderr)
     print(f"    {last_collecting_dep}", file=sys.stderr)
 
 
