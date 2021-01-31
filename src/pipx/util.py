@@ -164,15 +164,16 @@ def analyze_pip_output(pip_stdout, pip_stderr):
     capital_error_lines = []
     exception_lines = []
     exception_error_lines = []
+    last_collecting_dep = None
 
     # analyze pip output for relevant info
     for line in pip_stdout.split("\n"):
         failed_re = re.search(r"Failed to build\s+(\S+)", line)
-        error_re = re.search(r"^\s*(error.+)$", line, re.I)
+        collecting_re = re.search(r"^\s*Collecting\s+(\S+)", line)
         if failed_re:
             failed_lines.append(line.strip())
-        if error_re:
-            error_lines.append(error_re.group(1))
+        if collecting_re:
+            last_collecting_dep = collecting_re.group(1)
     for line in pip_stderr.split("\n"):
         error_re = re.search(r"^\s*(error.+)$", line, re.I)
         capital_error_re = re.search(r"Error", line)
@@ -187,15 +188,6 @@ def analyze_pip_output(pip_stdout, pip_stderr):
         if exception_error_re:
             exception_error_lines.append(line.strip())
 
-    last_collecting_dep = None
-    if not failed_lines:
-        # Last "Collected <dep>" line shows which dependency was being
-        #   installed during fatal pip error
-        for line in pip_stdout.split("\n"):
-            collecting_re = re.search(r"Collecting\s+(\S+)", line)
-            if collecting_re:
-                last_collecting_dep = collecting_re.group(1)
-
     if failed_lines:
         print("Notable pip errors:", file=sys.stderr)
         for failed_line in failed_lines:
@@ -203,7 +195,6 @@ def analyze_pip_output(pip_stdout, pip_stderr):
     elif last_collecting_dep is not None:
         print("pip seemed to fail during the build of package:", file=sys.stderr)
         print(f"    {last_collecting_dep}", file=sys.stderr)
-
     if exception_error_lines:
         print("Possibly relevant errors from pip install:", file=sys.stderr)
         for exception_error_line in exception_error_lines:
