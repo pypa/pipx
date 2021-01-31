@@ -169,7 +169,7 @@ def analyze_pip_output(pip_stdout, pip_stderr):
         failed_re = re.search(r"Failed to build\s+(\S+)", line)
         error_re = re.search(r"^\s*(error.+)$", line, re.I)
         if failed_re:
-            failed_lines.append(line)
+            failed_lines.append(line.lstrip())
         if error_re:
             error_lines.append(error_re.group(1))
     for line in pip_stderr.split("\n"):
@@ -177,11 +177,11 @@ def analyze_pip_output(pip_stdout, pip_stderr):
         capital_error_re = re.search(r"Error", line)
         exception_re = re.search(r"Exception", line)
         if error_re:
-            error_lines.append(error_re.group(1))
+            error_lines.append(line.lstrip())
         if capital_error_re:
-            capital_error_lines.append(line)
+            capital_error_lines.append(line.lstrip())
         if exception_re:
-            exception_lines.append(line)
+            exception_lines.append(line.lstrip())
 
     last_collecting_dep = None
     if not failed_lines:
