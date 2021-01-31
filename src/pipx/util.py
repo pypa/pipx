@@ -189,9 +189,6 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         exception_error2_re = re.search(r"(Exception|Error)", line)
         error_re = re.search(r"error:.+[^:]$", line, re.I)
 
-        error_re = re.search(r"^\s*(error.+)$", line, re.I)
-        capital_error_re = re.search(r"Error", line)
-        exception_re = re.search(r"Exception", line)
         if error_re:
             if not re.search(r"Command errored out", line):
                 error_lines.append(line.strip())
@@ -208,8 +205,8 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         logger.error(f"pip failed to build package:\n    {failed_to_build}")
     elif last_collecting_dep is not None:
         logger.error(
-            f"pip seemed to fail during the build of package:\n"
-            "    {last_collecting_dep}"
+            "pip seemed to fail during the build of package:\n"
+            f"    {last_collecting_dep}"
         )
 
     if exception_error_lines:
@@ -247,7 +244,7 @@ def subprocess_post_check_handle_pip_error(
 
         logger.error(
             "Fatal error from pip prevented installation. Full pip output in file:\n"
-            f"{pip_error_file}"
+            f"    {pip_error_file}"
         )
 
         analyze_pip_output(completed_process.stdout, completed_process.stderr)
