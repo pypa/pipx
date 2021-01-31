@@ -197,11 +197,10 @@ def subprocess_post_check_handle_pip_error(
             if completed_process.stderr is not None:
                 print(completed_process.stderr, file=pip_error_fh, end="")
 
-        print(
-            "Fatal error from pip prevented installation. Full pip output in file:",
-            file=sys.stderr,
+        logger.error(
+            "Fatal error from pip prevented installation. Full pip output in file:\n"
+            f"{pip_error_file}"
         )
-        print(f"{pip_error_file}", file=sys.stderr)
 
         analyze_pip_output(completed_process.stdout, completed_process.stderr)
 
@@ -209,7 +208,7 @@ def subprocess_post_check_handle_pip_error(
 
 
 def exec_app(
-    cmd: Sequence[Union[str, Path]], env: Optional[Dict[str, str]] = None,
+    cmd: Sequence[Union[str, Path]], env: Optional[Dict[str, str]] = None
 ) -> NoReturn:
     """Run command, do not return
 
