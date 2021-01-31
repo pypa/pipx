@@ -172,10 +172,6 @@ def analyze_pip_output(pip_stdout, pip_stderr):
             failed_lines.append(line)
         if error_re:
             error_lines.append(error_re.group(1))
-        # TODO: search also for other "failed" or "error"
-        # if "failed" in line.lower():
-        #     lines_out.append(line)
-        #     continue
     for line in pip_stderr.split("\n"):
         error_re = re.search(r"^\s*(error.+)$", line, re.I)
         capital_error_re = re.search(r"Error", line)
@@ -183,9 +179,9 @@ def analyze_pip_output(pip_stdout, pip_stderr):
         if error_re:
             error_lines.append(error_re.group(1))
         if capital_error_re:
-            capital_error_lines.append(capital_error_re.group(1))
+            capital_error_lines.append(line)
         if exception_re:
-            exception_lines.append(exception_re.group(1))
+            exception_lines.append(line)
 
     last_collecting_dep = None
     if not failed_lines:
