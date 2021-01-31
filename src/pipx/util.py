@@ -163,6 +163,7 @@ def analyze_pip_output(pip_stdout, pip_stderr):
     error_lines = []
     capital_error_lines = []
     exception_lines = []
+    exception_error_lines = []
 
     # analyze pip output for relevant info
     for line in pip_stdout.split("\n"):
@@ -176,12 +177,15 @@ def analyze_pip_output(pip_stdout, pip_stderr):
         error_re = re.search(r"^\s*(error.+)$", line, re.I)
         capital_error_re = re.search(r"Error", line)
         exception_re = re.search(r"Exception", line)
+        exception_error_re = re.search(r"(Exception|Error):", line)
         if error_re:
             error_lines.append(line.strip())
         if capital_error_re:
             capital_error_lines.append(line.strip())
         if exception_re:
             exception_lines.append(line.strip())
+        if exception_error_re:
+            exception_error_lines.append(line.strip())
 
     last_collecting_dep = None
     if not failed_lines:
@@ -200,6 +204,11 @@ def analyze_pip_output(pip_stdout, pip_stderr):
         print("pip seemed to fail during the build of package:", file=sys.stderr)
         print(f"    {last_collecting_dep}", file=sys.stderr)
 
+    if exception_error_lines:
+        print("Possibly relevant errors from pip install:", file=sys.stderr)
+        for exception_error_line in exception_error_lines:
+            print(f"    {exception_error_line}", file=sys.stderr)
+
     # TODO: remove this for final code
     print("\nDEBUG:", file=sys.stderr)
     print("\nfailed_lines:", file=sys.stderr)
@@ -214,6 +223,9 @@ def analyze_pip_output(pip_stdout, pip_stderr):
     print("\nexception_lines:", file=sys.stderr)
     for exception_line in exception_lines:
         print(f"    {exception_line}", file=sys.stderr)
+    print("\nexception_error_lines:", file=sys.stderr)
+    for exception_error_line in exception_error_lines:
+        print(f"    {exception_error_line}", file=sys.stderr)
     print("\nlast_collecting_dep:", file=sys.stderr)
     print(f"    {last_collecting_dep}", file=sys.stderr)
 
