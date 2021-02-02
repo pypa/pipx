@@ -6,7 +6,7 @@ from pipx import constants
 from pipx.colors import bold, red
 from pipx.commands.common import expose_apps_globally
 from pipx.constants import EXIT_CODE_OK, ExitCode
-from pipx.emojies import sleep
+from pipx.emojis import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv, VenvContainer

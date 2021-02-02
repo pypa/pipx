@@ -73,10 +73,10 @@ def test_delay_suppresses_output(capsys, monkeypatch):
     ],
 )
 def test_line_lengths_emoji(capsys, monkeypatch, env_columns, expected_frame_message):
-    # emoji_support and stderr_is_tty is set only at import animate.py
+    # EMOJI_SUPPORT and stderr_is_tty is set only at import animate.py
     # since we are already after that, we must override both here
     monkeypatch.setattr(pipx.animate, "stderr_is_tty", True)
-    monkeypatch.setattr(pipx.animate, "emoji_support", True)
+    monkeypatch.setattr(pipx.animate, "EMOJI_SUPPORT", True)
 
     monkeypatch.setenv("COLUMNS", str(env_columns))
 
@@ -100,10 +100,10 @@ def test_line_lengths_emoji(capsys, monkeypatch, env_columns, expected_frame_mes
 def test_line_lengths_no_emoji(
     capsys, monkeypatch, env_columns, expected_frame_message
 ):
-    # emoji_support and stderr_is_tty is set only at import animate.py
+    # EMOJI_SUPPORT and stderr_is_tty is set only at import animate.py
     # since we are already after that, we must override both here
     monkeypatch.setattr(pipx.animate, "stderr_is_tty", True)
-    monkeypatch.setattr(pipx.animate, "emoji_support", False)
+    monkeypatch.setattr(pipx.animate, "EMOJI_SUPPORT", False)
 
     monkeypatch.setenv("COLUMNS", str(env_columns))
 

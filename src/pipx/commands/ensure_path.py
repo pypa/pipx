@@ -8,7 +8,7 @@ import userpath  # type: ignore
 
 from pipx import constants
 from pipx.constants import EXIT_CODE_OK, ExitCode
-from pipx.emojies import hazard, stars
+from pipx.emojis import hazard, stars
 from pipx.util import pipx_wrap
 
 logger = logging.getLogger(__name__)
