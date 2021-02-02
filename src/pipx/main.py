@@ -22,7 +22,7 @@ from pipx import commands, constants
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
 from pipx.constants import ExitCode
-from pipx.emojies import hazard
+from pipx.emojis import hazard
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import PipxError, mkdir, pipx_wrap
 from pipx.venv import VenvContainer

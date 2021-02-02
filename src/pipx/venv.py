@@ -9,7 +9,7 @@ from packaging.utils import canonicalize_name
 
 from pipx.animate import animate
 from pipx.constants import PIPX_SHARED_PTH, ExitCode
-from pipx.emojies import hazard
+from pipx.emojis import hazard
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.package_specifier import (
     fix_package_name,

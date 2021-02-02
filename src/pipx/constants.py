@@ -1,5 +1,4 @@
 import os
-import sys
 from pathlib import Path
 from textwrap import dedent
 from typing import NewType
@@ -39,24 +38,6 @@ def is_windows() -> bool:
 
 
 WINDOWS: bool = is_windows()
-
-
-def strtobool(val: str) -> bool:
-    val = val.lower()
-    if val in ("y", "yes", "t", "true", "on", "1"):
-        return True
-    elif val in ("n", "no", "f", "false", "off", "0"):
-        return False
-    else:
-        return False
-
-
-def use_emjois() -> bool:
-    platform_emoji_support = not is_windows() and sys.getdefaultencoding() == "utf-8"
-    return strtobool(str(os.getenv("USE_EMOJI", platform_emoji_support)))
-
-
-emoji_support = use_emjois()
 
 completion_instructions = dedent(
     """
