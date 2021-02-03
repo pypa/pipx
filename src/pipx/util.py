@@ -198,22 +198,21 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
             if not re.search(r"Command errored out", line):
                 error_lines.append(line.strip())
 
-    exception_error_lines = dedup_ordered(exception_error_lines)
-    exception_error2_lines = dedup_ordered(exception_error2_lines)
-    error_lines = dedup_ordered(error_lines)
-
     if failed_to_build is not None:
-        if len(failed_to_build) == 1:
-            logger.error(f"pip failed to build package:\n    {failed_to_build[0]}")
-        else:
-            failed_to_build_str = "\n    ".join(failed_to_build)
-            logger.error(f"pip failed to build packages:\n    {failed_to_build_str}")
+        failed_to_build_str = "\n    ".join(failed_to_build)
+        plural_str = "s" if len(failed_to_build) > 1 else ""
+        logger.error(
+            f"pip failed to build package{plural_str}:\n    {failed_to_build_str}"
+        )
     elif last_collecting_dep is not None:
         logger.error(
             "pip seemed to fail during the build of package:\n"
             f"    {last_collecting_dep}"
         )
 
+    exception_error_lines = dedup_ordered(exception_error_lines)
+    exception_error2_lines = dedup_ordered(exception_error2_lines)
+    error_lines = dedup_ordered(error_lines)
     # In descending order of usefulness
     if exception_error_lines or exception_error2_lines or error_lines:
         print("Possibly relevant errors from pip install:", file=sys.stderr)
