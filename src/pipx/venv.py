@@ -213,6 +213,8 @@ class Venv:
             f"installing {full_package_description(package, package_or_url)}",
             self.do_animation,
         ):
+            # do not use -q with `pip install` so subprocess_post_check_pip_errors
+            #   has more information to analyze in case of failure.
             cmd = (
                 [str(self.python_path), "-m", "pip", "install"]
                 + pip_args

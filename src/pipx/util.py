@@ -176,6 +176,8 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     exception_error2_lines = []
     error_lines = []
 
+    # for any useful information in stdout, `pip install` must be run without
+    #   the -q option
     for line in pip_stdout.split("\n"):
         # failed_re could also search for every instance of
         #   "Building wheel for (\S+)\s+.+finished with status 'error'"
