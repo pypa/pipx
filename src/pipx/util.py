@@ -176,10 +176,9 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     exception_error2_lines = []
     error_lines = []
 
-    # failed_re could also search for every instance of
-    #   "Building wheel for (\S+)\s+.+finished with status 'error'"
-
     for line in pip_stdout.split("\n"):
+        # failed_re could also search for every instance of
+        #   "Building wheel for (\S+)\s+.+finished with status 'error'"
         failed_re = re.search(r"Failed to build\s+(\S.+)$", line)
         collecting_re = re.search(r"^\s*Collecting\s+(\S+)", line)
         if failed_re:
@@ -215,6 +214,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
             f"    {last_collecting_dep}"
         )
 
+    # In descending order of usefulness
     if exception_error_lines or exception_error2_lines or error_lines:
         print("Possibly relevant errors from pip install:", file=sys.stderr)
     if exception_error_lines:
@@ -224,7 +224,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         for exception_error2_line in exception_error2_lines:
             print(f"    {exception_error2_line}", file=sys.stderr)
     elif error_lines:
-        # A lot of garbage here
+        # Can be a lot of garbage here
         for error2_line in error_lines:
             print(f"    {error2_line}", file=sys.stderr)
 
@@ -241,10 +241,12 @@ def subprocess_post_check_handle_pip_error(
             pipx.constants.pipx_log_file.stem + "_pip_errors.log"
         )
         with pip_error_file.open("w") as pip_error_fh:
-            print("STDOUT", file=pip_error_fh)
+            print("PIP STDOUT", file=pip_error_fh)
+            print("----------", file=pip_error_fh)
             if completed_process.stdout is not None:
                 print(completed_process.stdout, file=pip_error_fh, end="")
-            print("STDERR", file=pip_error_fh)
+            print("PIP STDERR", file=pip_error_fh)
+            print("----------", file=pip_error_fh)
             if completed_process.stderr is not None:
                 print(completed_process.stderr, file=pip_error_fh, end="")
 
