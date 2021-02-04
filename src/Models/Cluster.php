@@ -9,7 +9,8 @@ class Cluster implements Model
 {
     public string $name;
     public ?array $groups = [];
-    public ?string $dataDirectory = null;
+    public ?string $unixUsersHomeDirectory = null;
+    public ?string $databasesDataDirectory = null;
     public ?int $id = null;
     public ?string $createdAt = null;
     public ?string $updatedAt = null;
@@ -19,7 +20,8 @@ class Cluster implements Model
         $cluster = new self();
         $cluster->name = Arr::get($data, 'name');
         $cluster->groups = Arr::get($data, 'groups', []);
-        $cluster->dataDirectory = Arr::get($data, 'data_directory');
+        $cluster->unixUsersHomeDirectory = Arr::get($data, 'unix_users_home_directory');
+        $cluster->databasesDataDirectory = Arr::get($data, 'databases_data_directory');
         $cluster->id = Arr::get($data, 'id');
         $cluster->createdAt = Arr::get($data, 'created_at');
         $cluster->updatedAt = Arr::get($data, 'updated_at');
@@ -31,7 +33,8 @@ class Cluster implements Model
         return [
             'name' => $this->name,
             'groups' => $this->groups,
-            'data_directory' => $this->dataDirectory,
+            'unix_users_home_directory' => $this->unixUsersHomeDirectory,
+            'databases_data_directory' => $this->databasesDataDirectory,
             'id' => $this->id,
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt,

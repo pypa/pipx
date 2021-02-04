@@ -77,6 +77,7 @@ class VirtualHosts extends Endpoint
             'serverAliases',
             'unixUserId',
             'documentRoot',
+            'publicRoot',
             'forceSsl',
         ];
         $this->validateRequired($virtualHost, 'create', $requiredAttributes);
@@ -89,6 +90,7 @@ class VirtualHosts extends Endpoint
                 'server_aliases',
                 'unix_user_id',
                 'document_root',
+                'public_root',
                 'fpm_pool_id',
                 'force_ssl',
                 'custom_config',
@@ -119,6 +121,7 @@ class VirtualHosts extends Endpoint
             'serverAliases',
             'unixUserId',
             'documentRoot',
+            'publicRoot',
             'forceSsl',
             'id',
             'clusterId',
@@ -133,6 +136,7 @@ class VirtualHosts extends Endpoint
                 'server_aliases',
                 'unix_user_id',
                 'document_root',
+                'public_root',
                 'fpm_pool_id',
                 'force_ssl',
                 'custom_config',

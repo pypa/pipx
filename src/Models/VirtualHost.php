@@ -11,6 +11,7 @@ class VirtualHost implements Model
     public array $serverAliases = [];
     public int $unixUserId;
     public string $documentRoot;
+    public string $publicRoot;
     public ?int $fpmPoolId = null;
     public bool $forceSsl = true;
     public ?string $customConfig = null;
@@ -27,6 +28,7 @@ class VirtualHost implements Model
         $virtualHost->serverAliases = Arr::get($data, 'server_aliases', []);
         $virtualHost->unixUserId = Arr::get($data, 'unix_user_id');
         $virtualHost->documentRoot = Arr::get($data, 'document_root');
+        $virtualHost->publicRoot = Arr::get($data, 'public_root');
         $virtualHost->fpmPoolId = Arr::get($data, 'fpm_pool_id');
         $virtualHost->forceSsl = Arr::get($data, 'force_ssl');
         $virtualHost->customConfig = Arr::get($data, 'custom_config');
@@ -45,6 +47,7 @@ class VirtualHost implements Model
             'server_aliases' => $this->serverAliases,
             'unix_user_id' => $this->unixUserId,
             'document_root' => $this->documentRoot,
+            'public_root' => $this->publicRoot,
             'fpm_pool_id' => $this->fpmPoolId,
             'force_ssl' => $this->forceSsl,
             'custom_config' => $this->customConfig,

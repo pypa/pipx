@@ -10,6 +10,8 @@ class UnixUser implements Model
     public string $username;
     public string $password;
     public ?string $defaultPhpVersion = null;
+    public ?string $virtualHostsDirectory = null;
+    public ?string $mailDomainsDirectory = null;
     public int $clusterId;
     public ?int $id = null;
     public ?int $unixId = null;
@@ -22,6 +24,8 @@ class UnixUser implements Model
         $unixUser->username = Arr::get($data, 'username');
         $unixUser->password = Arr::get($data, 'password');
         $unixUser->defaultPhpVersion = Arr::get($data, 'default_php_version');
+        $unixUser->virtualHostsDirectory = Arr::get($data, 'virtual_hosts_directory');
+        $unixUser->mailDomainsDirectory = Arr::get($data, 'mail_domains_directory');
         $unixUser->unixId = Arr::get($data, 'unix_id');
         $unixUser->id = Arr::get($data, 'id');
         $unixUser->clusterId = Arr::get($data, 'cluster_id');
@@ -36,6 +40,8 @@ class UnixUser implements Model
             'username' => $this->username,
             'password' => $this->password,
             'default_php_version' => $this->defaultPhpVersion,
+            'virtual_hosts_directory' => $this->virtualHostsDirectory,
+            'mail_domains_directory' => $this->mailDomainsDirectory,
             'cluster_id' => $this->clusterId,
             'id' => $this->id,
             'unix_id' => $this->unixId,
