@@ -112,19 +112,21 @@ def win_cursor(visible: bool) -> None:
 
 
 def hide_cursor() -> None:
-    if WINDOWS:
-        win_cursor(visible=False)
-    else:
-        sys.stderr.write("\033[?25l")
-        sys.stderr.flush()
+    if stderr_is_tty:
+        if WINDOWS:
+            win_cursor(visible=False)
+        else:
+            sys.stderr.write("\033[?25l")
+            sys.stderr.flush()
 
 
 def show_cursor() -> None:
-    if WINDOWS:
-        win_cursor(visible=True)
-    else:
-        sys.stderr.write("\033[?25h")
-        sys.stderr.flush()
+    if stderr_is_tty:
+        if WINDOWS:
+            win_cursor(visible=True)
+        else:
+            sys.stderr.write("\033[?25h")
+            sys.stderr.flush()
 
 
 def clear_line() -> None:
