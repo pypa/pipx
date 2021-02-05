@@ -300,7 +300,8 @@ def verify_post_install(
     test_error_fh: io.StringIO,
     using_clear_path: bool,
     deps: bool = False,
-) -> Tuple[bool, Optional[bool]]:
+) -> Tuple[bool, Optional[bool], Optional[Path]]:
+    pip_error_file = None
     caplog_problem = False
     install_success = f"installed package {package_name}" in captured_outerr.out
     for record in caplog.records:
@@ -309,6 +310,13 @@ def verify_post_install(
                 caplog_problem = True
             print("verify_install: WARNING IN CAPLOG:", file=test_error_fh)
             print(record.message, file=test_error_fh)
+        if "Fatal error from pip prevented installation" in record.message:
+            pip_error_file_re = re.search(
+                r"pip output in file:\s+(\S.+)$", record.message
+            )
+            if pip_error_file_re:
+                pip_error_file = Path(pip_error_file_re.group(1))
+
     if install_success and PKG[package_name].get("apps", None) is not None:
         app_success = verify_installed_apps(
             captured_outerr, package_name, test_error_fh, deps=deps
@@ -326,7 +334,7 @@ def verify_post_install(
     else:
         pipx_pass = None
 
-    return pip_pass, pipx_pass
+    return pip_pass, pipx_pass, pip_error_file
 
 
 def print_error_report(
@@ -335,6 +343,7 @@ def print_error_report(
     test_error_fh: io.StringIO,
     package_spec: str,
     test_type: str,
+    pip_error_file: Optional[Path],
 ) -> None:
     with module_globals.errors_path.open("a") as errors_fh:
         print("\n\n", file=errors_fh)
@@ -350,6 +359,11 @@ def print_error_report(
         print("\nSTDERR:", file=errors_fh)
         print("-" * 76, file=errors_fh)
         print(command_captured.err, end="", file=errors_fh)
+        if pip_error_file is not None:
+            print("\nPIP ERROR LOG FILE:", file=errors_fh)
+            print("-" * 76, file=errors_fh)
+            with pip_error_file.open("r") as pip_error_fh:
+                print(pip_error_fh.read(), end="", file=errors_fh)
         print("\n\nTEST WARNINGS / ERRORS:", file=errors_fh)
         print("-" * 76, file=errors_fh)
         print(test_error_fh.getvalue(), end="", file=errors_fh)
@@ -381,7 +395,7 @@ def install_and_verify(
     elapsed_time = time.time() - start_time
     captured = capsys.readouterr()
 
-    pip_pass, pipx_pass = verify_post_install(
+    pip_pass, pipx_pass, pip_error_file = verify_post_install(
         pipx_exit_code,
         captured,
         caplog,
@@ -398,6 +412,7 @@ def install_and_verify(
             test_error_fh,
             package_data.package_spec,
             "clear PATH" if using_clear_path else "sys PATH",
+            pip_error_file,
         )
 
     return pip_pass, pipx_pass, elapsed_time
