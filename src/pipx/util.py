@@ -186,10 +186,12 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
 
     exception_error_lines = []
     exception_error2_lines = []
+    fatal_error_lines = []
     error_lines = []
     exception_error_re = re.compile(r"(Exception|Error):")
     exception_error2_re = re.compile(r"(Exception|Error)")
     error_re = re.compile(r"error:.+[^:]$", re.I)
+    fatal_error_re = re.compile(r"fatal error", re.I)
     for line in pip_stderr.split("\n"):
         if exception_error_re.search(line):
             exception_error_lines.append(line.strip())
@@ -198,6 +200,8 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         if error_re.search(line):
             if not re.search(r"Command errored out", line):
                 error_lines.append(line.strip())
+        if fatal_error_re.search(line):
+            fatal_error_lines.append(line.strip())
 
     if failed_to_build is not None:
         failed_to_build_str = "\n    ".join(failed_to_build)
@@ -214,6 +218,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     exception_error_lines = dedup_ordered(exception_error_lines)
     exception_error2_lines = dedup_ordered(exception_error2_lines)
     error_lines = dedup_ordered(error_lines)
+    fatal_error_lines = dedup_ordered(fatal_error_lines)
     # In descending order of usefulness
     if exception_error_lines or exception_error2_lines or error_lines:
         print("Possibly relevant errors from pip install:", file=sys.stderr)
@@ -230,6 +235,10 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         # Can be a lot of garbage here
         for error2_line in error_lines:
             print(f"    {error2_line}", file=sys.stderr)
+    if fatal_error_lines:
+        print("  fatal_error_lines:", file=sys.stderr)
+        for fatal_error_line in fatal_error_lines:
+            print(f"    {fatal_error_line}", file=sys.stderr)
 
 
 def subprocess_post_check_handle_pip_error(
