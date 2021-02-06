@@ -239,21 +239,24 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
 
     errors_saved = dedup_ordered2(errors_saved)
 
-    print("Possibly relevant errors from pip install:", file=sys.stderr)
-    if errors_saved and len(errors_saved) < 11:
-        print("  errors_saved:", file=sys.stderr)
-        for errors_saved_item in errors_saved:
-            print(
-                f"    {errors_saved_item[1]}: {errors_saved_item[1]}", file=sys.stderr
-            )
     if errors_saved:
-        print("  errors_saved filtered:", file=sys.stderr)
-        for errors_saved_item in errors_saved:
-            if errors_saved_item[1] != "error":
-                print(
-                    f"    {errors_saved_item[1]}: {errors_saved_item[1]}",
-                    file=sys.stderr,
-                )
+        print("Possibly relevant errors from pip install:", file=sys.stderr)
+    print("  errors_saved:", file=sys.stderr)
+    for errors_saved_item in errors_saved:
+        print(f"    {errors_saved_item[1]}: {errors_saved_item[0]}", file=sys.stderr)
+    print("  errors_saved no errors:", file=sys.stderr)
+    for errors_saved_item in errors_saved:
+        if errors_saved_item[1] != "error":
+            print(
+                f"    {errors_saved_item[1]}: {errors_saved_item[0]}", file=sys.stderr,
+            )
+
+    print("  errors_saved not ending in colon:", file=sys.stderr)
+    for errors_saved_item in errors_saved:
+        if not errors_saved_item[0].endswith(":"):
+            print(
+                f"    {errors_saved_item[1]}: {errors_saved_item[0]}", file=sys.stderr
+            )
 
 
 def subprocess_post_check_handle_pip_error(
