@@ -172,10 +172,6 @@ def dedup_ordered(input_list: List[Any]) -> List[Any]:
 def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     failed_to_build: Optional[List[str]] = None
     last_collecting_dep: Optional[str] = None
-    exception_error_lines = []
-    exception_error2_lines = []
-    error_lines = []
-
     # for any useful information in stdout, `pip install` must be run without
     #   the -q option
     for line in pip_stdout.split("\n"):
@@ -187,16 +183,19 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
             failed_to_build = failed_re.group(1).strip().split()
         if collecting_re:
             last_collecting_dep = collecting_re.group(1)
-    for line in pip_stderr.split("\n"):
-        exception_error_re = re.search(r"(Exception|Error):", line)
-        exception_error2_re = re.search(r"(Exception|Error)", line)
-        error_re = re.search(r"error:.+[^:]$", line, re.I)
 
-        if exception_error_re:
+    exception_error_lines = []
+    exception_error2_lines = []
+    error_lines = []
+    exception_error_re = re.compile(r"(Exception|Error):")
+    exception_error2_re = re.compile(r"(Exception|Error)")
+    error_re = re.compile(r"error:.+[^:]$", re.I)
+    for line in pip_stderr.split("\n"):
+        if exception_error_re.search(line):
             exception_error_lines.append(line.strip())
-        if exception_error2_re:
+        if exception_error2_re.search(line):
             exception_error2_lines.append(line.strip())
-        if error_re:
+        if error_re.search(line):
             if not re.search(r"Command errored out", line):
                 error_lines.append(line.strip())
 
@@ -219,12 +218,15 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     if exception_error_lines or exception_error2_lines or error_lines:
         print("Possibly relevant errors from pip install:", file=sys.stderr)
     if exception_error_lines:
+        print("  exception_error_lines:", file=sys.stderr)
         for exception_error_line in exception_error_lines:
             print(f"    {exception_error_line}", file=sys.stderr)
-    elif exception_error2_lines:
+    if exception_error2_lines:
+        print("  exception_error2_lines:", file=sys.stderr)
         for exception_error2_line in exception_error2_lines:
             print(f"    {exception_error2_line}", file=sys.stderr)
-    elif error_lines:
+    if error_lines:
+        print("  error_lines:", file=sys.stderr)
         # Can be a lot of garbage here
         for error2_line in error_lines:
             print(f"    {error2_line}", file=sys.stderr)
