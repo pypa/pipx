@@ -169,6 +169,17 @@ def dedup_ordered(input_list: List[Any]) -> List[Any]:
     return output_list
 
 
+def dedup_ordered2(input_list: List[Any]) -> List[Any]:
+    output_list = []
+    seen = set()
+    for x in input_list:
+        if x[0] not in seen:
+            output_list.append(x)
+            seen.add(x[0])
+
+    return output_list
+
+
 def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     failed_to_build: Optional[List[str]] = None
     last_collecting_dep: Optional[str] = None
@@ -184,28 +195,35 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         if collecting_re:
             last_collecting_dep = collecting_re.group(1)
 
-    exception_error_lines = []
-    exception_error2_lines = []
-    error_lines = []
-    fatal_error_lines = []
-    not_found_lines = []
     exception_error_re = re.compile(r"(Exception|Error):\s*\S+")
     exception_error2_re = re.compile(r"(Exception|Error)")
     error_re = re.compile(r"error:.+[^:]$", re.I)
     fatal_error_re = re.compile(r"fatal error", re.I)
     not_found_re = re.compile(r"not (?:be )?found", re.I)
+    no_such_re = re.compile(r"no such", re.I)
+    conflict_re = re.compile(r"conflict", re.I)
+    errors_saved = []
     for line in pip_stderr.split("\n"):
-        if exception_error_re.search(line):
-            exception_error_lines.append(line.strip())
-        if exception_error2_re.search(line):
-            exception_error2_lines.append(line.strip())
-        if error_re.search(line):
-            if not re.search(r"Command errored out", line):
-                error_lines.append(line.strip())
-        if fatal_error_re.search(line):
-            fatal_error_lines.append(line.strip())
+        # In order of most useful to least useful
         if not_found_re.search(line):
-            not_found_lines.append(line.strip())
+            errors_saved.append((line.strip(), "not_found"))
+        elif exception_error_re.search(line):
+            errors_saved.append((line.strip(), "exception_error"))
+        elif fatal_error_re.search(line):
+            errors_saved.append((line.strip(), "fatal_error"))
+        elif exception_error2_re.search(line):
+            errors_saved.append((line.strip(), "exception_error2"))
+        elif no_such_re.search(line):
+            errors_saved.append((line.strip(), "no_such"))
+        elif conflict_re.search(line):
+            errors_saved.append((line.strip(), "no_such"))
+        elif error_re.search(line):
+            if (
+                not re.search(r"Command errored out", line)
+                and not re.search("failed building wheel for", line, re.I)
+                and not re.search("could not build wheels? for", line, re.I)
+            ):
+                errors_saved.append((line.strip(), "error"))
 
     if failed_to_build is not None:
         failed_to_build_str = "\n    ".join(failed_to_build)
@@ -219,37 +237,23 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
             f"    {last_collecting_dep}"
         )
 
-    not_found_lines = dedup_ordered(not_found_lines)
-    exception_error_lines = dedup_ordered(exception_error_lines)
-    exception_error2_lines = dedup_ordered(exception_error2_lines)
-    fatal_error_lines = dedup_ordered(fatal_error_lines)
-    error_lines = dedup_ordered(error_lines)
+    errors_saved = dedup_ordered2(errors_saved)
 
-    # In descending order of usefulness
     print("Possibly relevant errors from pip install:", file=sys.stderr)
-    if not_found_lines:
-        print("  not_found_lines:", file=sys.stderr)
-        for not_found_line in not_found_lines:
-            print(f"    {not_found_line}", file=sys.stderr)
-    if exception_error_lines:
-        print("  exception_error_lines:", file=sys.stderr)
-        for exception_error_line in exception_error_lines:
-            print(f"    {exception_error_line}", file=sys.stderr)
-    if exception_error2_lines:
-        print("  exception_error2_lines:", file=sys.stderr)
-        for exception_error2_line in exception_error2_lines:
-            print(f"    {exception_error2_line}", file=sys.stderr)
-    if fatal_error_lines:
-        print("  fatal_error_lines:", file=sys.stderr)
-        for fatal_error_line in fatal_error_lines:
-            if fatal_error_line not in not_found_lines:
-                print(f"    {fatal_error_line}", file=sys.stderr)
-    if error_lines:
-        print("  error_lines:", file=sys.stderr)
-        # Can be a lot of garbage here
-        for error_line in error_lines:
-            if error_line not in fatal_error_lines:
-                print(f"    {error_line}", file=sys.stderr)
+    if errors_saved and len(errors_saved) < 11:
+        print("  errors_saved:", file=sys.stderr)
+        for errors_saved_item in errors_saved:
+            print(
+                f"    {errors_saved_item[1]}: {errors_saved_item[1]}", file=sys.stderr
+            )
+    if errors_saved:
+        print("  errors_saved filtered:", file=sys.stderr)
+        for errors_saved_item in errors_saved:
+            if errors_saved_item[1] != "error":
+                print(
+                    f"    {errors_saved_item[1]}: {errors_saved_item[1]}",
+                    file=sys.stderr,
+                )
 
 
 def subprocess_post_check_handle_pip_error(
