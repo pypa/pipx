@@ -189,11 +189,11 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     error_lines = []
     fatal_error_lines = []
     not_found_lines = []
-    exception_error_re = re.compile(r"(Exception|Error):")
+    exception_error_re = re.compile(r"(Exception|Error):\s*\S+")
     exception_error2_re = re.compile(r"(Exception|Error)")
     error_re = re.compile(r"error:.+[^:]$", re.I)
     fatal_error_re = re.compile(r"fatal error", re.I)
-    not_found_re = re.compile(r"not found", re.I)
+    not_found_re = re.compile(r"not (?:be )?found", re.I)
     for line in pip_stderr.split("\n"):
         if exception_error_re.search(line):
             exception_error_lines.append(line.strip())
@@ -219,13 +219,18 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
             f"    {last_collecting_dep}"
         )
 
+    not_found_lines = dedup_ordered(not_found_lines)
     exception_error_lines = dedup_ordered(exception_error_lines)
     exception_error2_lines = dedup_ordered(exception_error2_lines)
-    error_lines = dedup_ordered(error_lines)
     fatal_error_lines = dedup_ordered(fatal_error_lines)
+    error_lines = dedup_ordered(error_lines)
+
     # In descending order of usefulness
-    if exception_error_lines or exception_error2_lines or error_lines:
-        print("Possibly relevant errors from pip install:", file=sys.stderr)
+    print("Possibly relevant errors from pip install:", file=sys.stderr)
+    if not_found_lines:
+        print("  not_found_lines:", file=sys.stderr)
+        for not_found_line in not_found_lines:
+            print(f"    {not_found_line}", file=sys.stderr)
     if exception_error_lines:
         print("  exception_error_lines:", file=sys.stderr)
         for exception_error_line in exception_error_lines:
@@ -234,19 +239,17 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         print("  exception_error2_lines:", file=sys.stderr)
         for exception_error2_line in exception_error2_lines:
             print(f"    {exception_error2_line}", file=sys.stderr)
-    if error_lines:
-        print("  error_lines:", file=sys.stderr)
-        # Can be a lot of garbage here
-        for error2_line in error_lines:
-            print(f"    {error2_line}", file=sys.stderr)
     if fatal_error_lines:
         print("  fatal_error_lines:", file=sys.stderr)
         for fatal_error_line in fatal_error_lines:
-            print(f"    {fatal_error_line}", file=sys.stderr)
-    if not_found_lines:
-        print("  not_found_lines:", file=sys.stderr)
-        for not_found_line in not_found_lines:
-            print(f"    {not_found_line}", file=sys.stderr)
+            if fatal_error_line not in not_found_lines:
+                print(f"    {fatal_error_line}", file=sys.stderr)
+    if error_lines:
+        print("  error_lines:", file=sys.stderr)
+        # Can be a lot of garbage here
+        for error_line in error_lines:
+            if error_line not in fatal_error_lines:
+                print(f"    {error_line}", file=sys.stderr)
 
 
 def subprocess_post_check_handle_pip_error(
