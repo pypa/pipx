@@ -186,12 +186,14 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
 
     exception_error_lines = []
     exception_error2_lines = []
-    fatal_error_lines = []
     error_lines = []
+    fatal_error_lines = []
+    not_found_lines = []
     exception_error_re = re.compile(r"(Exception|Error):")
     exception_error2_re = re.compile(r"(Exception|Error)")
     error_re = re.compile(r"error:.+[^:]$", re.I)
     fatal_error_re = re.compile(r"fatal error", re.I)
+    not_found_re = re.compile(r"not found", re.I)
     for line in pip_stderr.split("\n"):
         if exception_error_re.search(line):
             exception_error_lines.append(line.strip())
@@ -202,6 +204,8 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
                 error_lines.append(line.strip())
         if fatal_error_re.search(line):
             fatal_error_lines.append(line.strip())
+        if not_found_re.search(line):
+            not_found_lines.append(line.strip())
 
     if failed_to_build is not None:
         failed_to_build_str = "\n    ".join(failed_to_build)
@@ -239,6 +243,10 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         print("  fatal_error_lines:", file=sys.stderr)
         for fatal_error_line in fatal_error_lines:
             print(f"    {fatal_error_line}", file=sys.stderr)
+    if not_found_lines:
+        print("  not_found_lines:", file=sys.stderr)
+        for not_found_line in not_found_lines:
+            print(f"    {not_found_line}", file=sys.stderr)
 
 
 def subprocess_post_check_handle_pip_error(
