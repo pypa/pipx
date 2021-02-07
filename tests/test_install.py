@@ -235,12 +235,12 @@ def test_install_pip_failure(pipx_temp_env, capsys):
     assert run_pipx_cli(["install", "weblate==4.3.1", "--verbose"])
     captured = capsys.readouterr()
 
-    assert "Fatal error from pip" in captured.stderr
+    assert "Fatal error from pip" in captured.err
 
     pip_log_file_match = re.search(
-        r"Full pip output in file:\s+(\S.+)$", captured.stderr, re.MULTILINE
+        r"Full pip output in file:\s+(\S.+)$", captured.err, re.MULTILINE
     )
     assert pip_log_file_match
     assert Path(pip_log_file_match.group(1)).exists()
 
-    assert "pip failed to build package" in captured.stderr
+    assert "pip failed to build package" in captured.err
