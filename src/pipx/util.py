@@ -256,7 +256,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     if errors_saved:
         print("Possibly relevant errors from pip install:", file=sys.stderr)
 
-    print(f"  len(errors_saved) = {len(errors_saved)}")
+    print(f"  len(errors_saved) = {len(errors_saved)}", file=sys.stderr)
     print("  errors_saved up to max_relevant_errors:", file=sys.stderr)
     # In order of most useful to least useful
     print_categories = [
