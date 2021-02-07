@@ -253,33 +253,42 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
 
     errors_saved = dedup_ordered2(errors_saved)
 
+    # DEBUG: DELETEME
+    print(f"\nlen(errors_saved) = {len(errors_saved)}", file=sys.stderr)
+
     if errors_saved:
-        print("Possibly relevant errors from pip install:", file=sys.stderr)
+        print("\nPossibly relevant errors from pip install:", file=sys.stderr)
 
-    print(f"  len(errors_saved) = {len(errors_saved)}", file=sys.stderr)
-    print("  errors_saved up to max_relevant_errors:", file=sys.stderr)
-    # In order of most useful to least useful
-    print_categories = [
-        "not_found",
-        "exception_error",
-        "fatal_error",
-        # "exception_error2",
-        "no_such",
-        "conflict",
-        "error",
-    ]
-    while print_categories and (
-        len([x for x in errors_saved if x[1] in print_categories]) > max_relevant_errors
-    ):
-        print_categories.pop(-1)
-    if not print_categories:
-        print_categories = ["not_found"]
-    for errors_saved_item in [x for x in errors_saved if x[1] in print_categories]:
-        print(f"    {errors_saved_item[1]}: {errors_saved_item[0]}", file=sys.stderr)
+        # In order of most useful to least useful
+        print_categories = [
+            "not_found",
+            "exception_error",
+            "fatal_error",
+            # "exception_error2",
+            "no_such",
+            "conflict",
+            "error",
+        ]
+        while print_categories and (
+            len([x for x in errors_saved if x[1] in print_categories])
+            > max_relevant_errors
+        ):
+            print_categories.pop(-1)
+        if not print_categories:
+            print_categories = ["not_found"]
 
-    print("  All errors_saved:", file=sys.stderr)
-    for errors_saved_item in errors_saved:
-        print(f"    {errors_saved_item[1]}: {errors_saved_item[0]}", file=sys.stderr)
+        for errors_saved_item in [x for x in errors_saved if x[1] in print_categories]:
+            print(
+                f"    {errors_saved_item[1]}: {errors_saved_item[0]}", file=sys.stderr
+            )
+
+    # DEBUG: DELETEME
+    if errors_saved:
+        print("\nPossibly relevant errors from pip install (all):", file=sys.stderr)
+        for errors_saved_item in errors_saved:
+            print(
+                f"    {errors_saved_item[1]}: {errors_saved_item[0]}", file=sys.stderr
+            )
 
 
 def subprocess_post_check_handle_pip_error(
