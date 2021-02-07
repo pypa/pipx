@@ -162,17 +162,6 @@ def dedup_ordered(input_list: List[Any]) -> List[Any]:
     output_list = []
     seen = set()
     for x in input_list:
-        if x not in seen:
-            output_list.append(x)
-            seen.add(x)
-
-    return output_list
-
-
-def dedup_ordered2(input_list: List[Any]) -> List[Any]:
-    output_list = []
-    seen = set()
-    for x in input_list:
         if x[0] not in seen:
             output_list.append(x)
             seen.add(x[0])
@@ -181,6 +170,25 @@ def dedup_ordered2(input_list: List[Any]) -> List[Any]:
 
 
 def analyze_pip_output(pip_stdout: str, pip_stderr: str):
+    """Extract useful errors from pip output of failed install
+
+    Example pip stderr line for each regex:
+        not_found
+            Package cairo was not found in the pkg-config search path.
+            src/common.h:34:10: fatal error: 'stdio.h' file not found
+            The headers or library files could not be found for zlib,
+        exception_error
+            Exception: Unable to find OpenSSL >= 1.0 headers. (Looked here: ...
+        fatal_error
+            LINK : fatal error LNK1104: cannot open file 'kernel32.lib'
+        no_such
+            unable to execute 'gcc': No such file or directory
+        conflict
+            ERROR: ResolutionImpossible: for help visit https://pip.pypa.io/en/...
+        error
+
+
+    """
     max_relevant_errors = 10
 
     failed_build_stdout = []
@@ -197,12 +205,14 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
 
     failed_stderr_re = re.compile(r"Failed to build\s+(?!one or more packages)(\S+)")
 
-    exception_error_re = re.compile(r"(Exception|Error):\s*\S+")
-    error_re = re.compile(r"error:.+[^:]$", re.I)
-    fatal_error_re = re.compile(r"fatal error", re.I)
     not_found_re = re.compile(r"not (?:be )?found", re.I)
     no_such_re = re.compile(r"no such", re.I)
+    # TODO: lower in hierarchy, not as useful as it could be?
+    exception_error_re = re.compile(r"(Exception|Error):\s*\S+")
+    # TODO: it seems no_such covers most of these, delete?
+    fatal_error_re = re.compile(r"fatal error", re.I)
     conflict_re = re.compile(r"conflict", re.I)
+    error_re = re.compile(r"error:.+[^:]$", re.I)
 
     errors_saved = []
     failed_build_stderr = set()
@@ -214,14 +224,14 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         # In order of most useful to least useful
         if not_found_re.search(line):
             errors_saved.append((line.strip(), "not_found"))
+        elif no_such_re.search(line):
+            errors_saved.append((line.strip(), "no_such"))
         elif exception_error_re.search(line):
             errors_saved.append((line.strip(), "exception_error"))
         elif fatal_error_re.search(line):
             errors_saved.append((line.strip(), "fatal_error"))
-        elif no_such_re.search(line):
-            errors_saved.append((line.strip(), "no_such"))
         elif conflict_re.search(line):
-            errors_saved.append((line.strip(), "conflict"))
+            errors_saved.append((line.strip(), "conflict_"))
         elif error_re.search(line):
             if (
                 not re.search(r"Command errored out", line)
@@ -229,7 +239,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
                 and not re.search("could not build wheels? for", line, re.I)
                 and not re.search("failed to build one or more wheels", line, re.I)
             ):
-                errors_saved.append((line.strip(), "error"))
+                errors_saved.append((line.strip(), "error_"))
 
     if failed_build_stdout:
         failed_to_build_str = "\n    ".join(failed_build_stdout)
@@ -246,7 +256,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     elif last_collecting_dep is not None:
         logger.error(f"pip seemed to fail to build package:\n    {last_collecting_dep}")
 
-    errors_saved = dedup_ordered2(errors_saved)
+    errors_saved = dedup_ordered(errors_saved)
 
     if errors_saved:
         print("Possibly relevant errors from pip install:", file=sys.stderr)
@@ -254,11 +264,11 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         # In order of most useful to least useful
         print_categories = [
             "not_found",
+            "no_such",
             "exception_error",
             "fatal_error",
-            "no_such",
-            "conflict",
-            "error",
+            "conflict_",
+            "error_",
         ]
         while print_categories and (
             len([x for x in errors_saved if x[1] in print_categories])
