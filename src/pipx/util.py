@@ -6,7 +6,17 @@ import subprocess
 import sys
 import textwrap
 from pathlib import Path
-from typing import Any, Dict, List, NoReturn, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    NamedTuple,
+    NoReturn,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import pipx.constants
 from pipx.animate import show_cursor
@@ -170,24 +180,25 @@ def dedup_ordered(input_list: List[Any]) -> List[Any]:
 
 
 def analyze_pip_output(pip_stdout: str, pip_stderr: str):
-    """Extract useful errors from pip output of failed install
+    r"""Extract useful errors from pip output of failed install
 
-    Example pip stderr line for each regex:
+    Example pip stderr line for each "relevant" regex type:
         not_found
             Package cairo was not found in the pkg-config search path.
             src/common.h:34:10: fatal error: 'stdio.h' file not found
             The headers or library files could not be found for zlib,
+        no_such
+            unable to execute 'gcc': No such file or directory
+            build\test1.c(2): fatal error C1083: Cannot open include file: 'cpuid.h': No such file ...
         exception_error
             Exception: Unable to find OpenSSL >= 1.0 headers. (Looked here: ...
         fatal_error
             LINK : fatal error LNK1104: cannot open file 'kernel32.lib'
-        no_such
-            unable to execute 'gcc': No such file or directory
-        conflict
+        conflict_
             ERROR: ResolutionImpossible: for help visit https://pip.pypa.io/en/...
-        error
-
-
+        error_
+            error: can't copy 'lib\ansible\module_utils\ansible_release.py': doesn't exist ...
+            build\test1.c(4): error C2146: syntax error: missing ';' before identifier 'x'
     """
     max_relevant_errors = 10
 
@@ -205,41 +216,45 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
 
     failed_stderr_re = re.compile(r"Failed to build\s+(?!one or more packages)(\S+)")
 
-    not_found_re = re.compile(r"not (?:be )?found", re.I)
-    no_such_re = re.compile(r"no such", re.I)
-    # TODO: lower in hierarchy, not as useful as it could be?
-    exception_error_re = re.compile(r"(Exception|Error):\s*\S+")
-    # TODO: it seems no_such covers most of these, delete?
-    fatal_error_re = re.compile(r"fatal error", re.I)
-    conflict_re = re.compile(r"conflict", re.I)
-    error_re = re.compile(r"error:.+[^:]$", re.I)
+    class RelevantSearch(NamedTuple):
+        re: re.Pattern
+        type_: str
 
-    errors_saved = []
+    # In order of most useful to least useful
+    relevant_searches = [
+        RelevantSearch(re.compile(r"not (?:be )?found", re.I), "not_found"),
+        RelevantSearch(re.compile(r"no such", re.I), "no_such"),
+        # TODO: lower in hierarchy, not as useful as it could be?
+        RelevantSearch(re.compile(r"(Exception|Error):\s*\S+"), "exception_error"),
+        # TODO: it seems no_such covers most of these, delete?
+        RelevantSearch(re.compile(r"fatal error", re.I), "fatal_error"),
+        RelevantSearch(re.compile(r"conflict", re.I), "conflict_"),
+        # error_re = re.compile(r"error:.+[^:]$", re.I)
+        RelevantSearch(
+            re.compile(
+                r"error:"
+                r"(?!.+Command errored out)"
+                r"(?!.+failed building wheel for)"
+                r"(?!.+could not build wheels? for)"
+                r"(?!.+failed to build one or more wheels)"
+                r".+[^:]$",
+                re.I,
+            ),
+            "error_",
+        ),
+    ]
+
+    relevants_saved = []
     failed_build_stderr = set()
     for line in pip_stderr.split("\n"):
         failed_build_search = failed_stderr_re.search(line)
         if failed_build_search:
             failed_build_stderr.add(failed_build_search.group(1))
 
-        # In order of most useful to least useful
-        if not_found_re.search(line):
-            errors_saved.append((line.strip(), "not_found"))
-        elif no_such_re.search(line):
-            errors_saved.append((line.strip(), "no_such"))
-        elif exception_error_re.search(line):
-            errors_saved.append((line.strip(), "exception_error"))
-        elif fatal_error_re.search(line):
-            errors_saved.append((line.strip(), "fatal_error"))
-        elif conflict_re.search(line):
-            errors_saved.append((line.strip(), "conflict_"))
-        elif error_re.search(line):
-            if (
-                not re.search(r"Command errored out", line)
-                and not re.search("failed building wheel for", line, re.I)
-                and not re.search("could not build wheels? for", line, re.I)
-                and not re.search("failed to build one or more wheels", line, re.I)
-            ):
-                errors_saved.append((line.strip(), "error_"))
+        for relevant_search in relevant_searches:
+            if relevant_search.re.search(line):
+                relevants_saved.append((line.strip(), relevant_search.type_))
+                break
 
     if failed_build_stdout:
         failed_to_build_str = "\n    ".join(failed_build_stdout)
@@ -256,36 +271,29 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     elif last_collecting_dep is not None:
         logger.error(f"pip seemed to fail to build package:\n    {last_collecting_dep}")
 
-    errors_saved = dedup_ordered(errors_saved)
+    relevants_saved = dedup_ordered(relevants_saved)
 
-    if errors_saved:
-        print("Possibly relevant errors from pip install:", file=sys.stderr)
+    if relevants_saved:
+        print("Some possibly relevant errors from pip install:", file=sys.stderr)
 
-        # In order of most useful to least useful
-        print_categories = [
-            "not_found",
-            "no_such",
-            "exception_error",
-            "fatal_error",
-            "conflict_",
-            "error_",
-        ]
-        while print_categories and (
-            len([x for x in errors_saved if x[1] in print_categories])
-            > max_relevant_errors
+        print_categories = [x.type_ for x in relevant_searches]
+        relevants_saved_filtered = relevants_saved.copy()
+        while (len(print_categories) > 1) and (
+            len(relevants_saved_filtered) > max_relevant_errors
         ):
             print_categories.pop(-1)
-        if not print_categories:
-            print_categories = ["not_found"]
+            relevants_saved_filtered = [
+                x for x in relevants_saved if x[1] in print_categories
+            ]
 
-        for errors_saved_item in [x for x in errors_saved if x[1] in print_categories]:
-            print(f"    {errors_saved_item[0]}", file=sys.stderr)
+        for relevant_saved in relevants_saved_filtered:
+            print(f"    {relevant_saved[0]}", file=sys.stderr)
 
     # DEBUG: DELETEME
-    print(f"\nlen(errors_saved) = {len(errors_saved)}", file=sys.stderr)
-    if errors_saved:
+    print(f"\nlen(relevants_saved) = {len(relevants_saved)}", file=sys.stderr)
+    if relevants_saved:
         print("\nPossibly relevant errors from pip install (all):", file=sys.stderr)
-        for errors_saved_item in errors_saved:
+        for errors_saved_item in relevants_saved:
             print(
                 f"    {errors_saved_item[1]}: {errors_saved_item[0]}", file=sys.stderr
             )
