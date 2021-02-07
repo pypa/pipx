@@ -200,7 +200,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     failed_build_one_re = re.compile(r"Failed to build\s+(\S+)")
 
     exception_error_re = re.compile(r"(Exception|Error):\s*\S+")
-    exception_error2_re = re.compile(r"(Exception|Error)")
+    # exception_error2_re = re.compile(r"(Exception|Error)")
     error_re = re.compile(r"error:.+[^:]$", re.I)
     fatal_error_re = re.compile(r"fatal error", re.I)
     not_found_re = re.compile(r"not (?:be )?found", re.I)
@@ -221,8 +221,8 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
             errors_saved.append((line.strip(), "exception_error"))
         elif fatal_error_re.search(line):
             errors_saved.append((line.strip(), "fatal_error"))
-        elif exception_error2_re.search(line):
-            errors_saved.append((line.strip(), "exception_error2"))
+        # elif exception_error2_re.search(line):
+        #     errors_saved.append((line.strip(), "exception_error2"))
         elif no_such_re.search(line):
             errors_saved.append((line.strip(), "no_such"))
         elif conflict_re.search(line):
@@ -265,7 +265,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         "not_found",
         "exception_error",
         "fatal_error",
-        "exception_error2",
+        # "exception_error2",
         "no_such",
         "conflict",
         "error",
