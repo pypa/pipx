@@ -253,9 +253,6 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
 
     errors_saved = dedup_ordered2(errors_saved)
 
-    # DEBUG: DELETEME
-    print(f"\nlen(errors_saved) = {len(errors_saved)}", file=sys.stderr)
-
     if errors_saved:
         print("\nPossibly relevant errors from pip install:", file=sys.stderr)
 
@@ -278,11 +275,10 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
             print_categories = ["not_found"]
 
         for errors_saved_item in [x for x in errors_saved if x[1] in print_categories]:
-            print(
-                f"    {errors_saved_item[1]}: {errors_saved_item[0]}", file=sys.stderr
-            )
+            print(f"    {errors_saved_item[0]}", file=sys.stderr)
 
     # DEBUG: DELETEME
+    print(f"\nlen(errors_saved) = {len(errors_saved)}", file=sys.stderr)
     if errors_saved:
         print("\nPossibly relevant errors from pip install (all):", file=sys.stderr)
         for errors_saved_item in errors_saved:
