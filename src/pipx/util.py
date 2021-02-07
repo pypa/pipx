@@ -249,10 +249,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
             f"pip seemed to fail to build package{plural_str}:\n    {failed_to_build_str}"
         )
     elif last_collecting_dep is not None:
-        logger.error(
-            "pip seemed to fail during the build of package:\n"
-            f"    {last_collecting_dep}"
-        )
+        logger.error(f"pip seemed to fail to build package:\n    {last_collecting_dep}")
 
     errors_saved = dedup_ordered2(errors_saved)
 
