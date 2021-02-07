@@ -5,7 +5,7 @@ from pathlib import Path
 import nox  # type: ignore
 
 PYTHON_ALL_VERSIONS = ["3.6", "3.7", "3.8", "3.9"]
-PYTHON_DEFAULT_VERSION = "3.8"
+PYTHON_DEFAULT_VERSION = "3.9"
 DOC_DEPENDENCIES = [".", "jinja2", "mkdocs", "mkdocs-material"]
 LINT_DEPENDENCIES = [
     "black==19.10b0",

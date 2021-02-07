@@ -14,7 +14,7 @@ on:
 
 # If changing default-python be sure to change job "tests" matrix: include: also
 env:
-  default-python: 3.8
+  default-python: 3.9
 
 jobs:
   lint:
@@ -57,9 +57,9 @@ jobs:
         python-version: [3.6, 3.7, 3.8, 3.9]
         include:
           - os: windows-latest
-            python-version: 3.8
+            python-version: 3.9
           - os: macos-latest
-            python-version: 3.8
+            python-version: 3.9
 
     steps:
     - uses: actions/checkout@v2
