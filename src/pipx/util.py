@@ -188,8 +188,6 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     # for any useful information in stdout, `pip install` must be run without
     #   the -q option
     for line in pip_stdout.split("\n"):
-        # failed_re could also search for every instance of
-        #   "Building wheel for (\S+)\s+.+finished with status 'error'"
         failed_re = re.search(r"Failed to build\s+(\S.+)$", line)
         collecting_re = re.search(r"^\s*Collecting\s+(\S+)", line)
         if failed_re:
@@ -197,10 +195,9 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         if collecting_re:
             last_collecting_dep = collecting_re.group(1)
 
-    failed_build_one_re = re.compile(r"Failed to build\s+(?!one or more packages)(\S+)")
+    failed_stderr_re = re.compile(r"Failed to build\s+(?!one or more packages)(\S+)")
 
     exception_error_re = re.compile(r"(Exception|Error):\s*\S+")
-    # exception_error2_re = re.compile(r"(Exception|Error)")
     error_re = re.compile(r"error:.+[^:]$", re.I)
     fatal_error_re = re.compile(r"fatal error", re.I)
     not_found_re = re.compile(r"not (?:be )?found", re.I)
@@ -210,7 +207,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     errors_saved = []
     failed_build_stderr = set()
     for line in pip_stderr.split("\n"):
-        failed_build_search = failed_build_one_re.search(line)
+        failed_build_search = failed_stderr_re.search(line)
         if failed_build_search:
             failed_build_stderr.add(failed_build_search.group(1))
 
@@ -221,8 +218,6 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
             errors_saved.append((line.strip(), "exception_error"))
         elif fatal_error_re.search(line):
             errors_saved.append((line.strip(), "fatal_error"))
-        # elif exception_error2_re.search(line):
-        #     errors_saved.append((line.strip(), "exception_error2"))
         elif no_such_re.search(line):
             errors_saved.append((line.strip(), "no_such"))
         elif conflict_re.search(line):
@@ -261,7 +256,6 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
             "not_found",
             "exception_error",
             "fatal_error",
-            # "exception_error2",
             "no_such",
             "conflict",
             "error",
