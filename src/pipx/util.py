@@ -270,7 +270,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         "conflict",
         "error",
     ]
-    while (
+    while print_categories and (
         len([x for x in errors_saved if x[1] in print_categories]) > max_relevant_errors
     ):
         print_categories.pop(-1)
