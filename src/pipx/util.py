@@ -13,6 +13,7 @@ from typing import (
     NamedTuple,
     NoReturn,
     Optional,
+    Pattern,
     Sequence,
     Tuple,
     Union,
@@ -218,7 +219,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
             last_collecting_dep = collecting_match.group(1)
 
     class RelevantSearch(NamedTuple):
-        re: re.Pattern
+        re: Pattern
         type_: str
 
     # In order of most useful to least useful
