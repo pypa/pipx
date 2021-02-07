@@ -197,7 +197,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         if collecting_re:
             last_collecting_dep = collecting_re.group(1)
 
-    failed_build_one_re = re.compile(r"Failed to build\s+(\S+)")
+    failed_build_one_re = re.compile(r"Failed to build\s+(?!one or more packages)(\S+)")
 
     exception_error_re = re.compile(r"(Exception|Error):\s*\S+")
     # exception_error2_re = re.compile(r"(Exception|Error)")
