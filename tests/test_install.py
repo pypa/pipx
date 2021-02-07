@@ -243,4 +243,4 @@ def test_install_pip_failure(pipx_temp_env, capsys):
     assert pip_log_file_match
     assert Path(pip_log_file_match.group(1)).exists()
 
-    assert "pip failed to build package" in captured.err
+    assert re.search(r"pip (failed|seemed to fail) to build package", captured.err)
