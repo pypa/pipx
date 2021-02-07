@@ -216,7 +216,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         elif no_such_re.search(line):
             errors_saved.append((line.strip(), "no_such"))
         elif conflict_re.search(line):
-            errors_saved.append((line.strip(), "no_such"))
+            errors_saved.append((line.strip(), "conflict"))
         elif error_re.search(line):
             if (
                 not re.search(r"Command errored out", line)
