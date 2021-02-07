@@ -254,7 +254,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     errors_saved = dedup_ordered2(errors_saved)
 
     if errors_saved:
-        print("\nPossibly relevant errors from pip install:", file=sys.stderr)
+        print("Possibly relevant errors from pip install:", file=sys.stderr)
 
         # In order of most useful to least useful
         print_categories = [
