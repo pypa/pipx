@@ -3,7 +3,7 @@ dev
 - Fix cursor show/hide to work with older versions of Windows. (#610)
 - Support text colors on Windows. (#612)
 - Better platform unicode detection to avoid errors and allow showing emojis when possible. (#614)
-- Sped up `pipx list`.
+- Sped up `pipx list` (#624).
 
 0.16.0.0
 
