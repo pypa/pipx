@@ -182,7 +182,10 @@ def dedup_ordered(input_list: List[Any]) -> List[Any]:
 def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     r"""Extract useful errors from pip output of failed install
 
-    Example pip stderr line for each "relevant" regex type:
+    Print the module that failed to build
+    Print some of the most relevant errors from the pip output
+
+    Example pip stderr line for each "relevant" type:
         not_found
             Package cairo was not found in the pkg-config search path.
             src/common.h:34:10: fatal error: 'stdio.h' file not found
@@ -207,14 +210,12 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     # for any useful information in stdout, `pip install` must be run without
     #   the -q option
     for line in pip_stdout.split("\n"):
-        failed_re = re.search(r"Failed to build\s+(\S.+)$", line)
-        collecting_re = re.search(r"^\s*Collecting\s+(\S+)", line)
-        if failed_re:
-            failed_build_stdout = failed_re.group(1).strip().split()
-        if collecting_re:
-            last_collecting_dep = collecting_re.group(1)
-
-    failed_stderr_re = re.compile(r"Failed to build\s+(?!one or more packages)(\S+)")
+        failed_match = re.search(r"Failed to build\s+(\S.+)$", line)
+        collecting_match = re.search(r"^\s*Collecting\s+(\S+)", line)
+        if failed_match:
+            failed_build_stdout = failed_match.group(1).strip().split()
+        if collecting_match:
+            last_collecting_dep = collecting_match.group(1)
 
     class RelevantSearch(NamedTuple):
         re: re.Pattern
@@ -224,12 +225,9 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     relevant_searches = [
         RelevantSearch(re.compile(r"not (?:be )?found", re.I), "not_found"),
         RelevantSearch(re.compile(r"no such", re.I), "no_such"),
-        # TODO: lower in hierarchy, not as useful as it could be?
         RelevantSearch(re.compile(r"(Exception|Error):\s*\S+"), "exception_error"),
-        # TODO: it seems no_such covers most of these, delete?
         RelevantSearch(re.compile(r"fatal error", re.I), "fatal_error"),
         RelevantSearch(re.compile(r"conflict", re.I), "conflict_"),
-        # error_re = re.compile(r"error:.+[^:]$", re.I)
         RelevantSearch(
             re.compile(
                 r"error:"
@@ -244,12 +242,14 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         ),
     ]
 
+    failed_stderr_patt = re.compile(r"Failed to build\s+(?!one or more packages)(\S+)")
+
     relevants_saved = []
     failed_build_stderr = set()
     for line in pip_stderr.split("\n"):
-        failed_build_search = failed_stderr_re.search(line)
-        if failed_build_search:
-            failed_build_stderr.add(failed_build_search.group(1))
+        failed_build_match = failed_stderr_patt.search(line)
+        if failed_build_match:
+            failed_build_stderr.add(failed_build_match.group(1))
 
         for relevant_search in relevant_searches:
             if relevant_search.re.search(line):
@@ -259,22 +259,25 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     if failed_build_stdout:
         failed_to_build_str = "\n    ".join(failed_build_stdout)
         plural_str = "s" if len(failed_build_stdout) > 1 else ""
+        print("", file=sys.stderr)
         logger.error(
             f"pip failed to build package{plural_str}:\n    {failed_to_build_str}"
         )
     elif failed_build_stderr:
         failed_to_build_str = "\n    ".join(failed_build_stderr)
         plural_str = "s" if len(failed_build_stderr) > 1 else ""
+        print("", file=sys.stderr)
         logger.error(
             f"pip seemed to fail to build package{plural_str}:\n    {failed_to_build_str}"
         )
     elif last_collecting_dep is not None:
+        print("", file=sys.stderr)
         logger.error(f"pip seemed to fail to build package:\n    {last_collecting_dep}")
 
     relevants_saved = dedup_ordered(relevants_saved)
 
     if relevants_saved:
-        print("Some possibly relevant errors from pip install:", file=sys.stderr)
+        print("\nSome possibly relevant errors from pip install:", file=sys.stderr)
 
         print_categories = [x.type_ for x in relevant_searches]
         relevants_saved_filtered = relevants_saved.copy()
@@ -288,15 +291,6 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
 
         for relevant_saved in relevants_saved_filtered:
             print(f"    {relevant_saved[0]}", file=sys.stderr)
-
-    # DEBUG: DELETEME
-    print(f"\nlen(relevants_saved) = {len(relevants_saved)}", file=sys.stderr)
-    if relevants_saved:
-        print("\nPossibly relevant errors from pip install (all):", file=sys.stderr)
-        for errors_saved_item in relevants_saved:
-            print(
-                f"    {errors_saved_item[1]}: {errors_saved_item[0]}", file=sys.stderr
-            )
 
 
 def subprocess_post_check_handle_pip_error(
