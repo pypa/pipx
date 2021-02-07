@@ -181,7 +181,9 @@ def dedup_ordered2(input_list: List[Any]) -> List[Any]:
 
 
 def analyze_pip_output(pip_stdout: str, pip_stderr: str):
-    failed_to_build: Optional[List[str]] = None
+    max_relevant_errors = 10
+
+    failed_build_stdout = []
     last_collecting_dep: Optional[str] = None
     # for any useful information in stdout, `pip install` must be run without
     #   the -q option
@@ -191,9 +193,11 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         failed_re = re.search(r"Failed to build\s+(\S.+)$", line)
         collecting_re = re.search(r"^\s*Collecting\s+(\S+)", line)
         if failed_re:
-            failed_to_build = failed_re.group(1).strip().split()
+            failed_build_stdout = failed_re.group(1).strip().split()
         if collecting_re:
             last_collecting_dep = collecting_re.group(1)
+
+    failed_build_one_re = re.compile(r"Failed to build\s+(\S+)")
 
     exception_error_re = re.compile(r"(Exception|Error):\s*\S+")
     exception_error2_re = re.compile(r"(Exception|Error)")
@@ -202,8 +206,14 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     not_found_re = re.compile(r"not (?:be )?found", re.I)
     no_such_re = re.compile(r"no such", re.I)
     conflict_re = re.compile(r"conflict", re.I)
+
     errors_saved = []
+    failed_build_stderr = set()
     for line in pip_stderr.split("\n"):
+        failed_build_search = failed_build_one_re.search(line)
+        if failed_build_search:
+            failed_build_stderr.add(failed_build_search.group(1))
+
         # In order of most useful to least useful
         if not_found_re.search(line):
             errors_saved.append((line.strip(), "not_found"))
@@ -222,14 +232,21 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
                 not re.search(r"Command errored out", line)
                 and not re.search("failed building wheel for", line, re.I)
                 and not re.search("could not build wheels? for", line, re.I)
+                and not re.search("failed to build one or more wheels", line, re.I)
             ):
                 errors_saved.append((line.strip(), "error"))
 
-    if failed_to_build is not None:
-        failed_to_build_str = "\n    ".join(failed_to_build)
-        plural_str = "s" if len(failed_to_build) > 1 else ""
+    if failed_build_stdout:
+        failed_to_build_str = "\n    ".join(failed_build_stdout)
+        plural_str = "s" if len(failed_build_stdout) > 1 else ""
         logger.error(
             f"pip failed to build package{plural_str}:\n    {failed_to_build_str}"
+        )
+    elif failed_build_stderr:
+        failed_to_build_str = "\n    ".join(failed_build_stderr)
+        plural_str = "s" if len(failed_build_stderr) > 1 else ""
+        logger.error(
+            f"pip seemed to fail to build package{plural_str}:\n    {failed_to_build_str}"
         )
     elif last_collecting_dep is not None:
         logger.error(
@@ -241,22 +258,30 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
 
     if errors_saved:
         print("Possibly relevant errors from pip install:", file=sys.stderr)
-    print("  errors_saved:", file=sys.stderr)
+
+    print("  errors_saved up to max_relevant_errors:", file=sys.stderr)
+    # In order of most useful to least useful
+    print_categories = [
+        "not_found",
+        "exception_error",
+        "fatal_error",
+        "exception_error2",
+        "no_such",
+        "conflict",
+        "error",
+    ]
+    while (
+        len([x for x in errors_saved if x[1] in print_categories]) > max_relevant_errors
+    ):
+        print_categories.pop(-1)
+    if not print_categories:
+        print_categories = ["not_found"]
+    for errors_saved_item in [x for x in errors_saved if x[1] in print_categories]:
+        print(f"    {errors_saved_item[1]}: {errors_saved_item[0]}", file=sys.stderr)
+
+    print("  All errors_saved:", file=sys.stderr)
     for errors_saved_item in errors_saved:
         print(f"    {errors_saved_item[1]}: {errors_saved_item[0]}", file=sys.stderr)
-    print("  errors_saved no errors:", file=sys.stderr)
-    for errors_saved_item in errors_saved:
-        if errors_saved_item[1] != "error":
-            print(
-                f"    {errors_saved_item[1]}: {errors_saved_item[0]}", file=sys.stderr,
-            )
-
-    print("  errors_saved not ending in colon:", file=sys.stderr)
-    for errors_saved_item in errors_saved:
-        if not errors_saved_item[0].endswith(":"):
-            print(
-                f"    {errors_saved_item[1]}: {errors_saved_item[0]}", file=sys.stderr
-            )
 
 
 def subprocess_post_check_handle_pip_error(
