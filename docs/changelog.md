@@ -3,6 +3,7 @@ dev
 - Fix cursor show/hide to work with older versions of Windows. (#610)
 - Support text colors on Windows. (#612)
 - Better platform unicode detection to avoid errors and allow showing emojis when possible. (#614)
+- pip errors no longer stream to the shell when pip fails during a pipx install.  pip's output is now saved to a log file.  In the shell, pipx will tell you the location of the log file and attempt to summarize why pip failed.
 
 0.16.0.0
 
