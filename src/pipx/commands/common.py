@@ -213,7 +213,6 @@ def get_package_summary(
     return (
         _get_list_output(
             python_version,
-            python_path,
             package_metadata.package_version,
             package,
             new_install,
@@ -252,7 +251,6 @@ def _get_exposed_app_paths_for_package(
 
 def _get_list_output(
     python_version: str,
-    python_path: Path,
     package_version: str,
     package: str,
     new_install: bool,
@@ -267,9 +265,6 @@ def _get_list_output(
         f"  {'installed' if new_install else ''} package {bold(shlex.quote(package))}"
         f" {bold(package_version)}{suffix}, {python_version}"
     )
-
-    if not python_path.exists():
-        output.append(f"    associated python path {str(python_path)} does not exist!")
 
     if new_install and exposed_binary_names:
         output.append("  These apps are now globally available")
