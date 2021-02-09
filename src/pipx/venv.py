@@ -345,8 +345,11 @@ class Venv:
     def _find_entry_point(self, app: str) -> Optional[EntryPoint]:
         if not self.python_path.exists():
             return None
-        site_packages = get_site_packages(self.python_path)
-        for dist in Distribution.discover(path=[str(site_packages)]):
+        dists = Distribution.discover(
+            name=self.main_package_name,
+            path=[str(get_site_packages(self.python_path))],
+        )
+        for dist in dists:
             for ep in dist.entry_points:
                 if ep.group == "pipx.run" and ep.name == app:
                     return ep
