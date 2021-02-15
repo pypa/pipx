@@ -63,19 +63,17 @@ def get_pypackage_bin_path(binary_name: str) -> Path:
 
 
 def run_pypackage_bin(bin_path: Path, args: List[str]) -> NoReturn:
-    def _get_env() -> Dict[str, str]:
-        env = dict(os.environ)
-        env["PYTHONPATH"] = os.path.pathsep.join(
-            [".", str(bin_path.parent.parent)]
-            + (
-                os.getenv("PYTHONPATH", "").split(os.path.pathsep)
-                if os.getenv("PYTHONPATH")
-                else []
-            )
+    env = dict(os.environ)
+    env["PYTHONPATH"] = os.path.pathsep.join(
+        [".", str(bin_path.parent.parent)]
+        + (
+            os.getenv("PYTHONPATH", "").split(os.path.pathsep)
+            if os.getenv("PYTHONPATH")
+            else []
         )
-        return env
+    )
 
-    exec_app([str(bin_path.resolve())] + args, env=_get_env())
+    exec_app([str(bin_path.resolve())] + args, env=env)
 
 
 if WINDOWS:
@@ -108,16 +106,13 @@ def _fix_subprocess_env(env: Dict[str, str]) -> Dict[str, str]:
     # Remove PYTHONPATH because some platforms (macOS with Homebrew) add pipx
     #   directories to it, and can make it appear to venvs as though pipx
     #   dependencies are in the venv path (#233)
-    # Leave in paths starting with "__pypackages__" to let pipx feature
-    #   `pipx run --pypackages` continue to work (#623)
+    # Leave in paths enabling feature `pipx run --pypackages` to work (#623)
     if "PYTHONPATH" in env:
-        print(env["PYTHONPATH"])
         python_path = env["PYTHONPATH"].split(os.path.pathsep)
         if python_path[0] == "." and Path(python_path[1]).relative_to("__pypackages__"):
             env["PYTHONPATH"] = os.path.pathsep.join(python_path[:2])
         else:
             env.pop("PYTHONPATH", None)
-    print(env.get("PYTHONPATH"))
     # Remove __PYVENV_LAUNCHER__ because it can cause the wrong python binary
     #   to be used (#334)
     env.pop("__PYVENV_LAUNCHER__", None)
