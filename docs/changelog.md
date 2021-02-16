@@ -4,6 +4,7 @@ dev
 - Support text colors on Windows. (#612)
 - Better platform unicode detection to avoid errors and allow showing emojis when possible. (#614)
 - Don't emit show cursor or hide cursor codes if STDERR is not a tty. (#620)
+- Sped up `pipx list` (#624).
 
 0.16.0.0
 
