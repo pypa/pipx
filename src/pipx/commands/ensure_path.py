@@ -91,11 +91,11 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
 
 def ensure_pipx_paths(force: bool) -> ExitCode:
     """Returns pipx exit code."""
-    bin_paths = [constants.LOCAL_BIN_DIR]
+    bin_paths = set([constants.LOCAL_BIN_DIR])
 
     pipx_user_bin_path = get_pipx_user_bin_path()
     if pipx_user_bin_path is not None:
-        bin_paths.append(pipx_user_bin_path)
+        bin_paths.add(pipx_user_bin_path)
 
     path_added = False
     need_shell_restart = False
