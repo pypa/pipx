@@ -17,7 +17,8 @@ class Health extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl('health');
+            ->setUrl('health')
+            ->setAuthenticationRequired(false);
 
         $response = $this
             ->client
