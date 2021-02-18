@@ -207,9 +207,12 @@ class Client implements ClientContract
      */
     private function getRequestOptions(Request $request): array
     {
-        $requestOptions = [
-            'form_params' => $request->getBody(),
-        ];
+        $requestOptions = [];
+        if ($request->getBodySchema() === Request::BODY_SCHEMA_JSON) {
+            $requestOptions['json'] = $request->getBody();
+        } else {
+            $requestOptions['form_params'] = $request->getBody();
+        }
         if ($request->authenticationRequired()) {
             $requestOptions['headers'] = [
                 'Authorization' => sprintf('Bearer %s', $this->configuration->getAccessToken()),

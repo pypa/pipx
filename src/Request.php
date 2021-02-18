@@ -10,9 +10,13 @@ class Request
     public const METHOD_PUT = 'PUT';
     public const METHOD_DELETE = 'DELETE';
 
+    public const BODY_SCHEMA_JSON = 'json';
+    public const BODY_SCHEMA_FORM = 'form';
+
     private string $method;
     private string $url;
     private array $body;
+    private string $bodySchema = self::BODY_SCHEMA_JSON;
     private bool $requiresAuthentication = true;
 
     /**
@@ -81,6 +85,22 @@ class Request
     public function setAuthenticationRequired(bool $requiresAuthentication): Request
     {
         $this->requiresAuthentication = $requiresAuthentication;
+
+        return $this;
+    }
+
+    public function getBodySchema(): string
+    {
+        return $this->bodySchema;
+    }
+
+    public function setBodySchema(string $bodySchema): Request
+    {
+        if (! in_array($bodySchema, [self::BODY_SCHEMA_JSON, self::BODY_SCHEMA_FORM])) {
+            $bodySchema = self::BODY_SCHEMA_JSON;
+        }
+
+        $this->bodySchema = $bodySchema;
 
         return $this;
     }
