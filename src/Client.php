@@ -153,7 +153,8 @@ class Client implements ClientContract
                 'username' => $this->configuration->getUsername(),
                 'password' => $this->configuration->getPassword(),
             ])
-            ->setAuthenticationRequired(false);
+            ->setAuthenticationRequired(false)
+            ->setBodySchema(Request::BODY_SCHEMA_FORM);
 
         $response = $this->request($request);
         if (! $response->isSuccess()) {
