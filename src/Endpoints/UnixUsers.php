@@ -111,6 +111,8 @@ class UnixUsers extends Endpoint
                 'username',
                 'password',
                 'default_php_version',
+                'virtual_hosts_directory',
+                'mail_domains_directory',
                 'cluster_id',
             ]));
 
@@ -150,6 +152,8 @@ class UnixUsers extends Endpoint
                 'username',
                 'password',
                 'default_php_version',
+                'virtual_hosts_directory',
+                'mail_domains_directory',
                 'id',
                 'cluster_id',
                 'unix_id',

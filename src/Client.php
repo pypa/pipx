@@ -241,6 +241,12 @@ class Client implements ClientContract
             ];
         }
 
+        if ($response->getStatusCode() === 500) { // Internal server error
+            return [
+                'error' => (new DetailMessage())->fromArray(['detail' => $response->getReasonPhrase()]),
+            ];
+        }
+
         return [
             'error' => (new DetailMessage())->fromArray($body)
         ];
