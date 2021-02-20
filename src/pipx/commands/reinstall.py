@@ -84,10 +84,7 @@ def reinstall_all(
     skip: Sequence[str],
 ) -> ExitCode:
     """Returns pipx exit code."""
-    if pipx.shared_libs.shared_libs.is_valid:
-        pipx.shared_libs.shared_libs.upgrade(verbose=verbose)
-    else:
-        pipx.shared_libs.shared_libs.create(verbose=verbose)
+    pipx.shared_libs.shared_libs.upgrade(verbose=verbose)
 
     failed: List[str] = []
     for venv_dir in venv_container.iter_venv_dirs():
