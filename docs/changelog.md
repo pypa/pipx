@@ -5,7 +5,7 @@ dev
 - Better platform unicode detection to avoid errors and allow showing emojis when possible. (#614)
 - Don't emit show cursor or hide cursor codes if STDERR is not a tty. (#620)
 - Sped up `pipx list` (#624).
-- For `reinstall-all`, fixed bug where missing python executable would cause error.
+- For `reinstall-all`, fixed bug where missing python executable would cause error. (#634)
 
 0.16.0.0
 
