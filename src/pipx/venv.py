@@ -29,6 +29,7 @@ from pipx.util import (
     rmdir,
     run_subprocess,
     subprocess_post_check,
+    subprocess_post_check_handle_pip_error,
 )
 from pipx.venv_inspect import VenvMetadata, inspect_venv
 
@@ -212,9 +213,17 @@ class Venv:
             f"installing {full_package_description(package, package_or_url)}",
             self.do_animation,
         ):
-            cmd = ["install"] + pip_args + [package_or_url]
-            pip_process = self._run_pip(cmd)
-        subprocess_post_check(pip_process, raise_error=False)
+            # do not use -q with `pip install` so subprocess_post_check_pip_errors
+            #   has more information to analyze in case of failure.
+            cmd = (
+                [str(self.python_path), "-m", "pip", "install"]
+                + pip_args
+                + [package_or_url]
+            )
+            # no logging because any errors will be specially logged by
+            #   subprocess_post_check_handle_pip_error()
+            pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False)
+        subprocess_post_check_handle_pip_error(pip_process)
         if pip_process.returncode:
             raise PipxError(
                 f"Error installing {full_package_description(package, package_or_url)}."

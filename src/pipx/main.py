@@ -18,6 +18,7 @@ from typing import Dict, List
 import argcomplete  # type: ignore
 from packaging.utils import canonicalize_name
 
+import pipx.constants
 from pipx import commands, constants
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
@@ -625,18 +626,25 @@ def get_command_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def delete_oldest_logs(file_list: List[Path], keep_number: int) -> None:
+    file_list = sorted(file_list)
+    if len(file_list) > keep_number:
+        for existing_file in file_list[:-keep_number]:
+            try:
+                existing_file.unlink()
+            except FileNotFoundError:
+                pass
+
+
 def setup_log_file() -> Path:
     max_logs = 10
     # don't use utils.mkdir, to prevent emission of log message
     constants.PIPX_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-    existing_logs = sorted(constants.PIPX_LOG_DIR.glob("cmd_*.log"))
-    if len(existing_logs) > max_logs:
-        for existing_log in existing_logs[:-max_logs]:
-            try:
-                existing_log.unlink()
-            except FileNotFoundError:
-                pass
+    delete_oldest_logs(list(constants.PIPX_LOG_DIR.glob("cmd_*[0-9].log")), max_logs)
+    delete_oldest_logs(
+        list(constants.PIPX_LOG_DIR.glob("cmd_*_pip_errors.log")), max_logs
+    )
 
     datetime_str = time.strftime("%Y-%m-%d_%H.%M.%S")
     log_file = constants.PIPX_LOG_DIR / f"cmd_{datetime_str}.log"
@@ -650,7 +658,7 @@ def setup_log_file() -> Path:
 
 def setup_logging(verbose: bool) -> None:
     pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
-    log_file = setup_log_file()
+    pipx.constants.pipx_log_file = setup_log_file()
 
     # "incremental" is False so previous pytest tests don't accumulate handlers
     logging_config = {
@@ -681,7 +689,7 @@ def setup_logging(verbose: bool) -> None:
             "file": {
                 "class": "logging.FileHandler",
                 "formatter": "file",
-                "filename": str(log_file),
+                "filename": str(pipx.constants.pipx_log_file),
                 "level": "DEBUG",
             },
         },

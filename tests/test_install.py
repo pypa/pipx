@@ -1,5 +1,7 @@
 import os
+import re
 import sys
+from pathlib import Path
 from unittest import mock
 
 import pytest  # type: ignore
@@ -227,3 +229,18 @@ def test_install_suffix(pipx_temp_env, capsys):
 
     assert (constants.LOCAL_BIN_DIR / name_a).exists()
     assert (constants.LOCAL_BIN_DIR / name_b).exists()
+
+
+def test_install_pip_failure(pipx_temp_env, capsys):
+    assert run_pipx_cli(["install", "weblate==4.3.1", "--verbose"])
+    captured = capsys.readouterr()
+
+    assert "Fatal error from pip" in captured.err
+
+    pip_log_file_match = re.search(
+        r"Full pip output in file:\s+(\S.+)$", captured.err, re.MULTILINE
+    )
+    assert pip_log_file_match
+    assert Path(pip_log_file_match.group(1)).exists()
+
+    assert re.search(r"pip (failed|seemed to fail) to build package", captured.err)
