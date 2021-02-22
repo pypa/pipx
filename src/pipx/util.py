@@ -1,12 +1,25 @@
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
 import textwrap
 from pathlib import Path
-from typing import Dict, List, NoReturn, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    NamedTuple,
+    NoReturn,
+    Optional,
+    Pattern,
+    Sequence,
+    Tuple,
+    Union,
+)
 
+import pipx.constants
 from pipx.animate import show_cursor
 from pipx.constants import WINDOWS
 
@@ -110,6 +123,8 @@ def run_subprocess(
     capture_stdout: bool = True,
     capture_stderr: bool = True,
     log_cmd_str: Optional[str] = None,
+    log_stdout: bool = True,
+    log_stderr: bool = True,
 ) -> subprocess.CompletedProcess:
     """Run arbitrary command as subprocess, capturing stderr and stout"""
     env = dict(os.environ)
@@ -129,9 +144,9 @@ def run_subprocess(
         universal_newlines=True,
     )
 
-    if capture_stdout:
+    if capture_stdout and log_stdout:
         logger.debug(f"stdout: {completed_process.stdout}".rstrip())
-    if capture_stderr:
+    if capture_stderr and log_stderr:
         logger.debug(f"stderr: {completed_process.stderr}".rstrip())
     logger.debug(f"returncode: {completed_process.returncode}")
 
@@ -154,8 +169,162 @@ def subprocess_post_check(
             logger.info(f"{' '.join(completed_process.args)!r} failed")
 
 
+def dedup_ordered(input_list: List[Any]) -> List[Any]:
+    output_list = []
+    seen = set()
+    for x in input_list:
+        if x[0] not in seen:
+            output_list.append(x)
+            seen.add(x[0])
+
+    return output_list
+
+
+def analyze_pip_output(pip_stdout: str, pip_stderr: str):
+    r"""Extract useful errors from pip output of failed install
+
+    Print the module that failed to build
+    Print some of the most relevant errors from the pip output
+
+    Example pip stderr line for each "relevant" type:
+        not_found
+            Package cairo was not found in the pkg-config search path.
+            src/common.h:34:10: fatal error: 'stdio.h' file not found
+            The headers or library files could not be found for zlib,
+        no_such
+            unable to execute 'gcc': No such file or directory
+            build\test1.c(2): fatal error C1083: Cannot open include file: 'cpuid.h': No such file ...
+        exception_error
+            Exception: Unable to find OpenSSL >= 1.0 headers. (Looked here: ...
+        fatal_error
+            LINK : fatal error LNK1104: cannot open file 'kernel32.lib'
+        conflict_
+            ERROR: ResolutionImpossible: for help visit https://pip.pypa.io/en/...
+        error_
+            error: can't copy 'lib\ansible\module_utils\ansible_release.py': doesn't exist ...
+            build\test1.c(4): error C2146: syntax error: missing ';' before identifier 'x'
+    """
+    max_relevant_errors = 10
+
+    failed_build_stdout = []
+    last_collecting_dep: Optional[str] = None
+    # for any useful information in stdout, `pip install` must be run without
+    #   the -q option
+    for line in pip_stdout.split("\n"):
+        failed_match = re.search(r"Failed to build\s+(\S.+)$", line)
+        collecting_match = re.search(r"^\s*Collecting\s+(\S+)", line)
+        if failed_match:
+            failed_build_stdout = failed_match.group(1).strip().split()
+        if collecting_match:
+            last_collecting_dep = collecting_match.group(1)
+
+    class RelevantSearch(NamedTuple):
+        re: Pattern
+        type_: str
+
+    # In order of most useful to least useful
+    relevant_searches = [
+        RelevantSearch(re.compile(r"not (?:be )?found", re.I), "not_found"),
+        RelevantSearch(re.compile(r"no such", re.I), "no_such"),
+        RelevantSearch(re.compile(r"(Exception|Error):\s*\S+"), "exception_error"),
+        RelevantSearch(re.compile(r"fatal error", re.I), "fatal_error"),
+        RelevantSearch(re.compile(r"conflict", re.I), "conflict_"),
+        RelevantSearch(
+            re.compile(
+                r"error:"
+                r"(?!.+Command errored out)"
+                r"(?!.+failed building wheel for)"
+                r"(?!.+could not build wheels? for)"
+                r"(?!.+failed to build one or more wheels)"
+                r".+[^:]$",
+                re.I,
+            ),
+            "error_",
+        ),
+    ]
+
+    failed_stderr_patt = re.compile(r"Failed to build\s+(?!one or more packages)(\S+)")
+
+    relevants_saved = []
+    failed_build_stderr = set()
+    for line in pip_stderr.split("\n"):
+        failed_build_match = failed_stderr_patt.search(line)
+        if failed_build_match:
+            failed_build_stderr.add(failed_build_match.group(1))
+
+        for relevant_search in relevant_searches:
+            if relevant_search.re.search(line):
+                relevants_saved.append((line.strip(), relevant_search.type_))
+                break
+
+    if failed_build_stdout:
+        failed_to_build_str = "\n    ".join(failed_build_stdout)
+        plural_str = "s" if len(failed_build_stdout) > 1 else ""
+        print("", file=sys.stderr)
+        logger.error(
+            f"pip failed to build package{plural_str}:\n    {failed_to_build_str}"
+        )
+    elif failed_build_stderr:
+        failed_to_build_str = "\n    ".join(failed_build_stderr)
+        plural_str = "s" if len(failed_build_stderr) > 1 else ""
+        print("", file=sys.stderr)
+        logger.error(
+            f"pip seemed to fail to build package{plural_str}:\n    {failed_to_build_str}"
+        )
+    elif last_collecting_dep is not None:
+        print("", file=sys.stderr)
+        logger.error(f"pip seemed to fail to build package:\n    {last_collecting_dep}")
+
+    relevants_saved = dedup_ordered(relevants_saved)
+
+    if relevants_saved:
+        print("\nSome possibly relevant errors from pip install:", file=sys.stderr)
+
+        print_categories = [x.type_ for x in relevant_searches]
+        relevants_saved_filtered = relevants_saved.copy()
+        while (len(print_categories) > 1) and (
+            len(relevants_saved_filtered) > max_relevant_errors
+        ):
+            print_categories.pop(-1)
+            relevants_saved_filtered = [
+                x for x in relevants_saved if x[1] in print_categories
+            ]
+
+        for relevant_saved in relevants_saved_filtered:
+            print(f"    {relevant_saved[0]}", file=sys.stderr)
+
+
+def subprocess_post_check_handle_pip_error(
+    completed_process: subprocess.CompletedProcess,
+) -> None:
+    if completed_process.returncode:
+        logger.info(f"{' '.join(completed_process.args)!r} failed")
+        # Save STDOUT and STDERR to file in pipx/logs/
+        if pipx.constants.pipx_log_file is None:
+            raise PipxError("Pipx internal error: No log_file present.")
+        pip_error_file = pipx.constants.pipx_log_file.parent / (
+            pipx.constants.pipx_log_file.stem + "_pip_errors.log"
+        )
+        with pip_error_file.open("w") as pip_error_fh:
+            print("PIP STDOUT", file=pip_error_fh)
+            print("----------", file=pip_error_fh)
+            if completed_process.stdout is not None:
+                print(completed_process.stdout, file=pip_error_fh, end="")
+            print("\nPIP STDERR", file=pip_error_fh)
+            print("----------", file=pip_error_fh)
+            if completed_process.stderr is not None:
+                print(completed_process.stderr, file=pip_error_fh, end="")
+
+        logger.error(
+            "Fatal error from pip prevented installation. Full pip output in file:\n"
+            f"    {pip_error_file}"
+        )
+
+        analyze_pip_output(completed_process.stdout, completed_process.stderr)
+
+
 def exec_app(
-    cmd: Sequence[Union[str, Path]], env: Optional[Dict[str, str]] = None,
+    cmd: Sequence[Union[str, Path]], env: Optional[Dict[str, str]] = None
 ) -> NoReturn:
     """Run command, do not return
 
