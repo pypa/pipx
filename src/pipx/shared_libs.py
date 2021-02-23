@@ -73,6 +73,10 @@ class _SharedLibs:
     def upgrade(
         self, *, pip_args: Optional[List[str]] = None, verbose: bool = False
     ) -> None:
+        if not self.is_valid:
+            self.create(verbose=verbose)
+            return
+
         # Don't try to upgrade multiple times per run
         if self.has_been_updated_this_run:
             logger.info(f"Already upgraded libraries in {self.root}")
