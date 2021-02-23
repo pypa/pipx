@@ -109,7 +109,11 @@ def _fix_subprocess_env(env: Dict[str, str]) -> Dict[str, str]:
     # Leave in paths enabling feature `pipx run --pypackages` to work (#623)
     if "PYTHONPATH" in env:
         python_path = env["PYTHONPATH"].split(os.path.pathsep)
-        if python_path[0] == "." and Path(python_path[1]).relative_to("__pypackages__"):
+        if (
+            len(python_path) >= 2
+            and python_path[0] == "."
+            and Path(python_path[1]).relative_to("__pypackages__")
+        ):
             env["PYTHONPATH"] = os.path.pathsep.join(python_path[:2])
         else:
             env.pop("PYTHONPATH", None)
