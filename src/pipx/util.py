@@ -99,11 +99,9 @@ def _fix_subprocess_env(env: Dict[str, str]) -> Dict[str, str]:
     # Remove PYTHONPATH because some platforms (macOS with Homebrew) add pipx
     #   directories to it, and can make it appear to venvs as though pipx
     #   dependencies are in the venv path (#233)
-    # Leave in paths enabling feature `pipx run --pypackages` to work (#623)
     # Remove __PYVENV_LAUNCHER__ because it can cause the wrong python binary
     #   to be used (#334)
     env_blocklist = ["PYTHONPATH", "__PYVENV_LAUNCHER__"]
-    env.pop("__PYVENV_LAUNCHER__", None)
     for env_to_remove in env_blocklist:
         env.pop(env_to_remove, None)
 
