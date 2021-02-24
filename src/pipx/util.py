@@ -63,17 +63,10 @@ def get_pypackage_bin_path(binary_name: str) -> Path:
 
 
 def run_pypackage_bin(bin_path: Path, args: List[str]) -> NoReturn:
-    env = dict(os.environ)
-    env["PYTHONPATH"] = os.path.pathsep.join(
-        [".", str(bin_path.parent.parent)]
-        + (
-            os.getenv("PYTHONPATH", "").split(os.path.pathsep)
-            if os.getenv("PYTHONPATH")
-            else []
-        )
+    exec_app(
+        [str(bin_path.resolve())] + args,
+        extra_python_paths=[".", str(bin_path.parent.parent)],
     )
-
-    exec_app([str(bin_path.resolve())] + args, env=env)
 
 
 if WINDOWS:
@@ -107,19 +100,12 @@ def _fix_subprocess_env(env: Dict[str, str]) -> Dict[str, str]:
     #   directories to it, and can make it appear to venvs as though pipx
     #   dependencies are in the venv path (#233)
     # Leave in paths enabling feature `pipx run --pypackages` to work (#623)
-    if "PYTHONPATH" in env:
-        python_path = env["PYTHONPATH"].split(os.path.pathsep)
-        if (
-            len(python_path) >= 2
-            and python_path[0] == "."
-            and Path(python_path[1]).relative_to("__pypackages__")
-        ):
-            env["PYTHONPATH"] = os.path.pathsep.join(python_path[:2])
-        else:
-            env.pop("PYTHONPATH", None)
     # Remove __PYVENV_LAUNCHER__ because it can cause the wrong python binary
     #   to be used (#334)
+    env_blocklist = ["PYTHONPATH", "__PYVENV_LAUNCHER__"]
     env.pop("__PYVENV_LAUNCHER__", None)
+    for env_to_remove in env_blocklist:
+        env.pop(env_to_remove, None)
 
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
     # Make sure that Python writes output in UTF-8
@@ -335,7 +321,9 @@ def subprocess_post_check_handle_pip_error(
 
 
 def exec_app(
-    cmd: Sequence[Union[str, Path]], env: Optional[Dict[str, str]] = None
+    cmd: Sequence[Union[str, Path]],
+    env: Optional[Dict[str, str]] = None,
+    extra_python_paths: Optional[List[str]] = None,
 ) -> NoReturn:
     """Run command, do not return
 
@@ -346,6 +334,16 @@ def exec_app(
     if env is None:
         env = dict(os.environ)
     env = _fix_subprocess_env(env)
+
+    if extra_python_paths is not None:
+        env["PYTHONPATH"] = os.path.pathsep.join(
+            extra_python_paths
+            + (
+                os.getenv("PYTHONPATH", "").split(os.path.pathsep)
+                if os.getenv("PYTHONPATH")
+                else []
+            )
+        )
 
     # make sure we show cursor again before handing over control
     show_cursor()
