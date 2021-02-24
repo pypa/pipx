@@ -63,15 +63,10 @@ def get_pypackage_bin_path(binary_name: str) -> Path:
 
 
 def run_pypackage_bin(bin_path: Path, args: List[str]) -> NoReturn:
-    def _get_env() -> Dict[str, str]:
-        env = dict(os.environ)
-        env["PYTHONPATH"] = os.path.pathsep.join(
-            [".", str(bin_path.parent.parent)]
-            + os.getenv("PYTHONPATH", "").split(os.path.pathsep)
-        )
-        return env
-
-    exec_app([str(bin_path.resolve())] + args, env=_get_env())
+    exec_app(
+        [str(bin_path.resolve())] + args,
+        extra_python_paths=[".", str(bin_path.parent.parent)],
+    )
 
 
 if WINDOWS:
@@ -324,7 +319,9 @@ def subprocess_post_check_handle_pip_error(
 
 
 def exec_app(
-    cmd: Sequence[Union[str, Path]], env: Optional[Dict[str, str]] = None
+    cmd: Sequence[Union[str, Path]],
+    env: Optional[Dict[str, str]] = None,
+    extra_python_paths: Optional[List[str]] = None,
 ) -> NoReturn:
     """Run command, do not return
 
@@ -335,6 +332,16 @@ def exec_app(
     if env is None:
         env = dict(os.environ)
     env = _fix_subprocess_env(env)
+
+    if extra_python_paths is not None:
+        env["PYTHONPATH"] = os.path.pathsep.join(
+            extra_python_paths
+            + (
+                os.getenv("PYTHONPATH", "").split(os.path.pathsep)
+                if os.getenv("PYTHONPATH")
+                else []
+            )
+        )
 
     # make sure we show cursor again before handing over control
     show_cursor()

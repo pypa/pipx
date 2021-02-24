@@ -7,6 +7,7 @@ dev
 - Sped up `pipx list` (#624).
 - pip errors no longer stream to the shell when pip fails during a pipx install.  pip's output is now saved to a log file.  In the shell, pipx will tell you the location of the log file and attempt to summarize why pip failed. (#625)
 - For `reinstall-all`, fixed bug where missing python executable would cause error. (#634)
+- Fix regression which prevented pipx from working with pythonloc (and `__pypackages__` folder). (#636)
 
 0.16.0.0
 
