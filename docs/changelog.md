@@ -1,5 +1,6 @@
 dev
 
+- Introduce the `pipx.run` entry point group as an alternative way to declare an application for `pipx run`.
 - Fix cursor show/hide to work with older versions of Windows. (#610)
 - Support text colors on Windows. (#612)
 - Better platform unicode detection to avoid errors and allow showing emojis when possible. (#614)
