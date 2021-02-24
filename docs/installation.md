@@ -14,7 +14,7 @@ brew install pipx
 pipx ensurepath
 ```
 
-Otherwise, install via pip:
+Otherwise, install via pip (requires pip 19.0 or later):
 
 ```
 python3 -m pip install --user pipx

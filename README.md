@@ -34,7 +34,7 @@ pipx ensurepath
 
 Upgrade pipx with `brew update && brew upgrade pipx`.
 
-Otherwise, install via pip:
+Otherwise, install via pip (requires pip 19.0 or later):
 
 ```
 python3 -m pip install --user pipx
