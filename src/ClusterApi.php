@@ -43,6 +43,16 @@ class ClusterApi
         return new Endpoints\Crons($this->client);
     }
 
+    public function databases(): Endpoints\Databases
+    {
+        return new Endpoints\Databases($this->client);
+    }
+
+    public function databaseUsers(): Endpoints\DatabaseUsers
+    {
+        return new Endpoints\DatabaseUsers($this->client);
+    }
+
     public function fpmPools(): Endpoints\FpmPools
     {
         return new Endpoints\FpmPools($this->client);
@@ -61,6 +71,11 @@ class ClusterApi
     public function mailAccounts(): Endpoints\MailAccounts
     {
         return new Endpoints\MailAccounts($this->client);
+    }
+
+    public function mailAliases(): Endpoints\MailAliases
+    {
+        return new Endpoints\MailAliases($this->client);
     }
 
     public function mailDomains(): Endpoints\MailDomains

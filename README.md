@@ -1,7 +1,7 @@
 # Cyberfusion cluster API client
 
 Easily use the [API of the clusters](https://cluster-api.cyberfusion.nl/) of the hosting company 
-[Cyberfusion](https://cyberfusion.nl/). This package is build and tested on the **1.9** version of the API.
+[Cyberfusion](https://cyberfusion.nl/). This package is build and tested on the **1.12** version of the API.
 
 This package is not created or maintained by Cyberfusion.
 
@@ -91,6 +91,27 @@ When models need to be provided, the required properties will be checked before 
 
 When you want to use the API directly, you can use the `request()` method on the `Client`. This method needs a `Request`
 class. See the class itself for its options.
+
+#### Committing changes
+
+A commit is required when you perform a create/update/delete for:
+
+- mail aliases 
+- mail accounts
+- mail domains
+- ssh keys
+- unix users
+- fpm pools
+- crons
+- virtual hosts
+  
+**_You **MUST** commit the changes for each cluster as this is required to update the cluster!_**
+
+```php
+$api
+    ->clusters()
+    ->commit($clusterId);
+```
 
 ### Responses
 

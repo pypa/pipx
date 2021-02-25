@@ -74,6 +74,7 @@ class MailDomains extends Endpoint
     {
         $requiredAttributes = [
             'domain',
+            'catchAllForwardEmailAddresses',
             'unixUserId',
         ];
         $this->validateRequired($mailDomain, 'create', $requiredAttributes);
@@ -83,6 +84,7 @@ class MailDomains extends Endpoint
             ->setUrl('mail-domains')
             ->setBody($this->filterFields($mailDomain->toArray(), [
                 'domain',
+                'catch_all_forward_email_addresses',
                 'unix_user_id',
             ]));
 

@@ -79,6 +79,7 @@ class VirtualHosts extends Endpoint
             'documentRoot',
             'publicRoot',
             'forceSsl',
+            'balancerBackendName',
         ];
         $this->validateRequired($virtualHost, 'create', $requiredAttributes);
 
@@ -94,6 +95,7 @@ class VirtualHosts extends Endpoint
                 'fpm_pool_id',
                 'force_ssl',
                 'custom_config',
+                'balancer_backend_name',
                 'deploy_commands',
             ]));
 
@@ -125,6 +127,7 @@ class VirtualHosts extends Endpoint
             'forceSsl',
             'id',
             'clusterId',
+            'balancerBackendName',
         ];
         $this->validateRequired($virtualHost, 'update', $requiredAttributes);
 
@@ -140,6 +143,7 @@ class VirtualHosts extends Endpoint
                 'fpm_pool_id',
                 'force_ssl',
                 'custom_config',
+                'balancer_backend_name',
                 'deploy_commands',
                 'id',
                 'cluster_id',

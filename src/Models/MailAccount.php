@@ -9,7 +9,6 @@ class MailAccount implements Model
 {
     public string $localPart;
     public string $password;
-    public array $forwardEmailAddresses = [];
     public ?int $quota = null;
     public int $mailDomainId;
     public ?int $id = null;
@@ -22,7 +21,6 @@ class MailAccount implements Model
         $mailAccount = new self();
         $mailAccount->localPart = Arr::get($data, 'local_part');
         $mailAccount->password = Arr::get($data, 'password');
-        $mailAccount->forwardEmailAddresses = Arr::get($data, 'forward_email_addresses', []);
         $mailAccount->quota = Arr::get($data, 'quota');
         $mailAccount->mailDomainId = Arr::get($data, 'mail_domain_id');
         $mailAccount->id = Arr::get($data, 'id');
@@ -37,7 +35,6 @@ class MailAccount implements Model
         return [
             'local_part' => $this->localPart,
             'password' => $this->password,
-            'forward_email_addresses' => $this->forwardEmailAddresses,
             'quota' => $this->quota,
             'mail_domain_id' => $this->mailDomainId,
             'id' => $this->id,

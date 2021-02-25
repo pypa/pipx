@@ -3,12 +3,12 @@
 namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Vdhicts\Cyberfusion\ClusterApi\Models\Cluster;
+use Vdhicts\Cyberfusion\ClusterApi\Models\DatabaseUser;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
 
-class Clusters extends Endpoint
+class DatabaseUsers extends Endpoint
 {
     /**
      * @param ListFilter|null $filter
@@ -23,7 +23,7 @@ class Clusters extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('clusters?%s', http_build_query($filter->toArray())));
+            ->setUrl(sprintf('database-users?%s', http_build_query($filter->toArray())));
 
         $response = $this
             ->client
@@ -33,9 +33,9 @@ class Clusters extends Endpoint
         }
 
         return $response->setData([
-            'clusters' => array_map(
+            'databaseUsers' => array_map(
                 function (array $data) {
-                    return (new Cluster())->fromArray($data);
+                    return (new DatabaseUser())->fromArray($data);
                 },
                 $response->getData()
             ),
@@ -51,7 +51,7 @@ class Clusters extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('clusters/%d', $id));
+            ->setUrl(sprintf('database-users/%d', $id));
 
         $response = $this
             ->client
@@ -61,33 +61,7 @@ class Clusters extends Endpoint
         }
 
         return $response->setData([
-            'cluster' => (new Cluster())->fromArray($response->getData()),
-        ]);
-    }
-
-    /**
-     * @param int $id
-     * @return Response
-     * @throws RequestException
-     */
-    public function commit(int $id): Response
-    {
-        $request = (new Request())
-            ->setMethod(Request::METHOD_POST)
-            ->setUrl('clusters/cluster-deployments')
-            ->setBody([
-                'id' => $id,
-            ]);
-
-        $response = $this
-            ->client
-            ->request($request);
-        if (! $response->isSuccess()) {
-            return $response;
-        }
-
-        return $response->setData([
-            'cluster' => (new Cluster())->fromArray($response->getData()),
+            'databaseUser' => (new DatabaseUser())->fromArray($response->getData()),
         ]);
     }
 }

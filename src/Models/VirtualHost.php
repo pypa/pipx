@@ -15,6 +15,7 @@ class VirtualHost implements Model
     public ?int $fpmPoolId = null;
     public bool $forceSsl = true;
     public ?string $customConfig = null;
+    public ?string $balancerBackendName = null;
     public array $deployCommands = [];
     public ?int $id = null;
     public ?int $clusterId = null;
@@ -31,6 +32,7 @@ class VirtualHost implements Model
         $virtualHost->publicRoot = Arr::get($data, 'public_root');
         $virtualHost->fpmPoolId = Arr::get($data, 'fpm_pool_id');
         $virtualHost->forceSsl = Arr::get($data, 'force_ssl');
+        $virtualHost->balancerBackendName = Arr::get($data, 'balancer_backend_name');
         $virtualHost->customConfig = Arr::get($data, 'custom_config');
         $virtualHost->deployCommands = Arr::get($data, 'deploy_commands', []);
         $virtualHost->id = Arr::get($data, 'id');
@@ -53,6 +55,7 @@ class VirtualHost implements Model
             'custom_config' => $this->customConfig,
             'id' => $this->id,
             'cluster_id' => $this->clusterId,
+            'balancer_backend_name' => $this->balancerBackendName,
             'deploy_commands' => $this->deployCommands,
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt,
