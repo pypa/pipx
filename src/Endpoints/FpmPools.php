@@ -76,7 +76,7 @@ class FpmPools extends Endpoint
             'name',
             'unixUserId',
             'version',
-            'max_children',
+            'maxChildren',
         ];
         $this->validateRequired($fpmPool, 'create', $requiredAttributes);
 

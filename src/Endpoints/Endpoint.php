@@ -31,7 +31,7 @@ abstract class Endpoint
         $missing = [];
         foreach ($requiredAttributes as $requiredAttribute) {
             $value = $model->{$requiredAttribute};
-            if (empty($value)) {
+            if (is_string($value) && trim($value) === '') {
                 $missing[] = $requiredAttribute;
             }
         }

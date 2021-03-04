@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.6.1]
+
+### Fixed
+
+- Fix general validation check to not mark a boolean with `false` or an empty array as invalid.
+- Fix validation field for FPM pool endpoint
+
 ## [1.6.0]
 
 ### Added
