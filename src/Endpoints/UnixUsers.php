@@ -85,7 +85,14 @@ class UnixUsers extends Endpoint
         }
 
         return $response->setData([
-            'unixUserUsage' => (new UnixUserUsage())->fromArray($response->getData()),
+            'unixUserUsage' => count($response->getData()) !== 0
+                ? array_map(
+                    function (array $data) {
+                        return (new UnixUserUsage())->fromArray($data);
+                    },
+                    $response->getData()
+                )
+                : null,
         ]);
     }
 
