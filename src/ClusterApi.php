@@ -38,6 +38,11 @@ class ClusterApi
         return new Endpoints\Cmses($this->client);
     }
 
+    public function commands(): Endpoints\Commands
+    {
+        return new Endpoints\Commands($this->client);
+    }
+
     public function crons(): Endpoints\Crons
     {
         return new Endpoints\Crons($this->client);
