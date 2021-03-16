@@ -2,6 +2,7 @@
 
 namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
+use DateTimeInterface;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\MailAccount;
 use Vdhicts\Cyberfusion\ClusterApi\Models\MailAccountUsage;
@@ -68,14 +69,20 @@ class MailAccounts extends Endpoint
 
     /**
      * @param int $id
+     * @param DateTimeInterface|null $from
      * @return Response
      * @throws RequestException
      */
-    public function usages(int $id): Response
+    public function usages(int $id, DateTimeInterface $from = null): Response
     {
+        $url = $this->applyOptionalQueryParameters(
+            sprintf('mail-accounts/usages/%d', $id),
+            ['from_timestamp_date' => $from]
+        );
+
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('mail-accounts/usages/%d', $id));
+            ->setUrl($url);
 
         $response = $this
             ->client

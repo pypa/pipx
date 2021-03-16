@@ -9,6 +9,7 @@ class MailDomain implements Model
 {
     public string $domain;
     public array $catchAllForwardEmailAddresses = [];
+    public bool $isLocal = true;
     public int $unixUserId;
     public ?int $id = null;
     public ?int $clusterId = null;
@@ -20,6 +21,7 @@ class MailDomain implements Model
         $mailDomain = new self();
         $mailDomain->domain = Arr::get($data, 'domain');
         $mailDomain->catchAllForwardEmailAddresses = Arr::get($data, 'catch_all_forward_email_addresses', []);
+        $mailDomain->isLocal = Arr::get($data, 'is_local');
         $mailDomain->unixUserId = Arr::get($data, 'unix_user_id');
         $mailDomain->id = Arr::get($data, 'id');
         $mailDomain->clusterId = Arr::get($data, 'cluster_id');
@@ -33,6 +35,7 @@ class MailDomain implements Model
         return [
             'domain' => $this->domain,
             'catch_all_forward_email_addresses' => $this->catchAllForwardEmailAddresses,
+            'is_local' => $this->isLocal,
             'unix_user_id' => $this->unixUserId,
             'id' => $this->id,
             'cluster_id' => $this->clusterId,

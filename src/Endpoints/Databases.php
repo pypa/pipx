@@ -2,6 +2,7 @@
 
 namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
+use DateTimeInterface;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\Database;
 use Vdhicts\Cyberfusion\ClusterApi\Models\DatabaseUsage;
@@ -68,14 +69,20 @@ class Databases extends Endpoint
 
     /**
      * @param int $id
+     * @param DateTimeInterface|null $from
      * @return Response
      * @throws RequestException
      */
-    public function usages(int $id): Response
+    public function usages(int $id, DateTimeInterface $from = null): Response
     {
+        $url = $this->applyOptionalQueryParameters(
+            sprintf('databases/usages/%d', $id),
+            ['from_timestamp_date' => $from]
+        );
+
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('databases/usages/%d', $id));
+            ->setUrl($url);
 
         $response = $this
             ->client

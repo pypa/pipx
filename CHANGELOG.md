@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.8.0]
+
+### Added
+
+- Add `from` parameter to unix user, database and mail accounts usages.
+- Add mail domains update method.
+- Add mail domains `is_local` property.
+
+### Changed
+
+- - Update to [API version 1.19](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.19-2021-03-12)
+
 ## [1.7.0]
 
 ### Added
@@ -14,7 +26,7 @@ detailed information.
 
 ### Changed
 
-- - Update to [API version 1.17](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.17-2021-03-08)
+- Update to [API version 1.17](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.17-2021-03-08)
 
 ## [1.6.2]
 

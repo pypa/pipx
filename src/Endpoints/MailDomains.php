@@ -75,6 +75,7 @@ class MailDomains extends Endpoint
         $requiredAttributes = [
             'domain',
             'catchAllForwardEmailAddresses',
+            'isLocal',
             'unixUserId',
         ];
         $this->validateRequired($mailDomain, 'create', $requiredAttributes);
@@ -85,7 +86,48 @@ class MailDomains extends Endpoint
             ->setBody($this->filterFields($mailDomain->toArray(), [
                 'domain',
                 'catch_all_forward_email_addresses',
+                'is_local',
                 'unix_user_id',
+            ]));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (! $response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'mailDomain' => (new MailDomain())->fromArray($response->getData()),
+        ]);
+    }
+
+    /**
+     * @param MailDomain $mailDomain
+     * @return Response
+     * @throws RequestException
+     */
+    public function update(MailDomain $mailDomain): Response
+    {
+        $requiredAttributes = [
+            'domain',
+            'catchAllForwardEmailAddresses',
+            'unixUserId',
+            'id',
+            'clusterId'
+        ];
+        $this->validateRequired($mailDomain, 'update', $requiredAttributes);
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_PUT)
+            ->setUrl(sprintf('mail-domains/%d', $mailDomain->id))
+            ->setBody($this->filterFields($mailDomain->toArray(), [
+                'domain',
+                'catch_all_forward_email_addresses',
+                'is_local',
+                'unix_user_id',
+                'id',
+                'cluster_id',
             ]));
 
         $response = $this

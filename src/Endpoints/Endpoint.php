@@ -2,6 +2,7 @@
 
 namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
+use DateTimeInterface;
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
@@ -62,5 +63,32 @@ abstract class Endpoint
         }
 
         return Arr::only($filteredArray, $fields);
+    }
+
+    /**
+     * @param string $url
+     * @param array $optionalQueryParameters
+     * @return string
+     */
+    protected function applyOptionalQueryParameters(string $url, array $optionalQueryParameters = []): string
+    {
+        if (count($optionalQueryParameters) === 0) {
+            return $url;
+        }
+
+        $optionalQueryParametersFiltered = array_filter($optionalQueryParameters);
+
+        $optionalQueryParametersPrepared = array_map(
+            function ($optionalQueryParameter) {
+                if ($optionalQueryParameter instanceof DateTimeInterface) {
+                    return $optionalQueryParameter->format('c');
+                }
+
+                return $optionalQueryParameter;
+            },
+            $optionalQueryParametersFiltered
+        );
+
+        return sprintf('%s?%s', $url, http_build_query($optionalQueryParametersPrepared));
     }
 }
