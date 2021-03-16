@@ -7,7 +7,7 @@ use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 
 class Cluster implements Model
 {
-    public string $name;
+    public string $name = '';
     public ?array $groups = [];
     public ?string $unixUsersHomeDirectory = null;
     public ?string $databasesDataDirectory = null;

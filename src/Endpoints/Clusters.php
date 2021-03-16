@@ -74,9 +74,9 @@ class Clusters extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('clusters/cluster-deployments')
+            ->setUrl('cluster-deployments')
             ->setBody([
-                'id' => $id,
+                'cluster_id' => $id,
             ]);
 
         $response = $this
