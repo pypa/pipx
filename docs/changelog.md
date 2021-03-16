@@ -1,6 +1,6 @@
 dev
 
-- Make sure log files are utf-8 encoded to preven Unicode encoding errors from occurring with emojis.
+- Make sure log files are utf-8 encoded to preven Unicode encoding errors from occurring with emojis. (#646)
 
 0.16.1.0
 
