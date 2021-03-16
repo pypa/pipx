@@ -16,23 +16,25 @@ logger = logging.getLogger(__name__)
 
 def _upgrade_package(
     venv: Venv,
-    package: str,
+    package_name: str,
     pip_args: List[str],
     is_main_package: bool,
     force: bool,
     upgrading_all: bool,
 ) -> int:
     """Returns 1 if package version changed, 0 if same version"""
-    package_metadata = venv.package_metadata[package]
+    package_metadata = venv.package_metadata[package_name]
 
     if package_metadata.package_or_url is None:
-        raise PipxError(f"Internal Error: package {package} has corrupt pipx metadata.")
+        raise PipxError(
+            f"Internal Error: package {package_name} has corrupt pipx metadata."
+        )
 
     package_or_url = parse_specifier_for_upgrade(package_metadata.package_or_url)
     old_version = package_metadata.package_version
 
     venv.upgrade_package(
-        package,
+        package_name,
         package_or_url,
         pip_args,
         include_dependencies=package_metadata.include_dependencies,
@@ -41,7 +43,7 @@ def _upgrade_package(
         suffix=package_metadata.suffix,
     )
 
-    package_metadata = venv.package_metadata[package]
+    package_metadata = venv.package_metadata[package_name]
 
     display_name = f"{package_metadata.package}{package_metadata.suffix}"
     new_version = package_metadata.package_version
@@ -121,10 +123,10 @@ def _upgrade_venv(
 
     versions_updated = 0
 
-    package = venv.main_package_name
+    package_name = venv.main_package_name
     versions_updated += _upgrade_package(
         venv,
-        package,
+        package_name,
         pip_args,
         is_main_package=True,
         force=force,
@@ -132,12 +134,12 @@ def _upgrade_venv(
     )
 
     if include_injected:
-        for package in venv.package_metadata:
-            if package == venv.main_package_name:
+        for package_name in venv.package_metadata:
+            if package_name == venv.main_package_name:
                 continue
             versions_updated += _upgrade_package(
                 venv,
-                package,
+                package_name,
                 pip_args,
                 is_main_package=False,
                 force=force,

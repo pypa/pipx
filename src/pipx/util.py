@@ -34,6 +34,11 @@ class PipxError(Exception):
             super().__init__(message)
 
 
+class RelevantSearch(NamedTuple):
+    pattern: Pattern
+    category: str
+
+
 def rmdir(path: Path) -> None:
     logger.info(f"removing directory {path}")
     try:
@@ -213,10 +218,6 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
         if collecting_match:
             last_collecting_dep = collecting_match.group(1)
 
-    class RelevantSearch(NamedTuple):
-        re: Pattern
-        type_: str
-
     # In order of most useful to least useful
     relevant_searches = [
         RelevantSearch(re.compile(r"not (?:be )?found", re.I), "not_found"),
@@ -248,8 +249,8 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
             failed_build_stderr.add(failed_build_match.group(1))
 
         for relevant_search in relevant_searches:
-            if relevant_search.re.search(line):
-                relevants_saved.append((line.strip(), relevant_search.type_))
+            if relevant_search.pattern.search(line):
+                relevants_saved.append((line.strip(), relevant_search.category))
                 break
 
     if failed_build_stdout:
@@ -275,7 +276,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str):
     if relevants_saved:
         print("\nSome possibly relevant errors from pip install:", file=sys.stderr)
 
-        print_categories = [x.type_ for x in relevant_searches]
+        print_categories = [x.category for x in relevant_searches]
         relevants_saved_filtered = relevants_saved.copy()
         while (len(print_categories) > 1) and (
             len(relevants_saved_filtered) > max_relevant_errors
@@ -363,11 +364,11 @@ def exec_app(
         os.execvpe(str(cmd[0]), [str(x) for x in cmd], env)
 
 
-def full_package_description(package: str, package_spec: str) -> str:
-    if package == package_spec:
-        return package
+def full_package_description(package_name: str, package_spec: str) -> str:
+    if package_name == package_spec:
+        return package_name
     else:
-        return f"{package} from spec {package_spec!r}"
+        return f"{package_name} from spec {package_spec!r}"
 
 
 def pipx_wrap(

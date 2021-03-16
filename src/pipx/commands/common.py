@@ -156,18 +156,18 @@ def _symlink_package_apps(
             )
 
 
-def get_package_summary(
+def get_venv_summary(
     venv_dir: Path,
     *,
-    package: str = None,
+    package_name: str = None,
     new_install: bool = False,
     include_injected: bool = False,
 ) -> Tuple[str, VenvProblems]:
     venv = Venv(venv_dir)
     python_path = venv.python_path.resolve()
 
-    if package is None:
-        package = venv.main_package_name
+    if package_name is None:
+        package_name = venv.main_package_name
 
     if not python_path.is_file():
         return (
@@ -185,11 +185,11 @@ def get_package_summary(
             VenvProblems(bad_venv_name=True),
         )
 
-    package_metadata = venv.package_metadata[package]
+    package_metadata = venv.package_metadata[package_name]
 
     if package_metadata.package_version is None:
         return (
-            f"   package {red(bold(package))} {red('is not installed')} "
+            f"   package {red(bold(package_name))} {red('is not installed')} "
             f"in the venv {venv_dir.name}",
             VenvProblems(not_installed=True),
         )
@@ -214,7 +214,7 @@ def get_package_summary(
         _get_list_output(
             python_version,
             package_metadata.package_version,
-            package,
+            package_name,
             new_install,
             exposed_binary_names,
             unavailable_binary_names,
@@ -252,7 +252,7 @@ def _get_exposed_app_paths_for_package(
 def _get_list_output(
     python_version: str,
     package_version: str,
-    package: str,
+    package_name: str,
     new_install: bool,
     exposed_binary_names: List[str],
     unavailable_binary_names: List[str],
@@ -260,9 +260,9 @@ def _get_list_output(
     suffix: str = "",
 ) -> str:
     output = []
-    suffix = f" ({bold(shlex.quote(package + suffix))})" if suffix else ""
+    suffix = f" ({bold(shlex.quote(package_name + suffix))})" if suffix else ""
     output.append(
-        f"  {'installed' if new_install else ''} package {bold(shlex.quote(package))}"
+        f"  {'installed' if new_install else ''} package {bold(shlex.quote(package_name))}"
         f" {bold(package_version)}{suffix}, {python_version}"
     )
 
@@ -312,16 +312,16 @@ def package_name_from_spec(
 
 def run_post_install_actions(
     venv: Venv,
-    package: str,
+    package_name: str,
     local_bin_dir: Path,
     venv_dir: Path,
     include_dependencies: bool,
     *,
     force: bool,
 ) -> None:
-    package_metadata = venv.package_metadata[package]
+    package_metadata = venv.package_metadata[package_name]
 
-    display_name = f"{package}{package_metadata.suffix}"
+    display_name = f"{package_name}{package_metadata.suffix}"
 
     if not package_metadata.apps:
         if not package_metadata.apps_of_dependencies:
@@ -369,8 +369,8 @@ def run_post_install_actions(
                 local_bin_dir, app_paths, force=force, suffix=package_metadata.suffix
             )
 
-    package_summary, _ = get_package_summary(
-        venv_dir, package=package, new_install=True
+    package_summary, _ = get_venv_summary(
+        venv_dir, package_name=package_name, new_install=True
     )
     print(package_summary)
     warn_if_not_on_path(local_bin_dir)

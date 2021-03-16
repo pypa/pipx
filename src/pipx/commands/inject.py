@@ -51,7 +51,7 @@ def inject_dep(
         )
 
     venv.install_package(
-        package=package_name,
+        package_name=package_name,
         package_or_url=package_spec,
         pip_args=pip_args,
         include_dependencies=include_dependencies,

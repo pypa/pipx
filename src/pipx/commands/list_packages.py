@@ -3,7 +3,7 @@ from typing import Collection
 
 from pipx import constants
 from pipx.colors import bold
-from pipx.commands.common import VenvProblems, get_package_summary
+from pipx.commands.common import VenvProblems, get_venv_summary
 from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK, ExitCode
 from pipx.emojis import sleep
 from pipx.venv import VenvContainer
@@ -23,7 +23,7 @@ def list_packages(venv_container: VenvContainer, include_injected: bool) -> Exit
 
     all_venv_problems = VenvProblems()
     for venv_dir in venv_dirs:
-        package_summary, venv_problems = get_package_summary(
+        package_summary, venv_problems = get_venv_summary(
             venv_dir, include_injected=include_injected
         )
         print(package_summary)

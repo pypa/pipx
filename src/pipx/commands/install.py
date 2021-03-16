@@ -58,7 +58,7 @@ def install(
     try:
         venv.create_venv(venv_args, pip_args)
         venv.install_package(
-            package=package_name,
+            package_name=package_name,
             package_or_url=package_spec,
             pip_args=pip_args,
             include_dependencies=include_dependencies,
