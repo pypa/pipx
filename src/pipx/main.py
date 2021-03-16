@@ -690,6 +690,7 @@ def setup_logging(verbose: bool) -> None:
                 "class": "logging.FileHandler",
                 "formatter": "file",
                 "filename": str(pipx.constants.pipx_log_file),
+                "encoding": "utf-8",
                 "level": "DEBUG",
             },
         },
