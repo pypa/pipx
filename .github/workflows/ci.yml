@@ -15,8 +15,15 @@ jobs:
               with:
                   php-version: '7.4'
                   extensions: mbstring, intl
+
             - name: Install Dependencies
               run: composer install -q --no-ansi --no-interaction --no-scripts --no-suggest --no-progress
+
             - name: Execute tests (Unit and Feature tests) via PHPUnit
               run: |
                   vendor/bin/phpunit
+
+            - name: Execute static analysis
+              run: |
+                  vendor/bin/psalm
+

@@ -16,7 +16,7 @@ detailed information.
 
 ### Changed
 
-- - Update to [API version 1.19](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.19-2021-03-12)
+- Update to [API version 1.19](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.19-2021-03-12)
 
 ## [1.7.0]
 
