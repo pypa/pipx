@@ -72,9 +72,9 @@ class VenvContainer:
                 continue
             yield entry
 
-    def get_venv_dir(self, package: str) -> Path:
-        """Return the expected venv path for given `package`."""
-        return self._root.joinpath(canonicalize_name(package))
+    def get_venv_dir(self, package_name: str) -> Path:
+        """Return the expected venv path for given `package_name`."""
+        return self._root.joinpath(canonicalize_name(package_name))
 
     def verify_shared_libs(self) -> None:
         for p in self.iter_venv_dirs():
@@ -205,7 +205,7 @@ class Venv:
 
     def install_package(
         self,
-        package: str,
+        package_name: str,
         package_or_url: str,
         pip_args: List[str],
         include_dependencies: bool,
@@ -216,8 +216,8 @@ class Venv:
         if pip_args is None:
             pip_args = []
 
-        # package name in package specifier can mismatch URL due to user error
-        package_or_url = fix_package_name(package_or_url, package)
+        # package_name in package specifier can mismatch URL due to user error
+        package_or_url = fix_package_name(package_or_url, package_name)
 
         # check syntax and clean up spec and pip_args
         (package_or_url, pip_args) = parse_specifier_for_install(
@@ -225,7 +225,7 @@ class Venv:
         )
 
         with animate(
-            f"installing {full_package_description(package, package_or_url)}",
+            f"installing {full_package_description(package_name, package_or_url)}",
             self.do_animation,
         ):
             # do not use -q with `pip install` so subprocess_post_check_pip_errors
@@ -241,11 +241,11 @@ class Venv:
         subprocess_post_check_handle_pip_error(pip_process)
         if pip_process.returncode:
             raise PipxError(
-                f"Error installing {full_package_description(package, package_or_url)}."
+                f"Error installing {full_package_description(package_name, package_or_url)}."
             )
 
         self._update_package_metadata(
-            package=package,
+            package_name=package_name,
             package_or_url=package_or_url,
             pip_args=pip_args,
             include_dependencies=include_dependencies,
@@ -255,10 +255,10 @@ class Venv:
         )
 
         # Verify package installed ok
-        if self.package_metadata[package].package_version is None:
+        if self.package_metadata[package_name].package_version is None:
             raise PipxError(
                 f"Unable to install "
-                f"{full_package_description(package, package_or_url)}.\n"
+                f"{full_package_description(package_name, package_or_url)}.\n"
                 f"Check the name or spec for errors, and verify that it can "
                 f"be installed with pip.",
                 wrap_message=False,
@@ -282,8 +282,8 @@ class Venv:
 
         installed_packages = self.list_installed_packages() - old_package_set
         if len(installed_packages) == 1:
-            package = installed_packages.pop()
-            logger.info(f"Determined package name: {package}")
+            package_name = installed_packages.pop()
+            logger.info(f"Determined package name: {package_name}")
         else:
             logger.info(f"old_package_set = {old_package_set}")
             logger.info(f"install_packages = {installed_packages}")
@@ -294,14 +294,14 @@ class Venv:
                 """
             )
 
-        return package
+        return package_name
 
     def get_venv_metadata_for_package(
-        self, package: str, package_extras: Set[str]
+        self, package_name: str, package_extras: Set[str]
     ) -> VenvMetadata:
         data_start = time.time()
         venv_metadata = inspect_venv(
-            package, package_extras, self.bin_path, self.python_path
+            package_name, package_extras, self.bin_path, self.python_path
         )
         logger.info(
             f"get_venv_metadata_for_package: {1e3*(time.time()-data_start):.0f}ms"
@@ -310,7 +310,7 @@ class Venv:
 
     def _update_package_metadata(
         self,
-        package: str,
+        package_name: str,
         package_or_url: str,
         pip_args: List[str],
         include_dependencies: bool,
@@ -319,10 +319,10 @@ class Venv:
         suffix: str = "",
     ) -> None:
         venv_package_metadata = self.get_venv_metadata_for_package(
-            package, get_extras(package_or_url)
+            package_name, get_extras(package_or_url)
         )
         package_info = PackageInfo(
-            package=package,
+            package=package_name,
             package_or_url=parse_specifier_for_metadata(package_or_url),
             pip_args=pip_args,
             include_apps=include_apps,
@@ -337,7 +337,7 @@ class Venv:
         if is_main_package:
             self.pipx_metadata.main_package = package_info
         else:
-            self.pipx_metadata.injected_packages[package] = package_info
+            self.pipx_metadata.injected_packages[package_name] = package_info
 
         self.pipx_metadata.write()
 
@@ -389,16 +389,21 @@ class Venv:
             return True
         return (self.bin_path / filename).is_file()
 
-    def _upgrade_package_no_metadata(self, package: str, pip_args: List[str]) -> None:
+    def _upgrade_package_no_metadata(
+        self, package_name: str, pip_args: List[str]
+    ) -> None:
         with animate(
-            f"upgrading {full_package_description(package, package)}", self.do_animation
+            f"upgrading {full_package_description(package_name, package_name)}",
+            self.do_animation,
         ):
-            pip_process = self._run_pip(["install"] + pip_args + ["--upgrade", package])
+            pip_process = self._run_pip(
+                ["install"] + pip_args + ["--upgrade", package_name]
+            )
         subprocess_post_check(pip_process)
 
     def upgrade_package(
         self,
-        package: str,
+        package_name: str,
         package_or_url: str,
         pip_args: List[str],
         include_dependencies: bool,
@@ -407,7 +412,7 @@ class Venv:
         suffix: str = "",
     ) -> None:
         with animate(
-            f"upgrading {full_package_description(package, package_or_url)}",
+            f"upgrading {full_package_description(package_name, package_or_url)}",
             self.do_animation,
         ):
             pip_process = self._run_pip(
@@ -416,7 +421,7 @@ class Venv:
         subprocess_post_check(pip_process)
 
         self._update_package_metadata(
-            package=package,
+            package_name=package_name,
             package_or_url=package_or_url,
             pip_args=pip_args,
             include_dependencies=include_dependencies,

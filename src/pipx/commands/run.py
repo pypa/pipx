@@ -129,14 +129,14 @@ def _download_and_run(
     venv.create_venv(venv_args, pip_args)
 
     if venv.pipx_metadata.main_package.package is not None:
-        package = venv.pipx_metadata.main_package.package
+        package_name = venv.pipx_metadata.main_package.package
     else:
-        package = package_name_from_spec(
+        package_name = package_name_from_spec(
             package_or_url, python, pip_args=pip_args, verbose=verbose
         )
 
     venv.install_package(
-        package=package,
+        package_name=package_name,
         package_or_url=package_or_url,
         pip_args=pip_args,
         include_dependencies=False,

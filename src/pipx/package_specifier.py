@@ -214,24 +214,24 @@ def valid_pypi_name(package_spec: str) -> Optional[str]:
     return canonicalize_name(package_req.name)
 
 
-def fix_package_name(package_or_url: str, package: str) -> str:
+def fix_package_name(package_or_url: str, package_name: str) -> str:
     try:
         package_req = Requirement(package_or_url)
     except InvalidRequirement:
         # not a valid PEP508 package specification
         return package_or_url
 
-    if canonicalize_name(package_req.name) != canonicalize_name(package):
+    if canonicalize_name(package_req.name) != canonicalize_name(package_name):
         logger.warning(
             pipx_wrap(
                 f"""
                 {hazard}  Name supplied in package specifier was
-                {package_req.name!r} but package found has name {package!r}.
-                Using {package!r}.
+                {package_req.name!r} but package found has name {package_name!r}.
+                Using {package_name!r}.
                 """,
                 subsequent_indent=" " * 4,
             )
         )
-    package_req.name = package
+    package_req.name = package_name
 
     return str(package_req)
