@@ -159,7 +159,7 @@ def _symlink_package_apps(
 def get_venv_summary(
     venv_dir: Path,
     *,
-    package_name: str = None,
+    package_name: Optional[str] = None,
     new_install: bool = False,
     include_injected: bool = False,
 ) -> Tuple[str, VenvProblems]:

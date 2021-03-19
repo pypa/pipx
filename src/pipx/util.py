@@ -35,7 +35,7 @@ class PipxError(Exception):
 
 
 class RelevantSearch(NamedTuple):
-    pattern: Pattern
+    pattern: Pattern[str]
     category: str
 
 
