@@ -123,7 +123,13 @@ def lint(session):
     session.run("isort", "--check", "--diff", "--profile", "black", *files)
     session.run("black", "--check", *files)
     session.run("flake8", *files)
-    session.run("mypy", *files)
+    session.run(
+        "mypy",
+        "--strict-equality",
+        "--no-implicit-optional",
+        "--warn-unused-ignores",
+        *files,
+    )
     session.run("check-manifest")
     session.run("python", "setup.py", "check", "--metadata", "--strict")
 
