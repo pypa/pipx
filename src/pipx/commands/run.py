@@ -203,7 +203,7 @@ def _remove_all_expired_venvs() -> None:
 def _http_get_request(url: str) -> str:
     try:
         res = urllib.request.urlopen(url)
-        charset = res.headers.get_content_charset() or "utf-8"  # type: ignore
+        charset = res.headers.get_content_charset() or "utf-8"
         return res.read().decode(charset)
     except Exception as e:
         logger.debug("Uncaught Exception:", exc_info=True)
