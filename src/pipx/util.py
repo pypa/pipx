@@ -125,7 +125,7 @@ def run_subprocess(
     log_cmd_str: Optional[str] = None,
     log_stdout: bool = True,
     log_stderr: bool = True,
-) -> subprocess.CompletedProcess[str]:
+) -> subprocess.CompletedProcess:
     """Run arbitrary command as subprocess, capturing stderr and stout"""
     env = dict(os.environ)
     env = _fix_subprocess_env(env)
@@ -154,7 +154,7 @@ def run_subprocess(
 
 
 def subprocess_post_check(
-    completed_process: subprocess.CompletedProcess[str], raise_error: bool = True
+    completed_process: subprocess.CompletedProcess, raise_error: bool = True
 ) -> None:
     if completed_process.returncode:
         if completed_process.stdout is not None:
@@ -291,7 +291,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str) -> None:
 
 
 def subprocess_post_check_handle_pip_error(
-    completed_process: subprocess.CompletedProcess[str],
+    completed_process: subprocess.CompletedProcess,
 ) -> None:
     if completed_process.returncode:
         logger.info(f"{' '.join(completed_process.args)!r} failed")
