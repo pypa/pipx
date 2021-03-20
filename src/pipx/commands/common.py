@@ -187,7 +187,7 @@ def get_venv_summary(
 
     package_metadata = venv.package_metadata[package_name]
 
-    if package_metadata.package_version is None:
+    if package_metadata.package_version == "":
         return (
             f"   package {red(bold(package_name))} {red('is not installed')} "
             f"in the venv {venv_dir.name}",
