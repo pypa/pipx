@@ -123,7 +123,7 @@ class InstalledVenvsCompleter:
         ]
 
 
-def get_pip_args(parsed_args: Dict) -> List[str]:
+def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
     pip_args: List[str] = []
     if parsed_args.get("index_url"):
         pip_args += ["--index-url", parsed_args["index_url"]]
@@ -138,7 +138,7 @@ def get_pip_args(parsed_args: Dict) -> List[str]:
     return pip_args
 
 
-def get_venv_args(parsed_args: Dict) -> List[str]:
+def get_venv_args(parsed_args: Dict[str, str]) -> List[str]:
     venv_args: List[str] = []
     if parsed_args.get("system_site_packages"):
         venv_args += ["--system-site-packages"]

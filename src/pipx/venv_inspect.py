@@ -161,7 +161,7 @@ def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
     return app_paths_output
 
 
-def fetch_info_in_venv(venv_python_path) -> Tuple[List[str], Dict[str, str], str]:
+def fetch_info_in_venv(venv_python_path: Path) -> Tuple[List[str], Dict[str, str], str]:
     command_str = textwrap.dedent(
         """
         import json

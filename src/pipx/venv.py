@@ -213,9 +213,6 @@ class Venv:
         is_main_package: bool,
         suffix: str = "",
     ) -> None:
-        if pip_args is None:
-            pip_args = []
-
         # package_name in package specifier can mismatch URL due to user error
         package_or_url = fix_package_name(package_or_url, package_name)
 

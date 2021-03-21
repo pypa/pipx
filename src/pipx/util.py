@@ -35,7 +35,7 @@ class PipxError(Exception):
 
 
 class RelevantSearch(NamedTuple):
-    pattern: Pattern
+    pattern: Pattern[str]
     category: str
 
 
@@ -180,7 +180,7 @@ def dedup_ordered(input_list: List[Any]) -> List[Any]:
     return output_list
 
 
-def analyze_pip_output(pip_stdout: str, pip_stderr: str):
+def analyze_pip_output(pip_stdout: str, pip_stderr: str) -> None:
     r"""Extract useful errors from pip output of failed install
 
     Print the module that failed to build
