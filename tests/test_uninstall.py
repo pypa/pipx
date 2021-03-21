@@ -29,7 +29,7 @@ def test_uninstall_legacy_venv(pipx_temp_env, capsys, metadata_version):
 
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
     assert not run_pipx_cli(["uninstall", "pycowsay"])
-    # Also check is_symlink because
+    # Also use is_symlink to check for broken symlink.
     #   exists() returns False if symlink exists but target doesn't exist
     assert not executable_path.exists() and not executable_path.is_symlink()
 
@@ -43,7 +43,7 @@ def test_uninstall_suffix(pipx_temp_env, capsys):
     assert executable_path.exists()
 
     assert not run_pipx_cli(["uninstall", f"{name}{suffix}"])
-    # Also check is_symlink because
+    # Also use is_symlink to check for broken symlink.
     #   exists() returns False if symlink exists but target doesn't exist
     assert not executable_path.exists() and not executable_path.is_symlink()
 
@@ -59,7 +59,7 @@ def test_uninstall_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert executable_path.exists()
 
     assert not run_pipx_cli(["uninstall", f"{name}{suffix}"])
-    # Also check is_symlink because
+    # Also use is_symlink to check for broken symlink.
     #   exists() returns False if symlink exists but target doesn't exist
     assert not executable_path.exists() and not executable_path.is_symlink()
 
