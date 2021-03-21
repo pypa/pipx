@@ -22,9 +22,14 @@ def test_uninstall_circular_deps(pipx_temp_env, capsys):
 
 @pytest.mark.parametrize("metadata_version", [None, "0.1"])
 def test_uninstall_legacy_venv(pipx_temp_env, capsys, metadata_version):
+    executable = f"pycowsay{'.exe' if constants.WINDOWS else ''}"
+
     assert not run_pipx_cli(["install", "pycowsay"])
+    assert (constants.LOCAL_BIN_DIR / executable).exists()
+
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
     assert not run_pipx_cli(["uninstall", "pycowsay"])
+    assert not (constants.LOCAL_BIN_DIR / executable).exists()
 
 
 def test_uninstall_suffix(pipx_temp_env, capsys):
