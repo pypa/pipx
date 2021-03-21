@@ -1,7 +1,7 @@
 dev
 
 - Make sure log files are utf-8 encoded to preven Unicode encoding errors from occurring with emojis. (#646)
-- Fixed old regression that would prevent pipx uninstall from cleaning up linked binaries if the venv was old and did not have pipx metadata.
+- Fixed old regression that would prevent pipx uninstall from cleaning up linked binaries if the venv was old and did not have pipx metadata. (#651)
 
 0.16.1.0
 
