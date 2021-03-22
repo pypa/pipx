@@ -73,3 +73,22 @@ def test_uninstall_with_missing_interpreter(pipx_temp_env, capsys):
     assert not python_path.is_file()
 
     assert not run_pipx_cli(["uninstall", "pycowsay"])
+
+
+@pytest.mark.parametrize("metadata_version", [None, "0.1"])
+def test_uninstall_with_missing_interpreter_legacy_venv(
+    pipx_temp_env, capsys, metadata_version
+):
+    executable_path = constants.LOCAL_BIN_DIR / app_name("pycowsay")
+
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert executable_path.exists()
+
+    mock_legacy_venv("pycowsay", metadata_version=metadata_version)
+    _, venv_python_path = util.get_venv_paths(constants.PIPX_LOCAL_VENVS / "pycowsay")
+    venv_python_path.unlink()
+
+    assert not run_pipx_cli(["uninstall", "pycowsay"])
+    # Also use is_symlink to check for broken symlink.
+    #   exists() returns False if symlink exists but target doesn't exist
+    assert not executable_path.exists() and not executable_path.is_symlink()
