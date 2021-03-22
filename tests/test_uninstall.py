@@ -53,7 +53,9 @@ def test_uninstall_suffix(pipx_temp_env, capsys):
 @pytest.mark.parametrize("metadata_version", ["0.1"])
 def test_uninstall_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
     name = "pbr"
-    suffix = "_a"
+    # legacy uninstall on Windows only works with "canonical name characters"
+    #   in suffix
+    suffix = "-a"
     executable_path = constants.LOCAL_BIN_DIR / app_name(f"{name}{suffix}")
 
     assert not run_pipx_cli(["install", "pbr", f"--suffix={suffix}"])
