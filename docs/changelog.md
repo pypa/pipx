@@ -1,6 +1,7 @@
 dev
 
 - Make sure log files are utf-8 encoded to preven Unicode encoding errors from occurring with emojis. (#646)
+- Fixed bugs with suffixed-venvs on Windows.  Now properly summarizes install, and actually uninstalls associated binaries for suffixed-venvs.
 
 0.16.1.0
 
