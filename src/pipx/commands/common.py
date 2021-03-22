@@ -78,6 +78,7 @@ def _can_symlink(local_bin_dir: Path) -> bool:
                 _can_symlink_cache[local_bin_dir] = True
             except (OSError, NotImplementedError):
                 _can_symlink_cache[local_bin_dir] = False
+
     return _can_symlink_cache[local_bin_dir]
 
 
