@@ -37,7 +37,7 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> ExitCode:
 
     suffix = ""
 
-    if venv.pipx_metadata.main_package.package is not None:
+    if venv.pipx_metadata.main_package is not None:
         app_paths: List[Path] = []
         for viewed_package in venv.package_metadata.values():
             app_paths += viewed_package.app_paths
@@ -49,7 +49,7 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> ExitCode:
         if venv.python_path.is_file():
             # has a valid python interpreter and can get metadata about the package
             # In pre-metadata-pipx venv_dir.name is name of main package
-            metadata = venv.get_venv_metadata_for_package(venv_dir.name, set())
+            metadata = venv.get_venv_metadata_for_package(venv_dir.name)
             app_paths = metadata.app_paths
             for dep_paths in metadata.app_paths_of_dependencies.values():
                 app_paths += dep_paths
