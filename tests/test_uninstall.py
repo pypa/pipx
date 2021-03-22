@@ -43,6 +43,7 @@ def test_uninstall_suffix(pipx_temp_env, capsys):
     assert executable_path.exists()
 
     assert not run_pipx_cli(["uninstall", f"{name}{suffix}"])
+    assert not executable_path.exists()
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])
@@ -56,6 +57,7 @@ def test_uninstall_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert executable_path.exists()
 
     assert not run_pipx_cli(["uninstall", f"{name}{suffix}"])
+    assert not executable_path.exists()
 
 
 def test_uninstall_with_missing_interpreter(pipx_temp_env, capsys):
