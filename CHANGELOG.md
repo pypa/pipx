@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.9.0]
+
+### Added
+
+- Add `host` attribute to database users.
+- Add endpoint for retrieving the malware of a virtual host.
+
+### Changed
+
+- Update to [API version 1.21](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.21-2021-03-18)
+
 ## [1.8.1]
 
 ### Changed
