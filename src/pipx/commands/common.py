@@ -194,7 +194,10 @@ def get_venv_summary(
             VenvProblems(not_installed=True),
         )
 
-    apps = package_metadata.apps + package_metadata.apps_of_dependencies
+    apps = package_metadata.apps
+    if package_metadata.include_dependencies:
+        apps += package_metadata.apps_of_dependencies
+
     exposed_app_paths = _get_exposed_app_paths_for_package(
         venv.bin_path, apps, constants.LOCAL_BIN_DIR
     )
@@ -238,7 +241,7 @@ def _get_exposed_app_paths_for_package(
             # Windows, we use a less strict check if we don't have a symlink.
             if _can_symlink(local_bin_dir) and b.is_symlink():
                 is_same_file = b.resolve().parent.samefile(venv_bin_path)
-            else:
+            elif not _can_symlink(local_bin_dir):
                 is_same_file = b.name in package_binary_names
 
             if is_same_file:

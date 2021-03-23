@@ -1,6 +1,7 @@
 dev
 
 - Make sure log files are utf-8 encoded to preven Unicode encoding errors from occurring with emojis. (#646)
+- Fixed issue which made pipx incorrectly list apps as part of a venv when they were not installed by pipx. (#650)
 
 0.16.1.0
 
