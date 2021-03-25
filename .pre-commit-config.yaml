@@ -32,3 +32,4 @@ repos:
   rev: v0.800
   hooks:
   - id: mypy
+    args: ['--strict-equality','--no-implicit-optional','--warn-unused-ignores']
