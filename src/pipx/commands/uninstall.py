@@ -35,12 +35,15 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> ExitCode:
 
     venv = Venv(venv_dir, verbose=verbose)
 
+    suffix = ""
+
     if venv.pipx_metadata.main_package.package is not None:
         app_paths: List[Path] = []
         for viewed_package in venv.package_metadata.values():
             app_paths += viewed_package.app_paths
             for dep_paths in viewed_package.app_paths_of_dependencies.values():
                 app_paths += dep_paths
+        suffix = venv.pipx_metadata.main_package.suffix
     else:
         # fallback if not metadata from pipx_metadata.json
         if venv.python_path.is_file():
@@ -69,7 +72,8 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> ExitCode:
     for filepath in local_bin_dir.iterdir():
         if WINDOWS:
             for b in app_paths:
-                if filepath.exists() and filepath.name == b.name:
+                bin_name = b.stem + suffix + b.suffix
+                if filepath.exists() and filepath.name == bin_name:
                     filepath.unlink()
         else:
             symlink = filepath
