@@ -199,7 +199,9 @@ def get_venv_summary(
         apps += package_metadata.apps_of_dependencies
 
     exposed_app_paths = _get_exposed_app_paths_for_package(
-        venv.bin_path, apps, constants.LOCAL_BIN_DIR
+        venv.bin_path,
+        [add_suffix(app, package_metadata.suffix) for app in apps],
+        constants.LOCAL_BIN_DIR,
     )
     exposed_binary_names = sorted(p.name for p in exposed_app_paths)
     unavailable_binary_names = sorted(
