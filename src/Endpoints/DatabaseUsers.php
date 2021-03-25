@@ -64,4 +64,98 @@ class DatabaseUsers extends Endpoint
             'databaseUser' => (new DatabaseUser())->fromArray($response->getData()),
         ]);
     }
+
+    /**
+     * @param DatabaseUser $databaseUser
+     * @return Response
+     * @throws RequestException
+     */
+    public function create(DatabaseUser $databaseUser): Response
+    {
+        $requiredAttributes = [
+            'name',
+            'password',
+            'serverSoftwareName',
+            'clusterId',
+        ];
+        $this->validateRequired($databaseUser, 'create', $requiredAttributes);
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl('database-users')
+            ->setBody($this->filterFields($databaseUser->toArray(), [
+                'name',
+                'host',
+                'password',
+                'server_software_name',
+                'cluster_id',
+            ]));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (! $response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'databaseUser' => (new DatabaseUser())->fromArray($response->getData()),
+        ]);
+    }
+
+    /**
+     * @param DatabaseUser $databaseUser
+     * @return Response
+     * @throws RequestException
+     */
+    public function update(DatabaseUser $databaseUser): Response
+    {
+        $requiredAttributes = [
+            'id',
+            'name',
+            'password',
+            'serverSoftwareName',
+            'clusterId',
+        ];
+        $this->validateRequired($databaseUser, 'update', $requiredAttributes);
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_PUT)
+            ->setUrl(sprintf('database-users/%d', $databaseUser->id))
+            ->setBody($this->filterFields($databaseUser->toArray(), [
+                'name',
+                'host',
+                'password',
+                'server_software_name',
+                'cluster_id',
+                'id',
+            ]));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (! $response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'databaseUser' => (new DatabaseUser())->fromArray($response->getData()),
+        ]);
+    }
+
+    /**
+     * @param int $id
+     * @return Response
+     * @throws RequestException
+     */
+    public function delete(int $id): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_DELETE)
+            ->setUrl(sprintf('database-users/%d', $id));
+
+        return $this
+            ->client
+            ->request($request);
+    }
 }

@@ -58,6 +58,11 @@ class ClusterApi
         return new Endpoints\DatabaseUsers($this->client);
     }
 
+    public function databaseUserGrants(): Endpoints\DatabaseUserGrants
+    {
+        return new Endpoints\DatabaseUserGrants($this->client);
+    }
+
     public function fpmPools(): Endpoints\FpmPools
     {
         return new Endpoints\FpmPools($this->client);

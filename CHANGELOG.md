@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.10.0]
+
+### Added
+
+- Add crud for databases.
+- Add crud for database users.
+- Add crud for database user grants.
+
+### Changed
+
+- Update to [API version 1.22](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.22-2021-03-23)
+
 ## [1.9.0]
 
 ### Added

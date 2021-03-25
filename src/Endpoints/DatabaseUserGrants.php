@@ -2,15 +2,13 @@
 
 namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
-use DateTimeInterface;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Vdhicts\Cyberfusion\ClusterApi\Models\Database;
-use Vdhicts\Cyberfusion\ClusterApi\Models\DatabaseUsage;
+use Vdhicts\Cyberfusion\ClusterApi\Models\DatabaseUserGrant;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
 
-class Databases extends Endpoint
+class DatabaseUserGrants extends Endpoint
 {
     /**
      * @param ListFilter|null $filter
@@ -25,7 +23,7 @@ class Databases extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('databases?%s', http_build_query($filter->toArray())));
+            ->setUrl(sprintf('database-user-grants?%s', http_build_query($filter->toArray())));
 
         $response = $this
             ->client
@@ -35,9 +33,9 @@ class Databases extends Endpoint
         }
 
         return $response->setData([
-            'databases' => array_map(
+            'databaseUserGrants' => array_map(
                 function (array $data) {
-                    return (new Database())->fromArray($data);
+                    return (new DatabaseUserGrant())->fromArray($data);
                 },
                 $response->getData()
             ),
@@ -53,7 +51,7 @@ class Databases extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('databases/%d', $id));
+            ->setUrl(sprintf('database-user-grants/%d', $id));
 
         $response = $this
             ->client
@@ -63,31 +61,33 @@ class Databases extends Endpoint
         }
 
         return $response->setData([
-            'database' => (new Database())->fromArray($response->getData()),
+            'databaseUserGrant' => (new DatabaseUserGrant())->fromArray($response->getData()),
         ]);
     }
 
     /**
-     * @param Database $database
+     * @param DatabaseUserGrant $databaseUserGrant
      * @return Response
      * @throws RequestException
      */
-    public function create(Database $database): Response
+    public function create(DatabaseUserGrant $databaseUserGrant): Response
     {
         $requiredAttributes = [
-            'name',
-            'serverSoftwareName',
-            'clusterId',
+            'databaseId',
+            'databaseUserId',
+            'tableName',
+            'privilegeName',
         ];
-        $this->validateRequired($database, 'create', $requiredAttributes);
+        $this->validateRequired($databaseUserGrant, 'create', $requiredAttributes);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('databases')
-            ->setBody($this->filterFields($database->toArray(), [
-                'name',
-                'server_software_name',
-                'cluster_id',
+            ->setUrl('database-user-grants')
+            ->setBody($this->filterFields($databaseUserGrant->toArray(), [
+                'database_id',
+                'database_user_id',
+                'table_name',
+                'privilege_name',
             ]));
 
         $response = $this
@@ -98,7 +98,7 @@ class Databases extends Endpoint
         }
 
         return $response->setData([
-            'database' => (new Database())->fromArray($response->getData()),
+            'databaseUserGrant' => (new DatabaseUserGrant())->fromArray($response->getData()),
         ]);
     }
 
@@ -111,39 +111,10 @@ class Databases extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
-            ->setUrl(sprintf('databases/%d', $id));
+            ->setUrl(sprintf('database-user-grants/%d', $id));
 
         return $this
             ->client
             ->request($request);
-    }
-
-    /**
-     * @param int $id
-     * @param DateTimeInterface|null $from
-     * @return Response
-     * @throws RequestException
-     */
-    public function usages(int $id, DateTimeInterface $from = null): Response
-    {
-        $url = $this->applyOptionalQueryParameters(
-            sprintf('databases/usages/%d', $id),
-            ['from_timestamp_date' => $from]
-        );
-
-        $request = (new Request())
-            ->setMethod(Request::METHOD_GET)
-            ->setUrl($url);
-
-        $response = $this
-            ->client
-            ->request($request);
-        if (! $response->isSuccess()) {
-            return $response;
-        }
-
-        return $response->setData([
-            'databaseUsage' => (new DatabaseUsage())->fromArray($response->getData()),
-        ]);
     }
 }
