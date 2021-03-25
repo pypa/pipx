@@ -427,7 +427,7 @@ class Venv:
             suffix=suffix,
         )
 
-    def _run_pip(self, cmd: List[str]) -> CompletedProcess:
+    def _run_pip(self, cmd: List[str]) -> "CompletedProcess[str]":
         cmd = [str(self.python_path), "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")

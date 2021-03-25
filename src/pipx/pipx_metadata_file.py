@@ -13,7 +13,7 @@ PIPX_INFO_FILENAME = "pipx_metadata.json"
 
 
 class JsonEncoderHandlesPath(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj: Any) -> Any:
         # only handles what json.JSONEncoder doesn't understand by default
         if isinstance(obj, Path):
             return {"__type__": "Path", "__Path__": str(obj)}
