@@ -100,8 +100,9 @@ def reinstall_all(
         except PipxError as e:
             print(e, file=sys.stderr)
             failed.append(venv_dir.name)
-        if package_exit != 0:
-            failed.append(venv_dir.name)
+        else:
+            if package_exit != 0:
+                failed.append(venv_dir.name)
     if len(failed) > 0:
         raise PipxError(
             f"The following package(s) failed to reinstall: {', '.join(failed)}"
