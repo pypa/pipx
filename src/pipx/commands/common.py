@@ -37,7 +37,6 @@ class VenvProblems:
         self.missing_metadata = missing_metadata
         self.not_installed = not_installed
 
-    @property
     def any_(self) -> bool:
         return any(self.__dict__.values())
 
@@ -203,7 +202,7 @@ def get_venv_summary(
         package_name = venv.main_package_name
 
     (venv_problems, warning_message) = venv_health_check(venv, package_name)
-    if venv_problems.any_:
+    if venv_problems.any_():
         return (warning_message, venv_problems)
 
     package_metadata = venv.package_metadata[package_name]

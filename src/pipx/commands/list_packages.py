@@ -18,7 +18,7 @@ def get_venv_metadata_summary(venv_dir: Path) -> Tuple[PipxMetadata, VenvProblem
     venv = Venv(venv_dir)
 
     (venv_problems, warning_message) = venv_health_check(venv)
-    if venv_problems.any_:
+    if venv_problems.any_():
         return (PipxMetadata(venv_dir, read=False), venv_problems, warning_message)
 
     return (venv.pipx_metadata, venv_problems, "")
@@ -53,7 +53,7 @@ def list_json(venv_dirs: Collection[Path]) -> VenvProblems:
             venv_dir
         )
         all_venv_problems.or_(venv_problems)
-        if venv_problems.any_:
+        if venv_problems.any_():
             warning_messages.append(warning_str)
             continue
 
@@ -108,7 +108,7 @@ def list_packages(
             "   Please uninstall and install these package(s) to fix."
         )
 
-    if all_venv_problems.any_:
+    if all_venv_problems.any_():
         print()
         return EXIT_CODE_LIST_PROBLEM
 
