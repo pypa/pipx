@@ -37,6 +37,7 @@ class VenvProblems:
         self.missing_metadata = missing_metadata
         self.not_installed = not_installed
 
+    @property
     def any_(self) -> bool:
         return any(self.__dict__.values())
 
@@ -156,6 +157,39 @@ def _symlink_package_apps(
             )
 
 
+def venv_health_check(
+    venv: Venv, package_name: Optional[str] = None
+) -> Tuple[VenvProblems, str]:
+    venv_dir = venv.root
+    python_path = venv.python_path.resolve()
+
+    if package_name is None:
+        package_name = venv.main_package_name
+
+    if not python_path.is_file():
+        return (
+            VenvProblems(invalid_interpreter=True),
+            f"   package {red(bold(venv_dir.name))} has invalid interpreter {str(python_path)}",
+        )
+    if not venv.package_metadata:
+        return (
+            VenvProblems(missing_metadata=True),
+            f"   package {red(bold(venv_dir.name))} has missing internal pipx metadata.",
+        )
+    if venv_dir.name != canonicalize_name(venv_dir.name):
+        return (
+            VenvProblems(bad_venv_name=True),
+            f"   package {red(bold(venv_dir.name))} needs its internal data updated.",
+        )
+    if venv.package_metadata[package_name].package_version == "":
+        return (
+            VenvProblems(not_installed=True),
+            f"   package {red(bold(package_name))} {red('is not installed')} "
+            f"in the venv {venv_dir.name}",
+        )
+    return (VenvProblems(), "")
+
+
 def get_venv_summary(
     venv_dir: Path,
     *,
@@ -164,36 +198,15 @@ def get_venv_summary(
     include_injected: bool = False,
 ) -> Tuple[str, VenvProblems]:
     venv = Venv(venv_dir)
-    python_path = venv.python_path.resolve()
 
     if package_name is None:
         package_name = venv.main_package_name
 
-    if not python_path.is_file():
-        return (
-            f"   package {red(bold(venv_dir.name))} has invalid interpreter {str(python_path)}",
-            VenvProblems(invalid_interpreter=True),
-        )
-    if not venv.package_metadata:
-        return (
-            f"   package {red(bold(venv_dir.name))} has missing internal pipx metadata.",
-            VenvProblems(missing_metadata=True),
-        )
-    if venv_dir.name != canonicalize_name(venv_dir.name):
-        return (
-            f"   package {red(bold(venv_dir.name))} needs its internal data updated.",
-            VenvProblems(bad_venv_name=True),
-        )
+    (venv_problems, warning_message) = venv_health_check(venv, package_name)
+    if venv_problems.any_:
+        return (warning_message, venv_problems)
 
     package_metadata = venv.package_metadata[package_name]
-
-    if package_metadata.package_version == "":
-        return (
-            f"   package {red(bold(package_name))} {red('is not installed')} "
-            f"in the venv {venv_dir.name}",
-            VenvProblems(not_installed=True),
-        )
-
     apps = package_metadata.apps
     if package_metadata.include_dependencies:
         apps += package_metadata.apps_of_dependencies
@@ -226,7 +239,7 @@ def get_venv_summary(
             venv.pipx_metadata.injected_packages if include_injected else None,
             suffix=package_metadata.suffix,
         ),
-        VenvProblems(),
+        venv_problems,
     )
 
 
