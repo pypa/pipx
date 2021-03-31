@@ -106,7 +106,9 @@ def test_list_json(pipx_temp_env, capsys):
         pipx_venvs_dir,
         **{
             "app_paths_of_dependencies": {
-                "isort": [pipx_venvs_dir / "pylint" / venv_bin_dir / _exe_if_win("isort")]
+                "isort": [
+                    pipx_venvs_dir / "pylint" / venv_bin_dir / _exe_if_win("isort")
+                ]
             },
         },
     )
