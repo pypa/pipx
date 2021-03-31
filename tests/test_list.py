@@ -9,7 +9,7 @@ from helpers import (
     mock_legacy_venv,
     run_pipx_cli,
 )
-from package_info import PKG
+from package_info import PKG, _exe_if_win
 from pipx import constants, util
 from pipx.pipx_metadata_file import PackageInfo, _json_decoder_object_hook
 
@@ -106,7 +106,7 @@ def test_list_json(pipx_temp_env, capsys):
         pipx_venvs_dir,
         **{
             "app_paths_of_dependencies": {
-                "isort": [pipx_venvs_dir / "pylint" / venv_bin_dir / "isort"]
+                "isort": [pipx_venvs_dir / "pylint" / venv_bin_dir / _exe_if_win("isort")]
             },
         },
     )
