@@ -72,12 +72,11 @@ class Commands extends Endpoint
      */
     public function create(Command $command): Response
     {
-        $requiredAttributes = [
+        $this->validateRequired($command, 'create', [
             'command',
-            'secretValues',
-            'virtualHostId',
-        ];
-        $this->validateRequired($command, 'create', $requiredAttributes);
+            'secret_values',
+            'virtual_host_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
@@ -107,18 +106,17 @@ class Commands extends Endpoint
      */
     public function update(Command $command): Response
     {
-        $requiredAttributes = [
+        $this->validateRequired($command, 'update', [
             'command',
-            'secretValues',
-            'virtualHostId',
+            'secret_values',
+            'virtual_host_id',
             'id',
-            'clusterId',
-        ];
-        $this->validateRequired($command, 'update', $requiredAttributes);
+            'cluster_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('commands/%d', $command->id))
+            ->setUrl(sprintf('commands/%d', $command->getId()))
             ->setBody($this->filterFields($command->toArray(), [
                 'command',
                 'secret_values',

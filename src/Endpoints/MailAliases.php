@@ -72,12 +72,11 @@ class MailAliases extends Endpoint
      */
     public function create(MailAlias $mailAlias): Response
     {
-        $requiredAttributes = [
-            'localPart',
-            'forwardEmailAddresses',
-            'mailDomainId',
-        ];
-        $this->validateRequired($mailAlias, 'create', $requiredAttributes);
+        $this->validateRequired($mailAlias, 'create', [
+            'local_part',
+            'forward_email_addresses',
+            'mail_domain_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
@@ -107,18 +106,17 @@ class MailAliases extends Endpoint
      */
     public function update(MailAlias $mailAlias): Response
     {
-        $requiredAttributes = [
-            'localPart',
-            'forwardEmailAddresses',
-            'mailDomainId',
+        $this->validateRequired($mailAlias, 'update', [
+            'local_part',
+            'forward_email_addresses',
+            'mail_domain_id',
             'id',
-            'clusterId'
-        ];
-        $this->validateRequired($mailAlias, 'update', $requiredAttributes);
+            'cluster_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('mail-aliases/%d', $mailAlias->id))
+            ->setUrl(sprintf('mail-aliases/%d', $mailAlias->getId()))
             ->setBody($this->filterFields($mailAlias->toArray(), [
                 'local_part',
                 'forward_email_addresses',

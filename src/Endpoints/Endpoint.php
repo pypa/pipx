@@ -29,9 +29,16 @@ abstract class Endpoint
      */
     protected function validateRequired(Model $model, string $action, array $requiredAttributes = []): void
     {
+        $modelFields = $model->toArray();
+
         $missing = [];
         foreach ($requiredAttributes as $requiredAttribute) {
-            $value = $model->{$requiredAttribute};
+            $value = $modelFields[$requiredAttribute] ?? null;
+            if (is_null($value)) {
+                $missing[] = $requiredAttribute;
+                continue;
+            }
+
             if (is_string($value) && trim($value) === '') {
                 $missing[] = $requiredAttribute;
             }

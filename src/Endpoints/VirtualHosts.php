@@ -72,16 +72,15 @@ class VirtualHosts extends Endpoint
      */
     public function create(VirtualHost $virtualHost): Response
     {
-        $requiredAttributes = [
+        $this->validateRequired($virtualHost, 'create', [
             'domain',
-            'serverAliases',
-            'unixUserId',
-            'documentRoot',
-            'publicRoot',
-            'forceSsl',
-            'balancerBackendName',
-        ];
-        $this->validateRequired($virtualHost, 'create', $requiredAttributes);
+            'server_aliases',
+            'unix_user_id',
+            'document_root',
+            'public_root',
+            'force_ssl',
+            'balancer_backend_name',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
@@ -118,22 +117,21 @@ class VirtualHosts extends Endpoint
      */
     public function update(VirtualHost $virtualHost): Response
     {
-        $requiredAttributes = [
+        $this->validateRequired($virtualHost, 'update', [
             'domain',
-            'serverAliases',
-            'unixUserId',
-            'documentRoot',
-            'publicRoot',
-            'forceSsl',
+            'server_aliases',
+            'unix_user_id',
+            'document_root',
+            'public_root',
+            'force_ssl',
+            'balancer_backend_name',
             'id',
-            'clusterId',
-            'balancerBackendName',
-        ];
-        $this->validateRequired($virtualHost, 'update', $requiredAttributes);
+            'cluster_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('virtual-hosts/%d', $virtualHost->id))
+            ->setUrl(sprintf('virtual-hosts/%d', $virtualHost->getId()))
             ->setBody($this->filterFields($virtualHost->toArray(), [
                 'domain',
                 'server_aliases',

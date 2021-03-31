@@ -5,24 +5,47 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 
-class Token implements Model
+class Token extends ClusterModel implements Model
 {
-    public string $accessToken;
-    public string $tokenType;
+    private string $accessToken;
+    private string $tokenType;
+
+    public function getAccessToken(): string
+    {
+        return $this->accessToken;
+    }
+
+    public function setAccessToken(string $accessToken): Token
+    {
+        $this->accessToken = $accessToken;
+
+        return $this;
+    }
+
+    public function getTokenType(): string
+    {
+        return $this->tokenType;
+    }
+
+    public function setTokenType(string $tokenType): Token
+    {
+        $this->tokenType = $tokenType;
+
+        return $this;
+    }
 
     public function fromArray(array $data): Token
     {
-        $login = new self();
-        $login->accessToken = Arr::get($data, 'access_token', '');
-        $login->tokenType = Arr::get($data, 'token_type', '');
-        return $login;
+        return $this
+            ->setAccessToken(Arr::get($data, 'access_token', ''))
+            ->setTokenType(Arr::get($data, 'token_type', ''));
     }
 
     public function toArray(): array
     {
         return [
-            'access_token' => $this->accessToken,
-            'token_type' => $this->tokenType,
+            'access_token' => $this->getAccessToken(),
+            'token_type' => $this->getTokenType(),
         ];
     }
 }

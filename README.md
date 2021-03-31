@@ -1,7 +1,7 @@
 # Cyberfusion cluster API client
 
 Easily use the [API of the clusters](https://cluster-api.cyberfusion.nl/) of the hosting company 
-[Cyberfusion](https://cyberfusion.nl/). This package is build and tested on the **1.19** version of the API.
+[Cyberfusion](https://cyberfusion.nl/). This package is build and tested on the **1.28** version of the API.
 
 This package is not created or maintained by Cyberfusion.
 
@@ -73,11 +73,11 @@ The endpoint methods may ask for filters, models or id's. The method typehints w
 The endpoint may request a model, most create and update requests do. 
 
 ```php
-$unixUser = new UnixUser();
-$unixUser->username = 'foo';
-$unixUser->password = 'bar';
-$unixUser->defaultPhpVersion = '7.4';
-$unixUser->clusterId = 1;
+$unixUser = (new UnixUser())
+    ->setUsername('foo')
+    ->setPassword('bar')
+    ->setDefaultPhpVersion('7.4')
+    ->setClusterId(1);
 
 $result = $api
     ->unixUsers
@@ -152,9 +152,9 @@ $client = new Client($configuration, true);
 $api = new ClusterApi($client);
 
 // Create the request
-$login = new Login();
-$login->username = 'username';
-$login->password = 'password';
+$login = (new Login())
+    ->setUsername('username')
+    ->setPassword('password');
 
 // Perform the request
 $response = $api

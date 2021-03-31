@@ -230,7 +230,7 @@ class Client implements ClientContract
      */
     private function parseBody(ResponseInterface $response): array
     {
-        $body = json_decode($response->getBody(), true);
+        $body = json_decode((string)$response->getBody(), true);
         if ($response->getStatusCode() < 300) {
             return $body;
         }

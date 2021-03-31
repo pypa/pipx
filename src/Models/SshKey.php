@@ -5,39 +5,127 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 
-class SshKey implements Model
+class SshKey extends ClusterModel implements Model
 {
-    public string $name;
-    public string $publicKey;
-    public int $unixUserId;
-    public ?int $id = null;
-    public ?int $clusterId = null;
-    public ?string $createdAt = null;
-    public ?string $updatedAt = null;
+    private string $name;
+    private string $publicKey;
+    private int $unixUserId;
+    private ?int $id = null;
+    private ?int $clusterId = null;
+    private ?string $createdAt = null;
+    private ?string $updatedAt = null;
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function setName(string $name): SshKey
+    {
+        $this->validate($name, [
+            'length_max' => 64,
+            'pattern' => '^[a-zA-Z0-9-_@:. ]+$',
+        ]);
+
+        $this->name = $name;
+
+        return $this;
+    }
+
+    public function getPublicKey(): string
+    {
+        return $this->publicKey;
+    }
+
+    public function setPublicKey(string $publicKey): SshKey
+    {
+        $this->publicKey = $publicKey;
+
+        return $this;
+    }
+
+    public function getUnixUserId(): int
+    {
+        return $this->unixUserId;
+    }
+
+    public function setUnixUserId(int $unixUserId): SshKey
+    {
+        $this->unixUserId = $unixUserId;
+
+        return $this;
+    }
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function setId(?int $id): SshKey
+    {
+        $this->id = $id;
+
+        return $this;
+    }
+
+    public function getClusterId(): ?int
+    {
+        return $this->clusterId;
+    }
+
+    public function setClusterId(?int $clusterId): SshKey
+    {
+        $this->clusterId = $clusterId;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?string
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(?string $createdAt): SshKey
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    public function getUpdatedAt(): ?string
+    {
+        return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(?string $updatedAt): SshKey
+    {
+        $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
 
     public function fromArray(array $data): SshKey
     {
-        $sshKey = new self();
-        $sshKey->name = Arr::get($data, 'name');
-        $sshKey->publicKey = Arr::get($data, 'public_key');
-        $sshKey->unixUserId = Arr::get($data, 'unix_user_id');
-        $sshKey->id = Arr::get($data, 'id');
-        $sshKey->clusterId = Arr::get($data, 'cluster_id');
-        $sshKey->createdAt = Arr::get($data, 'created_at');
-        $sshKey->updatedAt = Arr::get($data, 'updated_at');
-        return $sshKey;
+        return $this
+            ->setName(Arr::get($data, 'name'))
+            ->setPublicKey(Arr::get($data, 'public_key'))
+            ->setUnixUserId(Arr::get($data, 'unix_user_id'))
+            ->setId(Arr::get($data, 'id'))
+            ->setClusterId(Arr::get($data, 'cluster_id'))
+            ->setCreatedAt(Arr::get($data, 'created_at'))
+            ->setUpdatedAt(Arr::get($data, 'updated_at'));
     }
 
     public function toArray(): array
     {
         return [
-            'name' => $this->name,
-            'public_key' => $this->publicKey,
-            'unix_user_id' => $this->unixUserId,
-            'id' => $this->id,
-            'cluster_id' => $this->clusterId,
-            'created_at' => $this->createdAt,
-            'updated_at' => $this->updatedAt,
+            'name' => $this->getName(),
+            'public_key' => $this->getPublicKey(),
+            'unix_user_id' => $this->getUnixUserId(),
+            'id' => $this->getId(),
+            'cluster_id' => $this->getClusterId(),
+            'created_at' => $this->getCreatedAt(),
+            'updated_at' => $this->getUpdatedAt(),
         ];
     }
 }

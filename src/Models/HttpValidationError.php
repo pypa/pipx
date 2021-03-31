@@ -5,26 +5,36 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 
-class HttpValidationError implements Model
+class HttpValidationError extends ClusterModel implements Model
 {
-    public array $detail = [];
+    private array $detail = [];
+
+    public function getDetail(): array
+    {
+        return $this->detail;
+    }
+
+    public function setDetail(array $detail): HttpValidationError
+    {
+        $this->detail = $detail;
+
+        return $this;
+    }
 
     public function fromArray(array $data): HttpValidationError
     {
-        $httpValidationError = new self();
-        $httpValidationError->detail = array_map(
+        return $this->setDetail(array_map(
             function (array $detail) {
                 return (new ValidationError())->fromArray($detail);
             },
             Arr::get($data, 'detail', [])
-        );
-        return $httpValidationError;
+        ));
     }
 
     public function toArray(): array
     {
         return [
-            'detail' => $this->detail,
+            'detail' => $this->getDetail(),
         ];
     }
 }

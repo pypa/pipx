@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.11.0]
+
+### Added
+
+- Add several attributes to clusters.
+- Add validation to several properties.
+
+### Changed
+
+- Update to [API version 1.28](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.28-2021-03-29)
+- Change to getters and setters for the properties to allow validation of the properties. To prevent breaking 
+  implementations, property access is still available but the use of the getters and setters is recommended.
+
 ## [1.10.0]
 
 ### Added

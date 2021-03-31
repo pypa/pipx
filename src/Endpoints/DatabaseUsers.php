@@ -72,13 +72,12 @@ class DatabaseUsers extends Endpoint
      */
     public function create(DatabaseUser $databaseUser): Response
     {
-        $requiredAttributes = [
+        $this->validateRequired($databaseUser, 'create', [
             'name',
             'password',
-            'serverSoftwareName',
-            'clusterId',
-        ];
-        $this->validateRequired($databaseUser, 'create', $requiredAttributes);
+            'server_software_name',
+            'cluster_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
@@ -110,18 +109,17 @@ class DatabaseUsers extends Endpoint
      */
     public function update(DatabaseUser $databaseUser): Response
     {
-        $requiredAttributes = [
+        $this->validateRequired($databaseUser, 'update', [
             'id',
             'name',
             'password',
-            'serverSoftwareName',
-            'clusterId',
-        ];
-        $this->validateRequired($databaseUser, 'update', $requiredAttributes);
+            'server_software_name',
+            'cluster_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('database-users/%d', $databaseUser->id))
+            ->setUrl(sprintf('database-users/%d', $databaseUser->getId()))
             ->setBody($this->filterFields($databaseUser->toArray(), [
                 'name',
                 'host',

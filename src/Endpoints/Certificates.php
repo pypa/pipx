@@ -72,9 +72,9 @@ class Certificates extends Endpoint
      */
     public function create(Certificate $certificate): Response
     {
-        $requiredAttributes = is_null($certificate->certificate)
-            ? ['commonNames', 'clusterId'] // Request Let's Encrypt certificate
-            : ['certificate', 'cachain', 'privateKey', 'clusterId']; // Supply own certificate
+        $requiredAttributes = is_null($certificate->getCertificate())
+            ? ['common_names', 'cluster_id'] // Request Let's Encrypt certificate
+            : ['certificate', 'ca_chain', 'private_key', 'cluster_id']; // Supply own certificate
         $this->validateRequired($certificate, 'create', $requiredAttributes);
 
         $request = (new Request())
@@ -107,15 +107,11 @@ class Certificates extends Endpoint
      */
     public function update(Certificate $certificate): Response
     {
-        $requiredAttributes = [
-            'id',
-            'clusterId'
-        ];
-        $this->validateRequired($certificate, 'update', $requiredAttributes);
+        $this->validateRequired($certificate, 'update', ['id', 'cluster_id']);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_PATCH)
-            ->setUrl(sprintf('certificates/%d', $certificate->id))
+            ->setUrl(sprintf('certificates/%d', $certificate->getId()))
             ->setBody($this->filterFields($certificate->toArray(), [
                 'common_names',
                 'certificate',

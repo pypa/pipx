@@ -110,13 +110,12 @@ class UnixUsers extends Endpoint
      */
     public function create(UnixUser $unixUser): Response
     {
-        $requiredAttributes = [
+        $this->validateRequired($unixUser, 'create', [
             'username',
             'password',
-            'defaultPhpVersion',
-            'clusterId',
-        ];
-        $this->validateRequired($unixUser, 'create', $requiredAttributes);
+            'default_php_version',
+            'cluster_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
@@ -149,19 +148,18 @@ class UnixUsers extends Endpoint
      */
     public function update(UnixUser $unixUser): Response
     {
-        $requiredAttributes = [
+        $this->validateRequired($unixUser, 'update', [
             'username',
             'password',
-            'defaultPhpVersion',
+            'default_php_version',
             'id',
-            'clusterId',
-            'unixId',
-        ];
-        $this->validateRequired($unixUser, 'update', $requiredAttributes);
+            'cluster_id',
+            'unix_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('unix-users/%d', $unixUser->id))
+            ->setUrl(sprintf('unix-users/%d', $unixUser->getId()))
             ->setBody($this->filterFields($unixUser->toArray(), [
                 'username',
                 'password',

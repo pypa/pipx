@@ -72,14 +72,13 @@ class Crons extends Endpoint
      */
     public function create(Cron $cron): Response
     {
-        $requiredAttributes = [
+        $this->validateRequired($cron, 'create', [
             'name',
             'command',
-            'emailAddress',
+            'email_address',
             'schedule',
-            'unixUserId'
-        ];
-        $this->validateRequired($cron, 'create', $requiredAttributes);
+            'unix_user_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
@@ -112,20 +111,19 @@ class Crons extends Endpoint
      */
     public function update(Cron $cron): Response
     {
-        $requiredAttributes = [
+        $this->validateRequired($cron, 'update', [
             'name',
             'command',
-            'emailAddress',
+            'email_address',
             'schedule',
-            'unixUserId',
+            'unix_user_id',
             'id',
-            'clusterId',
-        ];
-        $this->validateRequired($cron, 'update', $requiredAttributes);
+            'cluster_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('crons/%d', $cron->id))
+            ->setUrl(sprintf('crons/%d', $cron->getId()))
             ->setBody($this->filterFields($cron->toArray(), [
                 'name',
                 'command',

@@ -4,48 +4,156 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Enums\DatabaseEngine;
 
-class DatabaseUser implements Model
+class DatabaseUser extends ClusterModel implements Model
 {
     private const DEFAULT_HOST = '%';
 
-    public string $name;
-    public string $host = self::DEFAULT_HOST;
-    public string $password = '';
-    public string $serverSoftwareName = Database::DEFAULT_SERVER_SOFTWARE;
-    public ?int $id = null;
-    public ?int $clusterId = null;
-    public ?string $createdAt = null;
-    public ?string $updatedAt = null;
+    private string $name;
+    private string $host = self::DEFAULT_HOST;
+    private string $password = '';
+    private string $serverSoftwareName = DatabaseEngine::SERVER_SOFTWARE_MARIADB;
+    private ?int $id = null;
+    private ?int $clusterId = null;
+    private ?string $createdAt = null;
+    private ?string $updatedAt = null;
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function setName(string $name): DatabaseUser
+    {
+        $this->validate($name, [
+            'length_max' => 63,
+        ]);
+
+        $this->name = $name;
+
+        return $this;
+    }
+
+    public function getHost(): string
+    {
+        return $this->host;
+    }
+
+    public function setHost(string $host): DatabaseUser
+    {
+        $this->validate($host, [
+            'length_max' => 253,
+        ]);
+
+        $this->host = $host;
+
+        return $this;
+    }
+
+    public function getPassword(): string
+    {
+        return $this->password;
+    }
+
+    public function setPassword(string $password): DatabaseUser
+    {
+        $this->password = $password;
+
+        return $this;
+    }
+
+    public function getServerSoftwareName(): string
+    {
+        return $this->serverSoftwareName;
+    }
+
+    public function setServerSoftwareName(string $serverSoftwareName): DatabaseUser
+    {
+        $this->validate($serverSoftwareName, [
+            'in' => DatabaseEngine::AVAILABLE_SERVER_SOFTWARE,
+        ]);
+
+        $this->serverSoftwareName = $serverSoftwareName;
+
+        return $this;
+    }
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function setId(?int $id): DatabaseUser
+    {
+        $this->id = $id;
+
+        return $this;
+    }
+
+    public function getClusterId(): ?int
+    {
+        return $this->clusterId;
+    }
+
+    public function setClusterId(?int $clusterId): DatabaseUser
+    {
+        $this->clusterId = $clusterId;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?string
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(?string $createdAt): DatabaseUser
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    public function getUpdatedAt(): ?string
+    {
+        return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(?string $updatedAt): DatabaseUser
+    {
+        $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
 
     public function fromArray(array $data): DatabaseUser
     {
-        $databaseUser = new self();
-        $databaseUser->name = Arr::get($data, 'name');
-        $databaseUser->id = Arr::get($data, 'id');
-        $databaseUser->host = Arr::get($data, 'host', self::DEFAULT_HOST);
-        $databaseUser->serverSoftwareName = Arr::get(
-            $data,
-            'server_software_name',
-            Database::DEFAULT_SERVER_SOFTWARE
-        );
-        $databaseUser->clusterId = Arr::get($data, 'cluster_id');
-        $databaseUser->createdAt = Arr::get($data, 'created_at');
-        $databaseUser->updatedAt = Arr::get($data, 'updated_at');
-        return $databaseUser;
+        return $this
+            ->setName(Arr::get($data, 'name'))
+            ->setId(Arr::get($data, 'id'))
+            ->setHost(Arr::get($data, 'host', self::DEFAULT_HOST))
+            ->setServerSoftwareName(Arr::get(
+                $data,
+                'server_software_name',
+                DatabaseEngine::SERVER_SOFTWARE_MARIADB
+            ))
+            ->setClusterId(Arr::get($data, 'cluster_id'))
+            ->setCreatedAt(Arr::get($data, 'created_at'))
+            ->setUpdatedAt(Arr::get($data, 'updated_at'));
     }
 
     public function toArray(): array
     {
         return [
-            'name' => $this->name,
-            'host' => $this->host,
-            'password' => $this->password,
-            'server_software_name' => $this->serverSoftwareName,
-            'id' => $this->id,
-            'cluster_id' => $this->clusterId,
-            'created_at' => $this->createdAt,
-            'updated_at' => $this->updatedAt,
+            'name' => $this->getName(),
+            'host' => $this->getHost(),
+            'password' => $this->getPassword(),
+            'server_software_name' => $this->getServerSoftwareName(),
+            'id' => $this->getId(),
+            'cluster_id' => $this->getClusterId(),
+            'created_at' => $this->getCreatedAt(),
+            'updated_at' => $this->getUpdatedAt(),
         ];
     }
 }

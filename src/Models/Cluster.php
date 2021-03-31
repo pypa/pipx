@@ -5,39 +5,212 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 
-class Cluster implements Model
+class Cluster extends ClusterModel implements Model
 {
-    public string $name = '';
-    public ?array $groups = [];
-    public ?string $unixUsersHomeDirectory = null;
-    public ?string $databasesDataDirectory = null;
-    public ?int $id = null;
-    public ?string $createdAt = null;
-    public ?string $updatedAt = null;
+    private string $name = '';
+    private array $groups = [];
+    private ?string $unixUsersHomeDirectory = null;
+    private ?string $databasesDataDirectory = null;
+    private array $phpVersions = [];
+    private array $customPhpModulesNames = [];
+    private ?bool $phpIoncubeEnabled = null;
+    private ?string $customerId = null;
+    private ?bool $wordpressToolkitEnabled = null;
+    private ?bool $databaseToolkitEnabled = null;
+    private ?int $id = null;
+    private ?string $createdAt = null;
+    private ?string $updatedAt = null;
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function setName(string $name): Cluster
+    {
+        $this->name = $name;
+
+        return $this;
+    }
+
+    public function getGroups(): ?array
+    {
+        return $this->groups;
+    }
+
+    public function setGroups(array $groups): Cluster
+    {
+        $this->groups = $groups;
+
+        return $this;
+    }
+
+    public function getUnixUsersHomeDirectory(): ?string
+    {
+        return $this->unixUsersHomeDirectory;
+    }
+
+    public function setUnixUsersHomeDirectory(?string $unixUsersHomeDirectory): Cluster
+    {
+        $this->unixUsersHomeDirectory = $unixUsersHomeDirectory;
+
+        return $this;
+    }
+
+    public function getDatabasesDataDirectory(): ?string
+    {
+        return $this->databasesDataDirectory;
+    }
+
+    public function setDatabasesDataDirectory(?string $databasesDataDirectory): Cluster
+    {
+        $this->databasesDataDirectory = $databasesDataDirectory;
+
+        return $this;
+    }
+
+    public function getPhpVersions(): array
+    {
+        return $this->phpVersions;
+    }
+
+    public function setPhpVersions(array $phpVersions): Cluster
+    {
+        $this->phpVersions = $phpVersions;
+
+        return $this;
+    }
+
+    public function getCustomPhpModulesNames(): array
+    {
+        return $this->customPhpModulesNames;
+    }
+
+    public function setCustomPhpModulesNames(array $customPhpModulesNames): Cluster
+    {
+        $this->customPhpModulesNames = $customPhpModulesNames;
+
+        return $this;
+    }
+
+    public function isPhpIoncubeEnabled(): ?bool
+    {
+        return $this->phpIoncubeEnabled;
+    }
+
+    public function setPhpIoncubeEnabled(?bool $phpIoncubeEnabled): Cluster
+    {
+        $this->phpIoncubeEnabled = $phpIoncubeEnabled;
+
+        return $this;
+    }
+
+    public function getCustomerId(): ?string
+    {
+        return $this->customerId;
+    }
+
+    public function setCustomerId(?string $customerId): Cluster
+    {
+        $this->customerId = $customerId;
+
+        return $this;
+    }
+
+    public function isWordpressToolkitEnabled(): ?bool
+    {
+        return $this->wordpressToolkitEnabled;
+    }
+
+    public function setWordpressToolkitEnabled(?bool $wordpressToolkitEnabled): Cluster
+    {
+        $this->wordpressToolkitEnabled = $wordpressToolkitEnabled;
+
+        return $this;
+    }
+
+    public function isDatabaseToolkitEnabled(): ?bool
+    {
+        return $this->databaseToolkitEnabled;
+    }
+
+    public function setDatabaseToolkitEnabled(?bool $databaseToolkitEnabled): Cluster
+    {
+        $this->databaseToolkitEnabled = $databaseToolkitEnabled;
+
+        return $this;
+    }
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function setId(?int $id): Cluster
+    {
+        $this->id = $id;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?string
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(?string $createdAt): Cluster
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    public function getUpdatedAt(): ?string
+    {
+        return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(?string $updatedAt): Cluster
+    {
+        $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
 
     public function fromArray(array $data): Cluster
     {
-        $cluster = new self();
-        $cluster->name = Arr::get($data, 'name');
-        $cluster->groups = Arr::get($data, 'groups', []);
-        $cluster->unixUsersHomeDirectory = Arr::get($data, 'unix_users_home_directory');
-        $cluster->databasesDataDirectory = Arr::get($data, 'databases_data_directory');
-        $cluster->id = Arr::get($data, 'id');
-        $cluster->createdAt = Arr::get($data, 'created_at');
-        $cluster->updatedAt = Arr::get($data, 'updated_at');
-        return $cluster;
+        return $this
+            ->setName(Arr::get($data, 'name'))
+            ->setGroups(Arr::get($data, 'groups', []))
+            ->setUnixUsersHomeDirectory(Arr::get($data, 'unix_users_home_directory'))
+            ->setDatabasesDataDirectory(Arr::get($data, 'databases_data_directory'))
+            ->setPhpVersions(Arr::get($data, 'php_versions', []))
+            ->setCustomPhpModulesNames(Arr::get($data, 'custom_php_modules_names', []))
+            ->setPhpIoncubeEnabled(Arr::get($data, 'php_ioncube_enabled'))
+            ->setCustomerId(Arr::get($data, 'customer_id'))
+            ->setWordpressToolkitEnabled(Arr::get($data, 'wordpress_toolkit_enabled'))
+            ->setDatabaseToolkitEnabled(Arr::get($data, 'database_toolkit_enabled'))
+            ->setId(Arr::get($data, 'id'))
+            ->setCreatedAt(Arr::get($data, 'created_at'))
+            ->setUpdatedAt(Arr::get($data, 'updated_at'));
     }
 
     public function toArray(): array
     {
         return [
-            'name' => $this->name,
-            'groups' => $this->groups,
-            'unix_users_home_directory' => $this->unixUsersHomeDirectory,
-            'databases_data_directory' => $this->databasesDataDirectory,
-            'id' => $this->id,
-            'created_at' => $this->createdAt,
-            'updated_at' => $this->updatedAt,
+            'name' => $this->getName(),
+            'groups' => $this->getGroups(),
+            'unix_users_home_directory' => $this->getUnixUsersHomeDirectory(),
+            'databases_data_directory' => $this->getDatabasesDataDirectory(),
+            'php_versions' => $this->getPhpVersions(),
+            'custom_php_modules_names' => $this->getCustomPhpModulesNames(),
+            'php_ioncube_enabled' => $this->isPhpIoncubeEnabled(),
+            'customer_id' => $this->getCustomerId(),
+            'wordpress_toolkit_enabled' => $this->isWordpressToolkitEnabled(),
+            'database_toolkit_enabled' => $this->isDatabaseToolkitEnabled(),
+            'id' => $this->getId(),
+            'created_at' => $this->getCreatedAt(),
+            'updated_at' => $this->getUpdatedAt(),
         ];
     }
 }

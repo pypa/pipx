@@ -72,13 +72,12 @@ class DatabaseUserGrants extends Endpoint
      */
     public function create(DatabaseUserGrant $databaseUserGrant): Response
     {
-        $requiredAttributes = [
-            'databaseId',
-            'databaseUserId',
-            'tableName',
-            'privilegeName',
-        ];
-        $this->validateRequired($databaseUserGrant, 'create', $requiredAttributes);
+        $this->validateRequired($databaseUserGrant, 'create', [
+            'database_id',
+            'database_user_id',
+            'table_name',
+            'privilege_name',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)

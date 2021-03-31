@@ -72,13 +72,12 @@ class FpmPools extends Endpoint
      */
     public function create(FpmPool $fpmPool): Response
     {
-        $requiredAttributes = [
+        $this->validateRequired($fpmPool, 'create', [
             'name',
-            'unixUserId',
+            'unix_user_id',
             'version',
-            'maxChildren',
-        ];
-        $this->validateRequired($fpmPool, 'create', $requiredAttributes);
+            'max_children',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
@@ -112,15 +111,14 @@ class FpmPools extends Endpoint
      */
     public function update(FpmPool $fpmPool): Response
     {
-        $requiredAttributes = [
+        $this->validateRequired($fpmPool, 'update', [
             'id',
-            'clusterId'
-        ];
-        $this->validateRequired($fpmPool, 'update', $requiredAttributes);
+            'cluster_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('fpm-pools/%d', $fpmPool->id))
+            ->setUrl(sprintf('fpm-pools/%d', $fpmPool->getId()))
             ->setBody($this->filterFields($fpmPool->toArray(), [
                 'name',
                 'unix_user_id',

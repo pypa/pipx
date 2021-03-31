@@ -5,45 +5,145 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 
-class DatabaseUserGrant implements Model
+class DatabaseUserGrant extends ClusterModel implements Model
 {
     public const DEFAULT_TABLE_NAME = '*';
     public const DEFAULT_PRIVILEGE_NAME = 'ALL';
 
-    public int $databaseId;
-    public int $databaseUserId;
-    public string $tableName = self::DEFAULT_TABLE_NAME;
-    public string $privilegeName = self::DEFAULT_PRIVILEGE_NAME;
-    public ?int $id = null;
-    public ?int $clusterId = null;
-    public ?string $createdAt = null;
-    public ?string $updatedAt = null;
+    private int $databaseId;
+    private int $databaseUserId;
+    private string $tableName = self::DEFAULT_TABLE_NAME;
+    private string $privilegeName = self::DEFAULT_PRIVILEGE_NAME;
+    private ?int $id = null;
+    private ?int $clusterId = null;
+    private ?string $createdAt = null;
+    private ?string $updatedAt = null;
+
+    public function getDatabaseId(): int
+    {
+        return $this->databaseId;
+    }
+
+    public function setDatabaseId(int $databaseId): DatabaseUserGrant
+    {
+        $this->databaseId = $databaseId;
+
+        return $this;
+    }
+
+    public function getDatabaseUserId(): int
+    {
+        return $this->databaseUserId;
+    }
+
+    public function setDatabaseUserId(int $databaseUserId): DatabaseUserGrant
+    {
+        $this->databaseUserId = $databaseUserId;
+
+        return $this;
+    }
+
+    public function getTableName(): string
+    {
+        return $this->tableName;
+    }
+
+    public function setTableName(string $tableName): DatabaseUserGrant
+    {
+        $this->validate($tableName, [
+            'length_max' => 64,
+            'pattern' => '^[a-z0-9-_]+$',
+        ]);
+
+        $this->tableName = $tableName;
+
+        return $this;
+    }
+
+    public function getPrivilegeName(): string
+    {
+        return $this->privilegeName;
+    }
+
+    public function setPrivilegeName(string $privilegeName): DatabaseUserGrant
+    {
+        $this->privilegeName = $privilegeName;
+
+        return $this;
+    }
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function setId(?int $id): DatabaseUserGrant
+    {
+        $this->id = $id;
+
+        return $this;
+    }
+
+    public function getClusterId(): ?int
+    {
+        return $this->clusterId;
+    }
+
+    public function setClusterId(?int $clusterId): DatabaseUserGrant
+    {
+        $this->clusterId = $clusterId;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?string
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(?string $createdAt): DatabaseUserGrant
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    public function getUpdatedAt(): ?string
+    {
+        return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(?string $updatedAt): DatabaseUserGrant
+    {
+        $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
 
     public function fromArray(array $data): DatabaseUserGrant
     {
-        $databaseUserGrant = new self();
-        $databaseUserGrant->databaseId = Arr::get($data, 'database_id');
-        $databaseUserGrant->databaseUserId = Arr::get($data, 'database_user_id');
-        $databaseUserGrant->tableName = Arr::get($data, 'table_name', self::DEFAULT_TABLE_NAME);
-        $databaseUserGrant->privilegeName = Arr::get($data,'privilege_name',self::DEFAULT_PRIVILEGE_NAME);
-        $databaseUserGrant->id = Arr::get($data, 'id');
-        $databaseUserGrant->clusterId = Arr::get($data, 'cluster_id');
-        $databaseUserGrant->createdAt = Arr::get($data, 'created_at');
-        $databaseUserGrant->updatedAt = Arr::get($data, 'updated_at');
-        return $databaseUserGrant;
+        return $this
+            ->setDatabaseId(Arr::get($data, 'database_id'))
+            ->setDatabaseUserId(Arr::get($data, 'database_user_id'))
+            ->setTableName(Arr::get($data, 'table_name', self::DEFAULT_TABLE_NAME))
+            ->setPrivilegeName(Arr::get($data,'privilege_name',self::DEFAULT_PRIVILEGE_NAME))
+            ->setId(Arr::get($data, 'id'))
+            ->setClusterId(Arr::get($data, 'cluster_id'))
+            ->setCreatedAt(Arr::get($data, 'created_at'))
+            ->setUpdatedAt(Arr::get($data, 'updated_at'));
     }
 
     public function toArray(): array
     {
         return [
-            'database_id' => $this->databaseId,
-            'database_user_id' => $this->databaseUserId,
-            'table_name' => $this->tableName,
-            'privilege_name' => $this->privilegeName,
-            'id' => $this->id,
-            'cluster_id' => $this->clusterId,
-            'created_at' => $this->createdAt,
-            'updated_at' => $this->updatedAt,
+            'database_id' => $this->getDatabaseId(),
+            'database_user_id' => $this->getDatabaseUserId(),
+            'table_name' => $this->getTableName(),
+            'privilege_name' => $this->getPrivilegeName(),
+            'id' => $this->getId(),
+            'cluster_id' => $this->getClusterId(),
+            'created_at' => $this->getCreatedAt(),
+            'updated_at' => $this->getUpdatedAt(),
         ];
     }
 }

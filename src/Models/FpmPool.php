@@ -5,51 +5,187 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 
-class FpmPool implements Model
+class FpmPool extends ClusterModel implements Model
 {
-    public string $name;
-    public int $unixUserId;
-    public string $version;
-    public int $maxChildren;
-    public int $maxRequests = 1000;
-    public int $processIdleTimeout = 600;
-    public ?int $cpuLimit = null;
-    public ?int $id = null;
-    public ?int $clusterId = null;
-    public ?string $createdAt = null;
-    public ?string $updatedAt = null;
+    private string $name;
+    private int $unixUserId;
+    private string $version;
+    private int $maxChildren;
+    private int $maxRequests = 1000;
+    private int $processIdleTimeout = 600;
+    private ?int $cpuLimit = null;
+    private ?int $id = null;
+    private ?int $clusterId = null;
+    private ?string $createdAt = null;
+    private ?string $updatedAt = null;
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function setName(string $name): FpmPool
+    {
+        $this->validate($name, [
+            'length_max' => 64,
+            'pattern' => '^[a-z0-9-_]+$',
+        ]);
+
+        $this->name = $name;
+
+        return $this;
+    }
+
+    public function getUnixUserId(): int
+    {
+        return $this->unixUserId;
+    }
+
+    public function setUnixUserId(int $unixUserId): FpmPool
+    {
+        $this->unixUserId = $unixUserId;
+
+        return $this;
+    }
+
+    public function getVersion(): string
+    {
+        return $this->version;
+    }
+
+    public function setVersion(string $version): FpmPool
+    {
+        $this->version = $version;
+
+        return $this;
+    }
+
+    public function getMaxChildren(): int
+    {
+        return $this->maxChildren;
+    }
+
+    public function setMaxChildren(int $maxChildren): FpmPool
+    {
+        $this->maxChildren = $maxChildren;
+
+        return $this;
+    }
+
+    public function getMaxRequests(): int
+    {
+        return $this->maxRequests;
+    }
+
+    public function setMaxRequests(int $maxRequests): FpmPool
+    {
+        $this->maxRequests = $maxRequests;
+
+        return $this;
+    }
+
+    public function getProcessIdleTimeout(): int
+    {
+        return $this->processIdleTimeout;
+    }
+
+    public function setProcessIdleTimeout(int $processIdleTimeout): FpmPool
+    {
+        $this->processIdleTimeout = $processIdleTimeout;
+
+        return $this;
+    }
+
+    public function getCpuLimit(): ?int
+    {
+        return $this->cpuLimit;
+    }
+
+    public function setCpuLimit(?int $cpuLimit): FpmPool
+    {
+        $this->cpuLimit = $cpuLimit;
+
+        return $this;
+    }
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function setId(?int $id): FpmPool
+    {
+        $this->id = $id;
+
+        return $this;
+    }
+
+    public function getClusterId(): ?int
+    {
+        return $this->clusterId;
+    }
+
+    public function setClusterId(?int $clusterId): FpmPool
+    {
+        $this->clusterId = $clusterId;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?string
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(?string $createdAt): FpmPool
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    public function getUpdatedAt(): ?string
+    {
+        return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(?string $updatedAt): FpmPool
+    {
+        $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
 
     public function fromArray(array $data): FpmPool
     {
-        $fpmPool = new FpmPool();
-        $fpmPool->name = Arr::get($data, 'name');
-        $fpmPool->unixUserId = Arr::get($data, 'unix_user_id');
-        $fpmPool->version = Arr::get($data, 'version');
-        $fpmPool->maxChildren = Arr::get($data, 'max_children');
-        $fpmPool->maxRequests = Arr::get($data, 'max_requests');
-        $fpmPool->processIdleTimeout = Arr::get($data, 'process_idle_timeout');
-        $fpmPool->cpuLimit = Arr::get($data, 'cpu_limit');
-        $fpmPool->id = Arr::get($data, 'id');
-        $fpmPool->clusterId = Arr::get($data, 'cluster_id');
-        $fpmPool->createdAt = Arr::get($data, 'created_at');
-        $fpmPool->updatedAt = Arr::get($data, 'updated_at');
-        return $fpmPool;
+        return $this
+            ->setName(Arr::get($data, 'name'))
+            ->setUnixUserId(Arr::get($data, 'unix_user_id'))
+            ->setVersion(Arr::get($data, 'version'))
+            ->setMaxChildren(Arr::get($data, 'max_children'))
+            ->setMaxRequests(Arr::get($data, 'max_requests'))
+            ->setProcessIdleTimeout(Arr::get($data, 'process_idle_timeout'))
+            ->setCpuLimit(Arr::get($data, 'cpu_limit'))
+            ->setId(Arr::get($data, 'id'))
+            ->setClusterId(Arr::get($data, 'cluster_id'))
+            ->setCreatedAt(Arr::get($data, 'created_at'))
+            ->setUpdatedAt(Arr::get($data, 'updated_at'));
     }
 
     public function toArray(): array
     {
         return [
-            'name' => $this->name,
-            'unix_user_id' => $this->unixUserId,
-            'version' => $this->version,
-            'max_children' => $this->maxChildren,
-            'max_requests' => $this->maxRequests,
-            'process_idle_timeout' => $this->processIdleTimeout,
-            'cpu_limit' => $this->cpuLimit,
-            'id' => $this->id,
-            'cluster_id' => $this->clusterId,
-            'created_at' => $this->createdAt,
-            'updated_at' => $this->updatedAt,
+            'name' => $this->getName(),
+            'unix_user_id' => $this->getUnixUserId(),
+            'version' => $this->getVersion(),
+            'max_children' => $this->getMaxChildren(),
+            'max_requests' => $this->getMaxRequests(),
+            'process_idle_timeout' => $this->getProcessIdleTimeout(),
+            'cpu_limit' => $this->getCpuLimit(),
+            'id' => $this->getId(),
+            'cluster_id' => $this->getClusterId(),
+            'created_at' => $this->getCreatedAt(),
+            'updated_at' => $this->getUpdatedAt(),
         ];
     }
 }

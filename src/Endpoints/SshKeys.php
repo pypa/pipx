@@ -72,12 +72,11 @@ class SshKeys extends Endpoint
      */
     public function create(SshKey $sshKey): Response
     {
-        $requiredAttributes = [
+        $this->validateRequired($sshKey, 'create', [
             'name',
-            'publicKey',
-            'unixUserId',
-        ];
-        $this->validateRequired($sshKey, 'create', $requiredAttributes);
+            'public_key',
+            'unix_user_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
@@ -107,18 +106,17 @@ class SshKeys extends Endpoint
      */
     public function update(SshKey $sshKey): Response
     {
-        $requiredAttributes = [
+        $this->validateRequired($sshKey, 'update', [
             'name',
-            'publicKey',
-            'unixUserId',
+            'public_key',
+            'unix_user_id',
             'id',
-            'clusterId'
-        ];
-        $this->validateRequired($sshKey, 'update', $requiredAttributes);
+            'cluster_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('ssh-keys/%d', $sshKey->id))
+            ->setUrl(sprintf('ssh-keys/%d', $sshKey->getId()))
             ->setBody($this->filterFields($sshKey->toArray(), [
                 'name',
                 'public_key',

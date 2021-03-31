@@ -5,21 +5,31 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 
-class DetailMessage implements Model
+class DetailMessage extends ClusterModel implements Model
 {
-    public string $detail;
+    private string $detail;
+
+    public function getDetail(): string
+    {
+        return $this->detail;
+    }
+
+    public function setDetail(string $detail): DetailMessage
+    {
+        $this->detail = $detail;
+
+        return $this;
+    }
 
     public function fromArray(array $data): DetailMessage
     {
-        $detailMessage = new self();
-        $detailMessage->detail = Arr::get($data, 'detail', '');
-        return $detailMessage;
+        return $this->setDetail(Arr::get($data, 'detail', ''));
     }
 
     public function toArray(): array
     {
         return [
-            'detail' => $this->detail,
+            'detail' => $this->getDetail(),
         ];
     }
 }

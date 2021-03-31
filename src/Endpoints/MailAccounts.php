@@ -103,12 +103,11 @@ class MailAccounts extends Endpoint
      */
     public function create(MailAccount $mailAccount): Response
     {
-        $requiredAttributes = [
-            'localPart',
+        $this->validateRequired($mailAccount, 'create', [
+            'local_part',
             'password',
-            'mailDomainId',
-        ];
-        $this->validateRequired($mailAccount, 'create', $requiredAttributes);
+            'mail_domain_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
@@ -139,18 +138,17 @@ class MailAccounts extends Endpoint
      */
     public function update(MailAccount $mailAccount): Response
     {
-        $requiredAttributes = [
-            'localPart',
+        $this->validateRequired($mailAccount, 'update', [
+            'local_part',
             'password',
-            'mailDomainId',
+            'mail_domain_id',
             'id',
-            'clusterId'
-        ];
-        $this->validateRequired($mailAccount, 'update', $requiredAttributes);
+            'cluster_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('mail-accounts/%d', $mailAccount->id))
+            ->setUrl(sprintf('mail-accounts/%d', $mailAccount->getId()))
             ->setBody($this->filterFields($mailAccount->toArray(), [
                 'local_part',
                 'password',

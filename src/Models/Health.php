@@ -6,26 +6,36 @@ use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 use Vdhicts\Cyberfusion\ClusterApi\Enums\HealthStatus;
 
-class Health implements Model
+class Health extends ClusterModel implements Model
 {
-    public string $status;
+    private string $status;
+
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(string $status): Health
+    {
+        $this->status = $status;
+
+        return $this;
+    }
 
     public function fromArray(array $data): Health
     {
-        $health = new self();
-        $health->status = Arr::get($data, 'status');
-        return $health;
-    }
-
-    public function isUp(): bool
-    {
-        return $this->status === HealthStatus::UP;
+        return $this->setStatus(Arr::get($data, 'status'));
     }
 
     public function toArray(): array
     {
         return [
-            'status' => $this->status,
+            'status' => $this->getStatus(),
         ];
+    }
+
+    public function isUp(): bool
+    {
+        return $this->getStatus() === HealthStatus::UP;
     }
 }

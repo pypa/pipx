@@ -74,12 +74,11 @@ class Databases extends Endpoint
      */
     public function create(Database $database): Response
     {
-        $requiredAttributes = [
+        $this->validateRequired($database, 'create', [
             'name',
-            'serverSoftwareName',
-            'clusterId',
-        ];
-        $this->validateRequired($database, 'create', $requiredAttributes);
+            'server_software_name',
+            'cluster_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
