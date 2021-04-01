@@ -13,7 +13,7 @@ import textwrap
 import time
 import urllib.parse
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Callable, Dict, List
 
 import argcomplete  # type: ignore
 from packaging.utils import canonicalize_name
@@ -30,6 +30,8 @@ from pipx.venv import VenvContainer
 from pipx.version import __version__
 
 logger = logging.getLogger(__name__)
+
+VenvCompleter = Callable[[str], List[str]]
 
 
 def print_version() -> None:
@@ -115,7 +117,7 @@ class InstalledVenvsCompleter:
     def __init__(self, venv_container: VenvContainer) -> None:
         self.packages = [str(p.name) for p in sorted(venv_container.iter_venv_dirs())]
 
-    def use(self, prefix: str, **kwargs) -> List[str]:
+    def use(self, prefix: str, **kwargs: Any) -> List[str]:
         return [
             f"{prefix}{x[len(prefix):]}"
             for x in self.packages
@@ -291,7 +293,7 @@ def add_include_dependencies(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def _add_install(subparsers) -> None:
+def _add_install(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "install",
         help="Install a package",
@@ -326,7 +328,7 @@ def _add_install(subparsers) -> None:
     add_pip_venv_args(p)
 
 
-def _add_inject(subparsers, venv_completer) -> None:
+def _add_inject(subparsers, venv_completer: VenvCompleter) -> None:
     p = subparsers.add_parser(
         "inject",
         help="Install packages into an existing Virtual Environment",
@@ -357,7 +359,7 @@ def _add_inject(subparsers, venv_completer) -> None:
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_upgrade(subparsers, venv_completer) -> None:
+def _add_upgrade(subparsers, venv_completer: VenvCompleter) -> None:
     p = subparsers.add_parser(
         "upgrade",
         help="Upgrade a package",
@@ -379,7 +381,7 @@ def _add_upgrade(subparsers, venv_completer) -> None:
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_upgrade_all(subparsers) -> None:
+def _add_upgrade_all(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "upgrade-all",
         help="Upgrade all packages. Runs `pip install -U <pkgname>` for each package.",
@@ -400,7 +402,7 @@ def _add_upgrade_all(subparsers) -> None:
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_uninstall(subparsers, venv_completer) -> None:
+def _add_uninstall(subparsers, venv_completer: VenvCompleter) -> None:
     p = subparsers.add_parser(
         "uninstall",
         help="Uninstall a package",
@@ -410,7 +412,7 @@ def _add_uninstall(subparsers, venv_completer) -> None:
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_uninstall_all(subparsers) -> None:
+def _add_uninstall_all(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "uninstall-all",
         help="Uninstall all packages",
@@ -419,7 +421,7 @@ def _add_uninstall_all(subparsers) -> None:
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_reinstall(subparsers, venv_completer) -> None:
+def _add_reinstall(subparsers, venv_completer: VenvCompleter) -> None:
     p = subparsers.add_parser(
         "reinstall",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -446,7 +448,7 @@ def _add_reinstall(subparsers, venv_completer) -> None:
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_reinstall_all(subparsers) -> None:
+def _add_reinstall_all(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "reinstall-all",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -475,7 +477,7 @@ def _add_reinstall_all(subparsers) -> None:
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_list(subparsers) -> None:
+def _add_list(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "list",
         help="List installed packages",
@@ -489,7 +491,7 @@ def _add_list(subparsers) -> None:
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_run(subparsers) -> None:
+def _add_run(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "run",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -546,7 +548,7 @@ def _add_run(subparsers) -> None:
     p.usage = re.sub(r"\.\.\.", "app ...", p.usage)
 
 
-def _add_runpip(subparsers, venv_completer) -> None:
+def _add_runpip(subparsers, venv_completer: VenvCompleter) -> None:
     p = subparsers.add_parser(
         "runpip",
         help="Run pip in an existing pipx-managed Virtual Environment",
@@ -565,7 +567,7 @@ def _add_runpip(subparsers, venv_completer) -> None:
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_ensurepath(subparsers) -> None:
+def _add_ensurepath(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "ensurepath",
         help=(
