@@ -35,4 +35,4 @@ repos:
   rev: v0.812
   hooks:
   - id: mypy
-    args: ['--ignore-missing-imports', '--strict-equality','--no-implicit-optional','--warn-unused-ignores']
+    args: ['--ignore-missing-imports', '--strict-equality','--no-implicit-optional']

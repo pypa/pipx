@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import pytest
+import pytest  # type: ignore
 
 from pipx.package_specifier import (
     fix_package_name,
