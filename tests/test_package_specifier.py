@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import pytest  # type: ignore
+import pytest
 
 from pipx.package_specifier import (
     fix_package_name,
@@ -99,7 +99,7 @@ def test_fix_package_name(package_spec_in, package_name, package_spec_out):
             "my-project[cli]@ git+ssh://git@bitbucket.org/my-company/myproject.git",
             True,
         ),
-        ("path/doesnt/exist", "non-existent-path", False,),
+        ("path/doesnt/exist", "non-existent-path", False),
         (
             "https:/github.com/ambv/black/archive/18.9b0.zip",
             "URL-syntax-error-slash",
@@ -168,7 +168,7 @@ def test_parse_specifier_for_metadata(
             "my-project[cli]@ git+ssh://git@bitbucket.org/my-company/myproject.git",
             True,
         ),
-        ("path/doesnt/exist", "non-existent-path", False,),
+        ("path/doesnt/exist", "non-existent-path", False),
         (
             "https:/github.com/ambv/black/archive/18.9b0.zip",
             "URL-syntax-error-slash",
@@ -193,7 +193,7 @@ def test_parse_specifier_for_upgrade(
     "package_spec_in,pip_args_in,package_spec_expected,pip_args_expected,warning_str",
     [
         ('pipx==0.15.0;python_version>="3.6"', [], "pipx==0.15.0", [], None),
-        ("pipx==0.15.0", ["--editable"], "pipx==0.15.0", [], "Ignoring --editable",),
+        ("pipx==0.15.0", ["--editable"], "pipx==0.15.0", [], "Ignoring --editable"),
         (
             'pipx==0.15.0;python_version>="3.6"',
             [],
