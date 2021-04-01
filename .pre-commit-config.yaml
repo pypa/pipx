@@ -28,9 +28,12 @@ repos:
     additional_dependencies: [
         'flake8-bugbear==20.11.1'
     ]
-# must include --ignore-missing-imports for mypy.  It is included by default
-#   if no arguments are supplied, but we must supply it ourselves since we
-#   specify args
+# mypy args:
+#   must include --ignore-missing-imports for mypy.  It is included by default
+#     if no arguments are supplied, but we must supply it ourselves since we
+#     specify args
+#   cannot use --warn-unused-ignores because it conflicts with
+#     --ignore-missing-imports
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v0.812
   hooks:
