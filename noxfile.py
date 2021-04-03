@@ -9,12 +9,12 @@ PYTHON_DEFAULT_VERSION = "3.9"
 DOC_DEPENDENCIES = [".", "jinja2", "mkdocs", "mkdocs-material"]
 LINT_DEPENDENCIES = [
     "black==19.10b0",
-    "flake8",
-    "flake8-bugbear",
-    "mypy",
-    "check-manifest",
+    "flake8==3.9.0",
+    "flake8-bugbear==21.3.2",
+    "mypy==0.812",
+    "check-manifest==0.46",
     "packaging>=20.0",
-    "isort",
+    "isort==5.8.0",
 ]
 # Packages whose dependencies need an intact system PATH to compile
 # pytest setup clears PATH.  So pre-build some wheels to the pip cache.
