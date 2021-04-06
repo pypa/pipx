@@ -44,14 +44,19 @@ class Cmses extends Endpoint
 
     /**
      * @param int $id
+     * @param bool $oneTimeLoginUrl
      * @return Response
      * @throws RequestException
      */
-    public function get(int $id): Response
+    public function get(int $id, bool $oneTimeLoginUrl = false): Response
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('cmses/%d', $id));
+            ->setUrl(sprintf(
+                'cmses/%d?%s',
+                $id,
+                http_build_query(['get_one_time_login_url' => $oneTimeLoginUrl])
+            ));
 
         $response = $this
             ->client

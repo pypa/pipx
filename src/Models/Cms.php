@@ -9,6 +9,7 @@ class Cms extends ClusterModel implements Model
 {
     private string $name;
     private int $virtualHostId;
+    private ?string $oneTimeLoginUrl = null;
     private int $id;
     private int $clusterId;
     private string $createdAt;
@@ -34,6 +35,18 @@ class Cms extends ClusterModel implements Model
     public function setVirtualHostId(int $virtualHostId): Cms
     {
         $this->virtualHostId = $virtualHostId;
+
+        return $this;
+    }
+
+    public function getOneTimeLoginUrl(): ?string
+    {
+        return $this->oneTimeLoginUrl;
+    }
+
+    public function setOneTimeLoginUrl(?string $oneTimeLoginUrl): Cms
+    {
+        $this->oneTimeLoginUrl = $oneTimeLoginUrl;
 
         return $this;
     }
@@ -91,6 +104,7 @@ class Cms extends ClusterModel implements Model
         return $this
             ->setName(Arr::get($data, 'name'))
             ->setVirtualHostId(Arr::get($data, 'virtual_host_id'))
+            ->setOneTimeLoginUrl(Arr::get($data, 'one_time_login_url'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -102,6 +116,7 @@ class Cms extends ClusterModel implements Model
         return [
             'name' => $this->getName(),
             'virtual_host_id' => $this->getVirtualHostId(),
+            'one_time_login_url' => $this->getOneTimeLoginUrl(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
