@@ -4,6 +4,8 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Enums\AllowOverrideDirectives;
+use Vdhicts\Cyberfusion\ClusterApi\Enums\AllowOverrideOptionDirectives;
 
 class VirtualHost extends ClusterModel implements Model
 {
@@ -17,6 +19,8 @@ class VirtualHost extends ClusterModel implements Model
     private ?string $customConfig = null;
     private ?string $balancerBackendName = null;
     private array $deployCommands = [];
+    private array $allowOverrideDirectives = AllowOverrideDirectives::DEFAULTS;
+    private array $allowOverrideOptionDirectives = AllowOverrideOptionDirectives::DEFAULTS;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -147,6 +151,38 @@ class VirtualHost extends ClusterModel implements Model
         return $this;
     }
 
+    public function getAllowOverrideDirectives(): array
+    {
+        return $this->allowOverrideDirectives;
+    }
+
+    public function setAllowOverrideDirectives(array $allowOverrideDirectives): VirtualHost
+    {
+        $this->validate($allowOverrideDirectives, [
+            'in_array' => AllowOverrideDirectives::AVAILABLE,
+        ]);
+
+        $this->allowOverrideDirectives = $allowOverrideDirectives;
+
+        return $this;
+    }
+
+    public function getAllowOverrideOptionDirectives(): array
+    {
+        return $this->allowOverrideOptionDirectives;
+    }
+
+    public function setAllowOverrideOptionDirectives(array $allowOverrideOptionDirectives): VirtualHost
+    {
+        $this->validate($allowOverrideOptionDirectives, [
+            'in_array' => AllowOverrideOptionDirectives::AVAILABLE,
+        ]);
+
+        $this->allowOverrideOptionDirectives = $allowOverrideOptionDirectives;
+
+        return $this;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -208,6 +244,8 @@ class VirtualHost extends ClusterModel implements Model
             ->setBalancerBackendName(Arr::get($data, 'balancer_backend_name'))
             ->setCustomConfig(Arr::get($data, 'custom_config'))
             ->setDeployCommands(Arr::get($data, 'deploy_commands', []))
+            ->setAllowOverrideDirectives(Arr::get($data, 'allow_override_directives', AllowOverrideDirectives::DEFAULTS))
+            ->setAllowOverrideOptionDirectives(Arr::get($data, 'allow_override_option_directives', AllowOverrideOptionDirectives::DEFAULTS))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -229,6 +267,8 @@ class VirtualHost extends ClusterModel implements Model
             'cluster_id' => $this->getClusterId(),
             'balancer_backend_name' => $this->getBalancerBackendName(),
             'deploy_commands' => $this->getDeployCommands(),
+            'allow_override_directives' => $this->getAllowOverrideDirectives(),
+            'allow_override_option_directives' => $this->getAllowOverrideOptionDirectives(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),
         ];

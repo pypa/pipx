@@ -60,6 +60,8 @@ abstract class ClusterModel
                 return is_string($value) && Str::match($value, sprintf('/%s/', $setting));
             case 'in':
                 return in_array($value, $setting);
+            case 'in_array':
+                return ! array_diff($value, $setting);
             default:
                 return true;
         }

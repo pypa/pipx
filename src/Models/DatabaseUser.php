@@ -71,7 +71,7 @@ class DatabaseUser extends ClusterModel implements Model
     public function setServerSoftwareName(string $serverSoftwareName): DatabaseUser
     {
         $this->validate($serverSoftwareName, [
-            'in' => DatabaseEngine::AVAILABLE_SERVER_SOFTWARE,
+            'in' => DatabaseEngine::AVAILABLE,
         ]);
 
         $this->serverSoftwareName = $serverSoftwareName;
