@@ -770,6 +770,7 @@ def cli() -> ExitCode:
         logger.debug("Uncaught Exception:", exc_info=True)
         raise
     finally:
+        logger.info("pipx finished.")
         show_cursor()
 
 
