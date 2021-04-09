@@ -30,6 +30,7 @@ class _SharedLibs:
         # i.e. python_path is ~/.local/pipx/shared/python
         self._site_packages: Optional[Path] = None
         self.has_been_updated_this_run = False
+        self.has_been_checked_this_run = False
 
     @property
     def site_packages(self) -> Path:
@@ -56,8 +57,9 @@ class _SharedLibs:
 
     @property
     def needs_upgrade(self) -> bool:
-        if self.has_been_updated_this_run:
+        if self.has_been_updated_this_run or self.has_been_checked_this_run:
             return False
+        self.has_been_checked_this_run = True
 
         if not self.pip_path.is_file():
             return True
