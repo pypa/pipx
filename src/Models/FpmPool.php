@@ -14,6 +14,7 @@ class FpmPool extends ClusterModel implements Model
     private int $maxRequests = 1000;
     private int $processIdleTimeout = 600;
     private ?int $cpuLimit = null;
+    private bool $isNamespaced = false;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -108,6 +109,18 @@ class FpmPool extends ClusterModel implements Model
         return $this;
     }
 
+    public function isNamespaced(): bool
+    {
+        return $this->isNamespaced;
+    }
+
+    public function setIsNamespaced(bool $isNamespaced): FpmPool
+    {
+        $this->isNamespaced = $isNamespaced;
+
+        return $this;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -166,6 +179,7 @@ class FpmPool extends ClusterModel implements Model
             ->setMaxRequests(Arr::get($data, 'max_requests'))
             ->setProcessIdleTimeout(Arr::get($data, 'process_idle_timeout'))
             ->setCpuLimit(Arr::get($data, 'cpu_limit'))
+            ->setIsNamespaced((bool)Arr::get($data, 'is_namespaced'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -182,6 +196,7 @@ class FpmPool extends ClusterModel implements Model
             'max_requests' => $this->getMaxRequests(),
             'process_idle_timeout' => $this->getProcessIdleTimeout(),
             'cpu_limit' => $this->getCpuLimit(),
+            'is_namespaced' => $this->isNamespaced(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),

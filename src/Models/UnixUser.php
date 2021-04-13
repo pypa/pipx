@@ -4,6 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Enums\ShellPath;
 
 class UnixUser extends ClusterModel implements Model
 {
@@ -12,6 +13,7 @@ class UnixUser extends ClusterModel implements Model
     private ?string $defaultPhpVersion = null;
     private ?string $virtualHostsDirectory = null;
     private ?string $mailDomainsDirectory = null;
+    private string $shellPath = ShellPath::BASH;
     private int $clusterId;
     private ?int $id = null;
     private ?int $unixId = null;
@@ -79,6 +81,22 @@ class UnixUser extends ClusterModel implements Model
     public function setMailDomainsDirectory(?string $mailDomainsDirectory): UnixUser
     {
         $this->mailDomainsDirectory = $mailDomainsDirectory;
+
+        return $this;
+    }
+
+    public function getShellPath(): string
+    {
+        return $this->shellPath;
+    }
+
+    public function setShellPath(string $shellPath): UnixUser
+    {
+        $this->validate($shellPath, [
+            'in' => ShellPath::AVAILABLE,
+        ]);
+
+        $this->shellPath = $shellPath;
 
         return $this;
     }
@@ -151,6 +169,7 @@ class UnixUser extends ClusterModel implements Model
             ->setDefaultPhpVersion(Arr::get($data, 'default_php_version'))
             ->setVirtualHostsDirectory(Arr::get($data, 'virtual_hosts_directory'))
             ->setMailDomainsDirectory(Arr::get($data, 'mail_domains_directory'))
+            ->setShellPath(Arr::get($data, 'shell_path', ShellPath::BASH))
             ->setUnixId(Arr::get($data, 'unix_id'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
@@ -166,6 +185,7 @@ class UnixUser extends ClusterModel implements Model
             'default_php_version' => $this->getDefaultPhpVersion(),
             'virtual_hosts_directory' => $this->getVirtualHostsDirectory(),
             'mail_domains_directory' => $this->getMailDomainsDirectory(),
+            'shell_path' => $this->getShellPath(),
             'cluster_id' => $this->getClusterId(),
             'id' => $this->getId(),
             'unix_id' => $this->getUnixId(),
