@@ -11,7 +11,7 @@ def _exe_if_win(apps):
 
 
 # Versions of all packages possibly used in our tests
-# Only apply _app_names to entry_points, NOT scripts
+# Only apply _exe_if_win to entry_points, NOT scripts
 PKG: Dict[str, Dict[str, Any]] = {
     "ansible": {
         "spec": "ansible==2.9.13",

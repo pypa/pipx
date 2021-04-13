@@ -4,6 +4,7 @@ dev
 - Fixed issue which made pipx incorrectly list apps as part of a venv when they were not installed by pipx. (#650)
 - Fixed old regression that would prevent pipx uninstall from cleaning up linked binaries if the venv was old and did not have pipx metadata. (#651)
 - Fixed bugs with suffixed-venvs on Windows.  Now properly summarizes install, and actually uninstalls associated binaries for suffixed-venvs. (#653)
+- Add `--json` switch to `pipx list` to output rich json-metadata for all venvs.
 
 0.16.1.0
 
