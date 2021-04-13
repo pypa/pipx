@@ -241,6 +241,7 @@ def _get_exposed_app_paths_for_package(
             # is not a reliable way to determine if the symlink exists.
             # We always use the stricter check on non-Windows systems. On
             # Windows, we use a less strict check if we don't have a symlink.
+            is_same_file = False
             if _can_symlink(local_bin_dir) and b.is_symlink():
                 is_same_file = b.resolve().parent.samefile(venv_bin_path)
             elif not _can_symlink(local_bin_dir):
