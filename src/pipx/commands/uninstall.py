@@ -65,6 +65,7 @@ def _get_package_bin_dir_app_paths(
 def _get_venv_bin_dir_app_paths(venv: Venv, local_bin_dir: Path) -> List[Path]:
     bin_dir_app_paths: List[Path] = []
     if venv.pipx_metadata.main_package.package is not None:
+        # Valid metadata for venv
         for viewed_package in venv.package_metadata.values():
             bin_dir_app_paths += _get_package_bin_dir_app_paths(
                 venv, viewed_package, local_bin_dir
