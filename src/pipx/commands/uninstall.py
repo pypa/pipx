@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from shutil import which
-from typing import List
+from typing import List, Optional
 
 from pipx import constants
 from pipx.commands.common import (
@@ -24,15 +24,18 @@ from pipx.venv_inspect import VenvMetadata
 logger = logging.getLogger(__name__)
 
 
-def venv_metadata_to_package_info(
+def _venv_metadata_to_package_info(
     venv_metadata: VenvMetadata,
     package_name: str,
-    package_or_url: str,
-    pip_args: List[str],
-    include_apps: bool,
-    include_dependencies: bool,
-    suffix: str,
+    package_or_url: str = "",
+    pip_args: Optional[List[str]] = None,
+    include_apps: bool = True,
+    include_dependencies: bool = False,
+    suffix: str = "",
 ) -> PackageInfo:
+    if pip_args is None:
+        pip_args = []
+
     return PackageInfo(
         package=package_name,
         package_or_url=package_or_url,
@@ -78,14 +81,8 @@ def _get_venv_bin_dir_app_paths(venv: Venv, local_bin_dir: Path) -> List[Path]:
         # not include_dependencies.  Other PackageInfo fields are irrelevant
         # here.
         venv_metadata = venv.get_venv_metadata_for_package(venv.root.name, set())
-        main_package_info = venv_metadata_to_package_info(
-            venv_metadata,
-            package_name=venv.root.name,
-            package_or_url="",
-            pip_args=[],
-            include_apps=True,
-            include_dependencies=False,
-            suffix="",
+        main_package_info = _venv_metadata_to_package_info(
+            venv_metadata, venv.root.name
         )
         bin_dir_app_paths += _get_package_bin_dir_app_paths(
             venv, main_package_info, local_bin_dir
