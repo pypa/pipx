@@ -4,6 +4,7 @@ from shutil import which
 from typing import List
 
 from pipx import constants
+from pipx.commands.common import _get_exposed_app_paths_for_package, add_suffix
 from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_UNINSTALL_ERROR,
@@ -35,17 +36,22 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> ExitCode:
 
     venv = Venv(venv_dir, verbose=verbose)
 
-    suffix = ""
-
+    bin_dir_app_paths: List[Path] = []
     if venv.pipx_metadata.main_package.package is not None:
-        app_paths: List[Path] = []
         for viewed_package in venv.package_metadata.values():
-            app_paths += viewed_package.app_paths
-            for dep_paths in viewed_package.app_paths_of_dependencies.values():
-                app_paths += dep_paths
-        suffix = venv.pipx_metadata.main_package.suffix
+            suffix = viewed_package.suffix
+            apps = viewed_package.apps
+            if viewed_package.include_dependencies:
+                apps += viewed_package.apps_of_dependencies
+            bin_dir_app_paths += _get_exposed_app_paths_for_package(
+                venv.bin_path, [add_suffix(app, suffix) for app in apps], local_bin_dir
+            )
     else:
         # fallback if not metadata from pipx_metadata.json
+
+        # TODO: determine suffix for Windows
+        suffix = ""
+
         if venv.python_path.is_file():
             # has a valid python interpreter and can get metadata about the package
             # In pre-metadata-pipx venv_dir.name is name of main package
@@ -54,6 +60,7 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> ExitCode:
             for dep_paths in metadata.app_paths_of_dependencies.values():
                 app_paths += dep_paths
         else:
+
             # Doesn't have a valid python interpreter. We'll take our best guess on what to uninstall
             # here based on symlink location. pipx doesn't use symlinks on windows, so this is for
             # non-windows only.
@@ -69,18 +76,21 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> ExitCode:
                 ]
                 app_paths = apps_linking_to_venv_bin_dir
 
-    for filepath in local_bin_dir.iterdir():
-        if WINDOWS:
-            for b in app_paths:
-                bin_name = b.stem + suffix + b.suffix
-                if filepath.exists() and filepath.name == bin_name:
-                    filepath.unlink()
-        else:
-            symlink = filepath
-            for b in app_paths:
-                if symlink.exists() and b.exists() and symlink.samefile(b):
-                    logger.info(f"removing symlink {str(symlink)}")
-                    symlink.unlink()
+        for filepath in local_bin_dir.iterdir():
+            if WINDOWS:
+                for b in app_paths:
+                    bin_name = b.stem + suffix + b.suffix
+                    if filepath.exists() and filepath.name == bin_name:
+                        bin_dir_app_paths.append(filepath)
+            else:
+                symlink = filepath
+                for b in app_paths:
+                    if symlink.exists() and b.exists() and symlink.samefile(b):
+                        logger.info(f"removing symlink {str(symlink)}")
+                        bin_dir_app_paths.append(symlink)
+
+    for bin_dir_app_path in bin_dir_app_paths:
+        bin_dir_app_path.unlink()
 
     rmdir(venv_dir)
     print(f"uninstalled {venv.name}! {stars}")
