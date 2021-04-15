@@ -70,8 +70,7 @@ def _get_venv_bin_dir_app_paths(venv: Venv, local_bin_dir: Path) -> List[Path]:
                 venv, viewed_package, local_bin_dir
             )
     elif venv.python_path.is_file():
-        # fallback if not metadata from pipx_metadata.json
-        # has a valid python interpreter and can get metadata about the package
+        # No metadata from pipx_metadata.json, but valid python interpreter.
         # In pre-metadata-pipx venv.root.name is name of main package
         # In pre-metadata-pipx there is no suffix
         # We make the conservative assumptions: no injected packages,
