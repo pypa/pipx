@@ -5,9 +5,9 @@ from typing import List
 
 from pipx import constants
 from pipx.commands.common import (
-    _can_symlink,
-    _get_exposed_app_paths_for_package,
     add_suffix,
+    can_symlink,
+    get_exposed_app_paths_for_package,
 )
 from pipx.constants import (
     EXIT_CODE_OK,
@@ -56,7 +56,7 @@ def _get_package_bin_dir_app_paths(
     apps = package_info.apps
     if package_info.include_dependencies:
         apps += package_info.apps_of_dependencies
-    bin_dir_package_app_paths += _get_exposed_app_paths_for_package(
+    bin_dir_package_app_paths += get_exposed_app_paths_for_package(
         venv.bin_path, [add_suffix(app, suffix) for app in apps], local_bin_dir
     )
     return bin_dir_package_app_paths
@@ -97,7 +97,7 @@ def _get_venv_bin_dir_app_paths(venv: Venv, local_bin_dir: Path) -> List[Path]:
         # give up and return and empty list.
         # The heuristic here is any symlink in ~/.local/bin pointing to
         # .local/pipx/venvs/VENV_NAME/bin should be uninstalled.
-        if not _can_symlink(local_bin_dir):
+        if not can_symlink(local_bin_dir):
             return []
 
         apps_linking_to_venv_bin_dir = [
