@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from shutil import which
-from typing import List, Optional
+from typing import List, Optional, Set
 
 from pipx.commands.common import (
     add_suffix,
@@ -52,24 +52,24 @@ def _venv_metadata_to_package_info(
 
 def _get_package_bin_dir_app_paths(
     venv: Venv, package_info: PackageInfo, local_bin_dir: Path
-) -> List[Path]:
-    bin_dir_package_app_paths: List[Path] = []
+) -> Set[Path]:
+    bin_dir_package_app_paths = set()
     suffix = package_info.suffix
     apps = package_info.apps
     if package_info.include_dependencies:
         apps += package_info.apps_of_dependencies
-    bin_dir_package_app_paths += get_exposed_app_paths_for_package(
+    bin_dir_package_app_paths |= get_exposed_app_paths_for_package(
         venv.bin_path, local_bin_dir, [add_suffix(app, suffix) for app in apps]
     )
     return bin_dir_package_app_paths
 
 
-def _get_venv_bin_dir_app_paths(venv: Venv, local_bin_dir: Path) -> List[Path]:
-    bin_dir_app_paths: List[Path] = []
+def _get_venv_bin_dir_app_paths(venv: Venv, local_bin_dir: Path) -> Set[Path]:
+    bin_dir_app_paths = set()
     if venv.pipx_metadata.main_package.package is not None:
         # Valid metadata for venv
         for viewed_package in venv.package_metadata.values():
-            bin_dir_app_paths += _get_package_bin_dir_app_paths(
+            bin_dir_app_paths |= _get_package_bin_dir_app_paths(
                 venv, viewed_package, local_bin_dir
             )
     elif venv.python_path.is_file():
@@ -83,7 +83,7 @@ def _get_venv_bin_dir_app_paths(venv: Venv, local_bin_dir: Path) -> List[Path]:
         main_package_info = _venv_metadata_to_package_info(
             venv_metadata, venv.root.name
         )
-        bin_dir_app_paths += _get_package_bin_dir_app_paths(
+        bin_dir_app_paths = _get_package_bin_dir_app_paths(
             venv, main_package_info, local_bin_dir
         )
     else:
@@ -93,12 +93,12 @@ def _get_venv_bin_dir_app_paths(venv: Venv, local_bin_dir: Path) -> List[Path]:
         # The heuristic here is any symlink in ~/.local/bin pointing to
         # .local/pipx/venvs/VENV_NAME/{bin,Scripts} should be uninstalled.
 
-        # For non-symlink systems we give up and return and empty list.
+        # For non-symlink systems we give up and return and empty set.
         if not can_symlink(local_bin_dir):
-            return []
+            return set()
 
-        bin_dir_app_paths = list(
-            get_exposed_app_paths_for_package(venv.bin_path, local_bin_dir)
+        bin_dir_app_paths = get_exposed_app_paths_for_package(
+            venv.bin_path, local_bin_dir
         )
 
     return bin_dir_app_paths
