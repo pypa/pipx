@@ -6,11 +6,10 @@ from unittest import mock
 
 import pytest  # type: ignore
 
-from helpers import app_name, run_pipx_cli, unwrap_log_text, which_python
+from helpers import app_name, run_pipx_cli, unwrap_log_text
 from package_info import PKG
 from pipx import constants
 
-PYTHON3_5 = which_python("python3.5")
 TEST_DATA_PATH = "./testdata/test_package_specifier"
 
 
@@ -189,13 +188,6 @@ def test_existing_symlink_points_to_nothing(pipx_temp_env, capsys):
     # pipx should realize the symlink points to nothing and replace it,
     # so no warning should be present
     assert "symlink missing or pointing to unexpected location" not in captured.out
-
-
-def test_install_python3_5(pipx_temp_env):
-    if PYTHON3_5:
-        assert not run_pipx_cli(["install", "cowsay", "--python", PYTHON3_5])
-    else:
-        pytest.skip("python3.5 not on PATH")
 
 
 def test_pip_args_forwarded_to_package_name_determination(pipx_temp_env, capsys):

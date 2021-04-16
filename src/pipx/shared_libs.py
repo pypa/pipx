@@ -30,6 +30,7 @@ class _SharedLibs:
         # i.e. python_path is ~/.local/pipx/shared/python
         self._site_packages: Optional[Path] = None
         self.has_been_updated_this_run = False
+        self.has_been_logged_this_run = False
 
     @property
     def site_packages(self) -> Path:
@@ -64,10 +65,12 @@ class _SharedLibs:
 
         now = time.time()
         time_since_last_update_sec = now - self.pip_path.stat().st_mtime
-        logger.info(
-            f"Time since last upgrade of shared libs, in seconds: {time_since_last_update_sec:.0f}. "
-            f"Upgrade will be run by pipx if greater than {SHARED_LIBS_MAX_AGE_SEC:.0f}."
-        )
+        if not self.has_been_logged_this_run:
+            logger.info(
+                f"Time since last upgrade of shared libs, in seconds: {time_since_last_update_sec:.0f}. "
+                f"Upgrade will be run by pipx if greater than {SHARED_LIBS_MAX_AGE_SEC:.0f}."
+            )
+            self.has_been_logged_this_run = True
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
     def upgrade(

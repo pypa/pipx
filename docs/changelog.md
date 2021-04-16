@@ -5,6 +5,7 @@ dev
 - Fixed old regression that would prevent pipx uninstall from cleaning up linked binaries if the venv was old and did not have pipx metadata. (#651)
 - Fixed bugs with suffixed-venvs on Windows.  Now properly summarizes install, and actually uninstalls associated binaries for suffixed-venvs. (#653)
 - Add `--json` switch to `pipx list` to output rich json-metadata for all venvs.
+- Change venv minimum python version to 3.6, removing python 3.5 which is End of Life. (#666)
 
 0.16.1.0
 
