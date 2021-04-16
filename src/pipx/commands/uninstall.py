@@ -108,7 +108,6 @@ def _get_venv_bin_dir_app_paths(venv: Venv, local_bin_dir: Path) -> List[Path]:
             symlink = filepath
             for b in app_paths:
                 if symlink.exists() and b.exists() and symlink.samefile(b):
-                    logger.info(f"removing symlink {str(symlink)}")
                     bin_dir_app_paths.append(symlink)
 
     return bin_dir_app_paths
@@ -134,6 +133,7 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> ExitCode:
     bin_dir_app_paths = _get_venv_bin_dir_app_paths(venv, local_bin_dir)
 
     for bin_dir_app_path in bin_dir_app_paths:
+        logger.info(f"removing file {bin_dir_app_path}")
         bin_dir_app_path.unlink()
 
     rmdir(venv_dir)
