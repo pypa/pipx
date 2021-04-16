@@ -212,8 +212,8 @@ def get_venv_summary(
 
     exposed_app_paths = get_exposed_app_paths_for_package(
         venv.bin_path,
-        [add_suffix(app, package_metadata.suffix) for app in apps],
         constants.LOCAL_BIN_DIR,
+        [add_suffix(app, package_metadata.suffix) for app in apps],
     )
     exposed_binary_names = sorted(p.name for p in exposed_app_paths)
     unavailable_binary_names = sorted(
@@ -243,8 +243,15 @@ def get_venv_summary(
 
 
 def get_exposed_app_paths_for_package(
-    venv_bin_path: Path, package_binary_names: List[str], local_bin_dir: Path
+    venv_bin_path: Path,
+    local_bin_dir: Path,
+    package_binary_names: Optional[List[str]] = None,
 ) -> Set[Path]:
+    # package_binary_names is used only if local_bin_path cannot use symlinks
+    #   to look for files with the same name
+    if package_binary_names is None:
+        package_binary_names = []
+
     bin_symlinks = set()
     for b in local_bin_dir.iterdir():
         try:

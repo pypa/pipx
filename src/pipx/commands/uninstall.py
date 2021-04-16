@@ -3,7 +3,6 @@ from pathlib import Path
 from shutil import which
 from typing import List, Optional
 
-from pipx import constants
 from pipx.commands.common import (
     add_suffix,
     can_symlink,
@@ -60,7 +59,7 @@ def _get_package_bin_dir_app_paths(
     if package_info.include_dependencies:
         apps += package_info.apps_of_dependencies
     bin_dir_package_app_paths += get_exposed_app_paths_for_package(
-        venv.bin_path, [add_suffix(app, suffix) for app in apps], local_bin_dir
+        venv.bin_path, local_bin_dir, [add_suffix(app, suffix) for app in apps]
     )
     return bin_dir_package_app_paths
 
@@ -90,25 +89,17 @@ def _get_venv_bin_dir_app_paths(venv: Venv, local_bin_dir: Path) -> List[Path]:
     else:
         # No metadata and no valid python interpreter.
         # We'll take our best guess on what to uninstall here based on symlink
-        # location for symlink-capable systems.  For non-symlink systems we
-        # give up and return and empty list.
+        # location for symlink-capable systems.
         # The heuristic here is any symlink in ~/.local/bin pointing to
-        # .local/pipx/venvs/VENV_NAME/bin should be uninstalled.
+        # .local/pipx/venvs/VENV_NAME/{bin,Scripts} should be uninstalled.
+
+        # For non-symlink systems we give up and return and empty list.
         if not can_symlink(local_bin_dir):
             return []
 
-        apps_linking_to_venv_bin_dir = [
-            f
-            for f in constants.LOCAL_BIN_DIR.iterdir()
-            if str(f.resolve()).startswith(str(venv.bin_path))
-        ]
-        app_paths = apps_linking_to_venv_bin_dir
-
-        for filepath in local_bin_dir.iterdir():
-            symlink = filepath
-            for b in app_paths:
-                if symlink.exists() and b.exists() and symlink.samefile(b):
-                    bin_dir_app_paths.append(symlink)
+        bin_dir_app_paths = list(
+            get_exposed_app_paths_for_package(venv.bin_path, local_bin_dir)
+        )
 
     return bin_dir_app_paths
 
