@@ -68,9 +68,9 @@ def _get_venv_bin_dir_app_paths(venv: Venv, local_bin_dir: Path) -> Set[Path]:
     bin_dir_app_paths = set()
     if venv.pipx_metadata.main_package.package is not None:
         # Valid metadata for venv
-        for viewed_package in venv.package_metadata.values():
+        for package_info in venv.package_metadata.values():
             bin_dir_app_paths |= _get_package_bin_dir_app_paths(
-                venv, viewed_package, local_bin_dir
+                venv, package_info, local_bin_dir
             )
     elif venv.python_path.is_file():
         # No metadata from pipx_metadata.json, but valid python interpreter.
