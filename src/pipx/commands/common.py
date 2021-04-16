@@ -247,8 +247,8 @@ def get_exposed_app_paths_for_package(
     local_bin_dir: Path,
     package_binary_names: Optional[List[str]] = None,
 ) -> Set[Path]:
-    # package_binary_names is used only if local_bin_path cannot use symlinks
-    #   to look for files with the same name
+    # package_binary_names is used only if local_bin_path cannot use symlinks.
+    # It is necessary for those systems to return app_paths.
     if package_binary_names is None:
         package_binary_names = []
 
