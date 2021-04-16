@@ -98,3 +98,25 @@ def test_uninstall_with_missing_interpreter_legacy_venv(
         # Also use is_symlink to check for broken symlink.
         #   exists() returns False if symlink exists but target doesn't exist
         assert not executable_path.exists() and not executable_path.is_symlink()
+
+
+def test_uninstall_proper_dep_behavior(pipx_temp_env):
+    isort_app_paths = [constants.LOCAL_BIN_DIR / app for app in PKG["isort"]["apps"]]
+    pylint_app_paths = [constants.LOCAL_BIN_DIR / app for app in PKG["pylint"]["apps"]]
+
+    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
+    for pylint_app_path in pylint_app_paths:
+        assert pylint_app_path.exists()
+    for isort_app_path in isort_app_paths:
+        assert isort_app_path.exists()
+
+    assert not run_pipx_cli(["uninstall", "pylint"])
+
+    for pylint_app_path in pylint_app_paths:
+        # Also use is_symlink to check for broken symlink.
+        #   exists() returns False if symlink exists but target doesn't exist
+        assert not pylint_app_path.exists() and not pylint_app_path.is_symlink()
+    # THIS is what we're making sure is true:
+    for isort_app_path in isort_app_paths:
+        assert isort_app_path.exists()
