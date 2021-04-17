@@ -7,6 +7,16 @@ from package_info import PKG
 from pipx import constants
 
 
+def file_or_symlink(filepath):
+    # Returns True for file or broken symlink or non-broken symlink
+    # Returns False for no file and no symlink
+
+    # filepath.exists() returns True for file or non-broken symlink
+    # filepath.exists() returns False for broken symlink
+    # filepath.is_symlink() returns True for broken or non-broken symlink
+    return filepath.exists() or filepath.is_symlink()
+
+
 def test_uninstall(pipx_temp_env):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["uninstall", "pycowsay"])
@@ -31,9 +41,7 @@ def test_uninstall_legacy_venv(pipx_temp_env, metadata_version):
 
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
     assert not run_pipx_cli(["uninstall", "pycowsay"])
-    # Also use is_symlink to check for broken symlink.
-    #   exists() returns False if symlink exists but target doesn't exist
-    assert not executable_path.exists() and not executable_path.is_symlink()
+    assert not file_or_symlink(executable_path)
 
 
 def test_uninstall_suffix(pipx_temp_env):
@@ -45,9 +53,7 @@ def test_uninstall_suffix(pipx_temp_env):
     assert executable_path.exists()
 
     assert not run_pipx_cli(["uninstall", f"{name}{suffix}"])
-    # Also use is_symlink to check for broken symlink.
-    #   exists() returns False if symlink exists but target doesn't exist
-    assert not executable_path.exists() and not executable_path.is_symlink()
+    assert not file_or_symlink(executable_path)
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])
@@ -63,9 +69,7 @@ def test_uninstall_suffix_legacy_venv(pipx_temp_env, metadata_version):
     assert executable_path.exists()
 
     assert not run_pipx_cli(["uninstall", f"{name}{suffix}"])
-    # Also use is_symlink to check for broken symlink.
-    #   exists() returns False if symlink exists but target doesn't exist
-    assert not executable_path.exists() and not executable_path.is_symlink()
+    assert not file_or_symlink(executable_path)
 
 
 def test_uninstall_with_missing_interpreter(pipx_temp_env):
@@ -89,9 +93,7 @@ def test_uninstall_with_missing_interpreter_legacy_venv(
     assert not run_pipx_cli(["uninstall", "pycowsay"])
     # On Windows we cannot remove app binaries if no metadata and no python
     if not sys.platform.startswith("win"):
-        # Also use is_symlink to check for broken symlink.
-        #   exists() returns False if symlink exists but target doesn't exist
-        assert not executable_path.exists() and not executable_path.is_symlink()
+        assert not file_or_symlink(executable_path)
 
 
 @pytest.mark.parametrize("metadata_version", [None, "0.1", "0.2"])
@@ -113,9 +115,7 @@ def test_uninstall_proper_dep_behavior(pipx_temp_env, metadata_version):
     assert not run_pipx_cli(["uninstall", "pylint"])
 
     for pylint_app_path in pylint_app_paths:
-        # Also use is_symlink to check for broken symlink.
-        #   exists() returns False if symlink exists but target doesn't exist
-        assert not pylint_app_path.exists() and not pylint_app_path.is_symlink()
+        assert not file_or_symlink(pylint_app_path)
     # THIS is what we're making sure is true:
     for isort_app_path in isort_app_paths:
         assert isort_app_path.exists()
@@ -147,9 +147,7 @@ def test_uninstall_proper_dep_behavior_missing_interpreter(
     #   remove bin dir links by design for missing interpreter in that case
     if not (sys.platform.startswith("win") and metadata_version is None):
         for pylint_app_path in pylint_app_paths:
-            # Also use is_symlink to check for broken symlink.
-            #   exists() returns False if symlink exists but target doesn't exist
-            assert not pylint_app_path.exists() and not pylint_app_path.is_symlink()
+            assert not file_or_symlink(pylint_app_path)
     # THIS is what we're making sure is true:
     for isort_app_path in isort_app_paths:
         assert isort_app_path.exists()
