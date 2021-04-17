@@ -7,23 +7,23 @@ from package_info import PKG
 from pipx import constants, util
 
 
-def test_uninstall(pipx_temp_env, capsys):
+def test_uninstall(pipx_temp_env):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["uninstall", "pycowsay"])
 
 
-def test_uninstall_multiple_same_app(pipx_temp_env, capsys):
+def test_uninstall_multiple_same_app(pipx_temp_env):
     assert not run_pipx_cli(["install", "kaggle==1.5.9", "--include-deps"])
     assert not run_pipx_cli(["uninstall", "kaggle"])
 
 
-def test_uninstall_circular_deps(pipx_temp_env, capsys):
+def test_uninstall_circular_deps(pipx_temp_env):
     assert not run_pipx_cli(["install", PKG["cloudtoken"]["spec"]])
     assert not run_pipx_cli(["uninstall", "cloudtoken"])
 
 
 @pytest.mark.parametrize("metadata_version", [None, "0.1"])
-def test_uninstall_legacy_venv(pipx_temp_env, capsys, metadata_version):
+def test_uninstall_legacy_venv(pipx_temp_env, metadata_version):
     executable_path = constants.LOCAL_BIN_DIR / app_name("pycowsay")
 
     assert not run_pipx_cli(["install", "pycowsay"])
@@ -36,7 +36,7 @@ def test_uninstall_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert not executable_path.exists() and not executable_path.is_symlink()
 
 
-def test_uninstall_suffix(pipx_temp_env, capsys):
+def test_uninstall_suffix(pipx_temp_env):
     name = "pbr"
     suffix = "_a"
     executable_path = constants.LOCAL_BIN_DIR / app_name(f"{name}{suffix}")
@@ -51,7 +51,7 @@ def test_uninstall_suffix(pipx_temp_env, capsys):
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])
-def test_uninstall_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
+def test_uninstall_suffix_legacy_venv(pipx_temp_env, metadata_version):
     name = "pbr"
     # legacy uninstall on Windows only works with "canonical name characters"
     #   in suffix
@@ -68,7 +68,7 @@ def test_uninstall_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert not executable_path.exists() and not executable_path.is_symlink()
 
 
-def test_uninstall_with_missing_interpreter(pipx_temp_env, capsys):
+def test_uninstall_with_missing_interpreter(pipx_temp_env):
     assert not run_pipx_cli(["install", "pycowsay"])
 
     _, python_path = util.get_venv_paths(constants.PIPX_LOCAL_VENVS / "pycowsay")
@@ -81,7 +81,7 @@ def test_uninstall_with_missing_interpreter(pipx_temp_env, capsys):
 
 @pytest.mark.parametrize("metadata_version", [None, "0.1"])
 def test_uninstall_with_missing_interpreter_legacy_venv(
-    pipx_temp_env, capsys, metadata_version
+    pipx_temp_env, metadata_version
 ):
     executable_path = constants.LOCAL_BIN_DIR / app_name("pycowsay")
 
