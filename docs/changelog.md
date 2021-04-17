@@ -6,7 +6,7 @@ dev
 - Fixed bugs with suffixed-venvs on Windows.  Now properly summarizes install, and actually uninstalls associated binaries for suffixed-venvs. (#653)
 - Added `--json` switch to `pipx list` to output rich json-metadata for all venvs.
 - Changed venv minimum python version to 3.6, removing python 3.5 which is End of Life. (#666)
-- Fixed bug (#670) where uninstalling a venv could erroneously uninstall other apps from the local binary directory.
+- Fixed bug #670 where uninstalling a venv could erroneously uninstall other apps from the local binary directory. (#672)
 
 0.16.1.0
 
