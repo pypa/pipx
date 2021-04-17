@@ -100,12 +100,15 @@ def test_uninstall_with_missing_interpreter_legacy_venv(
         assert not executable_path.exists() and not executable_path.is_symlink()
 
 
-def test_uninstall_proper_dep_behavior(pipx_temp_env):
+@pytest.mark.parametrize("metadata_version", [None, "0.1", "0.2"])
+def test_uninstall_proper_dep_behavior(pipx_temp_env, metadata_version):
     isort_app_paths = [constants.LOCAL_BIN_DIR / app for app in PKG["isort"]["apps"]]
     pylint_app_paths = [constants.LOCAL_BIN_DIR / app for app in PKG["pylint"]["apps"]]
 
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
     assert not run_pipx_cli(["install", PKG["isort"]["spec"]])
+    mock_legacy_venv("pylint", metadata_version=metadata_version)
+    mock_legacy_venv("isort", metadata_version=metadata_version)
     for pylint_app_path in pylint_app_paths:
         assert pylint_app_path.exists()
     for isort_app_path in isort_app_paths:
