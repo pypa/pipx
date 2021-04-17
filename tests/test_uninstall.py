@@ -96,6 +96,8 @@ def test_uninstall_with_missing_interpreter_legacy_venv(
 
 @pytest.mark.parametrize("metadata_version", [None, "0.1", "0.2"])
 def test_uninstall_proper_dep_behavior(pipx_temp_env, metadata_version):
+    # isort is a dependency of pylint.  Make sure that uninstalling pylint
+    #   does not also uninstall isort app in LOCAL_BIN_DIR
     isort_app_paths = [constants.LOCAL_BIN_DIR / app for app in PKG["isort"]["apps"]]
     pylint_app_paths = [constants.LOCAL_BIN_DIR / app for app in PKG["pylint"]["apps"]]
 
@@ -123,6 +125,8 @@ def test_uninstall_proper_dep_behavior(pipx_temp_env, metadata_version):
 def test_uninstall_proper_dep_behavior_missing_interpreter(
     pipx_temp_env, metadata_version
 ):
+    # isort is a dependency of pylint.  Make sure that uninstalling pylint
+    #   does not also uninstall isort app in LOCAL_BIN_DIR
     isort_app_paths = [constants.LOCAL_BIN_DIR / app for app in PKG["isort"]["apps"]]
     pylint_app_paths = [constants.LOCAL_BIN_DIR / app for app in PKG["pylint"]["apps"]]
 
