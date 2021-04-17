@@ -379,7 +379,8 @@ PKG: Dict[str, Dict[str, Any]] = {
     "localstack": {
         "spec": "localstack==0.12.1",
         "apps": ["localstack", "localstack.bat"],
-        "apps_of_dependencies": _exe_if_win(["chardetect"]) + ["jp.py"],
+        "apps_of_dependencies": _exe_if_win(["chardetect", "dulwich"])
+        + ["jp.py", "dul-receive-pack", "dul-upload-pack"],
     },
     "mackup": {
         "spec": "mackup==0.8.29",
