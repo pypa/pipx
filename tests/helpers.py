@@ -78,18 +78,21 @@ def mock_legacy_venv(venv_name: str, metadata_version: Optional[str] = None) -> 
     """
     venv_dir = Path(constants.PIPX_LOCAL_VENVS) / canonicalize_name(venv_name)
 
-    if metadata_version is None:
+    if metadata_version == "0.2":
+        # Current metadata version, do nothing
+        return
+    elif metadata_version == "0.1":
+        mock_pipx_metadata_template = MOCK_PIPXMETADATA_0_1
+    elif metadata_version is None:
+        # No metadata
         os.remove(venv_dir / "pipx_metadata.json")
         return
-
-    modern_metadata = pipx_metadata_file.PipxMetadata(venv_dir).to_dict()
-
-    if metadata_version == "0.1":
-        mock_pipx_metadata_template = MOCK_PIPXMETADATA_0_1
     else:
         raise Exception(
             f"Internal Test Error: Unknown metadata_version={metadata_version}"
         )
+
+    modern_metadata = pipx_metadata_file.PipxMetadata(venv_dir).to_dict()
 
     # Convert to mock old metadata
     mock_pipx_metadata = {}
@@ -159,6 +162,6 @@ def assert_package_metadata(test_metadata, ref_metadata):
         apps=sorted(test_metadata.apps), app_paths=sorted(test_metadata.app_paths)
     )
     ref_metadata_replaced = ref_metadata._replace(
-        apps=sorted(ref_metadata.apps), app_paths=sorted(ref_metadata.app_paths),
+        apps=sorted(ref_metadata.apps), app_paths=sorted(ref_metadata.app_paths)
     )
     assert test_metadata_replaced == ref_metadata_replaced
