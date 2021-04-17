@@ -2,9 +2,9 @@ import sys
 
 import pytest  # type: ignore
 
-from helpers import app_name, mock_legacy_venv, run_pipx_cli
+from helpers import app_name, mock_legacy_venv, remove_venv_interpreter, run_pipx_cli
 from package_info import PKG
-from pipx import constants, util
+from pipx import constants
 
 
 def test_uninstall(pipx_temp_env):
@@ -70,12 +70,7 @@ def test_uninstall_suffix_legacy_venv(pipx_temp_env, metadata_version):
 
 def test_uninstall_with_missing_interpreter(pipx_temp_env):
     assert not run_pipx_cli(["install", "pycowsay"])
-
-    _, python_path = util.get_venv_paths(constants.PIPX_LOCAL_VENVS / "pycowsay")
-    assert python_path.is_file()
-    python_path.unlink()
-    assert not python_path.is_file()
-
+    remove_venv_interpreter("pycowsay")
     assert not run_pipx_cli(["uninstall", "pycowsay"])
 
 
@@ -89,8 +84,7 @@ def test_uninstall_with_missing_interpreter_legacy_venv(
     assert executable_path.exists()
 
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
-    _, venv_python_path = util.get_venv_paths(constants.PIPX_LOCAL_VENVS / "pycowsay")
-    venv_python_path.unlink()
+    remove_venv_interpreter("pycowsay")
 
     assert not run_pipx_cli(["uninstall", "pycowsay"])
     # On Windows we cannot remove app binaries if no metadata and no python

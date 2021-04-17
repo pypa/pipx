@@ -8,10 +8,11 @@ from helpers import (
     assert_package_metadata,
     create_package_info_ref,
     mock_legacy_venv,
+    remove_venv_interpreter,
     run_pipx_cli,
 )
 from package_info import PKG
-from pipx import constants, util
+from pipx import constants
 from pipx.pipx_metadata_file import PackageInfo, _json_decoder_object_hook
 
 
@@ -24,14 +25,12 @@ def test_cli(pipx_temp_env, monkeypatch, capsys):
 def test_missing_interpreter(pipx_temp_env, monkeypatch, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
 
-    _, python_path = util.get_venv_paths(constants.PIPX_LOCAL_VENVS / "pycowsay")
-    assert (python_path).is_file()
-
     assert not run_pipx_cli(["list"])
     captured = capsys.readouterr()
     assert "package pycowsay has invalid interpreter" not in captured.out
 
-    python_path.unlink()
+    remove_venv_interpreter("pycowsay")
+
     assert run_pipx_cli(["list"])
     captured = capsys.readouterr()
     assert "package pycowsay has invalid interpreter" in captured.out

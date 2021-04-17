@@ -9,7 +9,7 @@ from unittest import mock
 from packaging.utils import canonicalize_name
 
 from package_info import PKG
-from pipx import constants, main, pipx_metadata_file
+from pipx import constants, main, pipx_metadata_file, util
 
 WIN = sys.platform.startswith("win")
 
@@ -165,3 +165,10 @@ def assert_package_metadata(test_metadata, ref_metadata):
         apps=sorted(ref_metadata.apps), app_paths=sorted(ref_metadata.app_paths)
     )
     assert test_metadata_replaced == ref_metadata_replaced
+
+
+def remove_venv_interpreter(venv_name):
+    _, venv_python_path = util.get_venv_paths(constants.PIPX_LOCAL_VENVS / venv_name)
+    assert venv_python_path.is_file()
+    venv_python_path.unlink()
+    assert not venv_python_path.is_file()
