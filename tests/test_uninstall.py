@@ -143,10 +143,13 @@ def test_uninstall_proper_dep_behavior_missing_interpreter(
 
     assert not run_pipx_cli(["uninstall", "pylint"])
 
-    for pylint_app_path in pylint_app_paths:
-        # Also use is_symlink to check for broken symlink.
-        #   exists() returns False if symlink exists but target doesn't exist
-        assert not pylint_app_path.exists() and not pylint_app_path.is_symlink()
+    # Do not check the following on Windows without metadata, we do not
+    #   remove bin dir links by design for missing interpreter in that case
+    if not (sys.platform.startswith("win") and metadata_version is None):
+        for pylint_app_path in pylint_app_paths:
+            # Also use is_symlink to check for broken symlink.
+            #   exists() returns False if symlink exists but target doesn't exist
+            assert not pylint_app_path.exists() and not pylint_app_path.is_symlink()
     # THIS is what we're making sure is true:
     for isort_app_path in isort_app_paths:
         assert isort_app_path.exists()
