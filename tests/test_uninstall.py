@@ -11,8 +11,8 @@ def file_or_symlink(filepath):
     # Returns True for file or broken symlink or non-broken symlink
     # Returns False for no file and no symlink
 
-    # filepath.exists() returns True for file or non-broken symlink
-    # filepath.exists() returns False for broken symlink
+    # filepath.exists() returns True for regular file or non-broken symlink
+    # filepath.exists() returns False for no regular file or broken symlink
     # filepath.is_symlink() returns True for broken or non-broken symlink
     return filepath.exists() or filepath.is_symlink()
 
