@@ -128,5 +128,6 @@ def show_cursor() -> None:
 
 
 def clear_line() -> None:
+    """Clears current line and positions cursor at start of line"""
     sys.stderr.write(f"\r{CLEAR_LINE}")
     sys.stdout.write(f"\r{CLEAR_LINE}")
