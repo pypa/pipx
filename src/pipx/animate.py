@@ -68,8 +68,6 @@ def animate(
     finally:
         event.set()
         clear_line()
-        sys.stderr.write("\r")
-        sys.stdout.write("\r")
 
 
 def print_animation(
@@ -95,8 +93,8 @@ def print_animation(
                 cur_line = f"{message:.{max_message_len}}{s}"
 
             clear_line()
-            sys.stderr.write("\r")
             sys.stderr.write(cur_line)
+            sys.stderr.flush()
             if event.wait(period):
                 break
 
