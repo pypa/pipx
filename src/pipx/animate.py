@@ -130,5 +130,5 @@ def show_cursor() -> None:
 
 
 def clear_line() -> None:
-    sys.stderr.write(f"{CLEAR_LINE}")
-    sys.stdout.write(f"{CLEAR_LINE}")
+    sys.stderr.write(f"\r{CLEAR_LINE}")
+    sys.stdout.write(f"\r{CLEAR_LINE}")
