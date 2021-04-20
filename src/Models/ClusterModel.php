@@ -2,11 +2,13 @@
 
 namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
+use JsonSerializable;
+use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ModelException;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ValidationException;
 use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
 
-abstract class ClusterModel
+abstract class ClusterModel implements JsonSerializable, Model
 {
     /**
      * Provide fallback to allow the user of properties but still using the getters and setters.
@@ -92,5 +94,15 @@ abstract class ClusterModel
         if (count($failedValidations) !== 0) {
             throw ValidationException::validationFailed($failedValidations);
         }
+    }
+
+    /**
+     * Serializes the model to a value that can be serialized with json_encode.
+     *
+     * @return array
+     */
+    public function jsonSerialize(): array
+    {
+        return $this->toArray();
     }
 }
