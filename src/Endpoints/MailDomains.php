@@ -75,7 +75,6 @@ class MailDomains extends Endpoint
         $this->validateRequired($mailDomain, 'create', [
             'domain',
             'catch_all_forward_email_addresses',
-            'is_local',
             'unix_user_id',
         ]);
 

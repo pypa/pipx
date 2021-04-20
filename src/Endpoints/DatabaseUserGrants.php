@@ -75,7 +75,6 @@ class DatabaseUserGrants extends Endpoint
         $this->validateRequired($databaseUserGrant, 'create', [
             'database_id',
             'database_user_id',
-            'table_name',
             'privilege_name',
         ]);
 

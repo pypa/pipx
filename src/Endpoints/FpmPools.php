@@ -112,6 +112,10 @@ class FpmPools extends Endpoint
     public function update(FpmPool $fpmPool): Response
     {
         $this->validateRequired($fpmPool, 'update', [
+            'name',
+            'unix_user_id',
+            'version',
+            'max_children',
             'id',
             'cluster_id',
         ]);
