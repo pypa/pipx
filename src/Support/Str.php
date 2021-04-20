@@ -13,6 +13,6 @@ class Str extends \Illuminate\Support\Str
      */
     public static function match(string $string, string $pattern): bool
     {
-        return preg_match($pattern, $string) == false;
+        return preg_match($pattern, $string) != false;
     }
 }
