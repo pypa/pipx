@@ -68,8 +68,6 @@ def animate(
     finally:
         event.set()
         clear_line()
-        sys.stderr.write("\r")
-        sys.stdout.write("\r")
 
 
 def print_animation(
@@ -95,8 +93,8 @@ def print_animation(
                 cur_line = f"{message:.{max_message_len}}{s}"
 
             clear_line()
-            sys.stderr.write("\r")
             sys.stderr.write(cur_line)
+            sys.stderr.flush()
             if event.wait(period):
                 break
 
@@ -130,5 +128,6 @@ def show_cursor() -> None:
 
 
 def clear_line() -> None:
-    sys.stderr.write(f"{CLEAR_LINE}")
-    sys.stdout.write(f"{CLEAR_LINE}")
+    """Clears current line and positions cursor at start of line"""
+    sys.stderr.write(f"\r{CLEAR_LINE}")
+    sys.stdout.write(f"\r{CLEAR_LINE}")
