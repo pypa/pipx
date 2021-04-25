@@ -82,7 +82,7 @@ def test_line_lengths_emoji(capsys, monkeypatch, env_columns, expected_frame_mes
 
     frames_to_test = 4
     frame_strings = [
-        f"{CLEAR_LINE}\r{x} {expected_frame_message}" for x in EMOJI_ANIMATION_FRAMES
+        f"\r{CLEAR_LINE}{x} {expected_frame_message}" for x in EMOJI_ANIMATION_FRAMES
     ]
     check_animate_output(
         capsys, TEST_STRING_40_CHAR, frame_strings, EMOJI_FRAME_PERIOD, frames_to_test
@@ -109,7 +109,7 @@ def test_line_lengths_no_emoji(
 
     frames_to_test = 2
     frame_strings = [
-        f"{CLEAR_LINE}\r{expected_frame_message}{x}" for x in NONEMOJI_ANIMATION_FRAMES
+        f"\r{CLEAR_LINE}{expected_frame_message}{x}" for x in NONEMOJI_ANIMATION_FRAMES
     ]
 
     check_animate_output(
