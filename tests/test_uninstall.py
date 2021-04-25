@@ -56,6 +56,27 @@ def test_uninstall_suffix(pipx_temp_env):
     assert not file_or_symlink(executable_path)
 
 
+def test_uninstall_injected(pipx_temp_env):
+    pycowsay_app_paths = [
+        constants.LOCAL_BIN_DIR / app for app in PKG["pycowsay"]["apps"]
+    ]
+    pylint_app_paths = [constants.LOCAL_BIN_DIR / app for app in PKG["pylint"]["apps"]]
+    app_paths = pycowsay_app_paths + pylint_app_paths
+
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(
+        ["inject", "--include-apps", "pycowsay", PKG["pylint"]["spec"]]
+    )
+
+    for app_path in app_paths:
+        assert app_path.exists()
+
+    assert not run_pipx_cli(["uninstall", "pycowsay"])
+
+    for app_path in app_paths:
+        assert not file_or_symlink(app_path)
+
+
 @pytest.mark.parametrize("metadata_version", ["0.1"])
 def test_uninstall_suffix_legacy_venv(pipx_temp_env, metadata_version):
     name = "pbr"
