@@ -3,7 +3,8 @@ from pathlib import Path
 
 import pytest  # type: ignore
 
-from pipx import constants, shared_libs, venv
+from helpers import WIN
+from pipx import commands, constants, shared_libs, venv
 
 
 def pytest_addoption(parser):
@@ -54,3 +55,12 @@ def pipx_temp_env(tmp_path, monkeypatch):
     monkeypatch.setenv("PATH_ORIG", str(bin_dir) + os.pathsep + os.getenv("PATH"))
     monkeypatch.setenv("PATH_TEST", str(bin_dir))
     monkeypatch.setenv("PATH", str(bin_dir))
+
+    # On Windows, monkeypatch pipx.commands.common._can_symlink_cache to
+    #   indicate that constants.LOCAL_BIN_DIR cannot use symlinks, even if
+    #   we're running as administrator and symlinks are actually possible.
+    # On all other platforms than Windows this has no effect.
+    if WIN:
+        monkeypatch.setitem(
+            commands.common._can_symlink_cache, constants.LOCAL_BIN_DIR, False
+        )
