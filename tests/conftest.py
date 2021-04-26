@@ -57,7 +57,7 @@ def pipx_session_shared_dir(tmp_path_factory):
 
 
 @pytest.fixture
-def pipx_temp_env(tmp_path, pipx_session_shared_dir, monkeypatch):
+def pipx_temp_env(tmp_path, monkeypatch, pipx_session_shared_dir):
     """Sets up temporary paths for pipx to install into.
 
     Shared libs are setup once per session, all other pipx dirs, constants are
