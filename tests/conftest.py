@@ -28,12 +28,12 @@ def pytest_configure(config):
 
 
 def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch):
+    home_dir = Path(tmp_path) / "subdir" / "pipxhome"
+    bin_dir = Path(tmp_path) / "otherdir" / "pipxbindir"
+
     monkeypatch.setattr(constants, "PIPX_SHARED_LIBS", pipx_shared_dir)
     monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())
     monkeypatch.setattr(venv, "shared_libs", shared_libs.shared_libs)
-
-    home_dir = Path(tmp_path) / "subdir" / "pipxhome"
-    bin_dir = Path(tmp_path) / "otherdir" / "pipxbindir"
 
     monkeypatch.setattr(constants, "PIPX_HOME", home_dir)
     monkeypatch.setattr(constants, "LOCAL_BIN_DIR", bin_dir)
