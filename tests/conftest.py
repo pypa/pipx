@@ -27,9 +27,31 @@ def pytest_configure(config):
     config.option.markexpr = new_markexpr
 
 
+def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch):
+    monkeypatch.setattr(constants, "PIPX_SHARED_LIBS", pipx_shared_dir)
+    monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())
+    monkeypatch.setattr(venv, "shared_libs", shared_libs.shared_libs)
+
+    home_dir = Path(tmp_path) / "subdir" / "pipxhome"
+    bin_dir = Path(tmp_path) / "otherdir" / "pipxbindir"
+
+    monkeypatch.setattr(constants, "PIPX_HOME", home_dir)
+    monkeypatch.setattr(constants, "LOCAL_BIN_DIR", bin_dir)
+    monkeypatch.setattr(constants, "PIPX_LOCAL_VENVS", home_dir / "venvs")
+    monkeypatch.setattr(constants, "PIPX_VENV_CACHEDIR", home_dir / ".cache")
+    monkeypatch.setattr(constants, "PIPX_LOG_DIR", home_dir / "logs")
+
+    # macOS needs /usr/bin in PATH to compile certain packages, but
+    #   applications in /usr/bin cause test_install.py tests to raise warnings
+    #   which make tests fail (e.g. on Github ansible apps exist in /usr/bin)
+    monkeypatch.setenv("PATH_ORIG", str(bin_dir) + os.pathsep + os.getenv("PATH"))
+    monkeypatch.setenv("PATH_TEST", str(bin_dir))
+    monkeypatch.setenv("PATH", str(bin_dir))
+
+
 @pytest.fixture(scope="session")
 def pipx_session_shared_dir(tmp_path_factory):
-    # temp_path_factory uses the same directory for the whole session
+    """Makes a temporary pipx shared libs directory only once per session"""
     shared_dir = tmp_path_factory.mktemp("session_shareddir")
     return shared_dir
 
@@ -44,25 +66,7 @@ def pipx_temp_env(tmp_path, pipx_session_shared_dir, monkeypatch):
     Also adds environment variables as necessary to make pip installations
     seamless.
     """
-    monkeypatch.setattr(constants, "PIPX_SHARED_LIBS", pipx_session_shared_dir)
-    monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())
-    monkeypatch.setattr(venv, "shared_libs", shared_libs.shared_libs)
-
-    home_dir = Path(tmp_path) / "subdir" / "pipxhome"
-    bin_dir = Path(tmp_path) / "otherdir" / "pipxbindir"
-
-    monkeypatch.setattr(constants, "PIPX_HOME", home_dir)
-    monkeypatch.setattr(constants, "LOCAL_BIN_DIR", bin_dir)
-    monkeypatch.setattr(constants, "PIPX_LOCAL_VENVS", home_dir / "venvs")
-    monkeypatch.setattr(constants, "PIPX_VENV_CACHEDIR", home_dir / ".cache")
-    monkeypatch.setattr(constants, "PIPX_LOG_DIR", home_dir / "logs")
-
-    # macOS needs /usr/bin in PATH to compile certain packages, but
-    #   applications in /usr/bin cause test_install.py tests to raise warnings
-    #   which make tests fail (e.g. on Github ansible apps exist in /usr/bin)
-    monkeypatch.setenv("PATH_ORIG", str(bin_dir) + os.pathsep + os.getenv("PATH"))
-    monkeypatch.setenv("PATH_TEST", str(bin_dir))
-    monkeypatch.setenv("PATH", str(bin_dir))
+    pipx_temp_env_helper(pipx_session_shared_dir, tmp_path, monkeypatch)
 
 
 @pytest.fixture
@@ -70,28 +74,10 @@ def pipx_ultra_temp_env(tmp_path, monkeypatch):
     """Sets up temporary paths for pipx to install into.
 
     Fully temporary environment, every test function starts as if pipx has
-    never been run before
+    never been run before, including empty shared libs directory.
 
     Also adds environment variables as necessary to make pip installations
     seamless.
     """
     shared_dir = Path(tmp_path) / "shareddir"
-    home_dir = Path(tmp_path) / "subdir" / "pipxhome"
-    bin_dir = Path(tmp_path) / "otherdir" / "pipxbindir"
-
-    monkeypatch.setattr(constants, "PIPX_SHARED_LIBS", shared_dir)
-    monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())
-    monkeypatch.setattr(venv, "shared_libs", shared_libs.shared_libs)
-
-    monkeypatch.setattr(constants, "PIPX_HOME", home_dir)
-    monkeypatch.setattr(constants, "LOCAL_BIN_DIR", bin_dir)
-    monkeypatch.setattr(constants, "PIPX_LOCAL_VENVS", home_dir / "venvs")
-    monkeypatch.setattr(constants, "PIPX_VENV_CACHEDIR", home_dir / ".cache")
-    monkeypatch.setattr(constants, "PIPX_LOG_DIR", home_dir / "logs")
-
-    # macOS needs /usr/bin in PATH to compile certain packages, but
-    #   applications in /usr/bin cause test_install.py tests to raise warnings
-    #   which make tests fail (e.g. on Github ansible apps exist in /usr/bin)
-    monkeypatch.setenv("PATH_ORIG", str(bin_dir) + os.pathsep + os.getenv("PATH"))
-    monkeypatch.setenv("PATH_TEST", str(bin_dir))
-    monkeypatch.setenv("PATH", str(bin_dir))
+    pipx_temp_env_helper(shared_dir, tmp_path, monkeypatch)
