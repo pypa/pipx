@@ -59,7 +59,6 @@ def pipx_temp_env(tmp_path, monkeypatch):
     # On Windows, monkeypatch pipx.commands.common._can_symlink_cache to
     #   indicate that constants.LOCAL_BIN_DIR cannot use symlinks, even if
     #   we're running as administrator and symlinks are actually possible.
-    # On all other platforms than Windows this has no effect.
     if WIN:
         monkeypatch.setitem(
             commands.common._can_symlink_cache, constants.LOCAL_BIN_DIR, False
