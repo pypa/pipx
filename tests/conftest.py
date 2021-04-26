@@ -27,8 +27,15 @@ def pytest_configure(config):
     config.option.markexpr = new_markexpr
 
 
+@pytest.fixture(scope="session")
+def pipx_session_shared_dir(tmp_path_factory):
+    # temp_path_factory uses the same directory for the whole session
+    shared_dir = tmp_path_factory.mktemp("session_shareddir")
+    return shared_dir
+
+
 @pytest.fixture
-def pipx_temp_env(tmp_path, tmp_path_factory, monkeypatch):
+def pipx_temp_env(tmp_path, pipx_session_shared_dir, monkeypatch):
     """Sets up temporary paths for pipx to install into.
 
     Shared libs are setup once per session, all other pipx dirs, constants are
@@ -37,9 +44,7 @@ def pipx_temp_env(tmp_path, tmp_path_factory, monkeypatch):
     Also adds environment variables as necessary to make pip installations
     seamless.
     """
-    # temp_path_factory uses the same directory for the whole session
-    shared_dir = tmp_path_factory.mktemp("session_shareddir")
-    monkeypatch.setattr(constants, "PIPX_SHARED_LIBS", shared_dir)
+    monkeypatch.setattr(constants, "PIPX_SHARED_LIBS", pipx_session_shared_dir)
     monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())
     monkeypatch.setattr(venv, "shared_libs", shared_libs.shared_libs)
 
