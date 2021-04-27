@@ -17,6 +17,7 @@ class Cluster extends ClusterModel implements Model
     private ?string $customerId = null;
     private ?bool $wordpressToolkitEnabled = null;
     private ?bool $databaseToolkitEnabled = null;
+    private ?bool $commandToolkitEnabled = null;
     private ?int $id = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
@@ -141,6 +142,18 @@ class Cluster extends ClusterModel implements Model
         return $this;
     }
 
+    public function isCommandToolkitEnabled(): ?bool
+    {
+        return $this->commandToolkitEnabled;
+    }
+
+    public function setCommandToolkitEnabled(?bool $commandToolkitEnabled): Cluster
+    {
+        $this->commandToolkitEnabled = $commandToolkitEnabled;
+
+        return $this;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -190,6 +203,7 @@ class Cluster extends ClusterModel implements Model
             ->setCustomerId(Arr::get($data, 'customer_id'))
             ->setWordpressToolkitEnabled(Arr::get($data, 'wordpress_toolkit_enabled'))
             ->setDatabaseToolkitEnabled(Arr::get($data, 'database_toolkit_enabled'))
+            ->setCommandToolkitEnabled(Arr::get($data, 'command_toolkit_enabled'))
             ->setId(Arr::get($data, 'id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
             ->setUpdatedAt(Arr::get($data, 'updated_at'));
@@ -208,6 +222,7 @@ class Cluster extends ClusterModel implements Model
             'customer_id' => $this->getCustomerId(),
             'wordpress_toolkit_enabled' => $this->isWordpressToolkitEnabled(),
             'database_toolkit_enabled' => $this->isDatabaseToolkitEnabled(),
+            'command_toolkit_enabled' => $this->isCommandToolkitEnabled(),
             'id' => $this->getId(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),

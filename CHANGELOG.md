@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.16.0]
+
+### Added
+
+- Add `command_toolkit_enabled` attribute to Clusters.
+
+### Changed
+
+- Update to [API version 1.34](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.34-2021-04-23)
+
+### Removed
+
+- The `nologin` shell path is no longer available.
+
 ## [1.15.1]
 
 ### Fixed
