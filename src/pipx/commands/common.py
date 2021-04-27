@@ -52,7 +52,7 @@ class VenvProblems:
 def expose_apps_globally(
     local_bin_dir: Path, app_paths: List[Path], *, force: bool, suffix: str = ""
 ) -> None:
-    if not _can_symlink(local_bin_dir):
+    if not can_symlink(local_bin_dir):
         _copy_package_apps(local_bin_dir, app_paths, suffix=suffix)
     else:
         _symlink_package_apps(local_bin_dir, app_paths, force=force, suffix=suffix)
@@ -61,7 +61,7 @@ def expose_apps_globally(
 _can_symlink_cache: Dict[Path, bool] = {}
 
 
-def _can_symlink(local_bin_dir: Path) -> bool:
+def can_symlink(local_bin_dir: Path) -> bool:
 
     if not WINDOWS:
         # Technically, even on Unix this depends on the filesystem
@@ -210,10 +210,10 @@ def get_venv_summary(
     if package_metadata.include_dependencies:
         apps += package_metadata.apps_of_dependencies
 
-    exposed_app_paths = _get_exposed_app_paths_for_package(
+    exposed_app_paths = get_exposed_app_paths_for_package(
         venv.bin_path,
-        [add_suffix(app, package_metadata.suffix) for app in apps],
         constants.LOCAL_BIN_DIR,
+        [add_suffix(app, package_metadata.suffix) for app in apps],
     )
     exposed_binary_names = sorted(p.name for p in exposed_app_paths)
     unavailable_binary_names = sorted(
@@ -242,9 +242,16 @@ def get_venv_summary(
     )
 
 
-def _get_exposed_app_paths_for_package(
-    venv_bin_path: Path, package_binary_names: List[str], local_bin_dir: Path
+def get_exposed_app_paths_for_package(
+    venv_bin_path: Path,
+    local_bin_dir: Path,
+    package_binary_names: Optional[List[str]] = None,
 ) -> Set[Path]:
+    # package_binary_names is used only if local_bin_path cannot use symlinks.
+    # It is necessary for non-symlink systems to return valid app_paths.
+    if package_binary_names is None:
+        package_binary_names = []
+
     bin_symlinks = set()
     for b in local_bin_dir.iterdir():
         try:
@@ -254,9 +261,9 @@ def _get_exposed_app_paths_for_package(
             # We always use the stricter check on non-Windows systems. On
             # Windows, we use a less strict check if we don't have a symlink.
             is_same_file = False
-            if _can_symlink(local_bin_dir) and b.is_symlink():
+            if can_symlink(local_bin_dir) and b.is_symlink():
                 is_same_file = b.resolve().parent.samefile(venv_bin_path)
-            elif not _can_symlink(local_bin_dir):
+            elif not can_symlink(local_bin_dir):
                 is_same_file = b.name in package_binary_names
 
             if is_same_file:
