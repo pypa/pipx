@@ -1,12 +1,12 @@
 dev
 
+- Fixed bug #670 where uninstalling a venv could erroneously uninstall other apps from the local binary directory. (#672)
+- Added `--json` switch to `pipx list` to output rich json-metadata for all venvs.
 - Ensured log files are utf-8 encoded to preven Unicode encoding errors from occurring with emojis. (#646)
 - Fixed issue which made pipx incorrectly list apps as part of a venv when they were not installed by pipx. (#650)
 - Fixed old regression that would prevent pipx uninstall from cleaning up linked binaries if the venv was old and did not have pipx metadata. (#651)
 - Fixed bugs with suffixed-venvs on Windows.  Now properly summarizes install, and actually uninstalls associated binaries for suffixed-venvs. (#653)
-- Added `--json` switch to `pipx list` to output rich json-metadata for all venvs.
 - Changed venv minimum python version to 3.6, removing python 3.5 which is End of Life. (#666)
-- Fixed bug #670 where uninstalling a venv could erroneously uninstall other apps from the local binary directory. (#672)
 
 0.16.1.0
 
