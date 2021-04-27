@@ -1,4 +1,4 @@
-dev
+0.16.2.0
 
 - Fixed bug #670 where uninstalling a venv could erroneously uninstall other apps from the local binary directory. (#672)
 - Added `--json` switch to `pipx list` to output rich json-metadata for all venvs.
