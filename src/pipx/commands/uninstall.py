@@ -1,21 +1,107 @@
 import logging
 from pathlib import Path
 from shutil import which
-from typing import List
+from typing import List, Optional, Set
 
-from pipx import constants
+from pipx.commands.common import (
+    add_suffix,
+    can_symlink,
+    get_exposed_app_paths_for_package,
+)
 from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_UNINSTALL_ERROR,
     EXIT_CODE_UNINSTALL_VENV_NONEXISTENT,
-    WINDOWS,
     ExitCode,
 )
 from pipx.emojis import hazard, sleep, stars
+from pipx.pipx_metadata_file import PackageInfo
 from pipx.util import rmdir
 from pipx.venv import Venv, VenvContainer
+from pipx.venv_inspect import VenvMetadata
 
 logger = logging.getLogger(__name__)
+
+
+def _venv_metadata_to_package_info(
+    venv_metadata: VenvMetadata,
+    package_name: str,
+    package_or_url: str = "",
+    pip_args: Optional[List[str]] = None,
+    include_apps: bool = True,
+    include_dependencies: bool = False,
+    suffix: str = "",
+) -> PackageInfo:
+    if pip_args is None:
+        pip_args = []
+
+    return PackageInfo(
+        package=package_name,
+        package_or_url=package_or_url,
+        pip_args=pip_args,
+        include_apps=include_apps,
+        include_dependencies=include_dependencies,
+        apps=venv_metadata.apps,
+        app_paths=venv_metadata.app_paths,
+        apps_of_dependencies=venv_metadata.apps_of_dependencies,
+        app_paths_of_dependencies=venv_metadata.app_paths_of_dependencies,
+        package_version=venv_metadata.package_version,
+        suffix=suffix,
+    )
+
+
+def _get_package_bin_dir_app_paths(
+    venv: Venv, package_info: PackageInfo, local_bin_dir: Path
+) -> Set[Path]:
+    bin_dir_package_app_paths = set()
+    suffix = package_info.suffix
+    apps = package_info.apps
+    if package_info.include_dependencies:
+        apps += package_info.apps_of_dependencies
+    bin_dir_package_app_paths |= get_exposed_app_paths_for_package(
+        venv.bin_path, local_bin_dir, [add_suffix(app, suffix) for app in apps]
+    )
+    return bin_dir_package_app_paths
+
+
+def _get_venv_bin_dir_app_paths(venv: Venv, local_bin_dir: Path) -> Set[Path]:
+    bin_dir_app_paths = set()
+    if venv.pipx_metadata.main_package.package is not None:
+        # Valid metadata for venv
+        for package_info in venv.package_metadata.values():
+            bin_dir_app_paths |= _get_package_bin_dir_app_paths(
+                venv, package_info, local_bin_dir
+            )
+    elif venv.python_path.is_file():
+        # No metadata from pipx_metadata.json, but valid python interpreter.
+        # In pre-metadata-pipx venv.root.name is name of main package
+        # In pre-metadata-pipx there is no suffix
+        # We make the conservative assumptions: no injected packages,
+        # not include_dependencies.  Other PackageInfo fields are irrelevant
+        # here.
+        venv_metadata = venv.get_venv_metadata_for_package(venv.root.name, set())
+        main_package_info = _venv_metadata_to_package_info(
+            venv_metadata, venv.root.name
+        )
+        bin_dir_app_paths = _get_package_bin_dir_app_paths(
+            venv, main_package_info, local_bin_dir
+        )
+    else:
+        # No metadata and no valid python interpreter.
+        # We'll take our best guess on what to uninstall here based on symlink
+        # location for symlink-capable systems.
+        # The heuristic here is any symlink in ~/.local/bin pointing to
+        # .local/pipx/venvs/VENV_NAME/{bin,Scripts} should be uninstalled.
+
+        # For non-symlink systems we give up and return and empty set.
+        if not can_symlink(local_bin_dir):
+            return set()
+
+        bin_dir_app_paths = get_exposed_app_paths_for_package(
+            venv.bin_path, local_bin_dir
+        )
+
+    return bin_dir_app_paths
 
 
 def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> ExitCode:
@@ -35,52 +121,15 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> ExitCode:
 
     venv = Venv(venv_dir, verbose=verbose)
 
-    suffix = ""
+    bin_dir_app_paths = _get_venv_bin_dir_app_paths(venv, local_bin_dir)
 
-    if venv.pipx_metadata.main_package.package is not None:
-        app_paths: List[Path] = []
-        for viewed_package in venv.package_metadata.values():
-            app_paths += viewed_package.app_paths
-            for dep_paths in viewed_package.app_paths_of_dependencies.values():
-                app_paths += dep_paths
-        suffix = venv.pipx_metadata.main_package.suffix
-    else:
-        # fallback if not metadata from pipx_metadata.json
-        if venv.python_path.is_file():
-            # has a valid python interpreter and can get metadata about the package
-            # In pre-metadata-pipx venv_dir.name is name of main package
-            metadata = venv.get_venv_metadata_for_package(venv_dir.name, set())
-            app_paths = metadata.app_paths
-            for dep_paths in metadata.app_paths_of_dependencies.values():
-                app_paths += dep_paths
+    for bin_dir_app_path in bin_dir_app_paths:
+        try:
+            bin_dir_app_path.unlink()
+        except FileNotFoundError:
+            logger.info(f"tried to remove but couldn't find {bin_dir_app_path}")
         else:
-            # Doesn't have a valid python interpreter. We'll take our best guess on what to uninstall
-            # here based on symlink location. pipx doesn't use symlinks on windows, so this is for
-            # non-windows only.
-            # The heuristic here is any symlink in ~/.local/bin pointing to .local/pipx/venvs/VENV_NAME/bin
-            # should be uninstalled.
-            if WINDOWS:
-                app_paths = []
-            else:
-                apps_linking_to_venv_bin_dir = [
-                    f
-                    for f in constants.LOCAL_BIN_DIR.iterdir()
-                    if str(f.resolve()).startswith(str(venv.bin_path))
-                ]
-                app_paths = apps_linking_to_venv_bin_dir
-
-    for filepath in local_bin_dir.iterdir():
-        if WINDOWS:
-            for b in app_paths:
-                bin_name = b.stem + suffix + b.suffix
-                if filepath.exists() and filepath.name == bin_name:
-                    filepath.unlink()
-        else:
-            symlink = filepath
-            for b in app_paths:
-                if symlink.exists() and b.exists() and symlink.samefile(b):
-                    logger.info(f"removing symlink {str(symlink)}")
-                    symlink.unlink()
+            logger.info(f"removed file {bin_dir_app_path}")
 
     rmdir(venv_dir)
     print(f"uninstalled {venv.name}! {stars}")
