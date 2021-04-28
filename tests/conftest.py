@@ -60,8 +60,7 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch):
 @pytest.fixture(scope="session")
 def pipx_session_shared_dir(tmp_path_factory):
     """Makes a temporary pipx shared libs directory only once per session"""
-    shared_dir = tmp_path_factory.mktemp("session_shareddir")
-    return shared_dir
+    return tmp_path_factory.mktemp("session_shareddir")
 
 
 @pytest.fixture
