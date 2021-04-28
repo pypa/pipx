@@ -28,18 +28,11 @@ def pytest_configure(config):
     config.option.markexpr = new_markexpr
 
 
-@pytest.fixture
-def pipx_temp_env(tmp_path, monkeypatch):
-    """Sets up temporary paths for pipx to install into.
-
-    Also adds environment variables as necessary to make pip installations
-    seamless.
-    """
-    shared_dir = Path(tmp_path) / "shareddir"
+def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch):
     home_dir = Path(tmp_path) / "subdir" / "pipxhome"
     bin_dir = Path(tmp_path) / "otherdir" / "pipxbindir"
 
-    monkeypatch.setattr(constants, "PIPX_SHARED_LIBS", shared_dir)
+    monkeypatch.setattr(constants, "PIPX_SHARED_LIBS", pipx_shared_dir)
     monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())
     monkeypatch.setattr(venv, "shared_libs", shared_libs.shared_libs)
 
@@ -55,7 +48,6 @@ def pipx_temp_env(tmp_path, monkeypatch):
     monkeypatch.setenv("PATH_ORIG", str(bin_dir) + os.pathsep + os.getenv("PATH"))
     monkeypatch.setenv("PATH_TEST", str(bin_dir))
     monkeypatch.setenv("PATH", str(bin_dir))
-
     # On Windows, monkeypatch pipx.commands.common._can_symlink_cache to
     #   indicate that constants.LOCAL_BIN_DIR cannot use symlinks, even if
     #   we're running as administrator and symlinks are actually possible.
@@ -63,3 +55,36 @@ def pipx_temp_env(tmp_path, monkeypatch):
         monkeypatch.setitem(
             commands.common._can_symlink_cache, constants.LOCAL_BIN_DIR, False
         )
+
+
+@pytest.fixture(scope="session")
+def pipx_session_shared_dir(tmp_path_factory):
+    """Makes a temporary pipx shared libs directory only once per session"""
+    return tmp_path_factory.mktemp("session_shareddir")
+
+
+@pytest.fixture
+def pipx_temp_env(tmp_path, monkeypatch, pipx_session_shared_dir):
+    """Sets up temporary paths for pipx to install into.
+
+    Shared libs are setup once per session, all other pipx dirs, constants are
+    recreated for every test function.
+
+    Also adds environment variables as necessary to make pip installations
+    seamless.
+    """
+    pipx_temp_env_helper(pipx_session_shared_dir, tmp_path, monkeypatch)
+
+
+@pytest.fixture
+def pipx_ultra_temp_env(tmp_path, monkeypatch):
+    """Sets up temporary paths for pipx to install into.
+
+    Fully temporary environment, every test function starts as if pipx has
+    never been run before, including empty shared libs directory.
+
+    Also adds environment variables as necessary to make pip installations
+    seamless.
+    """
+    shared_dir = Path(tmp_path) / "shareddir"
+    pipx_temp_env_helper(shared_dir, tmp_path, monkeypatch)
