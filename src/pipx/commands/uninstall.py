@@ -55,7 +55,9 @@ def _get_package_bin_dir_app_paths(
 ) -> Set[Path]:
     bin_dir_package_app_paths = set()
     suffix = package_info.suffix
-    apps = package_info.apps
+    apps = []
+    if package_info.include_apps:
+        apps += package_info.apps
     if package_info.include_dependencies:
         apps += package_info.apps_of_dependencies
     bin_dir_package_app_paths |= get_exposed_app_paths_for_package(
