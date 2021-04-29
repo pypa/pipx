@@ -38,7 +38,10 @@ def list_text(
         package_summary, venv_problems = get_venv_summary(
             venv_dir, include_injected=include_injected
         )
-        print(package_summary)
+        if venv_problems.any_():
+            logger.warning(package_summary)
+        else:
+            print(package_summary)
         all_venv_problems.or_(venv_problems)
 
     return all_venv_problems
