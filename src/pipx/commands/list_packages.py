@@ -75,7 +75,7 @@ def list_packages(
     """Returns pipx exit code."""
     venv_dirs: Collection[Path] = sorted(venv_container.iter_venv_dirs())
     if not venv_dirs:
-        print(f"nothing has been installed with pipx {sleep}")
+        print(f"nothing has been installed with pipx {sleep}", file=sys.stderr)
         return EXIT_CODE_OK
 
     venv_container.verify_shared_libs()
@@ -89,23 +89,27 @@ def list_packages(
         print(
             "\nOne or more packages contain out-of-date internal data installed from a\n"
             "previous pipx version and need to be updated.\n"
-            "    To fix, execute: pipx reinstall-all"
+            "    To fix, execute: pipx reinstall-all",
+            file=sys.stderr,
         )
     if all_venv_problems.invalid_interpreter:
         print(
             "\nOne or more packages have a missing python interpreter.\n"
-            "    To fix, execute: pipx reinstall-all"
+            "    To fix, execute: pipx reinstall-all",
+            file=sys.stderr,
         )
     if all_venv_problems.missing_metadata:
         print(
             "\nOne or more packages have a missing internal pipx metadata.\n"
             "   They were likely installed using a pipx version before 0.15.0.0.\n"
-            "   Please uninstall and install these package(s) to fix."
+            "   Please uninstall and install these package(s) to fix.",
+            file=sys.stderr,
         )
     if all_venv_problems.not_installed:
         print(
             "\nOne or more packages are not installed properly.\n"
-            "   Please uninstall and install these package(s) to fix."
+            "   Please uninstall and install these package(s) to fix.",
+            file=sys.stderr,
         )
 
     if all_venv_problems.any_():
