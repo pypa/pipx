@@ -53,15 +53,15 @@ def _venv_metadata_to_package_info(
 def _get_package_bin_dir_app_paths(
     venv: Venv, package_info: PackageInfo, local_bin_dir: Path
 ) -> Set[Path]:
-    bin_dir_package_app_paths = set()
     suffix = package_info.suffix
-    apps = package_info.apps
+    apps = []
+    if package_info.include_apps:
+        apps += package_info.apps
     if package_info.include_dependencies:
         apps += package_info.apps_of_dependencies
-    bin_dir_package_app_paths |= get_exposed_app_paths_for_package(
+    return get_exposed_app_paths_for_package(
         venv.bin_path, local_bin_dir, [add_suffix(app, suffix) for app in apps]
     )
-    return bin_dir_package_app_paths
 
 
 def _get_venv_bin_dir_app_paths(venv: Venv, local_bin_dir: Path) -> Set[Path]:
