@@ -57,7 +57,7 @@ def test_list_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
     else:
         assert not run_pipx_cli(["list"])
         captured = capsys.readouterr()
-        assert "package pycowsay 0.0.0.1," in captured.err
+        assert "package pycowsay 0.0.0.1," in captured.out
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])
