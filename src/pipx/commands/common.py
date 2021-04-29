@@ -168,22 +168,25 @@ def venv_health_check(
     if not python_path.is_file():
         return (
             VenvProblems(invalid_interpreter=True),
-            f"   package {red(bold(venv_dir.name))} has invalid interpreter {str(python_path)}",
+            f"{hazard}  package {red(bold(venv_dir.name))} has invalid "
+            "interpreter {str(python_path)}",
         )
     if not venv.package_metadata:
         return (
             VenvProblems(missing_metadata=True),
-            f"   package {red(bold(venv_dir.name))} has missing internal pipx metadata.",
+            f"{hazard}  package {red(bold(venv_dir.name))} has missing "
+            "internal pipx metadata.",
         )
     if venv_dir.name != canonicalize_name(venv_dir.name):
         return (
             VenvProblems(bad_venv_name=True),
-            f"   package {red(bold(venv_dir.name))} needs its internal data updated.",
+            f"{hazard}  package {red(bold(venv_dir.name))} needs its "
+            "internal data updated.",
         )
     if venv.package_metadata[package_name].package_version == "":
         return (
             VenvProblems(not_installed=True),
-            f"   package {red(bold(package_name))} {red('is not installed')} "
+            f"{hazard}  package {red(bold(package_name))} {red('is not installed')} "
             f"in the venv {venv_dir.name}",
         )
     return (VenvProblems(), "")
