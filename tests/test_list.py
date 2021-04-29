@@ -19,7 +19,7 @@ from pipx.pipx_metadata_file import PackageInfo, _json_decoder_object_hook
 def test_cli(pipx_temp_env, monkeypatch, capsys):
     assert not run_pipx_cli(["list"])
     captured = capsys.readouterr()
-    assert "nothing has been installed with pipx" in captured.out
+    assert "nothing has been installed with pipx" in captured.err
 
 
 def test_missing_interpreter(pipx_temp_env, monkeypatch, capsys):
@@ -27,13 +27,13 @@ def test_missing_interpreter(pipx_temp_env, monkeypatch, capsys):
 
     assert not run_pipx_cli(["list"])
     captured = capsys.readouterr()
-    assert "package pycowsay has invalid interpreter" not in captured.out
+    assert "package pycowsay has invalid interpreter" not in captured.err
 
     remove_venv_interpreter("pycowsay")
 
     assert run_pipx_cli(["list"])
     captured = capsys.readouterr()
-    assert "package pycowsay has invalid interpreter" in captured.out
+    assert "package pycowsay has invalid interpreter" in captured.err
 
 
 def test_list_suffix(pipx_temp_env, monkeypatch, capsys):
@@ -53,7 +53,7 @@ def test_list_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
     if metadata_version is None:
         assert run_pipx_cli(["list"])
         captured = capsys.readouterr()
-        assert "package pycowsay has missing internal pipx metadata" in captured.out
+        assert "package pycowsay has missing internal pipx metadata" in captured.err
     else:
         assert not run_pipx_cli(["list"])
         captured = capsys.readouterr()
