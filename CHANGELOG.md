@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.17.0]
+
+### Added
+
+- Add Borg Repositories endpoint.
+
+### Changed
+
+- Update to [API version 1.35.1](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.35.1-2021-04-28)
+
 ## [1.16.0]
 
 ### Added

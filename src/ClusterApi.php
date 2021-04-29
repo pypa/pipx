@@ -9,10 +9,6 @@ class ClusterApi
 {
     private ClientContract $client;
 
-    /**
-     * ClusterApi constructor.
-     * @param ClientContract $client
-     */
     public function __construct(ClientContract $client)
     {
         $this->client = $client;
@@ -21,6 +17,11 @@ class ClusterApi
     public function authentication(): Endpoints\Authentication
     {
         return new Endpoints\Authentication($this->client);
+    }
+
+    public function borgRepositories(): Endpoints\BorgRepositories
+    {
+        return new Endpoints\BorgRepositories($this->client);
     }
 
     public function certificates(): Endpoints\Certificates
