@@ -82,13 +82,14 @@ def list_packages(
     venv_dirs: Collection[Path] = sorted(venv_container.iter_venv_dirs())
     if not venv_dirs:
         print(f"nothing has been installed with pipx {sleep}", file=sys.stderr)
-        return EXIT_CODE_OK
 
     venv_container.verify_shared_libs()
 
     if json_format:
         all_venv_problems = list_json(venv_dirs)
     else:
+        if not venv_dirs:
+            return EXIT_CODE_OK
         all_venv_problems = list_text(venv_dirs, include_injected, str(venv_container))
 
     if all_venv_problems.bad_venv_name:
