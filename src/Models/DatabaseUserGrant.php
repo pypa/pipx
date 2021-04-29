@@ -7,12 +7,11 @@ use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 
 class DatabaseUserGrant extends ClusterModel implements Model
 {
-    public const DEFAULT_TABLE_NAME = '*';
     public const DEFAULT_PRIVILEGE_NAME = 'ALL';
 
     private int $databaseId;
     private int $databaseUserId;
-    private string $tableName = self::DEFAULT_TABLE_NAME;
+    private ?string $tableName = null;
     private string $privilegeName = self::DEFAULT_PRIVILEGE_NAME;
     private ?int $id = null;
     private ?int $clusterId = null;
@@ -43,16 +42,17 @@ class DatabaseUserGrant extends ClusterModel implements Model
         return $this;
     }
 
-    public function getTableName(): string
+    public function getTableName(): ?string
     {
         return $this->tableName;
     }
 
-    public function setTableName(string $tableName): DatabaseUserGrant
+    public function setTableName(?string $tableName = null): DatabaseUserGrant
     {
         $this->validate($tableName, [
             'length_max' => 64,
             'pattern' => '^[a-z0-9-_]+$',
+            'nullable' => true,
         ]);
 
         $this->tableName = $tableName;
@@ -125,7 +125,7 @@ class DatabaseUserGrant extends ClusterModel implements Model
         return $this
             ->setDatabaseId(Arr::get($data, 'database_id'))
             ->setDatabaseUserId(Arr::get($data, 'database_user_id'))
-            ->setTableName(Arr::get($data, 'table_name', self::DEFAULT_TABLE_NAME))
+            ->setTableName(Arr::get($data, 'table_name'))
             ->setPrivilegeName(Arr::get($data,'privilege_name',self::DEFAULT_PRIVILEGE_NAME))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))

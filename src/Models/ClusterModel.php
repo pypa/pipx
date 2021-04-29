@@ -2,6 +2,7 @@
 
 namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
+use Illuminate\Support\Arr;
 use JsonSerializable;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ModelException;
@@ -78,6 +79,11 @@ abstract class ClusterModel implements JsonSerializable, Model
      */
     protected function validate($value, array $validations = []): void
     {
+        // When the field is nullable and the value is null no other validations are performed
+        if (Arr::get($validations, 'nullable') === true && is_null($value)) {
+            return;
+        }
+
         $failedValidations = [];
         foreach ($validations as $type => $setting) {
             if (! $this->performValidation($value, $type, $setting)) {
