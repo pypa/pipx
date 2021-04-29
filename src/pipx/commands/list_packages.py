@@ -1,4 +1,5 @@
 import json
+import logging
 import sys
 from pathlib import Path
 from typing import Any, Collection, Dict, Tuple
@@ -10,6 +11,8 @@ from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK, ExitCode
 from pipx.emojis import sleep
 from pipx.pipx_metadata_file import JsonEncoderHandlesPath, PipxMetadata
 from pipx.venv import Venv, VenvContainer
+
+logger = logging.getLogger(__name__)
 
 PIPX_SPEC_VERSION = "0.1"
 
@@ -64,7 +67,7 @@ def list_json(venv_dirs: Collection[Path]) -> VenvProblems:
         json.dumps(spec_metadata, indent=4, sort_keys=True, cls=JsonEncoderHandlesPath)
     )
     for warning_message in warning_messages:
-        print(warning_message, file=sys.stderr)
+        logger.warning(warning_message)
 
     return all_venv_problems
 
@@ -86,34 +89,30 @@ def list_packages(
         all_venv_problems = list_text(venv_dirs, include_injected, str(venv_container))
 
     if all_venv_problems.bad_venv_name:
-        print(
+        logger.warning(
             "\nOne or more packages contain out-of-date internal data installed from a\n"
             "previous pipx version and need to be updated.\n"
-            "    To fix, execute: pipx reinstall-all",
-            file=sys.stderr,
+            "    To fix, execute: pipx reinstall-all"
         )
     if all_venv_problems.invalid_interpreter:
-        print(
+        logger.warning(
             "\nOne or more packages have a missing python interpreter.\n"
-            "    To fix, execute: pipx reinstall-all",
-            file=sys.stderr,
+            "    To fix, execute: pipx reinstall-all"
         )
     if all_venv_problems.missing_metadata:
-        print(
+        logger.warning(
             "\nOne or more packages have a missing internal pipx metadata.\n"
             "   They were likely installed using a pipx version before 0.15.0.0.\n"
-            "   Please uninstall and install these package(s) to fix.",
-            file=sys.stderr,
+            "   Please uninstall and install these package(s) to fix."
         )
     if all_venv_problems.not_installed:
-        print(
+        logger.warning(
             "\nOne or more packages are not installed properly.\n"
-            "   Please uninstall and install these package(s) to fix.",
-            file=sys.stderr,
+            "   Please uninstall and install these package(s) to fix."
         )
 
     if all_venv_problems.any_():
-        print()
+        print("", file=sys.stderr)
         return EXIT_CODE_LIST_PROBLEM
 
     return EXIT_CODE_OK
