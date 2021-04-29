@@ -1,4 +1,4 @@
-dev
+0.16.2.1
 
 - Changed non-venv-info warnings and notices from `pipx list` to print to stderr.  This especially prevents `pipx list --json` from printing invalid json to stdout. (#680)
 - Fixed bug that could cause uninstall on Windows with injected packages to uninstall too many apps from the local binary directory. (#679)
