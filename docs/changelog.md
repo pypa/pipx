@@ -1,5 +1,6 @@
 dev
 
+- Fixed `pipx list --json` to return valid json with no venvs installed.  Previously would return and empty string to stdout.
 
 0.16.2.1
 
