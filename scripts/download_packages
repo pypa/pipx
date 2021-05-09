@@ -1,4 +1,7 @@
 # execute from pipx/ root directory
+
+# https://pip.pypa.io/en/stable/cli/pip_download/
+#   TODO: use multi-platform switches to download for all platforms
 pip download 'setuptools>=41.0' -d testdata/packages
 pip download ansible==2.9.13 -d testdata/packages
 pip download awscli==1.18.168 -d testdata/packages

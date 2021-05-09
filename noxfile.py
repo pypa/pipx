@@ -101,9 +101,14 @@ def tests_local(session):
     session.install("-e", ".", "pypiserver", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
 
+    # DEBUG: use small timeout in case pypiserver dies!?
+    session.env["PIP_TIMEOUT"] = "5"
+    session.env["PIP_DEFAULT_TIMEOUT"] = "5"
+    session.env["PIP_RETRIES"] = "1"
+
     session.env["PIP_INDEX_URL"] = "http://localhost:8080/simple"
 
-    session.run("pytest", "--cov=pipx", "--cov-report=", *tests)
+    session.run("pytest", "--pypiserver", "--cov=pipx", "--cov-report=", *tests)
     session.notify("cover")
 
 
