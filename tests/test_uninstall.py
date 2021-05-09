@@ -49,7 +49,7 @@ def test_uninstall_suffix(pipx_temp_env):
     suffix = "_a"
     executable_path = constants.LOCAL_BIN_DIR / app_name(f"{name}{suffix}")
 
-    assert not run_pipx_cli(["install", "pbr", f"--suffix={suffix}"])
+    assert not run_pipx_cli(["install", PKG[name]["spec"], f"--suffix={suffix}"])
     assert executable_path.exists()
 
     assert not run_pipx_cli(["uninstall", f"{name}{suffix}"])
@@ -85,7 +85,7 @@ def test_uninstall_suffix_legacy_venv(pipx_temp_env, metadata_version):
     suffix = "-a"
     executable_path = constants.LOCAL_BIN_DIR / app_name(f"{name}{suffix}")
 
-    assert not run_pipx_cli(["install", "pbr", f"--suffix={suffix}"])
+    assert not run_pipx_cli(["install", PKG[name]["spec"], f"--suffix={suffix}"])
     mock_legacy_venv(f"{name}{suffix}", metadata_version=metadata_version)
     assert executable_path.exists()
 

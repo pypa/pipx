@@ -208,15 +208,15 @@ def test_install_suffix(pipx_temp_env, capsys):
     name = "pbr"
 
     suffix = "_a"
-    assert not run_pipx_cli(["install", "pbr", f"--suffix={suffix}"])
+    assert not run_pipx_cli(["install", PKG[name]["spec"], f"--suffix={suffix}"])
     captured = capsys.readouterr()
-    name_a = f"{name}{suffix}{'.exe' if constants.WINDOWS else ''}"
+    name_a = app_name(f"{name}{suffix}")
     assert f"- {name_a}" in captured.out
 
     suffix = "_b"
-    assert not run_pipx_cli(["install", "pbr", f"--suffix={suffix}"])
+    assert not run_pipx_cli(["install", PKG[name]["spec"], f"--suffix={suffix}"])
     captured = capsys.readouterr()
-    name_b = f"{name}{suffix}{'.exe' if constants.WINDOWS else ''}"
+    name_b = app_name(f"{name}{suffix}")
     assert f"- {name_b}" in captured.out
 
     assert (constants.LOCAL_BIN_DIR / name_a).exists()
