@@ -79,7 +79,12 @@ def pipx_local_pypiserver(request):
             request.config.invocation_params.dir / "pypiserver.err", "w"
         )
         pypiserver_process = subprocess.Popen(
-            ["pypi-server", "--disable-fallback", str(packages_dir)],
+            [
+                "pypi-server",
+                "--authenticate=update",
+                "--disable-fallback",
+                str(packages_dir),
+            ],
             universal_newlines=True,
             stdout=pypiserver_log_fh,
             stderr=pypiserver_err_fh,
