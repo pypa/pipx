@@ -98,7 +98,8 @@ def tests(session):
 def tests_local(session):
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     prebuild_wheels(session, PREBUILD_PACKAGES)
-    session.install("-e", ".", "pypiserver", "pytest", "pytest-cov")
+    # TODO: test the difference between pypiserver and pypiserver[cache]
+    session.install("-e", ".", "pypiserver[cache]", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
 
     # DEBUG: use small timeout in case pypiserver dies!?
