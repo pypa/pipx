@@ -102,7 +102,7 @@ def test_force_install(pipx_temp_env, capsys):
 
 
 def test_install_no_packages_found(pipx_temp_env, capsys):
-    run_pipx_cli(["install", "pygdbmi"])
+    run_pipx_cli(["install", PKG["pygdbmi"]["spec"]])
     captured = capsys.readouterr()
     assert "No apps associated with package pygdbmi" in captured.err
 
