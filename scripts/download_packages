@@ -13,7 +13,6 @@ pip download isort==5.6.4 -d testdata/packages
 pip download jaraco-clipboard==2.0.1 -d testdata/packages
 pip download jaraco-financial==2.0.0 -d testdata/packages
 pip download jupyter==1.0.0 -d testdata/packages
-pip download kaggle=1.5.9 -d testdata/packages
 pip download kaggle==1.5.9 -d testdata/packages
 pip download nox==2020.8.22 -d testdata/packages
 pip download pbr==5.6.0 -d testdata/packages
