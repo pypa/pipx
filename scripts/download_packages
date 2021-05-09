@@ -18,7 +18,7 @@ pip download kaggle==1.5.9 -d testdata/packages
 pip download nox==2020.8.22 -d testdata/packages
 pip download pbr==5.6.0 -d testdata/packages
 pip download pip -d testdata/packages
-pip download pycowsay -d testdata/packages
+pip download pycowsay==0.0.0.1 -d testdata/packages
 pip download pygdbmi==0.10.0.0 -d testdata/packages
 pip download pylint -d testdata/packages
 pip download pylint==2.3.1 -d testdata/packages
