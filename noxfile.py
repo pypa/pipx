@@ -24,7 +24,7 @@ PREBUILD_PACKAGES = {
     "unix": [],
     "win": [],
 }
-TESTS_CACHE = Path("./.pipx_tests_cache")
+TESTS_CACHE_DIR = Path("./.pipx_tests_cache")
 TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
 
 # Platform logic
@@ -107,16 +107,17 @@ def tests(session):
     tests = session.posargs or ["tests"]
 
     print("Updating local tests package spec file cache...")
-    TESTS_CACHE.mkdir(exist_ok=True)
+    TESTS_CACHE_DIR.mkdir(exist_ok=True)
     package_list_path = (
         TESTS_PACKAGE_LIST_DIR
         / f"{PLATFORM}-{sys.version_info[0]}.{sys.version_info[1]}.txt"
     )
+    cache_dir = TESTS_CACHE_DIR / f"{sys.version_info[0]}.{sys.version_info[1]}"
     session.run(
         "python",
         "scripts/download_test_packages.py",
         str(package_list_path),
-        str(TESTS_CACHE),
+        str(cache_dir),
     )
 
     # DEBUG: use small timeout in case pypiserver dies!?

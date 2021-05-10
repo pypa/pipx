@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest  # type: ignore
@@ -69,7 +70,11 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch):
 def pipx_local_pypiserver(request):
     """Starts local pypiserver once per session if --pypiserver was passed
     to pytest"""
-    packages_dir = request.config.invocation_params.dir / ".pipx_tests_cache"
+    packages_dir = (
+        request.config.invocation_params.dir
+        / ".pipx_tests_cache"
+        / f"{sys.version_info[0]}.{sys.version_info[1]}"
+    )
     if request.config.option.pypiserver:
         print("Starting pypiserver...")
         pypiserver_log_fh = open(
