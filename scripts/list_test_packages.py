@@ -56,7 +56,7 @@ def main(argv: List[str]) -> int:
         wheel_re = re.search(
             r"(.+)\-([^-]+)\-([^-]+)\-([^-]+)\-([^-]+)\.whl$", downloaded_filename
         )
-        src_re = re.search(r"(.+)\-([^-]+)\.tar.gz$", downloaded_filename)
+        src_re = re.search(r"(.+)\-([^-]+)\.(?:tar.gz|zip)$", downloaded_filename)
         if wheel_re:
             package_name = wheel_re.group(1)
             package_version = wheel_re.group(2)
