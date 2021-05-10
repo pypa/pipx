@@ -108,7 +108,9 @@ def tests(session):
     session.env["PIP_DEFAULT_TIMEOUT"] = "5"
     session.env["PIP_RETRIES"] = "1"
 
-    session.env["PIP_INDEX_URL"] = "http://localhost:8080/simple"
+    # IMPORTANT: use 127.0.0.1 not localhost
+    #   Using localhost on Windows creates enormous slowdowns (for some reason)
+    session.env["PIP_INDEX_URL"] = "http://127.0.0.1:8080/simple"
 
     session.run("pytest", "--pypiserver", "--cov=pipx", "--cov-report=", *tests)
     session.notify("cover")
