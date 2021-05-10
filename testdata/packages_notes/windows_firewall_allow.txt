@@ -1,0 +1,1 @@
+netsh advfirewall firewall add rule name="pypi-server" action=allow program="C:\Program Files\Python39\python.exe" enable=yes Localip="127.0.0.1" localport="8080" protocol=tcp interfacetype=any profile=private dir=in
