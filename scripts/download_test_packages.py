@@ -24,6 +24,7 @@ def main(argv: List[str]) -> int:
     output_dir_path.mkdir(exist_ok=True)
 
     output_dir_files = list(output_dir_path.iterdir())
+    output_dir_hits = []
     with input_file_path.open("r") as input_fh:
         for line in input_fh:
             package_spec = line.strip()
@@ -45,13 +46,14 @@ def main(argv: List[str]) -> int:
             matches = []
             for output_dir_file in output_dir_files:
                 if re.search(package_dist_patt, output_dir_file.name):
-                    print(f"{package_spec} matches {output_dir_file}")
                     matches.append(output_dir_file)
             if len(matches) == 1:
                 output_dir_files.remove(matches[0])
+                output_dir_hits.append(matches[0])
                 continue
             elif len(matches) > 1:
-                print("ERROR: more than one match for {package_spec}.")
+                print("ERROR: more than one match for {package_spec}.", file=sys.stderr)
+                print(f"    {matches}", file=sys.stderr)
                 continue
 
             pip_download_process = subprocess.run(
@@ -70,10 +72,11 @@ def main(argv: List[str]) -> int:
             if pip_download_process.returncode == 0:
                 print(f"Successfully downloaded {package_spec}")
             else:
-                print(f"ERRROR downloading {package_spec}, sys.stderr")
+                print(f"ERRROR downloading {package_spec}", file=sys.stderr)
                 print(pip_download_process.stdout, file=sys.stderr)
                 print(pip_download_process.stderr, file=sys.stderr)
 
+    print(f"MATCHED (found) FILES: {len(output_dir_hits)}")
     print("LEFTOVER (unused) FILES:")
     print(output_dir_files)
     # TODO: delete unused files in cache dir
