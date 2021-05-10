@@ -76,7 +76,7 @@ jobs:
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: ${{ runner.os }}-pip${{ matrix.python-version }}
-    - name: Persistent .pipx-tests-cache
+    - name: Persistent .pipx_tests_cache
       uses: actions/cache@v2
       with:
         path: ${{ github.workspace }}/.pipx_tests_cache/${{ matrix.python-version }}
