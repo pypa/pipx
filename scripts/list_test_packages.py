@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 from typing import List
 
 PRIMARY_TEST_PACKAGES = [
@@ -38,8 +39,28 @@ PRIMARY_TEST_PACKAGES = [
     "wheel",
 ]
 
+# Platform logic
+if sys.platform == "darwin":
+    PLATFORM = "macos"
+elif sys.platform == "win32":
+    PLATFORM = "win"
+else:
+    PLATFORM = "unix"
+
 
 def main(argv: List[str]) -> int:
+    if len(argv) < 2:
+        print(
+            "Please supply the directory to output the package distribution list as first argument.",
+            file=sys.stderr,
+        )
+    package_list_dir_path = Path(argv[1])
+    package_list_dir_path.mkdir(exist_ok=True)
+    package_list_path = (
+        package_list_dir_path
+        / f"{PLATFORM}-{sys.version_info[0]}.{sys.version_info[1]}.txt"
+    )
+
     with tempfile.TemporaryDirectory() as download_dir:
         for primary_test_package in PRIMARY_TEST_PACKAGES:
             pip_download_process = subprocess.run(
@@ -52,6 +73,7 @@ def main(argv: List[str]) -> int:
             print(pip_download_process.stderr, file=sys.stderr)
         downloaded_list = os.listdir(download_dir)
 
+    all_packages = []
     for downloaded_filename in downloaded_list:
         wheel_re = re.search(
             r"(.+)\-([^-]+)\-([^-]+)\-([^-]+)\-([^-]+)\.whl$", downloaded_filename
@@ -67,7 +89,12 @@ def main(argv: List[str]) -> int:
             print(f"ERROR: cannot parse: {downloaded_filename}", file=sys.stderr)
             continue
 
-        print(f"{package_name}=={package_version}")
+        all_packages.append(f"{package_name}=={package_version}")
+
+    with package_list_path.open("w") as package_list_fh:
+        for package in sorted(all_packages):
+            print(package, file=package_list_fh)
+
     return 0
 
 

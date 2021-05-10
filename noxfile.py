@@ -25,8 +25,16 @@ PREBUILD_PACKAGES = {
     "win": [],
 }
 
+# Platform logic
+if sys.platform == "darwin":
+    PLATFORM = "macos"
+elif sys.platform == "win32":
+    PLATFORM = "win"
+else:
+    PLATFORM = "unix"
+
 # Set nox options
-if sys.platform == "win32":
+if PLATFORM == "win":
     # build_docs fail on Windows, even if `chcp.com 65001` is used
     nox.options.sessions = ["tests", "lint"]
 else:
@@ -35,14 +43,8 @@ nox.options.reuse_existing_virtualenvs = True
 
 
 def prebuild_wheels(session, prebuild_dict):
-    if sys.platform == "darwin":
-        platform = "macos"
-    elif sys.platform == "win32":
-        platform = "win"
-    else:
-        platform = "unix"
 
-    prebuild_list = prebuild_dict.get("all", []) + prebuild_dict.get(platform, [])
+    prebuild_list = prebuild_dict.get("all", []) + prebuild_dict.get(PLATFORM, [])
 
     session.install("wheel")
     wheel_dir = Path(session.virtualenv.location) / "prebuild_wheels"
@@ -100,7 +102,6 @@ def tests(session):
     prebuild_wheels(session, PREBUILD_PACKAGES)
     # TODO: test the difference between pypiserver and pypiserver[cache]
     session.install("-e", ".", "pypiserver", "pytest", "pytest-cov")
-    # session.install("-e", ".", "pypiserver[cache]", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
 
     # DEBUG: use small timeout in case pypiserver dies!?
@@ -236,3 +237,9 @@ def post_release(session):
         "If `git diff` above looks ok, execute the following command:\n\n"
         "    git commit -a -m 'Post-release.'\n"
     )
+
+
+@nox.session(python=PYTHON_ALL_VERSIONS)
+def create_test_package_list(session):
+    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
+    session.run("python", "scripts/list_test_packages.py", "testdata/tests_packages")
