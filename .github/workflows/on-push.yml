@@ -79,11 +79,11 @@ jobs:
     - name: Persistent .pipx-tests-cache
       uses: actions/cache@v2
       with:
-        path: ${{ github.workspace }}/.pipx_tests-cache/${{ matrix.python-version }}
+        path: ${{ github.workspace }}/.pipx_tests_cache/${{ matrix.python-version }}
         key: pipx-tests-cache-${{ runner.os }}-${{ matrix.python-version }}
     - name: Persistent .pipx-tests-cache DEBUG
       run: |
-        echo "${{ github.workspace }}/.pipx_tests-cache/${{ matrix.python-version }}"
+        echo "${{ github.workspace }}/.pipx_tests_cache/${{ matrix.python-version }}"
         ls -a
     - name: Upgrade pip, Install nox
       run: |
