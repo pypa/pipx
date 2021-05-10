@@ -99,7 +99,8 @@ def tests(session):
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     prebuild_wheels(session, PREBUILD_PACKAGES)
     # TODO: test the difference between pypiserver and pypiserver[cache]
-    session.install("-e", ".", "pypiserver[cache]", "pytest", "pytest-cov")
+    session.install("-e", ".", "pypiserver", "pytest", "pytest-cov")
+    # session.install("-e", ".", "pypiserver[cache]", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
 
     # DEBUG: use small timeout in case pypiserver dies!?
