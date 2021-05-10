@@ -21,6 +21,8 @@ def main(argv: List[str]) -> int:
     input_file_path = Path(argv[1])
     output_dir_path = Path(argv[2])
 
+    output_dir_path.mkdir(exist_ok=True)
+
     output_dir_files = list(output_dir_path.iterdir())
     with input_file_path.open("r") as input_fh:
         for line in input_fh:

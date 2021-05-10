@@ -69,7 +69,7 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch):
 def pipx_local_pypiserver(request):
     """Starts local pypiserver once per session if --pypiserver was passed
     to pytest"""
-    packages_dir = request.config.invocation_params.dir / "testdata" / "packages"
+    packages_dir = request.config.invocation_params.dir / ".pipx_tests_cache"
     if request.config.option.pypiserver:
         print("Starting pypiserver...")
         pypiserver_log_fh = open(

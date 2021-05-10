@@ -24,6 +24,8 @@ PREBUILD_PACKAGES = {
     "unix": [],
     "win": [],
 }
+TESTS_CACHE = Path("./.pipx_tests_cache")
+TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
 
 # Platform logic
 if sys.platform == "darwin":
@@ -104,13 +106,27 @@ def tests(session):
     session.install("-e", ".", "pypiserver", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
 
+    print("Updating local tests package spec file cache...")
+    TESTS_CACHE.mkdir(exist_ok=True)
+    package_list_path = (
+        TESTS_PACKAGE_LIST_DIR
+        / f"{PLATFORM}-{sys.version_info[0]}.{sys.version_info[1]}.txt"
+    )
+    session.run(
+        "python",
+        "scripts/download_test_packages.py",
+        str(package_list_path),
+        str(TESTS_CACHE),
+    )
+
     # DEBUG: use small timeout in case pypiserver dies!?
     session.env["PIP_TIMEOUT"] = "5"
     session.env["PIP_DEFAULT_TIMEOUT"] = "5"
     session.env["PIP_RETRIES"] = "1"
 
     # IMPORTANT: use 127.0.0.1 not localhost
-    #   Using localhost on Windows creates enormous slowdowns (for some reason)
+    #   Using localhost on Windows creates enormous slowdowns
+    #   (for some reason--perhaps IPV6/IPV4 tries, timeouts?)
     session.env["PIP_INDEX_URL"] = "http://127.0.0.1:8080/simple"
 
     session.run("pytest", "--pypiserver", "--cov=pipx", "--cov-report=", *tests)
@@ -242,4 +258,4 @@ def post_release(session):
 @nox.session(python=PYTHON_ALL_VERSIONS)
 def create_test_package_list(session):
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
-    session.run("python", "scripts/list_test_packages.py", "testdata/tests_packages")
+    session.run("python", "scripts/list_test_packages.py", str(TESTS_PACKAGE_LIST_DIR))
