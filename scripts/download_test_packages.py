@@ -67,8 +67,12 @@ def main(argv: List[str]) -> int:
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
             )
-            print(pip_download_process.stdout, file=sys.stderr)
-            print(pip_download_process.stderr, file=sys.stderr)
+            if pip_download_process.returncode == 0:
+                print(f"Successfully downloaded {package_spec}")
+            else:
+                print(f"ERRROR downloading {package_spec}, sys.stderr")
+                print(pip_download_process.stdout, file=sys.stderr)
+                print(pip_download_process.stderr, file=sys.stderr)
 
     print("LEFTOVER (unused) FILES:")
     print(output_dir_files)
