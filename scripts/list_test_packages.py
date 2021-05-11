@@ -73,6 +73,13 @@ def main(argv: List[str]) -> int:
             if pip_download_process.returncode == 0:
                 print(f"Examined {primary_test_package}")
             else:
+                # Assume if pip download fails, then this package is meant to
+                #   fail in the tests.  Try just downloading the main package
+                #   without its dependencies.  This will allow pipx to get
+                #   somewhere in installing it and print a better error.
+                # pip download needs to run setup.py to determine deps for
+                #   packages that use setup.py.  Thus it can fail simply in the
+                #   process of downloading packages.
                 pip_download_process2 = subprocess.run(
                     [
                         "pip",
