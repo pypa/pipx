@@ -25,7 +25,7 @@ def main(argv: List[str]) -> int:
 
     output_dir_files = list(output_dir_path.iterdir())
     output_dir_hits = []
-    print(f"Using {str(input_file_path)} to needed specify package files.")
+    print(f"Using {str(input_file_path)} to specify needed package files.")
     print(f"Ensuring {str(output_dir_path)} contains necessary package files...")
     with input_file_path.open("r") as input_fh:
         for line in input_fh:
