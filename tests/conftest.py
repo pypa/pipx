@@ -77,9 +77,6 @@ def pipx_local_pypiserver(request):
     )
     if request.config.option.pypiserver:
         print("Starting pypiserver...")
-        pypiserver_log_fh = open(
-            request.config.invocation_params.dir / "pypiserver.out", "w"
-        )
         pypiserver_err_fh = open(
             request.config.invocation_params.dir / "pypiserver.err", "w"
         )
@@ -91,14 +88,12 @@ def pipx_local_pypiserver(request):
                 str(packages_dir),
             ],
             universal_newlines=True,
-            stdout=pypiserver_log_fh,
             stderr=pypiserver_err_fh,
         )
         print("pypiserver Started.")
     yield
     if request.config.option.pypiserver:
         pypiserver_process.terminate()
-        pypiserver_log_fh.close()
         pypiserver_err_fh.close()
 
 
