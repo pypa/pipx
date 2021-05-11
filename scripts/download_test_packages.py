@@ -77,9 +77,10 @@ def main(argv: List[str]) -> int:
                 print(pip_download_process.stderr, file=sys.stderr)
 
     print(f"MATCHED (found) FILES: {len(output_dir_hits)}")
-    print("LEFTOVER (unused) FILES:")
-    print(output_dir_files)
-    # TODO: delete unused files in cache dir
+    print("LEFTOVER (unused) FILES: {len(output_dir_files)}")
+    for unused_file in output_dir_files:
+        print(f"    Deleting {unused_file}...")
+        unused_file.unlink()
 
     return 0
 
