@@ -14,7 +14,7 @@ PRIMARY_TEST_PACKAGES = [
     "setuptools>=41.0",
     "ansible==2.9.13",
     "awscli==1.18.168",
-    "black",
+    "black==18.9.b0",
     "black==20.8b1",
     "cloudtoken==0.1.707",
     "ipython==7.16.1",
