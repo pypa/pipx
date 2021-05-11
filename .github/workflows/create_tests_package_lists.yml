@@ -1,4 +1,4 @@
-name: Create tests package lists for offline tests(slow)
+name: Create tests package lists for offline tests
 on:
   workflow_dispatch:
 
