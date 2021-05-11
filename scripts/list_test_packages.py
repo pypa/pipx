@@ -69,8 +69,12 @@ def main(argv: List[str]) -> int:
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
             )
-            print(pip_download_process.stdout, file=sys.stderr)
-            print(pip_download_process.stderr, file=sys.stderr)
+            if pip_download_process.returncode == 0:
+                print(f"Examined {primary_test_package}")
+            else:
+                print(f"ERROR with {primary_test_package}", file=sys.stderr)
+                print(pip_download_process.stdout, file=sys.stderr)
+                print(pip_download_process.stderr, file=sys.stderr)
         downloaded_list = os.listdir(download_dir)
 
     all_packages = []
