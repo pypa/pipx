@@ -10,6 +10,7 @@ import tempfile
 from pathlib import Path
 from typing import List
 
+# Modify this list if the packages pipx installs in tests change
 PRIMARY_TEST_PACKAGES = [
     "setuptools>=41.0",
     "ansible==2.9.13",
