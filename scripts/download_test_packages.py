@@ -25,6 +25,8 @@ def main(argv: List[str]) -> int:
 
     output_dir_files = list(output_dir_path.iterdir())
     output_dir_hits = []
+    print(f"Using {str(input_file_path)} to needed specify package files.")
+    print(f"Ensuring {str(output_dir_path)} contains necessary package files...")
     with input_file_path.open("r") as input_fh:
         for line in input_fh:
             package_spec = line.strip()
@@ -77,7 +79,7 @@ def main(argv: List[str]) -> int:
                 print(pip_download_process.stderr, file=sys.stderr)
                 exit_code = 1
 
-    print(f"MATCHED (found) FILES: {len(output_dir_hits)}")
+    print(f"EXISTING (found) FILES: {len(output_dir_hits)}")
     print(f"LEFTOVER (unused) FILES: {len(output_dir_files)}")
     for unused_file in output_dir_files:
         print(f"    Deleting {unused_file}...")
