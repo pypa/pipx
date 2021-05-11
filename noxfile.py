@@ -120,11 +120,6 @@ def tests(session):
         str(cache_dir),
     )
 
-    # DEBUG: use small timeout in case pypiserver dies!?
-    session.env["PIP_TIMEOUT"] = "5"
-    session.env["PIP_DEFAULT_TIMEOUT"] = "5"
-    session.env["PIP_RETRIES"] = "1"
-
     # IMPORTANT: use 127.0.0.1 not localhost
     #   Using localhost on Windows creates enormous slowdowns
     #   (for some reason--perhaps IPV6/IPV4 tries, timeouts?)
