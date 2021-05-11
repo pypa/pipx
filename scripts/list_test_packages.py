@@ -49,6 +49,7 @@ else:
 
 
 def main(argv: List[str]) -> int:
+    exit_code = 0
     if len(argv) < 2:
         print(
             "Please supply the directory to output the package distribution list as first argument.",
@@ -75,6 +76,7 @@ def main(argv: List[str]) -> int:
                 print(f"ERROR with {primary_test_package}", file=sys.stderr)
                 print(pip_download_process.stdout, file=sys.stderr)
                 print(pip_download_process.stderr, file=sys.stderr)
+                exit_code = 1
         downloaded_list = os.listdir(download_dir)
 
     all_packages = []
@@ -99,7 +101,7 @@ def main(argv: List[str]) -> int:
         for package in sorted(all_packages):
             print(package, file=package_list_fh)
 
-    return 0
+    return exit_code
 
 
 if __name__ == "__main__":
