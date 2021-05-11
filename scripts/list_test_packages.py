@@ -95,8 +95,8 @@ def main(argv: List[str]) -> int:
                 )
                 if pip_download_process2.returncode == 0:
                     print(
-                        f"WARNING: {primary_test_package} could be downloaded "
-                        "but not its deps.",
+                        f"WARNING: {primary_test_package} was downloaded "
+                        "but NOT its deps.",
                         file=sys.stderr,
                     )
                 else:

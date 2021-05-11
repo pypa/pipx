@@ -7,7 +7,6 @@ from typing import List
 
 
 def main(argv: List[str]) -> int:
-    print(argv)
     if len(argv) < 3:
         print(
             "Please supply filename of test package list as first argument.",
