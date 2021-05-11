@@ -89,7 +89,8 @@ def on_master_no_changes(session):
 
 
 @nox.session(python=PYTHON_ALL_VERSIONS)
-def tests_old(session):
+def tests_internet(session):
+    """tests using internet pypi, not local pypiserver."""
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     prebuild_wheels(session, PREBUILD_PACKAGES)
     session.install("-e", ".", "pytest", "pytest-cov")
@@ -100,6 +101,7 @@ def tests_old(session):
 
 @nox.session(python=PYTHON_ALL_VERSIONS)
 def tests(session):
+    """tests using local pypiserver."""
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     prebuild_wheels(session, PREBUILD_PACKAGES)
     # TODO: test the difference between pypiserver and pypiserver[cache]
