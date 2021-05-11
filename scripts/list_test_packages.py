@@ -73,10 +73,30 @@ def main(argv: List[str]) -> int:
             if pip_download_process.returncode == 0:
                 print(f"Examined {primary_test_package}")
             else:
-                print(f"ERROR with {primary_test_package}", file=sys.stderr)
-                print(pip_download_process.stdout, file=sys.stderr)
-                print(pip_download_process.stderr, file=sys.stderr)
-                exit_code = 1
+                pip_download_process2 = subprocess.run(
+                    [
+                        "pip",
+                        "download",
+                        "--no-deps",
+                        primary_test_package,
+                        "-d",
+                        str(download_dir),
+                    ],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True,
+                )
+                if pip_download_process2.returncode == 0:
+                    print(
+                        f"WARNING: {primary_test_package} could be downloaded "
+                        "but not its deps.",
+                        file=sys.stderr,
+                    )
+                else:
+                    print(f"ERROR with {primary_test_package}", file=sys.stderr)
+                    print(pip_download_process.stdout, file=sys.stderr)
+                    print(pip_download_process.stderr, file=sys.stderr)
+                    exit_code = 1
         downloaded_list = os.listdir(download_dir)
 
     all_packages = []
