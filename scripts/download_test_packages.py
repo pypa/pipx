@@ -7,6 +7,7 @@ from typing import List
 
 
 def main(argv: List[str]) -> int:
+    exit_code = 0
     if len(argv) < 3:
         print(
             "Please supply filename of test package list as first argument.",
@@ -29,9 +30,8 @@ def main(argv: List[str]) -> int:
             package_spec = line.strip()
             package_spec_re = re.search(r"^(.+)==(.+)$", package_spec)
             if not package_spec_re:
-                print(
-                    f"CANNOT PARSE PACKAGE SPEC:\n    {package_spec}", file=sys.stderr
-                )
+                print(f"ERROR: CANNOT PARSE {package_spec}", file=sys.stderr)
+                exit_code = 1
                 continue
 
             package_name = package_spec_re.group(1)
@@ -53,6 +53,7 @@ def main(argv: List[str]) -> int:
             elif len(matches) > 1:
                 print("ERROR: more than one match for {package_spec}.", file=sys.stderr)
                 print(f"    {matches}", file=sys.stderr)
+                exit_code = 1
                 continue
 
             pip_download_process = subprocess.run(
@@ -71,9 +72,10 @@ def main(argv: List[str]) -> int:
             if pip_download_process.returncode == 0:
                 print(f"Successfully downloaded {package_spec}")
             else:
-                print(f"ERRROR downloading {package_spec}", file=sys.stderr)
+                print(f"ERROR downloading {package_spec}", file=sys.stderr)
                 print(pip_download_process.stdout, file=sys.stderr)
                 print(pip_download_process.stderr, file=sys.stderr)
+                exit_code = 1
 
     print(f"MATCHED (found) FILES: {len(output_dir_hits)}")
     print(f"LEFTOVER (unused) FILES: {len(output_dir_files)}")
@@ -81,7 +83,7 @@ def main(argv: List[str]) -> int:
         print(f"    Deleting {unused_file}...")
         unused_file.unlink()
 
-    return 0
+    return exit_code
 
 
 if __name__ == "__main__":
