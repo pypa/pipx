@@ -111,6 +111,8 @@ def main(argv: List[str]) -> int:
                 + (["--no-deps"] if test_package.get("no-deps", False) else [])
                 + [test_package["spec"], "-d", str(download_dir)]
             )
+            if args.verbose:
+                print(f"CMD: {' '.join(cmd_list)}")
             pip_download_process = subprocess.run(
                 cmd_list,
                 stdout=subprocess.PIPE,
