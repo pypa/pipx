@@ -1,3 +1,4 @@
+Cython==0.29.23
 Flask==2.0.0
 Jinja2==3.0.0
 MarkupSafe==2.0.0
