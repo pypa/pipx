@@ -13,7 +13,7 @@ from typing import Any, Dict, List
 
 # Modify this list if the packages pipx installs in tests change
 PRIMARY_TEST_PACKAGES: List[Dict[str, Any]] = [
-    {"spec": "setuptools>=41.0"},
+    {"spec": "Cython"},  # in 'setup_requires' for jupyter on Win
     {"spec": "ansible==2.9.13"},
     {"spec": "awscli==1.18.168"},
     {"spec": "black==18.9.b0"},
@@ -33,6 +33,7 @@ PRIMARY_TEST_PACKAGES: List[Dict[str, Any]] = [
     {"spec": "pylint"},
     {"spec": "pylint==2.3.1"},
     {"spec": "setuptools-scm"},
+    {"spec": "setuptools>=41.0"},
     {"spec": "shell-functools==0.3.0"},
     {"spec": "tox"},
     {"spec": "tox-ini-fmt==0.5.0"},
