@@ -2,41 +2,42 @@
 """Usage:
     python3 scripts/list_test_packages.py > test_package_list.txt
 """
+import argparse
 import os
 import re
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List
 
 # Modify this list if the packages pipx installs in tests change
-PRIMARY_TEST_PACKAGES = [
-    "setuptools>=41.0",
-    "ansible==2.9.13",
-    "awscli==1.18.168",
-    "black==18.9.b0",
-    "black==20.8b1",
-    "cloudtoken==0.1.707",
-    "ipython==7.16.1",
-    "isort==5.6.4",
-    "jaraco-clipboard==2.0.1",
-    "jaraco-financial==2.0.0",
-    "jupyter==1.0.0",
-    "kaggle==1.5.9",
-    "nox==2020.8.22",
-    "pbr==5.6.0",
-    "pip",
-    "pycowsay==0.0.0.1",
-    "pygdbmi==0.10.0.0",
-    "pylint",
-    "pylint==2.3.1",
-    "setuptools-scm",
-    "shell-functools==0.3.0",
-    "tox",
-    "tox-ini-fmt==0.5.0",
-    "weblate==4.3.1",
-    "wheel",
+PRIMARY_TEST_PACKAGES: List[Dict[str, Any]] = [
+    {"spec": "setuptools>=41.0"},
+    {"spec": "ansible==2.9.13"},
+    {"spec": "awscli==1.18.168"},
+    {"spec": "black==18.9.b0"},
+    {"spec": "black==20.8b1"},
+    {"spec": "cloudtoken==0.1.707"},
+    {"spec": "ipython==7.16.1"},
+    {"spec": "isort==5.6.4"},
+    {"spec": "jaraco-clipboard==2.0.1"},
+    {"spec": "jaraco-financial==2.0.0"},
+    {"spec": "jupyter==1.0.0"},
+    {"spec": "kaggle==1.5.9"},
+    {"spec": "nox==2020.8.22"},
+    {"spec": "pbr==5.6.0"},
+    {"spec": "pip"},
+    {"spec": "pycowsay==0.0.0.1"},
+    {"spec": "pygdbmi==0.10.0.0"},
+    {"spec": "pylint"},
+    {"spec": "pylint==2.3.1"},
+    {"spec": "setuptools-scm"},
+    {"spec": "shell-functools==0.3.0"},
+    {"spec": "tox"},
+    {"spec": "tox-ini-fmt==0.5.0"},
+    {"spec": "weblate==4.3.1", "no-deps": True},  # expected fail in tests
+    {"spec": "wheel"},
 ]
 
 # Platform logic
@@ -48,14 +49,51 @@ else:
     PLATFORM = "unix"
 
 
+def process_command_line(argv):
+    """Process command line invocation arguments and switches.
+
+    Args:
+        argv: list of arguments, or `None` from ``sys.argv[1:]``.
+
+    Returns:
+        argparse.Namespace: named attributes of arguments and switches
+    """
+    # script_name = argv[0]
+    argv = argv[1:]
+
+    # initialize the parser object:
+    parser = argparse.ArgumentParser(
+        description="Create list of needed test packages for pipx tests and local pypiserver."
+    )
+
+    # specifying nargs= puts outputs of parser in list (even if nargs=1)
+
+    # required arguments
+    parser.add_argument(
+        "package_list_dir", help="Directory to output package distribution lists."
+    )
+
+    # switches/options:
+    # parser.add_argument(
+    #    '-s', '--max_size', action='store',
+    #    help='String specifying maximum size of images.  ' \
+    #            'Larger images will be resized. (e.g. "1024x768")')
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Maximum verbosity, especially for pip operations.",
+    )
+
+    args = parser.parse_args(argv)
+
+    return args
+
+
 def main(argv: List[str]) -> int:
     exit_code = 0
-    if len(argv) < 2:
-        print(
-            "Please supply the directory to output the package distribution list as first argument.",
-            file=sys.stderr,
-        )
-    package_list_dir_path = Path(argv[1])
+    args = process_command_line(argv)
+    package_list_dir_path = Path(args.package_list_dir)
     package_list_dir_path.mkdir(exist_ok=True)
     package_list_path = (
         package_list_dir_path
@@ -63,47 +101,34 @@ def main(argv: List[str]) -> int:
     )
 
     with tempfile.TemporaryDirectory() as download_dir:
-        for primary_test_package in PRIMARY_TEST_PACKAGES:
+        for test_package in PRIMARY_TEST_PACKAGES:
+            test_package_option_string = (
+                " (no-deps)" if test_package.get("no-deps", False) else ""
+            )
+            verbose_this_iteration = False
+            cmd_list = (
+                ["pip", "download"]
+                + (["--no-deps"] if test_package.get("no-deps", False) else [])
+                + [test_package["spec"], "-d", str(download_dir)]
+            )
             pip_download_process = subprocess.run(
-                ["pip", "download", primary_test_package, "-d", str(download_dir)],
+                cmd_list,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
             )
             if pip_download_process.returncode == 0:
-                print(f"Examined {primary_test_package}")
+                print(f"Examined {test_package['spec']}{test_package_option_string}")
             else:
-                # Assume if pip download fails, then this package is meant to
-                #   fail in the tests.  Try just downloading the main package
-                #   without its dependencies.  This will allow pipx to get
-                #   somewhere in installing it and print a better error.
-                # pip download needs to run setup.py to determine deps for
-                #   packages that use setup.py.  Thus it can fail simply in the
-                #   process of downloading packages.
-                pip_download_process2 = subprocess.run(
-                    [
-                        "pip",
-                        "download",
-                        "--no-deps",
-                        primary_test_package,
-                        "-d",
-                        str(download_dir),
-                    ],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    universal_newlines=True,
+                print(
+                    f"ERROR with {test_package['spec']}{test_package_option_string}",
+                    file=sys.stderr,
                 )
-                if pip_download_process2.returncode == 0:
-                    print(
-                        f"WARNING: {primary_test_package} was downloaded "
-                        "but NOT its deps.",
-                        file=sys.stderr,
-                    )
-                else:
-                    print(f"ERROR with {primary_test_package}", file=sys.stderr)
-                    print(pip_download_process.stdout, file=sys.stderr)
-                    print(pip_download_process.stderr, file=sys.stderr)
-                    exit_code = 1
+                verbose_this_iteration = True
+                exit_code = 1
+            if args.verbose or verbose_this_iteration:
+                print(pip_download_process.stdout)
+                print(pip_download_process.stderr)
         downloaded_list = os.listdir(download_dir)
 
     all_packages = []
