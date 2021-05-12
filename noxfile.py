@@ -256,9 +256,5 @@ def post_release(session):
 @nox.session(python=PYTHON_ALL_VERSIONS)
 def create_test_package_list(session):
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
-    session.run(
-        "python",
-        "scripts/list_test_packages.py",
-        "--verbose",
-        str(TESTS_PACKAGE_LIST_DIR),
-    )
+    output_dir = session.posargs[0] if session.posargs else str(TESTS_PACKAGE_LIST_DIR)
+    session.run("python", "scripts/list_test_packages.py", output_dir)

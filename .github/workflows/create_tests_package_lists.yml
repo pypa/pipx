@@ -24,9 +24,9 @@ jobs:
         python -m pip install nox
     - name: Create lists
       run: |
-        nox --non-interactive --session create_test_package_list-${{ matrix.python-version }}
+        nox --non-interactive --session create_test_package_list-${{ matrix.python-version }} ./new_tests_packages
     - name: Store reports as artifacts
       uses: actions/upload-artifact@v2
       with:
         name: lists
-        path: testdata/tests_packages
+        path: ./new_tests_packages
