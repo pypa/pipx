@@ -257,4 +257,9 @@ def post_release(session):
 def create_test_package_list(session):
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     output_dir = session.posargs[0] if session.posargs else str(TESTS_PACKAGE_LIST_DIR)
-    session.run("python", "scripts/list_test_packages.py", output_dir)
+    session.run(
+        "python",
+        "scripts/list_test_packages.py",
+        "testdata/tests_packages/tests_primary_packages.txt",
+        output_dir,
+    )

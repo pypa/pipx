@@ -11,36 +11,6 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, List
 
-# Modify this list if the packages pipx installs in tests change
-PRIMARY_TEST_PACKAGES: List[Dict[str, Any]] = [
-    {"spec": "Cython"},  # in 'setup_requires' of jupyter dep pywinpty on Win
-    {"spec": "ansible==2.9.13"},
-    {"spec": "awscli==1.18.168"},
-    {"spec": "black==18.9.b0"},
-    {"spec": "black==20.8b1"},
-    {"spec": "cloudtoken==0.1.707"},
-    {"spec": "ipython==7.16.1"},
-    {"spec": "isort==5.6.4"},
-    {"spec": "jaraco-clipboard==2.0.1"},
-    {"spec": "jaraco-financial==2.0.0"},
-    {"spec": "jupyter==1.0.0"},
-    {"spec": "kaggle==1.5.9"},
-    {"spec": "nox==2020.8.22"},
-    {"spec": "pbr==5.6.0"},
-    {"spec": "pip"},
-    {"spec": "pycowsay==0.0.0.1"},
-    {"spec": "pygdbmi==0.10.0.0"},
-    {"spec": "pylint"},
-    {"spec": "pylint==2.3.1"},
-    {"spec": "setuptools-scm"},
-    {"spec": "setuptools>=41.0"},
-    {"spec": "shell-functools==0.3.0"},
-    {"spec": "tox"},
-    {"spec": "tox-ini-fmt==0.5.0"},
-    {"spec": "weblate==4.3.1", "no-deps": True},  # expected fail in tests
-    {"spec": "wheel"},
-]
-
 # Platform logic
 if sys.platform == "darwin":
     PLATFORM = "macos"
@@ -71,6 +41,11 @@ def process_command_line(argv):
 
     # required arguments
     parser.add_argument(
+        "primary_package_list",
+        help="Main packages to examine, getting list of "
+        "matching distribution files and dependencies.",
+    )
+    parser.add_argument(
         "package_list_dir", help="Directory to output package distribution lists."
     )
 
@@ -91,18 +66,56 @@ def process_command_line(argv):
     return args
 
 
+def parse_package_list(package_list_file: Path) -> List[Dict[str, Any]]:
+    output_list: List[Dict[str, Any]] = []
+    try:
+        with package_list_file.open("r") as package_list_fh:
+            for line in package_list_fh:
+                line_parsed = re.sub(r"#.+$", "", line)
+                if not re.search(r"\S", line_parsed):
+                    continue
+                line_list = line_parsed.strip().split()
+                if len(line_list) == 1:
+                    output_list.append({"spec": line_list[0]})
+                elif len(line_list) == 2:
+                    output_list.append(
+                        {
+                            "spec": line_list[0],
+                            "no-deps": line_list[1].lower() == "true",
+                        }
+                    )
+                else:
+                    print(
+                        f"ERROR: Unable to parse primary package list line:\n    {line.strip()}"
+                    )
+                    return []
+    except IOError:
+        print("ERROR: File problem reading primary package list.")
+        return []
+    return output_list
+
+
 def main(argv: List[str]) -> int:
     exit_code = 0
     args = process_command_line(argv)
     package_list_dir_path = Path(args.package_list_dir)
     package_list_dir_path.mkdir(exist_ok=True)
-    package_list_path = (
+    platform_package_list_path = (
         package_list_dir_path
         / f"{PLATFORM}-{sys.version_info[0]}.{sys.version_info[1]}.txt"
     )
+    primary_package_list_path = Path(args.primary_package_list)
+
+    primary_test_packages = parse_package_list(primary_package_list_path)
+    if not primary_test_packages:
+        print(
+            f"ERROR: Problem reading {primary_package_list_path}.  Exiting.",
+            file=sys.stderr,
+        )
+        return 1
 
     with tempfile.TemporaryDirectory() as download_dir:
-        for test_package in PRIMARY_TEST_PACKAGES:
+        for test_package in primary_test_packages:
             test_package_option_string = (
                 " (no-deps)" if test_package.get("no-deps", False) else ""
             )
@@ -152,7 +165,8 @@ def main(argv: List[str]) -> int:
 
         all_packages.append(f"{package_name}=={package_version}")
 
-    with package_list_path.open("w") as package_list_fh:
+    with platform_package_list_path.open("w") as package_list_fh:
+        "scripts/list_test_packages.py",
         for package in sorted(all_packages):
             print(package, file=package_list_fh)
 
