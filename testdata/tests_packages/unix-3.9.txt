@@ -24,9 +24,9 @@ beautifulsoup4==4.9.3
 black==18.9b0
 black==20.8b1
 bleach==3.3.0
-boto3==1.17.71
+boto3==1.17.72
 botocore==1.19.8
-botocore==1.20.71
+botocore==1.20.72
 certifi==2020.12.5
 cffi==1.14.5
 chardet==4.0.0
