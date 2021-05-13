@@ -13,3 +13,4 @@ venv
 __pycache__
 site
 docs/docs.md
+.pipx_tests_cache
