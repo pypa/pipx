@@ -8,6 +8,8 @@ import pytest  # type: ignore
 from helpers import WIN
 from pipx import commands, constants, shared_libs, venv
 
+PIPX_TESTS_CACHE_DIR = ".pipx_tests_cache"
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -72,13 +74,16 @@ def pipx_local_pypiserver(request):
     to pytest"""
     packages_dir = (
         request.config.invocation_params.dir
-        / ".pipx_tests_cache"
+        / PIPX_TESTS_CACHE_DIR
         / f"{sys.version_info[0]}.{sys.version_info[1]}"
     )
     if request.config.option.pypiserver:
         print("Starting pypiserver...")
         pypiserver_err_fh = open(
-            request.config.invocation_params.dir / "pypiserver.err", "w"
+            request.config.invocation_params.dir
+            / PIPX_TESTS_CACHE_DIR
+            / "pypiserver.log",
+            "w",
         )
         pypiserver_process = subprocess.Popen(
             [
