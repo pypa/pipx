@@ -39,7 +39,7 @@ def pytest_configure(config):
     config.option.markexpr = new_markexpr
 
 
-def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch):
+def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request):
     home_dir = Path(tmp_path) / "subdir" / "pipxhome"
     bin_dir = Path(tmp_path) / "otherdir" / "pipxbindir"
 
@@ -66,6 +66,11 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch):
         monkeypatch.setitem(
             commands.common._can_symlink_cache, constants.LOCAL_BIN_DIR, False
         )
+    if request.config.option.pypiserver:
+        # IMPORTANT: use 127.0.0.1 not localhost
+        #   Using localhost on Windows creates enormous slowdowns
+        #   (for some reason--perhaps IPV6/IPV4 tries, timeouts?)
+        monkeypatch.setenv("PIP_INDEX_URL", "http://127.0.0.1:8080/simple")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -108,7 +113,7 @@ def pipx_session_shared_dir(tmp_path_factory):
 
 
 @pytest.fixture
-def pipx_temp_env(tmp_path, monkeypatch, pipx_session_shared_dir):
+def pipx_temp_env(tmp_path, monkeypatch, pipx_session_shared_dir, request):
     """Sets up temporary paths for pipx to install into.
 
     Shared libs are setup once per session, all other pipx dirs, constants are
@@ -117,11 +122,11 @@ def pipx_temp_env(tmp_path, monkeypatch, pipx_session_shared_dir):
     Also adds environment variables as necessary to make pip installations
     seamless.
     """
-    pipx_temp_env_helper(pipx_session_shared_dir, tmp_path, monkeypatch)
+    pipx_temp_env_helper(pipx_session_shared_dir, tmp_path, monkeypatch, request)
 
 
 @pytest.fixture
-def pipx_ultra_temp_env(tmp_path, monkeypatch):
+def pipx_ultra_temp_env(tmp_path, monkeypatch, request):
     """Sets up temporary paths for pipx to install into.
 
     Fully temporary environment, every test function starts as if pipx has
@@ -131,4 +136,4 @@ def pipx_ultra_temp_env(tmp_path, monkeypatch):
     seamless.
     """
     shared_dir = Path(tmp_path) / "shareddir"
-    pipx_temp_env_helper(shared_dir, tmp_path, monkeypatch)
+    pipx_temp_env_helper(shared_dir, tmp_path, monkeypatch, request)

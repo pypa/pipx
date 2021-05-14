@@ -122,11 +122,6 @@ def tests(session):
         str(cache_dir),
     )
 
-    # IMPORTANT: use 127.0.0.1 not localhost
-    #   Using localhost on Windows creates enormous slowdowns
-    #   (for some reason--perhaps IPV6/IPV4 tries, timeouts?)
-    session.env["PIP_INDEX_URL"] = "http://127.0.0.1:8080/simple"
-
     session.run("pytest", "--pypiserver", "--cov=pipx", "--cov-report=", *tests)
     session.notify("cover")
 
