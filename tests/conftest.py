@@ -69,7 +69,7 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def pipx_local_pypiserver(request):
+def pipx_local_pypiserver(request, monkeypatch):
     """Starts local pypiserver once per session if --pypiserver was passed
     to pytest"""
     packages_dir = (
@@ -95,6 +95,10 @@ def pipx_local_pypiserver(request):
             stderr=pypiserver_err_fh,
         )
         print("pypiserver Started.")
+        # IMPORTANT: use 127.0.0.1 not localhost
+        #   Using localhost on Windows creates enormous slowdowns
+        #   (for some reason--perhaps IPV6/IPV4 tries, timeouts?)
+        monkeypatch.setenv("PIP_INDEX_URL", "http://127.0.0.1:8080/simple")
     yield
     if request.config.option.pypiserver:
         pypiserver_process.terminate()
