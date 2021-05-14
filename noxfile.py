@@ -88,26 +88,7 @@ def on_master_no_changes(session):
         session.error(f"Must be on 'master' branch. Currently on {branch!r} branch")
 
 
-@nox.session(python=PYTHON_ALL_VERSIONS)
-def tests_internet(session):
-    """Tests using internet pypi only"""
-    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
-    prebuild_wheels(session, PREBUILD_PACKAGES)
-    session.install("-e", ".", "pytest", "pytest-cov")
-    tests = session.posargs or ["tests"]
-    session.run("pytest", "--cov=pipx", "--cov-report=", *tests)
-    session.notify("cover")
-
-
-@nox.session(python=PYTHON_ALL_VERSIONS)
-def tests(session):
-    """Tests using local pypiserver only"""
-    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
-    prebuild_wheels(session, PREBUILD_PACKAGES)
-    # TODO: test the difference between pypiserver and pypiserver[cache]
-    session.install("-e", ".", "pypiserver", "pytest", "pytest-cov")
-    tests = session.posargs or ["tests"]
-
+def refresh_packages_cache(session):
     print("Updating local tests package spec file cache...")
     TESTS_CACHE_DIR.mkdir(exist_ok=True, parents=True)
     package_list_path = (
@@ -122,8 +103,34 @@ def tests(session):
         str(cache_dir),
     )
 
-    session.run("pytest", "--pypiserver", "--cov=pipx", "--cov-report=", *tests)
+
+def tests_with_options(session, local_pypiserver):
+    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
+    prebuild_wheels(session, PREBUILD_PACKAGES)
+    session.install("-e", ".", "pytest", "pytest-cov")
+    tests = session.posargs or ["tests"]
+
+    if local_pypiserver:
+        session.install("pypiserver")
+        refresh_packages_cache(session)
+        pypiserver_option = ["--pypiserver"]
+    else:
+        pypiserver_option = []
+
+    session.run("pytest", *pypiserver_option, "--cov=pipx", "--cov-report=", *tests)
     session.notify("cover")
+
+
+@nox.session(python=PYTHON_ALL_VERSIONS)
+def tests_internet(session):
+    """Tests using internet pypi only"""
+    tests_with_options(session, local_pypiserver=False)
+
+
+@nox.session(python=PYTHON_ALL_VERSIONS)
+def tests(session):
+    """Tests using local pypiserver only"""
+    tests_with_options(session, local_pypiserver=True)
 
 
 @nox.session(python=PYTHON_ALL_VERSIONS)
