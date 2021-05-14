@@ -24,7 +24,7 @@ def pytest_addoption(parser):
         action="store_true",
         dest="pypiserver",
         default=False,
-        help="Start local pypi server.",
+        help="Start local pypi server and use in tests.",
     )
 
 
