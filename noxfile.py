@@ -104,17 +104,17 @@ def refresh_packages_cache(session):
     )
 
 
-def tests_with_options(session, local_pypiserver):
+def tests_with_options(session, net_pypiserver):
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     prebuild_wheels(session, PREBUILD_PACKAGES)
     session.install("-e", ".", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
 
-    if local_pypiserver:
+    if net_pypiserver:
+        pypiserver_option = ["--net-pypiserver"]
+    else:
         session.install("pypiserver")
         refresh_packages_cache(session)
-        pypiserver_option = ["--pypiserver"]
-    else:
         pypiserver_option = []
 
     session.run("pytest", *pypiserver_option, "--cov=pipx", "--cov-report=", *tests)
@@ -124,13 +124,13 @@ def tests_with_options(session, local_pypiserver):
 @nox.session(python=PYTHON_ALL_VERSIONS)
 def tests_internet(session):
     """Tests using internet pypi only"""
-    tests_with_options(session, local_pypiserver=False)
+    tests_with_options(session, net_pypiserver=True)
 
 
 @nox.session(python=PYTHON_ALL_VERSIONS)
 def tests(session):
     """Tests using local pypiserver only"""
-    tests_with_options(session, local_pypiserver=True)
+    tests_with_options(session, net_pypiserver=False)
 
 
 @nox.session(python=PYTHON_ALL_VERSIONS)

@@ -20,9 +20,9 @@ def pytest_addoption(parser):
         help="Run only the long, slow tests installing the maximum list of packages.",
     )
     parser.addoption(
-        "--pypiserver",
+        "--net-pypiserver",
         action="store_true",
-        dest="pypiserver",
+        dest="net_pypiserver",
         default=False,
         help="Start local pypi server and use in tests.",
     )
@@ -66,7 +66,7 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request):
         monkeypatch.setitem(
             commands.common._can_symlink_cache, constants.LOCAL_BIN_DIR, False
         )
-    if request.config.option.pypiserver:
+    if not request.config.option.net_pypiserver:
         # IMPORTANT: use 127.0.0.1 not localhost
         #   Using localhost on Windows creates enormous slowdowns
         #   (for some reason--perhaps IPV6/IPV4 tries, timeouts?)
@@ -75,35 +75,37 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request):
 
 @pytest.fixture(scope="session", autouse=True)
 def pipx_local_pypiserver(request):
-    """Starts local pypiserver once per session if --pypiserver was passed
-    to pytest"""
+    """Starts local pypiserver once per session unless --net-pypiserver was
+    passed to pytest"""
+    if request.config.option.net_pypiserver:
+        return
+
     packages_dir = (
         request.config.invocation_params.dir
         / PIPX_TESTS_DIR
         / "package_cache"
         / f"{sys.version_info[0]}.{sys.version_info[1]}"
     )
-    if request.config.option.pypiserver:
-        print("Starting pypiserver...")
-        pypiserver_err_fh = open(
-            request.config.invocation_params.dir / PIPX_TESTS_DIR / "pypiserver.log",
-            "w",
-        )
-        pypiserver_process = subprocess.Popen(
-            [
-                "pypi-server",
-                "--authenticate=update",
-                "--disable-fallback",
-                str(packages_dir),
-            ],
-            universal_newlines=True,
-            stderr=pypiserver_err_fh,
-        )
-        print("pypiserver Started.")
+    print("Starting pypiserver...")
+    pypiserver_err_fh = open(
+        request.config.invocation_params.dir / PIPX_TESTS_DIR / "pypiserver.log", "w",
+    )
+    pypiserver_process = subprocess.Popen(
+        [
+            "pypi-server",
+            "--authenticate=update",
+            "--disable-fallback",
+            str(packages_dir),
+        ],
+        universal_newlines=True,
+        stderr=pypiserver_err_fh,
+    )
+    print("pypiserver Started.")
+
     yield
-    if request.config.option.pypiserver:
-        pypiserver_process.terminate()
-        pypiserver_err_fh.close()
+
+    pypiserver_process.terminate()
+    pypiserver_err_fh.close()
 
 
 @pytest.fixture(scope="session")
