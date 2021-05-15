@@ -139,7 +139,13 @@ def test_all_packages(session):
     session.install("-e", ".", "pytest")
     tests = session.posargs or ["tests"]
     session.run(
-        "pytest", "-v", "--tb=no", "--show-capture=no", "--all-packages", *tests
+        "pytest",
+        "-v",
+        "--tb=no",
+        "--show-capture=no",
+        "--net-pypiserver",
+        "--all-packages",
+        *tests,
     )
 
 
