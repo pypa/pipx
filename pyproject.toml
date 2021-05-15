@@ -10,3 +10,6 @@ known_first_party = ["helpers", "package_info"]
 markers = [
     "all_packages: test install with maximum number of packages",
 ]
+
+[tool.black]
+skip-magic-trailing-comma = true
