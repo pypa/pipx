@@ -352,8 +352,7 @@ class Venv:
         if not self.python_path.exists():
             return None
         dists = Distribution.discover(
-            name=self.main_package_name,
-            path=[str(get_site_packages(self.python_path))],
+            name=self.main_package_name, path=[str(get_site_packages(self.python_path))]
         )
         for dist in dists:
             for ep in dist.entry_points:
