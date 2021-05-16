@@ -8,8 +8,8 @@ PYTHON_ALL_VERSIONS = ["3.6", "3.7", "3.8", "3.9"]
 PYTHON_DEFAULT_VERSION = "3.9"
 DOC_DEPENDENCIES = [".", "jinja2", "mkdocs", "mkdocs-material"]
 LINT_DEPENDENCIES = [
-    "black==19.10b0",
-    "flake8==3.9.0",
+    "black==21.5b1",
+    "flake8==3.9.2",
     "flake8-bugbear==21.3.2",
     "mypy==0.812",
     "check-manifest==0.46",

@@ -489,7 +489,7 @@ def _add_list(subparsers: argparse._SubParsersAction) -> None:
         help="Show packages injected into the main app's environment",
     )
     p.add_argument(
-        "--json", action="store_true", help="Output rich data in json format.",
+        "--json", action="store_true", help="Output rich data in json format."
     )
     p.add_argument("--verbose", action="store_true")
 
