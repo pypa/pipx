@@ -43,8 +43,8 @@ def process_command_line(argv):
 
     # switches/options:
     parser.add_argument(
-        "-c",
         "--check-only",
+        "-c",
         action="store_true",
         help="Only check to see if needed packages are in PACKAGES_DIR, do not "
         "download or delete files.",

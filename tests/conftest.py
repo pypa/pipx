@@ -9,6 +9,7 @@ from helpers import WIN
 from pipx import commands, constants, shared_libs, venv
 
 PIPX_TESTS_DIR = ".pipx_tests"
+PIPX_TESTS_PACKAGE_LIST_DIR = "testdata/tests_packages"
 
 
 def pytest_addoption(parser):
@@ -86,6 +87,22 @@ def pipx_local_pypiserver(request):
         / "package_cache"
         / f"{sys.version_info[0]}.{sys.version_info[1]}"
     )
+    check_test_packages_cmd = [
+        "python3",
+        "scripts/download_test_packages.py",
+        "--check-only",
+        str(PIPX_TESTS_PACKAGE_LIST_DIR),
+        str(packages_dir),
+    ]
+    check_test_packages_process = subprocess.run(check_test_packages_cmd)
+    if check_test_packages_process.returncode != 0:
+        raise Exception(
+            "pipx tests ERROR.  Directory {str(packages_dir)} does not contain all\n"
+            "package distribution files necessary to run pipx tests. Please\n"
+            "run the following command to populate it:\n",
+            f"    {' '.join(check_test_packages_cmd)}",
+        )
+
     print("Starting pypiserver...")
     pypiserver_err_fh = open(
         request.config.invocation_params.dir / PIPX_TESTS_DIR / "pypiserver.log", "w",
