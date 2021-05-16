@@ -39,16 +39,16 @@ def process_command_line(argv):
         "packages_dir", help="Directory to store the packages distribution files."
     )
 
-    args = parser.parse_args(argv)
-
     # switches/options:
     parser.add_argument(
-        "--check-only",
         "-c",
+        "--check-only",
         action="store_true",
         help="Only check to see if needed packages are in PACKAGES_DIR, do not "
         "download or delete files.",
     )
+
+    args = parser.parse_args(argv)
     return args
 
 
