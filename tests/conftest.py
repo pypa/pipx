@@ -81,26 +81,29 @@ def pipx_local_pypiserver(request):
     if request.config.option.net_pypiserver:
         return
 
-    packages_dir = (
-        request.config.invocation_params.dir
-        / PIPX_TESTS_DIR
-        / "package_cache"
-        / f"{sys.version_info[0]}.{sys.version_info[1]}"
+    pipx_cache_dir = (
+        request.config.invocation_params.dir / PIPX_TESTS_DIR / "package_cache"
     )
     check_test_packages_cmd = [
         "python3",
         "scripts/download_test_packages.py",
         "--check-only",
         str(PIPX_TESTS_PACKAGE_LIST_DIR),
-        str(packages_dir),
+        str(pipx_cache_dir),
+    ]
+    download_test_packages_cmd = [
+        "python3",
+        "scripts/download_test_packages.py",
+        str(PIPX_TESTS_PACKAGE_LIST_DIR),
+        str(pipx_cache_dir),
     ]
     check_test_packages_process = subprocess.run(check_test_packages_cmd)
     if check_test_packages_process.returncode != 0:
         raise Exception(
-            "pipx tests ERROR.  Directory {str(packages_dir)} does not contain all\n"
-            "package distribution files necessary to run pipx tests. Please\n"
-            "run the following command to populate it:\n",
-            f"    {' '.join(check_test_packages_cmd)}",
+            f"Directory {str(pipx_cache_dir)} does not contain all "
+            "package distribution files necessary to run pipx tests. Please "
+            "run the following command to populate it: "
+            f"{' '.join(download_test_packages_cmd)}",
         )
 
     pypiserver_err_fh = open(
@@ -111,7 +114,7 @@ def pipx_local_pypiserver(request):
             "pypi-server",
             "--authenticate=update",
             "--disable-fallback",
-            str(packages_dir),
+            str(pipx_cache_dir / f"{sys.version_info[0]}.{sys.version_info[1]}"),
         ],
         universal_newlines=True,
         stderr=pypiserver_err_fh,

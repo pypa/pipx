@@ -90,12 +90,11 @@ def on_master_no_changes(session):
 def refresh_packages_cache(session):
     print("Updating local tests package spec file cache...")
     TESTS_CACHE_DIR.mkdir(exist_ok=True, parents=True)
-    cache_dir = TESTS_CACHE_DIR / f"{sys.version_info[0]}.{sys.version_info[1]}"
     session.run(
         "python",
         "scripts/download_test_packages.py",
         str(TESTS_PACKAGE_LIST_DIR),
-        str(cache_dir),
+        str(TESTS_CACHE_DIR),
     )
 
 

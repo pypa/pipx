@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import List
 
 from list_test_packages import create_test_packages_list
-from test_packages_support import get_platform_list_path
+from test_packages_support import get_platform_list_path, get_platform_packages_dir_path
 
 
 def process_command_line(argv):
@@ -36,7 +36,8 @@ def process_command_line(argv):
         help="Directory where platform- and python-specific package lists are found for pipx tests.",
     )
     parser.add_argument(
-        "packages_dir", help="Directory to store the packages distribution files."
+        "pipx_package_cache_dir",
+        help="Directory to store the packages distribution files.",
     )
 
     # switches/options:
@@ -53,11 +54,12 @@ def process_command_line(argv):
 
 
 def update_test_packages_cache(
-    package_list_dir_path: Path, packages_dir_path: Path, check_only: bool
+    package_list_dir_path: Path, pipx_package_cache_path: Path, check_only: bool
 ) -> int:
     exit_code = 0
 
     platform_package_list_path = get_platform_list_path(package_list_dir_path)
+    packages_dir_path = get_platform_packages_dir_path(pipx_package_cache_path)
     packages_dir_path.mkdir(exist_ok=True)
 
     packages_dir_files = list(packages_dir_path.iterdir())
@@ -100,10 +102,10 @@ def update_test_packages_cache(
     else:
         platform_package_list_fh.close()
 
-    print(
-        f"Using {str(platform_package_list_path)}\n    to specify needed package files."
-    )
-    print(f"Ensuring {str(packages_dir_path)}\n    contains necessary package files...")
+    print("Using the following file to specify needed package files:")
+    print(f"    {str(platform_package_list_path)}")
+    print("Ensuring the following directory contains necessary package files:")
+    print(f"    {str(packages_dir_path)}")
 
     packages_dir_hits = []
     packages_dir_missing = []
@@ -140,7 +142,7 @@ def update_test_packages_cache(
 
             packages_dir_missing.append(package_spec)
 
-    print(f"MISSING  FILES: {len(packages_dir_missing)}")
+    print(f"MISSING FILES: {len(packages_dir_missing)}")
     print(f"EXISTING (found) FILES: {len(packages_dir_hits)}")
     print(f"LEFTOVER (unused) FILES: {len(packages_dir_files)}")
 
@@ -179,7 +181,7 @@ def update_test_packages_cache(
 def main(argv: List[str]) -> int:
     args = process_command_line(argv)
     return update_test_packages_cache(
-        Path(args.package_list_dir), Path(args.packages_dir), args.check_only
+        Path(args.package_list_dir), Path(args.pipx_package_cache_dir), args.check_only
     )
 
 

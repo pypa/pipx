@@ -20,3 +20,10 @@ def get_platform_list_path(package_list_dir_path: Path) -> Path:
         / f"{FULL_PLATFORM}-python{sys.version_info[0]}.{sys.version_info[1]}.txt"
     )
     return platform_package_list_path
+
+
+def get_platform_packages_dir_path(pipx_package_cache_path: Path) -> Path:
+    platform_packages_dir_path = (
+        pipx_package_cache_path / f"{sys.version_info[0]}.{sys.version_info[1]}"
+    )
+    return platform_packages_dir_path
