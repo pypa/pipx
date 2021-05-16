@@ -103,11 +103,11 @@ def pipx_local_pypiserver(request):
             f"Directory {str(pipx_cache_dir)} does not contain all "
             "package distribution files necessary to run pipx tests. Please "
             "run the following command to populate it: "
-            f"{' '.join(download_test_packages_cmd)}",
+            f"{' '.join(download_test_packages_cmd)}"
         )
 
     pypiserver_err_fh = open(
-        request.config.invocation_params.dir / PIPX_TESTS_DIR / "pypiserver.log", "w",
+        request.config.invocation_params.dir / PIPX_TESTS_DIR / "pypiserver.log", "w"
     )
     pypiserver_process = subprocess.Popen(
         [
