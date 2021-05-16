@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import re
 import subprocess
 import sys
@@ -9,20 +10,56 @@ from list_test_packages import create_test_packages_list
 from test_packages_support import get_platform_list_path
 
 
-def main(argv: List[str]) -> int:
+def process_command_line(argv):
+    """Process command line invocation arguments and switches.
+
+    Args:
+        argv: list of arguments, or `None` from ``sys.argv[1:]``.
+
+    Returns:
+        argparse.Namespace: named attributes of arguments and switches
+    """
+    # script_name = argv[0]
+    argv = argv[1:]
+
+    # initialize the parser object:
+    parser = argparse.ArgumentParser(
+        description="Check and update as needed the pipx tests package cache "
+        "for use with the pipx tests local pypiserver."
+    )
+
+    # specifying nargs= puts outputs of parser in list (even if nargs=1)
+
+    # required arguments
+    parser.add_argument(
+        "package_list_dir",
+        help="Directory where platform- and python-specific package lists are found for pipx tests.",
+    )
+    parser.add_argument(
+        "output_dir_path", help="Directory to store the packages distribution files."
+    )
+
+    # switches/options:
+    # parser.add_argument(
+    #    '-s', '--max_size', action='store',
+    #    help='String specifying maximum size of images.  ' \
+    #            'Larger images will be resized. (e.g. "1024x768")')
+    # parser.add_argument(
+    #     "-v",
+    #     "--verbose",
+    #     action="store_true",
+    #     help="Maximum verbosity, especially for pip operations.",
+    # )
+
+    args = parser.parse_args(argv)
+
+    return args
+
+
+def update_test_packages_cache(
+    package_list_dir_path: Path, output_dir_path: Path
+) -> int:
     exit_code = 0
-    if len(argv) < 3:
-        print(
-            "Please supply filename of test package list as first argument.",
-            file=sys.stderr,
-        )
-        print(
-            "Please supply name of the output directory as second argument.",
-            file=sys.stderr,
-        )
-        return 1
-    package_list_dir_path = Path(argv[1])
-    output_dir_path = Path(argv[2])
 
     platform_package_list_path = get_platform_list_path(package_list_dir_path)
     output_dir_path.mkdir(exist_ok=True)
@@ -132,6 +169,11 @@ def main(argv: List[str]) -> int:
         unused_file.unlink()
 
     return exit_code
+
+
+def main(argv: List[str]) -> int:
+    args = process_command_line(argv)
+    return update_test_packages_cache(args.package_list_dir_path, args.output_dir_path)
 
 
 if __name__ == "__main__":
