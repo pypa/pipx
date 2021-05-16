@@ -13,7 +13,7 @@ Using the Github Workflow
 * Manually activate the Github workflow: Create tests package lists for offline tests
 * Download the artifact `lists` and put the files from it into this directory.
 
-To locally generate these lists, on the target platform execute:
+Or to locally generate these lists, on the target platform execute:
 * `nox -s create_test_package_list`
 
 # Updating / Populating the directory `.pipx_tests/package_cache` before running the tests
