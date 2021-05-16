@@ -109,9 +109,10 @@ nox -s tests-3.9
 
 Running the unit tests requires a directory `.pipx_tests/package_cache` to be
 populated from a fixed list of package distribution files (wheels or source
-files).  If you have network access, `nox -s tests` populates this directory
-automatically as a first step.  Thus if you are running the tests with network
-access, you can ignore the rest of this section.
+files).  If you have network access, `nox -s tests` automatically makes sure
+this directory is populated (including downloading files if necessary) as a
+first step.  Thus if you are running the tests with network access, you can
+ignore the rest of this section.
 
 If, however, you wish to run tests offline without the need for network access,
 you can populate `.pipx_tests/package_cache` yourself manually beforehand when
