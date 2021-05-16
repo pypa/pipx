@@ -49,13 +49,22 @@ nox -l
 
 At the time of this writing, the output looks like this
 ```
->> nox -l
-Sessions defined in /home/csmith/git/pipx/noxfile.py:
-
-* tests-3.6
-* tests-3.7
-* tests-3.8
-* tests-3.9
+- refresh_packages_cache-3.6 -> Populate .pipx_tests/package_cache
+- refresh_packages_cache-3.7 -> Populate .pipx_tests/package_cache
+- refresh_packages_cache-3.8 -> Populate .pipx_tests/package_cache
+- refresh_packages_cache-3.9 -> Populate .pipx_tests/package_cache
+- tests_internet-3.6 -> Tests using internet pypi only
+- tests_internet-3.7 -> Tests using internet pypi only
+- tests_internet-3.8 -> Tests using internet pypi only
+- tests_internet-3.9 -> Tests using internet pypi only
+* tests-3.6 -> Tests using local pypiserver only
+* tests-3.7 -> Tests using local pypiserver only
+* tests-3.8 -> Tests using local pypiserver only
+* tests-3.9 -> Tests using local pypiserver only
+- test_all_packages-3.6
+- test_all_packages-3.7
+- test_all_packages-3.8
+- test_all_packages-3.9
 - cover -> Coverage analysis
 * lint
 - develop-3.6
@@ -69,6 +78,10 @@ Sessions defined in /home/csmith/git/pipx/noxfile.py:
 - watch_docs
 - pre_release
 - post_release
+- create_test_package_list-3.6
+- create_test_package_list-3.7
+- create_test_package_list-3.8
+- create_test_package_list-3.9
 ```
 
 ### Unit Tests
@@ -91,6 +104,36 @@ nox -s tests-3.9
     ```
 
     Coverage errors can usually be ignored when only running a subset of tests.
+
+### Running Unit Tests Offline
+
+Running the unit tests requires a directory `.pipx_tests/package_cache` to be
+populated from a fixed list of package distribution files (wheels or source
+files).  If you have network access, `nox -s tests` populates this directory
+automatically as a first step.  Thus if you are running the tests with network
+access, you can ignore the rest of this section.
+
+If, however, you wish to run tests offline without the need for network access,
+you can populate `.pipx_tests/package_cache` yourself manually beforehand when
+you do have network access.
+
+#### Populating the cache directory using nox
+To populate `.pipx_tests/package_cache` manually using nox, execute:
+```
+nox -s refresh_packages_cache
+```
+This will sequence through available python executable versions to populate the
+cache directory for each version of python on your platform.
+
+#### Populating the cache directory without nox
+An alternate method to populate `.pipx_tests/package_cache` without nox is to
+execute:
+```
+mkdir -p .pipx_tests/package_cache
+python3 scripts/update_package_cache.py testdata/tests_packages .pipx_tests/package_cache
+```
+You must do this using every python version that you wish to use to run the
+tests.
 
 ### Lint Tests
 
