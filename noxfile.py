@@ -92,7 +92,7 @@ def refresh_packages_cache(session):
     TESTS_CACHE_DIR.mkdir(exist_ok=True, parents=True)
     session.run(
         "python",
-        "scripts/download_test_packages.py",
+        "scripts/update_package_cache.py",
         str(TESTS_PACKAGE_LIST_DIR),
         str(TESTS_CACHE_DIR),
     )

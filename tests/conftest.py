@@ -86,14 +86,14 @@ def pipx_local_pypiserver(request):
     )
     check_test_packages_cmd = [
         "python3",
-        "scripts/download_test_packages.py",
+        "scripts/update_package_cache.py",
         "--check-only",
         str(PIPX_TESTS_PACKAGE_LIST_DIR),
         str(pipx_cache_dir),
     ]
-    download_test_packages_cmd = [
+    update_test_packages_cmd = [
         "python3",
-        "scripts/download_test_packages.py",
+        "scripts/update_package_cache.py",
         str(PIPX_TESTS_PACKAGE_LIST_DIR),
         str(pipx_cache_dir),
     ]
@@ -103,7 +103,7 @@ def pipx_local_pypiserver(request):
             f"Directory {str(pipx_cache_dir)} does not contain all "
             "package distribution files necessary to run pipx tests. Please "
             "run the following command to populate it: "
-            f"{' '.join(download_test_packages_cmd)}"
+            f"{' '.join(update_test_packages_cmd)}"
         )
 
     pypiserver_err_fh = open(
