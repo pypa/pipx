@@ -2,9 +2,9 @@
 
 `tests_primary_packages.txt` is the master list, containing all packages
 installed or injected in the pipx tests `tests`.  Platform-specific list files
-listing both these primary packages and additionally all their dependencies are
-generated from it.  These platform-specific list files are used to populate the
-directory `.pipx_tests/package_cache`.
+listing both these primary packages and their dependencies are generated from
+it.  These platform-specific list files are used to populate the directory
+`.pipx_tests/package_cache`.
 
 # Generating the platform-specific lists from the master list
 
