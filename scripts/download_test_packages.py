@@ -36,7 +36,7 @@ def process_command_line(argv):
         help="Directory where platform- and python-specific package lists are found for pipx tests.",
     )
     parser.add_argument(
-        "output_dir_path", help="Directory to store the packages distribution files."
+        "output_dir", help="Directory to store the packages distribution files."
     )
 
     # switches/options:
@@ -173,7 +173,9 @@ def update_test_packages_cache(
 
 def main(argv: List[str]) -> int:
     args = process_command_line(argv)
-    return update_test_packages_cache(args.package_list_dir_path, args.output_dir_path)
+    return update_test_packages_cache(
+        Path(args.package_list_dir), Path(args.output_dir)
+    )
 
 
 if __name__ == "__main__":
