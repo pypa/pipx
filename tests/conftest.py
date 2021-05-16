@@ -8,8 +8,8 @@ import pytest  # type: ignore
 from helpers import WIN
 from pipx import commands, constants, shared_libs, venv
 
-PIPX_TESTS_DIR = ".pipx_tests"
-PIPX_TESTS_PACKAGE_LIST_DIR = "testdata/tests_packages"
+PIPX_TESTS_DIR = Path(".pipx_tests")
+PIPX_TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
 
 
 def pytest_addoption(parser):

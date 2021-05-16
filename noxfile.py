@@ -24,8 +24,8 @@ PREBUILD_PACKAGES = {
     "unix": [],
     "win": [],
 }
-TESTS_CACHE_DIR = Path("./.pipx_tests") / "package_cache"
-TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
+PIPX_TESTS_CACHE_DIR = Path("./.pipx_tests") / "package_cache"
+PIPX_TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
 
 # Platform logic
 if sys.platform == "darwin":
@@ -91,12 +91,12 @@ def on_master_no_changes(session):
 def refresh_packages_cache(session):
     """Populate .pipx_tests/package_cache"""
     print("Updating local tests package spec file cache...")
-    TESTS_CACHE_DIR.mkdir(exist_ok=True, parents=True)
+    PIPX_TESTS_CACHE_DIR.mkdir(exist_ok=True, parents=True)
     session.run(
         "python",
         "scripts/update_package_cache.py",
-        str(TESTS_PACKAGE_LIST_DIR),
-        str(TESTS_CACHE_DIR),
+        str(PIPX_TESTS_PACKAGE_LIST_DIR),
+        str(PIPX_TESTS_CACHE_DIR),
     )
 
 
@@ -260,10 +260,12 @@ def post_release(session):
 @nox.session(python=PYTHON_ALL_VERSIONS)
 def create_test_package_list(session):
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
-    output_dir = session.posargs[0] if session.posargs else str(TESTS_PACKAGE_LIST_DIR)
+    output_dir = (
+        session.posargs[0] if session.posargs else str(PIPX_TESTS_PACKAGE_LIST_DIR)
+    )
     session.run(
         "python",
         "scripts/list_test_packages.py",
-        str(TESTS_PACKAGE_LIST_DIR / "tests_primary_packages.txt"),
+        str(PIPX_TESTS_PACKAGE_LIST_DIR / "tests_primary_packages.txt"),
         output_dir,
     )
