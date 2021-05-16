@@ -45,7 +45,6 @@ nox.options.reuse_existing_virtualenvs = True
 
 
 def prebuild_wheels(session, prebuild_dict):
-
     prebuild_list = prebuild_dict.get("all", []) + prebuild_dict.get(PLATFORM, [])
 
     session.install("wheel")
@@ -91,15 +90,11 @@ def on_master_no_changes(session):
 def refresh_packages_cache(session):
     print("Updating local tests package spec file cache...")
     TESTS_CACHE_DIR.mkdir(exist_ok=True, parents=True)
-    package_list_path = (
-        TESTS_PACKAGE_LIST_DIR
-        / f"{PLATFORM}-{sys.version_info[0]}.{sys.version_info[1]}.txt"
-    )
     cache_dir = TESTS_CACHE_DIR / f"{sys.version_info[0]}.{sys.version_info[1]}"
     session.run(
         "python",
         "scripts/download_test_packages.py",
-        str(package_list_path),
+        str(TESTS_PACKAGE_LIST_DIR),
         str(cache_dir),
     )
 
@@ -268,6 +263,6 @@ def create_test_package_list(session):
     session.run(
         "python",
         "scripts/list_test_packages.py",
-        "testdata/tests_packages/tests_primary_packages.txt",
+        str(TESTS_PACKAGE_LIST_DIR / "tests_primary_packages.txt"),
         output_dir,
     )

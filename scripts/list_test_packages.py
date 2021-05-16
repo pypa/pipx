@@ -11,13 +11,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, List
 
-# Platform logic
-if sys.platform == "darwin":
-    PLATFORM = "macos"
-elif sys.platform == "win32":
-    PLATFORM = "win"
-else:
-    PLATFORM = "unix"
+from test_packages_support import get_platform_list_path
 
 
 def process_command_line(argv):
@@ -100,10 +94,7 @@ def main(argv: List[str]) -> int:
     args = process_command_line(argv)
     package_list_dir_path = Path(args.package_list_dir)
     package_list_dir_path.mkdir(exist_ok=True)
-    platform_package_list_path = (
-        package_list_dir_path
-        / f"{PLATFORM}-{sys.version_info[0]}.{sys.version_info[1]}.txt"
-    )
+    platform_package_list_path = get_platform_list_path(package_list_dir_path)
     primary_package_list_path = Path(args.primary_package_list)
 
     primary_test_packages = parse_package_list(primary_package_list_path)

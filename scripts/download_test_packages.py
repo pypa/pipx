@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from typing import List
 
+from test_packages_support import get_platform_list_path
+
 
 def main(argv: List[str]) -> int:
     exit_code = 0
@@ -18,17 +20,31 @@ def main(argv: List[str]) -> int:
             file=sys.stderr,
         )
         return 1
-    input_file_path = Path(argv[1])
+    package_list_dir_path = Path(argv[1])
     output_dir_path = Path(argv[2])
 
+    platform_package_list_path = get_platform_list_path(package_list_dir_path)
     output_dir_path.mkdir(exist_ok=True)
 
     output_dir_files = list(output_dir_path.iterdir())
     output_dir_hits = []
-    print(f"Using {str(input_file_path)} to specify needed package files.")
-    print(f"Ensuring {str(output_dir_path)} contains necessary package files...")
-    with input_file_path.open("r") as input_fh:
-        for line in input_fh:
+
+    try:
+        platform_package_list_fh = platform_package_list_path.open("r")
+    except IOError:
+        print(f"ERROR.  File {str(platform_package_list_path)}", file=sys.stderr)
+        print("    is not readable.  Please generate it.\n", file=sys.stderr)
+        return 1
+    else:
+        platform_package_list_fh.close()
+
+    print(
+        f"Using {str(platform_package_list_path)}\n    to specify needed package files."
+    )
+    print(f"Ensuring {str(output_dir_path)}\n    contains necessary package files...")
+
+    with platform_package_list_path.open("r") as platform_package_list_fh:
+        for line in platform_package_list_fh:
             package_spec = line.strip()
             package_spec_re = re.search(r"^(.+)==(.+)$", package_spec)
             if not package_spec_re:
