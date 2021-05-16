@@ -103,7 +103,6 @@ def pipx_local_pypiserver(request):
             f"    {' '.join(check_test_packages_cmd)}",
         )
 
-    print("Starting pypiserver...")
     pypiserver_err_fh = open(
         request.config.invocation_params.dir / PIPX_TESTS_DIR / "pypiserver.log", "w",
     )
@@ -117,7 +116,6 @@ def pipx_local_pypiserver(request):
         universal_newlines=True,
         stderr=pypiserver_err_fh,
     )
-    print("pypiserver Started.")
 
     yield
 
