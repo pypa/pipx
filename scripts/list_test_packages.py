@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""Usage:
-    python3 scripts/list_test_packages.py > test_package_list.txt
-"""
 import argparse
 import os
 import re
@@ -89,13 +86,12 @@ def parse_package_list(package_list_file: Path) -> List[Dict[str, Any]]:
     return output_list
 
 
-def main(argv: List[str]) -> int:
+def create_test_packages_list(
+    package_list_dir_path: Path, primary_package_list_path: Path, verbose: bool
+) -> int:
     exit_code = 0
-    args = process_command_line(argv)
-    package_list_dir_path = Path(args.package_list_dir)
     package_list_dir_path.mkdir(exist_ok=True)
     platform_package_list_path = get_platform_list_path(package_list_dir_path)
-    primary_package_list_path = Path(args.primary_package_list)
 
     primary_test_packages = parse_package_list(primary_package_list_path)
     if not primary_test_packages:
@@ -116,7 +112,7 @@ def main(argv: List[str]) -> int:
                 + (["--no-deps"] if test_package.get("no-deps", False) else [])
                 + [test_package["spec"], "-d", str(download_dir)]
             )
-            if args.verbose:
+            if verbose:
                 print(f"CMD: {' '.join(cmd_list)}")
             pip_download_process = subprocess.run(
                 cmd_list,
@@ -133,7 +129,7 @@ def main(argv: List[str]) -> int:
                 )
                 verbose_this_iteration = True
                 exit_code = 1
-            if args.verbose or verbose_this_iteration:
+            if verbose or verbose_this_iteration:
                 print(pip_download_process.stdout)
                 print(pip_download_process.stderr)
         downloaded_list = os.listdir(download_dir)
@@ -162,6 +158,14 @@ def main(argv: List[str]) -> int:
             print(package, file=package_list_fh)
 
     return exit_code
+
+
+def main(argv: List[str]) -> int:
+    args = process_command_line(argv)
+
+    return create_test_packages_list(
+        Path(args.package_list_dir), Path(args.primary_package_list), args.verbose
+    )
 
 
 if __name__ == "__main__":

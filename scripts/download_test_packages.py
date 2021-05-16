@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 from typing import List
 
+from list_test_packages import create_test_packages_list
 from test_packages_support import get_platform_list_path
 
 
@@ -29,11 +30,40 @@ def main(argv: List[str]) -> int:
     output_dir_files = list(output_dir_path.iterdir())
     output_dir_hits = []
 
+    if not platform_package_list_path.exists():
+        print(
+            f"WARNING.  File {str(platform_package_list_path)}\n"
+            "    does not exist.  Creating now...",
+            file=sys.stderr,
+        )
+        create_list_returncode = create_test_packages_list(
+            package_list_dir_path,
+            package_list_dir_path / "tests_primary_packages.txt",
+            verbose=False,
+        )
+        if create_list_returncode == 0:
+            print(
+                f"File {str(platform_package_list_path)}\n"
+                "    successfully created.  Please check this file in to the"
+                "    repository for future use.",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                f"ERROR.  Unable to create {str(platform_package_list_path)}\n"
+                "    Cannot continue.\n",
+                file=sys.stderr,
+            )
+            return 1
+
     try:
         platform_package_list_fh = platform_package_list_path.open("r")
     except IOError:
-        print(f"ERROR.  File {str(platform_package_list_path)}", file=sys.stderr)
-        print("    is not readable.  Please generate it.\n", file=sys.stderr)
+        print(
+            f"ERROR.  File {str(platform_package_list_path)}\n"
+            "    is not readable.  Cannot continue.\n",
+            file=sys.stderr,
+        )
         return 1
     else:
         platform_package_list_fh.close()
