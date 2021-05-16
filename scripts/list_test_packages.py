@@ -41,10 +41,6 @@ def process_command_line(argv):
     )
 
     # switches/options:
-    # parser.add_argument(
-    #    '-s', '--max_size', action='store',
-    #    help='String specifying maximum size of images.  ' \
-    #            'Larger images will be resized. (e.g. "1024x768")')
     parser.add_argument(
         "-v",
         "--verbose",
