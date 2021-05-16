@@ -36,24 +36,31 @@ def process_command_line(argv):
         help="Directory where platform- and python-specific package lists are found for pipx tests.",
     )
     parser.add_argument(
-        "output_dir", help="Directory to store the packages distribution files."
+        "packages_dir", help="Directory to store the packages distribution files."
     )
 
     args = parser.parse_args(argv)
 
+    # switches/options:
+    parser.add_argument(
+        "-c",
+        "--check-only",
+        action="store_true",
+        help="Only check to see if needed packages are in PACKAGES_DIR, do not "
+        "download or delete files.",
+    )
     return args
 
 
 def update_test_packages_cache(
-    package_list_dir_path: Path, output_dir_path: Path
+    package_list_dir_path: Path, packages_dir_path: Path, check_only: bool
 ) -> int:
     exit_code = 0
 
     platform_package_list_path = get_platform_list_path(package_list_dir_path)
-    output_dir_path.mkdir(exist_ok=True)
+    packages_dir_path.mkdir(exist_ok=True)
 
-    output_dir_files = list(output_dir_path.iterdir())
-    output_dir_hits = []
+    packages_dir_files = list(packages_dir_path.iterdir())
 
     if not platform_package_list_path.exists():
         print(
@@ -96,8 +103,10 @@ def update_test_packages_cache(
     print(
         f"Using {str(platform_package_list_path)}\n    to specify needed package files."
     )
-    print(f"Ensuring {str(output_dir_path)}\n    contains necessary package files...")
+    print(f"Ensuring {str(packages_dir_path)}\n    contains necessary package files...")
 
+    packages_dir_hits = []
+    packages_dir_missing = []
     with platform_package_list_path.open("r") as platform_package_list_fh:
         for line in platform_package_list_fh:
             package_spec = line.strip()
@@ -116,12 +125,12 @@ def update_test_packages_cache(
                 + r"(.tar.gz|.zip|-)"
             )
             matches = []
-            for output_dir_file in output_dir_files:
+            for output_dir_file in packages_dir_files:
                 if re.search(package_dist_patt, output_dir_file.name):
                     matches.append(output_dir_file)
             if len(matches) == 1:
-                output_dir_files.remove(matches[0])
-                output_dir_hits.append(matches[0])
+                packages_dir_files.remove(matches[0])
+                packages_dir_hits.append(matches[0])
                 continue
             elif len(matches) > 1:
                 print("ERROR: more than one match for {package_spec}.", file=sys.stderr)
@@ -129,6 +138,16 @@ def update_test_packages_cache(
                 exit_code = 1
                 continue
 
+            packages_dir_missing.append(package_spec)
+
+    print(f"MISSING  FILES: {len(packages_dir_missing)}")
+    print(f"EXISTING (found) FILES: {len(packages_dir_hits)}")
+    print(f"LEFTOVER (unused) FILES: {len(packages_dir_files)}")
+
+    if check_only:
+        return 0 if len(packages_dir_missing) == 0 else 1
+    else:
+        for package_spec in packages_dir_missing:
             pip_download_process = subprocess.run(
                 [
                     "pip",
@@ -136,7 +155,7 @@ def update_test_packages_cache(
                     "--no-deps",
                     package_spec,
                     "-d",
-                    str(output_dir_path),
+                    str(packages_dir_path),
                 ],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -150,11 +169,9 @@ def update_test_packages_cache(
                 print(pip_download_process.stderr, file=sys.stderr)
                 exit_code = 1
 
-    print(f"EXISTING (found) FILES: {len(output_dir_hits)}")
-    print(f"LEFTOVER (unused) FILES: {len(output_dir_files)}")
-    for unused_file in output_dir_files:
-        print(f"    Deleting {unused_file}...")
-        unused_file.unlink()
+        for unused_file in packages_dir_files:
+            print(f"    Deleting {unused_file}...")
+            unused_file.unlink()
 
     return exit_code
 
@@ -162,7 +179,7 @@ def update_test_packages_cache(
 def main(argv: List[str]) -> int:
     args = process_command_line(argv)
     return update_test_packages_cache(
-        Path(args.package_list_dir), Path(args.output_dir)
+        Path(args.package_list_dir), Path(args.packages_dir), args.check_only
     )
 
 
