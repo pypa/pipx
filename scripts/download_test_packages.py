@@ -170,7 +170,7 @@ def update_test_packages_cache(
                 exit_code = 1
 
         for unused_file in packages_dir_files:
-            print(f"    Deleting {unused_file}...")
+            print(f"Deleting {unused_file}...")
             unused_file.unlink()
 
     return exit_code
