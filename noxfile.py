@@ -24,7 +24,7 @@ PREBUILD_PACKAGES = {
     "unix": [],
     "win": [],
 }
-PIPX_TESTS_CACHE_DIR = Path("./.pipx_tests") / "package_cache"
+PIPX_TESTS_CACHE_DIR = Path("./.pipx_tests/package_cache")
 PIPX_TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
 
 # Platform logic
