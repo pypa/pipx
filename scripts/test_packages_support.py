@@ -4,13 +4,10 @@ from pathlib import Path
 
 # Platform logic
 if sys.platform == "darwin":
-    PLATFORM = "macos"
     FULL_PLATFORM = "macos" + platform.release().split(".")[0]
 elif sys.platform == "win32":
-    PLATFORM = "win"
     FULL_PLATFORM = "win"
 else:
-    PLATFORM = "unix"
     FULL_PLATFORM = "unix"
 
 
