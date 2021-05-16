@@ -87,7 +87,9 @@ def on_master_no_changes(session):
         session.error(f"Must be on 'master' branch. Currently on {branch!r} branch")
 
 
+@nox.session(python=PYTHON_ALL_VERSIONS)
 def refresh_packages_cache(session):
+    """Populate .pipx_tests/package_cache"""
     print("Updating local tests package spec file cache...")
     TESTS_CACHE_DIR.mkdir(exist_ok=True, parents=True)
     session.run(
