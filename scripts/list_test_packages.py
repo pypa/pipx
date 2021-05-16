@@ -11,7 +11,7 @@ from typing import Any, Dict, List
 from test_packages_support import get_platform_list_path
 
 
-def process_command_line(argv):
+def process_command_line(argv: List[str]) -> argparse.Namespace:
     """Process command line invocation arguments and switches.
 
     Args:

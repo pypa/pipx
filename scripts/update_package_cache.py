@@ -10,7 +10,7 @@ from list_test_packages import create_test_packages_list
 from test_packages_support import get_platform_list_path, get_platform_packages_dir_path
 
 
-def process_command_line(argv):
+def process_command_line(argv: List[str]) -> argparse.Namespace:
     """Process command line invocation arguments and switches.
 
     Args:
