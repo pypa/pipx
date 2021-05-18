@@ -79,6 +79,8 @@ def pipx_local_pypiserver(request):
     """Starts local pypiserver once per session unless --net-pypiserver was
     passed to pytest"""
     if request.config.option.net_pypiserver:
+        # need both yield and return because other codepath has both
+        yield
         return
 
     pipx_cache_dir = (
