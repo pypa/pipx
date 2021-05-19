@@ -84,6 +84,7 @@ class SshKeys extends Endpoint
             ->setBody($this->filterFields($sshKey->toArray(), [
                 'name',
                 'public_key',
+                'private_key',
                 'unix_user_id',
             ]));
 
@@ -120,6 +121,7 @@ class SshKeys extends Endpoint
             ->setBody($this->filterFields($sshKey->toArray(), [
                 'name',
                 'public_key',
+                'private_key',
                 'unix_user_id',
                 'id',
                 'cluster_id',

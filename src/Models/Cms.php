@@ -7,7 +7,7 @@ use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 
 class Cms extends ClusterModel implements Model
 {
-    private string $name;
+    private string $softwareName;
     private int $virtualHostId;
     private ?string $oneTimeLoginUrl = null;
     private int $id;
@@ -15,14 +15,14 @@ class Cms extends ClusterModel implements Model
     private string $createdAt;
     private string $updatedAt;
 
-    public function getName(): string
+    public function getSoftwareName(): string
     {
-        return $this->name;
+        return $this->softwareName;
     }
 
-    public function setName(string $name): Cms
+    public function setSoftwareName(string $softwareName): Cms
     {
-        $this->name = $name;
+        $this->softwareName = $softwareName;
 
         return $this;
     }
@@ -102,7 +102,7 @@ class Cms extends ClusterModel implements Model
     public function fromArray(array $data): Cms
     {
         return $this
-            ->setName(Arr::get($data, 'name'))
+            ->setSoftwareName(Arr::get($data, 'software_name'))
             ->setVirtualHostId(Arr::get($data, 'virtual_host_id'))
             ->setOneTimeLoginUrl(Arr::get($data, 'one_time_login_url'))
             ->setId(Arr::get($data, 'id'))
@@ -114,7 +114,7 @@ class Cms extends ClusterModel implements Model
     public function toArray(): array
     {
         return [
-            'name' => $this->getName(),
+            'software_name' => $this->getSoftwareName(),
             'virtual_host_id' => $this->getVirtualHostId(),
             'one_time_login_url' => $this->getOneTimeLoginUrl(),
             'id' => $this->getId(),

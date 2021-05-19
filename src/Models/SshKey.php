@@ -9,6 +9,7 @@ class SshKey extends ClusterModel implements Model
 {
     private string $name;
     private string $publicKey;
+    private ?string $privateKey = null;
     private int $unixUserId;
     private ?int $id = null;
     private ?int $clusterId = null;
@@ -40,6 +41,18 @@ class SshKey extends ClusterModel implements Model
     public function setPublicKey(string $publicKey): SshKey
     {
         $this->publicKey = $publicKey;
+
+        return $this;
+    }
+
+    public function getPrivateKey(): ?string
+    {
+        return $this->privateKey;
+    }
+
+    public function setPrivateKey(?string $privateKey): SshKey
+    {
+        $this->privateKey = $privateKey;
 
         return $this;
     }
@@ -109,6 +122,7 @@ class SshKey extends ClusterModel implements Model
         return $this
             ->setName(Arr::get($data, 'name'))
             ->setPublicKey(Arr::get($data, 'public_key'))
+            ->setPrivateKey(Arr::get($data, 'private_key'))
             ->setUnixUserId(Arr::get($data, 'unix_user_id'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
@@ -121,6 +135,7 @@ class SshKey extends ClusterModel implements Model
         return [
             'name' => $this->getName(),
             'public_key' => $this->getPublicKey(),
+            'private_key' => $this->getPrivateKey(),
             'unix_user_id' => $this->getUnixUserId(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),

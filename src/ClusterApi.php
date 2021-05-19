@@ -19,6 +19,11 @@ class ClusterApi
         return new Endpoints\Authentication($this->client);
     }
 
+    public function borgArchives(): Endpoints\BorgArchives
+    {
+        return new Endpoints\BorgArchives($this->client);
+    }
+
     public function borgRepositories(): Endpoints\BorgRepositories
     {
         return new Endpoints\BorgRepositories($this->client);

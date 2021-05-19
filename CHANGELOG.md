@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.18.0]
+
+### Added
+
+- Borg repository usages and update endpoint.
+- Borg archives get endpoint.
+- Add the `BORG_SERVER` cluster group.
+- Add `private_key` property to SSH keys.
+- Add malware toolkit fields to Cluster.
+- Add `unix_user_id` property to Malware.
+
+### Changed
+
+- Renamed `BORG` cluster group to `BORG_CLIENT` to match the spec.
+- Retention fields of a borg repository are now nullable.
+- Renamed `name` attribute of a CMS to `software_name` to match the spec.
+
+### Removed
+
+- Removed the `virtual_host_id` property from malware.
+
 ## [1.17.1]
 
 ### Fixed

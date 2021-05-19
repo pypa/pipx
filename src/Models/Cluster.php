@@ -18,6 +18,8 @@ class Cluster extends ClusterModel implements Model
     private ?bool $wordpressToolkitEnabled = null;
     private ?bool $databaseToolkitEnabled = null;
     private ?bool $commandToolkitEnabled = null;
+    private ?bool $malwareToolkitEnabled = null;
+    private ?bool $malwareToolkitScansEnabled = null;
     private ?int $id = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
@@ -154,6 +156,30 @@ class Cluster extends ClusterModel implements Model
         return $this;
     }
 
+    public function istMalwareToolkitEnabled(): ?bool
+    {
+        return $this->malwareToolkitEnabled;
+    }
+
+    public function setMalwareToolkitEnabled(?bool $malwareToolkitEnabled): Cluster
+    {
+        $this->malwareToolkitEnabled = $malwareToolkitEnabled;
+
+        return $this;
+    }
+
+    public function isMalwareToolkitScansEnabled(): ?bool
+    {
+        return $this->malwareToolkitScansEnabled;
+    }
+
+    public function setMalwareToolkitScansEnabled(?bool $malwareToolkitScansEnabled): Cluster
+    {
+        $this->malwareToolkitScansEnabled = $malwareToolkitScansEnabled;
+
+        return $this;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -204,6 +230,8 @@ class Cluster extends ClusterModel implements Model
             ->setWordpressToolkitEnabled(Arr::get($data, 'wordpress_toolkit_enabled'))
             ->setDatabaseToolkitEnabled(Arr::get($data, 'database_toolkit_enabled'))
             ->setCommandToolkitEnabled(Arr::get($data, 'command_toolkit_enabled'))
+            ->setMalwareToolkitEnabled(Arr::get($data, 'malware_toolkit_enabled'))
+            ->setMalwareToolkitScansEnabled(Arr::get($data, 'malware_toolkit_scans_enabled'))
             ->setId(Arr::get($data, 'id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
             ->setUpdatedAt(Arr::get($data, 'updated_at'));
@@ -223,6 +251,8 @@ class Cluster extends ClusterModel implements Model
             'wordpress_toolkit_enabled' => $this->isWordpressToolkitEnabled(),
             'database_toolkit_enabled' => $this->isDatabaseToolkitEnabled(),
             'command_toolkit_enabled' => $this->isCommandToolkitEnabled(),
+            'malware_toolkit_enabled' => $this->istMalwareToolkitEnabled(),
+            'malware_toolkit_scans_enabled' => $this->isMalwareToolkitScansEnabled(),
             'id' => $this->getId(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),

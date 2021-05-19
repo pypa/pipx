@@ -9,11 +9,13 @@ class BorgRepository extends ClusterModel implements Model
 {
     private string $name;
     private string $passphrase;
-    private int $keepHourly;
-    private int $keepDaily;
-    private int $keepWeekly;
-    private int $keepMonthly;
-    private int $keepYearly;
+    private ?int $keepHourly = null;
+    private ?int $keepDaily = null;
+    private ?int $keepWeekly = null;
+    private ?int $keepMonthly = null;
+    private ?int $keepYearly = null;
+    private ?string $remoteUrl = null;
+    private int $sshKeyId;
     private int $unixUserId;
     private ?int $id = null;
     private ?int $clusterId = null;
@@ -49,62 +51,86 @@ class BorgRepository extends ClusterModel implements Model
         return $this;
     }
 
-    public function getKeepHourly(): int
+    public function getKeepHourly(): ?int
     {
         return $this->keepHourly;
     }
 
-    public function setKeepHourly(int $keepHourly): BorgRepository
+    public function setKeepHourly(int $keepHourly = null): BorgRepository
     {
         $this->keepHourly = $keepHourly;
 
         return $this;
     }
 
-    public function getKeepDaily(): int
+    public function getKeepDaily(): ?int
     {
         return $this->keepDaily;
     }
 
-    public function setKeepDaily(int $keepDaily): BorgRepository
+    public function setKeepDaily(int $keepDaily = null): BorgRepository
     {
         $this->keepDaily = $keepDaily;
 
         return $this;
     }
 
-    public function getKeepWeekly(): int
+    public function getKeepWeekly(): ?int
     {
         return $this->keepWeekly;
     }
 
-    public function setKeepWeekly(int $keepWeekly): BorgRepository
+    public function setKeepWeekly(int $keepWeekly = null): BorgRepository
     {
         $this->keepWeekly = $keepWeekly;
 
         return $this;
     }
 
-    public function getKeepMonthly(): int
+    public function getKeepMonthly(): ?int
     {
         return $this->keepMonthly;
     }
 
-    public function setKeepMonthly(int $keepMonthly): BorgRepository
+    public function setKeepMonthly(int $keepMonthly = null): BorgRepository
     {
         $this->keepMonthly = $keepMonthly;
 
         return $this;
     }
 
-    public function getKeepYearly(): int
+    public function getKeepYearly(): ?int
     {
         return $this->keepYearly;
     }
 
-    public function setKeepYearly(int $keepYearly): BorgRepository
+    public function setKeepYearly(int $keepYearly = null): BorgRepository
     {
         $this->keepYearly = $keepYearly;
+
+        return $this;
+    }
+
+    public function getRemoteUrl(): ?string
+    {
+        return $this->remoteUrl;
+    }
+
+    public function setRemoteUrl(?string $remoteUrl): BorgRepository
+    {
+        $this->remoteUrl = $remoteUrl;
+
+        return $this;
+    }
+
+    public function getSshKeyId(): int
+    {
+        return $this->sshKeyId;
+    }
+
+    public function setSshKeyId(int $sshKeyId): BorgRepository
+    {
+        $this->sshKeyId = $sshKeyId;
 
         return $this;
     }
@@ -178,6 +204,8 @@ class BorgRepository extends ClusterModel implements Model
             ->setKeepDaily(Arr::get($data, 'keep_daily'))
             ->setKeepWeekly(Arr::get($data, 'keep_weekly'))
             ->setKeepMonthly(Arr::get($data, 'keep_monthly'))
+            ->setRemoteUrl(Arr::get($data, 'remote_url'))
+            ->setSshKeyId(Arr::get($data, 'ssh_key_id'))
             ->setUnixUserId(Arr::get($data, 'unix_user_id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setId(Arr::get($data, 'id'))
@@ -195,6 +223,8 @@ class BorgRepository extends ClusterModel implements Model
             'keep_weekly' => $this->getKeepWeekly(),
             'keep_monthly' => $this->getKeepMonthly(),
             'keep_yearly' => $this->getKeepYearly(),
+            'remote_url' => $this->getRemoteUrl(),
+            'ssh_key_id' => $this->getSshKeyId(),
             'unix_user_id' => $this->getUnixUserId(),
             'cluster_id' => $this->getClusterId(),
             'id' => $this->getId(),
