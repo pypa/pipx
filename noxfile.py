@@ -266,6 +266,6 @@ def create_test_package_list(session):
     session.run(
         "python",
         "scripts/list_test_packages.py",
-        str(PIPX_TESTS_PACKAGE_LIST_DIR / "tests_primary_packages.txt"),
+        str(PIPX_TESTS_PACKAGE_LIST_DIR / "primary_packages.txt"),
         output_dir,
     )

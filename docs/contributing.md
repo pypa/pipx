@@ -149,13 +149,13 @@ must make sure it's added properly to the packages lists in
 `testdata/tests_packages`.
 
 To accomplish this:
-* Edit `testdata/tests_packages/tests_primary_packages.txt` to add the new package(s) that you wish to `pipx install` or `pipx inject` in the tests.
+* Edit `testdata/tests_packages/primary_packages.txt` to add the new package(s) that you wish to `pipx install` or `pipx inject` in the tests.
 
 Then using Github workflows to generate all platforms in the Github CI:
 * Manually activate the Github workflow: Create tests package lists for offline tests
 * Download the artifact `lists` and put the files from it into `testdata/tests_packages/`
 
-Or to locally generate these lists from `testdata/tests_packages/tests_primary_packages.txt`, on the target platform execute:
+Or to locally generate these lists from `testdata/tests_packages/primary_packages.txt`, on the target platform execute:
 * `nox -s create_test_package_list`
 
 Finally, check-in the new or modified list files in the directory `testdata/tests_packages`

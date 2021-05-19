@@ -72,7 +72,7 @@ def update_test_packages_cache(
         )
         create_list_returncode = create_test_packages_list(
             package_list_dir_path,
-            package_list_dir_path / "tests_primary_packages.txt",
+            package_list_dir_path / "primary_packages.txt",
             verbose=False,
         )
         if create_list_returncode == 0:
