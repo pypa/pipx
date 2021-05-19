@@ -338,10 +338,10 @@ PKG: Dict[str, Dict[str, Any]] = {
         ),
     },
     "kaggle": {
-        "spec": "kaggle==1.5.9",
+        "spec": "kaggle==1.5.12",
         "apps": _exe_if_win(["kaggle"]),
         "apps_of_dependencies": list(
-            set(_exe_if_win(["chardetect", "slugify", "tqdm"]) + ["slugify"])
+            set(_exe_if_win(["chardetect", "slugify", "tqdm"]))
         ),
     },
     "kibitzr": {
