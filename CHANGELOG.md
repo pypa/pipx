@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.19.0]
+
+### Added
+
+- Add `get_document_root_contains_files` parameter to the `get` method on VirtualHost.
+
 ## [1.18.0]
 
 ### Added
