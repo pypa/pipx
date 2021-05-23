@@ -1,13 +1,14 @@
 import sys
 from typing import Callable
 
-from pipx.constants import WINDOWS
-
 PRINT_COLOR = sys.stdout.isatty()
 
-if PRINT_COLOR and WINDOWS:
+try:
     import colorama  # type: ignore
+except ImportError:  # Colorama is Windows only package
+    colorama = None
 
+if PRINT_COLOR and colorama:
     colorama.init()
 
 
