@@ -2,6 +2,7 @@ dev
 
 - Fixed `pipx list --json` to return valid json with no venvs installed.  Previously would return and empty string to stdout. (#681)
 - Changed `pipx ensurepath` bash behavior so that only one of {`~/.profile`, `~/.bash\_profile`} is modified with the extra pipx paths, not both.  Previously, if a `.bash_profile` file was created where one didn't exist, it could cause problems, e.g. #456. The internal change is to use userpath v1.5.0 or greater. (#684)
+* Colorama is now only installed on Windows. (#691)
 
 0.16.2.1
 
