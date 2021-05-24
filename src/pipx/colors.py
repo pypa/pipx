@@ -1,11 +1,14 @@
 import sys
 from typing import Callable
 
-import colorama  # type: ignore
+try:
+    import colorama  # type: ignore
+except ImportError:  # Colorama is Windows only package
+    colorama = None
 
 PRINT_COLOR = sys.stdout.isatty()
 
-if PRINT_COLOR:
+if PRINT_COLOR and colorama:
     colorama.init()
 
 
