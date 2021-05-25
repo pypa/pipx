@@ -30,7 +30,7 @@ class Logs extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -63,7 +63,7 @@ class Logs extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 

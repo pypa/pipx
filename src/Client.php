@@ -6,12 +6,15 @@ use GuzzleHttp\Client as GuzzleClient;
 use Psr\Http\Message\ResponseInterface;
 use Throwable;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
+use Vdhicts\Cyberfusion\ClusterApi\Endpoints\Clusters;
 use Vdhicts\Cyberfusion\ClusterApi\Endpoints\Health;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ClientException;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ClusterApiException;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\DetailMessage;
 use Vdhicts\Cyberfusion\ClusterApi\Models\HttpValidationError;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Arr;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Deployment;
 
 class Client implements ClientContract
 {
@@ -20,6 +23,7 @@ class Client implements ClientContract
 
     private Configuration $configuration;
     private GuzzleClient $httpClient;
+    private array $affectedClusters;
 
     /**
      * Client constructor.
@@ -36,12 +40,12 @@ class Client implements ClientContract
         $this->initHttpClient();
 
         // Check if the API is available
-        if (! $this->isUp()) {
+        if (!$this->isUp()) {
             throw ClientException::apiNotUp();
         }
 
         // Start authentication unless the authentication is done manually
-        if (! $manuallyAuthenticate) {
+        if (!$manuallyAuthenticate) {
             $this->authenticate();
         }
     }
@@ -91,7 +95,7 @@ class Client implements ClientContract
     private function authenticate(): void
     {
         // An access token or credentials are required
-        if (! $this->configuration->hasAccessToken() && ! $this->configuration->hasCredentials()) {
+        if (!$this->configuration->hasAccessToken() && !$this->configuration->hasCredentials()) {
             throw ClientException::authenticationMissing();
         }
 
@@ -111,6 +115,7 @@ class Client implements ClientContract
             }
 
             $this->storeAccessToken($accessToken);
+
             return;
         }
 
@@ -131,7 +136,7 @@ class Client implements ClientContract
             ->setUrl('login/test-token');
 
         $response = $this->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return false;
         }
 
@@ -157,7 +162,7 @@ class Client implements ClientContract
             ->setBodySchema(Request::BODY_SCHEMA_FORM);
 
         $response = $this->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return null;
         }
 
@@ -185,7 +190,7 @@ class Client implements ClientContract
      */
     public function request(Request $request): Response
     {
-        if ($request->authenticationRequired() && ! $this->configuration->hasAccessToken()) {
+        if ($request->authenticationRequired() && !$this->configuration->hasAccessToken()) {
             throw RequestException::authenticationRequired();
         }
 
@@ -219,6 +224,7 @@ class Client implements ClientContract
                 'Authorization' => sprintf('Bearer %s', $this->configuration->getAccessToken()),
             ];
         }
+
         return $requestOptions;
     }
 
@@ -237,7 +243,7 @@ class Client implements ClientContract
 
         if ($response->getStatusCode() === 422) { // Validation error
             return [
-                'error' => (new HttpValidationError())->fromArray($body)
+                'error' => (new HttpValidationError())->fromArray($body),
             ];
         }
 
@@ -248,7 +254,69 @@ class Client implements ClientContract
         }
 
         return [
-            'error' => (new DetailMessage())->fromArray($body)
+            'error' => (new DetailMessage())->fromArray($body),
         ];
+    }
+
+    /**
+     * Add an affected cluster to the list for deployment.
+     *
+     * @param int $clusterId
+     * @return $this
+     */
+    public function addAffectedCluster(int $clusterId): Client
+    {
+        if (!in_array($clusterId, $this->affectedClusters)) {
+            $this->affectedClusters[] = $clusterId;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Deploy all the affected clusters.
+     *
+     * @return Deployment[]
+     */
+    public function deploy(): array
+    {
+        $affectedClusters = array_unique($this->affectedClusters);
+        if (count($affectedClusters) === 0) {
+            return [];
+        }
+
+        $clusterCommitResults = [];
+
+        $clustersEndpoint = new Clusters($this);
+        foreach ($this->affectedClusters as $affectedCluster) {
+            $deployment = (new Deployment())->setClusterId($affectedCluster);
+
+            try {
+                $result = $clustersEndpoint->commit($affectedCluster);
+
+                $deployment->setSuccess($result->isSuccess());
+                $result->isSuccess()
+                    ? $deployment->setCluster($result->getData('cluster'))
+                    : $deployment->setError($result->getData('error'));
+            } catch (RequestException $exception) {
+                $deployment->setSuccess(false);
+                $deployment->setError($exception->getMessage());
+            }
+
+            $clusterCommitResults[] = $deployment;
+
+            $this->affectedClusters = Arr::exceptValue($this->affectedClusters, $affectedCluster);
+        }
+
+        return $clusterCommitResults;
+    }
+
+    public function __destruct()
+    {
+        if (!$this->configuration->autoDeploy()) {
+            return;
+        }
+
+        $this->deploy();
     }
 }

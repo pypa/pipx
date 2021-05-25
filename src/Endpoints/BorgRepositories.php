@@ -141,8 +141,15 @@ class BorgRepositories extends Endpoint
             return $response;
         }
 
+        $borgRepository = (new BorgRepository())->fromArray($response->getData());
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($borgRepository->getClusterId());
+
         return $response->setData([
-            'borgRepository' => (new BorgRepository())->fromArray($response->getData()),
+            'borgRepository' => $borgRepository,
         ]);
     }
 
@@ -188,8 +195,15 @@ class BorgRepositories extends Endpoint
             return $response;
         }
 
+        $borgRepository = (new BorgRepository())->fromArray($response->getData());
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($borgRepository->getClusterId());
+
         return $response->setData([
-            'borgRepository' => (new BorgRepository())->fromArray($response->getData()),
+            'borgRepository' => $borgRepository,
         ]);
     }
 
@@ -200,6 +214,18 @@ class BorgRepositories extends Endpoint
      */
     public function delete(int $id): Response
     {
+        // Log the affected cluster by retrieving the model first
+        $result = $this->get($id);
+        if ($result->isSuccess()) {
+            $clusterId = $result
+                ->getData('borgRepository')
+                ->getClusterId();
+
+            $this
+                ->client
+                ->addAffectedCluster($clusterId);
+        }
+
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('borg-repositories/%d', $id));

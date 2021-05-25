@@ -12,6 +12,7 @@ class Configuration
     private string $password;
     private ?string $accessToken;
     private bool $sandbox = false;
+    private bool $autoDeploy = false;
 
     public static function withCredentials(string $username, string $password, bool $sandbox = false): Configuration
     {
@@ -84,25 +85,30 @@ class Configuration
         return $this;
     }
 
-    /**
-     * @return bool
-     */
     public function isSandbox(): bool
     {
         return $this->sandbox;
     }
 
-    /**
-     * @param bool $sandbox
-     * @return Configuration
-     */
-    public function setSandbox(bool $sandbox): Configuration
+    public function setSandbox(bool $sandbox = false): Configuration
     {
         $this->sandbox = $sandbox;
 
         $this->url = $sandbox
             ? self::URL_SANDBOX
             : self::URL_LIVE;
+
+        return $this;
+    }
+
+    public function autoDeploy(): bool
+    {
+        return $this->autoDeploy;
+    }
+
+    public function setAutoDeploy(bool $autoDeploy = true): Configuration
+    {
+        $this->autoDeploy = $autoDeploy;
 
         return $this;
     }

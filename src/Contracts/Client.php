@@ -14,4 +14,6 @@ interface Client
      * @throws RequestException
      */
     public function request(Request $request): Response;
+
+    public function addAffectedCluster(int $clusterId): Client;
 }

@@ -21,7 +21,7 @@ abstract class ClusterModel implements JsonSerializable, Model
     public function __get(string $name)
     {
         $method = sprintf('get%s', Str::studly($name));
-        if (! method_exists($this, $method)) {
+        if (!method_exists($this, $method)) {
             throw ModelException::propertyNotAvailable($name);
         }
 
@@ -39,7 +39,7 @@ abstract class ClusterModel implements JsonSerializable, Model
     public function __set(string $name, $value): void
     {
         $method = sprintf('set%s', Str::studly($name));
-        if (! method_exists($this, $method)) {
+        if (!method_exists($this, $method)) {
             throw ModelException::propertyNotAvailable($name);
         }
 
@@ -64,7 +64,7 @@ abstract class ClusterModel implements JsonSerializable, Model
             case 'in':
                 return in_array($value, $setting);
             case 'in_array':
-                return ! array_diff($value, $setting);
+                return !array_diff($value, $setting);
             default:
                 return true;
         }
@@ -86,7 +86,7 @@ abstract class ClusterModel implements JsonSerializable, Model
 
         $failedValidations = [];
         foreach ($validations as $type => $setting) {
-            if (! $this->performValidation($value, $type, $setting)) {
+            if (!$this->performValidation($value, $type, $setting)) {
                 $failedValidations[] = sprintf(
                     '%s: %s',
                     $type,

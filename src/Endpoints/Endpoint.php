@@ -61,7 +61,7 @@ abstract class Endpoint
         $filteredArray = array_filter(
             $array,
             function ($value) {
-                return ! is_null($value);
+                return !is_null($value);
             }
         );
 

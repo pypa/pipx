@@ -126,7 +126,7 @@ class DatabaseUserGrant extends ClusterModel implements Model
             ->setDatabaseId(Arr::get($data, 'database_id'))
             ->setDatabaseUserId(Arr::get($data, 'database_user_id'))
             ->setTableName(Arr::get($data, 'table_name'))
-            ->setPrivilegeName(Arr::get($data,'privilege_name',self::DEFAULT_PRIVILEGE_NAME))
+            ->setPrivilegeName(Arr::get($data, 'privilege_name', self::DEFAULT_PRIVILEGE_NAME))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))

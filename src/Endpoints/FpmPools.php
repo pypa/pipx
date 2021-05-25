@@ -28,7 +28,7 @@ class FpmPools extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -56,7 +56,7 @@ class FpmPools extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -95,12 +95,19 @@ class FpmPools extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
+        $fpmPool = (new FpmPool())->fromArray($response->getData());
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($fpmPool->getClusterId());
+
         return $response->setData([
-            'fpmPool' => (new FpmPool())->fromArray($response->getData()),
+            'fpmPool' => $fpmPool,
         ]);
     }
 
@@ -138,12 +145,19 @@ class FpmPools extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
+        $fpmPool = (new FpmPool())->fromArray($response->getData());
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($fpmPool->getClusterId());
+
         return $response->setData([
-            'fpmPool' => (new FpmPool())->fromArray($response->getData()),
+            'fpmPool' => $fpmPool,
         ]);
     }
 
@@ -154,6 +168,18 @@ class FpmPools extends Endpoint
      */
     public function delete(int $id): Response
     {
+        // Log the affected cluster by retrieving the model first
+        $result = $this->get($id);
+        if ($result->isSuccess()) {
+            $clusterId = $result
+                ->getData('fpmPool')
+                ->getClusterId();
+
+            $this
+                ->client
+                ->addAffectedCluster($clusterId);
+        }
+
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('fpm-pools/%d', $id));

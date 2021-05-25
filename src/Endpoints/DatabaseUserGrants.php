@@ -95,8 +95,15 @@ class DatabaseUserGrants extends Endpoint
             return $response;
         }
 
+        $databaseUserGrant = (new DatabaseUserGrant())->fromArray($response->getData());
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($databaseUserGrant->getClusterId());
+
         return $response->setData([
-            'databaseUserGrant' => (new DatabaseUserGrant())->fromArray($response->getData()),
+            'databaseUserGrant' => $databaseUserGrant,
         ]);
     }
 
@@ -107,6 +114,18 @@ class DatabaseUserGrants extends Endpoint
      */
     public function delete(int $id): Response
     {
+        // Log the affected cluster by retrieving the model first
+        $result = $this->get($id);
+        if ($result->isSuccess()) {
+            $clusterId = $result
+                ->getData('databaseUserGrant')
+                ->getClusterId();
+
+            $this
+                ->client
+                ->addAffectedCluster($clusterId);
+        }
+
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('database-user-grants/%d', $id));

@@ -28,7 +28,7 @@ class MailDomains extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -56,7 +56,7 @@ class MailDomains extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -91,12 +91,19 @@ class MailDomains extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
+        $mailDomain = (new MailDomain())->fromArray($response->getData());
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($mailDomain->getClusterId());
+
         return $response->setData([
-            'mailDomain' => (new MailDomain())->fromArray($response->getData()),
+            'mailDomain' => $mailDomain,
         ]);
     }
 
@@ -130,12 +137,19 @@ class MailDomains extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
+        $mailDomain = (new MailDomain())->fromArray($response->getData());
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($mailDomain->getClusterId());
+
         return $response->setData([
-            'mailDomain' => (new MailDomain())->fromArray($response->getData()),
+            'mailDomain' => $mailDomain,
         ]);
     }
 
@@ -146,6 +160,18 @@ class MailDomains extends Endpoint
      */
     public function delete(int $id): Response
     {
+        // Log the affected cluster by retrieving the model first
+        $result = $this->get($id);
+        if ($result->isSuccess()) {
+            $clusterId = $result
+                ->getData('mailDomain')
+                ->getClusterId();
+
+            $this
+                ->client
+                ->addAffectedCluster($clusterId);
+        }
+
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('mail-domains/%d', $id));

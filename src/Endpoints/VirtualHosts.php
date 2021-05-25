@@ -110,8 +110,15 @@ class VirtualHosts extends Endpoint
             return $response;
         }
 
+        $virtualHost = (new VirtualHost())->fromArray($response->getData());
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($virtualHost->getClusterId());
+
         return $response->setData([
-            'virtualHost' => (new VirtualHost())->fromArray($response->getData()),
+            'virtualHost' => $virtualHost,
         ]);
     }
 
@@ -159,8 +166,15 @@ class VirtualHosts extends Endpoint
             return $response;
         }
 
+        $virtualHost = (new VirtualHost())->fromArray($response->getData());
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($virtualHost->getClusterId());
+
         return $response->setData([
-            'virtualHost' => (new VirtualHost())->fromArray($response->getData()),
+            'virtualHost' => $virtualHost,
         ]);
     }
 
@@ -171,6 +185,18 @@ class VirtualHosts extends Endpoint
      */
     public function delete(int $id): Response
     {
+        // Log the affected cluster by retrieving the model first
+        $result = $this->get($id);
+        if ($result->isSuccess()) {
+            $clusterId = $result
+                ->getData('virtualHost')
+                ->getClusterId();
+
+            $this
+                ->client
+                ->addAffectedCluster($clusterId);
+        }
+
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('virtual-hosts/%d', $id));

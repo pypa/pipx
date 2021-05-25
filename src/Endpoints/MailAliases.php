@@ -28,7 +28,7 @@ class MailAliases extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -38,7 +38,7 @@ class MailAliases extends Endpoint
                     return (new MailAlias())->fromArray($data);
                 },
                 $response->getData()
-            )
+            ),
         ]);
     }
 
@@ -56,7 +56,7 @@ class MailAliases extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -90,12 +90,19 @@ class MailAliases extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
+        $mailAlias = (new MailAlias())->fromArray($response->getData());
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($mailAlias->getClusterId());
+
         return $response->setData([
-            'mailAlias' => (new MailAlias())->fromArray($response->getData()),
+            'mailAlias' => $mailAlias,
         ]);
     }
 
@@ -128,12 +135,19 @@ class MailAliases extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
+        $mailAlias = (new MailAlias())->fromArray($response->getData());
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($mailAlias->getClusterId());
+
         return $response->setData([
-            'mailAlias' => (new MailAlias())->fromArray($response->getData()),
+            'mailAlias' => $mailAlias,
         ]);
     }
 
@@ -144,6 +158,18 @@ class MailAliases extends Endpoint
      */
     public function delete(int $id): Response
     {
+        // Log the affected cluster by retrieving the model first
+        $result = $this->get($id);
+        if ($result->isSuccess()) {
+            $clusterId = $result
+                ->getData('mailAlias')
+                ->getClusterId();
+
+            $this
+                ->client
+                ->addAffectedCluster($clusterId);
+        }
+
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('mail-aliases/%d', $id));

@@ -1,7 +1,7 @@
 # Cyberfusion cluster API client
 
 Easily use the [API of the clusters](https://cluster-api.cyberfusion.nl/) of the hosting company 
-[Cyberfusion](https://cyberfusion.nl/). This package is build and tested on the **1.45** version of the API.
+[Cyberfusion](https://cyberfusion.nl/). This package is build and tested on the **1.46** version of the API.
 This package is not created or maintained by Cyberfusion.
 
 ## Requirements
@@ -176,6 +176,47 @@ there just for reference.
 When something goes wrong, the client will throw an exception which extends the `ClusterApiException`. If you want to 
 catch exceptions from this package, that's the one you should catch. All exceptions have a code, these codes can be 
 found in the `ClusterApiException` class.
+
+### Deployment
+
+Change to most of the objects in the cluster API require a deployment of the cluster. See [Cluster Deployment](https://cluster-api.cyberfusion.nl/redoc#operation/create_cluster_deployment_api_v1_cluster_deployments_post) for more information.
+
+This package keeps track of the affected clusters. The `deploy` method on the client will automatically deploy all 
+affected clusters for you:
+
+```php
+$clusterDeployments = $client->deploy();
+```
+
+The result will be an array of `Deployment` objects (or an empty array who no clusters are affected) which enables you 
+to check if the cluster is properly deployed:
+
+```php
+foreach ($clusterDeployments as $clusterDeployment) {
+    $success = $clusterDeployment->isSuccess();
+    if (!$success) {
+        // Do something with $clusterDeployment->getError();
+    }
+}
+```
+
+See the `Deployment` class for more options.
+
+#### Automatic deployment
+
+To make life easy, this package is also able to deploy any affected cluster automatically. This is opt-in behavior as 
+you won't be able to access the result of the deployment. Enable this behavior in the configuration:
+
+```php
+$configuration = new Configuration();
+$configuration->setAutoDeploy(); // Enable the auto deployment of affected clusters
+
+// Initialize the client
+$client = new Client($configuration, true);
+
+// Initialize the API
+$api = new ClusterApi($client);
+```
 
 ### Laravel
 
