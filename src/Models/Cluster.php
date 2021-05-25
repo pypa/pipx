@@ -219,7 +219,7 @@ class Cluster extends ClusterModel implements Model
     public function fromArray(array $data): Cluster
     {
         return $this
-            ->setName(Arr::get($data, 'name'))
+            ->setName(Arr::get($data, 'name', ''))
             ->setGroups(Arr::get($data, 'groups', []))
             ->setUnixUsersHomeDirectory(Arr::get($data, 'unix_users_home_directory'))
             ->setDatabasesDataDirectory(Arr::get($data, 'databases_data_directory'))

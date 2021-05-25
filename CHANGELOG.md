@@ -8,6 +8,10 @@ detailed information.
 
 ## [1.21.2]
 
+### Changed
+
+- Add default of empty string to setName in Cluster model's fromArray
+
 ## Fixed
 
 - Fix error with deployment due to affected clusters not being initialized.
