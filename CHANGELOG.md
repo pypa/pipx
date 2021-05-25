@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.21.2]
+
+## Fixed
+
+- Fix error with deployment due to affected clusters not being initialized.
+- Fix error with the document root files being `null` when no files are present but an array is expected.
+
 ## [1.21.1]
 
 ### Changed

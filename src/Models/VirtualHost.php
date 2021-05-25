@@ -263,7 +263,7 @@ class VirtualHost extends ClusterModel implements Model
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
             ->setUpdatedAt(Arr::get($data, 'updated_at'))
-            ->setDocumentRootContainsFiles(Arr::get($data, 'document_root_contains_files', []));
+            ->setDocumentRootContainsFiles((array)Arr::get($data, 'document_root_contains_files', []));
     }
 
     public function toArray(): array

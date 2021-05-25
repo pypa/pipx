@@ -23,7 +23,7 @@ class Client implements ClientContract
 
     private Configuration $configuration;
     private GuzzleClient $httpClient;
-    private array $affectedClusters;
+    private array $affectedClusters = [];
 
     /**
      * Client constructor.
