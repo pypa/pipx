@@ -182,11 +182,7 @@ class Client implements ClientContract
     }
 
     /**
-     * Perform the request.
-     *
-     * @param Request $request
-     * @return Response
-     * @throws RequestException
+     * @inheritDoc
      */
     public function request(Request $request): Response
     {
@@ -259,10 +255,7 @@ class Client implements ClientContract
     }
 
     /**
-     * Add an affected cluster to the list for deployment.
-     *
-     * @param int $clusterId
-     * @return $this
+     * @inheritDoc
      */
     public function addAffectedCluster(int $clusterId): Client
     {
@@ -274,9 +267,7 @@ class Client implements ClientContract
     }
 
     /**
-     * Deploy all the affected clusters.
-     *
-     * @return Deployment[]
+     * @inheritDoc
      */
     public function deploy(): array
     {
