@@ -167,7 +167,7 @@ def pip_cache_purge() -> None:
 
 
 def write_report_legend(report_legend_path: Path) -> None:
-    with report_legend_path.open("w") as report_legend_fh:
+    with report_legend_path.open("w", encoding="utf-8") as report_legend_fh:
         print(
             textwrap.dedent(
                 """
@@ -345,7 +345,7 @@ def print_error_report(
     test_type: str,
     pip_error_file: Optional[Path],
 ) -> None:
-    with module_globals.errors_path.open("a") as errors_fh:
+    with module_globals.errors_path.open("a", encoding="utf-8") as errors_fh:
         print("\n\n", file=errors_fh)
         print("=" * 79, file=errors_fh)
         print(
@@ -467,7 +467,7 @@ def install_package_both_paths(
         or (package_data.sys_pip_pass and package_data.sys_pipx_pass)
     )
 
-    with module_globals.report_path.open("a") as report_fh:
+    with module_globals.report_path.open("a", encoding="utf-8") as report_fh:
         print(format_report_table_row(package_data), file=report_fh, flush=True)
 
     if not package_data.clear_pip_pass and not package_data.sys_pip_pass:
@@ -506,13 +506,13 @@ def start_end_test_class(module_globals: ModuleGlobalsData, request):
 
     write_report_legend(reports_path / f"{REPORT_FILENAME_ROOT}_report_legend.txt")
 
-    with module_globals.report_path.open("a") as report_fh:
+    with module_globals.report_path.open("a", encoding="utf-8") as report_fh:
         print(format_report_table_header(module_globals), file=report_fh)
 
     yield
 
     module_globals.test_end = datetime.now()
-    with module_globals.report_path.open("a") as report_fh:
+    with module_globals.report_path.open("a", encoding="utf-8") as report_fh:
         print(format_report_table_footer(module_globals), file=report_fh)
 
 
