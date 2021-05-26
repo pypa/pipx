@@ -273,9 +273,7 @@ PKG: Dict[str, Dict[str, Any]] = {
     "howdoi": {
         "spec": "howdoi==2.0.7",
         "apps": _exe_if_win(["howdoi"]),
-        "apps_of_dependencies": _exe_if_win(
-            ["chardetect", "keep", "pygmentize", "pyjwt"]
-        ),
+        "apps_of_dependencies": _exe_if_win(["chardetect", "keep", "pygmentize"]),
     },
     "httpie": {
         "spec": "httpie==2.3.0",
@@ -340,10 +338,10 @@ PKG: Dict[str, Dict[str, Any]] = {
         ),
     },
     "kaggle": {
-        "spec": "kaggle==1.5.9",
+        "spec": "kaggle==1.5.12",
         "apps": _exe_if_win(["kaggle"]),
         "apps_of_dependencies": list(
-            set(_exe_if_win(["chardetect", "slugify", "tqdm"]) + ["slugify"])
+            set(_exe_if_win(["chardetect", "slugify", "tqdm"]))
         ),
     },
     "kibitzr": {
@@ -777,7 +775,6 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "pretranslate",
                 "prop2po",
                 "pydiff",
-                "pyjwt",  # PyJWT EXE
                 "pypo2phppo",
                 "rc2po",
                 "resx2po",
