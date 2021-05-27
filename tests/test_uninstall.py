@@ -22,11 +22,6 @@ def test_uninstall(pipx_temp_env):
     assert not run_pipx_cli(["uninstall", "pycowsay"])
 
 
-def test_uninstall_multiple_same_app(pipx_temp_env):
-    assert not run_pipx_cli(["install", "kaggle==1.5.9", "--include-deps"])
-    assert not run_pipx_cli(["uninstall", "kaggle"])
-
-
 def test_uninstall_circular_deps(pipx_temp_env):
     assert not run_pipx_cli(["install", PKG["cloudtoken"]["spec"]])
     assert not run_pipx_cli(["uninstall", "cloudtoken"])
