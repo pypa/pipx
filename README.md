@@ -1,27 +1,27 @@
 <p align="center">
-<a href="https://pipxproject.github.io/pipx/">
-<img align="center" src="https://github.com/pipxproject/pipx/raw/master/logo.png"/>
+<a href="https://pypa.github.io/pipx/">
+<img align="center" src="https://github.com/pypa/pipx/raw/master/logo.png"/>
 </a>
 </p>
 
 # pipx — Install and Run Python Applications in Isolated Environments
 
 <p align="center">
-<a href="https://github.com/pipxproject/pipx/raw/master/pipx_demo.gif">
-<img src="https://github.com/pipxproject/pipx/raw/master/pipx_demo.gif"/>
+<a href="https://github.com/pypa/pipx/raw/master/pipx_demo.gif">
+<img src="https://github.com/pypa/pipx/raw/master/pipx_demo.gif"/>
 </a>
 </p>
 
 <p align="center">
-<a href="https://github.com/pipxproject/pipx/actions?query=workflow%3ATest"><img src="https://github.com/pipxproject/pipx/workflows/Test/badge.svg?branch=master" alt="Test CI" ></a>
+<a href="https://github.com/pypa/pipx/actions?query=workflow%3ATest"><img src="https://github.com/pypa/pipx/workflows/Test/badge.svg?branch=master" alt="Test CI" ></a>
 <a href="https://badge.fury.io/py/pipx"><img src="https://badge.fury.io/py/pipx.svg" alt="PyPI version"></a>
 </p>
 
-**Documentation**: https://pipxproject.github.io/pipx/
+**Documentation**: https://pypa.github.io/pipx/
 
-**Source Code**: https://github.com/pipxproject/pipx
+**Source Code**: https://github.com/pypa/pipx
 
-_For comparison to other tools including pipsi, see [Comparison to Other Tools](https://pipxproject.github.io/pipx/comparisons/)._
+_For comparison to other tools including pipsi, see [Comparison to Other Tools](https://pypa.github.io/pipx/comparisons/)._
 
 ## Install pipx
 
@@ -48,7 +48,7 @@ Shell completions are available by following the instructions printed with this 
 pipx completions
 ```
 
-For more details, see the [installation instructions](https://pipxproject.github.io/pipx/installation/).
+For more details, see the [installation instructions](https://pypa.github.io/pipx/installation/).
 
 
 ## Overview: What is `pipx`?
@@ -223,7 +223,7 @@ pipx is working!
 ```
 
 ### Summary
-That's it! Those are the most important commands `pipx` offers. To see all of pipx's documentation, run `pipx --help` or see the [docs](https://pipxproject.github.io/pipx/docs/).
+That's it! Those are the most important commands `pipx` offers. To see all of pipx's documentation, run `pipx --help` or see the [docs](https://pypa.github.io/pipx/docs/).
 
 ## Testimonials
 
@@ -258,7 +258,7 @@ That's it! Those are the most important commands `pipx` offers. To see all of pi
 
 ## Credits
 
-pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https://github.com/npm/npx). It was created by [Chad Smith](https://github.com/cs01/) and has had lots of help from [contributors](https://github.com/pipxproject/pipx/graphs/contributors). The logo was created by [@IrishMorales](https://github.com/IrishMorales).
+pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https://github.com/npm/npx). It was created by [Chad Smith](https://github.com/cs01/) and has had lots of help from [contributors](https://github.com/pypa/pipx/graphs/contributors). The logo was created by [@IrishMorales](https://github.com/IrishMorales).
 
 pipx is maintained by a team of volunteers (in alphabetical order)
 
@@ -268,6 +268,6 @@ pipx is maintained by a team of volunteers (in alphabetical order)
 - [Tzu-ping Chung](https://github.com/uranusjr)
 
 ## Contributing
-Issues and Pull Requests are definitely welcome! Check out [Contributing](https://pipxproject.github.io/pipx/contributing/) to get started.
+Issues and Pull Requests are definitely welcome! Check out [Contributing](https://pypa.github.io/pipx/contributing/) to get started.
 Everyone who interacts with the pipx project via codebase, issue tracker, chat rooms, or otherwise is expected to follow
 the [PSF Code of Conduct](https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md).
