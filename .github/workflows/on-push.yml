@@ -76,6 +76,11 @@ jobs:
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: ${{ runner.os }}-pip${{ matrix.python-version }}
+    - name: Persistent .pipx_tests/package_cache
+      uses: actions/cache@v2
+      with:
+        path: ${{ github.workspace }}/.pipx_tests/package_cache/${{ matrix.python-version }}
+        key: pipx-tests-package-cache-${{ runner.os }}-${{ matrix.python-version }}
     - name: Upgrade pip, Install nox
       run: |
         python -m pip install --upgrade pip

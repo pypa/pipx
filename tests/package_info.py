@@ -484,6 +484,7 @@ PKG: Dict[str, Dict[str, Any]] = {
             "register-python-argcomplete",
         ],  # from argcomplete
     },
+    "pbr": {"spec": "pbr==5.6.0", "apps": _exe_if_win(["pbr"])},
     "pelican": {
         "spec": "pelican==4.5.0",
         "apps": _exe_if_win(
@@ -577,6 +578,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps": _exe_if_win(["pycowsay"]),
         "apps_of_dependencies": [],
     },
+    "pygdbmi": {"spec": "pygdbmi==0.10.0.0", "apps": [], "apps_of_dependencies": []},
     "pylint": {
         "spec": "pylint==2.3.1",
         "apps": _exe_if_win(["epylint", "pylint", "pyreverse", "symilar"]),

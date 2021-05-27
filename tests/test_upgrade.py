@@ -1,6 +1,7 @@
 import pytest  # type: ignore
 
 from helpers import mock_legacy_venv, run_pipx_cli
+from package_info import PKG
 
 
 def test_upgrade(pipx_temp_env, capsys):
@@ -48,17 +49,17 @@ def test_upgrade_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
 
 def test_upgrade_specifier(pipx_temp_env, capsys):
     name = "pylint"
-    specifier = "==2.3.1"
-    initial_version = "2.3.1"
+    pkg_spec = PKG[name]["spec"]
+    initial_version = pkg_spec.split("==")[-1]
 
-    assert not run_pipx_cli(["install", f"{name}{specifier}"])
+    assert not run_pipx_cli(["install", f"{pkg_spec}"])
     assert not run_pipx_cli(["upgrade", f"{name}"])
     captured = capsys.readouterr()
     assert f"upgraded package {name} from {initial_version} to" in captured.out
 
 
 def test_upgrade_include_injected(pipx_temp_env, capsys):
-    assert not run_pipx_cli(["install", "pylint==2.5.3"])
+    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
     assert not run_pipx_cli(["inject", "pylint", "black==18.9.b0"])
     captured = capsys.readouterr()
     assert not run_pipx_cli(["upgrade", "--include-injected", "pylint"])
@@ -68,7 +69,7 @@ def test_upgrade_include_injected(pipx_temp_env, capsys):
 
 
 def test_upgrade_no_include_injected(pipx_temp_env, capsys):
-    assert not run_pipx_cli(["install", "pylint==2.5.3"])
+    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
     assert not run_pipx_cli(["inject", "pylint", "black==18.9.b0"])
     captured = capsys.readouterr()
     assert not run_pipx_cli(["upgrade", "pylint"])

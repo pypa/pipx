@@ -24,9 +24,19 @@ PREBUILD_PACKAGES = {
     "unix": [],
     "win": [],
 }
+PIPX_TESTS_CACHE_DIR = Path("./.pipx_tests/package_cache")
+PIPX_TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
+
+# Platform logic
+if sys.platform == "darwin":
+    PLATFORM = "macos"
+elif sys.platform == "win32":
+    PLATFORM = "win"
+else:
+    PLATFORM = "unix"
 
 # Set nox options
-if sys.platform == "win32":
+if PLATFORM == "win":
     # build_docs fail on Windows, even if `chcp.com 65001` is used
     nox.options.sessions = ["tests", "lint"]
 else:
@@ -35,14 +45,7 @@ nox.options.reuse_existing_virtualenvs = True
 
 
 def prebuild_wheels(session, prebuild_dict):
-    if sys.platform == "darwin":
-        platform = "macos"
-    elif sys.platform == "win32":
-        platform = "win"
-    else:
-        platform = "unix"
-
-    prebuild_list = prebuild_dict.get("all", []) + prebuild_dict.get(platform, [])
+    prebuild_list = prebuild_dict.get("all", []) + prebuild_dict.get(PLATFORM, [])
 
     session.install("wheel")
     wheel_dir = Path(session.virtualenv.location) / "prebuild_wheels"
@@ -85,13 +88,45 @@ def on_master_no_changes(session):
 
 
 @nox.session(python=PYTHON_ALL_VERSIONS)
-def tests(session):
+def refresh_packages_cache(session):
+    """Populate .pipx_tests/package_cache"""
+    print("Updating local tests package spec file cache...")
+    PIPX_TESTS_CACHE_DIR.mkdir(exist_ok=True, parents=True)
+    session.run(
+        "python",
+        "scripts/update_package_cache.py",
+        str(PIPX_TESTS_PACKAGE_LIST_DIR),
+        str(PIPX_TESTS_CACHE_DIR),
+    )
+
+
+def tests_with_options(session, net_pypiserver):
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     prebuild_wheels(session, PREBUILD_PACKAGES)
     session.install("-e", ".", "pytest", "pytest-cov")
     tests = session.posargs or ["tests"]
-    session.run("pytest", "--cov=pipx", "--cov-report=", *tests)
+
+    if net_pypiserver:
+        pypiserver_option = ["--net-pypiserver"]
+    else:
+        session.install("pypiserver")
+        refresh_packages_cache(session)
+        pypiserver_option = []
+
+    session.run("pytest", *pypiserver_option, "--cov=pipx", "--cov-report=", *tests)
     session.notify("cover")
+
+
+@nox.session(python=PYTHON_ALL_VERSIONS)
+def tests_internet(session):
+    """Tests using internet pypi only"""
+    tests_with_options(session, net_pypiserver=True)
+
+
+@nox.session(python=PYTHON_ALL_VERSIONS)
+def tests(session):
+    """Tests using local pypiserver only"""
+    tests_with_options(session, net_pypiserver=False)
 
 
 @nox.session(python=PYTHON_ALL_VERSIONS)
@@ -100,7 +135,13 @@ def test_all_packages(session):
     session.install("-e", ".", "pytest")
     tests = session.posargs or ["tests"]
     session.run(
-        "pytest", "-v", "--tb=no", "--show-capture=no", "--all-packages", *tests
+        "pytest",
+        "-v",
+        "--tb=no",
+        "--show-capture=no",
+        "--net-pypiserver",
+        "--all-packages",
+        *tests,
     )
 
 
@@ -213,4 +254,18 @@ def post_release(session):
     session.log(
         "If `git diff` above looks ok, execute the following command:\n\n"
         "    git commit -a -m 'Post-release.'\n"
+    )
+
+
+@nox.session(python=PYTHON_ALL_VERSIONS)
+def create_test_package_list(session):
+    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
+    output_dir = (
+        session.posargs[0] if session.posargs else str(PIPX_TESTS_PACKAGE_LIST_DIR)
+    )
+    session.run(
+        "python",
+        "scripts/list_test_packages.py",
+        str(PIPX_TESTS_PACKAGE_LIST_DIR / "primary_packages.txt"),
+        output_dir,
     )
