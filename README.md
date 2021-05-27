@@ -269,3 +269,5 @@ pipx is maintained by a team of volunteers (in alphabetical order)
 
 ## Contributing
 Issues and Pull Requests are definitely welcome! Check out [Contributing](https://pipxproject.github.io/pipx/contributing/) to get started.
+Everyone who interacts with the pipx project via codebase, issue tracker, chat rooms, or otherwise is expected to follow
+the [PSF Code of Conduct](https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md).
