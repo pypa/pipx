@@ -193,7 +193,7 @@ nox -s publish_docs
 ### Pre-release
 
 First, make sure the changelog is complete.  Next decide what the next version
-number will be.  Then, from a clone of the main pipxproject pipx repo (not a
+number will be.  Then, from a clone of the main pypa pipx repo (not a
 fork) execute:
 ```
 nox -s pre_release
@@ -212,7 +212,7 @@ trigger Github workflows that both publish the pipx version to PyPI and publish
 the pipx documentation to the pipx website.
 
 ### Post-release
-From a clone of the main pipxproject pipx repo (not a
+From a clone of the main pypa pipx repo (not a
 fork) execute:
 ```
 nox -s post_release
