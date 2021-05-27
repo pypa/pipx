@@ -7,7 +7,7 @@ google_analytics:
   - 'UA-90243909-2'
   - 'auto'
 repo_name: pipx-project/pipx
-repo_url: https://github.com/pipxproject/pipx
+repo_url: https://github.com/pypa/pipx
 
 nav:
   - Home: "index.md"
