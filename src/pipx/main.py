@@ -729,7 +729,7 @@ def setup(args: argparse.Namespace) -> None:
                 {hazard}  A virtual environment for pipx was detected at
                 {str(old_pipx_venv_location)}. The 'pipx-app' package has been
                 renamed back to 'pipx'
-                (https://github.com/pipxproject/pipx/issues/82).
+                (https://github.com/pypa/pipx/issues/82).
                 """,
                 subsequent_indent=" " * 4,
             )
