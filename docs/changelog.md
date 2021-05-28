@@ -1,4 +1,4 @@
-dev
+0.16.3
 
 - Organization: pipx is extremely pleased to now be a project of the Python Packaging Authority (PyPA)!  Note that our github URL has changed to [pypa/pipx](https://github.com/pypa/pipx)
 - Fixed `pipx list --json` to return valid json with no venvs installed.  Previously would return and empty string to stdout. (#681)
