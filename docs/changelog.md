@@ -1,5 +1,6 @@
 dev
 
+- Fix to `pipx ensurepath` to fix behavior in user locales other than UTF-8, to fix #644. The internal change is to use userpath v1.6.0 or greater. ()
 
 0.16.3
 
