@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.22.0]
+
+### Added
+
+- Add regex validation to the name of a database user.
+- Add `locking_enabled` property to crons.
+
+### Changed
+
+- Change regex validation to allow capticals for the `table_name` of a database user grant.
+- Update to [API version 1.47](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.47-2021-06-04)
+
 ## [1.21.2]
 
 ### Changed

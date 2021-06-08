@@ -51,7 +51,7 @@ class DatabaseUserGrant extends ClusterModel implements Model
     {
         $this->validate($tableName, [
             'length_max' => 64,
-            'pattern' => '^[a-z0-9-_]+$',
+            'pattern' => '^[a-zA-Z0-9-_]+$',
             'nullable' => true,
         ]);
 

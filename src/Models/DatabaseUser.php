@@ -28,6 +28,7 @@ class DatabaseUser extends ClusterModel implements Model
     {
         $this->validate($name, [
             'length_max' => 63,
+            'pattern' => '^[a-zA-Z0-9-_]+$',
         ]);
 
         $this->name = $name;

@@ -90,6 +90,7 @@ class Crons extends Endpoint
                 'schedule',
                 'unix_user_id',
                 'error_count',
+                'locking_enabled',
             ]));
 
         $response = $this
@@ -138,6 +139,7 @@ class Crons extends Endpoint
                 'schedule',
                 'unix_user_id',
                 'error_count',
+                'locking_enabled',
                 'id',
                 'cluster_id',
             ]));
