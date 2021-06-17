@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.23.0]
+
+### Changed
+
+- Requesting a Let's Encrypt certificate not longer requires a cluster deployment.
+- Update to [API version 1.48](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.48-2021-06-17)
+
+### Fixed
+
+- Change the `Str::match` to `Str::doesMatch` to not conflict with new Laravel helper.
+
 ## [1.22.0]
 
 ### Added

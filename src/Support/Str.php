@@ -11,7 +11,7 @@ class Str extends \Illuminate\Support\Str
      * @param string $pattern
      * @return bool
      */
-    public static function match(string $string, string $pattern): bool
+    public static function doesMatch(string $string, string $pattern): bool
     {
         return preg_match($pattern, $string) != false;
     }

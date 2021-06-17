@@ -153,4 +153,9 @@ class Certificate extends ClusterModel implements Model
             'updated_at' => $this->getUpdatedAt(),
         ];
     }
+
+    public function isLetsEncrypt(): bool
+    {
+        return count($this->commonNames) !== 0;
+    }
 }

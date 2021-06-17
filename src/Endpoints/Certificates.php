@@ -77,6 +77,8 @@ class Certificates extends Endpoint
             : ['certificate', 'ca_chain', 'private_key', 'cluster_id']; // Supply own certificate
         $this->validateRequired($certificate, 'create', $requiredAttributes);
 
+        $isLetEnscrypt = $certificate->isLetsEncrypt();
+
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('certificates')
@@ -98,9 +100,11 @@ class Certificates extends Endpoint
         $certificate = (new Certificate())->fromArray($response->getData());
 
         // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($certificate->getClusterId());
+        if (!$isLetEnscrypt) {
+            $this
+                ->client
+                ->addAffectedCluster($certificate->getClusterId());
+        }
 
         return $response->setData([
             'certificate' => $certificate,
