@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.23.1]
+
+### Fixed
+
+- Change the databases usages endpoint which now correctly handles empty usage. Thanks to @Arne-Jan.
+
 ## [1.23.0]
 
 ### Changed
