@@ -161,7 +161,14 @@ class Databases extends Endpoint
         }
 
         return $response->setData([
-            'databaseUsage' => (new DatabaseUsage())->fromArray($response->getData()),
+            'databaseUsage' => count($response->getData()) !== 0
+                ? array_map(
+                    function (array $data) {
+                        return (new DatabaseUsage())->fromArray($data);
+                    },
+                    $response->getData()
+                )
+                : null,
         ]);
     }
 }
