@@ -265,6 +265,10 @@ class Venv:
         with animate(
             f"determining package name from {package_or_url!r}", self.do_animation
         ):
+            match = re.search(r"#egg=(.+)$", package_or_url)
+            if match:
+                package_name = match.group(1)
+                return package_name
             old_package_set = self.list_installed_packages()
             cmd = ["install"] + ["--no-dependencies"] + pip_args + [package_or_url]
             pip_process = self._run_pip(cmd)
