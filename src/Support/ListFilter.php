@@ -6,6 +6,8 @@ use Vdhicts\Cyberfusion\ClusterApi\Contracts\Filter;
 
 class ListFilter implements Filter
 {
+    private const MAX_LIMIT = 1000;
+
     private int $skip = 0;
     private int $limit = 100;
     private array $filter = [];
@@ -30,6 +32,9 @@ class ListFilter implements Filter
 
     public function setLimit(int $limit): ListFilter
     {
+        if ($limit > self::MAX_LIMIT) {
+            $limit = self::MAX_LIMIT;
+        }
         $this->limit = $limit;
 
         return $this;

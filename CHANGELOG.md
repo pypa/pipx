@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.24.0]
+
+## Added
+
+- Add create, delete and install methods to the CMS endpoint. 
+- Add `is_active` property to crons. 
+- Add async support to UnixUsers.
+- Add the max limit to list requests.
+
+## Changed
+
+- Change the email address to be optional for crons. 
+- Update to [API version 1.56](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.56-2021-07-13)
+
 ## [1.23.1]
 
 ### Fixed

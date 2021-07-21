@@ -171,6 +171,10 @@ class UnixUsers extends Endpoint
                 'default_php_version',
                 'virtual_hosts_directory',
                 'mail_domains_directory',
+                'async_support_enabled',
+                'rabbitmq_username',
+                'rabbitmq_virtual_host_name',
+                'rabbitmq_password',
                 'id',
                 'cluster_id',
                 'unix_id',
@@ -221,5 +225,35 @@ class UnixUsers extends Endpoint
         return $this
             ->client
             ->request($request);
+    }
+
+    /**
+     * @param int $id
+     * @return Response
+     * @throws RequestException
+     */
+    public function enableAsync(int $id): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl(sprintf('unix-users/%d/async-support', $id));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $unixUser = (new UnixUser())->fromArray($response->getData());
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($unixUser->getClusterId());
+
+        return $response->setData([
+            'unixUser' => $unixUser,
+        ]);
     }
 }

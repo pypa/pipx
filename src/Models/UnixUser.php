@@ -14,6 +14,10 @@ class UnixUser extends ClusterModel implements Model
     private ?string $virtualHostsDirectory = null;
     private ?string $mailDomainsDirectory = null;
     private string $shellPath = ShellPath::BASH;
+    private bool $asyncSupportEnabled = false;
+    private ?string $rabbitMqUsername = null;
+    private ?string $rabbitMqVirtualHostName = null;
+    private ?string $rabbitMqPassword = null;
     private int $clusterId;
     private ?int $id = null;
     private ?int $unixId = null;
@@ -101,6 +105,54 @@ class UnixUser extends ClusterModel implements Model
         return $this;
     }
 
+    public function isAsyncSupportEnabled(): bool
+    {
+        return $this->asyncSupportEnabled;
+    }
+
+    public function setAsyncSupportEnabled(bool $asyncSupportEnabled): UnixUser
+    {
+        $this->asyncSupportEnabled = $asyncSupportEnabled;
+
+        return $this;
+    }
+
+    public function getRabbitMqUsername(): ?string
+    {
+        return $this->rabbitMqUsername;
+    }
+
+    public function setRabbitMqUsername(?string $rabbitMqUsername): UnixUser
+    {
+        $this->rabbitMqUsername = $rabbitMqUsername;
+
+        return $this;
+    }
+
+    public function getRabbitMqVirtualHostName(): ?string
+    {
+        return $this->rabbitMqVirtualHostName;
+    }
+
+    public function setRabbitMqVirtualHostName(?string $rabbitMqVirtualHostName): UnixUser
+    {
+        $this->rabbitMqVirtualHostName = $rabbitMqVirtualHostName;
+
+        return $this;
+    }
+
+    public function getRabbitMqPassword(): ?string
+    {
+        return $this->rabbitMqPassword;
+    }
+
+    public function setRabbitMqPassword(?string $rabbitMqPassword): UnixUser
+    {
+        $this->rabbitMqPassword = $rabbitMqPassword;
+
+        return $this;
+    }
+
     public function getClusterId(): int
     {
         return $this->clusterId;
@@ -170,6 +222,10 @@ class UnixUser extends ClusterModel implements Model
             ->setVirtualHostsDirectory(Arr::get($data, 'virtual_hosts_directory'))
             ->setMailDomainsDirectory(Arr::get($data, 'mail_domains_directory'))
             ->setShellPath(Arr::get($data, 'shell_path', ShellPath::BASH))
+            ->setAsyncSupportEnabled(Arr::get($data, 'async_support_enabled', false))
+            ->setRabbitMqUsername(Arr::get($data, 'rabbitmq_username'))
+            ->setRabbitMqVirtualHostName(Arr::get($data, 'rabbitmq_virtual_host_name'))
+            ->setRabbitMqPassword(Arr::get($data, 'rabbitmq_password'))
             ->setUnixId(Arr::get($data, 'unix_id'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
@@ -186,6 +242,10 @@ class UnixUser extends ClusterModel implements Model
             'virtual_hosts_directory' => $this->getVirtualHostsDirectory(),
             'mail_domains_directory' => $this->getMailDomainsDirectory(),
             'shell_path' => $this->getShellPath(),
+            'async_support_enabled' => $this->isAsyncSupportEnabled(),
+            'rabbitmq_username' => $this->getRabbitMqUsername(),
+            'rabbitmq_virtual_host_name' => $this->getRabbitMqVirtualHostName(),
+            'rabbitmq_password' => $this->getRabbitMqPassword(),
             'cluster_id' => $this->getClusterId(),
             'id' => $this->getId(),
             'unix_id' => $this->getUnixId(),

@@ -75,7 +75,6 @@ class Crons extends Endpoint
         $this->validateRequired($cron, 'create', [
             'name',
             'command',
-            'email_address',
             'schedule',
             'unix_user_id',
         ]);
@@ -91,6 +90,7 @@ class Crons extends Endpoint
                 'unix_user_id',
                 'error_count',
                 'locking_enabled',
+                'is_active',
             ]));
 
         $response = $this
@@ -122,7 +122,6 @@ class Crons extends Endpoint
         $this->validateRequired($cron, 'update', [
             'name',
             'command',
-            'email_address',
             'schedule',
             'unix_user_id',
             'id',
@@ -140,6 +139,7 @@ class Crons extends Endpoint
                 'unix_user_id',
                 'error_count',
                 'locking_enabled',
+                'is_active',
                 'id',
                 'cluster_id',
             ]));

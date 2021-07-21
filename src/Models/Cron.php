@@ -14,6 +14,7 @@ class Cron extends ClusterModel implements Model
     private int $unixUserId;
     private int $errorCount = 1;
     private bool $lockingEnabled = true;
+    private bool $isActive = true;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -108,6 +109,18 @@ class Cron extends ClusterModel implements Model
         return $this;
     }
 
+    public function isActive(): bool
+    {
+        return $this->isActive;
+    }
+
+    public function setIsActive(bool $isActive): Cron
+    {
+        $this->isActive = $isActive;
+
+        return $this;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -166,6 +179,7 @@ class Cron extends ClusterModel implements Model
             ->setUnixUserId(Arr::get($data, 'unix_user_id'))
             ->setErrorCount(Arr::get($data, 'error_count'))
             ->setLockingEnabled(Arr::get($data, 'locking_enabled'))
+            ->setIsActive(Arr::get($data, 'is_active'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -182,6 +196,7 @@ class Cron extends ClusterModel implements Model
             'unix_user_id' => $this->getUnixUserId(),
             'error_count' => $this->getErrorCount(),
             'locking_enabled' => $this->isLockingEnabled(),
+            'is_active' => $this->isActive(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
