@@ -14,7 +14,7 @@ from packaging.utils import canonicalize_name
 
 from pipx import constants
 from pipx.colors import bold, red
-from pipx.constants import WINDOWS
+from pipx.constants import PIPX_TEMP_DIR, WINDOWS
 from pipx.emojis import hazard, stars
 from pipx.package_specifier import parse_specifier_for_install, valid_pypi_name
 from pipx.pipx_metadata_file import PackageInfo
@@ -93,7 +93,11 @@ def _copy_package_apps(
             mkdir(dest.parent)
         if dest.exists():
             logger.warning(f"{hazard}  Overwriting file {str(dest)} with {str(src)}")
-            dest.unlink()
+            try:
+                dest.unlink()
+            except OSError:
+                tmp_dest = PIPX_TEMP_DIR / dest.name
+                dest.rename(tmp_dest)
         if src.exists():
             shutil.copy(src, dest)
 
