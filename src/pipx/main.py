@@ -721,8 +721,7 @@ def setup(args: argparse.Namespace) -> None:
     mkdir(constants.LOCAL_BIN_DIR)
     mkdir(constants.PIPX_VENV_CACHEDIR)
 
-    rmdir(constants.PIPX_TEMP_DIR, False)
-    mkdir(constants.PIPX_TEMP_DIR)
+    rmdir(constants.PIPX_TRASH_DIR, False)
 
     old_pipx_venv_location = constants.PIPX_LOCAL_VENVS / "pipx-app"
     if old_pipx_venv_location.exists():

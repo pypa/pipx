@@ -9,7 +9,7 @@ PIPX_HOME = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve()
 PIPX_LOCAL_VENVS = PIPX_HOME / "venvs"
 PIPX_LOG_DIR = PIPX_HOME / "logs"
 DEFAULT_PIPX_SHARED_LIBS = PIPX_HOME / "shared"
-PIPX_TEMP_DIR = PIPX_HOME / ".temp"
+PIPX_TRASH_DIR = PIPX_HOME / ".trash"
 PIPX_SHARED_LIBS = Path(
     os.environ.get("PIPX_SHARED_LIBS", DEFAULT_PIPX_SHARED_LIBS)
 ).resolve()

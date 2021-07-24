@@ -30,7 +30,7 @@ def reinstall(
     if Path(python).is_relative_to(venv_dir):
         print(
             f"{error} Error, the python executable would be deleted!",
-             "Change it using the --python option or PIPX_DEFAULT_PYTHON environment variable."
+            "Change it using the --python option or PIPX_DEFAULT_PYTHON environment variable.",
         )
         return EXIT_CODE_REINSTALL_INVALID_PYTHON
 

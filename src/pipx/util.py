@@ -23,7 +23,7 @@ from typing import (
 
 import pipx.constants
 from pipx.animate import show_cursor
-from pipx.constants import PIPX_TEMP_DIR, WINDOWS
+from pipx.constants import PIPX_TRASH_DIR, WINDOWS
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +40,18 @@ class RelevantSearch(NamedTuple):
     pattern: Pattern[str]
     category: str
 
-def _get_temp_file(path: Path) -> Path:
+
+def _get_trash_file(path: Path) -> Path:
+    if not PIPX_TRASH_DIR.is_dir():
+        PIPX_TRASH_DIR.mkdir()
     prefix = "".join(random.choices(string.ascii_lowercase, k=8))
-    return PIPX_TEMP_DIR / f"{prefix}.{path.name}"
+    return PIPX_TRASH_DIR / f"{prefix}.{path.name}"
 
 
 def rmdir(path: Path, safe_rm: bool = True) -> None:
+    if not path.is_dir():
+        return
+
     logger.info(f"removing directory {path}")
     try:
         if WINDOWS:
@@ -62,8 +68,7 @@ def rmdir(path: Path, safe_rm: bool = True) -> None:
                 f"Failed to delete {path}. Will moving it to a temp folder to delete later."
             )
 
-            tmp_dir = _get_temp_file(path)
-            path.rename(tmp_dir)
+            path.rename(_get_trash_file(path))
         else:
             logger.warning(
                 f"Failed to delete {path}. You may need to delete it manually."
@@ -87,8 +92,7 @@ def safe_unlink(file: Path) -> None:
     try:
         file.unlink()
     except PermissionError:
-        tmp_file = _get_temp_file(file)
-        file.rename(tmp_file)
+        file.rename(_get_trash_file(file))
 
 
 def get_pypackage_bin_path(binary_name: str) -> Path:
