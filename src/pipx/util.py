@@ -1,7 +1,9 @@
 import logging
 import os
+import random
 import re
 import shutil
+import string
 import subprocess
 import sys
 import textwrap
@@ -21,7 +23,7 @@ from typing import (
 
 import pipx.constants
 from pipx.animate import show_cursor
-from pipx.constants import WINDOWS
+from pipx.constants import PIPX_TEMP_DIR, WINDOWS
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +40,12 @@ class RelevantSearch(NamedTuple):
     pattern: Pattern[str]
     category: str
 
+def _get_temp_file(path: Path) -> Path:
+    prefix = "".join(random.choices(string.ascii_lowercase, k=8))
+    return PIPX_TEMP_DIR / f"{prefix}.{path.name}"
 
-def rmdir(path: Path) -> None:
+
+def rmdir(path: Path, safe_rm: bool = True) -> None:
     logger.info(f"removing directory {path}")
     try:
         if WINDOWS:
@@ -49,12 +55,40 @@ def rmdir(path: Path) -> None:
     except FileNotFoundError:
         pass
 
+    # move it to be deleted later if it still exists
+    if path.is_dir():
+        if safe_rm:
+            logger.warning(
+                f"Failed to delete {path}. Will moving it to a temp folder to delete later."
+            )
+
+            tmp_dir = _get_temp_file(path)
+            path.rename(tmp_dir)
+        else:
+            logger.warning(
+                f"Failed to delete {path}. You may need to delete it manually."
+            )
+
 
 def mkdir(path: Path) -> None:
     if path.is_dir():
         return
     logger.info(f"creating directory {path}")
     path.mkdir(parents=True, exist_ok=True)
+
+
+def safe_unlink(file: Path) -> None:
+    # Windows doesn't let us delete or overwrite files that are being run
+    # But it does let us rename/move it. To get around this issue, we can move
+    # the file to a temporary folder (to be deleted at a later time)
+
+    if not file.is_file():
+        return
+    try:
+        file.unlink()
+    except PermissionError:
+        tmp_file = _get_temp_file(file)
+        file.rename(tmp_file)
 
 
 def get_pypackage_bin_path(binary_name: str) -> Path:

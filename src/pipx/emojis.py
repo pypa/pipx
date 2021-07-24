@@ -28,8 +28,10 @@ EMOJI_SUPPORT = use_emojis()
 if EMOJI_SUPPORT:
     stars = "✨ 🌟 ✨"
     hazard = "⚠️"
+    error = "⛔"
     sleep = "😴"
 else:
     stars = ""
     hazard = ""
+    error = ""
     sleep = ""

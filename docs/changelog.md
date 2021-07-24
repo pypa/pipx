@@ -2,7 +2,7 @@ dev
 
 - Fix to `pipx ensurepath` to fix behavior in user locales other than UTF-8, to fix #644. The internal change is to use userpath v1.6.0 or greater. (#700)
 - Fix virtual environment inspection for Python releases that uses an int for its release serial number. (#706)
-- Fix PermissionError when overwriting a running file on windows. i.e. via `pipx upgrade pipx`
+- Fix PermissionError when deleting or overwriting a running file on windows. i.e. via `pipx upgrade pipx`
 
 0.16.3
 

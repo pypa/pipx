@@ -25,7 +25,7 @@ from pipx.colors import bold, green
 from pipx.constants import ExitCode
 from pipx.emojis import hazard
 from pipx.interpreter import DEFAULT_PYTHON
-from pipx.util import PipxError, mkdir, pipx_wrap
+from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import VenvContainer
 from pipx.version import __version__
 
@@ -721,12 +721,8 @@ def setup(args: argparse.Namespace) -> None:
     mkdir(constants.LOCAL_BIN_DIR)
     mkdir(constants.PIPX_VENV_CACHEDIR)
 
+    rmdir(constants.PIPX_TEMP_DIR, False)
     mkdir(constants.PIPX_TEMP_DIR)
-    temp_children = constants.PIPX_TEMP_DIR.iterdir()
-    if temp_children:
-        logger.debug("Cleaning temp folder")
-        for f in temp_children:
-            f.unlink()
 
     old_pipx_venv_location = constants.PIPX_LOCAL_VENVS / "pipx-app"
     if old_pipx_venv_location.exists():
