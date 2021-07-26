@@ -65,7 +65,7 @@ def rmdir(path: Path, safe_rm: bool = True) -> None:
     if path.is_dir():
         if safe_rm:
             logger.warning(
-                f"Failed to delete {path}. Will moving it to a temp folder to delete later."
+                f"Failed to delete {path}. Will move it to a temp folder to delete later."
             )
 
             path.rename(_get_trash_file(path))
