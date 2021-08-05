@@ -23,7 +23,7 @@ class SshKeys extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('ssh-keys?%s', http_build_query($filter->toArray())));
+            ->setUrl(sprintf('ssh-keys?%s', $filter->toQuery()));
 
         $response = $this
             ->client

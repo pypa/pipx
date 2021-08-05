@@ -25,7 +25,7 @@ class BorgRepositories extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('borg-repositories?%s', http_build_query($filter->toArray())));
+            ->setUrl(sprintf('borg-repositories?%s', $filter->toQuery()));
 
         $response = $this
             ->client

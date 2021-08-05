@@ -25,7 +25,7 @@ class UnixUsers extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('unix-users?%s', http_build_query($filter->toArray())));
+            ->setUrl(sprintf('unix-users?%s', $filter->toQuery()));
 
         $response = $this
             ->client

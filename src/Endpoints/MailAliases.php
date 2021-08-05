@@ -23,7 +23,7 @@ class MailAliases extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('mail-aliases?%s', http_build_query($filter->toArray())));
+            ->setUrl(sprintf('mail-aliases?%s', $filter->toQuery()));
 
         $response = $this
             ->client

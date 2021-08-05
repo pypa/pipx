@@ -25,7 +25,7 @@ class MailAccounts extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('mail-accounts?%s', http_build_query($filter->toArray())));
+            ->setUrl(sprintf('mail-accounts?%s', $filter->toQuery()));
 
         $response = $this
             ->client

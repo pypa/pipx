@@ -23,7 +23,7 @@ class FpmPools extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('fpm-pools?%s', http_build_query($filter->toArray())));
+            ->setUrl(sprintf('fpm-pools?%s', $filter->toQuery()));
 
         $response = $this
             ->client

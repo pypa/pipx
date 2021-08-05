@@ -23,7 +23,7 @@ class DatabaseUsers extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('database-users?%s', http_build_query($filter->toArray())));
+            ->setUrl(sprintf('database-users?%s', $filter->toQuery()));
 
         $response = $this
             ->client

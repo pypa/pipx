@@ -23,7 +23,7 @@ class Commands extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('commands?%s', http_build_query($filter->toArray())));
+            ->setUrl(sprintf('commands?%s', $filter->toQuery()));
 
         $response = $this
             ->client

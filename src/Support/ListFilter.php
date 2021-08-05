@@ -3,6 +3,7 @@
 namespace Vdhicts\Cyberfusion\ClusterApi\Support;
 
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Filter;
+use Vdhicts\HttpQueryBuilder\Builder;
 
 class ListFilter implements Filter
 {
@@ -72,5 +73,19 @@ class ListFilter implements Filter
             'filter' => $this->filter,
             'sort' => $this->sort,
         ];
+    }
+
+    public function toQuery(): string
+    {
+        $builder = (new Builder())
+            ->add('skip', $this->skip)
+            ->add('limit', $this->limit);
+        foreach ($this->filter as $filter) {
+            $builder->add('filter', $filter);
+        }
+        foreach ($this->sort as $sort) {
+            $builder->add('sort', $sort);
+        }
+        return $builder->build();
     }
 }
