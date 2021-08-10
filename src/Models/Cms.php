@@ -11,10 +11,10 @@ class Cms extends ClusterModel implements Model
     private int $virtualHostId;
     private ?string $oneTimeLoginUrl = null;
     private bool $isManuallyCreated = false;
-    private int $id;
-    private int $clusterId;
-    private string $createdAt;
-    private string $updatedAt;
+    private ?int $id = null;
+    private ?int $clusterId = null;
+    private ?string $createdAt = null;
+    private ?string $updatedAt = null;
 
     public function getSoftwareName(): string
     {
@@ -64,48 +64,48 @@ class Cms extends ClusterModel implements Model
         return $this;
     }
 
-    public function getId(): int
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function setId(int $id): Cms
+    public function setId(?int $id): Cms
     {
         $this->id = $id;
 
         return $this;
     }
 
-    public function getClusterId(): int
+    public function getClusterId(): ?int
     {
         return $this->clusterId;
     }
 
-    public function setClusterId(int $clusterId): Cms
+    public function setClusterId(?int $clusterId): Cms
     {
         $this->clusterId = $clusterId;
 
         return $this;
     }
 
-    public function getCreatedAt(): string
+    public function getCreatedAt(): ?string
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(string $createdAt): Cms
+    public function setCreatedAt(?string $createdAt): Cms
     {
         $this->createdAt = $createdAt;
 
         return $this;
     }
 
-    public function getUpdatedAt(): string
+    public function getUpdatedAt(): ?string
     {
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(string $updatedAt): Cms
+    public function setUpdatedAt(?string $updatedAt): Cms
     {
         $this->updatedAt = $updatedAt;
 
