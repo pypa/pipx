@@ -291,7 +291,7 @@ def _get_list_output(
     suffix = f" ({bold(shlex.quote(package_name + suffix))})" if suffix else ""
     output.append(
         f"  {'installed' if new_install else ''} package {bold(shlex.quote(package_name))}"
-        f" {bold(package_version)}{suffix}, {python_version}"
+        f" {bold(package_version)}{suffix}, installed using {python_version}"
     )
 
     if new_install and exposed_binary_names:
