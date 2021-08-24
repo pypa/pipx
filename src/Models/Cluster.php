@@ -20,6 +20,7 @@ class Cluster extends ClusterModel implements Model
     private ?bool $commandToolkitEnabled = null;
     private ?bool $malwareToolkitEnabled = null;
     private ?bool $malwareToolkitScansEnabled = null;
+    private ?bool $bubblewrapToolkitEnabled = null;
     private ?int $id = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
@@ -180,6 +181,18 @@ class Cluster extends ClusterModel implements Model
         return $this;
     }
 
+    public function isBubblewrapToolkitEnabled(): ?bool
+    {
+        return $this->bubblewrapToolkitEnabled;
+    }
+
+    public function setBubblewrapToolkitEnabled(?bool $bubblewrapToolkitEnabled): Cluster
+    {
+        $this->bubblewrapToolkitEnabled = $bubblewrapToolkitEnabled;
+
+        return $this;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -232,6 +245,7 @@ class Cluster extends ClusterModel implements Model
             ->setCommandToolkitEnabled(Arr::get($data, 'command_toolkit_enabled'))
             ->setMalwareToolkitEnabled(Arr::get($data, 'malware_toolkit_enabled'))
             ->setMalwareToolkitScansEnabled(Arr::get($data, 'malware_toolkit_scans_enabled'))
+            ->setBubblewrapToolkitEnabled(Arr::get($data, 'bubblewrap_toolkit_enabled'))
             ->setId(Arr::get($data, 'id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
             ->setUpdatedAt(Arr::get($data, 'updated_at'));
@@ -253,6 +267,7 @@ class Cluster extends ClusterModel implements Model
             'command_toolkit_enabled' => $this->isCommandToolkitEnabled(),
             'malware_toolkit_enabled' => $this->istMalwareToolkitEnabled(),
             'malware_toolkit_scans_enabled' => $this->isMalwareToolkitScansEnabled(),
+            'bubblewrap_toolkit_enabled ' => $this->isBubblewrapToolkitEnabled(),
             'id' => $this->getId(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),

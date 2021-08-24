@@ -7,6 +7,7 @@ use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 
 class Certificate extends ClusterModel implements Model
 {
+    private string $mainCommonName = '';
     private array $commonNames = [];
     private ?string $certificate = null;
     private ?string $caChain = null;
@@ -16,6 +17,18 @@ class Certificate extends ClusterModel implements Model
     private ?int $clusterId = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
+
+    public function getMainCommonName(): string
+    {
+        return $this->mainCommonName;
+    }
+
+    public function setMainCommonName(string $mainCommonName): Certificate
+    {
+        $this->mainCommonName = $mainCommonName;
+
+        return $this;
+    }
 
     public function getCommonNames(): array
     {
@@ -128,6 +141,7 @@ class Certificate extends ClusterModel implements Model
     public function fromArray(array $data): Certificate
     {
         return $this
+            ->setMainCommonName(Arr::get($data, 'main_common_name', ''))
             ->setCommonNames(Arr::get($data, 'common_names', []))
             ->setCertificate(Arr::get($data, 'certificate'))
             ->setCaChain(Arr::get($data, 'ca_chain'))
@@ -142,6 +156,7 @@ class Certificate extends ClusterModel implements Model
     public function toArray(): array
     {
         return [
+            'main_common_name' => $this->getMainCommonName(),
             'common_names' => $this->getCommonNames(),
             'certificate' => $this->getCertificate(),
             'ca_chain' => $this->getCaChain(),
