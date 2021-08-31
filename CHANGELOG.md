@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.26.0]
+
+### Added
+
+- Add `description` to unix user.
+- Add `borg_repositories_directory` to unix user.
+
+### Changed
+
+- Change `process_idle_timeout` to `10`.
+
+### Removed
+
+- Remove commands endpoint and model.
+- Remove `command_toolkit_enabled` from cluster.
+
 ## [1.25.0]
 
 ### Added

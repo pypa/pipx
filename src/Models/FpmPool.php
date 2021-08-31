@@ -12,7 +12,7 @@ class FpmPool extends ClusterModel implements Model
     private string $version;
     private int $maxChildren;
     private int $maxRequests = 1000;
-    private int $processIdleTimeout = 600;
+    private int $processIdleTimeout = 10;
     private ?int $cpuLimit = null;
     private bool $isNamespaced = false;
     private ?int $id = null;

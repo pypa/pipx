@@ -10,9 +10,11 @@ class UnixUser extends ClusterModel implements Model
 {
     private string $username;
     private string $password;
+    private ?string $description = null;
     private ?string $defaultPhpVersion = null;
     private ?string $virtualHostsDirectory = null;
     private ?string $mailDomainsDirectory = null;
+    private ?string $borgRepositoriesDirectory = null;
     private string $shellPath = ShellPath::BASH;
     private bool $asyncSupportEnabled = false;
     private ?string $rabbitMqUsername = null;
@@ -53,6 +55,18 @@ class UnixUser extends ClusterModel implements Model
         return $this;
     }
 
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(?string $description): UnixUser
+    {
+        $this->description = $description;
+
+        return $this;
+    }
+
     public function getDefaultPhpVersion(): ?string
     {
         return $this->defaultPhpVersion;
@@ -85,6 +99,18 @@ class UnixUser extends ClusterModel implements Model
     public function setMailDomainsDirectory(?string $mailDomainsDirectory): UnixUser
     {
         $this->mailDomainsDirectory = $mailDomainsDirectory;
+
+        return $this;
+    }
+
+    public function getBorgRepositoriesDirectory(): ?string
+    {
+        return $this->borgRepositoriesDirectory;
+    }
+
+    public function setBorgRepositoriesDirectory(?string $borgRepositoriesDirectory): UnixUser
+    {
+        $this->borgRepositoriesDirectory = $borgRepositoriesDirectory;
 
         return $this;
     }
@@ -218,9 +244,11 @@ class UnixUser extends ClusterModel implements Model
         return $this
             ->setUsername(Arr::get($data, 'username'))
             ->setPassword(Arr::get($data, 'password'))
+            ->setDescription(Arr::get($data, 'description'))
             ->setDefaultPhpVersion(Arr::get($data, 'default_php_version'))
             ->setVirtualHostsDirectory(Arr::get($data, 'virtual_hosts_directory'))
             ->setMailDomainsDirectory(Arr::get($data, 'mail_domains_directory'))
+            ->setBorgRepositoriesDirectory(Arr::get($data, 'borg_repositories_directory'))
             ->setShellPath(Arr::get($data, 'shell_path', ShellPath::BASH))
             ->setAsyncSupportEnabled(Arr::get($data, 'async_support_enabled', false))
             ->setRabbitMqUsername(Arr::get($data, 'rabbitmq_username'))
@@ -238,9 +266,11 @@ class UnixUser extends ClusterModel implements Model
         return [
             'username' => $this->getUsername(),
             'password' => $this->getPassword(),
+            'description' => $this->getDescription(),
             'default_php_version' => $this->getDefaultPhpVersion(),
             'virtual_hosts_directory' => $this->getVirtualHostsDirectory(),
             'mail_domains_directory' => $this->getMailDomainsDirectory(),
+            'borg_repositories_directory' => $this->getBorgRepositoriesDirectory(),
             'shell_path' => $this->getShellPath(),
             'async_support_enabled' => $this->isAsyncSupportEnabled(),
             'rabbitmq_username' => $this->getRabbitMqUsername(),
