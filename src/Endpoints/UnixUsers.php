@@ -69,16 +69,13 @@ class UnixUsers extends Endpoint
 
     /**
      * @param int $id
-     * @param DateTimeInterface|null $from
+     * @param DateTimeInterface $from
      * @return Response
      * @throws RequestException
      */
-    public function usages(int $id, DateTimeInterface $from = null): Response
+    public function usages(int $id, DateTimeInterface $from): Response
     {
-        $url = $this->applyOptionalQueryParameters(
-            sprintf('unix-users/usages/%d', $id),
-            ['from_timestamp_date' => $from]
-        );
+        $url = sprintf('unix-users/usages/%d?from_timestamp_date=%s', $id, $from->format('c'));
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
