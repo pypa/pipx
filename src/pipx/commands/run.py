@@ -27,6 +27,11 @@ logger = logging.getLogger(__name__)
 
 VENV_EXPIRED_FILENAME = "pipx_expired_venv"
 
+APP_NOT_FOUND_ERROR_MESSAGE = """\
+'{app}' executable script not found in package '{package_name}'.
+Available executable scripts:
+    {app_lines}"""
+
 
 def run(
     app: str,
@@ -146,12 +151,29 @@ def _download_and_run(
 
     if not venv.has_app(app, app_filename):
         apps = venv.pipx_metadata.main_package.apps
-        raise PipxError(
-            f"""
-            '{app}' executable script not found in package '{package_or_url}'.
-            Available executable scripts: {', '.join(b for b in apps)}
-            """
-        )
+
+        # If there's a single app inside the package, run that by default
+        if len(apps) == 1:
+            app = apps[0]
+            print(f"NOTE: running app {app!r} from {package_name!r}")
+            if WINDOWS:
+                app_filename = f"{app}.exe"
+                logger.info(f"Assuming app is {app_filename!r} (Windows only)")
+            else:
+                app_filename = app
+        else:
+            all_apps = (
+                f"{a} - usage: 'pipx run --spec {package_name} {a} [arguments?]"
+                for a in apps
+            )
+            raise PipxError(
+                APP_NOT_FOUND_ERROR_MESSAGE.format(
+                    app=app,
+                    package_name=package_name,
+                    app_lines="\n    ".join(all_apps),
+                ),
+                wrap_message=False,
+            )
 
     if not use_cache:
         # Let future _remove_all_expired_venvs know to remove this
