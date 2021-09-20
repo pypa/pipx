@@ -188,4 +188,31 @@ class FpmPools extends Endpoint
             ->client
             ->request($request);
     }
+
+    /**
+     * @param int $id
+     * @return Response
+     * @throws RequestException
+     */
+    public function restart(int $id)
+    {
+        $result = $this->get($id);
+        if ($result->isSuccess()) {
+            $clusterId = $result
+                ->getData('fpmPool')
+                ->getClusterId();
+
+            $this
+                ->client
+                ->addAffectedCluster($clusterId);
+        }
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl(sprintf('fpm-pools/%d/restart', $id));
+
+        return $this
+            ->client
+            ->request($request);
+    }
 }
