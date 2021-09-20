@@ -194,7 +194,7 @@ class FpmPools extends Endpoint
      * @return Response
      * @throws RequestException
      */
-    public function restart(int $id)
+    public function restart(int $id): Response
     {
         $result = $this->get($id);
         if ($result->isSuccess()) {
