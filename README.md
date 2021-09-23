@@ -1,19 +1,19 @@
 <p align="center">
 <a href="https://pypa.github.io/pipx/">
-<img align="center" src="https://github.com/pypa/pipx/raw/master/logo.png"/>
+<img align="center" src="https://github.com/pypa/pipx/raw/main/logo.png"/>
 </a>
 </p>
 
 # pipx — Install and Run Python Applications in Isolated Environments
 
 <p align="center">
-<a href="https://github.com/pypa/pipx/raw/master/pipx_demo.gif">
-<img src="https://github.com/pypa/pipx/raw/master/pipx_demo.gif"/>
+<a href="https://github.com/pypa/pipx/raw/main/pipx_demo.gif">
+<img src="https://github.com/pypa/pipx/raw/main/pipx_demo.gif"/>
 </a>
 </p>
 
 <p align="center">
-<a href="https://github.com/pypa/pipx/actions?query=workflow%3ATest"><img src="https://github.com/pypa/pipx/workflows/Test/badge.svg?branch=master" alt="Test CI" ></a>
+<a href="https://github.com/pypa/pipx/actions?query=workflow%3ATest"><img src="https://github.com/pypa/pipx/workflows/Test/badge.svg?branch=main" alt="Test CI" ></a>
 <a href="https://badge.fury.io/py/pipx"><img src="https://badge.fury.io/py/pipx.svg" alt="PyPI version"></a>
 </p>
 
