@@ -1,6 +1,7 @@
 dev
 
 - Fixed `pipx list` output phrasing to convey that python version displayed is the one with which package was installed. 
+- Fixed `pipx install` to provide return code 0 if venv already exists, similar behavior as pip. (#736)
 
 0.16.4
 
