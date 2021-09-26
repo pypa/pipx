@@ -56,7 +56,7 @@ WARNING: The script pipx.exe is installed in `<USER folder>\AppData\Roaming\Pyth
 ```
 
 If so, go to the mentioned folder, allowing you to run the pipx executable directly.
-Enter the following line (even if you did not get the warning.):
+Enter the following line (even if you did not get the warning):
 
 ```
 pipx ensurepath
@@ -67,7 +67,7 @@ Restart your terminal session and verify `pipx` does run.
 
 Upgrade pipx with `python3 -m pip install --user -U pipx`.
 
-### Shell completions.
+### Shell completions
 
 Shell completions are available by following the instructions printed with this command:
 ```
