@@ -155,11 +155,13 @@ def _download_and_run(
         # If there's a single app inside the package, run that by default
         if len(apps) == 1:
             app = apps[0]
-            print(f"NOTE: running app {app!r} from {package_name!r}")
             if WINDOWS:
                 app_filename = f"{app}.exe"
-                logger.info(f"Assuming app is {app_filename!r} (Windows only)")
+                logger.info(
+                    f"NOTE: running app {app!r} (assuming {app_filename!r} on Windows) from {package_name!r}"
+                )
             else:
+                logger.info(f"NOTE: running app {app!r} from {package_name!r}")
                 app_filename = app
         else:
             all_apps = (
