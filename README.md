@@ -1,19 +1,19 @@
 <p align="center">
 <a href="https://pypa.github.io/pipx/">
-<img align="center" src="https://github.com/pypa/pipx/raw/master/logo.png"/>
+<img align="center" src="https://github.com/pypa/pipx/raw/main/logo.png"/>
 </a>
 </p>
 
 # pipx — Install and Run Python Applications in Isolated Environments
 
 <p align="center">
-<a href="https://github.com/pypa/pipx/raw/master/pipx_demo.gif">
-<img src="https://github.com/pypa/pipx/raw/master/pipx_demo.gif"/>
+<a href="https://github.com/pypa/pipx/raw/main/pipx_demo.gif">
+<img src="https://github.com/pypa/pipx/raw/main/pipx_demo.gif"/>
 </a>
 </p>
 
 <p align="center">
-<a href="https://github.com/pypa/pipx/actions?query=workflow%3ATest"><img src="https://github.com/pypa/pipx/workflows/Test/badge.svg?branch=master" alt="Test CI" ></a>
+<a href="https://github.com/pypa/pipx/actions?query=workflow%3ATest"><img src="https://github.com/pypa/pipx/workflows/Test/badge.svg?branch=main" alt="Test CI" ></a>
 <a href="https://badge.fury.io/py/pipx"><img src="https://badge.fury.io/py/pipx.svg" alt="PyPI version"></a>
 </p>
 
@@ -25,7 +25,7 @@ _For comparison to other tools including pipsi, see [Comparison to Other Tools](
 
 ## Install pipx
 
-On macOS:
+### On macOS
 
 ```
 brew install pipx
@@ -34,14 +34,40 @@ pipx ensurepath
 
 Upgrade pipx with `brew update && brew upgrade pipx`.
 
-Otherwise, install via pip (requires pip 19.0 or later):
+### On Linux, install via pip (requires pip 19.0 or later)
 
 ```
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ```
+Upgrade pipx with `python3 -m pip install --user -U pipx`.
+
+### On Windows, install via pip (requires pip 19.0 or later)
+
+```
+# If you installed python using the app-store, replace `python` with `python3` in the next line.
+python -m pip install --user pipx
+```
+
+It is possible (even most likely) the above finishes with a WARNING looking similar to this:
+
+```
+WARNING: The script pipx.exe is installed in `<USER folder>\AppData\Roaming\Python\Python3x\Scripts` which is not on PATH
+```
+
+If so, go to the mentioned folder, allowing you to run the pipx executable directly.
+Enter the following line (even if you did not get the warning):
+
+```
+pipx ensurepath
+```
+
+This will add both the above mentioned path and the `%USERPROFILE%.local\bin` folder to your search path.
+Restart your terminal session and verify `pipx` does run.
 
 Upgrade pipx with `python3 -m pip install --user -U pipx`.
+
+### Shell completions
 
 Shell completions are available by following the instructions printed with this command:
 ```

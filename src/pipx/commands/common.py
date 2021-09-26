@@ -18,7 +18,7 @@ from pipx.constants import WINDOWS
 from pipx.emojis import hazard, stars
 from pipx.package_specifier import parse_specifier_for_install, valid_pypi_name
 from pipx.pipx_metadata_file import PackageInfo
-from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
+from pipx.util import PipxError, mkdir, pipx_wrap, rmdir, safe_unlink
 from pipx.venv import Venv
 
 logger = logging.getLogger(__name__)
@@ -93,7 +93,7 @@ def _copy_package_apps(
             mkdir(dest.parent)
         if dest.exists():
             logger.warning(f"{hazard}  Overwriting file {str(dest)} with {str(src)}")
-            dest.unlink()
+            safe_unlink(dest)
         if src.exists():
             shutil.copy(src, dest)
 

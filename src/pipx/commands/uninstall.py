@@ -16,7 +16,7 @@ from pipx.constants import (
 )
 from pipx.emojis import hazard, sleep, stars
 from pipx.pipx_metadata_file import PackageInfo
-from pipx.util import rmdir
+from pipx.util import rmdir, safe_unlink
 from pipx.venv import Venv, VenvContainer
 from pipx.venv_inspect import VenvMetadata
 
@@ -125,7 +125,7 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> ExitCode:
 
     for bin_dir_app_path in bin_dir_app_paths:
         try:
-            bin_dir_app_path.unlink()
+            safe_unlink(bin_dir_app_path)
         except FileNotFoundError:
             logger.info(f"tried to remove but couldn't find {bin_dir_app_path}")
         else:

@@ -8,8 +8,13 @@ import pipx.shared_libs  # import instead of from so mockable in tests
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
-from pipx.constants import EXIT_CODE_OK, EXIT_CODE_REINSTALL_VENV_NONEXISTENT, ExitCode
-from pipx.emojis import sleep
+from pipx.constants import (
+    EXIT_CODE_OK,
+    EXIT_CODE_REINSTALL_INVALID_PYTHON,
+    EXIT_CODE_REINSTALL_VENV_NONEXISTENT,
+    ExitCode,
+)
+from pipx.emojis import error, hazard, sleep
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
@@ -21,6 +26,13 @@ def reinstall(
     if not venv_dir.exists():
         print(f"Nothing to reinstall for {venv_dir.name} {sleep}")
         return EXIT_CODE_REINSTALL_VENV_NONEXISTENT
+
+    if Path(python).is_relative_to(venv_dir):
+        print(
+            f"{error} Error, the python executable would be deleted!",
+            "Change it using the --python option or PIPX_DEFAULT_PYTHON environment variable.",
+        )
+        return EXIT_CODE_REINSTALL_INVALID_PYTHON
 
     venv = Venv(venv_dir, verbose=verbose)
 

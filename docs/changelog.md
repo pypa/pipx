@@ -1,12 +1,14 @@
 dev
 
 - Fixed `pipx list` output phrasing to convey that python version displayed is the one with which package was installed.
+- Fixed `pipx install` to provide return code 0 if venv already exists, similar to pip’s behavior. (#736)
 - Add better handling for 'app not found' when a single app is present in the project, and an improved error message (#733)
 
 0.16.4
 
 - Fix to `pipx ensurepath` to fix behavior in user locales other than UTF-8, to fix #644. The internal change is to use userpath v1.6.0 or greater. (#700)
 - Fix virtual environment inspection for Python releases that uses an int for its release serial number. (#706)
+- Fix PermissionError in windows when pipx manages itself. (#718)
 
 0.16.3
 

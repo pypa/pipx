@@ -9,6 +9,7 @@ PIPX_HOME = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve()
 PIPX_LOCAL_VENVS = PIPX_HOME / "venvs"
 PIPX_LOG_DIR = PIPX_HOME / "logs"
 DEFAULT_PIPX_SHARED_LIBS = PIPX_HOME / "shared"
+PIPX_TRASH_DIR = PIPX_HOME / ".trash"
 PIPX_SHARED_LIBS = Path(
     os.environ.get("PIPX_SHARED_LIBS", DEFAULT_PIPX_SHARED_LIBS)
 ).resolve()
@@ -21,11 +22,12 @@ ExitCode = NewType("ExitCode", int)
 # pipx shell exit codes
 EXIT_CODE_OK = ExitCode(0)
 EXIT_CODE_INJECT_ERROR = ExitCode(1)
-EXIT_CODE_INSTALL_VENV_EXISTS = ExitCode(1)
+EXIT_CODE_INSTALL_VENV_EXISTS = ExitCode(0)
 EXIT_CODE_LIST_PROBLEM = ExitCode(1)
 EXIT_CODE_UNINSTALL_VENV_NONEXISTENT = ExitCode(1)
 EXIT_CODE_UNINSTALL_ERROR = ExitCode(1)
 EXIT_CODE_REINSTALL_VENV_NONEXISTENT = ExitCode(1)
+EXIT_CODE_REINSTALL_INVALID_PYTHON = ExitCode(1)
 
 pipx_log_file: Optional[Path] = None
 
