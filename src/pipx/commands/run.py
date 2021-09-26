@@ -153,7 +153,7 @@ def _download_and_run(
         apps = venv.pipx_metadata.main_package.apps
 
         # If there's a single app inside the package, run that by default
-        if len(apps) == 1:
+        if app == package_name and len(apps) == 1:
             app = apps[0]
             if WINDOWS:
                 app_filename = f"{app}.exe"
@@ -161,7 +161,7 @@ def _download_and_run(
                     f"NOTE: running app {app!r} (assuming {app_filename!r} on Windows) from {package_name!r}"
                 )
             else:
-                logger.info(f"NOTE: running app {app!r} from {package_name!r}")
+                print(f"NOTE: running app {app!r} from {package_name!r}")
                 app_filename = app
         else:
             all_apps = (
