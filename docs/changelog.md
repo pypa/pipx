@@ -1,6 +1,7 @@
 dev
 
-- Fixed `pipx list` output phrasing to convey that python version displayed is the one with which package was installed. 
+- Fixed `pipx list` output phrasing to convey that python version displayed is the one with which package was installed.
+- Add better handling for 'app not found' when a single app is present in the project, and an improved error message (#733)
 
 0.16.4
 
