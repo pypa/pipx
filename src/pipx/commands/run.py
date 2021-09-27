@@ -163,8 +163,8 @@ def _download_and_run(
                 app_filename = app
         else:
             all_apps = (
-                f"{app} - usage: 'pipx run --spec {package_name} {app} [arguments?]"
-                for app in apps
+                f"{a} - usage: 'pipx run --spec {package_name} {app} [arguments?]'"
+                for a in apps
             )
             raise PipxError(
                 APP_NOT_FOUND_ERROR_MESSAGE.format(
