@@ -2,6 +2,7 @@ dev
 
 - Fixed `pipx list` output phrasing to convey that python version displayed is the one with which package was installed. 
 - Fixed `pipx install` to provide return code 0 if venv already exists, similar to pip’s behavior. (#736)
+- [docs] Update ansible's install command in [Programs to Try document](https://pypa.github.io/pipx/programs-to-try/#ansible) to work with Ansible 2.10+ (#742)
 
 0.16.4
 
