@@ -7,7 +7,7 @@ Here are some programs you can try out. If you've never used the program before,
 IT automation
 
 ```
-pipx install ansible
+pipx install --include-deps ansible
 ```
 
 ### asciinema
