@@ -611,7 +611,9 @@ def get_command_parser() -> argparse.ArgumentParser:
     completer_venvs = InstalledVenvsCompleter(venv_container)
 
     parser = argparse.ArgumentParser(
-        formatter_class=LineWrapRawTextHelpFormatter, description=PIPX_DESCRIPTION
+        prog="pipx",
+        formatter_class=LineWrapRawTextHelpFormatter,
+        description=PIPX_DESCRIPTION,
     )
 
     subparsers = parser.add_subparsers(
