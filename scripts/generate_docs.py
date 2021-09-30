@@ -3,6 +3,7 @@
 
 import os
 import subprocess
+import sys
 import textwrap
 from typing import Optional
 
@@ -12,10 +13,10 @@ from pipx.main import __version__
 
 
 def get_help(pipxcmd: Optional[str]) -> str:
+    cmd = [sys.executable, "-m", "pipx"]
     if pipxcmd:
-        cmd = ["pipx", pipxcmd, "--help"]
-    else:
-        cmd = ["pipx", "--help"]
+        cmd.append(pipxcmd)
+    cmd.append("--help")
 
     helptext = (
         subprocess.run(cmd, stdout=subprocess.PIPE, check=True)
