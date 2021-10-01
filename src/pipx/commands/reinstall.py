@@ -14,7 +14,7 @@ from pipx.constants import (
     EXIT_CODE_REINSTALL_VENV_NONEXISTENT,
     ExitCode,
 )
-from pipx.emojis import error, hazard, sleep
+from pipx.emojis import error, sleep
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
