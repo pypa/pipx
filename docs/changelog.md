@@ -1,6 +1,9 @@
 dev
 
 - Fixed `pipx list` output phrasing to convey that python version displayed is the one with which package was installed.
+
+0.16.5
+
 - Fixed `pipx install` to provide return code 0 if venv already exists, similar to pip’s behavior. (#736)
 - Add better handling for 'app not found' when a single app is present in the project, and an improved error message (#733)
 
