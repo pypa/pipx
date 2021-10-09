@@ -58,6 +58,10 @@ class BorgRepository extends ClusterModel implements Model
 
     public function setKeepHourly(int $keepHourly = null): BorgRepository
     {
+        $this->validate($keepHourly, [
+            'positive_integer',
+        ]);
+
         $this->keepHourly = $keepHourly;
 
         return $this;
@@ -70,6 +74,10 @@ class BorgRepository extends ClusterModel implements Model
 
     public function setKeepDaily(int $keepDaily = null): BorgRepository
     {
+        $this->validate($keepDaily, [
+            'positive_integer',
+        ]);
+
         $this->keepDaily = $keepDaily;
 
         return $this;
@@ -82,6 +90,10 @@ class BorgRepository extends ClusterModel implements Model
 
     public function setKeepWeekly(int $keepWeekly = null): BorgRepository
     {
+        $this->validate($keepWeekly, [
+            'positive_integer',
+        ]);
+
         $this->keepWeekly = $keepWeekly;
 
         return $this;
@@ -94,6 +106,10 @@ class BorgRepository extends ClusterModel implements Model
 
     public function setKeepMonthly(int $keepMonthly = null): BorgRepository
     {
+        $this->validate($keepMonthly, [
+            'positive_integer',
+        ]);
+
         $this->keepMonthly = $keepMonthly;
 
         return $this;
@@ -106,6 +122,10 @@ class BorgRepository extends ClusterModel implements Model
 
     public function setKeepYearly(int $keepYearly = null): BorgRepository
     {
+        $this->validate($keepYearly, [
+            'positive_integer',
+        ]);
+
         $this->keepYearly = $keepYearly;
 
         return $this;

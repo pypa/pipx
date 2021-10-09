@@ -92,6 +92,10 @@ class Cron extends ClusterModel implements Model
 
     public function setErrorCount(int $errorCount): Cron
     {
+        $this->validate($errorCount, [
+            'positive_integer',
+        ]);
+
         $this->errorCount = $errorCount;
 
         return $this;
