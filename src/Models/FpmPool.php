@@ -15,6 +15,7 @@ class FpmPool extends ClusterModel implements Model
     private int $processIdleTimeout = 10;
     private ?int $cpuLimit = null;
     private bool $isNamespaced = false;
+    private ?string $unitName;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -68,6 +69,10 @@ class FpmPool extends ClusterModel implements Model
 
     public function setMaxChildren(int $maxChildren): FpmPool
     {
+        $this->validate($maxChildren, [
+            'positive_integer',
+        ]);
+
         $this->maxChildren = $maxChildren;
 
         return $this;
@@ -80,6 +85,10 @@ class FpmPool extends ClusterModel implements Model
 
     public function setMaxRequests(int $maxRequests): FpmPool
     {
+        $this->validate($maxRequests, [
+            'positive_integer',
+        ]);
+
         $this->maxRequests = $maxRequests;
 
         return $this;
@@ -92,6 +101,10 @@ class FpmPool extends ClusterModel implements Model
 
     public function setProcessIdleTimeout(int $processIdleTimeout): FpmPool
     {
+        $this->validate($processIdleTimeout, [
+            'positive_integer',
+        ]);
+
         $this->processIdleTimeout = $processIdleTimeout;
 
         return $this;
@@ -104,6 +117,10 @@ class FpmPool extends ClusterModel implements Model
 
     public function setCpuLimit(?int $cpuLimit): FpmPool
     {
+        $this->validate($cpuLimit, [
+            'positive_integer',
+        ]);
+
         $this->cpuLimit = $cpuLimit;
 
         return $this;
@@ -117,6 +134,18 @@ class FpmPool extends ClusterModel implements Model
     public function setIsNamespaced(bool $isNamespaced): FpmPool
     {
         $this->isNamespaced = $isNamespaced;
+
+        return $this;
+    }
+
+    public function getUnitName(): ?string
+    {
+        return $this->unitName;
+    }
+
+    public function setUnitName(?string $unitName): FpmPool
+    {
+        $this->unitName = $unitName;
 
         return $this;
     }
@@ -180,6 +209,7 @@ class FpmPool extends ClusterModel implements Model
             ->setProcessIdleTimeout(Arr::get($data, 'process_idle_timeout'))
             ->setCpuLimit(Arr::get($data, 'cpu_limit'))
             ->setIsNamespaced((bool)Arr::get($data, 'is_namespaced'))
+            ->setUnitName((bool)Arr::get($data, 'unit_name'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -197,6 +227,7 @@ class FpmPool extends ClusterModel implements Model
             'process_idle_timeout' => $this->getProcessIdleTimeout(),
             'cpu_limit' => $this->getCpuLimit(),
             'is_namespaced' => $this->isNamespaced(),
+            'unit_name' => $this->getUnitName(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),

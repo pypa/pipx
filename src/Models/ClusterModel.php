@@ -57,6 +57,8 @@ abstract class ClusterModel implements JsonSerializable, Model
     private function performValidation($value, string $type, $setting): bool
     {
         switch ($type) {
+            case 'positive_integer':
+                return is_integer($value) && $value >= 0;
             case 'length_max':
                 return is_string($value) && Str::length($value) <= $setting;
             case 'pattern':

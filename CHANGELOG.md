@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.29.0]
+
+### Added
+
+- Add `disableAsync` to the `UnixUsers` endpoint. Thanks to @WilliamDEdwards.
+- Add `unit name` property to the FPM pool. Thanks to @WilliamDEdwards.
+- Add version based user agent, i.e. `cyberfusion-cluster-api-client/1.29`. Thanks to @WilliamDEdwards. 
+
+### Changed
+
+- Add positive integer validation to `keep_hourly`, `keep_daily`, `keep_weekly`, `keep_monthly`, `keep_yearly` of Borg 
+  Repositories.
+- Add positive integer validation to `error_count` of Crons.
+- Add positive integer validation to `max_children`, `max_requests`, `process_idle_timeout` and `cpu_limit` of FPM 
+  pools.
+- Add positive integer validation to `quota` of Mail accounts.
+- Update to [API version 1.77](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.77-2021-09-30)
+
 ## [1.28.0]
 
 ### Added
@@ -26,6 +44,7 @@ detailed information.
 
 - Add `description` to unix user.
 - Add `borg_repositories_directory` to unix user.
+- Add user agent for this client, see `USER_AGENT` in `Client`.
 
 ### Changed
 

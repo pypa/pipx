@@ -51,6 +51,10 @@ class MailAccount extends ClusterModel implements Model
 
     public function setQuota(?int $quota): MailAccount
     {
+        $this->validate($quota, [
+            'positive_integer',
+        ]);
+
         $this->quota = $quota;
 
         return $this;
