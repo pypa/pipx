@@ -196,17 +196,6 @@ class FpmPools extends Endpoint
      */
     public function restart(int $id): Response
     {
-        $result = $this->get($id);
-        if ($result->isSuccess()) {
-            $clusterId = $result
-                ->getData('fpmPool')
-                ->getClusterId();
-
-            $this
-                ->client
-                ->addAffectedCluster($clusterId);
-        }
-
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl(sprintf('fpm-pools/%d/restart', $id));
