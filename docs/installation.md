@@ -26,6 +26,13 @@ The default binary location for pipx-installed apps is `~/.local/bin`. This can 
 
 pipx's default virtual environment location is `~/.local/pipx`. This can be overridden with the environment variable `PIPX_HOME`.
 
+As an example, you can install global apps accessible by all users on your system with the following command (on MacOS, Linux, and Windows WSL):
+
+```
+sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install PACKAGE
+# Example: $ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install cowsay
+```
+
 ## Upgrade pipx
 
 On macOS:
