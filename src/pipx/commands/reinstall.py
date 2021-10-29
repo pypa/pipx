@@ -34,7 +34,7 @@ def reinstall(
         python_relative_to_venv_dir = True
     except ValueError:
         python_relative_to_venv_dir = False
-    
+
     if python_relative_to_venv_dir:
         print(
             f"{error} Error, the python executable would be deleted!",
