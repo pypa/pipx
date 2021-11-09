@@ -144,7 +144,11 @@ class Databases extends Endpoint
      */
     public function usages(int $id, DateTimeInterface $from): Response
     {
-        $url = sprintf('databases/usages/%d?from_timestamp_date=%s', $id, $from->format('c'));
+        $url = sprintf(
+            'databases/usages/%d?%s',
+            $id,
+            http_build_query(['from_timestamp_date' => $from->format('c')])
+        );
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
