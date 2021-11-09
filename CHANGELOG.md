@@ -8,9 +8,28 @@ detailed information.
 
 ## [1.30.0]
 
+### Added
+
+- Add `oneTimeLogin` endpoint for CMS.
+- Add `documentRootFiles` endpoint for Virtual Hosts.
+
+### Changed
+
+- Restored the ability to track cluster deployments when installing a CMS and still returns the CMS object (required 
+  because the cluster API no longer returns the CMS object).
+- The FPM pool restart endpoint no longer returns the FPM pool object (as the cluster API no longer returns the FPM pool
+  object).
+- Update to [API version 1.88](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.88-2021-11-09).
+
 ### Fixed
 
 - Properly encode timestamps in usage endpoints.
+
+### Removed
+
+- Remove `$oneTimeLogin` parameter from CMS get endpoint in favor of the `oneTimeLogin` endpoint.
+- Remove `$documentRootContainsFiles` parameter from VirtualHost get endpoint in favor of the `documentRootFiles` 
+  endpoint instead.
 
 ## [1.29.1]
 

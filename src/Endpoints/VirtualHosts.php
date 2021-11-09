@@ -44,19 +44,14 @@ class VirtualHosts extends Endpoint
 
     /**
      * @param int $id
-     * @param bool $documentRootContainsFiles
      * @return Response
      * @throws RequestException
      */
-    public function get(int $id, bool $documentRootContainsFiles = false): Response
+    public function get(int $id): Response
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf(
-                'virtual-hosts/%d?%s',
-                $id,
-                http_build_query(['get_document_root_contains_files' => $documentRootContainsFiles])
-            ));
+            ->setUrl(sprintf('virtual-hosts/%d', $id));
 
         $response = $this
             ->client
@@ -204,5 +199,28 @@ class VirtualHosts extends Endpoint
         return $this
             ->client
             ->request($request);
+    }
+
+    /**
+     * @param int $id
+     * @return Response
+     * @throws RequestException
+     */
+    public function documentRootFiles(int $id): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_GET)
+            ->setUrl(sprintf('virtual-hosts/%d/document-root', $id));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (! $response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'files' => $response->getData('contains_files'),
+        ]);
     }
 }

@@ -9,7 +9,6 @@ class Cms extends ClusterModel implements Model
 {
     private string $softwareName;
     private int $virtualHostId;
-    private ?string $oneTimeLoginUrl = null;
     private bool $isManuallyCreated = false;
     private ?int $id = null;
     private ?int $clusterId = null;
@@ -36,18 +35,6 @@ class Cms extends ClusterModel implements Model
     public function setVirtualHostId(int $virtualHostId): Cms
     {
         $this->virtualHostId = $virtualHostId;
-
-        return $this;
-    }
-
-    public function getOneTimeLoginUrl(): ?string
-    {
-        return $this->oneTimeLoginUrl;
-    }
-
-    public function setOneTimeLoginUrl(?string $oneTimeLoginUrl): Cms
-    {
-        $this->oneTimeLoginUrl = $oneTimeLoginUrl;
 
         return $this;
     }
@@ -117,7 +104,6 @@ class Cms extends ClusterModel implements Model
         return $this
             ->setSoftwareName(Arr::get($data, 'software_name'))
             ->setVirtualHostId(Arr::get($data, 'virtual_host_id'))
-            ->setOneTimeLoginUrl(Arr::get($data, 'one_time_login_url'))
             ->setIsManuallyCreated(Arr::get($data, 'is_manually_created'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
@@ -130,7 +116,6 @@ class Cms extends ClusterModel implements Model
         return [
             'software_name' => $this->getSoftwareName(),
             'virtual_host_id' => $this->getVirtualHostId(),
-            'one_time_login_url' => $this->getOneTimeLoginUrl(),
             'is_manually_created' => $this->isManuallyCreated(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),

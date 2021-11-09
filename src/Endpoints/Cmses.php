@@ -45,19 +45,14 @@ class Cmses extends Endpoint
 
     /**
      * @param int $id
-     * @param bool $oneTimeLoginUrl
      * @return Response
      * @throws RequestException
      */
-    public function get(int $id, bool $oneTimeLoginUrl = false): Response
+    public function get(int $id): Response
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf(
-                'cmses/%d?%s',
-                $id,
-                http_build_query(['get_one_time_login_url' => $oneTimeLoginUrl])
-            ));
+            ->setUrl(sprintf('cmses/%d', $id));
 
         $response = $this
             ->client
@@ -185,7 +180,13 @@ class Cmses extends Endpoint
             return $response;
         }
 
-        $cms = (new Cms())->fromArray($response->getData());
+        // Retrieve the CMS again, so we log affected clusters and can return the CMS object
+        $retrieveResponse = $this->get($id);
+        if (!$retrieveResponse->isSuccess()) {
+            return $retrieveResponse;
+        }
+
+        $cms = $retrieveResponse->getData('cms');
 
         // Log which cluster is affected by this change
         $this
@@ -194,6 +195,29 @@ class Cmses extends Endpoint
 
         return $response->setData([
             'cms' => $cms,
+        ]);
+    }
+
+    /**
+     * @param int $id
+     * @return Response
+     * @throws RequestException
+     */
+    public function oneTimeLogin(int $id): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_GET)
+            ->setUrl(sprintf('cmses/%d/one-time-login', $id));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'url' => $response->getData('url'),
         ]);
     }
 }

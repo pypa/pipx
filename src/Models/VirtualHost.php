@@ -25,7 +25,6 @@ class VirtualHost extends ClusterModel implements Model
     private ?int $clusterId = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
-    private array $documentRootContainsFiles = [];
 
     public function getDomain(): string
     {
@@ -232,18 +231,6 @@ class VirtualHost extends ClusterModel implements Model
         return $this;
     }
 
-    public function getDocumentRootContainsFiles(): array
-    {
-        return $this->documentRootContainsFiles;
-    }
-
-    public function setDocumentRootContainsFiles(array $documentRootContainsFiles = []): VirtualHost
-    {
-        $this->documentRootContainsFiles = $documentRootContainsFiles;
-
-        return $this;
-    }
-
     public function fromArray(array $data): VirtualHost
     {
         return $this
@@ -262,8 +249,7 @@ class VirtualHost extends ClusterModel implements Model
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
-            ->setUpdatedAt(Arr::get($data, 'updated_at'))
-            ->setDocumentRootContainsFiles((array)Arr::get($data, 'document_root_contains_files', []));
+            ->setUpdatedAt(Arr::get($data, 'updated_at'));
     }
 
     public function toArray(): array
@@ -285,7 +271,6 @@ class VirtualHost extends ClusterModel implements Model
             'allow_override_option_directives' => $this->getAllowOverrideOptionDirectives(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),
-            'document_root_contains_files' => $this->getDocumentRootContainsFiles(),
         ];
     }
 }
