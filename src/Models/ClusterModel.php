@@ -32,7 +32,7 @@ abstract class ClusterModel implements JsonSerializable, Model
      * Provide fallback to allow the user of properties but still using the getters and setters.
      *
      * @param string $name
-     * @param $value
+     * @param mixed $value
      * @return void
      * @throws ModelException
      */
