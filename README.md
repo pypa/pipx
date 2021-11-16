@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-<a href="https://github.com/pypa/pipx/actions?query=workflow%3ATest"><img src="https://github.com/pypa/pipx/workflows/Test/badge.svg?branch=main" alt="Test CI" ></a>
+<a href="https://github.com/pypa/pipx/actions?query=workflow%3ATest"><img src="https://github.com/pypa/pipx/actions/workflows/test_all_packages_slow.yml/badge.svg" alt="Test CI" ></a>
 <a href="https://badge.fury.io/py/pipx"><img src="https://badge.fury.io/py/pipx.svg" alt="PyPI version"></a>
 </p>
 

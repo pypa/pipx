@@ -1,5 +1,8 @@
 dev
 
+0.16.5.1
+
+- Update GitHUb actions' Workflow badge based on the [updated docs](https://docs.github.com/en/actions/monitoring-and-troubleshooting-workflows/adding-a-workflow-status-badge)
 
 0.16.5
 
