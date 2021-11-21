@@ -12,6 +12,7 @@ detailed information.
 
 - Improve the ListFilter.
 - Add documentation about the filter.
+- Throw exception when filtered on a field which doesn't belong to the model.
 
 ## [1.31.0]
 

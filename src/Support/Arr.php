@@ -22,13 +22,4 @@ class Arr extends \Illuminate\Support\Arr
 
         return $array;
     }
-
-    public static function colonSeparatedValues(array $array): array
-    {
-        $colonSeparatedArray = [];
-        foreach ($array as $key => $value) {
-            $colonSeparatedArray[] = sprintf('%s:%s', $key, $value);
-        }
-        return $colonSeparatedArray;
-    }
 }

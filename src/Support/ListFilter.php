@@ -73,21 +73,27 @@ class ListFilter implements Filter
         return $this->filter;
     }
 
+    /**
+     * @param mixed $value
+     * @throws ListFilterException
+     */
     public function addFilter(string $field, $value): ListFilter
     {
         if ($this->hasAvailableFields() && !Arr::has($this->availableFields, $field)) {
             throw ListFilterException::fieldNotAvailable($field);
         }
 
-        $this->filter[$field] = $value;
+        $this->filter[] = ['field' => $field, 'value' => $value];
 
         return $this;
     }
 
     public function setFilter(array $filter): ListFilter
     {
-        foreach ($filter as $field => $value) {
-            $this->addFilter($field, $value);
+        foreach ($filter as $filterEntry) {
+            if (Arr::has($filterEntry, 'field') && Arr::has($filterEntry, 'value')) {
+                $this->addFilter($filterEntry['field'], $filterEntry['value']);
+            }
         }
 
         return $this;
@@ -123,23 +129,13 @@ class ListFilter implements Filter
         return $this;
     }
 
-    public function toArray(): array
-    {
-        return [
-            'skip' => $this->skip,
-            'limit' => $this->limit,
-            'filter' => Arr::colonSeparatedValues($this->filter),
-            'sort' => Arr::colonSeparatedValues($this->sort),
-        ];
-    }
-
     public function toQuery(): string
     {
         $builder = (new Builder())
-            ->add('skip', $this->skip)
-            ->add('limit', $this->limit);
-        foreach ($this->filter as $field => $value) {
-            $builder->add('filter', sprintf('%s:%s', $field, $value));
+            ->add('skip', (string)$this->skip)
+            ->add('limit', (string)$this->limit);
+        foreach ($this->filter as $filter) {
+            $builder->add('filter', sprintf('%s:%s', $filter['field'], $filter['value']));
         }
         foreach ($this->sort as $field => $value) {
             $builder->add('sort', sprintf('%s:%s', $field, $value));
