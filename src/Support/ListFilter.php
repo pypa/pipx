@@ -3,16 +3,43 @@
 namespace Vdhicts\Cyberfusion\ClusterApi\Support;
 
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Filter;
+use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ListFilterException;
 use Vdhicts\HttpQueryBuilder\Builder;
 
 class ListFilter implements Filter
 {
     private const MAX_LIMIT = 1000;
+    public const SORT_ASC = 'ASC';
+    public const SORT_DESC = 'DESC';
 
+    private ?array $availableFields = null;
     private int $skip = 0;
     private int $limit = 100;
     private array $filter = [];
     private array $sort = [];
+
+    public static function forModel(Model $model): self
+    {
+        return (new self())->setAvailableFields($model->toArray());
+    }
+
+    public function getAvailableFields(): ?array
+    {
+        return $this->availableFields;
+    }
+
+    private function hasAvailableFields(): bool
+    {
+        return !is_null($this->availableFields);
+    }
+
+    public function setAvailableFields(?array $availableFields): ListFilter
+    {
+        $this->availableFields = $availableFields;
+
+        return $this;
+    }
 
     public function getSkip(): int
     {
@@ -46,9 +73,28 @@ class ListFilter implements Filter
         return $this->filter;
     }
 
+    /**
+     * @param mixed $value
+     * @throws ListFilterException
+     */
+    public function addFilter(string $field, $value): ListFilter
+    {
+        if ($this->hasAvailableFields() && !Arr::has($this->availableFields, $field)) {
+            throw ListFilterException::fieldNotAvailable($field);
+        }
+
+        $this->filter[] = ['field' => $field, 'value' => $value];
+
+        return $this;
+    }
+
     public function setFilter(array $filter): ListFilter
     {
-        $this->filter = $filter;
+        foreach ($filter as $filterEntry) {
+            if (Arr::has($filterEntry, 'field') && Arr::has($filterEntry, 'value')) {
+                $this->addFilter($filterEntry['field'], $filterEntry['value']);
+            }
+        }
 
         return $this;
     }
@@ -58,21 +104,29 @@ class ListFilter implements Filter
         return $this->sort;
     }
 
+    /**
+     * @throws ListFilterException
+     */
+    public function addSort(string $field, string $method = self::SORT_ASC): ListFilter
+    {
+        if (!in_array($method, [self::SORT_ASC, self::SORT_DESC])) {
+            throw ListFilterException::invalidSortMethod($method);
+        }
+
+        if ($this->hasAvailableFields() && !Arr::has($this->availableFields, $field)) {
+            throw ListFilterException::fieldNotAvailable($field);
+        }
+
+        $this->sort[$field] = $method;
+
+        return $this;
+    }
+
     public function setSort(array $sort): ListFilter
     {
         $this->sort = $sort;
 
         return $this;
-    }
-
-    public function toArray(): array
-    {
-        return [
-            'skip' => $this->skip,
-            'limit' => $this->limit,
-            'filter' => $this->filter,
-            'sort' => $this->sort,
-        ];
     }
 
     public function toQuery(): string
@@ -81,10 +135,10 @@ class ListFilter implements Filter
             ->add('skip', (string)$this->skip)
             ->add('limit', (string)$this->limit);
         foreach ($this->filter as $filter) {
-            $builder->add('filter', $filter);
+            $builder->add('filter', sprintf('%s:%s', $filter['field'], $filter['value']));
         }
-        foreach ($this->sort as $sort) {
-            $builder->add('sort', $sort);
+        foreach ($this->sort as $field => $value) {
+            $builder->add('sort', sprintf('%s:%s', $field, $value));
         }
         return $builder->build();
     }

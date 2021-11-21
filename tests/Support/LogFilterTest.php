@@ -33,17 +33,20 @@ class LogFilterTest extends TestCase
         $this->assertSame($showRawMessage, $logFilter->isShowRawMessage());
     }
 
-    public function testToArray()
+    public function testToQuery()
     {
-        $logFilter = new LogFilter();
+        $timestamp = Carbon::today()->subDay();
+        $limit = 100;
+        $showRawMessage = true;
 
-        $logFilterArray = $logFilter->toArray();
+        $logFilter = (new LogFilter())
+            ->setTimestamp($timestamp)
+            ->setLimit($limit)
+            ->setShowRawMessage($showRawMessage);
 
-        $this->assertArrayHasKey('timestamp', $logFilterArray);
-        $this->assertSame(Carbon::today()->format('c'), $logFilterArray['timestamp']);
-        $this->assertArrayHasKey('limit', $logFilterArray);
-        $this->assertSame(100, $logFilterArray['limit']);
-        $this->assertArrayHasKey('show_raw_message', $logFilterArray);
-        $this->assertFalse($logFilterArray['show_raw_message']);
+        $this->assertSame(
+            'timestamp=2021-11-20T00%3A00%3A00%2B00%3A00&limit=100&show_raw_message=1',
+            $logFilter->toQuery()
+        );
     }
 }

@@ -53,12 +53,12 @@ class LogFilter implements Filter
         return $this;
     }
 
-    public function toArray(): array
+    public function toQuery(): string
     {
-        return [
+        return http_build_query([
             'timestamp' => $this->timestamp->format('c'),
             'limit' => $this->limit,
             'show_raw_message' => $this->showRawMessage,
-        ];
+        ]);
     }
 }

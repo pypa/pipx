@@ -24,7 +24,7 @@ class ListFilterTest extends TestCase
         $skip = 10;
         $limit = 5;
         $filter = [
-            'key:value',
+            ['field' => 'testField', 'value' => 'testValue'],
         ];
         $sort = [
             'col:ASC',
@@ -44,19 +44,28 @@ class ListFilterTest extends TestCase
         $this->assertCount(1, $listFilter->getSort());
     }
 
-    public function testToArray()
+    public function testToQuery()
     {
-        $listFilter = new ListFilter();
+        $skip = 10;
+        $limit = 5;
+        $filter = [
+            ['field' => 'testField', 'value' => 'foo'],
+            ['field' => 'testField', 'value' => 'bar'],
+            ['field' => 'testField2', 'value' => 'lol'],
+        ];
+        $sort = [
+            'col:ASC',
+        ];
 
-        $listFilterArray = $listFilter->toArray();
+        $listFilter = (new ListFilter())
+            ->setSkip($skip)
+            ->setLimit($limit)
+            ->setFilter($filter)
+            ->setSort($sort);
 
-        $this->assertArrayHasKey('skip', $listFilterArray);
-        $this->assertSame(0, $listFilterArray['skip']);
-        $this->assertArrayHasKey('limit', $listFilterArray);
-        $this->assertSame(100, $listFilterArray['limit']);
-        $this->assertArrayHasKey('filter', $listFilterArray);
-        $this->assertIsArray($listFilterArray['filter']);
-        $this->assertArrayHasKey('sort', $listFilterArray);
-        $this->assertIsArray($listFilterArray['sort']);
+        $this->assertSame(
+            'skip=10&limit=5&filter=testField%3Afoo&filter=testField%3Abar&filter=testField2%3Alol&sort=0%3Acol%3AASC',
+            $listFilter->toQuery()
+        );
     }
 }

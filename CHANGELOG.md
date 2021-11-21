@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.32.0]
+
+### Changed
+
+- Improve the ListFilter.
+- Add documentation about the filter.
+- Throw exception when filtered on a field which doesn't belong to the model.
+
 ## [1.31.0]
 
 ### Changed
@@ -32,6 +40,7 @@ detailed information.
 - The FPM pool restart endpoint no longer returns the FPM pool object (as the cluster API no longer returns the FPM pool
   object).
 - Update to [API version 1.88](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.88-2021-11-09).
+- The `ListFilter` can now be initialized for models which enables checks for available fields to filter or sort on.
 
 ### Fixed
 
