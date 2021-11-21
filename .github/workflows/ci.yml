@@ -25,5 +25,5 @@ jobs:
 
             - name: Execute static analysis
               run: |
-                  vendor/bin/psalm
+                  vendor/bin/phpstan
 
