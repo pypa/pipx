@@ -86,31 +86,24 @@ $result = $api
 When models need to be provided, the required properties will be checked before executing the request. A 
 `RequestException` will be thrown when properties are missing. See the message for more details.
 
+#### Filter
+
+Some list endpoints can accept a `ListFilter`. 
+
+```php
+$filter = (new ListFilter())
+    ->setFilter(['field:value', 'field:value2'])
+    ->setSort(['field:desc'])
+
+$virtualHosts = $api
+    ->virtualHosts()
+    ->list($filter);
+```
+
 #### Manually make requests
 
 When you want to use the API directly, you can use the `request()` method on the `Client`. This method needs a `Request`
 class. See the class itself for its options.
-
-#### Committing changes
-
-A commit is required when you perform a create/update/delete for:
-
-- mail aliases 
-- mail accounts
-- mail domains
-- ssh keys
-- unix users
-- fpm pools
-- crons
-- virtual hosts
-  
-**_You **MUST** commit the changes for each cluster as this is required to update the cluster!_**
-
-```php
-$api
-    ->clusters()
-    ->commit($clusterId);
-```
 
 ### Responses
 
@@ -200,7 +193,18 @@ foreach ($clusterDeployments as $clusterDeployment) {
 }
 ```
 
-See the `Deployment` class for more options.
+See the `Deployment` class for more options. 
+
+A deployment is required for:
+
+- Crons
+- FPM pools
+- Mail aliases
+- Mail accounts
+- Mail domains
+- SSH keys
+- Unix users
+- Virtual hosts
 
 #### Automatic deployment
 
