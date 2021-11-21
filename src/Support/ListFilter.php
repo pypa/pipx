@@ -78,8 +78,8 @@ class ListFilter implements Filter
     public function toQuery(): string
     {
         $builder = (new Builder())
-            ->add('skip', $this->skip)
-            ->add('limit', $this->limit);
+            ->add('skip', (string)$this->skip)
+            ->add('limit', (string)$this->limit);
         foreach ($this->filter as $filter) {
             $builder->add('filter', $filter);
         }
