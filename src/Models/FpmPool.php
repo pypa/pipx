@@ -209,7 +209,7 @@ class FpmPool extends ClusterModel implements Model
             ->setProcessIdleTimeout(Arr::get($data, 'process_idle_timeout'))
             ->setCpuLimit(Arr::get($data, 'cpu_limit'))
             ->setIsNamespaced((bool)Arr::get($data, 'is_namespaced'))
-            ->setUnitName((bool)Arr::get($data, 'unit_name'))
+            ->setUnitName(Arr::get($data, 'unit_name'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
