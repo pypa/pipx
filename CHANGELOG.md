@@ -20,6 +20,7 @@ detailed information.
 - The FPM pool restart endpoint no longer returns the FPM pool object (as the cluster API no longer returns the FPM pool
   object).
 - Update to [API version 1.88](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.88-2021-11-09).
+- The `ListFilter` can now be initialized for models which enables checks for available fields to filter or sort on.
 
 ### Fixed
 

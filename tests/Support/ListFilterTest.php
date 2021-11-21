@@ -24,7 +24,7 @@ class ListFilterTest extends TestCase
         $skip = 10;
         $limit = 5;
         $filter = [
-            'key:value',
+            'key' => 'value',
         ];
         $sort = [
             'col:ASC',

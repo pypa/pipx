@@ -19,4 +19,7 @@ class ClusterApiException extends Exception
     protected const MODEL_PROPERTY_NOT_AVAILABLE = 400;
 
     protected const VALIDATION_FAILED = 500;
+
+    protected const LISTFILTER_INVALID_SORT_METHOD = 600;
+    protected const LISTFILTER_FIELD_NOT_AVAILABLE = 601;
 }

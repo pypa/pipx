@@ -86,31 +86,27 @@ $result = $api
 When models need to be provided, the required properties will be checked before executing the request. A 
 `RequestException` will be thrown when properties are missing. See the message for more details.
 
+#### Filtering data
+
+Some endpoints require a `ListFilter` and return a list of models according to the filter. It's also possible to change
+the sort order.
+
+A `ListFilter` can be initialized for a model, so it automatically validates if the provided fields are available for 
+the model.
+
+```php
+$listFilter = ListFilter::forModel(new Cluster());
+$listFilter->addFilter('name', 'test');
+$listFilter->addFilter('groups', 'test2');
+$listFilter->addSort('name', ListFilter::SORT_DESC);
+```
+
+You are also able to initialize the `ListFilter` manually, but then no validation will be used for the fields.
+
 #### Manually make requests
 
 When you want to use the API directly, you can use the `request()` method on the `Client`. This method needs a `Request`
 class. See the class itself for its options.
-
-#### Committing changes
-
-A commit is required when you perform a create/update/delete for:
-
-- mail aliases 
-- mail accounts
-- mail domains
-- ssh keys
-- unix users
-- fpm pools
-- crons
-- virtual hosts
-  
-**_You **MUST** commit the changes for each cluster as this is required to update the cluster!_**
-
-```php
-$api
-    ->clusters()
-    ->commit($clusterId);
-```
 
 ### Responses
 
@@ -216,6 +212,17 @@ $client = new Client($configuration, true);
 
 // Initialize the API
 $api = new ClusterApi($client);
+```
+
+#### Manual deployment
+
+When you disabled auto deployment and want to manually deploy, the commit endpoint can be called manually. You need to 
+keep track of all affected clusters.
+
+```php
+$api
+    ->clusters()
+    ->commit($clusterId);
 ```
 
 ### Laravel
