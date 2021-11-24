@@ -1,6 +1,10 @@
 dev
 
 
+0.16.5.1
+
+- Updated `master` to `main` through out the repository since the `master` branch is non-existent.
+
 0.16.5
 
 - Fixed `pipx list` output phrasing to convey that python version displayed is the one with which package was installed. 
