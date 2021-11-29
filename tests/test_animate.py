@@ -138,5 +138,5 @@ def test_env_no_animate(capsys, monkeypatch, env_columns, stderr_is_tty):
     time.sleep(extra_after_thread_time)
     captured = capsys.readouterr()
 
-    assert captured.out == expected_string
-    assert captured.err == ""
+    assert captured.out == ""
+    assert captured.err == expected_string
