@@ -2,6 +2,8 @@
 
 namespace Vdhicts\Cyberfusion\ClusterApi\Support;
 
+use ReflectionClass;
+use ReflectionProperty;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Filter;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ListFilterException;
@@ -21,7 +23,13 @@ class ListFilter implements Filter
 
     public static function forModel(Model $model): self
     {
-        return (new self())->setAvailableFields($model->toArray());
+        $reflection = new ReflectionClass($model);
+        $properties = array_map(
+            fn(ReflectionProperty $property) => $property->name,
+            $reflection->getProperties(ReflectionProperty::IS_PRIVATE)
+        );
+
+        return (new self())->setAvailableFields($properties);
     }
 
     public function getAvailableFields(): ?array
@@ -79,7 +87,7 @@ class ListFilter implements Filter
      */
     public function addFilter(string $field, $value): ListFilter
     {
-        if ($this->hasAvailableFields() && !Arr::has($this->availableFields, $field)) {
+        if ($this->hasAvailableFields() && !in_array($field, $this->availableFields)) {
             throw ListFilterException::fieldNotAvailable($field);
         }
 
@@ -113,7 +121,7 @@ class ListFilter implements Filter
             throw ListFilterException::invalidSortMethod($method);
         }
 
-        if ($this->hasAvailableFields() && !Arr::has($this->availableFields, $field)) {
+        if ($this->hasAvailableFields() && !in_array($field, $this->availableFields)) {
             throw ListFilterException::fieldNotAvailable($field);
         }
 
