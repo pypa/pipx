@@ -45,7 +45,7 @@ class LogFilterTest extends TestCase
             ->setShowRawMessage($showRawMessage);
 
         $this->assertSame(
-            'timestamp=2021-11-20T00%3A00%3A00%2B00%3A00&limit=100&show_raw_message=1',
+            'timestamp=' . $timestamp->format('Y-m-d') . 'T00%3A00%3A00%2B00%3A00&limit=100&show_raw_message=1',
             $logFilter->toQuery()
         );
     }
