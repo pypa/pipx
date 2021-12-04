@@ -15,7 +15,7 @@ class FpmPool extends ClusterModel implements Model
     private int $processIdleTimeout = 10;
     private ?int $cpuLimit = null;
     private bool $isNamespaced = false;
-    private ?string $unitName;
+    private ?string $unitName = null;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;

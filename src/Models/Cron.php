@@ -9,7 +9,7 @@ class Cron extends ClusterModel implements Model
 {
     private string $name;
     private string $command;
-    private string $emailAddress;
+    private ?string $emailAddress = null;
     private string $schedule;
     private int $unixUserId;
     private int $errorCount = 1;
@@ -49,12 +49,12 @@ class Cron extends ClusterModel implements Model
         return $this;
     }
 
-    public function getEmailAddress(): string
+    public function getEmailAddress(): ?string
     {
         return $this->emailAddress;
     }
 
-    public function setEmailAddress(string $emailAddress): Cron
+    public function setEmailAddress(?string $emailAddress): Cron
     {
         $this->emailAddress = $emailAddress;
 
