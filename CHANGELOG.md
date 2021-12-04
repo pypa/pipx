@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.33.0]
+
+## Changed
+
+- Update to [API version 1.97](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.97-2021-12-02).
+- Always send the hashed password for the Database User but be able to set the hashed password with `setHashedPassword`
+  or plain text password with `setPassword`. Thanks to @mbardelmeijer.
+- Setting the Database Engine of the Database User after setting the password will result in a `ModelException` as the
+  password hash is based on the engine.
+
 ## [1.32.2]
 
 ## Fixed

@@ -17,6 +17,7 @@ class ClusterApiException extends Exception
     protected const API_NOT_UP = 300;
 
     protected const MODEL_PROPERTY_NOT_AVAILABLE = 400;
+    protected const MODEL_ENGINE_SET_AFTER_PASSWORD = 401;
 
     protected const VALIDATION_FAILED = 500;
 

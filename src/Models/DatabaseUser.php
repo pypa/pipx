@@ -5,6 +5,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 use Vdhicts\Cyberfusion\ClusterApi\Enums\DatabaseEngine;
+use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ModelException;
 
 class DatabaseUser extends ClusterModel implements Model
 {
@@ -12,7 +13,7 @@ class DatabaseUser extends ClusterModel implements Model
 
     private string $name;
     private string $host = self::DEFAULT_HOST;
-    private string $password = '';
+    private ?string $hashedPassword = null;
     private string $serverSoftwareName = DatabaseEngine::SERVER_SOFTWARE_MARIADB;
     private ?int $id = null;
     private ?int $clusterId = null;
@@ -52,14 +53,27 @@ class DatabaseUser extends ClusterModel implements Model
         return $this;
     }
 
-    public function getPassword(): string
+    public function getHashedPassword(): ?string
     {
-        return $this->password;
+        return $this->hashedPassword;
     }
 
     public function setPassword(string $password): DatabaseUser
     {
-        $this->password = $password;
+        switch ($this->serverSoftwareName) {
+            case DatabaseEngine::SERVER_SOFTWARE_POSTGRES:
+                $this->hashedPassword = sprintf('md5%s', md5($password));
+                break;
+            default:
+                $this->hashedPassword = sprintf("*%s", strtoupper(sha1(sha1($password))));
+        }
+
+        return $this;
+    }
+
+    public function setHashedPassword(string $hashedPassword): DatabaseUser
+    {
+        $this->hashedPassword = $hashedPassword;
 
         return $this;
     }
@@ -71,6 +85,10 @@ class DatabaseUser extends ClusterModel implements Model
 
     public function setServerSoftwareName(string $serverSoftwareName): DatabaseUser
     {
+        if (!is_null($this->hashedPassword)) {
+            throw ModelException::engineSetAfterPassword();
+        }
+
         $this->validate($serverSoftwareName, [
             'in' => DatabaseEngine::AVAILABLE,
         ]);
@@ -149,7 +167,7 @@ class DatabaseUser extends ClusterModel implements Model
         return [
             'name' => $this->getName(),
             'host' => $this->getHost(),
-            'password' => $this->getPassword(),
+            'password' => $this->getHashedPassword(),
             'server_software_name' => $this->getServerSoftwareName(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
