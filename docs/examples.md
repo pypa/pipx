@@ -9,6 +9,7 @@ pipx install git+https://github.com/psf/black.git@git-hash
 pipx install https://github.com/psf/black/archive/18.9b0.zip
 pipx install black[d]
 pipx install --include-deps jupyter
+pipx install --pip-args '--pre' poetry
 ```
 
 ## `pipx run` examples
