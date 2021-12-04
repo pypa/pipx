@@ -65,7 +65,7 @@ class DatabaseUser extends ClusterModel implements Model
                 $this->hashedPassword = sprintf('md5%s', md5($password));
                 break;
             default:
-                $this->hashedPassword = sprintf("*%s", strtoupper(sha1(sha1($password))));
+                $this->hashedPassword = sprintf("*%s", strtoupper(sha1(sha1($password, true), false)));
         }
 
         return $this;
