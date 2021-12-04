@@ -5,6 +5,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 use Vdhicts\Cyberfusion\ClusterApi\Enums\DatabaseEngine;
+use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ModelException;
 
 class DatabaseUser extends ClusterModel implements Model
 {
@@ -61,11 +62,11 @@ class DatabaseUser extends ClusterModel implements Model
     {
         switch ($this->serverSoftwareName) {
             case DatabaseEngine::SERVER_SOFTWARE_POSTGRES:
-                $password = sprintf('md5%s', md5($password));
+                $this->hashedPassword = sprintf('md5%s', md5($password));
+                break;
             default:
-                $password = sprintf("*%s", strtoupper(sha1(sha1($password))));
+                $this->hashedPassword = sprintf("*%s", strtoupper(sha1(sha1($password))));
         }
-        $this->hashedPassword = $password;
 
         return $this;
     }
@@ -84,6 +85,10 @@ class DatabaseUser extends ClusterModel implements Model
 
     public function setServerSoftwareName(string $serverSoftwareName): DatabaseUser
     {
+        if (!is_null($this->hashedPassword)) {
+            throw ModelException::engineSetAfterPassword();
+        }
+
         $this->validate($serverSoftwareName, [
             'in' => DatabaseEngine::AVAILABLE,
         ]);
