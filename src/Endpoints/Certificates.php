@@ -11,8 +11,6 @@ use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
 class Certificates extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
     public function list(ListFilter $filter = null): Response
@@ -43,8 +41,6 @@ class Certificates extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -66,24 +62,51 @@ class Certificates extends Endpoint
     }
 
     /**
-     * @param Certificate $certificate
-     * @return Response
      * @throws RequestException
      */
-    public function create(Certificate $certificate): Response
+    public function createLetsEncryptCertificate(Certificate $certificate): Response
     {
-        $requiredAttributes = is_null($certificate->getCertificate())
-            ? ['common_names', 'cluster_id'] // Request Let's Encrypt certificate
-            : ['certificate', 'ca_chain', 'private_key', 'cluster_id']; // Supply own certificate
-        $this->validateRequired($certificate, 'create', $requiredAttributes);
-
-        $isLetEnscrypt = $certificate->isLetsEncrypt();
+        $this->validateRequired($certificate, 'create', [
+            'common_names',
+            'cluster_id',
+        ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('certificates')
+            ->setUrl('certificates/lets-encrypt')
             ->setBody($this->filterFields($certificate->toArray(), [
                 'common_names',
+                'cluster_id',
+            ]));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'certificate' => (new Certificate())->fromArray($response->getData()),
+        ]);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function createCertificateWithOwnMaterial(Certificate $certificate): Response
+    {
+        $this->validateRequired($certificate, 'create', [
+            'certificate',
+            'ca_chain',
+            'private_key',
+            'cluster_id',
+        ]);
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl('certificates/own-material')
+            ->setBody($this->filterFields($certificate->toArray(), [
                 'certificate',
                 'ca_chain',
                 'private_key',
@@ -100,11 +123,9 @@ class Certificates extends Endpoint
         $certificate = (new Certificate())->fromArray($response->getData());
 
         // Log which cluster is affected by this change
-        if (!$isLetEnscrypt) {
-            $this
-                ->client
-                ->addAffectedCluster($certificate->getClusterId());
-        }
+        $this
+            ->client
+            ->addAffectedCluster($certificate->getClusterId());
 
         return $response->setData([
             'certificate' => $certificate,
@@ -112,8 +133,6 @@ class Certificates extends Endpoint
     }
 
     /**
-     * @param Certificate $certificate
-     * @return Response
      * @throws RequestException
      */
     public function update(Certificate $certificate): Response
@@ -124,8 +143,6 @@ class Certificates extends Endpoint
             ->setMethod(Request::METHOD_PATCH)
             ->setUrl(sprintf('certificates/%d', $certificate->getId()))
             ->setBody($this->filterFields($certificate->toArray(), [
-                'main_common_name',
-                'common_names',
                 'certificate',
                 'ca_chain',
                 'private_key',
@@ -152,8 +169,6 @@ class Certificates extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response

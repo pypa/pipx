@@ -7,13 +7,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.34.0]
+
+### Added
+
+- Add the Let's Encrypt certificate endpoint: `createLetsEncryptCertificate`.
+- Add the endpoint to provide your own SSL certificates: `createCertificateWithOwnMaterial`.
+
+### Changed
+
+- Update to [API version 1.101](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.101-2021-12-14).
+- Issue templates to assign the correct user instead of the organisation. Also made the bug report a bit easier to use.
+
+### Fixed
+
+- Not all headers in this changelog were of the correct depth.
+
+### Removed
+
+- Remove the `common_names` and `main_common_name` from the certificate update as it can't be changed.
+- Remove the SSH key update endpoint as it's no longer available.
+
 ## [1.33.1]
 
-## Fixed
+### Fixed
 
 - The MariaDB password hash for Database Users is now generated correctly.
 
-## [1.33.0]
+### [1.33.0]
 
 ## Changed
 
@@ -25,7 +46,7 @@ detailed information.
 
 ## [1.32.2]
 
-## Fixed
+### Fixed
 
 - Make e-mailaddress of the Cron and the unit name of the FPM pool optional.
 
@@ -406,7 +427,7 @@ detailed information.
 - Add mail aliases endpoint.
 - Add `balancer_backend_name` to virtualhosts.
 - Add `catch_all_forward_email_addresses` to mail domain.
-- Add commit call to the cluster endpoint. See the [readme](readme.md) for more information.
+- Add commit call to the cluster endpoint. See the [readme](README.md) for more information.
 
 ### Changed
 
