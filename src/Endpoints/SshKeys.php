@@ -108,52 +108,6 @@ class SshKeys extends Endpoint
     }
 
     /**
-     * @param SshKey $sshKey
-     * @return Response
-     * @throws RequestException
-     */
-    public function update(SshKey $sshKey): Response
-    {
-        $this->validateRequired($sshKey, 'update', [
-            'name',
-            'public_key',
-            'unix_user_id',
-            'id',
-            'cluster_id',
-        ]);
-
-        $request = (new Request())
-            ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('ssh-keys/%d', $sshKey->getId()))
-            ->setBody($this->filterFields($sshKey->toArray(), [
-                'name',
-                'public_key',
-                'private_key',
-                'unix_user_id',
-                'id',
-                'cluster_id',
-            ]));
-
-        $response = $this
-            ->client
-            ->request($request);
-        if (!$response->isSuccess()) {
-            return $response;
-        }
-
-        $sshKey = (new SshKey())->fromArray($response->getData());
-
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($sshKey->getClusterId());
-
-        return $response->setData([
-            'sshKey' => $sshKey,
-        ]);
-    }
-
-    /**
      * @param int $id
      * @return Response
      * @throws RequestException
