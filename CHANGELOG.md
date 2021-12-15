@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.35.0]
+
+### Added
+
+- Add the `is_lets_encrypt` property to the `Certificate` model.
+
+### Changed
+
+- Update to [API version 1.102](https://test-cluster-api.cyberfusion.nl/redoc#section/Changelog/1.102-2021-12-15).
+
 ## [1.34.0]
 
 ### Added
