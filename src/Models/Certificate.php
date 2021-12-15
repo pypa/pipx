@@ -12,6 +12,7 @@ class Certificate extends ClusterModel implements Model
     private ?string $certificate = null;
     private ?string $caChain = null;
     private ?string $privateKey = null;
+    private bool $isLetsEncrypt = false;
     private ?int $id = null;
     private ?string $statusMessage = null;
     private ?int $clusterId = null;
@@ -74,6 +75,18 @@ class Certificate extends ClusterModel implements Model
     public function setPrivateKey(?string $privateKey): Certificate
     {
         $this->privateKey = $privateKey;
+
+        return $this;
+    }
+
+    public function isLetsEncrypt(): bool
+    {
+        return $this->isLetsEncrypt;
+    }
+
+    public function setIsLetsEncrypt(bool $isLetsEncrypt): Certificate
+    {
+        $this->isLetsEncrypt = $isLetsEncrypt;
 
         return $this;
     }
@@ -146,6 +159,7 @@ class Certificate extends ClusterModel implements Model
             ->setCertificate(Arr::get($data, 'certificate'))
             ->setCaChain(Arr::get($data, 'ca_chain'))
             ->setPrivateKey(Arr::get($data, 'private_key'))
+            ->setIsLetsEncrypt(Arr::get($data, 'is_lets_encrypt', false))
             ->setId(Arr::get($data, 'id'))
             ->setStatusMessage(Arr::get($data, 'status_message'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
@@ -161,16 +175,12 @@ class Certificate extends ClusterModel implements Model
             'certificate' => $this->getCertificate(),
             'ca_chain' => $this->getCaChain(),
             'private_key' => $this->getPrivateKey(),
+            'is_lets_encrypt' => $this->isLetsEncrypt(),
             'id' => $this->getId(),
             'status_message' => $this->getStatusMessage(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),
         ];
-    }
-
-    public function isLetsEncrypt(): bool
-    {
-        return count($this->commonNames) !== 0;
     }
 }
