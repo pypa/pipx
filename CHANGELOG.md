@@ -7,6 +7,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.36.0]
+
+### Changed
+
+- Update to [API version 1.103](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.103-2021-12-16).
+
+### Fixed
+
+- Use the proper snake_case fields when using the ListFilter.
+
+### Removed
+
+- - Remove the database user grant delete endpoint as it's no longer available.
+
 ## [1.35.0]
 
 ### Added
@@ -15,7 +29,7 @@ detailed information.
 
 ### Changed
 
-- Update to [API version 1.102](https://test-cluster-api.cyberfusion.nl/redoc#section/Changelog/1.102-2021-12-15).
+- Update to [API version 1.102](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.102-2021-12-15).
 
 ## [1.34.0]
 

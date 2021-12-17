@@ -25,7 +25,7 @@ class ListFilter implements Filter
     {
         $reflection = new ReflectionClass($model);
         $properties = array_map(
-            fn(ReflectionProperty $property) => $property->name,
+            fn(ReflectionProperty $property) => Str::snake($property->name),
             $reflection->getProperties(ReflectionProperty::IS_PRIVATE)
         );
 
