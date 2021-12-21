@@ -9,4 +9,5 @@ class ClusterGroup
     public const DATABASE = 'Database';
     public const BORG_CLIENT = 'Borg Client';
     public const BORG_SERVER = 'Borg Server';
+    public const REDIRECT = 'Redirect';
 }

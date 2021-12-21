@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.37.0]
+
+### Added
+
+- Add URL redirects endpoint.
+- 
+### Changed
+
+- Update to [API version 1.104.1](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.104.1-2021-12-20).
+
 ## [1.36.0]
 
 ### Changed
@@ -19,7 +29,7 @@ detailed information.
 
 ### Removed
 
-- - Remove the database user grant delete endpoint as it's no longer available.
+- Remove the database user grant delete endpoint as it's no longer available.
 
 ## [1.35.0]
 

@@ -109,6 +109,11 @@ class ClusterApi
         return new Endpoints\UnixUsers($this->client);
     }
 
+    public function urlRedirects(): Endpoints\UrlRedirects
+    {
+        return new Endpoints\UrlRedirects($this->client);
+    }
+
     public function virtualHosts(): Endpoints\VirtualHosts
     {
         return new Endpoints\VirtualHosts($this->client);
