@@ -4,17 +4,18 @@ from pathlib import Path
 
 import nox  # type: ignore
 
-PYTHON_ALL_VERSIONS = ["3.6", "3.7", "3.8", "3.9"]
-PYTHON_DEFAULT_VERSION = "3.9"
+PYTHON_ALL_VERSIONS = ["3.6", "3.7", "3.8", "3.9", "3.10"]
+PYTHON_DEFAULT_VERSION = "3.10"
 DOC_DEPENDENCIES = [".", "jinja2", "mkdocs", "mkdocs-material"]
 LINT_DEPENDENCIES = [
-    "black==21.5b1",
-    "flake8==3.9.2",
-    "flake8-bugbear==21.3.2",
-    "mypy==0.812",
-    "check-manifest==0.46",
+    "black==21.12b0",
+    "flake8==4.0.1",
+    "flake8-bugbear==21.11.29",
+    "mypy==0.930",
+    "types-jinja2",
+    "check-manifest==0.47",
     "packaging>=20.0",
-    "isort==5.8.0",
+    "isort==5.10.1",
 ]
 # Packages whose dependencies need an intact system PATH to compile
 # pytest setup clears PATH.  So pre-build some wheels to the pip cache.

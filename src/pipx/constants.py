@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from textwrap import dedent
 from typing import NewType, Optional
@@ -33,12 +34,7 @@ pipx_log_file: Optional[Path] = None
 
 
 def is_windows() -> bool:
-    try:
-        WindowsError  # noqa
-    except NameError:
-        return False
-    else:
-        return True
+    return sys.platform == "win32"
 
 
 WINDOWS: bool = is_windows()

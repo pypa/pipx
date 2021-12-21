@@ -27,7 +27,11 @@ def reinstall(
         print(f"Nothing to reinstall for {venv_dir.name} {sleep}")
         return EXIT_CODE_REINSTALL_VENV_NONEXISTENT
 
-    if Path(python).is_relative_to(venv_dir):
+    try:
+        Path(python).relative_to(venv_dir)
+    except ValueError:
+        pass
+    else:
         print(
             f"{error} Error, the python executable would be deleted!",
             "Change it using the --python option or PIPX_DEFAULT_PYTHON environment variable.",
