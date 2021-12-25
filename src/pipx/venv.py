@@ -94,7 +94,7 @@ class Venv:
         self.verbose = verbose
         self.do_animation = not verbose
         try:
-            self._existing = self.root.exists() and next(self.root.iterdir())
+            self._existing = self.root.exists() and bool(next(self.root.iterdir()))
         except StopIteration:
             self._existing = False
 

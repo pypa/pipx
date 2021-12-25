@@ -14,3 +14,4 @@ __pycache__
 site
 docs/docs.md
 .pipx_tests
+/.coverage*
