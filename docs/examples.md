@@ -19,7 +19,7 @@ pipx run BINARY  # latest version of binary is run with python3
 pipx run --spec PACKAGE==2.0.0 BINARY  # specific version of package is run
 pipx run --python 3.4 BINARY  # Installed and invoked with specific Python version
 pipx run --python 3.7 --spec PACKAGE=1.7.3 BINARY
-pipx run --spec git+https://url.git BINARY  # latest version on master is run
+pipx run --spec git+https://url.git BINARY  # latest version on default branch is run
 pipx run --spec git+https://url.git@branch BINARY
 pipx run --spec git+https://url.git@hash BINARY
 pipx run pycowsay moo
