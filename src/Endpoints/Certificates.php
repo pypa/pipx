@@ -135,42 +135,6 @@ class Certificates extends Endpoint
     /**
      * @throws RequestException
      */
-    public function update(Certificate $certificate): Response
-    {
-        $this->validateRequired($certificate, 'update', ['id', 'cluster_id', 'main_common_name']);
-
-        $request = (new Request())
-            ->setMethod(Request::METHOD_PATCH)
-            ->setUrl(sprintf('certificates/%d', $certificate->getId()))
-            ->setBody($this->filterFields($certificate->toArray(), [
-                'certificate',
-                'ca_chain',
-                'private_key',
-                'status_message', // Can only be changed with the proper right
-            ]));
-
-        $response = $this
-            ->client
-            ->request($request);
-        if (!$response->isSuccess()) {
-            return $response;
-        }
-
-        $certificate = (new Certificate())->fromArray($response->getData());
-
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($certificate->getClusterId());
-
-        return $response->setData([
-            'certificate' => $certificate,
-        ]);
-    }
-
-    /**
-     * @throws RequestException
-     */
     public function delete(int $id): Response
     {
         // Log the affected cluster by retrieving the model first

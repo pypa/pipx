@@ -7,6 +7,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.38.0]
+
+### Added
+
+- Add `description` to the `UrlRedirect` model.
+
+### Changed
+
+- Update to [API version 1.105.0](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.105-2021-12-28).
+
+### Removed
+
+- Remove the `update` method from the `Certificate` endpoint.
+
 ## [1.37.0]
 
 ### Added
