@@ -1,5 +1,6 @@
 dev
 
+- Support `pipx run` with version constraints and extras. (#697)
 
 0.16.5
 
