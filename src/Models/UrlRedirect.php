@@ -16,6 +16,7 @@ class UrlRedirect extends ClusterModel implements Model
     private bool $keepPath = true;
     private bool $forceSsl = true;
     private ?string $balancerBackendName = null;
+    private ?string $description = null;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -131,6 +132,18 @@ class UrlRedirect extends ClusterModel implements Model
         return $this;
     }
 
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(?string $description): UrlRedirect
+    {
+        $this->description = $description;
+
+        return $this;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -190,6 +203,7 @@ class UrlRedirect extends ClusterModel implements Model
             ->setKeepPath(Arr::get($data, 'keep_path'))
             ->setForceSsl(Arr::get($data, 'force_ssl'))
             ->setBalancerBackendName(Arr::get($data, 'balancer_backend_name'))
+            ->setDescription(Arr::get($data, 'description'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -207,6 +221,7 @@ class UrlRedirect extends ClusterModel implements Model
             'keep_path' => $this->isKeepPath(),
             'force_ssl' => $this->isForceSsl(),
             'balancer_backend_name' => $this->getBalancerBackendName(),
+            'description' => $this->getDescription(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
