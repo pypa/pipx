@@ -26,7 +26,8 @@ pipx run pycowsay moo
 pipx --version  # prints pipx version
 pipx run pycowsay --version  # prints pycowsay version
 pipx run --python pythonX pycowsay
-pipx run --spec pycowsay==2.0 pycowsay --version
+pipx run pycowsay==2.0 --version
+pipx run pycowsay[dev] --version
 pipx run --spec git+https://github.com/psf/black.git black
 pipx run --spec git+https://github.com/psf/black.git@branch-name black
 pipx run --spec git+https://github.com/psf/black.git@git-hash black
