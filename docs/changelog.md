@@ -1,4 +1,4 @@
-dev
+0.17.0
 
 - Support `pipx run` with version constraints and extras. (#697)
 
