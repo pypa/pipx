@@ -57,7 +57,7 @@ PIPX_DESCRIPTION = textwrap.dedent(
     Virtual Environment location is {str(constants.PIPX_LOCAL_VENVS)}.
     Symlinks to apps are placed in {str(constants.LOCAL_BIN_DIR)}.
 
-    """
+    """.replace(str(Path.home()), "$HOME")
 )
 PIPX_DESCRIPTION += pipx_wrap(
     """
@@ -104,7 +104,7 @@ INSTALL_DESCRIPTION = textwrap.dedent(
     The default python executable used to install a package is
     {DOC_DEFAULT_PYTHON} and can be overridden
     by setting the environment variable `PIPX_DEFAULT_PYTHON`.
-    """
+    """.replace(str(Path.home()), "$HOME")
 )
 
 

@@ -1,5 +1,6 @@
 dev
 
+- Use $HOME instead of the explicit path in generated documentation.
 
 0.17.0
 
