@@ -4,7 +4,7 @@
 import os.path
 import textwrap
 
-from build_manpages.manpage import Manpage
+from build_manpages.manpage import Manpage  # type: ignore
 
 from pipx.main import get_command_parser
 

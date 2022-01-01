@@ -615,7 +615,7 @@ def get_command_parser() -> argparse.ArgumentParser:
         formatter_class=LineWrapRawTextHelpFormatter,
         description=PIPX_DESCRIPTION,
     )
-    parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]
+    parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore
 
     subparsers = parser.add_subparsers(
         dest="command", description="Get help for commands with pipx COMMAND --help"
