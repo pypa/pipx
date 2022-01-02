@@ -1,7 +1,6 @@
 dev
 
 - Include machinery to build a manpage for pipx with [argparse-manpage](https://pypi.org/project/argparse-manpage/).
-- Fixed `pipx list` output phrasing to convey that python version displayed is the one with which package was installed.
 - Add better handling for 'app not found' when a single app is present in the project, and an improved error message (#733)
 
 0.17.0
@@ -10,6 +9,7 @@ dev
 
 0.16.5
 
+- Fixed `pipx list` output phrasing to convey that python version displayed is the one with which package was installed.
 - Fixed `pipx install` to provide return code 0 if venv already exists, similar to pip’s behavior. (#736)
 - [docs] Update ansible's install command in [Programs to Try document](https://pypa.github.io/pipx/programs-to-try/#ansible) to work with Ansible 2.10+ (#742)
 
