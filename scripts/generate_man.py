@@ -17,7 +17,7 @@ def main():
     body = str(manpage)
 
     # Avoid hardcoding build paths in manpages (and improve readability)
-    body = body.replace(os.path.expanduser("~"), "~")
+    body = body.replace(os.path.expanduser("~").replace("-", "\\-"), "~")
 
     # Add a credit section
     body += textwrap.dedent(
