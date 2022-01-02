@@ -42,9 +42,12 @@ def run_pipx_cli_exit(pipx_cmd_list, assert_exit=None):
         assert sys_exit.value.code == assert_exit
 
 
+@pytest.mark.parametrize(
+    "package_name", ["pycowsay", "pycowsay==0.0.0.1", "pycowsay>=0.0.0.1"]
+)
 @mock.patch("os.execvpe", new=execvpe_mock)
-def test_simple_run(pipx_temp_env, monkeypatch, capsys):
-    run_pipx_cli_exit(["run", "pycowsay", "--help"])
+def test_simple_run(pipx_temp_env, monkeypatch, capsys, package_name):
+    run_pipx_cli_exit(["run", package_name, "--help"])
     captured = capsys.readouterr()
     assert "Download the latest version of a package" not in captured.out
 

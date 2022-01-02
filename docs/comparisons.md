@@ -52,10 +52,10 @@ None. Either one or the other should be used. These tools compete for a similar 
 
 ### Migrating to pipx from pipsi
 
-After you have installed pipx, run [migrate_pipsi_to_pipx.py](https://raw.githubusercontent.com/pypa/pipx/master/scripts/migrate_pipsi_to_pipx.py). Why not do this with your new pipx installation?
+After you have installed pipx, run [migrate_pipsi_to_pipx.py](https://raw.githubusercontent.com/pypa/pipx/main/scripts/migrate_pipsi_to_pipx.py). Why not do this with your new pipx installation?
 
 ```
-pipx run https://raw.githubusercontent.com/pypa/pipx/master/scripts/migrate_pipsi_to_pipx.py
+pipx run https://raw.githubusercontent.com/pypa/pipx/main/scripts/migrate_pipsi_to_pipx.py
 ```
 
 ## pipx vs brew

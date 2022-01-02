@@ -35,7 +35,7 @@ def install(
         venv_dir = venv_container.get_venv_dir(f"{package_name}{suffix}")
 
     try:
-        exists = venv_dir.exists() and next(venv_dir.iterdir())
+        exists = venv_dir.exists() and bool(next(venv_dir.iterdir()))
     except StopIteration:
         exists = False
 

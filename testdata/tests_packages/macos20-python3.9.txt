@@ -75,7 +75,7 @@ jupyter_console==6.4.0
 jupyter_core==4.7.1
 jupyterlab_pygments==0.1.2
 jupyterlab_widgets==1.0.0
-kaggle==1.5.9
+kaggle==1.5.12
 keyring==23.0.1
 keyrings.alt==4.0.2
 lazy_object_proxy==1.6.0

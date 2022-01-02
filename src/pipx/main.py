@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List
 
 import argcomplete  # type: ignore
+from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
 import pipx.constants
@@ -175,9 +176,17 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             if ("spec" in args and args.spec is not None)
             else args.app_with_args[0]
         )
+        # For any package, we need to just use the name
+        try:
+            package_name = Requirement(args.app_with_args[0]).name
+        except InvalidRequirement:
+            # Raw URLs to scripts are supported, too, so continue if
+            # we can't parse this as a package
+            package_name = args.app_with_args[0]
+
         use_cache = not args.no_cache
         commands.run(
-            args.app_with_args[0],
+            package_name,
             package_or_url,
             args.app_with_args[1:],
             args.python,
@@ -602,8 +611,11 @@ def get_command_parser() -> argparse.ArgumentParser:
     completer_venvs = InstalledVenvsCompleter(venv_container)
 
     parser = argparse.ArgumentParser(
-        formatter_class=LineWrapRawTextHelpFormatter, description=PIPX_DESCRIPTION
+        prog="pipx",
+        formatter_class=LineWrapRawTextHelpFormatter,
+        description=PIPX_DESCRIPTION,
     )
+    parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore
 
     subparsers = parser.add_subparsers(
         dest="command", description="Get help for commands with pipx COMMAND --help"

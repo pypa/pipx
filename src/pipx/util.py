@@ -119,7 +119,6 @@ if WINDOWS:
         python_path = bin_path / "python.exe"
         return bin_path, python_path
 
-
 else:
 
     def get_venv_paths(root: Path) -> Tuple[Path, Path]:
@@ -244,7 +243,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str) -> None:
     """
     max_relevant_errors = 10
 
-    failed_build_stdout = []
+    failed_build_stdout: List[str] = []
     last_collecting_dep: Optional[str] = None
     # for any useful information in stdout, `pip install` must be run without
     #   the -q option
