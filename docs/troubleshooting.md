@@ -42,6 +42,10 @@ argument is to use an `=`-sign.  An example:
 ```
 pipx install pycowsay --pip-args="--no-cache-dir"
 ```
+Another example for ignoring ssl/tls errors:
+```
+pipx install termpair --pip-args '--trusted-host files.pythonhosted.org --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host github.com'"
+```
 
 ## Check for `PIP_*` environment variables
 
