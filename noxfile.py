@@ -7,6 +7,7 @@ import nox  # type: ignore
 PYTHON_ALL_VERSIONS = ["3.6", "3.7", "3.8", "3.9", "3.10"]
 PYTHON_DEFAULT_VERSION = "3.10"
 DOC_DEPENDENCIES = [".", "jinja2", "mkdocs", "mkdocs-material"]
+MAN_DEPENDENCIES = [".", "argparse-manpage"]
 LINT_DEPENDENCIES = [
     "black==21.12b0",
     "flake8==4.0.1",
@@ -39,9 +40,9 @@ else:
 # Set nox options
 if PLATFORM == "win":
     # build_docs fail on Windows, even if `chcp.com 65001` is used
-    nox.options.sessions = ["tests", "lint"]
+    nox.options.sessions = ["tests", "lint", "build_man"]
 else:
-    nox.options.sessions = ["tests", "lint", "build_docs"]
+    nox.options.sessions = ["tests", "lint", "build_docs", "build_man"]
 nox.options.reuse_existing_virtualenvs = True
 
 
@@ -224,6 +225,16 @@ def publish_docs(session):
 def watch_docs(session):
     session.install(*DOC_DEPENDENCIES)
     session.run("mkdocs", "serve")
+
+
+@nox.session(python=PYTHON_DEFAULT_VERSION)
+def build_man(session):
+    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
+    session.install(*MAN_DEPENDENCIES)
+    session.env[
+        "PIPX__DOC_DEFAULT_PYTHON"
+    ] = "typically the python used to execute pipx"
+    session.run("python", "scripts/generate_man.py")
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)

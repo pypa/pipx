@@ -1,5 +1,6 @@
 dev
 
+- Include machinery to build a manpage for pipx with [argparse-manpage](https://pypi.org/project/argparse-manpage/).
 
 0.17.0
 

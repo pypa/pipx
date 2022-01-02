@@ -611,8 +611,11 @@ def get_command_parser() -> argparse.ArgumentParser:
     completer_venvs = InstalledVenvsCompleter(venv_container)
 
     parser = argparse.ArgumentParser(
-        formatter_class=LineWrapRawTextHelpFormatter, description=PIPX_DESCRIPTION
+        prog="pipx",
+        formatter_class=LineWrapRawTextHelpFormatter,
+        description=PIPX_DESCRIPTION,
     )
+    parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore
 
     subparsers = parser.add_subparsers(
         dest="command", description="Get help for commands with pipx COMMAND --help"

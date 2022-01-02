@@ -1,4 +1,4 @@
-.PHONY: test docs develop build publish publish_docs lint
+.PHONY: test docs develop build publish publish_docs lint man
 
 develop:
 	pipx run nox -s develop
@@ -20,3 +20,6 @@ watch_docs:
 
 publish_docs:
 	pipx run nox -s publish_docs -r
+
+man:
+	pipx run nox -s build_man -r
