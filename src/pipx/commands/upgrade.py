@@ -207,7 +207,7 @@ def upgrade_all(
 
     if venvs_upgraded == 0:
         print(
-            f"Versions did not change after running 'pip upgrade' for each package {sleep}"
+            f"Versions did not change after running 'pipx upgrade' for each package {sleep}"
         )
     if venv_error:
         raise PipxError(
