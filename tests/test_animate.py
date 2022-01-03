@@ -55,6 +55,7 @@ def check_animate_output(
 
 def test_delay_suppresses_output(capsys, monkeypatch):
     monkeypatch.setattr(pipx.animate, "stderr_is_tty", True)
+    monkeypatch.setenv("COLUMNS", "80")
 
     test_string = "asdf"
 
