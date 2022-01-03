@@ -8,7 +8,6 @@ google_analytics:
   - 'auto'
 repo_name: pypa/pipx
 repo_url: https://github.com/pypa/pipx
-edit_uri: edit/main/docs/
 
 nav:
   - Home: "index.md"

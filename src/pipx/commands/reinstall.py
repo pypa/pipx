@@ -28,14 +28,10 @@ def reinstall(
         return EXIT_CODE_REINSTALL_VENV_NONEXISTENT
 
     try:
-        # use PurePath.relative_to in a try block instead
-        # of PurePath.is_relative_to, for python 3.6-3.8 compatability
         Path(python).relative_to(venv_dir)
-        python_relative_to_venv_dir = True
     except ValueError:
-        python_relative_to_venv_dir = False
-
-    if python_relative_to_venv_dir:
+        pass
+    else:
         print(
             f"{error} Error, the python executable would be deleted!",
             "Change it using the --python option or PIPX_DEFAULT_PYTHON environment variable.",
