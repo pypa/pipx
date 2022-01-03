@@ -163,7 +163,7 @@ def _download_and_run(
                 app_filename = app
         else:
             all_apps = (
-                f"{a} - usage: 'pipx run --spec {package_name} {app} [arguments?]'"
+                f"{a} - usage: 'pipx run --spec {package_name} {a} [arguments?]'"
                 for a in apps
             )
             raise PipxError(
