@@ -1,6 +1,7 @@
 dev
 
 - Include machinery to build a manpage for pipx with [argparse-manpage](https://pypi.org/project/argparse-manpage/).
+- Add better handling for 'app not found' when a single app is present in the project, and an improved error message (#733)
 - Fixed animations sending output to stdout, which can break JSON output. (#769)
 
 0.17.0
