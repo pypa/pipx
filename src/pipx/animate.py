@@ -36,7 +36,7 @@ def animate(
 
     if not do_animation or not _env_supports_animation():
         # No animation, just a single print of message
-        print(f"{message}...")
+        sys.stderr.write(f"{message}...\n")
         yield
         return
 
