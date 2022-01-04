@@ -1,4 +1,4 @@
-dev
+1.0.0
 
 - Support [argcomplete 2.0.0](https://pypi.org/project/argcomplete/2.0.0) (#790)
 - Include machinery to build a manpage for pipx with [argparse-manpage](https://pypi.org/project/argparse-manpage/).
