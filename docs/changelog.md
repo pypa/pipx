@@ -1,3 +1,6 @@
+dev
+
+
 1.0.0
 
 - Support [argcomplete 2.0.0](https://pypi.org/project/argcomplete/2.0.0) (#790)
