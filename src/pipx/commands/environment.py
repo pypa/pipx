@@ -37,5 +37,6 @@ def environment(value: str) -> ExitCode:
         print(PIPX_VENV_CACHEDIR)
     else:
         print("Variable not found.")
+        return ExitCode(1)
 
     return EXIT_CODE_OK
