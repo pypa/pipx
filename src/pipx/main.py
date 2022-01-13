@@ -132,7 +132,9 @@ def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
         pip_args += ["--index-url", parsed_args["index_url"]]
 
     if parsed_args.get("pip_args"):
-        pip_args += shlex.split(parsed_args.get("pip_args", ""))
+        pip_args += shlex.split(
+            parsed_args.get("pip_args", ""), posix="win" not in sys.platform
+        )
 
     # make sure --editable is last because it needs to be right before
     #   package specification
