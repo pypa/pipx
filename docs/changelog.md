@@ -1,5 +1,6 @@
 dev
 
+- Add `pipx environment` command. (#793)
 
 1.0.0
 
