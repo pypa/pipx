@@ -1,4 +1,5 @@
 from pipx.commands.ensure_path import ensure_pipx_paths
+from pipx.commands.environment import environment
 from pipx.commands.inject import inject
 from pipx.commands.install import install
 from pipx.commands.list_packages import list_packages
@@ -21,4 +22,5 @@ __all__ = [
     "list_packages",
     "run_pip",
     "ensure_pipx_paths",
+    "environment",
 ]

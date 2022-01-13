@@ -273,6 +273,8 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
     elif args.command == "completions":
         print(constants.completion_instructions)
         return ExitCode(0)
+    elif args.command == "environment":
+        return commands.environment(value=args.value)
     else:
         raise PipxError(f"Unknown command {args.command}")
 
@@ -605,6 +607,21 @@ def _add_ensurepath(subparsers: argparse._SubParsersAction) -> None:
     )
 
 
+def _add_environment(subparsers: argparse._SubParsersAction) -> None:
+    p = subparsers.add_parser(
+        "environment",
+        help=("Print a list of variables used in pipx.constants."),
+        description=(
+            "Available variables: "
+            "PIPX_HOME, PIPX_BIN_DIR, PIPX_SHARED_LIBS, PIPX_LOCAL_VENVS, PIPX_LOG_DIR, "
+            "PIPX_TRASH_DIR, PIPX_VENV_CACHEDIR"
+        ),
+    )
+    p.add_argument(
+        "--value", "-v", metavar="VARIABLE", help="Print the value of the variable."
+    )
+
+
 def get_command_parser() -> argparse.ArgumentParser:
     venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
 
@@ -633,6 +650,7 @@ def get_command_parser() -> argparse.ArgumentParser:
     _add_run(subparsers)
     _add_runpip(subparsers, completer_venvs.use)
     _add_ensurepath(subparsers)
+    _add_environment(subparsers)
 
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     subparsers.add_parser(
