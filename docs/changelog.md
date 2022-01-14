@@ -1,6 +1,6 @@
 dev
 
-- Fix the behaviour of `shlex.split` on Windows (#794)
+- Improve the behaviour of `shlex.split` on Windows (#794)
 
 1.0.0
 
