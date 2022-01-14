@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.38.2]
+
+### Fixed
+
+- Make sure the `allow_override_directives` and `allow_override_option_directives` are in the request body of the 
+ `VirtualHost`. 
+
 ## [1.38.1]
 
 ### Fixed
