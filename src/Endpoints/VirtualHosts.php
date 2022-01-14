@@ -96,6 +96,8 @@ class VirtualHosts extends Endpoint
                 'custom_config',
                 'balancer_backend_name',
                 'deploy_commands',
+                'allow_override_directives',
+                'allow_override_option_directives',
             ]));
 
         $response = $this
@@ -150,6 +152,8 @@ class VirtualHosts extends Endpoint
                 'custom_config',
                 'balancer_backend_name',
                 'deploy_commands',
+                'allow_override_directives',
+                'allow_override_option_directives',
                 'id',
                 'cluster_id',
             ]));
