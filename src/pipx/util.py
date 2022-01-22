@@ -363,7 +363,7 @@ def exec_app(
 ) -> NoReturn:
     """Run command, do not return
 
-    POSIX: replace current processs with command using os.exec*()
+    POSIX: replace current process with command using os.exec*()
     Windows: Use subprocess and sys.exit() to run command
     """
 
