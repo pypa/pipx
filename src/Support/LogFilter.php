@@ -13,7 +13,7 @@ class LogFilter implements Filter
 {
     private DateTimeInterface $timestamp;
     private int $limit = Limit::DEFAULT_LIMIT;
-    private string $sort = Sort::SORT_ASC;
+    private string $sort = Sort::ASC;
     private bool $showRawMessage = false;
 
     public function __construct()
@@ -53,7 +53,7 @@ class LogFilter implements Filter
         return $this->sort;
     }
 
-    public function setSort(string $sort = Sort::SORT_ASC): LogFilter
+    public function setSort(string $sort = Sort::ASC): LogFilter
     {
         if (!in_array($sort, Sort::AVAILABLE)) {
             throw ListFilterException::invalidSortMethod($sort);

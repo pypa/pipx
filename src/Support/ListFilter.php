@@ -113,7 +113,7 @@ class ListFilter implements Filter
     /**
      * @throws ListFilterException
      */
-    public function addSort(string $field, string $method = Sort::SORT_ASC): ListFilter
+    public function addSort(string $field, string $method = Sort::ASC): ListFilter
     {
         if (!in_array($method, Sort::AVAILABLE)) {
             throw ListFilterException::invalidSortMethod($method);
