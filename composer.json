@@ -41,7 +41,7 @@
     "scripts": {
         "test": "vendor/bin/phpunit --no-coverage",
         "test-coverage": "vendor/bin/phpunit",
-        "analyse": "vendor/bin/psalm"
+        "analyse": "vendor/bin/phpstan analyse"
     },
     "config": {
         "sort-packages": true

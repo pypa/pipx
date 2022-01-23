@@ -60,15 +60,25 @@ abstract class ClusterModel implements JsonSerializable, Model
             case 'positive_integer':
                 return is_integer($value) && $value >= 0;
             case 'length_max':
-                return is_string($value) && Str::length($value) <= $setting;
+                return
+                    (is_string($value) && Str::length($value) <= $setting) ||
+                    (is_array($value) && count($value) <= $setting);
             case 'length_min':
-                return is_string($value) && Str::length($value) >= $setting;
+                return
+                    (is_string($value) && Str::length($value) >= $setting) ||
+                    (is_array($value) && count($value) >= $setting);
             case 'pattern':
                 return is_string($value) && Str::doesMatch($value, sprintf('/%s/', $setting));
             case 'in':
                 return in_array($value, $setting);
             case 'in_array':
                 return !array_diff($value, $setting);
+            case 'unique':
+                return is_array($value) && count(array_unique($value)) === count($value);
+            case 'ip':
+                return filter_var($value, FILTER_VALIDATE_IP) !== false;
+            case 'email':
+                return filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
             default:
                 return true;
         }

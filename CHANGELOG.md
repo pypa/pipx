@@ -7,6 +7,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.39.0]
+
+### Added
+
+- Add `log_slow_requests_threshold` attribute to the `FpmPool` model.
+- Add `createPublic` and `createPrivate` methods to the `SshKeys` endpoint for creating a public or private SSH key.
+- Add several validations for several attributes.
+- Add `sort` attribute to the `LogFilter`.
+
+### Changed
+
+- Update to [API version 1.106](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.106-2022-01-21).
+- Moved the sort and limit constants to their own enums.
+
 ## [1.38.2]
 
 ### Fixed

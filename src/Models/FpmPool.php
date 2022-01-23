@@ -14,6 +14,7 @@ class FpmPool extends ClusterModel implements Model
     private int $maxRequests = 1000;
     private int $processIdleTimeout = 10;
     private ?int $cpuLimit = null;
+    private ?int $logShowRequestsThreshold = null;
     private bool $isNamespaced = false;
     private ?string $unitName = null;
     private ?int $id = null;
@@ -126,6 +127,22 @@ class FpmPool extends ClusterModel implements Model
         return $this;
     }
 
+    public function getLogShowRequestsThreshold(): ?int
+    {
+        return $this->logShowRequestsThreshold;
+    }
+
+    public function setLogShowRequestsThreshold(?int $logShowRequestsThreshold): FpmPool
+    {
+        $this->validate($logShowRequestsThreshold, [
+            'positive_integer',
+        ]);
+
+        $this->logShowRequestsThreshold = $logShowRequestsThreshold;
+
+        return $this;
+    }
+
     public function isNamespaced(): bool
     {
         return $this->isNamespaced;
@@ -208,6 +225,7 @@ class FpmPool extends ClusterModel implements Model
             ->setMaxRequests(Arr::get($data, 'max_requests'))
             ->setProcessIdleTimeout(Arr::get($data, 'process_idle_timeout'))
             ->setCpuLimit(Arr::get($data, 'cpu_limit'))
+            ->setLogShowRequestsThreshold(Arr::get($data, 'log_slow_requests_threshold'))
             ->setIsNamespaced((bool)Arr::get($data, 'is_namespaced'))
             ->setUnitName(Arr::get($data, 'unit_name'))
             ->setId(Arr::get($data, 'id'))
@@ -226,6 +244,7 @@ class FpmPool extends ClusterModel implements Model
             'max_requests' => $this->getMaxRequests(),
             'process_idle_timeout' => $this->getProcessIdleTimeout(),
             'cpu_limit' => $this->getCpuLimit(),
+            'log_slow_requests_threshold' => $this->getLogShowRequestsThreshold(),
             'is_namespaced' => $this->isNamespaced(),
             'unit_name' => $this->getUnitName(),
             'id' => $this->getId(),

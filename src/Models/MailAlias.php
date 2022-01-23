@@ -23,6 +23,7 @@ class MailAlias extends ClusterModel implements Model
     public function setLocalPart(string $localPart): MailAlias
     {
         $this->validate($localPart, [
+            'pattern' => '^[a-z0-9]+$',
             'length_max' => 64,
         ]);
 
@@ -38,6 +39,11 @@ class MailAlias extends ClusterModel implements Model
 
     public function setForwardEmailAddresses(array $forwardEmailAddresses): MailAlias
     {
+        $this->validate($forwardEmailAddresses, [
+            'unique',
+            'length_min' => 1,
+        ]);
+
         $this->forwardEmailAddresses = $forwardEmailAddresses;
 
         return $this;

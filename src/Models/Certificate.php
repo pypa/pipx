@@ -38,7 +38,12 @@ class Certificate extends ClusterModel implements Model
 
     public function setCommonNames(array $commonNames): Certificate
     {
-        $this->commonNames = $commonNames;
+        $this->validate($commonNames, [
+            'length_min' => 1,
+            'unique',
+        ]);
+
+        $this->commonNames = array_unique($commonNames);
 
         return $this;
     }
@@ -50,6 +55,11 @@ class Certificate extends ClusterModel implements Model
 
     public function setCertificate(?string $certificate): Certificate
     {
+        $this->validate($certificate, [
+            'nullable',
+            'length_max' => 65535,
+        ]);
+
         $this->certificate = $certificate;
 
         return $this;
@@ -62,6 +72,11 @@ class Certificate extends ClusterModel implements Model
 
     public function setCaChain(?string $caChain): Certificate
     {
+        $this->validate($caChain, [
+            'nullable',
+            'length_max' => 65535,
+        ]);
+
         $this->caChain = $caChain;
 
         return $this;
@@ -74,6 +89,11 @@ class Certificate extends ClusterModel implements Model
 
     public function setPrivateKey(?string $privateKey): Certificate
     {
+        $this->validate($privateKey, [
+            'nullable',
+            'length_max' => 65535,
+        ]);
+
         $this->privateKey = $privateKey;
 
         return $this;
@@ -110,6 +130,11 @@ class Certificate extends ClusterModel implements Model
 
     public function setStatusMessage(?string $statusMessage): Certificate
     {
+        $this->validate($statusMessage, [
+            'nullable',
+            'length_max' => 65535,
+        ]);
+
         $this->statusMessage = $statusMessage;
 
         return $this;

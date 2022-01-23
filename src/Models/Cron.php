@@ -44,6 +44,11 @@ class Cron extends ClusterModel implements Model
 
     public function setCommand(string $command): Cron
     {
+        $this->validate($command, [
+            'length_min' => 1,
+            'length_max' => 65535,
+        ]);
+
         $this->command = $command;
 
         return $this;

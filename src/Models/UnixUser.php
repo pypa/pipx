@@ -62,6 +62,11 @@ class UnixUser extends ClusterModel implements Model
 
     public function setDescription(?string $description): UnixUser
     {
+        $this->validate($description, [
+            'nullable',
+            'max_length' => 255,
+        ]);
+
         $this->description = $description;
 
         return $this;
@@ -150,6 +155,12 @@ class UnixUser extends ClusterModel implements Model
 
     public function setRabbitMqUsername(?string $rabbitMqUsername): UnixUser
     {
+        $this->validate($rabbitMqUsername, [
+            'nullable',
+            'max_length' => 32,
+            'pattern' => '^[a-z0-9]+$',
+        ]);
+
         $this->rabbitMqUsername = $rabbitMqUsername;
 
         return $this;
@@ -162,6 +173,12 @@ class UnixUser extends ClusterModel implements Model
 
     public function setRabbitMqVirtualHostName(?string $rabbitMqVirtualHostName): UnixUser
     {
+        $this->validate($rabbitMqVirtualHostName, [
+            'nullable',
+            'max_length' => 32,
+            'pattern' => '^[a-z0-9]+$',
+        ]);
+
         $this->rabbitMqVirtualHostName = $rabbitMqVirtualHostName;
 
         return $this;
@@ -174,6 +191,12 @@ class UnixUser extends ClusterModel implements Model
 
     public function setRabbitMqPassword(?string $rabbitMqPassword): UnixUser
     {
+        $this->validate($rabbitMqPassword, [
+            'nullable',
+            'max_length' => 255,
+            'pattern' => '^[a-zA-Z0-9]+$',
+        ]);
+
         $this->rabbitMqPassword = $rabbitMqPassword;
 
         return $this;

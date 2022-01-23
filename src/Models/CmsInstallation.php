@@ -26,6 +26,11 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setDatabaseName(string $databaseName): CmsInstallation
     {
+        $this->validate($databaseName, [
+            'length_max' => 63,
+            'pattern' => '^[a-zA-Z0-9-_]+$',
+        ]);
+
         $this->databaseName = $databaseName;
 
         return $this;
@@ -38,6 +43,11 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setDatabaseUserName(string $databaseUserName): CmsInstallation
     {
+        $this->validate($databaseUserName, [
+            'length_max' => 63,
+            'pattern' => '^[a-zA-Z0-9-_]+$',
+        ]);
+
         $this->databaseUserName = $databaseUserName;
 
         return $this;
@@ -50,6 +60,10 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setDatabaseUserPassword(string $databaseUserPassword): CmsInstallation
     {
+        $this->validate($databaseUserPassword, [
+            'length_min' => 1,
+        ]);
+
         $this->databaseUserPassword = $databaseUserPassword;
 
         return $this;
@@ -62,6 +76,10 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setDatabaseHost(string $databaseHost): CmsInstallation
     {
+        $this->validate($databaseHost, [
+            'ip',
+        ]);
+
         $this->databaseHost = $databaseHost;
 
         return $this;
@@ -74,6 +92,11 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setSiteTitle(string $siteTitle): CmsInstallation
     {
+        $this->validate($siteTitle, [
+            'length_max' => 253,
+            'pattern' => '^[a-zA-Z0-9-_ ]+$',
+        ]);
+
         $this->siteTitle = $siteTitle;
 
         return $this;
@@ -86,6 +109,10 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setSiteUrl(string $siteUrl): CmsInstallation
     {
+        $this->validate($siteUrl, [
+            'length_max' => 2083,
+        ]);
+
         $this->siteUrl = $siteUrl;
 
         return $this;
@@ -98,6 +125,11 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setLocale(string $locale): CmsInstallation
     {
+        $this->validate($locale, [
+            'length_max' => 15,
+            'pattern' => '^[a-zA-Z_]+$',
+        ]);
+
         $this->locale = $locale;
 
         return $this;
@@ -110,6 +142,11 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setVersion(string $version): CmsInstallation
     {
+        $this->validate($version, [
+            'length_max' => 6,
+            'pattern' => '^[0-9.]+$',
+        ]);
+
         $this->version = $version;
 
         return $this;
@@ -122,6 +159,11 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setAdminUsername(string $adminUsername): CmsInstallation
     {
+        $this->validate($adminUsername, [
+            'length_max' => 60,
+            'pattern' => '^[a-zA-Z0-9-_]+$',
+        ]);
+
         $this->adminUsername = $adminUsername;
 
         return $this;
@@ -134,6 +176,10 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setAdminPassword(string $adminPassword): CmsInstallation
     {
+        $this->validate($adminPassword, [
+            'length_min' => 1,
+        ]);
+
         $this->adminPassword = $adminPassword;
 
         return $this;
@@ -146,6 +192,10 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setAdminEmailAddress(string $adminEmailAddress): CmsInstallation
     {
+        $this->validate($adminEmailAddress, [
+            'email',
+        ]);
+
         $this->adminEmailAddress = $adminEmailAddress;
 
         return $this;

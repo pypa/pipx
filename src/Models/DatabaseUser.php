@@ -5,6 +5,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 use Vdhicts\Cyberfusion\ClusterApi\Enums\DatabaseEngine;
+use Vdhicts\Cyberfusion\ClusterApi\Enums\Host;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ModelException;
 
 class DatabaseUser extends ClusterModel implements Model
@@ -46,6 +47,7 @@ class DatabaseUser extends ClusterModel implements Model
     {
         $this->validate($host, [
             'length_max' => 253,
+            'in' => Host::AVAILABLE,
         ]);
 
         $this->host = $host;
@@ -60,6 +62,11 @@ class DatabaseUser extends ClusterModel implements Model
 
     public function setPassword(string $password): DatabaseUser
     {
+        $this->validate($password, [
+            'length_min' => 1,
+            'length_max' => 255,
+        ]);
+
         switch ($this->serverSoftwareName) {
             case DatabaseEngine::SERVER_SOFTWARE_POSTGRES:
                 $this->hashedPassword = sprintf('md5%s', md5($password));
