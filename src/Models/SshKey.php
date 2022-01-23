@@ -25,7 +25,7 @@ class SshKey extends ClusterModel implements Model
     {
         $this->validate($name, [
             'length_max' => 64,
-            'pattern' => '^[a-zA-Z0-9-_@:. ]+$',
+            'pattern' => '^[a-zA-Z0-9-_]+$',
         ]);
 
         $this->name = $name;
@@ -40,6 +40,10 @@ class SshKey extends ClusterModel implements Model
 
     public function setPublicKey(string $publicKey): SshKey
     {
+        $this->validate($publicKey, [
+            'length_max' => 65535,
+        ]);
+
         $this->publicKey = $publicKey;
 
         return $this;
@@ -52,6 +56,10 @@ class SshKey extends ClusterModel implements Model
 
     public function setPrivateKey(?string $privateKey): SshKey
     {
+        $this->validate($privateKey, [
+            'length_max' => 65535,
+        ]);
+
         $this->privateKey = $privateKey;
 
         return $this;

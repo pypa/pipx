@@ -70,7 +70,7 @@ class SshKeys extends Endpoint
      * @return Response
      * @throws RequestException
      */
-    public function create(SshKey $sshKey): Response
+    public function createPublic(SshKey $sshKey): Response
     {
         $this->validateRequired($sshKey, 'create', [
             'name',
@@ -80,10 +80,45 @@ class SshKeys extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('ssh-keys')
+            ->setUrl('ssh-keys/public')
             ->setBody($this->filterFields($sshKey->toArray(), [
                 'name',
                 'public_key',
+                'unix_user_id',
+            ]));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $sshKey = (new SshKey())->fromArray($response->getData());
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($sshKey->getClusterId());
+
+        return $response->setData([
+            'sshKey' => $sshKey,
+        ]);
+    }
+
+    public function createPrivate(SshKey $sshKey): Response
+    {
+        $this->validateRequired($sshKey, 'create', [
+            'name',
+            'private_key',
+            'unix_user_id',
+        ]);
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl('ssh-keys/public')
+            ->setBody($this->filterFields($sshKey->toArray(), [
+                'name',
                 'private_key',
                 'unix_user_id',
             ]));

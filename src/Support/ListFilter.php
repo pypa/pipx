@@ -6,18 +6,16 @@ use ReflectionClass;
 use ReflectionProperty;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Filter;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Enums\Limit;
+use Vdhicts\Cyberfusion\ClusterApi\Enums\Sort;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ListFilterException;
 use Vdhicts\HttpQueryBuilder\Builder;
 
 class ListFilter implements Filter
 {
-    private const MAX_LIMIT = 1000;
-    public const SORT_ASC = 'ASC';
-    public const SORT_DESC = 'DESC';
-
     private ?array $availableFields = null;
     private int $skip = 0;
-    private int $limit = 100;
+    private int $limit = Limit::DEFAULT_LIMIT;
     private array $filter = [];
     private array $sort = [];
 
@@ -68,8 +66,8 @@ class ListFilter implements Filter
 
     public function setLimit(int $limit): ListFilter
     {
-        if ($limit > self::MAX_LIMIT) {
-            $limit = self::MAX_LIMIT;
+        if ($limit > Limit::MAX_LIMIT) {
+            $limit = Limit::MAX_LIMIT;
         }
         $this->limit = $limit;
 
@@ -115,9 +113,9 @@ class ListFilter implements Filter
     /**
      * @throws ListFilterException
      */
-    public function addSort(string $field, string $method = self::SORT_ASC): ListFilter
+    public function addSort(string $field, string $method = Sort::SORT_ASC): ListFilter
     {
-        if (!in_array($method, [self::SORT_ASC, self::SORT_DESC])) {
+        if (!in_array($method, Sort::AVAILABLE)) {
             throw ListFilterException::invalidSortMethod($method);
         }
 

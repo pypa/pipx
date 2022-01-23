@@ -45,6 +45,10 @@ class VirtualHost extends ClusterModel implements Model
 
     public function setServerAliases(array $serverAliases): VirtualHost
     {
+        $this->validate($serverAliases, [
+            'unique',
+        ]);
+
         $this->serverAliases = $serverAliases;
 
         return $this;
@@ -117,6 +121,11 @@ class VirtualHost extends ClusterModel implements Model
 
     public function setCustomConfig(?string $customConfig): VirtualHost
     {
+        $this->validate($customConfig, [
+            'nullable',
+            'length_max' => 65535,
+        ]);
+
         $this->customConfig = $customConfig;
 
         return $this;
@@ -160,6 +169,7 @@ class VirtualHost extends ClusterModel implements Model
     {
         $this->validate($allowOverrideDirectives, [
             'in_array' => AllowOverrideDirectives::AVAILABLE,
+            'unique',
         ]);
 
         $this->allowOverrideDirectives = $allowOverrideDirectives;
@@ -176,6 +186,7 @@ class VirtualHost extends ClusterModel implements Model
     {
         $this->validate($allowOverrideOptionDirectives, [
             'in_array' => AllowOverrideOptionDirectives::AVAILABLE,
+            'unique',
         ]);
 
         $this->allowOverrideOptionDirectives = $allowOverrideOptionDirectives;

@@ -35,6 +35,10 @@ class MailDomain extends ClusterModel implements Model
 
     public function setCatchAllForwardEmailAddresses(array $catchAllForwardEmailAddresses): MailDomain
     {
+        $this->validate($catchAllForwardEmailAddresses, [
+            'unique',
+        ]);
+
         $this->catchAllForwardEmailAddresses = $catchAllForwardEmailAddresses;
 
         return $this;

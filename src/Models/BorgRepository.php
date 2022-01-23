@@ -46,6 +46,11 @@ class BorgRepository extends ClusterModel implements Model
 
     public function setPassphrase(string $passphrase): BorgRepository
     {
+        $this->validate($passphrase, [
+            'length_min' => 1,
+            'length_max' => 255,
+        ]);
+
         $this->passphrase = $passphrase;
 
         return $this;

@@ -41,6 +41,10 @@ class UrlRedirect extends ClusterModel implements Model
 
     public function setServerAliases(array $serverAliases): UrlRedirect
     {
+        $this->validate($serverAliases, [
+            'unique',
+        ]);
+
         $this->serverAliases = $serverAliases;
 
         return $this;

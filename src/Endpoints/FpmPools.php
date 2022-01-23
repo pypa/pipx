@@ -90,6 +90,7 @@ class FpmPools extends Endpoint
                 'max_requests',
                 'process_idle_timeout',
                 'cpu_limit',
+                'log_slow_requests_threshold',
             ]));
 
         $response = $this
@@ -138,6 +139,7 @@ class FpmPools extends Endpoint
                 'max_requests',
                 'process_idle_timeout',
                 'cpu_limit',
+                'log_slow_requests_threshold',
                 'id',
                 'cluster_id',
             ]));
