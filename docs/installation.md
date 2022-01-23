@@ -56,5 +56,5 @@ pipx completions
 ## Install pipx Development Versions
 New versions of pipx are published as beta or release candidates. These versions look something like `0.13.0b1`, where `b1` signifies the first beta release of version 0.13. These releases can be tested with
 ```
-pip install --user pipx --upgrade --dev
+pip install --user pipx --upgrade --pre
 ```
