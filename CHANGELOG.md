@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.39.1]
+
+### Changed
+
+- Update to [API version 1.106.2](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.106.2-2022-01-24).
+- Update regex for mail account and mail alias local part
+
 ## [1.39.0]
 
 ### Added
