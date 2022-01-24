@@ -4,6 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class MailAlias extends ClusterModel implements Model
 {
@@ -22,10 +23,10 @@ class MailAlias extends ClusterModel implements Model
 
     public function setLocalPart(string $localPart): MailAlias
     {
-        $this->validate($localPart, [
-            'pattern' => '^[a-z0-9-.]+$',
-            'length_max' => 64,
-        ]);
+        Validator::value($localPart)
+            ->pattern('^[a-z0-9-.]+$')
+            ->maxLength(64)
+            ->validate();
 
         $this->localPart = $localPart;
 
@@ -39,10 +40,10 @@ class MailAlias extends ClusterModel implements Model
 
     public function setForwardEmailAddresses(array $forwardEmailAddresses): MailAlias
     {
-        $this->validate($forwardEmailAddresses, [
-            'unique',
-            'length_min' => 1,
-        ]);
+        Validator::value($forwardEmailAddresses)
+            ->unique()
+            ->minLength(1)
+            ->validate();
 
         $this->forwardEmailAddresses = $forwardEmailAddresses;
 

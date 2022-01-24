@@ -4,6 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class Certificate extends ClusterModel implements Model
 {
@@ -38,10 +39,10 @@ class Certificate extends ClusterModel implements Model
 
     public function setCommonNames(array $commonNames): Certificate
     {
-        $this->validate($commonNames, [
-            'length_min' => 1,
-            'unique',
-        ]);
+        Validator::value($commonNames)
+            ->minLength(1)
+            ->unique()
+            ->validate();
 
         $this->commonNames = array_unique($commonNames);
 
@@ -55,10 +56,10 @@ class Certificate extends ClusterModel implements Model
 
     public function setCertificate(?string $certificate): Certificate
     {
-        $this->validate($certificate, [
-            'nullable',
-            'length_max' => 65535,
-        ]);
+        Validator::value($certificate)
+            ->nullable()
+            ->maxLength(65535)
+            ->validate();
 
         $this->certificate = $certificate;
 
@@ -72,10 +73,10 @@ class Certificate extends ClusterModel implements Model
 
     public function setCaChain(?string $caChain): Certificate
     {
-        $this->validate($caChain, [
-            'nullable',
-            'length_max' => 65535,
-        ]);
+        Validator::value($caChain)
+            ->nullable()
+            ->maxLength(65535)
+            ->validate();
 
         $this->caChain = $caChain;
 
@@ -89,10 +90,10 @@ class Certificate extends ClusterModel implements Model
 
     public function setPrivateKey(?string $privateKey): Certificate
     {
-        $this->validate($privateKey, [
-            'nullable',
-            'length_max' => 65535,
-        ]);
+        Validator::value($privateKey)
+            ->nullable()
+            ->maxLength(65535)
+            ->validate();
 
         $this->privateKey = $privateKey;
 
@@ -130,10 +131,10 @@ class Certificate extends ClusterModel implements Model
 
     public function setStatusMessage(?string $statusMessage): Certificate
     {
-        $this->validate($statusMessage, [
-            'nullable',
-            'length_max' => 65535,
-        ]);
+        Validator::value($statusMessage)
+            ->nullable()
+            ->maxLength(65535)
+            ->validate();
 
         $this->statusMessage = $statusMessage;
 

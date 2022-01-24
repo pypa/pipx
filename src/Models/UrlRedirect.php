@@ -5,6 +5,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 use Vdhicts\Cyberfusion\ClusterApi\Enums\StatusCode;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class UrlRedirect extends ClusterModel implements Model
 {
@@ -41,9 +42,9 @@ class UrlRedirect extends ClusterModel implements Model
 
     public function setServerAliases(array $serverAliases): UrlRedirect
     {
-        $this->validate($serverAliases, [
-            'unique',
-        ]);
+        Validator::value($serverAliases)
+            ->unique()
+            ->validate();
 
         $this->serverAliases = $serverAliases;
 
@@ -57,10 +58,10 @@ class UrlRedirect extends ClusterModel implements Model
 
     public function setDestinationUrl(string $destinationUrl): UrlRedirect
     {
-        $this->validate($destinationUrl, [
-            'length_max' => 2083,
-            'length_min' => 1,
-        ]);
+        Validator::value($destinationUrl)
+            ->maxLength(2083)
+            ->minLength(1)
+            ->validate();
 
         $this->destinationUrl = $destinationUrl;
 
@@ -74,9 +75,9 @@ class UrlRedirect extends ClusterModel implements Model
 
     public function setStatusCode(int $statusCode): UrlRedirect
     {
-        $this->validate($statusCode, [
-            'in' => StatusCode::AVAILABLE,
-        ]);
+        Validator::value($statusCode)
+            ->valueIn(StatusCode::AVAILABLE)
+            ->validate();
 
         $this->statusCode = $statusCode;
 
@@ -126,10 +127,11 @@ class UrlRedirect extends ClusterModel implements Model
 
     public function setBalancerBackendName(?string $balancerBackendName): UrlRedirect
     {
-        $this->validate($balancerBackendName, [
-            'length_max' => 64,
-            'pattern' => '^[a-z0-9-_.]+$',
-        ]);
+        Validator::value($balancerBackendName)
+            ->nullable()
+            ->maxLength(64)
+            ->pattern('^[a-z0-9-_.]+$')
+            ->validate();
 
         $this->balancerBackendName = $balancerBackendName;
 

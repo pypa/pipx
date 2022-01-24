@@ -4,6 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class FpmPool extends ClusterModel implements Model
 {
@@ -29,10 +30,10 @@ class FpmPool extends ClusterModel implements Model
 
     public function setName(string $name): FpmPool
     {
-        $this->validate($name, [
-            'length_max' => 64,
-            'pattern' => '^[a-z0-9-_]+$',
-        ]);
+        Validator::value($name)
+            ->maxLength(64)
+            ->pattern('^[a-z0-9-_]+$')
+            ->validate();
 
         $this->name = $name;
 
@@ -70,9 +71,9 @@ class FpmPool extends ClusterModel implements Model
 
     public function setMaxChildren(int $maxChildren): FpmPool
     {
-        $this->validate($maxChildren, [
-            'positive_integer',
-        ]);
+        Validator::value($maxChildren)
+            ->positiveInteger()
+            ->validate();
 
         $this->maxChildren = $maxChildren;
 
@@ -86,9 +87,9 @@ class FpmPool extends ClusterModel implements Model
 
     public function setMaxRequests(int $maxRequests): FpmPool
     {
-        $this->validate($maxRequests, [
-            'positive_integer',
-        ]);
+        Validator::value($maxRequests)
+            ->positiveInteger()
+            ->validate();
 
         $this->maxRequests = $maxRequests;
 
@@ -102,9 +103,9 @@ class FpmPool extends ClusterModel implements Model
 
     public function setProcessIdleTimeout(int $processIdleTimeout): FpmPool
     {
-        $this->validate($processIdleTimeout, [
-            'positive_integer',
-        ]);
+        Validator::value($processIdleTimeout)
+            ->positiveInteger()
+            ->validate();
 
         $this->processIdleTimeout = $processIdleTimeout;
 
@@ -118,9 +119,10 @@ class FpmPool extends ClusterModel implements Model
 
     public function setCpuLimit(?int $cpuLimit): FpmPool
     {
-        $this->validate($cpuLimit, [
-            'positive_integer',
-        ]);
+        Validator::value($cpuLimit)
+            ->nullable()
+            ->positiveInteger()
+            ->validate();
 
         $this->cpuLimit = $cpuLimit;
 
@@ -134,9 +136,10 @@ class FpmPool extends ClusterModel implements Model
 
     public function setLogShowRequestsThreshold(?int $logShowRequestsThreshold): FpmPool
     {
-        $this->validate($logShowRequestsThreshold, [
-            'positive_integer',
-        ]);
+        Validator::value($logShowRequestsThreshold)
+            ->nullable()
+            ->positiveInteger()
+            ->validate();
 
         $this->logShowRequestsThreshold = $logShowRequestsThreshold;
 

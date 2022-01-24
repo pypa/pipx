@@ -5,6 +5,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 use Vdhicts\Cyberfusion\ClusterApi\Enums\DatabaseEngine;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class Database extends ClusterModel implements Model
 {
@@ -22,10 +23,10 @@ class Database extends ClusterModel implements Model
 
     public function setName(string $name): Database
     {
-        $this->validate($name, [
-            'length_max' => 63,
-            'pattern' => '^[a-zA-Z0-9-_]+$',
-        ]);
+        Validator::value($name)
+            ->maxLength(63)
+            ->pattern('^[a-zA-Z0-9-_]+$')
+            ->validate();
 
         $this->name = $name;
 
@@ -39,9 +40,9 @@ class Database extends ClusterModel implements Model
 
     public function setServerSoftwareName(string $serverSoftwareName): Database
     {
-        $this->validate($serverSoftwareName, [
-            'in' => DatabaseEngine::AVAILABLE,
-        ]);
+        Validator::value($serverSoftwareName)
+            ->valueIn(DatabaseEngine::AVAILABLE)
+            ->validate();
 
         $this->serverSoftwareName = $serverSoftwareName;
 

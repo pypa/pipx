@@ -7,6 +7,7 @@ use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 use Vdhicts\Cyberfusion\ClusterApi\Enums\DatabaseEngine;
 use Vdhicts\Cyberfusion\ClusterApi\Enums\Host;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ModelException;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class DatabaseUser extends ClusterModel implements Model
 {
@@ -28,10 +29,10 @@ class DatabaseUser extends ClusterModel implements Model
 
     public function setName(string $name): DatabaseUser
     {
-        $this->validate($name, [
-            'length_max' => 63,
-            'pattern' => '^[a-zA-Z0-9-_]+$',
-        ]);
+        Validator::value($name)
+            ->maxLength(63)
+            ->pattern('^[a-zA-Z0-9-_]+$')
+            ->validate();
 
         $this->name = $name;
 
@@ -45,10 +46,10 @@ class DatabaseUser extends ClusterModel implements Model
 
     public function setHost(string $host): DatabaseUser
     {
-        $this->validate($host, [
-            'length_max' => 253,
-            'in' => Host::AVAILABLE,
-        ]);
+        Validator::value($host)
+            ->maxLength(253)
+            ->valueIn(Host::AVAILABLE)
+            ->validate();
 
         $this->host = $host;
 
@@ -62,10 +63,10 @@ class DatabaseUser extends ClusterModel implements Model
 
     public function setPassword(string $password): DatabaseUser
     {
-        $this->validate($password, [
-            'length_min' => 1,
-            'length_max' => 255,
-        ]);
+        Validator::value($password)
+            ->minLength(1)
+            ->maxLength(255)
+            ->validate();
 
         switch ($this->serverSoftwareName) {
             case DatabaseEngine::SERVER_SOFTWARE_POSTGRES:
@@ -96,9 +97,9 @@ class DatabaseUser extends ClusterModel implements Model
             throw ModelException::engineSetAfterPassword();
         }
 
-        $this->validate($serverSoftwareName, [
-            'in' => DatabaseEngine::AVAILABLE,
-        ]);
+        Validator::value($serverSoftwareName)
+            ->valueIn(DatabaseEngine::AVAILABLE)
+            ->validate();
 
         $this->serverSoftwareName = $serverSoftwareName;
 

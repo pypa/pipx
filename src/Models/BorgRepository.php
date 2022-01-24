@@ -4,6 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class BorgRepository extends ClusterModel implements Model
 {
@@ -29,10 +30,10 @@ class BorgRepository extends ClusterModel implements Model
 
     public function setName(string $name): BorgRepository
     {
-        $this->validate($name, [
-            'length_max' => 64,
-            'pattern' => '^[a-z0-9-_]+$',
-        ]);
+        Validator::value($name)
+            ->maxLength(64)
+            ->pattern('^[a-z0-9-_]+$')
+            ->validate();
 
         $this->name = $name;
 
@@ -46,10 +47,10 @@ class BorgRepository extends ClusterModel implements Model
 
     public function setPassphrase(string $passphrase): BorgRepository
     {
-        $this->validate($passphrase, [
-            'length_min' => 1,
-            'length_max' => 255,
-        ]);
+        Validator::value($passphrase)
+            ->maxLength(255)
+            ->minLength(1)
+            ->validate();
 
         $this->passphrase = $passphrase;
 
@@ -63,9 +64,10 @@ class BorgRepository extends ClusterModel implements Model
 
     public function setKeepHourly(int $keepHourly = null): BorgRepository
     {
-        $this->validate($keepHourly, [
-            'positive_integer',
-        ]);
+        Validator::value($keepHourly)
+            ->nullable()
+            ->positiveInteger()
+            ->validate();
 
         $this->keepHourly = $keepHourly;
 
@@ -79,9 +81,10 @@ class BorgRepository extends ClusterModel implements Model
 
     public function setKeepDaily(int $keepDaily = null): BorgRepository
     {
-        $this->validate($keepDaily, [
-            'positive_integer',
-        ]);
+        Validator::value($keepDaily)
+            ->nullable()
+            ->positiveInteger()
+            ->validate();
 
         $this->keepDaily = $keepDaily;
 
@@ -95,9 +98,10 @@ class BorgRepository extends ClusterModel implements Model
 
     public function setKeepWeekly(int $keepWeekly = null): BorgRepository
     {
-        $this->validate($keepWeekly, [
-            'positive_integer',
-        ]);
+        Validator::value($keepWeekly)
+            ->nullable()
+            ->positiveInteger()
+            ->validate();
 
         $this->keepWeekly = $keepWeekly;
 
@@ -111,9 +115,10 @@ class BorgRepository extends ClusterModel implements Model
 
     public function setKeepMonthly(int $keepMonthly = null): BorgRepository
     {
-        $this->validate($keepMonthly, [
-            'positive_integer',
-        ]);
+        Validator::value($keepMonthly)
+            ->nullable()
+            ->positiveInteger()
+            ->validate();
 
         $this->keepMonthly = $keepMonthly;
 
@@ -127,9 +132,10 @@ class BorgRepository extends ClusterModel implements Model
 
     public function setKeepYearly(int $keepYearly = null): BorgRepository
     {
-        $this->validate($keepYearly, [
-            'positive_integer',
-        ]);
+        Validator::value($keepYearly)
+            ->nullable()
+            ->positiveInteger()
+            ->validate();
 
         $this->keepYearly = $keepYearly;
 

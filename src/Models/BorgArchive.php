@@ -16,10 +16,6 @@ class BorgArchive extends ClusterModel implements Model
 
     public function setName(string $name): BorgArchive
     {
-        $this->validate($name, [
-            ''
-        ]);
-
         $this->name = $name;
 
         return $this;

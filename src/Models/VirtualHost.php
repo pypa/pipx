@@ -6,6 +6,7 @@ use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 use Vdhicts\Cyberfusion\ClusterApi\Enums\AllowOverrideDirectives;
 use Vdhicts\Cyberfusion\ClusterApi\Enums\AllowOverrideOptionDirectives;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class VirtualHost extends ClusterModel implements Model
 {
@@ -45,9 +46,9 @@ class VirtualHost extends ClusterModel implements Model
 
     public function setServerAliases(array $serverAliases): VirtualHost
     {
-        $this->validate($serverAliases, [
-            'unique',
-        ]);
+        Validator::value($serverAliases)
+            ->unique()
+            ->validate();
 
         $this->serverAliases = $serverAliases;
 
@@ -121,10 +122,10 @@ class VirtualHost extends ClusterModel implements Model
 
     public function setCustomConfig(?string $customConfig): VirtualHost
     {
-        $this->validate($customConfig, [
-            'nullable',
-            'length_max' => 65535,
-        ]);
+        Validator::value($customConfig)
+            ->nullable()
+            ->maxLength(65535)
+            ->validate();
 
         $this->customConfig = $customConfig;
 
@@ -138,10 +139,11 @@ class VirtualHost extends ClusterModel implements Model
 
     public function setBalancerBackendName(?string $balancerBackendName): VirtualHost
     {
-        $this->validate($balancerBackendName, [
-            'length_max' => 64,
-            'pattern' => '^[a-z0-9-_.]+$',
-        ]);
+        Validator::value($balancerBackendName)
+            ->nullable()
+            ->maxLength(64)
+            ->pattern('^[a-z0-9-_.]+$')
+            ->validate();
 
         $this->balancerBackendName = $balancerBackendName;
 
@@ -167,10 +169,10 @@ class VirtualHost extends ClusterModel implements Model
 
     public function setAllowOverrideDirectives(array $allowOverrideDirectives): VirtualHost
     {
-        $this->validate($allowOverrideDirectives, [
-            'in_array' => AllowOverrideDirectives::AVAILABLE,
-            'unique',
-        ]);
+        Validator::value($allowOverrideDirectives)
+            ->valuesIn(AllowOverrideDirectives::AVAILABLE)
+            ->unique()
+            ->validate();
 
         $this->allowOverrideDirectives = $allowOverrideDirectives;
 
@@ -184,10 +186,10 @@ class VirtualHost extends ClusterModel implements Model
 
     public function setAllowOverrideOptionDirectives(array $allowOverrideOptionDirectives): VirtualHost
     {
-        $this->validate($allowOverrideOptionDirectives, [
-            'in_array' => AllowOverrideOptionDirectives::AVAILABLE,
-            'unique',
-        ]);
+        Validator::value($allowOverrideOptionDirectives)
+            ->valuesIn(AllowOverrideOptionDirectives::AVAILABLE)
+            ->unique()
+            ->validate();
 
         $this->allowOverrideOptionDirectives = $allowOverrideOptionDirectives;
 

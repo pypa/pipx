@@ -4,6 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class DatabaseUserGrant extends ClusterModel implements Model
 {
@@ -49,11 +50,11 @@ class DatabaseUserGrant extends ClusterModel implements Model
 
     public function setTableName(?string $tableName = null): DatabaseUserGrant
     {
-        $this->validate($tableName, [
-            'length_max' => 64,
-            'pattern' => '^[a-zA-Z0-9-_]+$',
-            'nullable' => true,
-        ]);
+        Validator::value($tableName)
+            ->maxLength(64)
+            ->pattern('^[a-zA-Z0-9-_]+$')
+            ->nullable()
+            ->validate();
 
         $this->tableName = $tableName;
 
