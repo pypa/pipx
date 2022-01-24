@@ -4,11 +4,12 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class SshKey extends ClusterModel implements Model
 {
     private string $name;
-    private string $publicKey;
+    private ?string $publicKey = null;
     private ?string $privateKey = null;
     private int $unixUserId;
     private ?int $id = null;
@@ -23,10 +24,10 @@ class SshKey extends ClusterModel implements Model
 
     public function setName(string $name): SshKey
     {
-        $this->validate($name, [
-            'length_max' => 64,
-            'pattern' => '^[a-zA-Z0-9-_]+$',
-        ]);
+        Validator::value($name)
+            ->maxLength(64)
+            ->pattern('^[a-zA-Z0-9-_]+$')
+            ->validate();
 
         $this->name = $name;
 
@@ -38,11 +39,12 @@ class SshKey extends ClusterModel implements Model
         return $this->publicKey;
     }
 
-    public function setPublicKey(string $publicKey): SshKey
+    public function setPublicKey(?string $publicKey): SshKey
     {
-        $this->validate($publicKey, [
-            'length_max' => 65535,
-        ]);
+        Validator::value($publicKey)
+            ->nullable()
+            ->maxLength(65535)
+            ->validate();
 
         $this->publicKey = $publicKey;
 
@@ -56,9 +58,10 @@ class SshKey extends ClusterModel implements Model
 
     public function setPrivateKey(?string $privateKey): SshKey
     {
-        $this->validate($privateKey, [
-            'length_max' => 65535,
-        ]);
+        Validator::value($privateKey)
+            ->nullable()
+            ->maxLength(65535)
+            ->validate();
 
         $this->privateKey = $privateKey;
 

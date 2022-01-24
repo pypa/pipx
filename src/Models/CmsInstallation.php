@@ -4,6 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class CmsInstallation extends ClusterModel implements Model
 {
@@ -26,10 +27,10 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setDatabaseName(string $databaseName): CmsInstallation
     {
-        $this->validate($databaseName, [
-            'length_max' => 63,
-            'pattern' => '^[a-zA-Z0-9-_]+$',
-        ]);
+        Validator::value($databaseName)
+            ->maxLength(63)
+            ->pattern('^[a-zA-Z0-9-_]+$')
+            ->validate();
 
         $this->databaseName = $databaseName;
 
@@ -43,10 +44,10 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setDatabaseUserName(string $databaseUserName): CmsInstallation
     {
-        $this->validate($databaseUserName, [
-            'length_max' => 63,
-            'pattern' => '^[a-zA-Z0-9-_]+$',
-        ]);
+        Validator::value($databaseUserName)
+            ->maxLength(63)
+            ->pattern('^[a-zA-Z0-9-_]+$')
+            ->validate();
 
         $this->databaseUserName = $databaseUserName;
 
@@ -60,9 +61,9 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setDatabaseUserPassword(string $databaseUserPassword): CmsInstallation
     {
-        $this->validate($databaseUserPassword, [
-            'length_min' => 1,
-        ]);
+        Validator::value($databaseUserPassword)
+            ->minLength(1)
+            ->validate();
 
         $this->databaseUserPassword = $databaseUserPassword;
 
@@ -76,9 +77,9 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setDatabaseHost(string $databaseHost): CmsInstallation
     {
-        $this->validate($databaseHost, [
-            'ip',
-        ]);
+        Validator::value($databaseHost)
+            ->ip()
+            ->validate();
 
         $this->databaseHost = $databaseHost;
 
@@ -92,10 +93,10 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setSiteTitle(string $siteTitle): CmsInstallation
     {
-        $this->validate($siteTitle, [
-            'length_max' => 253,
-            'pattern' => '^[a-zA-Z0-9-_ ]+$',
-        ]);
+        Validator::value($siteTitle)
+            ->maxLength(253)
+            ->pattern('^[a-zA-Z0-9-_ ]+$')
+            ->validate();
 
         $this->siteTitle = $siteTitle;
 
@@ -109,9 +110,9 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setSiteUrl(string $siteUrl): CmsInstallation
     {
-        $this->validate($siteUrl, [
-            'length_max' => 2083,
-        ]);
+        Validator::value($siteUrl)
+            ->maxLength(2083)
+            ->validate();
 
         $this->siteUrl = $siteUrl;
 
@@ -125,10 +126,10 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setLocale(string $locale): CmsInstallation
     {
-        $this->validate($locale, [
-            'length_max' => 15,
-            'pattern' => '^[a-zA-Z_]+$',
-        ]);
+        Validator::value($locale)
+            ->maxLength(15)
+            ->pattern('^[a-zA-Z_]+$')
+            ->validate();
 
         $this->locale = $locale;
 
@@ -142,10 +143,10 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setVersion(string $version): CmsInstallation
     {
-        $this->validate($version, [
-            'length_max' => 6,
-            'pattern' => '^[0-9.]+$',
-        ]);
+        Validator::value($version)
+            ->maxLength(6)
+            ->pattern('^[0-9.]+$')
+            ->validate();
 
         $this->version = $version;
 
@@ -159,10 +160,10 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setAdminUsername(string $adminUsername): CmsInstallation
     {
-        $this->validate($adminUsername, [
-            'length_max' => 60,
-            'pattern' => '^[a-zA-Z0-9-_]+$',
-        ]);
+        Validator::value($adminUsername)
+            ->maxLength(60)
+            ->pattern('^[a-zA-Z0-9-_]+$')
+            ->validate();
 
         $this->adminUsername = $adminUsername;
 
@@ -176,9 +177,9 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setAdminPassword(string $adminPassword): CmsInstallation
     {
-        $this->validate($adminPassword, [
-            'length_min' => 1,
-        ]);
+        Validator::value($adminPassword)
+            ->minLength(1)
+            ->validate();
 
         $this->adminPassword = $adminPassword;
 
@@ -192,9 +193,9 @@ class CmsInstallation extends ClusterModel implements Model
 
     public function setAdminEmailAddress(string $adminEmailAddress): CmsInstallation
     {
-        $this->validate($adminEmailAddress, [
-            'email',
-        ]);
+        Validator::value($adminEmailAddress)
+            ->email()
+            ->validate();
 
         $this->adminEmailAddress = $adminEmailAddress;
 

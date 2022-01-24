@@ -4,6 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class MailAccount extends ClusterModel implements Model
 {
@@ -23,10 +24,10 @@ class MailAccount extends ClusterModel implements Model
 
     public function setLocalPart(string $localPart): MailAccount
     {
-        $this->validate($localPart, [
-            'pattern' => '^[a-z0-9-.]+$',
-            'length_max' => 64,
-        ]);
+        Validator::value($localPart)
+            ->pattern('^[a-z0-9-.]+$')
+            ->maxLength(64)
+            ->validate();
 
         $this->localPart = $localPart;
 
@@ -52,9 +53,10 @@ class MailAccount extends ClusterModel implements Model
 
     public function setQuota(?int $quota): MailAccount
     {
-        $this->validate($quota, [
-            'positive_integer',
-        ]);
+        Validator::value($quota)
+            ->nullable()
+            ->positiveInteger()
+            ->validate();
 
         $this->quota = $quota;
 

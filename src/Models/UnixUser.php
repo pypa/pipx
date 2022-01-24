@@ -5,6 +5,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 use Vdhicts\Cyberfusion\ClusterApi\Enums\ShellPath;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class UnixUser extends ClusterModel implements Model
 {
@@ -33,10 +34,10 @@ class UnixUser extends ClusterModel implements Model
 
     public function setUsername(string $username): UnixUser
     {
-        $this->validate($username, [
-            'length_max' => 32,
-            'pattern' => '^[a-z0-9-_]+$',
-        ]);
+        Validator::value($username)
+            ->maxLength(32)
+            ->pattern('^[a-z0-9-_]+$')
+            ->validate();
 
         $this->username = $username;
 
@@ -62,10 +63,10 @@ class UnixUser extends ClusterModel implements Model
 
     public function setDescription(?string $description): UnixUser
     {
-        $this->validate($description, [
-            'nullable',
-            'max_length' => 255,
-        ]);
+        Validator::value($description)
+            ->nullable()
+            ->maxLength(255)
+            ->validate();
 
         $this->description = $description;
 
@@ -127,9 +128,9 @@ class UnixUser extends ClusterModel implements Model
 
     public function setShellPath(string $shellPath): UnixUser
     {
-        $this->validate($shellPath, [
-            'in' => ShellPath::AVAILABLE,
-        ]);
+        Validator::value($shellPath)
+            ->valueIn(ShellPath::AVAILABLE)
+            ->validate();
 
         $this->shellPath = $shellPath;
 
@@ -155,11 +156,11 @@ class UnixUser extends ClusterModel implements Model
 
     public function setRabbitMqUsername(?string $rabbitMqUsername): UnixUser
     {
-        $this->validate($rabbitMqUsername, [
-            'nullable',
-            'max_length' => 32,
-            'pattern' => '^[a-z0-9]+$',
-        ]);
+        Validator::value($rabbitMqUsername)
+            ->nullable()
+            ->maxLength(32)
+            ->pattern('^[a-z0-9]+$')
+            ->validate();
 
         $this->rabbitMqUsername = $rabbitMqUsername;
 
@@ -173,11 +174,11 @@ class UnixUser extends ClusterModel implements Model
 
     public function setRabbitMqVirtualHostName(?string $rabbitMqVirtualHostName): UnixUser
     {
-        $this->validate($rabbitMqVirtualHostName, [
-            'nullable',
-            'max_length' => 32,
-            'pattern' => '^[a-z0-9]+$',
-        ]);
+        Validator::value($rabbitMqVirtualHostName)
+            ->nullable()
+            ->maxLength(32)
+            ->pattern('^[a-z0-9]+$')
+            ->validate();
 
         $this->rabbitMqVirtualHostName = $rabbitMqVirtualHostName;
 
@@ -191,11 +192,11 @@ class UnixUser extends ClusterModel implements Model
 
     public function setRabbitMqPassword(?string $rabbitMqPassword): UnixUser
     {
-        $this->validate($rabbitMqPassword, [
-            'nullable',
-            'max_length' => 255,
-            'pattern' => '^[a-zA-Z0-9]+$',
-        ]);
+        Validator::value($rabbitMqPassword)
+            ->nullable()
+            ->maxLength(255)
+            ->pattern('^[a-zA-Z0-9]+$')
+            ->validate();
 
         $this->rabbitMqPassword = $rabbitMqPassword;
 

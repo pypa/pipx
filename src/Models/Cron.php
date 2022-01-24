@@ -4,6 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class Cron extends ClusterModel implements Model
 {
@@ -27,10 +28,10 @@ class Cron extends ClusterModel implements Model
 
     public function setName(string $name): Cron
     {
-        $this->validate($name, [
-            'length_max' => 64,
-            'pattern' => '^[a-z0-9-_.]+$',
-        ]);
+        Validator::value($name)
+            ->maxLength(64)
+            ->pattern('^[a-z0-9-_.]+$')
+            ->validate();
 
         $this->name = $name;
 
@@ -44,10 +45,10 @@ class Cron extends ClusterModel implements Model
 
     public function setCommand(string $command): Cron
     {
-        $this->validate($command, [
-            'length_min' => 1,
-            'length_max' => 65535,
-        ]);
+        Validator::value($command)
+            ->minLength(1)
+            ->maxLength(65535)
+            ->validate();
 
         $this->command = $command;
 
@@ -61,6 +62,11 @@ class Cron extends ClusterModel implements Model
 
     public function setEmailAddress(?string $emailAddress): Cron
     {
+        Validator::value($emailAddress)
+            ->nullable()
+            ->email()
+            ->validate();
+
         $this->emailAddress = $emailAddress;
 
         return $this;
@@ -97,9 +103,9 @@ class Cron extends ClusterModel implements Model
 
     public function setErrorCount(int $errorCount): Cron
     {
-        $this->validate($errorCount, [
-            'positive_integer',
-        ]);
+        Validator::value($errorCount)
+            ->positiveInteger()
+            ->validate();
 
         $this->errorCount = $errorCount;
 

@@ -2,11 +2,9 @@
 
 namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
-use Illuminate\Support\Arr;
 use JsonSerializable;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ModelException;
-use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ValidationException;
 use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
 
 abstract class ClusterModel implements JsonSerializable, Model
@@ -44,76 +42,6 @@ abstract class ClusterModel implements JsonSerializable, Model
         }
 
         $this->$method($value);
-    }
-
-    /**
-     * Performs the validation rule.
-     *
-     * @param mixed $value
-     * @param string $type
-     * @param mixed $setting
-     * @return bool
-     */
-    private function performValidation($value, string $type, $setting): bool
-    {
-        switch ($type) {
-            case 'positive_integer':
-                return is_integer($value) && $value >= 0;
-            case 'length_max':
-                return
-                    (is_string($value) && Str::length($value) <= $setting) ||
-                    (is_array($value) && count($value) <= $setting);
-            case 'length_min':
-                return
-                    (is_string($value) && Str::length($value) >= $setting) ||
-                    (is_array($value) && count($value) >= $setting);
-            case 'pattern':
-                return is_string($value) && Str::doesMatch($value, sprintf('/%s/', $setting));
-            case 'in':
-                return in_array($value, $setting);
-            case 'in_array':
-                return !array_diff($value, $setting);
-            case 'unique':
-                return is_array($value) && count(array_unique($value)) === count($value);
-            case 'ip':
-                return filter_var($value, FILTER_VALIDATE_IP) !== false;
-            case 'email':
-                return filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
-            default:
-                return true;
-        }
-    }
-
-    /**
-     * Validate the provided value to the provided validations.
-     *
-     * @param mixed $value
-     * @param array $validations
-     * @throws ValidationException
-     */
-    protected function validate($value, array $validations = []): void
-    {
-        // When the field is nullable and the value is null no other validations are performed
-        if (Arr::get($validations, 'nullable') === true && is_null($value)) {
-            return;
-        }
-
-        $failedValidations = [];
-        foreach ($validations as $type => $setting) {
-            if (!$this->performValidation($value, $type, $setting)) {
-                $failedValidations[] = sprintf(
-                    '%s: %s',
-                    $type,
-                    is_array($setting)
-                        ? implode(';', $setting)
-                        : $setting
-                );
-            }
-        }
-
-        if (count($failedValidations) !== 0) {
-            throw ValidationException::validationFailed($failedValidations);
-        }
     }
 
     /**

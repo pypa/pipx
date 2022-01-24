@@ -4,6 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
 use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class MailDomain extends ClusterModel implements Model
 {
@@ -35,9 +36,9 @@ class MailDomain extends ClusterModel implements Model
 
     public function setCatchAllForwardEmailAddresses(array $catchAllForwardEmailAddresses): MailDomain
     {
-        $this->validate($catchAllForwardEmailAddresses, [
-            'unique',
-        ]);
+        Validator::value($catchAllForwardEmailAddresses)
+            ->unique()
+            ->validate();
 
         $this->catchAllForwardEmailAddresses = $catchAllForwardEmailAddresses;
 
