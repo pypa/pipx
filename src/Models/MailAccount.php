@@ -24,7 +24,7 @@ class MailAccount extends ClusterModel implements Model
     public function setLocalPart(string $localPart): MailAccount
     {
         $this->validate($localPart, [
-            'pattern' => '^[a-z0-9]+$',
+            'pattern' => '^[a-z0-9-.]+$',
             'length_max' => 64,
         ]);
 
