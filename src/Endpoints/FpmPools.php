@@ -206,4 +206,20 @@ class FpmPools extends Endpoint
             ->client
             ->request($request);
     }
+
+    /**
+     * @param int $id
+     * @return Response
+     * @throws RequestException
+     */
+    public function reload(int $id): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl(sprintf('fpm-pools/%d/reload', $id));
+
+        return $this
+            ->client
+            ->request($request);
+    }
 }
