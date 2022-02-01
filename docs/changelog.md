@@ -1,6 +1,7 @@
 dev
 
 - [docs] Fix the command for [installing development version](https://pypa.github.io/pipx/installation/#install-pipx-development-versions). (#801)
+- Add `list --short` option. (#804)
 
 1.0.0
 
