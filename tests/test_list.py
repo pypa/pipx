@@ -132,3 +132,15 @@ def test_list_json(pipx_temp_env, capsys):
         ),
         isort_package_ref,
     )
+
+
+def test_list_short(pipx_temp_env, monkeypatch, capsys):
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
+    captured = capsys.readouterr()
+
+    assert not run_pipx_cli(["list", "--short"])
+    captured = capsys.readouterr()
+
+    assert "pycowsay 0.0.0.1" in captured.out
+    assert "pylint 2.3.1" in captured.out

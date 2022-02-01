@@ -240,7 +240,9 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             force=args.force,
         )
     elif args.command == "list":
-        return commands.list_packages(venv_container, args.include_injected, args.json)
+        return commands.list_packages(
+            venv_container, args.include_injected, args.json, args.short
+        )
     elif args.command == "uninstall":
         return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, verbose)
     elif args.command == "uninstall-all":
@@ -500,6 +502,7 @@ def _add_list(subparsers: argparse._SubParsersAction) -> None:
     p.add_argument(
         "--json", action="store_true", help="Output rich data in json format."
     )
+    p.add_argument("--short", action="store_true", help="List packages only.")
     p.add_argument("--verbose", action="store_true")
 
 
