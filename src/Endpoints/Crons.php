@@ -88,6 +88,7 @@ class Crons extends Endpoint
                 'email_address',
                 'schedule',
                 'unix_user_id',
+                'node_id',
                 'error_count',
                 'locking_enabled',
                 'is_active',
@@ -124,6 +125,7 @@ class Crons extends Endpoint
             'command',
             'schedule',
             'unix_user_id',
+            'node_id',
             'id',
             'cluster_id',
         ]);
@@ -137,6 +139,7 @@ class Crons extends Endpoint
                 'email_address',
                 'schedule',
                 'unix_user_id',
+                'node_id',
                 'error_count',
                 'locking_enabled',
                 'is_active',

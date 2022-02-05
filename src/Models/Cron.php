@@ -13,6 +13,7 @@ class Cron extends ClusterModel implements Model
     private ?string $emailAddress = null;
     private string $schedule;
     private int $unixUserId;
+    private int $nodeId;
     private int $errorCount = 1;
     private bool $lockingEnabled = true;
     private bool $isActive = true;
@@ -92,6 +93,18 @@ class Cron extends ClusterModel implements Model
     public function setUnixUserId(int $unixUserId): Cron
     {
         $this->unixUserId = $unixUserId;
+
+        return $this;
+    }
+
+    public function getNodeId(): int
+    {
+        return $this->nodeId;
+    }
+
+    public function setNodeId(int $nodeId): Cron
+    {
+        $this->nodeId = $nodeId;
 
         return $this;
     }
@@ -192,6 +205,7 @@ class Cron extends ClusterModel implements Model
             ->setEmailAddress(Arr::get($data, 'email_address'))
             ->setSchedule(Arr::get($data, 'schedule'))
             ->setUnixUserId(Arr::get($data, 'unix_user_id'))
+            ->setNodeId(Arr::get($data, 'node_id'))
             ->setErrorCount(Arr::get($data, 'error_count'))
             ->setLockingEnabled(Arr::get($data, 'locking_enabled'))
             ->setIsActive(Arr::get($data, 'is_active'))
@@ -209,6 +223,7 @@ class Cron extends ClusterModel implements Model
             'email_address' => $this->getEmailAddress(),
             'schedule' => $this->getSchedule(),
             'unix_user_id' => $this->getUnixUserId(),
+            'node_id' => $this->getNodeId(),
             'error_count' => $this->getErrorCount(),
             'locking_enabled' => $this->isLockingEnabled(),
             'is_active' => $this->isActive(),
