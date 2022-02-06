@@ -6,7 +6,7 @@ This package is not created or maintained by Cyberfusion.
 
 ## Requirements
 
-This package requires at least PHP 7.4 and uses Guzzle.
+This package requires PHP 7.4 or higher and uses Guzzle.
 
 ## Installation
 
