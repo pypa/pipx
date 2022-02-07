@@ -23,7 +23,7 @@ import pipx.constants
 from pipx import commands, constants
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
-from pipx.constants import ExitCode
+from pipx.constants import ExitCode, WINDOWS
 from pipx.emojis import hazard
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
@@ -132,9 +132,7 @@ def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
         pip_args += ["--index-url", parsed_args["index_url"]]
 
     if parsed_args.get("pip_args"):
-        pip_args += shlex.split(
-            parsed_args.get("pip_args", ""), posix="win" not in sys.platform
-        )
+        pip_args += shlex.split(parsed_args.get("pip_args", ""), posix=not WINDOWS)
 
     # make sure --editable is last because it needs to be right before
     #   package specification
