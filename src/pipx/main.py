@@ -23,7 +23,7 @@ import pipx.constants
 from pipx import commands, constants
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
-from pipx.constants import ExitCode, WINDOWS
+from pipx.constants import WINDOWS, ExitCode
 from pipx.emojis import hazard
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
