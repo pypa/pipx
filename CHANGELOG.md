@@ -11,6 +11,7 @@ detailed information.
 
 ### Added
 
+- Add nodes endpoint.
 - Add `random_delay_max_seconds` attribute to the `Cron` model.
 
 ## [1.42.0]

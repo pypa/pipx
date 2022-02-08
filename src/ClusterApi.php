@@ -118,4 +118,9 @@ class ClusterApi
     {
         return new Endpoints\VirtualHosts($this->client);
     }
+
+    public function nodes(): Endpoints\Nodes
+    {
+        return new Endpoints\Nodes($this->client);
+    }
 }
