@@ -243,7 +243,7 @@ class Cron extends ClusterModel implements Model
             'unix_user_id' => $this->getUnixUserId(),
             'node_id' => $this->getNodeId(),
             'error_count' => $this->getErrorCount(),
-            'random_delay_max_seconds' => $this->setRandomDelayMaxSeconds(),
+            'random_delay_max_seconds' => $this->getRandomDelayMaxSeconds(),
             'locking_enabled' => $this->isLockingEnabled(),
             'is_active' => $this->isActive(),
             'id' => $this->getId(),
