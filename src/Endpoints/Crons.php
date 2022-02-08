@@ -90,6 +90,7 @@ class Crons extends Endpoint
                 'unix_user_id',
                 'node_id',
                 'error_count',
+                'random_delay_max_seconds',
                 'locking_enabled',
                 'is_active',
             ]));
@@ -141,6 +142,7 @@ class Crons extends Endpoint
                 'unix_user_id',
                 'node_id',
                 'error_count',
+                'random_delay_max_seconds',
                 'locking_enabled',
                 'is_active',
                 'id',

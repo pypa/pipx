@@ -15,6 +15,7 @@ class Cron extends ClusterModel implements Model
     private int $unixUserId;
     private int $nodeId;
     private int $errorCount = 1;
+    private int $randomDelayMaxSeconds = 10;
     private bool $lockingEnabled = true;
     private bool $isActive = true;
     private ?int $id = null;
@@ -125,6 +126,22 @@ class Cron extends ClusterModel implements Model
         return $this;
     }
 
+    public function getRandomDelayMaxSeconds(): int
+    {
+        return $this->randomDelayMaxSeconds;
+    }
+
+    public function setRandomDelayMaxSeconds(int $randomDelayMaxSeconds): Cron
+    {
+        Validator::value($randomDelayMaxSeconds)
+            ->positiveInteger()
+            ->validate();
+
+        $this->randomDelayMaxSeconds = $randomDelayMaxSeconds;
+
+        return $this;
+    }
+
     public function isLockingEnabled(): bool
     {
         return $this->lockingEnabled;
@@ -207,6 +224,7 @@ class Cron extends ClusterModel implements Model
             ->setUnixUserId(Arr::get($data, 'unix_user_id'))
             ->setNodeId(Arr::get($data, 'node_id'))
             ->setErrorCount(Arr::get($data, 'error_count'))
+            ->setRandomDelayMaxSeconds(Arr::get($data, 'random_delay_max_seconds'))
             ->setLockingEnabled(Arr::get($data, 'locking_enabled'))
             ->setIsActive(Arr::get($data, 'is_active'))
             ->setId(Arr::get($data, 'id'))
@@ -225,6 +243,7 @@ class Cron extends ClusterModel implements Model
             'unix_user_id' => $this->getUnixUserId(),
             'node_id' => $this->getNodeId(),
             'error_count' => $this->getErrorCount(),
+            'random_delay_max_seconds' => $this->setRandomDelayMaxSeconds(),
             'locking_enabled' => $this->isLockingEnabled(),
             'is_active' => $this->isActive(),
             'id' => $this->getId(),
