@@ -211,7 +211,7 @@ def test_pip_args_with_windows_path(pipx_temp_env, capsys):
     assert run_pipx_cli(
         [
             "install",
-            "https://github.com/ambv/black/archive/18.9b0.zip",
+            "pycowsay",
             "--verbose",
             "--pip-args='--no-index --find-links=D:\\TEST\\DIR'",
         ]
