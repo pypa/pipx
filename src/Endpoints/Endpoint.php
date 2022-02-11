@@ -2,7 +2,7 @@
 
 namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
-use Illuminate\Support\Arr;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;

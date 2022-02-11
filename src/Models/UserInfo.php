@@ -2,7 +2,7 @@
 
 namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
-use Illuminate\Support\Arr;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 
 class UserInfo extends ClusterModel implements Model
