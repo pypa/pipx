@@ -2,8 +2,8 @@
 
 namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 
-use Illuminate\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Arr;
 
 class DetailMessage extends ClusterModel implements Model
 {
