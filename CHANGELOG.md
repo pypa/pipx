@@ -13,6 +13,10 @@ detailed information.
 
 - Add support for Laravel 9.
 
+### Changed
+
+- Isolated Laravel helper.
+
 ## [1.43.1]
 
 ### Fixed
