@@ -20,7 +20,7 @@
         "php": "^7.4 || ^8.0",
         "ext-json": "*",
         "guzzlehttp/guzzle": "^7.2",
-        "illuminate/support": "^8.22",
+        "illuminate/support": "^8.22 || ^9.0",
         "nesbot/carbon": "^2.43",
         "vdhicts/http-query-builder": "^1.0"
     },
