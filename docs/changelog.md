@@ -1,8 +1,7 @@
 dev
 
 - [docs] Fix the command for [installing development version](https://pypa.github.io/pipx/installation/#install-pipx-development-versions). (#801)
-- Improve the behaviour of `shlex.split` on Windows (#794)
-
+- Improve the behaviour of `shlex.split` on Windows, so paths on Windows can be handled peoperly when they are passed in `--pip-args`. (#794)
 
 1.0.0
 
