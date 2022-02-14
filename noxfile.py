@@ -9,7 +9,7 @@ PYTHON_DEFAULT_VERSION = "3.10"
 DOC_DEPENDENCIES = [".", "jinja2", "mkdocs", "mkdocs-material"]
 MAN_DEPENDENCIES = [".", "argparse-manpage"]
 LINT_DEPENDENCIES = [
-    "black==21.12b0",
+    "black==22.1.0",
     "flake8==4.0.1",
     "flake8-bugbear==21.11.29",
     "mypy==0.930",

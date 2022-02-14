@@ -119,7 +119,6 @@ if WINDOWS:
         python_path = bin_path / "python.exe"
         return bin_path, python_path
 
-
 else:
 
     def get_venv_paths(root: Path) -> Tuple[Path, Path]:
