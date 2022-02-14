@@ -6,7 +6,7 @@
 #     Limit scope to just project.
 #     (See package.python.org example link above.)
 
-name: Check, possibly Publish
+name: tests
 
 on:
   pull_request:
