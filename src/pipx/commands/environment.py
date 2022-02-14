@@ -1,5 +1,3 @@
-import sys
-
 from pipx.constants import (
     EXIT_CODE_OK,
     LOCAL_BIN_DIR,
@@ -11,6 +9,7 @@ from pipx.constants import (
     PIPX_VENV_CACHEDIR,
     ExitCode,
 )
+from pipx.util import PipxError
 
 
 def environment(value: str) -> ExitCode:
@@ -38,7 +37,6 @@ def environment(value: str) -> ExitCode:
     elif "PIPX_VENV_CACHEDIR" in value:
         print(PIPX_VENV_CACHEDIR)
     else:
-        print("Variable not found.", file=sys.stderr)
-        return ExitCode(1)
+        raise PipxError("Variable not found.")
 
     return EXIT_CODE_OK
