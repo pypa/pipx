@@ -1,5 +1,6 @@
 dev
 
+- Fix encoding issue on Windows when pip fails to install a package
 - [docs] Fix the command for [installing development version](https://pypa.github.io/pipx/installation/#install-pipx-development-versions). (#801)
 - [docs] Fix test status badge in readme file
 - [dev] Change test names
