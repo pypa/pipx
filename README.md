@@ -1,6 +1,6 @@
 <p align="center">
 <a href="https://pypa.github.io/pipx/">
-<img align="center" src="https://github.com/pypa/pipx/raw/main/logo.png"/>
+<img align="center" src="https://github.com/pypa/pipx/raw/main/logo.png" width="200"/>
 </a>
 </p>
 
@@ -13,8 +13,9 @@
 </p>
 
 <p align="center">
-<a href="https://github.com/pypa/pipx/actions?query=workflow%3ATest"><img src="https://github.com/pypa/pipx/workflows/Test/badge.svg?branch=main" alt="Test CI" ></a>
-<a href="https://badge.fury.io/py/pipx"><img src="https://badge.fury.io/py/pipx.svg" alt="PyPI version"></a>
+<a href="https://github.com/pypa/pipx/actions">
+<img src="https://github.com/pypa/pipx/workflows/tests/badge.svg?branch=main" alt="image" /></a> <a href="https://badge.fury.io/py/pipx"><img src="https://badge.fury.io/py/pipx.svg" alt="PyPI version"></a> <a href="https://badge.fury.io/py/pipx"><img src="https://pepy.tech/badge/pipx"></a>
+
 </p>
 
 **Documentation**: https://pypa.github.io/pipx/
@@ -40,6 +41,7 @@ Upgrade pipx with `brew update && brew upgrade pipx`.
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ```
+
 Upgrade pipx with `python3 -m pip install --user -U pipx`.
 
 ### On Windows, install via pip (requires pip 19.0 or later)
@@ -70,12 +72,12 @@ Upgrade pipx with `python3 -m pip install --user -U pipx`.
 ### Shell completions
 
 Shell completions are available by following the instructions printed with this command:
+
 ```
 pipx completions
 ```
 
 For more details, see the [installation instructions](https://pypa.github.io/pipx/installation/).
-
 
 ## Overview: What is `pipx`?
 
@@ -89,8 +91,8 @@ pip is a general-purpose package installer for both libraries and apps with no e
 
 pipx does not ship with pip, but installing it is often an important part of bootstrapping your system.
 
-
 ### Where Does `pipx` Install Apps From?
+
 By default, pipx uses the same package index as pip, [PyPI](https://pypi.org/). pipx can also install from all other sources pip can, such as a local directory, wheel, git url, etc.
 
 Python and PyPI allow developers to distribute code with "console script entry points". These entry points let users call into Python code from the command line, effectively acting like standalone applications.
@@ -99,8 +101,8 @@ pipx is a tool to install and run any of these thousands of application-containi
 
 If you would like to make your package compatible with pipx, all you need to do is add a [console scripts](https://python-packaging.readthedocs.io/en/latest/command-line-scripts.html#the-console-scripts-entry-point) entry point. If you're a poetry user, use [these instructions](https://python-poetry.org/docs/pyproject/#scripts).
 
-
 ## Features
+
 `pipx` enables you to
 
 - Expose CLI entrypoints of packages ("apps") installed to isolated environments with the `install` command. This guarantees no dependency conflicts and clean uninstalls!
@@ -108,7 +110,6 @@ If you would like to make your package compatible with pipx, all you need to do 
 - Run the latest version of a Python application in a temporary environment with the `run` command
 
 Best of all, pipx runs with regular user permissions, never calling `sudo pip install` (you aren't doing that, are you? 😄).
-
 
 ### Walkthrough: Installing a Package and its Applications With `pipx`
 
@@ -155,6 +156,7 @@ apps are exposed on your $PATH at /home/user/.local/bin
 ### Installing from Source Control
 
 You can also install from a git repository. Here, `black` is used as an example.
+
 ```
 pipx install git+https://github.com/psf/black.git
 pipx install git+https://github.com/psf/black.git@branch  # branch of your choice
@@ -220,11 +222,13 @@ Any arguments after the application name will be passed directly to the applicat
 Re-running the same app is quick because pipx caches Virtual Environments on a per-app basis. The caches only last a few days, and when they expire, pipx will again use the latest version of the package. This way you can be sure you're always running a new version of the package without having to manually upgrade.
 
 If the app name does not match that package name, you can use the `--spec` argument to specify the package to install and app to run separately:
+
 ```
 pipx run --spec PACKAGE APP
 ```
 
 You can also specify specific versions, version ranges, or extras:
+
 ```
 pipx run APP==1.0.0
 ```
@@ -232,6 +236,7 @@ pipx run APP==1.0.0
 ### Running from Source Control
 
 You can also run from a git repository. Here, `black` is used as an example.
+
 ```
 pipx run --spec git+https://github.com/psf/black.git black
 pipx run --spec git+https://github.com/psf/black.git@branch black  # branch of your choice
@@ -249,6 +254,7 @@ pipx is working!
 ```
 
 ### Summary
+
 That's it! Those are the most important commands `pipx` offers. To see all of pipx's documentation, run `pipx --help` or see the [docs](https://pypa.github.io/pipx/docs/).
 
 ## Testimonials
@@ -280,8 +286,6 @@ That's it! Those are the most important commands `pipx` offers. To see all of pi
 
 <p></p>
 
-
-
 ## Credits
 
 pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https://github.com/npm/npx). It was created by [Chad Smith](https://github.com/cs01/) and has had lots of help from [contributors](https://github.com/pypa/pipx/graphs/contributors). The logo was created by [@IrishMorales](https://github.com/IrishMorales).
@@ -294,6 +298,7 @@ pipx is maintained by a team of volunteers (in alphabetical order)
 - [Tzu-ping Chung](https://github.com/uranusjr)
 
 ## Contributing
+
 Issues and Pull Requests are definitely welcome! Check out [Contributing](https://pypa.github.io/pipx/contributing/) to get started.
 Everyone who interacts with the pipx project via codebase, issue tracker, chat rooms, or otherwise is expected to follow
 the [PSF Code of Conduct](https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md).

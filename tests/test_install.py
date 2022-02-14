@@ -204,6 +204,22 @@ def test_pip_args_forwarded_to_package_name_determination(pipx_temp_env, capsys)
     assert "Cannot determine package name from spec" in captured.err
 
 
+def test_pip_args_with_windows_path(pipx_temp_env, capsys):
+    if not sys.platform.startswith("win"):
+        pytest.skip("Test pip arguments with Windows path on Windows only.")
+
+    assert run_pipx_cli(
+        [
+            "install",
+            "pycowsay",
+            "--verbose",
+            "--pip-args='--no-index --find-links=D:\\TEST\\DIR'",
+        ]
+    )
+    captured = capsys.readouterr()
+    assert r"D:\\TEST\\DIR" in captured.err
+
+
 def test_install_suffix(pipx_temp_env, capsys):
     name = "pbr"
 
