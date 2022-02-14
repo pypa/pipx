@@ -499,10 +499,11 @@ def _add_list(subparsers: argparse._SubParsersAction) -> None:
         action="store_true",
         help="Show packages injected into the main app's environment",
     )
-    p.add_argument(
+    g = p.add_mutually_exclusive_group()
+    g.add_argument(
         "--json", action="store_true", help="Output rich data in json format."
     )
-    p.add_argument("--short", action="store_true", help="List packages only.")
+    g.add_argument("--short", action="store_true", help="List packages only.")
     p.add_argument("--verbose", action="store_true")
 
 
