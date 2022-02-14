@@ -18,6 +18,8 @@
 
 <a href="https://badge.fury.io/py/pipx"><img src="https://badge.fury.io/py/pipx.svg" alt="PyPI version"></a>
 
+<a href="https://badge.fury.io/py/pipx"><img src="https://pepy.tech/badge/pipx"></a>
+
 </p>
 
 **Documentation**: https://pypa.github.io/pipx/
