@@ -150,6 +150,7 @@ def _fix_subprocess_env(env: Dict[str, str]) -> Dict[str, str]:
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
     # Make sure that Python writes output in UTF-8
     env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONLEGACYWINDOWSSTDIO"] = "utf-8"
     # Make sure we install package to venv, not userbase dir
     env["PIP_USER"] = "0"
     return env
@@ -338,7 +339,7 @@ def subprocess_post_check_handle_pip_error(
         pip_error_file = pipx.constants.pipx_log_file.parent / (
             pipx.constants.pipx_log_file.stem + "_pip_errors.log"
         )
-        with pip_error_file.open("w") as pip_error_fh:
+        with pip_error_file.open("w", encoding="utf-8") as pip_error_fh:
             print("PIP STDOUT", file=pip_error_fh)
             print("----------", file=pip_error_fh)
             if completed_process.stdout is not None:
