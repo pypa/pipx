@@ -1,10 +1,10 @@
-name: Test all packages (slow)
+name: Exhaustive Package Test (slow)
 on:
   workflow_dispatch:
 
 jobs:
   test_all_packages:
-    name: Test all packages
+    name: Exhaustive Package Test
     continue-on-error: true
     runs-on: ${{ matrix.os }}
     strategy:
