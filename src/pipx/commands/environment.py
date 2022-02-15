@@ -26,6 +26,10 @@ def environment(value: str) -> ExitCode:
     if value is None:
         for env_variable in environment_variables:
             print(f"{env_variable}={environment_variables[env_variable]}")
+        print(
+            "\n"
+            "Only PIPX_HOME and PIPX_BIN_DIR are settable by users in the above list.\n"
+        )
     elif value in environment_variables:
         print(environment_variables[value])
     else:

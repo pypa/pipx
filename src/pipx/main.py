@@ -610,11 +610,17 @@ def _add_ensurepath(subparsers: argparse._SubParsersAction) -> None:
 def _add_environment(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "environment",
+        formatter_class=LineWrapRawTextHelpFormatter,
         help=("Print a list of variables used in pipx.constants."),
-        description=(
-            "Available variables: "
-            "PIPX_HOME, PIPX_BIN_DIR, PIPX_SHARED_LIBS, PIPX_LOCAL_VENVS, PIPX_LOG_DIR, "
-            "PIPX_TRASH_DIR, PIPX_VENV_CACHEDIR"
+        description=textwrap.dedent(
+            """
+            Available variables:
+            PIPX_HOME, PIPX_BIN_DIR, PIPX_SHARED_LIBS, PIPX_LOCAL_VENVS, PIPX_LOG_DIR,
+            PIPX_TRASH_DIR, PIPX_VENV_CACHEDIR
+
+            Only PIPX_HOME and PIPX_BIN_DIR are settable by users in the above list.
+
+            """
         ),
     )
     p.add_argument(
