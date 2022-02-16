@@ -12,7 +12,7 @@ jobs:
     name: Deploy docs
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout master
+      - name: Checkout main
         uses: actions/checkout@v2
       - name: Set up Python ${{ env.default-python }}
         uses: actions/setup-python@v2
