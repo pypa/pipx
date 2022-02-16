@@ -5,6 +5,7 @@ dev
 - [docs] Fix test status badge in readme file
 - [dev] Change test names
 - Improve the behaviour of `shlex.split` on Windows, so paths on Windows can be handled peoperly when they are passed in `--pip-args`. (#794)
+- Add `list --short` option to list only package names. (#804)
 
   1.0.0
 
