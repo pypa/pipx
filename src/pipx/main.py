@@ -64,8 +64,8 @@ PIPX_DESCRIPTION += pipx_wrap(
     optional environment variables:
       PIPX_HOME             Overrides default pipx location. Virtual Environments will be installed to $PIPX_HOME/venvs.
       PIPX_BIN_DIR          Overrides location of app installations. Apps are symlinked or copied here.
-      USE_EMOJI             Overrides emoji behavior. Default value varies based on platform.
       PIPX_DEFAULT_PYTHON   Overrides default python used for commands.
+      USE_EMOJI             Overrides emoji behavior. Default value varies based on platform.
     """,
     subsequent_indent=" " * 24,  # match the indent of argparse options
     keep_newlines=True,
@@ -275,6 +275,8 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
     elif args.command == "completions":
         print(constants.completion_instructions)
         return ExitCode(0)
+    elif args.command == "environment":
+        return commands.environment(value=args.value)
     else:
         raise PipxError(f"Unknown command {args.command}")
 
@@ -609,6 +611,27 @@ def _add_ensurepath(subparsers: argparse._SubParsersAction) -> None:
     )
 
 
+def _add_environment(subparsers: argparse._SubParsersAction) -> None:
+    p = subparsers.add_parser(
+        "environment",
+        formatter_class=LineWrapRawTextHelpFormatter,
+        help=("Print a list of variables used in pipx.constants."),
+        description=textwrap.dedent(
+            """
+            Available variables:
+            PIPX_HOME, PIPX_BIN_DIR, PIPX_SHARED_LIBS, PIPX_LOCAL_VENVS, PIPX_LOG_DIR,
+            PIPX_TRASH_DIR, PIPX_VENV_CACHEDIR
+
+            Only PIPX_HOME and PIPX_BIN_DIR can be set by users in the above list.
+
+            """
+        ),
+    )
+    p.add_argument(
+        "--value", "-v", metavar="VARIABLE", help="Print the value of the variable."
+    )
+
+
 def get_command_parser() -> argparse.ArgumentParser:
     venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
 
@@ -637,6 +660,7 @@ def get_command_parser() -> argparse.ArgumentParser:
     _add_run(subparsers)
     _add_runpip(subparsers, completer_venvs.use)
     _add_ensurepath(subparsers)
+    _add_environment(subparsers)
 
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     subparsers.add_parser(

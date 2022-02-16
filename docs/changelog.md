@@ -1,10 +1,12 @@
 dev
 
+
 - Fix encoding issue on Windows when pip fails to install a package
 - [docs] Fix the command for [installing development version](https://pypa.github.io/pipx/installation/#install-pipx-development-versions). (#801)
 - [docs] Fix test status badge in readme file
 - [dev] Change test names
 - Improve the behaviour of `shlex.split` on Windows, so paths on Windows can be handled peoperly when they are passed in `--pip-args`. (#794)
+- Add `pipx environment` command. (#793)
 - Add `list --short` option to list only package names. (#804)
 
   1.0.0
