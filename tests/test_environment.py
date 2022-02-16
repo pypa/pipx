@@ -26,6 +26,6 @@ def test_cli_with_args(monkeypatch, capsys):
     assert not run_pipx_cli(["environment", "--value", "PIPX_TRASH_DIR"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_VENV_CACHEDIR"])
 
-    run_pipx_cli(["environment", "--value", "SSS"])
+    assert run_pipx_cli(["environment", "--value", "SSS"])
     captured = capsys.readouterr()
     assert "Variable not found." in captured.err
