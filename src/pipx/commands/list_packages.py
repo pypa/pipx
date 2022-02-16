@@ -27,6 +27,22 @@ def get_venv_metadata_summary(venv_dir: Path) -> Tuple[PipxMetadata, VenvProblem
     return (venv.pipx_metadata, venv_problems, "")
 
 
+def list_short(venv_dirs: Collection[Path]) -> VenvProblems:
+    all_venv_problems = VenvProblems()
+    for venv_dir in venv_dirs:
+        venv_metadata, venv_problems, warning_str = get_venv_metadata_summary(venv_dir)
+        if venv_problems.any_():
+            logger.warning(warning_str)
+        else:
+            print(
+                venv_metadata.main_package.package,
+                venv_metadata.main_package.package_version,
+            )
+        all_venv_problems.or_(venv_problems)
+
+    return all_venv_problems
+
+
 def list_text(
     venv_dirs: Collection[Path], include_injected: bool, venv_root_dir: str
 ) -> VenvProblems:
@@ -76,7 +92,10 @@ def list_json(venv_dirs: Collection[Path]) -> VenvProblems:
 
 
 def list_packages(
-    venv_container: VenvContainer, include_injected: bool, json_format: bool
+    venv_container: VenvContainer,
+    include_injected: bool,
+    json_format: bool,
+    short_format: bool,
 ) -> ExitCode:
     """Returns pipx exit code."""
     venv_dirs: Collection[Path] = sorted(venv_container.iter_venv_dirs())
@@ -87,6 +106,8 @@ def list_packages(
 
     if json_format:
         all_venv_problems = list_json(venv_dirs)
+    elif short_format:
+        all_venv_problems = list_short(venv_dirs)
     else:
         if not venv_dirs:
             return EXIT_CODE_OK

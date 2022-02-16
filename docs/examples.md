@@ -57,4 +57,8 @@ binaries are exposed on your $PATH at /Users/user/.local/bin
     - blackd
    package pipx 0.10.0, Python 3.7.0
     - pipx
+
+> pipx list --short
+black 18.9b0
+pipx 0.10.0
 ```
