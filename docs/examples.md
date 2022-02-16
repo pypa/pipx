@@ -1,4 +1,5 @@
 ## `pipx install` examples
+
 ```
 pipx install pycowsay
 pipx install --python python3.6 pycowsay
@@ -9,11 +10,13 @@ pipx install git+https://github.com/psf/black.git@git-hash
 pipx install https://github.com/psf/black/archive/18.9b0.zip
 pipx install black[d]
 pipx install --include-deps jupyter
+pipx install --pip-args '--pre' poetry
 ```
 
 ## `pipx run` examples
 
 pipx enables you to test various combinations of Python versions and package versions in ephemeral environments:
+
 ```
 pipx run BINARY  # latest version of binary is run with python3
 pipx run --spec PACKAGE==2.0.0 BINARY  # specific version of package is run
@@ -46,8 +49,8 @@ pipx inject ptpython requests pendulum
 
 After running the above commands, you will be able to import and use the `requests` and `pendulum` packages inside a `ptpython` repl.
 
-
 ## `pipx list` example
+
 ```
 > pipx list
 venvs are in /Users/user/.local/pipx/venvs
