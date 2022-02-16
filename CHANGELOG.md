@@ -8,6 +8,7 @@
 - [docs] Fix test status badge in readme file
 - [docs] Add more examples
 - [dev] Change github action job names
+- [docs] Add additional examples for installation from git repos
 
 ## 1.0.0
 
