@@ -12,7 +12,7 @@ def test_cli(monkeypatch, capsys):
     assert "PIPX_TRASH_DIR" in captured.out
     assert "PIPX_VENV_CACHEDIR" in captured.out
     assert (
-        "Only PIPX_HOME and PIPX_BIN_DIR are settable by users in the above list."
+        "Only PIPX_HOME and PIPX_BIN_DIR can be set by users in the above list."
         in captured.out
     )
 

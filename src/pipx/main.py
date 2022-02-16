@@ -64,8 +64,8 @@ PIPX_DESCRIPTION += pipx_wrap(
     optional environment variables:
       PIPX_HOME             Overrides default pipx location. Virtual Environments will be installed to $PIPX_HOME/venvs.
       PIPX_BIN_DIR          Overrides location of app installations. Apps are symlinked or copied here.
-      USE_EMOJI             Overrides emoji behavior. Default value varies based on platform.
       PIPX_DEFAULT_PYTHON   Overrides default python used for commands.
+      USE_EMOJI             Overrides emoji behavior. Default value varies based on platform.
     """,
     subsequent_indent=" " * 24,  # match the indent of argparse options
     keep_newlines=True,
@@ -618,7 +618,7 @@ def _add_environment(subparsers: argparse._SubParsersAction) -> None:
             PIPX_HOME, PIPX_BIN_DIR, PIPX_SHARED_LIBS, PIPX_LOCAL_VENVS, PIPX_LOG_DIR,
             PIPX_TRASH_DIR, PIPX_VENV_CACHEDIR
 
-            Only PIPX_HOME and PIPX_BIN_DIR are settable by users in the above list.
+            Only PIPX_HOME and PIPX_BIN_DIR can be set by users in the above list.
 
             """
         ),
