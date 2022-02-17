@@ -14,7 +14,6 @@ LINT_DEPENDENCIES = [
     "flake8-bugbear==21.11.29",
     "mypy==0.930",
     "types-jinja2",
-    "check-manifest==0.47",
     "packaging>=20.0",
     "isort==5.10.1",
 ]
@@ -173,8 +172,6 @@ def lint(session):
         "--warn-unused-ignores",
         *files,
     )
-    session.run("check-manifest")
-    session.run("python", "setup.py", "check", "--metadata", "--strict")
 
 
 @nox.session(python=PYTHON_ALL_VERSIONS)
