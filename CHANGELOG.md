@@ -9,6 +9,7 @@
 - [docs] Add more examples
 - [dev] Change github action job names
 - [docs] Add additional examples for installation from git repos
+- [packaging] Switch to [PEP 621](https://www.python.org/dev/peps/pep-0621/)
 
 ## 1.0.0
 
