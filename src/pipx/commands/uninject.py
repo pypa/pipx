@@ -7,7 +7,7 @@ from packaging.utils import canonicalize_name
 
 from pipx.colors import bold
 from pipx.commands.uninstall import _get_package_bin_dir_app_paths
-from pipx.constants import EXIT_CODE_OK, EXIT_CODE_UNINJECT_ERROR, ExitCode
+from pipx.constants import EXIT_CODE_OK, EXIT_CODE_UNINJECT_ERROR, WINDOWS, ExitCode
 from pipx.emojis import stars
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv
@@ -27,14 +27,28 @@ def get_include_app_paths(
     main_package_path = Path("")
     not_in_arg = set()
     for bin_dir_app_path in bin_dir_app_paths:
-        if bin_dir_app_path.stem == venv.pipx_metadata.main_package.package:
-            main_package_path = bin_dir_app_path
+        if WINDOWS:
+            if venv.pipx_metadata.main_package.package is not None:
+                windows_package_name = venv.pipx_metadata.main_package.package + ".exe"
+                if bin_dir_app_path.stem == windows_package_name:
+                    main_package_path = bin_dir_app_path
 
-        if (
-            bin_dir_app_path.stem not in venv.package_metadata[package_name].apps
-            and bin_dir_app_path.stem != package_name
-        ):
-            not_in_arg.add(bin_dir_app_path)
+            app_list = venv.package_metadata[package_name].apps
+            windows_list = [app + ".exe" for app in app_list]
+
+            if bin_dir_app_path.stem not in windows_list and bin_dir_app_path.stem != (
+                package_name + ".exe"
+            ):
+                not_in_arg.add(bin_dir_app_path)
+        else:
+            if bin_dir_app_path.stem == venv.pipx_metadata.main_package.package:
+                main_package_path = bin_dir_app_path
+
+            if (
+                bin_dir_app_path.stem not in windows_list
+                and bin_dir_app_path.stem != package_name
+            ):
+                not_in_arg.add(bin_dir_app_path)
 
     bin_dir_app_paths.remove(main_package_path)
     new_app_paths = bin_dir_app_paths - not_in_arg
