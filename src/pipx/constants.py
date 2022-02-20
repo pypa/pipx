@@ -23,6 +23,7 @@ ExitCode = NewType("ExitCode", int)
 # pipx shell exit codes
 EXIT_CODE_OK = ExitCode(0)
 EXIT_CODE_INJECT_ERROR = ExitCode(1)
+EXIT_CODE_UNINJECT_ERROR = ExitCode(1)
 EXIT_CODE_INSTALL_VENV_EXISTS = ExitCode(0)
 EXIT_CODE_LIST_PROBLEM = ExitCode(1)
 EXIT_CODE_UNINSTALL_VENV_NONEXISTENT = ExitCode(1)
