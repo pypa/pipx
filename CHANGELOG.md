@@ -8,6 +8,7 @@
 - [docs] Fix test status badge in readme file
 - [docs] Add more examples
 - [dev] Change github action job names
+- Add `pipx uninject` command (#820)
 
 ## 1.0.0
 
