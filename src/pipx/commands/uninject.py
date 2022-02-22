@@ -19,10 +19,9 @@ def get_include_app_paths(
     package_name: str, venv: Venv, local_bin_dir: Path
 ) -> Set[Path]:
     bin_dir_app_paths = set()
-    if package_name in venv.package_metadata[package_name]:
-        bin_dir_app_paths |= _get_package_bin_dir_app_paths(
-            venv, venv.package_metadata[package_name], local_bin_dir
-        )
+    bin_dir_app_paths = _get_package_bin_dir_app_paths(
+        venv, venv.package_metadata[package_name], local_bin_dir
+    )
 
     main_package_path = None
     not_in_arg = set()
