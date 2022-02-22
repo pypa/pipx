@@ -104,7 +104,7 @@ def uninject_dep(
                 logger.info(f"removed file {app_path}")
 
     print(
-        f"uninjected package {bold(package_name)}{deps_string} from venv {bold(venv.root.name)} {stars}"
+        f"Uninjected package {bold(package_name)}{deps_string} from venv {bold(venv.root.name)} {stars}"
     )
     return True
 
