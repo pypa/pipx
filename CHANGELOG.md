@@ -7,6 +7,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.45.0]
+
+### Added
+
+- Add `TaskCollection` endpoint.
+- Add `callbackUrl` to cms install and fpm reload requests.
+
+### Changed
+
+- Update to API version 1.110.
+- The cms install and fpm reload request now return a `TaskCollection`.
+
 ## [1.44.0]
 
 ### Added

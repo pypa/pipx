@@ -13,8 +13,7 @@ class Arr extends \Illuminate\Support\Arr
      */
     public static function exceptValue(array $array, $value): array
     {
-        $key = array_search($value, $array);
-        if ($key === false) {
+        if (!in_array($value, $array)) {
             return $array;
         }
 
