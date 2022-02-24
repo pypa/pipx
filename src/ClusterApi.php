@@ -99,9 +99,19 @@ class ClusterApi
         return new Endpoints\Malwares($this->client);
     }
 
+    public function nodes(): Endpoints\Nodes
+    {
+        return new Endpoints\Nodes($this->client);
+    }
+
     public function sshKeys(): Endpoints\SshKeys
     {
         return new Endpoints\SshKeys($this->client);
+    }
+
+    public function taskCollections(): Endpoints\TaskCollections
+    {
+        return new Endpoints\TaskCollections($this->client);
     }
 
     public function unixUsers(): Endpoints\UnixUsers
@@ -117,10 +127,5 @@ class ClusterApi
     public function virtualHosts(): Endpoints\VirtualHosts
     {
         return new Endpoints\VirtualHosts($this->client);
-    }
-
-    public function nodes(): Endpoints\Nodes
-    {
-        return new Endpoints\Nodes($this->client);
     }
 }

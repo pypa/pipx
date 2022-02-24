@@ -6,7 +6,6 @@ use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\Node;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
-use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
 
 class TaskCollections extends Endpoint
 {
