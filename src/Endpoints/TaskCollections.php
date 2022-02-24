@@ -4,6 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\Node;
+use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 
@@ -28,7 +29,7 @@ class TaskCollections extends Endpoint
         }
 
         return $response->setData([
-            'node' => (new Node())->fromArray($response->getData()),
+            'taskCollection' => (new TaskCollection())->fromArray($response->getData()),
         ]);
     }
 }
