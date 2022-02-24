@@ -4,9 +4,11 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\FpmPool;
+use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
 
 class FpmPools extends Endpoint
 {
@@ -209,17 +211,32 @@ class FpmPools extends Endpoint
 
     /**
      * @param int $id
+     * @param string|null $callbackUrl
      * @return Response
      * @throws RequestException
      */
-    public function reload(int $id): Response
+    public function reload(int $id, string $callbackUrl = null): Response
     {
+        $url = Str::optionalQueryParameters(
+            sprintf('fpm-pools/%d/reload', $id),
+            ['callback_url' => $callbackUrl]
+        );
+
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl(sprintf('fpm-pools/%d/reload', $id));
+            ->setUrl($url);
 
-        return $this
+        $response = $this
             ->client
             ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $taskCollection = (new TaskCollection())->fromArray($response->getData());
+
+        return $response->setData([
+            'taskCollection' => $taskCollection,
+        ]);
     }
 }

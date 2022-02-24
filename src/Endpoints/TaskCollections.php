@@ -1,0 +1,35 @@
+<?php
+
+namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
+
+use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
+use Vdhicts\Cyberfusion\ClusterApi\Models\Node;
+use Vdhicts\Cyberfusion\ClusterApi\Request;
+use Vdhicts\Cyberfusion\ClusterApi\Response;
+use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
+
+class TaskCollections extends Endpoint
+{
+    /**
+     * @param int $id
+     * @return Response
+     * @throws RequestException
+     */
+    public function get(int $id): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_GET)
+            ->setUrl(sprintf('task-collections/%d/results', $id));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'node' => (new Node())->fromArray($response->getData()),
+        ]);
+    }
+}

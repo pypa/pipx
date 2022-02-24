@@ -5,9 +5,11 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\Cms;
 use Vdhicts\Cyberfusion\ClusterApi\Models\CmsInstallation;
+use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
 
 class Cmses extends Endpoint
 {
@@ -137,10 +139,11 @@ class Cmses extends Endpoint
     /**
      * @param int $id
      * @param CmsInstallation $cmsInstallation
+     * @param string|null $callbackUrl
      * @return Response
      * @throws RequestException
      */
-    public function install(int $id, CmsInstallation $cmsInstallation): Response
+    public function install(int $id, CmsInstallation $cmsInstallation, string $callbackUrl = null): Response
     {
         $this->validateRequired($cmsInstallation, 'create', [
             'database_name',
@@ -156,9 +159,14 @@ class Cmses extends Endpoint
             'admin_email_address',
         ]);
 
+        $url = Str::optionalQueryParameters(
+            sprintf('cmses/%d/install', $id),
+            ['callback_url' => $callbackUrl]
+        );
+
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl(sprintf('cmses/%d/install', $id))
+            ->setUrl($url)
             ->setBody($this->filterFields($cmsInstallation->toArray(), [
                 'database_name',
                 'database_user_name',
@@ -180,6 +188,8 @@ class Cmses extends Endpoint
             return $response;
         }
 
+        $taskCollection = (new TaskCollection())->fromArray($response->getData());
+
         // Retrieve the CMS again, so we log affected clusters and can return the CMS object
         $retrieveResponse = $this->get($id);
         if (!$retrieveResponse->isSuccess()) {
@@ -194,6 +204,7 @@ class Cmses extends Endpoint
             ->addAffectedCluster($cms->getClusterId());
 
         return $response->setData([
+            'taskCollection' => $taskCollection,
             'cms' => $cms,
         ]);
     }
