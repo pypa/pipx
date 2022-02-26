@@ -9,8 +9,8 @@
 - [docs] Add more examples
 - [dev] Change github action job names
 - [docs] Add additional examples for installation from git repos
-- Add `pipx uninject` command (#820)
-
+- [packaging] Switch to [PEP 621](https://www.python.org/dev/peps/pep-0621/)
+- - Add `pipx uninject` command (#820)
 
 ## 1.0.0
 

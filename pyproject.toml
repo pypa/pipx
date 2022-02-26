@@ -1,15 +1,55 @@
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=0.15.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pipx"
+description = "Install and Run Python Applications in Isolated Environments"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.7"
+keywords = ["pip", "install", "cli", "workflow", "Virtual Environment"]
+authors = [{ name = "Chad Smith", email = "chadsmith.software@gmail.com" }]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+]
+dependencies = [
+  "argcomplete>=1.9.4",
+  "colorama>=0.4.4; sys_platform == 'win32'",
+  "importlib-metadata>=3.3.0; python_version < '3.8'",
+  "packaging>=20.0",
+  "userpath>=1.6.0",
+]
+dynamic = ["version"]
+
+[project.urls]
+Documentation = "https://pypa.github.io/pipx/"
+"Source Code" = "https://github.com/pypa/pipx"
+"Bug Tracker" = "https://github.com/pypa/pipx/issues"
+
+[project.scripts]
+pipx = "pipx.main:cli"
+
+[tool.hatch.version]
+source = "code"
+path = "src/pipx/version.py"
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/logo.png", "/pipx_demo.gif", "/*.md"]
 
 [tool.isort]
 profile = "black"
 known_first_party = ["helpers", "package_info"]
 
 [tool.pytest.ini_options]
-markers = [
-    "all_packages: test install with maximum number of packages",
-]
+markers = ["all_packages: test install with maximum number of packages"]
 
 [tool.black]
 skip-magic-trailing-comma = true
