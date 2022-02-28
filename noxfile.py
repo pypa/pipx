@@ -119,7 +119,7 @@ def tests_with_options(session, net_pypiserver):
         *pypiserver_option,
         "--cov=pipx",
         "--cov-report=",
-        "--reruns=5",
+        "--reruns=2",
         "--reruns-delay=1",
         *tests,
     )
@@ -150,7 +150,7 @@ def test_all_packages(session):
         "--show-capture=no",
         "--net-pypiserver",
         "--all-packages",
-        "--reruns=5",
+        "--reruns=2",
         "--reruns-delay=1",
         *tests,
     )
