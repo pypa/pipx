@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.46.0]
+
+### Added
+
+- Add the optional `timeUnit` to database, mail account, borg repository and unix user usage.
+
+### Changed
+
+- Update to [API version 1.115](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.115-2022-03-04).
+- Renamed `from_timestamp_date` parameter to `timestamp`. This does not affect the usage of the package.
+
 ## [1.45.0]
 
 ### Added

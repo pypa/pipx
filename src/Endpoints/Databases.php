@@ -3,6 +3,7 @@
 namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
 use DateTimeInterface;
+use Vdhicts\Cyberfusion\ClusterApi\Enums\TimeUnit;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\Database;
 use Vdhicts\Cyberfusion\ClusterApi\Models\DatabaseUsage;
@@ -139,15 +140,19 @@ class Databases extends Endpoint
     /**
      * @param int $id
      * @param DateTimeInterface $from
+     * @param string $timeUnit
      * @return Response
      * @throws RequestException
      */
-    public function usages(int $id, DateTimeInterface $from): Response
+    public function usages(int $id, DateTimeInterface $from, string $timeUnit = TimeUnit::HOURLY): Response
     {
         $url = sprintf(
             'databases/usages/%d?%s',
             $id,
-            http_build_query(['from_timestamp_date' => $from->format('c')])
+            http_build_query([
+                'timestamp' => $from->format('c'),
+                'time_unit' => $timeUnit,
+            ])
         );
 
         $request = (new Request())
