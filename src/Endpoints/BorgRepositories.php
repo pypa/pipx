@@ -3,6 +3,7 @@
 namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
 use DateTimeInterface;
+use Vdhicts\Cyberfusion\ClusterApi\Enums\TimeUnit;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\BorgRepository;
 use Vdhicts\Cyberfusion\ClusterApi\Models\BorgRepositoryUsage;
@@ -70,15 +71,19 @@ class BorgRepositories extends Endpoint
     /**
      * @param int $id
      * @param DateTimeInterface $from
+     * @param string $timeUnit
      * @return Response
      * @throws RequestException
      */
-    public function usages(int $id, DateTimeInterface $from): Response
+    public function usages(int $id, DateTimeInterface $from, string $timeUnit = TimeUnit::HOURLY): Response
     {
         $url = sprintf(
             'borg-repositories/usages/%d?%s',
             $id,
-            http_build_query(['from_timestamp_date' => $from->format('c')])
+            http_build_query([
+                'timestamp' => $from->format('c'),
+                'time_unit' => $timeUnit,
+            ])
         );
 
         $request = (new Request())
