@@ -128,9 +128,12 @@ class UnixUsers extends Endpoint
             ->setBody($this->filterFields($unixUser->toArray(), [
                 'username',
                 'password',
+                'shell_path',
                 'default_php_version',
                 'virtual_hosts_directory',
                 'mail_domains_directory',
+                'borg_repositories_directory',
+                'description',
                 'cluster_id',
             ]));
 
@@ -174,9 +177,13 @@ class UnixUsers extends Endpoint
             ->setBody($this->filterFields($unixUser->toArray(), [
                 'username',
                 'password',
+                'shell_path',
                 'default_php_version',
                 'virtual_hosts_directory',
                 'mail_domains_directory',
+                'borg_repositories_directory',
+                'description',
+                'record_usage_files',
                 'async_support_enabled',
                 'rabbitmq_username',
                 'rabbitmq_virtual_host_name',

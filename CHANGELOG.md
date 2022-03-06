@@ -7,6 +7,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.47.0]
+
+### Added
+
+- Add the optional `recordUsageFiles` attribute to UNIX users.
+
+### Changed
+
+- Update to [API version 1.116](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.116-2022-03-06).
+
+### Fixed
+
+- Add missing attribute to create and update payload for FPM pools: `is_namespaced`
+- Add missing attributes to create and update payloads for UNIX users: `shell_path`, `borg_repositories_directory`, `description`
+- Add missing attributes to create and update payloads for URL redirects: `description`
+
 ## [1.46.0]
 
 ### Added

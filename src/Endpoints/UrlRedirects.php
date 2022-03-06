@@ -96,6 +96,7 @@ class UrlRedirects extends Endpoint
                 'keep_path',
                 'force_ssl',
                 'balancer_backend_name',
+                'description',
                 'cluster_id',
             ]));
 
@@ -150,6 +151,7 @@ class UrlRedirects extends Endpoint
                 'keep_path',
                 'force_ssl',
                 'balancer_backend_name',
+                'description',
                 'id',
                 'cluster_id',
             ]));
