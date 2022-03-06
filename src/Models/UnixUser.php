@@ -17,6 +17,7 @@ class UnixUser extends ClusterModel implements Model
     private ?string $mailDomainsDirectory = null;
     private ?string $borgRepositoriesDirectory = null;
     private string $shellPath = ShellPath::BASH;
+    private bool $recordUsageFiles = false;
     private bool $asyncSupportEnabled = false;
     private ?string $rabbitMqUsername = null;
     private ?string $rabbitMqVirtualHostName = null;
@@ -133,6 +134,18 @@ class UnixUser extends ClusterModel implements Model
             ->validate();
 
         $this->shellPath = $shellPath;
+
+        return $this;
+    }
+
+    public function getRecordUsageFiles(): string
+    {
+        return $this->recordUsageFiles;
+    }
+
+    public function setRecordUsageFiles(bool $recordUsageFiles): UnixUser
+    {
+        $this->recordUsageFiles = $recordUsageFiles;
 
         return $this;
     }
@@ -274,6 +287,7 @@ class UnixUser extends ClusterModel implements Model
             ->setMailDomainsDirectory(Arr::get($data, 'mail_domains_directory'))
             ->setBorgRepositoriesDirectory(Arr::get($data, 'borg_repositories_directory'))
             ->setShellPath(Arr::get($data, 'shell_path', ShellPath::BASH))
+            ->setRecordUsageFiles(Arr::get($data, 'record_usage_files', false))
             ->setAsyncSupportEnabled(Arr::get($data, 'async_support_enabled', false))
             ->setRabbitMqUsername(Arr::get($data, 'rabbitmq_username'))
             ->setRabbitMqVirtualHostName(Arr::get($data, 'rabbitmq_virtual_host_name'))
@@ -296,6 +310,7 @@ class UnixUser extends ClusterModel implements Model
             'mail_domains_directory' => $this->getMailDomainsDirectory(),
             'borg_repositories_directory' => $this->getBorgRepositoriesDirectory(),
             'shell_path' => $this->getShellPath(),
+            'record_usage_files' => $this->getRecordUsageFiles(),
             'async_support_enabled' => $this->isAsyncSupportEnabled(),
             'rabbitmq_username' => $this->getRabbitMqUsername(),
             'rabbitmq_virtual_host_name' => $this->getRabbitMqVirtualHostName(),

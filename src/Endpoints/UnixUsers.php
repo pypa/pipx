@@ -174,6 +174,7 @@ class UnixUsers extends Endpoint
             ->setBody($this->filterFields($unixUser->toArray(), [
                 'username',
                 'password',
+                'record_usage_files',
                 'default_php_version',
                 'virtual_hosts_directory',
                 'mail_domains_directory',
