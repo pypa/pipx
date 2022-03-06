@@ -138,7 +138,7 @@ class UnixUser extends ClusterModel implements Model
         return $this;
     }
 
-    public function getRecordUsageFiles(): string
+    public function getRecordUsageFiles(): bool
     {
         return $this->recordUsageFiles;
     }
