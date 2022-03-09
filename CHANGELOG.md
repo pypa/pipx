@@ -14,6 +14,10 @@ detailed information.
 - Add callback url for deployments.
 - Add callback url for the automatic deployments.
 
+### Changed
+
+- A commit will now return a task collection.
+
 ## [1.47.1]
 
 ### Fixed

@@ -4,6 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\Cluster;
+use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
@@ -93,7 +94,7 @@ class Clusters extends Endpoint
         }
 
         return $response->setData([
-            'cluster' => (new Cluster())->fromArray($response->getData()),
+            'taskCollection' => (new TaskCollection())->fromArray($response->getData()),
         ]);
     }
 }
