@@ -288,7 +288,12 @@ class Client implements ClientContract
             $deployment = (new Deployment())->setClusterId($affectedCluster);
 
             try {
-                $result = $clustersEndpoint->commit($affectedCluster);
+                $result = $clustersEndpoint->commit(
+                    $affectedCluster,
+                    $this
+                        ->configuration
+                        ->getAutoDeployCallbackUrl()
+                );
 
                 $deployment->setSuccess($result->isSuccess());
                 $result->isSuccess()

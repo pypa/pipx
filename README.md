@@ -205,7 +205,9 @@ you won't be able to access the result of the deployment. Enable this behavior i
 
 ```php
 $configuration = new Configuration();
-$configuration->setAutoDeploy(); // Enable the auto deployment of affected clusters
+$configuration
+    ->setAutoDeploy() // Enable the auto deployment of affected clusters
+    ->setAutoDeployCallbackUrl(''); // Provide the callback url for automatic deployments
 
 // Initialize the client
 $client = new Client($configuration, true);
@@ -224,6 +226,8 @@ $api
     ->clusters()
     ->commit($clusterId);
 ```
+
+The commit method accepts a callback url as second parameter.
 
 ### Laravel
 

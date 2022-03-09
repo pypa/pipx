@@ -7,6 +7,7 @@ use Vdhicts\Cyberfusion\ClusterApi\Models\Cluster;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
 
 class Clusters extends Endpoint
 {
@@ -70,11 +71,16 @@ class Clusters extends Endpoint
      * @return Response
      * @throws RequestException
      */
-    public function commit(int $id): Response
+    public function commit(int $id, string $callbackUrl = null): Response
     {
+        $url = Str::optionalQueryParameters(
+            'cluster-deployments',
+            ['callback_url' => $callbackUrl]
+        );
+
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('cluster-deployments')
+            ->setUrl($url)
             ->setBody([
                 'cluster_id' => $id,
             ]);
