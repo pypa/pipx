@@ -20,7 +20,7 @@ class Client implements ClientContract
 {
     private const CONNECT_TIMEOUT = 60;
     private const TIMEOUT = 180;
-    private const VERSION = '1.47.1';
+    private const VERSION = '1.48.0';
     private const USER_AGENT = 'cyberfusion-cluster-api-client/' . self::VERSION;
 
     private Configuration $configuration;
@@ -288,7 +288,12 @@ class Client implements ClientContract
             $deployment = (new Deployment())->setClusterId($affectedCluster);
 
             try {
-                $result = $clustersEndpoint->commit($affectedCluster);
+                $result = $clustersEndpoint->commit(
+                    $affectedCluster,
+                    $this
+                        ->configuration
+                        ->getAutoDeployCallbackUrl()
+                );
 
                 $deployment->setSuccess($result->isSuccess());
                 $result->isSuccess()

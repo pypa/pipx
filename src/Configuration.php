@@ -13,6 +13,7 @@ class Configuration
     private ?string $accessToken;
     private bool $sandbox = false;
     private bool $autoDeploy = false;
+    private ?string $autoDeployCallbackUrl = null;
 
     public static function withCredentials(string $username, string $password, bool $sandbox = false): Configuration
     {
@@ -109,6 +110,18 @@ class Configuration
     public function setAutoDeploy(bool $autoDeploy = true): Configuration
     {
         $this->autoDeploy = $autoDeploy;
+
+        return $this;
+    }
+
+    public function getAutoDeployCallbackUrl(): ?string
+    {
+        return $this->autoDeployCallbackUrl;
+    }
+
+    public function setAutoDeployCallbackUrl(?string $autoDeployCallbackUrl): Configuration
+    {
+        $this->autoDeployCallbackUrl = $autoDeployCallbackUrl;
 
         return $this;
     }

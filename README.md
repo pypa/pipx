@@ -1,7 +1,7 @@
 # Cyberfusion Cluster API client
 
 Easily use the [API of the clusters](https://cluster-api.cyberfusion.nl/) of the hosting company 
-[Cyberfusion](https://cyberfusion.nl/). This package is build and tested on the **1.116** version of the API.
+[Cyberfusion](https://cyberfusion.nl/). This package is build and tested on the **1.117** version of the API.
 This package is not created or maintained by Cyberfusion.
 
 ## Requirements
@@ -205,7 +205,9 @@ you won't be able to access the result of the deployment. Enable this behavior i
 
 ```php
 $configuration = new Configuration();
-$configuration->setAutoDeploy(); // Enable the auto deployment of affected clusters
+$configuration
+    ->setAutoDeploy() // Enable the auto deployment of affected clusters
+    ->setAutoDeployCallbackUrl(''); // Provide the callback url for automatic deployments
 
 // Initialize the client
 $client = new Client($configuration, true);
@@ -224,6 +226,8 @@ $api
     ->clusters()
     ->commit($clusterId);
 ```
+
+The commit method accepts a callback url as second parameter.
 
 ### Laravel
 
