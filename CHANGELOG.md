@@ -16,6 +16,7 @@ detailed information.
 
 ### Changed
 
+- Update to [API version 1.117](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.117-2022-03-10).
 - A commit will now return a task collection.
 
 ## [1.47.1]
