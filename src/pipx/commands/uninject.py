@@ -30,10 +30,7 @@ def get_include_app_paths(
         if path_without_file_ext.stem == venv.pipx_metadata.main_package.package:
             main_package_path = bin_dir_app_path
 
-        if (
-            path_without_file_ext.stem not in venv.package_metadata[package_name].apps
-            and path_without_file_ext.stem != package_name
-        ):
+        if path_without_file_ext.stem not in venv.package_metadata[package_name].apps:
             not_in_arg.add(bin_dir_app_path)
 
     if main_package_path:
