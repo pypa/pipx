@@ -23,20 +23,13 @@ def get_include_app_paths(
         venv, venv.package_metadata[package_name], local_bin_dir
     )
 
-    main_package_path = None
     not_in_arg = set()
     for bin_dir_app_path in bin_dir_app_paths:
         path_without_file_ext = bin_dir_app_path.with_suffix("")
-        if path_without_file_ext.stem == venv.pipx_metadata.main_package.package:
-            main_package_path = bin_dir_app_path
 
         if path_without_file_ext.stem not in venv.package_metadata[package_name].apps:
             not_in_arg.add(bin_dir_app_path)
 
-    if main_package_path:
-        bin_dir_app_paths.remove(main_package_path)
-    else:
-        pass
     new_app_paths = bin_dir_app_paths - not_in_arg
     return new_app_paths
 
