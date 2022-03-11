@@ -6,6 +6,8 @@ def test_uninject_simple(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
     assert not run_pipx_cli(["uninject", "pycowsay", "black"])
+    captured = capsys.readouterr()
+    assert "Uninjected package black" in captured.out
     assert not run_pipx_cli(["list", "--include-injected"])
     captured = capsys.readouterr()
     assert "black" not in captured.out
