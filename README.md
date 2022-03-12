@@ -64,7 +64,7 @@ Enter the following line (even if you did not get the warning):
 pipx ensurepath
 ```
 
-This will add both the above mentioned path and the `%USERPROFILE%.local\bin` folder to your search path.
+This will add both the above mentioned path and the `%USERPROFILE%\.local\bin` folder to your search path.
 Restart your terminal session and verify `pipx` does run.
 
 Upgrade pipx with `python3 -m pip install --user -U pipx`.
