@@ -18,20 +18,16 @@ logger = logging.getLogger(__name__)
 def get_include_app_paths(
     package_name: str, venv: Venv, local_bin_dir: Path
 ) -> Set[Path]:
-    bin_dir_app_paths = set()
     bin_dir_app_paths = _get_package_bin_dir_app_paths(
         venv, venv.package_metadata[package_name], local_bin_dir
     )
 
-    not_in_arg = set()
+    need_to_remove = set()
     for bin_dir_app_path in bin_dir_app_paths:
-        path_without_file_ext = bin_dir_app_path.with_suffix("")
+        if bin_dir_app_path.name in venv.package_metadata[package_name].apps:
+            need_to_remove.add(bin_dir_app_path)
 
-        if path_without_file_ext.stem not in venv.package_metadata[package_name].apps:
-            not_in_arg.add(bin_dir_app_path)
-
-    new_app_paths = bin_dir_app_paths - not_in_arg
-    return new_app_paths
+    return need_to_remove
 
 
 def uninject_dep(
