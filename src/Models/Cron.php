@@ -13,7 +13,7 @@ class Cron extends ClusterModel implements Model
     private ?string $emailAddress = null;
     private string $schedule;
     private int $unixUserId;
-    private int $nodeId;
+    private ?int $nodeId = null;
     private int $errorCount = 1;
     private int $randomDelayMaxSeconds = 10;
     private bool $lockingEnabled = true;
@@ -98,12 +98,12 @@ class Cron extends ClusterModel implements Model
         return $this;
     }
 
-    public function getNodeId(): int
+    public function getNodeId(): ?int
     {
         return $this->nodeId;
     }
 
-    public function setNodeId(int $nodeId): Cron
+    public function setNodeId(?int $nodeId): Cron
     {
         $this->nodeId = $nodeId;
 
