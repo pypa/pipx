@@ -42,7 +42,7 @@ class PackageInfo(NamedTuple):
 
 class PipxMetadata:
     # Only change this if file format changes
-    __METADATA_VERSION__: str = "0.2"
+    __METADATA_VERSION__: str = "0.3"
 
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
@@ -64,6 +64,7 @@ class PipxMetadata:
             package_version="",
         )
         self.python_version: Optional[str] = None
+        self.shared: bool = False
         self.venv_args: List[str] = []
         self.injected_packages: Dict[str, PackageInfo] = {}
 
@@ -74,6 +75,7 @@ class PipxMetadata:
         return {
             "main_package": self.main_package._asdict(),
             "python_version": self.python_version,
+            "shared": self.shared,
             "venv_args": self.venv_args,
             "injected_packages": {
                 name: data._asdict() for (name, data) in self.injected_packages.items()
@@ -91,7 +93,10 @@ class PipxMetadata:
                 main_package_data["suffix"] = self.venv_dir.name.replace(
                     main_package_data["package"], ""
                 )
-            return metadata_dict
+            metadata_dict["pipx_metadata_version"] = "0.2"
+        elif metadata_dict["pipx_metadata_version"] == "0.2":
+            metadata_dict["shared"] = False
+            metadata_dict["pipx_metadata_version"] = "0.3"
         else:
             raise PipxError(
                 f"""
@@ -101,10 +106,14 @@ class PipxMetadata:
                 """
             )
 
+        # recurse until fully converted
+        return self._convert_legacy_metadata(metadata_dict)
+
     def from_dict(self, input_dict: Dict[str, Any]) -> None:
         input_dict = self._convert_legacy_metadata(input_dict)
         self.main_package = PackageInfo(**input_dict["main_package"])
         self.python_version = input_dict["python_version"]
+        self.shared = input_dict["shared"]
         self.venv_args = input_dict["venv_args"]
         self.injected_packages = {
             f"{name}{data.get('suffix', '')}": PackageInfo(**data)

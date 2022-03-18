@@ -329,7 +329,7 @@ def package_name_from_spec(
 
     with tempfile.TemporaryDirectory() as temp_venv_dir:
         venv = Venv(Path(temp_venv_dir), python=python, verbose=verbose)
-        venv.create_venv(venv_args=[], pip_args=[])
+        venv.create_venv(venv_args=[], pip_args=[], shared=False)
         package_name = venv.install_package_no_deps(
             package_or_url=package_spec, pip_args=pip_args
         )

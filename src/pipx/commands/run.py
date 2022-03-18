@@ -131,7 +131,7 @@ def _download_and_run(
     verbose: bool,
 ) -> NoReturn:
     venv = Venv(venv_dir, python=python, verbose=verbose)
-    venv.create_venv(venv_args, pip_args)
+    venv.create_venv(venv_args, pip_args, shared=False)
 
     if venv.pipx_metadata.main_package.package is not None:
         package_name = venv.pipx_metadata.main_package.package

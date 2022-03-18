@@ -15,6 +15,7 @@ PIPX_SHARED_LIBS = Path(
     os.environ.get("PIPX_SHARED_LIBS", DEFAULT_PIPX_SHARED_LIBS)
 ).resolve()
 PIPX_SHARED_PTH = "pipx_shared.pth"
+PIPX_PTH_FORMAT_STR = "pipx_shared_{}.pth"
 LOCAL_BIN_DIR = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resolve()
 PIPX_VENV_CACHEDIR = PIPX_HOME / ".cache"
 TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 14

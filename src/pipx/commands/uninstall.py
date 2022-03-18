@@ -16,7 +16,7 @@ from pipx.constants import (
 )
 from pipx.emojis import hazard, sleep, stars
 from pipx.pipx_metadata_file import PackageInfo
-from pipx.util import rmdir, safe_unlink
+from pipx.util import safe_unlink
 from pipx.venv import Venv, VenvContainer
 from pipx.venv_inspect import VenvMetadata
 
@@ -131,7 +131,7 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, verbose: bool) -> ExitCode:
         else:
             logger.info(f"removed file {bin_dir_app_path}")
 
-    rmdir(venv_dir)
+    venv.remove_venv(force=True)
     print(f"uninstalled {venv.name}! {stars}")
     return EXIT_CODE_OK
 

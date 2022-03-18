@@ -57,6 +57,7 @@ def reinstall(
         package_or_url,
         local_bin_dir,
         python,
+        venv.pipx_metadata.shared,
         venv.pipx_metadata.main_package.pip_args,
         venv.pipx_metadata.venv_args,
         verbose,

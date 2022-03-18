@@ -14,7 +14,7 @@ except ImportError:
 from packaging.utils import canonicalize_name
 
 from pipx.animate import animate
-from pipx.constants import PIPX_SHARED_PTH, ExitCode
+from pipx.constants import PIPX_PTH_FORMAT_STR, PIPX_SHARED_PTH, ExitCode
 from pipx.emojis import hazard
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.package_specifier import (
@@ -34,6 +34,7 @@ from pipx.util import (
     pipx_wrap,
     rmdir,
     run_subprocess,
+    safe_unlink,
     subprocess_post_check,
     subprocess_post_check_handle_pip_error,
 )
@@ -114,7 +115,7 @@ class Venv:
                         reinstall a package. For example:
                         """
                     )
-                    + f"\n  pipx install {self.root.name} --force",
+                    + f"\n  pipx install {self.main_package_name} --force",
                     wrap_message=False,
                 )
 
@@ -156,14 +157,17 @@ class Venv:
         else:
             return self.pipx_metadata.main_package.package
 
-    def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
+    def create_venv(
+        self, venv_args: List[str], pip_args: List[str], shared: bool
+    ) -> None:
         with animate("creating virtual environment", self.do_animation):
             cmd = [self.python, "-m", "venv", "--without-pip"]
             venv_process = run_subprocess(cmd + venv_args + [str(self.root)])
         subprocess_post_check(venv_process)
 
         shared_libs.create(self.verbose)
-        pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
+        site_packages = get_site_packages(self.python_path)
+        pipx_pth = site_packages / PIPX_SHARED_PTH
         # write path pointing to the shared libs site-packages directory
         # example pipx_pth location:
         #   ~/.local/pipx/venvs/black/lib/python3.8/site-packages/pipx_shared.pth
@@ -173,17 +177,33 @@ class Venv:
         # https://docs.python.org/3/library/site.html
         # A path configuration file is a file whose name has the form 'name.pth'.
         # its contents are additional items (one per line) to be added to sys.path
-        pipx_pth.write_text(f"{shared_libs.site_packages}\n", encoding="utf-8")
+        #
+        # addsitedir() is used so that .pth files get processed which is needed to
+        # make --shared work
+        pipx_pth.write_text(
+            f"import site; site.addsitedir(r'{shared_libs.site_packages}')\n",
+            encoding="utf-8",
+        )
 
+        shared_pth = shared_libs.site_packages / PIPX_PTH_FORMAT_STR.format(self.name)
+        if shared:
+            shared_pth.write_text(f"{site_packages}\n", encoding="utf-8")
+        else:
+            safe_unlink(shared_pth)
+
+        self.pipx_metadata.shared = shared
         self.pipx_metadata.venv_args = venv_args
         self.pipx_metadata.python_version = self.get_python_version()
 
     def safe_to_remove(self) -> bool:
         return not self._existing
 
-    def remove_venv(self) -> None:
-        if self.safe_to_remove():
+    def remove_venv(self, force=False) -> None:
+        if force or self.safe_to_remove():
             rmdir(self.root)
+            safe_unlink(
+                shared_libs.site_packages / PIPX_PTH_FORMAT_STR.format(self.name)
+            )
         else:
             logger.warning(
                 pipx_wrap(

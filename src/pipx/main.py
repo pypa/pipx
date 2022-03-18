@@ -168,16 +168,18 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
     venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
 
     if "package" in args:
-        package = args.package
-        if urllib.parse.urlparse(package).scheme:
+        if urllib.parse.urlparse(args.package).scheme:
             raise PipxError("Package cannot be a url")
 
         if "spec" in args and args.spec is not None:
             if urllib.parse.urlparse(args.spec).scheme:
                 if "#egg=" not in args.spec:
-                    args.spec = args.spec + f"#egg={package}"
+                    args.spec = args.spec + f"#egg={args.package}"
 
-        venv_dir = venv_container.get_venv_dir(package)
+        if args.command == "runpip" and args.shared:
+            venv_dir = constants.PIPX_SHARED_LIBS
+        else:
+            venv_dir = venv_container.get_venv_dir(args.package)
         logger.info(f"Virtual Environment location is {venv_dir}")
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
@@ -217,6 +219,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             args.package_spec,
             constants.LOCAL_BIN_DIR,
             args.python,
+            args.shared,
             pip_args,
             venv_args,
             verbose,
@@ -285,7 +288,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
     elif args.command == "runpip":
         if not venv_dir:
             raise PipxError("Developer error: venv_dir is not defined.")
-        return commands.run_pip(package, venv_dir, args.pipargs, args.verbose)
+        return commands.run_pip(args.package, venv_dir, args.pipargs, args.verbose)
     elif args.command == "ensurepath":
         try:
             return commands.ensure_pipx_paths(force=args.force)
@@ -336,6 +339,14 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
     p.add_argument("package_spec", help="package name or pip installation spec")
     add_include_dependencies(p)
     p.add_argument("--verbose", action="store_true")
+    p.add_argument(
+        "--shared",
+        action="store_true",
+        help=(
+            "Share this package's site packages across all pipx managed venvs. "
+            "See the documentation for how this can make pipx work with private repositories."
+        ),
+    )
     p.add_argument(
         "--force",
         "-f",
@@ -614,6 +625,11 @@ def _add_runpip(subparsers, venv_completer: VenvCompleter) -> None:
         "runpip",
         help="Run pip in an existing pipx-managed Virtual Environment",
         description="Run pip in an existing pipx-managed Virtual Environment",
+    )
+    p.add_argument(
+        "--shared",
+        help="Run in the shared Virtual Environment containing pip, setuptools and wheel.",
+        action="store_true",
     )
     p.add_argument(
         "package",
