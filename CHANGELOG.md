@@ -10,6 +10,7 @@
 - [dev] Change github action job names
 - [docs] Add additional examples for installation from git repos
 - [packaging] Switch to [PEP 621](https://www.python.org/dev/peps/pep-0621/)
+- Add a CACHEDIR.TAG to the cache directory to prevent it from being included in archives and backups. For more information about cache directory tags, see https://bford.info/cachedir
 
 ## 1.0.0
 
