@@ -271,4 +271,35 @@ class BorgRepositories extends Endpoint
             'taskCollection' => $taskCollection,
         ]);
     }
+
+    /**
+     * @param int $id
+     * @param string|null $callbackUrl
+     * @return Response
+     * @throws RequestException
+     */
+    public function check(int $id, string $callbackUrl = null): Response
+    {
+        $url = Str::optionalQueryParameters(
+            sprintf('borg-repositories/%d/check', $id),
+            ['callback_url' => $callbackUrl]
+        );
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl($url);
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $taskCollection = (new TaskCollection())->fromArray($response->getData());
+
+        return $response->setData([
+            'taskCollection' => $taskCollection,
+        ]);
+    }
 }
