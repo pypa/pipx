@@ -3,12 +3,14 @@
 namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Vdhicts\Cyberfusion\ClusterApi\Models\VirtualHost;
+use Vdhicts\Cyberfusion\ClusterApi\Models\PassengerApp;
+use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
 
-class VirtualHosts extends Endpoint
+class PassengerApps extends Endpoint
 {
     /**
      * @param ListFilter|null $filter
@@ -23,19 +25,19 @@ class VirtualHosts extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('virtual-hosts?%s', $filter->toQuery()));
+            ->setUrl(sprintf('passenger-apps?%s', $filter->toQuery()));
 
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
         return $response->setData([
-            'virtualHosts' => array_map(
+            'passengerApps' => array_map(
                 function (array $data) {
-                    return (new VirtualHost())->fromArray($data);
+                    return (new PassengerApp())->fromArray($data);
                 },
                 $response->getData()
             ),
@@ -51,131 +53,124 @@ class VirtualHosts extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('virtual-hosts/%d', $id));
+            ->setUrl(sprintf('passenger-apps/%d', $id));
 
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
         return $response->setData([
-            'virtualHost' => (new VirtualHost())->fromArray($response->getData()),
+            'passengerApp' => (new PassengerApp())->fromArray($response->getData()),
         ]);
     }
 
     /**
-     * @param VirtualHost $virtualHost
+     * @param PassengerApp $passengerApp
      * @return Response
      * @throws RequestException
      */
-    public function create(VirtualHost $virtualHost): Response
+    public function createNodejs(PassengerApp $passengerApp): Response
     {
-        $this->validateRequired($virtualHost, 'create', [
-            'domain',
-            'server_aliases',
+        $this->validateRequired($passengerApp, 'create', [
+            'name',
             'unix_user_id',
-            'document_root',
-            'public_root',
-            'force_ssl',
-            'balancer_backend_name',
+            'environment',
+            'nodejs_version',
+            'startup_file',
         ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('virtual-hosts')
-            ->setBody($this->filterFields($virtualHost->toArray(), [
-                'domain',
-                'server_aliases',
+            ->setUrl('passenger-apps/nodejs')
+            ->setBody($this->filterFields($passengerApp->toArray(), [
+                'name',
                 'unix_user_id',
-                'document_root',
-                'public_root',
-                'fpm_pool_id',
-                'passenger_app_id',
-                'force_ssl',
-                'custom_config',
-                'balancer_backend_name',
-                'deploy_commands',
-                'allow_override_directives',
-                'allow_override_option_directives',
+                'environment',
+                'environment_variables',
+                'max_pool_size',
+                'max_requests',
+                'pool_idle_time',
+                'nodejs_version',
+                'startup_file',
             ]));
 
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
-        $virtualHost = (new VirtualHost())->fromArray($response->getData());
+        $passengerApp = (new PassengerApp())->fromArray($response->getData());
 
         // Log which cluster is affected by this change
         $this
             ->client
-            ->addAffectedCluster($virtualHost->getClusterId());
+            ->addAffectedCluster($passengerApp->getClusterId());
 
         return $response->setData([
-            'virtualHost' => $virtualHost,
+            'passengerApp' => $passengerApp,
         ]);
     }
 
     /**
-     * @param VirtualHost $virtualHost
+     * @param PassengerApp $passengerApp
      * @return Response
      * @throws RequestException
      */
-    public function update(VirtualHost $virtualHost): Response
+    public function update(PassengerApp $passengerApp): Response
     {
-        $this->validateRequired($virtualHost, 'update', [
-            'domain',
-            'server_aliases',
+        $this->validateRequired($passengerApp, 'update', [
+            'name',
             'unix_user_id',
-            'document_root',
-            'public_root',
-            'force_ssl',
-            'balancer_backend_name',
+            'environment',
             'id',
             'cluster_id',
+            'port',
+            'app_type',
+            'startup_file',
+            'unit_name',
         ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('virtual-hosts/%d', $virtualHost->getId()))
-            ->setBody($this->filterFields($virtualHost->toArray(), [
-                'domain',
-                'server_aliases',
+            ->setUrl(sprintf('passenger-apps/%d', $passengerApp->getId()))
+            ->setBody($this->filterFields($passengerApp->toArray(), [
+                'name',
                 'unix_user_id',
-                'document_root',
-                'public_root',
-                'fpm_pool_id',
-                'passenger_app_id',
-                'force_ssl',
-                'custom_config',
-                'balancer_backend_name',
-                'deploy_commands',
-                'allow_override_directives',
-                'allow_override_option_directives',
+                'environment',
+                'environment_variables',
+                'max_pool_size',
+                'max_requests',
+                'pool_idle_time',
                 'id',
                 'cluster_id',
+                'port',
+                'app_type',
+                'nodejs_version',
+                'startup_file',
+                'unit_name',
             ]));
 
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
-        $virtualHost = (new VirtualHost())->fromArray($response->getData());
+        $passengerApp = (new PassengerApp())->fromArray($response->getData());
 
         // Log which cluster is affected by this change
         $this
             ->client
-            ->addAffectedCluster($virtualHost->getClusterId());
+            ->addAffectedCluster($passengerApp->getClusterId());
 
         return $response->setData([
-            'virtualHost' => $virtualHost,
+            'passengerApp' => $passengerApp,
         ]);
     }
 
@@ -190,7 +185,7 @@ class VirtualHosts extends Endpoint
         $result = $this->get($id);
         if ($result->isSuccess()) {
             $clusterId = $result
-                ->getData('virtualHost')
+                ->getData('passengerApp')
                 ->getClusterId();
 
             $this
@@ -200,7 +195,7 @@ class VirtualHosts extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
-            ->setUrl(sprintf('virtual-hosts/%d', $id));
+            ->setUrl(sprintf('passenger-app/%d', $id));
 
         return $this
             ->client
@@ -212,21 +207,14 @@ class VirtualHosts extends Endpoint
      * @return Response
      * @throws RequestException
      */
-    public function documentRootFiles(int $id): Response
+    public function restart(int $id): Response
     {
         $request = (new Request())
-            ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('virtual-hosts/%d/document-root', $id));
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl(sprintf('passenger-apps/%d/restart', $id));
 
-        $response = $this
+        return $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
-            return $response;
-        }
-
-        return $response->setData([
-            'files' => $response->getData('contains_files'),
-        ]);
     }
 }

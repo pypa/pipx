@@ -14,6 +14,7 @@ class Cluster extends ClusterModel implements Model
     private array $phpVersions = [];
     private array $customPhpModulesNames = [];
     private ?bool $phpIoncubeEnabled = null;
+    private array $nodejsVersions = [];
     private ?string $customerId = null;
     private ?bool $wordpressToolkitEnabled = null;
     private ?bool $databaseToolkitEnabled = null;
@@ -104,6 +105,18 @@ class Cluster extends ClusterModel implements Model
     public function setPhpIoncubeEnabled(?bool $phpIoncubeEnabled): Cluster
     {
         $this->phpIoncubeEnabled = $phpIoncubeEnabled;
+
+        return $this;
+    }
+
+    public function getNodejsVersions(): array
+    {
+        return $this->nodejsVersions;
+    }
+
+    public function setNodejsVersions(array $nodejsVersions): Cluster
+    {
+        $this->nodejsVersions = $nodejsVersions;
 
         return $this;
     }
@@ -226,6 +239,7 @@ class Cluster extends ClusterModel implements Model
             ->setPhpVersions(Arr::get($data, 'php_versions', []))
             ->setCustomPhpModulesNames(Arr::get($data, 'custom_php_modules_names', []))
             ->setPhpIoncubeEnabled(Arr::get($data, 'php_ioncube_enabled'))
+            ->setNodejsVersions(Arr::get($data, 'nodejs_versions', []))
             ->setCustomerId(Arr::get($data, 'customer_id'))
             ->setWordpressToolkitEnabled(Arr::get($data, 'wordpress_toolkit_enabled'))
             ->setDatabaseToolkitEnabled(Arr::get($data, 'database_toolkit_enabled'))
@@ -247,6 +261,7 @@ class Cluster extends ClusterModel implements Model
             'php_versions' => $this->getPhpVersions(),
             'custom_php_modules_names' => $this->getCustomPhpModulesNames(),
             'php_ioncube_enabled' => $this->isPhpIoncubeEnabled(),
+            'nodejs_versions' => $this->getNodejsVersions(),
             'customer_id' => $this->getCustomerId(),
             'wordpress_toolkit_enabled' => $this->isWordpressToolkitEnabled(),
             'database_toolkit_enabled' => $this->isDatabaseToolkitEnabled(),

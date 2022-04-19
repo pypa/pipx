@@ -12,6 +12,7 @@ class NodeGroup
     public const POSTGRESQL = 'PostgreSQL';
     public const MAIN = 'Main';
     public const PHP = 'PHP';
+    public const PASSENGER = 'Passenger';
     public const BORG = 'Borg';
     public const FAST_REDIRECT = 'Fast Redirect';
 }
