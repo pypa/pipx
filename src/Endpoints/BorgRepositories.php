@@ -240,4 +240,35 @@ class BorgRepositories extends Endpoint
             ->client
             ->request($request);
     }
+
+    /**
+     * @param int $id
+     * @param string|null $callbackUrl
+     * @return Response
+     * @throws RequestException
+     */
+    public function prune(int $id, string $callbackUrl = null): Response
+    {
+        $url = Str::optionalQueryParameters(
+            sprintf('borg-repositories/%d/prune', $id),
+            ['callback_url' => $callbackUrl]
+        );
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl($url);
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $taskCollection = (new TaskCollection())->fromArray($response->getData());
+
+        return $response->setData([
+            'taskCollection' => $taskCollection,
+        ]);
+    }
 }
