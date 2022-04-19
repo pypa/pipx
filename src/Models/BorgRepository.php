@@ -204,12 +204,12 @@ class BorgRepository extends ClusterModel implements Model
         return $this;
     }
 
-    public function getUnixUserId(): int
+    public function getUnixUserId(): ?int
     {
         return $this->unixUserId;
     }
 
-    public function setUnixUserId(int $unixUserId): BorgRepository
+    public function setUnixUserId(?int $unixUserId): BorgRepository
     {
         $this->unixUserId = $unixUserId;
 
