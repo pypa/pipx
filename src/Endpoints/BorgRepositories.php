@@ -6,9 +6,11 @@ use DateTimeInterface;
 use Vdhicts\Cyberfusion\ClusterApi\Enums\TimeUnit;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\BorgRepository;
+use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
 
 class BorgRepositories extends Endpoint
 {
