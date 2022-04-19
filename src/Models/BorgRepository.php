@@ -192,18 +192,6 @@ class BorgRepository extends ClusterModel implements Model
         return $this;
     }
 
-    public function getSshKeyId(): int
-    {
-        return $this->sshKeyId;
-    }
-
-    public function setSshKeyId(int $sshKeyId): BorgRepository
-    {
-        $this->sshKeyId = $sshKeyId;
-
-        return $this;
-    }
-
     public function getUnixUserId(): ?int
     {
         return $this->unixUserId;
@@ -277,7 +265,6 @@ class BorgRepository extends ClusterModel implements Model
             ->setRemotePath(Arr::get($data, 'remote_path'))
             ->setRemoteUsername(Arr::get($data, 'remote_username'))
             ->setIdentityFilePath(Arr::get($data, 'identity_file_path'))
-            ->setSshKeyId(Arr::get($data, 'ssh_key_id'))
             ->setUnixUserId(Arr::get($data, 'unix_user_id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setId(Arr::get($data, 'id'))
@@ -299,7 +286,6 @@ class BorgRepository extends ClusterModel implements Model
             'remote_path' => $this->getRemotePath(),
             'remote_username' => $this->getRemoteUsername(),
             'identity_file_path' => $this->getIdentityFilePath(),
-            'ssh_key_id' => $this->getSshKeyId(),
             'unix_user_id' => $this->getUnixUserId(),
             'cluster_id' => $this->getClusterId(),
             'id' => $this->getId(),
