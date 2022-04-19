@@ -6,7 +6,6 @@ use DateTimeInterface;
 use Vdhicts\Cyberfusion\ClusterApi\Enums\TimeUnit;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\BorgRepository;
-use Vdhicts\Cyberfusion\ClusterApi\Models\BorgRepositoryUsage;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
@@ -65,47 +64,6 @@ class BorgRepositories extends Endpoint
 
         return $response->setData([
             'borgRepository' => (new BorgRepository())->fromArray($response->getData()),
-        ]);
-    }
-
-    /**
-     * @param int $id
-     * @param DateTimeInterface $from
-     * @param string $timeUnit
-     * @return Response
-     * @throws RequestException
-     */
-    public function usages(int $id, DateTimeInterface $from, string $timeUnit = TimeUnit::HOURLY): Response
-    {
-        $url = sprintf(
-            'borg-repositories/usages/%d?%s',
-            $id,
-            http_build_query([
-                'timestamp' => $from->format('c'),
-                'time_unit' => $timeUnit,
-            ])
-        );
-
-        $request = (new Request())
-            ->setMethod(Request::METHOD_GET)
-            ->setUrl($url);
-
-        $response = $this
-            ->client
-            ->request($request);
-        if (! $response->isSuccess()) {
-            return $response;
-        }
-
-        return $response->setData([
-            'borgRepositoryUsage' => count($response->getData()) !== 0
-                ? array_map(
-                    function (array $data) {
-                        return (new BorgRepositoryUsage())->fromArray($data);
-                    },
-                    $response->getData()
-                )
-                : null,
         ]);
     }
 
