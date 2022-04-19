@@ -3,3 +3,6 @@ composer.lock
 /.idea/
 /build/
 .phpunit.result.cache
+
+# macOS
+.DS_Store
