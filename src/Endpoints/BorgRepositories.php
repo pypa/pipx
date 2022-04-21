@@ -79,9 +79,12 @@ class BorgRepositories extends Endpoint
         $this->validateRequired($borgRepository, 'create', [
             'name',
             'passphrase',
-            'remote_url',
-            'ssh_key_id',
+            'remote_host',
+            'remote_path',
+            'remote_username',
+            'identity_file_path',
             'unix_user_id',
+            'cluster_id',
         ]);
 
         $request = (new Request())
@@ -95,9 +98,12 @@ class BorgRepositories extends Endpoint
                 'keep_weekly',
                 'keep_monthly',
                 'keep_yearly',
-                'remote_url',
-                'ssh_key_id',
+                'remote_host',
+                'remote_path',
+                'remote_username',
+                'identity_file_path',
                 'unix_user_id',
+                'cluster_id',
             ]));
 
         $response = $this
@@ -129,8 +135,10 @@ class BorgRepositories extends Endpoint
         $this->validateRequired($borgRepository, 'update', [
             'name',
             'passphrase',
-            'remote_url',
-            'ssh_key_id',
+            'remote_host',
+            'remote_path',
+            'remote_username',
+            'identity_file_path',
             'unix_user_id',
             'id',
             'cluster_id',
@@ -147,8 +155,10 @@ class BorgRepositories extends Endpoint
                 'keep_weekly',
                 'keep_monthly',
                 'keep_yearly',
-                'remote_url',
-                'ssh_key_id',
+                'remote_host',
+                'remote_path',
+                'remote_username',
+                'identity_file_path',
                 'unix_user_id',
                 'id',
                 'cluster_id',
