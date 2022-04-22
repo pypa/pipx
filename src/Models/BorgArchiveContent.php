@@ -13,7 +13,7 @@ class BorgArchiveContent extends ClusterModel implements Model
     private string $symbolicMode;
     private string $username;
     private string $groupName;
-    private string $path;
+    private ?string $path;
     private ?string $linkTarget;
     private string $modificationTime;
     private ?int $size;
@@ -70,12 +70,12 @@ class BorgArchiveContent extends ClusterModel implements Model
         return $this;
     }
 
-    public function getPath(): string
+    public function getPath(): ?string
     {
         return $this->path;
     }
 
-    public function setPath(string $path): BorgArchiveContent
+    public function setPath(?string $path): BorgArchiveContent
     {
         $this->path = $path;
 
