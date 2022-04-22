@@ -11,7 +11,7 @@ detailed information.
 
 ### Changed
 
-- Update to API version 1.118.
+- Update to API version 1.118.3.
 
 ## [1.48.1]
 
