@@ -11,7 +11,7 @@ detailed information.
 
 ### Changed
 
-- Update to API version 1.118.3.
+- Update to [API version 1.118.3](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.118-2022-04-20).
 
 ## [1.48.1]
 
