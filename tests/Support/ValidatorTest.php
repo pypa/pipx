@@ -4,6 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Tests\Support;
 
 use PHPUnit\Framework\TestCase;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ValidationException;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
 use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class ValidatorTest extends TestCase
@@ -158,6 +159,19 @@ class ValidatorTest extends TestCase
         $this->expectException(ValidationException::class);
         Validator::value('foo')
             ->email()
+            ->validate();
+    }
+
+    public function testUuid()
+    {
+        $result = Validator::value(Str::uuid())
+            ->uuid()
+            ->validate();
+        $this->assertTrue($result);
+
+        $this->expectException(ValidationException::class);
+        Validator::value('foo')
+            ->uuid()
             ->validate();
     }
 }

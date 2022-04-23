@@ -22,7 +22,7 @@
         "guzzlehttp/guzzle": "^7.2",
         "illuminate/support": "^8.22 || ^9.0",
         "nesbot/carbon": "^2.43",
-        "ramsey/uuid": "^3.9",
+        "ramsey/uuid": "^3.9 || ^4.0",
         "vdhicts/http-query-builder": "^1.0"
     },
     "require-dev": {
