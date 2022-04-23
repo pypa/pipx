@@ -2,6 +2,7 @@
 
 namespace Vdhicts\Cyberfusion\ClusterApi\Support;
 
+use Ramsey\Uuid\Uuid;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ValidationException;
 
 class Validator
@@ -16,6 +17,7 @@ class Validator
     private const UNIQUE = 'unique_list';
     private const IP = 'ip';
     private const EMAIL = 'email';
+    private const UUID = 'uuid';
 
     /** @var mixed */
     private $value;
@@ -97,6 +99,12 @@ class Validator
         return $this;
     }
 
+    public function uuid(): self
+    {
+        $this->validations[self::UUID] = true;
+        return $this;
+    }
+
     private function isNullable(): bool
     {
         return Arr::has($this->validations, self::NULLABLE);
@@ -127,6 +135,8 @@ class Validator
                 return filter_var($this->value, FILTER_VALIDATE_IP) !== false;
             case self::EMAIL:
                 return filter_var($this->value, FILTER_VALIDATE_EMAIL) !== false;
+            case self::UUID:
+                return Uuid::isValid($this->value);
             default:
                 return true;
         }

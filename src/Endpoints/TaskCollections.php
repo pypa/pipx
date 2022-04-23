@@ -3,7 +3,7 @@
 namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
+use Vdhicts\Cyberfusion\ClusterApi\Models\TaskResult;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 
@@ -14,7 +14,7 @@ class TaskCollections extends Endpoint
      * @return Response
      * @throws RequestException
      */
-    public function get(int $id): Response
+    public function results(int $id): Response
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
@@ -28,7 +28,7 @@ class TaskCollections extends Endpoint
         }
 
         return $response->setData([
-            'taskCollection' => (new TaskCollection())->fromArray($response->getData()),
+            'taskResult' => (new TaskResult())->fromArray($response->getData()),
         ]);
     }
 }
