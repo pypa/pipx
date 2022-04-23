@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.49.2]
+
+### Fixed
+
+- Laravel 9 support failed due to using an old version of ramsey/uuid package to still support PHP 7.4. I intend to 
+  support PHP 7.4 until its EOL date (28 Nov 2022) when possible.
+
 ## [1.49.1]
 
 ### Fixed

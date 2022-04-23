@@ -6,7 +6,8 @@ This package is not created or maintained by Cyberfusion.
 
 ## Requirements
 
-This package requires PHP 7.4 or higher and uses Guzzle.
+This package requires PHP 7.4 or higher and uses Guzzle. I intend to support PHP 7.4 until its EOL date (28 Nov 2022) 
+when possible.
 
 ## Installation
 
