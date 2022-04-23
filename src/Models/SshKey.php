@@ -11,6 +11,7 @@ class SshKey extends ClusterModel implements Model
     private string $name;
     private ?string $publicKey = null;
     private ?string $privateKey = null;
+    private ?string $identityFilePath = null;
     private int $unixUserId;
     private ?int $id = null;
     private ?int $clusterId = null;
@@ -64,6 +65,18 @@ class SshKey extends ClusterModel implements Model
             ->validate();
 
         $this->privateKey = $privateKey;
+
+        return $this;
+    }
+
+    public function getIdentityFilePath(): ?string
+    {
+        return $this->identityFilePath;
+    }
+
+    public function setIdentityFilePath(?string $identityFilePath): SshKey
+    {
+        $this->identityFilePath = $identityFilePath;
 
         return $this;
     }
@@ -134,6 +147,7 @@ class SshKey extends ClusterModel implements Model
             ->setName(Arr::get($data, 'name'))
             ->setPublicKey(Arr::get($data, 'public_key'))
             ->setPrivateKey(Arr::get($data, 'private_key'))
+            ->setIdentityFilePath(Arr::get($data, 'identity_file_path'))
             ->setUnixUserId(Arr::get($data, 'unix_user_id'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
@@ -147,6 +161,7 @@ class SshKey extends ClusterModel implements Model
             'name' => $this->getName(),
             'public_key' => $this->getPublicKey(),
             'private_key' => $this->getPrivateKey(),
+            'identity_file_path' => $this->getIdentityFilePath(),
             'unix_user_id' => $this->getUnixUserId(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),

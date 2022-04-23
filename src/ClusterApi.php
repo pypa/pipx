@@ -104,6 +104,11 @@ class ClusterApi
         return new Endpoints\Nodes($this->client);
     }
 
+    public function passengerApps(): Endpoints\PassengerApps
+    {
+        return new Endpoints\PassengerApps($this->client);
+    }
+
     public function sshKeys(): Endpoints\SshKeys
     {
         return new Endpoints\SshKeys($this->client);

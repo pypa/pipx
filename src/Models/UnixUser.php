@@ -11,6 +11,8 @@ class UnixUser extends ClusterModel implements Model
 {
     private string $username;
     private string $password;
+    private ?string $homeDirectory = null;
+    private ?string $sshDirectory = null;
     private ?string $description = null;
     private ?string $defaultPhpVersion = null;
     private ?string $virtualHostsDirectory = null;
@@ -82,6 +84,30 @@ class UnixUser extends ClusterModel implements Model
     public function setDefaultPhpVersion(?string $defaultPhpVersion): UnixUser
     {
         $this->defaultPhpVersion = $defaultPhpVersion;
+
+        return $this;
+    }
+
+    public function getHomeDirectory(): ?string
+    {
+        return $this->homeDirectory;
+    }
+
+    public function setHomeDirectory(?string $homeDirectory): UnixUser
+    {
+        $this->homeDirectory = $homeDirectory;
+
+        return $this;
+    }
+
+    public function getSshDirectory(): ?string
+    {
+        return $this->sshDirectory;
+    }
+
+    public function setSshDirectory(?string $sshDirectory): UnixUser
+    {
+        $this->sshDirectory = $sshDirectory;
 
         return $this;
     }
@@ -281,6 +307,8 @@ class UnixUser extends ClusterModel implements Model
         return $this
             ->setUsername(Arr::get($data, 'username'))
             ->setPassword(Arr::get($data, 'password'))
+            ->setHomeDirectory(Arr::get($data, 'home_directory'))
+            ->setSshDirectory(Arr::get($data, 'ssh_directory'))
             ->setDescription(Arr::get($data, 'description'))
             ->setDefaultPhpVersion(Arr::get($data, 'default_php_version'))
             ->setVirtualHostsDirectory(Arr::get($data, 'virtual_hosts_directory'))
@@ -304,6 +332,8 @@ class UnixUser extends ClusterModel implements Model
         return [
             'username' => $this->getUsername(),
             'password' => $this->getPassword(),
+            'home_directory' => $this->getHomeDirectory(),
+            'ssh_directory' => $this->getSshDirectory(),
             'description' => $this->getDescription(),
             'default_php_version' => $this->getDefaultPhpVersion(),
             'virtual_hosts_directory' => $this->getVirtualHostsDirectory(),

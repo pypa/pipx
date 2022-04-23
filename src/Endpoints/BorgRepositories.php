@@ -6,10 +6,11 @@ use DateTimeInterface;
 use Vdhicts\Cyberfusion\ClusterApi\Enums\TimeUnit;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\BorgRepository;
-use Vdhicts\Cyberfusion\ClusterApi\Models\BorgRepositoryUsage;
+use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
 
 class BorgRepositories extends Endpoint
 {
@@ -69,47 +70,6 @@ class BorgRepositories extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param DateTimeInterface $from
-     * @param string $timeUnit
-     * @return Response
-     * @throws RequestException
-     */
-    public function usages(int $id, DateTimeInterface $from, string $timeUnit = TimeUnit::HOURLY): Response
-    {
-        $url = sprintf(
-            'borg-repositories/usages/%d?%s',
-            $id,
-            http_build_query([
-                'timestamp' => $from->format('c'),
-                'time_unit' => $timeUnit,
-            ])
-        );
-
-        $request = (new Request())
-            ->setMethod(Request::METHOD_GET)
-            ->setUrl($url);
-
-        $response = $this
-            ->client
-            ->request($request);
-        if (! $response->isSuccess()) {
-            return $response;
-        }
-
-        return $response->setData([
-            'borgRepositoryUsage' => count($response->getData()) !== 0
-                ? array_map(
-                    function (array $data) {
-                        return (new BorgRepositoryUsage())->fromArray($data);
-                    },
-                    $response->getData()
-                )
-                : null,
-        ]);
-    }
-
-    /**
      * @param BorgRepository $borgRepository
      * @return Response
      * @throws RequestException
@@ -119,9 +79,12 @@ class BorgRepositories extends Endpoint
         $this->validateRequired($borgRepository, 'create', [
             'name',
             'passphrase',
-            'remote_url',
-            'ssh_key_id',
+            'remote_host',
+            'remote_path',
+            'remote_username',
+            'identity_file_path',
             'unix_user_id',
+            'cluster_id',
         ]);
 
         $request = (new Request())
@@ -135,9 +98,12 @@ class BorgRepositories extends Endpoint
                 'keep_weekly',
                 'keep_monthly',
                 'keep_yearly',
-                'remote_url',
-                'ssh_key_id',
+                'remote_host',
+                'remote_path',
+                'remote_username',
+                'identity_file_path',
                 'unix_user_id',
+                'cluster_id',
             ]));
 
         $response = $this
@@ -169,8 +135,10 @@ class BorgRepositories extends Endpoint
         $this->validateRequired($borgRepository, 'update', [
             'name',
             'passphrase',
-            'remote_url',
-            'ssh_key_id',
+            'remote_host',
+            'remote_path',
+            'remote_username',
+            'identity_file_path',
             'unix_user_id',
             'id',
             'cluster_id',
@@ -187,8 +155,10 @@ class BorgRepositories extends Endpoint
                 'keep_weekly',
                 'keep_monthly',
                 'keep_yearly',
-                'remote_url',
-                'ssh_key_id',
+                'remote_host',
+                'remote_path',
+                'remote_username',
+                'identity_file_path',
                 'unix_user_id',
                 'id',
                 'cluster_id',
@@ -239,5 +209,67 @@ class BorgRepositories extends Endpoint
         return $this
             ->client
             ->request($request);
+    }
+
+    /**
+     * @param int $id
+     * @param string|null $callbackUrl
+     * @return Response
+     * @throws RequestException
+     */
+    public function prune(int $id, string $callbackUrl = null): Response
+    {
+        $url = Str::optionalQueryParameters(
+            sprintf('borg-repositories/%d/prune', $id),
+            ['callback_url' => $callbackUrl]
+        );
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl($url);
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $taskCollection = (new TaskCollection())->fromArray($response->getData());
+
+        return $response->setData([
+            'taskCollection' => $taskCollection,
+        ]);
+    }
+
+    /**
+     * @param int $id
+     * @param string|null $callbackUrl
+     * @return Response
+     * @throws RequestException
+     */
+    public function check(int $id, string $callbackUrl = null): Response
+    {
+        $url = Str::optionalQueryParameters(
+            sprintf('borg-repositories/%d/check', $id),
+            ['callback_url' => $callbackUrl]
+        );
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl($url);
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $taskCollection = (new TaskCollection())->fromArray($response->getData());
+
+        return $response->setData([
+            'taskCollection' => $taskCollection,
+        ]);
     }
 }

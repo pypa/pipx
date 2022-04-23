@@ -16,6 +16,7 @@ class VirtualHost extends ClusterModel implements Model
     private string $documentRoot;
     private string $publicRoot;
     private ?int $fpmPoolId = null;
+    private ?int $passengerAppId = null;
     private bool $forceSsl = true;
     private ?string $customConfig = null;
     private ?string $balancerBackendName = null;
@@ -99,6 +100,18 @@ class VirtualHost extends ClusterModel implements Model
     public function setFpmPoolId(?int $fpmPoolId): VirtualHost
     {
         $this->fpmPoolId = $fpmPoolId;
+
+        return $this;
+    }
+
+    public function getPassengerAppId(): ?int
+    {
+        return $this->passengerAppId;
+    }
+
+    public function setPassengerAppId(?int $passengerAppId): VirtualHost
+    {
+        $this->passengerAppId = $passengerAppId;
 
         return $this;
     }
@@ -253,6 +266,7 @@ class VirtualHost extends ClusterModel implements Model
             ->setDocumentRoot(Arr::get($data, 'document_root'))
             ->setPublicRoot(Arr::get($data, 'public_root'))
             ->setFpmPoolId(Arr::get($data, 'fpm_pool_id'))
+            ->setPassengerAppId(Arr::get($data, 'passenger_app_id'))
             ->setForceSsl(Arr::get($data, 'force_ssl'))
             ->setBalancerBackendName(Arr::get($data, 'balancer_backend_name'))
             ->setCustomConfig(Arr::get($data, 'custom_config'))
@@ -274,6 +288,7 @@ class VirtualHost extends ClusterModel implements Model
             'document_root' => $this->getDocumentRoot(),
             'public_root' => $this->getPublicRoot(),
             'fpm_pool_id' => $this->getFpmPoolId(),
+            'passenger_app_id' => $this->getPassengerAppId(),
             'force_ssl' => $this->isForceSsl(),
             'custom_config' => $this->getCustomConfig(),
             'id' => $this->getId(),

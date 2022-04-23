@@ -15,9 +15,11 @@ class BorgRepository extends ClusterModel implements Model
     private ?int $keepWeekly = null;
     private ?int $keepMonthly = null;
     private ?int $keepYearly = null;
-    private ?string $remoteUrl = null;
-    private int $sshKeyId;
-    private int $unixUserId;
+    private ?string $remoteHost = null;
+    private ?string $remotePath = null;
+    private ?string $remoteUsername = null;
+    private ?string $identityFilePath = null;
+    private ?int $unixUserId = null;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -142,36 +144,60 @@ class BorgRepository extends ClusterModel implements Model
         return $this;
     }
 
-    public function getRemoteUrl(): ?string
+    public function getRemoteHost(): ?string
     {
-        return $this->remoteUrl;
+        return $this->remoteHost;
     }
 
-    public function setRemoteUrl(?string $remoteUrl): BorgRepository
+    public function setRemoteHost(?string $remoteHost): BorgRepository
     {
-        $this->remoteUrl = $remoteUrl;
+        $this->remoteHost = $remoteHost;
 
         return $this;
     }
 
-    public function getSshKeyId(): int
+    public function getRemotePath(): ?string
     {
-        return $this->sshKeyId;
+        return $this->remotePath;
     }
 
-    public function setSshKeyId(int $sshKeyId): BorgRepository
+    public function setRemotePath(?string $remotePath): BorgRepository
     {
-        $this->sshKeyId = $sshKeyId;
+        $this->remotePath = $remotePath;
 
         return $this;
     }
 
-    public function getUnixUserId(): int
+    public function getRemoteUsername(): ?string
+    {
+        return $this->remoteUsername;
+    }
+
+    public function setRemoteUsername(?string $remoteUsername): BorgRepository
+    {
+        $this->remoteUsername = $remoteUsername;
+
+        return $this;
+    }
+
+    public function getIdentityFilePath(): ?string
+    {
+        return $this->identityFilePath;
+    }
+
+    public function setIdentityFilePath(?string $identityFilePath): BorgRepository
+    {
+        $this->identityFilePath = $identityFilePath;
+
+        return $this;
+    }
+
+    public function getUnixUserId(): ?int
     {
         return $this->unixUserId;
     }
 
-    public function setUnixUserId(int $unixUserId): BorgRepository
+    public function setUnixUserId(?int $unixUserId): BorgRepository
     {
         $this->unixUserId = $unixUserId;
 
@@ -235,8 +261,10 @@ class BorgRepository extends ClusterModel implements Model
             ->setKeepDaily(Arr::get($data, 'keep_daily'))
             ->setKeepWeekly(Arr::get($data, 'keep_weekly'))
             ->setKeepMonthly(Arr::get($data, 'keep_monthly'))
-            ->setRemoteUrl(Arr::get($data, 'remote_url'))
-            ->setSshKeyId(Arr::get($data, 'ssh_key_id'))
+            ->setRemoteHost(Arr::get($data, 'remote_host'))
+            ->setRemotePath(Arr::get($data, 'remote_path'))
+            ->setRemoteUsername(Arr::get($data, 'remote_username'))
+            ->setIdentityFilePath(Arr::get($data, 'identity_file_path'))
             ->setUnixUserId(Arr::get($data, 'unix_user_id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setId(Arr::get($data, 'id'))
@@ -254,8 +282,10 @@ class BorgRepository extends ClusterModel implements Model
             'keep_weekly' => $this->getKeepWeekly(),
             'keep_monthly' => $this->getKeepMonthly(),
             'keep_yearly' => $this->getKeepYearly(),
-            'remote_url' => $this->getRemoteUrl(),
-            'ssh_key_id' => $this->getSshKeyId(),
+            'remote_host' => $this->getRemoteHost(),
+            'remote_path' => $this->getRemotePath(),
+            'remote_username' => $this->getRemoteUsername(),
+            'identity_file_path' => $this->getIdentityFilePath(),
             'unix_user_id' => $this->getUnixUserId(),
             'cluster_id' => $this->getClusterId(),
             'id' => $this->getId(),
