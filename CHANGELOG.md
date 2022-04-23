@@ -7,6 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.49.3]
+
+### Fixed
+
+- After talking to @WilliamDEdwards the task collection works a bit different then I thought. In short: a task 
+  collection contains at least 2 task and always returns the results of all those tasks. Updated the endpoint to reflect
+  that setup. The official documentation will be improved to provide more information about task collections and the 
+  results.
+
 ## [1.49.2]
 
 ### Fixed
