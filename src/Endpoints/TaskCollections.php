@@ -28,7 +28,12 @@ class TaskCollections extends Endpoint
         }
 
         return $response->setData([
-            'taskResult' => (new TaskResult())->fromArray($response->getData()),
+            'taskResults' => array_map(
+                function (array $data) {
+                    return (new TaskResult())->fromArray($data);
+                },
+                $response->getData()
+            ),
         ]);
     }
 }
