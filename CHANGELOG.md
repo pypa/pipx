@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.50.0]
+
+### Added
+
+- Add Borg archive download endpoint.
+
+### Changed
+
+- Fix capitalisation of Enum values of `PassengerAppTypeEnum` and `PassengerEnvironmentEnum`.
+- Update to [API version 1.119](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.119-2022-04-26).
+
 ## [1.49.3]
 
 ### Fixed
