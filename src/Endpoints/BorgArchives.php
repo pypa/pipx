@@ -211,6 +211,37 @@ class BorgArchives extends Endpoint
 
     /**
      * @param int $id
+     * @param string|null $callbackUrl
+     * @return Response
+     * @throws RequestException
+     */
+    public function download(int $id, string $callbackUrl = null): Response
+    {
+        $url = Str::optionalQueryParameters(
+            sprintf('borg-archives/%d/download', $id),
+            ['callback_url' => $callbackUrl]
+        );
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl($url);
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $taskCollection = (new TaskCollection())->fromArray($response->getData());
+
+        return $response->setData([
+            'taskCollection' => $taskCollection,
+        ]);
+    }
+
+    /**
+     * @param int $id
      * @return Response
      * @throws RequestException
      */
