@@ -4,7 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Enums;
 
 class PassengerAppType
 {
-    public const NODEJS = 'nodejs';
+    public const NODEJS = 'NodeJS';
 
     public const AVAILABLE = [
         self::NODEJS,

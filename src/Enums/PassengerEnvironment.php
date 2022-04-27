@@ -4,8 +4,8 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Enums;
 
 class PassengerEnvironment
 {
-    public const PRODUCTION = 'production';
-    public const DEVELOPMENT = 'development';
+    public const PRODUCTION = 'Production';
+    public const DEVELOPMENT = 'Development';
 
     public const AVAILABLE = [
         self::PRODUCTION,
