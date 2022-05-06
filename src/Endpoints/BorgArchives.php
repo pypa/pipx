@@ -184,11 +184,11 @@ class BorgArchives extends Endpoint
      * @return Response
      * @throws RequestException
      */
-    public function restore(int $id, string $callbackUrl = null): Response
+    public function restore(int $id, string $path = null, string $callbackUrl = null): Response
     {
         $url = Str::optionalQueryParameters(
             sprintf('borg-archives/%d/restore', $id),
-            ['callback_url' => $callbackUrl]
+            ['path' => $path, 'callback_url' => $callbackUrl]
         );
 
         $request = (new Request())
@@ -215,11 +215,11 @@ class BorgArchives extends Endpoint
      * @return Response
      * @throws RequestException
      */
-    public function download(int $id, string $callbackUrl = null): Response
+    public function download(int $id, string $path = null, string $callbackUrl = null): Response
     {
         $url = Str::optionalQueryParameters(
             sprintf('borg-archives/%d/download', $id),
-            ['callback_url' => $callbackUrl]
+            ['path' => $path, 'callback_url' => $callbackUrl]
         );
 
         $request = (new Request())
@@ -245,11 +245,16 @@ class BorgArchives extends Endpoint
      * @return Response
      * @throws RequestException
      */
-    public function contents(int $id): Response
+    public function contents(int $id, string $path = null): Response
     {
+        $url = Str::optionalQueryParameters(
+            sprintf('borg-archives/%d/contents', $id),
+            ['path' => $path]
+        );
+
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('borg-archives/%d/contents', $id));
+            ->setUrl($url);
 
         $response = $this
             ->client
