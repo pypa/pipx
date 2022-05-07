@@ -114,6 +114,11 @@ class ClusterApi
         return new Endpoints\SshKeys($this->client);
     }
 
+    public function rootSshKeys(): Endpoints\RootSshKeys
+    {
+        return new Endpoints\RootSshKeys($this->client);
+    }
+
     public function taskCollections(): Endpoints\TaskCollections
     {
         return new Endpoints\TaskCollections($this->client);
