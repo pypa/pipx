@@ -19,8 +19,11 @@ class PassengerApp extends ClusterModel implements Model
     private int $poolIdleTime;
     private int $port;
     private string $appType = PassengerAppType::NODEJS;
+    private string $appRoot;
     private ?string $nodejsVersion;
     private ?string $startupFile;
+    private bool $isNamespaced = false;
+    private ?int $cpuLimit = null;
     private ?string $unitName;
     private ?int $id = null;
     private ?int $clusterId = null;
@@ -164,6 +167,18 @@ class PassengerApp extends ClusterModel implements Model
         return $this;
     }
 
+    public function getAppRoot(): string
+    {
+        return $this->appRoot;
+    }
+
+    public function setAppRoot(string $appRoot): PassengerApp
+    {
+        $this->appRoot = $appRoot;
+
+        return $this;
+    }
+
     public function getNodejsVersion(): ?string
     {
         return $this->nodejsVersion;
@@ -189,6 +204,35 @@ class PassengerApp extends ClusterModel implements Model
             ->validate();
 
         $this->startupFile = $startupFile;
+
+        return $this;
+    }
+
+    public function isNamespaced(): bool
+    {
+        return $this->isNamespaced;
+    }
+
+    public function setIsNamespaced(bool $isNamespaced): PassengerApp
+    {
+        $this->isNamespaced = $isNamespaced;
+
+        return $this;
+    }
+
+    public function getCpuLimit(): ?int
+    {
+        return $this->cpuLimit;
+    }
+
+    public function setCpuLimit(?int $cpuLimit): PassengerApp
+    {
+        Validator::value($cpuLimit)
+            ->nullable()
+            ->positiveInteger()
+            ->validate();
+
+        $this->cpuLimit = $cpuLimit;
 
         return $this;
     }
@@ -267,6 +311,9 @@ class PassengerApp extends ClusterModel implements Model
             ->setAppType(Arr::get($data, 'app_type'))
             ->setNodejsVersion(Arr::get($data, 'nodejs_version'))
             ->setStartupFile(Arr::get($data, 'startup_file'))
+            ->setIsNamespaced((bool)Arr::get($data, 'is_namespaced'))
+            ->setCpuLimit(Arr::get($data, 'cpu_limit'))
+            ->setAppRoot(Arr::get($data, 'app_root'))
             ->setUnitName(Arr::get($data, 'unit_name'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
@@ -288,6 +335,9 @@ class PassengerApp extends ClusterModel implements Model
             'app_type' => $this->getAppType(),
             'nodejs_version' => $this->getNodejsVersion(),
             'startup_file' => $this->getStartupFile(),
+            'is_namespaced' => $this->isNamespaced(),
+            'cpu_limit' => $this->getCpuLimit(),
+            'app_root' => $this->getAppRoot(),
             'unit_name' => $this->getUnitName(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
