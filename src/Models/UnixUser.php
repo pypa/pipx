@@ -15,6 +15,7 @@ class UnixUser extends ClusterModel implements Model
     private ?string $sshDirectory = null;
     private ?string $description = null;
     private ?string $defaultPhpVersion = null;
+    private ?string $defaultNodejsVersion = null;
     private ?string $virtualHostsDirectory = null;
     private ?string $mailDomainsDirectory = null;
     private ?string $borgRepositoriesDirectory = null;
@@ -84,6 +85,18 @@ class UnixUser extends ClusterModel implements Model
     public function setDefaultPhpVersion(?string $defaultPhpVersion): UnixUser
     {
         $this->defaultPhpVersion = $defaultPhpVersion;
+
+        return $this;
+    }
+
+    public function getDefaultNodejsVersion(): ?string
+    {
+        return $this->defaultNodejsVersion;
+    }
+
+    public function setDefaultNodejsVersion(?string $defaultNodejsVersion): UnixUser
+    {
+        $this->defaultNodejsVersion = $defaultNodejsVersion;
 
         return $this;
     }
@@ -311,6 +324,7 @@ class UnixUser extends ClusterModel implements Model
             ->setSshDirectory(Arr::get($data, 'ssh_directory'))
             ->setDescription(Arr::get($data, 'description'))
             ->setDefaultPhpVersion(Arr::get($data, 'default_php_version'))
+            ->setDefaultNodejsVersion(Arr::get($data, 'default_nodejs_version'))
             ->setVirtualHostsDirectory(Arr::get($data, 'virtual_hosts_directory'))
             ->setMailDomainsDirectory(Arr::get($data, 'mail_domains_directory'))
             ->setBorgRepositoriesDirectory(Arr::get($data, 'borg_repositories_directory'))
@@ -336,6 +350,7 @@ class UnixUser extends ClusterModel implements Model
             'ssh_directory' => $this->getSshDirectory(),
             'description' => $this->getDescription(),
             'default_php_version' => $this->getDefaultPhpVersion(),
+            'default_nodejs_version' => $this->getDefaultNodejsVersion(),
             'virtual_hosts_directory' => $this->getVirtualHostsDirectory(),
             'mail_domains_directory' => $this->getMailDomainsDirectory(),
             'borg_repositories_directory' => $this->getBorgRepositoriesDirectory(),
