@@ -97,6 +97,7 @@ class PassengerApps extends Endpoint
                 'startup_file',
                 'is_namespaced',
                 'cpu_limit',
+                'app_root',
             ]));
 
         $response = $this
@@ -157,6 +158,7 @@ class PassengerApps extends Endpoint
                 'unit_name',
                 'is_namespaced',
                 'cpu_limit',
+                'app_root',
             ]));
 
         $response = $this
