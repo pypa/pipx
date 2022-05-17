@@ -96,6 +96,7 @@ class PassengerApps extends Endpoint
                 'nodejs_version',
                 'startup_file',
                 'is_namespaced',
+                'cpu_limit',
             ]));
 
         $response = $this
@@ -155,6 +156,7 @@ class PassengerApps extends Endpoint
                 'startup_file',
                 'unit_name',
                 'is_namespaced',
+                'cpu_limit',
             ]));
 
         $response = $this
