@@ -1,12 +1,12 @@
 # Cyberfusion Cluster API client
 
-Easily use the [API of the clusters](https://cluster-api.cyberfusion.nl/) of the hosting company 
+Easily use the [API of the clusters](https://cluster-api.cyberfusion.nl/) of the hosting company
 [Cyberfusion](https://cyberfusion.nl/). This package was built and tested on the **1.124** version of the API.
 This package is not created or maintained by Cyberfusion.
 
 ## Requirements
 
-This package requires PHP 7.4 or higher and uses Guzzle. I intend to support PHP 7.4 until its EOL date (28 Nov 2022) 
+This package requires PHP 7.4 or higher and uses Guzzle. I intend to support PHP 7.4 until its EOL date (28 Nov 2022)
 when possible.
 
 ## Installation
@@ -19,7 +19,7 @@ You can install the package via composer:
 
 ## Usage
 
-This package is just an easy client for using the Cyberfusion Cluster API. Please refer to the 
+This package is just an easy client for using the Cyberfusion Cluster API. Please refer to the
 [API documentation](https://cluster-api.cyberfusion.nl/) for more information about the requests.
 
 ### Getting started
@@ -70,7 +70,7 @@ The endpoint methods may ask for filters, models or id's. The method typehints w
 
 #### Models
 
-The endpoint may request a model, most create and update requests do. 
+The endpoint may request a model, most create and update requests do.
 
 ```php
 $unixUser = (new UnixUser())
@@ -84,7 +84,7 @@ $result = $api
     ->create($unixUser);
 ```
 
-When models need to be provided, the required properties will be checked before executing the request. A 
+When models need to be provided, the required properties will be checked before executing the request. A
 `RequestException` will be thrown when properties are missing. See the message for more details.
 
 #### Filtering data
@@ -92,7 +92,7 @@ When models need to be provided, the required properties will be checked before 
 Some endpoints require a `ListFilter` and return a list of models according to the filter. It's also possible to change
 the sort order.
 
-A `ListFilter` can be initialized for a model, so it automatically validates if the provided fields are available for 
+A `ListFilter` can be initialized for a model, so it automatically validates if the provided fields are available for
 the model.
 
 ```php
@@ -111,8 +111,8 @@ class. See the class itself for its options.
 
 ### Responses
 
-The endpoint methods throw exceptions when the request fails due to timeouts. When the API replies with HTTP protocol 
-errors the `Response` class is still returned. You can check the success of the request with: `$response->isSuccess()`. 
+The endpoint methods throw exceptions when the request fails due to timeouts. When the API replies with HTTP protocol
+errors the `Response` class is still returned. You can check the success of the request with: `$response->isSuccess()`.
 The content of the response is automatically converted to the models.
 
 ### Authentication
@@ -124,8 +124,8 @@ authentication for you. To get your credentials, you need to contact Cyberfusion
 $configuration = Configuration::withCredentials('username', 'password');
 ```
 
-When you authenticate with username and password, this package will automatically retrieve the access token. The access 
-token is valid for 30 minutes, so there's not really any need to store this. If you want to store the access token 
+When you authenticate with username and password, this package will automatically retrieve the access token. The access
+token is valid for 30 minutes, so there's not really any need to store this. If you want to store the access token
 anyway, it's stored in the `Configuration` class and accessible with: `$configuration->getAccessToken()`.
 
 #### Manually authenticate
@@ -165,27 +165,27 @@ if ($response->isSuccess()) {
 
 ### Enums
 
-Some models have properties that should contain certain values. These values can be found in the enum classes and are 
+Some models have properties that should contain certain values. These values can be found in the enum classes and are
 there just for reference.
 
 ### Exceptions
 
-When something goes wrong, the client will throw an exception which extends the `ClusterApiException`. If you want to 
-catch exceptions from this package, that's the one you should catch. All exceptions have a code, these codes can be 
+When something goes wrong, the client will throw an exception which extends the `ClusterApiException`. If you want to
+catch exceptions from this package, that's the one you should catch. All exceptions have a code, these codes can be
 found in the `ClusterApiException` class.
 
 ### Deployment
 
 Change to most of the objects in the cluster API require a deployment of the cluster. See [Cluster Deployment](https://cluster-api.cyberfusion.nl/redoc#operation/create_cluster_deployment_api_v1_cluster_deployments_post) for more information.
 
-This package keeps track of the affected clusters. The `deploy` method on the client will automatically deploy all 
+This package keeps track of the affected clusters. The `deploy` method on the client will automatically deploy all
 affected clusters for you:
 
 ```php
 $clusterDeployments = $client->deploy();
 ```
 
-The result will be an array of `Deployment` objects (or an empty array who no clusters are affected) which enables you 
+The result will be an array of `Deployment` objects (or an empty array who no clusters are affected) which enables you
 to check if the cluster is properly deployed:
 
 ```php
@@ -201,7 +201,7 @@ See the `Deployment` class for more options.
 
 #### Automatic deployment
 
-To make life easy, this package is also able to deploy any affected cluster automatically. This is opt-in behavior as 
+To make life easy, this package is also able to deploy any affected cluster automatically. This is opt-in behavior as
 you won't be able to access the result of the deployment. Enable this behavior in the configuration:
 
 ```php
@@ -219,7 +219,7 @@ $api = new ClusterApi($client);
 
 #### Manual deployment
 
-When you disabled auto deployment and want to manually deploy, the commit endpoint can be called manually. You need to 
+When you disabled auto deployment and want to manually deploy, the commit endpoint can be called manually. You need to
 keep track of all affected clusters.
 
 ```php
@@ -232,7 +232,7 @@ The commit method accepts a callback url as second parameter.
 
 ### Laravel
 
-This package can be easily used in any Laravel application. I would suggest adding your username and password to your 
+This package can be easily used in any Laravel application. I would suggest adding your username and password to your
 `.env` file:
 
 ```
@@ -271,12 +271,11 @@ When you want a code coverage report which will be generated in the `build/repor
 
 ## Contribution
 
-Any contribution is welcome, but it should meet the PSR-2 standard and please create one pull request per feature/bug. 
-In exchange, you will be credited as contributor on this page.
+Any contribution is welcome, see the [Contributing guidelines](CONTRIBUTING.md).
 
 ## Security
 
-If you discover any security related issues in this or other packages of Vdhicts, please email info@vdhicts.nl instead
+If you discover any security related issues in this or other packages of Vdhicts, please email security@vdhicts.nl instead
 of using the issue tracker.
 
 ## Support
@@ -290,5 +289,5 @@ This package is open-sourced software licensed under the [MIT license](http://op
 
 ## About Vdhicts
 
-[Vdhicts](https://www.vdhicts.nl) is the name of my personal company for which I work as freelancer. Vdhicts develops 
+[Vdhicts](https://www.vdhicts.nl) is the name of my personal company for which I work as freelancer. Vdhicts develops
 and implements IT solutions for businesses and educational institutions.
