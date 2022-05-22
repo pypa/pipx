@@ -18,6 +18,7 @@ class Validator
     private const IP = 'ip';
     private const EMAIL = 'email';
     private const UUID = 'uuid';
+    private const ENDS_WITH = 'ends_with';
 
     /** @var mixed */
     private $value;
@@ -105,6 +106,12 @@ class Validator
         return $this;
     }
 
+    public function endsWith(string $needle): self
+    {
+        $this->validations[self::ENDS_WITH] = $needle;
+        return $this;
+    }
+
     private function isNullable(): bool
     {
         return Arr::has($this->validations, self::NULLABLE);
@@ -137,6 +144,8 @@ class Validator
                 return filter_var($this->value, FILTER_VALIDATE_EMAIL) !== false;
             case self::UUID:
                 return Uuid::isValid($this->value);
+            case self::ENDS_WITH:
+                return is_string($this->value) && Str::endsWith($this->value, $setting);
             default:
                 return true;
         }

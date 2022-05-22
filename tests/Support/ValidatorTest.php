@@ -174,4 +174,17 @@ class ValidatorTest extends TestCase
             ->uuid()
             ->validate();
     }
+
+    public function testEndsWith()
+    {
+        $result = Validator::value('test.js')
+            ->endsWith('.js')
+            ->validate();
+        $this->assertTrue($result);
+
+        $this->expectException(ValidationException::class);
+        Validator::value(2)
+            ->endsWith('.js')
+            ->validate();
+    }
 }

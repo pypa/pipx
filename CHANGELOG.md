@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.54.0]
+
+### Changed
+
+- Change validation of `startup_file` of `PassengerApp` to end with `.js`
+- Update to [API version 1.124.1](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.124.1-2022-05-21).
+
 ## [1.53.0]
 
 ### Added
