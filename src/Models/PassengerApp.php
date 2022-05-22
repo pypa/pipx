@@ -200,7 +200,7 @@ class PassengerApp extends ClusterModel implements Model
     {
         Validator::value($startupFile)
             ->maxLength(255)
-            ->pattern('^([a-zA-Z0-9-_.]+)(.js)$')
+            ->endsWith('.js')
             ->validate();
 
         $this->startupFile = $startupFile;
