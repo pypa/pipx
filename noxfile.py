@@ -9,7 +9,7 @@ PYTHON_DEFAULT_VERSION = "3.10"
 DOC_DEPENDENCIES = [".", "jinja2", "mkdocs", "mkdocs-material"]
 MAN_DEPENDENCIES = [".", "argparse-manpage"]
 LINT_DEPENDENCIES = [
-    "black==22.1.0",
+    "black==22.3.0",
     "flake8==4.0.1",
     "flake8-bugbear==21.11.29",
     "mypy==0.930",
@@ -19,12 +19,7 @@ LINT_DEPENDENCIES = [
 ]
 # Packages whose dependencies need an intact system PATH to compile
 # pytest setup clears PATH.  So pre-build some wheels to the pip cache.
-PREBUILD_PACKAGES = {
-    "all": ["jupyter==1.0.0"],
-    "macos": ["black==20.8b1"],
-    "unix": [],
-    "win": [],
-}
+PREBUILD_PACKAGES = {"all": ["jupyter==1.0.0"], "macos": [], "unix": [], "win": []}
 PIPX_TESTS_CACHE_DIR = Path("./.pipx_tests/package_cache")
 PIPX_TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
 
