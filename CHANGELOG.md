@@ -1,5 +1,3 @@
-## dev
-
 ## 1.1.0
 
 - Fix encoding issue on Windows when pip fails to install a package
