@@ -97,4 +97,27 @@ class Clusters extends Endpoint
             'taskCollection' => (new TaskCollection())->fromArray($response->getData()),
         ]);
     }
+
+    /**
+     * @param int $id
+     * @return Response
+     * @throws RequestException
+     */
+    public function borgSshKey(int $id): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_GET)
+            ->setUrl(sprintf('clusters/%d/borg-ssh-key', $id));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'publicKey' => $response->getData('public_key'),
+        ]);
+    }
 }
