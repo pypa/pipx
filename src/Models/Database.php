@@ -25,7 +25,7 @@ class Database extends ClusterModel implements Model
     {
         Validator::value($name)
             ->maxLength(63)
-            ->pattern('^[a-zA-Z0-9-_]+$')
+            ->pattern('^[a-z0-9-_]+$')
             ->validate();
 
         $this->name = $name;
