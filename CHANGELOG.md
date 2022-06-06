@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.57.0]
+
+### Changed
+
+- Use `DatabaseUserGrantPrivilegeName` enum for database user grant privilege names.
+- Make new `SELECT` database user grant privilege name available.
+- Update to [API version 1.127](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.127-2022-06-06).
+
 ## [1.56.0]
 
 ### Changed

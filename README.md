@@ -1,7 +1,7 @@
 # Cyberfusion Cluster API client
 
 Easily use the [API of the clusters](https://cluster-api.cyberfusion.nl/) of the hosting company
-[Cyberfusion](https://cyberfusion.nl/). This package was built and tested on the **1.126.1** version of the API.
+[Cyberfusion](https://cyberfusion.nl/). This package was built and tested on the **1.127** version of the API.
 This package is not created or maintained by Cyberfusion.
 
 ## Requirements

@@ -5,15 +5,14 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Models;
 use Vdhicts\Cyberfusion\ClusterApi\Support\Arr;
 use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
 use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
+use Vdhicts\Cyberfusion\ClusterApi\Enums\DatabaseUserGrantPrivilegeName;
 
 class DatabaseUserGrant extends ClusterModel implements Model
 {
-    public const DEFAULT_PRIVILEGE_NAME = 'ALL';
-
     private int $databaseId;
     private int $databaseUserId;
     private ?string $tableName = null;
-    private string $privilegeName = self::DEFAULT_PRIVILEGE_NAME;
+    private string $privilegeName = DatabaseUserGrantPrivilegeName::ALL;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -68,6 +67,10 @@ class DatabaseUserGrant extends ClusterModel implements Model
 
     public function setPrivilegeName(string $privilegeName): DatabaseUserGrant
     {
+        Validator::value($privilegeName)
+            ->valueIn(DatabaseUserGrantPrivilegeName::AVAILABLE)
+            ->validate();
+
         $this->privilegeName = $privilegeName;
 
         return $this;
@@ -127,7 +130,7 @@ class DatabaseUserGrant extends ClusterModel implements Model
             ->setDatabaseId(Arr::get($data, 'database_id'))
             ->setDatabaseUserId(Arr::get($data, 'database_user_id'))
             ->setTableName(Arr::get($data, 'table_name'))
-            ->setPrivilegeName(Arr::get($data, 'privilege_name', self::DEFAULT_PRIVILEGE_NAME))
+            ->setPrivilegeName(Arr::get($data, 'privilege_name', DatabaseUserGrantPrivilegeName::ALL))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
