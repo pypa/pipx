@@ -1,4 +1,7 @@
 ## dev
+- Add `pipx uninject` command (#820)
+
+## 1.1.0
 
 - Fix encoding issue on Windows when pip fails to install a package
 - Improve the behaviour of `shlex.split` on Windows, so paths on Windows can be handled peoperly when they are passed in `--pip-args`. (#794)
@@ -10,7 +13,7 @@
 - [dev] Change github action job names
 - [docs] Add additional examples for installation from git repos
 - [packaging] Switch to [PEP 621](https://www.python.org/dev/peps/pep-0621/)
-- - Add `pipx uninject` command (#820)
+- Add a CACHEDIR.TAG to the cache directory to prevent it from being included in archives and backups. For more information about cache directory tags, see https://bford.info/cachedir
 
 ## 1.0.0
 

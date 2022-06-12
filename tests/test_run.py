@@ -10,6 +10,7 @@ import pipx.main
 import pipx.util
 from helpers import run_pipx_cli
 from package_info import PKG
+from pipx import constants
 
 
 def test_help_text(pipx_temp_env, monkeypatch, capsys):
@@ -61,6 +62,28 @@ def test_cache(pipx_temp_env, monkeypatch, capsys, caplog):
 
     run_pipx_cli_exit(["run", "--no-cache", "pycowsay", "cowsay", "args"])
     assert "Removing cached venv" in caplog.text
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_cachedir_tag(pipx_ultra_temp_env, monkeypatch, capsys, caplog):
+    tag_path = constants.PIPX_VENV_CACHEDIR / "CACHEDIR.TAG"
+    assert not tag_path.exists()
+
+    # Run pipx to create tag
+    caplog.set_level(logging.DEBUG)
+    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
+    assert "Adding CACHEDIR.TAG to cache directory" in caplog.text
+    assert tag_path.exists()
+    caplog.clear()
+
+    # Run pipx again to verify the tag file is not recreated
+    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
+    assert "Adding CACHEDIR.TAG to cache directory" not in caplog.text
+    assert tag_path.exists()
+
+    # Verify the tag file starts with the required signature.
+    with tag_path.open("r") as tag_file:
+        assert tag_file.read().startswith("Signature: 8a477f597d28d172789f06886806bc55")
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
