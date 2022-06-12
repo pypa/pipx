@@ -1,5 +1,7 @@
 ## dev
+
 - Add `pipx uninject` command (#820)
+- Add tests for Python 3.11
 
 ## 1.1.0
 
