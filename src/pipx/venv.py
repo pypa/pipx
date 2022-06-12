@@ -203,6 +203,19 @@ class Venv:
             # but shared libs code does.
             self._upgrade_package_no_metadata("pip", pip_args)
 
+    def uninstall_package(self, package: str, was_injected: bool = False):
+        try:
+            with animate(f"uninstalling {package}", self.do_animation):
+                cmd = ["uninstall", "-y"] + [package]
+                self._run_pip(cmd)
+        except PipxError as e:
+            logging.info(e)
+            raise PipxError(f"Error uninstalling {package}.")
+
+        if was_injected:
+            self.pipx_metadata.injected_packages.pop(package)
+            self.pipx_metadata.write()
+
     def install_package(
         self,
         package_name: str,
@@ -341,9 +354,10 @@ class Venv:
     def get_python_version(self) -> str:
         return run_subprocess([str(self.python_path), "--version"]).stdout.strip()
 
-    def list_installed_packages(self) -> Set[str]:
+    def list_installed_packages(self, not_required=False) -> Set[str]:
         cmd_run = run_subprocess(
             [str(self.python_path), "-m", "pip", "list", "--format=json"]
+            + (["--not-required"] if not_required else [])
         )
         pip_list = json.loads(cmd_run.stdout.strip())
         return set([x["name"] for x in pip_list])

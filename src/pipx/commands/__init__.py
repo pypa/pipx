@@ -6,6 +6,7 @@ from pipx.commands.list_packages import list_packages
 from pipx.commands.reinstall import reinstall, reinstall_all
 from pipx.commands.run import run
 from pipx.commands.run_pip import run_pip
+from pipx.commands.uninject import uninject
 from pipx.commands.uninstall import uninstall, uninstall_all
 from pipx.commands.upgrade import upgrade, upgrade_all
 
@@ -15,6 +16,7 @@ __all__ = [
     "run",
     "install",
     "inject",
+    "uninject",
     "uninstall",
     "uninstall_all",
     "reinstall",

@@ -223,6 +223,14 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             include_dependencies=args.include_deps,
             force=args.force,
         )
+    elif args.command == "uninject":
+        return commands.uninject(
+            venv_dir,
+            args.dependencies,
+            local_bin_dir=constants.LOCAL_BIN_DIR,
+            leave_deps=args.leave_deps,
+            verbose=verbose,
+        )
     elif args.command == "upgrade":
         return commands.upgrade(
             venv_dir,
@@ -368,6 +376,29 @@ def _add_inject(subparsers, venv_completer: VenvCompleter) -> None:
         "-f",
         action="store_true",
         help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+    )
+    p.add_argument("--verbose", action="store_true")
+
+
+def _add_uninject(subparsers, venv_completer: VenvCompleter):
+    p = subparsers.add_parser(
+        "uninject",
+        help="Uninstall injected packages from an existing Virtual Environment",
+        description="Uninstalls injected packages from an existing pipx-managed virtual environment.",
+    )
+    p.add_argument(
+        "package",
+        help="Name of the existing pipx-managed Virtual Environment to inject into",
+    ).completer = venv_completer
+    p.add_argument(
+        "dependencies",
+        nargs="+",
+        help="the package names to uninject from the Virtual Environment",
+    )
+    p.add_argument(
+        "--leave-deps",
+        action="store_true",
+        help="Only uninstall the main injected package but leave its dependencies installed.",
     )
     p.add_argument("--verbose", action="store_true")
 
@@ -649,6 +680,7 @@ def get_command_parser() -> argparse.ArgumentParser:
     )
 
     _add_install(subparsers)
+    _add_uninject(subparsers, completer_venvs.use)
     _add_inject(subparsers, completer_venvs.use)
     _add_upgrade(subparsers, completer_venvs.use)
     _add_upgrade_all(subparsers)
