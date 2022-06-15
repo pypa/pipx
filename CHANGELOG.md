@@ -1,5 +1,7 @@
 ## dev
 
+- Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
+
 ## 1.1.0
 
 - Fix encoding issue on Windows when pip fails to install a package
