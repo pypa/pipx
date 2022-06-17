@@ -35,7 +35,7 @@ def test_version(monkeypatch, capsys):
         ("__main__.py", "/usr/bin/python", "/usr/bin/python -m pipx"),
     ],
 )
-def test_get_prog(monkeypatch, argv, executable, expected):
+def test_prog_name(monkeypatch, argv, executable, expected):
     monkeypatch.setattr("pipx.main.sys.argv", [argv])
     monkeypatch.setattr("pipx.main.sys.executable", executable)
     assert main.prog_name() == expected
