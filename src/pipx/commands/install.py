@@ -1,10 +1,13 @@
+import json
+import re
 from pathlib import Path
 from typing import List, Optional
 
 from pipx import constants
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.constants import EXIT_CODE_INSTALL_VENV_EXISTS, EXIT_CODE_OK, ExitCode
-from pipx.util import pipx_wrap
+from pipx.interpreter import _get_absolute_python_interpreter
+from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv, VenvContainer
 
 
@@ -80,4 +83,57 @@ def install(
         raise
 
     # Any failure to install will raise PipxError, otherwise success
+    return EXIT_CODE_OK
+
+
+def install_all(
+    json_file: Path,
+    venv_dir: Optional[Path],
+    local_bin_dir: Path,
+    verbose: bool,
+    *,
+    force: bool,
+) -> ExitCode:
+
+    with open(json_file, "r") as f:
+        try:
+            data = json.load(f)
+
+            venvs = data["venvs"]
+
+            for package in venvs:
+                package_name = venvs[package]["metadata"]["main_package"]["package"]
+                package_or_url = venvs[package]["metadata"]["main_package"][
+                    "package_or_url"
+                ]
+                python_version = (
+                    "python"
+                    + re.findall(
+                        r"\d.\d+", venvs[package]["metadata"]["python_version"]
+                    )[0]
+                )
+                venv_args = venvs[package]["metadata"]["venv_args"]
+                pip_args = venvs[package]["metadata"]["main_package"]["pip_args"]
+                include_dependencies = venvs[package]["metadata"]["main_package"][
+                    "include_dependencies"
+                ]
+                suffix = venvs[package]["metadata"]["main_package"]["suffix"]
+
+                install(
+                    venv_dir=venv_dir,
+                    package_name=package_name,
+                    package_spec=package_or_url,
+                    local_bin_dir=local_bin_dir,
+                    python=_get_absolute_python_interpreter(python_version),
+                    pip_args=pip_args,
+                    venv_args=venv_args,
+                    verbose=verbose,
+                    force=force,
+                    include_dependencies=include_dependencies,
+                    suffix=suffix,
+                )
+
+        except json.decoder.JSONDecodeError:
+            raise PipxError("Invalid JSON file.")
+
     return EXIT_CODE_OK

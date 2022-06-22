@@ -212,6 +212,10 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             include_dependencies=args.include_deps,
             suffix=args.suffix,
         )
+    elif args.command == "install-all":
+        return commands.install_all(
+            args.json_file, None, constants.LOCAL_BIN_DIR, verbose, force=args.force
+        )
     elif args.command == "inject":
         return commands.inject(
             venv_dir,
@@ -347,6 +351,23 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
         ),
     )
     add_pip_venv_args(p)
+
+
+def _add_install_all(subparsers: argparse._SubParsersAction) -> None:
+    p = subparsers.add_parser(
+        "install-all",
+        help="Install all packages",
+        formatter_class=LineWrapRawTextHelpFormatter,
+        description="",
+    )
+    p.add_argument("json_file", help="JSON file")
+    p.add_argument("--verbose", action="store_true")
+    p.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+    )
 
 
 def _add_inject(subparsers, venv_completer: VenvCompleter) -> None:
@@ -680,6 +701,7 @@ def get_command_parser() -> argparse.ArgumentParser:
     )
 
     _add_install(subparsers)
+    _add_install_all(subparsers)
     _add_uninject(subparsers, completer_venvs.use)
     _add_inject(subparsers, completer_venvs.use)
     _add_upgrade(subparsers, completer_venvs.use)
