@@ -1,6 +1,6 @@
 ## dev
 - Add `pipx uninject` command (#820)
-- [docs] Fix `pipx run` examples
+- [docs] Fix `pipx run` examples and update Python versions used by `pipx install` examples
 
 ## 1.1.0
 
