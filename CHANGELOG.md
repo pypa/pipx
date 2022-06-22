@@ -1,5 +1,6 @@
 ## dev
 - Add `pipx uninject` command (#820)
+- [docs] Fix `pipx run` examples
 
 ## 1.1.0
 
