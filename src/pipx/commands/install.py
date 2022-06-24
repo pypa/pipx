@@ -95,6 +95,9 @@ def install_all(
     force: bool,
 ) -> ExitCode:
 
+    install_success_count = 0
+    total_package_count = 0
+
     with open(json_file, "r") as f:
         try:
             data = json.load(f)
@@ -119,21 +122,35 @@ def install_all(
                 ]
                 suffix = venvs[package]["metadata"]["main_package"]["suffix"]
 
-                install(
-                    venv_dir=venv_dir,
-                    package_name=package_name,
-                    package_spec=package_or_url,
-                    local_bin_dir=local_bin_dir,
-                    python=_get_absolute_python_interpreter(python_version),
-                    pip_args=pip_args,
-                    venv_args=venv_args,
-                    verbose=verbose,
-                    force=force,
-                    include_dependencies=include_dependencies,
-                    suffix=suffix,
-                )
+                total_package_count += 1
+
+                try:
+                    install(
+                        venv_dir=venv_dir,
+                        package_name=package_name,
+                        package_spec=package_or_url,
+                        local_bin_dir=local_bin_dir,
+                        python=_get_absolute_python_interpreter(python_version),
+                        pip_args=pip_args,
+                        venv_args=venv_args,
+                        verbose=verbose,
+                        force=force,
+                        include_dependencies=include_dependencies,
+                        suffix=suffix,
+                    )
+
+                    install_success_count += 1
+
+                except Exception as e:
+                    print(str(e))
+                    print(f"Having errors when installing {package_name}. Skipping...")
+                    print()
+                    pass
 
         except json.decoder.JSONDecodeError:
             raise PipxError("Invalid JSON file.")
+
+    print(f"Found {total_package_count} packages from {json_file}")
+    print(f"Successfully installed {install_success_count} packages.")
 
     return EXIT_CODE_OK
