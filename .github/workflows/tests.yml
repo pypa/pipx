@@ -73,12 +73,12 @@ jobs:
       run: |
         echo "::set-output name=dir::$(pip cache dir)"
     - name: Persistent Github pip cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: ${{ runner.os }}-pip${{ matrix.python-version }}
     - name: Persistent .pipx_tests/package_cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ github.workspace }}/.pipx_tests/package_cache/${{ matrix.python-version }}
         key: pipx-tests-package-cache-${{ runner.os }}-${{ matrix.python-version }}
