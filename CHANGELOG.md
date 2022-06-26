@@ -1,5 +1,6 @@
 ## dev
 - Add `pipx uninject` command (#820)
+- [docs] Add an example for installation from source with extras
 
 ## 1.1.0
 
