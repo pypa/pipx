@@ -356,17 +356,17 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
 def _add_install_all(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "install-all",
-        help="Install all packages",
+        help="Install packages listed in json file",
         formatter_class=LineWrapRawTextHelpFormatter,
-        description="",
+        description="Install packages listed in json file by parsing their specs.",
     )
-    p.add_argument("json_file", help="JSON file")
+    p.add_argument("json_file", help="json file generated from pipx list --json")
     p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--force",
         "-f",
         action="store_true",
-        help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+        help="Install packages even if virtual environments exist",
     )
 
 
