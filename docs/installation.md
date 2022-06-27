@@ -35,6 +35,50 @@ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install PACKAGE
 # Example: $ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install cowsay
 ```
 
+## Private repositories requiring authentication
+
+Two out of Pip's four supported methods of requesting credentials require additional effort. For Pip's side of the equation see [Pip's Authentication documentation](https://pip.pypa.io/en/stable/topics/authentication/) .
+
+### Query the user via standard IO
+
+You need to pass `--verbose` for this option to work as expected.
+
+### Basic HTTP authentication
+
+This should not require any additional effort.
+
+### netrc support
+
+This should not require any additional effort.
+
+It does have the downside of storing the credential in plaintext and requiring the credential not to expire. (Or to be updated from time to time.)
+
+### Keyring Support
+
+In order to have keyring provide credentials the [keyring](https://pypi.org/project/keyring/) package needs to be importable immediately after Pipx created a virtual environment using Python's venv module.
+
+For that first install [keyring-subprocess](https://pypi.org/project/keyring-subprocess/) since, unlike keyring, it has zero dependencies.
+
+Secondly we install keyring and inject keyring-subprocess-landmark and the desired keyring backend into its venv.
+
+```
+# install keyring-subprocess, which is somewhat magical but needs a keyring-subprocess executable 
+pipx install -i https://pypi.org/simple/ --shared keyring-subprocess
+
+# install keyring, which provides the keyring executable
+pipx install -i https://pypi.org/simple/ keyring
+
+# inject keyring-subprocess-landmark, which provides the keyring-subprocess executable
+pipx inject -i https://pypi.org/simple/ --include-apps keyring keyring-subprocess-landmark
+
+# inject the actual backend needed for you private repository
+
+# Microsoft Azure DevOps Artifact Feed:
+pipx inject -i https://pypi.org/simple/ keyring artifacts-keyring
+# Google Artifact Registry:
+pipx inject -i https://pypi.org/simple/ keyring keyrings.google-artifactregistry-auth
+```
+
 ## Upgrade pipx
 
 On macOS:
