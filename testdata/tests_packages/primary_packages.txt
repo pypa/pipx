@@ -4,12 +4,14 @@
 # Space-separated values on same row.
 
 # spec  no-deps
+.  # install latest version of ourself to test get-pipx.py bootstrap script
 Cython                  # in 'setup_requires' of jupyter dep pywinpty on Win
 ansible==2.9.13
 awscli==1.18.168
 black==18.9.b0
 black==20.8b1
 cloudtoken==0.1.707
+hatchling>=0.15.0
 ipython==7.16.1
 isort==5.6.4
 jaraco-clipboard==2.0.1

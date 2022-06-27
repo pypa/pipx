@@ -22,62 +22,53 @@
 
 **Source Code**: https://github.com/pypa/pipx
 
-_For comparison to other tools including pipsi, see [Comparison to Other Tools](https://pypa.github.io/pipx/comparisons/)._
+_For comparison to other tools, see [Comparison to Other Tools](https://pypa.github.io/pipx/comparisons/)._
 
 ## Install pipx
 
-### On macOS
+There are several ways to install pipx. Below is recommended. For other installation methods, see [installation](https://pypa.github.io/pipx/installation/).
+
+The `get-pipx.py` installation script installs pipx with pipx itself.
+
+After it's finished, you can upgrade pipx with `pipx upgrade pipx`. To uninstall, you can run `pipx uninstall pipx`.
+
+For Linux and macOS:
 
 ```
-brew install pipx
-pipx ensurepath
+curl https://raw.githubusercontent.com/pypa/pipx/main/get-pipx.py | python3
 ```
 
-Upgrade pipx with `brew update && brew upgrade pipx`.
+If python3 is not found on your PATH or there is a syntax error/typo, `curl` will fail with the error message: "(23) Failed writing body."
 
-### On Linux, install via pip (requires pip 19.0 or later)
-
-```
-python3 -m pip install --user pipx
-python3 -m pipx ensurepath
-```
-
-Upgrade pipx with `python3 -m pip install --user -U pipx`.
-
-### On Windows, install via pip (requires pip 19.0 or later)
+For Windows:
 
 ```
-# If you installed python using the app-store, replace `python` with `python3` in the next line.
-python -m pip install --user pipx
+(Invoke-WebRequest -Uri https://raw.githubusercontent.com/pypa/pipx/main/get-pipx.py -UseBasicParsing).Content | python
 ```
 
-It is possible (even most likely) the above finishes with a WARNING looking similar to this:
+To pass arguments to the `get-pipx.py` script:
 
 ```
-WARNING: The script pipx.exe is installed in `<USER folder>\AppData\Roaming\Python\Python3x\Scripts` which is not on PATH
+curl https://raw.githubusercontent.com/pypa/pipx/main/get-pipx.py | python3 - ARGS
 ```
 
-If so, go to the mentioned folder, allowing you to run the pipx executable directly.
-Enter the following line (even if you did not get the warning):
+For example, you can see options with
 
 ```
-pipx ensurepath
+curl https://raw.githubusercontent.com/pypa/pipx/main/get-pipx.py | python3 - --help
 ```
 
-This will add both the above mentioned path and the `%USERPROFILE%\.local\bin` folder to your search path.
-Restart your terminal session and verify `pipx` does run.
-
-Upgrade pipx with `python3 -m pip install --user -U pipx`.
+After installing, you may want to restart your terminal and verify `pipx` is on your shell's $PATH by confirming `pipx --help` works.
 
 ### Shell completions
 
 Shell completions are available by following the instructions printed with this command:
 
 ```
-pipx completions
-```
 
-For more details, see the [installation instructions](https://pypa.github.io/pipx/installation/).
+pipx completions
+
+```
 
 ## Overview: What is `pipx`?
 
@@ -116,7 +107,9 @@ Best of all, pipx runs with regular user permissions, never calling `sudo pip in
 You can globally install an application by running
 
 ```
+
 pipx install PACKAGE
+
 ```
 
 This automatically creates a virtual environment, installs the package, and adds the package's associated applications (entry points) to a location on your `PATH`. For example, `pipx install pycowsay` makes the `pycowsay` command available globally, but sandboxes the pycowsay package in its own virtual environment. **pipx never needs to run as sudo to do this.**
@@ -124,32 +117,37 @@ This automatically creates a virtual environment, installs the package, and adds
 Example:
 
 ```
->> pipx install pycowsay
-  installed package pycowsay 2.0.3, Python 3.7.3
-  These apps are now globally available
+
+> pipx install pycowsay
+> installed package pycowsay 2.0.3, Python 3.7.3
+> These apps are now globally available
+
     - pycowsay
+
 done! ✨ 🌟 ✨
 
+> pipx list
+> venvs are in /home/user/.local/pipx/venvs
+> apps are exposed on your $PATH at /home/user/.local/bin
+> package pycowsay 2.0.3, Python 3.7.3
 
->> pipx list
-venvs are in /home/user/.local/pipx/venvs
-apps are exposed on your $PATH at /home/user/.local/bin
-   package pycowsay 2.0.3, Python 3.7.3
     - pycowsay
 
-
 # Now you can run pycowsay from anywhere
->> pycowsay mooo
-  ____
-< mooo >
-  ====
-         \
-          \
-            ^__^
-            (oo)\_______
-            (__)\       )\/\
-                ||----w |
-                ||     ||
+
+> pycowsay mooo
+
+---
+
+# < mooo >
+
+\
+ \
+ ^**^
+(oo)\_\_\_\_\_**
+(\_\_)\ )\/\
+ ||----w |
+|| ||
 
 ```
 
@@ -158,10 +156,12 @@ apps are exposed on your $PATH at /home/user/.local/bin
 You can also install from a git repository. Here, `black` is used as an example.
 
 ```
+
 pipx install git+https://github.com/psf/black.git
-pipx install git+https://github.com/psf/black.git@branch  # branch of your choice
-pipx install git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022573a59cdb1  # git hash
-pipx install https://github.com/psf/black/archive/18.9b0.zip  # install a release
+pipx install git+https://github.com/psf/black.git@branch # branch of your choice
+pipx install git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022573a59cdb1 # git hash
+pipx install https://github.com/psf/black/archive/18.9b0.zip # install a release
+
 ```
 
 The pip syntax with `egg` must be used when installing extras:
@@ -187,23 +187,28 @@ A nice side benefit is that you don't have to remember to upgrade the app since 
 Okay, let's see what this looks like in practice!
 
 ```
+
 pipx run APP [ARGS...]
+
 ```
 
 This will install the package in an isolated, temporary directory and invoke the app. Give it a try:
 
 ```
+
 > pipx run pycowsay moo
 
-  ---
-< moo >
-  ---
-   \   ^__^
-    \  (oo)\_______
-       (__)\       )\/\
-           ||----w |
-           ||     ||
+---
 
+< moo >
+
+---
+
+\ ^**^
+\ (oo)\_\_\_\_\_**
+(\_\_)\ )\/\
+ ||----w |
+|| ||
 
 ```
 
@@ -212,16 +217,20 @@ Notice that you **don't need to execute any install commands to run the app**.
 Any arguments after the application name will be passed directly to the application:
 
 ```
+
 > pipx run pycowsay these arguments are all passed to pycowsay!
 
-  -------------------------------------------
+---
+
 < these arguments are all passed to pycowsay! >
-  -------------------------------------------
-   \   ^__^
-    \  (oo)\_______
-       (__)\       )\/\
-           ||----w |
-           ||     ||
+
+---
+
+\ ^**^
+\ (oo)\_\_\_\_\_**
+(\_\_)\ )\/\
+ ||----w |
+|| ||
 
 ```
 
@@ -230,13 +239,17 @@ Re-running the same app is quick because pipx caches Virtual Environments on a p
 If the app name does not match that package name, you can use the `--spec` argument to specify the package to install and app to run separately:
 
 ```
+
 pipx run --spec PACKAGE APP
+
 ```
 
 You can also specify specific versions, version ranges, or extras:
 
 ```
+
 pipx run APP==1.0.0
+
 ```
 
 ### Running from Source Control
@@ -244,10 +257,12 @@ pipx run APP==1.0.0
 You can also run from a git repository. Here, `black` is used as an example.
 
 ```
+
 pipx run --spec git+https://github.com/psf/black.git black
-pipx run --spec git+https://github.com/psf/black.git@branch black  # branch of your choice
-pipx run --spec git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022573a59cdb1 black  # git hash
+pipx run --spec git+https://github.com/psf/black.git@branch black # branch of your choice
+pipx run --spec git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022573a59cdb1 black # git hash
 pipx run --spec https://github.com/psf/black/archive/18.9b0.zip black # install a release
+
 ```
 
 ### Running from URL
@@ -255,8 +270,10 @@ pipx run --spec https://github.com/psf/black/archive/18.9b0.zip black # install 
 You can run .py files directly, too.
 
 ```
+
 pipx run https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
 pipx is working!
+
 ```
 
 ### Summary
@@ -308,3 +325,7 @@ pipx is maintained by a team of volunteers (in alphabetical order)
 Issues and Pull Requests are definitely welcome! Check out [Contributing](https://pypa.github.io/pipx/contributing/) to get started.
 Everyone who interacts with the pipx project via codebase, issue tracker, chat rooms, or otherwise is expected to follow
 the [PSF Code of Conduct](https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md).
+
+```
+
+```
