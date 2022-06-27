@@ -39,6 +39,18 @@ def print_version() -> None:
     print(__version__)
 
 
+def prog_name() -> str:
+    try:
+        prog = os.path.basename(sys.argv[0])
+        if prog == "__main__.py":
+            return f"{sys.executable} -m pipx"
+        else:
+            return prog
+    except Exception:
+        pass
+    return "pipx"
+
+
 SPEC_HELP = textwrap.dedent(
     """\
     The package name or specific installation source passed to pip.
@@ -669,7 +681,7 @@ def get_command_parser() -> argparse.ArgumentParser:
     completer_venvs = InstalledVenvsCompleter(venv_container)
 
     parser = argparse.ArgumentParser(
-        prog="pipx",
+        prog=prog_name(),
         formatter_class=LineWrapRawTextHelpFormatter,
         description=PIPX_DESCRIPTION,
     )
