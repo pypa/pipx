@@ -27,6 +27,6 @@ jobs:
           nox --error-on-missing-interpreters --non-interactive --session build_docs
       - name: Deploy docs
         if: ${{ success() }}
-        uses: mhausenblas/mkdocs-deploy-gh-pages@1.24
+        uses: mhausenblas/mkdocs-deploy-gh-pages@1.25
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
