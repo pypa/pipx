@@ -2,12 +2,25 @@ import sys
 
 import pytest  # type: ignore
 
-from helpers import mock_legacy_venv, run_pipx_cli
+from helpers import WIN, mock_legacy_venv, run_pipx_cli
+from pipx import emojis
 
 
 def test_reinstall(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+
+
+def test_reinstall_shared(pipx_temp_env, monkeypatch, capfd):
+    if WIN:
+        monkeypatch.setattr(emojis, "EMOJI_SUPPORT", False)
+    with capfd.disabled():
+        assert not run_pipx_cli(["install", "--shared", "pycowsay"])
+        assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+
+    assert not run_pipx_cli(["runpip", "--shared", "freeze"])
+    captured = capfd.readouterr()
+    assert captured.out.startswith("pycowsay==")
 
 
 def test_reinstall_nonexistent(pipx_temp_env, capsys):

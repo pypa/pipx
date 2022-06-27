@@ -91,6 +91,7 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     )
     assert_package_metadata(pipx_metadata.main_package, pycowsay_package_ref)
     assert pipx_metadata.injected_packages == {}
+    assert not pipx_metadata.shared
 
 
 def test_package_inject(monkeypatch, tmp_path, pipx_temp_env):
@@ -107,3 +108,14 @@ def test_package_inject(monkeypatch, tmp_path, pipx_temp_env):
         "pycowsay", "black", pipx_venvs_dir, include_apps=False
     )
     assert_package_metadata(pipx_metadata.injected_packages["black"], black_package_ref)
+
+
+def test_package_shared(monkeypatch, tmp_path, pipx_temp_env):
+    pipx_venvs_dir = pipx.constants.PIPX_HOME / "venvs"
+
+    run_pipx_cli(["install", "--shared", PKG["pycowsay"]["spec"]])
+
+    assert (pipx_venvs_dir / "pycowsay" / "pipx_metadata.json").is_file()
+    pipx_metadata = PipxMetadata(pipx_venvs_dir / "pycowsay")
+
+    assert pipx_metadata.shared

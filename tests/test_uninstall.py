@@ -2,9 +2,15 @@ import sys
 
 import pytest  # type: ignore
 
-from helpers import app_name, mock_legacy_venv, remove_venv_interpreter, run_pipx_cli
+from helpers import (
+    WIN,
+    app_name,
+    mock_legacy_venv,
+    remove_venv_interpreter,
+    run_pipx_cli,
+)
 from package_info import PKG
-from pipx import constants
+from pipx import constants, emojis
 
 
 def file_or_symlink(filepath):
@@ -20,6 +26,24 @@ def file_or_symlink(filepath):
 def test_uninstall(pipx_temp_env):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["uninstall", "pycowsay"])
+
+
+def test_uninstall_shared(pipx_temp_env, monkeypatch, capfd):
+    if WIN:
+        monkeypatch.setattr(emojis, "EMOJI_SUPPORT", False)
+    with capfd.disabled():
+        assert not run_pipx_cli(["install", "--shared", "pycowsay"])
+
+    assert not run_pipx_cli(["runpip", "--shared", "freeze"])
+    captured = capfd.readouterr()
+    assert captured.out.startswith("pycowsay==")
+
+    with capfd.disabled():
+        assert not run_pipx_cli(["uninstall", "pycowsay"])
+
+    assert not run_pipx_cli(["runpip", "--shared", "freeze"])
+    captured = capfd.readouterr()
+    assert captured.out == ""
 
 
 def test_uninstall_circular_deps(pipx_temp_env):

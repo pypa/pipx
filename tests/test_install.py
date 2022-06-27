@@ -252,3 +252,29 @@ def test_install_pip_failure(pipx_temp_env, capsys):
     assert Path(pip_log_file_match.group(1)).exists()
 
     assert re.search(r"pip (failed|seemed to fail) to build package", captured.err)
+
+
+def test_install_shared_pycowsay(pipx_temp_env, capfd):
+    with capfd.disabled():
+        assert not run_pipx_cli(["install", "black"])
+
+    assert not run_pipx_cli(["runpip", "--shared", "freeze"])
+    assert not run_pipx_cli(["runpip", "black", "freeze"])
+    captured = capfd.readouterr()
+    assert "pycowsay" not in captured.out
+
+    with capfd.disabled():
+        assert not run_pipx_cli(["install", "--shared", "pycowsay"])
+
+    assert not run_pipx_cli(["runpip", "pycowsay", "freeze"])
+    captured = capfd.readouterr()
+    assert captured.out.startswith("pycowsay==")
+
+    assert not run_pipx_cli(["runpip", "--shared", "freeze"])
+    captured = capfd.readouterr()
+    assert captured.out.startswith("pycowsay==")
+
+    assert not run_pipx_cli(["runpip", "black", "freeze"])
+    packages = capfd.readouterr().out.splitlines()
+    packages = [package.partition("==")[0] for package in packages]
+    assert "pycowsay" in packages

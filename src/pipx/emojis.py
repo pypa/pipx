@@ -25,13 +25,26 @@ def use_emojis() -> bool:
 
 EMOJI_SUPPORT = use_emojis()
 
-if EMOJI_SUPPORT:
-    stars = "✨ 🌟 ✨"
-    hazard = "⚠️"
-    error = "⛔"
-    sleep = "😴"
-else:
-    stars = ""
-    hazard = ""
-    error = ""
-    sleep = ""
+
+class Emoji:
+    """
+    A class to make monkey patching EMOJI_SUPPORT from tests work.
+
+    The capfd fixture causes problems on Windows when the original stdout
+    encoding cannot handle emoji.
+    """
+
+    def __init__(self, emoji):
+        self.emoji = emoji
+
+    def __str__(self) -> str:
+        if EMOJI_SUPPORT:
+            return self.emoji
+
+        return ""
+
+
+stars = Emoji("✨ 🌟 ✨")
+hazard = Emoji("⚠️")
+error = Emoji("⛔")
+sleep = Emoji("😴")

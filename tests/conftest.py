@@ -83,9 +83,8 @@ def pipx_local_pypiserver(request):
         yield
         return
 
-    pipx_cache_dir = (
-        request.config.invocation_params.dir / PIPX_TESTS_DIR / "package_cache"
-    )
+    project_root = Path(__file__).parent.parent
+    pipx_cache_dir = project_root / PIPX_TESTS_DIR / "package_cache"
     check_test_packages_cmd = [
         "python3",
         "scripts/update_package_cache.py",
@@ -99,7 +98,9 @@ def pipx_local_pypiserver(request):
         str(PIPX_TESTS_PACKAGE_LIST_DIR),
         str(pipx_cache_dir),
     ]
-    check_test_packages_process = subprocess.run(check_test_packages_cmd)
+    check_test_packages_process = subprocess.run(
+        check_test_packages_cmd, cwd=project_root
+    )
     if check_test_packages_process.returncode != 0:
         raise Exception(
             f"Directory {str(pipx_cache_dir)} does not contain all "
@@ -108,9 +109,7 @@ def pipx_local_pypiserver(request):
             f"{' '.join(update_test_packages_cmd)}"
         )
 
-    pypiserver_err_fh = open(
-        request.config.invocation_params.dir / PIPX_TESTS_DIR / "pypiserver.log", "w"
-    )
+    pypiserver_err_fh = open(project_root / PIPX_TESTS_DIR / "pypiserver.log", "w")
     pypiserver_process = subprocess.Popen(
         [
             "pypi-server",
@@ -120,6 +119,7 @@ def pipx_local_pypiserver(request):
         ],
         universal_newlines=True,
         stderr=pypiserver_err_fh,
+        cwd=project_root,
     )
 
     yield
