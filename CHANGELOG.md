@@ -1,7 +1,9 @@
 ## dev
 - Add `pipx uninject` command (#820)
+- Add `--shared` flag to `pipx install` and `pipx runpip` (#829)
 - [docs] Fix `pipx run` examples and update Python versions used by `pipx install` examples
 - [docs] Add an example for installation from source with extras
+- [docs] Add a section on private repositories requiring authentication in the installation page
 
 - Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
 
