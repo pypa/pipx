@@ -85,7 +85,7 @@ class BorgArchives extends Endpoint
         ]);
 
         $url = Str::optionalQueryParameters(
-            sprintf('borg-archives/database'),
+            'borg-archives/database',
             ['callback_url' => $callbackUrl]
         );
 
@@ -127,7 +127,7 @@ class BorgArchives extends Endpoint
         ]);
 
         $url = Str::optionalQueryParameters(
-            sprintf('borg-archives/unix-user'),
+            'borg-archives/unix-user',
             ['callback_url' => $callbackUrl]
         );
 
@@ -180,6 +180,7 @@ class BorgArchives extends Endpoint
 
     /**
      * @param int $id
+     * @param string|null $path
      * @param string|null $callbackUrl
      * @return Response
      * @throws RequestException
@@ -211,6 +212,7 @@ class BorgArchives extends Endpoint
 
     /**
      * @param int $id
+     * @param string|null $path
      * @param string|null $callbackUrl
      * @return Response
      * @throws RequestException
@@ -242,6 +244,7 @@ class BorgArchives extends Endpoint
 
     /**
      * @param int $id
+     * @param string|null $path
      * @return Response
      * @throws RequestException
      */

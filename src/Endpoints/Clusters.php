@@ -69,6 +69,7 @@ class Clusters extends Endpoint
 
     /**
      * @param int $id
+     * @param string|null $callbackUrl
      * @return Response
      * @throws RequestException
      */

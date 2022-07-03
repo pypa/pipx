@@ -2,8 +2,6 @@
 
 namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
-use DateTimeInterface;
-use Vdhicts\Cyberfusion\ClusterApi\Enums\TimeUnit;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\BorgRepository;
 use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
