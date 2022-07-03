@@ -16,7 +16,7 @@ detailed information.
 ### Removed
 
 - Remove unused imports.
-- Remove `sprintf` calls without parameter.
+- Remove `sprintf` calls without parameters.
 
 ## [1.57.0]
 
