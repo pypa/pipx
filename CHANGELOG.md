@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## Unreleased
+
+### Changed
+
+- Update docblocks.
+
+### Removed
+
+- Remove unused imports.
+- Remove `sprintf` calls without parameter.
+
 ## [1.57.0]
 
 ### Changed
