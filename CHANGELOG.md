@@ -9,6 +9,12 @@ detailed information.
 
 ## Unreleased
 
+## [1.58.0]
+
+### Added
+
+- Add database comparison endpoint.
+
 ### Changed
 
 - Update docblocks.
