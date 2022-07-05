@@ -6,6 +6,7 @@ use DateTimeInterface;
 use Vdhicts\Cyberfusion\ClusterApi\Enums\TimeUnit;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\Database;
+use Vdhicts\Cyberfusion\ClusterApi\Models\DatabaseComparison;
 use Vdhicts\Cyberfusion\ClusterApi\Models\DatabaseUsage;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
@@ -175,6 +176,36 @@ class Databases extends Endpoint
                     $response->getData()
                 )
                 : null,
+        ]);
+    }
+
+    /**
+     * @param int $leftDatabaseId
+     * @param int $rightDatabaseId
+     * @return Response
+     * @throws RequestException
+     */
+    public function compareTo(int $leftDatabaseId, int $rightDatabaseId): Response
+    {
+        $url = sprintf(
+            'databases/%d/comparison?right_database_id=%d',
+            $leftDatabaseId,
+            $rightDatabaseId
+        );
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_GET)
+            ->setUrl($url);
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'databaseComparison' => (new DatabaseComparison())->fromArray($response->getData()),
         ]);
     }
 }
