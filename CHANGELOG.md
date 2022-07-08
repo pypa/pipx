@@ -14,6 +14,12 @@ detailed information.
 - Add the `syncToolkitEnabled` attribute to cluster.
 - Add UNIX user comparison endpoint.
 
+## [1.59.0]
+
+### Added
+
+- Add the `domainRoot` attribute to virtual host.
+
 ## [1.58.0]
 
 ### Added
