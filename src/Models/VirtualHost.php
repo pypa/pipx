@@ -20,6 +20,7 @@ class VirtualHost extends ClusterModel implements Model
     private bool $forceSsl = true;
     private ?string $customConfig = null;
     private ?string $balancerBackendName = null;
+    private ?string $domainRoot = null;
     private array $deployCommands = [];
     private array $allowOverrideDirectives = AllowOverrideDirectives::DEFAULTS;
     private array $allowOverrideOptionDirectives = AllowOverrideOptionDirectives::DEFAULTS;
@@ -163,6 +164,18 @@ class VirtualHost extends ClusterModel implements Model
         return $this;
     }
 
+    public function getDomainRoot(): ?string
+    {
+        return $this->domainRoot;
+    }
+
+    public function setDomainRoot(?string $domainRoot): VirtualHost
+    {
+        $this->domainRoot = $domainRoot;
+
+        return $this;
+    }
+
     public function getDeployCommands(): array
     {
         return $this->deployCommands;
@@ -269,6 +282,7 @@ class VirtualHost extends ClusterModel implements Model
             ->setPassengerAppId(Arr::get($data, 'passenger_app_id'))
             ->setForceSsl(Arr::get($data, 'force_ssl'))
             ->setBalancerBackendName(Arr::get($data, 'balancer_backend_name'))
+            ->setDomainRoot(Arr::get($data, 'domain_root'))
             ->setCustomConfig(Arr::get($data, 'custom_config'))
             ->setDeployCommands(Arr::get($data, 'deploy_commands', []))
             ->setAllowOverrideDirectives(Arr::get($data, 'allow_override_directives', AllowOverrideDirectives::DEFAULTS))
@@ -294,6 +308,7 @@ class VirtualHost extends ClusterModel implements Model
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'balancer_backend_name' => $this->getBalancerBackendName(),
+            'domain_root' => $this->getDomainRoot(),
             'deploy_commands' => $this->getDeployCommands(),
             'allow_override_directives' => $this->getAllowOverrideDirectives(),
             'allow_override_option_directives' => $this->getAllowOverrideOptionDirectives(),
