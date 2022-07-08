@@ -6,6 +6,7 @@ use DateTimeInterface;
 use Vdhicts\Cyberfusion\ClusterApi\Enums\TimeUnit;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\UnixUser;
+use Vdhicts\Cyberfusion\ClusterApi\Models\UnixUserComparison;
 use Vdhicts\Cyberfusion\ClusterApi\Models\UnixUserUsage;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
@@ -299,6 +300,36 @@ class UnixUsers extends Endpoint
 
         return $response->setData([
             'unixUser' => $unixUser,
+        ]);
+    }
+
+    /**
+     * @param int $leftUnixUserId
+     * @param int $rightUnixUserId
+     * @return Response
+     * @throws RequestException
+     */
+    public function compareTo(int $leftUnixUserId, int $rightUnixUserId): Response
+    {
+        $url = sprintf(
+            'unix-users/%d/comparison?right_unix_user_id=%d',
+            $leftUnixUserId,
+            $rightUnixUserId
+        );
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_GET)
+            ->setUrl($url);
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'unixUserComparison' => (new UnixUserComparison())->fromArray($response->getData()),
         ]);
     }
 }

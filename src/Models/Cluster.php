@@ -21,6 +21,7 @@ class Cluster extends ClusterModel implements Model
     private ?bool $malwareToolkitEnabled = null;
     private ?bool $malwareToolkitScansEnabled = null;
     private ?bool $bubblewrapToolkitEnabled = null;
+    private ?bool $syncToolkitEnabled = null;
     private ?int $id = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
@@ -193,6 +194,18 @@ class Cluster extends ClusterModel implements Model
         return $this;
     }
 
+    public function isSyncToolkitEnabled(): ?bool
+    {
+        return $this->syncToolkitEnabled;
+    }
+
+    public function setSyncToolkitEnabled(?bool $syncToolkitEnabled): Cluster
+    {
+        $this->syncToolkitEnabled = $syncToolkitEnabled;
+
+        return $this;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -246,6 +259,7 @@ class Cluster extends ClusterModel implements Model
             ->setMalwareToolkitEnabled(Arr::get($data, 'malware_toolkit_enabled'))
             ->setMalwareToolkitScansEnabled(Arr::get($data, 'malware_toolkit_scans_enabled'))
             ->setBubblewrapToolkitEnabled(Arr::get($data, 'bubblewrap_toolkit_enabled'))
+            ->setSyncToolkitEnabled(Arr::get($data, 'sync_toolkit_enabled'))
             ->setId(Arr::get($data, 'id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
             ->setUpdatedAt(Arr::get($data, 'updated_at'));
@@ -267,7 +281,8 @@ class Cluster extends ClusterModel implements Model
             'database_toolkit_enabled' => $this->isDatabaseToolkitEnabled(),
             'malware_toolkit_enabled' => $this->istMalwareToolkitEnabled(),
             'malware_toolkit_scans_enabled' => $this->isMalwareToolkitScansEnabled(),
-            'bubblewrap_toolkit_enabled ' => $this->isBubblewrapToolkitEnabled(),
+            'bubblewrap_toolkit_enabled' => $this->isBubblewrapToolkitEnabled(),
+            'sync_toolkit_enabled' => $this->isSyncToolkitEnabled(),
             'id' => $this->getId(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),
