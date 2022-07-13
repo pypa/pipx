@@ -13,9 +13,10 @@ import textwrap
 import time
 import urllib.parse
 from pathlib import Path
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 import argcomplete  # type: ignore
+import platformdirs
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
@@ -725,24 +726,32 @@ def delete_oldest_logs(file_list: List[Path], keep_number: int) -> None:
                 pass
 
 
-def setup_log_file() -> Path:
+def _setup_log_file(pipx_log_dir: Optional[Path] = None) -> Path:
     max_logs = 10
+    pipx_log_dir = pipx_log_dir or constants.PIPX_LOG_DIR
     # don't use utils.mkdir, to prevent emission of log message
-    constants.PIPX_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    pipx_log_dir.mkdir(parents=True, exist_ok=True)
 
-    delete_oldest_logs(list(constants.PIPX_LOG_DIR.glob("cmd_*[0-9].log")), max_logs)
-    delete_oldest_logs(
-        list(constants.PIPX_LOG_DIR.glob("cmd_*_pip_errors.log")), max_logs
-    )
+    delete_oldest_logs(list(pipx_log_dir.glob("cmd_*[0-9].log")), max_logs)
+    delete_oldest_logs(list(pipx_log_dir.glob("cmd_*_pip_errors.log")), max_logs)
 
     datetime_str = time.strftime("%Y-%m-%d_%H.%M.%S")
-    log_file = constants.PIPX_LOG_DIR / f"cmd_{datetime_str}.log"
+    log_file = pipx_log_dir / f"cmd_{datetime_str}.log"
     counter = 1
     while log_file.exists() and counter < 10:
-        log_file = constants.PIPX_LOG_DIR / f"cmd_{datetime_str}_{counter}.log"
+        log_file = pipx_log_dir / f"cmd_{datetime_str}_{counter}.log"
         counter += 1
 
+    log_file.touch()
+
     return log_file
+
+
+def setup_log_file() -> Path:
+    try:
+        return _setup_log_file()
+    except PermissionError:
+        return _setup_log_file(platformdirs.user_log_path("pipx"))
 
 
 def setup_logging(verbose: bool) -> None:
