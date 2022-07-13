@@ -4,6 +4,7 @@
 - [docs] Add an example for installation from source with extras
 
 - Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
+- Fallback to user's log path if the default log path (`$PIPX_HOME/logs`) is not writable to aid with pipx being used for multi-user (e.g. system-wide) installs of applications
 
 ## 1.1.0
 
