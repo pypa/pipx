@@ -105,22 +105,16 @@ def install_all(
             venvs = data["venvs"]
 
             for package in venvs:
-                package_name = venvs[package]["metadata"]["main_package"]["package"]
-                package_or_url = venvs[package]["metadata"]["main_package"][
-                    "package_or_url"
-                ]
+                metadata = venvs[package]["metadata"]
+                package_name = metadata["main_package"]["package"]
+                package_or_url = metadata["main_package"]["package_or_url"]
                 python_version = (
-                    "python"
-                    + re.findall(
-                        r"\d.\d+", venvs[package]["metadata"]["python_version"]
-                    )[0]
+                    "python" + re.findall(r"\d.\d+", metadata["python_version"])[0]
                 )
-                venv_args = venvs[package]["metadata"]["venv_args"]
-                pip_args = venvs[package]["metadata"]["main_package"]["pip_args"]
-                include_dependencies = venvs[package]["metadata"]["main_package"][
-                    "include_dependencies"
-                ]
-                suffix = venvs[package]["metadata"]["main_package"]["suffix"]
+                venv_args = metadata["venv_args"]
+                pip_args = metadata["main_package"]["pip_args"]
+                include_dependencies = metadata["main_package"]["include_dependencies"]
+                suffix = metadata["main_package"]["suffix"]
 
                 total_package_count += 1
 
