@@ -6,7 +6,6 @@ PyYAML==5.3.1
 PyYAML==6.0
 Pygments==2.12.0
 QtPy==2.1.0
-SecretStorage==3.3.2
 Send2Trash==1.8.0
 Weblate==4.3.1
 Werkzeug==2.1.2
@@ -18,6 +17,7 @@ argon2_cffi_bindings==21.2.0
 astroid==2.11.7
 astroid==2.12.2
 asttokens==2.0.5
+atomicwrites==1.4.1
 attrs==21.4.0
 autocommand==2.2.1
 awscli==1.18.168
@@ -38,6 +38,7 @@ cloudtoken_plugin.json_exporter==0.1.764
 cloudtoken_plugin.saml==0.1.764
 cloudtoken_plugin.shell_exporter==0.1.764
 colorama==0.4.3
+colorama==0.4.5
 colorlog==4.8.0
 cryptography==37.0.4
 debugpy==1.6.2
@@ -51,7 +52,6 @@ executing==0.8.3
 fastjsonschema==2.15.3
 filelock==3.7.1
 idna==3.3
-importlib_metadata==4.12.0
 inflect==5.6.1
 iniconfig==1.1.1
 ipykernel==6.15.1
@@ -71,10 +71,11 @@ jaraco.financial==2.0
 jaraco.functools==3.5.0
 jaraco.itertools==6.2.1
 jaraco.logging==3.1.0
+jaraco.structures==2.1.0
 jaraco.text==3.8.0
 jaraco.ui==2.3.0
+jaraco.windows==5.7.0
 jedi==0.18.1
-jeepney==0.8.0
 jmespath==0.10.0
 jmespath==1.0.1
 jsonschema==4.7.2
@@ -109,7 +110,6 @@ path.py==12.5.0
 path==16.4.0
 pathspec==0.9.0
 pbr==5.6.0
-pexpect==4.8.0
 pickleshare==0.7.5
 pip==22.1.2
 platformdirs==2.5.2
@@ -117,7 +117,6 @@ pluggy==1.0.0
 prometheus_client==0.14.1
 prompt_toolkit==3.0.30
 psutil==5.9.1
-ptyprocess==0.7.0
 pure_eval==0.2.2
 py==1.11.0
 pyasn1==0.4.8
@@ -127,12 +126,14 @@ pygdbmi==0.10.0.0
 pylint==2.14.4
 pylint==2.3.1
 pyparsing==3.0.9
-pyperclip==1.8.2
 pyrsistent==0.18.1
 pytest==7.1.2
 python_dateutil==2.8.2
 python_slugify==6.1.2
 pytz==2022.1
+pywin32==304
+pywin32_ctypes==0.2.0
+pywinpty==2.0.6
 pyzmq==23.2.0
 qtconsole==5.3.1
 regex==2022.7.9
@@ -169,4 +170,3 @@ webencodings==0.5.1
 wheel==0.37.1
 widgetsnbextension==3.6.1
 wrapt==1.14.1
-zipp==3.8.1
