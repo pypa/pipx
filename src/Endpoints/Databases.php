@@ -213,15 +213,18 @@ class Databases extends Endpoint
     /**
      * @param int $leftDatabaseId
      * @param int $rightDatabaseId
+     * @param string|null $callbackUrl
      * @return Response
      * @throws RequestException
      */
-    public function syncTo(int $leftDatabaseId, int $rightDatabaseId): Response
+    public function syncTo(int $leftDatabaseId, int $rightDatabaseId, string $callbackUrl = null): Response
     {
-        $url = sprintf(
-            'databases/%d/sync?right_database_id=%d',
-            $leftDatabaseId,
-            $rightDatabaseId
+        $url = Str::optionalQueryParameters(
+            sprintf('databases/%d/sync?right_database_id=%d',
+                $leftDatabaseId,
+                $rightDatabaseId
+            ),
+            ['callback_url' => $callbackUrl]
         );
 
         $request = (new Request())
