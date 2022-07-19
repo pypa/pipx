@@ -13,6 +13,10 @@ detailed information.
 
 - Add database sync endpoint.
 
+### Changed
+
+- Update Passenger app restart + FPM pool restart endpoints: add callback URL + return task collection model
+
 ## [1.61.0]
 
 ### Added

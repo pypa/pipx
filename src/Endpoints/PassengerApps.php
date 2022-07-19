@@ -208,17 +208,32 @@ class PassengerApps extends Endpoint
 
     /**
      * @param int $id
+     * @param string|null $callbackUrl
      * @return Response
      * @throws RequestException
      */
-    public function restart(int $id): Response
+    public function restart(int $id, string $callbackUrl = null): Response
     {
+        $url = Str::optionalQueryParameters(
+            sprintf('passenger-apps/%d/restart', $id),
+            ['callback_url' => $callbackUrl]
+        );
+
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl(sprintf('passenger-apps/%d/restart', $id));
+            ->setUrl($url);
 
-        return $this
+        $response = $this
             ->client
             ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $taskCollection = (new TaskCollection())->fromArray($response->getData());
+
+        return $response->setData([
+            'taskCollection' => $taskCollection,
+        ]);
     }
 }
