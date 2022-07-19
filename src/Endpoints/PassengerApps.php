@@ -4,6 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\PassengerApp;
+use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
