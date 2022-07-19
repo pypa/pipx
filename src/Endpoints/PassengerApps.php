@@ -7,6 +7,7 @@ use Vdhicts\Cyberfusion\ClusterApi\Models\PassengerApp;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
 
 class PassengerApps extends Endpoint
 {
