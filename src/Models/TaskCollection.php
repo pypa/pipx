@@ -12,6 +12,8 @@ class TaskCollection extends ClusterModel implements Model
     private string $uuid;
     private string $description;
     private string $collectionType;
+    private ?string $objectId;
+    private ?string $objectModelName;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -58,6 +60,30 @@ class TaskCollection extends ClusterModel implements Model
             ->validate();
 
         $this->collectionType = $collectionType;
+
+        return $this;
+    }
+
+    public function getObjectId(): ?string
+    {
+        return $this->objectId;
+    }
+
+    public function setObjectId(?string $objectId): TaskCollection
+    {
+        $this->objectId = $objectId;
+
+        return $this;
+    }
+
+    public function getObjectModelName(): ?string
+    {
+        return $this->objectModelName;
+    }
+
+    public function setObjectModelName(?string $objectModelName): TaskCollection
+    {
+        $this->objectModelName = $objectModelName;
 
         return $this;
     }
@@ -116,6 +142,8 @@ class TaskCollection extends ClusterModel implements Model
             ->setUuid(Arr::get($data, 'uuid'))
             ->setDescription(Arr::get($data, 'description'))
             ->setCollectionType(Arr::get($data, 'collection_type'))
+            ->setObjectId(Arr::get($data, 'object_id'))
+            ->setObjectModelName(Arr::get($data, 'object_model_name'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -128,6 +156,8 @@ class TaskCollection extends ClusterModel implements Model
             'uuid' => $this->getUuid(),
             'description' => $this->getDescription(),
             'collection_type' => $this->getCollectionType(),
+            'object_id' => $this->getObjectId(),
+            'object_model_name' => $this->getObjectModelName(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
