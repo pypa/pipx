@@ -20,9 +20,9 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python ${{ env.default-python }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ env.default-python }}
     - name: Upgrade pip, Install nox
@@ -36,9 +36,9 @@ jobs:
   verify-docs:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python ${{ env.default-python }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ env.default-python }}
     - name: Upgrade pip, Install nox
@@ -63,9 +63,9 @@ jobs:
             python-version: "3.10"
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Get pip cache dir
@@ -73,12 +73,12 @@ jobs:
       run: |
         echo "::set-output name=dir::$(pip cache dir)"
     - name: Persistent Github pip cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: ${{ runner.os }}-pip${{ matrix.python-version }}
     - name: Persistent .pipx_tests/package_cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ github.workspace }}/.pipx_tests/package_cache/${{ matrix.python-version }}
         key: pipx-tests-package-cache-${{ runner.os }}-${{ matrix.python-version }}
@@ -97,9 +97,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout ${{ github.ref }}
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Set up Python ${{ env.default-python }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ env.default-python }}
     - name: Upgrade pip, Install nox
@@ -110,7 +110,7 @@ jobs:
       run: |
         nox --error-on-missing-interpreters --non-interactive --session build
     - name: Publish to PyPi
-      uses: pypa/gh-action-pypi-publish@v1.4.1
+      uses: pypa/gh-action-pypi-publish@v1.5.0
       with:
         user: __token__
         password: ${{ secrets.pypi_password }}
