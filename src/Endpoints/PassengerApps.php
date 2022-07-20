@@ -4,9 +4,11 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\PassengerApp;
+use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
 
 class PassengerApps extends Endpoint
 {
@@ -208,17 +210,32 @@ class PassengerApps extends Endpoint
 
     /**
      * @param int $id
+     * @param string|null $callbackUrl
      * @return Response
      * @throws RequestException
      */
-    public function restart(int $id): Response
+    public function restart(int $id, string $callbackUrl = null): Response
     {
+        $url = Str::optionalQueryParameters(
+            sprintf('passenger-apps/%d/restart', $id),
+            ['callback_url' => $callbackUrl]
+        );
+
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl(sprintf('passenger-apps/%d/restart', $id));
+            ->setUrl($url);
 
-        return $this
+        $response = $this
             ->client
             ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $taskCollection = (new TaskCollection())->fromArray($response->getData());
+
+        return $response->setData([
+            'taskCollection' => $taskCollection,
+        ]);
     }
 }

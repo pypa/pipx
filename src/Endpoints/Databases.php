@@ -8,9 +8,11 @@ use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\Database;
 use Vdhicts\Cyberfusion\ClusterApi\Models\DatabaseComparison;
 use Vdhicts\Cyberfusion\ClusterApi\Models\DatabaseUsage;
+use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
 
 class Databases extends Endpoint
 {
@@ -206,6 +208,41 @@ class Databases extends Endpoint
 
         return $response->setData([
             'databaseComparison' => (new DatabaseComparison())->fromArray($response->getData()),
+        ]);
+    }
+
+    /**
+     * @param int $leftDatabaseId
+     * @param int $rightDatabaseId
+     * @param string|null $callbackUrl
+     * @return Response
+     * @throws RequestException
+     */
+    public function syncTo(int $leftDatabaseId, int $rightDatabaseId, string $callbackUrl = null): Response
+    {
+        $url = Str::optionalQueryParameters(
+            sprintf('databases/%d/sync?right_database_id=%d',
+                $leftDatabaseId,
+                $rightDatabaseId
+            ),
+            ['callback_url' => $callbackUrl]
+        );
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl($url);
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $taskCollection = (new TaskCollection())->fromArray($response->getData());
+
+        return $response->setData([
+            'taskCollection' => $taskCollection,
         ]);
     }
 }
