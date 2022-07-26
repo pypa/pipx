@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.63.0]
+
+### Added
+
+- Add Borg repository archives metadata endpoint.
+- Borg archive metadata now has its own model, `BorgArchiveMetadata`.
+
 ## [1.62.0]
 
 ### Added
