@@ -4,6 +4,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\BorgRepository;
+use Vdhicts\Cyberfusion\ClusterApi\Models\BorgArchiveMetadata;
 use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
@@ -268,6 +269,34 @@ class BorgRepositories extends Endpoint
 
         return $response->setData([
             'taskCollection' => $taskCollection,
+        ]);
+    }
+
+    /**
+     * @param int $id
+     * @return Response
+     * @throws RequestException
+     */
+    public function archivesMetadata(int $id): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_GET)
+            ->setUrl(sprintf('borg-repositories/%d/archives-metadata', $id));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'metadata' => array_map(
+                function (array $data) {
+                    return (new BorgArchiveMetadata())->fromArray($data);
+                },
+                $response->getData()
+            ),
         ]);
     }
 }

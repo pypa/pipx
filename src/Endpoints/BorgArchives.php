@@ -11,6 +11,7 @@ use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
 use Vdhicts\Cyberfusion\ClusterApi\Models\BorgArchiveDatabaseCreation;
 use Vdhicts\Cyberfusion\ClusterApi\Models\BorgArchiveUnixUserCreation;
 use Vdhicts\Cyberfusion\ClusterApi\Models\BorgArchiveContent;
+use Vdhicts\Cyberfusion\ClusterApi\Models\BorgArchiveMetadata;
 use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
 
 class BorgArchives extends Endpoint
@@ -173,8 +174,7 @@ class BorgArchives extends Endpoint
         }
 
         return $response->setData([
-            'contents_path' => $response->getData('contents_path'),
-            'exists_on_server' => $response->getData('exists_on_server'),
+            'borgArchiveMetadata' => (new BorgArchiveMetadata())->fromArray($response->getData()),
         ]);
     }
 
