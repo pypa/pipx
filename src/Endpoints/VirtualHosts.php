@@ -229,4 +229,39 @@ class VirtualHosts extends Endpoint
             'files' => $response->getData('contains_files'),
         ]);
     }
+
+    /**
+     * @param int $leftVirtualHostId
+     * @param int $rightVirtualHostId
+     * @param string|null $callbackUrl
+     * @return Response
+     * @throws RequestException
+     */
+    public function syncDomainRootTo(int $leftVirtualHostId, int $rightVirtualHostId, string $callbackUrl = null): Response
+    {
+        $url = Str::optionalQueryParameters(
+            sprintf('virtual-hosts/%d/domain-root/sync?right_virtual_host_id=%d',
+                $leftVirtualHostId,
+                $rightVirtualHostId
+            ),
+            ['callback_url' => $callbackUrl]
+        );
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl($url);
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $taskCollection = (new TaskCollection())->fromArray($response->getData());
+
+        return $response->setData([
+            'taskCollection' => $taskCollection,
+        ]);
+    }
 }
