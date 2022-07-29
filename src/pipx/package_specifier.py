@@ -52,8 +52,11 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
         # not a valid PEP508 package specification
         pass
     else:
-        # valid PEP508 package specification
-        valid_pep508 = package_req
+        if package_req.name.endswith(".whl"):
+            pass
+        else:
+            # valid PEP508 package specification
+            valid_pep508 = package_req
 
     # packaging currently (2020-07-19) only does basic syntax checks on URL.
     #   Some examples of what it will not catch:
@@ -206,8 +209,9 @@ def valid_pypi_name(package_spec: str) -> Optional[str]:
         # not a valid PEP508 package specification
         return None
 
-    if package_req.url:
+    if package_req.url or package_req.name.endswith(".whl"):
         # package name supplied by user might not match package found in URL,
+        # also if package name ends with .whl, it might be a local wheel file,
         #   so force package name determination the long way
         return None
 
@@ -221,6 +225,8 @@ def fix_package_name(package_or_url: str, package_name: str) -> str:
         # not a valid PEP508 package specification
         return package_or_url
 
+    if package_req.name.endswith(".whl"):
+        return str(package_req)
     if canonicalize_name(package_req.name) != canonicalize_name(package_name):
         logger.warning(
             pipx_wrap(
