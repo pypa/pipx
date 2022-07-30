@@ -46,10 +46,7 @@ def _split_path_extras(package_spec: str) -> Tuple[str, str]:
 
 def _check_package_path(package_path: str) -> Tuple[Path, bool]:
     pkg_path = Path(package_path)
-    try:
-        pkg_path_exists = pkg_path.exists()
-    except OSError:
-        pkg_path_exists = False
+    pkg_path_exists = pkg_path.exists()
 
     return (pkg_path, pkg_path_exists)
 
