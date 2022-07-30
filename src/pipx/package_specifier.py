@@ -20,6 +20,14 @@ from pipx.util import PipxError, pipx_wrap
 
 logger = logging.getLogger(__name__)
 
+# Copied from https://github.com/pypa/pip/blob/main/src/pip/_internal/utils/filetypes.py
+WHEEL_EXTENSION = ".whl"
+BZ2_EXTENSIONS: Tuple[str, ...] = (".tar.bz2", ".tbz")
+XZ_EXTENSIONS: Tuple[str, ...] = (".tar.xz", ".txz", ".tlz", ".tar.lz", ".tar.lzma")
+ZIP_EXTENSIONS: Tuple[str, ...] = (".zip", WHEEL_EXTENSION)
+TAR_EXTENSIONS: Tuple[str, ...] = (".tar.gz", ".tgz", ".tar")
+ARCHIVE_EXTENSIONS = ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS + XZ_EXTENSIONS
+
 
 class ParsedPackage(NamedTuple):
     valid_pep508: Optional[Requirement]
@@ -34,6 +42,16 @@ def _split_path_extras(package_spec: str) -> Tuple[str, str]:
         return (package_spec_extras_re.group(1), package_spec_extras_re.group(2))
     else:
         return (package_spec, "")
+
+
+def _check_package_path(package_path: str) -> Tuple[Path, bool]:
+    pkg_path = Path(package_path)
+    try:
+        pkg_path_exists = pkg_path.exists()
+    except OSError:
+        pkg_path_exists = False
+
+    return (pkg_path, pkg_path_exists)
 
 
 def _parse_specifier(package_spec: str) -> ParsedPackage:
@@ -52,11 +70,15 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
         # not a valid PEP508 package specification
         pass
     else:
-        if package_req.name.endswith(".whl"):
-            pass
-        else:
-            # valid PEP508 package specification
-            valid_pep508 = package_req
+        # valid PEP508 package specification
+        valid_pep508 = package_req
+
+    if valid_pep508 and package_req.name.endswith(ARCHIVE_EXTENSIONS):
+        # It might be a local archive
+        (package_path, package_path_exists) = _check_package_path(package_req.name)
+
+        if package_path_exists:
+            valid_local_path = str(package_path.resolve())
 
     # packaging currently (2020-07-19) only does basic syntax checks on URL.
     #   Some examples of what it will not catch:
@@ -74,17 +96,18 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
     if not valid_pep508 and not valid_url:
         (package_path_str, package_extras_str) = _split_path_extras(package_spec)
 
-        package_path = Path(package_path_str)
-        try:
-            package_path_exists = package_path.exists()
-        except OSError:
-            package_path_exists = False
+        (package_path, package_path_exists) = _check_package_path(package_path_str)
 
         if package_path_exists:
             valid_local_path = str(package_path.resolve()) + package_extras_str
 
     if not valid_pep508 and not valid_url and not valid_local_path:
         raise PipxError(f"Unable to parse package spec: {package_spec}")
+
+    if valid_pep508 and valid_local_path:
+        # It is a valid local path without "./"
+        # Use valid_local_path
+        valid_pep508 = None
 
     return ParsedPackage(
         valid_pep508=valid_pep508,
@@ -209,9 +232,9 @@ def valid_pypi_name(package_spec: str) -> Optional[str]:
         # not a valid PEP508 package specification
         return None
 
-    if package_req.url or package_req.name.endswith(".whl"):
+    if package_req.url or package_req.name.endswith(ARCHIVE_EXTENSIONS):
         # package name supplied by user might not match package found in URL,
-        # also if package name ends with .whl, it might be a local wheel file,
+        # also if package name ends with archive extension, it might be a local archive file,
         #   so force package name determination the long way
         return None
 
@@ -225,8 +248,9 @@ def fix_package_name(package_or_url: str, package_name: str) -> str:
         # not a valid PEP508 package specification
         return package_or_url
 
-    if package_req.name.endswith(".whl"):
+    if package_req.name.endswith(ARCHIVE_EXTENSIONS):
         return str(package_req)
+
     if canonicalize_name(package_req.name) != canonicalize_name(package_name):
         logger.warning(
             pipx_wrap(
