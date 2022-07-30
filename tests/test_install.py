@@ -1,5 +1,6 @@
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 from unittest import mock
@@ -252,3 +253,12 @@ def test_install_pip_failure(pipx_temp_env, capsys):
     assert Path(pip_log_file_match.group(1)).exists()
 
     assert re.search(r"pip (failed|seemed to fail) to build package", captured.err)
+
+
+def test_install_local_archive(pipx_temp_env, monkeypatch, capsys):
+    monkeypatch.chdir(Path(TEST_DATA_PATH) / "local_extras")
+
+    subprocess.run([sys.executable, "-m", "pip", "wheel", "."])
+    assert not run_pipx_cli(["install", "repeatme-0.1-py3-none-any.whl"])
+    captured = capsys.readouterr()
+    assert f"- {app_name('repeatme')}\n" in captured.out
