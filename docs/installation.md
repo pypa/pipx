@@ -15,11 +15,18 @@ brew install pipx
 pipx ensurepath
 ```
 
-Otherwise, install via pip (requires pip 19.0 or later):
+On Windows:
 
 ```
 py -3 -m pip install --user pipx
 py -3 -m pipx ensurepath
+```
+
+Otherwise, install via pip (requires pip 19.0 or later):
+
+```
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
 ```
 
 ### Installation Options
