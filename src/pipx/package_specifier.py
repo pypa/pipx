@@ -76,6 +76,8 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
 
         if package_path_exists:
             valid_local_path = str(package_path.resolve())
+        else:
+            raise PipxError(f"{package_path} does not exist")
 
     # packaging currently (2020-07-19) only does basic syntax checks on URL.
     #   Some examples of what it will not catch:
