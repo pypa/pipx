@@ -15,7 +15,7 @@ brew install pipx
 pipx ensurepath
 ```
 
-On Windows:
+On Windows (requires pip 19.0 or later):
 
 ```
 py -3 -m pip install --user pipx
