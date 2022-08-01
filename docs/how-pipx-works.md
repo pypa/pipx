@@ -48,4 +48,4 @@ In this case `main_func` and `some_func` would be available to pipx after instal
 
 For a real-world example, see [pycowsay](https://github.com/cs01/pycowsay/blob/master/setup.py)'s `setup.py` source code.
 
-You can read more about entry points [here](https://setuptools.readthedocs.io/en/latest/setuptools.html#automatic-script-creation).
+You can read more about entry points [here](https://setuptools.pypa.io/en/latest/userguide/quickstart.html#entry-points-and-automatic-script-creation).
