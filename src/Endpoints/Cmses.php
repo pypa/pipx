@@ -3,13 +3,16 @@
 namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
+use Vdhicts\Cyberfusion\ClusterApi\Enums\CmsOptionName;
 use Vdhicts\Cyberfusion\ClusterApi\Models\Cms;
+use Vdhicts\Cyberfusion\ClusterApi\Models\CmsOption;
 use Vdhicts\Cyberfusion\ClusterApi\Models\CmsInstallation;
 use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
 use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
+use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class Cmses extends Endpoint
 {
@@ -231,4 +234,57 @@ class Cmses extends Endpoint
             'url' => $response->getData('url'),
         ]);
     }
+
+    /**
+     * @param int $id
+     * @param string $cmsOptionName
+     * @param CmsOption $cmsOption
+     * @return Response
+     * @throws RequestException
+     */
+    public function updateOption(int $id, string $cmsOptionName, CmsOption $cmsOption): Response
+    {
+        $this->validateRequired($cmsOption, 'update', [
+            'value',
+        ]);
+
+        Validator::value($cmsOptionName)
+            ->valueIn(CmsOptionName::AVAILABLE)
+            ->validate();
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_PUT)
+            ->setUrl(sprintf('cmses/%d/options/%d', $id, $cmsOptionName))
+            ->setBody($this->filterFields($cmsOption->toArray(), [
+                'value',
+            ]));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $cmsOption = (new CmsOption())->fromArray($response->getData());
+
+        // Retrieve the CMS again, so we log affected clusters and can return the CMS object
+        $retrieveResponse = $this->get($id);
+        if (!$retrieveResponse->isSuccess()) {
+            return $retrieveResponse;
+        }
+
+        $cms = $retrieveResponse->getData('cms');
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($cms->getClusterId());
+
+        return $response->setData([
+            'cmsOption' => $cmsOption,
+            'cms' => $cms,
+        ]);
+    }
+
 }
