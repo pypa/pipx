@@ -3,7 +3,6 @@
 namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Vdhicts\Cyberfusion\ClusterApi\Enums\CmsOptionName;
 use Vdhicts\Cyberfusion\ClusterApi\Models\Cms;
 use Vdhicts\Cyberfusion\ClusterApi\Models\CmsOption;
 use Vdhicts\Cyberfusion\ClusterApi\Models\CmsInstallation;
@@ -12,7 +11,6 @@ use Vdhicts\Cyberfusion\ClusterApi\Request;
 use Vdhicts\Cyberfusion\ClusterApi\Response;
 use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
 use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
-use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
 
 class Cmses extends Endpoint
 {
@@ -237,25 +235,22 @@ class Cmses extends Endpoint
 
     /**
      * @param int $id
-     * @param string $cmsOptionName
      * @param CmsOption $cmsOption
      * @return Response
      * @throws RequestException
      */
-    public function updateOption(int $id, string $cmsOptionName, CmsOption $cmsOption): Response
+    public function updateOption(int $id, CmsOption $cmsOption): Response
     {
         $this->validateRequired($cmsOption, 'update', [
+            'name',
             'value',
         ]);
 
-        Validator::value($cmsOptionName)
-            ->valueIn(CmsOptionName::AVAILABLE)
-            ->validate();
-
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('cmses/%d/options/%d', $id, $cmsOptionName))
+            ->setUrl(sprintf('cmses/%d/options/%d', $id, $cmsOption->getName()))
             ->setBody($this->filterFields($cmsOption->toArray(), [
+                'name',
                 'value',
             ]));
 
