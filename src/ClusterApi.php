@@ -69,6 +69,11 @@ class ClusterApi
         return new Endpoints\FpmPools($this->client);
     }
 
+    public function htpasswdFiles(): Endpoints\HtpasswdFiles
+    {
+        return new Endpoints\HtpasswdFiles($this->client);
+    }
+
     public function health(): Endpoints\Health
     {
         return new Endpoints\Health($this->client);
