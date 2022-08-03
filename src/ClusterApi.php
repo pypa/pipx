@@ -74,6 +74,11 @@ class ClusterApi
         return new Endpoints\HtpasswdFiles($this->client);
     }
 
+    public function htpasswdUsers(): Endpoints\HtpasswdUsers
+    {
+        return new Endpoints\HtpasswdUsers($this->client);
+    }
+
     public function health(): Endpoints\Health
     {
         return new Endpoints\Health($this->client);
