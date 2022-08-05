@@ -343,8 +343,12 @@ class Cmses extends Endpoint
     public function searchReplace(int $id, string $searchString, string $replaceString, string $callbackUrl = null): Response
     {
         $url = Str::optionalQueryParameters(
-            sprintf('cmses/%d/search-replace', $id),
-            ['search_string' => $searchString, 'replace_string' => $replaceString, 'callback_url' => $callbackUrl]
+            sprintf('cmses/%d/search-replace?search_string=%d&replace_string=%d',
+                $id,
+                $searchString,
+                $replaceString
+            ),
+            ['callback_url' => $callbackUrl]
         );
 
         $request = (new Request())
