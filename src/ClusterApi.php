@@ -49,6 +49,11 @@ class ClusterApi
         return new Endpoints\Crons($this->client);
     }
 
+    public function basicAuthenticationRealms(): Endpoints\BasicAuthenticationRealms
+    {
+        return new Endpoints\BasicAuthenticationRealms($this->client);
+    }
+
     public function databases(): Endpoints\Databases
     {
         return new Endpoints\Databases($this->client);
@@ -67,6 +72,16 @@ class ClusterApi
     public function fpmPools(): Endpoints\FpmPools
     {
         return new Endpoints\FpmPools($this->client);
+    }
+
+    public function htpasswdFiles(): Endpoints\HtpasswdFiles
+    {
+        return new Endpoints\HtpasswdFiles($this->client);
+    }
+
+    public function htpasswdUsers(): Endpoints\HtpasswdUsers
+    {
+        return new Endpoints\HtpasswdUsers($this->client);
     }
 
     public function health(): Endpoints\Health

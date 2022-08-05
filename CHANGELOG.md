@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.65.0]
+
+### Added
+
+- Add htpasswd files endpoint.
+- Add htpasswd users endpoint.
+- Add basic authentication realms endpoints.
+- Add CMS update option endpoint.
+- Add CMS update configuration constant endpoint.
+
 ## [1.64.0]
 
 ### Added
