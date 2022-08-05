@@ -331,4 +331,41 @@ class Cmses extends Endpoint
             'cms' => $cms,
         ]);
     }
+
+    /**
+     * @param int $id
+     * @param string $searchString
+     * @param string $replaceString
+     * @param string|null $callbackUrl
+     * @return Response
+     * @throws RequestException
+     */
+    public function searchReplace(int $id, string $searchString, string $replaceString, string $callbackUrl = null): Response
+    {
+        $url = Str::optionalQueryParameters(
+            sprintf('cmses/%d/search-replace?search_string=%d&replace_string=%d',
+                $id,
+                $searchString,
+                $replaceString
+            ),
+            ['callback_url' => $callbackUrl]
+        );
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl($url);
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $taskCollection = (new TaskCollection())->fromArray($response->getData());
+
+        return $response->setData([
+            'taskCollection' => $taskCollection,
+        ]);
+    }
 }
