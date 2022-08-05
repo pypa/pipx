@@ -49,6 +49,11 @@ class ClusterApi
         return new Endpoints\Crons($this->client);
     }
 
+    public function basicAuthenticationRealms(): Endpoints\BasicAuthenticationRealms
+    {
+        return new Endpoints\BasicAuthenticationRealms($this->client);
+    }
+
     public function databases(): Endpoints\Databases
     {
         return new Endpoints\Databases($this->client);
