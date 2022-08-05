@@ -15,6 +15,7 @@ detailed information.
 - Add htpasswd users endpoint.
 - Add basic authentication realms endpoints.
 - Add CMS update option endpoint.
+- Add CMS update configuration constant endpoint.
 
 ## [1.64.0]
 

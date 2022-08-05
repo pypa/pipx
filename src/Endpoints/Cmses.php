@@ -5,6 +5,7 @@ namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
 use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Vdhicts\Cyberfusion\ClusterApi\Models\Cms;
 use Vdhicts\Cyberfusion\ClusterApi\Models\CmsOption;
+use Vdhicts\Cyberfusion\ClusterApi\Models\CmsConfigurationConstant;
 use Vdhicts\Cyberfusion\ClusterApi\Models\CmsInstallation;
 use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
 use Vdhicts\Cyberfusion\ClusterApi\Request;
@@ -282,4 +283,52 @@ class Cmses extends Endpoint
         ]);
     }
 
+    /**
+     * @param int $id
+     * @param CmsConfigurationConstant $cmsConfigurationConstant
+     * @return Response
+     * @throws RequestException
+     */
+    public function updateConfigurationConstant(int $id, CmsConfigurationConstant $cmsConfigurationConstant): Response
+    {
+        $this->validateRequired($cmsConfigurationConstant, 'update', [
+            'name',
+            'value',
+        ]);
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_PUT)
+            ->setUrl(sprintf('cmses/%d/configuration-constants/%d', $id, $cmsConfigurationConstant->getName()))
+            ->setBody($this->filterFields($cmsConfigurationConstant->toArray(), [
+                'name',
+                'value',
+            ]));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $cmsConfigurationConstant = (new CmsConfigurationConstant())->fromArray($response->getData());
+
+        // Retrieve the CMS again, so we log affected clusters and can return the CMS object
+        $retrieveResponse = $this->get($id);
+        if (!$retrieveResponse->isSuccess()) {
+            return $retrieveResponse;
+        }
+
+        $cms = $retrieveResponse->getData('cms');
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($cms->getClusterId());
+
+        return $response->setData([
+            'cmsConfigurationConstant' => $cmsConfigurationConstant,
+            'cms' => $cms,
+        ]);
+    }
 }
