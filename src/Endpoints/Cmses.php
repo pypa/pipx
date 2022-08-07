@@ -368,4 +368,40 @@ class Cmses extends Endpoint
             'taskCollection' => $taskCollection,
         ]);
     }
+
+    /**
+     * @param int $id
+     * @return Response
+     * @throws RequestException
+     */
+    public function regenerateSalts(int $id): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl(sprintf('cmses/%d/regenerate-salts', $id));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        // Retrieve the CMS again, so we log affected clusters and can return the CMS object
+        $retrieveResponse = $this->get($id);
+        if (!$retrieveResponse->isSuccess()) {
+            return $retrieveResponse;
+        }
+
+        $cms = $retrieveResponse->getData('cms');
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($cms->getClusterId());
+
+        return $response->setData([
+            'cms' => $cms,
+        ]);
+    }
 }
