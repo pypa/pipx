@@ -164,6 +164,12 @@ pipx install git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022
 pipx install https://github.com/psf/black/archive/18.9b0.zip  # install a release
 ```
 
+The pip syntax with `egg` must be used when installing extras:
+
+```
+pipx install "git+https://github.com/psf/black.git#egg=black[jupyter]"
+```
+
 ### Walkthrough: Running an Application in a Temporary Virtual Environment
 
 This is an alternative to `pipx install`.

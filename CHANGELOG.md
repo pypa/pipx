@@ -1,7 +1,10 @@
 ## dev
 
 - Add `pipx uninject` command (#820)
-- Add tests for Python 3.11
+- Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
+- [docs] Fix `pipx run` examples and update Python versions used by `pipx install` examples
+- [docs] Add an example for installation from source with extras
+- [dev] Add tests for Python 3.11
 
 ## 1.1.0
 

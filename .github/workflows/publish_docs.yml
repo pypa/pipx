@@ -13,9 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout main
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up Python ${{ env.default-python }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ env.default-python }}
       - name: Install nox
@@ -27,6 +27,6 @@ jobs:
           nox --error-on-missing-interpreters --non-interactive --session build_docs
       - name: Deploy docs
         if: ${{ success() }}
-        uses: mhausenblas/mkdocs-deploy-gh-pages@1.13
+        uses: mhausenblas/mkdocs-deploy-gh-pages@1.24
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -19,9 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout ${{ github.ref }}
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Set up Python ${{ env.default-python }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ env.default-python }}
     - name: Upgrade pip, Install nox
@@ -32,7 +32,7 @@ jobs:
       run: |
         nox --error-on-missing-interpreters --non-interactive --session build
     - name: Publish to Test PyPi
-      uses: pypa/gh-action-pypi-publish@v1.4.1
+      uses: pypa/gh-action-pypi-publish@v1.5.0
       with:
         user: __token__
         password: ${{ secrets.test_pypi_password }}

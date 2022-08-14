@@ -26,3 +26,16 @@ def test_version(monkeypatch, capsys):
     captured = capsys.readouterr()
     mock_exit.assert_called_with(0)
     assert main.__version__ in captured.out.strip()
+
+
+@pytest.mark.parametrize(
+    ("argv", "executable", "expected"),
+    [
+        ("/usr/bin/pipx", "", "pipx"),
+        ("__main__.py", "/usr/bin/python", "/usr/bin/python -m pipx"),
+    ],
+)
+def test_prog_name(monkeypatch, argv, executable, expected):
+    monkeypatch.setattr("pipx.main.sys.argv", [argv])
+    monkeypatch.setattr("pipx.main.sys.executable", executable)
+    assert main.prog_name() == expected
