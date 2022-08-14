@@ -61,6 +61,8 @@ jobs:
             python-version: "3.10"
           - os: macos-latest
             python-version: "3.10"
+          - python: 3.11-dev
+            nox-python: '3.11'
 
     steps:
     - uses: actions/checkout@v2
@@ -88,7 +90,7 @@ jobs:
         python -m pip install nox
     - name: Execute Tests
       run: |
-        nox --non-interactive --session tests-${{ matrix.python-version }}
+        nox --non-interactive --session tests-${{ matrix.nox-python || matrix.python-version }}
 
   pypi-publish:
     name: Publish pipx to PyPI on release
