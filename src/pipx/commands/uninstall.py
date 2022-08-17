@@ -93,7 +93,7 @@ def _get_venv_bin_dir_app_paths(venv: Venv, local_bin_dir: Path) -> Set[Path]:
         # The heuristic here is any symlink in ~/.local/bin pointing to
         # .local/pipx/venvs/VENV_NAME/{bin,Scripts} should be uninstalled.
 
-        # For non-symlink systems we give up and return and empty set.
+        # For non-symlink systems we give up and return an empty set.
         if not can_symlink(local_bin_dir):
             return set()
 
