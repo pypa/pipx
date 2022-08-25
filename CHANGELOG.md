@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.67.1]
+
+### Fixed
+
+- Add the required `domainRoot` attribute to virtual host update payload.
+- Remove the `deployCommands` attribute from virtual host, which was removed from the API earlier.
+
 ## [1.67.0]
 
 ### Added
