@@ -21,7 +21,6 @@ class VirtualHost extends ClusterModel implements Model
     private ?string $customConfig = null;
     private ?string $balancerBackendName = null;
     private ?string $domainRoot = null;
-    private array $deployCommands = [];
     private array $allowOverrideDirectives = AllowOverrideDirectives::DEFAULTS;
     private array $allowOverrideOptionDirectives = AllowOverrideOptionDirectives::DEFAULTS;
     private ?int $id = null;
@@ -176,18 +175,6 @@ class VirtualHost extends ClusterModel implements Model
         return $this;
     }
 
-    public function getDeployCommands(): array
-    {
-        return $this->deployCommands;
-    }
-
-    public function setDeployCommands(array $deployCommands): VirtualHost
-    {
-        $this->deployCommands = $deployCommands;
-
-        return $this;
-    }
-
     public function getAllowOverrideDirectives(): array
     {
         return $this->allowOverrideDirectives;
@@ -284,7 +271,6 @@ class VirtualHost extends ClusterModel implements Model
             ->setBalancerBackendName(Arr::get($data, 'balancer_backend_name'))
             ->setDomainRoot(Arr::get($data, 'domain_root'))
             ->setCustomConfig(Arr::get($data, 'custom_config'))
-            ->setDeployCommands(Arr::get($data, 'deploy_commands', []))
             ->setAllowOverrideDirectives(Arr::get($data, 'allow_override_directives', AllowOverrideDirectives::DEFAULTS))
             ->setAllowOverrideOptionDirectives(Arr::get($data, 'allow_override_option_directives', AllowOverrideOptionDirectives::DEFAULTS))
             ->setId(Arr::get($data, 'id'))
@@ -309,7 +295,6 @@ class VirtualHost extends ClusterModel implements Model
             'cluster_id' => $this->getClusterId(),
             'balancer_backend_name' => $this->getBalancerBackendName(),
             'domain_root' => $this->getDomainRoot(),
-            'deploy_commands' => $this->getDeployCommands(),
             'allow_override_directives' => $this->getAllowOverrideDirectives(),
             'allow_override_option_directives' => $this->getAllowOverrideOptionDirectives(),
             'created_at' => $this->getCreatedAt(),
