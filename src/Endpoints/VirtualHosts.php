@@ -99,6 +99,7 @@ class VirtualHosts extends Endpoint
                 'custom_config',
                 'balancer_backend_name',
                 'deploy_commands',
+                'domain_root',
                 'allow_override_directives',
                 'allow_override_option_directives',
             ]));
@@ -134,6 +135,7 @@ class VirtualHosts extends Endpoint
             'server_aliases',
             'unix_user_id',
             'document_root',
+            'domain_root',
             'public_root',
             'force_ssl',
             'balancer_backend_name',
