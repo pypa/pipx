@@ -4,6 +4,7 @@
 - [docs] Add an example for installation from source with extras
 
 - Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
+- `pipx run` will now reinstall the package if exceptions are raised when trying to run the app (such as missing Python interpreter symlink)
 
 ## 1.1.0
 
