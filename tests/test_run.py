@@ -186,10 +186,14 @@ def test_package_determination(
 
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_invalid_venv(capsys, pipx_temp_env):
-    run_pipx_cli_exit(["run", "pycowsay"])
+    run_pipx_cli_exit(["run", "pycowsay", "moo"])
     bin_path = _get_temporary_venv_path("pycowsay", sys.executable, [], []) / "bin"
-    (bin_path / "python").unlink()
-    run_pipx_cli_exit(["run", "pycowsay"])
+    if sys.platform.startswith("win"):
+        (bin_path / "python.exe").unlink()
+    else:
+        (bin_path / "python").unlink()
+    run_pipx_cli_exit(["run", "pycowsay", "moo"])
     captured = capsys.readouterr()
     assert "Exception found when trying to run pycowsay" in captured.err
     assert "Reinstalling pycowsay" in captured.err
+    assert "moo" in captured.out
