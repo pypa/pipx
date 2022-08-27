@@ -189,7 +189,7 @@ def test_invalid_venv(capsys, pipx_temp_env):
     run_pipx_cli_exit(["run", "pycowsay"])
     bin_path = _get_temporary_venv_path("pycowsay", sys.executable, [], []) / "bin"
     if sys.platform.startswith("win"):
-        (bin_path / "python.exe").unlink()
+        pipx.util.safe_unlink(bin_path / "python.exe")
     else:
         (bin_path / "python").unlink()
     run_pipx_cli_exit(["run", "pycowsay"])
