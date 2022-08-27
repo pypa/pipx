@@ -11,6 +11,7 @@ import pipx.util
 from helpers import run_pipx_cli
 from package_info import PKG
 from pipx import constants
+from pipx.commands.run import _get_temporary_venv_path
 
 
 def test_help_text(pipx_temp_env, monkeypatch, capsys):
@@ -181,3 +182,14 @@ def test_package_determination(
 
     assert "Cannot determine package name" not in caplog.text
     assert f"Determined package name: {package}" in caplog.text
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_invalid_venv(capsys, pipx_temp_env):
+    run_pipx_cli_exit(["run", "pycowsay"])
+    bin_path = _get_temporary_venv_path("pycowsay", sys.executable, [], []) / "bin"
+    (bin_path / "python").unlink()
+    run_pipx_cli_exit(["run", "pycowsay"])
+    captured = capsys.readouterr()
+    assert "Exception found when trying to run pycowsay" in captured.err
+    assert "Reinstalling pycowsay" in captured.err

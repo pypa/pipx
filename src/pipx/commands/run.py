@@ -101,7 +101,24 @@ def run(
 
     if venv.has_app(app, app_filename):
         logger.info(f"Reusing cached venv {venv_dir}")
-        venv.run_app(app, app_filename, app_args)
+        try:
+            venv.run_app(app, app_filename, app_args)
+        except Exception as e:
+            logger.warning(f"Exception found when trying to run {app}: {e}")
+            logger.warning(f"Reinstalling {app}...")
+            rmdir(venv_dir)
+            _download_and_run(
+                Path(venv_dir),
+                package_or_url,
+                app,
+                app_filename,
+                app_args,
+                python,
+                pip_args,
+                venv_args,
+                use_cache,
+                verbose,
+            )
     else:
         logger.info(f"venv location is {venv_dir}")
         _download_and_run(
