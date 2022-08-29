@@ -185,7 +185,7 @@ def test_package_determination(
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
-def test_invalid_venv(capsys, pipx_temp_env, assert_exit=None):
+def test_invalid_venv(capsys, pipx_temp_env):
     if sys.platform.startswith("win"):
         pytest.skip()
 
