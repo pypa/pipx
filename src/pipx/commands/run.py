@@ -43,6 +43,7 @@ def run(
     pypackages: bool,
     verbose: bool,
     use_cache: bool,
+    auto_reinstall: bool,
 ) -> NoReturn:
     """Installs venv to temporary dir (or reuses cache), then runs app from
     package
@@ -104,21 +105,24 @@ def run(
         try:
             venv.run_app(app, app_filename, app_args)
         except Exception as e:
-            logger.warning(f"Exception found when trying to run {app}: {e}")
-            logger.warning(f"Reinstalling {app}...")
-            rmdir(venv_dir)
-            _download_and_run(
-                Path(venv_dir),
-                package_or_url,
-                app,
-                app_filename,
-                app_args,
-                python,
-                pip_args,
-                venv_args,
-                use_cache,
-                verbose,
-            )
+            if auto_reinstall:
+                logger.warning(f"Exception found when trying to run {app}: {str(e)}")
+                logger.warning(f"Reinstalling {app}...")
+                rmdir(venv_dir)
+                _download_and_run(
+                    Path(venv_dir),
+                    package_or_url,
+                    app,
+                    app_filename,
+                    app_args,
+                    python,
+                    pip_args,
+                    venv_args,
+                    use_cache,
+                    verbose,
+                )
+            else:
+                logger.error(str(e))
     else:
         logger.info(f"venv location is {venv_dir}")
         _download_and_run(

@@ -197,6 +197,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             package_name = args.app_with_args[0]
 
         use_cache = not args.no_cache
+        auto_reinstall = not args.no_auto_reinstall
         commands.run(
             package_name,
             package_or_url,
@@ -207,6 +208,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             args.pypackages,
             verbose,
             use_cache,
+            auto_reinstall,
         )
         # We should never reach here because run() is NoReturn.
         return ExitCode(1)
@@ -580,6 +582,11 @@ def _add_run(subparsers: argparse._SubParsersAction) -> None:
         "--no-cache",
         action="store_true",
         help="Do not re-use cached virtual environment if it exists",
+    )
+    p.add_argument(
+        "--no-auto-reinstall",
+        action="store_true",
+        help="Do not reinstall the package automatically even if execptions are raised",
     )
     p.add_argument(
         "app_with_args",
