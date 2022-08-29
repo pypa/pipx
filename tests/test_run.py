@@ -193,7 +193,10 @@ def test_invalid_venv(capsys, pipx_temp_env, assert_exit=None):
     else:
         (tmp_venv_path / "bin" / "python").unlink()
 
-    assert run_pipx_cli(["run", "--no-auto-reinstall", "pycowsay"])
+    if sys.platform.startswith("win"):
+        run_pipx_cli_exit(["run", "--no-auto-reinstall", "pycowsay"], assert_exit=1)
+    else:
+        assert run_pipx_cli(["run", "--no-auto-reinstall", "pycowsay"])
 
     run_pipx_cli_exit(["run", "pycowsay"], assert_exit=0)
     captured = capsys.readouterr()
