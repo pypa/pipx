@@ -185,7 +185,7 @@ def test_package_determination(
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
-def test_invalid_venv(capsys, pipx_temp_env):
+def test_invalid_venv(capsys, pipx_temp_env, assert_exit=None):
     run_pipx_cli_exit(["run", "pycowsay"])
     tmp_venv_path = _get_temporary_venv_path("pycowsay", sys.executable, [], [])
     if sys.platform.startswith("win"):
@@ -193,11 +193,9 @@ def test_invalid_venv(capsys, pipx_temp_env):
     else:
         (tmp_venv_path / "bin" / "python").unlink()
 
-    run_pipx_cli(["run", "--no-auto-reinstall", "pycowsay"])
-    captured = capsys.readouterr()
-    assert "No such file or directory" in captured.err
+    assert run_pipx_cli(["run", "--no-auto-reinstall", "pycowsay"])
 
-    run_pipx_cli_exit(["run", "pycowsay"])
+    run_pipx_cli_exit(["run", "pycowsay"], assert_exit=0)
     captured = capsys.readouterr()
     assert "Exception found when trying to run pycowsay" in captured.err
     assert "Reinstalling pycowsay" in captured.err

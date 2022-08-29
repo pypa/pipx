@@ -122,7 +122,7 @@ def run(
                     verbose,
                 )
             else:
-                logger.error(str(e))
+                raise PipxError(str(e))
     else:
         logger.info(f"venv location is {venv_dir}")
         _download_and_run(
