@@ -124,6 +124,11 @@ class ClusterApi
         return new Endpoints\PassengerApps($this->client);
     }
 
+    public function redisInstances(): Endpoints\RedisInstances
+    {
+        return new Endpoints\RedisInstances($this->client);
+    }
+
     public function sshKeys(): Endpoints\SshKeys
     {
         return new Endpoints\SshKeys($this->client);

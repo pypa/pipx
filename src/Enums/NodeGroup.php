@@ -13,6 +13,7 @@ class NodeGroup
     public const MAIN = 'Main';
     public const PHP = 'PHP';
     public const PASSENGER = 'Passenger';
+    public const REDIS = 'Redis';
     public const BORG = 'Borg';
     public const FAST_REDIRECT = 'Fast Redirect';
 }
