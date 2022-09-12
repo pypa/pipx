@@ -76,6 +76,7 @@ class RedisInstances extends Endpoint
             'name',
             'password',
             'max_databases',
+            'primary_node_id',
             'memory_limit',
             'cluster_id',
         ]);
@@ -87,6 +88,7 @@ class RedisInstances extends Endpoint
                 'name',
                 'password',
                 'max_databases',
+                'primary_node_id',
                 'memory_limit',
                 'cluster_id',
             ]));
@@ -121,6 +123,7 @@ class RedisInstances extends Endpoint
             'name',
             'password',
             'max_databases',
+            'primary_node_id',
             'memory_limit',
             'port',
             'unit_name',
@@ -135,6 +138,7 @@ class RedisInstances extends Endpoint
                 'name',
                 'password',
                 'max_databases',
+                'primary_node_id',
                 'memory_limit',
                 'port',
                 'unit_name',
