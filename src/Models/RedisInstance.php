@@ -12,6 +12,7 @@ class RedisInstance extends ClusterModel implements Model
     private int $maxDatabases;
     private int $port;
     private int $memoryLimit;
+    private int $primaryNodeId;
     private ?string $unitName;
     private ?int $id = null;
     private ?int $clusterId = null;
@@ -83,6 +84,18 @@ class RedisInstance extends ClusterModel implements Model
         return $this;
     }
 
+    public function getPrimaryNodeId(): int
+    {
+        return $this->primaryNodeId;
+    }
+
+    public function setPrimaryNodeId(int $primaryNodeId): RedisInstance
+    {
+        $this->primaryNodeId = $primaryNodeId;
+
+        return $this;
+    }
+
     public function getUnitName(): ?string
     {
         return $this->unitName;
@@ -150,6 +163,7 @@ class RedisInstance extends ClusterModel implements Model
             ->setMaxDatabases(Arr::get($data, 'max_databases'))
             ->setPort(Arr::get($data, 'port'))
             ->setMemoryLimit(Arr::get($data, 'memory_limit'))
+            ->setPrimaryNodeId(Arr::get($data, 'primary_node_id'))
             ->setUnitName(Arr::get($data, 'unit_name'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
@@ -164,6 +178,7 @@ class RedisInstance extends ClusterModel implements Model
             'max_databases' => $this->getMaxDatabases(),
             'port' => $this->getPort(),
             'memory_limit' => $this->getMemoryLimit(),
+            'primary_node_id' => $this->getPrimaryNodeId(),
             'unit_name' => $this->getUnitName(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),

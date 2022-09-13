@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.69.0]
+
+### Added
+
+- Add the `primaryNodeId` attribute to Redis instances.
+
 ## [1.68.0]
 
 ### Added
