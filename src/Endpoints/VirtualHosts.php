@@ -156,6 +156,7 @@ class VirtualHosts extends Endpoint
                 'force_ssl',
                 'custom_config',
                 'balancer_backend_name',
+                'domain_root',
                 'allow_override_directives',
                 'allow_override_option_directives',
                 'id',
