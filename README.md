@@ -71,14 +71,17 @@ The endpoint methods may ask for filters, models and IDs. The method type hints 
 The endpoint may request a model. Most create and update requests do.
 
 ```php
+$unixUserUsername = 'foo';
+
 $unixUser = (new UnixUser())
-    ->setUsername('foo')
+    ->setUsername($unixUserUsername)
     ->setPassword('bar')
     ->setDefaultPhpVersion('7.4')
+    ->setVirtualHostsDirectory(sprintf('/home/%d', $unixUserUsername))
     ->setClusterId(1);
 
 $result = $api
-    ->unixUsers
+    ->unixUsers()
     ->create($unixUser);
 ```
 
