@@ -4,6 +4,12 @@ Client for the [Cyberfusion Cluster API](https://cluster-api.cyberfusion.nl/).
 
 This client was built for and tested on the **1.142** version of the API.
 
+## Support
+
+This client is officially supported by Cyberfusion. If you have any questions, open an issue on GitHub or send an email to support@cyberfusion.nl.
+
+The client was created by Vdhicts, a company which develops and implements IT solutions for businesses and educational institutions.
+
 ## Requirements
 
 This client requires PHP 7.4 or higher and uses Guzzle. PHP 7.4 is supported until its EOL date (November 28, 2022).
@@ -258,10 +264,6 @@ Contributions are welcome. See the [contributing guidelines](CONTRIBUTING.md).
 ## Security
 
 If you discover any security related issues, please email opensource@cyberfusion.nl instead of using the issue tracker.
-
-## Support
-
-If you encounter a problem with this client or have a question about it, feel free to open an issue on GitHub.
 
 ## License
 
