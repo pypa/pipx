@@ -1,12 +1,12 @@
 {
     "name": "cyberfusion/cyberfusion-cluster-api-client",
-    "description": "Client for the Cyberfusion Cluster API",
+    "description": "Client for Cyberfusion Cluster API",
     "keywords": [
         "cyberfusion",
         "cluster",
         "api"
     ],
-    "homepage": "https://github.com/cyberfusion/cyberfusion-cluster-api-client",
+    "homepage": "https://github.com/CyberfusionNL/cyberfusion-cluster-api-client",
     "license": "MIT",
     "require": {
         "php": "^7.4 || ^8.0",
@@ -23,12 +23,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Cyberfusion\\Cyberfusion\\ClusterApi\\": "src"
+            "Cyberfusion\\ClusterApi\\": "src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Cyberfusion\\Cyberfusion\\ClusterApi\\Tests\\": "tests"
+            "Cyberfusion\\ClusterApi\\Tests\\": "tests"
         }
     },
     "scripts": {
