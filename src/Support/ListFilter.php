@@ -9,7 +9,7 @@ use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\Limit;
 use Cyberfusion\ClusterApi\Enums\Sort;
 use Cyberfusion\ClusterApi\Exceptions\ListFilterException;
-use Cyberfusion\HttpQueryBuilder\Builder;
+use Vdhicts\HttpQueryBuilder\Builder;
 
 class ListFilter implements Filter
 {
