@@ -1,11 +1,11 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Tests\Support;
+namespace Cyberfusion\ClusterApi\Tests\Support;
 
 use Illuminate\Support\Carbon;
 use PHPUnit\Framework\TestCase;
-use Vdhicts\Cyberfusion\ClusterApi\Enums\Sort;
-use Vdhicts\Cyberfusion\ClusterApi\Support\LogFilter;
+use Cyberfusion\ClusterApi\Enums\Sort;
+use Cyberfusion\ClusterApi\Support\LogFilter;
 
 class LogFilterTest extends TestCase
 {

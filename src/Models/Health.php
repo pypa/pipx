@@ -1,10 +1,10 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Models;
+namespace Cyberfusion\ClusterApi\Models;
 
-use Vdhicts\Cyberfusion\ClusterApi\Support\Arr;
-use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
-use Vdhicts\Cyberfusion\ClusterApi\Enums\HealthStatus;
+use Cyberfusion\ClusterApi\Support\Arr;
+use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Enums\HealthStatus;
 
 class Health extends ClusterModel implements Model
 {

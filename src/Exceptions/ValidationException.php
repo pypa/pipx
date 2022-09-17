@@ -1,6 +1,6 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Exceptions;
+namespace Cyberfusion\ClusterApi\Exceptions;
 
 use Throwable;
 

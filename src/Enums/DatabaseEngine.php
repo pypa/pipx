@@ -1,6 +1,6 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Enums;
+namespace Cyberfusion\ClusterApi\Enums;
 
 class DatabaseEngine
 {

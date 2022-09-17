@@ -1,11 +1,11 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Tests\Support;
+namespace Cyberfusion\ClusterApi\Tests\Support;
 
 use PHPUnit\Framework\TestCase;
-use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ValidationException;
-use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
-use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
+use Cyberfusion\ClusterApi\Exceptions\ValidationException;
+use Cyberfusion\ClusterApi\Support\Str;
+use Cyberfusion\ClusterApi\Support\Validator;
 
 class ValidatorTest extends TestCase
 {

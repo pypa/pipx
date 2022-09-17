@@ -1,11 +1,11 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Models;
+namespace Cyberfusion\ClusterApi\Models;
 
 use JsonSerializable;
-use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
-use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ModelException;
-use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
+use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Exceptions\ModelException;
+use Cyberfusion\ClusterApi\Support\Str;
 
 abstract class ClusterModel implements JsonSerializable, Model
 {

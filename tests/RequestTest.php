@@ -1,9 +1,9 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Tests;
+namespace Cyberfusion\ClusterApi\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Vdhicts\Cyberfusion\ClusterApi\Request;
+use Cyberfusion\ClusterApi\Request;
 
 class RequestTest extends TestCase
 {

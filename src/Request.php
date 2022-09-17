@@ -1,6 +1,6 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi;
+namespace Cyberfusion\ClusterApi;
 
 class Request
 {

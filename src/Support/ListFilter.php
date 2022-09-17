@@ -1,14 +1,14 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Support;
+namespace Cyberfusion\ClusterApi\Support;
 
 use ReflectionClass;
 use ReflectionProperty;
-use Vdhicts\Cyberfusion\ClusterApi\Contracts\Filter;
-use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
-use Vdhicts\Cyberfusion\ClusterApi\Enums\Limit;
-use Vdhicts\Cyberfusion\ClusterApi\Enums\Sort;
-use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ListFilterException;
+use Cyberfusion\ClusterApi\Contracts\Filter;
+use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Enums\Limit;
+use Cyberfusion\ClusterApi\Enums\Sort;
+use Cyberfusion\ClusterApi\Exceptions\ListFilterException;
 use Vdhicts\HttpQueryBuilder\Builder;
 
 class ListFilter implements Filter

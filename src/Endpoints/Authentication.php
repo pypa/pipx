@@ -1,13 +1,13 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
+namespace Cyberfusion\ClusterApi\Endpoints;
 
-use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Vdhicts\Cyberfusion\ClusterApi\Models\Login;
-use Vdhicts\Cyberfusion\ClusterApi\Models\Token;
-use Vdhicts\Cyberfusion\ClusterApi\Models\UserInfo;
-use Vdhicts\Cyberfusion\ClusterApi\Request;
-use Vdhicts\Cyberfusion\ClusterApi\Response;
+use Cyberfusion\ClusterApi\Exceptions\RequestException;
+use Cyberfusion\ClusterApi\Models\Login;
+use Cyberfusion\ClusterApi\Models\Token;
+use Cyberfusion\ClusterApi\Models\UserInfo;
+use Cyberfusion\ClusterApi\Request;
+use Cyberfusion\ClusterApi\Response;
 
 class Authentication extends Endpoint
 {

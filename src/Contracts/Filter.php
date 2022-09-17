@@ -1,6 +1,6 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Contracts;
+namespace Cyberfusion\ClusterApi\Contracts;
 
 interface Filter
 {
