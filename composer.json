@@ -1,5 +1,5 @@
 {
-    "name": "cyberfusion/cyberfusion-cluster-api-client",
+    "name": "cyberfusion/cluster-api-client",
     "description": "Client for Cyberfusion Cluster API",
     "keywords": [
         "cyberfusion",
