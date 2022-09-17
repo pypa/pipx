@@ -1,9 +1,9 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Models;
+namespace Cyberfusion\ClusterApi\Models;
 
-use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
-use Vdhicts\Cyberfusion\ClusterApi\Support\Arr;
+use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 
 class DetailMessage extends ClusterModel implements Model
 {

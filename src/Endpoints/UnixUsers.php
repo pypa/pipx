@@ -1,16 +1,16 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
+namespace Cyberfusion\ClusterApi\Endpoints;
 
 use DateTimeInterface;
-use Vdhicts\Cyberfusion\ClusterApi\Enums\TimeUnit;
-use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Vdhicts\Cyberfusion\ClusterApi\Models\UnixUser;
-use Vdhicts\Cyberfusion\ClusterApi\Models\UnixUserComparison;
-use Vdhicts\Cyberfusion\ClusterApi\Models\UnixUserUsage;
-use Vdhicts\Cyberfusion\ClusterApi\Request;
-use Vdhicts\Cyberfusion\ClusterApi\Response;
-use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
+use Cyberfusion\ClusterApi\Enums\TimeUnit;
+use Cyberfusion\ClusterApi\Exceptions\RequestException;
+use Cyberfusion\ClusterApi\Models\UnixUser;
+use Cyberfusion\ClusterApi\Models\UnixUserComparison;
+use Cyberfusion\ClusterApi\Models\UnixUserUsage;
+use Cyberfusion\ClusterApi\Request;
+use Cyberfusion\ClusterApi\Response;
+use Cyberfusion\ClusterApi\Support\ListFilter;
 
 class UnixUsers extends Endpoint
 {

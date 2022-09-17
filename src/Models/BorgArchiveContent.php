@@ -1,11 +1,11 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Models;
+namespace Cyberfusion\ClusterApi\Models;
 
-use Vdhicts\Cyberfusion\ClusterApi\Enums\BorgArchiveObjectType;
-use Vdhicts\Cyberfusion\ClusterApi\Support\Arr;
-use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
-use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
+use Cyberfusion\ClusterApi\Enums\BorgArchiveObjectType;
+use Cyberfusion\ClusterApi\Support\Arr;
+use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Validator;
 
 class BorgArchiveContent extends ClusterModel implements Model
 {

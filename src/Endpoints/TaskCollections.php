@@ -1,11 +1,11 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
+namespace Cyberfusion\ClusterApi\Endpoints;
 
-use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Vdhicts\Cyberfusion\ClusterApi\Models\TaskResult;
-use Vdhicts\Cyberfusion\ClusterApi\Request;
-use Vdhicts\Cyberfusion\ClusterApi\Response;
+use Cyberfusion\ClusterApi\Exceptions\RequestException;
+use Cyberfusion\ClusterApi\Models\TaskResult;
+use Cyberfusion\ClusterApi\Request;
+use Cyberfusion\ClusterApi\Response;
 
 class TaskCollections extends Endpoint
 {

@@ -1,18 +1,18 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
+namespace Cyberfusion\ClusterApi\Endpoints;
 
 use DateTimeInterface;
-use Vdhicts\Cyberfusion\ClusterApi\Enums\TimeUnit;
-use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Vdhicts\Cyberfusion\ClusterApi\Models\Database;
-use Vdhicts\Cyberfusion\ClusterApi\Models\DatabaseComparison;
-use Vdhicts\Cyberfusion\ClusterApi\Models\DatabaseUsage;
-use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
-use Vdhicts\Cyberfusion\ClusterApi\Request;
-use Vdhicts\Cyberfusion\ClusterApi\Response;
-use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
-use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
+use Cyberfusion\ClusterApi\Enums\TimeUnit;
+use Cyberfusion\ClusterApi\Exceptions\RequestException;
+use Cyberfusion\ClusterApi\Models\Database;
+use Cyberfusion\ClusterApi\Models\DatabaseComparison;
+use Cyberfusion\ClusterApi\Models\DatabaseUsage;
+use Cyberfusion\ClusterApi\Models\TaskCollection;
+use Cyberfusion\ClusterApi\Request;
+use Cyberfusion\ClusterApi\Response;
+use Cyberfusion\ClusterApi\Support\ListFilter;
+use Cyberfusion\ClusterApi\Support\Str;
 
 class Databases extends Endpoint
 {

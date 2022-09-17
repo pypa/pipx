@@ -1,11 +1,11 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Contracts;
+namespace Cyberfusion\ClusterApi\Contracts;
 
-use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Vdhicts\Cyberfusion\ClusterApi\Request;
-use Vdhicts\Cyberfusion\ClusterApi\Response;
-use Vdhicts\Cyberfusion\ClusterApi\Support\Deployment;
+use Cyberfusion\ClusterApi\Exceptions\RequestException;
+use Cyberfusion\ClusterApi\Request;
+use Cyberfusion\ClusterApi\Response;
+use Cyberfusion\ClusterApi\Support\Deployment;
 
 interface Client
 {
@@ -22,7 +22,7 @@ interface Client
      * Add an affected cluster to the list for deployment.
      *
      * @param int $clusterId
-     * @return \Vdhicts\Cyberfusion\ClusterApi\Client
+     * @return \Cyberfusion\ClusterApi\Client
      */
     public function addAffectedCluster(int $clusterId): Client;
 

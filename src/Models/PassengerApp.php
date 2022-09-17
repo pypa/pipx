@@ -1,12 +1,12 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Models;
+namespace Cyberfusion\ClusterApi\Models;
 
-use Vdhicts\Cyberfusion\ClusterApi\Support\Arr;
-use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
-use Vdhicts\Cyberfusion\ClusterApi\Enums\PassengerEnvironment;
-use Vdhicts\Cyberfusion\ClusterApi\Enums\PassengerAppType;
-use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
+use Cyberfusion\ClusterApi\Support\Arr;
+use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Enums\PassengerEnvironment;
+use Cyberfusion\ClusterApi\Enums\PassengerAppType;
+use Cyberfusion\ClusterApi\Support\Validator;
 
 class PassengerApp extends ClusterModel implements Model
 {

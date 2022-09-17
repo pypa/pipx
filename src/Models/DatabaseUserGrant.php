@@ -1,11 +1,11 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Models;
+namespace Cyberfusion\ClusterApi\Models;
 
-use Vdhicts\Cyberfusion\ClusterApi\Support\Arr;
-use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
-use Vdhicts\Cyberfusion\ClusterApi\Support\Validator;
-use Vdhicts\Cyberfusion\ClusterApi\Enums\DatabaseUserGrantPrivilegeName;
+use Cyberfusion\ClusterApi\Support\Arr;
+use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Validator;
+use Cyberfusion\ClusterApi\Enums\DatabaseUserGrantPrivilegeName;
 
 class DatabaseUserGrant extends ClusterModel implements Model
 {

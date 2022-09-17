@@ -1,15 +1,15 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
+namespace Cyberfusion\ClusterApi\Endpoints;
 
-use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Vdhicts\Cyberfusion\ClusterApi\Models\BorgRepository;
-use Vdhicts\Cyberfusion\ClusterApi\Models\BorgArchiveMetadata;
-use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
-use Vdhicts\Cyberfusion\ClusterApi\Request;
-use Vdhicts\Cyberfusion\ClusterApi\Response;
-use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
-use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
+use Cyberfusion\ClusterApi\Exceptions\RequestException;
+use Cyberfusion\ClusterApi\Models\BorgRepository;
+use Cyberfusion\ClusterApi\Models\BorgArchiveMetadata;
+use Cyberfusion\ClusterApi\Models\TaskCollection;
+use Cyberfusion\ClusterApi\Request;
+use Cyberfusion\ClusterApi\Response;
+use Cyberfusion\ClusterApi\Support\ListFilter;
+use Cyberfusion\ClusterApi\Support\Str;
 
 class BorgRepositories extends Endpoint
 {

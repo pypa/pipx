@@ -1,17 +1,17 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Endpoints;
+namespace Cyberfusion\ClusterApi\Endpoints;
 
-use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Vdhicts\Cyberfusion\ClusterApi\Models\Cms;
-use Vdhicts\Cyberfusion\ClusterApi\Models\CmsOption;
-use Vdhicts\Cyberfusion\ClusterApi\Models\CmsConfigurationConstant;
-use Vdhicts\Cyberfusion\ClusterApi\Models\CmsInstallation;
-use Vdhicts\Cyberfusion\ClusterApi\Models\TaskCollection;
-use Vdhicts\Cyberfusion\ClusterApi\Request;
-use Vdhicts\Cyberfusion\ClusterApi\Response;
-use Vdhicts\Cyberfusion\ClusterApi\Support\ListFilter;
-use Vdhicts\Cyberfusion\ClusterApi\Support\Str;
+use Cyberfusion\ClusterApi\Exceptions\RequestException;
+use Cyberfusion\ClusterApi\Models\Cms;
+use Cyberfusion\ClusterApi\Models\CmsOption;
+use Cyberfusion\ClusterApi\Models\CmsConfigurationConstant;
+use Cyberfusion\ClusterApi\Models\CmsInstallation;
+use Cyberfusion\ClusterApi\Models\TaskCollection;
+use Cyberfusion\ClusterApi\Request;
+use Cyberfusion\ClusterApi\Response;
+use Cyberfusion\ClusterApi\Support\ListFilter;
+use Cyberfusion\ClusterApi\Support\Str;
 
 class Cmses extends Endpoint
 {

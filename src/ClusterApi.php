@@ -1,9 +1,9 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi;
+namespace Cyberfusion\ClusterApi;
 
-use Vdhicts\Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
-use Vdhicts\Cyberfusion\ClusterApi\Endpoints;
+use Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
+use Cyberfusion\ClusterApi\Endpoints;
 
 class ClusterApi
 {

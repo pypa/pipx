@@ -1,8 +1,8 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Models;
+namespace Cyberfusion\ClusterApi\Models;
 
-use Vdhicts\Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Contracts\Model;
 
 class Login extends ClusterModel implements Model
 {

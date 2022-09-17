@@ -1,10 +1,10 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Support;
+namespace Cyberfusion\ClusterApi\Support;
 
-use Vdhicts\Cyberfusion\ClusterApi\Models\Cluster;
-use Vdhicts\Cyberfusion\ClusterApi\Models\DetailMessage;
-use Vdhicts\Cyberfusion\ClusterApi\Models\HttpValidationError;
+use Cyberfusion\ClusterApi\Models\Cluster;
+use Cyberfusion\ClusterApi\Models\DetailMessage;
+use Cyberfusion\ClusterApi\Models\HttpValidationError;
 
 class Deployment
 {

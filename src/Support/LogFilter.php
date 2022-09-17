@@ -1,13 +1,13 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi\Support;
+namespace Cyberfusion\ClusterApi\Support;
 
 use Carbon\Carbon;
 use DateTimeInterface;
-use Vdhicts\Cyberfusion\ClusterApi\Contracts\Filter;
-use Vdhicts\Cyberfusion\ClusterApi\Enums\Limit;
-use Vdhicts\Cyberfusion\ClusterApi\Enums\Sort;
-use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ListFilterException;
+use Cyberfusion\ClusterApi\Contracts\Filter;
+use Cyberfusion\ClusterApi\Enums\Limit;
+use Cyberfusion\ClusterApi\Enums\Sort;
+use Cyberfusion\ClusterApi\Exceptions\ListFilterException;
 
 class LogFilter implements Filter
 {

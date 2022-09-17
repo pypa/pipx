@@ -1,26 +1,26 @@
 <?php
 
-namespace Vdhicts\Cyberfusion\ClusterApi;
+namespace Cyberfusion\ClusterApi;
 
 use GuzzleHttp\Client as GuzzleClient;
 use Psr\Http\Message\ResponseInterface;
 use Throwable;
-use Vdhicts\Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
-use Vdhicts\Cyberfusion\ClusterApi\Endpoints\Clusters;
-use Vdhicts\Cyberfusion\ClusterApi\Endpoints\Health;
-use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ClientException;
-use Vdhicts\Cyberfusion\ClusterApi\Exceptions\ClusterApiException;
-use Vdhicts\Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Vdhicts\Cyberfusion\ClusterApi\Models\DetailMessage;
-use Vdhicts\Cyberfusion\ClusterApi\Models\HttpValidationError;
-use Vdhicts\Cyberfusion\ClusterApi\Support\Arr;
-use Vdhicts\Cyberfusion\ClusterApi\Support\Deployment;
+use Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
+use Cyberfusion\ClusterApi\Endpoints\Clusters;
+use Cyberfusion\ClusterApi\Endpoints\Health;
+use Cyberfusion\ClusterApi\Exceptions\ClientException;
+use Cyberfusion\ClusterApi\Exceptions\ClusterApiException;
+use Cyberfusion\ClusterApi\Exceptions\RequestException;
+use Cyberfusion\ClusterApi\Models\DetailMessage;
+use Cyberfusion\ClusterApi\Models\HttpValidationError;
+use Cyberfusion\ClusterApi\Support\Arr;
+use Cyberfusion\ClusterApi\Support\Deployment;
 
 class Client implements ClientContract
 {
     private const CONNECT_TIMEOUT = 60;
     private const TIMEOUT = 180;
-    private const VERSION = '1.69.1';
+    private const VERSION = '1.70';
     private const USER_AGENT = 'cyberfusion-cluster-api-client/' . self::VERSION;
 
     private Configuration $configuration;
