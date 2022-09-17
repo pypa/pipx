@@ -20,7 +20,7 @@ This client can be used in any PHP project and with any framework.
 
 Install the client with Composer:
 
-`composer require cyberfusion/cyberfusion-cluster-api-client`
+`composer require cyberfusion/cluster-api-client`
 
 ## Usage
 
