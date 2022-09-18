@@ -42,7 +42,7 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ```
 
-Upgrade pipx with `python3 -m pip install --user --update pipx`.
+Upgrade pipx with `python3 -m pip install --user --upgrade pipx`.
 
 ### On Windows, install via pip (requires pip 19.0 or later)
 
