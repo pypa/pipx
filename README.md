@@ -225,6 +225,34 @@ Any arguments after the application name will be passed directly to the applicat
 
 ```
 
+Sometime pipx can consume arguments provided for application
+```
+> pipx run pycowsay --py
+
+usage: pipx run [-h] [--no-cache] [--pypackages] [--spec SPEC] [--verbose] [--python PYTHON]
+                [--system-site-packages] [--index-url INDEX_URL] [--editable] [--pip-args PIP_ARGS]
+                app ...
+pipx run: error: ambiguous option: --py could match --pypackages, --python
+```
+
+To prevent this put double dash `--` before APP. It will make pipx to ignore arguments to the right
+
+```
+> pipx run -- pycowsay --py
+
+
+  ----
+< --py >
+  ----
+   \   ^__^
+    \  (oo)\_______
+       (__)\       )\/\
+           ||----w |
+           ||     ||
+
+
+```
+
 Re-running the same app is quick because pipx caches Virtual Environments on a per-app basis. The caches only last a few days, and when they expire, pipx will again use the latest version of the package. This way you can be sure you're always running a new version of the package without having to manually upgrade.
 
 If the app name does not match that package name, you can use the `--spec` argument to specify the package to install and app to run separately:
