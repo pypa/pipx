@@ -225,7 +225,8 @@ Any arguments after the application name will be passed directly to the applicat
 
 ```
 
-Sometime pipx can consume arguments provided for application
+Sometime pipx can consume arguments provided for application:
+
 ```
 > pipx run pycowsay --py
 
@@ -235,7 +236,7 @@ usage: pipx run [-h] [--no-cache] [--pypackages] [--spec SPEC] [--verbose] [--py
 pipx run: error: ambiguous option: --py could match --pypackages, --python
 ```
 
-To prevent this put double dash `--` before APP. It will make pipx to ignore arguments to the right
+To prevent this put double dash `--` before APP. It will make pipx to forward the arguments to the right verbatim to the application:
 
 ```
 > pipx run -- pycowsay --py
