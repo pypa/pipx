@@ -252,3 +252,13 @@ def test_install_pip_failure(pipx_temp_env, capsys):
     assert Path(pip_log_file_match.group(1)).exists()
 
     assert re.search(r"pip (failed|seemed to fail) to build package", captured.err)
+
+
+def test_passed_python_and_force_flag_warning(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "--python", sys.executable, "--force", "black"])
+    captured = capsys.readouterr()
+    assert "--python is ignored when --force is passed." in captured.out
+
+    assert not run_pipx_cli(["install", "pycowsay", "--force"])
+    captured = capsys.readouterr()
+    assert "--python is ignored when --force is passed." not in captured.out

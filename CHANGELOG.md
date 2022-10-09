@@ -4,6 +4,7 @@
 - [docs] Add an example for installation from source with extras
 
 - Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
+- `pipx install`: emit a warning when `--force` and `--python` were passed at the same time
 
 ## 1.1.0
 
