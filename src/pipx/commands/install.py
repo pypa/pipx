@@ -51,7 +51,7 @@ def install(
                 pipx_wrap(
                     f"""
                     --python is ignored when --force is passed.
-                    If you want to reinstall {package_spec} with {python},
+                    If you want to reinstall {package_name} with {python},
                     run `pipx reinstall {package_spec} --python {python}` instead.
                     """
                 )
