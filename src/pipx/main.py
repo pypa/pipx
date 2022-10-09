@@ -353,7 +353,7 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
     )
     p.add_argument(
         "--python",
-        # Don't pass a default Python here so we know whether --python and --force were passed at the same time
+        # Don't pass a default Python here so we know whether --python flag was passed
         help=(
             "The Python executable used to create the Virtual Environment and run the "
             "associated app/apps. Must be v3.6+."
