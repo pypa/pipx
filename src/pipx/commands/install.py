@@ -27,17 +27,7 @@ def install(
     """Returns pipx exit code."""
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
-
-    if not reinstall and force and python is not None:
-        print(
-            pipx_wrap(
-                f"""
-                --python is ignored when --force is passed.
-                If you want to reinstall {package_spec} with {python},
-                run `pipx reinstall {package_spec} --python {python}` instead.
-                """
-            )
-        )
+    python_flag_was_passed = python is not None
 
     python = python or DEFAULT_PYTHON
 
@@ -56,6 +46,16 @@ def install(
 
     venv = Venv(venv_dir, python=python, verbose=verbose)
     if exists:
+        if not reinstall and force and python_flag_was_passed:
+            print(
+                pipx_wrap(
+                    f"""
+                    --python is ignored when --force is passed.
+                    If you want to reinstall {package_spec} with {python},
+                    run `pipx reinstall {package_spec} --python {python}` instead.
+                    """
+                )
+            )
         if force:
             print(f"Installing to existing venv {venv.name!r}")
         else:
