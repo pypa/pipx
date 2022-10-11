@@ -201,7 +201,7 @@ class Venv:
         else:
             # TODO: setuptools and wheel? Original code didn't bother
             # but shared libs code does.
-            self._upgrade_package_no_metadata("pip", pip_args)
+            self.upgrade_package_no_metadata("pip", pip_args)
 
     def uninstall_package(self, package: str, was_injected: bool = False):
         try:
@@ -421,7 +421,7 @@ class Venv:
             return True
         return (self.bin_path / filename).is_file()
 
-    def _upgrade_package_no_metadata(
+    def upgrade_package_no_metadata(
         self, package_name: str, pip_args: List[str]
     ) -> None:
         with animate(
