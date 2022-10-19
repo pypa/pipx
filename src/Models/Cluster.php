@@ -22,6 +22,7 @@ class Cluster extends ClusterModel implements Model
     private ?bool $malwareToolkitScansEnabled = null;
     private ?bool $bubblewrapToolkitEnabled = null;
     private ?bool $syncToolkitEnabled = null;
+    private ?string $description = null;
     private ?int $id = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
@@ -206,6 +207,18 @@ class Cluster extends ClusterModel implements Model
         return $this;
     }
 
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(?string $description): Cluster
+    {
+        $this->description = $description;
+
+        return $this;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -260,6 +273,7 @@ class Cluster extends ClusterModel implements Model
             ->setMalwareToolkitScansEnabled(Arr::get($data, 'malware_toolkit_scans_enabled'))
             ->setBubblewrapToolkitEnabled(Arr::get($data, 'bubblewrap_toolkit_enabled'))
             ->setSyncToolkitEnabled(Arr::get($data, 'sync_toolkit_enabled'))
+            ->setDescription(Arr::get($data, 'description'))
             ->setId(Arr::get($data, 'id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
             ->setUpdatedAt(Arr::get($data, 'updated_at'));
@@ -283,6 +297,7 @@ class Cluster extends ClusterModel implements Model
             'malware_toolkit_scans_enabled' => $this->isMalwareToolkitScansEnabled(),
             'bubblewrap_toolkit_enabled' => $this->isBubblewrapToolkitEnabled(),
             'sync_toolkit_enabled' => $this->isSyncToolkitEnabled(),
+            'description' => $this->getDescription(),
             'id' => $this->getId(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),
