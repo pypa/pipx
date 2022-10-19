@@ -10,7 +10,7 @@ from typing import List, NoReturn
 
 from pipx import constants
 from pipx.commands.common import package_name_from_spec
-from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
+from pipx.constants import EXIT_CODE_INSTALL_VENV_EXISTS, TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS, ExitCode
 from pipx.emojis import hazard
 from pipx.util import (
     PipxError,
@@ -48,35 +48,38 @@ def run(
     package
     """
 
-    if urllib.parse.urlparse(app).scheme:
-        if not app.endswith(".py"):
-            raise PipxError(
-                """
-                pipx will only execute apps from the internet directly if they
-                end with '.py'. To run from an SVN, try pipx --spec URL BINARY
-                """
-            )
-        logger.info("Detected url. Downloading and executing as a Python file.")
+    # Removed the logic here since we want to download the repo etc. either way
 
-        content = _http_get_request(app)
-        exec_app([str(python), "-c", content])
-
-    elif which(app):
-        logger.warning(
-            pipx_wrap(
-                f"""
-                {hazard}  {app} is already on your PATH and installed at
-                {which(app)}. Downloading and running anyway.
-                """,
-                subsequent_indent=" " * 4,
-            )
-        )
+    # if urllib.parse.urlparse(app).scheme:
+    #     if not app.endswith(".py"):
+    #         raise PipxError(
+    #             """
+    #             pipx will only execute apps from the internet directly if they
+    #             end with '.py'. To run from an SVN, try pipx --spec URL BINARY
+    #             """
+    #         )
+    #     logger.info("Detected url. Downloading and executing as a Python file.")
+    #
+    #     content = _http_get_request(app)
+    #     exec_app([str(python), "-c", content])
+    #
+    # elif which(app):
+    #     logger.warning(
+    #         pipx_wrap(
+    #             f"""
+    #             {hazard}  {app} is already on your PATH and installed at
+    #             {which(app)}. Downloading and running anyway.
+    #             """,
+    #             subsequent_indent=" " * 4,
+    #         )
+    #     )
 
     if WINDOWS:
         app_filename = f"{app}.exe"
         logger.info(f"Assuming app is {app_filename!r} (Windows only)")
     else:
         app_filename = app
+        # import pdb; pdb.set_trace();
 
     pypackage_bin_path = get_pypackage_bin_path(app)
     if pypackage_bin_path.exists():
@@ -98,6 +101,13 @@ def run(
     venv = Venv(venv_dir)
     bin_path = venv.bin_path / app_filename
     _prepare_venv_cache(venv, bin_path, use_cache)
+
+    # Added the same logic as in install.py to overwrite app with the correct value
+    # Used pdb to check what is passed below and caused the problem.
+
+    app = package_name_from_spec(
+            package_or_url, python, pip_args=pip_args, verbose=verbose
+            )
 
     if venv.has_app(app, app_filename):
         logger.info(f"Reusing cached venv {venv_dir}")
