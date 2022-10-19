@@ -8,7 +8,6 @@ use Cyberfusion\ClusterApi\Exceptions\ValidationException;
 class Validator
 {
     private const NULLABLE = 'nullable';
-    private const POSITIVE_INTEGER = 'positive_integer';
     private const MAX_LENGTH = 'length_max';
     private const MIN_LENGTH = 'length_min';
     private const PATTERN = 'pattern';
@@ -43,12 +42,6 @@ class Validator
     public function nullable(): self
     {
         $this->validations[self::NULLABLE] = true;
-        return $this;
-    }
-
-    public function positiveInteger(): self
-    {
-        $this->validations[self::POSITIVE_INTEGER] = true;
         return $this;
     }
 
@@ -120,8 +113,6 @@ class Validator
     private function performValidation(string $type, $setting): bool
     {
         switch ($type) {
-            case self::POSITIVE_INTEGER:
-                return is_integer($this->value) && $this->value >= 0;
             case self::MAX_LENGTH:
                 return
                     (is_string($this->value) && Str::length($this->value) <= $setting) ||

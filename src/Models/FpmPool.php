@@ -71,10 +71,6 @@ class FpmPool extends ClusterModel implements Model
 
     public function setMaxChildren(int $maxChildren): FpmPool
     {
-        Validator::value($maxChildren)
-            ->positiveInteger()
-            ->validate();
-
         $this->maxChildren = $maxChildren;
 
         return $this;
@@ -87,10 +83,6 @@ class FpmPool extends ClusterModel implements Model
 
     public function setMaxRequests(int $maxRequests): FpmPool
     {
-        Validator::value($maxRequests)
-            ->positiveInteger()
-            ->validate();
-
         $this->maxRequests = $maxRequests;
 
         return $this;
@@ -103,10 +95,6 @@ class FpmPool extends ClusterModel implements Model
 
     public function setProcessIdleTimeout(int $processIdleTimeout): FpmPool
     {
-        Validator::value($processIdleTimeout)
-            ->positiveInteger()
-            ->validate();
-
         $this->processIdleTimeout = $processIdleTimeout;
 
         return $this;
@@ -119,11 +107,6 @@ class FpmPool extends ClusterModel implements Model
 
     public function setCpuLimit(?int $cpuLimit): FpmPool
     {
-        Validator::value($cpuLimit)
-            ->nullable()
-            ->positiveInteger()
-            ->validate();
-
         $this->cpuLimit = $cpuLimit;
 
         return $this;
@@ -136,11 +119,6 @@ class FpmPool extends ClusterModel implements Model
 
     public function setLogShowRequestsThreshold(?int $logShowRequestsThreshold): FpmPool
     {
-        Validator::value($logShowRequestsThreshold)
-            ->nullable()
-            ->positiveInteger()
-            ->validate();
-
         $this->logShowRequestsThreshold = $logShowRequestsThreshold;
 
         return $this;
