@@ -63,6 +63,7 @@ class CmsInstallation extends ClusterModel implements Model
     {
         Validator::value($databaseUserPassword)
             ->minLength(1)
+            ->maxLength(255)
             ->validate();
 
         $this->databaseUserPassword = $databaseUserPassword;
@@ -179,6 +180,7 @@ class CmsInstallation extends ClusterModel implements Model
     {
         Validator::value($adminPassword)
             ->minLength(1)
+            ->maxLength(255)
             ->validate();
 
         $this->adminPassword = $adminPassword;
