@@ -144,6 +144,26 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
+    public function testPath()
+    {
+        $result = Validator::value('/home/test')
+            ->path()
+            ->validate();
+        $this->assertTrue($result);
+
+        // Total string exceeds max length
+        $this->expectException(ValidationException::class);
+        Validator::value(sprintf('/%s', bin2hex(random_bytes($length = 4097))))
+            ->path()
+            ->validate();
+
+        // Path element exceeds max length
+        $this->expectException(ValidationException::class);
+        Validator::value(sprintf('/home/%s', bin2hex(random_bytes($length = 256))))
+            ->path()
+            ->validate();
+    }
+
     public function testUuid()
     {
         $result = Validator::value(Str::uuid())

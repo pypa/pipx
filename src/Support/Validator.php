@@ -16,6 +16,7 @@ class Validator
     private const UNIQUE = 'unique_list';
     private const IP = 'ip';
     private const EMAIL = 'email';
+    private const PATH = 'path';
     private const UUID = 'uuid';
     private const ENDS_WITH = 'ends_with';
 
@@ -93,6 +94,12 @@ class Validator
         return $this;
     }
 
+    public function path(): self
+    {
+        $this->validations[self::PATH] = true;
+        return $this;
+    }
+
     public function uuid(): self
     {
         $this->validations[self::UUID] = true;
@@ -133,6 +140,32 @@ class Validator
                 return filter_var($this->value, FILTER_VALIDATE_IP) !== false;
             case self::EMAIL:
                 return filter_var($this->value, FILTER_VALIDATE_EMAIL) !== false;
+            case self::PATH:
+                // Check type
+
+                if (! is_string($this->value)) {
+                    return false;
+                }
+
+                // Check length of total string
+
+                if (strlen($this->value) >= 4096) {
+                    return false;
+                }
+
+                // Check length of each element
+
+                $elements = explode('/', $this->value);
+
+                foreach ($elements as $element) {
+                    if (strlen($element) <= 255) {
+                        continue;
+                    }
+
+                    return false;
+                }
+
+                return true;
             case self::UUID:
                 return Uuid::isValid($this->value);
             case self::ENDS_WITH:
