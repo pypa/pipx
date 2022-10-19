@@ -75,6 +75,10 @@ class VirtualHost extends ClusterModel implements Model
 
     public function setDocumentRoot(string $documentRoot): VirtualHost
     {
+        Validator::value($documentRoot)
+            ->path()
+            ->validate();
+
         $this->documentRoot = $documentRoot;
 
         return $this;
@@ -87,6 +91,10 @@ class VirtualHost extends ClusterModel implements Model
 
     public function setPublicRoot(string $publicRoot): VirtualHost
     {
+        Validator::value($publicRoot)
+            ->path()
+            ->validate();
+
         $this->publicRoot = $publicRoot;
 
         return $this;
@@ -170,6 +178,11 @@ class VirtualHost extends ClusterModel implements Model
 
     public function setDomainRoot(?string $domainRoot): VirtualHost
     {
+        Validator::value($domainRoot)
+            ->nullable()
+            ->path()
+            ->validate();
+
         $this->domainRoot = $domainRoot;
 
         return $this;

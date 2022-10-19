@@ -4,6 +4,7 @@ namespace Cyberfusion\ClusterApi\Models;
 
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Validator;
 
 class Cluster extends ClusterModel implements Model
 {
@@ -58,6 +59,11 @@ class Cluster extends ClusterModel implements Model
 
     public function setUnixUsersHomeDirectory(?string $unixUsersHomeDirectory): Cluster
     {
+        Validator::value($unixUsersHomeDirectory)
+            ->nullable()
+            ->path()
+            ->validate();
+
         $this->unixUsersHomeDirectory = $unixUsersHomeDirectory;
 
         return $this;
@@ -70,6 +76,11 @@ class Cluster extends ClusterModel implements Model
 
     public function setDatabasesDataDirectory(?string $databasesDataDirectory): Cluster
     {
+        Validator::value($databasesDataDirectory)
+            ->nullable()
+            ->path()
+            ->validate();
+
         $this->databasesDataDirectory = $databasesDataDirectory;
 
         return $this;

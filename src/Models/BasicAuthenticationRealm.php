@@ -41,6 +41,10 @@ class BasicAuthenticationRealm extends ClusterModel implements Model
 
     public function setDirectoryPath(string $directoryPath): BasicAuthenticationRealm
     {
+        Validator::value($directoryPath)
+            ->path()
+            ->validate();
+
         $this->directoryPath = $directoryPath;
 
         return $this;

@@ -77,6 +77,11 @@ class BorgArchiveContent extends ClusterModel implements Model
 
     public function setPath(?string $path): BorgArchiveContent
     {
+        Validator::value($path)
+            ->nullable()
+            ->path()
+            ->validate();
+
         $this->path = $path;
 
         return $this;
