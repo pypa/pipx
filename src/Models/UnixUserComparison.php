@@ -23,6 +23,8 @@ class UnixUserComparison extends ClusterModel implements Model
 
     public function setNotIdenticalPaths(array $notIdenticalPaths): UnixUserComparison
     {
+        // TODO
+
         $this->notIdenticalPaths = $notIdenticalPaths;
 
         return $this;
@@ -38,6 +40,8 @@ class UnixUserComparison extends ClusterModel implements Model
 
     public function setOnlyLeftFilesPaths(array $onlyLeftFilesPaths): UnixUserComparison
     {
+        // TODO
+
         $this->onlyLeftFilesPaths = $onlyLeftFilesPaths;
 
         return $this;
@@ -53,6 +57,8 @@ class UnixUserComparison extends ClusterModel implements Model
 
     public function setOnlyRightFilesPaths(array $onlyRightFilesPaths): UnixUserComparison
     {
+        // TODO
+
         $this->onlyRightFilesPaths = $onlyRightFilesPaths;
 
         return $this;
@@ -68,6 +74,8 @@ class UnixUserComparison extends ClusterModel implements Model
 
     public function setOnlyLeftDirectoriesPaths(array $onlyLeftDirectoriesPaths): UnixUserComparison
     {
+        // TODO
+
         $this->onlyLeftDirectoriesPaths = $onlyLeftDirectoriesPaths;
 
         return $this;
@@ -83,6 +91,8 @@ class UnixUserComparison extends ClusterModel implements Model
 
     public function setOnlyRightDirectoriesPaths(array $onlyRightDirectoriesPaths): UnixUserComparison
     {
+        // TODO
+
         $this->onlyRightDirectoriesPaths = $onlyRightDirectoriesPaths;
 
         return $this;
