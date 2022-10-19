@@ -42,7 +42,6 @@ class MailAlias extends ClusterModel implements Model
     {
         Validator::value($forwardEmailAddresses)
             ->unique()
-            ->minLength(1)
             ->validate();
 
         $this->forwardEmailAddresses = $forwardEmailAddresses;

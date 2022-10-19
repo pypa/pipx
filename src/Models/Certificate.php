@@ -40,7 +40,6 @@ class Certificate extends ClusterModel implements Model
     public function setCommonNames(array $commonNames): Certificate
     {
         Validator::value($commonNames)
-            ->minLength(1)
             ->unique()
             ->validate();
 

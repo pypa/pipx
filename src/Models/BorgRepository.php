@@ -51,7 +51,6 @@ class BorgRepository extends ClusterModel implements Model
     {
         Validator::value($passphrase)
             ->maxLength(255)
-            ->minLength(1)
             ->validate();
 
         $this->passphrase = $passphrase;

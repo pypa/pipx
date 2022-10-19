@@ -64,7 +64,6 @@ class DatabaseUser extends ClusterModel implements Model
     public function setPassword(string $password): DatabaseUser
     {
         Validator::value($password)
-            ->minLength(1)
             ->maxLength(255)
             ->validate();
 

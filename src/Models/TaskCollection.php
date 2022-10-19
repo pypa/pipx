@@ -39,7 +39,6 @@ class TaskCollection extends ClusterModel implements Model
     public function setDescription(string $description): TaskCollection
     {
         Validator::value($description)
-            ->minLength(1)
             ->maxLength(255)
             ->validate();
 

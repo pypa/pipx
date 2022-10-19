@@ -48,7 +48,6 @@ class Cron extends ClusterModel implements Model
     public function setCommand(string $command): Cron
     {
         Validator::value($command)
-            ->minLength(1)
             ->maxLength(65535)
             ->validate();
 
