@@ -38,7 +38,6 @@ class TaskResult extends ClusterModel implements Model
     public function setDescription(string $description): TaskResult
     {
         Validator::value($description)
-            ->minLength(1)
             ->maxLength(65535)
             ->validate();
 
@@ -55,7 +54,6 @@ class TaskResult extends ClusterModel implements Model
     public function setMessage(string $message): TaskResult
     {
         Validator::value($message)
-            ->minLength(1)
             ->maxLength(65535)
             ->validate();
 

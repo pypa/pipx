@@ -7,6 +7,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.71.0]
+
+### Added
+
+- Add the `expiresIn` attribute to tokens.
+- Add the `description` attribute to clusters.
+
+### Changed
+
+- Update to [API version 1.143](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.143-2022-10-19).
+- Add max length to `CmsInstallation` (`database_user_password` + `admin_password`) and `CmsConfigurationConstant` (`value`)
+- Remove min length validation from strings.
+
+## [1.70.0]
+
+### Changed
+
+- Renamed package and namespace.
+
 ## [1.69.1]
 
 ### Fixed

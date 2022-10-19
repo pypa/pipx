@@ -9,6 +9,7 @@ class Token extends ClusterModel implements Model
 {
     private string $accessToken;
     private string $tokenType;
+    private int $expiresIn;
 
     public function getAccessToken(): string
     {
@@ -18,6 +19,18 @@ class Token extends ClusterModel implements Model
     public function setAccessToken(string $accessToken): Token
     {
         $this->accessToken = $accessToken;
+
+        return $this;
+    }
+
+    public function getExpiresIn(): int
+    {
+        return $this->expiresIn;
+    }
+
+    public function setExpiresIn(int $expiresIn): Token
+    {
+        $this->expiresIn = $expiresIn;
 
         return $this;
     }
@@ -38,6 +51,7 @@ class Token extends ClusterModel implements Model
     {
         return $this
             ->setAccessToken(Arr::get($data, 'access_token', ''))
+            ->setExpiresIn(Arr::get($data, 'expires_in', ''))
             ->setTokenType(Arr::get($data, 'token_type', ''));
     }
 
@@ -45,6 +59,7 @@ class Token extends ClusterModel implements Model
     {
         return [
             'access_token' => $this->getAccessToken(),
+            'expires_in' => $this->getExpiresIn(),
             'token_type' => $this->getTokenType(),
         ];
     }

@@ -21,6 +21,7 @@ class CmsConfigurationConstant extends ClusterModel implements Model
     {
         Validator::value($name)
             ->valueIn(CmsConfigurationConstantName::AVAILABLE)
+            ->maxLength(255)
             ->validate();
 
         $this->name = $name;

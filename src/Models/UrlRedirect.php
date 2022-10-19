@@ -60,7 +60,6 @@ class UrlRedirect extends ClusterModel implements Model
     {
         Validator::value($destinationUrl)
             ->maxLength(2083)
-            ->minLength(1)
             ->validate();
 
         $this->destinationUrl = $destinationUrl;
