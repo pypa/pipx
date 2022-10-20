@@ -22,6 +22,7 @@ class Validator
 
     /** @var mixed */
     private $value;
+    private bool $multiple = false;
     private array $validations = [];
 
     /**
@@ -38,6 +39,12 @@ class Validator
     private function __construct($value)
     {
         $this->value = $value;
+    }
+
+    public function each(): self
+    {
+        $this->multiple = true;
+        return $this;
     }
 
     public function nullable(): self
@@ -112,50 +119,47 @@ class Validator
         return $this;
     }
 
-    private function isNullable(): bool
+    private function performValidation(string $type, $setting, $value): bool
     {
-        return Arr::has($this->validations, self::NULLABLE);
-    }
+        // When the field is nullable and the value is null no other validations need to be performed
+        if (Arr::has($this->validations, self::NULLABLE) && is_null($value)) {
+            return true;
+        }
 
-    private function performValidation(string $type, $setting): bool
-    {
         switch ($type) {
             case self::MAX_LENGTH:
                 return
-                    (is_string($this->value) && Str::length($this->value) <= $setting) ||
-                    (is_array($this->value) && count($this->value) <= $setting);
+                    (is_string($value) && Str::length($value) <= $setting) ||
+                    (is_array($value) && count($value) <= $setting);
             case self::MIN_LENGTH:
                 return
-                    (is_string($this->value) && Str::length($this->value) >= $setting) ||
-                    (is_array($this->value) && count($this->value) >= $setting);
+                    (is_string($value) && Str::length($value) >= $setting) ||
+                    (is_array($value) && count($value) >= $setting);
             case self::PATTERN:
-                return is_string($this->value) && Str::doesMatch($this->value, sprintf('/%s/', $setting));
+                return is_string($value) && Str::doesMatch($value, sprintf('/%s/', $setting));
             case self::VALUE_IN:
-                return in_array($this->value, $setting);
+                return in_array($value, $setting);
             case self::VALUES_IN:
-                return !array_diff($this->value, $setting);
+                return !array_diff($value, $setting);
             case self::UNIQUE:
-                return is_array($this->value) && count(array_unique($this->value)) === count($this->value);
+                return is_array($value) && count(array_unique($value)) === count($value);
             case self::IP:
-                return filter_var($this->value, FILTER_VALIDATE_IP) !== false;
+                return filter_var($value, FILTER_VALIDATE_IP) !== false;
             case self::EMAIL:
-                return filter_var($this->value, FILTER_VALIDATE_EMAIL) !== false;
+                return filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
             case self::PATH:
                 // Check type
-
-                if (! is_string($this->value)) {
+                if (! is_string($value)) {
                     return false;
                 }
 
                 // Check length of total string
-
-                if (strlen($this->value) >= 4096) {
+                if (strlen($value) >= 4096) {
                     return false;
                 }
 
                 // Check length of each element
-
-                $elements = explode('/', $this->value);
+                $elements = explode('/', $value);
 
                 foreach ($elements as $element) {
                     if (strlen($element) <= 255) {
@@ -167,9 +171,9 @@ class Validator
 
                 return true;
             case self::UUID:
-                return Uuid::isValid($this->value);
+                return Uuid::isValid($value);
             case self::ENDS_WITH:
-                return is_string($this->value) && Str::endsWith($this->value, $setting);
+                return is_string($value) && Str::endsWith($value, $setting);
             default:
                 return true;
         }
@@ -180,23 +184,25 @@ class Validator
      */
     public function validate(): bool
     {
-        // When the field is nullable and the value is null no other validations are performed
-        if ($this->isNullable() && is_null($this->value)) {
-            return true;
-        }
+        $sources = $this->multiple && is_array($this->value)
+            ? $this->value
+            : [$this->value];
 
         $failedValidations = [];
-        foreach ($this->validations as $type => $setting) {
-            $isValid = $this->performValidation($type, $setting);
+        foreach ($sources as $source) {
+            foreach ($this->validations as $type => $setting) {
+                $isValid = $this->performValidation($type, $setting, $source);
 
-            if (!$isValid) {
-                $failedValidations[] = sprintf(
-                    '%s: %s',
-                    $type,
-                    is_array($setting)
-                        ? implode(';', $setting)
-                        : $setting
-                );
+                if (!$isValid) {
+                    $failedValidations[] = sprintf(
+                        '%s: %s failed on %s',
+                        $type,
+                        is_array($setting)
+                            ? implode(';', $setting)
+                            : $setting,
+                        var_export($source, true)
+                    );
+                }
             }
         }
 
