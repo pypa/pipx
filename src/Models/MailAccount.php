@@ -53,11 +53,6 @@ class MailAccount extends ClusterModel implements Model
 
     public function setQuota(?int $quota): MailAccount
     {
-        Validator::value($quota)
-            ->nullable()
-            ->positiveInteger()
-            ->validate();
-
         $this->quota = $quota;
 
         return $this;

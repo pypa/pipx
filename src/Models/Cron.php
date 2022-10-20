@@ -116,10 +116,6 @@ class Cron extends ClusterModel implements Model
 
     public function setErrorCount(int $errorCount): Cron
     {
-        Validator::value($errorCount)
-            ->positiveInteger()
-            ->validate();
-
         $this->errorCount = $errorCount;
 
         return $this;
@@ -132,10 +128,6 @@ class Cron extends ClusterModel implements Model
 
     public function setRandomDelayMaxSeconds(int $randomDelayMaxSeconds): Cron
     {
-        Validator::value($randomDelayMaxSeconds)
-            ->positiveInteger()
-            ->validate();
-
         $this->randomDelayMaxSeconds = $randomDelayMaxSeconds;
 
         return $this;

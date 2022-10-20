@@ -20,31 +20,13 @@ class ValidatorTest extends TestCase
     {
         $result = Validator::value(null)
             ->nullable()
-            ->positiveInteger()
+            ->email()
             ->validate();
         $this->assertTrue($result);
 
         $this->expectException(ValidationException::class);
         Validator::value(null)
-            ->positiveInteger()
-            ->validate();
-    }
-
-    public function testPositiveInteger()
-    {
-        $result = Validator::value(1)
-            ->positiveInteger()
-            ->validate();
-        $this->assertTrue($result);
-
-        $result = Validator::value(0)
-            ->positiveInteger()
-            ->validate();
-        $this->assertTrue($result);
-
-        $this->expectException(ValidationException::class);
-        Validator::value(-1)
-            ->positiveInteger()
+            ->email()
             ->validate();
     }
 

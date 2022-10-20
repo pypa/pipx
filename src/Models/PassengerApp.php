@@ -94,10 +94,6 @@ class PassengerApp extends ClusterModel implements Model
 
     public function setMaxPoolSize(int $maxPoolSize): PassengerApp
     {
-        Validator::value($maxPoolSize)
-            ->positiveInteger()
-            ->validate();
-
         $this->maxPoolSize = $maxPoolSize;
 
         return $this;
@@ -110,10 +106,6 @@ class PassengerApp extends ClusterModel implements Model
 
     public function setMaxRequests(int $maxRequests): PassengerApp
     {
-        Validator::value($maxRequests)
-            ->positiveInteger()
-            ->validate();
-
         $this->maxRequests = $maxRequests;
 
         return $this;
@@ -126,10 +118,6 @@ class PassengerApp extends ClusterModel implements Model
 
     public function setPoolIdleTime(int $poolIdleTime): PassengerApp
     {
-        Validator::value($poolIdleTime)
-            ->positiveInteger()
-            ->validate();
-
         $this->poolIdleTime = $poolIdleTime;
 
         return $this;
@@ -142,10 +130,6 @@ class PassengerApp extends ClusterModel implements Model
 
     public function setPort(int $port): PassengerApp
     {
-        Validator::value($port)
-            ->positiveInteger()
-            ->validate();
-
         $this->port = $port;
 
         return $this;
@@ -227,11 +211,6 @@ class PassengerApp extends ClusterModel implements Model
 
     public function setCpuLimit(?int $cpuLimit): PassengerApp
     {
-        Validator::value($cpuLimit)
-            ->nullable()
-            ->positiveInteger()
-            ->validate();
-
         $this->cpuLimit = $cpuLimit;
 
         return $this;

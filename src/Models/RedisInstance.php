@@ -43,10 +43,6 @@ class RedisInstance extends ClusterModel implements Model
 
     public function setMaxDatabases(int $maxDatabases): RedisInstance
     {
-        Validator::value($maxDatabases)
-            ->positiveInteger()
-            ->validate();
-
         $this->maxDatabases = $maxDatabases;
 
         return $this;
@@ -59,10 +55,6 @@ class RedisInstance extends ClusterModel implements Model
 
     public function setPort(int $port): RedisInstance
     {
-        Validator::value($port)
-            ->positiveInteger()
-            ->validate();
-
         $this->port = $port;
 
         return $this;
@@ -75,10 +67,6 @@ class RedisInstance extends ClusterModel implements Model
 
     public function setMemoryLimit(int $memoryLimit): RedisInstance
     {
-        Validator::value($memoryLimit)
-            ->positiveInteger()
-            ->validate();
-
         $this->memoryLimit = $memoryLimit;
 
         return $this;
