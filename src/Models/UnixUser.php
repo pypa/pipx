@@ -96,6 +96,10 @@ class UnixUser extends ClusterModel implements Model
 
     public function setDefaultNodejsVersion(?string $defaultNodejsVersion): UnixUser
     {
+        Validator::value($defaultNodejsVersion)
+            ->pattern('^[0-9]{1,2}\.[0-9]{1,2}$')
+            ->validate();
+
         $this->defaultNodejsVersion = $defaultNodejsVersion;
 
         return $this;
@@ -108,6 +112,11 @@ class UnixUser extends ClusterModel implements Model
 
     public function setHomeDirectory(?string $homeDirectory): UnixUser
     {
+        Validator::value($homeDirectory)
+            ->nullable()
+            ->path()
+            ->validate();
+
         $this->homeDirectory = $homeDirectory;
 
         return $this;
@@ -120,6 +129,11 @@ class UnixUser extends ClusterModel implements Model
 
     public function setSshDirectory(?string $sshDirectory): UnixUser
     {
+        Validator::value($sshDirectory)
+            ->nullable()
+            ->path()
+            ->validate();
+
         $this->sshDirectory = $sshDirectory;
 
         return $this;
@@ -132,6 +146,11 @@ class UnixUser extends ClusterModel implements Model
 
     public function setVirtualHostsDirectory(?string $virtualHostsDirectory): UnixUser
     {
+        Validator::value($virtualHostsDirectory)
+            ->nullable()
+            ->path()
+            ->validate();
+
         $this->virtualHostsDirectory = $virtualHostsDirectory;
 
         return $this;
@@ -144,6 +163,11 @@ class UnixUser extends ClusterModel implements Model
 
     public function setMailDomainsDirectory(?string $mailDomainsDirectory): UnixUser
     {
+        Validator::value($mailDomainsDirectory)
+            ->nullable()
+            ->path()
+            ->validate();
+
         $this->mailDomainsDirectory = $mailDomainsDirectory;
 
         return $this;
@@ -156,6 +180,11 @@ class UnixUser extends ClusterModel implements Model
 
     public function setBorgRepositoriesDirectory(?string $borgRepositoriesDirectory): UnixUser
     {
+        Validator::value($borgRepositoriesDirectory)
+            ->nullable()
+            ->path()
+            ->validate();
+
         $this->borgRepositoriesDirectory = $borgRepositoriesDirectory;
 
         return $this;

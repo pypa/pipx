@@ -137,6 +137,11 @@ class BorgRepository extends ClusterModel implements Model
 
     public function setRemotePath(?string $remotePath): BorgRepository
     {
+        Validator::value($remotePath)
+            ->nullable()
+            ->path()
+            ->validate();
+
         $this->remotePath = $remotePath;
 
         return $this;
@@ -161,6 +166,11 @@ class BorgRepository extends ClusterModel implements Model
 
     public function setIdentityFilePath(?string $identityFilePath): BorgRepository
     {
+        Validator::value($identityFilePath)
+            ->nullable()
+            ->path()
+            ->validate();
+
         $this->identityFilePath = $identityFilePath;
 
         return $this;

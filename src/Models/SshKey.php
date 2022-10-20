@@ -76,6 +76,11 @@ class SshKey extends ClusterModel implements Model
 
     public function setIdentityFilePath(?string $identityFilePath): SshKey
     {
+        Validator::value($identityFilePath)
+            ->nullable()
+            ->path()
+            ->validate();
+
         $this->identityFilePath = $identityFilePath;
 
         return $this;

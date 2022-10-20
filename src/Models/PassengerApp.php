@@ -158,6 +158,10 @@ class PassengerApp extends ClusterModel implements Model
 
     public function setAppRoot(string $appRoot): PassengerApp
     {
+        Validator::value($appRoot)
+            ->path()
+            ->validate();
+
         $this->appRoot = $appRoot;
 
         return $this;
@@ -170,6 +174,10 @@ class PassengerApp extends ClusterModel implements Model
 
     public function setNodejsVersion(?string $nodejsVersion): PassengerApp
     {
+        Validator::value($nodejsVersion)
+            ->pattern('^[0-9]{1,2}\.[0-9]{1,2}$')
+            ->validate();
+
         $this->nodejsVersion = $nodejsVersion;
 
         return $this;
@@ -183,7 +191,8 @@ class PassengerApp extends ClusterModel implements Model
     public function setStartupFile(?string $startupFile): PassengerApp
     {
         Validator::value($startupFile)
-            ->maxLength(255)
+            ->nullable()
+            ->path()
             ->endsWith('.js')
             ->validate();
 

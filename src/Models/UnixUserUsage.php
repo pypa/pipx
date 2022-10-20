@@ -4,6 +4,7 @@ namespace Cyberfusion\ClusterApi\Models;
 
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Validator;
 
 class UnixUserUsage extends ClusterModel implements Model
 {
@@ -43,6 +44,11 @@ class UnixUserUsage extends ClusterModel implements Model
 
     public function setFiles(array $files): UnixUserUsage
     {
+        Validator::value($files)
+            ->each()
+            ->path()
+            ->validate();
+
         $this->files = $files;
 
         return $this;
