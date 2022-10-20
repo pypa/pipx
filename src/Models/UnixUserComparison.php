@@ -4,6 +4,7 @@ namespace Cyberfusion\ClusterApi\Models;
 
 use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
+use Cyberfusion\ClusterApi\Support\Validator;
 
 class UnixUserComparison extends ClusterModel implements Model
 {
@@ -23,7 +24,10 @@ class UnixUserComparison extends ClusterModel implements Model
 
     public function setNotIdenticalPaths(array $notIdenticalPaths): UnixUserComparison
     {
-        // TODO
+        Validator::value($notIdenticalPaths)
+            ->each()
+            ->path()
+            ->validate();
 
         $this->notIdenticalPaths = $notIdenticalPaths;
 
@@ -40,7 +44,10 @@ class UnixUserComparison extends ClusterModel implements Model
 
     public function setOnlyLeftFilesPaths(array $onlyLeftFilesPaths): UnixUserComparison
     {
-        // TODO
+        Validator::value($onlyLeftFilesPaths)
+            ->each()
+            ->path()
+            ->validate();
 
         $this->onlyLeftFilesPaths = $onlyLeftFilesPaths;
 
@@ -57,7 +64,10 @@ class UnixUserComparison extends ClusterModel implements Model
 
     public function setOnlyRightFilesPaths(array $onlyRightFilesPaths): UnixUserComparison
     {
-        // TODO
+        Validator::value($onlyRightFilesPaths)
+            ->each()
+            ->path()
+            ->validate();
 
         $this->onlyRightFilesPaths = $onlyRightFilesPaths;
 
@@ -74,7 +84,10 @@ class UnixUserComparison extends ClusterModel implements Model
 
     public function setOnlyLeftDirectoriesPaths(array $onlyLeftDirectoriesPaths): UnixUserComparison
     {
-        // TODO
+        Validator::value($onlyLeftDirectoriesPaths)
+            ->each()
+            ->path()
+            ->validate();
 
         $this->onlyLeftDirectoriesPaths = $onlyLeftDirectoriesPaths;
 
@@ -91,7 +104,10 @@ class UnixUserComparison extends ClusterModel implements Model
 
     public function setOnlyRightDirectoriesPaths(array $onlyRightDirectoriesPaths): UnixUserComparison
     {
-        // TODO
+        Validator::value($onlyRightDirectoriesPaths)
+            ->each()
+            ->path()
+            ->validate();
 
         $this->onlyRightDirectoriesPaths = $onlyRightDirectoriesPaths;
 
