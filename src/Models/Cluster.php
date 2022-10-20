@@ -129,6 +129,11 @@ class Cluster extends ClusterModel implements Model
 
     public function setNodejsVersions(array $nodejsVersions): Cluster
     {
+        Validator::value($nodejsVersions)
+            ->each()
+            ->pattern('^[0-9]{1,2}\.[0-9]{1,2}$')
+            ->validate();
+
         $this->nodejsVersions = $nodejsVersions;
 
         return $this;

@@ -174,6 +174,10 @@ class PassengerApp extends ClusterModel implements Model
 
     public function setNodejsVersion(?string $nodejsVersion): PassengerApp
     {
+        Validator::value($nodejsVersion)
+            ->pattern('^[0-9]{1,2}\.[0-9]{1,2}$')
+            ->validate();
+
         $this->nodejsVersion = $nodejsVersion;
 
         return $this;

@@ -13,6 +13,7 @@ detailed information.
 
 - Apply path validation on several setters.
 - Add ability to validate multiple values, just call `->each()` after initializing the validator with a value.
+- Pattern validation to NodeJS versions.
 
 ## Removed
 
