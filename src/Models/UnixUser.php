@@ -97,6 +97,7 @@ class UnixUser extends ClusterModel implements Model
     public function setDefaultNodejsVersion(?string $defaultNodejsVersion): UnixUser
     {
         Validator::value($defaultNodejsVersion)
+            ->nullable()
             ->pattern('^[0-9]{1,2}\.[0-9]{1,2}$')
             ->validate();
 
