@@ -40,6 +40,7 @@ class TaskCollection extends ClusterModel implements Model
     {
         Validator::value($description)
             ->maxLength(255)
+            ->pattern('^[ -~]+$')
             ->validate();
 
         $this->description = $description;

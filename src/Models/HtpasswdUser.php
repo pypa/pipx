@@ -40,6 +40,11 @@ class HtpasswdUser extends ClusterModel implements Model
 
     public function setPassword(string $password): HtpasswdUser
     {
+        Validator::value($password)
+            ->maxLength(255)
+            ->pattern('^[ -~]+$')
+            ->validate();
+
         $this->password = $password;
 
         return $this;

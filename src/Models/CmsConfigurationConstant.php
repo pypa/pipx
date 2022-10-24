@@ -36,6 +36,11 @@ class CmsConfigurationConstant extends ClusterModel implements Model
 
     public function setValue(mixed $value): CmsConfigurationConstant
     {
+        Validator::value($value)
+            ->maxLength(255)
+            ->pattern('^[ -~]+$')
+            ->validate();
+
         $this->value = $value;
 
         return $this;

@@ -144,6 +144,12 @@ class UrlRedirect extends ClusterModel implements Model
 
     public function setDescription(?string $description): UrlRedirect
     {
+        Validator::value($description)
+            ->nullable()
+            ->maxLength(255)
+            ->pattern('^[a-zA-Z0-9-_ ]+$')
+            ->validate();
+
         $this->description = $description;
 
         return $this;

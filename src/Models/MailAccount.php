@@ -41,6 +41,12 @@ class MailAccount extends ClusterModel implements Model
 
     public function setPassword(string $password): MailAccount
     {
+        Validator::value($password)
+            ->pattern('^[ -~]+$')
+            ->minLength(24)
+            ->maxLength(255)
+            ->validate();
+
         $this->password = $password;
 
         return $this;

@@ -41,6 +41,12 @@ class BorgArchiveContent extends ClusterModel implements Model
 
     public function setSymbolicMode(string $symbolicMode): BorgArchiveContent
     {
+        Validator::value($symbolicMode)
+            ->minLength(10)
+            ->maxLength(10)
+            ->pattern('^[drwx\+\-sStT]+$')
+            ->validate();
+
         $this->symbolicMode = $symbolicMode;
 
         return $this;
@@ -53,6 +59,11 @@ class BorgArchiveContent extends ClusterModel implements Model
 
     public function setUsername(string $username): BorgArchiveContent
     {
+        Validator::value($username)
+            ->maxLength(32)
+            ->pattern('^[a-z0-9-_]+$')
+            ->validate();
+
         $this->username = $username;
 
         return $this;
@@ -65,6 +76,11 @@ class BorgArchiveContent extends ClusterModel implements Model
 
     public function setGroupName(string $groupName): BorgArchiveContent
     {
+        Validator::value($groupName)
+            ->maxLength(32)
+            ->pattern('^[a-z0-9-_]+$')
+            ->validate();
+
         $this->groupName = $groupName;
 
         return $this;

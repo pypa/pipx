@@ -65,6 +65,7 @@ class DatabaseUser extends ClusterModel implements Model
     {
         Validator::value($password)
             ->maxLength(255)
+            ->pattern('^[ -~]+$')
             ->validate();
 
         $this->password = $password;

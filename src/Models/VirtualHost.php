@@ -148,6 +148,7 @@ class VirtualHost extends ClusterModel implements Model
         Validator::value($customConfig)
             ->nullable()
             ->maxLength(65535)
+            ->pattern('^[ -~\n]+$')
             ->validate();
 
         $this->customConfig = $customConfig;

@@ -4,6 +4,8 @@ namespace Cyberfusion\ClusterApi\Models;
 
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Enums\TokenType;
+use Cyberfusion\ClusterApi\Support\Validator;
 
 class Token extends ClusterModel implements Model
 {
@@ -18,6 +20,10 @@ class Token extends ClusterModel implements Model
 
     public function setAccessToken(string $accessToken): Token
     {
+        Validator::value($accessToken)
+            ->pattern('^[ -~]+$')
+            ->validate();
+
         $this->accessToken = $accessToken;
 
         return $this;
@@ -42,6 +48,10 @@ class Token extends ClusterModel implements Model
 
     public function setTokenType(string $tokenType): Token
     {
+        Validator::value($tokenType)
+            ->valueIn(TokenType::AVAILABLE)
+            ->validate();
+
         $this->tokenType = $tokenType;
 
         return $this;
