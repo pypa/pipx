@@ -7,6 +7,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.73.0]
+
+### Added
+
+- `serverSoftwareName` attribute has been added to virtual hosts.
+- Values `TEMPORARY_REDIRECT` and `PERMANENT_REDIRECT` have been added to `StatusCode` Enum.
+
+### Changed
+
+- `objectId` and `objectModelName` attributes of task collections are now non-nullable.
+- Database user password is no longer pre-hashed.
+- Regex and length validations have been updated and added.
+- `tokenType` attribute of login model now uses `TokenType` Enum.
+
+### Fixed
+
+- Added missing `password` attribute to Redis instances.
+
 ## [1.72.1]
 
 ### Fixed
