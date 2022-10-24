@@ -9,6 +9,7 @@ use Cyberfusion\ClusterApi\Support\Validator;
 class RedisInstance extends ClusterModel implements Model
 {
     private string $name;
+    private string $password;
     private int $maxDatabases;
     private int $port;
     private int $memoryLimit;
@@ -32,6 +33,24 @@ class RedisInstance extends ClusterModel implements Model
             ->validate();
 
         $this->name = $name;
+
+        return $this;
+    }
+
+    public function getPassword(): string
+    {
+        return $this->password;
+    }
+
+    public function setPassword(string $password): RedisInstance
+    {
+        Validator::value($password)
+            ->minLength(24)
+            ->maxLength(255)
+            ->pattern('^[a-zA-Z0-9]+$')
+            ->validate();
+
+        $this->password = $password;
 
         return $this;
     }
@@ -148,6 +167,7 @@ class RedisInstance extends ClusterModel implements Model
     {
         return $this
             ->setName(Arr::get($data, 'name'))
+            ->setPassword(Arr::get($data, 'password'))
             ->setMaxDatabases(Arr::get($data, 'max_databases'))
             ->setPort(Arr::get($data, 'port'))
             ->setMemoryLimit(Arr::get($data, 'memory_limit'))
@@ -163,6 +183,7 @@ class RedisInstance extends ClusterModel implements Model
     {
         return [
             'name' => $this->getName(),
+            'password' => $this->getPassword(),
             'max_databases' => $this->getMaxDatabases(),
             'port' => $this->getPort(),
             'memory_limit' => $this->getMemoryLimit(),
