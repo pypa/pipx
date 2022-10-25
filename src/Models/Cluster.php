@@ -35,6 +35,11 @@ class Cluster extends ClusterModel implements Model
 
     public function setName(string $name): Cluster
     {
+        Validator::value($name)
+            ->maxLength(64)
+            ->pattern('^[a-z0-9-.]+$')
+            ->validate();
+
         $this->name = $name;
 
         return $this;
@@ -146,6 +151,12 @@ class Cluster extends ClusterModel implements Model
 
     public function setCustomerId(?string $customerId): Cluster
     {
+        Validator::value($customerId)
+            ->nullable()
+            ->maxLength(6)
+            ->pattern('^[A-Z0-9]+$')
+            ->validate();
+
         $this->customerId = $customerId;
 
         return $this;
@@ -230,6 +241,12 @@ class Cluster extends ClusterModel implements Model
 
     public function setDescription(?string $description): Cluster
     {
+        Validator::value($description)
+            ->nullable()
+            ->maxLength(255)
+            ->pattern('^[a-zA-Z0-9-_ ]+$')
+            ->validate();
+
         $this->description = $description;
 
         return $this;

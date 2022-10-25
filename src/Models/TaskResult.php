@@ -39,6 +39,7 @@ class TaskResult extends ClusterModel implements Model
     {
         Validator::value($description)
             ->maxLength(65535)
+            ->pattern('^[ -~]+$')
             ->validate();
 
         $this->description = $description;
@@ -55,6 +56,7 @@ class TaskResult extends ClusterModel implements Model
     {
         Validator::value($message)
             ->maxLength(65535)
+            ->pattern('^[ -~]+$')
             ->validate();
 
         $this->message = $message;

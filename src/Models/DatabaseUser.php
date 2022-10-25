@@ -14,8 +14,8 @@ class DatabaseUser extends ClusterModel implements Model
     private const DEFAULT_HOST = '%';
 
     private string $name;
+    private ?string $password;
     private string $host = self::DEFAULT_HOST;
-    private ?string $hashedPassword = null;
     private string $serverSoftwareName = DatabaseEngine::SERVER_SOFTWARE_MARIADB;
     private ?int $id = null;
     private ?int $clusterId = null;
@@ -56,31 +56,19 @@ class DatabaseUser extends ClusterModel implements Model
         return $this;
     }
 
-    public function getHashedPassword(): ?string
+    public function getPassword(): ?string
     {
-        return $this->hashedPassword;
+        return $this->password;
     }
 
-    public function setPassword(string $password): DatabaseUser
+    public function setPassword(?string $password): DatabaseUser
     {
         Validator::value($password)
             ->maxLength(255)
+            ->pattern('^[ -~]+$')
             ->validate();
 
-        switch ($this->serverSoftwareName) {
-            case DatabaseEngine::SERVER_SOFTWARE_POSTGRES:
-                $this->hashedPassword = sprintf('md5%s', md5($password));
-                break;
-            default:
-                $this->hashedPassword = sprintf("*%s", strtoupper(sha1(sha1($password, true), false)));
-        }
-
-        return $this;
-    }
-
-    public function setHashedPassword(string $hashedPassword): DatabaseUser
-    {
-        $this->hashedPassword = $hashedPassword;
+        $this->password = $password;
 
         return $this;
     }
@@ -92,10 +80,6 @@ class DatabaseUser extends ClusterModel implements Model
 
     public function setServerSoftwareName(string $serverSoftwareName): DatabaseUser
     {
-        if (!is_null($this->hashedPassword)) {
-            throw ModelException::engineSetAfterPassword();
-        }
-
         Validator::value($serverSoftwareName)
             ->valueIn(DatabaseEngine::AVAILABLE)
             ->validate();
@@ -157,6 +141,7 @@ class DatabaseUser extends ClusterModel implements Model
     {
         return $this
             ->setName(Arr::get($data, 'name'))
+            ->setPassword(Arr::get($data, 'password'))
             ->setId(Arr::get($data, 'id'))
             ->setHost(Arr::get($data, 'host', self::DEFAULT_HOST))
             ->setServerSoftwareName(Arr::get(
@@ -174,7 +159,7 @@ class DatabaseUser extends ClusterModel implements Model
         return [
             'name' => $this->getName(),
             'host' => $this->getHost(),
-            'password' => $this->getHashedPassword(),
+            'password' => $this->getPassword(),
             'server_software_name' => $this->getServerSoftwareName(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),

@@ -32,7 +32,7 @@ class Cron extends ClusterModel implements Model
     {
         Validator::value($name)
             ->maxLength(64)
-            ->pattern('^[a-z0-9-_.]+$')
+            ->pattern('^[a-z0-9-_]+$')
             ->validate();
 
         $this->name = $name;
@@ -49,6 +49,7 @@ class Cron extends ClusterModel implements Model
     {
         Validator::value($command)
             ->maxLength(65535)
+            ->pattern('^[ -~]+$')
             ->validate();
 
         $this->command = $command;

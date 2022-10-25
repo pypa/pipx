@@ -4,6 +4,7 @@ namespace Cyberfusion\ClusterApi\Models;
 
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Validator;
 
 class AccessLog extends ClusterModel implements Model
 {
@@ -34,6 +35,11 @@ class AccessLog extends ClusterModel implements Model
 
     public function setRawMessage(string $rawMessage): AccessLog
     {
+        Validator::value($rawMessage)
+            ->maxLength(65535)
+            ->pattern('^[ -~\n]+$')
+            ->validate();
+
         $this->rawMessage = $rawMessage;
 
         return $this;

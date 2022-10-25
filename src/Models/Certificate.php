@@ -58,6 +58,7 @@ class Certificate extends ClusterModel implements Model
         Validator::value($certificate)
             ->nullable()
             ->maxLength(65535)
+            ->pattern('^[a-zA-Z0-9-_\+\/=\n ]+$')
             ->validate();
 
         $this->certificate = $certificate;
@@ -75,6 +76,7 @@ class Certificate extends ClusterModel implements Model
         Validator::value($caChain)
             ->nullable()
             ->maxLength(65535)
+            ->pattern('^[a-zA-Z0-9-_\+\/=\n ]+$')
             ->validate();
 
         $this->caChain = $caChain;
@@ -92,6 +94,7 @@ class Certificate extends ClusterModel implements Model
         Validator::value($privateKey)
             ->nullable()
             ->maxLength(65535)
+            ->pattern('^[a-zA-Z0-9-_\+\/=\n ]+$')
             ->validate();
 
         $this->privateKey = $privateKey;
@@ -133,6 +136,7 @@ class Certificate extends ClusterModel implements Model
         Validator::value($statusMessage)
             ->nullable()
             ->maxLength(65535)
+            ->pattern('^[ -~\n]+$')
             ->validate();
 
         $this->statusMessage = $statusMessage;

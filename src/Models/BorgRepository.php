@@ -50,7 +50,9 @@ class BorgRepository extends ClusterModel implements Model
     public function setPassphrase(string $passphrase): BorgRepository
     {
         Validator::value($passphrase)
+            ->minLength(24)
             ->maxLength(255)
+            ->pattern('^[ -~]+$')
             ->validate();
 
         $this->passphrase = $passphrase;
@@ -154,6 +156,11 @@ class BorgRepository extends ClusterModel implements Model
 
     public function setRemoteUsername(?string $remoteUsername): BorgRepository
     {
+        Validator::value($remoteUsername)
+            ->maxLength(32)
+            ->pattern('^[a-z0-9-_]+$')
+            ->validate();
+
         $this->remoteUsername = $remoteUsername;
 
         return $this;

@@ -62,6 +62,7 @@ class SshKey extends ClusterModel implements Model
         Validator::value($privateKey)
             ->nullable()
             ->maxLength(65535)
+            ->pattern('^[a-zA-Z0-9-_\+\/=\n ]+$')
             ->validate();
 
         $this->privateKey = $privateKey;

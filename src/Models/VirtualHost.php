@@ -4,6 +4,7 @@ namespace Cyberfusion\ClusterApi\Models;
 
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Enums\VirtualHostServerSoftwareName;
 use Cyberfusion\ClusterApi\Enums\AllowOverrideDirectives;
 use Cyberfusion\ClusterApi\Enums\AllowOverrideOptionDirectives;
 use Cyberfusion\ClusterApi\Support\Validator;
@@ -20,6 +21,7 @@ class VirtualHost extends ClusterModel implements Model
     private bool $forceSsl = true;
     private ?string $customConfig = null;
     private ?string $balancerBackendName = null;
+    private ?string $serverSoftwareName = null;
     private ?string $domainRoot = null;
     private array $allowOverrideDirectives = AllowOverrideDirectives::DEFAULTS;
     private array $allowOverrideOptionDirectives = AllowOverrideOptionDirectives::DEFAULTS;
@@ -146,6 +148,7 @@ class VirtualHost extends ClusterModel implements Model
         Validator::value($customConfig)
             ->nullable()
             ->maxLength(65535)
+            ->pattern('^[ -~\n]+$')
             ->validate();
 
         $this->customConfig = $customConfig;
@@ -167,6 +170,22 @@ class VirtualHost extends ClusterModel implements Model
             ->validate();
 
         $this->balancerBackendName = $balancerBackendName;
+
+        return $this;
+    }
+
+    public function getServerSoftwareName(): string
+    {
+        return $this->serverSoftwareName;
+    }
+
+    public function setServerSoftwareName(string $serverSoftwareName): VirtualHost
+    {
+        Validator::value($serverSoftwareName)
+            ->valueIn(VirtualHostServerSoftwareName::AVAILABLE)
+            ->validate();
+
+        $this->serverSoftwareName = $serverSoftwareName;
 
         return $this;
     }
@@ -286,6 +305,7 @@ class VirtualHost extends ClusterModel implements Model
             ->setCustomConfig(Arr::get($data, 'custom_config'))
             ->setAllowOverrideDirectives(Arr::get($data, 'allow_override_directives', AllowOverrideDirectives::DEFAULTS))
             ->setAllowOverrideOptionDirectives(Arr::get($data, 'allow_override_option_directives', AllowOverrideOptionDirectives::DEFAULTS))
+            ->setServerSoftwareName(Arr::get($data, 'server_software_name'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -310,6 +330,7 @@ class VirtualHost extends ClusterModel implements Model
             'domain_root' => $this->getDomainRoot(),
             'allow_override_directives' => $this->getAllowOverrideDirectives(),
             'allow_override_option_directives' => $this->getAllowOverrideOptionDirectives(),
+            'server_software_name' => $this->getServerSoftwareName(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),
         ];

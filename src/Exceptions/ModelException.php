@@ -14,13 +14,4 @@ class ModelException extends ClusterApiException
             $previous
         );
     }
-
-    public static function engineSetAfterPassword(Throwable $previous = null): ModelException
-    {
-        return new self(
-            'Set the engine name before setting the password as that will be hashed Engine specific',
-            self::MODEL_ENGINE_SET_AFTER_PASSWORD,
-            $previous
-        );
-    }
 }

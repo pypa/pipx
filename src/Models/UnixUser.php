@@ -55,6 +55,12 @@ class UnixUser extends ClusterModel implements Model
 
     public function setPassword(string $password): UnixUser
     {
+        Validator::value($password)
+            ->minLength(24)
+            ->maxLength(255)
+            ->pattern('^[ -~]+$')
+            ->validate();
+
         $this->password = $password;
 
         return $this;
@@ -69,6 +75,7 @@ class UnixUser extends ClusterModel implements Model
     {
         Validator::value($description)
             ->nullable()
+            ->pattern('^[a-zA-Z0-9-_ ]+$')
             ->maxLength(255)
             ->validate();
 

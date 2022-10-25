@@ -4,6 +4,7 @@ namespace Cyberfusion\ClusterApi\Models;
 
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Validator;
 
 class ErrorLog extends ClusterModel implements Model
 {
@@ -33,6 +34,11 @@ class ErrorLog extends ClusterModel implements Model
 
     public function setRawMessage(string $rawMessage): ErrorLog
     {
+        Validator::value($rawMessage)
+            ->maxLength(65535)
+            ->pattern('^[ -~\n]+$')
+            ->validate();
+
         $this->rawMessage = $rawMessage;
 
         return $this;
@@ -81,6 +87,11 @@ class ErrorLog extends ClusterModel implements Model
 
     public function setErrorMessage(string $errorMessage): ErrorLog
     {
+        Validator::value($errorMessage)
+            ->maxLength(65535)
+            ->pattern('^[ -~\n]+$')
+            ->validate();
+
         $this->errorMessage = $errorMessage;
 
         return $this;

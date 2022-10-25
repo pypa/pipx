@@ -2,6 +2,7 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
+use Cyberfusion\ClusterApi\Support\Validator;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
 
@@ -23,6 +24,11 @@ class BorgArchive extends ClusterModel implements Model
 
     public function setName(string $name): BorgArchive
     {
+        Validator::value($name)
+            ->maxLength(64)
+            ->pattern('^[a-zA-Z0-9-_]+$')
+            ->validate();
+
         $this->name = $name;
 
         return $this;
