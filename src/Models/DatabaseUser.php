@@ -14,7 +14,7 @@ class DatabaseUser extends ClusterModel implements Model
     private const DEFAULT_HOST = '%';
 
     private string $name;
-    private string $password;
+    private ?string $password;
     private string $host = self::DEFAULT_HOST;
     private string $serverSoftwareName = DatabaseEngine::SERVER_SOFTWARE_MARIADB;
     private ?int $id = null;
@@ -56,12 +56,12 @@ class DatabaseUser extends ClusterModel implements Model
         return $this;
     }
 
-    public function getPassword(): string
+    public function getPassword(): ?string
     {
         return $this->password;
     }
 
-    public function setPassword(string $password): DatabaseUser
+    public function setPassword(?string $password): DatabaseUser
     {
         Validator::value($password)
             ->maxLength(255)
