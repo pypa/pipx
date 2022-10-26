@@ -214,7 +214,7 @@ class VirtualHost extends ClusterModel implements Model
         }
 
         if (is_null($this->allowOverrideDirectives)) {
-            return [];
+            return AllowOverrideDirectives::DEFAULTS;
         }
 
         return $this->allowOverrideDirectives;
@@ -240,7 +240,7 @@ class VirtualHost extends ClusterModel implements Model
         }
 
         if (is_null($this->allowOverrideOptionDirectives)) {
-            return [];
+            return AllowOverrideOptionDirectives::DEFAULTS;
         }
 
         return $this->allowOverrideOptionDirectives;
