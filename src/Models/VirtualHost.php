@@ -23,8 +23,8 @@ class VirtualHost extends ClusterModel implements Model
     private ?string $balancerBackendName = null;
     private ?string $serverSoftwareName = null;
     private ?string $domainRoot = null;
-    private array $allowOverrideDirectives = AllowOverrideDirectives::DEFAULTS;
-    private array $allowOverrideOptionDirectives = AllowOverrideOptionDirectives::DEFAULTS;
+    private ?array $allowOverrideDirectives;
+    private ?array $allowOverrideOptionDirectives;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -207,14 +207,23 @@ class VirtualHost extends ClusterModel implements Model
         return $this;
     }
 
-    public function getAllowOverrideDirectives(): array
+    public function getAllowOverrideDirectives(): ?array
     {
+        if ($this->getServerSoftwareName() === VirtualHostServerSoftwareName::SERVER_SOFTWARE_NGINX) {
+            return null;
+        }
+
+        if (is_null($this->allowOverrideDirectives)) {
+            return AllowOverrideDirectives::DEFAULTS;
+        }
+
         return $this->allowOverrideDirectives;
     }
 
-    public function setAllowOverrideDirectives(array $allowOverrideDirectives): VirtualHost
+    public function setAllowOverrideDirectives(?array $allowOverrideDirectives): VirtualHost
     {
         Validator::value($allowOverrideDirectives)
+            ->nullable()
             ->valuesIn(AllowOverrideDirectives::AVAILABLE)
             ->unique()
             ->validate();
@@ -224,14 +233,23 @@ class VirtualHost extends ClusterModel implements Model
         return $this;
     }
 
-    public function getAllowOverrideOptionDirectives(): array
+    public function getAllowOverrideOptionDirectives(): ?array
     {
+        if ($this->getServerSoftwareName() === VirtualHostServerSoftwareName::SERVER_SOFTWARE_NGINX) {
+            return null;
+        }
+
+        if (is_null($this->allowOverrideOptionDirectives)) {
+            return AllowOverrideOptionDirectives::DEFAULTS;
+        }
+
         return $this->allowOverrideOptionDirectives;
     }
 
-    public function setAllowOverrideOptionDirectives(array $allowOverrideOptionDirectives): VirtualHost
+    public function setAllowOverrideOptionDirectives(?array $allowOverrideOptionDirectives): VirtualHost
     {
         Validator::value($allowOverrideOptionDirectives)
+            ->nullable()
             ->valuesIn(AllowOverrideOptionDirectives::AVAILABLE)
             ->unique()
             ->validate();
@@ -303,8 +321,8 @@ class VirtualHost extends ClusterModel implements Model
             ->setBalancerBackendName(Arr::get($data, 'balancer_backend_name'))
             ->setDomainRoot(Arr::get($data, 'domain_root'))
             ->setCustomConfig(Arr::get($data, 'custom_config'))
-            ->setAllowOverrideDirectives(Arr::get($data, 'allow_override_directives', AllowOverrideDirectives::DEFAULTS))
-            ->setAllowOverrideOptionDirectives(Arr::get($data, 'allow_override_option_directives', AllowOverrideOptionDirectives::DEFAULTS))
+            ->setAllowOverrideDirectives(Arr::get($data, 'allow_override_directives'))
+            ->setAllowOverrideOptionDirectives(Arr::get($data, 'allow_override_option_directives'))
             ->setServerSoftwareName(Arr::get($data, 'server_software_name'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))

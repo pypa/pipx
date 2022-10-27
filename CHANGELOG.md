@@ -7,6 +7,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.74.0]
+
+### Changed
+
+- Use UUID instead of ID for task collection results endpoint.
+- `allowOverrideOptionDirectives` and `allowOverrideDirectives` are now nullable.
+- Default values for `allowOverrideOptionDirectives` and `allowOverrideDirectives` are now set based on server software.
+
+### Fixed
+
+- `serverSoftwareName` attribute is now sent on create and update of virtual hosts.
+
 ## [1.73.0]
 
 ### Added

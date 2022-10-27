@@ -101,6 +101,7 @@ class VirtualHosts extends Endpoint
                 'domain_root',
                 'allow_override_directives',
                 'allow_override_option_directives',
+                'server_software_name',
             ]));
 
         $response = $this
@@ -138,6 +139,7 @@ class VirtualHosts extends Endpoint
             'public_root',
             'force_ssl',
             'balancer_backend_name',
+            'server_software_name',
             'id',
             'cluster_id',
         ]);
@@ -159,6 +161,7 @@ class VirtualHosts extends Endpoint
                 'domain_root',
                 'allow_override_directives',
                 'allow_override_option_directives',
+                'server_software_name',
                 'id',
                 'cluster_id',
             ]));
