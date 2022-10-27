@@ -14,6 +14,10 @@ detailed information.
 - `allowOverrideOptionDirectives` and `allowOverrideDirectives` are now nullable.
 - Default values for `allowOverrideOptionDirectives` and `allowOverrideDirectives` are now set based on server software.
 
+### Fixed
+
+- `serverSoftwareName` attribute is now sent on create and update of virtual hosts.
+
 ## [1.73.0]
 
 ### Added
