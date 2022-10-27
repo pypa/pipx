@@ -10,15 +10,15 @@ use Cyberfusion\ClusterApi\Response;
 class TaskCollections extends Endpoint
 {
     /**
-     * @param int $id
+     * @param string $uuid
      * @return Response
      * @throws RequestException
      */
-    public function results(int $id): Response
+    public function results(string $uuid): Response
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('task-collections/%d/results', $id));
+            ->setUrl(sprintf('task-collections/%d/results', $uuid));
 
         $response = $this
             ->client

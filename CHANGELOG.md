@@ -11,6 +11,7 @@ detailed information.
 
 ### Changed
 
+- Use UUID instead of ID for task collection results endpoint.
 - `allowOverrideOptionDirectives` and `allowOverrideDirectives` are now nullable.
 - Default values for `allowOverrideOptionDirectives` and `allowOverrideDirectives` are now set based on server software.
 
