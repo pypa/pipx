@@ -182,6 +182,17 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
 
+    if "package_spec" in args and "#egg" in args.package_spec:
+        logger.warning(
+            pipx_wrap(
+                f"""
+                '#egg' fragment in package ({args.package_spec})
+                This is obsolete but should not impact installation.
+                """,
+                subsequent_indent=" " * 4,
+            )
+        )
+
     if args.command == "run":
         package_or_url = (
             args.spec
