@@ -187,7 +187,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             pipx_wrap(
                 f"""
                 '#egg' fragment in package ({args.package_spec})
-                This is obsolete but should not impact installation.
+                is obsolete and ignored.
                 """,
                 subsequent_indent=" " * 4,
             )
