@@ -116,7 +116,7 @@ def get_venv_paths(python: str, root: Path) -> Tuple[Path, Path]:
     command_str = textwrap.dedent(
         f"""
         import venv
-        root_paths = venv.EnvBuilder().ensure_directories("{str(root)}")
+        root_paths = venv.EnvBuilder().ensure_directories(r"{str(root)}")
         print(root_paths.bin_path + ";" + root_paths.env_exe)
         """
     )
