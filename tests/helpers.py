@@ -9,7 +9,7 @@ from unittest import mock
 from packaging.utils import canonicalize_name
 
 from package_info import PKG
-from pipx import constants, main, pipx_metadata_file, util, interpreter
+from pipx import constants, interpreter, main, pipx_metadata_file, util
 
 WIN = sys.platform.startswith("win")
 
