@@ -112,18 +112,37 @@ def run_pypackage_bin(bin_path: Path, args: List[str]) -> NoReturn:
     )
 
 
-if WINDOWS:
+def get_venv_paths(python: Path, root: Path) -> Tuple[Path, Path]:
+    command_str = textwrap.dedent(
+        f"""
+        import venv
 
-    def get_venv_paths(root: Path) -> Tuple[Path, Path]:
-        bin_path = root / "Scripts"
-        python_path = bin_path / "python.exe"
-        return bin_path, python_path
-
-else:
-
-    def get_venv_paths(root: Path) -> Tuple[Path, Path]:
-        bin_path = root / "bin"
-        python_path = bin_path / "python"
+        root_paths = venv.EnvBuilder().ensure_directories("{root}")
+        print(root_paths.bin_path + ";" + root_paths.env_exe)
+        """
+    )
+    output = (
+        run_subprocess(
+            [python, "-c", command_str],
+            capture_stderr=False,
+            log_cmd_str="<get_venv_paths commands>",
+        )
+        .stdout.strip()
+        .split(";")
+    )
+    # venv is not installed, so we can't use the above command to get the paths.
+    if "No module named" in output:
+        if WINDOWS:
+            bin_path = root / "Scripts"
+            python_path = bin_path / "python.exe"
+            return bin_path, python_path
+        else:
+            bin_path = root / "bin"
+            python_path = bin_path / "python"
+            return bin_path, python_path
+    else:
+        bin_path = Path(output[0])
+        python_path = Path(output[1])
         return bin_path, python_path
 
 

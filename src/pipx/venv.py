@@ -89,7 +89,7 @@ class Venv:
     ) -> None:
         self.root = path
         self.python = python
-        self.bin_path, self.python_path = get_venv_paths(self.root)
+        self.bin_path, self.python_path = get_venv_paths(python, self.root)
         self.pipx_metadata = PipxMetadata(venv_dir=path)
         self.verbose = verbose
         self.do_animation = not verbose
