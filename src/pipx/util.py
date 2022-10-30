@@ -111,6 +111,7 @@ def run_pypackage_bin(bin_path: Path, args: List[str]) -> NoReturn:
         extra_python_paths=[".", str(bin_path.parent.parent)],
     )
 
+
 if WINDOWS:
 
     def get_venv_paths(root: Path) -> Tuple[Path, Path]:
