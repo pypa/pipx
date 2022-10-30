@@ -111,11 +111,10 @@ def run_pypackage_bin(bin_path: Path, args: List[str]) -> NoReturn:
         extra_python_paths=[".", str(bin_path.parent.parent)],
     )
 
-
-if WINDOWS and not MINGW:
+if WINDOWS:
 
     def get_venv_paths(root: Path) -> Tuple[Path, Path]:
-        bin_path = root / "Scripts"
+        bin_path = root / "Scripts" if not MINGW else root / "bin"
         python_path = bin_path / "python.exe"
         return bin_path, python_path
 
