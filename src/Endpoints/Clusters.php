@@ -2,9 +2,12 @@
 
 namespace Cyberfusion\ClusterApi\Endpoints;
 
+use DateTimeInterface;
+use Cyberfusion\ClusterApi\Enums\TimeUnit;
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Cyberfusion\ClusterApi\Models\Cluster;
 use Cyberfusion\ClusterApi\Models\TaskCollection;
+use Cyberfusion\ClusterApi\Models\UnixUsersHomeDirectoryUsage;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
 use Cyberfusion\ClusterApi\Support\ListFilter;
@@ -96,6 +99,40 @@ class Clusters extends Endpoint
 
         return $response->setData([
             'taskCollection' => (new TaskCollection())->fromArray($response->getData()),
+        ]);
+    }
+
+    /**
+     * @param int $id
+     * @param DateTimeInterface $from
+     * @param string $timeUnit
+     * @return Response
+     * @throws RequestException
+     */
+    public function unixUsersHomeDirectoryUsages(int $id, DateTimeInterface $from, string $timeUnit = TimeUnit::HOURLY): Response
+    {
+        $url = sprintf(
+            'clusters/unix-users-home-directories/usages/%d?%s',
+            $id,
+            http_build_query([
+                'timestamp' => $from->format('c'),
+                'time_unit' => $timeUnit,
+            ])
+        );
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_GET)
+            ->setUrl($url);
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'unixUsersHomeDirectoryUsage' => (new UnixUsersHomeDirectoryUsage())->fromArray($response->getData()),
         ]);
     }
 
