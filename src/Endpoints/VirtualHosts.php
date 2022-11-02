@@ -98,10 +98,9 @@ class VirtualHosts extends Endpoint
                 'force_ssl',
                 'custom_config',
                 'balancer_backend_name',
-                'domain_root',
+                'server_software_name',
                 'allow_override_directives',
                 'allow_override_option_directives',
-                'server_software_name',
             ]));
 
         $response = $this
@@ -135,12 +134,12 @@ class VirtualHosts extends Endpoint
             'server_aliases',
             'unix_user_id',
             'document_root',
-            'domain_root',
             'public_root',
             'force_ssl',
             'balancer_backend_name',
-            'server_software_name',
             'id',
+            'server_software_name',
+            'domain_root',
             'cluster_id',
         ]);
 
@@ -158,11 +157,11 @@ class VirtualHosts extends Endpoint
                 'force_ssl',
                 'custom_config',
                 'balancer_backend_name',
-                'domain_root',
+                'id',
+                'server_software_name',
                 'allow_override_directives',
                 'allow_override_option_directives',
-                'server_software_name',
-                'id',
+                'domain_root',
                 'cluster_id',
             ]));
 
