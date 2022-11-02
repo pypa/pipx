@@ -41,12 +41,27 @@ class _SharedLibs:
 
     def create(self, verbose: bool = False) -> None:
         if not self.is_valid:
-            with animate("creating shared libraries", not verbose):
-                create_process = run_subprocess(
-                    [DEFAULT_PYTHON, "-m", "venv", "--clear", self.root]
-                )
-            subprocess_post_check(create_process)
-
+            try:
+                with animate("creating shared libraries using venv", not verbose):
+                    create_process = run_subprocess(
+                        [DEFAULT_PYTHON, "-m", "venv", "--clear", self.root]
+                    )
+                subprocess_post_check(create_process)
+            except Exception:
+                # try to create shared libs using virtualenv if venv is not available
+                with animate("creating shared libraries using virtualenv", not verbose):
+                    create_process = run_subprocess(
+                        [
+                            DEFAULT_PYTHON,
+                            "-m",
+                            "virtualenv",
+                            "--clear",
+                            "--creator",
+                            "venv",
+                            self.root,
+                        ]
+                    )
+                subprocess_post_check(create_process)
             # ignore installed packages to ensure no unexpected patches from the OS vendor
             # are used
             self.upgrade(pip_args=["--force-reinstall"], verbose=verbose)
