@@ -161,7 +161,7 @@ class Venv:
         try:
             with animate("creating virtual environment using venv", self.do_animation):
                 venv_process = run_subprocess(cmd + venv_args + [str(self.root)])
-                subprocess_post_check(venv_process)
+            subprocess_post_check(venv_process)
         except Exception:
             with animate(
                 "creating virtual environment using virtualenv", self.do_animation
@@ -175,7 +175,7 @@ class Venv:
                     "--without-pip",
                 ]
                 virtualenv_process = run_subprocess(cmd + venv_args + [str(self.root)])
-                subprocess_post_check(virtualenv_process)
+            subprocess_post_check(virtualenv_process)
 
         shared_libs.create(self.verbose)
         pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
@@ -422,7 +422,7 @@ class Venv:
             self.do_animation,
         ):
             pip_process = self._run_pip(
-                ["install"] + pip_args + ["--upgrade", package_name]
+                ["instal"] + pip_args + ["--upgrade", package_name]
             )
         subprocess_post_check(pip_process)
 
