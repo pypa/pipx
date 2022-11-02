@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.75.1]
+
+### Fixed
+
+- Add `unit_name` as required field to the FPM pool update endpoint to match spec.
+- Add `record_usage_files` to the unix user create endpoint to match spec.
+- Add `home_directory` and `ssh_directory` to the fields and required fields for the unix user update endpoint to 
+  match spec.
+- Remove `domain_root` from the virtual host create endpoint to match spec.
+
 ## [1.75.0]
 
 ### Added

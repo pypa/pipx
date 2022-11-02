@@ -129,6 +129,7 @@ class FpmPools extends Endpoint
             'max_children',
             'id',
             'cluster_id',
+            'unit_name',
         ]);
 
         $request = (new Request())

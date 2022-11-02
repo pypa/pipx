@@ -130,6 +130,7 @@ class UnixUsers extends Endpoint
                 'username',
                 'password',
                 'shell_path',
+                'record_usage_files',
                 'default_php_version',
                 'default_nodejs_version',
                 'virtual_hosts_directory',
@@ -171,6 +172,8 @@ class UnixUsers extends Endpoint
             'id',
             'cluster_id',
             'unix_id',
+            'home_directory',
+            'ssh_directory',
         ]);
 
         $request = (new Request())
@@ -180,20 +183,22 @@ class UnixUsers extends Endpoint
                 'username',
                 'password',
                 'shell_path',
+                'record_usage_files',
                 'default_php_version',
                 'default_nodejs_version',
                 'virtual_hosts_directory',
                 'mail_domains_directory',
                 'borg_repositories_directory',
                 'description',
-                'record_usage_files',
+                'cluster_id',
+                'id',
+                'unix_id',
+                'home_directory',
+                'ssh_directory',
                 'async_support_enabled',
                 'rabbitmq_username',
                 'rabbitmq_virtual_host_name',
                 'rabbitmq_password',
-                'id',
-                'cluster_id',
-                'unix_id',
             ]));
 
         $response = $this
