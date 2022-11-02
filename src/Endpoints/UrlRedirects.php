@@ -79,7 +79,6 @@ class UrlRedirects extends Endpoint
             'status_code',
             'keep_query_parameters',
             'keep_path',
-            'force_ssl',
             'cluster_id',
         ]);
 
@@ -93,7 +92,6 @@ class UrlRedirects extends Endpoint
                 'status_code',
                 'keep_query_parameters',
                 'keep_path',
-                'force_ssl',
                 'description',
                 'cluster_id',
             ]));
@@ -131,7 +129,6 @@ class UrlRedirects extends Endpoint
             'status_code',
             'keep_query_parameters',
             'keep_path',
-            'force_ssl',
             'id',
             'cluster_id',
         ]);
@@ -146,7 +143,6 @@ class UrlRedirects extends Endpoint
                 'status_code',
                 'keep_query_parameters',
                 'keep_path',
-                'force_ssl',
                 'description',
                 'id',
                 'cluster_id',

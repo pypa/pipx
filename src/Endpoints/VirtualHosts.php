@@ -80,7 +80,6 @@ class VirtualHosts extends Endpoint
             'unix_user_id',
             'document_root',
             'public_root',
-            'force_ssl',
         ]);
 
         $request = (new Request())
@@ -94,7 +93,6 @@ class VirtualHosts extends Endpoint
                 'public_root',
                 'fpm_pool_id',
                 'passenger_app_id',
-                'force_ssl',
                 'custom_config',
                 'server_software_name',
                 'allow_override_directives',
@@ -133,7 +131,6 @@ class VirtualHosts extends Endpoint
             'unix_user_id',
             'document_root',
             'public_root',
-            'force_ssl',
             'id',
             'server_software_name',
             'domain_root',
@@ -151,7 +148,6 @@ class VirtualHosts extends Endpoint
                 'public_root',
                 'fpm_pool_id',
                 'passenger_app_id',
-                'force_ssl',
                 'custom_config',
                 'id',
                 'server_software_name',

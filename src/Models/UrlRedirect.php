@@ -15,7 +15,6 @@ class UrlRedirect extends ClusterModel implements Model
     private int $statusCode = StatusCode::MOVED_PERMANENTLY;
     private bool $keepQueryParameters = true;
     private bool $keepPath = true;
-    private bool $forceSsl = true;
     private ?string $description = null;
     private ?int $id = null;
     private ?int $clusterId = null;
@@ -106,18 +105,6 @@ class UrlRedirect extends ClusterModel implements Model
         return $this;
     }
 
-    public function isForceSsl(): bool
-    {
-        return $this->forceSsl;
-    }
-
-    public function setForceSsl(bool $forceSsl): UrlRedirect
-    {
-        $this->forceSsl = $forceSsl;
-
-        return $this;
-    }
-
     public function getDescription(): ?string
     {
         return $this->description;
@@ -193,7 +180,6 @@ class UrlRedirect extends ClusterModel implements Model
             ->setStatusCode(Arr::get($data, 'status_code'))
             ->setKeepQueryParameters(Arr::get($data, 'keep_query_parameters'))
             ->setKeepPath(Arr::get($data, 'keep_path'))
-            ->setForceSsl(Arr::get($data, 'force_ssl'))
             ->setDescription(Arr::get($data, 'description'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
@@ -210,7 +196,6 @@ class UrlRedirect extends ClusterModel implements Model
             'status_code' => $this->getStatusCode(),
             'keep_query_parameters' => $this->isKeepQueryParameters(),
             'keep_path' => $this->isKeepPath(),
-            'force_ssl' => $this->isForceSsl(),
             'description' => $this->getDescription(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
