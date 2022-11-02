@@ -157,7 +157,7 @@ class Venv:
             return self.pipx_metadata.main_package.package
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
-        with animate("creating virtual environment using venv", self.do_animation):
+        with animate("creating virtual environment", self.do_animation):
             cmd = [self.python, "-m", "venv", "--without-pip"]
             try:
                 venv_process = run_subprocess(cmd + venv_args + [str(self.root)])
