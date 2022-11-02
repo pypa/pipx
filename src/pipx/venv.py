@@ -163,8 +163,17 @@ class Venv:
                 venv_process = run_subprocess(cmd + venv_args + [str(self.root)])
                 subprocess_post_check(venv_process)
         except Exception:
-            with animate("creating virtual environment using virtualenv", self.do_animation):
-                cmd = [self.python, "-m", "virtualenv", "--creator", "venv", "--without-pip"]
+            with animate(
+                "creating virtual environment using virtualenv", self.do_animation
+            ):
+                cmd = [
+                    self.python,
+                    "-m",
+                    "virtualenv",
+                    "--creator",
+                    "venv",
+                    "--without-pip",
+                ]
                 virtualenv_process = run_subprocess(cmd + venv_args + [str(self.root)])
                 subprocess_post_check(virtualenv_process)
 
