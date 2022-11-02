@@ -81,7 +81,6 @@ class VirtualHosts extends Endpoint
             'document_root',
             'public_root',
             'force_ssl',
-            'balancer_backend_name',
         ]);
 
         $request = (new Request())
@@ -97,7 +96,6 @@ class VirtualHosts extends Endpoint
                 'passenger_app_id',
                 'force_ssl',
                 'custom_config',
-                'balancer_backend_name',
                 'server_software_name',
                 'allow_override_directives',
                 'allow_override_option_directives',
@@ -136,7 +134,6 @@ class VirtualHosts extends Endpoint
             'document_root',
             'public_root',
             'force_ssl',
-            'balancer_backend_name',
             'id',
             'server_software_name',
             'domain_root',
@@ -156,7 +153,6 @@ class VirtualHosts extends Endpoint
                 'passenger_app_id',
                 'force_ssl',
                 'custom_config',
-                'balancer_backend_name',
                 'id',
                 'server_software_name',
                 'allow_override_directives',
