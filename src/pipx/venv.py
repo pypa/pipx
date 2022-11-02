@@ -422,7 +422,7 @@ class Venv:
             self.do_animation,
         ):
             pip_process = self._run_pip(
-                ["instal"] + pip_args + ["--upgrade", package_name]
+                ["install"] + pip_args + ["--upgrade", package_name]
             )
         subprocess_post_check(pip_process)
 
