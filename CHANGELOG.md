@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.76.0]
+
+### Added
+
+- Domain routers.
+
+### Removed
+
+- Balancer backend name and force SSL from URL redirects and virtual hosts. These have been replaced by domain routers.
+
 ## [1.75.1]
 
 ### Fixed
