@@ -12,8 +12,8 @@ class DomainRouter extends ClusterModel implements Model
     private ?int $virtualHostId = null;
     private ?int $urlRedirectId = null;
     private ?int $nodeId = null;
-    private ?int $id = null;
-    private ?int $clusterId = null;
+    private int $id;
+    private int $clusterId;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
 
@@ -77,24 +77,24 @@ class DomainRouter extends ClusterModel implements Model
         return $this;
     }
 
-    public function getId(): ?int
+    public function getId(): int
     {
         return $this->id;
     }
 
-    public function setId(?int $id): DomainRouter
+    public function setId(int $id): DomainRouter
     {
         $this->id = $id;
 
         return $this;
     }
 
-    public function getClusterId(): ?int
+    public function getClusterId(): int
     {
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): DomainRouter
+    public function setClusterId(int $clusterId): DomainRouter
     {
         $this->clusterId = $clusterId;
 
