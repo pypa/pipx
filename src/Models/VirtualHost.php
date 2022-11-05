@@ -18,9 +18,7 @@ class VirtualHost extends ClusterModel implements Model
     private string $publicRoot;
     private ?int $fpmPoolId = null;
     private ?int $passengerAppId = null;
-    private bool $forceSsl = true;
     private ?string $customConfig = null;
-    private ?string $balancerBackendName = null;
     private ?string $serverSoftwareName = null;
     private ?string $domainRoot = null;
     private ?array $allowOverrideDirectives;
@@ -126,18 +124,6 @@ class VirtualHost extends ClusterModel implements Model
         return $this;
     }
 
-    public function isForceSsl(): bool
-    {
-        return $this->forceSsl;
-    }
-
-    public function setForceSsl(bool $forceSsl): VirtualHost
-    {
-        $this->forceSsl = $forceSsl;
-
-        return $this;
-    }
-
     public function getCustomConfig(): ?string
     {
         return $this->customConfig;
@@ -152,24 +138,6 @@ class VirtualHost extends ClusterModel implements Model
             ->validate();
 
         $this->customConfig = $customConfig;
-
-        return $this;
-    }
-
-    public function getBalancerBackendName(): ?string
-    {
-        return $this->balancerBackendName;
-    }
-
-    public function setBalancerBackendName(?string $balancerBackendName): VirtualHost
-    {
-        Validator::value($balancerBackendName)
-            ->nullable()
-            ->maxLength(64)
-            ->pattern('^[a-z0-9-_.]+$')
-            ->validate();
-
-        $this->balancerBackendName = $balancerBackendName;
 
         return $this;
     }
@@ -317,8 +285,6 @@ class VirtualHost extends ClusterModel implements Model
             ->setPublicRoot(Arr::get($data, 'public_root'))
             ->setFpmPoolId(Arr::get($data, 'fpm_pool_id'))
             ->setPassengerAppId(Arr::get($data, 'passenger_app_id'))
-            ->setForceSsl(Arr::get($data, 'force_ssl'))
-            ->setBalancerBackendName(Arr::get($data, 'balancer_backend_name'))
             ->setDomainRoot(Arr::get($data, 'domain_root'))
             ->setCustomConfig(Arr::get($data, 'custom_config'))
             ->setAllowOverrideDirectives(Arr::get($data, 'allow_override_directives'))
@@ -340,11 +306,9 @@ class VirtualHost extends ClusterModel implements Model
             'public_root' => $this->getPublicRoot(),
             'fpm_pool_id' => $this->getFpmPoolId(),
             'passenger_app_id' => $this->getPassengerAppId(),
-            'force_ssl' => $this->isForceSsl(),
             'custom_config' => $this->getCustomConfig(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
-            'balancer_backend_name' => $this->getBalancerBackendName(),
             'domain_root' => $this->getDomainRoot(),
             'allow_override_directives' => $this->getAllowOverrideDirectives(),
             'allow_override_option_directives' => $this->getAllowOverrideOptionDirectives(),

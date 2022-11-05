@@ -15,8 +15,6 @@ class UrlRedirect extends ClusterModel implements Model
     private int $statusCode = StatusCode::MOVED_PERMANENTLY;
     private bool $keepQueryParameters = true;
     private bool $keepPath = true;
-    private bool $forceSsl = true;
-    private ?string $balancerBackendName = null;
     private ?string $description = null;
     private ?int $id = null;
     private ?int $clusterId = null;
@@ -107,36 +105,6 @@ class UrlRedirect extends ClusterModel implements Model
         return $this;
     }
 
-    public function isForceSsl(): bool
-    {
-        return $this->forceSsl;
-    }
-
-    public function setForceSsl(bool $forceSsl): UrlRedirect
-    {
-        $this->forceSsl = $forceSsl;
-
-        return $this;
-    }
-
-    public function getBalancerBackendName(): ?string
-    {
-        return $this->balancerBackendName;
-    }
-
-    public function setBalancerBackendName(?string $balancerBackendName): UrlRedirect
-    {
-        Validator::value($balancerBackendName)
-            ->nullable()
-            ->maxLength(64)
-            ->pattern('^[a-z0-9-_.]+$')
-            ->validate();
-
-        $this->balancerBackendName = $balancerBackendName;
-
-        return $this;
-    }
-
     public function getDescription(): ?string
     {
         return $this->description;
@@ -212,8 +180,6 @@ class UrlRedirect extends ClusterModel implements Model
             ->setStatusCode(Arr::get($data, 'status_code'))
             ->setKeepQueryParameters(Arr::get($data, 'keep_query_parameters'))
             ->setKeepPath(Arr::get($data, 'keep_path'))
-            ->setForceSsl(Arr::get($data, 'force_ssl'))
-            ->setBalancerBackendName(Arr::get($data, 'balancer_backend_name'))
             ->setDescription(Arr::get($data, 'description'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
@@ -230,8 +196,6 @@ class UrlRedirect extends ClusterModel implements Model
             'status_code' => $this->getStatusCode(),
             'keep_query_parameters' => $this->isKeepQueryParameters(),
             'keep_path' => $this->isKeepPath(),
-            'force_ssl' => $this->isForceSsl(),
-            'balancer_backend_name' => $this->getBalancerBackendName(),
             'description' => $this->getDescription(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
