@@ -44,7 +44,7 @@ class BorgArchiveContent extends ClusterModel implements Model
         Validator::value($symbolicMode)
             ->minLength(10)
             ->maxLength(10)
-            ->pattern('^[drwx\+\-sStT]+$')
+            ->pattern('^[rwx\+\-dlsStT]+$')
             ->validate();
 
         $this->symbolicMode = $symbolicMode;
