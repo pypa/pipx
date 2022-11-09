@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.77.0]
+
+### Changed
+
+- Borg archive content symbolic mode regex has been updated.
+- UNIX user RabbitMQ username + RabbitMQ password + RabbitMQ virtual host name is now required on update.
+- UNIX user RabbitMQ username + RabbitMQ virtual host name regex has been updated.
+
 ## [1.76.0]
 
 ### Added
