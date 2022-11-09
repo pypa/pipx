@@ -248,7 +248,7 @@ class UnixUser extends ClusterModel implements Model
         Validator::value($rabbitMqUsername)
             ->nullable()
             ->maxLength(32)
-            ->pattern('^[a-z0-9]+$')
+            ->pattern('^[a-z0-9-.]+$')
             ->validate();
 
         $this->rabbitMqUsername = $rabbitMqUsername;
@@ -266,7 +266,7 @@ class UnixUser extends ClusterModel implements Model
         Validator::value($rabbitMqVirtualHostName)
             ->nullable()
             ->maxLength(32)
-            ->pattern('^[a-z0-9]+$')
+            ->pattern('^[a-z0-9-.]+$')
             ->validate();
 
         $this->rabbitMqVirtualHostName = $rabbitMqVirtualHostName;
