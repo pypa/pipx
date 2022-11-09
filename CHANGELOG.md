@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.78.0]
+
+### Added
+
+- RabbitMQ encryption key attribute to UNIX users.
+
 ## [1.77.0]
 
 ### Changed
