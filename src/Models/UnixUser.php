@@ -25,6 +25,7 @@ class UnixUser extends ClusterModel implements Model
     private ?string $rabbitMqUsername = null;
     private ?string $rabbitMqVirtualHostName = null;
     private ?string $rabbitMqPassword = null;
+    private ?string $rabbitMqEncryptionKey = null;
     private int $clusterId;
     private ?int $id = null;
     private ?int $unixId = null;
@@ -292,6 +293,24 @@ class UnixUser extends ClusterModel implements Model
         return $this;
     }
 
+    public function getRabbitMqEncryptionKey(): ?string
+    {
+        return $this->rabbitMqEncryptionKey;
+    }
+
+    public function setRabbitMqEncryptionKey(?string $rabbitMqEncryptionKey): UnixUser
+    {
+        Validator::value($rabbitMqEncryptionKey)
+            ->nullable()
+            ->maxLength(255)
+            ->pattern('^[a-z\=\_\-A-Z0-9]+$')
+            ->validate();
+
+        $this->rabbitMqEncryptionKey = $rabbitMqEncryptionKey;
+
+        return $this;
+    }
+
     public function getClusterId(): int
     {
         return $this->clusterId;
@@ -371,6 +390,7 @@ class UnixUser extends ClusterModel implements Model
             ->setRabbitMqUsername(Arr::get($data, 'rabbitmq_username'))
             ->setRabbitMqVirtualHostName(Arr::get($data, 'rabbitmq_virtual_host_name'))
             ->setRabbitMqPassword(Arr::get($data, 'rabbitmq_password'))
+            ->setRabbitMqEncryptionKey(Arr::get($data, 'rabbitmq_encryption_key'))
             ->setUnixId(Arr::get($data, 'unix_id'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
@@ -397,6 +417,7 @@ class UnixUser extends ClusterModel implements Model
             'rabbitmq_username' => $this->getRabbitMqUsername(),
             'rabbitmq_virtual_host_name' => $this->getRabbitMqVirtualHostName(),
             'rabbitmq_password' => $this->getRabbitMqPassword(),
+            'rabbitmq_encryption_key' => $this->getRabbitMqEncryptionKey(),
             'cluster_id' => $this->getClusterId(),
             'id' => $this->getId(),
             'unix_id' => $this->getUnixId(),
