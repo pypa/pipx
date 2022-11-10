@@ -177,6 +177,7 @@ class UnixUsers extends Endpoint
             'rabbitmq_username',
             'rabbitmq_virtual_host_name',
             'rabbitmq_password',
+            'rabbitmq_encryption_key',
         ]);
 
         $request = (new Request())
@@ -202,6 +203,7 @@ class UnixUsers extends Endpoint
                 'rabbitmq_username',
                 'rabbitmq_virtual_host_name',
                 'rabbitmq_password',
+                'rabbitmq_encryption_key',
             ]));
 
         $response = $this
