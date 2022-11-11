@@ -14,7 +14,7 @@ class RedisInstance extends ClusterModel implements Model
     private ?int $port = null;
     private int $memoryLimit = 100;
     private int $primaryNodeId;
-    private ?string $unitName;
+    private ?string $unitName = null;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -67,12 +67,12 @@ class RedisInstance extends ClusterModel implements Model
         return $this;
     }
 
-    public function getPort(): int
+    public function getPort(): ?int
     {
         return $this->port;
     }
 
-    public function setPort(int $port): RedisInstance
+    public function setPort(?int $port): RedisInstance
     {
         $this->port = $port;
 
