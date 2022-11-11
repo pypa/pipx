@@ -10,9 +10,9 @@ class RedisInstance extends ClusterModel implements Model
 {
     private string $name;
     private string $password;
-    private int $maxDatabases;
-    private int $port;
-    private int $memoryLimit;
+    private int $maxDatabases = 16;
+    private ?int $port = null;
+    private int $memoryLimit = 100;
     private int $primaryNodeId;
     private ?string $unitName;
     private ?int $id = null;

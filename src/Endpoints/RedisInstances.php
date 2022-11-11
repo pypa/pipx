@@ -75,9 +75,7 @@ class RedisInstances extends Endpoint
         $this->validateRequired($redisInstance, 'create', [
             'name',
             'password',
-            'max_databases',
             'primary_node_id',
-            'memory_limit',
             'cluster_id',
         ]);
 
@@ -87,9 +85,9 @@ class RedisInstances extends Endpoint
             ->setBody($this->filterFields($redisInstance->toArray(), [
                 'name',
                 'password',
+                'memory_limit',
                 'max_databases',
                 'primary_node_id',
-                'memory_limit',
                 'cluster_id',
             ]));
 
@@ -122,13 +120,11 @@ class RedisInstances extends Endpoint
         $this->validateRequired($redisInstance, 'update', [
             'name',
             'password',
-            'max_databases',
             'primary_node_id',
-            'memory_limit',
-            'port',
-            'unit_name',
             'cluster_id',
             'id',
+            'port',
+            'unit_name',
         ]);
 
         $request = (new Request())
@@ -138,12 +134,12 @@ class RedisInstances extends Endpoint
                 'name',
                 'password',
                 'max_databases',
-                'primary_node_id',
                 'memory_limit',
-                'port',
-                'unit_name',
+                'primary_node_id',
                 'cluster_id',
                 'id',
+                'port',
+                'unit_name',
             ]));
 
         $response = $this
@@ -163,5 +159,31 @@ class RedisInstances extends Endpoint
         return $response->setData([
             'redisInstance' => $redisInstance,
         ]);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function delete(int $id): Response
+    {
+        // Log the affected cluster by retrieving the model first
+        $result = $this->get($id);
+        if ($result->isSuccess()) {
+            $clusterId = $result
+                ->getData('redisInstance')
+                ->getClusterId();
+
+            $this
+                ->client
+                ->addAffectedCluster($clusterId);
+        }
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_DELETE)
+            ->setUrl(sprintf('redis-instances/%d', $id));
+
+        return $this
+            ->client
+            ->request($request);
     }
 }
