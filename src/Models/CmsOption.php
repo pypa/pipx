@@ -10,7 +10,8 @@ use Cyberfusion\ClusterApi\Enums\CmsOptionName;
 class CmsOption extends ClusterModel implements Model
 {
     private string $name;
-    private mixed $value;
+    /** @var mixed */
+    private $value;
 
     public function getName(): string
     {
@@ -28,12 +29,18 @@ class CmsOption extends ClusterModel implements Model
         return $this;
     }
 
-    public function getValue(): mixed
+    /**
+     * @return mixed
+     */
+    public function getValue()
     {
         return $this->value;
     }
 
-    public function setValue(mixed $value): CmsOption
+    /**
+     * @param mixed $value
+     */
+    public function setValue($value): CmsOption
     {
         $this->value = $value;
 
