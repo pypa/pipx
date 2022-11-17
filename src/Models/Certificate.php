@@ -14,7 +14,6 @@ class Certificate extends ClusterModel implements Model
     private ?string $caChain = null;
     private ?string $privateKey = null;
     private ?int $id = null;
-    private ?string $statusMessage = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
@@ -113,24 +112,6 @@ class Certificate extends ClusterModel implements Model
         return $this;
     }
 
-    public function getStatusMessage(): ?string
-    {
-        return $this->statusMessage;
-    }
-
-    public function setStatusMessage(?string $statusMessage): Certificate
-    {
-        Validator::value($statusMessage)
-            ->nullable()
-            ->maxLength(65535)
-            ->pattern('^[ -~\n]+$')
-            ->validate();
-
-        $this->statusMessage = $statusMessage;
-
-        return $this;
-    }
-
     public function getClusterId(): ?int
     {
         return $this->clusterId;
@@ -176,7 +157,6 @@ class Certificate extends ClusterModel implements Model
             ->setCaChain(Arr::get($data, 'ca_chain'))
             ->setPrivateKey(Arr::get($data, 'private_key'))
             ->setId(Arr::get($data, 'id'))
-            ->setStatusMessage(Arr::get($data, 'status_message'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
             ->setUpdatedAt(Arr::get($data, 'updated_at'));
@@ -191,7 +171,6 @@ class Certificate extends ClusterModel implements Model
             'ca_chain' => $this->getCaChain(),
             'private_key' => $this->getPrivateKey(),
             'id' => $this->getId(),
-            'status_message' => $this->getStatusMessage(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),
