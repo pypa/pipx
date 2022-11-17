@@ -13,6 +13,7 @@ class Certificate extends ClusterModel implements Model
     private string $certificate;
     private string $caChain;
     private string $privateKey;
+    private string $expiresAt;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -97,6 +98,18 @@ class Certificate extends ClusterModel implements Model
         return $this;
     }
 
+    public function getExpiresAt(): string
+    {
+        return $this->expiresAt;
+    }
+
+    public function setExpiresAt(string $expiresAt): Certificate
+    {
+        $this->expiresAt = $expiresAt;
+
+        return $this;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -153,6 +166,7 @@ class Certificate extends ClusterModel implements Model
             ->setCertificate(Arr::get($data, 'certificate'))
             ->setCaChain(Arr::get($data, 'ca_chain'))
             ->setPrivateKey(Arr::get($data, 'private_key'))
+            ->setExpiresAt(Arr::get($data, 'expires_at'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -167,6 +181,7 @@ class Certificate extends ClusterModel implements Model
             'certificate' => $this->getCertificate(),
             'ca_chain' => $this->getCaChain(),
             'private_key' => $this->getPrivateKey(),
+            'expires_at' => $this->getExpiresAt(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
