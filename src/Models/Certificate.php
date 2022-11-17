@@ -10,9 +10,9 @@ class Certificate extends ClusterModel implements Model
 {
     private string $mainCommonName = '';
     private array $commonNames = [];
-    private ?string $certificate = null;
-    private ?string $caChain = null;
-    private ?string $privateKey = null;
+    private string $certificate;
+    private string $caChain;
+    private string $privateKey;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -46,15 +46,14 @@ class Certificate extends ClusterModel implements Model
         return $this;
     }
 
-    public function getCertificate(): ?string
+    public function getCertificate(): string
     {
         return $this->certificate;
     }
 
-    public function setCertificate(?string $certificate): Certificate
+    public function setCertificate(string $certificate): Certificate
     {
         Validator::value($certificate)
-            ->nullable()
             ->maxLength(65535)
             ->pattern('^[a-zA-Z0-9-_\+\/=\n ]+$')
             ->validate();
@@ -64,15 +63,14 @@ class Certificate extends ClusterModel implements Model
         return $this;
     }
 
-    public function getCaChain(): ?string
+    public function getCaChain(): string
     {
         return $this->caChain;
     }
 
-    public function setCaChain(?string $caChain): Certificate
+    public function setCaChain(string $caChain): Certificate
     {
         Validator::value($caChain)
-            ->nullable()
             ->maxLength(65535)
             ->pattern('^[a-zA-Z0-9-_\+\/=\n ]+$')
             ->validate();
@@ -82,15 +80,14 @@ class Certificate extends ClusterModel implements Model
         return $this;
     }
 
-    public function getPrivateKey(): ?string
+    public function getPrivateKey(): string
     {
         return $this->privateKey;
     }
 
-    public function setPrivateKey(?string $privateKey): Certificate
+    public function setPrivateKey(string $privateKey): Certificate
     {
         Validator::value($privateKey)
-            ->nullable()
             ->maxLength(65535)
             ->pattern('^[a-zA-Z0-9-_\+\/=\n ]+$')
             ->validate();
