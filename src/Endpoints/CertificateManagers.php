@@ -70,7 +70,6 @@ class CertificateManagers extends Endpoint
         $this->validateRequired($certificateManager, 'create', [
             'common_names',
             'provider_name',
-            'request_callback_url',
             'cluster_id',
         ]);
 
