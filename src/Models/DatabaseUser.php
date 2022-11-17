@@ -6,7 +6,6 @@ use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\DatabaseEngine;
 use Cyberfusion\ClusterApi\Enums\Host;
-use Cyberfusion\ClusterApi\Exceptions\ModelException;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class DatabaseUser extends ClusterModel implements Model
