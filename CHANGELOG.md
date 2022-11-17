@@ -11,22 +11,28 @@ detailed information.
 
 ### Added
 
-* Certificate managers.
-* Certificates: `expiresAt` attribute.
-* `UserInfo` model: `id` attribute.
+- Certificate managers.
+- Certificates: `expiresAt` attribute.
+- `UserInfo` model: `id` attribute.
 
 ### Changed
 
-* Certificates: make certificate + CA chain + private key required and non-nullable.
-* Certificates: remove `isLetsEncrypt`.
-* Certificates: remove `statusMessage`.
-* Logs: remove `rawMessage` regex validation.
-* Logs: remove `errorMessage` regex validation.
+- Update to [API version 1.155](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.155-2022-11-17).
+- Certificates: make certificate + CA chain + private key required and non-nullable.
+- Certificates: remove `isLetsEncrypt`.
+- Certificates: remove `statusMessage`.
+- Logs: remove `rawMessage` regex validation.
+- Logs: remove `errorMessage` regex validation.
+
+### Fixed
+
+- Remove `mixed` type as that requires PHP 8+.
 
 ### Removed
 
-* Certificates: `createLetsEncryptCertificate` endpoint. This has been replaced by certificate managers.
-* Certificates: `createCertificateWithOwnMaterial` endpoint. This has been replaced by the `create` endpoint.
+- Certificates: `createLetsEncryptCertificate` endpoint. This has been replaced by certificate managers.
+- Certificates: `createCertificateWithOwnMaterial` endpoint. This has been replaced by the `create` endpoint.
+- Remove unused import.
 
 ## [1.78.2]
 
