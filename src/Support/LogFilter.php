@@ -11,22 +11,17 @@ use Cyberfusion\ClusterApi\Exceptions\ListFilterException;
 
 class LogFilter implements Filter
 {
-    private DateTimeInterface $timestamp;
+    private ?DateTimeInterface $timestamp = null;
     private int $limit = Limit::DEFAULT_LIMIT;
     private string $sort = Sort::ASC;
     private bool $showRawMessage = false;
 
-    public function __construct()
-    {
-        $this->timestamp = Carbon::today();
-    }
-
-    public function getTimestamp(): DateTimeInterface
+    public function getTimestamp(): ?DateTimeInterface
     {
         return $this->timestamp;
     }
 
-    public function setTimestamp(DateTimeInterface $timestamp): LogFilter
+    public function setTimestamp(?DateTimeInterface $timestamp): LogFilter
     {
         $this->timestamp = $timestamp;
 
@@ -43,6 +38,7 @@ class LogFilter implements Filter
         if ($limit > Limit::MAX_LIMIT) {
             $limit = Limit::MAX_LIMIT;
         }
+
         $this->limit = $limit;
 
         return $this;
@@ -79,7 +75,7 @@ class LogFilter implements Filter
     public function toQuery(): string
     {
         return http_build_query([
-            'timestamp' => $this->timestamp->format('c'),
+            'timestamp' => !is_null($this->timestamp) ? $this->timestamp->format('c') : null,
             'limit' => $this->limit,
             'sort' => $this->sort,
             'show_raw_message' => $this->showRawMessage,
