@@ -140,7 +140,7 @@ class CertificateManager extends ClusterModel implements Model
         return $this
             ->setMainCommonName(Arr::get($data, 'main_common_name', ''))
             ->setCommonNames(Arr::get($data, 'common_names', []))
-            ->setProviderName(Arr::get($data, 'provider_names'))
+            ->setProviderName(Arr::get($data, 'provider_name'))
             ->setRequestCallbackUrl(Arr::get($data, 'request_callback_url'))
             ->setCertificateId(Arr::get($data, 'certificate_id'))
             ->setId(Arr::get($data, 'id'))
@@ -154,7 +154,7 @@ class CertificateManager extends ClusterModel implements Model
         return [
             'main_common_name' => $this->getMainCommonName(),
             'common_names' => $this->getCommonNames(),
-            'provider_names' => $this->getProviderName(),
+            'provider_name' => $this->getProviderName(),
             'request_callback_url' => $this->getRequestCallbackUrl(),
             'certificate_id' => $this->getCertificateId(),
             'id' => $this->getId(),
