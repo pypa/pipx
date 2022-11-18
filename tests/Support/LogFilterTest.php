@@ -13,7 +13,7 @@ class LogFilterTest extends TestCase
     {
         $logFilter = new LogFilter();
 
-        $this->assertSame(Carbon::today()->format('c'), $logFilter->getTimestamp()->format('c'));
+        $this->assertNull($logFilter->getTimestamp());
         $this->assertSame(100, $logFilter->getLimit());
         $this->assertFalse($logFilter->isShowRawMessage());
         $this->assertSame(Sort::ASC, $logFilter->getSort());
