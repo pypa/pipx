@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.81.0]
+
+### Changed
+
+- Improve the usage of the list filter.
+
 ## [1.80.0]
 
 ### Changed
