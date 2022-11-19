@@ -64,37 +64,7 @@ class Certificates extends Endpoint
     /**
      * @throws RequestException
      */
-    public function createLetsEncryptCertificate(Certificate $certificate): Response
-    {
-        $this->validateRequired($certificate, 'create', [
-            'common_names',
-            'cluster_id',
-        ]);
-
-        $request = (new Request())
-            ->setMethod(Request::METHOD_POST)
-            ->setUrl('certificates/lets-encrypt')
-            ->setBody($this->filterFields($certificate->toArray(), [
-                'common_names',
-                'cluster_id',
-            ]));
-
-        $response = $this
-            ->client
-            ->request($request);
-        if (!$response->isSuccess()) {
-            return $response;
-        }
-
-        return $response->setData([
-            'certificate' => (new Certificate())->fromArray($response->getData()),
-        ]);
-    }
-
-    /**
-     * @throws RequestException
-     */
-    public function createCertificateWithOwnMaterial(Certificate $certificate): Response
+    public function create(Certificate $certificate): Response
     {
         $this->validateRequired($certificate, 'create', [
             'certificate',
@@ -105,7 +75,7 @@ class Certificates extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('certificates/own-material')
+            ->setUrl('certificates')
             ->setBody($this->filterFields($certificate->toArray(), [
                 'certificate',
                 'ca_chain',

@@ -10,7 +10,8 @@ use Cyberfusion\ClusterApi\Enums\CmsConfigurationConstantName;
 class CmsConfigurationConstant extends ClusterModel implements Model
 {
     private string $name;
-    private mixed $value;
+    /** @var mixed */
+    private $value;
 
     public function getName(): string
     {
@@ -29,12 +30,18 @@ class CmsConfigurationConstant extends ClusterModel implements Model
         return $this;
     }
 
-    public function getValue(): mixed
+    /**
+     * @return mixed
+     */
+    public function getValue()
     {
         return $this->value;
     }
 
-    public function setValue(mixed $value): CmsConfigurationConstant
+    /**
+     * @param mixed $value
+     */
+    public function setValue($value): CmsConfigurationConstant
     {
         Validator::value($value)
             ->maxLength(255)

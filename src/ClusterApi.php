@@ -34,6 +34,11 @@ class ClusterApi
         return new Endpoints\Certificates($this->client);
     }
 
+    public function certificateManagers(): Endpoints\CertificateManagers
+    {
+        return new Endpoints\CertificateManagers($this->client);
+    }
+
     public function clusters(): Endpoints\Clusters
     {
         return new Endpoints\Clusters($this->client);

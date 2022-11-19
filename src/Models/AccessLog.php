@@ -37,7 +37,6 @@ class AccessLog extends ClusterModel implements Model
     {
         Validator::value($rawMessage)
             ->maxLength(65535)
-            ->pattern('^[ -~\n]+$')
             ->validate();
 
         $this->rawMessage = $rawMessage;

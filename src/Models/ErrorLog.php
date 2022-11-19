@@ -36,7 +36,6 @@ class ErrorLog extends ClusterModel implements Model
     {
         Validator::value($rawMessage)
             ->maxLength(65535)
-            ->pattern('^[ -~\n]+$')
             ->validate();
 
         $this->rawMessage = $rawMessage;
@@ -89,7 +88,6 @@ class ErrorLog extends ClusterModel implements Model
     {
         Validator::value($errorMessage)
             ->maxLength(65535)
-            ->pattern('^[ -~\n]+$')
             ->validate();
 
         $this->errorMessage = $errorMessage;

@@ -7,6 +7,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) 
 cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) for 
 detailed information.
 
+## [1.80.0]
+
+### Changed
+
+- Add default value for logs `timestamp`.
+- Make logs `timestamp` nullable.
+
+## [1.79.1]
+
+### Fixed
+
+- Rename the property `provider_names` to `provider_name` in the `CertificateManager` model.
+
+## [1.79.0]
+
+### Added
+
+- Certificate managers.
+- Certificates: `expiresAt` attribute.
+- `UserInfo` model: `id` attribute.
+
+### Changed
+
+- Update to [API version 1.155](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.155-2022-11-17).
+- Certificates: make certificate + CA chain + private key required and non-nullable.
+- Certificates: remove `isLetsEncrypt`.
+- Certificates: remove `statusMessage`.
+- Logs: remove `rawMessage` regex validation.
+- Logs: remove `errorMessage` regex validation.
+
+### Fixed
+
+- Remove `mixed` type as that requires PHP 8+.
+
+### Removed
+
+- Certificates: `createLetsEncryptCertificate` endpoint. This has been replaced by certificate managers.
+- Certificates: `createCertificateWithOwnMaterial` endpoint. This has been replaced by the `create` endpoint.
+- Remove unused import.
+
 ## [1.78.2]
 
 ### Fixed
