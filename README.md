@@ -102,13 +102,34 @@ Some endpoints require a `ListFilter` and return a list of models according to t
 A `ListFilter` can be initialized for a model, so it automatically validates if the provided fields are available for the model.
 
 ```php
-$listFilter = ListFilter::forModel(new Cluster());
-$listFilter->addFilter('name', 'test');
-$listFilter->addFilter('groups', 'test2');
-$listFilter->addSort('name', ListFilter::SORT_DESC);
+$listFilter = Cluster::filter()
+    ->addFilter(new FilterEntry('name', 'test'))
+    ->addFilter(new FilterEntry('groups', 'test2'))
+    ->addSort(new SortEntry('name', ListFilter::SORT_DESC));
 ```
 
 You are able to initialize the `ListFilter` manually, but fields are not validated in that case.
+
+```php
+$listFilter = (new ListFilter())
+    ->addFilter(new FilterEntry('name', 'test'))
+    ->addFilter(new FilterEntry('groups', 'test2'))
+    ->addSort(new SortEntry('name', ListFilter::SORT_DESC));
+```
+
+Or provide the entries and sort directly:
+
+```php
+$listFilter = new ListFilter(
+    [
+        new FilterEntry('name', 'test'),
+        new FilterEntry('groups', 'test2'),
+    ],
+    [
+        new SortEntry('name', ListFilter::SORT_DESC)
+    ]
+);
+```
 
 #### Manually make requests
 

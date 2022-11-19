@@ -17,10 +17,11 @@ class ClusterApiException extends Exception
     protected const API_NOT_UP = 300;
 
     protected const MODEL_PROPERTY_NOT_AVAILABLE = 400;
-    protected const MODEL_ENGINE_SET_AFTER_PASSWORD = 401;
 
     protected const VALIDATION_FAILED = 500;
 
     protected const LISTFILTER_INVALID_SORT_METHOD = 600;
     protected const LISTFILTER_FIELD_NOT_AVAILABLE = 601;
+    protected const LISTFILTER_INVALID_MODEL = 602;
+    protected const LISTFILTER_UNABLE_TO_DETERMINE_FIELDS = 603;
 }
