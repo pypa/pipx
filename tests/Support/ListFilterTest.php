@@ -2,6 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Tests\Support;
 
+use Cyberfusion\ClusterApi\Support\FilterEntry;
+use Cyberfusion\ClusterApi\Support\SortEntry;
 use PHPUnit\Framework\TestCase;
 use Cyberfusion\ClusterApi\Support\ListFilter;
 
@@ -24,10 +26,10 @@ class ListFilterTest extends TestCase
         $skip = 10;
         $limit = 5;
         $filter = [
-            ['field' => 'testField', 'value' => 'testValue'],
+            new FilterEntry('testField', 'testValue'),
         ];
         $sort = [
-            'col:ASC',
+            new SortEntry('col', 'ASC'),
         ];
 
         $listFilter = (new ListFilter())
@@ -49,12 +51,12 @@ class ListFilterTest extends TestCase
         $skip = 10;
         $limit = 5;
         $filter = [
-            ['field' => 'testField', 'value' => 'foo'],
-            ['field' => 'testField', 'value' => 'bar'],
-            ['field' => 'testField2', 'value' => 'lol'],
+            new FilterEntry('testField', 'foo'),
+            new FilterEntry('testField', 'bar'),
+            new FilterEntry('testField2', 'lol'),
         ];
         $sort = [
-            'col:ASC',
+            new SortEntry('col', 'ASC'),
         ];
 
         $listFilter = (new ListFilter())
@@ -64,7 +66,7 @@ class ListFilterTest extends TestCase
             ->setSort($sort);
 
         $this->assertSame(
-            'skip=10&limit=5&filter=testField%3Afoo&filter=testField%3Abar&filter=testField2%3Alol&sort=0%3Acol%3AASC',
+            'skip=10&limit=5&filter=testField%3Afoo&filter=testField%3Abar&filter=testField2%3Alol&sort=col%3AASC',
             $listFilter->toQuery()
         );
     }
