@@ -11,7 +11,7 @@ class TaskResult extends ClusterModel implements Model
 {
     private string $uuid;
     private string $description;
-    private string $message;
+    private ?string $message;
     private string $state;
 
     public function getUuid(): string
@@ -52,11 +52,12 @@ class TaskResult extends ClusterModel implements Model
         return $this->message;
     }
 
-    public function setMessage(string $message): TaskResult
+    public function setMessage(?string $message): TaskResult
     {
         Validator::value($message)
             ->maxLength(65535)
             ->pattern('^[ -~]+$')
+            ->nullable()
             ->validate();
 
         $this->message = $message;
