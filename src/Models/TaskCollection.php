@@ -2,9 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
+use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\TaskCollectionType;
 use Cyberfusion\ClusterApi\Support\Arr;
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class TaskCollection extends ClusterModel implements Model
@@ -24,7 +24,7 @@ class TaskCollection extends ClusterModel implements Model
         return $this->uuid;
     }
 
-    public function setUuid(string $uuid): TaskCollection
+    public function setUuid(string $uuid): self
     {
         $this->uuid = $uuid;
 
@@ -36,7 +36,7 @@ class TaskCollection extends ClusterModel implements Model
         return $this->description;
     }
 
-    public function setDescription(string $description): TaskCollection
+    public function setDescription(string $description): self
     {
         Validator::value($description)
             ->maxLength(255)
@@ -53,7 +53,7 @@ class TaskCollection extends ClusterModel implements Model
         return $this->collectionType;
     }
 
-    public function setCollectionType(string $collectionType): TaskCollection
+    public function setCollectionType(string $collectionType): self
     {
         Validator::value($collectionType)
             ->valueIn(TaskCollectionType::AVAILABLE)
@@ -69,7 +69,7 @@ class TaskCollection extends ClusterModel implements Model
         return $this->objectId;
     }
 
-    public function setObjectId(string $objectId): TaskCollection
+    public function setObjectId(string $objectId): self
     {
         $this->objectId = $objectId;
 
@@ -81,7 +81,7 @@ class TaskCollection extends ClusterModel implements Model
         return $this->objectModelName;
     }
 
-    public function setObjectModelName(string $objectModelName): TaskCollection
+    public function setObjectModelName(string $objectModelName): self
     {
         $this->objectModelName = $objectModelName;
 
@@ -93,7 +93,7 @@ class TaskCollection extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): TaskCollection
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -105,7 +105,7 @@ class TaskCollection extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): TaskCollection
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -117,7 +117,7 @@ class TaskCollection extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): TaskCollection
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -129,14 +129,14 @@ class TaskCollection extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): TaskCollection
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): TaskCollection
+    public function fromArray(array $data): self
     {
         return $this
             ->setUuid(Arr::get($data, 'uuid'))

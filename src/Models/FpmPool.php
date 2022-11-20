@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class FpmPool extends ClusterModel implements Model
@@ -28,7 +28,7 @@ class FpmPool extends ClusterModel implements Model
         return $this->name;
     }
 
-    public function setName(string $name): FpmPool
+    public function setName(string $name): self
     {
         Validator::value($name)
             ->maxLength(64)
@@ -45,7 +45,7 @@ class FpmPool extends ClusterModel implements Model
         return $this->unixUserId;
     }
 
-    public function setUnixUserId(int $unixUserId): FpmPool
+    public function setUnixUserId(int $unixUserId): self
     {
         $this->unixUserId = $unixUserId;
 
@@ -57,7 +57,7 @@ class FpmPool extends ClusterModel implements Model
         return $this->version;
     }
 
-    public function setVersion(string $version): FpmPool
+    public function setVersion(string $version): self
     {
         $this->version = $version;
 
@@ -69,7 +69,7 @@ class FpmPool extends ClusterModel implements Model
         return $this->maxChildren;
     }
 
-    public function setMaxChildren(int $maxChildren): FpmPool
+    public function setMaxChildren(int $maxChildren): self
     {
         $this->maxChildren = $maxChildren;
 
@@ -81,7 +81,7 @@ class FpmPool extends ClusterModel implements Model
         return $this->maxRequests;
     }
 
-    public function setMaxRequests(int $maxRequests): FpmPool
+    public function setMaxRequests(int $maxRequests): self
     {
         $this->maxRequests = $maxRequests;
 
@@ -93,7 +93,7 @@ class FpmPool extends ClusterModel implements Model
         return $this->processIdleTimeout;
     }
 
-    public function setProcessIdleTimeout(int $processIdleTimeout): FpmPool
+    public function setProcessIdleTimeout(int $processIdleTimeout): self
     {
         $this->processIdleTimeout = $processIdleTimeout;
 
@@ -105,7 +105,7 @@ class FpmPool extends ClusterModel implements Model
         return $this->cpuLimit;
     }
 
-    public function setCpuLimit(?int $cpuLimit): FpmPool
+    public function setCpuLimit(?int $cpuLimit): self
     {
         $this->cpuLimit = $cpuLimit;
 
@@ -117,7 +117,7 @@ class FpmPool extends ClusterModel implements Model
         return $this->logShowRequestsThreshold;
     }
 
-    public function setLogShowRequestsThreshold(?int $logShowRequestsThreshold): FpmPool
+    public function setLogShowRequestsThreshold(?int $logShowRequestsThreshold): self
     {
         $this->logShowRequestsThreshold = $logShowRequestsThreshold;
 
@@ -129,7 +129,7 @@ class FpmPool extends ClusterModel implements Model
         return $this->isNamespaced;
     }
 
-    public function setIsNamespaced(bool $isNamespaced): FpmPool
+    public function setIsNamespaced(bool $isNamespaced): self
     {
         $this->isNamespaced = $isNamespaced;
 
@@ -141,7 +141,7 @@ class FpmPool extends ClusterModel implements Model
         return $this->unitName;
     }
 
-    public function setUnitName(?string $unitName): FpmPool
+    public function setUnitName(?string $unitName): self
     {
         $this->unitName = $unitName;
 
@@ -153,7 +153,7 @@ class FpmPool extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): FpmPool
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -165,7 +165,7 @@ class FpmPool extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): FpmPool
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -177,7 +177,7 @@ class FpmPool extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): FpmPool
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -189,14 +189,14 @@ class FpmPool extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): FpmPool
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): FpmPool
+    public function fromArray(array $data): self
     {
         return $this
             ->setName(Arr::get($data, 'name'))

@@ -2,10 +2,10 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
-use Cyberfusion\ClusterApi\Enums\PassengerEnvironment;
 use Cyberfusion\ClusterApi\Enums\PassengerAppType;
+use Cyberfusion\ClusterApi\Enums\PassengerEnvironment;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class PassengerApp extends ClusterModel implements Model
@@ -35,7 +35,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->name;
     }
 
-    public function setName(string $name): PassengerApp
+    public function setName(string $name): self
     {
         Validator::value($name)
             ->maxLength(64)
@@ -52,7 +52,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->unixUserId;
     }
 
-    public function setUnixUserId(int $unixUserId): PassengerApp
+    public function setUnixUserId(int $unixUserId): self
     {
         $this->unixUserId = $unixUserId;
 
@@ -64,7 +64,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->environment;
     }
 
-    public function setEnvironment(string $environment): PassengerApp
+    public function setEnvironment(string $environment): self
     {
         Validator::value($environment)
             ->valueIn(PassengerEnvironment::AVAILABLE)
@@ -80,7 +80,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->environmentVariables;
     }
 
-    public function setEnvironmentVariables(array $environmentVariables): PassengerApp
+    public function setEnvironmentVariables(array $environmentVariables): self
     {
         $this->environmentVariables = $environmentVariables;
 
@@ -92,7 +92,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->maxPoolSize;
     }
 
-    public function setMaxPoolSize(int $maxPoolSize): PassengerApp
+    public function setMaxPoolSize(int $maxPoolSize): self
     {
         $this->maxPoolSize = $maxPoolSize;
 
@@ -104,7 +104,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->maxRequests;
     }
 
-    public function setMaxRequests(int $maxRequests): PassengerApp
+    public function setMaxRequests(int $maxRequests): self
     {
         $this->maxRequests = $maxRequests;
 
@@ -116,7 +116,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->poolIdleTime;
     }
 
-    public function setPoolIdleTime(int $poolIdleTime): PassengerApp
+    public function setPoolIdleTime(int $poolIdleTime): self
     {
         $this->poolIdleTime = $poolIdleTime;
 
@@ -128,7 +128,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->port;
     }
 
-    public function setPort(int $port): PassengerApp
+    public function setPort(int $port): self
     {
         $this->port = $port;
 
@@ -140,7 +140,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->appType;
     }
 
-    public function setAppType(string $appType): PassengerApp
+    public function setAppType(string $appType): self
     {
         Validator::value($appType)
             ->valueIn(PassengerAppType::AVAILABLE)
@@ -156,7 +156,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->appRoot;
     }
 
-    public function setAppRoot(string $appRoot): PassengerApp
+    public function setAppRoot(string $appRoot): self
     {
         Validator::value($appRoot)
             ->path()
@@ -172,7 +172,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->nodejsVersion;
     }
 
-    public function setNodejsVersion(?string $nodejsVersion): PassengerApp
+    public function setNodejsVersion(?string $nodejsVersion): self
     {
         Validator::value($nodejsVersion)
             ->pattern('^[0-9]{1,2}\.[0-9]{1,2}$')
@@ -188,7 +188,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->startupFile;
     }
 
-    public function setStartupFile(?string $startupFile): PassengerApp
+    public function setStartupFile(?string $startupFile): self
     {
         Validator::value($startupFile)
             ->nullable()
@@ -206,7 +206,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->isNamespaced;
     }
 
-    public function setIsNamespaced(bool $isNamespaced): PassengerApp
+    public function setIsNamespaced(bool $isNamespaced): self
     {
         $this->isNamespaced = $isNamespaced;
 
@@ -218,7 +218,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->cpuLimit;
     }
 
-    public function setCpuLimit(?int $cpuLimit): PassengerApp
+    public function setCpuLimit(?int $cpuLimit): self
     {
         $this->cpuLimit = $cpuLimit;
 
@@ -230,7 +230,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->unitName;
     }
 
-    public function setUnitName(?string $unitName): PassengerApp
+    public function setUnitName(?string $unitName): self
     {
         $this->unitName = $unitName;
 
@@ -242,7 +242,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): PassengerApp
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -254,7 +254,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): PassengerApp
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -266,7 +266,7 @@ class PassengerApp extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): PassengerApp
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -278,14 +278,14 @@ class PassengerApp extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): PassengerApp
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): PassengerApp
+    public function fromArray(array $data): self
     {
         return $this
             ->setName(Arr::get($data, 'name'))

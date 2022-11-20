@@ -2,10 +2,10 @@
 
 namespace Cyberfusion\ClusterApi\Endpoints;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
 use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
+use Cyberfusion\ClusterApi\Support\Arr;
 
 abstract class Endpoint
 {

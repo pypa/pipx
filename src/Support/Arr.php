@@ -25,7 +25,7 @@ class Arr extends \Illuminate\Support\Arr
     public static function keysExists(array $keys, array $source): bool
     {
         foreach ($keys as $key) {
-            if (! array_key_exists($key, $source)) {
+            if (!array_key_exists($key, $source)) {
                 return false;
             }
         }

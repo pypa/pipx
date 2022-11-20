@@ -19,7 +19,7 @@ class Deployment
         return $this->clusterId;
     }
 
-    public function setClusterId(int $clusterId): Deployment
+    public function setClusterId(int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -31,7 +31,7 @@ class Deployment
         return $this->success;
     }
 
-    public function setSuccess(bool $success): Deployment
+    public function setSuccess(bool $success): self
     {
         $this->success = $success;
 
@@ -43,7 +43,7 @@ class Deployment
         return $this->cluster;
     }
 
-    public function setCluster(?Cluster $cluster): Deployment
+    public function setCluster(?Cluster $cluster): self
     {
         $this->cluster = $cluster;
 
@@ -62,7 +62,7 @@ class Deployment
      * @param string|DetailMessage|HttpValidationError|null $error
      * @return $this
      */
-    public function setError($error): Deployment
+    public function setError($error): self
     {
         $this->error = $error;
 

@@ -2,11 +2,11 @@
 
 namespace Cyberfusion\ClusterApi\Support;
 
-use DateTimeInterface;
 use Cyberfusion\ClusterApi\Contracts\Filter;
 use Cyberfusion\ClusterApi\Enums\Limit;
 use Cyberfusion\ClusterApi\Enums\Sort;
 use Cyberfusion\ClusterApi\Exceptions\ListFilterException;
+use DateTimeInterface;
 
 class LogFilter implements Filter
 {
@@ -20,7 +20,7 @@ class LogFilter implements Filter
         return $this->timestamp;
     }
 
-    public function setTimestamp(?DateTimeInterface $timestamp): LogFilter
+    public function setTimestamp(?DateTimeInterface $timestamp): self
     {
         $this->timestamp = $timestamp;
 
@@ -32,7 +32,7 @@ class LogFilter implements Filter
         return $this->limit;
     }
 
-    public function setLimit(int $limit): LogFilter
+    public function setLimit(int $limit): self
     {
         if ($limit > Limit::MAX_LIMIT) {
             $limit = Limit::MAX_LIMIT;
@@ -48,7 +48,7 @@ class LogFilter implements Filter
         return $this->sort;
     }
 
-    public function setSort(string $sort = Sort::ASC): LogFilter
+    public function setSort(string $sort = Sort::ASC): self
     {
         if (!in_array($sort, Sort::AVAILABLE)) {
             throw ListFilterException::invalidSortMethod($sort);
@@ -64,7 +64,7 @@ class LogFilter implements Filter
         return $this->showRawMessage;
     }
 
-    public function setShowRawMessage(bool $showRawMessage): LogFilter
+    public function setShowRawMessage(bool $showRawMessage): self
     {
         $this->showRawMessage = $showRawMessage;
 

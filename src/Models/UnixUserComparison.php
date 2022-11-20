@@ -22,7 +22,7 @@ class UnixUserComparison extends ClusterModel implements Model
         return $this->notIdenticalPaths;
     }
 
-    public function setNotIdenticalPaths(array $notIdenticalPaths): UnixUserComparison
+    public function setNotIdenticalPaths(array $notIdenticalPaths): self
     {
         Validator::value($notIdenticalPaths)
             ->each()
@@ -42,7 +42,7 @@ class UnixUserComparison extends ClusterModel implements Model
         return $this->onlyLeftFilesPaths;
     }
 
-    public function setOnlyLeftFilesPaths(array $onlyLeftFilesPaths): UnixUserComparison
+    public function setOnlyLeftFilesPaths(array $onlyLeftFilesPaths): self
     {
         Validator::value($onlyLeftFilesPaths)
             ->each()
@@ -62,7 +62,7 @@ class UnixUserComparison extends ClusterModel implements Model
         return $this->onlyRightFilesPaths;
     }
 
-    public function setOnlyRightFilesPaths(array $onlyRightFilesPaths): UnixUserComparison
+    public function setOnlyRightFilesPaths(array $onlyRightFilesPaths): self
     {
         Validator::value($onlyRightFilesPaths)
             ->each()
@@ -82,7 +82,7 @@ class UnixUserComparison extends ClusterModel implements Model
         return $this->onlyLeftDirectoriesPaths;
     }
 
-    public function setOnlyLeftDirectoriesPaths(array $onlyLeftDirectoriesPaths): UnixUserComparison
+    public function setOnlyLeftDirectoriesPaths(array $onlyLeftDirectoriesPaths): self
     {
         Validator::value($onlyLeftDirectoriesPaths)
             ->each()
@@ -102,7 +102,7 @@ class UnixUserComparison extends ClusterModel implements Model
         return $this->onlyRightDirectoriesPaths;
     }
 
-    public function setOnlyRightDirectoriesPaths(array $onlyRightDirectoriesPaths): UnixUserComparison
+    public function setOnlyRightDirectoriesPaths(array $onlyRightDirectoriesPaths): self
     {
         Validator::value($onlyRightDirectoriesPaths)
             ->each()
@@ -114,7 +114,7 @@ class UnixUserComparison extends ClusterModel implements Model
         return $this;
     }
 
-    public function fromArray(array $data): UnixUserComparison
+    public function fromArray(array $data): self
     {
         return $this
             ->setNotIdenticalPaths(Arr::get($data, 'not_identical_paths', []))

@@ -2,10 +2,10 @@
 
 namespace Cyberfusion\ClusterApi\Tests\Support;
 
-use Illuminate\Support\Carbon;
-use PHPUnit\Framework\TestCase;
 use Cyberfusion\ClusterApi\Enums\Sort;
 use Cyberfusion\ClusterApi\Support\LogFilter;
+use Illuminate\Support\Carbon;
+use PHPUnit\Framework\TestCase;
 
 class LogFilterTest extends TestCase
 {

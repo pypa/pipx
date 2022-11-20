@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class UnixUserUsage extends ClusterModel implements Model
@@ -18,7 +18,7 @@ class UnixUserUsage extends ClusterModel implements Model
         return $this->unixUserId;
     }
 
-    public function setUnixUserId(int $unixUserId): UnixUserUsage
+    public function setUnixUserId(int $unixUserId): self
     {
         $this->unixUserId = $unixUserId;
 
@@ -30,7 +30,7 @@ class UnixUserUsage extends ClusterModel implements Model
         return $this->usage;
     }
 
-    public function setUsage(int $usage): UnixUserUsage
+    public function setUsage(int $usage): self
     {
         $this->usage = $usage;
 
@@ -42,7 +42,7 @@ class UnixUserUsage extends ClusterModel implements Model
         return $this->files;
     }
 
-    public function setFiles(array $files): UnixUserUsage
+    public function setFiles(array $files): self
     {
         Validator::value($files)
             ->each()
@@ -59,14 +59,14 @@ class UnixUserUsage extends ClusterModel implements Model
         return $this->timestamp;
     }
 
-    public function setTimestamp(string $timestamp): UnixUserUsage
+    public function setTimestamp(string $timestamp): self
     {
         $this->timestamp = $timestamp;
 
         return $this;
     }
 
-    public function fromArray(array $data): UnixUserUsage
+    public function fromArray(array $data): self
     {
         return $this
             ->setUnixUserId(Arr::get($data, 'unix_user_id'))

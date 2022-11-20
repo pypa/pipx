@@ -3,8 +3,8 @@
 namespace Cyberfusion\ClusterApi\Endpoints;
 
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Cyberfusion\ClusterApi\Models\BorgRepository;
 use Cyberfusion\ClusterApi\Models\BorgArchiveMetadata;
+use Cyberfusion\ClusterApi\Models\BorgRepository;
 use Cyberfusion\ClusterApi\Models\TaskCollection;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
@@ -31,7 +31,7 @@ class BorgRepositories extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -59,7 +59,7 @@ class BorgRepositories extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -108,7 +108,7 @@ class BorgRepositories extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -166,7 +166,7 @@ class BorgRepositories extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 

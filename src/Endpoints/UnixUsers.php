@@ -2,7 +2,6 @@
 
 namespace Cyberfusion\ClusterApi\Endpoints;
 
-use DateTimeInterface;
 use Cyberfusion\ClusterApi\Enums\TimeUnit;
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Cyberfusion\ClusterApi\Models\UnixUser;
@@ -11,6 +10,7 @@ use Cyberfusion\ClusterApi\Models\UnixUserUsage;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
 use Cyberfusion\ClusterApi\Support\ListFilter;
+use DateTimeInterface;
 
 class UnixUsers extends Endpoint
 {

@@ -2,9 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\StatusCode;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class UrlRedirect extends ClusterModel implements Model
@@ -26,7 +26,7 @@ class UrlRedirect extends ClusterModel implements Model
         return $this->domain;
     }
 
-    public function setDomain(string $domain): UrlRedirect
+    public function setDomain(string $domain): self
     {
         $this->domain = $domain;
 
@@ -38,7 +38,7 @@ class UrlRedirect extends ClusterModel implements Model
         return $this->serverAliases;
     }
 
-    public function setServerAliases(array $serverAliases): UrlRedirect
+    public function setServerAliases(array $serverAliases): self
     {
         Validator::value($serverAliases)
             ->unique()
@@ -54,7 +54,7 @@ class UrlRedirect extends ClusterModel implements Model
         return $this->destinationUrl;
     }
 
-    public function setDestinationUrl(string $destinationUrl): UrlRedirect
+    public function setDestinationUrl(string $destinationUrl): self
     {
         Validator::value($destinationUrl)
             ->maxLength(2083)
@@ -70,7 +70,7 @@ class UrlRedirect extends ClusterModel implements Model
         return $this->statusCode;
     }
 
-    public function setStatusCode(int $statusCode): UrlRedirect
+    public function setStatusCode(int $statusCode): self
     {
         Validator::value($statusCode)
             ->valueIn(StatusCode::AVAILABLE)
@@ -86,7 +86,7 @@ class UrlRedirect extends ClusterModel implements Model
         return $this->keepQueryParameters;
     }
 
-    public function setKeepQueryParameters(bool $keepQueryParameters): UrlRedirect
+    public function setKeepQueryParameters(bool $keepQueryParameters): self
     {
         $this->keepQueryParameters = $keepQueryParameters;
 
@@ -98,7 +98,7 @@ class UrlRedirect extends ClusterModel implements Model
         return $this->keepPath;
     }
 
-    public function setKeepPath(bool $keepPath): UrlRedirect
+    public function setKeepPath(bool $keepPath): self
     {
         $this->keepPath = $keepPath;
 
@@ -110,7 +110,7 @@ class UrlRedirect extends ClusterModel implements Model
         return $this->description;
     }
 
-    public function setDescription(?string $description): UrlRedirect
+    public function setDescription(?string $description): self
     {
         Validator::value($description)
             ->nullable()
@@ -128,7 +128,7 @@ class UrlRedirect extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): UrlRedirect
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -140,7 +140,7 @@ class UrlRedirect extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): UrlRedirect
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -152,7 +152,7 @@ class UrlRedirect extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): UrlRedirect
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -164,14 +164,14 @@ class UrlRedirect extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): UrlRedirect
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): UrlRedirect
+    public function fromArray(array $data): self
     {
         return $this
             ->setDomain(Arr::get($data, 'domain'))

@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 
 class Cms extends ClusterModel implements Model
 {
@@ -20,7 +20,7 @@ class Cms extends ClusterModel implements Model
         return $this->softwareName;
     }
 
-    public function setSoftwareName(string $softwareName): Cms
+    public function setSoftwareName(string $softwareName): self
     {
         $this->softwareName = $softwareName;
 
@@ -32,7 +32,7 @@ class Cms extends ClusterModel implements Model
         return $this->virtualHostId;
     }
 
-    public function setVirtualHostId(int $virtualHostId): Cms
+    public function setVirtualHostId(int $virtualHostId): self
     {
         $this->virtualHostId = $virtualHostId;
 
@@ -44,7 +44,7 @@ class Cms extends ClusterModel implements Model
         return $this->isManuallyCreated;
     }
 
-    public function setIsManuallyCreated(bool $isManuallyCreated): Cms
+    public function setIsManuallyCreated(bool $isManuallyCreated): self
     {
         $this->isManuallyCreated = $isManuallyCreated;
 
@@ -56,7 +56,7 @@ class Cms extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): Cms
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -68,7 +68,7 @@ class Cms extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): Cms
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -80,7 +80,7 @@ class Cms extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): Cms
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -92,14 +92,14 @@ class Cms extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): Cms
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): Cms
+    public function fromArray(array $data): self
     {
         return $this
             ->setSoftwareName(Arr::get($data, 'software_name'))

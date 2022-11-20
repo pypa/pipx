@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class CmsInstallation extends ClusterModel implements Model
@@ -25,7 +25,7 @@ class CmsInstallation extends ClusterModel implements Model
         return $this->databaseName;
     }
 
-    public function setDatabaseName(string $databaseName): CmsInstallation
+    public function setDatabaseName(string $databaseName): self
     {
         Validator::value($databaseName)
             ->maxLength(63)
@@ -42,7 +42,7 @@ class CmsInstallation extends ClusterModel implements Model
         return $this->databaseUserName;
     }
 
-    public function setDatabaseUserName(string $databaseUserName): CmsInstallation
+    public function setDatabaseUserName(string $databaseUserName): self
     {
         Validator::value($databaseUserName)
             ->maxLength(63)
@@ -59,7 +59,7 @@ class CmsInstallation extends ClusterModel implements Model
         return $this->databaseUserPassword;
     }
 
-    public function setDatabaseUserPassword(string $databaseUserPassword): CmsInstallation
+    public function setDatabaseUserPassword(string $databaseUserPassword): self
     {
         Validator::value($databaseUserPassword)
             ->maxLength(255)
@@ -76,7 +76,7 @@ class CmsInstallation extends ClusterModel implements Model
         return $this->databaseHost;
     }
 
-    public function setDatabaseHost(string $databaseHost): CmsInstallation
+    public function setDatabaseHost(string $databaseHost): self
     {
         Validator::value($databaseHost)
             ->ip()
@@ -92,7 +92,7 @@ class CmsInstallation extends ClusterModel implements Model
         return $this->siteTitle;
     }
 
-    public function setSiteTitle(string $siteTitle): CmsInstallation
+    public function setSiteTitle(string $siteTitle): self
     {
         Validator::value($siteTitle)
             ->maxLength(253)
@@ -109,7 +109,7 @@ class CmsInstallation extends ClusterModel implements Model
         return $this->siteUrl;
     }
 
-    public function setSiteUrl(string $siteUrl): CmsInstallation
+    public function setSiteUrl(string $siteUrl): self
     {
         Validator::value($siteUrl)
             ->maxLength(2083)
@@ -125,7 +125,7 @@ class CmsInstallation extends ClusterModel implements Model
         return $this->locale;
     }
 
-    public function setLocale(string $locale): CmsInstallation
+    public function setLocale(string $locale): self
     {
         Validator::value($locale)
             ->maxLength(15)
@@ -142,7 +142,7 @@ class CmsInstallation extends ClusterModel implements Model
         return $this->version;
     }
 
-    public function setVersion(string $version): CmsInstallation
+    public function setVersion(string $version): self
     {
         Validator::value($version)
             ->maxLength(6)
@@ -159,7 +159,7 @@ class CmsInstallation extends ClusterModel implements Model
         return $this->adminUsername;
     }
 
-    public function setAdminUsername(string $adminUsername): CmsInstallation
+    public function setAdminUsername(string $adminUsername): self
     {
         Validator::value($adminUsername)
             ->maxLength(60)
@@ -176,7 +176,7 @@ class CmsInstallation extends ClusterModel implements Model
         return $this->adminPassword;
     }
 
-    public function setAdminPassword(string $adminPassword): CmsInstallation
+    public function setAdminPassword(string $adminPassword): self
     {
         Validator::value($adminPassword)
             ->minLength(24)
@@ -194,7 +194,7 @@ class CmsInstallation extends ClusterModel implements Model
         return $this->adminEmailAddress;
     }
 
-    public function setAdminEmailAddress(string $adminEmailAddress): CmsInstallation
+    public function setAdminEmailAddress(string $adminEmailAddress): self
     {
         Validator::value($adminEmailAddress)
             ->email()
@@ -205,7 +205,7 @@ class CmsInstallation extends ClusterModel implements Model
         return $this;
     }
 
-    public function fromArray(array $data): CmsInstallation
+    public function fromArray(array $data): self
     {
         return $this
             ->setDatabaseName(Arr::get($data, 'database_name'))

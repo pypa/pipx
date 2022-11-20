@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class RootSshKey extends ClusterModel implements Model
@@ -21,7 +21,7 @@ class RootSshKey extends ClusterModel implements Model
         return $this->name;
     }
 
-    public function setName(string $name): RootSshKey
+    public function setName(string $name): self
     {
         Validator::value($name)
             ->maxLength(64)
@@ -38,7 +38,7 @@ class RootSshKey extends ClusterModel implements Model
         return $this->publicKey;
     }
 
-    public function setPublicKey(?string $publicKey): RootSshKey
+    public function setPublicKey(?string $publicKey): self
     {
         Validator::value($publicKey)
             ->nullable()
@@ -55,7 +55,7 @@ class RootSshKey extends ClusterModel implements Model
         return $this->privateKey;
     }
 
-    public function setPrivateKey(?string $privateKey): RootSshKey
+    public function setPrivateKey(?string $privateKey): self
     {
         Validator::value($privateKey)
             ->nullable()
@@ -73,7 +73,7 @@ class RootSshKey extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): RootSshKey
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -85,7 +85,7 @@ class RootSshKey extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): RootSshKey
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -97,7 +97,7 @@ class RootSshKey extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): RootSshKey
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -109,14 +109,14 @@ class RootSshKey extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): RootSshKey
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): RootSshKey
+    public function fromArray(array $data): self
     {
         return $this
             ->setName(Arr::get($data, 'name'))

@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class BasicAuthenticationRealm extends ClusterModel implements Model
@@ -22,7 +22,7 @@ class BasicAuthenticationRealm extends ClusterModel implements Model
         return $this->name;
     }
 
-    public function setName(string $name): BasicAuthenticationRealm
+    public function setName(string $name): self
     {
         Validator::value($name)
             ->maxLength(64)
@@ -39,7 +39,7 @@ class BasicAuthenticationRealm extends ClusterModel implements Model
         return $this->directoryPath;
     }
 
-    public function setDirectoryPath(string $directoryPath): BasicAuthenticationRealm
+    public function setDirectoryPath(string $directoryPath): self
     {
         Validator::value($directoryPath)
             ->path()
@@ -55,7 +55,7 @@ class BasicAuthenticationRealm extends ClusterModel implements Model
         return $this->virtualHostId;
     }
 
-    public function setVirtualHostId(int $virtualHostId): BasicAuthenticationRealm
+    public function setVirtualHostId(int $virtualHostId): self
     {
         $this->virtualHostId = $virtualHostId;
 
@@ -67,7 +67,7 @@ class BasicAuthenticationRealm extends ClusterModel implements Model
         return $this->htpasswdFileId;
     }
 
-    public function setHtpasswdFileId(int $htpasswdFileId): BasicAuthenticationRealm
+    public function setHtpasswdFileId(int $htpasswdFileId): self
     {
         $this->htpasswdFileId = $htpasswdFileId;
 
@@ -79,7 +79,7 @@ class BasicAuthenticationRealm extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): BasicAuthenticationRealm
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -91,7 +91,7 @@ class BasicAuthenticationRealm extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): BasicAuthenticationRealm
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -103,7 +103,7 @@ class BasicAuthenticationRealm extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): BasicAuthenticationRealm
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -115,14 +115,14 @@ class BasicAuthenticationRealm extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): BasicAuthenticationRealm
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): BasicAuthenticationRealm
+    public function fromArray(array $data): self
     {
         return $this
             ->setName(Arr::get($data, 'name'))

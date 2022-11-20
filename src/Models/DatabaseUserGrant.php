@@ -2,10 +2,10 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
-use Cyberfusion\ClusterApi\Support\Validator;
 use Cyberfusion\ClusterApi\Enums\DatabaseUserGrantPrivilegeName;
+use Cyberfusion\ClusterApi\Support\Arr;
+use Cyberfusion\ClusterApi\Support\Validator;
 
 class DatabaseUserGrant extends ClusterModel implements Model
 {
@@ -23,7 +23,7 @@ class DatabaseUserGrant extends ClusterModel implements Model
         return $this->databaseId;
     }
 
-    public function setDatabaseId(int $databaseId): DatabaseUserGrant
+    public function setDatabaseId(int $databaseId): self
     {
         $this->databaseId = $databaseId;
 
@@ -35,7 +35,7 @@ class DatabaseUserGrant extends ClusterModel implements Model
         return $this->databaseUserId;
     }
 
-    public function setDatabaseUserId(int $databaseUserId): DatabaseUserGrant
+    public function setDatabaseUserId(int $databaseUserId): self
     {
         $this->databaseUserId = $databaseUserId;
 
@@ -47,7 +47,7 @@ class DatabaseUserGrant extends ClusterModel implements Model
         return $this->tableName;
     }
 
-    public function setTableName(?string $tableName = null): DatabaseUserGrant
+    public function setTableName(?string $tableName = null): self
     {
         Validator::value($tableName)
             ->maxLength(64)
@@ -65,7 +65,7 @@ class DatabaseUserGrant extends ClusterModel implements Model
         return $this->privilegeName;
     }
 
-    public function setPrivilegeName(string $privilegeName): DatabaseUserGrant
+    public function setPrivilegeName(string $privilegeName): self
     {
         Validator::value($privilegeName)
             ->valueIn(DatabaseUserGrantPrivilegeName::AVAILABLE)
@@ -81,7 +81,7 @@ class DatabaseUserGrant extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): DatabaseUserGrant
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -93,7 +93,7 @@ class DatabaseUserGrant extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): DatabaseUserGrant
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -105,7 +105,7 @@ class DatabaseUserGrant extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): DatabaseUserGrant
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -117,14 +117,14 @@ class DatabaseUserGrant extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): DatabaseUserGrant
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): DatabaseUserGrant
+    public function fromArray(array $data): self
     {
         return $this
             ->setDatabaseId(Arr::get($data, 'database_id'))

@@ -46,14 +46,14 @@ class Response
             return $this->data;
         }
 
-        if (! array_key_exists($attribute, $this->data)) {
+        if (!array_key_exists($attribute, $this->data)) {
             return null;
         }
 
         return $this->data[$attribute];
     }
 
-    public function setData(array $data): Response
+    public function setData(array $data): self
     {
         $this->data = $data;
 

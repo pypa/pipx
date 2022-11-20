@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 
 class DomainRouter extends ClusterModel implements Model
 {
@@ -22,7 +22,7 @@ class DomainRouter extends ClusterModel implements Model
         return $this->domain;
     }
 
-    public function setDomain(string $domain): DomainRouter
+    public function setDomain(string $domain): self
     {
         $this->domain = $domain;
 
@@ -34,7 +34,7 @@ class DomainRouter extends ClusterModel implements Model
         return $this->forceSsl;
     }
 
-    public function setForceSsl(bool $forceSsl): DomainRouter
+    public function setForceSsl(bool $forceSsl): self
     {
         $this->forceSsl = $forceSsl;
 
@@ -46,7 +46,7 @@ class DomainRouter extends ClusterModel implements Model
         return $this->virtualHostId;
     }
 
-    public function setVirtualHostId(?int $virtualHostId): DomainRouter
+    public function setVirtualHostId(?int $virtualHostId): self
     {
         $this->virtualHostId = $virtualHostId;
 
@@ -58,7 +58,7 @@ class DomainRouter extends ClusterModel implements Model
         return $this->urlRedirectId;
     }
 
-    public function setUrlRedirectId(?int $urlRedirectId): DomainRouter
+    public function setUrlRedirectId(?int $urlRedirectId): self
     {
         $this->urlRedirectId = $urlRedirectId;
 
@@ -70,7 +70,7 @@ class DomainRouter extends ClusterModel implements Model
         return $this->nodeId;
     }
 
-    public function setNodeId(?int $nodeId): DomainRouter
+    public function setNodeId(?int $nodeId): self
     {
         $this->nodeId = $nodeId;
 
@@ -82,7 +82,7 @@ class DomainRouter extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(int $id): DomainRouter
+    public function setId(int $id): self
     {
         $this->id = $id;
 
@@ -94,7 +94,7 @@ class DomainRouter extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(int $clusterId): DomainRouter
+    public function setClusterId(int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -106,7 +106,7 @@ class DomainRouter extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): DomainRouter
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -118,14 +118,14 @@ class DomainRouter extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): DomainRouter
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): DomainRouter
+    public function fromArray(array $data): self
     {
         return $this
             ->setDomain(Arr::get($data, 'domain'))

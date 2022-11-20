@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class BorgRepository extends ClusterModel implements Model
@@ -30,7 +30,7 @@ class BorgRepository extends ClusterModel implements Model
         return $this->name;
     }
 
-    public function setName(string $name): BorgRepository
+    public function setName(string $name): self
     {
         Validator::value($name)
             ->maxLength(64)
@@ -47,7 +47,7 @@ class BorgRepository extends ClusterModel implements Model
         return $this->passphrase;
     }
 
-    public function setPassphrase(string $passphrase): BorgRepository
+    public function setPassphrase(string $passphrase): self
     {
         Validator::value($passphrase)
             ->minLength(24)
@@ -65,7 +65,7 @@ class BorgRepository extends ClusterModel implements Model
         return $this->keepHourly;
     }
 
-    public function setKeepHourly(int $keepHourly = null): BorgRepository
+    public function setKeepHourly(int $keepHourly = null): self
     {
         $this->keepHourly = $keepHourly;
 
@@ -77,7 +77,7 @@ class BorgRepository extends ClusterModel implements Model
         return $this->keepDaily;
     }
 
-    public function setKeepDaily(int $keepDaily = null): BorgRepository
+    public function setKeepDaily(int $keepDaily = null): self
     {
         $this->keepDaily = $keepDaily;
 
@@ -89,7 +89,7 @@ class BorgRepository extends ClusterModel implements Model
         return $this->keepWeekly;
     }
 
-    public function setKeepWeekly(int $keepWeekly = null): BorgRepository
+    public function setKeepWeekly(int $keepWeekly = null): self
     {
         $this->keepWeekly = $keepWeekly;
 
@@ -101,7 +101,7 @@ class BorgRepository extends ClusterModel implements Model
         return $this->keepMonthly;
     }
 
-    public function setKeepMonthly(int $keepMonthly = null): BorgRepository
+    public function setKeepMonthly(int $keepMonthly = null): self
     {
         $this->keepMonthly = $keepMonthly;
 
@@ -113,7 +113,7 @@ class BorgRepository extends ClusterModel implements Model
         return $this->keepYearly;
     }
 
-    public function setKeepYearly(int $keepYearly = null): BorgRepository
+    public function setKeepYearly(int $keepYearly = null): self
     {
         $this->keepYearly = $keepYearly;
 
@@ -125,7 +125,7 @@ class BorgRepository extends ClusterModel implements Model
         return $this->remoteHost;
     }
 
-    public function setRemoteHost(?string $remoteHost): BorgRepository
+    public function setRemoteHost(?string $remoteHost): self
     {
         $this->remoteHost = $remoteHost;
 
@@ -137,7 +137,7 @@ class BorgRepository extends ClusterModel implements Model
         return $this->remotePath;
     }
 
-    public function setRemotePath(?string $remotePath): BorgRepository
+    public function setRemotePath(?string $remotePath): self
     {
         Validator::value($remotePath)
             ->nullable()
@@ -154,7 +154,7 @@ class BorgRepository extends ClusterModel implements Model
         return $this->remoteUsername;
     }
 
-    public function setRemoteUsername(?string $remoteUsername): BorgRepository
+    public function setRemoteUsername(?string $remoteUsername): self
     {
         Validator::value($remoteUsername)
             ->maxLength(32)
@@ -171,7 +171,7 @@ class BorgRepository extends ClusterModel implements Model
         return $this->identityFilePath;
     }
 
-    public function setIdentityFilePath(?string $identityFilePath): BorgRepository
+    public function setIdentityFilePath(?string $identityFilePath): self
     {
         Validator::value($identityFilePath)
             ->nullable()
@@ -188,7 +188,7 @@ class BorgRepository extends ClusterModel implements Model
         return $this->unixUserId;
     }
 
-    public function setUnixUserId(?int $unixUserId): BorgRepository
+    public function setUnixUserId(?int $unixUserId): self
     {
         $this->unixUserId = $unixUserId;
 
@@ -200,7 +200,7 @@ class BorgRepository extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): BorgRepository
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -212,7 +212,7 @@ class BorgRepository extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): BorgRepository
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -224,7 +224,7 @@ class BorgRepository extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): BorgRepository
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -236,14 +236,14 @@ class BorgRepository extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): BorgRepository
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): BorgRepository
+    public function fromArray(array $data): self
     {
         return $this
             ->setName(Arr::get($data, 'name'))

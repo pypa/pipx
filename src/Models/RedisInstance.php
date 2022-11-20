@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class RedisInstance extends ClusterModel implements Model
@@ -25,7 +25,7 @@ class RedisInstance extends ClusterModel implements Model
         return $this->name;
     }
 
-    public function setName(string $name): RedisInstance
+    public function setName(string $name): self
     {
         Validator::value($name)
             ->maxLength(64)
@@ -42,7 +42,7 @@ class RedisInstance extends ClusterModel implements Model
         return $this->password;
     }
 
-    public function setPassword(string $password): RedisInstance
+    public function setPassword(string $password): self
     {
         Validator::value($password)
             ->minLength(24)
@@ -60,7 +60,7 @@ class RedisInstance extends ClusterModel implements Model
         return $this->maxDatabases;
     }
 
-    public function setMaxDatabases(int $maxDatabases): RedisInstance
+    public function setMaxDatabases(int $maxDatabases): self
     {
         $this->maxDatabases = $maxDatabases;
 
@@ -72,7 +72,7 @@ class RedisInstance extends ClusterModel implements Model
         return $this->port;
     }
 
-    public function setPort(?int $port): RedisInstance
+    public function setPort(?int $port): self
     {
         $this->port = $port;
 
@@ -84,7 +84,7 @@ class RedisInstance extends ClusterModel implements Model
         return $this->memoryLimit;
     }
 
-    public function setMemoryLimit(int $memoryLimit): RedisInstance
+    public function setMemoryLimit(int $memoryLimit): self
     {
         $this->memoryLimit = $memoryLimit;
 
@@ -96,7 +96,7 @@ class RedisInstance extends ClusterModel implements Model
         return $this->primaryNodeId;
     }
 
-    public function setPrimaryNodeId(int $primaryNodeId): RedisInstance
+    public function setPrimaryNodeId(int $primaryNodeId): self
     {
         $this->primaryNodeId = $primaryNodeId;
 
@@ -108,7 +108,7 @@ class RedisInstance extends ClusterModel implements Model
         return $this->unitName;
     }
 
-    public function setUnitName(?string $unitName): RedisInstance
+    public function setUnitName(?string $unitName): self
     {
         $this->unitName = $unitName;
 
@@ -120,7 +120,7 @@ class RedisInstance extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): RedisInstance
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -132,7 +132,7 @@ class RedisInstance extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): RedisInstance
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -144,7 +144,7 @@ class RedisInstance extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): RedisInstance
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -156,14 +156,14 @@ class RedisInstance extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): RedisInstance
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): RedisInstance
+    public function fromArray(array $data): self
     {
         return $this
             ->setName(Arr::get($data, 'name'))

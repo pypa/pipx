@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Support;
 
-use Ramsey\Uuid\Uuid;
 use Cyberfusion\ClusterApi\Exceptions\ValidationException;
+use Ramsey\Uuid\Uuid;
 
 class Validator
 {
@@ -28,7 +28,7 @@ class Validator
     /**
      * @param mixed $value
      */
-    public static function value($value): Validator
+    public static function value($value): self
     {
         return new self($value);
     }
@@ -149,7 +149,7 @@ class Validator
                 return filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
             case self::PATH:
                 // Check type
-                if (! is_string($value)) {
+                if (!is_string($value)) {
                     return false;
                 }
 

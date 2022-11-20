@@ -3,7 +3,6 @@
 namespace Cyberfusion\ClusterApi;
 
 use Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
-use Cyberfusion\ClusterApi\Endpoints;
 
 class ClusterApi
 {

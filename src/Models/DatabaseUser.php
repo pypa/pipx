@@ -2,10 +2,10 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\DatabaseEngine;
 use Cyberfusion\ClusterApi\Enums\Host;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class DatabaseUser extends ClusterModel implements Model
@@ -26,7 +26,7 @@ class DatabaseUser extends ClusterModel implements Model
         return $this->name;
     }
 
-    public function setName(string $name): DatabaseUser
+    public function setName(string $name): self
     {
         Validator::value($name)
             ->maxLength(63)
@@ -43,7 +43,7 @@ class DatabaseUser extends ClusterModel implements Model
         return $this->host;
     }
 
-    public function setHost(string $host): DatabaseUser
+    public function setHost(string $host): self
     {
         Validator::value($host)
             ->maxLength(253)
@@ -60,7 +60,7 @@ class DatabaseUser extends ClusterModel implements Model
         return $this->password;
     }
 
-    public function setPassword(?string $password): DatabaseUser
+    public function setPassword(?string $password): self
     {
         Validator::value($password)
             ->maxLength(255)
@@ -77,7 +77,7 @@ class DatabaseUser extends ClusterModel implements Model
         return $this->serverSoftwareName;
     }
 
-    public function setServerSoftwareName(string $serverSoftwareName): DatabaseUser
+    public function setServerSoftwareName(string $serverSoftwareName): self
     {
         Validator::value($serverSoftwareName)
             ->valueIn(DatabaseEngine::AVAILABLE)
@@ -93,7 +93,7 @@ class DatabaseUser extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): DatabaseUser
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -105,7 +105,7 @@ class DatabaseUser extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): DatabaseUser
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -117,7 +117,7 @@ class DatabaseUser extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): DatabaseUser
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -129,14 +129,14 @@ class DatabaseUser extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): DatabaseUser
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): DatabaseUser
+    public function fromArray(array $data): self
     {
         return $this
             ->setName(Arr::get($data, 'name'))

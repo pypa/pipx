@@ -2,11 +2,11 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
-use Cyberfusion\ClusterApi\Enums\VirtualHostServerSoftwareName;
 use Cyberfusion\ClusterApi\Enums\AllowOverrideDirectives;
 use Cyberfusion\ClusterApi\Enums\AllowOverrideOptionDirectives;
+use Cyberfusion\ClusterApi\Enums\VirtualHostServerSoftwareName;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class VirtualHost extends ClusterModel implements Model
@@ -33,7 +33,7 @@ class VirtualHost extends ClusterModel implements Model
         return $this->domain;
     }
 
-    public function setDomain(string $domain): VirtualHost
+    public function setDomain(string $domain): self
     {
         $this->domain = $domain;
 
@@ -45,7 +45,7 @@ class VirtualHost extends ClusterModel implements Model
         return $this->serverAliases;
     }
 
-    public function setServerAliases(array $serverAliases): VirtualHost
+    public function setServerAliases(array $serverAliases): self
     {
         Validator::value($serverAliases)
             ->unique()
@@ -61,7 +61,7 @@ class VirtualHost extends ClusterModel implements Model
         return $this->unixUserId;
     }
 
-    public function setUnixUserId(int $unixUserId): VirtualHost
+    public function setUnixUserId(int $unixUserId): self
     {
         $this->unixUserId = $unixUserId;
 
@@ -73,7 +73,7 @@ class VirtualHost extends ClusterModel implements Model
         return $this->documentRoot;
     }
 
-    public function setDocumentRoot(string $documentRoot): VirtualHost
+    public function setDocumentRoot(string $documentRoot): self
     {
         Validator::value($documentRoot)
             ->path()
@@ -89,7 +89,7 @@ class VirtualHost extends ClusterModel implements Model
         return $this->publicRoot;
     }
 
-    public function setPublicRoot(string $publicRoot): VirtualHost
+    public function setPublicRoot(string $publicRoot): self
     {
         Validator::value($publicRoot)
             ->path()
@@ -105,7 +105,7 @@ class VirtualHost extends ClusterModel implements Model
         return $this->fpmPoolId;
     }
 
-    public function setFpmPoolId(?int $fpmPoolId): VirtualHost
+    public function setFpmPoolId(?int $fpmPoolId): self
     {
         $this->fpmPoolId = $fpmPoolId;
 
@@ -117,7 +117,7 @@ class VirtualHost extends ClusterModel implements Model
         return $this->passengerAppId;
     }
 
-    public function setPassengerAppId(?int $passengerAppId): VirtualHost
+    public function setPassengerAppId(?int $passengerAppId): self
     {
         $this->passengerAppId = $passengerAppId;
 
@@ -129,7 +129,7 @@ class VirtualHost extends ClusterModel implements Model
         return $this->customConfig;
     }
 
-    public function setCustomConfig(?string $customConfig): VirtualHost
+    public function setCustomConfig(?string $customConfig): self
     {
         Validator::value($customConfig)
             ->nullable()
@@ -147,7 +147,7 @@ class VirtualHost extends ClusterModel implements Model
         return $this->serverSoftwareName;
     }
 
-    public function setServerSoftwareName(string $serverSoftwareName): VirtualHost
+    public function setServerSoftwareName(string $serverSoftwareName): self
     {
         Validator::value($serverSoftwareName)
             ->valueIn(VirtualHostServerSoftwareName::AVAILABLE)
@@ -163,7 +163,7 @@ class VirtualHost extends ClusterModel implements Model
         return $this->domainRoot;
     }
 
-    public function setDomainRoot(?string $domainRoot): VirtualHost
+    public function setDomainRoot(?string $domainRoot): self
     {
         Validator::value($domainRoot)
             ->nullable()
@@ -188,7 +188,7 @@ class VirtualHost extends ClusterModel implements Model
         return $this->allowOverrideDirectives;
     }
 
-    public function setAllowOverrideDirectives(?array $allowOverrideDirectives): VirtualHost
+    public function setAllowOverrideDirectives(?array $allowOverrideDirectives): self
     {
         Validator::value($allowOverrideDirectives)
             ->nullable()
@@ -214,7 +214,7 @@ class VirtualHost extends ClusterModel implements Model
         return $this->allowOverrideOptionDirectives;
     }
 
-    public function setAllowOverrideOptionDirectives(?array $allowOverrideOptionDirectives): VirtualHost
+    public function setAllowOverrideOptionDirectives(?array $allowOverrideOptionDirectives): self
     {
         Validator::value($allowOverrideOptionDirectives)
             ->nullable()
@@ -232,7 +232,7 @@ class VirtualHost extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): VirtualHost
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -244,7 +244,7 @@ class VirtualHost extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): VirtualHost
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -256,7 +256,7 @@ class VirtualHost extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): VirtualHost
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -268,14 +268,14 @@ class VirtualHost extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): VirtualHost
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): VirtualHost
+    public function fromArray(array $data): self
     {
         return $this
             ->setDomain(Arr::get($data, 'domain'))

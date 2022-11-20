@@ -3,9 +3,9 @@
 namespace Cyberfusion\ClusterApi\Tests\Support;
 
 use Cyberfusion\ClusterApi\Support\FilterEntry;
+use Cyberfusion\ClusterApi\Support\ListFilter;
 use Cyberfusion\ClusterApi\Support\SortEntry;
 use PHPUnit\Framework\TestCase;
-use Cyberfusion\ClusterApi\Support\ListFilter;
 
 class ListFilterTest extends TestCase
 {

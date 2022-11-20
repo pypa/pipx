@@ -2,9 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\ShellPath;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class UnixUser extends ClusterModel implements Model
@@ -37,7 +37,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->username;
     }
 
-    public function setUsername(string $username): UnixUser
+    public function setUsername(string $username): self
     {
         Validator::value($username)
             ->maxLength(32)
@@ -54,7 +54,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->password;
     }
 
-    public function setPassword(string $password): UnixUser
+    public function setPassword(string $password): self
     {
         Validator::value($password)
             ->minLength(24)
@@ -72,7 +72,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->description;
     }
 
-    public function setDescription(?string $description): UnixUser
+    public function setDescription(?string $description): self
     {
         Validator::value($description)
             ->nullable()
@@ -90,7 +90,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->defaultPhpVersion;
     }
 
-    public function setDefaultPhpVersion(?string $defaultPhpVersion): UnixUser
+    public function setDefaultPhpVersion(?string $defaultPhpVersion): self
     {
         $this->defaultPhpVersion = $defaultPhpVersion;
 
@@ -102,7 +102,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->defaultNodejsVersion;
     }
 
-    public function setDefaultNodejsVersion(?string $defaultNodejsVersion): UnixUser
+    public function setDefaultNodejsVersion(?string $defaultNodejsVersion): self
     {
         Validator::value($defaultNodejsVersion)
             ->nullable()
@@ -119,7 +119,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->homeDirectory;
     }
 
-    public function setHomeDirectory(?string $homeDirectory): UnixUser
+    public function setHomeDirectory(?string $homeDirectory): self
     {
         Validator::value($homeDirectory)
             ->nullable()
@@ -136,7 +136,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->sshDirectory;
     }
 
-    public function setSshDirectory(?string $sshDirectory): UnixUser
+    public function setSshDirectory(?string $sshDirectory): self
     {
         Validator::value($sshDirectory)
             ->nullable()
@@ -153,7 +153,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->virtualHostsDirectory;
     }
 
-    public function setVirtualHostsDirectory(?string $virtualHostsDirectory): UnixUser
+    public function setVirtualHostsDirectory(?string $virtualHostsDirectory): self
     {
         Validator::value($virtualHostsDirectory)
             ->nullable()
@@ -170,7 +170,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->mailDomainsDirectory;
     }
 
-    public function setMailDomainsDirectory(?string $mailDomainsDirectory): UnixUser
+    public function setMailDomainsDirectory(?string $mailDomainsDirectory): self
     {
         Validator::value($mailDomainsDirectory)
             ->nullable()
@@ -187,7 +187,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->borgRepositoriesDirectory;
     }
 
-    public function setBorgRepositoriesDirectory(?string $borgRepositoriesDirectory): UnixUser
+    public function setBorgRepositoriesDirectory(?string $borgRepositoriesDirectory): self
     {
         Validator::value($borgRepositoriesDirectory)
             ->nullable()
@@ -204,7 +204,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->shellPath;
     }
 
-    public function setShellPath(string $shellPath): UnixUser
+    public function setShellPath(string $shellPath): self
     {
         Validator::value($shellPath)
             ->valueIn(ShellPath::AVAILABLE)
@@ -220,7 +220,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->recordUsageFiles;
     }
 
-    public function setRecordUsageFiles(bool $recordUsageFiles): UnixUser
+    public function setRecordUsageFiles(bool $recordUsageFiles): self
     {
         $this->recordUsageFiles = $recordUsageFiles;
 
@@ -232,7 +232,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->asyncSupportEnabled;
     }
 
-    public function setAsyncSupportEnabled(bool $asyncSupportEnabled): UnixUser
+    public function setAsyncSupportEnabled(bool $asyncSupportEnabled): self
     {
         $this->asyncSupportEnabled = $asyncSupportEnabled;
 
@@ -244,7 +244,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->rabbitMqUsername;
     }
 
-    public function setRabbitMqUsername(?string $rabbitMqUsername): UnixUser
+    public function setRabbitMqUsername(?string $rabbitMqUsername): self
     {
         Validator::value($rabbitMqUsername)
             ->nullable()
@@ -262,7 +262,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->rabbitMqVirtualHostName;
     }
 
-    public function setRabbitMqVirtualHostName(?string $rabbitMqVirtualHostName): UnixUser
+    public function setRabbitMqVirtualHostName(?string $rabbitMqVirtualHostName): self
     {
         Validator::value($rabbitMqVirtualHostName)
             ->nullable()
@@ -280,7 +280,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->rabbitMqPassword;
     }
 
-    public function setRabbitMqPassword(?string $rabbitMqPassword): UnixUser
+    public function setRabbitMqPassword(?string $rabbitMqPassword): self
     {
         Validator::value($rabbitMqPassword)
             ->nullable()
@@ -298,7 +298,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->rabbitMqEncryptionKey;
     }
 
-    public function setRabbitMqEncryptionKey(?string $rabbitMqEncryptionKey): UnixUser
+    public function setRabbitMqEncryptionKey(?string $rabbitMqEncryptionKey): self
     {
         Validator::value($rabbitMqEncryptionKey)
             ->nullable()
@@ -316,7 +316,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(int $clusterId): UnixUser
+    public function setClusterId(int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -328,7 +328,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): UnixUser
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -340,7 +340,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->unixId;
     }
 
-    public function setUnixId(?int $unixId): UnixUser
+    public function setUnixId(?int $unixId): self
     {
         $this->unixId = $unixId;
 
@@ -352,7 +352,7 @@ class UnixUser extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): UnixUser
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -364,14 +364,14 @@ class UnixUser extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): UnixUser
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): UnixUser
+    public function fromArray(array $data): self
     {
         return $this
             ->setUsername(Arr::get($data, 'username'))

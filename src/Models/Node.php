@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class Node extends ClusterModel implements Model
@@ -21,7 +21,7 @@ class Node extends ClusterModel implements Model
         return $this->hostname;
     }
 
-    public function setHostname(string $hostname): Node
+    public function setHostname(string $hostname): self
     {
         $this->hostname = $hostname;
 
@@ -33,7 +33,7 @@ class Node extends ClusterModel implements Model
         return $this->groups;
     }
 
-    public function setGroups(array $groups): Node
+    public function setGroups(array $groups): self
     {
         $this->groups = $groups;
 
@@ -45,7 +45,7 @@ class Node extends ClusterModel implements Model
         return $this->comment;
     }
 
-    public function setComment(?string $comment): Node
+    public function setComment(?string $comment): self
     {
         Validator::value($comment)
             ->nullable()
@@ -62,7 +62,7 @@ class Node extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): Node
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -74,7 +74,7 @@ class Node extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): Node
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -86,7 +86,7 @@ class Node extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): Node
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -98,14 +98,14 @@ class Node extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): Node
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): Node
+    public function fromArray(array $data): self
     {
         return $this
             ->setHostname(Arr::get($data, 'hostname'))

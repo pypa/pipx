@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class HtpasswdUser extends ClusterModel implements Model
@@ -21,7 +21,7 @@ class HtpasswdUser extends ClusterModel implements Model
         return $this->username;
     }
 
-    public function setUsername(string $username): HtpasswdUser
+    public function setUsername(string $username): self
     {
         Validator::value($username)
             ->maxLength(255)
@@ -38,7 +38,7 @@ class HtpasswdUser extends ClusterModel implements Model
         return $this->password;
     }
 
-    public function setPassword(string $password): HtpasswdUser
+    public function setPassword(string $password): self
     {
         Validator::value($password)
             ->maxLength(255)
@@ -55,7 +55,7 @@ class HtpasswdUser extends ClusterModel implements Model
         return $this->htpasswdFileId;
     }
 
-    public function setHtpasswdFileId(int $htpasswdFileId): HtpasswdUser
+    public function setHtpasswdFileId(int $htpasswdFileId): self
     {
         $this->htpasswdFileId = $htpasswdFileId;
 
@@ -67,7 +67,7 @@ class HtpasswdUser extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): HtpasswdUser
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -79,7 +79,7 @@ class HtpasswdUser extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): HtpasswdUser
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -91,7 +91,7 @@ class HtpasswdUser extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): HtpasswdUser
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -103,14 +103,14 @@ class HtpasswdUser extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): HtpasswdUser
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): HtpasswdUser
+    public function fromArray(array $data): self
     {
         return $this
             ->setUsername(Arr::get($data, 'username'))

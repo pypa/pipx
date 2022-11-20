@@ -2,9 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Validator;
 use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
+use Cyberfusion\ClusterApi\Support\Validator;
 
 class DetailMessage extends ClusterModel implements Model
 {
@@ -15,7 +15,7 @@ class DetailMessage extends ClusterModel implements Model
         return $this->detail;
     }
 
-    public function setDetail(string $detail): DetailMessage
+    public function setDetail(string $detail): self
     {
         Validator::value($detail)
             ->maxLength(255)
@@ -27,7 +27,7 @@ class DetailMessage extends ClusterModel implements Model
         return $this;
     }
 
-    public function fromArray(array $data): DetailMessage
+    public function fromArray(array $data): self
     {
         return $this->setDetail(Arr::get($data, 'detail', ''));
     }

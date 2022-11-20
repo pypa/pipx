@@ -31,3 +31,7 @@ jobs:
             - name: Execute static analysis
               run: |
                   vendor/bin/phpstan
+
+            - name: Execute code style check
+              run: |
+                  vendor/bin/ecs check

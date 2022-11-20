@@ -4,9 +4,9 @@ namespace Cyberfusion\ClusterApi\Endpoints;
 
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Cyberfusion\ClusterApi\Models\Cms;
-use Cyberfusion\ClusterApi\Models\CmsOption;
 use Cyberfusion\ClusterApi\Models\CmsConfigurationConstant;
 use Cyberfusion\ClusterApi\Models\CmsInstallation;
+use Cyberfusion\ClusterApi\Models\CmsOption;
 use Cyberfusion\ClusterApi\Models\TaskCollection;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
@@ -343,7 +343,8 @@ class Cmses extends Endpoint
     public function searchReplace(int $id, string $searchString, string $replaceString, string $callbackUrl = null): Response
     {
         $url = Str::optionalQueryParameters(
-            sprintf('cmses/%d/search-replace?search_string=%d&replace_string=%d',
+            sprintf(
+                'cmses/%d/search-replace?search_string=%d&replace_string=%d',
                 $id,
                 $searchString,
                 $replaceString

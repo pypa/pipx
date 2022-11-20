@@ -6,7 +6,7 @@ use Throwable;
 
 class ClientException extends ClusterApiException
 {
-    public static function authenticationMissing(Throwable $previous = null): ClientException
+    public static function authenticationMissing(Throwable $previous = null): self
     {
         return new self(
             'Missing information to authenticate, please provide an access token or the credentials',
@@ -15,7 +15,7 @@ class ClientException extends ClusterApiException
         );
     }
 
-    public static function invalidCredentials(Throwable $previous = null): ClientException
+    public static function invalidCredentials(Throwable $previous = null): self
     {
         return new self(
             'The provided credentials are invalid, please check the username and password',
@@ -24,7 +24,7 @@ class ClientException extends ClusterApiException
         );
     }
 
-    public static function authenticationFailed(Throwable $previous = null): ClientException
+    public static function authenticationFailed(Throwable $previous = null): self
     {
         return new self(
             'Failed to authenticate',
@@ -33,7 +33,7 @@ class ClientException extends ClusterApiException
         );
     }
 
-    public static function apiNotUp(Throwable $previous = null): ClientException
+    public static function apiNotUp(Throwable $previous = null): self
     {
         return new self(
             'The API is not available at this moment',

@@ -37,7 +37,7 @@ class Request
         return $this->method;
     }
 
-    public function setMethod(string $method): Request
+    public function setMethod(string $method): self
     {
         $availableMethods = [
             self::METHOD_GET,
@@ -58,7 +58,7 @@ class Request
         return $this->url;
     }
 
-    public function setUrl(string $url): Request
+    public function setUrl(string $url): self
     {
         $this->url = $url;
 
@@ -70,7 +70,7 @@ class Request
         return $this->body;
     }
 
-    public function setBody(array $body): Request
+    public function setBody(array $body): self
     {
         $this->body = $body;
 
@@ -82,7 +82,7 @@ class Request
         return $this->requiresAuthentication;
     }
 
-    public function setAuthenticationRequired(bool $requiresAuthentication): Request
+    public function setAuthenticationRequired(bool $requiresAuthentication): self
     {
         $this->requiresAuthentication = $requiresAuthentication;
 
@@ -94,9 +94,9 @@ class Request
         return $this->bodySchema;
     }
 
-    public function setBodySchema(string $bodySchema): Request
+    public function setBodySchema(string $bodySchema): self
     {
-        if (! in_array($bodySchema, [self::BODY_SCHEMA_JSON, self::BODY_SCHEMA_FORM])) {
+        if (!in_array($bodySchema, [self::BODY_SCHEMA_JSON, self::BODY_SCHEMA_FORM])) {
             $bodySchema = self::BODY_SCHEMA_JSON;
         }
 

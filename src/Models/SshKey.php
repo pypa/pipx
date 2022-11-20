@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class SshKey extends ClusterModel implements Model
@@ -23,7 +23,7 @@ class SshKey extends ClusterModel implements Model
         return $this->name;
     }
 
-    public function setName(string $name): SshKey
+    public function setName(string $name): self
     {
         Validator::value($name)
             ->maxLength(64)
@@ -40,7 +40,7 @@ class SshKey extends ClusterModel implements Model
         return $this->publicKey;
     }
 
-    public function setPublicKey(?string $publicKey): SshKey
+    public function setPublicKey(?string $publicKey): self
     {
         Validator::value($publicKey)
             ->nullable()
@@ -57,7 +57,7 @@ class SshKey extends ClusterModel implements Model
         return $this->privateKey;
     }
 
-    public function setPrivateKey(?string $privateKey): SshKey
+    public function setPrivateKey(?string $privateKey): self
     {
         Validator::value($privateKey)
             ->nullable()
@@ -75,7 +75,7 @@ class SshKey extends ClusterModel implements Model
         return $this->identityFilePath;
     }
 
-    public function setIdentityFilePath(?string $identityFilePath): SshKey
+    public function setIdentityFilePath(?string $identityFilePath): self
     {
         Validator::value($identityFilePath)
             ->nullable()
@@ -92,7 +92,7 @@ class SshKey extends ClusterModel implements Model
         return $this->unixUserId;
     }
 
-    public function setUnixUserId(int $unixUserId): SshKey
+    public function setUnixUserId(int $unixUserId): self
     {
         $this->unixUserId = $unixUserId;
 
@@ -104,7 +104,7 @@ class SshKey extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): SshKey
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -116,7 +116,7 @@ class SshKey extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): SshKey
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -128,7 +128,7 @@ class SshKey extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): SshKey
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -140,14 +140,14 @@ class SshKey extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): SshKey
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): SshKey
+    public function fromArray(array $data): self
     {
         return $this
             ->setName(Arr::get($data, 'name'))

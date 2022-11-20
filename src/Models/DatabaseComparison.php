@@ -20,7 +20,7 @@ class DatabaseComparison extends ClusterModel implements Model
         return $this->identicalTablesNames;
     }
 
-    public function setIdenticalTablesNames(array $identicalTablesNames): DatabaseComparison
+    public function setIdenticalTablesNames(array $identicalTablesNames): self
     {
         $this->identicalTablesNames = $identicalTablesNames;
 
@@ -35,7 +35,7 @@ class DatabaseComparison extends ClusterModel implements Model
         return $this->notIdenticalTablesNames;
     }
 
-    public function setNotIdenticalTablesNames(array $notIdenticalTablesNames): DatabaseComparison
+    public function setNotIdenticalTablesNames(array $notIdenticalTablesNames): self
     {
         $this->notIdenticalTablesNames = $notIdenticalTablesNames;
 
@@ -50,7 +50,7 @@ class DatabaseComparison extends ClusterModel implements Model
         return $this->onlyLeftTablesNames;
     }
 
-    public function setOnlyLeftTablesNames(array $onlyLeftTablesNames): DatabaseComparison
+    public function setOnlyLeftTablesNames(array $onlyLeftTablesNames): self
     {
         $this->onlyLeftTablesNames = $onlyLeftTablesNames;
 
@@ -65,14 +65,14 @@ class DatabaseComparison extends ClusterModel implements Model
         return $this->onlyRightTablesNames;
     }
 
-    public function setOnlyRightTablesNames(array $onlyRightTablesNames): DatabaseComparison
+    public function setOnlyRightTablesNames(array $onlyRightTablesNames): self
     {
         $this->onlyRightTablesNames = $onlyRightTablesNames;
 
         return $this;
     }
 
-    public function fromArray(array $data): DatabaseComparison
+    public function fromArray(array $data): self
     {
         return $this
             ->setIdenticalTablesNames(Arr::get($data, 'identical_tables_names', []))

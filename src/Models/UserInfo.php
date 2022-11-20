@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 
 class UserInfo extends ClusterModel implements Model
 {
@@ -19,7 +19,7 @@ class UserInfo extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(int $id): UserInfo
+    public function setId(int $id): self
     {
         $this->id = $id;
 
@@ -31,7 +31,7 @@ class UserInfo extends ClusterModel implements Model
         return $this->username;
     }
 
-    public function setUsername(string $username): UserInfo
+    public function setUsername(string $username): self
     {
         $this->username = $username;
 
@@ -43,7 +43,7 @@ class UserInfo extends ClusterModel implements Model
         return $this->isActive;
     }
 
-    public function setIsActive(bool $isActive): UserInfo
+    public function setIsActive(bool $isActive): self
     {
         $this->isActive = $isActive;
 
@@ -55,7 +55,7 @@ class UserInfo extends ClusterModel implements Model
         return $this->isProvisioningUser;
     }
 
-    public function setIsProvisioningUser(bool $isProvisioningUser): UserInfo
+    public function setIsProvisioningUser(bool $isProvisioningUser): self
     {
         $this->isProvisioningUser = $isProvisioningUser;
 
@@ -67,7 +67,7 @@ class UserInfo extends ClusterModel implements Model
         return $this->isSuperUser;
     }
 
-    public function setIsSuperUser(bool $isSuperUser): UserInfo
+    public function setIsSuperUser(bool $isSuperUser): self
     {
         $this->isSuperUser = $isSuperUser;
 
@@ -79,14 +79,14 @@ class UserInfo extends ClusterModel implements Model
         return $this->clusters;
     }
 
-    public function setClusters(array $clusters): UserInfo
+    public function setClusters(array $clusters): self
     {
         $this->clusters = $clusters;
 
         return $this;
     }
 
-    public function fromArray(array $data): UserInfo
+    public function fromArray(array $data): self
     {
         return $this
             ->setId(Arr::get($data, 'id'))

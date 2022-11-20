@@ -2,12 +2,12 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Exceptions\ListFilterException;
-use Cyberfusion\ClusterApi\Support\ListFilter;
-use JsonSerializable;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Exceptions\ListFilterException;
 use Cyberfusion\ClusterApi\Exceptions\ModelException;
+use Cyberfusion\ClusterApi\Support\ListFilter;
 use Cyberfusion\ClusterApi\Support\Str;
+use JsonSerializable;
 
 abstract class ClusterModel implements JsonSerializable, Model
 {
@@ -33,7 +33,7 @@ abstract class ClusterModel implements JsonSerializable, Model
             throw ModelException::propertyNotAvailable($name);
         }
 
-        return $this->$method();
+        return $this->{$method}();
     }
 
     /**
@@ -51,7 +51,7 @@ abstract class ClusterModel implements JsonSerializable, Model
             throw ModelException::propertyNotAvailable($name);
         }
 
-        $this->$method($value);
+        $this->{$method}($value);
     }
 
     /**

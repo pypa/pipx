@@ -2,9 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
+use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\ProviderNames;
 use Cyberfusion\ClusterApi\Support\Arr;
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class CertificateManager extends ClusterModel implements Model
@@ -24,7 +24,7 @@ class CertificateManager extends ClusterModel implements Model
         return $this->mainCommonName;
     }
 
-    public function setMainCommonName(?string $mainCommonName): CertificateManager
+    public function setMainCommonName(?string $mainCommonName): self
     {
         $this->mainCommonName = $mainCommonName;
 
@@ -36,7 +36,7 @@ class CertificateManager extends ClusterModel implements Model
         return $this->commonNames;
     }
 
-    public function setCommonNames(array $commonNames): CertificateManager
+    public function setCommonNames(array $commonNames): self
     {
         Validator::value($commonNames)
             ->unique()
@@ -52,7 +52,7 @@ class CertificateManager extends ClusterModel implements Model
         return $this->providerName;
     }
 
-    public function setProviderName(string $providerName): CertificateManager
+    public function setProviderName(string $providerName): self
     {
         Validator::value($providerName)
             ->valueIn(ProviderNames::AVAILABLE)
@@ -68,7 +68,7 @@ class CertificateManager extends ClusterModel implements Model
         return $this->requestCallbackUrl;
     }
 
-    public function setRequestCallbackUrl(?string $requestCallbackUrl): CertificateManager
+    public function setRequestCallbackUrl(?string $requestCallbackUrl): self
     {
         $this->requestCallbackUrl = $requestCallbackUrl;
 
@@ -80,7 +80,7 @@ class CertificateManager extends ClusterModel implements Model
         return $this->certificateId;
     }
 
-    public function setCertificateId(?int $certificateId): CertificateManager
+    public function setCertificateId(?int $certificateId): self
     {
         $this->certificateId = $certificateId;
 
@@ -92,7 +92,7 @@ class CertificateManager extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): CertificateManager
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -104,7 +104,7 @@ class CertificateManager extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): CertificateManager
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -116,7 +116,7 @@ class CertificateManager extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): CertificateManager
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -128,14 +128,14 @@ class CertificateManager extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): CertificateManager
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): CertificateManager
+    public function fromArray(array $data): self
     {
         return $this
             ->setMainCommonName(Arr::get($data, 'main_common_name', ''))

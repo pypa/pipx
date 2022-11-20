@@ -15,7 +15,7 @@ class Configuration
     private bool $autoDeploy = false;
     private ?string $autoDeployCallbackUrl = null;
 
-    public static function withCredentials(string $username, string $password, bool $sandbox = false): Configuration
+    public static function withCredentials(string $username, string $password, bool $sandbox = false): self
     {
         return (new self())
             ->setUsername($username)
@@ -23,7 +23,7 @@ class Configuration
             ->setSandbox($sandbox);
     }
 
-    public static function withAccessToken(string $accessToken): Configuration
+    public static function withAccessToken(string $accessToken): self
     {
         return (new self())->setAccessToken($accessToken);
     }
@@ -33,7 +33,7 @@ class Configuration
         return $this->url;
     }
 
-    public function setUrl(string $url): Configuration
+    public function setUrl(string $url): self
     {
         $this->url = $url;
 
@@ -45,7 +45,7 @@ class Configuration
         return $this->username;
     }
 
-    public function setUsername(string $username): Configuration
+    public function setUsername(string $username): self
     {
         $this->username = $username;
 
@@ -57,7 +57,7 @@ class Configuration
         return $this->password;
     }
 
-    public function setPassword(string $password): Configuration
+    public function setPassword(string $password): self
     {
         $this->password = $password;
 
@@ -66,7 +66,7 @@ class Configuration
 
     public function hasCredentials(): bool
     {
-        return ! empty($this->username) && ! empty($this->password);
+        return !empty($this->username) && !empty($this->password);
     }
 
     public function getAccessToken(): ?string
@@ -76,10 +76,10 @@ class Configuration
 
     public function hasAccessToken(): bool
     {
-        return ! empty($this->accessToken);
+        return !empty($this->accessToken);
     }
 
-    public function setAccessToken(?string $accessToken): Configuration
+    public function setAccessToken(?string $accessToken): self
     {
         $this->accessToken = $accessToken;
 
@@ -91,7 +91,7 @@ class Configuration
         return $this->sandbox;
     }
 
-    public function setSandbox(bool $sandbox = false): Configuration
+    public function setSandbox(bool $sandbox = false): self
     {
         $this->sandbox = $sandbox;
 
@@ -107,7 +107,7 @@ class Configuration
         return $this->autoDeploy;
     }
 
-    public function setAutoDeploy(bool $autoDeploy = true): Configuration
+    public function setAutoDeploy(bool $autoDeploy = true): self
     {
         $this->autoDeploy = $autoDeploy;
 
@@ -119,7 +119,7 @@ class Configuration
         return $this->autoDeployCallbackUrl;
     }
 
-    public function setAutoDeployCallbackUrl(?string $autoDeployCallbackUrl): Configuration
+    public function setAutoDeployCallbackUrl(?string $autoDeployCallbackUrl): self
     {
         $this->autoDeployCallbackUrl = $autoDeployCallbackUrl;
 

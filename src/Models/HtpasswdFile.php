@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 
 class HtpasswdFile extends ClusterModel implements Model
 {
@@ -18,7 +18,7 @@ class HtpasswdFile extends ClusterModel implements Model
         return $this->unixUserId;
     }
 
-    public function setUnixUserId(int $unixUserId): HtpasswdFile
+    public function setUnixUserId(int $unixUserId): self
     {
         $this->unixUserId = $unixUserId;
 
@@ -30,7 +30,7 @@ class HtpasswdFile extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): HtpasswdFile
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -42,7 +42,7 @@ class HtpasswdFile extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): HtpasswdFile
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -54,7 +54,7 @@ class HtpasswdFile extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): HtpasswdFile
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -66,14 +66,14 @@ class HtpasswdFile extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): HtpasswdFile
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): HtpasswdFile
+    public function fromArray(array $data): self
     {
         return $this
             ->setUnixUserId(Arr::get($data, 'unix_user_id'))
