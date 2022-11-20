@@ -109,14 +109,14 @@ the model.
 
 ```php
 use Cyberfusion\ClusterApi\Enums\Sort;
-use Cyberfusion\ClusterApi\Models\Cluster;
+use Cyberfusion\ClusterApi\Models\VirtualHost;
 use Cyberfusion\ClusterApi\Support\FilterEntry;
 use Cyberfusion\ClusterApi\Support\SortEntry;
 
-$listFilter = Cluster::listFilter()
-    ->filter(new FilterEntry('name', 'test'))
-    ->filter(new FilterEntry('groups', 'test2'))
-    ->sort(new SortEntry('name', Sort::DESC));
+$listFilter = VirtualHost::listFilter()
+    ->filter(new FilterEntry('server_software_name', 'Apache'))
+    ->filter(new FilterEntry('domain', 'cyberfusion.nl'))
+    ->sort(new SortEntry('domain', Sort::DESC));
 ```
 
 ##### Manually creating filters
@@ -125,9 +125,9 @@ You can initialize the `ListFilter` manually, but fields are not validated if th
 
 ```php
 $listFilter = (new ListFilter())
-    ->filter(new FilterEntry('name', 'test'))
-    ->filter(new FilterEntry('groups', 'test2'))
-    ->sort(new SortEntry('name', Sort::DESC));
+    ->filter(new FilterEntry('server_software_name', 'Apache'))
+    ->filter(new FilterEntry('domain', 'cyberfusion.nl'))
+    ->sort(new SortEntry('domain', Sort::DESC));
 ```
 
 Or provide the entries and sort directly:
@@ -135,11 +135,11 @@ Or provide the entries and sort directly:
 ```php
 $listFilter = (new ListFilter())
     ->setFilters([
-        new FilterEntry('name', 'test'),
-        new FilterEntry('groups', 'test2'),
+        new FilterEntry('server_software_name', 'Apache'),
+        new FilterEntry('domain', 'cyberfusion.nl'),
     ])
     ->setSort([
-        new SortEntry('name', Sort::DESC)
+        new SortEntry('domain', Sort::DESC)
     ]);
 );
 ```
@@ -151,9 +151,9 @@ available.
 
 ```php
 $listFilter = ListFilter::forModel(new Cluster())
-    ->addFilter('name', 'test')
-    ->addFilter('groups', 'test2')
-    ->addSort('name', Sort::DESC);
+    ->filter('server_software_name', 'Apache')
+    ->filter('domain', 'cyberfusion.nl')
+    ->sort('domain', Sort::DESC);
 ```
 
 Or provide the entries and sort directly:
@@ -161,11 +161,11 @@ Or provide the entries and sort directly:
 ```php
 $listFilter = (new ListFilter())
     ->setFilters([
-        ['field' => 'name', 'value' => 'test'],
-        ['field' => 'groups', 'value' => 'test2'],
+        ['field' => 'server_software_name', 'value' => 'Apache'],
+        ['field' => 'domain', 'value' => 'cyberfusion.nl'],
     ])
     ->setSort([
-        ['field' => 'name', 'value' => Sort::DESC],
+        ['field' => 'domain', 'value' => Sort::DESC],
     ]);
 );
 ```
