@@ -19,7 +19,8 @@
     },
     "require-dev": {
         "phpstan/phpstan": "^1.2",
-        "phpunit/phpunit": "^9.0"
+        "phpunit/phpunit": "^9.0",
+        "symplify/easy-coding-standard": "^11.1"
     },
     "autoload": {
         "psr-4": {
