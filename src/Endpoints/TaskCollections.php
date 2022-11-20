@@ -18,7 +18,7 @@ class TaskCollections extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('task-collections/%d/results', $uuid));
+            ->setUrl(sprintf('task-collections/%s/results', $uuid));
 
         $response = $this
             ->client

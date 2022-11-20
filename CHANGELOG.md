@@ -14,6 +14,13 @@ for detailed information.
 - There should be just one breaking change, the `SORT_*` constants of the `ListFilter` are moved to a separate Enum, 
   see `Enums\Sort`.
 
+## [1.80.1]
+
+### Fixed
+
+- Fix UUID casing for task collections `results` endpoint.
+- Make task result `message` nullable.
+
 ## [1.80.0]
 
 ### Changed
