@@ -3,12 +3,22 @@
 namespace Cyberfusion\ClusterApi\Models;
 
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Exceptions\ListFilterException;
 use Cyberfusion\ClusterApi\Exceptions\ModelException;
+use Cyberfusion\ClusterApi\Support\ListFilter;
 use Cyberfusion\ClusterApi\Support\Str;
 use JsonSerializable;
 
 abstract class ClusterModel implements JsonSerializable, Model
 {
+    /**
+     * @throws ListFilterException
+     */
+    public static function listFilter(): ListFilter
+    {
+        return ListFilter::forModel(get_called_class());
+    }
+
     /**
      * Provide fallback to allow the user of properties but still using the getters and setters.
      *
