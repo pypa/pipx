@@ -24,4 +24,6 @@ class ClusterApiException extends Exception
     protected const LISTFILTER_FIELD_NOT_AVAILABLE = 601;
     protected const LISTFILTER_INVALID_MODEL = 602;
     protected const LISTFILTER_UNABLE_TO_DETERMINE_FIELDS = 603;
+    protected const LISTFILTER_INVALID_TYPE = 604;
+    protected const LISTFILTER_INVALID_ARRAY_STRUCTURE = 605;
 }

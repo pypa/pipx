@@ -24,8 +24,10 @@ class ListFilterException extends ClusterApiException
         );
     }
 
-    public static function invalidSortMethod(string $providedSortMethod, Throwable $previous = null): ListFilterException
-    {
+    public static function invalidSortMethod(
+        string $providedSortMethod,
+        Throwable $previous = null
+    ): ListFilterException {
         return new self(
             sprintf('The sort method `%s` is not available, use ASC or DESC', $providedSortMethod),
             self::LISTFILTER_INVALID_SORT_METHOD,
@@ -38,6 +40,30 @@ class ListFilterException extends ClusterApiException
         return new self(
             sprintf('The field `%s` is not available in the model', $field),
             self::LISTFILTER_FIELD_NOT_AVAILABLE,
+            $previous
+        );
+    }
+
+    public static function invalidTypeInArray(string $foundType, Throwable $previous = null): ListFilterException
+    {
+        return new self(
+            sprintf(
+                'The array contains entries of the unsupported type `%s`',
+                $foundType
+            ),
+            self::LISTFILTER_INVALID_TYPE,
+            $previous
+        );
+    }
+
+    public static function arrayEntryKeysInvalid(array $requiredKeys, Throwable $previous = null): ListFilterException
+    {
+        return new self(
+            sprintf(
+                'The array must contains entries with at least these keys: `%s`',
+                var_export($requiredKeys, true)
+            ),
+            self::LISTFILTER_INVALID_ARRAY_STRUCTURE,
             $previous
         );
     }

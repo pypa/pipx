@@ -14,7 +14,7 @@ abstract class ClusterModel implements JsonSerializable, Model
     /**
      * @throws ListFilterException
      */
-    public static function filter(): ListFilter
+    public static function listFilter(): ListFilter
     {
         return ListFilter::forModel(get_called_class());
     }

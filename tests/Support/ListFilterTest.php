@@ -21,7 +21,57 @@ class ListFilterTest extends TestCase
         $this->assertCount(0, $listFilter->getSort());
     }
 
-    public function testListFilter()
+    public function testListFilterWithArrays()
+    {
+        $skip = 10;
+        $limit = 5;
+        $filter = [
+            ['field' => 'testField', 'value' => 'testValue'],
+        ];
+        $sort = [
+            ['field' => 'col', 'value' => 'ASC'],
+        ];
+
+        $listFilter = (new ListFilter())
+            ->setSkip($skip)
+            ->setLimit($limit)
+            ->setFilter($filter)
+            ->setSort($sort);
+
+        $this->assertSame($skip, $listFilter->getSkip());
+        $this->assertSame($limit, $listFilter->getLimit());
+        $this->assertIsArray($listFilter->getFilter());
+        $this->assertCount(1, $listFilter->getFilter());
+        $this->assertIsArray($listFilter->getSort());
+        $this->assertCount(1, $listFilter->getSort());
+    }
+
+    public function testToQueryWithArrays()
+    {
+        $skip = 10;
+        $limit = 5;
+        $filter = [
+            ['field' => 'testField', 'value' => 'foo'],
+            ['field' => 'testField', 'value' => 'bar'],
+            ['field' => 'testField2', 'value' => 'lol'],
+        ];
+        $sort = [
+            ['field' => 'col', 'value' => 'ASC'],
+        ];
+
+        $listFilter = (new ListFilter())
+            ->setSkip($skip)
+            ->setLimit($limit)
+            ->setFilter($filter)
+            ->setSort($sort);
+
+        $this->assertSame(
+            'skip=10&limit=5&filter=testField%3Afoo&filter=testField%3Abar&filter=testField2%3Alol&sort=col%3AASC',
+            $listFilter->toQuery()
+        );
+    }
+
+    public function testListFilterWithObjects()
     {
         $skip = 10;
         $limit = 5;
@@ -46,7 +96,7 @@ class ListFilterTest extends TestCase
         $this->assertCount(1, $listFilter->getSort());
     }
 
-    public function testToQuery()
+    public function testToQueryWithObjects()
     {
         $skip = 10;
         $limit = 5;

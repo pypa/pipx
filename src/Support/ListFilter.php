@@ -2,6 +2,7 @@
 
 namespace Cyberfusion\ClusterApi\Support;
 
+use Cyberfusion\ClusterApi\Enums\Sort;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionProperty;
@@ -13,6 +14,11 @@ use Vdhicts\HttpQueryBuilder\Builder;
 
 class ListFilter implements Filter
 {
+    private const REQUIRED_KEYS = [
+        'field',
+        'value',
+    ];
+
     private ?array $availableFields = null;
     private int $skip = 0;
     private int $limit = Limit::DEFAULT_LIMIT;
@@ -42,18 +48,6 @@ class ListFilter implements Filter
         }
 
         return (new self())->setAvailableFields($properties);
-    }
-
-    /**
-     * @param array<FilterEntry> $filters
-     * @param array<SortEntry> $sort
-     * @throws ListFilterException
-     */
-    public function __construct(array $filters = [], array $sort = [])
-    {
-        $this
-            ->setFilter($filters)
-            ->setSort($sort);
     }
 
     public function getAvailableFields(): ?array
@@ -100,6 +94,9 @@ class ListFilter implements Filter
         return $this;
     }
 
+    /**
+     * @return array<FilterEntry>
+     */
     public function getFilter(): array
     {
         return $this->filter;
@@ -108,15 +105,22 @@ class ListFilter implements Filter
     /**
      * @throws ListFilterException
      */
-    public function addFilter(FilterEntry $entry): ListFilter
+    public function filter(FilterEntry $filterEntry): ListFilter
     {
-        if ($this->hasAvailableFields() && !in_array($entry->getField(), $this->availableFields)) {
-            throw ListFilterException::fieldNotAvailable($entry->getField());
+        if ($this->hasAvailableFields() && !in_array($filterEntry->getField(), $this->availableFields)) {
+            throw ListFilterException::fieldNotAvailable($filterEntry->getField());
         }
 
-        $this->filter[] = $entry;
-
+        $this->filter[] = $filterEntry;
         return $this;
+    }
+
+    /**
+     * @throws ListFilterException
+     */
+    public function addFilter(string $field, $value): ListFilter
+    {
+        return $this->filter(new FilterEntry($field, $value));
     }
 
     /**
@@ -125,16 +129,28 @@ class ListFilter implements Filter
     public function setFilter(array $filterEntries): ListFilter
     {
         foreach ($filterEntries as $filterEntry) {
-            if (is_array($filterEntry)) {
-                $filterEntry = new FilterEntry($filterEntry['field'], $filterEntry['value']);
+            if ($filterEntry instanceof FilterEntry) {
+                $this->filter($filterEntry);
+                continue;
             }
 
-            $this->addFilter($filterEntry);
+            if (!is_array($filterEntry)) {
+                throw ListFilterException::invalidTypeInArray(gettype($filterEntry));
+            }
+
+            if (! Arr::keysExists(self::REQUIRED_KEYS, $filterEntry)) {
+                throw ListFilterException::arrayEntryKeysInvalid(self::REQUIRED_KEYS);
+            }
+
+            $this->filter(new FilterEntry($filterEntry['field'], $filterEntry['value']));
         }
 
         return $this;
     }
 
+    /**
+     * @return array<SortEntry>
+     */
     public function getSort(): array
     {
         return $this->sort;
@@ -143,15 +159,22 @@ class ListFilter implements Filter
     /**
      * @throws ListFilterException
      */
-    public function addSort(SortEntry $entry): ListFilter
+    public function sort(SortEntry $sortEntry): ListFilter
     {
-        if ($this->hasAvailableFields() && !in_array($entry->getField(), $this->availableFields)) {
-            throw ListFilterException::fieldNotAvailable($entry->getField());
+        if ($this->hasAvailableFields() && !in_array($sortEntry->getField(), $this->availableFields)) {
+            throw ListFilterException::fieldNotAvailable($sortEntry->getField());
         }
 
-        $this->sort[] = $entry;
-
+        $this->sort[] = $sortEntry;
         return $this;
+    }
+
+    /**
+     * @throws ListFilterException
+     */
+    public function addSort(string $field, string $method = Sort::ASC): ListFilter
+    {
+        return $this->sort(new SortEntry($field, $method));
     }
 
     /**
@@ -160,11 +183,20 @@ class ListFilter implements Filter
     public function setSort(array $sortEntries): ListFilter
     {
         foreach ($sortEntries as $sortEntry) {
-            if (is_array($sortEntry)) {
-                $sortEntry = new SortEntry($sortEntry['field'], $sortEntry['value']);
+            if ($sortEntry instanceof SortEntry) {
+                $this->sort($sortEntry);
+                continue;
             }
 
-            $this->addSort($sortEntry);
+            if (!is_array($sortEntry)) {
+                throw ListFilterException::invalidTypeInArray(gettype($sortEntry));
+            }
+
+            if (!Arr::keysExists(self::REQUIRED_KEYS, $sortEntry)) {
+                throw ListFilterException::arrayEntryKeysInvalid(self::REQUIRED_KEYS);
+            }
+
+            $this->sort(new SortEntry($sortEntry['field'], $sortEntry['value']));
         }
 
         return $this;
