@@ -2,9 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\HealthStatus;
+use Cyberfusion\ClusterApi\Support\Arr;
 
 class Health extends ClusterModel implements Model
 {
@@ -15,14 +15,14 @@ class Health extends ClusterModel implements Model
         return $this->status;
     }
 
-    public function setStatus(string $status): Health
+    public function setStatus(string $status): self
     {
         $this->status = $status;
 
         return $this;
     }
 
-    public function fromArray(array $data): Health
+    public function fromArray(array $data): self
     {
         return $this->setStatus(Arr::get($data, 'status'));
     }

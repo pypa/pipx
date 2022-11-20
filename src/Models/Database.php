@@ -2,9 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\DatabaseEngine;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class Database extends ClusterModel implements Model
@@ -21,7 +21,7 @@ class Database extends ClusterModel implements Model
         return $this->name;
     }
 
-    public function setName(string $name): Database
+    public function setName(string $name): self
     {
         Validator::value($name)
             ->maxLength(63)
@@ -38,7 +38,7 @@ class Database extends ClusterModel implements Model
         return $this->serverSoftwareName;
     }
 
-    public function setServerSoftwareName(string $serverSoftwareName): Database
+    public function setServerSoftwareName(string $serverSoftwareName): self
     {
         Validator::value($serverSoftwareName)
             ->valueIn(DatabaseEngine::AVAILABLE)
@@ -54,7 +54,7 @@ class Database extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): Database
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -66,7 +66,7 @@ class Database extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): Database
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -78,7 +78,7 @@ class Database extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): Database
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -90,14 +90,14 @@ class Database extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): Database
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): Database
+    public function fromArray(array $data): self
     {
         return $this
             ->setName(Arr::get($data, 'name'))

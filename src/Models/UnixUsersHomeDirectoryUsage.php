@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 
 class UnixUsersHomeDirectoryUsage extends ClusterModel implements Model
 {
@@ -16,7 +16,7 @@ class UnixUsersHomeDirectoryUsage extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(int $clusterId): UnixUsersHomeDirectoryUsage
+    public function setClusterId(int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -28,7 +28,7 @@ class UnixUsersHomeDirectoryUsage extends ClusterModel implements Model
         return $this->usage;
     }
 
-    public function setUsage(int $usage): UnixUsersHomeDirectoryUsage
+    public function setUsage(int $usage): self
     {
         $this->usage = $usage;
 
@@ -40,14 +40,14 @@ class UnixUsersHomeDirectoryUsage extends ClusterModel implements Model
         return $this->timestamp;
     }
 
-    public function setTimestamp(string $timestamp): UnixUsersHomeDirectoryUsage
+    public function setTimestamp(string $timestamp): self
     {
         $this->timestamp = $timestamp;
 
         return $this;
     }
 
-    public function fromArray(array $data): UnixUsersHomeDirectoryUsage
+    public function fromArray(array $data): self
     {
         return $this
             ->setClusterId(Arr::get($data, 'cluster_id'))

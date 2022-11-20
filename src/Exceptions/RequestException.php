@@ -6,7 +6,7 @@ use Throwable;
 
 class RequestException extends ClusterApiException
 {
-    public static function authenticationRequired(Throwable $previous = null): RequestException
+    public static function authenticationRequired(Throwable $previous = null): self
     {
         return new self(
             'The request requires authentication, login before making this request',
@@ -15,7 +15,7 @@ class RequestException extends ClusterApiException
         );
     }
 
-    public static function requestFailed(string $message, Throwable $previous = null): RequestException
+    public static function requestFailed(string $message, Throwable $previous = null): self
     {
         return new self(
             sprintf('Request failed, error: `%s`', $message),
@@ -29,7 +29,7 @@ class RequestException extends ClusterApiException
         string $action,
         array $missing,
         Throwable $previous = null
-    ): RequestException {
+    ): self {
         return new self(
             sprintf(
                 '%s %s request not possible, missing: `%s`',

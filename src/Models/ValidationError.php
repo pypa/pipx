@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 
 class ValidationError extends ClusterModel implements Model
 {
@@ -16,7 +16,7 @@ class ValidationError extends ClusterModel implements Model
         return $this->location;
     }
 
-    public function setLocation(array $location): ValidationError
+    public function setLocation(array $location): self
     {
         $this->location = $location;
 
@@ -28,7 +28,7 @@ class ValidationError extends ClusterModel implements Model
         return $this->message;
     }
 
-    public function setMessage(string $message): ValidationError
+    public function setMessage(string $message): self
     {
         $this->message = $message;
 
@@ -40,14 +40,14 @@ class ValidationError extends ClusterModel implements Model
         return $this->type;
     }
 
-    public function setType(string $type): ValidationError
+    public function setType(string $type): self
     {
         $this->type = $type;
 
         return $this;
     }
 
-    public function fromArray(array $data): ValidationError
+    public function fromArray(array $data): self
     {
         return $this
             ->setLocation(Arr::get($data, 'loc', []))

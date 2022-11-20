@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class Cluster extends ClusterModel implements Model
@@ -33,7 +33,7 @@ class Cluster extends ClusterModel implements Model
         return $this->name;
     }
 
-    public function setName(string $name): Cluster
+    public function setName(string $name): self
     {
         Validator::value($name)
             ->maxLength(64)
@@ -50,7 +50,7 @@ class Cluster extends ClusterModel implements Model
         return $this->groups;
     }
 
-    public function setGroups(array $groups): Cluster
+    public function setGroups(array $groups): self
     {
         $this->groups = $groups;
 
@@ -62,7 +62,7 @@ class Cluster extends ClusterModel implements Model
         return $this->unixUsersHomeDirectory;
     }
 
-    public function setUnixUsersHomeDirectory(?string $unixUsersHomeDirectory): Cluster
+    public function setUnixUsersHomeDirectory(?string $unixUsersHomeDirectory): self
     {
         Validator::value($unixUsersHomeDirectory)
             ->nullable()
@@ -79,7 +79,7 @@ class Cluster extends ClusterModel implements Model
         return $this->databasesDataDirectory;
     }
 
-    public function setDatabasesDataDirectory(?string $databasesDataDirectory): Cluster
+    public function setDatabasesDataDirectory(?string $databasesDataDirectory): self
     {
         Validator::value($databasesDataDirectory)
             ->nullable()
@@ -96,7 +96,7 @@ class Cluster extends ClusterModel implements Model
         return $this->phpVersions;
     }
 
-    public function setPhpVersions(array $phpVersions): Cluster
+    public function setPhpVersions(array $phpVersions): self
     {
         $this->phpVersions = $phpVersions;
 
@@ -108,7 +108,7 @@ class Cluster extends ClusterModel implements Model
         return $this->customPhpModulesNames;
     }
 
-    public function setCustomPhpModulesNames(array $customPhpModulesNames): Cluster
+    public function setCustomPhpModulesNames(array $customPhpModulesNames): self
     {
         $this->customPhpModulesNames = $customPhpModulesNames;
 
@@ -120,7 +120,7 @@ class Cluster extends ClusterModel implements Model
         return $this->phpIoncubeEnabled;
     }
 
-    public function setPhpIoncubeEnabled(?bool $phpIoncubeEnabled): Cluster
+    public function setPhpIoncubeEnabled(?bool $phpIoncubeEnabled): self
     {
         $this->phpIoncubeEnabled = $phpIoncubeEnabled;
 
@@ -132,7 +132,7 @@ class Cluster extends ClusterModel implements Model
         return $this->nodejsVersions;
     }
 
-    public function setNodejsVersions(array $nodejsVersions): Cluster
+    public function setNodejsVersions(array $nodejsVersions): self
     {
         Validator::value($nodejsVersions)
             ->each()
@@ -149,7 +149,7 @@ class Cluster extends ClusterModel implements Model
         return $this->customerId;
     }
 
-    public function setCustomerId(?string $customerId): Cluster
+    public function setCustomerId(?string $customerId): self
     {
         Validator::value($customerId)
             ->nullable()
@@ -167,7 +167,7 @@ class Cluster extends ClusterModel implements Model
         return $this->wordpressToolkitEnabled;
     }
 
-    public function setWordpressToolkitEnabled(?bool $wordpressToolkitEnabled): Cluster
+    public function setWordpressToolkitEnabled(?bool $wordpressToolkitEnabled): self
     {
         $this->wordpressToolkitEnabled = $wordpressToolkitEnabled;
 
@@ -179,7 +179,7 @@ class Cluster extends ClusterModel implements Model
         return $this->databaseToolkitEnabled;
     }
 
-    public function setDatabaseToolkitEnabled(?bool $databaseToolkitEnabled): Cluster
+    public function setDatabaseToolkitEnabled(?bool $databaseToolkitEnabled): self
     {
         $this->databaseToolkitEnabled = $databaseToolkitEnabled;
 
@@ -191,7 +191,7 @@ class Cluster extends ClusterModel implements Model
         return $this->malwareToolkitEnabled;
     }
 
-    public function setMalwareToolkitEnabled(?bool $malwareToolkitEnabled): Cluster
+    public function setMalwareToolkitEnabled(?bool $malwareToolkitEnabled): self
     {
         $this->malwareToolkitEnabled = $malwareToolkitEnabled;
 
@@ -203,7 +203,7 @@ class Cluster extends ClusterModel implements Model
         return $this->malwareToolkitScansEnabled;
     }
 
-    public function setMalwareToolkitScansEnabled(?bool $malwareToolkitScansEnabled): Cluster
+    public function setMalwareToolkitScansEnabled(?bool $malwareToolkitScansEnabled): self
     {
         $this->malwareToolkitScansEnabled = $malwareToolkitScansEnabled;
 
@@ -215,7 +215,7 @@ class Cluster extends ClusterModel implements Model
         return $this->bubblewrapToolkitEnabled;
     }
 
-    public function setBubblewrapToolkitEnabled(?bool $bubblewrapToolkitEnabled): Cluster
+    public function setBubblewrapToolkitEnabled(?bool $bubblewrapToolkitEnabled): self
     {
         $this->bubblewrapToolkitEnabled = $bubblewrapToolkitEnabled;
 
@@ -227,7 +227,7 @@ class Cluster extends ClusterModel implements Model
         return $this->syncToolkitEnabled;
     }
 
-    public function setSyncToolkitEnabled(?bool $syncToolkitEnabled): Cluster
+    public function setSyncToolkitEnabled(?bool $syncToolkitEnabled): self
     {
         $this->syncToolkitEnabled = $syncToolkitEnabled;
 
@@ -239,7 +239,7 @@ class Cluster extends ClusterModel implements Model
         return $this->description;
     }
 
-    public function setDescription(?string $description): Cluster
+    public function setDescription(?string $description): self
     {
         Validator::value($description)
             ->nullable()
@@ -257,7 +257,7 @@ class Cluster extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): Cluster
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -269,7 +269,7 @@ class Cluster extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): Cluster
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -281,14 +281,14 @@ class Cluster extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): Cluster
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): Cluster
+    public function fromArray(array $data): self
     {
         return $this
             ->setName(Arr::get($data, 'name', ''))

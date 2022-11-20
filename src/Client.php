@@ -2,9 +2,6 @@
 
 namespace Cyberfusion\ClusterApi;
 
-use GuzzleHttp\Client as GuzzleClient;
-use Psr\Http\Message\ResponseInterface;
-use Throwable;
 use Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
 use Cyberfusion\ClusterApi\Endpoints\Clusters;
 use Cyberfusion\ClusterApi\Endpoints\Health;
@@ -15,6 +12,9 @@ use Cyberfusion\ClusterApi\Models\DetailMessage;
 use Cyberfusion\ClusterApi\Models\HttpValidationError;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Deployment;
+use GuzzleHttp\Client as GuzzleClient;
+use Psr\Http\Message\ResponseInterface;
+use Throwable;
 
 class Client implements ClientContract
 {
@@ -262,7 +262,7 @@ class Client implements ClientContract
     /**
      * @inheritDoc
      */
-    public function addAffectedCluster(int $clusterId): Client
+    public function addAffectedCluster(int $clusterId): self
     {
         if (!in_array($clusterId, $this->affectedClusters)) {
             $this->affectedClusters[] = $clusterId;

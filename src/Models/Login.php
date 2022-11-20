@@ -18,7 +18,7 @@ class Login extends ClusterModel implements Model
         return $this->grantType;
     }
 
-    public function setGrantType(?string $grantType): Login
+    public function setGrantType(?string $grantType): self
     {
         $this->grantType = $grantType;
 
@@ -30,7 +30,7 @@ class Login extends ClusterModel implements Model
         return $this->username;
     }
 
-    public function setUsername(string $username): Login
+    public function setUsername(string $username): self
     {
         $this->username = $username;
 
@@ -42,7 +42,7 @@ class Login extends ClusterModel implements Model
         return $this->password;
     }
 
-    public function setPassword(string $password): Login
+    public function setPassword(string $password): self
     {
         $this->password = $password;
 
@@ -54,7 +54,7 @@ class Login extends ClusterModel implements Model
         return $this->scope;
     }
 
-    public function setScope(string $scope): Login
+    public function setScope(string $scope): self
     {
         $this->scope = $scope;
 
@@ -66,7 +66,7 @@ class Login extends ClusterModel implements Model
         return $this->clientId;
     }
 
-    public function setClientId(?string $clientId): Login
+    public function setClientId(?string $clientId): self
     {
         $this->clientId = $clientId;
 
@@ -78,7 +78,7 @@ class Login extends ClusterModel implements Model
         return $this->clientSecret;
     }
 
-    public function setClientSecret(?string $clientSecret): Login
+    public function setClientSecret(?string $clientSecret): self
     {
         $this->clientSecret = $clientSecret;
 

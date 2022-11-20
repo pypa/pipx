@@ -2,9 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\TokenType;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class Token extends ClusterModel implements Model
@@ -18,7 +18,7 @@ class Token extends ClusterModel implements Model
         return $this->accessToken;
     }
 
-    public function setAccessToken(string $accessToken): Token
+    public function setAccessToken(string $accessToken): self
     {
         Validator::value($accessToken)
             ->pattern('^[ -~]+$')
@@ -34,7 +34,7 @@ class Token extends ClusterModel implements Model
         return $this->expiresIn;
     }
 
-    public function setExpiresIn(int $expiresIn): Token
+    public function setExpiresIn(int $expiresIn): self
     {
         $this->expiresIn = $expiresIn;
 
@@ -46,7 +46,7 @@ class Token extends ClusterModel implements Model
         return $this->tokenType;
     }
 
-    public function setTokenType(string $tokenType): Token
+    public function setTokenType(string $tokenType): self
     {
         Validator::value($tokenType)
             ->valueIn(TokenType::AVAILABLE)
@@ -57,7 +57,7 @@ class Token extends ClusterModel implements Model
         return $this;
     }
 
-    public function fromArray(array $data): Token
+    public function fromArray(array $data): self
     {
         return $this
             ->setAccessToken(Arr::get($data, 'access_token', ''))

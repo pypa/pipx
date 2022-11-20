@@ -24,7 +24,7 @@ interface Client
      * @param int $clusterId
      * @return \Cyberfusion\ClusterApi\Client
      */
-    public function addAffectedCluster(int $clusterId): Client;
+    public function addAffectedCluster(int $clusterId): self;
 
     /**
      * Deploy all the affected clusters.

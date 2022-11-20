@@ -4,15 +4,15 @@ namespace Cyberfusion\ClusterApi\Endpoints;
 
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Cyberfusion\ClusterApi\Models\BorgArchive;
+use Cyberfusion\ClusterApi\Models\BorgArchiveContent;
+use Cyberfusion\ClusterApi\Models\BorgArchiveDatabaseCreation;
+use Cyberfusion\ClusterApi\Models\BorgArchiveMetadata;
+use Cyberfusion\ClusterApi\Models\BorgArchiveUnixUserCreation;
+use Cyberfusion\ClusterApi\Models\TaskCollection;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
 use Cyberfusion\ClusterApi\Support\ListFilter;
 use Cyberfusion\ClusterApi\Support\Str;
-use Cyberfusion\ClusterApi\Models\BorgArchiveDatabaseCreation;
-use Cyberfusion\ClusterApi\Models\BorgArchiveUnixUserCreation;
-use Cyberfusion\ClusterApi\Models\BorgArchiveContent;
-use Cyberfusion\ClusterApi\Models\BorgArchiveMetadata;
-use Cyberfusion\ClusterApi\Models\TaskCollection;
 
 class BorgArchives extends Endpoint
 {
@@ -169,7 +169,7 @@ class BorgArchives extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 

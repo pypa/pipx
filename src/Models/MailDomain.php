@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class MailDomain extends ClusterModel implements Model
@@ -22,7 +22,7 @@ class MailDomain extends ClusterModel implements Model
         return $this->domain;
     }
 
-    public function setDomain(string $domain): MailDomain
+    public function setDomain(string $domain): self
     {
         $this->domain = $domain;
 
@@ -34,7 +34,7 @@ class MailDomain extends ClusterModel implements Model
         return $this->catchAllForwardEmailAddresses;
     }
 
-    public function setCatchAllForwardEmailAddresses(array $catchAllForwardEmailAddresses): MailDomain
+    public function setCatchAllForwardEmailAddresses(array $catchAllForwardEmailAddresses): self
     {
         Validator::value($catchAllForwardEmailAddresses)
             ->unique()
@@ -50,7 +50,7 @@ class MailDomain extends ClusterModel implements Model
         return $this->isLocal;
     }
 
-    public function setIsLocal(bool $isLocal): MailDomain
+    public function setIsLocal(bool $isLocal): self
     {
         $this->isLocal = $isLocal;
 
@@ -62,7 +62,7 @@ class MailDomain extends ClusterModel implements Model
         return $this->unixUserId;
     }
 
-    public function setUnixUserId(int $unixUserId): MailDomain
+    public function setUnixUserId(int $unixUserId): self
     {
         $this->unixUserId = $unixUserId;
 
@@ -74,7 +74,7 @@ class MailDomain extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): MailDomain
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -86,7 +86,7 @@ class MailDomain extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): MailDomain
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -98,7 +98,7 @@ class MailDomain extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): MailDomain
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -110,14 +110,14 @@ class MailDomain extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): MailDomain
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): MailDomain
+    public function fromArray(array $data): self
     {
         return $this
             ->setDomain(Arr::get($data, 'domain'))

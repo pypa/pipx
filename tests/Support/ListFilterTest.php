@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Tests\Support;
 
-use PHPUnit\Framework\TestCase;
 use Cyberfusion\ClusterApi\Support\ListFilter;
+use PHPUnit\Framework\TestCase;
 
 class ListFilterTest extends TestCase
 {

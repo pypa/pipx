@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class Cron extends ClusterModel implements Model
@@ -28,7 +28,7 @@ class Cron extends ClusterModel implements Model
         return $this->name;
     }
 
-    public function setName(string $name): Cron
+    public function setName(string $name): self
     {
         Validator::value($name)
             ->maxLength(64)
@@ -45,7 +45,7 @@ class Cron extends ClusterModel implements Model
         return $this->command;
     }
 
-    public function setCommand(string $command): Cron
+    public function setCommand(string $command): self
     {
         Validator::value($command)
             ->maxLength(65535)
@@ -62,7 +62,7 @@ class Cron extends ClusterModel implements Model
         return $this->emailAddress;
     }
 
-    public function setEmailAddress(?string $emailAddress): Cron
+    public function setEmailAddress(?string $emailAddress): self
     {
         Validator::value($emailAddress)
             ->nullable()
@@ -79,7 +79,7 @@ class Cron extends ClusterModel implements Model
         return $this->schedule;
     }
 
-    public function setSchedule(string $schedule): Cron
+    public function setSchedule(string $schedule): self
     {
         $this->schedule = $schedule;
 
@@ -91,7 +91,7 @@ class Cron extends ClusterModel implements Model
         return $this->unixUserId;
     }
 
-    public function setUnixUserId(int $unixUserId): Cron
+    public function setUnixUserId(int $unixUserId): self
     {
         $this->unixUserId = $unixUserId;
 
@@ -103,7 +103,7 @@ class Cron extends ClusterModel implements Model
         return $this->nodeId;
     }
 
-    public function setNodeId(?int $nodeId): Cron
+    public function setNodeId(?int $nodeId): self
     {
         $this->nodeId = $nodeId;
 
@@ -115,7 +115,7 @@ class Cron extends ClusterModel implements Model
         return $this->errorCount;
     }
 
-    public function setErrorCount(int $errorCount): Cron
+    public function setErrorCount(int $errorCount): self
     {
         $this->errorCount = $errorCount;
 
@@ -127,7 +127,7 @@ class Cron extends ClusterModel implements Model
         return $this->randomDelayMaxSeconds;
     }
 
-    public function setRandomDelayMaxSeconds(int $randomDelayMaxSeconds): Cron
+    public function setRandomDelayMaxSeconds(int $randomDelayMaxSeconds): self
     {
         $this->randomDelayMaxSeconds = $randomDelayMaxSeconds;
 
@@ -139,7 +139,7 @@ class Cron extends ClusterModel implements Model
         return $this->lockingEnabled;
     }
 
-    public function setLockingEnabled(bool $lockingEnabled): Cron
+    public function setLockingEnabled(bool $lockingEnabled): self
     {
         $this->lockingEnabled = $lockingEnabled;
 
@@ -151,7 +151,7 @@ class Cron extends ClusterModel implements Model
         return $this->isActive;
     }
 
-    public function setIsActive(bool $isActive): Cron
+    public function setIsActive(bool $isActive): self
     {
         $this->isActive = $isActive;
 
@@ -163,7 +163,7 @@ class Cron extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): Cron
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -175,7 +175,7 @@ class Cron extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): Cron
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -187,7 +187,7 @@ class Cron extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): Cron
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -199,14 +199,14 @@ class Cron extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): Cron
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): Cron
+    public function fromArray(array $data): self
     {
         return $this
             ->setName(Arr::get($data, 'name'))

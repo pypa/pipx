@@ -2,7 +2,6 @@
 
 namespace Cyberfusion\ClusterApi\Endpoints;
 
-use DateTimeInterface;
 use Cyberfusion\ClusterApi\Enums\TimeUnit;
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Cyberfusion\ClusterApi\Models\Database;
@@ -13,6 +12,7 @@ use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
 use Cyberfusion\ClusterApi\Support\ListFilter;
 use Cyberfusion\ClusterApi\Support\Str;
+use DateTimeInterface;
 
 class Databases extends Endpoint
 {
@@ -221,7 +221,8 @@ class Databases extends Endpoint
     public function syncTo(int $leftDatabaseId, int $rightDatabaseId, string $callbackUrl = null): Response
     {
         $url = Str::optionalQueryParameters(
-            sprintf('databases/%d/sync?right_database_id=%d',
+            sprintf(
+                'databases/%d/sync?right_database_id=%d',
                 $leftDatabaseId,
                 $rightDatabaseId
             ),

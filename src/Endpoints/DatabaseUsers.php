@@ -28,7 +28,7 @@ class DatabaseUsers extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -56,7 +56,7 @@ class DatabaseUsers extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -93,7 +93,7 @@ class DatabaseUsers extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -139,7 +139,7 @@ class DatabaseUsers extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 

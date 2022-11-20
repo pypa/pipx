@@ -2,9 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
+use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\BorgArchiveObjectType;
 use Cyberfusion\ClusterApi\Support\Arr;
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class BorgArchiveContent extends ClusterModel implements Model
@@ -23,7 +23,7 @@ class BorgArchiveContent extends ClusterModel implements Model
         return $this->objectType;
     }
 
-    public function setObjectType(string $objectType): BorgArchiveContent
+    public function setObjectType(string $objectType): self
     {
         Validator::value($objectType)
             ->valueIn(BorgArchiveObjectType::AVAILABLE)
@@ -39,7 +39,7 @@ class BorgArchiveContent extends ClusterModel implements Model
         return $this->symbolicMode;
     }
 
-    public function setSymbolicMode(string $symbolicMode): BorgArchiveContent
+    public function setSymbolicMode(string $symbolicMode): self
     {
         Validator::value($symbolicMode)
             ->minLength(10)
@@ -57,7 +57,7 @@ class BorgArchiveContent extends ClusterModel implements Model
         return $this->username;
     }
 
-    public function setUsername(string $username): BorgArchiveContent
+    public function setUsername(string $username): self
     {
         Validator::value($username)
             ->maxLength(32)
@@ -74,7 +74,7 @@ class BorgArchiveContent extends ClusterModel implements Model
         return $this->groupName;
     }
 
-    public function setGroupName(string $groupName): BorgArchiveContent
+    public function setGroupName(string $groupName): self
     {
         Validator::value($groupName)
             ->maxLength(32)
@@ -91,7 +91,7 @@ class BorgArchiveContent extends ClusterModel implements Model
         return $this->path;
     }
 
-    public function setPath(?string $path): BorgArchiveContent
+    public function setPath(?string $path): self
     {
         Validator::value($path)
             ->nullable()
@@ -108,7 +108,7 @@ class BorgArchiveContent extends ClusterModel implements Model
         return $this->linkTarget;
     }
 
-    public function setLinkTarget(?string $linkTarget): BorgArchiveContent
+    public function setLinkTarget(?string $linkTarget): self
     {
         $this->linkTarget = $linkTarget;
 
@@ -120,7 +120,7 @@ class BorgArchiveContent extends ClusterModel implements Model
         return $this->modificationTime;
     }
 
-    public function setModificationTime(string $modificationTime): BorgArchiveContent
+    public function setModificationTime(string $modificationTime): self
     {
         $this->modificationTime = $modificationTime;
 
@@ -132,14 +132,14 @@ class BorgArchiveContent extends ClusterModel implements Model
         return $this->size;
     }
 
-    public function setSize(?int $size): BorgArchiveContent
+    public function setSize(?int $size): self
     {
         $this->size = $size;
 
         return $this;
     }
 
-    public function fromArray(array $data): BorgArchiveContent
+    public function fromArray(array $data): self
     {
         return $this
             ->setObjectType(Arr::get($data, 'object_type'))

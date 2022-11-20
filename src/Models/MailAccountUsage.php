@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 
 class MailAccountUsage extends ClusterModel implements Model
 {
@@ -16,7 +16,7 @@ class MailAccountUsage extends ClusterModel implements Model
         return $this->mailAccountId;
     }
 
-    public function setMailAccountId(int $mailAccountId): MailAccountUsage
+    public function setMailAccountId(int $mailAccountId): self
     {
         $this->mailAccountId = $mailAccountId;
 
@@ -28,7 +28,7 @@ class MailAccountUsage extends ClusterModel implements Model
         return $this->usage;
     }
 
-    public function setUsage(int $usage): MailAccountUsage
+    public function setUsage(int $usage): self
     {
         $this->usage = $usage;
 
@@ -40,14 +40,14 @@ class MailAccountUsage extends ClusterModel implements Model
         return $this->timestamp;
     }
 
-    public function setTimestamp(string $timestamp): MailAccountUsage
+    public function setTimestamp(string $timestamp): self
     {
         $this->timestamp = $timestamp;
 
         return $this;
     }
 
-    public function fromArray(array $data): MailAccountUsage
+    public function fromArray(array $data): self
     {
         return $this
             ->setMailAccountId(Arr::get($data, 'mail_account_id'))

@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class BorgArchiveUnixUserCreation extends ClusterModel implements Model
@@ -17,7 +17,7 @@ class BorgArchiveUnixUserCreation extends ClusterModel implements Model
         return $this->name;
     }
 
-    public function setName(string $name): BorgArchiveUnixUserCreation
+    public function setName(string $name): self
     {
         Validator::value($name)
             ->maxLength(64)
@@ -34,7 +34,7 @@ class BorgArchiveUnixUserCreation extends ClusterModel implements Model
         return $this->unixUserId;
     }
 
-    public function setUnixUserId(int $unixUserId): BorgArchiveUnixUserCreation
+    public function setUnixUserId(int $unixUserId): self
     {
         $this->unixUserId = $unixUserId;
 
@@ -46,14 +46,14 @@ class BorgArchiveUnixUserCreation extends ClusterModel implements Model
         return $this->borgRepositoryId;
     }
 
-    public function setBorgRepositoryId(int $borgRepositoryId): BorgArchiveUnixUserCreation
+    public function setBorgRepositoryId(int $borgRepositoryId): self
     {
         $this->borgRepositoryId = $borgRepositoryId;
 
         return $this;
     }
 
-    public function fromArray(array $data): BorgArchiveUnixUserCreation
+    public function fromArray(array $data): self
     {
         return $this
             ->setName(Arr::get($data, 'name'))

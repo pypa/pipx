@@ -2,10 +2,10 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
-use Cyberfusion\ClusterApi\Support\Validator;
 use Cyberfusion\ClusterApi\Enums\CmsConfigurationConstantName;
+use Cyberfusion\ClusterApi\Support\Arr;
+use Cyberfusion\ClusterApi\Support\Validator;
 
 class CmsConfigurationConstant extends ClusterModel implements Model
 {
@@ -18,7 +18,7 @@ class CmsConfigurationConstant extends ClusterModel implements Model
         return $this->name;
     }
 
-    public function setName(string $name): CmsConfigurationConstant
+    public function setName(string $name): self
     {
         Validator::value($name)
             ->valueIn(CmsConfigurationConstantName::AVAILABLE)
@@ -41,7 +41,7 @@ class CmsConfigurationConstant extends ClusterModel implements Model
     /**
      * @param mixed $value
      */
-    public function setValue($value): CmsConfigurationConstant
+    public function setValue($value): self
     {
         Validator::value($value)
             ->maxLength(255)
@@ -53,7 +53,7 @@ class CmsConfigurationConstant extends ClusterModel implements Model
         return $this;
     }
 
-    public function fromArray(array $data): CmsConfigurationConstant
+    public function fromArray(array $data): self
     {
         return $this
             ->setName(Arr::get($data, 'name'))

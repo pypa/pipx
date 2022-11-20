@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class AccessLog extends ClusterModel implements Model
@@ -21,7 +21,7 @@ class AccessLog extends ClusterModel implements Model
         return $this->remoteAddress;
     }
 
-    public function setRemoteAddress(string $remoteAddress): AccessLog
+    public function setRemoteAddress(string $remoteAddress): self
     {
         $this->remoteAddress = $remoteAddress;
 
@@ -33,7 +33,7 @@ class AccessLog extends ClusterModel implements Model
         return $this->rawMessage;
     }
 
-    public function setRawMessage(string $rawMessage): AccessLog
+    public function setRawMessage(string $rawMessage): self
     {
         Validator::value($rawMessage)
             ->maxLength(65535)
@@ -49,7 +49,7 @@ class AccessLog extends ClusterModel implements Model
         return $this->method;
     }
 
-    public function setMethod(string $method): AccessLog
+    public function setMethod(string $method): self
     {
         $this->method = $method;
 
@@ -61,7 +61,7 @@ class AccessLog extends ClusterModel implements Model
         return $this->uri;
     }
 
-    public function setUri(string $uri): AccessLog
+    public function setUri(string $uri): self
     {
         $this->uri = $uri;
 
@@ -73,7 +73,7 @@ class AccessLog extends ClusterModel implements Model
         return $this->timestamp;
     }
 
-    public function setTimestamp(string $timestamp): AccessLog
+    public function setTimestamp(string $timestamp): self
     {
         $this->timestamp = $timestamp;
 
@@ -85,7 +85,7 @@ class AccessLog extends ClusterModel implements Model
         return $this->statusCode;
     }
 
-    public function setStatusCode(int $statusCode): AccessLog
+    public function setStatusCode(int $statusCode): self
     {
         $this->statusCode = $statusCode;
 
@@ -97,14 +97,14 @@ class AccessLog extends ClusterModel implements Model
         return $this->bytesSent;
     }
 
-    public function setBytesSent(int $bytesSent): AccessLog
+    public function setBytesSent(int $bytesSent): self
     {
         $this->bytesSent = $bytesSent;
 
         return $this;
     }
 
-    public function fromArray(array $data): AccessLog
+    public function fromArray(array $data): self
     {
         return $this
             ->setRemoteAddress(Arr::get($data, 'remote_address'))

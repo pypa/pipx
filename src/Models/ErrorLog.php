@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class ErrorLog extends ClusterModel implements Model
@@ -20,7 +20,7 @@ class ErrorLog extends ClusterModel implements Model
         return $this->remoteAddress;
     }
 
-    public function setRemoteAddress(string $remoteAddress): ErrorLog
+    public function setRemoteAddress(string $remoteAddress): self
     {
         $this->remoteAddress = $remoteAddress;
 
@@ -32,7 +32,7 @@ class ErrorLog extends ClusterModel implements Model
         return $this->rawMessage;
     }
 
-    public function setRawMessage(string $rawMessage): ErrorLog
+    public function setRawMessage(string $rawMessage): self
     {
         Validator::value($rawMessage)
             ->maxLength(65535)
@@ -48,7 +48,7 @@ class ErrorLog extends ClusterModel implements Model
         return $this->method;
     }
 
-    public function setMethod(string $method): ErrorLog
+    public function setMethod(string $method): self
     {
         $this->method = $method;
 
@@ -60,7 +60,7 @@ class ErrorLog extends ClusterModel implements Model
         return $this->uri;
     }
 
-    public function setUri(string $uri): ErrorLog
+    public function setUri(string $uri): self
     {
         $this->uri = $uri;
 
@@ -72,7 +72,7 @@ class ErrorLog extends ClusterModel implements Model
         return $this->timestamp;
     }
 
-    public function setTimestamp(string $timestamp): ErrorLog
+    public function setTimestamp(string $timestamp): self
     {
         $this->timestamp = $timestamp;
 
@@ -84,7 +84,7 @@ class ErrorLog extends ClusterModel implements Model
         return $this->errorMessage;
     }
 
-    public function setErrorMessage(string $errorMessage): ErrorLog
+    public function setErrorMessage(string $errorMessage): self
     {
         Validator::value($errorMessage)
             ->maxLength(65535)
@@ -95,7 +95,7 @@ class ErrorLog extends ClusterModel implements Model
         return $this;
     }
 
-    public function fromArray(array $data): ErrorLog
+    public function fromArray(array $data): self
     {
         return $this
             ->setRemoteAddress(Arr::get($data, 'remote_address'))

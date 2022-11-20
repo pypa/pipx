@@ -2,9 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Validator;
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
+use Cyberfusion\ClusterApi\Support\Validator;
 
 class BorgArchive extends ClusterModel implements Model
 {
@@ -22,7 +22,7 @@ class BorgArchive extends ClusterModel implements Model
         return $this->name;
     }
 
-    public function setName(string $name): BorgArchive
+    public function setName(string $name): self
     {
         Validator::value($name)
             ->maxLength(64)
@@ -39,7 +39,7 @@ class BorgArchive extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(int $clusterId): BorgArchive
+    public function setClusterId(int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -51,7 +51,7 @@ class BorgArchive extends ClusterModel implements Model
         return $this->borgRepositoryId;
     }
 
-    public function setBorgRepositoryId(?int $borgRepositoryId): BorgArchive
+    public function setBorgRepositoryId(?int $borgRepositoryId): self
     {
         $this->borgRepositoryId = $borgRepositoryId;
 
@@ -63,7 +63,7 @@ class BorgArchive extends ClusterModel implements Model
         return $this->databaseId;
     }
 
-    public function setDatabaseId(?int $databaseId): BorgArchive
+    public function setDatabaseId(?int $databaseId): self
     {
         $this->databaseId = $databaseId;
 
@@ -75,7 +75,7 @@ class BorgArchive extends ClusterModel implements Model
         return $this->unixUserId;
     }
 
-    public function setUnixUserId(?int $unixUserId): BorgArchive
+    public function setUnixUserId(?int $unixUserId): self
     {
         $this->unixUserId = $unixUserId;
 
@@ -87,7 +87,7 @@ class BorgArchive extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): BorgArchive
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -99,7 +99,7 @@ class BorgArchive extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): BorgArchive
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -111,14 +111,14 @@ class BorgArchive extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): BorgArchive
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): BorgArchive
+    public function fromArray(array $data): self
     {
         return $this
             ->setName(Arr::get($data, 'name'))

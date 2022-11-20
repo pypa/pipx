@@ -2,13 +2,13 @@
 
 namespace Cyberfusion\ClusterApi\Support;
 
-use ReflectionClass;
-use ReflectionProperty;
 use Cyberfusion\ClusterApi\Contracts\Filter;
 use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\Limit;
 use Cyberfusion\ClusterApi\Enums\Sort;
 use Cyberfusion\ClusterApi\Exceptions\ListFilterException;
+use ReflectionClass;
+use ReflectionProperty;
 use Vdhicts\HttpQueryBuilder\Builder;
 
 class ListFilter implements Filter
@@ -23,7 +23,7 @@ class ListFilter implements Filter
     {
         $reflection = new ReflectionClass($model);
         $properties = array_map(
-            fn(ReflectionProperty $property) => Str::snake($property->name),
+            fn (ReflectionProperty $property) => Str::snake($property->name),
             $reflection->getProperties(ReflectionProperty::IS_PRIVATE)
         );
 
@@ -40,7 +40,7 @@ class ListFilter implements Filter
         return !is_null($this->availableFields);
     }
 
-    public function setAvailableFields(?array $availableFields): ListFilter
+    public function setAvailableFields(?array $availableFields): self
     {
         $this->availableFields = $availableFields;
 
@@ -52,7 +52,7 @@ class ListFilter implements Filter
         return $this->skip;
     }
 
-    public function setSkip(int $skip): ListFilter
+    public function setSkip(int $skip): self
     {
         $this->skip = $skip;
 
@@ -64,7 +64,7 @@ class ListFilter implements Filter
         return $this->limit;
     }
 
-    public function setLimit(int $limit): ListFilter
+    public function setLimit(int $limit): self
     {
         if ($limit > Limit::MAX_LIMIT) {
             $limit = Limit::MAX_LIMIT;
@@ -83,7 +83,7 @@ class ListFilter implements Filter
      * @param mixed $value
      * @throws ListFilterException
      */
-    public function addFilter(string $field, $value): ListFilter
+    public function addFilter(string $field, $value): self
     {
         if ($this->hasAvailableFields() && !in_array($field, $this->availableFields)) {
             throw ListFilterException::fieldNotAvailable($field);
@@ -94,7 +94,7 @@ class ListFilter implements Filter
         return $this;
     }
 
-    public function setFilter(array $filter): ListFilter
+    public function setFilter(array $filter): self
     {
         foreach ($filter as $filterEntry) {
             if (Arr::has($filterEntry, 'field') && Arr::has($filterEntry, 'value')) {
@@ -113,7 +113,7 @@ class ListFilter implements Filter
     /**
      * @throws ListFilterException
      */
-    public function addSort(string $field, string $method = Sort::ASC): ListFilter
+    public function addSort(string $field, string $method = Sort::ASC): self
     {
         if (!in_array($method, Sort::AVAILABLE)) {
             throw ListFilterException::invalidSortMethod($method);
@@ -128,7 +128,7 @@ class ListFilter implements Filter
         return $this;
     }
 
-    public function setSort(array $sort): ListFilter
+    public function setSort(array $sort): self
     {
         $this->sort = $sort;
 

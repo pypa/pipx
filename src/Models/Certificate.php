@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class Certificate extends ClusterModel implements Model
@@ -24,7 +24,7 @@ class Certificate extends ClusterModel implements Model
         return $this->mainCommonName;
     }
 
-    public function setMainCommonName(string $mainCommonName): Certificate
+    public function setMainCommonName(string $mainCommonName): self
     {
         $this->mainCommonName = $mainCommonName;
 
@@ -36,7 +36,7 @@ class Certificate extends ClusterModel implements Model
         return $this->commonNames;
     }
 
-    public function setCommonNames(array $commonNames): Certificate
+    public function setCommonNames(array $commonNames): self
     {
         Validator::value($commonNames)
             ->unique()
@@ -52,7 +52,7 @@ class Certificate extends ClusterModel implements Model
         return $this->certificate;
     }
 
-    public function setCertificate(string $certificate): Certificate
+    public function setCertificate(string $certificate): self
     {
         Validator::value($certificate)
             ->maxLength(65535)
@@ -69,7 +69,7 @@ class Certificate extends ClusterModel implements Model
         return $this->caChain;
     }
 
-    public function setCaChain(string $caChain): Certificate
+    public function setCaChain(string $caChain): self
     {
         Validator::value($caChain)
             ->maxLength(65535)
@@ -86,7 +86,7 @@ class Certificate extends ClusterModel implements Model
         return $this->privateKey;
     }
 
-    public function setPrivateKey(string $privateKey): Certificate
+    public function setPrivateKey(string $privateKey): self
     {
         Validator::value($privateKey)
             ->maxLength(65535)
@@ -103,7 +103,7 @@ class Certificate extends ClusterModel implements Model
         return $this->expiresAt;
     }
 
-    public function setExpiresAt(string $expiresAt): Certificate
+    public function setExpiresAt(string $expiresAt): self
     {
         $this->expiresAt = $expiresAt;
 
@@ -115,7 +115,7 @@ class Certificate extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): Certificate
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -127,7 +127,7 @@ class Certificate extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): Certificate
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -139,7 +139,7 @@ class Certificate extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): Certificate
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -151,14 +151,14 @@ class Certificate extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): Certificate
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): Certificate
+    public function fromArray(array $data): self
     {
         return $this
             ->setMainCommonName(Arr::get($data, 'main_common_name', ''))

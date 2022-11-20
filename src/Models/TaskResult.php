@@ -2,10 +2,10 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Illuminate\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\TaskState;
 use Cyberfusion\ClusterApi\Support\Validator;
+use Illuminate\Support\Arr;
 
 class TaskResult extends ClusterModel implements Model
 {
@@ -19,7 +19,7 @@ class TaskResult extends ClusterModel implements Model
         return $this->uuid;
     }
 
-    public function setUuid(string $uuid): TaskResult
+    public function setUuid(string $uuid): self
     {
         Validator::value($uuid)
             ->uuid()
@@ -35,7 +35,7 @@ class TaskResult extends ClusterModel implements Model
         return $this->description;
     }
 
-    public function setDescription(string $description): TaskResult
+    public function setDescription(string $description): self
     {
         Validator::value($description)
             ->maxLength(65535)
@@ -52,7 +52,7 @@ class TaskResult extends ClusterModel implements Model
         return $this->message;
     }
 
-    public function setMessage(string $message): TaskResult
+    public function setMessage(string $message): self
     {
         Validator::value($message)
             ->maxLength(65535)
@@ -69,7 +69,7 @@ class TaskResult extends ClusterModel implements Model
         return $this->state;
     }
 
-    public function setState(string $state): TaskResult
+    public function setState(string $state): self
     {
         Validator::value($state)
             ->valueIn(TaskState::AVAILABLE)
@@ -80,7 +80,7 @@ class TaskResult extends ClusterModel implements Model
         return $this;
     }
 
-    public function fromArray(array $data): TaskResult
+    public function fromArray(array $data): self
     {
         return $this
             ->setUuid(Arr::get($data, 'uuid'))

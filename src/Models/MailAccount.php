@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
 class MailAccount extends ClusterModel implements Model
@@ -22,7 +22,7 @@ class MailAccount extends ClusterModel implements Model
         return $this->localPart;
     }
 
-    public function setLocalPart(string $localPart): MailAccount
+    public function setLocalPart(string $localPart): self
     {
         Validator::value($localPart)
             ->pattern('^[a-z0-9-.]+$')
@@ -39,7 +39,7 @@ class MailAccount extends ClusterModel implements Model
         return $this->password;
     }
 
-    public function setPassword(string $password): MailAccount
+    public function setPassword(string $password): self
     {
         Validator::value($password)
             ->pattern('^[ -~]+$')
@@ -57,7 +57,7 @@ class MailAccount extends ClusterModel implements Model
         return $this->quota;
     }
 
-    public function setQuota(?int $quota): MailAccount
+    public function setQuota(?int $quota): self
     {
         $this->quota = $quota;
 
@@ -69,7 +69,7 @@ class MailAccount extends ClusterModel implements Model
         return $this->mailDomainId;
     }
 
-    public function setMailDomainId(int $mailDomainId): MailAccount
+    public function setMailDomainId(int $mailDomainId): self
     {
         $this->mailDomainId = $mailDomainId;
 
@@ -81,7 +81,7 @@ class MailAccount extends ClusterModel implements Model
         return $this->id;
     }
 
-    public function setId(?int $id): MailAccount
+    public function setId(?int $id): self
     {
         $this->id = $id;
 
@@ -93,7 +93,7 @@ class MailAccount extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(?int $clusterId): MailAccount
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
@@ -105,7 +105,7 @@ class MailAccount extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): MailAccount
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
 
@@ -117,14 +117,14 @@ class MailAccount extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): MailAccount
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }
 
-    public function fromArray(array $data): MailAccount
+    public function fromArray(array $data): self
     {
         return $this
             ->setLocalPart(Arr::get($data, 'local_part'))

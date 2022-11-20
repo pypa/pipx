@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 
 class DatabaseUsage extends ClusterModel implements Model
 {
@@ -16,7 +16,7 @@ class DatabaseUsage extends ClusterModel implements Model
         return $this->databaseId;
     }
 
-    public function setDatabaseId(int $databaseId): DatabaseUsage
+    public function setDatabaseId(int $databaseId): self
     {
         $this->databaseId = $databaseId;
 
@@ -28,7 +28,7 @@ class DatabaseUsage extends ClusterModel implements Model
         return $this->usage;
     }
 
-    public function setUsage(int $usage): DatabaseUsage
+    public function setUsage(int $usage): self
     {
         $this->usage = $usage;
 
@@ -40,14 +40,14 @@ class DatabaseUsage extends ClusterModel implements Model
         return $this->timestamp;
     }
 
-    public function setTimestamp(string $timestamp): DatabaseUsage
+    public function setTimestamp(string $timestamp): self
     {
         $this->timestamp = $timestamp;
 
         return $this;
     }
 
-    public function fromArray(array $data): DatabaseUsage
+    public function fromArray(array $data): self
     {
         return $this
             ->setDatabaseId(Arr::get($data, 'database_id'))

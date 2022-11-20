@@ -3,11 +3,11 @@
 namespace Cyberfusion\ClusterApi\Endpoints;
 
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
+use Cyberfusion\ClusterApi\Models\TaskCollection;
 use Cyberfusion\ClusterApi\Models\VirtualHost;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
 use Cyberfusion\ClusterApi\Support\ListFilter;
-use Cyberfusion\ClusterApi\Models\TaskCollection;
 use Cyberfusion\ClusterApi\Support\Str;
 
 class VirtualHosts extends Endpoint
@@ -30,7 +30,7 @@ class VirtualHosts extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -58,7 +58,7 @@ class VirtualHosts extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -102,7 +102,7 @@ class VirtualHosts extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -160,7 +160,7 @@ class VirtualHosts extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -218,7 +218,7 @@ class VirtualHosts extends Endpoint
         $response = $this
             ->client
             ->request($request);
-        if (! $response->isSuccess()) {
+        if (!$response->isSuccess()) {
             return $response;
         }
 
@@ -237,7 +237,8 @@ class VirtualHosts extends Endpoint
     public function syncDomainRootTo(int $leftVirtualHostId, int $rightVirtualHostId, string $callbackUrl = null): Response
     {
         $url = Str::optionalQueryParameters(
-            sprintf('virtual-hosts/%d/domain-root/sync?right_virtual_host_id=%d',
+            sprintf(
+                'virtual-hosts/%d/domain-root/sync?right_virtual_host_id=%d',
                 $leftVirtualHostId,
                 $rightVirtualHostId
             ),

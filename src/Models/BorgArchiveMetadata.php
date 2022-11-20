@@ -2,8 +2,8 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Contracts\Model;
+use Cyberfusion\ClusterApi\Support\Arr;
 
 class BorgArchiveMetadata extends ClusterModel implements Model
 {
@@ -16,7 +16,7 @@ class BorgArchiveMetadata extends ClusterModel implements Model
         return $this->contentsPath;
     }
 
-    public function setContentsPath(string $contentsPath): BorgArchiveMetadata
+    public function setContentsPath(string $contentsPath): self
     {
         $this->contentsPath = $contentsPath;
 
@@ -28,7 +28,7 @@ class BorgArchiveMetadata extends ClusterModel implements Model
         return $this->existsOnServer;
     }
 
-    public function setExistsOnServer(bool $existsOnServer): BorgArchiveMetadata
+    public function setExistsOnServer(bool $existsOnServer): self
     {
         $this->existsOnServer = $existsOnServer;
 
@@ -40,14 +40,14 @@ class BorgArchiveMetadata extends ClusterModel implements Model
         return $this->borgArchiveId;
     }
 
-    public function setBorgArchiveId(int $borgArchiveId): BorgArchiveMetadata
+    public function setBorgArchiveId(int $borgArchiveId): self
     {
         $this->borgArchiveId = $borgArchiveId;
 
         return $this;
     }
 
-    public function fromArray(array $data): BorgArchiveMetadata
+    public function fromArray(array $data): self
     {
         return $this
             ->setContentsPath(Arr::get($data, 'contents_path'))
