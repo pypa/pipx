@@ -35,7 +35,9 @@
     "scripts": {
         "test": "vendor/bin/phpunit --no-coverage",
         "test-coverage": "vendor/bin/phpunit",
-        "analyse": "vendor/bin/phpstan analyse"
+        "analyse": "vendor/bin/phpstan analyse",
+        "ecs:check": "@php vendor/bin/ecs check",
+        "ecs:fix": "@ecs:check --fix"
     },
     "config": {
         "sort-packages": true
