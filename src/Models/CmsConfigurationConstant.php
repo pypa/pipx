@@ -4,6 +4,7 @@ namespace Cyberfusion\ClusterApi\Models;
 
 use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\CmsConfigurationConstantName;
+use Cyberfusion\ClusterApi\Exceptions\ValidationException;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
@@ -40,6 +41,7 @@ class CmsConfigurationConstant extends ClusterModel implements Model
 
     /**
      * @param mixed $value
+     * @throws ValidationException
      */
     public function setValue($value): self
     {

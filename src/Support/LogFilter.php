@@ -2,11 +2,11 @@
 
 namespace Cyberfusion\ClusterApi\Support;
 
-use DateTimeInterface;
 use Cyberfusion\ClusterApi\Contracts\Filter;
 use Cyberfusion\ClusterApi\Enums\Limit;
 use Cyberfusion\ClusterApi\Enums\Sort;
 use Cyberfusion\ClusterApi\Exceptions\ListFilterException;
+use DateTimeInterface;
 
 class LogFilter implements Filter
 {

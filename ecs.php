@@ -1,8 +1,8 @@
 <?php
 
-use PhpCsFixer\Fixer\ArrayNotation\ArraySyntaxFixer;
 use PhpCsFixer\Fixer\ClassNotation\OrderedClassElementsFixer;
 use PhpCsFixer\Fixer\ControlStructure\NoUnneededControlParenthesesFixer;
+use PhpCsFixer\Fixer\LanguageConstruct\FunctionToConstantFixer;
 use Symplify\EasyCodingStandard\Config\ECSConfig;
 use Symplify\EasyCodingStandard\ValueObject\Set\SetList;
 
@@ -21,5 +21,6 @@ return static function (ECSConfig $ecsConfig): void {
     $ecsConfig->skip([
         NoUnneededControlParenthesesFixer::class,
         OrderedClassElementsFixer::class,
+        FunctionToConstantFixer::class,
     ]);
 };

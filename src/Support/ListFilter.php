@@ -2,14 +2,14 @@
 
 namespace Cyberfusion\ClusterApi\Support;
 
-use Cyberfusion\ClusterApi\Enums\Sort;
-use ReflectionClass;
-use ReflectionException;
-use ReflectionProperty;
 use Cyberfusion\ClusterApi\Contracts\Filter;
 use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\Limit;
+use Cyberfusion\ClusterApi\Enums\Sort;
 use Cyberfusion\ClusterApi\Exceptions\ListFilterException;
+use ReflectionClass;
+use ReflectionException;
+use ReflectionProperty;
 use Vdhicts\HttpQueryBuilder\Builder;
 
 class ListFilter implements Filter
@@ -33,14 +33,14 @@ class ListFilter implements Filter
      */
     public static function forModel($model): self
     {
-        if (! is_subclass_of($model, Model::class)) {
+        if (!is_subclass_of($model, Model::class)) {
             throw ListFilterException::invalidModel();
         }
 
         try {
             $reflection = new ReflectionClass($model);
             $properties = array_map(
-                fn(ReflectionProperty $property) => Str::snake($property->name),
+                fn (ReflectionProperty $property) => Str::snake($property->name),
                 $reflection->getProperties(ReflectionProperty::IS_PRIVATE)
             );
         } catch (ReflectionException $exception) {
@@ -60,7 +60,7 @@ class ListFilter implements Filter
         return !is_null($this->availableFields);
     }
 
-    public function setAvailableFields(?array $availableFields): ListFilter
+    public function setAvailableFields(?array $availableFields): self
     {
         $this->availableFields = $availableFields;
 
@@ -72,7 +72,7 @@ class ListFilter implements Filter
         return $this->skip;
     }
 
-    public function setSkip(int $skip): ListFilter
+    public function setSkip(int $skip): self
     {
         $this->skip = $skip;
 
@@ -84,7 +84,7 @@ class ListFilter implements Filter
         return $this->limit;
     }
 
-    public function setLimit(int $limit): ListFilter
+    public function setLimit(int $limit): self
     {
         if ($limit > Limit::MAX_LIMIT) {
             $limit = Limit::MAX_LIMIT;
@@ -105,7 +105,7 @@ class ListFilter implements Filter
     /**
      * @throws ListFilterException
      */
-    public function filter(FilterEntry $filterEntry): ListFilter
+    public function filter(FilterEntry $filterEntry): self
     {
         if ($this->hasAvailableFields() && !in_array($filterEntry->getField(), $this->availableFields)) {
             throw ListFilterException::fieldNotAvailable($filterEntry->getField());
@@ -118,7 +118,7 @@ class ListFilter implements Filter
     /**
      * @throws ListFilterException
      */
-    public function addFilter(string $field, $value): ListFilter
+    public function addFilter(string $field, $value): self
     {
         return $this->filter(new FilterEntry($field, $value));
     }
@@ -126,7 +126,7 @@ class ListFilter implements Filter
     /**
      * @throws ListFilterException
      */
-    public function setFilter(array $filterEntries): ListFilter
+    public function setFilter(array $filterEntries): self
     {
         foreach ($filterEntries as $filterEntry) {
             if ($filterEntry instanceof FilterEntry) {
@@ -138,7 +138,7 @@ class ListFilter implements Filter
                 throw ListFilterException::invalidTypeInArray(gettype($filterEntry));
             }
 
-            if (! Arr::keysExists(self::REQUIRED_KEYS, $filterEntry)) {
+            if (!Arr::keysExists(self::REQUIRED_KEYS, $filterEntry)) {
                 throw ListFilterException::arrayEntryKeysInvalid(self::REQUIRED_KEYS);
             }
 
@@ -159,7 +159,7 @@ class ListFilter implements Filter
     /**
      * @throws ListFilterException
      */
-    public function sort(SortEntry $sortEntry): ListFilter
+    public function sort(SortEntry $sortEntry): self
     {
         if ($this->hasAvailableFields() && !in_array($sortEntry->getField(), $this->availableFields)) {
             throw ListFilterException::fieldNotAvailable($sortEntry->getField());
@@ -172,7 +172,7 @@ class ListFilter implements Filter
     /**
      * @throws ListFilterException
      */
-    public function addSort(string $field, string $method = Sort::ASC): ListFilter
+    public function addSort(string $field, string $method = Sort::ASC): self
     {
         return $this->sort(new SortEntry($field, $method));
     }
@@ -180,7 +180,7 @@ class ListFilter implements Filter
     /**
      * @throws ListFilterException
      */
-    public function setSort(array $sortEntries): ListFilter
+    public function setSort(array $sortEntries): self
     {
         foreach ($sortEntries as $sortEntry) {
             if ($sortEntry instanceof SortEntry) {
