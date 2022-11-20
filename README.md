@@ -6,9 +6,11 @@ This client was built for and tested on the **1.156** version of the API.
 
 ## Support
 
-This client is officially supported by Cyberfusion. If you have any questions, open an issue on GitHub or send an email to support@cyberfusion.nl.
+This client is officially supported by Cyberfusion. If you have any questions, open an issue on GitHub or email 
+support@cyberfusion.nl.
 
-The client was created by Vdhicts, a company which develops and implements IT solutions for businesses and educational institutions.
+The client was created by Vdhicts, a company which develops and implements IT solutions for businesses and educational 
+institutions.
 
 ## Requirements
 
@@ -97,30 +99,92 @@ When models need to be provided, the required properties are checked before exec
 
 #### Filtering data
 
-Some endpoints require a `ListFilter` and return a list of models according to the filter. It's also possible to change the sort order.
+Some endpoints require a `ListFilter` and return a list of models according to the filter. It's also possible to change 
+the sort order.
 
-A `ListFilter` can be initialized for a model, so it automatically validates if the provided fields are available for the model.
+##### Model filters
+
+A `ListFilter` can be initialized for a model, so it automatically validates if the provided fields are available for 
+the model.
 
 ```php
-$listFilter = ListFilter::forModel(new Cluster());
-$listFilter->addFilter('name', 'test');
-$listFilter->addFilter('groups', 'test2');
-$listFilter->addSort('name', ListFilter::SORT_DESC);
+use Cyberfusion\ClusterApi\Enums\Sort;
+use Cyberfusion\ClusterApi\Models\VirtualHost;
+use Cyberfusion\ClusterApi\Support\FilterEntry;
+use Cyberfusion\ClusterApi\Support\SortEntry;
+
+$listFilter = VirtualHost::listFilter()
+    ->filter(new FilterEntry('server_software_name', 'Apache'))
+    ->filter(new FilterEntry('domain', 'cyberfusion.nl'))
+    ->sort(new SortEntry('domain', Sort::DESC));
 ```
 
-You are able to initialize the `ListFilter` manually, but fields are not validated in that case.
+##### Manually creating filters
+
+You can initialize the `ListFilter` manually, but fields are not validated if they are available for the model.
+
+```php
+$listFilter = (new ListFilter())
+    ->filter(new FilterEntry('server_software_name', 'Apache'))
+    ->filter(new FilterEntry('domain', 'cyberfusion.nl'))
+    ->sort(new SortEntry('domain', Sort::DESC));
+```
+
+Or provide the entries and sort directly:
+
+```php
+$listFilter = (new ListFilter())
+    ->setFilters([
+        new FilterEntry('server_software_name', 'Apache'),
+        new FilterEntry('domain', 'cyberfusion.nl'),
+    ])
+    ->setSort([
+        new SortEntry('domain', Sort::DESC)
+    ]);
+);
+```
+
+##### Alternative method
+
+This package used to offer this way to build the filter. Due to backwards compatibility, this functionality is still 
+available.
+
+```php
+$listFilter = ListFilter::forModel(new Cluster())
+    ->filter('server_software_name', 'Apache')
+    ->filter('domain', 'cyberfusion.nl')
+    ->sort('domain', Sort::DESC);
+```
+
+Or provide the entries and sort directly:
+
+```php
+$listFilter = (new ListFilter())
+    ->setFilters([
+        ['field' => 'server_software_name', 'value' => 'Apache'],
+        ['field' => 'domain', 'value' => 'cyberfusion.nl'],
+    ])
+    ->setSort([
+        ['field' => 'domain', 'value' => Sort::DESC],
+    ]);
+);
+```
 
 #### Manually make requests
 
-To use the API directly, use the `request()` method on the `Client`. This method needs a `Request` class. See the class itself for its options.
+To use the API directly, use the `request()` method on the `Client`. This method needs a `Request` class. See the class 
+itself for its options.
 
 ### Responses
 
-The endpoint methods throw exceptions when requests fail due to timeouts. When the API replies with HTTP protocol errors, the `Response` class is returned nonetheless. Check if the request succeeded with: `$response->isSuccess()`. API responses are automatically converted to models.
+The endpoint methods throw exceptions when requests fail due to timeouts. When the API replies with HTTP protocol 
+errors, the `Response` class is returned nonetheless. Check if the request succeeded with: `$response->isSuccess()`. 
+API responses are automatically converted to models.
 
 ### Authentication
 
-The API is authenticated with a username and password and returns an access token. This client takes care of authentication. To get credentials, contact Cyberfusion.
+The API is authenticated with a username and password and returns an access token. This client takes care of 
+authentication. To get credentials, contact Cyberfusion.
 
 ```php
 $configuration = Configuration::withCredentials('username', 'password');
@@ -128,7 +192,8 @@ $configuration = Configuration::withCredentials('username', 'password');
 
 When you authenticate with username and password, this client automatically retrieves the access token.
 
-The access token is valid for 30 minutes, so there's no need to store it. To store it anyway, access it with `$configuration->getAccessToken()`.
+The access token is valid for 30 minutes, so there's no need to store it. To store it anyway, access it with 
+`$configuration->getAccessToken()`.
 
 #### Manually authenticate
 
@@ -175,15 +240,18 @@ All exceptions have a code. These can be found in the `ClusterApiException` clas
 
 ### Deployment
 
-Change to most of the objects in the Cluster API require a deployment of the cluster. See the [API documentation](https://cluster-api.cyberfusion.nl/redoc#operation/create_cluster_deployment_api_v1_cluster_deployments_post) for more information.
+Change to most of the objects in the Cluster API require a deployment of the cluster. See the [API documentation](https://cluster-api.cyberfusion.nl/redoc#operation/create_cluster_deployment_api_v1_cluster_deployments_post) 
+for more information.
 
-This client keeps track of changed clusters. The `deploy` method on the client automatically deploys all changed clusters:
+This client keeps track of changed clusters. The `deploy` method on the client automatically deploys all changed 
+clusters:
 
 ```php
 $clusterDeployments = $client->deploy();
 ```
 
-The result is an array of `Deployment` objects (or an empty array who no clusters are changed) which allows you to check if the cluster is properly deployed:
+The result is an array of `Deployment` objects (or an empty array who no clusters are changed) which allows you to 
+check if the cluster is properly deployed:
 
 ```php
 foreach ($clusterDeployments as $clusterDeployment) {
@@ -198,7 +266,8 @@ See the `Deployment` class for more options.
 
 #### Automatic deployment
 
-This client is also able to deploy all changed clusters automatically. This is opt-in behavior, as you won't be able to access the result of the deployment.
+This client is also able to deploy all changed clusters automatically. This is opt-in behavior, as you won't be able 
+to access the result of the deployment.
 
 ```php
 $configuration = new Configuration();
