@@ -181,3 +181,55 @@ def test_package_determination(
 
     assert "Cannot determine package name" not in caplog.text
     assert f"Determined package name: {package}" in caplog.text
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_without_requirements(
+    caplog, pipx_temp_env, tmp_path
+):
+    script = tmp_path / "test.py"
+    script.write_text("\n".join([
+        "print(1234)",
+    ]))
+    run_pipx_cli_exit(["run", script.as_uri()])
+    # TODO: Not entirely sure this is the best way to test
+    assert "exec_app" in caplog.text
+    assert "1234" in caplog.text
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_requirements(
+    caplog, pipx_temp_env, tmp_path
+):
+    script = tmp_path / "test.py"
+    script.write_text("\n".join([
+        "# Requirements:",
+        "#     numpy",
+        "print(1234)",
+    ]))
+    # TODO: Fix when we implement requirements handling!
+    # For now, pipx run fails if there are requirements.
+    ret = run_pipx_cli(["run", script.as_uri()])
+    assert ret == 1
+
+    # TODO: Not entirely sure this is the best way to test
+    assert "numpy" in caplog.text
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_invalid_requirement(
+    capsys, pipx_temp_env, tmp_path
+):
+    script = tmp_path / "test.py"
+    script.write_text("\n".join([
+        "# Requirements:",
+        "#     num py",
+        "print(1234)",
+    ]))
+    # TODO: Fix when we implement requirements handling!
+    # For now, pipx run fails if there are requirements.
+    ret = run_pipx_cli(["run", script.as_uri()])
+    assert ret == 1
+
+    captured = capsys.readouterr()
+    assert "Invalid requirement num py" in captured.err

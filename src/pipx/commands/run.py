@@ -6,7 +6,9 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 from shutil import which
-from typing import List, NoReturn
+from typing import List, NoReturn, Optional
+
+from packaging.requirements import InvalidRequirement, Requirement
 
 from pipx import constants
 from pipx.commands.common import package_name_from_spec
@@ -59,7 +61,15 @@ def run(
         logger.info("Detected url. Downloading and executing as a Python file.")
 
         content = _http_get_request(app)
-        exec_app([str(python), "-c", content])
+        requirements = _get_requirements_from_script(content)
+        if requirements is None:
+            exec_app([str(python), "-c", content])
+        else:
+            logger.warning(
+                "Requirements identified:\n    " +
+                "\n    ".join(requirements)
+            )
+            raise PipxError("Not implemented yet")
 
     elif which(app):
         logger.warning(
@@ -230,3 +240,42 @@ def _http_get_request(url: str) -> str:
     except Exception as e:
         logger.debug("Uncaught Exception:", exc_info=True)
         raise PipxError(str(e))
+
+
+def _get_requirements_from_script(content: str) -> Optional[list[Requirement]]:
+
+    # An iterator over the lines in the script. We will
+    # read through this in sections, so it needs to be an
+    # iterator, not just a list.
+    lines = iter(content.splitlines())
+
+    for line in lines:
+        if not line.startswith("#"):
+            continue
+        line = line[1:].strip()
+        if line == "Requirements:":
+            break
+    else:
+        # No "Requirements:" line in the file
+        return None
+    
+    # We are now at the first requirement
+    requirements = []
+    for line in lines:
+        # Stop at the end of the comment block
+        if not line.startswith("#"):
+            break
+        line = line[1:].strip()
+        # Stop at a blank comment line
+        if not line:
+            break
+
+        # Validate the requirement
+        try:
+            Requirement(line)
+        except InvalidRequirement as e:
+            raise PipxError(f"Invalid requirement {line}: {str(e)}")
+
+        requirements.append(line)
+
+    return requirements
