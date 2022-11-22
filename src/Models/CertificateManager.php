@@ -16,6 +16,7 @@ class CertificateManager extends ClusterModel implements Model
     private ?int $certificateId = null;
     private ?int $id = null;
     private ?int $clusterId = null;
+    private ?string $lastRequestTaskCollectionUuid = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
 
@@ -27,6 +28,18 @@ class CertificateManager extends ClusterModel implements Model
     public function setMainCommonName(?string $mainCommonName): self
     {
         $this->mainCommonName = $mainCommonName;
+
+        return $this;
+    }
+
+    public function getLastRequestTaskCollectionUuid(): ?string
+    {
+        return $this->lastRequestTaskCollectionUuid;
+    }
+
+    public function setLastRequestTaskCollectionUuid(?string $lastRequestTaskCollectionUuid): self
+    {
+        $this->lastRequestTaskCollectionUuid = $lastRequestTaskCollectionUuid;
 
         return $this;
     }
@@ -139,6 +152,7 @@ class CertificateManager extends ClusterModel implements Model
     {
         return $this
             ->setMainCommonName(Arr::get($data, 'main_common_name', ''))
+            ->setLastRequestTaskCollectionUuid(Arr::get($data, 'last_request_task_collection_uuid'))
             ->setCommonNames(Arr::get($data, 'common_names', []))
             ->setProviderName(Arr::get($data, 'provider_name'))
             ->setRequestCallbackUrl(Arr::get($data, 'request_callback_url'))
@@ -153,6 +167,7 @@ class CertificateManager extends ClusterModel implements Model
     {
         return [
             'main_common_name' => $this->getMainCommonName(),
+            'last_request_task_collection_uuid' => $this->getLastRequestTaskCollectionUuid(),
             'common_names' => $this->getCommonNames(),
             'provider_name' => $this->getProviderName(),
             'request_callback_url' => $this->getRequestCallbackUrl(),
