@@ -69,6 +69,9 @@ def run(
                 "Requirements identified:\n    " +
                 "\n    ".join(requirements)
             )
+            venv_dir = _get_temporary_venv_path(requirements, python, pip_args, venv_args)
+            venv = Venv(venv_dir)
+            _prepare_venv_cache(venv, None, use_cache)
             raise PipxError("Not implemented yet")
 
     elif which(app):
@@ -217,9 +220,9 @@ def _is_temporary_venv_expired(venv_dir: Path) -> bool:
     return age > expiration_threshold_sec or (venv_dir / VENV_EXPIRED_FILENAME).exists()
 
 
-def _prepare_venv_cache(venv: Venv, bin_path: Path, use_cache: bool) -> None:
+def _prepare_venv_cache(venv: Venv, bin_path: Optional[Path], use_cache: bool) -> None:
     venv_dir = venv.root
-    if not use_cache and bin_path.exists():
+    if not use_cache and (bin_path is None or bin_path.exists()):
         logger.info(f"Removing cached venv {str(venv_dir)}")
         rmdir(venv_dir)
     _remove_all_expired_venvs()
