@@ -242,7 +242,7 @@ def _http_get_request(url: str) -> str:
         raise PipxError(str(e))
 
 
-def _get_requirements_from_script(content: str) -> Optional[list[Requirement]]:
+def _get_requirements_from_script(content: str) -> Optional[List[Requirement]]:
 
     # An iterator over the lines in the script. We will
     # read through this in sections, so it needs to be an
@@ -272,10 +272,12 @@ def _get_requirements_from_script(content: str) -> Optional[list[Requirement]]:
 
         # Validate the requirement
         try:
-            Requirement(line)
+            req = Requirement(line)
         except InvalidRequirement as e:
             raise PipxError(f"Invalid requirement {line}: {str(e)}")
 
-        requirements.append(line)
+        # Use the normalised form of the requirement,
+        # not the original line.
+        requirements.append(str(req))
 
     return requirements
