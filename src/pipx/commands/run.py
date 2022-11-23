@@ -72,7 +72,34 @@ def run(
             venv_dir = _get_temporary_venv_path(requirements, python, pip_args, venv_args)
             venv = Venv(venv_dir)
             _prepare_venv_cache(venv, None, use_cache)
-            raise PipxError("Not implemented yet")
+            if venv_dir.exists():
+                logger.info(f"Reusing cached venv {venv_dir}")
+            else:
+                venv = Venv(venv_dir, python=python, verbose=verbose)
+                venv.create_venv(venv_args, pip_args)
+                # TODO: Looks like we have a significant issue here.
+                # We're getting an exception in src\pipx\pipx_metadata_file.py
+                # "PipxMetadata is corrupt". This is because we have no "main
+                # package" for this use case.
+                # I need to investigate why a main package is required, and
+                # determine what to do about this case...
+                main_package = True
+                for r in requirements:
+                    # This seems over-complicated for this case.
+                    # TODO: Simplify
+                    package_name = package_name_from_spec(
+                        r, python, pip_args=pip_args, verbose=verbose
+                    )
+                    venv.install_package(
+                        package_name,
+                        r,
+                        pip_args,
+                        include_dependencies=True,
+                        include_apps=main_package,
+                        is_main_package=main_package
+                    )
+                    main_package = False
+            exec_app([venv.python_path, "-c", content])
 
     elif which(app):
         logger.warning(
