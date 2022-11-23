@@ -103,7 +103,7 @@ def run(
             """
         )
 
-    venv_dir = _get_temporary_venv_path(package_or_url, python, pip_args, venv_args)
+    venv_dir = _get_temporary_venv_path([package_or_url], python, pip_args, venv_args)
 
     venv = Venv(venv_dir)
     bin_path = venv.bin_path / app_filename
@@ -193,7 +193,7 @@ def _download_and_run(
 
 
 def _get_temporary_venv_path(
-    package_or_url: str, python: str, pip_args: List[str], venv_args: List[str]
+    requirements: List[str], python: str, pip_args: List[str], venv_args: List[str]
 ) -> Path:
     """Computes deterministic path using hashing function on arguments relevant
     to virtual environment's end state. Arguments used should result in idempotent
@@ -201,7 +201,7 @@ def _get_temporary_venv_path(
     passed to venv creation are.)
     """
     m = hashlib.sha256()
-    m.update(package_or_url.encode())
+    m.update("".join(requirements).encode())
     m.update(python.encode())
     m.update("".join(pip_args).encode())
     m.update("".join(venv_args).encode())
