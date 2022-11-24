@@ -66,10 +66,11 @@ def run(
             exec_app([str(python), "-c", content])
         else:
             logger.warning(
-                "Requirements identified:\n    " +
-                "\n    ".join(requirements)
+                "Requirements identified:\n    " + "\n    ".join(requirements)
             )
-            venv_dir = _get_temporary_venv_path(requirements, python, pip_args, venv_args)
+            venv_dir = _get_temporary_venv_path(
+                requirements, python, pip_args, venv_args
+            )
             venv = Venv(venv_dir)
             _prepare_venv_cache(venv, None, use_cache)
             if venv_dir.exists():
@@ -96,7 +97,7 @@ def run(
                         pip_args,
                         include_dependencies=True,
                         include_apps=main_package,
-                        is_main_package=main_package
+                        is_main_package=main_package,
                     )
                     main_package = False
             exec_app([venv.python_path, "-c", content])
@@ -288,7 +289,7 @@ def _get_requirements_from_script(content: str) -> Optional[List[Requirement]]:
     else:
         # No "Requirements:" line in the file
         return None
-    
+
     # We are now at the first requirement
     requirements = []
     for line in lines:
