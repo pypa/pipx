@@ -273,7 +273,7 @@ def _http_get_request(url: str) -> str:
         raise PipxError(str(e))
 
 
-def _get_requirements_from_script(content: str) -> Optional[List[Requirement]]:
+def _get_requirements_from_script(content: str) -> Optional[List[str]]:
 
     # An iterator over the lines in the script. We will
     # read through this in sections, so it needs to be an
