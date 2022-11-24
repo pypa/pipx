@@ -10,7 +10,7 @@ for detailed information.
 
 ### Fixed
 
-- Change `raw_message` to be nullable on the `AccessLog` and `ErrorLog` models, as those are turned of by default and 
+- Change `raw_message` to be nullable on the `AccessLog` and `ErrorLog` models, as those are turned off by default and 
   will return `null` in that case.
 
 ## [1.82.0]
