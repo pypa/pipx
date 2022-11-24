@@ -2,6 +2,7 @@ import logging
 import os
 import subprocess
 import sys
+import textwrap
 from unittest import mock
 
 import pytest  # type: ignore
@@ -186,34 +187,58 @@ def test_package_determination(
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_without_requirements(caplog, pipx_temp_env, tmp_path):
     script = tmp_path / "test.py"
-    script.write_text("\n".join(["print(1234)"]))
+    out = tmp_path / "output.txt"
+    test_str = "Hello, world!"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+                from pathlib import Path
+                Path({repr(str(out))}).write_text({repr(test_str)})
+            """
+        ).strip()
+    )
     run_pipx_cli_exit(["run", script.as_uri()])
-    # TODO: Not entirely sure this is the best way to test
-    assert "exec_app" in caplog.text
-    assert "1234" in caplog.text
+    assert out.read_text() == test_str
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
     script = tmp_path / "test.py"
-    script.write_text("\n".join(["# Requirements:", "#     numpy", "print(1234)"]))
-    # TODO: Fix when we implement requirements handling!
-    # For now, pipx run fails if there are requirements.
-    ret = run_pipx_cli(["run", script.as_uri()])
-    assert ret == 1
+    out = tmp_path / "output.txt"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+                # Requirements:
+                # requests==2.28.1
 
-    # TODO: Not entirely sure this is the best way to test
-    assert "numpy" in caplog.text
+                # Check requests can be imported
+                import requests
+                # Check dependencies of requests can be imported
+                import certifi
+                # Check the installed version
+                from pathlib import Path
+                Path({repr(str(out))}).write_text(requests.__version__)
+            """
+        ).strip()
+    )
+    run_pipx_cli_exit(["run", script.as_uri()])
+    assert out.read_text() == "2.28.1"
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_invalid_requirement(capsys, pipx_temp_env, tmp_path):
     script = tmp_path / "test.py"
-    script.write_text("\n".join(["# Requirements:", "#     num py", "print(1234)"]))
-    # TODO: Fix when we implement requirements handling!
-    # For now, pipx run fails if there are requirements.
+    script.write_text(
+        textwrap.dedent(
+            """
+                # Requirements:
+                # this is an invalid requirement
+                print()
+            """
+        ).strip()
+    )
     ret = run_pipx_cli(["run", script.as_uri()])
     assert ret == 1
 
     captured = capsys.readouterr()
-    assert "Invalid requirement num py" in captured.err
+    assert "Invalid requirement this is an invalid requirement" in captured.err
