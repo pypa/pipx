@@ -41,6 +41,25 @@ pipx run --spec https://github.com/psf/black/archive/18.9b0.zip black --help
 pipx run https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
 ```
 
+You can also run scripts that have dependencies:
+
+If you have a script `test.py` that needs a 3rd party library like requests:
+
+```
+# test.py
+
+# Requirements:
+# requests
+
+import requests
+pipx_data = requests.get("https://pypi.org/pypi/pipx/json").json()
+print(pipx_data["info"]["version"])
+
+```
+> pipx run file:test.py
+1.1.0
+```
+
 ## `pipx inject` example
 
 One use of the inject command is setting up a REPL with some useful extra packages.
