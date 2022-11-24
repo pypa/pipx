@@ -65,6 +65,13 @@ def run(
         if requirements is None:
             exec_app([str(python), "-c", content])
         else:
+            # Note that the environment name is based on the identified
+            # requirements, and *not* on the script name. This is deliberate, as
+            # it ensures that two scripts with the same requirements can use the
+            # same environment, which means fewer environments need to be
+            # managed. The requirements are normalised (in
+            # _get_requirements_from_script), so that irrelevant differences in
+            # whitespace, and similar, don't prevent environment sharing.
             venv_dir = _get_temporary_venv_path(
                 requirements, python, pip_args, venv_args
             )
