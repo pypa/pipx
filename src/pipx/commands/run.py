@@ -65,9 +65,6 @@ def run(
         if requirements is None:
             exec_app([str(python), "-c", content])
         else:
-            logger.warning(
-                "Requirements identified:\n    " + "\n    ".join(requirements)
-            )
             venv_dir = _get_temporary_venv_path(
                 requirements, python, pip_args, venv_args
             )
