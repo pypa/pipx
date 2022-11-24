@@ -9,7 +9,7 @@ use Cyberfusion\ClusterApi\Support\Validator;
 class ErrorLog extends ClusterModel implements Model
 {
     private string $remoteAddress;
-    private string $rawMessage;
+    private ?string $rawMessage;
     private string $method;
     private string $uri;
     private string $timestamp;
@@ -27,15 +27,16 @@ class ErrorLog extends ClusterModel implements Model
         return $this;
     }
 
-    public function getRawMessage(): string
+    public function getRawMessage(): ?string
     {
         return $this->rawMessage;
     }
 
-    public function setRawMessage(string $rawMessage): self
+    public function setRawMessage(?string $rawMessage): self
     {
         Validator::value($rawMessage)
             ->maxLength(65535)
+            ->nullable()
             ->validate();
 
         $this->rawMessage = $rawMessage;
