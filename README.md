@@ -67,6 +67,15 @@ pipx ensurepath
 This will add both the above mentioned path and the `%USERPROFILE%\.local\bin` folder to your search path.
 Restart your terminal session and verify `pipx` does run.
 
+### Via zipapp
+
+You can also use pipx without installing it.
+The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a Python 3.7+ interpreter:
+
+```
+python pipx.pyz ensurepath
+```
+
 Upgrade pipx with `python3 -m pip install --user -U pipx`.
 
 ### Shell completions
