@@ -60,7 +60,7 @@ def test_upgrade_specifier(pipx_temp_env, capsys):
 
 def test_upgrade_include_injected(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
-    assert not run_pipx_cli(["inject", "pylint", "black==18.9.b0"])
+    assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])
     captured = capsys.readouterr()
     assert not run_pipx_cli(["upgrade", "--include-injected", "pylint"])
     captured = capsys.readouterr()
@@ -70,7 +70,7 @@ def test_upgrade_include_injected(pipx_temp_env, capsys):
 
 def test_upgrade_no_include_injected(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
-    assert not run_pipx_cli(["inject", "pylint", "black==18.9.b0"])
+    assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])
     captured = capsys.readouterr()
     assert not run_pipx_cli(["upgrade", "pylint"])
     captured = capsys.readouterr()

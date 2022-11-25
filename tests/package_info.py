@@ -122,8 +122,8 @@ PKG: Dict[str, Dict[str, Any]] = {
         ),
     },
     "black": {
-        "spec": "black==20.8b1",
-        "apps": _exe_if_win(["black", "black-primer", "blackd"]),
+        "spec": "black==22.8.0",
+        "apps": _exe_if_win(["black", "blackd"]),
         "apps_of_dependencies": [],
     },
     "cactus": {
