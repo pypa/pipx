@@ -2,8 +2,8 @@
 - Add `pipx uninject` command (#820)
 - [docs] Fix `pipx run` examples and update Python versions used by `pipx install` examples
 - [docs] Add an example for installation from source with extras
-
 - Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
+- Improve the detection logic for MSYS2 to avoid entering infinite loop (#908)
 
 ## 1.1.0
 
