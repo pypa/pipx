@@ -21,8 +21,8 @@ autocommand==2.2.2
 awscli==1.18.168
 backcall==0.2.0
 beautifulsoup4==4.11.1
-black==18.9b0
-black==20.8b1
+black==22.8.0
+black==22.10.0
 bleach==5.0.1
 boto3==1.26.16
 botocore==1.19.8
