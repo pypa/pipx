@@ -19,7 +19,7 @@ class MailHostname extends ClusterModel implements Model
         return $this->domain;
     }
 
-    public function setDomain(string $domain): MailHostname
+    public function setDomain(string $domain): self
     {
         $this->domain = $domain;
         return $this;
@@ -30,7 +30,7 @@ class MailHostname extends ClusterModel implements Model
         return $this->clusterId;
     }
 
-    public function setClusterId(int $clusterId): MailHostname
+    public function setClusterId(int $clusterId): self
     {
         $this->clusterId = $clusterId;
         return $this;
@@ -41,18 +41,18 @@ class MailHostname extends ClusterModel implements Model
         return $this->certificateId;
     }
 
-    public function setCertificateId(?int $certificateId): MailHostname
+    public function setCertificateId(?int $certificateId): self
     {
         $this->certificateId = $certificateId;
         return $this;
     }
-    
+
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function setId(?int $id): MailHostname
+    public function setId(?int $id): self
     {
         $this->id = $id;
         return $this;
@@ -63,7 +63,7 @@ class MailHostname extends ClusterModel implements Model
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?string $createdAt): MailHostname
+    public function setCreatedAt(?string $createdAt): self
     {
         $this->createdAt = $createdAt;
         return $this;
@@ -74,7 +74,7 @@ class MailHostname extends ClusterModel implements Model
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?string $updatedAt): MailHostname
+    public function setUpdatedAt(?string $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
         return $this;
