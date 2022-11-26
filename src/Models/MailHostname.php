@@ -46,10 +46,7 @@ class MailHostname extends ClusterModel implements Model
         $this->certificateId = $certificateId;
         return $this;
     }
-
-    /**
-     * @return int|null
-     */
+    
     public function getId(): ?int
     {
         return $this->id;
