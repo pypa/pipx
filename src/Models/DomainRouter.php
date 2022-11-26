@@ -12,6 +12,7 @@ class DomainRouter extends ClusterModel implements Model
     private ?int $virtualHostId = null;
     private ?int $urlRedirectId = null;
     private ?int $nodeId = null;
+    private ?int $certificateId = null;
     private int $id;
     private int $clusterId;
     private ?string $createdAt = null;
@@ -77,6 +78,18 @@ class DomainRouter extends ClusterModel implements Model
         return $this;
     }
 
+    public function getCertificateId(): ?int
+    {
+        return $this->certificateId;
+    }
+
+    public function setCertificateId(?int $certificateId): self
+    {
+        $this->certificateId = $certificateId;
+
+        return $this;
+    }
+
     public function getId(): int
     {
         return $this->id;
@@ -133,6 +146,7 @@ class DomainRouter extends ClusterModel implements Model
             ->setVirtualHostId(Arr::get($data, 'virtual_host_id'))
             ->setUrlRedirectId(Arr::get($data, 'url_redirect_id'))
             ->setNodeId(Arr::get($data, 'node_id'))
+            ->setCertificateId(Arr::get($data, 'certificate_id'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -147,6 +161,7 @@ class DomainRouter extends ClusterModel implements Model
             'virtual_host_id' => $this->getVirtualHostId(),
             'url_redirect_id' => $this->getUrlRedirectId(),
             'node_id' => $this->getNodeId(),
+            'certificate_id' => $this->getCertificateId(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),

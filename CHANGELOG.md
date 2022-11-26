@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
 for detailed information.
 
+## [1.83.0]
+
+### Added
+
+- Add `certificate_id` to Domain Routers.
+- Add `MailHostnames` endpoints.
+
 ## [1.82.1]
 
 ### Fixed

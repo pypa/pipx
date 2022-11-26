@@ -67,6 +67,7 @@ class DomainRouters extends Endpoint
                 'virtual_host_id',
                 'url_redirect_id',
                 'node_id',
+                'certificate_id',
                 'force_ssl',
                 'id',
                 'cluster_id',
