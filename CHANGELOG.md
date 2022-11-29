@@ -5,7 +5,6 @@
 - Ship a [zipapp](https://docs.python.org/3/library/zipapp.html) of pipx
 
 - Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
-- Add hatch entry point config description to README
 
 ## 1.1.0
 
