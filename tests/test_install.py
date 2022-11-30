@@ -125,7 +125,7 @@ def test_include_deps(pipx_temp_env, capsys):
 @pytest.mark.parametrize(
     "package_name, package_spec",
     [
-        ("jaraco-financial", "jaraco.financial==2.0.0"),
+        ("jaraco-net", PKG["jaraco-net"]["spec"]),
         ("tox-ini-fmt", PKG["tox-ini-fmt"]["spec"]),
     ],
 )

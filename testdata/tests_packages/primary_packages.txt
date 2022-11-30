@@ -13,7 +13,7 @@ cloudtoken==0.1.707
 ipython==7.16.1
 isort==5.6.4
 jaraco-clipboard==2.0.1
-jaraco-financial==2.0.0
+jaraco-net==7.1.0
 jupyter==1.0.0
 kaggle==1.5.12
 nox==2020.8.22

@@ -57,7 +57,7 @@ PACKAGE_NAME_LIST = [
     "hyde",
     "ipython",
     "isort",
-    "jaraco-financial",
+    "jaraco-net",
     "kaggle",
     "kibitzr",
     "klaus",
