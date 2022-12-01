@@ -178,30 +178,36 @@ class VirtualHosts extends Endpoint
 
     /**
      * @param int $id
+     * @param string|null $callbackUrl
      * @return Response
      * @throws RequestException
      */
-    public function delete(int $id): Response
+    public function delete(int $id, string $callbackUrl = null): Response
     {
-        // Log the affected cluster by retrieving the model first
-        $result = $this->get($id);
-        if ($result->isSuccess()) {
-            $clusterId = $result
-                ->getData('virtualHost')
-                ->getClusterId();
-
-            $this
-                ->client
-                ->addAffectedCluster($clusterId);
-        }
+        $url = Str::optionalQueryParameters(
+            sprintf(
+                'virtual-hosts/%d',
+                $id,
+            ),
+            ['callback_url' => $callbackUrl]
+        );
 
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
-            ->setUrl(sprintf('virtual-hosts/%d', $id));
+            ->setUrl($url);
 
-        return $this
+        $response = $this
             ->client
             ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $taskCollection = (new TaskCollection())->fromArray($response->getData());
+
+        return $response->setData([
+            'taskCollection' => $taskCollection,
+        ]);
     }
 
     /**
