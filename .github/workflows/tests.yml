@@ -110,7 +110,7 @@ jobs:
       run: |
         nox --error-on-missing-interpreters --non-interactive --session build
     - name: Publish to PyPi
-      uses: pypa/gh-action-pypi-publish@v1.5.0
+      uses: pypa/gh-action-pypi-publish@v1.5.2
       with:
         user: __token__
         password: ${{ secrets.pypi_password }}
