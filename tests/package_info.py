@@ -122,8 +122,8 @@ PKG: Dict[str, Dict[str, Any]] = {
         ),
     },
     "black": {
-        "spec": "black==20.8b1",
-        "apps": _exe_if_win(["black", "black-primer", "blackd"]),
+        "spec": "black==22.8.0",
+        "apps": _exe_if_win(["black", "blackd"]),
         "apps_of_dependencies": [],
     },
     "cactus": {
@@ -296,18 +296,44 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps": _exe_if_win(["isort"]),
         "apps_of_dependencies": [],
     },
-    "jaraco-financial": {
-        "spec": "jaraco.financial==2.0",
+    "zest-releaser": {
+        "spec": "zest.releaser==7.1.0",
         "apps": _exe_if_win(
             [
-                "clean-msmoney-temp",
-                "fix-qif-date-format",
-                "launch-in-money",
-                "ofx",
-                "record-document-hashes",
+                "addchangelogentry",
+                "bumpversion",
+                "fullrelease",
+                "lasttagdiff",
+                "lasttaglog",
+                "longtest",
+                "postrelease",
+                "prerelease",
+                "release",
             ]
         ),
-        "apps_of_dependencies": _exe_if_win(["keyring", "chardetect", "calc-prorate"]),
+        "apps_of_dependencies": _exe_if_win(
+            [
+                "normalizer",
+                "twine",
+                "pkginfo",
+                "docutils",
+                "rst2html.py",
+                "rst2html4.py",
+                "rst2html5.py",
+                "rst2latex.py",
+                "rst2man.py",
+                "rst2odt.py",
+                "rst2odt_prepstyles.py",
+                "rst2pseudoxml.py",
+                "rst2s5.py",
+                "rst2xetex.py",
+                "rst2xml.py",
+                "rstpep2html.py",
+                "pygmentize",
+                "keyring",
+                "cmark",
+            ]
+        ),
     },
     "jupyter": {
         "spec": "jupyter==1.0.0",

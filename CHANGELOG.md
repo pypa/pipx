@@ -3,6 +3,7 @@
 - Support including requirements in scripts run using `pipx run` (#916)
 - [docs] Fix `pipx run` examples and update Python versions used by `pipx install` examples
 - [docs] Add an example for installation from source with extras
+- Ship a [zipapp](https://docs.python.org/3/library/zipapp.html) of pipx
 
 - Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
 

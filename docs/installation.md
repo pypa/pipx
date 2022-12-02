@@ -29,6 +29,15 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ```
 
+Or via zipapp:
+
+You can also use pipx without installing it.
+The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a Python 3.7+ interpreter:
+
+```
+python pipx.pyz ensurepath
+```
+
 ### Installation Options
 
 The default binary location for pipx-installed apps is `~/.local/bin`. This can be overridden with the environment variable `PIPX_BIN_DIR`.
