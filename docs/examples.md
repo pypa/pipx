@@ -51,15 +51,17 @@ If you have a script `test.py` that needs a 3rd party library like requests:
 # Requirements:
 # requests
 
+import sys
 import requests
-pipx_data = requests.get("https://pypi.org/pypi/pipx/json").json()
+project = sys.argv[1]
+pipx_data = requests.get(f"https://pypi.org/pypi/{project}/json").json()
 print(pipx_data["info"]["version"])
 ```
 
 Then you can run it as follows:
 
 ```
-> pipx run file:test.py
+> pipx run file:test.py pipx
 1.1.0
 ```
 

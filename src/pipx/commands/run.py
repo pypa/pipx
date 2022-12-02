@@ -63,7 +63,7 @@ def run(
         content = _http_get_request(app)
         requirements = _get_requirements_from_script(content)
         if requirements is None:
-            exec_app([str(python), "-c", content])
+            exec_app([str(python), "-c", content, *app_args])
         else:
             # Note that the environment name is based on the identified
             # requirements, and *not* on the script name. This is deliberate, as
@@ -83,7 +83,7 @@ def run(
                 venv = Venv(venv_dir, python=python, verbose=verbose)
                 venv.create_venv(venv_args, pip_args)
                 venv.install_unmanaged_packages(requirements, pip_args)
-            exec_app([venv.python_path, "-c", content])
+            exec_app([venv.python_path, "-c", content, *app_args])
 
     elif which(app):
         logger.warning(

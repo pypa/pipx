@@ -226,6 +226,44 @@ def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_args(caplog, pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    out = tmp_path / "output.txt"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+                import sys
+                from pathlib import Path
+                Path({repr(str(out))}).write_text(str(int(sys.argv[1]) + 1))
+            """
+        ).strip()
+    )
+    run_pipx_cli_exit(["run", script.as_uri(), "1"])
+    assert out.read_text() == "2"
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_requirements_and_args(caplog, pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    out = tmp_path / "output.txt"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+                # Requirements:
+                # packaging
+
+                import packaging
+                import sys
+                from pathlib import Path
+                Path({repr(str(out))}).write_text(str(int(sys.argv[1]) + 1))
+            """
+        ).strip()
+    )
+    run_pipx_cli_exit(["run", script.as_uri(), "1"])
+    assert out.read_text() == "2"
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_invalid_requirement(capsys, pipx_temp_env, tmp_path):
     script = tmp_path / "test.py"
     script.write_text(
