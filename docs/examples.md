@@ -54,6 +54,9 @@ If you have a script `test.py` that needs a 3rd party library like requests:
 import requests
 pipx_data = requests.get("https://pypi.org/pypi/pipx/json").json()
 print(pipx_data["info"]["version"])
+```
+
+Then you can run it as follows:
 
 ```
 > pipx run file:test.py
