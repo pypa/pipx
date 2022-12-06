@@ -35,21 +35,18 @@ Available executable scripts:
     {app_lines}"""
 
 
-def run(
-    app: str,
-    package_or_url: str,
-    app_args: List[str],
-    python: str,
-    pip_args: List[str],
-    venv_args: List[str],
-    pypackages: bool,
-    verbose: bool,
-    use_cache: bool,
-) -> NoReturn:
-    """Installs venv to temporary dir (or reuses cache), then runs app from
-    package
-    """
+def maybe_script_content(app: str, is_path: bool) -> Optional[str]:
+    # If the app is a script, return its content.
+    # Return None if it should be treated as a package name.
 
+    # Look for a local file first.
+    app_path = Path(app)
+    if app_path.exists():
+        return app_path.read_text(encoding="utf-8")
+    elif is_path:
+        raise PipxError(f"The specified path {app} does not exist")
+
+    # Check for a URL
     if urllib.parse.urlparse(app).scheme:
         if not app.endswith(".py"):
             raise PipxError(
@@ -60,32 +57,57 @@ def run(
             )
         logger.info("Detected url. Downloading and executing as a Python file.")
 
-        content = _http_get_request(app)
-        requirements = _get_requirements_from_script(content)
-        if requirements is None:
-            exec_app([str(python), "-c", content, *app_args])
-        else:
-            # Note that the environment name is based on the identified
-            # requirements, and *not* on the script name. This is deliberate, as
-            # it ensures that two scripts with the same requirements can use the
-            # same environment, which means fewer environments need to be
-            # managed. The requirements are normalised (in
-            # _get_requirements_from_script), so that irrelevant differences in
-            # whitespace, and similar, don't prevent environment sharing.
-            venv_dir = _get_temporary_venv_path(
-                requirements, python, pip_args, venv_args
-            )
-            venv = Venv(venv_dir)
-            _prepare_venv_cache(venv, None, use_cache)
-            if venv_dir.exists():
-                logger.info(f"Reusing cached venv {venv_dir}")
-            else:
-                venv = Venv(venv_dir, python=python, verbose=verbose)
-                venv.create_venv(venv_args, pip_args)
-                venv.install_unmanaged_packages(requirements, pip_args)
-            exec_app([venv.python_path, "-c", content, *app_args])
+        return _http_get_request(app)
 
-    elif which(app):
+    # Otherwise, it's a package
+    return None
+
+
+def run_script(
+    content: str,
+    app_args: List[str],
+    python: str,
+    pip_args: List[str],
+    venv_args: List[str],
+    verbose: bool,
+    use_cache: bool,
+) -> NoReturn:
+    requirements = _get_requirements_from_script(content)
+    if requirements is None:
+        exec_app([str(python), "-c", content, *app_args])
+    else:
+        # Note that the environment name is based on the identified
+        # requirements, and *not* on the script name. This is deliberate, as
+        # it ensures that two scripts with the same requirements can use the
+        # same environment, which means fewer environments need to be
+        # managed. The requirements are normalised (in
+        # _get_requirements_from_script), so that irrelevant differences in
+        # whitespace, and similar, don't prevent environment sharing.
+        venv_dir = _get_temporary_venv_path(requirements, python, pip_args, venv_args)
+        venv = Venv(venv_dir)
+        _prepare_venv_cache(venv, None, use_cache)
+        if venv_dir.exists():
+            logger.info(f"Reusing cached venv {venv_dir}")
+        else:
+            venv = Venv(venv_dir, python=python, verbose=verbose)
+            venv.create_venv(venv_args, pip_args)
+            venv.install_unmanaged_packages(requirements, pip_args)
+        exec_app([venv.python_path, "-c", content, *app_args])
+
+
+def run_package(
+    app: str,
+    package_or_url: str,
+    app_args: List[str],
+    python: str,
+    pip_args: List[str],
+    venv_args: List[str],
+    pypackages: bool,
+    verbose: bool,
+    use_cache: bool,
+) -> NoReturn:
+
+    if which(app):
         logger.warning(
             pipx_wrap(
                 f"""
@@ -139,6 +161,52 @@ def run(
             venv_args,
             use_cache,
             verbose,
+        )
+
+
+def run(
+    app: str,
+    spec: str,
+    is_path: bool,
+    app_args: List[str],
+    python: str,
+    pip_args: List[str],
+    venv_args: List[str],
+    pypackages: bool,
+    verbose: bool,
+    use_cache: bool,
+) -> NoReturn:
+    """Installs venv to temporary dir (or reuses cache), then runs app from
+    package
+    """
+
+    package_or_url = spec if spec is not None else app
+    # For any package, we need to just use the name
+    try:
+        package_name = Requirement(app).name
+    except InvalidRequirement:
+        # Raw URLs to scripts are supported, too, so continue if
+        # we can't parse this as a package
+        package_name = app
+
+    if spec is not None:
+        content = None
+    else:
+        content = maybe_script_content(app, is_path)
+
+    if content is not None:
+        run_script(content, app_args, python, pip_args, venv_args, verbose, use_cache)
+    else:
+        run_package(
+            package_name,
+            package_or_url,
+            app_args,
+            python,
+            pip_args,
+            venv_args,
+            pypackages,
+            verbose,
+            use_cache,
         )
 
 

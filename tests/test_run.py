@@ -280,3 +280,39 @@ def test_run_with_invalid_requirement(capsys, pipx_temp_env, tmp_path):
 
     captured = capsys.readouterr()
     assert "Invalid requirement this is an invalid requirement" in captured.err
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_script_by_absolute_name(caplog, pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    out = tmp_path / "output.txt"
+    test_str = "Hello, world!"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+                from pathlib import Path
+                Path({repr(str(out))}).write_text({repr(test_str)})
+            """
+        ).strip()
+    )
+    run_pipx_cli_exit(["run", "--path", str(script)])
+    assert out.read_text() == test_str
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_script_by_relative_name(caplog, pipx_temp_env, monkeypatch, tmp_path):
+    script = tmp_path / "test.py"
+    out = tmp_path / "output.txt"
+    test_str = "Hello, world!"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+                from pathlib import Path
+                Path({repr(str(out))}).write_text({repr(test_str)})
+            """
+        ).strip()
+    )
+    with monkeypatch.context() as m:
+        m.chdir(tmp_path)
+        run_pipx_cli_exit(["run", "test.py"])
+    assert out.read_text() == test_str
