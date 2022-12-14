@@ -3,6 +3,8 @@
 - [docs] Fix `pipx run` examples and update Python versions used by `pipx install` examples
 - [docs] Add an example for installation from source with extras
 - Match pip's behaviour when package name ends with archive extension (treat it as a path)
+- Ship a [zipapp](https://docs.python.org/3/library/zipapp.html) of pipx
+
 - Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
 
 ## 1.1.0
@@ -46,7 +48,7 @@
 ## 0.16.3
 
 - Organization: pipx is extremely pleased to now be a project of the Python Packaging Authority (PyPA)! Note that our github URL has changed to [pypa/pipx](https://github.com/pypa/pipx)
-- Fixed `pipx list --json` to return valid json with no venvs installed. Previously would return and empty string to stdout. (#681)
+- Fixed `pipx list --json` to return valid json with no venvs installed. Previously would return an empty string to stdout. (#681)
 - Changed `pipx ensurepath` bash behavior so that only one of {`~/.profile`, `~/.bash\_profile`} is modified with the extra pipx paths, not both. Previously, if a `.bash_profile` file was created where one didn't exist, it could cause problems, e.g. #456. The internal change is to use userpath v1.5.0 or greater. (#684)
 - Changed default nox tests, Github Workflow tests, and pytest behavior to use local pypi server with fixed lists of available packages. This allows greater test isolation (no network pypi access needed) and determinism (fixed available dependencies.) It also allows running the tests offline with some extra preparation beforehand (See [Running Unit Tests Offline](https://pypa.github.io/pipx/contributing/#running-unit-tests-offline)). The old style tests that use the internet to access pypi.org are still available using `nox -s tests_internet` or `pytest --net-pypiserver tests`. (#686)
 

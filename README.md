@@ -67,6 +67,15 @@ pipx ensurepath
 This will add both the above mentioned path and the `%USERPROFILE%\.local\bin` folder to your search path.
 Restart your terminal session and verify `pipx` does run.
 
+### Via zipapp
+
+You can also use pipx without installing it.
+The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a Python 3.7+ interpreter:
+
+```
+python pipx.pyz ensurepath
+```
+
 Upgrade pipx with `python3 -m pip install --user -U pipx`.
 
 ### Shell completions
@@ -99,7 +108,7 @@ Python and PyPI allow developers to distribute code with "console script entry p
 
 pipx is a tool to install and run any of these thousands of application-containing packages in a safe, convenient, and reliable way. **In a way, it turns Python Package Index (PyPI) into a big app store for Python applications.** Not all Python packages have entry points, but many do.
 
-If you would like to make your package compatible with pipx, all you need to do is add a [console scripts](https://python-packaging.readthedocs.io/en/latest/command-line-scripts.html#the-console-scripts-entry-point) entry point. If you're a poetry user, use [these instructions](https://python-poetry.org/docs/pyproject/#scripts).
+If you would like to make your package compatible with pipx, all you need to do is add a [console scripts](https://python-packaging.readthedocs.io/en/latest/command-line-scripts.html#the-console-scripts-entry-point) entry point. If you're a poetry user, use [these instructions](https://python-poetry.org/docs/pyproject/#scripts). Or you're using hatch, [try this](https://hatch.pypa.io/latest/config/metadata/#cli).
 
 ## Features
 
