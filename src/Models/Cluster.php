@@ -11,7 +11,6 @@ class Cluster extends ClusterModel implements Model
     private string $name = '';
     private array $groups = [];
     private ?string $unixUsersHomeDirectory = null;
-    private ?string $databasesDataDirectory = null;
     private array $phpVersions = [];
     private array $customPhpModulesNames = [];
     private ?bool $phpIoncubeEnabled = null;
@@ -70,23 +69,6 @@ class Cluster extends ClusterModel implements Model
             ->validate();
 
         $this->unixUsersHomeDirectory = $unixUsersHomeDirectory;
-
-        return $this;
-    }
-
-    public function getDatabasesDataDirectory(): ?string
-    {
-        return $this->databasesDataDirectory;
-    }
-
-    public function setDatabasesDataDirectory(?string $databasesDataDirectory): self
-    {
-        Validator::value($databasesDataDirectory)
-            ->nullable()
-            ->path()
-            ->validate();
-
-        $this->databasesDataDirectory = $databasesDataDirectory;
 
         return $this;
     }
@@ -294,7 +276,6 @@ class Cluster extends ClusterModel implements Model
             ->setName(Arr::get($data, 'name', ''))
             ->setGroups(Arr::get($data, 'groups', []))
             ->setUnixUsersHomeDirectory(Arr::get($data, 'unix_users_home_directory'))
-            ->setDatabasesDataDirectory(Arr::get($data, 'databases_data_directory'))
             ->setPhpVersions(Arr::get($data, 'php_versions', []))
             ->setCustomPhpModulesNames(Arr::get($data, 'custom_php_modules_names', []))
             ->setPhpIoncubeEnabled(Arr::get($data, 'php_ioncube_enabled'))
@@ -318,7 +299,6 @@ class Cluster extends ClusterModel implements Model
             'name' => $this->getName(),
             'groups' => $this->getGroups(),
             'unix_users_home_directory' => $this->getUnixUsersHomeDirectory(),
-            'databases_data_directory' => $this->getDatabasesDataDirectory(),
             'php_versions' => $this->getPhpVersions(),
             'custom_php_modules_names' => $this->getCustomPhpModulesNames(),
             'php_ioncube_enabled' => $this->isPhpIoncubeEnabled(),
