@@ -20,13 +20,7 @@ from pipx.util import PipxError, pipx_wrap
 
 logger = logging.getLogger(__name__)
 
-# Copied from https://github.com/pypa/pip/blob/main/src/pip/_internal/utils/filetypes.py
-WHEEL_EXTENSION = ".whl"
-BZ2_EXTENSIONS: Tuple[str, ...] = (".tar.bz2", ".tbz")
-XZ_EXTENSIONS: Tuple[str, ...] = (".tar.xz", ".txz", ".tlz", ".tar.lz", ".tar.lzma")
-ZIP_EXTENSIONS: Tuple[str, ...] = (".zip", WHEEL_EXTENSION)
-TAR_EXTENSIONS: Tuple[str, ...] = (".tar.gz", ".tgz", ".tar")
-ARCHIVE_EXTENSIONS = ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS + XZ_EXTENSIONS
+ARCHIVE_EXTENSIONS = (".whl", ".tar.gz", ".zip")
 
 
 class ParsedPackage(NamedTuple):
