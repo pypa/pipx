@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
 for detailed information.
 
+## [1.85.1]
+
+### Fixed
+
+- Allow the public key to be null in `getPublicKey` method.
+
 ## [1.85.0]
 
 ### Removed
