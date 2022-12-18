@@ -35,7 +35,7 @@ class SshKey extends ClusterModel implements Model
         return $this;
     }
 
-    public function getPublicKey(): string
+    public function getPublicKey(): ?string
     {
         return $this->publicKey;
     }
