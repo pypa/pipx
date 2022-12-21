@@ -7,6 +7,7 @@ use Cyberfusion\ClusterApi\Models\Cms;
 use Cyberfusion\ClusterApi\Models\CmsConfigurationConstant;
 use Cyberfusion\ClusterApi\Models\CmsInstallation;
 use Cyberfusion\ClusterApi\Models\CmsOption;
+use Cyberfusion\ClusterApi\Models\CmsUserCredentials;
 use Cyberfusion\ClusterApi\Models\TaskCollection;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
@@ -402,6 +403,54 @@ class Cmses extends Endpoint
             ->addAffectedCluster($cms->getClusterId());
 
         return $response->setData([
+            'cms' => $cms,
+        ]);
+    }
+
+    /**
+     * @param int $id
+     * @param int $userId
+     * @param CmsUserCredentials $cmsUserCredentials
+     * @return Response
+     * @throws RequestException
+     */
+    public function updateUserCredentials(int $id, int $userId, CmsUserCredentials $cmsUserCredentials): Response
+    {
+        $this->validateRequired($cmsUserCredentials, 'update', [
+            'password',
+        ]);
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_PATCH)
+            ->setUrl(sprintf('cmses/%d/users/%d/credentials', $id, $userId))
+            ->setBody($this->filterFields($cmsUserCredentials->toArray(), [
+                'password',
+            ]));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $cmsUserCredentials = (new CmsUserCredentials())->fromArray($response->getData());
+
+        // Retrieve the CMS again, so we log affected clusters and can return the CMS object
+        $retrieveResponse = $this->get($id);
+        if (!$retrieveResponse->isSuccess()) {
+            return $retrieveResponse;
+        }
+
+        $cms = $retrieveResponse->getData('cms');
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($cms->getClusterId());
+
+        return $response->setData([
+            'cmsUserCredentials' => $cmsUserCredentials,
             'cms' => $cms,
         ]);
     }
