@@ -409,6 +409,88 @@ class Cmses extends Endpoint
 
     /**
      * @param int $id
+     * @param string $name
+     * @param string|null $version
+     * @return Response
+     * @throws RequestException
+     */
+    public function installThemeFromRepository(int $id, string $name, string $version = null): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl(sprintf('cmses/%d/themes', $id))
+            ->setBody([
+                'name' => $name,
+                'version' => $version,
+            ]);
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        // Retrieve the CMS again, so we log affected clusters and can return the CMS object
+        $retrieveResponse = $this->get($id);
+        if (!$retrieveResponse->isSuccess()) {
+            return $retrieveResponse;
+        }
+
+        $cms = $retrieveResponse->getData('cms');
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($cms->getClusterId());
+
+        return $response->setData([
+            'cms' => $cms,
+        ]);
+    }
+
+    /**
+     * @param int $id
+     * @param string $url
+     * @return Response
+     * @throws RequestException
+     */
+    public function installThemeFromUrl(int $id, string $url): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl(sprintf('cmses/%d/themes', $id))
+            ->setBody([
+                'url' => $url,
+            ]);
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        // Retrieve the CMS again, so we log affected clusters and can return the CMS object
+        $retrieveResponse = $this->get($id);
+        if (!$retrieveResponse->isSuccess()) {
+            return $retrieveResponse;
+        }
+
+        $cms = $retrieveResponse->getData('cms');
+
+        // Log which cluster is affected by this change
+        $this
+            ->client
+            ->addAffectedCluster($cms->getClusterId());
+
+        return $response->setData([
+            'cms' => $cms,
+        ]);
+    }
+
+    /**
+     * @param int $id
      * @param int $userId
      * @param CmsUserCredentials $cmsUserCredentials
      * @return Response
