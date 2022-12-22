@@ -516,8 +516,6 @@ class Cmses extends Endpoint
             return $response;
         }
 
-        $cmsUserCredentials = (new CmsUserCredentials())->fromArray($response->getData());
-
         // Retrieve the CMS again, so we log affected clusters and can return the CMS object
         $retrieveResponse = $this->get($id);
         if (!$retrieveResponse->isSuccess()) {
@@ -532,7 +530,6 @@ class Cmses extends Endpoint
             ->addAffectedCluster($cms->getClusterId());
 
         return $response->setData([
-            'cmsUserCredentials' => $cmsUserCredentials,
             'cms' => $cms,
         ]);
     }
