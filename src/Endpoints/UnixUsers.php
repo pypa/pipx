@@ -174,10 +174,6 @@ class UnixUsers extends Endpoint
             'unix_id',
             'home_directory',
             'ssh_directory',
-            'rabbitmq_username',
-            'rabbitmq_virtual_host_name',
-            'rabbitmq_password',
-            'rabbitmq_encryption_key',
         ]);
 
         $request = (new Request())
