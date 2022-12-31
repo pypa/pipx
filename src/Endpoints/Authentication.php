@@ -21,7 +21,7 @@ class Authentication extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('login/access-token')
-            ->setBody($this->filterFields($login->toArray()))
+            ->setBody($login->toArray())
             ->setAuthenticationRequired(false)
             ->setBodySchema(Request::BODY_SCHEMA_FORM);
 
