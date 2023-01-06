@@ -63,6 +63,7 @@ class DatabaseUser extends ClusterModel implements Model
     public function setPassword(?string $password): self
     {
         Validator::value($password)
+            ->nullable()
             ->maxLength(255)
             ->pattern('^[ -~]+$')
             ->validate();
