@@ -175,6 +175,7 @@ class PassengerApp extends ClusterModel implements Model
     public function setNodejsVersion(?string $nodejsVersion): self
     {
         Validator::value($nodejsVersion)
+            ->nullable()
             ->pattern('^[0-9]{1,2}\.[0-9]{1,2}$')
             ->validate();
 

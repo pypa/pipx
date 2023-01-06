@@ -157,6 +157,7 @@ class BorgRepository extends ClusterModel implements Model
     public function setRemoteUsername(?string $remoteUsername): self
     {
         Validator::value($remoteUsername)
+            ->nullable()
             ->maxLength(32)
             ->pattern('^[a-z0-9-_]+$')
             ->validate();
