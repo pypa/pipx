@@ -380,7 +380,7 @@ def run_post_install_actions(
                 with '--include-deps' to include apps of dependent packages,
                 which are listed above. If you are attempting to install a
                 library, pipx should not be used. Consider using pip or a
-                similar tool instead."
+                similar tool instead.
                 """
             )
 
