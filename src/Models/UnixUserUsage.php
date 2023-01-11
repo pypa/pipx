@@ -10,7 +10,7 @@ class UnixUserUsage extends ClusterModel implements Model
 {
     private int $unixUserId;
     private int $usage;
-    private array $files = [];
+    private ?array $files = null;
     private string $timestamp;
 
     public function getUnixUserId(): int
@@ -37,14 +37,15 @@ class UnixUserUsage extends ClusterModel implements Model
         return $this;
     }
 
-    public function getFiles(): array
+    public function getFiles(): ?array
     {
         return $this->files;
     }
 
-    public function setFiles(array $files): self
+    public function setFiles(?array $files): self
     {
         Validator::value($files)
+            ->nullable()
             ->each()
             ->path()
             ->validate();
