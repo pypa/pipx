@@ -22,10 +22,6 @@ class UnixUser extends ClusterModel implements Model
     private string $shellPath = ShellPath::BASH;
     private bool $recordUsageFiles = false;
     private bool $asyncSupportEnabled = false;
-    private ?string $rabbitMqUsername = null;
-    private ?string $rabbitMqVirtualHostName = null;
-    private ?string $rabbitMqPassword = null;
-    private ?string $rabbitMqEncryptionKey = null;
     private int $clusterId;
     private ?int $id = null;
     private ?int $unixId = null;
@@ -239,78 +235,6 @@ class UnixUser extends ClusterModel implements Model
         return $this;
     }
 
-    public function getRabbitMqUsername(): ?string
-    {
-        return $this->rabbitMqUsername;
-    }
-
-    public function setRabbitMqUsername(?string $rabbitMqUsername): self
-    {
-        Validator::value($rabbitMqUsername)
-            ->nullable()
-            ->maxLength(32)
-            ->pattern('^[a-z0-9-.]+$')
-            ->validate();
-
-        $this->rabbitMqUsername = $rabbitMqUsername;
-
-        return $this;
-    }
-
-    public function getRabbitMqVirtualHostName(): ?string
-    {
-        return $this->rabbitMqVirtualHostName;
-    }
-
-    public function setRabbitMqVirtualHostName(?string $rabbitMqVirtualHostName): self
-    {
-        Validator::value($rabbitMqVirtualHostName)
-            ->nullable()
-            ->maxLength(32)
-            ->pattern('^[a-z0-9-.]+$')
-            ->validate();
-
-        $this->rabbitMqVirtualHostName = $rabbitMqVirtualHostName;
-
-        return $this;
-    }
-
-    public function getRabbitMqPassword(): ?string
-    {
-        return $this->rabbitMqPassword;
-    }
-
-    public function setRabbitMqPassword(?string $rabbitMqPassword): self
-    {
-        Validator::value($rabbitMqPassword)
-            ->nullable()
-            ->maxLength(255)
-            ->pattern('^[a-zA-Z0-9]+$')
-            ->validate();
-
-        $this->rabbitMqPassword = $rabbitMqPassword;
-
-        return $this;
-    }
-
-    public function getRabbitMqEncryptionKey(): ?string
-    {
-        return $this->rabbitMqEncryptionKey;
-    }
-
-    public function setRabbitMqEncryptionKey(?string $rabbitMqEncryptionKey): self
-    {
-        Validator::value($rabbitMqEncryptionKey)
-            ->nullable()
-            ->maxLength(255)
-            ->pattern('^[a-z\=\_\-A-Z0-9]+$')
-            ->validate();
-
-        $this->rabbitMqEncryptionKey = $rabbitMqEncryptionKey;
-
-        return $this;
-    }
-
     public function getClusterId(): int
     {
         return $this->clusterId;
@@ -387,10 +311,6 @@ class UnixUser extends ClusterModel implements Model
             ->setShellPath(Arr::get($data, 'shell_path', ShellPath::BASH))
             ->setRecordUsageFiles(Arr::get($data, 'record_usage_files', false))
             ->setAsyncSupportEnabled(Arr::get($data, 'async_support_enabled', false))
-            ->setRabbitMqUsername(Arr::get($data, 'rabbitmq_username'))
-            ->setRabbitMqVirtualHostName(Arr::get($data, 'rabbitmq_virtual_host_name'))
-            ->setRabbitMqPassword(Arr::get($data, 'rabbitmq_password'))
-            ->setRabbitMqEncryptionKey(Arr::get($data, 'rabbitmq_encryption_key'))
             ->setUnixId(Arr::get($data, 'unix_id'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
@@ -414,10 +334,6 @@ class UnixUser extends ClusterModel implements Model
             'shell_path' => $this->getShellPath(),
             'record_usage_files' => $this->getRecordUsageFiles(),
             'async_support_enabled' => $this->isAsyncSupportEnabled(),
-            'rabbitmq_username' => $this->getRabbitMqUsername(),
-            'rabbitmq_virtual_host_name' => $this->getRabbitMqVirtualHostName(),
-            'rabbitmq_password' => $this->getRabbitMqPassword(),
-            'rabbitmq_encryption_key' => $this->getRabbitMqEncryptionKey(),
             'cluster_id' => $this->getClusterId(),
             'id' => $this->getId(),
             'unix_id' => $this->getUnixId(),
