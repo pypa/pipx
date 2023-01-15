@@ -196,10 +196,6 @@ class UnixUsers extends Endpoint
                 'home_directory',
                 'ssh_directory',
                 'async_support_enabled',
-                'rabbitmq_username',
-                'rabbitmq_virtual_host_name',
-                'rabbitmq_password',
-                'rabbitmq_encryption_key',
             ]));
 
         $response = $this
