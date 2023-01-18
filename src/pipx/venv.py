@@ -279,12 +279,6 @@ class Venv:
     ) -> None:
         """Install packages in the venv, but do not record them in the metadata."""
 
-        # TODO: Do we need this?
-        # check syntax and clean up spec and pip_args
-        # (package_or_url, pip_args) = parse_specifier_for_install(
-        #    package_or_url, pip_args
-        # )
-
         # Note: We want to install everything at once, as that lets
         # pip resolve conflicts correctly.
         with animate(f"installing {', '.join(requirements)}", self.do_animation):
