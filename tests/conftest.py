@@ -1,4 +1,3 @@
-import ctypes
 import os
 import shutil
 import subprocess
@@ -142,8 +141,10 @@ def pipx_session_shared_dir(tmp_path_factory):
 def utils_temp_dir(tmp_path_factory):
     git_path = shutil.which("git.exe" if WIN else "git")
     tmp_path = tmp_path_factory.mktemp("session_utilstempdir")
-    try: 
-        Path(tmp_path / "git.exe" if WIN else "git").symlink_to(Path(git_path))
+    try:
+        Path(tmp_path / "git.exe" if WIN else tmp_path / "git").symlink_to(
+            Path(git_path)
+        )
     except FileExistsError:
         pass
     return tmp_path
