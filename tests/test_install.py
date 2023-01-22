@@ -71,11 +71,10 @@ def test_install_tricky_packages(
     install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
 
 
-# TODO: Add git+... spec when git is in binpath of tests (Issue #303)
 @pytest.mark.parametrize(
     "package_name, package_spec",
     [
-        # ("nox", "git+https://github.com/cs01/nox.git@5ea70723e9e6"),
+        ("pycowsay", "git+https://github.com/cs01/pycowsay.git@master"),
         ("pylint", PKG["pylint"]["spec"]),
         ("nox", "https://github.com/wntrblm/nox/archive/2022.1.7.zip"),
     ],
