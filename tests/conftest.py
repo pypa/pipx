@@ -1,3 +1,4 @@
+import ctypes
 import os
 import shutil
 import subprocess
@@ -142,7 +143,12 @@ def utils_temp_dir(tmp_path_factory):
     git_path = shutil.which("git")
     tmp_path = tmp_path_factory.mktemp("session_utilstempdir")
     try:
-        Path(tmp_path / "git").symlink_to(Path(git_path))
+        if WIN:
+            ctypes.windll.kernel32.CreateSymbolicLinkA(
+                os.path.join(tmp_path, "git"), git_path, 0
+            )
+        else:
+            Path(tmp_path / "git").symlink_to(Path(git_path))
     except FileExistsError:
         pass
     return tmp_path
