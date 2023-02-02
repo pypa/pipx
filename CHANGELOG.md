@@ -8,6 +8,7 @@
 - Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
 - Improve the detection logic for MSYS2 to avoid entering infinite loop (#908)
 - Remove extra trailing quote from exception message
+- Fix EncodingWarning in `pipx_metadata_file`.
 
 ## 1.1.0
 
