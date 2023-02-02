@@ -4,7 +4,7 @@
 - [docs] Add an example for installation from source with extras
 - Match pip's behaviour when package name ends with archive extension (treat it as a path)
 - Ship a [zipapp](https://docs.python.org/3/library/zipapp.html) of pipx
-
+- Add `--force-reinstall` to pip arguments when `--force` was passed
 - Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
 - Improve the detection logic for MSYS2 to avoid entering infinite loop (#908)
 - Remove extra trailing quote from exception message
