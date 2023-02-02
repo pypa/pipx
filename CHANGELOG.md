@@ -6,6 +6,7 @@
 - Ship a [zipapp](https://docs.python.org/3/library/zipapp.html) of pipx
 
 - Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
+- Improve the detection logic for MSYS2 to avoid entering infinite loop (#908)
 - Remove extra trailing quote from exception message
 
 ## 1.1.0
