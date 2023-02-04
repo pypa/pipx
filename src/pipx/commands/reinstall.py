@@ -44,6 +44,13 @@ def reinstall(
         package_or_url = venv.pipx_metadata.main_package.package_or_url
     else:
         package_or_url = venv.main_package_name
+    
+    try:
+        import pip
+    except ModuleNotFoundError as e:
+        raise PipxError(
+                f"Fatal error: {e}"
+            )
 
     uninstall(venv_dir, local_bin_dir, verbose)
 
