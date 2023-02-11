@@ -1,3 +1,4 @@
+import importlib.util
 import sys
 from pathlib import Path
 from typing import List, Sequence
@@ -12,6 +13,7 @@ from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_REINSTALL_INVALID_PYTHON,
     EXIT_CODE_REINSTALL_VENV_NONEXISTENT,
+    PIPX_SHARED_LIBS,
     ExitCode,
 )
 from pipx.emojis import error, sleep
@@ -44,6 +46,12 @@ def reinstall(
         package_or_url = venv.pipx_metadata.main_package.package_or_url
     else:
         package_or_url = venv.main_package_name
+
+    if importlib.util.find_spec("pip") is None:
+        raise PipxError(
+            f"Can not find pip. You may encounter issues uninstalling packages. "
+            f"Remove {PIPX_SHARED_LIBS} and run 'pipx reinstall-all' to fix them."
+        )
 
     uninstall(venv_dir, local_bin_dir, verbose)
 
