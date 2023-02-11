@@ -40,7 +40,7 @@ def is_windows() -> bool:
 
 
 def is_mingw() -> bool:
-    return sysconfig.get_platform() == "mingw"
+    return sysconfig.get_platform().startswith("mingw")
 
 
 WINDOWS: bool = is_windows()
