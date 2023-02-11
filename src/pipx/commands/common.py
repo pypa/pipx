@@ -62,7 +62,6 @@ _can_symlink_cache: Dict[Path, bool] = {}
 
 
 def can_symlink(local_bin_dir: Path) -> bool:
-
     if not WINDOWS:
         # Technically, even on Unix this depends on the filesystem
         return True
@@ -351,7 +350,11 @@ def run_post_install_actions(
 
     display_name = f"{package_name}{package_metadata.suffix}"
 
-    if not venv.main_package_name == package_name and venv.package_metadata[venv.main_package_name].suffix == package_metadata.suffix:
+    if (
+        not venv.main_package_name == package_name
+        and venv.package_metadata[venv.main_package_name].suffix
+        == package_metadata.suffix
+    ):
         package_name = display_name
 
     if not package_metadata.apps:
@@ -399,7 +402,7 @@ def run_post_install_actions(
             expose_apps_globally(
                 local_bin_dir, app_paths, force=force, suffix=package_metadata.suffix
             )
-                
+
     package_summary, _ = get_venv_summary(
         venv_dir, package_name=package_name, new_install=True
     )
