@@ -234,6 +234,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             include_apps=args.include_apps,
             include_dependencies=args.include_deps,
             force=args.force,
+            suffix=args.with_suffix,
         )
     elif args.command == "uninject":
         return commands.uninject(
@@ -390,6 +391,11 @@ def _add_inject(subparsers, venv_completer: VenvCompleter) -> None:
         help="Modify existing virtual environment and files in PIPX_BIN_DIR",
     )
     p.add_argument("--verbose", action="store_true")
+    p.add_argument(
+        "--with-suffix",
+        action="store_true",
+        help="Add the suffix (if given) of the Virtual Environment to the packages to inject",
+    )
 
 
 def _add_uninject(subparsers, venv_completer: VenvCompleter):
