@@ -21,7 +21,7 @@ def inject_dep(
     include_apps: bool,
     include_dependencies: bool,
     force: bool,
-    suffix: bool,
+    suffix: bool = False,
 ) -> bool:
     if not venv_dir.exists() or not next(venv_dir.iterdir()):
         raise PipxError(
@@ -90,7 +90,7 @@ def inject(
     include_apps: bool,
     include_dependencies: bool,
     force: bool,
-    suffix: bool,
+    suffix: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
     if not include_apps and include_dependencies:
