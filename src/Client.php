@@ -3,14 +3,12 @@
 namespace Cyberfusion\ClusterApi;
 
 use Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
-use Cyberfusion\ClusterApi\Endpoints\Clusters;
 use Cyberfusion\ClusterApi\Endpoints\Health;
 use Cyberfusion\ClusterApi\Exceptions\ClientException;
 use Cyberfusion\ClusterApi\Exceptions\ClusterApiException;
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Cyberfusion\ClusterApi\Models\DetailMessage;
 use Cyberfusion\ClusterApi\Models\HttpValidationError;
-use Cyberfusion\ClusterApi\Support\Arr;
 use GuzzleHttp\Client as GuzzleClient;
 use Psr\Http\Message\ResponseInterface;
 use Throwable;
