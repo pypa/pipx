@@ -100,11 +100,6 @@ class RedisInstances extends Endpoint
 
         $redisInstance = (new RedisInstance())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($redisInstance->getClusterId());
-
         return $response->setData([
             'redisInstance' => $redisInstance,
         ]);
@@ -151,11 +146,6 @@ class RedisInstances extends Endpoint
 
         $redisInstance = (new RedisInstance())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($redisInstance->getClusterId());
-
         return $response->setData([
             'redisInstance' => $redisInstance,
         ]);
@@ -166,18 +156,6 @@ class RedisInstances extends Endpoint
      */
     public function delete(int $id): Response
     {
-        // Log the affected cluster by retrieving the model first
-        $result = $this->get($id);
-        if ($result->isSuccess()) {
-            $clusterId = $result
-                ->getData('redisInstance')
-                ->getClusterId();
-
-            $this
-                ->client
-                ->addAffectedCluster($clusterId);
-        }
-
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('redis-instances/%d', $id));

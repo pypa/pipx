@@ -149,11 +149,6 @@ class UnixUsers extends Endpoint
 
         $unixUser = (new UnixUser())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($unixUser->getClusterId());
-
         return $response->setData([
             'unixUser' => $unixUser,
         ]);
@@ -207,11 +202,6 @@ class UnixUsers extends Endpoint
 
         $unixUser = (new UnixUser())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($unixUser->getClusterId());
-
         return $response->setData([
             'unixUser' => $unixUser,
         ]);
@@ -224,18 +214,6 @@ class UnixUsers extends Endpoint
      */
     public function delete(int $id): Response
     {
-        // Log the affected cluster by retrieving the model first
-        $result = $this->get($id);
-        if ($result->isSuccess()) {
-            $clusterId = $result
-                ->getData('unixUser')
-                ->getClusterId();
-
-            $this
-                ->client
-                ->addAffectedCluster($clusterId);
-        }
-
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('unix-users/%d', $id));
@@ -265,11 +243,6 @@ class UnixUsers extends Endpoint
 
         $unixUser = (new UnixUser())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($unixUser->getClusterId());
-
         return $response->setData([
             'unixUser' => $unixUser,
         ]);
@@ -294,11 +267,6 @@ class UnixUsers extends Endpoint
         }
 
         $unixUser = (new UnixUser())->fromArray($response->getData());
-
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($unixUser->getClusterId());
 
         return $response->setData([
             'unixUser' => $unixUser,

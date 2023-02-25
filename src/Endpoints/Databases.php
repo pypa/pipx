@@ -102,11 +102,6 @@ class Databases extends Endpoint
 
         $database = (new Database())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($database->getClusterId());
-
         return $response->setData([
             'database' => $database,
         ]);
@@ -119,18 +114,6 @@ class Databases extends Endpoint
      */
     public function delete(int $id): Response
     {
-        // Log the affected cluster by retrieving the model first
-        $result = $this->get($id);
-        if ($result->isSuccess()) {
-            $clusterId = $result
-                ->getData('database')
-                ->getClusterId();
-
-            $this
-                ->client
-                ->addAffectedCluster($clusterId);
-        }
-
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('databases/%d', $id));

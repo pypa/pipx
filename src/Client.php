@@ -3,15 +3,12 @@
 namespace Cyberfusion\ClusterApi;
 
 use Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
-use Cyberfusion\ClusterApi\Endpoints\Clusters;
 use Cyberfusion\ClusterApi\Endpoints\Health;
 use Cyberfusion\ClusterApi\Exceptions\ClientException;
 use Cyberfusion\ClusterApi\Exceptions\ClusterApiException;
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Cyberfusion\ClusterApi\Models\DetailMessage;
 use Cyberfusion\ClusterApi\Models\HttpValidationError;
-use Cyberfusion\ClusterApi\Support\Arr;
-use Cyberfusion\ClusterApi\Support\Deployment;
 use GuzzleHttp\Client as GuzzleClient;
 use Psr\Http\Message\ResponseInterface;
 use Throwable;
@@ -20,12 +17,11 @@ class Client implements ClientContract
 {
     private const CONNECT_TIMEOUT = 60;
     private const TIMEOUT = 180;
-    private const VERSION = '1.88.0';
+    private const VERSION = '1.89.0';
     private const USER_AGENT = 'cyberfusion-cluster-api-client/' . self::VERSION;
 
     private Configuration $configuration;
     private GuzzleClient $httpClient;
-    private array $affectedClusters = [];
 
     /**
      * Client constructor.
@@ -257,67 +253,5 @@ class Client implements ClientContract
         return [
             'error' => (new DetailMessage())->fromArray($body),
         ];
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function addAffectedCluster(int $clusterId): self
-    {
-        if (!in_array($clusterId, $this->affectedClusters)) {
-            $this->affectedClusters[] = $clusterId;
-        }
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function deploy(): array
-    {
-        $affectedClusters = array_unique($this->affectedClusters);
-        if (count($affectedClusters) === 0) {
-            return [];
-        }
-
-        $clusterCommitResults = [];
-
-        $clustersEndpoint = new Clusters($this);
-        foreach ($this->affectedClusters as $affectedCluster) {
-            $deployment = (new Deployment())->setClusterId($affectedCluster);
-
-            try {
-                $result = $clustersEndpoint->commit(
-                    $affectedCluster,
-                    $this
-                        ->configuration
-                        ->getAutoDeployCallbackUrl()
-                );
-
-                $deployment->setSuccess($result->isSuccess());
-                $result->isSuccess()
-                    ? $deployment->setCluster($result->getData('cluster'))
-                    : $deployment->setError($result->getData('error'));
-            } catch (RequestException $exception) {
-                $deployment->setSuccess(false);
-                $deployment->setError($exception->getMessage());
-            }
-
-            $clusterCommitResults[] = $deployment;
-
-            $this->affectedClusters = Arr::exceptValue($this->affectedClusters, $affectedCluster);
-        }
-
-        return $clusterCommitResults;
-    }
-
-    public function __destruct()
-    {
-        if (!$this->configuration->autoDeploy()) {
-            return;
-        }
-
-        $this->deploy();
     }
 }

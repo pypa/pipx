@@ -99,11 +99,6 @@ class DatabaseUsers extends Endpoint
 
         $databaseUser = (new DatabaseUser())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($databaseUser->getClusterId());
-
         return $response->setData([
             'databaseUser' => $databaseUser,
         ]);
@@ -145,11 +140,6 @@ class DatabaseUsers extends Endpoint
 
         $databaseUser = (new DatabaseUser())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($databaseUser->getClusterId());
-
         return $response->setData([
             'databaseUser' => $databaseUser,
         ]);
@@ -162,18 +152,6 @@ class DatabaseUsers extends Endpoint
      */
     public function delete(int $id): Response
     {
-        // Log the affected cluster by retrieving the model first
-        $result = $this->get($id);
-        if ($result->isSuccess()) {
-            $clusterId = $result
-                ->getData('databaseUser')
-                ->getClusterId();
-
-            $this
-                ->client
-                ->addAffectedCluster($clusterId);
-        }
-
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('database-users/%d', $id));

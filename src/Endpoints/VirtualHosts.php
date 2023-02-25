@@ -108,11 +108,6 @@ class VirtualHosts extends Endpoint
 
         $virtualHost = (new VirtualHost())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($virtualHost->getClusterId());
-
         return $response->setData([
             'virtualHost' => $virtualHost,
         ]);
@@ -165,11 +160,6 @@ class VirtualHosts extends Endpoint
         }
 
         $virtualHost = (new VirtualHost())->fromArray($response->getData());
-
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($virtualHost->getClusterId());
 
         return $response->setData([
             'virtualHost' => $virtualHost,

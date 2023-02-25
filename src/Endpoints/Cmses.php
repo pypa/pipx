@@ -101,11 +101,6 @@ class Cmses extends Endpoint
 
         $cms = (new Cms())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($cms->getClusterId());
-
         return $response->setData([
             'cms' => $cms,
         ]);
@@ -118,18 +113,6 @@ class Cmses extends Endpoint
      */
     public function delete(int $id): Response
     {
-        // Log the affected cluster by retrieving the model first
-        $result = $this->get($id);
-        if ($result->isSuccess()) {
-            $clusterId = $result
-                ->getData('cms')
-                ->getClusterId();
-
-            $this
-                ->client
-                ->addAffectedCluster($clusterId);
-        }
-
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('cmses/%d', $id));
@@ -193,18 +176,13 @@ class Cmses extends Endpoint
 
         $taskCollection = (new TaskCollection())->fromArray($response->getData());
 
-        // Retrieve the CMS again, so we log affected clusters and can return the CMS object
+        // Retrieve the CMS again, so we can return the CMS object
         $retrieveResponse = $this->get($id);
         if (!$retrieveResponse->isSuccess()) {
             return $retrieveResponse;
         }
 
         $cms = $retrieveResponse->getData('cms');
-
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($cms->getClusterId());
 
         return $response->setData([
             'taskCollection' => $taskCollection,
@@ -265,18 +243,13 @@ class Cmses extends Endpoint
 
         $cmsOption = (new CmsOption())->fromArray($response->getData());
 
-        // Retrieve the CMS again, so we log affected clusters and can return the CMS object
+        // Retrieve the CMS again, so we can return the CMS object
         $retrieveResponse = $this->get($id);
         if (!$retrieveResponse->isSuccess()) {
             return $retrieveResponse;
         }
 
         $cms = $retrieveResponse->getData('cms');
-
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($cms->getClusterId());
 
         return $response->setData([
             'cmsOption' => $cmsOption,
@@ -314,18 +287,13 @@ class Cmses extends Endpoint
 
         $cmsConfigurationConstant = (new CmsConfigurationConstant())->fromArray($response->getData());
 
-        // Retrieve the CMS again, so we log affected clusters and can return the CMS object
+        // Retrieve the CMS again, so we can return the CMS object
         $retrieveResponse = $this->get($id);
         if (!$retrieveResponse->isSuccess()) {
             return $retrieveResponse;
         }
 
         $cms = $retrieveResponse->getData('cms');
-
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($cms->getClusterId());
 
         return $response->setData([
             'cmsConfigurationConstant' => $cmsConfigurationConstant,
@@ -389,18 +357,13 @@ class Cmses extends Endpoint
             return $response;
         }
 
-        // Retrieve the CMS again, so we log affected clusters and can return the CMS object
+        // Retrieve the CMS again, so we can return the CMS object
         $retrieveResponse = $this->get($id);
         if (!$retrieveResponse->isSuccess()) {
             return $retrieveResponse;
         }
 
         $cms = $retrieveResponse->getData('cms');
-
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($cms->getClusterId());
 
         return $response->setData([
             'cms' => $cms,
@@ -431,18 +394,13 @@ class Cmses extends Endpoint
             return $response;
         }
 
-        // Retrieve the CMS again, so we log affected clusters and can return the CMS object
+        // Retrieve the CMS again, so we can return the CMS object
         $retrieveResponse = $this->get($id);
         if (!$retrieveResponse->isSuccess()) {
             return $retrieveResponse;
         }
 
         $cms = $retrieveResponse->getData('cms');
-
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($cms->getClusterId());
 
         return $response->setData([
             'cms' => $cms,
@@ -471,18 +429,13 @@ class Cmses extends Endpoint
             return $response;
         }
 
-        // Retrieve the CMS again, so we log affected clusters and can return the CMS object
+        // Retrieve the CMS again, so we can return the CMS object
         $retrieveResponse = $this->get($id);
         if (!$retrieveResponse->isSuccess()) {
             return $retrieveResponse;
         }
 
         $cms = $retrieveResponse->getData('cms');
-
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($cms->getClusterId());
 
         return $response->setData([
             'cms' => $cms,
@@ -516,18 +469,13 @@ class Cmses extends Endpoint
             return $response;
         }
 
-        // Retrieve the CMS again, so we log affected clusters and can return the CMS object
+        // Retrieve the CMS again, so we can return the CMS object
         $retrieveResponse = $this->get($id);
         if (!$retrieveResponse->isSuccess()) {
             return $retrieveResponse;
         }
 
         $cms = $retrieveResponse->getData('cms');
-
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($cms->getClusterId());
 
         return $response->setData([
             'cms' => $cms,

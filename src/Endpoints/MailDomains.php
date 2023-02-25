@@ -97,11 +97,6 @@ class MailDomains extends Endpoint
 
         $mailDomain = (new MailDomain())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($mailDomain->getClusterId());
-
         return $response->setData([
             'mailDomain' => $mailDomain,
         ]);
@@ -143,11 +138,6 @@ class MailDomains extends Endpoint
 
         $mailDomain = (new MailDomain())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($mailDomain->getClusterId());
-
         return $response->setData([
             'mailDomain' => $mailDomain,
         ]);
@@ -160,18 +150,6 @@ class MailDomains extends Endpoint
      */
     public function delete(int $id): Response
     {
-        // Log the affected cluster by retrieving the model first
-        $result = $this->get($id);
-        if ($result->isSuccess()) {
-            $clusterId = $result
-                ->getData('mailDomain')
-                ->getClusterId();
-
-            $this
-                ->client
-                ->addAffectedCluster($clusterId);
-        }
-
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('mail-domains/%d', $id));

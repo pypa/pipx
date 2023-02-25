@@ -12,8 +12,6 @@ class Configuration
     private string $password;
     private ?string $accessToken;
     private bool $sandbox = false;
-    private bool $autoDeploy = false;
-    private ?string $autoDeployCallbackUrl = null;
 
     public static function withCredentials(string $username, string $password, bool $sandbox = false): self
     {
@@ -98,30 +96,6 @@ class Configuration
         $this->url = $sandbox
             ? self::URL_SANDBOX
             : self::URL_LIVE;
-
-        return $this;
-    }
-
-    public function autoDeploy(): bool
-    {
-        return $this->autoDeploy;
-    }
-
-    public function setAutoDeploy(bool $autoDeploy = true): self
-    {
-        $this->autoDeploy = $autoDeploy;
-
-        return $this;
-    }
-
-    public function getAutoDeployCallbackUrl(): ?string
-    {
-        return $this->autoDeployCallbackUrl;
-    }
-
-    public function setAutoDeployCallbackUrl(?string $autoDeployCallbackUrl): self
-    {
-        $this->autoDeployCallbackUrl = $autoDeployCallbackUrl;
 
         return $this;
     }
