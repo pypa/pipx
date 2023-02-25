@@ -33,7 +33,7 @@ class CertificateManagers extends Endpoint
 
         return $response->setData([
             'certificateManagers' => array_map(
-                fn(array $data) => (new CertificateManager())->fromArray($data),
+                fn (array $data) => (new CertificateManager())->fromArray($data),
                 $response->getData()
             ),
         ]);

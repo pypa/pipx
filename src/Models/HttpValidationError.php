@@ -24,7 +24,7 @@ class HttpValidationError extends ClusterModel
     {
         return $this->setDetail(
             array_map(
-                fn(array $detail) => (new ValidationError())->fromArray($detail),
+                fn (array $detail) => (new ValidationError())->fromArray($detail),
                 Arr::get($data, 'detail', [])
             )
         );

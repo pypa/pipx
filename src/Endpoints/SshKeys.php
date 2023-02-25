@@ -32,7 +32,7 @@ class SshKeys extends Endpoint
 
         return $response->setData([
             'sshKeys' => array_map(
-                fn(array $data) => (new SshKey())->fromArray($data),
+                fn (array $data) => (new SshKey())->fromArray($data),
                 $response->getData()
             ),
         ]);

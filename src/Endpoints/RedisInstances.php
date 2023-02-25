@@ -32,7 +32,7 @@ class RedisInstances extends Endpoint
 
         return $response->setData([
             'redisInstances' => array_map(
-                fn(array $data) => (new RedisInstance())->fromArray($data),
+                fn (array $data) => (new RedisInstance())->fromArray($data),
                 $response->getData()
             ),
         ]);

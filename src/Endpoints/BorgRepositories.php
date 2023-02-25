@@ -35,7 +35,7 @@ class BorgRepositories extends Endpoint
 
         return $response->setData([
             'borgRepositories' => array_map(
-                fn(array $data) => (new BorgRepository())->fromArray($data),
+                fn (array $data) => (new BorgRepository())->fromArray($data),
                 $response->getData()
             ),
         ]);
@@ -254,7 +254,7 @@ class BorgRepositories extends Endpoint
 
         return $response->setData([
             'metadata' => array_map(
-                fn(array $data) => (new BorgArchiveMetadata())->fromArray($data),
+                fn (array $data) => (new BorgArchiveMetadata())->fromArray($data),
                 $response->getData()
             ),
         ]);

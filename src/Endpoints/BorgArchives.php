@@ -38,7 +38,7 @@ class BorgArchives extends Endpoint
 
         return $response->setData([
             'borgArchives' => array_map(
-                fn(array $data) => (new BorgArchive())->fromArray($data),
+                fn (array $data) => (new BorgArchive())->fromArray($data),
                 $response->getData()
             ),
         ]);
@@ -251,7 +251,7 @@ class BorgArchives extends Endpoint
 
         return $response->setData([
             'contents' => array_map(
-                fn(array $data) => (new BorgArchiveContent())->fromArray($data),
+                fn (array $data) => (new BorgArchiveContent())->fromArray($data),
                 $response->getData()
             ),
         ]);

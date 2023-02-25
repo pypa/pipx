@@ -32,7 +32,7 @@ class HtpasswdFiles extends Endpoint
 
         return $response->setData([
             'htpasswdFiles' => array_map(
-                fn(array $data) => (new HtpasswdFile())->fromArray($data),
+                fn (array $data) => (new HtpasswdFile())->fromArray($data),
                 $response->getData()
             ),
         ]);

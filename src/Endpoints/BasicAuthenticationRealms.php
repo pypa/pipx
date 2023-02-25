@@ -32,7 +32,7 @@ class BasicAuthenticationRealms extends Endpoint
 
         return $response->setData([
             'basicAuthenticationRealms' => array_map(
-                fn(array $data) => (new BasicAuthenticationRealm())->fromArray($data),
+                fn (array $data) => (new BasicAuthenticationRealm())->fromArray($data),
                 $response->getData()
             ),
         ]);

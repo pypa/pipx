@@ -32,7 +32,7 @@ class Crons extends Endpoint
 
         return $response->setData([
             'crons' => array_map(
-                fn(array $data) => (new Cron())->fromArray($data),
+                fn (array $data) => (new Cron())->fromArray($data),
                 $response->getData()
             ),
         ]);

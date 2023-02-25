@@ -32,7 +32,7 @@ class UrlRedirects extends Endpoint
 
         return $response->setData([
             'urlRedirects' => array_map(
-                fn(array $data) => (new UrlRedirect())->fromArray($data),
+                fn (array $data) => (new UrlRedirect())->fromArray($data),
                 $response->getData()
             ),
         ]);

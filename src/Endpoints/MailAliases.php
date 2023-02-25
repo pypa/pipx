@@ -32,7 +32,7 @@ class MailAliases extends Endpoint
 
         return $response->setData([
             'mailAliases' => array_map(
-                fn(array $data) => (new MailAlias())->fromArray($data),
+                fn (array $data) => (new MailAlias())->fromArray($data),
                 $response->getData()
             ),
         ]);

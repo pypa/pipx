@@ -32,7 +32,7 @@ class Certificates extends Endpoint
 
         return $response->setData([
             'certificates' => array_map(
-                fn(array $data) => (new Certificate())->fromArray($data),
+                fn (array $data) => (new Certificate())->fromArray($data),
                 $response->getData()
             ),
         ]);

@@ -34,7 +34,7 @@ class FpmPools extends Endpoint
 
         return $response->setData([
             'fpmPools' => array_map(
-                fn(array $data) => (new FpmPool())->fromArray($data),
+                fn (array $data) => (new FpmPool())->fromArray($data),
                 $response->getData()
             ),
         ]);

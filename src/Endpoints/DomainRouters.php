@@ -32,7 +32,7 @@ class DomainRouters extends Endpoint
 
         return $response->setData([
             'domainRouters' => array_map(
-                fn(array $data) => (new DomainRouter())->fromArray($data),
+                fn (array $data) => (new DomainRouter())->fromArray($data),
                 $response->getData()
             ),
         ]);

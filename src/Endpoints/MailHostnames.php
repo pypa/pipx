@@ -32,7 +32,7 @@ class MailHostnames extends Endpoint
 
         return $response->setData([
             'mailHostnames' => array_map(
-                fn(array $data) => (new MailHostname())->fromArray($data),
+                fn (array $data) => (new MailHostname())->fromArray($data),
                 $response->getData()
             ),
         ]);

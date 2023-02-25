@@ -32,7 +32,7 @@ class HtpasswdUsers extends Endpoint
 
         return $response->setData([
             'htpasswdUsers' => array_map(
-                fn(array $data) => (new HtpasswdUser())->fromArray($data),
+                fn (array $data) => (new HtpasswdUser())->fromArray($data),
                 $response->getData()
             ),
         ]);

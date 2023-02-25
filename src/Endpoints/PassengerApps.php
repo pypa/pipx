@@ -34,7 +34,7 @@ class PassengerApps extends Endpoint
 
         return $response->setData([
             'passengerApps' => array_map(
-                fn(array $data) => (new PassengerApp())->fromArray($data),
+                fn (array $data) => (new PassengerApp())->fromArray($data),
                 $response->getData()
             ),
         ]);

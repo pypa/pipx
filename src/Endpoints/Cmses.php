@@ -38,7 +38,7 @@ class Cmses extends Endpoint
 
         return $response->setData([
             'cmses' => array_map(
-                fn(array $data) => (new Cms())->fromArray($data),
+                fn (array $data) => (new Cms())->fromArray($data),
                 $response->getData()
             ),
         ]);

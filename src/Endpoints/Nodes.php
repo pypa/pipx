@@ -32,7 +32,7 @@ class Nodes extends Endpoint
 
         return $response->setData([
             'nodes' => array_map(
-                fn(array $data) => (new Node())->fromArray($data),
+                fn (array $data) => (new Node())->fromArray($data),
                 $response->getData()
             ),
         ]);

@@ -35,7 +35,7 @@ class Clusters extends Endpoint
 
         return $response->setData([
             'clusters' => array_map(
-                fn(array $data) => (new Cluster())->fromArray($data),
+                fn (array $data) => (new Cluster())->fromArray($data),
                 $response->getData()
             ),
         ]);

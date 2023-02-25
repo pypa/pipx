@@ -36,7 +36,7 @@ class UnixUsers extends Endpoint
 
         return $response->setData([
             'unixUsers' => array_map(
-                fn(array $data) => (new UnixUser())->fromArray($data),
+                fn (array $data) => (new UnixUser())->fromArray($data),
                 $response->getData()
             ),
         ]);
@@ -91,7 +91,7 @@ class UnixUsers extends Endpoint
         return $response->setData([
             'unixUserUsage' => count($response->getData()) !== 0
                 ? array_map(
-                    fn(array $data) => (new UnixUserUsage())->fromArray($data),
+                    fn (array $data) => (new UnixUserUsage())->fromArray($data),
                     $response->getData()
                 )
                 : null,

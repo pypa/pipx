@@ -32,7 +32,7 @@ class DatabaseUserGrants extends Endpoint
 
         return $response->setData([
             'databaseUserGrants' => array_map(
-                fn(array $data) => (new DatabaseUserGrant())->fromArray($data),
+                fn (array $data) => (new DatabaseUserGrant())->fromArray($data),
                 $response->getData()
             ),
         ]);

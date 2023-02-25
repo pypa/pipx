@@ -38,7 +38,7 @@ class Databases extends Endpoint
 
         return $response->setData([
             'databases' => array_map(
-                fn(array $data) => (new Database())->fromArray($data),
+                fn (array $data) => (new Database())->fromArray($data),
                 $response->getData()
             ),
         ]);
@@ -143,7 +143,7 @@ class Databases extends Endpoint
         return $response->setData([
             'databaseUsage' => count($response->getData()) !== 0
                 ? array_map(
-                    fn(array $data) => (new DatabaseUsage())->fromArray($data),
+                    fn (array $data) => (new DatabaseUsage())->fromArray($data),
                     $response->getData()
                 )
                 : null,

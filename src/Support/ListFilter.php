@@ -40,7 +40,7 @@ class ListFilter implements Filter
         try {
             $reflection = new ReflectionClass($model);
             $properties = array_map(
-                fn(ReflectionProperty $property) => Str::snake($property->name),
+                fn (ReflectionProperty $property) => Str::snake($property->name),
                 $reflection->getProperties(ReflectionProperty::IS_PRIVATE)
             );
         } catch (ReflectionException $exception) {

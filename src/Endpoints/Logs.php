@@ -33,7 +33,7 @@ class Logs extends Endpoint
 
         return $response->setData([
             'logs' => array_map(
-                fn(array $data) => (new AccessLog())->fromArray($data),
+                fn (array $data) => (new AccessLog())->fromArray($data),
                 $response->getData()
             ),
         ]);
@@ -61,7 +61,7 @@ class Logs extends Endpoint
 
         return $response->setData([
             'logs' => array_map(
-                fn(array $data) => (new ErrorLog())->fromArray($data),
+                fn (array $data) => (new ErrorLog())->fromArray($data),
                 $response->getData()
             ),
         ]);

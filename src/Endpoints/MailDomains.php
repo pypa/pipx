@@ -32,7 +32,7 @@ class MailDomains extends Endpoint
 
         return $response->setData([
             'mailDomains' => array_map(
-                fn(array $data) => (new MailDomain())->fromArray($data),
+                fn (array $data) => (new MailDomain())->fromArray($data),
                 $response->getData()
             ),
         ]);

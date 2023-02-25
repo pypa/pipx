@@ -34,7 +34,7 @@ class VirtualHosts extends Endpoint
 
         return $response->setData([
             'virtualHosts' => array_map(
-                fn(array $data) => (new VirtualHost())->fromArray($data),
+                fn (array $data) => (new VirtualHost())->fromArray($data),
                 $response->getData()
             ),
         ]);

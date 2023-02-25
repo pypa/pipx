@@ -35,7 +35,7 @@ class MailAccounts extends Endpoint
 
         return $response->setData([
             'mailAccounts' => array_map(
-                fn(array $data) => (new MailAccount())->fromArray($data),
+                fn (array $data) => (new MailAccount())->fromArray($data),
                 $response->getData()
             ),
         ]);

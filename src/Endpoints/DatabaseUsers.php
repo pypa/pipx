@@ -32,7 +32,7 @@ class DatabaseUsers extends Endpoint
 
         return $response->setData([
             'databaseUsers' => array_map(
-                fn(array $data) => (new DatabaseUser())->fromArray($data),
+                fn (array $data) => (new DatabaseUser())->fromArray($data),
                 $response->getData()
             ),
         ]);
