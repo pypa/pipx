@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
 for detailed information.
 
+## [1.90.0]
+
+### Changed
+
+- Bump minimum PHP version to 8.0.
+- CMS endpoints that do not manipulate the CMS object no longer return the CMS object.
+
 ## [1.89.0]
 
 ### Removed
