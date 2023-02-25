@@ -238,58 +238,6 @@ In case of errors, the client throws an exception which extends `ClusterApiExcep
 
 All exceptions have a code. These can be found in the `ClusterApiException` class.
 
-### Deployment
-
-Change to most of the objects in the Cluster API require a deployment of the cluster. See the [API documentation](https://cluster-api.cyberfusion.nl/redoc#operation/create_cluster_deployment_api_v1_cluster_deployments_post) 
-for more information.
-
-This client keeps track of changed clusters. The `deploy` method on the client automatically deploys all changed 
-clusters:
-
-```php
-$clusterDeployments = $client->deploy();
-```
-
-The result is an array of `Deployment` objects (or an empty array who no clusters are changed) which allows you to 
-check if the cluster is properly deployed:
-
-```php
-foreach ($clusterDeployments as $clusterDeployment) {
-    $success = $clusterDeployment->isSuccess();
-    if (!$success) {
-        // Do something with $clusterDeployment->getError();
-    }
-}
-```
-
-See the `Deployment` class for more options.
-
-#### Automatic deployment
-
-This client is also able to deploy all changed clusters automatically. This is opt-in behavior, as you won't be able 
-to access the result of the deployment.
-
-```php
-$configuration = new Configuration();
-$configuration
-    ->setAutoDeploy() // Enable the auto deployment of changed clusters
-    ->setAutoDeployCallbackUrl(''); // Provide the callback url for automatic deployments
-
-// Initialize the client
-$client = new Client($configuration, true);
-
-// Initialize the API
-$api = new ClusterApi($client);
-```
-
-#### Manual deployment
-
-```php
-$api
-    ->clusters()
-    ->commit($clusterId, $callbackUrl = null);
-```
-
 ### Laravel
 
 This client can be easily used in any Laravel application. Add your API credentials to the `.env` file:

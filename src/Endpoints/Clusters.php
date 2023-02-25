@@ -72,38 +72,6 @@ class Clusters extends Endpoint
 
     /**
      * @param int $id
-     * @param string|null $callbackUrl
-     * @return Response
-     * @throws RequestException
-     */
-    public function commit(int $id, string $callbackUrl = null): Response
-    {
-        $url = Str::optionalQueryParameters(
-            'cluster-deployments',
-            ['callback_url' => $callbackUrl]
-        );
-
-        $request = (new Request())
-            ->setMethod(Request::METHOD_POST)
-            ->setUrl($url)
-            ->setBody([
-                'cluster_id' => $id,
-            ]);
-
-        $response = $this
-            ->client
-            ->request($request);
-        if (!$response->isSuccess()) {
-            return $response;
-        }
-
-        return $response->setData([
-            'taskCollection' => (new TaskCollection())->fromArray($response->getData()),
-        ]);
-    }
-
-    /**
-     * @param int $id
      * @param DateTimeInterface $from
      * @param string $timeUnit
      * @return Response

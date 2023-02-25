@@ -11,7 +11,6 @@ use Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Cyberfusion\ClusterApi\Models\DetailMessage;
 use Cyberfusion\ClusterApi\Models\HttpValidationError;
 use Cyberfusion\ClusterApi\Support\Arr;
-use Cyberfusion\ClusterApi\Support\Deployment;
 use GuzzleHttp\Client as GuzzleClient;
 use Psr\Http\Message\ResponseInterface;
 use Throwable;
@@ -269,55 +268,5 @@ class Client implements ClientContract
         }
 
         return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function deploy(): array
-    {
-        $affectedClusters = array_unique($this->affectedClusters);
-        if (count($affectedClusters) === 0) {
-            return [];
-        }
-
-        $clusterCommitResults = [];
-
-        $clustersEndpoint = new Clusters($this);
-        foreach ($this->affectedClusters as $affectedCluster) {
-            $deployment = (new Deployment())->setClusterId($affectedCluster);
-
-            try {
-                $result = $clustersEndpoint->commit(
-                    $affectedCluster,
-                    $this
-                        ->configuration
-                        ->getAutoDeployCallbackUrl()
-                );
-
-                $deployment->setSuccess($result->isSuccess());
-                $result->isSuccess()
-                    ? $deployment->setCluster($result->getData('cluster'))
-                    : $deployment->setError($result->getData('error'));
-            } catch (RequestException $exception) {
-                $deployment->setSuccess(false);
-                $deployment->setError($exception->getMessage());
-            }
-
-            $clusterCommitResults[] = $deployment;
-
-            $this->affectedClusters = Arr::exceptValue($this->affectedClusters, $affectedCluster);
-        }
-
-        return $clusterCommitResults;
-    }
-
-    public function __destruct()
-    {
-        if (!$this->configuration->autoDeploy()) {
-            return;
-        }
-
-        $this->deploy();
     }
 }
