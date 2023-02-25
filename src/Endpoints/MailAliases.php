@@ -11,11 +11,9 @@ use Cyberfusion\ClusterApi\Support\ListFilter;
 class MailAliases extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -34,17 +32,13 @@ class MailAliases extends Endpoint
 
         return $response->setData([
             'mailAliases' => array_map(
-                function (array $data) {
-                    return (new MailAlias())->fromArray($data);
-                },
+                fn(array $data) => (new MailAlias())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -66,8 +60,6 @@ class MailAliases extends Endpoint
     }
 
     /**
-     * @param MailAlias $mailAlias
-     * @return Response
      * @throws RequestException
      */
     public function create(MailAlias $mailAlias): Response
@@ -81,11 +73,13 @@ class MailAliases extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('mail-aliases')
-            ->setBody($this->filterFields($mailAlias->toArray(), [
-                'local_part',
-                'forward_email_addresses',
-                'mail_domain_id',
-            ]));
+            ->setBody(
+                $this->filterFields($mailAlias->toArray(), [
+                    'local_part',
+                    'forward_email_addresses',
+                    'mail_domain_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -102,8 +96,6 @@ class MailAliases extends Endpoint
     }
 
     /**
-     * @param MailAlias $mailAlias
-     * @return Response
      * @throws RequestException
      */
     public function update(MailAlias $mailAlias): Response
@@ -119,13 +111,15 @@ class MailAliases extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('mail-aliases/%d', $mailAlias->getId()))
-            ->setBody($this->filterFields($mailAlias->toArray(), [
-                'local_part',
-                'forward_email_addresses',
-                'mail_domain_id',
-                'id',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($mailAlias->toArray(), [
+                    'local_part',
+                    'forward_email_addresses',
+                    'mail_domain_id',
+                    'id',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -142,8 +136,6 @@ class MailAliases extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response

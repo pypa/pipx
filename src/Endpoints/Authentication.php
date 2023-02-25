@@ -12,8 +12,6 @@ use Cyberfusion\ClusterApi\Response;
 class Authentication extends Endpoint
 {
     /**
-     * @param Login $login
-     * @return Response
      * @throws RequestException
      */
     public function login(Login $login): Response
@@ -38,7 +36,6 @@ class Authentication extends Endpoint
     }
 
     /**
-     * @return Response
      * @throws RequestException
      */
     public function verify(): Response

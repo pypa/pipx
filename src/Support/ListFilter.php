@@ -31,7 +31,7 @@ class ListFilter implements Filter
      * @param Model|class-string $model
      * @throws ListFilterException
      */
-    public static function forModel($model): self
+    public static function forModel(Model|string $model): self
     {
         if (!is_subclass_of($model, Model::class)) {
             throw ListFilterException::invalidModel();
@@ -40,7 +40,7 @@ class ListFilter implements Filter
         try {
             $reflection = new ReflectionClass($model);
             $properties = array_map(
-                fn (ReflectionProperty $property) => Str::snake($property->name),
+                fn(ReflectionProperty $property) => Str::snake($property->name),
                 $reflection->getProperties(ReflectionProperty::IS_PRIVATE)
             );
         } catch (ReflectionException $exception) {

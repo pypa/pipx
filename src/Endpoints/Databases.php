@@ -17,11 +17,9 @@ use DateTimeInterface;
 class Databases extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -40,17 +38,13 @@ class Databases extends Endpoint
 
         return $response->setData([
             'databases' => array_map(
-                function (array $data) {
-                    return (new Database())->fromArray($data);
-                },
+                fn(array $data) => (new Database())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -72,8 +66,6 @@ class Databases extends Endpoint
     }
 
     /**
-     * @param Database $database
-     * @return Response
      * @throws RequestException
      */
     public function create(Database $database): Response
@@ -87,11 +79,13 @@ class Databases extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('databases')
-            ->setBody($this->filterFields($database->toArray(), [
-                'name',
-                'server_software_name',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($database->toArray(), [
+                    'name',
+                    'server_software_name',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -108,8 +102,6 @@ class Databases extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response
@@ -124,10 +116,6 @@ class Databases extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param DateTimeInterface $from
-     * @param string $timeUnit
-     * @return Response
      * @throws RequestException
      */
     public function usages(int $id, DateTimeInterface $from, string $timeUnit = TimeUnit::HOURLY): Response
@@ -155,9 +143,7 @@ class Databases extends Endpoint
         return $response->setData([
             'databaseUsage' => count($response->getData()) !== 0
                 ? array_map(
-                    function (array $data) {
-                        return (new DatabaseUsage())->fromArray($data);
-                    },
+                    fn(array $data) => (new DatabaseUsage())->fromArray($data),
                     $response->getData()
                 )
                 : null,
@@ -165,9 +151,6 @@ class Databases extends Endpoint
     }
 
     /**
-     * @param int $leftDatabaseId
-     * @param int $rightDatabaseId
-     * @return Response
      * @throws RequestException
      */
     public function compareTo(int $leftDatabaseId, int $rightDatabaseId): Response
@@ -195,13 +178,9 @@ class Databases extends Endpoint
     }
 
     /**
-     * @param int $leftDatabaseId
-     * @param int $rightDatabaseId
-     * @param string|null $callbackUrl
-     * @return Response
      * @throws RequestException
      */
-    public function syncTo(int $leftDatabaseId, int $rightDatabaseId, string $callbackUrl = null): Response
+    public function syncTo(int $leftDatabaseId, int $rightDatabaseId, ?string $callbackUrl = null): Response
     {
         $url = Str::optionalQueryParameters(
             sprintf(

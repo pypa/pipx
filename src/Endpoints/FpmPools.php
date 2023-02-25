@@ -13,11 +13,9 @@ use Cyberfusion\ClusterApi\Support\Str;
 class FpmPools extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -36,17 +34,13 @@ class FpmPools extends Endpoint
 
         return $response->setData([
             'fpmPools' => array_map(
-                function (array $data) {
-                    return (new FpmPool())->fromArray($data);
-                },
+                fn(array $data) => (new FpmPool())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -68,8 +62,6 @@ class FpmPools extends Endpoint
     }
 
     /**
-     * @param FpmPool $fpmPool
-     * @return Response
      * @throws RequestException
      */
     public function create(FpmPool $fpmPool): Response
@@ -84,17 +76,19 @@ class FpmPools extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('fpm-pools')
-            ->setBody($this->filterFields($fpmPool->toArray(), [
-                'name',
-                'unix_user_id',
-                'version',
-                'max_children',
-                'max_requests',
-                'process_idle_timeout',
-                'cpu_limit',
-                'log_slow_requests_threshold',
-                'is_namespaced',
-            ]));
+            ->setBody(
+                $this->filterFields($fpmPool->toArray(), [
+                    'name',
+                    'unix_user_id',
+                    'version',
+                    'max_children',
+                    'max_requests',
+                    'process_idle_timeout',
+                    'cpu_limit',
+                    'log_slow_requests_threshold',
+                    'is_namespaced',
+                ])
+            );
 
         $response = $this
             ->client
@@ -111,8 +105,6 @@ class FpmPools extends Endpoint
     }
 
     /**
-     * @param FpmPool $fpmPool
-     * @return Response
      * @throws RequestException
      */
     public function update(FpmPool $fpmPool): Response
@@ -130,19 +122,21 @@ class FpmPools extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('fpm-pools/%d', $fpmPool->getId()))
-            ->setBody($this->filterFields($fpmPool->toArray(), [
-                'name',
-                'unix_user_id',
-                'version',
-                'max_children',
-                'max_requests',
-                'process_idle_timeout',
-                'cpu_limit',
-                'log_slow_requests_threshold',
-                'is_namespaced',
-                'id',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($fpmPool->toArray(), [
+                    'name',
+                    'unix_user_id',
+                    'version',
+                    'max_children',
+                    'max_requests',
+                    'process_idle_timeout',
+                    'cpu_limit',
+                    'log_slow_requests_threshold',
+                    'is_namespaced',
+                    'id',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -159,8 +153,6 @@ class FpmPools extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response
@@ -175,12 +167,9 @@ class FpmPools extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param string|null $callbackUrl
-     * @return Response
      * @throws RequestException
      */
-    public function restart(int $id, string $callbackUrl = null): Response
+    public function restart(int $id, ?string $callbackUrl = null): Response
     {
         $url = Str::optionalQueryParameters(
             sprintf('fpm-pools/%d/restart', $id),
@@ -206,12 +195,9 @@ class FpmPools extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param string|null $callbackUrl
-     * @return Response
      * @throws RequestException
      */
-    public function reload(int $id, string $callbackUrl = null): Response
+    public function reload(int $id, ?string $callbackUrl = null): Response
     {
         $url = Str::optionalQueryParameters(
             sprintf('fpm-pools/%d/reload', $id),

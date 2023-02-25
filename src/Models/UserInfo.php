@@ -2,10 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 
-class UserInfo extends ClusterModel implements Model
+class UserInfo extends ClusterModel
 {
     private int $id;
     private string $username;

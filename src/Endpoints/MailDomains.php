@@ -11,11 +11,9 @@ use Cyberfusion\ClusterApi\Support\ListFilter;
 class MailDomains extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -34,17 +32,13 @@ class MailDomains extends Endpoint
 
         return $response->setData([
             'mailDomains' => array_map(
-                function (array $data) {
-                    return (new MailDomain())->fromArray($data);
-                },
+                fn(array $data) => (new MailDomain())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -66,8 +60,6 @@ class MailDomains extends Endpoint
     }
 
     /**
-     * @param MailDomain $mailDomain
-     * @return Response
      * @throws RequestException
      */
     public function create(MailDomain $mailDomain): Response
@@ -81,12 +73,14 @@ class MailDomains extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('mail-domains')
-            ->setBody($this->filterFields($mailDomain->toArray(), [
-                'domain',
-                'catch_all_forward_email_addresses',
-                'is_local',
-                'unix_user_id',
-            ]));
+            ->setBody(
+                $this->filterFields($mailDomain->toArray(), [
+                    'domain',
+                    'catch_all_forward_email_addresses',
+                    'is_local',
+                    'unix_user_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -103,8 +97,6 @@ class MailDomains extends Endpoint
     }
 
     /**
-     * @param MailDomain $mailDomain
-     * @return Response
      * @throws RequestException
      */
     public function update(MailDomain $mailDomain): Response
@@ -120,14 +112,16 @@ class MailDomains extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('mail-domains/%d', $mailDomain->getId()))
-            ->setBody($this->filterFields($mailDomain->toArray(), [
-                'domain',
-                'catch_all_forward_email_addresses',
-                'is_local',
-                'unix_user_id',
-                'id',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($mailDomain->toArray(), [
+                    'domain',
+                    'catch_all_forward_email_addresses',
+                    'is_local',
+                    'unix_user_id',
+                    'id',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -144,8 +138,6 @@ class MailDomains extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response

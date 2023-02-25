@@ -11,11 +11,9 @@ use Cyberfusion\ClusterApi\Support\ListFilter;
 class Crons extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -34,17 +32,13 @@ class Crons extends Endpoint
 
         return $response->setData([
             'crons' => array_map(
-                function (array $data) {
-                    return (new Cron())->fromArray($data);
-                },
+                fn(array $data) => (new Cron())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -66,8 +60,6 @@ class Crons extends Endpoint
     }
 
     /**
-     * @param Cron $cron
-     * @return Response
      * @throws RequestException
      */
     public function create(Cron $cron): Response
@@ -82,18 +74,20 @@ class Crons extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('crons')
-            ->setBody($this->filterFields($cron->toArray(), [
-                'name',
-                'command',
-                'email_address',
-                'schedule',
-                'unix_user_id',
-                'node_id',
-                'error_count',
-                'random_delay_max_seconds',
-                'locking_enabled',
-                'is_active',
-            ]));
+            ->setBody(
+                $this->filterFields($cron->toArray(), [
+                    'name',
+                    'command',
+                    'email_address',
+                    'schedule',
+                    'unix_user_id',
+                    'node_id',
+                    'error_count',
+                    'random_delay_max_seconds',
+                    'locking_enabled',
+                    'is_active',
+                ])
+            );
 
         $response = $this
             ->client
@@ -110,8 +104,6 @@ class Crons extends Endpoint
     }
 
     /**
-     * @param Cron $cron
-     * @return Response
      * @throws RequestException
      */
     public function update(Cron $cron): Response
@@ -129,20 +121,22 @@ class Crons extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('crons/%d', $cron->getId()))
-            ->setBody($this->filterFields($cron->toArray(), [
-                'name',
-                'command',
-                'email_address',
-                'schedule',
-                'unix_user_id',
-                'node_id',
-                'error_count',
-                'random_delay_max_seconds',
-                'locking_enabled',
-                'is_active',
-                'id',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($cron->toArray(), [
+                    'name',
+                    'command',
+                    'email_address',
+                    'schedule',
+                    'unix_user_id',
+                    'node_id',
+                    'error_count',
+                    'random_delay_max_seconds',
+                    'locking_enabled',
+                    'is_active',
+                    'id',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -159,8 +153,6 @@ class Crons extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response

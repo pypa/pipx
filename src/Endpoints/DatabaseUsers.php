@@ -11,11 +11,9 @@ use Cyberfusion\ClusterApi\Support\ListFilter;
 class DatabaseUsers extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -34,17 +32,13 @@ class DatabaseUsers extends Endpoint
 
         return $response->setData([
             'databaseUsers' => array_map(
-                function (array $data) {
-                    return (new DatabaseUser())->fromArray($data);
-                },
+                fn(array $data) => (new DatabaseUser())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -66,8 +60,6 @@ class DatabaseUsers extends Endpoint
     }
 
     /**
-     * @param DatabaseUser $databaseUser
-     * @return Response
      * @throws RequestException
      */
     public function create(DatabaseUser $databaseUser): Response
@@ -82,13 +74,15 @@ class DatabaseUsers extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('database-users')
-            ->setBody($this->filterFields($databaseUser->toArray(), [
-                'name',
-                'host',
-                'password',
-                'server_software_name',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($databaseUser->toArray(), [
+                    'name',
+                    'host',
+                    'password',
+                    'server_software_name',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -105,8 +99,6 @@ class DatabaseUsers extends Endpoint
     }
 
     /**
-     * @param DatabaseUser $databaseUser
-     * @return Response
      * @throws RequestException
      */
     public function update(DatabaseUser $databaseUser): Response
@@ -122,14 +114,16 @@ class DatabaseUsers extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('database-users/%d', $databaseUser->getId()))
-            ->setBody($this->filterFields($databaseUser->toArray(), [
-                'name',
-                'host',
-                'password',
-                'server_software_name',
-                'cluster_id',
-                'id',
-            ]));
+            ->setBody(
+                $this->filterFields($databaseUser->toArray(), [
+                    'name',
+                    'host',
+                    'password',
+                    'server_software_name',
+                    'cluster_id',
+                    'id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -146,8 +140,6 @@ class DatabaseUsers extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response

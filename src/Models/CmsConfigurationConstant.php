@@ -2,17 +2,15 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\CmsConfigurationConstantName;
 use Cyberfusion\ClusterApi\Exceptions\ValidationException;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class CmsConfigurationConstant extends ClusterModel implements Model
+class CmsConfigurationConstant extends ClusterModel
 {
     private string $name;
-    /** @var mixed */
-    private $value;
+    private mixed $value;
 
     public function getName(): string
     {
@@ -31,19 +29,15 @@ class CmsConfigurationConstant extends ClusterModel implements Model
         return $this;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getValue()
+    public function getValue(): mixed
     {
         return $this->value;
     }
 
     /**
-     * @param mixed $value
      * @throws ValidationException
      */
-    public function setValue($value): self
+    public function setValue(mixed $value): self
     {
         Validator::value($value)
             ->maxLength(255)

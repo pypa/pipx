@@ -4,18 +4,8 @@ namespace Cyberfusion\ClusterApi\Support;
 
 class FilterEntry
 {
-    private string $field;
-    /** @var mixed */
-    private $value;
-
-    /**
-     * @param string $field
-     * @param mixed $value
-     */
-    public function __construct(string $field, $value)
+    public function __construct(private string $field, private mixed $value)
     {
-        $this->field = $field;
-        $this->value = $value;
     }
 
     public function getField(): string
@@ -29,18 +19,12 @@ class FilterEntry
         return $this;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getValue()
+    public function getValue(): mixed
     {
         return $this->value;
     }
 
-    /**
-     * @param mixed $value
-     */
-    public function setValue($value): self
+    public function setValue(mixed $value): self
     {
         $this->value = $value;
         return $this;

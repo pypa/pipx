@@ -13,23 +13,14 @@ class Request
     public const BODY_SCHEMA_JSON = 'json';
     public const BODY_SCHEMA_FORM = 'form';
 
-    private string $method;
-    private string $url;
-    private array $body;
     private string $bodySchema = self::BODY_SCHEMA_JSON;
     private bool $requiresAuthentication = true;
 
-    /**
-     * Request constructor.
-     * @param string $method
-     * @param string $url
-     * @param array $body
-     */
-    public function __construct(string $method = self::METHOD_GET, string $url = '', array $body = [])
-    {
-        $this->method = $method;
-        $this->url = $url;
-        $this->body = $body;
+    public function __construct(
+        private string $method = self::METHOD_GET,
+        private string $url = '',
+        private array $body = []
+    ) {
     }
 
     public function getMethod(): string

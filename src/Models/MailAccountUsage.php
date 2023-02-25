@@ -2,10 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 
-class MailAccountUsage extends ClusterModel implements Model
+class MailAccountUsage extends ClusterModel
 {
     private int $mailAccountId;
     private int $usage;

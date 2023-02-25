@@ -2,10 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 
-class DatabaseComparison extends ClusterModel implements Model
+class DatabaseComparison extends ClusterModel
 {
     private array $identicalTablesNames = [];
     private array $notIdenticalTablesNames = [];

@@ -14,7 +14,7 @@ class CertificateManagers extends Endpoint
     /**
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -33,9 +33,7 @@ class CertificateManagers extends Endpoint
 
         return $response->setData([
             'certificateManagers' => array_map(
-                function (array $data) {
-                    return (new CertificateManager())->fromArray($data);
-                },
+                fn(array $data) => (new CertificateManager())->fromArray($data),
                 $response->getData()
             ),
         ]);
@@ -76,12 +74,14 @@ class CertificateManagers extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('certificate-managers')
-            ->setBody($this->filterFields($certificateManager->toArray(), [
-                'common_names',
-                'provider_name',
-                'request_callback_url',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($certificateManager->toArray(), [
+                    'common_names',
+                    'provider_name',
+                    'request_callback_url',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -98,8 +98,6 @@ class CertificateManagers extends Endpoint
     }
 
     /**
-     * @param CertificateManager $certificateManager
-     * @return Response
      * @throws RequestException
      */
     public function update(CertificateManager $certificateManager): Response
@@ -118,16 +116,18 @@ class CertificateManagers extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('certificate-managers/%d', $certificateManager->getId()))
-            ->setBody($this->filterFields($certificateManager->toArray(), [
-                'common_names',
-                'provider_name',
-                'request_callback_url',
-                'last_request_task_collection_uuid',
-                'cluster_id',
-                'id',
-                'main_common_name',
-                'certificate_id',
-            ]));
+            ->setBody(
+                $this->filterFields($certificateManager->toArray(), [
+                    'common_names',
+                    'provider_name',
+                    'request_callback_url',
+                    'last_request_task_collection_uuid',
+                    'cluster_id',
+                    'id',
+                    'main_common_name',
+                    'certificate_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -158,8 +158,6 @@ class CertificateManagers extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function request(int $id): Response

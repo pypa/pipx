@@ -2,12 +2,11 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\TaskCollectionType;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class TaskCollection extends ClusterModel implements Model
+class TaskCollection extends ClusterModel
 {
     private string $uuid;
     private string $description;

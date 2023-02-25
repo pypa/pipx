@@ -14,11 +14,9 @@ use Cyberfusion\ClusterApi\Support\Str;
 class BorgRepositories extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -37,17 +35,13 @@ class BorgRepositories extends Endpoint
 
         return $response->setData([
             'borgRepositories' => array_map(
-                function (array $data) {
-                    return (new BorgRepository())->fromArray($data);
-                },
+                fn(array $data) => (new BorgRepository())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -69,8 +63,6 @@ class BorgRepositories extends Endpoint
     }
 
     /**
-     * @param BorgRepository $borgRepository
-     * @return Response
      * @throws RequestException
      */
     public function create(BorgRepository $borgRepository): Response
@@ -89,21 +81,23 @@ class BorgRepositories extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('borg-repositories')
-            ->setBody($this->filterFields($borgRepository->toArray(), [
-                'name',
-                'passphrase',
-                'keep_hourly',
-                'keep_daily',
-                'keep_weekly',
-                'keep_monthly',
-                'keep_yearly',
-                'remote_host',
-                'remote_path',
-                'remote_username',
-                'identity_file_path',
-                'unix_user_id',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($borgRepository->toArray(), [
+                    'name',
+                    'passphrase',
+                    'keep_hourly',
+                    'keep_daily',
+                    'keep_weekly',
+                    'keep_monthly',
+                    'keep_yearly',
+                    'remote_host',
+                    'remote_path',
+                    'remote_username',
+                    'identity_file_path',
+                    'unix_user_id',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -120,8 +114,6 @@ class BorgRepositories extends Endpoint
     }
 
     /**
-     * @param BorgRepository $borgRepository
-     * @return Response
      * @throws RequestException
      */
     public function update(BorgRepository $borgRepository): Response
@@ -141,22 +133,24 @@ class BorgRepositories extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('borg-repositories/%d', $borgRepository->getId()))
-            ->setBody($this->filterFields($borgRepository->toArray(), [
-                'name',
-                'passphrase',
-                'keep_hourly',
-                'keep_daily',
-                'keep_weekly',
-                'keep_monthly',
-                'keep_yearly',
-                'remote_host',
-                'remote_path',
-                'remote_username',
-                'identity_file_path',
-                'unix_user_id',
-                'id',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($borgRepository->toArray(), [
+                    'name',
+                    'passphrase',
+                    'keep_hourly',
+                    'keep_daily',
+                    'keep_weekly',
+                    'keep_monthly',
+                    'keep_yearly',
+                    'remote_host',
+                    'remote_path',
+                    'remote_username',
+                    'identity_file_path',
+                    'unix_user_id',
+                    'id',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -173,8 +167,6 @@ class BorgRepositories extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response
@@ -189,12 +181,9 @@ class BorgRepositories extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param string|null $callbackUrl
-     * @return Response
      * @throws RequestException
      */
-    public function prune(int $id, string $callbackUrl = null): Response
+    public function prune(int $id, ?string $callbackUrl = null): Response
     {
         $url = Str::optionalQueryParameters(
             sprintf('borg-repositories/%d/prune', $id),
@@ -220,12 +209,9 @@ class BorgRepositories extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param string|null $callbackUrl
-     * @return Response
      * @throws RequestException
      */
-    public function check(int $id, string $callbackUrl = null): Response
+    public function check(int $id, ?string $callbackUrl = null): Response
     {
         $url = Str::optionalQueryParameters(
             sprintf('borg-repositories/%d/check', $id),
@@ -251,8 +237,6 @@ class BorgRepositories extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function archivesMetadata(int $id): Response
@@ -270,9 +254,7 @@ class BorgRepositories extends Endpoint
 
         return $response->setData([
             'metadata' => array_map(
-                function (array $data) {
-                    return (new BorgArchiveMetadata())->fromArray($data);
-                },
+                fn(array $data) => (new BorgArchiveMetadata())->fromArray($data),
                 $response->getData()
             ),
         ]);

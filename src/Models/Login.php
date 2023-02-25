@@ -2,9 +2,7 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
-
-class Login extends ClusterModel implements Model
+class Login extends ClusterModel
 {
     private ?string $grantType = null;
     private string $username;

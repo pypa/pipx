@@ -2,12 +2,11 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\DatabaseEngine;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class Database extends ClusterModel implements Model
+class Database extends ClusterModel
 {
     private string $name;
     private string $serverSoftwareName = DatabaseEngine::SERVER_SOFTWARE_MARIADB;
@@ -101,11 +100,13 @@ class Database extends ClusterModel implements Model
     {
         return $this
             ->setName(Arr::get($data, 'name'))
-            ->setServerSoftwareName(Arr::get(
-                $data,
-                'server_software_name',
-                DatabaseEngine::SERVER_SOFTWARE_MARIADB
-            ))
+            ->setServerSoftwareName(
+                Arr::get(
+                    $data,
+                    'server_software_name',
+                    DatabaseEngine::SERVER_SOFTWARE_MARIADB
+                )
+            )
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))

@@ -2,14 +2,13 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\AllowOverrideDirectives;
 use Cyberfusion\ClusterApi\Enums\AllowOverrideOptionDirectives;
 use Cyberfusion\ClusterApi\Enums\VirtualHostServerSoftwareName;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class VirtualHost extends ClusterModel implements Model
+class VirtualHost extends ClusterModel
 {
     private string $domain;
     private array $serverAliases = [];

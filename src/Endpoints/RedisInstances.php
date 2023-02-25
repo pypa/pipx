@@ -11,11 +11,9 @@ use Cyberfusion\ClusterApi\Support\ListFilter;
 class RedisInstances extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -34,17 +32,13 @@ class RedisInstances extends Endpoint
 
         return $response->setData([
             'redisInstances' => array_map(
-                function (array $data) {
-                    return (new RedisInstance())->fromArray($data);
-                },
+                fn(array $data) => (new RedisInstance())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -66,8 +60,6 @@ class RedisInstances extends Endpoint
     }
 
     /**
-     * @param RedisInstance $redisInstance
-     * @return Response
      * @throws RequestException
      */
     public function create(RedisInstance $redisInstance): Response
@@ -82,14 +74,16 @@ class RedisInstances extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('redis-instances')
-            ->setBody($this->filterFields($redisInstance->toArray(), [
-                'name',
-                'password',
-                'memory_limit',
-                'max_databases',
-                'primary_node_id',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($redisInstance->toArray(), [
+                    'name',
+                    'password',
+                    'memory_limit',
+                    'max_databases',
+                    'primary_node_id',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -106,8 +100,6 @@ class RedisInstances extends Endpoint
     }
 
     /**
-     * @param RedisInstance $redisInstance
-     * @return Response
      * @throws RequestException
      */
     public function update(RedisInstance $redisInstance): Response
@@ -125,17 +117,19 @@ class RedisInstances extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('redis-instances/%d', $redisInstance->getId()))
-            ->setBody($this->filterFields($redisInstance->toArray(), [
-                'name',
-                'password',
-                'max_databases',
-                'memory_limit',
-                'primary_node_id',
-                'cluster_id',
-                'id',
-                'port',
-                'unit_name',
-            ]));
+            ->setBody(
+                $this->filterFields($redisInstance->toArray(), [
+                    'name',
+                    'password',
+                    'max_databases',
+                    'memory_limit',
+                    'primary_node_id',
+                    'cluster_id',
+                    'id',
+                    'port',
+                    'unit_name',
+                ])
+            );
 
         $response = $this
             ->client

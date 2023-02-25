@@ -13,7 +13,7 @@ class Certificates extends Endpoint
     /**
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -32,9 +32,7 @@ class Certificates extends Endpoint
 
         return $response->setData([
             'certificates' => array_map(
-                function (array $data) {
-                    return (new Certificate())->fromArray($data);
-                },
+                fn(array $data) => (new Certificate())->fromArray($data),
                 $response->getData()
             ),
         ]);
@@ -76,12 +74,14 @@ class Certificates extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('certificates')
-            ->setBody($this->filterFields($certificate->toArray(), [
-                'certificate',
-                'ca_chain',
-                'private_key',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($certificate->toArray(), [
+                    'certificate',
+                    'ca_chain',
+                    'private_key',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client

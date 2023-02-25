@@ -19,21 +19,14 @@ class Client implements ClientContract
     private const TIMEOUT = 180;
     private const VERSION = '1.90.0';
     private const USER_AGENT = 'cyberfusion-cluster-api-client/' . self::VERSION;
-
-    private Configuration $configuration;
     private GuzzleClient $httpClient;
 
     /**
-     * Client constructor.
-     * @param Configuration $configuration
-     * @param bool $manuallyAuthenticate
      * @throws ClientException
      * @throws ClusterApiException
      */
-    public function __construct(Configuration $configuration, bool $manuallyAuthenticate = false)
+    public function __construct(private Configuration $configuration, bool $manuallyAuthenticate = false)
     {
-        $this->configuration = $configuration;
-
         // Initialize the HTTP client
         $this->initHttpClient();
 
@@ -70,8 +63,6 @@ class Client implements ClientContract
 
     /**
      * Determines if the API is up.
-     *
-     * @return bool
      */
     private function isUp(): bool
     {
@@ -79,7 +70,7 @@ class Client implements ClientContract
         $healthEndpoint = new Health($this);
         try {
             $response = $healthEndpoint->get();
-        } catch (RequestException $exception) {
+        } catch (RequestException) {
             return false;
         }
 
@@ -127,7 +118,6 @@ class Client implements ClientContract
     /**
      * Determine if the current access token is valid.
      *
-     * @return bool
      * @throws RequestException
      */
     private function validateAccessToken(): bool
@@ -147,7 +137,6 @@ class Client implements ClientContract
     /**
      * Retrieve the access token with the credentials. Returns null when no access token could be retrieved.
      *
-     * @return string|null
      * @throws RequestException
      */
     private function retrieveAccessToken(): ?string
@@ -172,8 +161,6 @@ class Client implements ClientContract
 
     /**
      * Store the access token in the configuration.
-     *
-     * @param string $accessToken
      */
     private function storeAccessToken(string $accessToken): void
     {
@@ -204,9 +191,6 @@ class Client implements ClientContract
 
     /**
      * Determine the request options based on the request and configuration.
-     *
-     * @param Request $request
-     * @return array
      */
     private function getRequestOptions(Request $request): array
     {
@@ -227,9 +211,6 @@ class Client implements ClientContract
 
     /**
      * Parse the body to error models when applicable.
-     *
-     * @param ResponseInterface $response
-     * @return array
      */
     private function parseBody(ResponseInterface $response): array
     {

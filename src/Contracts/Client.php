@@ -11,8 +11,6 @@ interface Client
     /**
      * Performs the request.
      *
-     * @param Request $request
-     * @return Response
      * @throws RequestException
      */
     public function request(Request $request): Response;

@@ -11,11 +11,9 @@ use Cyberfusion\ClusterApi\Support\ListFilter;
 class HtpasswdUsers extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -34,17 +32,13 @@ class HtpasswdUsers extends Endpoint
 
         return $response->setData([
             'htpasswdUsers' => array_map(
-                function (array $data) {
-                    return (new HtpasswdUser())->fromArray($data);
-                },
+                fn(array $data) => (new HtpasswdUser())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -66,8 +60,6 @@ class HtpasswdUsers extends Endpoint
     }
 
     /**
-     * @param HtpasswdUser $htpasswdUser
-     * @return Response
      * @throws RequestException
      */
     public function create(HtpasswdUser $htpasswdUser): Response
@@ -81,11 +73,13 @@ class HtpasswdUsers extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('htpasswd-users')
-            ->setBody($this->filterFields($htpasswdUser->toArray(), [
-                'username',
-                'password',
-                'htpasswd_file_id',
-            ]));
+            ->setBody(
+                $this->filterFields($htpasswdUser->toArray(), [
+                    'username',
+                    'password',
+                    'htpasswd_file_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -102,8 +96,6 @@ class HtpasswdUsers extends Endpoint
     }
 
     /**
-     * @param HtpasswdUser $htpasswdUser
-     * @return Response
      * @throws RequestException
      */
     public function update(HtpasswdUser $htpasswdUser): Response
@@ -119,13 +111,15 @@ class HtpasswdUsers extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('htpasswd-users/%d', $htpasswdUser->getId()))
-            ->setBody($this->filterFields($htpasswdUser->toArray(), [
-                'username',
-                'password',
-                'htpasswd_file_id',
-                'id',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($htpasswdUser->toArray(), [
+                    'username',
+                    'password',
+                    'htpasswd_file_id',
+                    'id',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -142,8 +136,6 @@ class HtpasswdUsers extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response

@@ -2,11 +2,10 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class FpmPool extends ClusterModel implements Model
+class FpmPool extends ClusterModel
 {
     private string $name;
     private int $unixUserId;

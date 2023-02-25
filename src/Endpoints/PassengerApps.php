@@ -13,11 +13,9 @@ use Cyberfusion\ClusterApi\Support\Str;
 class PassengerApps extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -36,17 +34,13 @@ class PassengerApps extends Endpoint
 
         return $response->setData([
             'passengerApps' => array_map(
-                function (array $data) {
-                    return (new PassengerApp())->fromArray($data);
-                },
+                fn(array $data) => (new PassengerApp())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -68,8 +62,6 @@ class PassengerApps extends Endpoint
     }
 
     /**
-     * @param PassengerApp $passengerApp
-     * @return Response
      * @throws RequestException
      */
     public function createNodejs(PassengerApp $passengerApp): Response
@@ -85,20 +77,22 @@ class PassengerApps extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('passenger-apps/nodejs')
-            ->setBody($this->filterFields($passengerApp->toArray(), [
-                'name',
-                'unix_user_id',
-                'environment',
-                'environment_variables',
-                'max_pool_size',
-                'max_requests',
-                'pool_idle_time',
-                'nodejs_version',
-                'startup_file',
-                'is_namespaced',
-                'cpu_limit',
-                'app_root',
-            ]));
+            ->setBody(
+                $this->filterFields($passengerApp->toArray(), [
+                    'name',
+                    'unix_user_id',
+                    'environment',
+                    'environment_variables',
+                    'max_pool_size',
+                    'max_requests',
+                    'pool_idle_time',
+                    'nodejs_version',
+                    'startup_file',
+                    'is_namespaced',
+                    'cpu_limit',
+                    'app_root',
+                ])
+            );
 
         $response = $this
             ->client
@@ -115,8 +109,6 @@ class PassengerApps extends Endpoint
     }
 
     /**
-     * @param PassengerApp $passengerApp
-     * @return Response
      * @throws RequestException
      */
     public function update(PassengerApp $passengerApp): Response
@@ -136,25 +128,27 @@ class PassengerApps extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('passenger-apps/%d', $passengerApp->getId()))
-            ->setBody($this->filterFields($passengerApp->toArray(), [
-                'name',
-                'unix_user_id',
-                'environment',
-                'environment_variables',
-                'max_pool_size',
-                'max_requests',
-                'pool_idle_time',
-                'id',
-                'cluster_id',
-                'port',
-                'app_type',
-                'nodejs_version',
-                'startup_file',
-                'unit_name',
-                'is_namespaced',
-                'cpu_limit',
-                'app_root',
-            ]));
+            ->setBody(
+                $this->filterFields($passengerApp->toArray(), [
+                    'name',
+                    'unix_user_id',
+                    'environment',
+                    'environment_variables',
+                    'max_pool_size',
+                    'max_requests',
+                    'pool_idle_time',
+                    'id',
+                    'cluster_id',
+                    'port',
+                    'app_type',
+                    'nodejs_version',
+                    'startup_file',
+                    'unit_name',
+                    'is_namespaced',
+                    'cpu_limit',
+                    'app_root',
+                ])
+            );
 
         $response = $this
             ->client
@@ -171,8 +165,6 @@ class PassengerApps extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response
@@ -187,12 +179,9 @@ class PassengerApps extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param string|null $callbackUrl
-     * @return Response
      * @throws RequestException
      */
-    public function restart(int $id, string $callbackUrl = null): Response
+    public function restart(int $id, ?string $callbackUrl = null): Response
     {
         $url = Str::optionalQueryParameters(
             sprintf('passenger-apps/%d/restart', $id),

@@ -3,168 +3,196 @@
 namespace Cyberfusion\ClusterApi;
 
 use Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
+use Cyberfusion\ClusterApi\Endpoints\Authentication;
+use Cyberfusion\ClusterApi\Endpoints\BasicAuthenticationRealms;
+use Cyberfusion\ClusterApi\Endpoints\BorgArchives;
+use Cyberfusion\ClusterApi\Endpoints\BorgRepositories;
+use Cyberfusion\ClusterApi\Endpoints\CertificateManagers;
+use Cyberfusion\ClusterApi\Endpoints\Certificates;
+use Cyberfusion\ClusterApi\Endpoints\Clusters;
+use Cyberfusion\ClusterApi\Endpoints\Cmses;
+use Cyberfusion\ClusterApi\Endpoints\Crons;
+use Cyberfusion\ClusterApi\Endpoints\Databases;
+use Cyberfusion\ClusterApi\Endpoints\DatabaseUserGrants;
+use Cyberfusion\ClusterApi\Endpoints\DatabaseUsers;
+use Cyberfusion\ClusterApi\Endpoints\DomainRouters;
+use Cyberfusion\ClusterApi\Endpoints\FpmPools;
+use Cyberfusion\ClusterApi\Endpoints\Health;
+use Cyberfusion\ClusterApi\Endpoints\HtpasswdFiles;
+use Cyberfusion\ClusterApi\Endpoints\HtpasswdUsers;
+use Cyberfusion\ClusterApi\Endpoints\Logs;
+use Cyberfusion\ClusterApi\Endpoints\MailAccounts;
+use Cyberfusion\ClusterApi\Endpoints\MailAliases;
+use Cyberfusion\ClusterApi\Endpoints\MailDomains;
+use Cyberfusion\ClusterApi\Endpoints\Malwares;
+use Cyberfusion\ClusterApi\Endpoints\Nodes;
+use Cyberfusion\ClusterApi\Endpoints\PassengerApps;
+use Cyberfusion\ClusterApi\Endpoints\RedisInstances;
+use Cyberfusion\ClusterApi\Endpoints\RootSshKeys;
+use Cyberfusion\ClusterApi\Endpoints\SshKeys;
+use Cyberfusion\ClusterApi\Endpoints\TaskCollections;
+use Cyberfusion\ClusterApi\Endpoints\UnixUsers;
+use Cyberfusion\ClusterApi\Endpoints\UrlRedirects;
+use Cyberfusion\ClusterApi\Endpoints\VirtualHosts;
 
 class ClusterApi
 {
-    private ClientContract $client;
-
-    public function __construct(ClientContract $client)
+    public function __construct(private ClientContract $client)
     {
-        $this->client = $client;
     }
 
-    public function authentication(): Endpoints\Authentication
+    public function authentication(): Authentication
     {
-        return new Endpoints\Authentication($this->client);
+        return new Authentication($this->client);
     }
 
-    public function borgArchives(): Endpoints\BorgArchives
+    public function borgArchives(): BorgArchives
     {
-        return new Endpoints\BorgArchives($this->client);
+        return new BorgArchives($this->client);
     }
 
-    public function borgRepositories(): Endpoints\BorgRepositories
+    public function borgRepositories(): BorgRepositories
     {
-        return new Endpoints\BorgRepositories($this->client);
+        return new BorgRepositories($this->client);
     }
 
-    public function certificates(): Endpoints\Certificates
+    public function certificates(): Certificates
     {
-        return new Endpoints\Certificates($this->client);
+        return new Certificates($this->client);
     }
 
-    public function certificateManagers(): Endpoints\CertificateManagers
+    public function certificateManagers(): CertificateManagers
     {
-        return new Endpoints\CertificateManagers($this->client);
+        return new CertificateManagers($this->client);
     }
 
-    public function clusters(): Endpoints\Clusters
+    public function clusters(): Clusters
     {
-        return new Endpoints\Clusters($this->client);
+        return new Clusters($this->client);
     }
 
-    public function cmses(): Endpoints\Cmses
+    public function cmses(): Cmses
     {
-        return new Endpoints\Cmses($this->client);
+        return new Cmses($this->client);
     }
 
-    public function crons(): Endpoints\Crons
+    public function crons(): Crons
     {
-        return new Endpoints\Crons($this->client);
+        return new Crons($this->client);
     }
 
-    public function basicAuthenticationRealms(): Endpoints\BasicAuthenticationRealms
+    public function basicAuthenticationRealms(): BasicAuthenticationRealms
     {
-        return new Endpoints\BasicAuthenticationRealms($this->client);
+        return new BasicAuthenticationRealms($this->client);
     }
 
-    public function databases(): Endpoints\Databases
+    public function databases(): Databases
     {
-        return new Endpoints\Databases($this->client);
+        return new Databases($this->client);
     }
 
-    public function databaseUsers(): Endpoints\DatabaseUsers
+    public function databaseUsers(): DatabaseUsers
     {
-        return new Endpoints\DatabaseUsers($this->client);
+        return new DatabaseUsers($this->client);
     }
 
-    public function databaseUserGrants(): Endpoints\DatabaseUserGrants
+    public function databaseUserGrants(): DatabaseUserGrants
     {
-        return new Endpoints\DatabaseUserGrants($this->client);
+        return new DatabaseUserGrants($this->client);
     }
 
-    public function fpmPools(): Endpoints\FpmPools
+    public function fpmPools(): FpmPools
     {
-        return new Endpoints\FpmPools($this->client);
+        return new FpmPools($this->client);
     }
 
-    public function htpasswdFiles(): Endpoints\HtpasswdFiles
+    public function htpasswdFiles(): HtpasswdFiles
     {
-        return new Endpoints\HtpasswdFiles($this->client);
+        return new HtpasswdFiles($this->client);
     }
 
-    public function htpasswdUsers(): Endpoints\HtpasswdUsers
+    public function htpasswdUsers(): HtpasswdUsers
     {
-        return new Endpoints\HtpasswdUsers($this->client);
+        return new HtpasswdUsers($this->client);
     }
 
-    public function health(): Endpoints\Health
+    public function health(): Health
     {
-        return new Endpoints\Health($this->client);
+        return new Health($this->client);
     }
 
-    public function logs(): Endpoints\Logs
+    public function logs(): Logs
     {
-        return new Endpoints\Logs($this->client);
+        return new Logs($this->client);
     }
 
-    public function mailAccounts(): Endpoints\MailAccounts
+    public function mailAccounts(): MailAccounts
     {
-        return new Endpoints\MailAccounts($this->client);
+        return new MailAccounts($this->client);
     }
 
-    public function mailAliases(): Endpoints\MailAliases
+    public function mailAliases(): MailAliases
     {
-        return new Endpoints\MailAliases($this->client);
+        return new MailAliases($this->client);
     }
 
-    public function mailDomains(): Endpoints\MailDomains
+    public function mailDomains(): MailDomains
     {
-        return new Endpoints\MailDomains($this->client);
+        return new MailDomains($this->client);
     }
 
-    public function malwares(): Endpoints\Malwares
+    public function malwares(): Malwares
     {
-        return new Endpoints\Malwares($this->client);
+        return new Malwares($this->client);
     }
 
-    public function nodes(): Endpoints\Nodes
+    public function nodes(): Nodes
     {
-        return new Endpoints\Nodes($this->client);
+        return new Nodes($this->client);
     }
 
-    public function passengerApps(): Endpoints\PassengerApps
+    public function passengerApps(): PassengerApps
     {
-        return new Endpoints\PassengerApps($this->client);
+        return new PassengerApps($this->client);
     }
 
-    public function redisInstances(): Endpoints\RedisInstances
+    public function redisInstances(): RedisInstances
     {
-        return new Endpoints\RedisInstances($this->client);
+        return new RedisInstances($this->client);
     }
 
-    public function sshKeys(): Endpoints\SshKeys
+    public function sshKeys(): SshKeys
     {
-        return new Endpoints\SshKeys($this->client);
+        return new SshKeys($this->client);
     }
 
-    public function rootSshKeys(): Endpoints\RootSshKeys
+    public function rootSshKeys(): RootSshKeys
     {
-        return new Endpoints\RootSshKeys($this->client);
+        return new RootSshKeys($this->client);
     }
 
-    public function taskCollections(): Endpoints\TaskCollections
+    public function taskCollections(): TaskCollections
     {
-        return new Endpoints\TaskCollections($this->client);
+        return new TaskCollections($this->client);
     }
 
-    public function unixUsers(): Endpoints\UnixUsers
+    public function unixUsers(): UnixUsers
     {
-        return new Endpoints\UnixUsers($this->client);
+        return new UnixUsers($this->client);
     }
 
-    public function urlRedirects(): Endpoints\UrlRedirects
+    public function urlRedirects(): UrlRedirects
     {
-        return new Endpoints\UrlRedirects($this->client);
+        return new UrlRedirects($this->client);
     }
 
-    public function domainRouters(): Endpoints\DomainRouters
+    public function domainRouters(): DomainRouters
     {
-        return new Endpoints\DomainRouters($this->client);
+        return new DomainRouters($this->client);
     }
 
-    public function virtualHosts(): Endpoints\VirtualHosts
+    public function virtualHosts(): VirtualHosts
     {
-        return new Endpoints\VirtualHosts($this->client);
+        return new VirtualHosts($this->client);
     }
 }

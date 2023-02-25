@@ -17,11 +17,9 @@ use Cyberfusion\ClusterApi\Support\Str;
 class BorgArchives extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -40,17 +38,13 @@ class BorgArchives extends Endpoint
 
         return $response->setData([
             'borgArchives' => array_map(
-                function (array $data) {
-                    return (new BorgArchive())->fromArray($data);
-                },
+                fn(array $data) => (new BorgArchive())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -72,13 +66,12 @@ class BorgArchives extends Endpoint
     }
 
     /**
-     * @param BorgArchiveDatabaseCreation $borgArchiveDatabaseCreation
-     * @param string|null $callbackUrl
-     * @return Response
      * @throws RequestException
      */
-    public function createDatabase(BorgArchiveDatabaseCreation $borgArchiveDatabaseCreation, string $callbackUrl = null): Response
-    {
+    public function createDatabase(
+        BorgArchiveDatabaseCreation $borgArchiveDatabaseCreation,
+        ?string $callbackUrl = null
+    ): Response {
         $this->validateRequired($borgArchiveDatabaseCreation, 'create', [
             'name',
             'borg_repository_id',
@@ -93,11 +86,13 @@ class BorgArchives extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl($url)
-            ->setBody($this->filterFields($borgArchiveDatabaseCreation->toArray(), [
-                'name',
-                'borg_repository_id',
-                'database_id',
-            ]));
+            ->setBody(
+                $this->filterFields($borgArchiveDatabaseCreation->toArray(), [
+                    'name',
+                    'borg_repository_id',
+                    'database_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -114,13 +109,12 @@ class BorgArchives extends Endpoint
     }
 
     /**
-     * @param BorgArchiveUnixUserCreation $borgArchiveUnixUserCreation
-     * @param string|null $callbackUrl
-     * @return Response
      * @throws RequestException
      */
-    public function createUnixUser(BorgArchiveUnixUserCreation $borgArchiveUnixUserCreation, string $callbackUrl = null): Response
-    {
+    public function createUnixUser(
+        BorgArchiveUnixUserCreation $borgArchiveUnixUserCreation,
+        ?string $callbackUrl = null
+    ): Response {
         $this->validateRequired($borgArchiveUnixUserCreation, 'create', [
             'name',
             'borg_repository_id',
@@ -135,11 +129,13 @@ class BorgArchives extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl($url)
-            ->setBody($this->filterFields($borgArchiveUnixUserCreation->toArray(), [
-                'name',
-                'borg_repository_id',
-                'unix_user_id',
-            ]));
+            ->setBody(
+                $this->filterFields($borgArchiveUnixUserCreation->toArray(), [
+                    'name',
+                    'borg_repository_id',
+                    'unix_user_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -156,8 +152,6 @@ class BorgArchives extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function metadata(int $id): Response
@@ -179,13 +173,9 @@ class BorgArchives extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param string|null $path
-     * @param string|null $callbackUrl
-     * @return Response
      * @throws RequestException
      */
-    public function restore(int $id, string $path = null, string $callbackUrl = null): Response
+    public function restore(int $id, ?string $path = null, ?string $callbackUrl = null): Response
     {
         $url = Str::optionalQueryParameters(
             sprintf('borg-archives/%d/restore', $id),
@@ -211,13 +201,9 @@ class BorgArchives extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param string|null $path
-     * @param string|null $callbackUrl
-     * @return Response
      * @throws RequestException
      */
-    public function download(int $id, string $path = null, string $callbackUrl = null): Response
+    public function download(int $id, ?string $path = null, ?string $callbackUrl = null): Response
     {
         $url = Str::optionalQueryParameters(
             sprintf('borg-archives/%d/download', $id),
@@ -243,12 +229,9 @@ class BorgArchives extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param string|null $path
-     * @return Response
      * @throws RequestException
      */
-    public function contents(int $id, string $path = null): Response
+    public function contents(int $id, ?string $path = null): Response
     {
         $url = Str::optionalQueryParameters(
             sprintf('borg-archives/%d/contents', $id),
@@ -268,9 +251,7 @@ class BorgArchives extends Endpoint
 
         return $response->setData([
             'contents' => array_map(
-                function (array $data) {
-                    return (new BorgArchiveContent())->fromArray($data);
-                },
+                fn(array $data) => (new BorgArchiveContent())->fromArray($data),
                 $response->getData()
             ),
         ]);

@@ -2,11 +2,10 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class UnixUserComparison extends ClusterModel implements Model
+class UnixUserComparison extends ClusterModel
 {
     private array $notIdenticalPaths = [];
     private array $onlyLeftFilesPaths = [];

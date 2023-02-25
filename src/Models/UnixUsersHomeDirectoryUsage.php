@@ -2,10 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 
-class UnixUsersHomeDirectoryUsage extends ClusterModel implements Model
+class UnixUsersHomeDirectoryUsage extends ClusterModel
 {
     private int $clusterId;
     private int $usage;

@@ -17,11 +17,9 @@ use Cyberfusion\ClusterApi\Support\Str;
 class Cmses extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -40,17 +38,13 @@ class Cmses extends Endpoint
 
         return $response->setData([
             'cmses' => array_map(
-                function (array $data) {
-                    return (new Cms())->fromArray($data);
-                },
+                fn(array $data) => (new Cms())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -72,8 +66,6 @@ class Cmses extends Endpoint
     }
 
     /**
-     * @param Cms $cms
-     * @return Response
      * @throws RequestException
      */
     public function create(Cms $cms): Response
@@ -86,11 +78,13 @@ class Cmses extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('cmses')
-            ->setBody($this->filterFields($cms->toArray(), [
-                'software_name',
-                'is_manually_created',
-                'virtual_host_id',
-            ]));
+            ->setBody(
+                $this->filterFields($cms->toArray(), [
+                    'software_name',
+                    'is_manually_created',
+                    'virtual_host_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -107,8 +101,6 @@ class Cmses extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response
@@ -123,13 +115,9 @@ class Cmses extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param CmsInstallation $cmsInstallation
-     * @param string|null $callbackUrl
-     * @return Response
      * @throws RequestException
      */
-    public function install(int $id, CmsInstallation $cmsInstallation, string $callbackUrl = null): Response
+    public function install(int $id, CmsInstallation $cmsInstallation, ?string $callbackUrl = null): Response
     {
         $this->validateRequired($cmsInstallation, 'create', [
             'database_name',
@@ -153,19 +141,21 @@ class Cmses extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl($url)
-            ->setBody($this->filterFields($cmsInstallation->toArray(), [
-                'database_name',
-                'database_user_name',
-                'database_user_password',
-                'database_host',
-                'site_title',
-                'site_url',
-                'locale',
-                'version',
-                'admin_username',
-                'admin_password',
-                'admin_email_address',
-            ]));
+            ->setBody(
+                $this->filterFields($cmsInstallation->toArray(), [
+                    'database_name',
+                    'database_user_name',
+                    'database_user_password',
+                    'database_host',
+                    'site_title',
+                    'site_url',
+                    'locale',
+                    'version',
+                    'admin_username',
+                    'admin_password',
+                    'admin_email_address',
+                ])
+            );
 
         $response = $this
             ->client
@@ -182,8 +172,6 @@ class Cmses extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function oneTimeLogin(int $id): Response
@@ -205,9 +193,6 @@ class Cmses extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param CmsOption $cmsOption
-     * @return Response
      * @throws RequestException
      */
     public function updateOption(int $id, CmsOption $cmsOption): Response
@@ -220,10 +205,12 @@ class Cmses extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('cmses/%d/options/%d', $id, $cmsOption->getName()))
-            ->setBody($this->filterFields($cmsOption->toArray(), [
-                'name',
-                'value',
-            ]));
+            ->setBody(
+                $this->filterFields($cmsOption->toArray(), [
+                    'name',
+                    'value',
+                ])
+            );
 
         $response = $this
             ->client
@@ -240,9 +227,6 @@ class Cmses extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param CmsConfigurationConstant $cmsConfigurationConstant
-     * @return Response
      * @throws RequestException
      */
     public function updateConfigurationConstant(int $id, CmsConfigurationConstant $cmsConfigurationConstant): Response
@@ -255,10 +239,12 @@ class Cmses extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('cmses/%d/configuration-constants/%d', $id, $cmsConfigurationConstant->getName()))
-            ->setBody($this->filterFields($cmsConfigurationConstant->toArray(), [
-                'name',
-                'value',
-            ]));
+            ->setBody(
+                $this->filterFields($cmsConfigurationConstant->toArray(), [
+                    'name',
+                    'value',
+                ])
+            );
 
         $response = $this
             ->client
@@ -275,15 +261,14 @@ class Cmses extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param string $searchString
-     * @param string $replaceString
-     * @param string|null $callbackUrl
-     * @return Response
      * @throws RequestException
      */
-    public function searchReplace(int $id, string $searchString, string $replaceString, string $callbackUrl = null): Response
-    {
+    public function searchReplace(
+        int $id,
+        string $searchString,
+        string $replaceString,
+        ?string $callbackUrl = null
+    ): Response {
         $url = Str::optionalQueryParameters(
             sprintf(
                 'cmses/%d/search-replace?search_string=%d&replace_string=%d',
@@ -313,8 +298,6 @@ class Cmses extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response|null
      * @throws RequestException
      */
     public function regenerateSalts(int $id): ?Response
@@ -334,13 +317,9 @@ class Cmses extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param string $name
-     * @param string|null $version
-     * @return Response|null
      * @throws RequestException
      */
-    public function installThemeFromRepository(int $id, string $name, string $version = null): ?Response
+    public function installThemeFromRepository(int $id, string $name, ?string $version = null): ?Response
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
@@ -361,9 +340,6 @@ class Cmses extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param string $url
-     * @return Response|null
      * @throws RequestException
      */
     public function installThemeFromUrl(int $id, string $url): ?Response
@@ -386,10 +362,6 @@ class Cmses extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param int $userId
-     * @param CmsUserCredentials $cmsUserCredentials
-     * @return Response|null
      * @throws RequestException
      */
     public function updateUserCredentials(int $id, int $userId, CmsUserCredentials $cmsUserCredentials): ?Response
@@ -401,9 +373,11 @@ class Cmses extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PATCH)
             ->setUrl(sprintf('cmses/%d/users/%d/credentials', $id, $userId))
-            ->setBody($this->filterFields($cmsUserCredentials->toArray(), [
-                'password',
-            ]));
+            ->setBody(
+                $this->filterFields($cmsUserCredentials->toArray(), [
+                    'password',
+                ])
+            );
 
         $response = $this
             ->client
