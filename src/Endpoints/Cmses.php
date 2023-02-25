@@ -176,17 +176,8 @@ class Cmses extends Endpoint
 
         $taskCollection = (new TaskCollection())->fromArray($response->getData());
 
-        // Retrieve the CMS again, so we can return the CMS object
-        $retrieveResponse = $this->get($id);
-        if (!$retrieveResponse->isSuccess()) {
-            return $retrieveResponse;
-        }
-
-        $cms = $retrieveResponse->getData('cms');
-
         return $response->setData([
             'taskCollection' => $taskCollection,
-            'cms' => $cms,
         ]);
     }
 
@@ -243,17 +234,8 @@ class Cmses extends Endpoint
 
         $cmsOption = (new CmsOption())->fromArray($response->getData());
 
-        // Retrieve the CMS again, so we can return the CMS object
-        $retrieveResponse = $this->get($id);
-        if (!$retrieveResponse->isSuccess()) {
-            return $retrieveResponse;
-        }
-
-        $cms = $retrieveResponse->getData('cms');
-
         return $response->setData([
             'cmsOption' => $cmsOption,
-            'cms' => $cms,
         ]);
     }
 
@@ -287,17 +269,8 @@ class Cmses extends Endpoint
 
         $cmsConfigurationConstant = (new CmsConfigurationConstant())->fromArray($response->getData());
 
-        // Retrieve the CMS again, so we can return the CMS object
-        $retrieveResponse = $this->get($id);
-        if (!$retrieveResponse->isSuccess()) {
-            return $retrieveResponse;
-        }
-
-        $cms = $retrieveResponse->getData('cms');
-
         return $response->setData([
             'cmsConfigurationConstant' => $cmsConfigurationConstant,
-            'cms' => $cms,
         ]);
     }
 
@@ -341,10 +314,10 @@ class Cmses extends Endpoint
 
     /**
      * @param int $id
-     * @return Response
+     * @return Response|null
      * @throws RequestException
      */
-    public function regenerateSalts(int $id): Response
+    public function regenerateSalts(int $id): ?Response
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
@@ -357,27 +330,17 @@ class Cmses extends Endpoint
             return $response;
         }
 
-        // Retrieve the CMS again, so we can return the CMS object
-        $retrieveResponse = $this->get($id);
-        if (!$retrieveResponse->isSuccess()) {
-            return $retrieveResponse;
-        }
-
-        $cms = $retrieveResponse->getData('cms');
-
-        return $response->setData([
-            'cms' => $cms,
-        ]);
+        return null;
     }
 
     /**
      * @param int $id
      * @param string $name
      * @param string|null $version
-     * @return Response
+     * @return Response|null
      * @throws RequestException
      */
-    public function installThemeFromRepository(int $id, string $name, string $version = null): Response
+    public function installThemeFromRepository(int $id, string $name, string $version = null): ?Response
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
@@ -394,26 +357,16 @@ class Cmses extends Endpoint
             return $response;
         }
 
-        // Retrieve the CMS again, so we can return the CMS object
-        $retrieveResponse = $this->get($id);
-        if (!$retrieveResponse->isSuccess()) {
-            return $retrieveResponse;
-        }
-
-        $cms = $retrieveResponse->getData('cms');
-
-        return $response->setData([
-            'cms' => $cms,
-        ]);
+        return null;
     }
 
     /**
      * @param int $id
      * @param string $url
-     * @return Response
+     * @return Response|null
      * @throws RequestException
      */
-    public function installThemeFromUrl(int $id, string $url): Response
+    public function installThemeFromUrl(int $id, string $url): ?Response
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
@@ -429,27 +382,17 @@ class Cmses extends Endpoint
             return $response;
         }
 
-        // Retrieve the CMS again, so we can return the CMS object
-        $retrieveResponse = $this->get($id);
-        if (!$retrieveResponse->isSuccess()) {
-            return $retrieveResponse;
-        }
-
-        $cms = $retrieveResponse->getData('cms');
-
-        return $response->setData([
-            'cms' => $cms,
-        ]);
+        return null;
     }
 
     /**
      * @param int $id
      * @param int $userId
      * @param CmsUserCredentials $cmsUserCredentials
-     * @return Response
+     * @return Response|null
      * @throws RequestException
      */
-    public function updateUserCredentials(int $id, int $userId, CmsUserCredentials $cmsUserCredentials): Response
+    public function updateUserCredentials(int $id, int $userId, CmsUserCredentials $cmsUserCredentials): ?Response
     {
         $this->validateRequired($cmsUserCredentials, 'update', [
             'password',
@@ -469,16 +412,6 @@ class Cmses extends Endpoint
             return $response;
         }
 
-        // Retrieve the CMS again, so we can return the CMS object
-        $retrieveResponse = $this->get($id);
-        if (!$retrieveResponse->isSuccess()) {
-            return $retrieveResponse;
-        }
-
-        $cms = $retrieveResponse->getData('cms');
-
-        return $response->setData([
-            'cms' => $cms,
-        ]);
+        return null;
     }
 }
