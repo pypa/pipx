@@ -7,13 +7,8 @@ use Cyberfusion\ClusterApi\Exceptions\ListFilterException;
 
 class SortEntry
 {
-    private string $field;
-    private string $sort;
-
-    public function __construct(string $field, string $sort = Sort::ASC)
+    public function __construct(private string $field, private string $sort = Sort::ASC)
     {
-        $this->field = $field;
-        $this->sort = $sort;
     }
 
     public function getField(): string

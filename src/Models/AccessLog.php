@@ -2,11 +2,10 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class AccessLog extends ClusterModel implements Model
+class AccessLog extends ClusterModel
 {
     private string $remoteAddress;
     private ?string $rawMessage;

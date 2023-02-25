@@ -16,13 +16,12 @@ abstract class ClusterModel implements JsonSerializable, Model
      */
     public static function listFilter(): ListFilter
     {
-        return ListFilter::forModel(get_called_class());
+        return ListFilter::forModel(static::class);
     }
 
     /**
      * Provide fallback to allow the user of properties but still using the getters and setters.
      *
-     * @param string $name
      * @return mixed
      * @throws ModelException
      */
@@ -39,12 +38,9 @@ abstract class ClusterModel implements JsonSerializable, Model
     /**
      * Provide fallback to allow the user of properties but still using the getters and setters.
      *
-     * @param string $name
-     * @param mixed $value
-     * @return void
      * @throws ModelException
      */
-    public function __set(string $name, $value): void
+    public function __set(string $name, mixed $value): void
     {
         $method = sprintf('set%s', Str::studly($name));
         if (!method_exists($this, $method)) {
@@ -56,8 +52,6 @@ abstract class ClusterModel implements JsonSerializable, Model
 
     /**
      * Serializes the model to a value that can be serialized with json_encode.
-     *
-     * @return array
      */
     public function jsonSerialize(): array
     {

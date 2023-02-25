@@ -2,10 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 
-class MailHostname extends ClusterModel implements Model
+class MailHostname extends ClusterModel
 {
     private string $domain;
     private int $clusterId;

@@ -10,8 +10,6 @@ use Cyberfusion\ClusterApi\Response;
 class TaskCollections extends Endpoint
 {
     /**
-     * @param string $uuid
-     * @return Response
      * @throws RequestException
      */
     public function results(string $uuid): Response
@@ -29,9 +27,7 @@ class TaskCollections extends Endpoint
 
         return $response->setData([
             'taskResults' => array_map(
-                function (array $data) {
-                    return (new TaskResult())->fromArray($data);
-                },
+                fn (array $data) => (new TaskResult())->fromArray($data),
                 $response->getData()
             ),
         ]);

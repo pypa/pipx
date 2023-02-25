@@ -11,11 +11,9 @@ use Cyberfusion\ClusterApi\Support\ListFilter;
 class UrlRedirects extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -34,17 +32,13 @@ class UrlRedirects extends Endpoint
 
         return $response->setData([
             'urlRedirects' => array_map(
-                function (array $data) {
-                    return (new UrlRedirect())->fromArray($data);
-                },
+                fn (array $data) => (new UrlRedirect())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -66,8 +60,6 @@ class UrlRedirects extends Endpoint
     }
 
     /**
-     * @param UrlRedirect $urlRedirect
-     * @return Response
      * @throws RequestException
      */
     public function create(UrlRedirect $urlRedirect): Response
@@ -85,16 +77,18 @@ class UrlRedirects extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('url-redirects')
-            ->setBody($this->filterFields($urlRedirect->toArray(), [
-                'domain',
-                'server_aliases',
-                'destination_url',
-                'status_code',
-                'keep_query_parameters',
-                'keep_path',
-                'description',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($urlRedirect->toArray(), [
+                    'domain',
+                    'server_aliases',
+                    'destination_url',
+                    'status_code',
+                    'keep_query_parameters',
+                    'keep_path',
+                    'description',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -111,8 +105,6 @@ class UrlRedirects extends Endpoint
     }
 
     /**
-     * @param UrlRedirect $urlRedirect
-     * @return Response
      * @throws RequestException
      */
     public function update(UrlRedirect $urlRedirect): Response
@@ -131,17 +123,19 @@ class UrlRedirects extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('url-redirects/%d', $urlRedirect->getId()))
-            ->setBody($this->filterFields($urlRedirect->toArray(), [
-                'domain',
-                'server_aliases',
-                'destination_url',
-                'status_code',
-                'keep_query_parameters',
-                'keep_path',
-                'description',
-                'id',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($urlRedirect->toArray(), [
+                    'domain',
+                    'server_aliases',
+                    'destination_url',
+                    'status_code',
+                    'keep_query_parameters',
+                    'keep_path',
+                    'description',
+                    'id',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -158,8 +152,6 @@ class UrlRedirects extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response

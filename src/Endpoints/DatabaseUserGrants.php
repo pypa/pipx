@@ -11,11 +11,9 @@ use Cyberfusion\ClusterApi\Support\ListFilter;
 class DatabaseUserGrants extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -34,17 +32,13 @@ class DatabaseUserGrants extends Endpoint
 
         return $response->setData([
             'databaseUserGrants' => array_map(
-                function (array $data) {
-                    return (new DatabaseUserGrant())->fromArray($data);
-                },
+                fn (array $data) => (new DatabaseUserGrant())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -66,8 +60,6 @@ class DatabaseUserGrants extends Endpoint
     }
 
     /**
-     * @param DatabaseUserGrant $databaseUserGrant
-     * @return Response
      * @throws RequestException
      */
     public function create(DatabaseUserGrant $databaseUserGrant): Response
@@ -81,12 +73,14 @@ class DatabaseUserGrants extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('database-user-grants')
-            ->setBody($this->filterFields($databaseUserGrant->toArray(), [
-                'database_id',
-                'database_user_id',
-                'table_name',
-                'privilege_name',
-            ]));
+            ->setBody(
+                $this->filterFields($databaseUserGrant->toArray(), [
+                    'database_id',
+                    'database_user_id',
+                    'table_name',
+                    'privilege_name',
+                ])
+            );
 
         $response = $this
             ->client

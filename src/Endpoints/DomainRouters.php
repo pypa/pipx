@@ -11,11 +11,9 @@ use Cyberfusion\ClusterApi\Support\ListFilter;
 class DomainRouters extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -34,17 +32,13 @@ class DomainRouters extends Endpoint
 
         return $response->setData([
             'domainRouters' => array_map(
-                function (array $data) {
-                    return (new DomainRouter())->fromArray($data);
-                },
+                fn (array $data) => (new DomainRouter())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param DomainRouter $domainRouter
-     * @return Response
      * @throws RequestException
      */
     public function update(DomainRouter $domainRouter): Response
@@ -62,16 +56,18 @@ class DomainRouters extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('domain-routers/%d', $domainRouter->getId()))
-            ->setBody($this->filterFields($domainRouter->toArray(), [
-                'domain',
-                'virtual_host_id',
-                'url_redirect_id',
-                'node_id',
-                'certificate_id',
-                'force_ssl',
-                'id',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($domainRouter->toArray(), [
+                    'domain',
+                    'virtual_host_id',
+                    'url_redirect_id',
+                    'node_id',
+                    'certificate_id',
+                    'force_ssl',
+                    'id',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client

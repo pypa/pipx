@@ -2,13 +2,12 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\DatabaseEngine;
 use Cyberfusion\ClusterApi\Enums\Host;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class DatabaseUser extends ClusterModel implements Model
+class DatabaseUser extends ClusterModel
 {
     private const DEFAULT_HOST = '%';
 
@@ -144,11 +143,13 @@ class DatabaseUser extends ClusterModel implements Model
             ->setPassword(Arr::get($data, 'password'))
             ->setId(Arr::get($data, 'id'))
             ->setHost(Arr::get($data, 'host', self::DEFAULT_HOST))
-            ->setServerSoftwareName(Arr::get(
-                $data,
-                'server_software_name',
-                DatabaseEngine::SERVER_SOFTWARE_MARIADB
-            ))
+            ->setServerSoftwareName(
+                Arr::get(
+                    $data,
+                    'server_software_name',
+                    DatabaseEngine::SERVER_SOFTWARE_MARIADB
+                )
+            )
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
             ->setUpdatedAt(Arr::get($data, 'updated_at'));

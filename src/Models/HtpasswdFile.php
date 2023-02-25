@@ -2,10 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 
-class HtpasswdFile extends ClusterModel implements Model
+class HtpasswdFile extends ClusterModel
 {
     private int $unixUserId;
     private ?int $id = null;

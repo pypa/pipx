@@ -2,10 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 
-class BorgArchiveMetadata extends ClusterModel implements Model
+class BorgArchiveMetadata extends ClusterModel
 {
     private string $contentsPath;
     private bool $existsOnServer;

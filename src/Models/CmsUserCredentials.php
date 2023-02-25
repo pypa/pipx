@@ -2,11 +2,10 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class CmsUserCredentials extends ClusterModel implements Model
+class CmsUserCredentials extends ClusterModel
 {
     private string $password;
 

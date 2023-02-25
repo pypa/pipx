@@ -2,11 +2,10 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class Cluster extends ClusterModel implements Model
+class Cluster extends ClusterModel
 {
     private string $name = '';
     private array $groups = [];

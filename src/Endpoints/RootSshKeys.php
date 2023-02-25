@@ -11,11 +11,9 @@ use Cyberfusion\ClusterApi\Support\ListFilter;
 class RootSshKeys extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -34,17 +32,13 @@ class RootSshKeys extends Endpoint
 
         return $response->setData([
             'rootSshKeys' => array_map(
-                function (array $data) {
-                    return (new RootSshKey())->fromArray($data);
-                },
+                fn (array $data) => (new RootSshKey())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -66,8 +60,6 @@ class RootSshKeys extends Endpoint
     }
 
     /**
-     * @param RootSshKey $rootSshKey
-     * @return Response
      * @throws RequestException
      */
     public function createPublic(RootSshKey $rootSshKey): Response
@@ -80,10 +72,12 @@ class RootSshKeys extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('root-ssh-keys/public')
-            ->setBody($this->filterFields($rootSshKey->toArray(), [
-                'name',
-                'public_key',
-            ]));
+            ->setBody(
+                $this->filterFields($rootSshKey->toArray(), [
+                    'name',
+                    'public_key',
+                ])
+            );
 
         $response = $this
             ->client
@@ -109,10 +103,12 @@ class RootSshKeys extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('root-ssh-keys/public')
-            ->setBody($this->filterFields($rootSshKey->toArray(), [
-                'name',
-                'private_key',
-            ]));
+            ->setBody(
+                $this->filterFields($rootSshKey->toArray(), [
+                    'name',
+                    'private_key',
+                ])
+            );
 
         $response = $this
             ->client
@@ -129,8 +125,6 @@ class RootSshKeys extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response

@@ -2,12 +2,11 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\ProviderNames;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class CertificateManager extends ClusterModel implements Model
+class CertificateManager extends ClusterModel
 {
     private ?string $mainCommonName = '';
     private array $commonNames = [];

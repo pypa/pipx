@@ -31,7 +31,7 @@ class ListFilter implements Filter
      * @param Model|class-string $model
      * @throws ListFilterException
      */
-    public static function forModel($model): self
+    public static function forModel(Model|string $model): self
     {
         if (!is_subclass_of($model, Model::class)) {
             throw ListFilterException::invalidModel();

@@ -13,11 +13,9 @@ use Cyberfusion\ClusterApi\Support\Str;
 class VirtualHosts extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -36,17 +34,13 @@ class VirtualHosts extends Endpoint
 
         return $response->setData([
             'virtualHosts' => array_map(
-                function (array $data) {
-                    return (new VirtualHost())->fromArray($data);
-                },
+                fn (array $data) => (new VirtualHost())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -68,8 +62,6 @@ class VirtualHosts extends Endpoint
     }
 
     /**
-     * @param VirtualHost $virtualHost
-     * @return Response
      * @throws RequestException
      */
     public function create(VirtualHost $virtualHost): Response
@@ -85,19 +77,21 @@ class VirtualHosts extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('virtual-hosts')
-            ->setBody($this->filterFields($virtualHost->toArray(), [
-                'domain',
-                'server_aliases',
-                'unix_user_id',
-                'document_root',
-                'public_root',
-                'fpm_pool_id',
-                'passenger_app_id',
-                'custom_config',
-                'server_software_name',
-                'allow_override_directives',
-                'allow_override_option_directives',
-            ]));
+            ->setBody(
+                $this->filterFields($virtualHost->toArray(), [
+                    'domain',
+                    'server_aliases',
+                    'unix_user_id',
+                    'document_root',
+                    'public_root',
+                    'fpm_pool_id',
+                    'passenger_app_id',
+                    'custom_config',
+                    'server_software_name',
+                    'allow_override_directives',
+                    'allow_override_option_directives',
+                ])
+            );
 
         $response = $this
             ->client
@@ -114,8 +108,6 @@ class VirtualHosts extends Endpoint
     }
 
     /**
-     * @param VirtualHost $virtualHost
-     * @return Response
      * @throws RequestException
      */
     public function update(VirtualHost $virtualHost): Response
@@ -135,22 +127,24 @@ class VirtualHosts extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('virtual-hosts/%d', $virtualHost->getId()))
-            ->setBody($this->filterFields($virtualHost->toArray(), [
-                'domain',
-                'server_aliases',
-                'unix_user_id',
-                'document_root',
-                'public_root',
-                'fpm_pool_id',
-                'passenger_app_id',
-                'custom_config',
-                'id',
-                'server_software_name',
-                'allow_override_directives',
-                'allow_override_option_directives',
-                'domain_root',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($virtualHost->toArray(), [
+                    'domain',
+                    'server_aliases',
+                    'unix_user_id',
+                    'document_root',
+                    'public_root',
+                    'fpm_pool_id',
+                    'passenger_app_id',
+                    'custom_config',
+                    'id',
+                    'server_software_name',
+                    'allow_override_directives',
+                    'allow_override_option_directives',
+                    'domain_root',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -167,12 +161,9 @@ class VirtualHosts extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param string|null $callbackUrl
-     * @return Response
      * @throws RequestException
      */
-    public function delete(int $id, string $callbackUrl = null): Response
+    public function delete(int $id, ?string $callbackUrl = null): Response
     {
         $url = Str::optionalQueryParameters(
             sprintf(
@@ -201,8 +192,6 @@ class VirtualHosts extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function documentRootFiles(int $id): Response
@@ -224,14 +213,13 @@ class VirtualHosts extends Endpoint
     }
 
     /**
-     * @param int $leftVirtualHostId
-     * @param int $rightVirtualHostId
-     * @param string|null $callbackUrl
-     * @return Response
      * @throws RequestException
      */
-    public function syncDomainRootTo(int $leftVirtualHostId, int $rightVirtualHostId, string $callbackUrl = null): Response
-    {
+    public function syncDomainRootTo(
+        int $leftVirtualHostId,
+        int $rightVirtualHostId,
+        ?string $callbackUrl = null
+    ): Response {
         $url = Str::optionalQueryParameters(
             sprintf(
                 'virtual-hosts/%d/domain-root/sync?right_virtual_host_id=%d',

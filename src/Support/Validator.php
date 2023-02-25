@@ -19,26 +19,16 @@ class Validator
     private const PATH = 'path';
     private const UUID = 'uuid';
     private const ENDS_WITH = 'ends_with';
-
-    /** @var mixed */
-    private $value;
     private bool $multiple = false;
     private array $validations = [];
 
-    /**
-     * @param mixed $value
-     */
-    public static function value($value): self
+    public static function value(mixed $value): self
     {
         return new self($value);
     }
 
-    /**
-     * @param mixed $value
-     */
-    private function __construct($value)
+    private function __construct(private mixed $value)
     {
-        $this->value = $value;
     }
 
     public function each(): self
@@ -122,7 +112,7 @@ class Validator
     private function performValidation(string $type, $setting, $value): bool
     {
         // When the field is nullable and the value is null no other validations need to be performed
-        if (Arr::has($this->validations, self::NULLABLE) && is_null($value)) {
+        if (is_null($value) && Arr::has($this->validations, self::NULLABLE)) {
             return true;
         }
 

@@ -11,11 +11,9 @@ use Cyberfusion\ClusterApi\Support\ListFilter;
 class MailHostnames extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -34,17 +32,13 @@ class MailHostnames extends Endpoint
 
         return $response->setData([
             'mailHostnames' => array_map(
-                function (array $data) {
-                    return (new MailHostname())->fromArray($data);
-                },
+                fn (array $data) => (new MailHostname())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -66,8 +60,6 @@ class MailHostnames extends Endpoint
     }
 
     /**
-     * @param MailHostname $mailHostname
-     * @return Response
      * @throws RequestException
      */
     public function create(MailHostname $mailHostname): Response
@@ -80,11 +72,13 @@ class MailHostnames extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('mail-hostnames')
-            ->setBody($this->filterFields($mailHostname->toArray(), [
-                'domain',
-                'certificate_id',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($mailHostname->toArray(), [
+                    'domain',
+                    'certificate_id',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -101,8 +95,6 @@ class MailHostnames extends Endpoint
     }
 
     /**
-     * @param MailHostname $mailHostname
-     * @return Response
      * @throws RequestException
      */
     public function update(MailHostname $mailHostname): Response
@@ -116,12 +108,14 @@ class MailHostnames extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('mail-hostnames/%d', $mailHostname->getId()))
-            ->setBody($this->filterFields($mailHostname->toArray(), [
-                'domain',
-                'certificate_id',
-                'cluster_id',
-                'id',
-            ]));
+            ->setBody(
+                $this->filterFields($mailHostname->toArray(), [
+                    'domain',
+                    'certificate_id',
+                    'cluster_id',
+                    'id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -138,8 +132,6 @@ class MailHostnames extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response

@@ -20,6 +20,7 @@
     "require-dev": {
         "phpstan/phpstan": "^1.2",
         "phpunit/phpunit": "^9.0",
+        "rector/rector": "^0.14.6",
         "symplify/easy-coding-standard": "^11.1"
     },
     "autoload": {
@@ -37,7 +38,9 @@
         "test-coverage": "vendor/bin/phpunit",
         "analyse": "vendor/bin/phpstan analyse",
         "ecs:check": "@php vendor/bin/ecs check",
-        "ecs:fix": "@ecs:check --fix"
+        "ecs:fix": "@ecs:check --fix",
+        "rector:check": "@rector:fix --dry-run",
+        "rector:fix": "@php vendor/bin/rector process"
     },
     "config": {
         "sort-packages": true

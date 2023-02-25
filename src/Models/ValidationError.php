@@ -2,10 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 
-class ValidationError extends ClusterModel implements Model
+class ValidationError extends ClusterModel
 {
     private array $location = [];
     private string $message;

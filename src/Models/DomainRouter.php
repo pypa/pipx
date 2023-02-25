@@ -2,10 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 
-class DomainRouter extends ClusterModel implements Model
+class DomainRouter extends ClusterModel
 {
     private string $domain;
     private bool $forceSsl = true;

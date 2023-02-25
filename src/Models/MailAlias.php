@@ -2,11 +2,10 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class MailAlias extends ClusterModel implements Model
+class MailAlias extends ClusterModel
 {
     private string $localPart;
     private array $forwardEmailAddresses = [];

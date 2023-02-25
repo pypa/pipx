@@ -2,12 +2,11 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\ShellPath;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class UnixUser extends ClusterModel implements Model
+class UnixUser extends ClusterModel
 {
     private string $username;
     private string $password;

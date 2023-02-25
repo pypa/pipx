@@ -11,11 +11,9 @@ use Cyberfusion\ClusterApi\Support\ListFilter;
 class HtpasswdFiles extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -34,17 +32,13 @@ class HtpasswdFiles extends Endpoint
 
         return $response->setData([
             'htpasswdFiles' => array_map(
-                function (array $data) {
-                    return (new HtpasswdFile())->fromArray($data);
-                },
+                fn (array $data) => (new HtpasswdFile())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -66,8 +60,6 @@ class HtpasswdFiles extends Endpoint
     }
 
     /**
-     * @param HtpasswdFile $htpasswdFile
-     * @return Response
      * @throws RequestException
      */
     public function create(HtpasswdFile $htpasswdFile): Response
@@ -79,9 +71,11 @@ class HtpasswdFiles extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('htpasswd-files')
-            ->setBody($this->filterFields($htpasswdFile->toArray(), [
-                'unix_user_id',
-            ]));
+            ->setBody(
+                $this->filterFields($htpasswdFile->toArray(), [
+                    'unix_user_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -98,8 +92,6 @@ class HtpasswdFiles extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response

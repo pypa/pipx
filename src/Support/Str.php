@@ -6,10 +6,6 @@ class Str extends \Illuminate\Support\Str
 {
     /**
      * Determines if the pattern matches on the string.
-     *
-     * @param string $string
-     * @param string $pattern
-     * @return bool
      */
     public static function doesMatch(string $string, string $pattern): bool
     {
@@ -19,10 +15,6 @@ class Str extends \Illuminate\Support\Str
     /**
      * Determines the full url based on the available optional query parameters. Filters out null values of the
      * parameters.
-     *
-     * @param string $url
-     * @param array $parameters
-     * @return string
      */
     public static function optionalQueryParameters(string $url, array $parameters): string
     {

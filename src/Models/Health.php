@@ -2,11 +2,10 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Enums\HealthStatus;
 use Cyberfusion\ClusterApi\Support\Arr;
 
-class Health extends ClusterModel implements Model
+class Health extends ClusterModel
 {
     private string $status;
 

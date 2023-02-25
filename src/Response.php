@@ -4,21 +4,8 @@ namespace Cyberfusion\ClusterApi;
 
 class Response
 {
-    private int $statusCode;
-    private string $statusMessage;
-    private array $data;
-
-    /**
-     * Response constructor.
-     * @param int $statusCode
-     * @param string $statusMessage
-     * @param array $data
-     */
-    public function __construct(int $statusCode, string $statusMessage, array $data = [])
+    public function __construct(private int $statusCode, private string $statusMessage, private array $data = [])
     {
-        $this->statusCode = $statusCode;
-        $this->statusMessage = $statusMessage;
-        $this->data = $data;
     }
 
     public function getStatusCode(): int
@@ -36,21 +23,13 @@ class Response
         return $this->statusCode < 300;
     }
 
-    /**
-     * @param string|null $attribute
-     * @return mixed
-     */
-    public function getData(string $attribute = null)
+    public function getData(?string $attribute = null): mixed
     {
         if (is_null($attribute)) {
             return $this->data;
         }
 
-        if (!array_key_exists($attribute, $this->data)) {
-            return null;
-        }
-
-        return $this->data[$attribute];
+        return $this->data[$attribute] ?? null;
     }
 
     public function setData(array $data): self

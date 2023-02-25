@@ -11,11 +11,9 @@ use Cyberfusion\ClusterApi\Support\ListFilter;
 class BasicAuthenticationRealms extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -34,17 +32,13 @@ class BasicAuthenticationRealms extends Endpoint
 
         return $response->setData([
             'basicAuthenticationRealms' => array_map(
-                function (array $data) {
-                    return (new BasicAuthenticationRealm())->fromArray($data);
-                },
+                fn (array $data) => (new BasicAuthenticationRealm())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -66,8 +60,6 @@ class BasicAuthenticationRealms extends Endpoint
     }
 
     /**
-     * @param BasicAuthenticationRealm $basicAuthenticationRealm
-     * @return Response
      * @throws RequestException
      */
     public function create(BasicAuthenticationRealm $basicAuthenticationRealm): Response
@@ -82,12 +74,14 @@ class BasicAuthenticationRealms extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('basic-authentication-realms')
-            ->setBody($this->filterFields($basicAuthenticationRealm->toArray(), [
-                'name',
-                'directory_path',
-                'htpasswd_file_id',
-                'virtual_host_id',
-            ]));
+            ->setBody(
+                $this->filterFields($basicAuthenticationRealm->toArray(), [
+                    'name',
+                    'directory_path',
+                    'htpasswd_file_id',
+                    'virtual_host_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -104,8 +98,6 @@ class BasicAuthenticationRealms extends Endpoint
     }
 
     /**
-     * @param BasicAuthenticationRealm $basicAuthenticationRealm
-     * @return Response
      * @throws RequestException
      */
     public function update(BasicAuthenticationRealm $basicAuthenticationRealm): Response
@@ -122,14 +114,16 @@ class BasicAuthenticationRealms extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('basic-authentication-realms/%d', $basicAuthenticationRealm->getId()))
-            ->setBody($this->filterFields($basicAuthenticationRealm->toArray(), [
-                'name',
-                'directory_path',
-                'htpasswd_file_id',
-                'virtual_host_id',
-                'id',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($basicAuthenticationRealm->toArray(), [
+                    'name',
+                    'directory_path',
+                    'htpasswd_file_id',
+                    'virtual_host_id',
+                    'id',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -146,8 +140,6 @@ class BasicAuthenticationRealms extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response

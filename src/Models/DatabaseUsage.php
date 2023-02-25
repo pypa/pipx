@@ -2,10 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 
-class DatabaseUsage extends ClusterModel implements Model
+class DatabaseUsage extends ClusterModel
 {
     private int $databaseId;
     private int $usage;

@@ -10,7 +10,6 @@ use Cyberfusion\ClusterApi\Response;
 class Health extends Endpoint
 {
     /**
-     * @return Response
      * @throws RequestException
      */
     public function get(): Response

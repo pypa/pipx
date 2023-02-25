@@ -9,21 +9,11 @@ use Cyberfusion\ClusterApi\Support\Arr;
 
 abstract class Endpoint
 {
-    protected ClientContract $client;
-
-    /**
-     * Endpoint constructor.
-     * @param ClientContract $client
-     */
-    public function __construct(ClientContract $client)
+    public function __construct(protected ClientContract $client)
     {
-        $this->client = $client;
     }
 
     /**
-     * @param Model $model
-     * @param string $action
-     * @param array $requiredAttributes
      * @throws RequestException
      */
     protected function validateRequired(Model $model, string $action, array $requiredAttributes = []): void
@@ -47,14 +37,9 @@ abstract class Endpoint
             return;
         }
 
-        throw RequestException::invalidRequest(get_class($model), $action, $missing);
+        throw RequestException::invalidRequest($model::class, $action, $missing);
     }
 
-    /**
-     * @param array $array
-     * @param array $fields
-     * @return array
-     */
     protected function filterFields(array $array, array $fields = []): array
     {
         return Arr::only($array, $fields);

@@ -2,10 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 
-class HttpValidationError extends ClusterModel implements Model
+class HttpValidationError extends ClusterModel
 {
     private array $detail = [];
 
@@ -23,12 +22,12 @@ class HttpValidationError extends ClusterModel implements Model
 
     public function fromArray(array $data): self
     {
-        return $this->setDetail(array_map(
-            function (array $detail) {
-                return (new ValidationError())->fromArray($detail);
-            },
-            Arr::get($data, 'detail', [])
-        ));
+        return $this->setDetail(
+            array_map(
+                fn (array $detail) => (new ValidationError())->fromArray($detail),
+                Arr::get($data, 'detail', [])
+            )
+        );
     }
 
     public function toArray(): array

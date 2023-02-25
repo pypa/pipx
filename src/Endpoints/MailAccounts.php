@@ -14,11 +14,9 @@ use DateTimeInterface;
 class MailAccounts extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -37,17 +35,13 @@ class MailAccounts extends Endpoint
 
         return $response->setData([
             'mailAccounts' => array_map(
-                function (array $data) {
-                    return (new MailAccount())->fromArray($data);
-                },
+                fn (array $data) => (new MailAccount())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -69,10 +63,6 @@ class MailAccounts extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param DateTimeInterface $from
-     * @param string $timeUnit
-     * @return Response
      * @throws RequestException
      */
     public function usages(int $id, DateTimeInterface $from, string $timeUnit = TimeUnit::HOURLY): Response
@@ -103,8 +93,6 @@ class MailAccounts extends Endpoint
     }
 
     /**
-     * @param MailAccount $mailAccount
-     * @return Response
      * @throws RequestException
      */
     public function create(MailAccount $mailAccount): Response
@@ -118,12 +106,14 @@ class MailAccounts extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('mail-accounts')
-            ->setBody($this->filterFields($mailAccount->toArray(), [
-                'local_part',
-                'password',
-                'quota',
-                'mail_domain_id',
-            ]));
+            ->setBody(
+                $this->filterFields($mailAccount->toArray(), [
+                    'local_part',
+                    'password',
+                    'quota',
+                    'mail_domain_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -140,8 +130,6 @@ class MailAccounts extends Endpoint
     }
 
     /**
-     * @param MailAccount $mailAccount
-     * @return Response
      * @throws RequestException
      */
     public function update(MailAccount $mailAccount): Response
@@ -157,14 +145,16 @@ class MailAccounts extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('mail-accounts/%d', $mailAccount->getId()))
-            ->setBody($this->filterFields($mailAccount->toArray(), [
-                'local_part',
-                'password',
-                'quota',
-                'mail_domain_id',
-                'id',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($mailAccount->toArray(), [
+                    'local_part',
+                    'password',
+                    'quota',
+                    'mail_domain_id',
+                    'id',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -181,8 +171,6 @@ class MailAccounts extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response

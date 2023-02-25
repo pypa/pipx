@@ -2,11 +2,10 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Contracts\Model;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class Certificate extends ClusterModel implements Model
+class Certificate extends ClusterModel
 {
     private string $mainCommonName = '';
     private array $commonNames = [];

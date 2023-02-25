@@ -14,11 +14,9 @@ use DateTimeInterface;
 class Clusters extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -37,17 +35,13 @@ class Clusters extends Endpoint
 
         return $response->setData([
             'clusters' => array_map(
-                function (array $data) {
-                    return (new Cluster())->fromArray($data);
-                },
+                fn (array $data) => (new Cluster())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -69,14 +63,13 @@ class Clusters extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param DateTimeInterface $from
-     * @param string $timeUnit
-     * @return Response
      * @throws RequestException
      */
-    public function unixUsersHomeDirectoryUsages(int $id, DateTimeInterface $from, string $timeUnit = TimeUnit::HOURLY): Response
-    {
+    public function unixUsersHomeDirectoryUsages(
+        int $id,
+        DateTimeInterface $from,
+        string $timeUnit = TimeUnit::HOURLY
+    ): Response {
         $url = sprintf(
             'clusters/unix-users-home-directories/usages/%d?%s',
             $id,
@@ -103,8 +96,6 @@ class Clusters extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function borgSshKey(int $id): Response

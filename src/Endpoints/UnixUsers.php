@@ -15,11 +15,9 @@ use DateTimeInterface;
 class UnixUsers extends Endpoint
 {
     /**
-     * @param ListFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function list(ListFilter $filter = null): Response
+    public function list(?ListFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new ListFilter();
@@ -38,17 +36,13 @@ class UnixUsers extends Endpoint
 
         return $response->setData([
             'unixUsers' => array_map(
-                function (array $data) {
-                    return (new UnixUser())->fromArray($data);
-                },
+                fn (array $data) => (new UnixUser())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function get(int $id): Response
@@ -70,10 +64,6 @@ class UnixUsers extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @param DateTimeInterface $from
-     * @param string $timeUnit
-     * @return Response
      * @throws RequestException
      */
     public function usages(int $id, DateTimeInterface $from, string $timeUnit = TimeUnit::HOURLY): Response
@@ -101,9 +91,7 @@ class UnixUsers extends Endpoint
         return $response->setData([
             'unixUserUsage' => count($response->getData()) !== 0
                 ? array_map(
-                    function (array $data) {
-                        return (new UnixUserUsage())->fromArray($data);
-                    },
+                    fn (array $data) => (new UnixUserUsage())->fromArray($data),
                     $response->getData()
                 )
                 : null,
@@ -111,8 +99,6 @@ class UnixUsers extends Endpoint
     }
 
     /**
-     * @param UnixUser $unixUser
-     * @return Response
      * @throws RequestException
      */
     public function create(UnixUser $unixUser): Response
@@ -126,19 +112,21 @@ class UnixUsers extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
             ->setUrl('unix-users')
-            ->setBody($this->filterFields($unixUser->toArray(), [
-                'username',
-                'password',
-                'shell_path',
-                'record_usage_files',
-                'default_php_version',
-                'default_nodejs_version',
-                'virtual_hosts_directory',
-                'mail_domains_directory',
-                'borg_repositories_directory',
-                'description',
-                'cluster_id',
-            ]));
+            ->setBody(
+                $this->filterFields($unixUser->toArray(), [
+                    'username',
+                    'password',
+                    'shell_path',
+                    'record_usage_files',
+                    'default_php_version',
+                    'default_nodejs_version',
+                    'virtual_hosts_directory',
+                    'mail_domains_directory',
+                    'borg_repositories_directory',
+                    'description',
+                    'cluster_id',
+                ])
+            );
 
         $response = $this
             ->client
@@ -155,8 +143,6 @@ class UnixUsers extends Endpoint
     }
 
     /**
-     * @param UnixUser $unixUser
-     * @return Response
      * @throws RequestException
      */
     public function update(UnixUser $unixUser): Response
@@ -174,24 +160,26 @@ class UnixUsers extends Endpoint
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
             ->setUrl(sprintf('unix-users/%d', $unixUser->getId()))
-            ->setBody($this->filterFields($unixUser->toArray(), [
-                'username',
-                'password',
-                'shell_path',
-                'record_usage_files',
-                'default_php_version',
-                'default_nodejs_version',
-                'virtual_hosts_directory',
-                'mail_domains_directory',
-                'borg_repositories_directory',
-                'description',
-                'cluster_id',
-                'id',
-                'unix_id',
-                'home_directory',
-                'ssh_directory',
-                'async_support_enabled',
-            ]));
+            ->setBody(
+                $this->filterFields($unixUser->toArray(), [
+                    'username',
+                    'password',
+                    'shell_path',
+                    'record_usage_files',
+                    'default_php_version',
+                    'default_nodejs_version',
+                    'virtual_hosts_directory',
+                    'mail_domains_directory',
+                    'borg_repositories_directory',
+                    'description',
+                    'cluster_id',
+                    'id',
+                    'unix_id',
+                    'home_directory',
+                    'ssh_directory',
+                    'async_support_enabled',
+                ])
+            );
 
         $response = $this
             ->client
@@ -208,8 +196,6 @@ class UnixUsers extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function delete(int $id): Response
@@ -224,8 +210,6 @@ class UnixUsers extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function enableAsync(int $id): Response
@@ -249,8 +233,6 @@ class UnixUsers extends Endpoint
     }
 
     /**
-     * @param int $id
-     * @return Response
      * @throws RequestException
      */
     public function disableAsync(int $id): Response
@@ -274,9 +256,6 @@ class UnixUsers extends Endpoint
     }
 
     /**
-     * @param int $leftUnixUserId
-     * @param int $rightUnixUserId
-     * @return Response
      * @throws RequestException
      */
     public function compareTo(int $leftUnixUserId, int $rightUnixUserId): Response

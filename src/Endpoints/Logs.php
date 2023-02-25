@@ -12,12 +12,9 @@ use Cyberfusion\ClusterApi\Support\LogFilter;
 class Logs extends Endpoint
 {
     /**
-     * @param int $virtualHostId
-     * @param LogFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function accessLogs(int $virtualHostId, LogFilter $filter = null): Response
+    public function accessLogs(int $virtualHostId, ?LogFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new LogFilter();
@@ -36,21 +33,16 @@ class Logs extends Endpoint
 
         return $response->setData([
             'logs' => array_map(
-                function (array $data) {
-                    return (new AccessLog())->fromArray($data);
-                },
+                fn (array $data) => (new AccessLog())->fromArray($data),
                 $response->getData()
             ),
         ]);
     }
 
     /**
-     * @param int $virtualHostId
-     * @param LogFilter|null $filter
-     * @return Response
      * @throws RequestException
      */
-    public function errorLogs(int $virtualHostId, LogFilter $filter = null): Response
+    public function errorLogs(int $virtualHostId, ?LogFilter $filter = null): Response
     {
         if (is_null($filter)) {
             $filter = new LogFilter();
@@ -69,9 +61,7 @@ class Logs extends Endpoint
 
         return $response->setData([
             'logs' => array_map(
-                function (array $data) {
-                    return (new ErrorLog())->fromArray($data);
-                },
+                fn (array $data) => (new ErrorLog())->fromArray($data),
                 $response->getData()
             ),
         ]);
