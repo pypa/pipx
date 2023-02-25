@@ -1,40 +1,44 @@
 name: Cluster API
 
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 jobs:
-    cluster-api-tests:
-        runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                php-versions: ['8.0', '8.1', '8.2']
+  cluster-api-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-versions: [ '8.0', '8.1', '8.2' ]
 
-        name: PHP ${{ matrix.php-versions }}
+    name: PHP ${{ matrix.php-versions }}
 
-        steps:
-            -   name: Checkout
-                uses: actions/checkout@v3
-                with:
-                    repository: ${{ github.event.pull_request.head.repo.full_name }}
-                    ref: ${{ github.event.pull_request.head.ref }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
 
-            - name: Setup PHP
-              uses: shivammathur/setup-php@v2
-              with:
-                  php-version: ${{ matrix.php-versions }}
-                  extensions: mbstring, intl
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: mbstring, intl
 
-            - name: Install Dependencies
-              run: composer install -q --no-ansi --no-interaction --no-scripts --no-suggest --no-progress
+      - name: Install Dependencies
+        run: composer install -q --no-ansi --no-interaction --no-scripts --no-suggest --no-progress
 
-            - name: Execute tests (Unit and Feature tests) via PHPUnit
-              run: |
-                  vendor/bin/phpunit
+      - name: Execute tests (Unit and Feature tests) via PHPUnit
+        run: |
+          vendor/bin/phpunit
 
-            - name: Execute static analysis
-              run: |
-                  vendor/bin/phpstan
+      - name: Execute static analysis
+        run: |
+          vendor/bin/phpstan
 
-            - name: Execute code style check
-              run: |
-                  vendor/bin/ecs check
+      - name: Execute rector
+        run: |
+          composer rector:check
+
+      - name: Execute code style check
+        run: |
+          vendor/bin/ecs check
