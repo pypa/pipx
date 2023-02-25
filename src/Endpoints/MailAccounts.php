@@ -134,11 +134,6 @@ class MailAccounts extends Endpoint
 
         $mailAccount = (new MailAccount())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($mailAccount->getClusterId());
-
         return $response->setData([
             'mailAccount' => $mailAccount,
         ]);
@@ -180,11 +175,6 @@ class MailAccounts extends Endpoint
 
         $mailAccount = (new MailAccount())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($mailAccount->getClusterId());
-
         return $response->setData([
             'mailAccount' => $mailAccount,
         ]);
@@ -197,18 +187,6 @@ class MailAccounts extends Endpoint
      */
     public function delete(int $id): Response
     {
-        // Log the affected cluster by retrieving the model first
-        $result = $this->get($id);
-        if ($result->isSuccess()) {
-            $clusterId = $result
-                ->getData('mailAccount')
-                ->getClusterId();
-
-            $this
-                ->client
-                ->addAffectedCluster($clusterId);
-        }
-
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('mail-accounts/%d', $id));

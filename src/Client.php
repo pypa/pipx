@@ -24,7 +24,6 @@ class Client implements ClientContract
 
     private Configuration $configuration;
     private GuzzleClient $httpClient;
-    private array $affectedClusters = [];
 
     /**
      * Client constructor.
@@ -256,17 +255,5 @@ class Client implements ClientContract
         return [
             'error' => (new DetailMessage())->fromArray($body),
         ];
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function addAffectedCluster(int $clusterId): self
-    {
-        if (!in_array($clusterId, $this->affectedClusters)) {
-            $this->affectedClusters[] = $clusterId;
-        }
-
-        return $this;
     }
 }

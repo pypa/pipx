@@ -109,11 +109,6 @@ class PassengerApps extends Endpoint
 
         $passengerApp = (new PassengerApp())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($passengerApp->getClusterId());
-
         return $response->setData([
             'passengerApp' => $passengerApp,
         ]);
@@ -170,11 +165,6 @@ class PassengerApps extends Endpoint
 
         $passengerApp = (new PassengerApp())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($passengerApp->getClusterId());
-
         return $response->setData([
             'passengerApp' => $passengerApp,
         ]);
@@ -187,18 +177,6 @@ class PassengerApps extends Endpoint
      */
     public function delete(int $id): Response
     {
-        // Log the affected cluster by retrieving the model first
-        $result = $this->get($id);
-        if ($result->isSuccess()) {
-            $clusterId = $result
-                ->getData('passengerApp')
-                ->getClusterId();
-
-            $this
-                ->client
-                ->addAffectedCluster($clusterId);
-        }
-
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('passenger-app/%d', $id));

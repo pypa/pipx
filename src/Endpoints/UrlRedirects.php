@@ -105,11 +105,6 @@ class UrlRedirects extends Endpoint
 
         $urlRedirect = (new UrlRedirect())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($urlRedirect->getClusterId());
-
         return $response->setData([
             'urlRedirect' => $urlRedirect,
         ]);
@@ -157,11 +152,6 @@ class UrlRedirects extends Endpoint
 
         $urlRedirect = (new UrlRedirect())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($urlRedirect->getClusterId());
-
         return $response->setData([
             'urlRedirect' => $urlRedirect,
         ]);
@@ -174,18 +164,6 @@ class UrlRedirects extends Endpoint
      */
     public function delete(int $id): Response
     {
-        // Log the affected cluster by retrieving the model first
-        $result = $this->get($id);
-        if ($result->isSuccess()) {
-            $clusterId = $result
-                ->getData('urlRedirect')
-                ->getClusterId();
-
-            $this
-                ->client
-                ->addAffectedCluster($clusterId);
-        }
-
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('url-redirects/%d', $id));

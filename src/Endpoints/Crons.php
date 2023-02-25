@@ -104,11 +104,6 @@ class Crons extends Endpoint
 
         $cron = (new Cron())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($cron->getClusterId());
-
         return $response->setData([
             'cron' => $cron,
         ]);
@@ -158,11 +153,6 @@ class Crons extends Endpoint
 
         $cron = (new Cron())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($cron->getClusterId());
-
         return $response->setData([
             'cron' => $cron,
         ]);
@@ -175,18 +165,6 @@ class Crons extends Endpoint
      */
     public function delete(int $id): Response
     {
-        // Log the affected cluster by retrieving the model first
-        $result = $this->get($id);
-        if ($result->isSuccess()) {
-            $clusterId = $result
-                ->getData('cron')
-                ->getClusterId();
-
-            $this
-                ->client
-                ->addAffectedCluster($clusterId);
-        }
-
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('crons/%d', $id));

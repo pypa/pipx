@@ -92,11 +92,6 @@ class Certificates extends Endpoint
 
         $certificate = (new Certificate())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($certificate->getClusterId());
-
         return $response->setData([
             'certificate' => $certificate,
         ]);
@@ -107,18 +102,6 @@ class Certificates extends Endpoint
      */
     public function delete(int $id): Response
     {
-        // Log the affected cluster by retrieving the model first
-        $result = $this->get($id);
-        if ($result->isSuccess()) {
-            $clusterId = $result
-                ->getData('certificate')
-                ->getClusterId();
-
-            $this
-                ->client
-                ->addAffectedCluster($clusterId);
-        }
-
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('certificates/%d', $id));

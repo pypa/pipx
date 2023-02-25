@@ -82,11 +82,6 @@ class DomainRouters extends Endpoint
 
         $domainRouter = (new DomainRouter())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($domainRouter->getClusterId());
-
         return $response->setData([
             'domainRouter' => $domainRouter,
         ]);

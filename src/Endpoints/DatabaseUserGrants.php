@@ -97,11 +97,6 @@ class DatabaseUserGrants extends Endpoint
 
         $databaseUserGrant = (new DatabaseUserGrant())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($databaseUserGrant->getClusterId());
-
         return $response->setData([
             'databaseUserGrant' => $databaseUserGrant,
         ]);

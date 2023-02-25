@@ -96,11 +96,6 @@ class HtpasswdUsers extends Endpoint
 
         $htpasswdUser = (new HtpasswdUser())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($htpasswdUser->getClusterId());
-
         return $response->setData([
             'htpasswdUser' => $htpasswdUser,
         ]);
@@ -141,11 +136,6 @@ class HtpasswdUsers extends Endpoint
 
         $htpasswdUser = (new HtpasswdUser())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($htpasswdUser->getClusterId());
-
         return $response->setData([
             'htpasswdUser' => $htpasswdUser,
         ]);
@@ -158,18 +148,6 @@ class HtpasswdUsers extends Endpoint
      */
     public function delete(int $id): Response
     {
-        // Log the affected cluster by retrieving the model first
-        $result = $this->get($id);
-        if ($result->isSuccess()) {
-            $clusterId = $result
-                ->getData('htpasswdUser')
-                ->getClusterId();
-
-            $this
-                ->client
-                ->addAffectedCluster($clusterId);
-        }
-
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('htpasswd-users/%d', $id));

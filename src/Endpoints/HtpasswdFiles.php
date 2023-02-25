@@ -92,11 +92,6 @@ class HtpasswdFiles extends Endpoint
 
         $htpasswdFile = (new HtpasswdFile())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($htpasswdFile->getClusterId());
-
         return $response->setData([
             'htpasswdFile' => $htpasswdFile,
         ]);
@@ -109,18 +104,6 @@ class HtpasswdFiles extends Endpoint
      */
     public function delete(int $id): Response
     {
-        // Log the affected cluster by retrieving the model first
-        $result = $this->get($id);
-        if ($result->isSuccess()) {
-            $clusterId = $result
-                ->getData('htpasswdFile')
-                ->getClusterId();
-
-            $this
-                ->client
-                ->addAffectedCluster($clusterId);
-        }
-
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('htpasswd-files/%d', $id));

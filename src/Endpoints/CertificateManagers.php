@@ -92,11 +92,6 @@ class CertificateManagers extends Endpoint
 
         $certificateManager = (new CertificateManager())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($certificateManager->getClusterId());
-
         return $response->setData([
             'certificateManager' => $certificateManager,
         ]);
@@ -143,11 +138,6 @@ class CertificateManagers extends Endpoint
 
         $certificateManager = (new CertificateManager())->fromArray($response->getData());
 
-        // Log which cluster is affected by this change
-        $this
-            ->client
-            ->addAffectedCluster($certificateManager->getClusterId());
-
         return $response->setData([
             'certificateManager' => $certificateManager,
         ]);
@@ -158,18 +148,6 @@ class CertificateManagers extends Endpoint
      */
     public function delete(int $id): Response
     {
-        // Log the affected cluster by retrieving the model first
-        $result = $this->get($id);
-        if ($result->isSuccess()) {
-            $clusterId = $result
-                ->getData('certificateManager')
-                ->getClusterId();
-
-            $this
-                ->client
-                ->addAffectedCluster($clusterId);
-        }
-
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
             ->setUrl(sprintf('certificate-managers/%d', $id));
