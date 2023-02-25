@@ -14,7 +14,7 @@ institutions.
 
 ## Requirements
 
-This client requires PHP 7.4 or higher and uses Guzzle. PHP 7.4 is supported until its EOL date (November 28, 2022).
+This client requires PHP 8.0 or higher and uses Guzzle.
 
 ## Installation
 
