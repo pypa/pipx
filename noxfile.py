@@ -7,7 +7,7 @@ import nox  # type: ignore
 PYTHON_ALL_VERSIONS = ["3.7", "3.8", "3.9", "3.10", "3.11"]
 PYTHON_DEFAULT_VERSION = "3.11"
 DOC_DEPENDENCIES = [".", "jinja2", "mkdocs", "mkdocs-material"]
-MAN_DEPENDENCIES = [".", "argparse-manpage"]
+MAN_DEPENDENCIES = [".", "argparse-manpage[setuptools]"]
 LINT_DEPENDENCIES = [
     "black==22.8.0",
     "flake8==4.0.1",
