@@ -24,6 +24,7 @@ use Cyberfusion\ClusterApi\Endpoints\Logs;
 use Cyberfusion\ClusterApi\Endpoints\MailAccounts;
 use Cyberfusion\ClusterApi\Endpoints\MailAliases;
 use Cyberfusion\ClusterApi\Endpoints\MailDomains;
+use Cyberfusion\ClusterApi\Endpoints\MailHostnames;
 use Cyberfusion\ClusterApi\Endpoints\Malwares;
 use Cyberfusion\ClusterApi\Endpoints\Nodes;
 use Cyberfusion\ClusterApi\Endpoints\PassengerApps;
@@ -139,6 +140,11 @@ class ClusterApi
     public function mailDomains(): MailDomains
     {
         return new MailDomains($this->client);
+    }
+
+    public function mailHostnames(): MailHostnames
+    {
+        return new MailHostnames($this->client);
     }
 
     public function malwares(): Malwares
