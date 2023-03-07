@@ -59,7 +59,6 @@ pipx run create-python-package
 ```
 
 ### flake8
-
 tool for style guide enforcement
 
 ```
@@ -137,6 +136,14 @@ fully functional terminal in the browser  
 
 ```
 pipx run pyxtermjs
+```
+
+### ruff
+
+An extremely fast Python linter
+
+```
+pipx run ruff
 ```
 
 ### shell-functools
