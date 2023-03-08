@@ -74,10 +74,7 @@ def reinstall(
     )
 
     # now install injected packages
-    for (
-        injected_name,
-        injected_package,
-    ) in venv.pipx_metadata.injected_packages.items():
+    for injected_name, injected_package in venv.pipx_metadata.injected_packages.items():
         if injected_package.package_or_url is None:
             # This should never happen, but package_or_url is type
             #   Optional[str] so mypy thinks it could be None

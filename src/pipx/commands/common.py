@@ -62,7 +62,6 @@ _can_symlink_cache: Dict[Path, bool] = {}
 
 
 def can_symlink(local_bin_dir: Path) -> bool:
-
     if not WINDOWS:
         # Technically, even on Unix this depends on the filesystem
         return True
