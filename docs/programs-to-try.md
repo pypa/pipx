@@ -139,6 +139,14 @@ fully functional terminal in the browser  
 pipx run pyxtermjs
 ```
 
+### ruff
+
+An extremely fast Python linter
+
+```
+pipx run ruff
+```
+
 ### shell-functools
 
 Functional programming tools for the shell
