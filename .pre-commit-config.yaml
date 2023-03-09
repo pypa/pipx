@@ -32,7 +32,3 @@ repos:
   - id: mypy
     args: ['--ignore-missing-imports', '--strict-equality','--no-implicit-optional']
     exclude: 'testdata/test_package_specifier/local_extras/setup.py'
-- repo: https://github.com/abravalheri/validate-pyproject
-  rev: v0.12.1
-  hooks:
-  - id: validate-pyproject
