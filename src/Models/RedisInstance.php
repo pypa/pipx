@@ -2,6 +2,7 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
+use Cyberfusion\ClusterApi\Enums\RedisInstanceEvictionPolicy;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
@@ -12,6 +13,7 @@ class RedisInstance extends ClusterModel
     private int $maxDatabases = 16;
     private ?int $port = null;
     private int $memoryLimit = 100;
+    private string $evictionPolicy;
     private int $primaryNodeId;
     private ?string $unitName = null;
     private ?int $id = null;
@@ -86,6 +88,22 @@ class RedisInstance extends ClusterModel
     public function setMemoryLimit(int $memoryLimit): self
     {
         $this->memoryLimit = $memoryLimit;
+
+        return $this;
+    }
+
+    public function getEvictionPolicy(): string
+    {
+        return $this->evictionPolicy;
+    }
+
+    public function setEvictionPolicy(string $evictionPolicy): self
+    {
+        Validator::value($evictionPolicy)
+            ->valueIn(RedisInstanceEvictionPolicy::AVAILABLE)
+            ->validate();
+
+        $this->evictionPolicy = $evictionPolicy;
 
         return $this;
     }
@@ -170,6 +188,7 @@ class RedisInstance extends ClusterModel
             ->setMaxDatabases(Arr::get($data, 'max_databases'))
             ->setPort(Arr::get($data, 'port'))
             ->setMemoryLimit(Arr::get($data, 'memory_limit'))
+            ->setEvictionPolicy(Arr::get($data, 'eviction_policy'))
             ->setPrimaryNodeId(Arr::get($data, 'primary_node_id'))
             ->setUnitName(Arr::get($data, 'unit_name'))
             ->setId(Arr::get($data, 'id'))
@@ -186,6 +205,7 @@ class RedisInstance extends ClusterModel
             'max_databases' => $this->getMaxDatabases(),
             'port' => $this->getPort(),
             'memory_limit' => $this->getMemoryLimit(),
+            'eviction_policy' => $this->getEvictionPolicy(),
             'primary_node_id' => $this->getPrimaryNodeId(),
             'unit_name' => $this->getUnitName(),
             'id' => $this->getId(),
