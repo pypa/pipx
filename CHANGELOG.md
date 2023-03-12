@@ -1,3 +1,5 @@
+## dev
+
 ## 1.2.0
 
 - Add test for pip module in `pipx reinstall` to fix an issue with `pipx reinstall-all` (#935)
