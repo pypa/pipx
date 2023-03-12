@@ -360,7 +360,7 @@ class Venv:
             + (["--not-required"] if not_required else [])
         )
         pip_list = json.loads(cmd_run.stdout.strip())
-        return set([x["name"] for x in pip_list])
+        return {x["name"] for x in pip_list}
 
     def _find_entry_point(self, app: str) -> Optional[EntryPoint]:
         if not self.python_path.exists():

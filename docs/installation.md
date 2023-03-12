@@ -15,11 +15,27 @@ brew install pipx
 pipx ensurepath
 ```
 
+On Windows (requires pip 19.0 or later):
+
+```
+py -3 -m pip install --user pipx
+py -3 -m pipx ensurepath
+```
+
 Otherwise, install via pip (requires pip 19.0 or later):
 
 ```
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
+```
+
+Or via zipapp:
+
+You can also use pipx without installing it.
+The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a Python 3.7+ interpreter:
+
+```
+python pipx.pyz ensurepath
 ```
 
 ### Installation Options

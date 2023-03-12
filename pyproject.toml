@@ -19,6 +19,7 @@ classifiers = [
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
   "argcomplete>=1.9.4",
@@ -45,12 +46,35 @@ path = "src/pipx/version.py"
 [tool.hatch.build.targets.sdist]
 include = ["/src", "/logo.png", "/pipx_demo.gif", "/*.md"]
 
-[tool.isort]
-profile = "black"
-known_first_party = ["helpers", "package_info"]
+[tool.black]
+skip-magic-trailing-comma = true
+
+[tool.ruff]
+select = [
+  "A",
+  "B",
+  "C4",
+  "C9",
+  "E",
+  "F",
+  "I",
+  "PLC",
+  "PLE",
+  "PLW",
+  "RSE",
+  "W",
+]
+ignore = [
+  "B904",
+]
+line-length = 121
+show-source = true
+
+[tool.ruff.isort]
+known-first-party = ["helpers", "package_info", "pipx"]
+
+[tool.ruff.mccabe]
+max-complexity = 15
 
 [tool.pytest.ini_options]
 markers = ["all_packages: test install with maximum number of packages"]
-
-[tool.black]
-skip-magic-trailing-comma = true

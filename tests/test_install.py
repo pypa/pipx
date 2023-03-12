@@ -1,5 +1,6 @@
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 from unittest import mock
@@ -76,7 +77,7 @@ def test_install_tricky_packages(
     [
         # ("nox", "git+https://github.com/cs01/nox.git@5ea70723e9e6"),
         ("pylint", PKG["pylint"]["spec"]),
-        ("black", "https://github.com/ambv/black/archive/18.9b0.zip"),
+        ("nox", "https://github.com/wntrblm/nox/archive/2022.1.7.zip"),
     ],
 )
 def test_install_package_specs(
@@ -125,7 +126,7 @@ def test_include_deps(pipx_temp_env, capsys):
 @pytest.mark.parametrize(
     "package_name, package_spec",
     [
-        ("jaraco-financial", "jaraco.financial==2.0.0"),
+        ("zest-releaser", PKG["zest-releaser"]["spec"]),
         ("tox-ini-fmt", PKG["tox-ini-fmt"]["spec"]),
     ],
 )
@@ -195,7 +196,7 @@ def test_pip_args_forwarded_to_package_name_determination(pipx_temp_env, capsys)
         [
             "install",
             # use a valid spec and invalid pip args
-            "https://github.com/ambv/black/archive/18.9b0.zip",
+            "https://github.com/psf/black/archive/22.8.0.zip",
             "--verbose",
             "--pip-args='--asdf'",
         ]
@@ -252,3 +253,12 @@ def test_install_pip_failure(pipx_temp_env, capsys):
     assert Path(pip_log_file_match.group(1)).exists()
 
     assert re.search(r"pip (failed|seemed to fail) to build package", captured.err)
+
+
+def test_install_local_archive(pipx_temp_env, monkeypatch, capsys):
+    monkeypatch.chdir(Path(TEST_DATA_PATH) / "local_extras")
+
+    subprocess.run([sys.executable, "-m", "pip", "wheel", "."])
+    assert not run_pipx_cli(["install", "repeatme-0.1-py3-none-any.whl"])
+    captured = capsys.readouterr()
+    assert f"- {app_name('repeatme')}\n" in captured.out

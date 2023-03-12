@@ -123,7 +123,9 @@ class PipxMetadata:
     def write(self) -> None:
         self._validate_before_write()
         try:
-            with open(self.venv_dir / PIPX_INFO_FILENAME, "w") as pipx_metadata_fh:
+            with open(
+                self.venv_dir / PIPX_INFO_FILENAME, "w", encoding="utf-8"
+            ) as pipx_metadata_fh:
                 json.dump(
                     self.to_dict(),
                     pipx_metadata_fh,
@@ -146,7 +148,7 @@ class PipxMetadata:
 
     def read(self, verbose: bool = False) -> None:
         try:
-            with open(self.venv_dir / PIPX_INFO_FILENAME, "r") as pipx_metadata_fh:
+            with open(self.venv_dir / PIPX_INFO_FILENAME, "rb") as pipx_metadata_fh:
                 self.from_dict(
                     json.load(pipx_metadata_fh, object_hook=_json_decoder_object_hook)
                 )
