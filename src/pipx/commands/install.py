@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from pipx import constants
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
+from pipx.commands.upgrade import upgrade as upgrade_package
 from pipx.constants import EXIT_CODE_INSTALL_VENV_EXISTS, EXIT_CODE_OK, ExitCode
 from pipx.util import pipx_wrap
 from pipx.venv import Venv, VenvContainer
@@ -21,6 +22,7 @@ def install(
     force: bool,
     include_dependencies: bool,
     suffix: str = "",
+    upgrade: bool,
 ) -> ExitCode:
     """Returns pipx exit code."""
     # package_spec is anything pip-installable, including package_name, vcs spec,
@@ -40,44 +42,55 @@ def install(
         exists = False
 
     venv = Venv(venv_dir, python=python, verbose=verbose)
-    if exists:
-        if force:
-            print(f"Installing to existing venv {venv.name!r}")
-        else:
-            print(
-                pipx_wrap(
-                    f"""
-                    {venv.name!r} already seems to be installed. Not modifying
-                    existing installation in {str(venv_dir)!r}. Pass '--force'
-                    to force installation.
-                    """
-                )
-            )
-            return EXIT_CODE_INSTALL_VENV_EXISTS
 
-    try:
-        venv.create_venv(venv_args, pip_args)
-        venv.install_package(
-            package_name=package_name,
-            package_or_url=package_spec,
+    if upgrade:
+        upgrade_package(
+            venv_dir=venv_dir,
             pip_args=pip_args,
-            include_dependencies=include_dependencies,
-            include_apps=True,
-            is_main_package=True,
-            suffix=suffix,
-        )
-        run_post_install_actions(
-            venv,
-            package_name,
-            local_bin_dir,
-            venv_dir,
-            include_dependencies,
             force=force,
+            include_injected=True,
+            verbose=verbose,
         )
-    except (Exception, KeyboardInterrupt):
-        print()
-        venv.remove_venv()
-        raise
+
+    else:
+        if exists:
+            if force:
+                print(f"Installing to existing venv {venv.name!r}")
+            else:
+                print(
+                    pipx_wrap(
+                        f"""
+                        {venv.name!r} already seems to be installed. Not modifying
+                        existing installation in {str(venv_dir)!r}. Pass '--force'
+                        to force installation.
+                        """
+                    )
+                )
+                return EXIT_CODE_INSTALL_VENV_EXISTS
+
+        try:
+            venv.create_venv(venv_args, pip_args)
+            venv.install_package(
+                package_name=package_name,
+                package_or_url=package_spec,
+                pip_args=pip_args,
+                include_dependencies=include_dependencies,
+                include_apps=True,
+                is_main_package=True,
+                suffix=suffix,
+            )
+            run_post_install_actions(
+                venv,
+                package_name,
+                local_bin_dir,
+                venv_dir,
+                include_dependencies,
+                force=force,
+            )
+        except (Exception, KeyboardInterrupt):
+            print()
+            venv.remove_venv()
+            raise
 
     # Any failure to install will raise PipxError, otherwise success
     return EXIT_CODE_OK

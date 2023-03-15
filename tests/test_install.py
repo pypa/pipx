@@ -52,6 +52,18 @@ def test_install_easy_packages(
 
 
 @pytest.mark.parametrize(
+    "package_name, package_spec", [("black", PKG["black"]["spec"])]
+)
+def test_install_upgrade_package(
+    capsys, pipx_temp_env, caplog, package_name, package_spec
+):
+    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
+    run_pipx_cli(["install", package_name, "--upgrade"])
+    captured = capsys.readouterr()
+    assert f"upgraded package {package_name}" in captured.out
+
+
+@pytest.mark.parametrize(
     "package_name, package_spec",
     [
         ("cloudtoken", PKG["cloudtoken"]["spec"]),

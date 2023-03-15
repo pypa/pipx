@@ -106,6 +106,10 @@ INSTALL_DESCRIPTION = textwrap.dedent(
 
     The PACKAGE_SPEC argument is passed directly to `pip install`.
 
+    Apps can also be upgraded via the install command:
+
+    pipx install PACKAGE_NAME --upgrade
+
     The default virtual environment location is {constants.DEFAULT_PIPX_HOME}
     and can be overridden by setting the environment variable `PIPX_HOME`
     (Virtual Environments will be installed to `$PIPX_HOME/venvs`).
@@ -223,6 +227,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             force=args.force,
             include_dependencies=args.include_deps,
             suffix=args.suffix,
+            upgrade=args.upgrade,
         )
     elif args.command == "inject":
         return commands.inject(
@@ -357,6 +362,9 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
             "The Python executable used to create the Virtual Environment and run the "
             "associated app/apps. Must be v3.6+."
         ),
+    )
+    p.add_argument(
+        "--upgrade", "-U", action="store_true", help="Upgrade the specified package(s)"
     )
     add_pip_venv_args(p)
 
