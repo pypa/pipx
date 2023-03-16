@@ -22,7 +22,7 @@ def install(
     force: bool,
     include_dependencies: bool,
     suffix: str = "",
-    upgrade: bool,
+    upgrade: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
     # package_spec is anything pip-installable, including package_name, vcs spec,
