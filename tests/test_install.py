@@ -58,7 +58,7 @@ def test_install_upgrade_package(
     capsys, pipx_temp_env, caplog, package_name, package_spec
 ):
     install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
-    run_pipx_cli(["install", package_name, "--upgrade"])
+    run_pipx_cli(["install", "-f", package_name, "--upgrade"])
     captured = capsys.readouterr()
     assert f"upgraded package {package_name}" in captured.out
 
