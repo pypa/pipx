@@ -43,6 +43,9 @@ def install(
 
     venv = Venv(venv_dir, python=python, verbose=verbose)
 
+    if upgrade:
+        force = True
+
     if exists:
         if force:
             print(f"Installing to existing venv {venv.name!r}")
