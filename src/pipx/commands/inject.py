@@ -47,7 +47,7 @@ def inject_dep(
     #   zip file, or tar.gz file.
     if package_name is None:
         package_name = package_name_from_spec(
-            package_spec, venv.python_path, pip_args=pip_args, verbose=verbose
+            package_spec, str(venv.python_path), pip_args=pip_args, verbose=verbose
         )
 
     venv.install_package(
