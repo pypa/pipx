@@ -7,7 +7,7 @@ pipx install --python python3.8 pycowsay
 pipx install git+https://github.com/psf/black
 pipx install git+https://github.com/psf/black.git@branch-name
 pipx install git+https://github.com/psf/black.git@git-hash
-pipx install git+ssh://<username>@<private-repo-domain>/<path-to>/<package.git>
+pipx install git+ssh://<username>@<private-repo-domain>/<path-to-package.git>
 pipx install https://github.com/psf/black/archive/18.9b0.zip
 pipx install black[d]
 pipx install 'black[d] @ git+https://github.com/psf/black.git@branch-name'
