@@ -7,13 +7,14 @@ pipx install --python python3.8 pycowsay
 pipx install git+https://github.com/psf/black
 pipx install git+https://github.com/psf/black.git@branch-name
 pipx install git+https://github.com/psf/black.git@git-hash
+pipx install git+ssh://<username>@<private-repo-domain>/<path-to>/<package.git>
 pipx install https://github.com/psf/black/archive/18.9b0.zip
 pipx install black[d]
 pipx install 'black[d] @ git+https://github.com/psf/black.git@branch-name'
 pipx install --suffix @branch-name 'black[d] @ git+https://github.com/psf/black.git@branch-name'
 pipx install --include-deps jupyter
-pipx install --pip-args '--pre' poetry
-pipx install --pip-args '--index-url=<private-repo-host>:<private-repo-port> --trusted-host=<private-repo-host>:<private-repo-port>' private-repo-package
+pipx install --pip-args='--pre' poetry
+pipx install --pip-args='--index-url=<private-repo-host>:<private-repo-port> --trusted-host=<private-repo-host>:<private-repo-port>' private-repo-package
 ```
 
 ## `pipx run` examples
