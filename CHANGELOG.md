@@ -1,4 +1,5 @@
 ## dev
+- Add `--upgrade` option for `pipx install` command
 - Add `pipx uninject` command (#820)
 - [docs] Fix `pipx run` examples and update Python versions used by `pipx install` examples
 - [docs] Add an example for installation from source with extras
