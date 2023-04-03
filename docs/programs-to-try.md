@@ -76,7 +76,7 @@ pipx run gdbgui
 
 ### hatch
 
-Python project manager that let's you build & publish packages, run tasks in environments and more
+Python project manager that lets you build & publish packages, run tasks in environments and more
 
 ```
 pipx run hatch
