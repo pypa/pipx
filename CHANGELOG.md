@@ -1,11 +1,22 @@
 ## dev
+
+- Fallback to user's log path if the default log path (`$PIPX_HOME/logs`) is not writable to aid with pipx being used for multi-user (e.g. system-wide) installs of applications
+- Fix wrong interpreter usage when injecting local pip-installable dependencies into venvs
+
+## 1.2.0
+
+- Add test for pip module in `pipx reinstall` to fix an issue with `pipx reinstall-all` (#935)
 - Add `pipx uninject` command (#820)
 - Support including requirements in scripts run using `pipx run` (#916)
 - [docs] Fix `pipx run` examples and update Python versions used by `pipx install` examples
 - [docs] Add an example for installation from source with extras
+- Match pip's behaviour when package name ends with archive extension (treat it as a path)
 - Ship a [zipapp](https://docs.python.org/3/library/zipapp.html) of pipx
 
 - Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
+- Improve the detection logic for MSYS2 to avoid entering infinite loop (#908) (#938)
+- Remove extra trailing quote from exception message
+- Fix EncodingWarning in `pipx_metadata_file`.
 
 ## 1.1.0
 

@@ -42,7 +42,7 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ```
 
-Upgrade pipx with `python3 -m pip install --user -U pipx`.
+Upgrade pipx with `python3 -m pip install --user --upgrade pipx`.
 
 ### On Windows, install via pip (requires pip 19.0 or later)
 
@@ -67,6 +67,8 @@ pipx ensurepath
 This will add both the above mentioned path and the `%USERPROFILE%\.local\bin` folder to your search path.
 Restart your terminal session and verify `pipx` does run.
 
+Upgrade pipx with `python3 -m pip install --user --upgrade pipx`.
+
 ### Via zipapp
 
 You can also use pipx without installing it.
@@ -75,8 +77,6 @@ The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx
 ```
 python pipx.pyz ensurepath
 ```
-
-Upgrade pipx with `python3 -m pip install --user -U pipx`.
 
 ### Shell completions
 

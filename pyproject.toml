@@ -26,6 +26,7 @@ dependencies = [
   "colorama>=0.4.4; sys_platform == 'win32'",
   "importlib-metadata>=3.3.0; python_version < '3.8'",
   "packaging>=20.0",
+  "platformdirs>=2.1.0",
   "userpath>=1.6.0",
 ]
 dynamic = ["version"]
@@ -45,12 +46,35 @@ path = "src/pipx/version.py"
 [tool.hatch.build.targets.sdist]
 include = ["/src", "/logo.png", "/pipx_demo.gif", "/*.md"]
 
-[tool.isort]
-profile = "black"
-known_first_party = ["helpers", "package_info"]
+[tool.black]
+skip-magic-trailing-comma = true
+
+[tool.ruff]
+select = [
+  "A",
+  "B",
+  "C4",
+  "C9",
+  "E",
+  "F",
+  "I",
+  "PLC",
+  "PLE",
+  "PLW",
+  "RSE",
+  "W",
+]
+ignore = [
+  "B904",
+]
+line-length = 121
+show-source = true
+
+[tool.ruff.isort]
+known-first-party = ["helpers", "package_info", "pipx"]
+
+[tool.ruff.mccabe]
+max-complexity = 15
 
 [tool.pytest.ini_options]
 markers = ["all_packages: test install with maximum number of packages"]
-
-[tool.black]
-skip-magic-trailing-comma = true

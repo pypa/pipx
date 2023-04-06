@@ -20,6 +20,8 @@ TEST_DATA_PATH = "./testdata/test_package_specifier"
         ("Black", "black"),
         ("https://github.com/ambv/black/archive/18.9b0.zip", None),
         ("black @ https://github.com/ambv/black/archive/18.9b0.zip", None),
+        ("black-18.9b0-py36-none-any.whl", None),
+        ("black-18.9b0.tar.gz", None),
     ],
 )
 def test_valid_pypi_name(package_spec_in, package_name_out):

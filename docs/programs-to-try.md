@@ -1,4 +1,4 @@
-## Programs 
+## Programs
 
 Here are some programs you can try out. If you've never used the program before, make sure you add the `--help` flag so it doesn't do something you don't expect. If you decide you want to install, you can run `pipx install PACKAGE` instead.
 
@@ -137,6 +137,14 @@ fully functional terminal in the browser  
 
 ```
 pipx run pyxtermjs
+```
+
+### ruff
+
+An extremely fast Python linter
+
+```
+pipx run ruff
 ```
 
 ### shell-functools
