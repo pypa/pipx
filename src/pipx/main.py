@@ -17,7 +17,6 @@ from typing import Any, Callable, Dict, List, Optional
 
 import argcomplete  # type: ignore
 import platformdirs
-from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
 import pipx.constants

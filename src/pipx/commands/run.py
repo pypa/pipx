@@ -334,8 +334,8 @@ def _get_requirements_from_script(content: str) -> Optional[List[str]]:
     for line in lines:
         if not line.startswith("#"):
             continue
-        line = line[1:].strip()
-        if line == "Requirements:":
+        line_content = line[1:].strip()
+        if line_content == "Requirements:":
             break
     else:
         # No "Requirements:" line in the file
@@ -347,16 +347,16 @@ def _get_requirements_from_script(content: str) -> Optional[List[str]]:
         # Stop at the end of the comment block
         if not line.startswith("#"):
             break
-        line = line[1:].strip()
+        line_content = line[1:].strip()
         # Stop at a blank comment line
-        if not line:
+        if not line_content:
             break
 
         # Validate the requirement
         try:
-            req = Requirement(line)
+            req = Requirement(line_content)
         except InvalidRequirement as e:
-            raise PipxError(f"Invalid requirement {line}: {str(e)}")
+            raise PipxError(f"Invalid requirement {line_content}: {str(e)}")
 
         # Use the normalised form of the requirement,
         # not the original line.
