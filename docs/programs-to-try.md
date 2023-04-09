@@ -74,6 +74,13 @@ browser-based gdb debugger
 pipx run gdbgui
 ```
 
+### hatch
+
+Python project manager that lets you build & publish packages, run tasks in environments and more
+
+```
+pipx run hatch
+```
 
 ### hexsticker
 
