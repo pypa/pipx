@@ -23,7 +23,7 @@ from typing import (
 
 import pipx.constants
 from pipx.animate import show_cursor
-from pipx.constants import PIPX_TRASH_DIR, WINDOWS
+from pipx.constants import MINGW, PIPX_TRASH_DIR, WINDOWS
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +115,7 @@ def run_pypackage_bin(bin_path: Path, args: List[str]) -> NoReturn:
 if WINDOWS:
 
     def get_venv_paths(root: Path) -> Tuple[Path, Path]:
-        bin_path = root / "Scripts"
+        bin_path = root / "Scripts" if not MINGW else root / "bin"
         python_path = bin_path / "python.exe"
         return bin_path, python_path
 

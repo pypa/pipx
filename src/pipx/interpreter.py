@@ -27,7 +27,6 @@ def has_venv() -> bool:
 
 
 def _find_default_windows_python() -> str:
-
     if has_venv():
         return sys.executable
 

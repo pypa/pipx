@@ -1,5 +1,6 @@
 import os
 import sys
+import sysconfig
 from pathlib import Path
 from textwrap import dedent
 from typing import NewType, Optional
@@ -38,7 +39,12 @@ def is_windows() -> bool:
     return sys.platform == "win32"
 
 
+def is_mingw() -> bool:
+    return sysconfig.get_platform().startswith("mingw")
+
+
 WINDOWS: bool = is_windows()
+MINGW: bool = is_mingw()
 
 completion_instructions = dedent(
     """
