@@ -197,7 +197,7 @@ class Venv:
 
     def upgrade_packaging_libraries(self, pip_args: List[str]) -> None:
         if self.uses_shared_libs:
-            shared_libs.upgrade(verbose=self.verbose)
+            shared_libs.upgrade(pip_args=pip_args, verbose=self.verbose)
         else:
             # TODO: setuptools and wheel? Original code didn't bother
             # but shared libs code does.
