@@ -17,7 +17,6 @@ from typing import Any, Callable, Dict, List, Optional
 
 import argcomplete  # type: ignore
 import platformdirs
-from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
 import pipx.constants
@@ -184,30 +183,17 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         skip_list = [canonicalize_name(x) for x in args.skip]
 
     if args.command == "run":
-        package_or_url = (
-            args.spec
-            if ("spec" in args and args.spec is not None)
-            else args.app_with_args[0]
-        )
-        # For any package, we need to just use the name
-        try:
-            package_name = Requirement(args.app_with_args[0]).name
-        except InvalidRequirement:
-            # Raw URLs to scripts are supported, too, so continue if
-            # we can't parse this as a package
-            package_name = args.app_with_args[0]
-
-        use_cache = not args.no_cache
         commands.run(
-            package_name,
-            package_or_url,
+            args.app_with_args[0],
+            args.spec,
+            args.path,
             args.app_with_args[1:],
             args.python,
             pip_args,
             venv_args,
             args.pypackages,
             verbose,
-            use_cache,
+            not args.no_cache,
         )
         # We should never reach here because run() is NoReturn.
         return ExitCode(1)
@@ -588,6 +574,9 @@ def _add_run(subparsers: argparse._SubParsersAction) -> None:
         nargs=argparse.REMAINDER,
         help="app/package name and any arguments to be passed to it",
         default=[],
+    )
+    p.add_argument(
+        "--path", action="store_true", help="Interpret app name as a local path"
     )
     p.add_argument(
         "--pypackages",

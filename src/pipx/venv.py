@@ -274,6 +274,28 @@ class Venv:
                 wrap_message=False,
             )
 
+    def install_unmanaged_packages(
+        self, requirements: List[str], pip_args: List[str]
+    ) -> None:
+        """Install packages in the venv, but do not record them in the metadata."""
+
+        # Note: We want to install everything at once, as that lets
+        # pip resolve conflicts correctly.
+        with animate(f"installing {', '.join(requirements)}", self.do_animation):
+            # do not use -q with `pip install` so subprocess_post_check_pip_errors
+            #   has more information to analyze in case of failure.
+            cmd = (
+                [str(self.python_path), "-m", "pip", "install"]
+                + pip_args
+                + requirements
+            )
+            # no logging because any errors will be specially logged by
+            #   subprocess_post_check_handle_pip_error()
+            pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False)
+        subprocess_post_check_handle_pip_error(pip_process)
+        if pip_process.returncode:
+            raise PipxError(f"Error installing {', '.join(requirements)}.")
+
     def install_package_no_deps(self, package_or_url: str, pip_args: List[str]) -> str:
         with animate(
             f"determining package name from {package_or_url!r}", self.do_animation

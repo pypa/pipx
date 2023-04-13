@@ -8,6 +8,7 @@
 
 - Add test for pip module in `pipx reinstall` to fix an issue with `pipx reinstall-all` (#935)
 - Add `pipx uninject` command (#820)
+- Support including requirements in scripts run using `pipx run` (#916)
 - [docs] Fix `pipx run` examples and update Python versions used by `pipx install` examples
 - [docs] Add an example for installation from source with extras
 - Match pip's behaviour when package name ends with archive extension (treat it as a path)
