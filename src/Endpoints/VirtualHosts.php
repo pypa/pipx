@@ -163,32 +163,15 @@ class VirtualHosts extends Endpoint
     /**
      * @throws RequestException
      */
-    public function delete(int $id, ?string $callbackUrl = null): Response
+    public function delete(int $id): Response
     {
-        $url = Str::optionalQueryParameters(
-            sprintf(
-                'virtual-hosts/%d',
-                $id,
-            ),
-            ['callback_url' => $callbackUrl]
-        );
-
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
-            ->setUrl($url);
+            ->setUrl(sprintf('virtual-hosts/%d', $id));
 
-        $response = $this
+        return $this
             ->client
             ->request($request);
-        if (!$response->isSuccess()) {
-            return $response;
-        }
-
-        $taskCollection = (new TaskCollection())->fromArray($response->getData());
-
-        return $response->setData([
-            'taskCollection' => $taskCollection,
-        ]);
     }
 
     /**
