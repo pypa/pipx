@@ -17,7 +17,7 @@ class Client implements ClientContract
 {
     private const CONNECT_TIMEOUT = 60;
     private const TIMEOUT = 180;
-    private const VERSION = '1.93.0';
+    private const VERSION = '1.94.0';
     private const USER_AGENT = 'cyberfusion-cluster-api-client/' . self::VERSION;
     private GuzzleClient $httpClient;
 
