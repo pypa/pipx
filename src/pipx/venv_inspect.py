@@ -69,6 +69,7 @@ def get_apps(dist: metadata.Distribution, bin_path: Path) -> List[str]:
 
     sections = {"console_scripts", "gui_scripts"}
     # "entry_points" entry in setup.py are found here
+    # print([x for x in bin_path.iterdir()])
     for ep in dist.entry_points:
         if ep.group not in sections:
             continue

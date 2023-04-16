@@ -71,6 +71,16 @@ def test_install_tricky_packages(
     install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
 
 
+@pytest.mark.parametrize(
+    "package_name, package_spec",
+    [("wheel", "wheel")]
+)
+def test_run_shared_lib(
+    capsys, pipx_temp_env, caplog, package_name, package_spec
+):
+    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
+
+
 # TODO: Add git+... spec when git is in binpath of tests (Issue #303)
 @pytest.mark.parametrize(
     "package_name, package_spec",

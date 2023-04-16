@@ -54,6 +54,16 @@ def test_simple_run(pipx_temp_env, monkeypatch, capsys, package_name):
     assert "Download the latest version of a package" not in captured.out
 
 
+@pytest.mark.parametrize(
+    "package_name", ["wheel"]
+)
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_shared_lib(pipx_temp_env, monkeypatch, capfd, package_name):
+    run_pipx_cli_exit(["run", package_name, "--help"])
+    captured = capfd.readouterr()
+    assert f"usage: {package_name}" in captured.out
+
+
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_cache(pipx_temp_env, monkeypatch, capsys, caplog):
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])

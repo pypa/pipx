@@ -30,6 +30,12 @@ def install(
         package_name = package_name_from_spec(
             package_spec, python, pip_args=pip_args, verbose=verbose
         )
+
+    override_shared = False
+
+    if package_name in ["pip", "wheel"]:
+        override_shared = True
+
     if venv_dir is None:
         venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
         venv_dir = venv_container.get_venv_dir(f"{package_name}{suffix}")
@@ -56,7 +62,7 @@ def install(
             return EXIT_CODE_INSTALL_VENV_EXISTS
 
     try:
-        venv.create_venv(venv_args, pip_args)
+        venv.create_venv(venv_args, pip_args, override_shared)
         venv.install_package(
             package_name=package_name,
             package_or_url=package_spec,
