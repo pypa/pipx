@@ -156,7 +156,9 @@ class Venv:
         else:
             return self.pipx_metadata.main_package.package
 
-    def create_venv(self, venv_args: List[str], pip_args: List[str], override_shared: bool = False) -> None:
+    def create_venv(
+        self, venv_args: List[str], pip_args: List[str], override_shared: bool = False
+    ) -> None:
         with animate("creating virtual environment", self.do_animation):
             cmd = [self.python, "-m", "venv"]
             if not override_shared:
