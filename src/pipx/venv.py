@@ -241,7 +241,7 @@ class Venv:
             # do not use -q with `pip install` so subprocess_post_check_pip_errors
             #   has more information to analyze in case of failure.
             cmd = (
-                [str(self.python_path), "-m", "pip", "install"]
+                [str(self.python_path), "-m", "pip", "--no-input", "install"]
                 + pip_args
                 + [package_or_url]
             )
@@ -285,7 +285,7 @@ class Venv:
             # do not use -q with `pip install` so subprocess_post_check_pip_errors
             #   has more information to analyze in case of failure.
             cmd = (
-                [str(self.python_path), "-m", "pip", "install"]
+                [str(self.python_path), "-m", "pip", "--no-input", "install"]
                 + pip_args
                 + requirements
             )
@@ -301,7 +301,11 @@ class Venv:
             f"determining package name from {package_or_url!r}", self.do_animation
         ):
             old_package_set = self.list_installed_packages()
-            cmd = ["install"] + ["--no-dependencies"] + pip_args + [package_or_url]
+            cmd = (
+                ["--no-input", "install", "--no-dependencies"]
+                + pip_args
+                + [package_or_url]
+            )
             pip_process = self._run_pip(cmd)
         subprocess_post_check(pip_process, raise_error=False)
         if pip_process.returncode:
@@ -429,7 +433,7 @@ class Venv:
             self.do_animation,
         ):
             pip_process = self._run_pip(
-                ["install"] + pip_args + ["--upgrade", package_name]
+                ["--no-input", "install"] + pip_args + ["--upgrade", package_name]
             )
         subprocess_post_check(pip_process)
 
@@ -448,7 +452,7 @@ class Venv:
             self.do_animation,
         ):
             pip_process = self._run_pip(
-                ["install"] + pip_args + ["--upgrade", package_or_url]
+                ["--no-input", "install"] + pip_args + ["--upgrade", package_or_url]
             )
         subprocess_post_check(pip_process)
 
