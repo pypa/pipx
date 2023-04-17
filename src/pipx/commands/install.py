@@ -33,7 +33,7 @@ def install(
 
     override_shared = False
 
-    if package_name in ["pip", "wheel"]:
+    if package_name == "wheel":
         override_shared = True
 
     if venv_dir is None:

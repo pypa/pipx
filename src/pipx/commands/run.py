@@ -232,7 +232,7 @@ def _download_and_run(
 
     override_shared = False
 
-    if package_name in ["pip", "wheel"]:
+    if package_name == "wheel":
         override_shared = True
 
     venv.create_venv(venv_args, pip_args, override_shared)
