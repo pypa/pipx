@@ -1,6 +1,6 @@
 ## dev
 
-- Ignore shared libs directory on installing/running pip/wheel
+- Support `pipx install` and `pipx run` [`wheel`](https://github.com/pypa/wheel)
 - Support including requirements in scripts run using `pipx run` (#916)
 - Pass `pip_args` to `shared_libs.upgrade()`
 - Fallback to user's log path if the default log path (`$PIPX_HOME/logs`) is not writable to aid with pipx being used for multi-user (e.g. system-wide) installs of applications
