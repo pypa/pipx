@@ -56,7 +56,7 @@ def test_simple_run(pipx_temp_env, monkeypatch, capsys, package_name):
 
 @pytest.mark.parametrize("package_name", ["wheel"])
 @mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_shared_lib(pipx_temp_env, monkeypatch, capfd, package_name):
+def test_run_wheel_as_app(pipx_temp_env, monkeypatch, capfd, package_name):
     run_pipx_cli_exit(["run", package_name, "--help"])
     captured = capfd.readouterr()
     assert f"usage: {package_name}" in captured.out

@@ -72,7 +72,7 @@ def test_install_tricky_packages(
 
 
 @pytest.mark.parametrize("package_name, package_spec", [("wheel", "wheel")])
-def test_run_shared_lib(capsys, pipx_temp_env, caplog, package_name, package_spec):
+def test_install_wheel_as_app(capsys, pipx_temp_env, caplog, package_name, package_spec):
     install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
 
 
