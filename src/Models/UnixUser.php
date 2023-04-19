@@ -20,7 +20,6 @@ class UnixUser extends ClusterModel
     private ?string $borgRepositoriesDirectory = null;
     private string $shellPath = ShellPath::BASH;
     private bool $recordUsageFiles = false;
-    private bool $asyncSupportEnabled = false;
     private int $clusterId;
     private ?int $id = null;
     private ?int $unixId = null;
@@ -222,18 +221,6 @@ class UnixUser extends ClusterModel
         return $this;
     }
 
-    public function isAsyncSupportEnabled(): bool
-    {
-        return $this->asyncSupportEnabled;
-    }
-
-    public function setAsyncSupportEnabled(bool $asyncSupportEnabled): self
-    {
-        $this->asyncSupportEnabled = $asyncSupportEnabled;
-
-        return $this;
-    }
-
     public function getClusterId(): int
     {
         return $this->clusterId;
@@ -309,7 +296,6 @@ class UnixUser extends ClusterModel
             ->setBorgRepositoriesDirectory(Arr::get($data, 'borg_repositories_directory'))
             ->setShellPath(Arr::get($data, 'shell_path', ShellPath::BASH))
             ->setRecordUsageFiles(Arr::get($data, 'record_usage_files', false))
-            ->setAsyncSupportEnabled(Arr::get($data, 'async_support_enabled', false))
             ->setUnixId(Arr::get($data, 'unix_id'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
@@ -332,7 +318,6 @@ class UnixUser extends ClusterModel
             'borg_repositories_directory' => $this->getBorgRepositoriesDirectory(),
             'shell_path' => $this->getShellPath(),
             'record_usage_files' => $this->getRecordUsageFiles(),
-            'async_support_enabled' => $this->isAsyncSupportEnabled(),
             'cluster_id' => $this->getClusterId(),
             'id' => $this->getId(),
             'unix_id' => $this->getUnixId(),
