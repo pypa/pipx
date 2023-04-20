@@ -177,7 +177,6 @@ class UnixUsers extends Endpoint
                     'unix_id',
                     'home_directory',
                     'ssh_directory',
-                    'async_support_enabled',
                 ])
             );
 
@@ -207,52 +206,6 @@ class UnixUsers extends Endpoint
         return $this
             ->client
             ->request($request);
-    }
-
-    /**
-     * @throws RequestException
-     */
-    public function enableAsync(int $id): Response
-    {
-        $request = (new Request())
-            ->setMethod(Request::METHOD_POST)
-            ->setUrl(sprintf('unix-users/%d/async-support', $id));
-
-        $response = $this
-            ->client
-            ->request($request);
-        if (!$response->isSuccess()) {
-            return $response;
-        }
-
-        $unixUser = (new UnixUser())->fromArray($response->getData());
-
-        return $response->setData([
-            'unixUser' => $unixUser,
-        ]);
-    }
-
-    /**
-     * @throws RequestException
-     */
-    public function disableAsync(int $id): Response
-    {
-        $request = (new Request())
-            ->setMethod(Request::METHOD_DELETE)
-            ->setUrl(sprintf('unix-users/%d/async-support', $id));
-
-        $response = $this
-            ->client
-            ->request($request);
-        if (!$response->isSuccess()) {
-            return $response;
-        }
-
-        $unixUser = (new UnixUser())->fromArray($response->getData());
-
-        return $response->setData([
-            'unixUser' => $unixUser,
-        ]);
     }
 
     /**
