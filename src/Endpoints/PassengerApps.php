@@ -122,7 +122,6 @@ class PassengerApps extends Endpoint
             'port',
             'app_type',
             'startup_file',
-            'unit_name',
         ]);
 
         $request = (new Request())
@@ -143,7 +142,6 @@ class PassengerApps extends Endpoint
                     'app_type',
                     'nodejs_version',
                     'startup_file',
-                    'unit_name',
                     'is_namespaced',
                     'cpu_limit',
                     'app_root',

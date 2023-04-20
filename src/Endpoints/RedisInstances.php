@@ -112,7 +112,6 @@ class RedisInstances extends Endpoint
             'cluster_id',
             'id',
             'port',
-            'unit_name',
         ]);
 
         $request = (new Request())
@@ -129,7 +128,6 @@ class RedisInstances extends Endpoint
                     'cluster_id',
                     'id',
                     'port',
-                    'unit_name',
                 ])
             );
 

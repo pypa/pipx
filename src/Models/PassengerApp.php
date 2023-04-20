@@ -23,7 +23,6 @@ class PassengerApp extends ClusterModel
     private ?string $startupFile;
     private bool $isNamespaced = false;
     private ?int $cpuLimit = null;
-    private ?string $unitName;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -225,18 +224,6 @@ class PassengerApp extends ClusterModel
         return $this;
     }
 
-    public function getUnitName(): ?string
-    {
-        return $this->unitName;
-    }
-
-    public function setUnitName(?string $unitName): self
-    {
-        $this->unitName = $unitName;
-
-        return $this;
-    }
-
     public function getId(): ?int
     {
         return $this->id;
@@ -302,7 +289,6 @@ class PassengerApp extends ClusterModel
             ->setIsNamespaced((bool)Arr::get($data, 'is_namespaced'))
             ->setCpuLimit(Arr::get($data, 'cpu_limit'))
             ->setAppRoot(Arr::get($data, 'app_root'))
-            ->setUnitName(Arr::get($data, 'unit_name'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -326,7 +312,6 @@ class PassengerApp extends ClusterModel
             'is_namespaced' => $this->isNamespaced(),
             'cpu_limit' => $this->getCpuLimit(),
             'app_root' => $this->getAppRoot(),
-            'unit_name' => $this->getUnitName(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
