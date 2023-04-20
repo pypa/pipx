@@ -16,7 +16,6 @@ class FpmPool extends ClusterModel
     private ?int $cpuLimit = null;
     private ?int $logShowRequestsThreshold = null;
     private bool $isNamespaced = false;
-    private ?string $unitName = null;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -135,18 +134,6 @@ class FpmPool extends ClusterModel
         return $this;
     }
 
-    public function getUnitName(): ?string
-    {
-        return $this->unitName;
-    }
-
-    public function setUnitName(?string $unitName): self
-    {
-        $this->unitName = $unitName;
-
-        return $this;
-    }
-
     public function getId(): ?int
     {
         return $this->id;
@@ -207,7 +194,6 @@ class FpmPool extends ClusterModel
             ->setCpuLimit(Arr::get($data, 'cpu_limit'))
             ->setLogShowRequestsThreshold(Arr::get($data, 'log_slow_requests_threshold'))
             ->setIsNamespaced((bool)Arr::get($data, 'is_namespaced'))
-            ->setUnitName(Arr::get($data, 'unit_name'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -226,7 +212,6 @@ class FpmPool extends ClusterModel
             'cpu_limit' => $this->getCpuLimit(),
             'log_slow_requests_threshold' => $this->getLogShowRequestsThreshold(),
             'is_namespaced' => $this->isNamespaced(),
-            'unit_name' => $this->getUnitName(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
