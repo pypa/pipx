@@ -225,7 +225,7 @@ Any arguments after the application name will be passed directly to the applicat
 
 ```
 
-Sometime pipx can consume arguments provided for application:
+Sometimes pipx can consume arguments provided for the application:
 
 ```
 > pipx run pycowsay --py
