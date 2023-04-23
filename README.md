@@ -38,8 +38,8 @@ Upgrade pipx with `brew update && brew upgrade pipx`.
 ### On Linux, install via pip (requires pip 19.0 or later)
 
 ```
-python3 -m pip install --user pipx
-python3 -m pipx ensurepath
+sudo apt install pipx
+pipx ensurepath
 ```
 
 Upgrade pipx with `python3 -m pip install --user --upgrade pipx`.
