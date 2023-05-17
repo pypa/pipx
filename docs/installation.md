@@ -38,6 +38,21 @@ The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx
 python pipx.pyz ensurepath
 ```
 
+Or use with pre-commit
+
+Pipx has pre-commit support. This allows for running any package that can be installed with pipx even if it doesn't support pre-commit natively, or to install the package as a wheel from pypi instead of building from source control.
+
+```yaml
+- repo: https://github.com/pypa/pipx
+  rev: 1.3.0
+  hooks:
+  - id: pipx
+    alias: yapf
+    name: yapf
+    args: ['run', 'yapf', '-i']
+    types: ['python']
+```
+
 ### Installation Options
 
 The default binary location for pipx-installed apps is `~/.local/bin`. This can be overridden with the environment variable `PIPX_BIN_DIR`.

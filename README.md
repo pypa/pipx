@@ -78,6 +78,21 @@ The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx
 python pipx.pyz ensurepath
 ```
 
+### Use with pre-commit
+
+Pipx has pre-commit support. This allows for running any package that can be installed with pipx even if it doesn't support pre-commit natively, or to install the package as a wheel from pypi instead of building from source control.
+
+```yaml
+- repo: https://github.com/pypa/pipx
+  rev: 1.3.0
+  hooks:
+  - id: pipx
+    alias: yapf
+    name: yapf
+    args: ['run', 'yapf', '-i']
+    types: ['python']
+```
+
 ### Shell completions
 
 Shell completions are available by following the instructions printed with this command:
