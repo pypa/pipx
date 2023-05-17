@@ -35,7 +35,6 @@ pipx ensurepath
 
 Upgrade pipx with `brew update && brew upgrade pipx`.
 
-
 ### On Linux
 
 -  Ubuntu 23.04 or above
