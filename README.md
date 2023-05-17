@@ -36,18 +36,19 @@ pipx ensurepath
 Upgrade pipx with `brew update && brew upgrade pipx`.
 
 
-### On Linux, install via pip (requires pip 19.0 or later)
+### On Linux
 
 -  Ubuntu 23.04 or above
 
-```sh
+```
+sudo apt update
 sudo apt install pipx
 pipx ensurepath
 ```
 
 -  Ubuntu 22.04 or below
 
-```sh
+```
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ```
