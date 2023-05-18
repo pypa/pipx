@@ -45,6 +45,8 @@ Pipx has pre-commit support. This lets you run applications:
 * Using the prebuilt wheel instead of building it from source.
 * Using pipx's `--spec` and `--index-url` flags.
 
+Example configuration for use of the code linter [yapf](https://github.com/google/yapf/). This is to be added to your `.pre-commit-config.yaml`. 
+
 ```yaml
 - repo: https://github.com/pypa/pipx
   rev: 1.3.0
