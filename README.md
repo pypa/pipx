@@ -80,18 +80,10 @@ python pipx.pyz ensurepath
 
 ### Use with pre-commit
 
-Pipx has pre-commit support. This allows for running any package that can be installed with pipx even if it doesn't support pre-commit natively, or to install the package as a wheel from pypi instead of building from source control.
-
-```yaml
-- repo: https://github.com/pypa/pipx
-  rev: 1.3.0
-  hooks:
-  - id: pipx
-    alias: yapf
-    name: yapf
-    args: ['run', 'yapf', '-i']
-    types: ['python']
-```
+Pipx [has pre-commit support](docs/installation.md#pre-commit). This lets you:
+* Run any package that can be installed with `pipx run` even it the application doesn't support pre-commit natively.
+* Install an application's prebuilt wheel instead of building it from source.
+* Install an application from an arbitrary pypi repository (e.g. artifactory)
 
 ### Shell completions
 
