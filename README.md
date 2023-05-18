@@ -80,10 +80,7 @@ python pipx.pyz ensurepath
 
 ### Use with pre-commit
 
-Pipx [has pre-commit support](docs/installation.md#pre-commit). This lets you:
-* Run any package that can be installed with `pipx run` even it the application doesn't support pre-commit natively.
-* Install an application's prebuilt wheel instead of building it from source.
-* Install an application from an arbitrary pypi repository (e.g. artifactory)
+Pipx [has pre-commit support](docs/installation.md#pre-commit).
 
 ### Shell completions
 
