@@ -40,9 +40,9 @@ python pipx.pyz ensurepath
 
 <a name="pre-commit"></a>Or use with pre-commit:
 
-Pipx has pre-commit support. This lets you run applications:
+Pipx has <a href="https://pre-commit.com/">pre-commit</a> support. This lets you run applications:
 * That can be run using `pipx run` but don't have native pre-commit support.
-* Using the prebuilt wheel instead of building it from source.
+* Using its prebuilt wheel from pypi.org instead of building it from source.
 * Using pipx's `--spec` and `--index-url` flags.
 
 Example configuration for use of the code linter [yapf](https://github.com/google/yapf/). This is to be added to your `.pre-commit-config.yaml`. 
