@@ -49,7 +49,7 @@ Example configuration for use of the code linter [yapf](https://github.com/googl
 
 ```yaml
 - repo: https://github.com/pypa/pipx
-  rev: 1.3.0
+  rev: 1.2.0
   hooks:
   - id: pipx
     alias: yapf
