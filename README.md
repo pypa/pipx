@@ -61,7 +61,7 @@ If so, go to the mentioned folder, allowing you to run the pipx executable direc
 Enter the following line (even if you did not get the warning):
 
 ```
-pipx ensurepath
+.\pipx.exe ensurepath
 ```
 
 This will add both the above mentioned path and the `%USERPROFILE%\.local\bin` folder to your search path.
