@@ -54,7 +54,7 @@ Example configuration for use of the code linter [yapf](https://github.com/googl
   - id: pipx
     alias: yapf
     name: yapf
-    args: ['run', 'yapf', '-i']
+    args: ['yapf', '-i']
     types: ['python']
 ```
 
