@@ -25,7 +25,7 @@ class SshKey extends ClusterModel
     public function setName(string $name): self
     {
         Validator::value($name)
-            ->maxLength(64)
+            ->maxLength(128)
             ->pattern('^[a-zA-Z0-9-_]+$')
             ->validate();
 
