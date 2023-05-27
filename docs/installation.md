@@ -56,7 +56,9 @@ Example configuration for use of the code linter [yapf](https://github.com/googl
     name: yapf
     args: ['yapf', '-i']
     types: ['python']
-```
+``````
+
+There are two ids available: `pipx` which uses the default value for [require_serial](https://pre-commit.com/#hooks-require_serial) and `pipx-serial` when has this setting set to `true`.
 
 ### Installation Options
 
