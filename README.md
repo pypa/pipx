@@ -78,6 +78,10 @@ The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx
 python pipx.pyz ensurepath
 ```
 
+### Use with pre-commit
+
+pipx [has pre-commit support](docs/installation.md#pre-commit).
+
 ### Shell completions
 
 Shell completions are available by following the instructions printed with this command:
