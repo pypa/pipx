@@ -280,7 +280,7 @@ Contributions are welcome. See the [contributing guidelines](CONTRIBUTING.md).
 
 ## Security
 
-If you discover any security related issues, please email opensource@cyberfusion.nl instead of using the issue tracker.
+If you discover any security related issues, please email support@cyberfusion.nl instead of using the issue tracker.
 
 ## License
 
