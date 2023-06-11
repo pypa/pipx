@@ -87,14 +87,14 @@ def pipx_local_pypiserver(request):
         request.config.invocation_params.dir / PIPX_TESTS_DIR / "package_cache"
     )
     check_test_packages_cmd = [
-        "python3",
+        sys.executable,
         "scripts/update_package_cache.py",
         "--check-only",
         str(PIPX_TESTS_PACKAGE_LIST_DIR),
         str(pipx_cache_dir),
     ]
     update_test_packages_cmd = [
-        "python3",
+        sys.executable,
         "scripts/update_package_cache.py",
         str(PIPX_TESTS_PACKAGE_LIST_DIR),
         str(pipx_cache_dir),
