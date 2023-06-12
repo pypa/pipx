@@ -250,7 +250,7 @@ def test_install_pip_failure(pipx_temp_env, capsys):
         r"Full pip output in file:\s+(\S.+)$", captured.err, re.MULTILINE
     )
     assert pip_log_file_match
-    assert Path(pip_log_file_match.group(1)).exists()
+    assert Path(pip_log_file_match[1]).exists()
 
     assert re.search(r"pip (failed|seemed to fail) to build package", captured.err)
 
