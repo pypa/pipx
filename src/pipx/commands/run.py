@@ -75,7 +75,7 @@ def run_script(
 ) -> NoReturn:
     requirements = _get_requirements_from_script(content)
     if requirements is None:
-        exec_app([str(python), "-c", content, *app_args])
+        exec_app([python, "-c", content, *app_args])
     else:
         # Note that the environment name is based on the identified
         # requirements, and *not* on the script name. This is deliberate, as
