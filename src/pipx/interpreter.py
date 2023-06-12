@@ -30,7 +30,11 @@ def has_venv() -> bool:
 def find_py_launcher_python(python_version: Optional[str] = None) -> Optional[str]:
     py = shutil.which("py")
     if py and python_version:
-        os.environ["PY_PYTHON"] = python_version
+        py = subprocess.run(
+            ["py", f"-{python_version}", "-c", "import sys; print(sys.executable)"],
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
     return py
 
 
