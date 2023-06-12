@@ -144,7 +144,7 @@ def test_extra(pipx_temp_env, capsys):
 
 def test_install_local_extra(pipx_temp_env, capsys):
     assert not run_pipx_cli(
-        ["install", TEST_DATA_PATH + "/local_extras[cow]", "--include-deps"]
+        ["install", f"{TEST_DATA_PATH}/local_extras[cow]", "--include-deps"]
     )
     captured = capsys.readouterr()
     assert f"- {app_name('pycowsay')}\n" in captured.out
