@@ -194,11 +194,7 @@ def run(
         if py_launcher:
             python = py_launcher
 
-    if spec is not None:
-        content = None
-    else:
-        content = maybe_script_content(app, is_path)
-
+    content = None if spec is not None else maybe_script_content(app, is_path)
     if content is not None:
         run_script(content, app_args, python, pip_args, venv_args, verbose, use_cache)
     else:
