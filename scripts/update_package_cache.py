@@ -49,8 +49,7 @@ def process_command_line(argv: List[str]) -> argparse.Namespace:
         "download or delete files.",
     )
 
-    args = parser.parse_args(argv)
-    return args
+    return parser.parse_args(argv)
 
 
 def update_test_packages_cache(

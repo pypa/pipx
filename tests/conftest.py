@@ -87,14 +87,14 @@ def pipx_local_pypiserver(request):
         request.config.invocation_params.dir / PIPX_TESTS_DIR / "package_cache"
     )
     check_test_packages_cmd = [
-        "python3",
+        sys.executable,
         "scripts/update_package_cache.py",
         "--check-only",
         str(PIPX_TESTS_PACKAGE_LIST_DIR),
         str(pipx_cache_dir),
     ]
     update_test_packages_cmd = [
-        "python3",
+        sys.executable,
         "scripts/update_package_cache.py",
         str(PIPX_TESTS_PACKAGE_LIST_DIR),
         str(pipx_cache_dir),
@@ -108,24 +108,23 @@ def pipx_local_pypiserver(request):
             f"{' '.join(update_test_packages_cmd)}"
         )
 
-    pypiserver_err_fh = open(
+    with open(
         request.config.invocation_params.dir / PIPX_TESTS_DIR / "pypiserver.log", "w"
-    )
-    pypiserver_process = subprocess.Popen(
-        [
-            "pypi-server",
-            "--authenticate=update",
-            "--disable-fallback",
-            str(pipx_cache_dir / f"{sys.version_info[0]}.{sys.version_info[1]}"),
-        ],
-        universal_newlines=True,
-        stderr=pypiserver_err_fh,
-    )
+    ) as pypiserver_err_fh:
+        pypiserver_process = subprocess.Popen(
+            [
+                "pypi-server",
+                "--authenticate=update",
+                "--disable-fallback",
+                str(pipx_cache_dir / f"{sys.version_info[0]}.{sys.version_info[1]}"),
+            ],
+            universal_newlines=True,
+            stderr=pypiserver_err_fh,
+        )
 
-    yield
+        yield
 
-    pypiserver_process.terminate()
-    pypiserver_err_fh.close()
+        pypiserver_process.terminate()
 
 
 @pytest.fixture(scope="session")
