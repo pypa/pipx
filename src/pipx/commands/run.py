@@ -180,7 +180,6 @@ def run(
     package
     """
 
-    package_or_url = spec if spec is not None else app
     # For any package, we need to just use the name
     try:
         package_name = Requirement(app).name
@@ -198,6 +197,7 @@ def run(
     if content is not None:
         run_script(content, app_args, python, pip_args, venv_args, verbose, use_cache)
     else:
+        package_or_url = spec if spec is not None else app
         run_package(
             package_name,
             package_or_url,
