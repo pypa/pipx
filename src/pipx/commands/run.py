@@ -288,7 +288,7 @@ def _get_temporary_venv_path(
     m.update(python.encode())
     m.update("".join(pip_args).encode())
     m.update("".join(venv_args).encode())
-    venv_folder_name = m.hexdigest()[0:15]  # 15 chosen arbitrarily
+    venv_folder_name = m.hexdigest()[:15]  # 15 chosen arbitrarily
     return Path(constants.PIPX_VENV_CACHEDIR) / venv_folder_name
 
 
