@@ -322,7 +322,7 @@ def _http_get_request(url: str) -> str:
         return res.read().decode(charset)
     except Exception as e:
         logger.debug("Uncaught Exception:", exc_info=True)
-        raise PipxError(str(e))
+        raise PipxError(str(e)) from e
 
 
 def _get_requirements_from_script(content: str) -> Optional[List[str]]:
@@ -356,7 +356,7 @@ def _get_requirements_from_script(content: str) -> Optional[List[str]]:
         try:
             req = Requirement(line_content)
         except InvalidRequirement as e:
-            raise PipxError(f"Invalid requirement {line_content}: {str(e)}")
+            raise PipxError(f"Invalid requirement {line_content}: {str(e)}") from e
 
         # Use the normalised form of the requirement,
         # not the original line.
