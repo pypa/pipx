@@ -342,7 +342,8 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
         default=DEFAULT_PYTHON,
         help=(
             "The Python executable used to create the Virtual Environment and run the "
-            "associated app/apps. Must be v3.6+."
+            "associated app/apps. The Python version for the Python Launcher for Windows. "
+            "Must be v3.6+."
         ),
     )
     add_pip_venv_args(p)
@@ -484,8 +485,9 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter) -> None:
         "--python",
         default=DEFAULT_PYTHON,
         help=(
-            "The Python executable used to recreate the Virtual Environment "
-            "and run the associated app/apps. Must be v3.6+."
+            "The Python executable used to create the Virtual Environment and run the "
+            "associated app/apps. The Python version for the Python Launcher for Windows. "
+            "Must be v3.6+."
         ),
     )
     p.add_argument("--verbose", action="store_true")
@@ -512,8 +514,9 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction) -> None:
         "--python",
         default=DEFAULT_PYTHON,
         help=(
-            "The Python executable used to recreate the Virtual Environment "
-            "and run the associated app/apps. Must be v3.6+."
+            "The Python executable used to create the Virtual Environment and run the "
+            "associated app/apps. The Python version for the Python Launcher for Windows. "
+            "Must be v3.6+."
         ),
     )
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
@@ -588,7 +591,11 @@ def _add_run(subparsers: argparse._SubParsersAction) -> None:
     p.add_argument(
         "--python",
         default=DEFAULT_PYTHON,
-        help="The Python version to run package's CLI app with. Must be v3.6+.",
+        help=(
+            "The Python executable used to create the Virtual Environment and run the "
+            "associated app/apps. The Python version for the Python Launcher for Windows. "
+            "Must be v3.6+."
+        ),
     )
     add_pip_venv_args(p)
     p.set_defaults(subparser=p)

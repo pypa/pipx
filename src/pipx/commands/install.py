@@ -4,6 +4,7 @@ from typing import List, Optional
 from pipx import constants
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.constants import EXIT_CODE_INSTALL_VENV_EXISTS, EXIT_CODE_OK, ExitCode
+from pipx.interpreter import find_py_launcher_python
 from pipx.util import pipx_wrap
 from pipx.venv import Venv, VenvContainer
 
@@ -25,6 +26,11 @@ def install(
     """Returns pipx exit code."""
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
+
+    if constants.WINDOWS and python and not Path(python).is_file():
+        py_launcher = find_py_launcher_python(python)
+        if py_launcher:
+            python = py_launcher
 
     if package_name is None:
         package_name = package_name_from_spec(

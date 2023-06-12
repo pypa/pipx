@@ -316,3 +316,23 @@ def test_run_script_by_relative_name(caplog, pipx_temp_env, monkeypatch, tmp_pat
         m.chdir(tmp_path)
         run_pipx_cli_exit(["run", "test.py"])
     assert out.read_text() == test_str
+
+
+@pytest.mark.skipif(
+    not sys.platform.startswith("win"), reason="uses windows version format"
+)
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_windows_python_version(caplog, pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    out = tmp_path / "output.txt"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+                import sys
+                from pathlib import Path
+                Path({repr(str(out))}).write_text(sys.version)
+            """
+        ).strip()
+    )
+    run_pipx_cli_exit(["run", script.as_uri(), "--python", "3.11"])
+    assert "3.11" in out.read_text()

@@ -14,6 +14,7 @@ from pipx import constants
 from pipx.commands.common import package_name_from_spec
 from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
 from pipx.emojis import hazard
+from pipx.interpreter import find_py_launcher_python
 from pipx.util import (
     PipxError,
     exec_app,
@@ -106,7 +107,6 @@ def run_package(
     verbose: bool,
     use_cache: bool,
 ) -> NoReturn:
-
     if which(app):
         logger.warning(
             pipx_wrap(
@@ -188,6 +188,11 @@ def run(
         # Raw URLs to scripts are supported, too, so continue if
         # we can't parse this as a package
         package_name = app
+
+    if constants.WINDOWS and python and not Path(python).is_file():
+        py_launcher = find_py_launcher_python(python)
+        if py_launcher:
+            python = py_launcher
 
     if spec is not None:
         content = None
@@ -325,7 +330,6 @@ def _http_get_request(url: str) -> str:
 
 
 def _get_requirements_from_script(content: str) -> Optional[List[str]]:
-
     # An iterator over the lines in the script. We will
     # read through this in sections, so it needs to be an
     # iterator, not just a list.

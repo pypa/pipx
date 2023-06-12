@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 import sys
@@ -8,26 +9,42 @@ import pipx.interpreter
 from pipx.interpreter import (
     _find_default_windows_python,
     _get_absolute_python_interpreter,
+    find_py_launcher_python,
 )
 from pipx.util import PipxError
 
 
-def test_windows_python_venv_present(monkeypatch):
+def py_which(name):
+    if name == "py":
+        return "py"
+
+
+def test_windows_python_with_version_no_venv(monkeypatch):
+    monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: False)
+    monkeypatch.setattr(shutil, "which", py_which)
+    assert find_py_launcher_python("3.9") == "py"
+    assert os.environ.get("PY_PYTHON") == "3.9"
+
+
+def test_windows_python_with_version_with_venv(monkeypatch):
+    monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: True)
+    monkeypatch.setattr(shutil, "which", py_which)
+    assert find_py_launcher_python("3.9") == "py"
+    assert os.environ.get("PY_PYTHON") == "3.9"
+
+
+def test_windows_python_no_version_with_venv(monkeypatch):
     monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: True)
     assert _find_default_windows_python() == sys.executable
 
 
-def test_windows_python_no_venv_py_present(monkeypatch):
-    def which(name):
-        if name == "py":
-            return "py"
-
+def test_windows_python_no_version_no_venv_with_py(monkeypatch):
     monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: False)
-    monkeypatch.setattr(shutil, "which", which)
+    monkeypatch.setattr(shutil, "which", py_which)
     assert _find_default_windows_python() == "py"
 
 
-def test_windows_python_no_venv_python_present(monkeypatch):
+def test_windows_python_no_version_no_venv_python_present(monkeypatch):
     def which(name):
         if name == "python":
             return "python"
@@ -38,7 +55,7 @@ def test_windows_python_no_venv_python_present(monkeypatch):
     assert _find_default_windows_python() == "python"
 
 
-def test_windows_python_no_venv_no_python(monkeypatch):
+def test_windows_python_no_version_no_venv_no_python(monkeypatch):
     def which(name):
         return None
 
