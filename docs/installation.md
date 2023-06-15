@@ -62,7 +62,7 @@ Example configuration for use of the code linter [yapf](https://github.com/googl
 
 The default binary location for pipx-installed apps is `~/.local/bin`. This can be overridden with the environment variable `PIPX_BIN_DIR`.
 
-pipx's default virtual environment location is `~/.local/pipx`. This can be overridden with the environment variable `PIPX_HOME`.
+pipx's default virtual environment location is `$XDG_DATA_HOME/pipx`, which is typically `~/.local/share/pipx`, and for compatibility reasons, if `~/.local/pipx` exists, it will be used as the default location instead. This can be overridden with the `PIPX_HOME` environment variable.
 
 As an example, you can install global apps accessible by all users on your system with the following command (on MacOS, Linux, and Windows WSL):
 

@@ -4,20 +4,31 @@ import sysconfig
 from pathlib import Path
 from textwrap import dedent
 from typing import NewType, Optional
+from platformdirs import user_cache_path, user_data_path, user_log_path
 
 DEFAULT_PIPX_HOME = Path.home() / ".local/pipx"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
-PIPX_HOME = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve()
-PIPX_LOCAL_VENVS = PIPX_HOME / "venvs"
-PIPX_LOG_DIR = PIPX_HOME / "logs"
-DEFAULT_PIPX_SHARED_LIBS = PIPX_HOME / "shared"
-PIPX_TRASH_DIR = PIPX_HOME / ".trash"
+
+if DEFAULT_PIPX_HOME.exists() or os.environ.get("PIPX_HOME") is not None:
+    PIPX_HOME = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve()
+    PIPX_LOCAL_VENVS = PIPX_HOME / "venvs"
+    PIPX_LOG_DIR = PIPX_HOME / "logs"
+    DEFAULT_PIPX_SHARED_LIBS = PIPX_HOME / "shared"
+    PIPX_TRASH_DIR = PIPX_HOME / ".trash"
+    PIPX_VENV_CACHEDIR = PIPX_HOME / ".cache"
+else:
+    PIPX_HOME = user_data_path("pipx")
+    PIPX_LOCAL_VENVS = PIPX_HOME / "venvs"
+    PIPX_LOG_DIR = user_log_path("pipx")
+    DEFAULT_PIPX_SHARED_LIBS = PIPX_HOME / "shared"
+    PIPX_TRASH_DIR = PIPX_HOME / "trash"
+    PIPX_VENV_CACHEDIR = user_cache_path("pipx")
+
 PIPX_SHARED_LIBS = Path(
     os.environ.get("PIPX_SHARED_LIBS", DEFAULT_PIPX_SHARED_LIBS)
 ).resolve()
 PIPX_SHARED_PTH = "pipx_shared.pth"
 LOCAL_BIN_DIR = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resolve()
-PIPX_VENV_CACHEDIR = PIPX_HOME / ".cache"
 TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 14
 
 ExitCode = NewType("ExitCode", int)

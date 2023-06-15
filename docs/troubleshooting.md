@@ -74,10 +74,10 @@ Reference: [pip Environment Variables](https://pip.pypa.io/en/stable/user_guide/
 
 ## `pipx` log files
 Pipx records a verbose log file for every `pipx` command invocation.  The logs
-for the last 10 `pipx` commands can be found in `$PIPX_HOME/logs` or user's log path
+for the last 10 `pipx` commands can be found in `$XDG_STATE_HOME/pipx/logs` or user's log path
 if the former is not writable by the user.
 
-For most users this location is `~/.local/pipx/logs`, where `~` is your home
+For most users this location is `~/.local/state/pipx/logs`, where `~` is your home
 directory.
 
 ## Debian, Ubuntu issues
