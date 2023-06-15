@@ -4,6 +4,7 @@ import sysconfig
 from pathlib import Path
 from textwrap import dedent
 from typing import NewType, Optional
+
 from platformdirs import user_cache_path, user_data_path, user_log_path
 
 DEFAULT_PIPX_HOME = Path.home() / ".local/pipx"
