@@ -19,7 +19,7 @@ if FALLBACK_PIPX_HOME.exists() or os.environ.get("PIPX_HOME") is not None:
     PIPX_TRASH_DIR = PIPX_HOME / ".trash"
     PIPX_VENV_CACHEDIR = PIPX_HOME / ".cache"
 else:
-    PIPX_HOME = user_data_path("pipx")
+    PIPX_HOME = DEFAULT_PIPX_HOME
     PIPX_LOCAL_VENVS = PIPX_HOME / "venvs"
     PIPX_LOG_DIR = user_log_path("pipx")
     DEFAULT_PIPX_SHARED_LIBS = PIPX_HOME / "shared"
