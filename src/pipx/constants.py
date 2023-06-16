@@ -7,11 +7,12 @@ from typing import NewType, Optional
 
 from platformdirs import user_cache_path, user_data_path, user_log_path
 
-DEFAULT_PIPX_HOME = Path.home() / ".local/pipx"
+DEFAULT_PIPX_HOME = user_data_path("pipx")
+FALLBACK_PIPX_HOME = Path.home() / ".local/pipx"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 
-if DEFAULT_PIPX_HOME.exists() or os.environ.get("PIPX_HOME") is not None:
-    PIPX_HOME = Path(os.environ.get("PIPX_HOME", DEFAULT_PIPX_HOME)).resolve()
+if FALLBACK_PIPX_HOME.exists() or os.environ.get("PIPX_HOME") is not None:
+    PIPX_HOME = Path(os.environ.get("PIPX_HOME", FALLBACK_PIPX_HOME)).resolve()
     PIPX_LOCAL_VENVS = PIPX_HOME / "venvs"
     PIPX_LOG_DIR = PIPX_HOME / "logs"
     DEFAULT_PIPX_SHARED_LIBS = PIPX_HOME / "shared"
