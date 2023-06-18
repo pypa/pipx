@@ -1,4 +1,3 @@
-import os
 import shutil
 import subprocess
 import sys
@@ -14,23 +13,18 @@ from pipx.interpreter import (
 from pipx.util import PipxError
 
 
-def py_which(name):
-    if name == "py":
+@pytest.mark.parametrize("venv", [True, False])
+def test_windows_python_with_version(monkeypatch, venv):
+    def which(name):
         return "py"
 
-
-def test_windows_python_with_version_no_venv(monkeypatch):
-    monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: False)
-    monkeypatch.setattr(shutil, "which", py_which)
-    assert find_py_launcher_python("3.9") == "py"
-    assert os.environ.get("PY_PYTHON") == "3.9"
-
-
-def test_windows_python_with_version_with_venv(monkeypatch):
-    monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: True)
-    monkeypatch.setattr(shutil, "which", py_which)
-    assert find_py_launcher_python("3.9") == "py"
-    assert os.environ.get("PY_PYTHON") == "3.9"
+    major = sys.version_info.major
+    minor = sys.version_info.minor
+    monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: venv)
+    monkeypatch.setattr(shutil, "which", which)
+    assert find_py_launcher_python(f"{major}.{minor}").endswith(
+        f"Python{major}{minor}\\python.exe"
+    )
 
 
 def test_windows_python_no_version_with_venv(monkeypatch):
@@ -39,8 +33,11 @@ def test_windows_python_no_version_with_venv(monkeypatch):
 
 
 def test_windows_python_no_version_no_venv_with_py(monkeypatch):
+    def which(name):
+        return "py"
+
     monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: False)
-    monkeypatch.setattr(shutil, "which", py_which)
+    monkeypatch.setattr(shutil, "which", which)
     assert _find_default_windows_python() == "py"
 
 
