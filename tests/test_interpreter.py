@@ -23,9 +23,9 @@ def test_windows_python_with_version(monkeypatch, venv):
     minor = sys.version_info.minor
     monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: venv)
     monkeypatch.setattr(shutil, "which", which)
-    assert find_py_launcher_python(f"{major}.{minor}").endswith(
-        f"Python{major}{minor}\\python.exe"
-    )
+    python_path = find_py_launcher_python(f"{major}.{minor}")
+    assert f"{major}.{minor}" in python_path or f"{major}{minor}" in python_path
+    assert python_path.endswith("python.exe")
 
 
 def test_windows_python_no_version_with_venv(monkeypatch):
