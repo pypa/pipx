@@ -13,6 +13,7 @@ from pipx.interpreter import (
 from pipx.util import PipxError
 
 
+@pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
 @pytest.mark.parametrize("venv", [True, False])
 def test_windows_python_with_version(monkeypatch, venv):
     def which(name):
