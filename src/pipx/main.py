@@ -25,7 +25,7 @@ from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
 from pipx.constants import WINDOWS, ExitCode
 from pipx.emojis import hazard
-from pipx.interpreter import DEFAULT_PYTHON
+from pipx.interpreter import DEFAULT_PYTHON, find_py_launcher_python
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import VenvContainer
 from pipx.version import __version__
@@ -181,6 +181,10 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         logger.info(f"Virtual Environment location is {venv_dir}")
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
+    if "python" in args and WINDOWS and not Path(args.python).is_file():
+        py_launcher = find_py_launcher_python(args.python)
+        if py_launcher:
+            args.python = py_launcher
 
     if args.command == "run":
         commands.run(

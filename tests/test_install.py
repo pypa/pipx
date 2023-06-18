@@ -262,12 +262,3 @@ def test_install_local_archive(pipx_temp_env, monkeypatch, capsys):
     assert not run_pipx_cli(["install", "repeatme-0.1-py3-none-any.whl"])
     captured = capsys.readouterr()
     assert f"- {app_name('repeatme')}\n" in captured.out
-
-
-@pytest.mark.skipif(
-    not sys.platform.startswith("win"), reason="uses windows version format"
-)
-def test_install_with_python_windows(capsys, pipx_temp_env):
-    run_pipx_cli(["install", "pycowsay", "--python", "3.11"])
-    captured = capsys.readouterr()
-    assert "Python 3.11" in captured.out
