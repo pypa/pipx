@@ -7,7 +7,7 @@ name = "pipx"
 description = "Install and Run Python Applications in Isolated Environments"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 keywords = ["pip", "install", "cli", "workflow", "Virtual Environment"]
 authors = [{ name = "Chad Smith", email = "chadsmith.software@gmail.com" }]
 classifiers = [
@@ -15,7 +15,6 @@ classifiers = [
   "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
