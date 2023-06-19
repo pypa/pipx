@@ -797,7 +797,7 @@ def setup(args: argparse.Namespace) -> None:
     logger.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
     logger.debug(f"{' '.join(sys.argv)}")
     logger.info(f"pipx version is {__version__}")
-    logger.info(f"Default python interpreter is {repr(DEFAULT_PYTHON)}")
+    logger.info(f"Default python interpreter is '{DEFAULT_PYTHON}'")
 
     mkdir(constants.PIPX_LOCAL_VENVS)
     mkdir(constants.LOCAL_BIN_DIR)
