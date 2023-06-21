@@ -66,7 +66,7 @@ def _get_sys_executable() -> str:
 def _get_absolute_python_interpreter(env_python: str) -> str:
     which_python = shutil.which(env_python)
     if not which_python:
-        raise PipxError(f"Default python interpreter {repr(env_python)} is invalid.")
+        raise PipxError(f"Default python interpreter '{env_python}' is invalid.")
     return which_python
 
 
