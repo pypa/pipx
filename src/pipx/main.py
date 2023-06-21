@@ -346,7 +346,7 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
         default=DEFAULT_PYTHON,
         help=(
             "The Python executable used to create the Virtual Environment and run the "
-            "associated app/apps. The Python version for the Python Launcher for Windows. "
+            "associated app/apps. The Python version for the Python Launcher. "
             "Must be v3.6+."
         ),
     )
@@ -490,7 +490,7 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter) -> None:
         default=DEFAULT_PYTHON,
         help=(
             "The Python executable used to create the Virtual Environment and run the "
-            "associated app/apps. The Python version for the Python Launcher for Windows. "
+            "associated app/apps. The Python version for the Python Launcher. "
             "Must be v3.6+."
         ),
     )
@@ -519,7 +519,7 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction) -> None:
         default=DEFAULT_PYTHON,
         help=(
             "The Python executable used to create the Virtual Environment and run the "
-            "associated app/apps. The Python version for the Python Launcher for Windows. "
+            "associated app/apps. The Python version for the Python Launcher. "
             "Must be v3.6+."
         ),
     )
@@ -597,7 +597,7 @@ def _add_run(subparsers: argparse._SubParsersAction) -> None:
         default=DEFAULT_PYTHON,
         help=(
             "The Python executable used to create the Virtual Environment and run the "
-            "associated app/apps. The Python version for the Python Launcher for Windows. "
+            "associated app/apps. The Python version for the Python Launcher. "
             "Must be v3.6+."
         ),
     )

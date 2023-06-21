@@ -188,7 +188,7 @@ def run(
         # we can't parse this as a package
         package_name = app
 
-    if constants.WINDOWS and python and not Path(python).is_file():
+    if python and not Path(python).is_file():
         py_launcher = find_py_launcher_python(python)
         if py_launcher:
             python = py_launcher
