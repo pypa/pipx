@@ -119,3 +119,21 @@ To clean up after this experiment:
 ```
 rm -rf test_venv
 ```
+
+## Pipx files not in expected locations according to documentation
+
+The default PIPX_HOME is `~/.local/pipx`, prior to the adoption of the XDG base
+directory specification after version 1.2.0. To maintain compatibility with older 
+versions, pipx will automatically detect the old paths and use them accordingly.
+For a map of old and new paths, See [Installation](installation.md#installation-options)
+
+To migrate from the old path to the new path, you can remove the `~/.local/pipx` directory and 
+reinstall all packages.
+
+for example:
+
+```
+packages=($(pipx list --json | jq '.venvs | keys[]' -r))
+rm -rf ~/.local/pipx
+for p in ${packages[@]}; do pipx install "$p"; done
+```

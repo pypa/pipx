@@ -71,6 +71,18 @@ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install PACKAGE
 # Example: $ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install cowsay
 ```
 
+!!! note
+
+    After version 1.2.0, the default pipx paths have been moved from `~/.local/pipx` to `$XDG_DATA_HOME/pipx`, which is typically `~/.local/share/pipx`, to ensure compatibility with the XDG base directory specification.
+    
+    | Old Path               | New Path                     |
+    | ---------------------- | ---------------------------- | 
+    | `~/.local/pipx/.trash` | `$XDG_DATA_HOME/pipx/trash`  |
+    | `~/.local/pipx/shared` | `$XDG_DATA_HOME/pipx/shared` |
+    | `~/.local/pipx/venvs`  | `$XDG_DATA_HOME/pipx/venv`   |
+    | `~/.local/pipx/.cache` | `$XDG_CACHE_HOME/pipx`       |
+    | `~/.local/pipx/logs`   | `$XDG_STATE_HOME/pipx/log`   |
+
 ## Upgrade pipx
 
 On macOS:
