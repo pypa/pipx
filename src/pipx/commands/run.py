@@ -189,9 +189,9 @@ def run(
         package_name = app
 
     if python and not Path(python).is_file():
-        py_launcher = find_py_launcher_python(python)
-        if py_launcher:
-            python = py_launcher
+        py_launcher_python = find_py_launcher_python(python)
+        if py_launcher_python:
+            python = py_launcher_python
 
     content = None if spec is not None else maybe_script_content(app, is_path)
     if content is not None:

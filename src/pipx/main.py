@@ -182,9 +182,9 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
     if "python" in args and WINDOWS and not Path(args.python).is_file():
-        py_launcher = find_py_launcher_python(args.python)
-        if py_launcher:
-            args.python = py_launcher
+        py_launcher_python = find_py_launcher_python(args.python)
+        if py_launcher_python:
+            args.python = py_launcher_python
 
     if args.command == "run":
         commands.run(
