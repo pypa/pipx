@@ -213,6 +213,7 @@ def publish_docs(session):
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def watch_docs(session):
     session.install(*DOC_DEPENDENCIES)
+    session.run("python", "scripts/generate_docs.py")
     session.run("mkdocs", "serve")
 
 
