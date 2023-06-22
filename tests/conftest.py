@@ -139,14 +139,15 @@ def pipx_session_shared_dir(tmp_path_factory):
 
 @pytest.fixture(scope="session")
 def utils_temp_dir(tmp_path_factory):
-    git_path = shutil.which("git.exe" if WIN else "git")
     tmp_path = tmp_path_factory.mktemp("session_utilstempdir")
-    try:
-        Path(tmp_path / "git.exe" if WIN else tmp_path / "git").symlink_to(
-            Path(git_path)
-        )
-    except FileExistsError:
-        pass
+    utils = ["git"]
+    for util in utils:
+        util_filename = f"{util}.exe" if WIN else util
+        util_path = shutil.which(util_filename)
+        try:
+            Path(tmp_path / util_filename).symlink_to(Path(util_path))
+        except FileExistsError:
+            pass
     return tmp_path
 
 
