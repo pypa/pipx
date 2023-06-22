@@ -345,9 +345,8 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
         "--python",
         default=DEFAULT_PYTHON,
         help=(
-            "The Python executable used to create the Virtual Environment and run the "
-            "associated app/apps. The Python version for the Python Launcher. "
-            "Must be v3.6+."
+            "Python to install with. Possible values can be the executable name (python3.11), "
+            "the version to pass to py launcher (3.11), or the full path to the executable."
         ),
     )
     add_pip_venv_args(p)
@@ -489,9 +488,8 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter) -> None:
         "--python",
         default=DEFAULT_PYTHON,
         help=(
-            "The Python executable used to create the Virtual Environment and run the "
-            "associated app/apps. The Python version for the Python Launcher. "
-            "Must be v3.6+."
+            "Python to reinstall with. Possible values can be the executable name (python3.11), "
+            "the version to pass to py launcher (3.11), or the full path to the executable."
         ),
     )
     p.add_argument("--verbose", action="store_true")
@@ -518,9 +516,8 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction) -> None:
         "--python",
         default=DEFAULT_PYTHON,
         help=(
-            "The Python executable used to create the Virtual Environment and run the "
-            "associated app/apps. The Python version for the Python Launcher. "
-            "Must be v3.6+."
+            "Python to reinstall with. Possible values can be the executable name (python3.11), "
+            "the version to pass to py launcher (3.11), or the full path to the executable."
         ),
     )
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
@@ -596,9 +593,8 @@ def _add_run(subparsers: argparse._SubParsersAction) -> None:
         "--python",
         default=DEFAULT_PYTHON,
         help=(
-            "The Python executable used to create the Virtual Environment and run the "
-            "associated app/apps. The Python version for the Python Launcher. "
-            "Must be v3.6+."
+            "Python to run with. Possible values can be the executable name (python3.11), "
+            "the version to pass to py launcher (3.11), or the full path to the executable."
         ),
     )
     add_pip_venv_args(p)
