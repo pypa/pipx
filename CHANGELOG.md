@@ -6,6 +6,7 @@
 - Fix wrong interpreter usage when injecting local pip-installable dependencies into venvs
 - add pre-commit hook support
 - Move `pipx` paths to ensure compatibility with the XDG base directory specification
+- Don't show escaped backslashes for paths in console output 
 
 ## 1.2.0
 

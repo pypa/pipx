@@ -127,13 +127,13 @@ def run_package(
     pypackage_bin_path = get_pypackage_bin_path(app)
     if pypackage_bin_path.exists():
         logger.info(
-            f"Using app in local __pypackages__ directory at {str(pypackage_bin_path)}"
+            f"Using app in local __pypackages__ directory at '{pypackage_bin_path}'"
         )
         run_pypackage_bin(pypackage_bin_path, app_args)
     if pypackages:
         raise PipxError(
             f"""
-            '--pypackages' flag was passed, but {str(pypackage_bin_path)!r} was
+            '--pypackages' flag was passed, but '{pypackage_bin_path}' was
             not found. See https://github.com/cs01/pythonloc to learn how to
             install here, or omit the flag.
             """
