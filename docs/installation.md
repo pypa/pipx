@@ -73,7 +73,7 @@ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install PACKAGE
 
 !!! note
 
-    After version 1.2.0, the default pipx paths have been moved from `~/.local/pipx` to `$XDG_DATA_HOME/pipx`, which is typically `~/.local/share/pipx`, to ensure compatibility with the XDG base directory specification.
+    After version 1.2.0, the default pipx paths have been moved from `~/.local/pipx` to `$XDG_DATA_HOME/pipx`, which is typically `~/.local/share/pipx`, to ensure compatibility with the [XDG base directory specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html#variables).
     
     | Old Path               | New Path                     |
     | ---------------------- | ---------------------------- | 
