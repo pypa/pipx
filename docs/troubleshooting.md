@@ -130,7 +130,7 @@ For a map of old and new paths, See [Installation](installation.md#installation-
 To migrate from the old path to the new path, you can remove the `~/.local/pipx` directory and 
 reinstall all packages.
 
-for example:
+For example, on Linux systems, you could read out `pipx`'s package information in JSON via `jq` (which you might need to install first):
 
 ```
 packages=($(pipx list --json | jq '.venvs | keys[]' -r))
