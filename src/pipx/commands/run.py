@@ -14,7 +14,6 @@ from pipx import constants
 from pipx.commands.common import package_name_from_spec
 from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
 from pipx.emojis import hazard
-from pipx.interpreter import find_py_launcher_python
 from pipx.util import (
     PipxError,
     exec_app,
@@ -187,11 +186,6 @@ def run(
         # Raw URLs to scripts are supported, too, so continue if
         # we can't parse this as a package
         package_name = app
-
-    if python and not Path(python).is_file():
-        py_launcher_python = find_py_launcher_python(python)
-        if py_launcher_python:
-            python = py_launcher_python
 
     content = None if spec is not None else maybe_script_content(app, is_path)
     if content is not None:

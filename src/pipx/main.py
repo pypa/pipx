@@ -181,7 +181,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         logger.info(f"Virtual Environment location is {venv_dir}")
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
-    if "python" in args and WINDOWS and not Path(args.python).is_file():
+    if "python" in args and not Path(args.python).is_file():
         py_launcher_python = find_py_launcher_python(args.python)
         if py_launcher_python:
             args.python = py_launcher_python
