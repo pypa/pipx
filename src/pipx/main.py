@@ -23,7 +23,7 @@ import pipx.constants
 from pipx import commands, constants
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
-from pipx.constants import WINDOWS, ExitCode
+from pipx.constants import MINIMUM_PYTHON_VERSION, WINDOWS, ExitCode
 from pipx.emojis import hazard
 from pipx.interpreter import DEFAULT_PYTHON, find_py_launcher_python
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
@@ -347,6 +347,7 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
         help=(
             "Python to install with. Possible values can be the executable name (python3.11), "
             "the version to pass to py launcher (3.11), or the full path to the executable."
+            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )
     add_pip_venv_args(p)
@@ -490,6 +491,7 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter) -> None:
         help=(
             "Python to reinstall with. Possible values can be the executable name (python3.11), "
             "the version to pass to py launcher (3.11), or the full path to the executable."
+            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )
     p.add_argument("--verbose", action="store_true")
@@ -518,6 +520,7 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction) -> None:
         help=(
             "Python to reinstall with. Possible values can be the executable name (python3.11), "
             "the version to pass to py launcher (3.11), or the full path to the executable."
+            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
@@ -594,7 +597,8 @@ def _add_run(subparsers: argparse._SubParsersAction) -> None:
         default=DEFAULT_PYTHON,
         help=(
             "Python to run with. Possible values can be the executable name (python3.11), "
-            "the version to pass to py launcher (3.11), or the full path to the executable."
+            "the version to pass to py launcher (3.11), or the full path to the executable. "
+            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )
     add_pip_venv_args(p)
