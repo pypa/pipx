@@ -238,6 +238,8 @@ Any arguments after the application name will be passed directly to the applicat
 
 ```
 
+### Ambiguous arguments
+
 Sometimes pipx can consume arguments provided for the application:
 
 ```
