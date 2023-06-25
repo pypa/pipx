@@ -269,17 +269,33 @@ To prevent this put double dash `--` before APP. It will make pipx to forward th
 
 Re-running the same app is quick because pipx caches Virtual Environments on a per-app basis. The caches only last a few days, and when they expire, pipx will again use the latest version of the package. This way you can be sure you're always running a new version of the package without having to manually upgrade.
 
-If the app name does not match that package name, you can use the `--spec` argument to specify the package to install and app to run separately:
+### Package with multiple apps, or the app name doesn't match the package name
+
+If the app name does not match the package name, you can use the `--spec` argument to specify the `PACKAGE` name, and provide the `APP` to run separately:
 
 ```
 pipx run --spec PACKAGE APP
 ```
 
-You can also specify specific versions, version ranges, or extras:
+For example:
 
 ```
-pipx run APP==1.0.0
+pipx run --spec esptool esptool.py
+pipx run --spec esptool espsecure.py
 ```
+
+### Running a specific version of a package
+
+The `PACKAGE` argument above is actually a [requirement specifier](https://packaging.python.org/en/latest/glossary/#term-Requirement-Specifier). Therefore, you can also specify specific versions, version ranges, or extras. For example:
+
+```
+pipx run mpremote==1.20.0
+pipx run --spec esptool==4.6.2 esptool.py
+pipx run --spec 'esptool>=4.5' esptool.py
+pipx run --spec 'esptool >= 4.5' esptool.py
+```
+
+Notice that some requirement specifiers have to be enclosed in quotes or escaped.
 
 ### Running from Source Control
 
