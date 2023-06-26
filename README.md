@@ -284,6 +284,7 @@ For example:
 ```
 pipx run --spec esptool esptool.py
 pipx run --spec esptool espsecure.py
+pipx run --spec pymodbus[repl] pymodbus.simulator
 ```
 
 ### Running a specific version of a package
