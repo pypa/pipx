@@ -74,7 +74,7 @@ def run_script(
 ) -> NoReturn:
     requirements = _get_requirements_from_script(content)
     if requirements is None:
-        exec_app([str(python), "-c", content, *app_args])
+        exec_app([python, "-c", content, *app_args])
     else:
         # Note that the environment name is based on the identified
         # requirements, and *not* on the script name. This is deliberate, as
@@ -106,7 +106,6 @@ def run_package(
     verbose: bool,
     use_cache: bool,
 ) -> NoReturn:
-
     if which(app):
         logger.warning(
             pipx_wrap(
@@ -180,7 +179,6 @@ def run(
     package
     """
 
-    package_or_url = spec if spec is not None else app
     # For any package, we need to just use the name
     try:
         package_name = Requirement(app).name
@@ -189,14 +187,11 @@ def run(
         # we can't parse this as a package
         package_name = app
 
-    if spec is not None:
-        content = None
-    else:
-        content = maybe_script_content(app, is_path)
-
+    content = None if spec is not None else maybe_script_content(app, is_path)
     if content is not None:
         run_script(content, app_args, python, pip_args, venv_args, verbose, use_cache)
     else:
+        package_or_url = spec if spec is not None else app
         run_package(
             package_name,
             package_or_url,
@@ -287,7 +282,7 @@ def _get_temporary_venv_path(
     m.update(python.encode())
     m.update("".join(pip_args).encode())
     m.update("".join(venv_args).encode())
-    venv_folder_name = m.hexdigest()[0:15]  # 15 chosen arbitrarily
+    venv_folder_name = m.hexdigest()[:15]  # 15 chosen arbitrarily
     return Path(constants.PIPX_VENV_CACHEDIR) / venv_folder_name
 
 
@@ -321,11 +316,10 @@ def _http_get_request(url: str) -> str:
         return res.read().decode(charset)
     except Exception as e:
         logger.debug("Uncaught Exception:", exc_info=True)
-        raise PipxError(str(e))
+        raise PipxError(str(e)) from e
 
 
 def _get_requirements_from_script(content: str) -> Optional[List[str]]:
-
     # An iterator over the lines in the script. We will
     # read through this in sections, so it needs to be an
     # iterator, not just a list.
@@ -356,7 +350,7 @@ def _get_requirements_from_script(content: str) -> Optional[List[str]]:
         try:
             req = Requirement(line_content)
         except InvalidRequirement as e:
-            raise PipxError(f"Invalid requirement {line_content}: {str(e)}")
+            raise PipxError(f"Invalid requirement {line_content}: {str(e)}") from e
 
         # Use the normalised form of the requirement,
         # not the original line.

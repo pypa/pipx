@@ -19,6 +19,7 @@ PIPX_SHARED_PTH = "pipx_shared.pth"
 LOCAL_BIN_DIR = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resolve()
 PIPX_VENV_CACHEDIR = PIPX_HOME / ".cache"
 TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 14
+MINIMUM_PYTHON_VERSION = "3.8"
 
 ExitCode = NewType("ExitCode", int)
 # pipx shell exit codes
