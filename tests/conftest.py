@@ -144,7 +144,7 @@ def utils_temp_dir(tmp_path_factory):
     for util in utils:
         util_path = Path(shutil.which(util))
         try:
-            Path(tmp_path / util_path.name).symlink_to(util_path)
+            (tmp_path / util_path.name).symlink_to(util_path)
         except FileExistsError:
             pass
     return tmp_path
