@@ -142,10 +142,9 @@ def utils_temp_dir(tmp_path_factory):
     tmp_path = tmp_path_factory.mktemp("session_utilstempdir")
     utils = ["git"]
     for util in utils:
-        util_filename = f"{util}.exe" if WIN else util
-        util_path = shutil.which(util_filename)
+        util_path = Path(shutil.which(util))
         try:
-            Path(tmp_path / util_filename).symlink_to(Path(util_path))
+            Path(tmp_path / util_path.name).symlink_to(util_path)
         except FileExistsError:
             pass
     return tmp_path
