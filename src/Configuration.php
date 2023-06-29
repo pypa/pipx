@@ -4,9 +4,9 @@ namespace Cyberfusion\ClusterApi;
 
 class Configuration
 {
-    private const URL_LIVE = 'https://cluster-api.cyberfusion.nl/api/v1/';
+    private const URL_PRODUCTION = 'https://cluster-api.cyberfusion.nl/api/v1/';
 
-    private string $url = self::URL_LIVE;
+    private string $url = self::URL_PRODUCTION;
     private string $username;
     private string $password;
     private ?string $accessToken;
