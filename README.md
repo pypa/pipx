@@ -2,7 +2,7 @@
 
 Client for the [Cyberfusion Cluster API](https://cluster-api.cyberfusion.nl/).
 
-This client was built for and tested on the **1.179.8** version of the API.
+This client was built for and tested on the **1.180.1** version of the API.
 
 ## Support
 
@@ -49,25 +49,6 @@ $result = $api->virtualHosts()->list();
 
 // Access the virtual host models
 $virtualHosts = $result->getData('virtualHosts');
-```
-
-### Sandbox mode
-
-To test your implementation, enable the sandbox mode. Changes won't be made to production clusters.
-
-To enable sandbox mode, use the third parameter of the configuration, or set it separately:
-
-```php
-$configuration = Configuration::withCredentials('username', 'password', true);
-```
-
-... or:
-
-```php
-$configuration = (new Configuration())
-    ->setUsername('username')
-    ->setPassword('password')
-    ->setSandbox(true);
 ```
 
 ### Requests
