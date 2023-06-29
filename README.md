@@ -51,25 +51,6 @@ $result = $api->virtualHosts()->list();
 $virtualHosts = $result->getData('virtualHosts');
 ```
 
-### Sandbox mode
-
-To test your implementation, enable the sandbox mode. Changes won't be made to production clusters.
-
-To enable sandbox mode, use the third parameter of the configuration, or set it separately:
-
-```php
-$configuration = Configuration::withCredentials('username', 'password', true);
-```
-
-... or:
-
-```php
-$configuration = (new Configuration())
-    ->setUsername('username')
-    ->setPassword('password')
-    ->setSandbox(true);
-```
-
 ### Requests
 
 The endpoint methods may ask for filters, models and IDs. The method type hints tell you which input is requested.

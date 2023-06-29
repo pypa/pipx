@@ -5,20 +5,17 @@ namespace Cyberfusion\ClusterApi;
 class Configuration
 {
     private const URL_LIVE = 'https://cluster-api.cyberfusion.nl/api/v1/';
-    private const URL_SANDBOX = 'https://test-cluster-api.cyberfusion.nl/api/v1/';
 
     private string $url = self::URL_LIVE;
     private string $username;
     private string $password;
     private ?string $accessToken;
-    private bool $sandbox = false;
 
-    public static function withCredentials(string $username, string $password, bool $sandbox = false): self
+    public static function withCredentials(string $username, string $password): self
     {
         return (new self())
             ->setUsername($username)
-            ->setPassword($password)
-            ->setSandbox($sandbox);
+            ->setPassword($password);
     }
 
     public static function withAccessToken(string $accessToken): self
@@ -80,22 +77,6 @@ class Configuration
     public function setAccessToken(?string $accessToken): self
     {
         $this->accessToken = $accessToken;
-
-        return $this;
-    }
-
-    public function isSandbox(): bool
-    {
-        return $this->sandbox;
-    }
-
-    public function setSandbox(bool $sandbox = false): self
-    {
-        $this->sandbox = $sandbox;
-
-        $this->url = $sandbox
-            ? self::URL_SANDBOX
-            : self::URL_LIVE;
 
         return $this;
     }
