@@ -279,11 +279,43 @@ If the app name does not match the package name, you can use the `--spec` argume
 pipx run --spec PACKAGE APP
 ```
 
-For example:
+For example, the [esptool](https://github.com/espressif/esptool) package doesn't provide an executable with the same name:
 
 ```
-pipx run --spec esptool esptool.py
+>> pipx run esptool
+'esptool' executable script not found in package 'esptool'.
+Available executable scripts:
+    esp_rfc2217_server.py - usage: 'pipx run --spec esptool esp_rfc2217_server.py [arguments?]'
+    espefuse.py - usage: 'pipx run --spec esptool espefuse.py [arguments?]'
+    espsecure.py - usage: 'pipx run --spec esptool espsecure.py [arguments?]'
+    esptool.py - usage: 'pipx run --spec esptool esptool.py [arguments?]'
+```
+
+You can instead run the executables that this package provides by using `--spec`:
+
+```
+pipx run --spec esptool esp_rfc2217_server.py
+pipx run --spec esptool espefuse.py
 pipx run --spec esptool espsecure.py
+pipx run --spec esptool esptool.py
+```
+
+Note that the `.py` extension is not something you append to the executable name. It is part of the the executable name, as provided by the package. This can be anything. For example, when working with the [pymodbus](https://github.com/pymodbus-dev/pymodbus) package:
+
+```
+>> pipx run pymodbus[repl]
+'pymodbus' executable script not found in package 'pymodbus'.
+Available executable scripts:
+    pymodbus.console - usage: 'pipx run --spec pymodbus pymodbus.console [arguments?]'
+    pymodbus.server - usage: 'pipx run --spec pymodbus pymodbus.server [arguments?]'
+    pymodbus.simulator - usage: 'pipx run --spec pymodbus pymodbus.simulator [arguments?]'
+```
+
+You can run the executables like this:
+
+```
+pipx run --spec pymodbus[repl] pymodbus.console
+pipx run --spec pymodbus[repl] pymodbus.server
 pipx run --spec pymodbus[repl] pymodbus.simulator
 ```
 
