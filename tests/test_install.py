@@ -71,11 +71,10 @@ def test_install_tricky_packages(
     install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
 
 
-# TODO: Add git+... spec when git is in binpath of tests (Issue #303)
 @pytest.mark.parametrize(
     "package_name, package_spec",
     [
-        # ("nox", "git+https://github.com/cs01/nox.git@5ea70723e9e6"),
+        ("pycowsay", "git+https://github.com/cs01/pycowsay.git@master"),
         ("pylint", PKG["pylint"]["spec"]),
         ("nox", "https://github.com/wntrblm/nox/archive/2022.1.7.zip"),
     ],
@@ -144,7 +143,7 @@ def test_extra(pipx_temp_env, capsys):
 
 def test_install_local_extra(pipx_temp_env, capsys):
     assert not run_pipx_cli(
-        ["install", TEST_DATA_PATH + "/local_extras[cow]", "--include-deps"]
+        ["install", f"{TEST_DATA_PATH}/local_extras[cow]", "--include-deps"]
     )
     captured = capsys.readouterr()
     assert f"- {app_name('pycowsay')}\n" in captured.out
@@ -250,7 +249,7 @@ def test_install_pip_failure(pipx_temp_env, capsys):
         r"Full pip output in file:\s+(\S.+)$", captured.err, re.MULTILINE
     )
     assert pip_log_file_match
-    assert Path(pip_log_file_match.group(1)).exists()
+    assert Path(pip_log_file_match[1]).exists()
 
     assert re.search(r"pip (failed|seemed to fail) to build package", captured.err)
 

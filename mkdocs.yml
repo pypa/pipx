@@ -3,12 +3,14 @@ site_description: execute binaries from Python packages in isolated environments
 
 theme:
   name: "material"
-google_analytics:
-  - 'UA-90243909-2'
-  - 'auto'
 repo_name: pypa/pipx
 repo_url: https://github.com/pypa/pipx
 edit_uri: edit/main/docs/
+extra:
+  analytics:
+    provider: 'google'
+    property: 'UA-90243909-2'
+
 
 nav:
   - Home: "index.md"

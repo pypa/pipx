@@ -23,9 +23,9 @@ import pipx.constants
 from pipx import commands, constants
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
-from pipx.constants import WINDOWS, ExitCode
+from pipx.constants import MINIMUM_PYTHON_VERSION, WINDOWS, ExitCode
 from pipx.emojis import hazard
-from pipx.interpreter import DEFAULT_PYTHON
+from pipx.interpreter import DEFAULT_PYTHON, find_py_launcher_python
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import VenvContainer
 from pipx.version import __version__
@@ -181,6 +181,10 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         logger.info(f"Virtual Environment location is {venv_dir}")
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
+    if "python" in args and not Path(args.python).is_file():
+        py_launcher_python = find_py_launcher_python(args.python)
+        if py_launcher_python:
+            args.python = py_launcher_python
 
     if args.command == "run":
         commands.run(
@@ -341,8 +345,9 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
         "--python",
         default=DEFAULT_PYTHON,
         help=(
-            "The Python executable used to create the Virtual Environment and run the "
-            "associated app/apps. Must be v3.6+."
+            "Python to install with. Possible values can be the executable name (python3.11), "
+            "the version to pass to py launcher (3.11), or the full path to the executable."
+            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )
     add_pip_venv_args(p)
@@ -484,8 +489,9 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter) -> None:
         "--python",
         default=DEFAULT_PYTHON,
         help=(
-            "The Python executable used to recreate the Virtual Environment "
-            "and run the associated app/apps. Must be v3.6+."
+            "Python to reinstall with. Possible values can be the executable name (python3.11), "
+            "the version to pass to py launcher (3.11), or the full path to the executable."
+            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )
     p.add_argument("--verbose", action="store_true")
@@ -512,8 +518,9 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction) -> None:
         "--python",
         default=DEFAULT_PYTHON,
         help=(
-            "The Python executable used to recreate the Virtual Environment "
-            "and run the associated app/apps. Must be v3.6+."
+            "Python to reinstall with. Possible values can be the executable name (python3.11), "
+            "the version to pass to py launcher (3.11), or the full path to the executable."
+            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
@@ -588,7 +595,11 @@ def _add_run(subparsers: argparse._SubParsersAction) -> None:
     p.add_argument(
         "--python",
         default=DEFAULT_PYTHON,
-        help="The Python version to run package's CLI app with. Must be v3.6+.",
+        help=(
+            "Python to run with. Possible values can be the executable name (python3.11), "
+            "the version to pass to py launcher (3.11), or the full path to the executable. "
+            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
+        ),
     )
     add_pip_venv_args(p)
     p.set_defaults(subparser=p)
