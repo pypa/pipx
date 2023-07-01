@@ -62,7 +62,7 @@ Example configuration for use of the code linter [yapf](https://github.com/googl
 
 The default binary location for pipx-installed apps is `~/.local/bin`. This can be overridden with the environment variable `PIPX_BIN_DIR`.
 
-pipx's default virtual environment location is `$XDG_DATA_HOME/pipx`, which is typically `~/.local/share/pipx`, and for compatibility reasons, if `~/.local/pipx` exists, it will be used as the default location instead. This can be overridden with the `PIPX_HOME` environment variable.
+pipx's default virtual environment location is typically `~/.local/share/pipx` on Linux/Unix `%USERPROFILE%\AppData\Local\pipx` on Windows and `~/Library/Application Support/pipx` on Mac OS , and for compatibility reasons, if `~/.local/pipx` exists, it will be used as the default location instead. This can be overridden with the `PIPX_HOME` environment variable.
 
 As an example, you can install global apps accessible by all users on your system with the following command (on MacOS, Linux, and Windows WSL):
 
@@ -73,15 +73,18 @@ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install PACKAGE
 
 !!! note
 
-    After version 1.2.0, the default pipx paths have been moved from `~/.local/pipx` to `$XDG_DATA_HOME/pipx`, which is typically `~/.local/share/pipx`, to ensure compatibility with the [XDG base directory specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html#variables).
+    After version 1.2.0, the default pipx paths have been moved from `~/.local/pipx` to specific user data directories on each platform using [platformdirs](https://pypi.org/project/platformdirs/) library
+
+    | Old Path               | New Path                                   |
+    | ---------------------- | ------------------------------------------ |
+    | `~/.local/pipx/.trash` | `platformdirs.user_data_dir()/pipx/trash`  |
+    | `~/.local/pipx/shared` | `platformdirs.user_data_dir()/pipx/shared` |
+    | `~/.local/pipx/venvs`  | `platformdirs.user_data_dir()/pipx/venv`   |
+    | `~/.local/pipx/.cache` | `platformdirs.user_cache_dir()/pipx`       |
+    | `~/.local/pipx/logs`   | `platformdirs.user_log_dir()/pipx/log`     |
     
-    | Old Path               | New Path                     |
-    | ---------------------- | ---------------------------- | 
-    | `~/.local/pipx/.trash` | `$XDG_DATA_HOME/pipx/trash`  |
-    | `~/.local/pipx/shared` | `$XDG_DATA_HOME/pipx/shared` |
-    | `~/.local/pipx/venvs`  | `$XDG_DATA_HOME/pipx/venv`   |
-    | `~/.local/pipx/.cache` | `$XDG_CACHE_HOME/pipx`       |
-    | `~/.local/pipx/logs`   | `$XDG_STATE_HOME/pipx/log`   |
+    `user_data_dir()`, `user_cache_dir()` and `user_log_dir()` resolve to appropriate platform-specific user data, cache and log directories. 
+    See the [platformdirs documentation](https://platformdirs.readthedocs.io/en/latest/api.html#platforms) for details.
 
 ## Upgrade pipx
 
