@@ -1,5 +1,6 @@
 ## dev
 
+- Add `--force-reinstall` to pip arguments when `--force` was passed
 - Use the py launcher, if available, to select Python version with the `--python` option
 - Support including requirements in scripts run using `pipx run` (#916)
 - Pass `pip_args` to `shared_libs.upgrade()`
@@ -16,7 +17,6 @@
 - [docs] Add an example for installation from source with extras
 - Match pip's behaviour when package name ends with archive extension (treat it as a path)
 - Ship a [zipapp](https://docs.python.org/3/library/zipapp.html) of pipx
-- Add `--force-reinstall` to pip arguments when `--force` was passed
 - Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
 - Improve the detection logic for MSYS2 to avoid entering infinite loop (#908) (#938)
 - Remove extra trailing quote from exception message
