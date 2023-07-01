@@ -5,7 +5,7 @@
 - Fallback to user's log path if the default log path (`$PIPX_HOME/logs`) is not writable to aid with pipx being used for multi-user (e.g. system-wide) installs of applications
 - Fix wrong interpreter usage when injecting local pip-installable dependencies into venvs
 - add pre-commit hook support
-- Move `pipx` paths to ensure compatibility with the XDG base directory specification
+- Move `pipx` paths to ensure compatibility with the platform-specific user directories
 - Don't show escaped backslashes for paths in console output 
 
 ## 1.2.0
