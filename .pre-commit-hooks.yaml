@@ -1,0 +1,6 @@
+-   id: pipx
+    name: pipx
+    entry: pipx run
+    require_serial: true
+    language: python
+    minimum_pre_commit_version: '2.9.2'

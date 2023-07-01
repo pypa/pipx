@@ -6,7 +6,9 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 from shutil import which
-from typing import List, NoReturn
+from typing import List, NoReturn, Optional
+
+from packaging.requirements import InvalidRequirement, Requirement
 
 from pipx import constants
 from pipx.commands.common import package_name_from_spec
@@ -33,21 +35,18 @@ Available executable scripts:
     {app_lines}"""
 
 
-def run(
-    app: str,
-    package_or_url: str,
-    app_args: List[str],
-    python: str,
-    pip_args: List[str],
-    venv_args: List[str],
-    pypackages: bool,
-    verbose: bool,
-    use_cache: bool,
-) -> NoReturn:
-    """Installs venv to temporary dir (or reuses cache), then runs app from
-    package
-    """
+def maybe_script_content(app: str, is_path: bool) -> Optional[str]:
+    # If the app is a script, return its content.
+    # Return None if it should be treated as a package name.
 
+    # Look for a local file first.
+    app_path = Path(app)
+    if app_path.exists():
+        return app_path.read_text(encoding="utf-8")
+    elif is_path:
+        raise PipxError(f"The specified path {app} does not exist")
+
+    # Check for a URL
     if urllib.parse.urlparse(app).scheme:
         if not app.endswith(".py"):
             raise PipxError(
@@ -58,10 +57,56 @@ def run(
             )
         logger.info("Detected url. Downloading and executing as a Python file.")
 
-        content = _http_get_request(app)
-        exec_app([str(python), "-c", content])
+        return _http_get_request(app)
 
-    elif which(app):
+    # Otherwise, it's a package
+    return None
+
+
+def run_script(
+    content: str,
+    app_args: List[str],
+    python: str,
+    pip_args: List[str],
+    venv_args: List[str],
+    verbose: bool,
+    use_cache: bool,
+) -> NoReturn:
+    requirements = _get_requirements_from_script(content)
+    if requirements is None:
+        exec_app([python, "-c", content, *app_args])
+    else:
+        # Note that the environment name is based on the identified
+        # requirements, and *not* on the script name. This is deliberate, as
+        # it ensures that two scripts with the same requirements can use the
+        # same environment, which means fewer environments need to be
+        # managed. The requirements are normalised (in
+        # _get_requirements_from_script), so that irrelevant differences in
+        # whitespace, and similar, don't prevent environment sharing.
+        venv_dir = _get_temporary_venv_path(requirements, python, pip_args, venv_args)
+        venv = Venv(venv_dir)
+        _prepare_venv_cache(venv, None, use_cache)
+        if venv_dir.exists():
+            logger.info(f"Reusing cached venv {venv_dir}")
+        else:
+            venv = Venv(venv_dir, python=python, verbose=verbose)
+            venv.create_venv(venv_args, pip_args)
+            venv.install_unmanaged_packages(requirements, pip_args)
+        exec_app([venv.python_path, "-c", content, *app_args])
+
+
+def run_package(
+    app: str,
+    package_or_url: str,
+    app_args: List[str],
+    python: str,
+    pip_args: List[str],
+    venv_args: List[str],
+    pypackages: bool,
+    verbose: bool,
+    use_cache: bool,
+) -> NoReturn:
+    if which(app):
         logger.warning(
             pipx_wrap(
                 f"""
@@ -81,19 +126,19 @@ def run(
     pypackage_bin_path = get_pypackage_bin_path(app)
     if pypackage_bin_path.exists():
         logger.info(
-            f"Using app in local __pypackages__ directory at {str(pypackage_bin_path)}"
+            f"Using app in local __pypackages__ directory at '{pypackage_bin_path}'"
         )
         run_pypackage_bin(pypackage_bin_path, app_args)
     if pypackages:
         raise PipxError(
             f"""
-            '--pypackages' flag was passed, but {str(pypackage_bin_path)!r} was
+            '--pypackages' flag was passed, but '{pypackage_bin_path}' was
             not found. See https://github.com/cs01/pythonloc to learn how to
             install here, or omit the flag.
             """
         )
 
-    venv_dir = _get_temporary_venv_path(package_or_url, python, pip_args, venv_args)
+    venv_dir = _get_temporary_venv_path([package_or_url], python, pip_args, venv_args)
 
     venv = Venv(venv_dir)
     bin_path = venv.bin_path / app_filename
@@ -115,6 +160,48 @@ def run(
             venv_args,
             use_cache,
             verbose,
+        )
+
+
+def run(
+    app: str,
+    spec: str,
+    is_path: bool,
+    app_args: List[str],
+    python: str,
+    pip_args: List[str],
+    venv_args: List[str],
+    pypackages: bool,
+    verbose: bool,
+    use_cache: bool,
+) -> NoReturn:
+    """Installs venv to temporary dir (or reuses cache), then runs app from
+    package
+    """
+
+    # For any package, we need to just use the name
+    try:
+        package_name = Requirement(app).name
+    except InvalidRequirement:
+        # Raw URLs to scripts are supported, too, so continue if
+        # we can't parse this as a package
+        package_name = app
+
+    content = None if spec is not None else maybe_script_content(app, is_path)
+    if content is not None:
+        run_script(content, app_args, python, pip_args, venv_args, verbose, use_cache)
+    else:
+        package_or_url = spec if spec is not None else app
+        run_package(
+            package_name,
+            package_or_url,
+            app_args,
+            python,
+            pip_args,
+            venv_args,
+            pypackages,
+            verbose,
+            use_cache,
         )
 
 
@@ -183,7 +270,7 @@ def _download_and_run(
 
 
 def _get_temporary_venv_path(
-    package_or_url: str, python: str, pip_args: List[str], venv_args: List[str]
+    requirements: List[str], python: str, pip_args: List[str], venv_args: List[str]
 ) -> Path:
     """Computes deterministic path using hashing function on arguments relevant
     to virtual environment's end state. Arguments used should result in idempotent
@@ -191,11 +278,11 @@ def _get_temporary_venv_path(
     passed to venv creation are.)
     """
     m = hashlib.sha256()
-    m.update(package_or_url.encode())
+    m.update("".join(requirements).encode())
     m.update(python.encode())
     m.update("".join(pip_args).encode())
     m.update("".join(venv_args).encode())
-    venv_folder_name = m.hexdigest()[0:15]  # 15 chosen arbitrarily
+    venv_folder_name = m.hexdigest()[:15]  # 15 chosen arbitrarily
     return Path(constants.PIPX_VENV_CACHEDIR) / venv_folder_name
 
 
@@ -207,9 +294,9 @@ def _is_temporary_venv_expired(venv_dir: Path) -> bool:
     return age > expiration_threshold_sec or (venv_dir / VENV_EXPIRED_FILENAME).exists()
 
 
-def _prepare_venv_cache(venv: Venv, bin_path: Path, use_cache: bool) -> None:
+def _prepare_venv_cache(venv: Venv, bin_path: Optional[Path], use_cache: bool) -> None:
     venv_dir = venv.root
-    if not use_cache and bin_path.exists():
+    if not use_cache and (bin_path is None or bin_path.exists()):
         logger.info(f"Removing cached venv {str(venv_dir)}")
         rmdir(venv_dir)
     _remove_all_expired_venvs()
@@ -229,4 +316,44 @@ def _http_get_request(url: str) -> str:
         return res.read().decode(charset)
     except Exception as e:
         logger.debug("Uncaught Exception:", exc_info=True)
-        raise PipxError(str(e))
+        raise PipxError(str(e)) from e
+
+
+def _get_requirements_from_script(content: str) -> Optional[List[str]]:
+    # An iterator over the lines in the script. We will
+    # read through this in sections, so it needs to be an
+    # iterator, not just a list.
+    lines = iter(content.splitlines())
+
+    for line in lines:
+        if not line.startswith("#"):
+            continue
+        line_content = line[1:].strip()
+        if line_content == "Requirements:":
+            break
+    else:
+        # No "Requirements:" line in the file
+        return None
+
+    # We are now at the first requirement
+    requirements = []
+    for line in lines:
+        # Stop at the end of the comment block
+        if not line.startswith("#"):
+            break
+        line_content = line[1:].strip()
+        # Stop at a blank comment line
+        if not line_content:
+            break
+
+        # Validate the requirement
+        try:
+            req = Requirement(line_content)
+        except InvalidRequirement as e:
+            raise PipxError(f"Invalid requirement {line_content}: {str(e)}") from e
+
+        # Use the normalised form of the requirement,
+        # not the original line.
+        requirements.append(str(req))
+
+    return requirements

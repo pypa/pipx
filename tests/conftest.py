@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -40,7 +41,9 @@ def pytest_configure(config):
     config.option.markexpr = new_markexpr
 
 
-def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request):
+def pipx_temp_env_helper(
+    pipx_shared_dir, tmp_path, monkeypatch, request, utils_temp_dir
+):
     home_dir = Path(tmp_path) / "subdir" / "pipxhome"
     bin_dir = Path(tmp_path) / "otherdir" / "pipxbindir"
 
@@ -59,7 +62,7 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request):
     #   which make tests fail (e.g. on Github ansible apps exist in /usr/bin)
     monkeypatch.setenv("PATH_ORIG", str(bin_dir) + os.pathsep + os.getenv("PATH"))
     monkeypatch.setenv("PATH_TEST", str(bin_dir))
-    monkeypatch.setenv("PATH", str(bin_dir))
+    monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + str(utils_temp_dir))
     # On Windows, monkeypatch pipx.commands.common._can_symlink_cache to
     #   indicate that constants.LOCAL_BIN_DIR cannot use symlinks, even if
     #   we're running as administrator and symlinks are actually possible.
@@ -87,14 +90,14 @@ def pipx_local_pypiserver(request):
         request.config.invocation_params.dir / PIPX_TESTS_DIR / "package_cache"
     )
     check_test_packages_cmd = [
-        "python3",
+        sys.executable,
         "scripts/update_package_cache.py",
         "--check-only",
         str(PIPX_TESTS_PACKAGE_LIST_DIR),
         str(pipx_cache_dir),
     ]
     update_test_packages_cmd = [
-        "python3",
+        sys.executable,
         "scripts/update_package_cache.py",
         str(PIPX_TESTS_PACKAGE_LIST_DIR),
         str(pipx_cache_dir),
@@ -108,24 +111,23 @@ def pipx_local_pypiserver(request):
             f"{' '.join(update_test_packages_cmd)}"
         )
 
-    pypiserver_err_fh = open(
+    with open(
         request.config.invocation_params.dir / PIPX_TESTS_DIR / "pypiserver.log", "w"
-    )
-    pypiserver_process = subprocess.Popen(
-        [
-            "pypi-server",
-            "--authenticate=update",
-            "--disable-fallback",
-            str(pipx_cache_dir / f"{sys.version_info[0]}.{sys.version_info[1]}"),
-        ],
-        universal_newlines=True,
-        stderr=pypiserver_err_fh,
-    )
+    ) as pypiserver_err_fh:
+        pypiserver_process = subprocess.Popen(
+            [
+                "pypi-server",
+                "--authenticate=update",
+                "--disable-fallback",
+                str(pipx_cache_dir / f"{sys.version_info[0]}.{sys.version_info[1]}"),
+            ],
+            universal_newlines=True,
+            stderr=pypiserver_err_fh,
+        )
 
-    yield
+        yield
 
-    pypiserver_process.terminate()
-    pypiserver_err_fh.close()
+        pypiserver_process.terminate()
 
 
 @pytest.fixture(scope="session")
@@ -134,8 +136,23 @@ def pipx_session_shared_dir(tmp_path_factory):
     return tmp_path_factory.mktemp("session_shareddir")
 
 
+@pytest.fixture(scope="session")
+def utils_temp_dir(tmp_path_factory):
+    tmp_path = tmp_path_factory.mktemp("session_utilstempdir")
+    utils = ["git"]
+    for util in utils:
+        util_path = Path(shutil.which(util))
+        try:
+            (tmp_path / util_path.name).symlink_to(util_path)
+        except FileExistsError:
+            pass
+    return tmp_path
+
+
 @pytest.fixture
-def pipx_temp_env(tmp_path, monkeypatch, pipx_session_shared_dir, request):
+def pipx_temp_env(
+    tmp_path, monkeypatch, pipx_session_shared_dir, request, utils_temp_dir
+):
     """Sets up temporary paths for pipx to install into.
 
     Shared libs are setup once per session, all other pipx dirs, constants are
@@ -144,11 +161,13 @@ def pipx_temp_env(tmp_path, monkeypatch, pipx_session_shared_dir, request):
     Also adds environment variables as necessary to make pip installations
     seamless.
     """
-    pipx_temp_env_helper(pipx_session_shared_dir, tmp_path, monkeypatch, request)
+    pipx_temp_env_helper(
+        pipx_session_shared_dir, tmp_path, monkeypatch, request, utils_temp_dir
+    )
 
 
 @pytest.fixture
-def pipx_ultra_temp_env(tmp_path, monkeypatch, request):
+def pipx_ultra_temp_env(tmp_path, monkeypatch, request, utils_temp_dir):
     """Sets up temporary paths for pipx to install into.
 
     Fully temporary environment, every test function starts as if pipx has
@@ -158,4 +177,4 @@ def pipx_ultra_temp_env(tmp_path, monkeypatch, request):
     seamless.
     """
     shared_dir = Path(tmp_path) / "shareddir"
-    pipx_temp_env_helper(shared_dir, tmp_path, monkeypatch, request)
+    pipx_temp_env_helper(shared_dir, tmp_path, monkeypatch, request, utils_temp_dir)

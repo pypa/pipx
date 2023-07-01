@@ -2,18 +2,19 @@
 
 ```
 pipx install pycowsay
-pipx install --python python3.7 pycowsay
-pipx install --python python3.8 pycowsay
+pipx install --python python3.10 pycowsay
+pipx install --python 3.11 pycowsay
 pipx install git+https://github.com/psf/black
 pipx install git+https://github.com/psf/black.git@branch-name
 pipx install git+https://github.com/psf/black.git@git-hash
+pipx install git+ssh://<username>@<private-repo-domain>/<path-to-package.git>
 pipx install https://github.com/psf/black/archive/18.9b0.zip
 pipx install black[d]
 pipx install 'black[d] @ git+https://github.com/psf/black.git@branch-name'
 pipx install --suffix @branch-name 'black[d] @ git+https://github.com/psf/black.git@branch-name'
 pipx install --include-deps jupyter
-pipx install --pip-args '--pre' poetry
-pipx install --pip-args '--index-url=<private-repo-host>:<private-repo-port> --trusted-host=<private-repo-host>:<private-repo-port>' private-repo-package
+pipx install --pip-args='--pre' poetry
+pipx install --pip-args='--index-url=<private-repo-host>:<private-repo-port> --trusted-host=<private-repo-host>:<private-repo-port>' private-repo-package
 ```
 
 ## `pipx run` examples
@@ -39,6 +40,53 @@ pipx run --spec git+https://github.com/psf/black.git@branch-name black
 pipx run --spec git+https://github.com/psf/black.git@git-hash black
 pipx run --spec https://github.com/psf/black/archive/18.9b0.zip black --help
 pipx run https://gist.githubusercontent.com/cs01/fa721a17a326e551ede048c5088f9e0f/raw/6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py
+```
+
+You can run local files, or scripts hosted on the internet, and you can run them with arguments:
+
+```
+pipx run test.py
+pipx run test.py 1 2 3
+pipx run https://example.com/test.py
+pipx run https://example.com/test.py 1 2 3
+```
+
+A simple filename is ambiguous - it could be a file, or a package on PyPI. It
+will be treated as a filename if the file exists, or as a package if not. To
+force interpretation as a local path, use `--path`, and to force interpretation
+as a package name, use `--spec` (with the PyPI name of the package).
+
+```
+pipx run myscript.py # Local file, if myscript.py exists
+pipx run doesnotexist.py # Package, because doesnotexist.py is not a local file
+pipx run --path test.py # Always a local file
+pipx run --spec test-py test.py # Always a package on PyPI
+```
+
+You can also run scripts that have dependencies:
+
+If you have a script `test.py` that needs a 3rd party library like requests:
+
+```
+# test.py
+
+# Requirements:
+# requests
+#
+# The list of requirements is terminated by a blank line or an empty comment line.
+
+import sys
+import requests
+project = sys.argv[1]
+pipx_data = requests.get(f"https://pypi.org/pypi/{project}/json").json()
+print(pipx_data["info"]["version"])
+```
+
+Then you can run it as follows:
+
+```
+> pipx run test.py pipx
+1.1.0
 ```
 
 ## `pipx inject` example
