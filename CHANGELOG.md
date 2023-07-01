@@ -1,5 +1,6 @@
 ## dev
 
+- Make usage message in `pipx run` show `package_or_url`, so extra will be printed out as well
 - Use the py launcher, if available, to select Python version with the `--python` option
 - Support including requirements in scripts run using `pipx run` (#916)
 - Pass `pip_args` to `shared_libs.upgrade()`
