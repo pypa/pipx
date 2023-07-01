@@ -300,7 +300,7 @@ pipx run --spec esptool espsecure.py
 pipx run --spec esptool esptool.py
 ```
 
-Note that the `.py` extension is not something you append to the executable name. It is part of the the executable name, as provided by the package. This can be anything. For example, when working with the [pymodbus](https://github.com/pymodbus-dev/pymodbus) package:
+Note that the `.py` extension is not something you append to the executable name. It is part of the executable name, as provided by the package. This can be anything. For example, when working with the [pymodbus](https://github.com/pymodbus-dev/pymodbus) package:
 
 ```
 >> pipx run pymodbus[repl]
