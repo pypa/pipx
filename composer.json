@@ -6,7 +6,7 @@
         "cluster",
         "api"
     ],
-    "homepage": "https://github.com/CyberfusionNL/cyberfusion-cluster-api-client",
+    "homepage": "https://github.com/CyberfusionIO/cyberfusion-cluster-api-client",
     "license": "MIT",
     "require": {
         "php": "^8.0",
