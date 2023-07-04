@@ -10,7 +10,7 @@ DOC_DEPENDENCIES = [".", "jinja2", "mkdocs", "mkdocs-material"]
 MAN_DEPENDENCIES = [".", "argparse-manpage[setuptools]"]
 LINT_DEPENDENCIES = [
     "black==22.8.0",
-    "mypy==0.930",
+    "mypy==1.1.1",
     "packaging>=20.0",
     "ruff==0.0.254",
     "types-jinja2",

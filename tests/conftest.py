@@ -125,7 +125,7 @@ def pipx_local_pypiserver(request):
             request.config.invocation_params.dir / PIPX_TESTS_DIR / "htpasswd"
         )
 
-        from passlib.apache import HtpasswdFile
+        from passlib.apache import HtpasswdFile  # type: ignore
 
         ht = HtpasswdFile(pypiserver_htpasswd, new=True)
         ht.set_password("username", "password")
