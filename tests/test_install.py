@@ -261,3 +261,15 @@ def test_install_local_archive(pipx_temp_env, monkeypatch, capsys):
     assert not run_pipx_cli(["install", "repeatme-0.1-py3-none-any.whl"])
     captured = capsys.readouterr()
     assert f"- {app_name('repeatme')}\n" in captured.out
+
+
+def test_force_install_changes(pipx_temp_env, capsys):
+    assert not run_pipx_cli(
+        ["install", "https://github.com/wntrblm/nox/archive/2022.1.7.zip"]
+    )
+    captured = capsys.readouterr()
+    assert "2022.1.7" in captured.out
+
+    assert not run_pipx_cli(["install", "nox", "--force"])
+    captured = capsys.readouterr()
+    assert "2022.1.7" not in captured.out
