@@ -103,7 +103,7 @@ def tests_with_options(session, net_pypiserver):
     if net_pypiserver:
         pypiserver_option = ["--net-pypiserver"]
     else:
-        session.install("pypiserver")
+        session.install("pypiserver[passlib]")
         refresh_packages_cache(session)
         pypiserver_option = []
 

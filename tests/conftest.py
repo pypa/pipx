@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest  # type: ignore
 
 from helpers import WIN
-from pipx import commands, constants, shared_libs, venv
+from pipx import commands, constants, interpreter, shared_libs, venv
 
 PIPX_TESTS_DIR = Path(".pipx_tests")
 PIPX_TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
@@ -57,6 +57,11 @@ def pipx_temp_env_helper(
     monkeypatch.setattr(constants, "PIPX_VENV_CACHEDIR", home_dir / ".cache")
     monkeypatch.setattr(constants, "PIPX_LOG_DIR", home_dir / "logs")
 
+    monkeypatch.setattr(interpreter, "DEFAULT_PYTHON", sys.executable)
+
+    if "PIPX_DEFAULT_PYTHON" in os.environ:
+        monkeypatch.delenv("PIPX_DEFAULT_PYTHON")
+
     # macOS needs /usr/bin in PATH to compile certain packages, but
     #   applications in /usr/bin cause test_install.py tests to raise warnings
     #   which make tests fail (e.g. on Github ansible apps exist in /usr/bin)
@@ -74,7 +79,9 @@ def pipx_temp_env_helper(
         # IMPORTANT: use 127.0.0.1 not localhost
         #   Using localhost on Windows creates enormous slowdowns
         #   (for some reason--perhaps IPV6/IPV4 tries, timeouts?)
-        monkeypatch.setenv("PIP_INDEX_URL", "http://127.0.0.1:8080/simple")
+        monkeypatch.setenv(
+            "PIP_INDEX_URL", "http://username:password@127.0.0.1:8080/simple"
+        )
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -114,10 +121,23 @@ def pipx_local_pypiserver(request):
     with open(
         request.config.invocation_params.dir / PIPX_TESTS_DIR / "pypiserver.log", "w"
     ) as pypiserver_err_fh:
+        pypiserver_htpasswd = str(
+            request.config.invocation_params.dir / PIPX_TESTS_DIR / "htpasswd"
+        )
+
+        from passlib.apache import HtpasswdFile
+
+        ht = HtpasswdFile(pypiserver_htpasswd, new=True)
+        ht.set_password("username", "password")
+        ht.save()
+
         pypiserver_process = subprocess.Popen(
             [
                 "pypi-server",
-                "--authenticate=update",
+                "run",
+                "--verbose",
+                "--authenticate=update,download,list",
+                f"--passwords={pypiserver_htpasswd}",
                 "--disable-fallback",
                 str(pipx_cache_dir / f"{sys.version_info[0]}.{sys.version_info[1]}"),
             ],
