@@ -1,6 +1,6 @@
 ## How it Works
 
-When installing a package and its binaries (`pipx install package`) pipx will
+When installing a package and its binaries on linux (`pipx install package`) pipx will
 
 - create directory `~/.local/share/pipx/venvs/PACKAGE`
 - create or re-use a shared virtual environment that contains shared packaging libraries `pip`, `setuptools` and `wheel` in `~/.local/share/pipx/shared/`
