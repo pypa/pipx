@@ -1,12 +1,17 @@
 ## dev
 
+- Make usage message in `pipx run` show `package_or_url`, so extra will be printed out as well
+- Add `--force-reinstall` to pip arguments when `--force` was passed
+- Use the py launcher, if available, to select Python version with the `--python` option
 - Support including requirements in scripts run using `pipx run` (#916)
 - Pass `pip_args` to `shared_libs.upgrade()`
 - Fallback to user's log path if the default log path (`$PIPX_HOME/logs`) is not writable to aid with pipx being used for multi-user (e.g. system-wide) installs of applications
 - Fix wrong interpreter usage when injecting local pip-installable dependencies into venvs
 - add pre-commit hook support
+- Don't show escaped backslashes for paths in console output
 - Move `pipx` paths to ensure compatibility with the platform-specific user directories
-- Don't show escaped backslashes for paths in console output 
+- [docs] Add more examples for `pipx run`
+- [docs] Add subsection to make README easier to read
 
 ## 1.2.0
 
@@ -16,7 +21,6 @@
 - [docs] Add an example for installation from source with extras
 - Match pip's behaviour when package name ends with archive extension (treat it as a path)
 - Ship a [zipapp](https://docs.python.org/3/library/zipapp.html) of pipx
-
 - Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
 - Improve the detection logic for MSYS2 to avoid entering infinite loop (#908) (#938)
 - Remove extra trailing quote from exception message

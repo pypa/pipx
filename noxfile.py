@@ -199,7 +199,7 @@ def build_docs(session):
         "PIPX__DOC_DEFAULT_PYTHON"
     ] = "typically the python used to execute pipx"
     session.run("python", "scripts/generate_docs.py")
-    session.run("mkdocs", "build")
+    session.run("mkdocs", "build", "--strict")
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
@@ -207,13 +207,14 @@ def publish_docs(session):
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install(*DOC_DEPENDENCIES)
     build_docs(session)
-    session.run("mkdocs", "gh-deploy")
+    session.run("mkdocs", "gh-deploy", "--strict")
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def watch_docs(session):
     session.install(*DOC_DEPENDENCIES)
-    session.run("mkdocs", "serve")
+    session.run("python", "scripts/generate_docs.py")
+    session.run("mkdocs", "serve", "--strict")
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)

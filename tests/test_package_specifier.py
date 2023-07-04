@@ -52,7 +52,6 @@ def test_fix_package_name(package_spec_in, package_name, package_spec_out):
     assert fix_package_name(package_spec_in, package_name) == package_spec_out
 
 
-# TODO: Make sure git+ works with tests, correct in test_install as well
 @pytest.mark.parametrize(
     "package_spec_in,package_or_url_correct,valid_spec",
     [
