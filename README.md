@@ -238,6 +238,8 @@ Any arguments after the application name will be passed directly to the applicat
 
 ```
 
+### Ambiguous arguments
+
 Sometimes pipx can consume arguments provided for the application:
 
 ```
@@ -269,17 +271,66 @@ To prevent this put double dash `--` before APP. It will make pipx to forward th
 
 Re-running the same app is quick because pipx caches Virtual Environments on a per-app basis. The caches only last a few days, and when they expire, pipx will again use the latest version of the package. This way you can be sure you're always running a new version of the package without having to manually upgrade.
 
-If the app name does not match that package name, you can use the `--spec` argument to specify the package to install and app to run separately:
+### Package with multiple apps, or the app name doesn't match the package name
+
+If the app name does not match the package name, you can use the `--spec` argument to specify the `PACKAGE` name, and provide the `APP` to run separately:
 
 ```
 pipx run --spec PACKAGE APP
 ```
 
-You can also specify specific versions, version ranges, or extras:
+For example, the [esptool](https://github.com/espressif/esptool) package doesn't provide an executable with the same name:
 
 ```
-pipx run APP==1.0.0
+>> pipx run esptool
+'esptool' executable script not found in package 'esptool'.
+Available executable scripts:
+    esp_rfc2217_server.py - usage: 'pipx run --spec esptool esp_rfc2217_server.py [arguments?]'
+    espefuse.py - usage: 'pipx run --spec esptool espefuse.py [arguments?]'
+    espsecure.py - usage: 'pipx run --spec esptool espsecure.py [arguments?]'
+    esptool.py - usage: 'pipx run --spec esptool esptool.py [arguments?]'
 ```
+
+You can instead run the executables that this package provides by using `--spec`:
+
+```
+pipx run --spec esptool esp_rfc2217_server.py
+pipx run --spec esptool espefuse.py
+pipx run --spec esptool espsecure.py
+pipx run --spec esptool esptool.py
+```
+
+Note that the `.py` extension is not something you append to the executable name. It is part of the executable name, as provided by the package. This can be anything. For example, when working with the [pymodbus](https://github.com/pymodbus-dev/pymodbus) package:
+
+```
+>> pipx run pymodbus[repl]
+'pymodbus' executable script not found in package 'pymodbus'.
+Available executable scripts:
+    pymodbus.console - usage: 'pipx run --spec pymodbus pymodbus.console [arguments?]'
+    pymodbus.server - usage: 'pipx run --spec pymodbus pymodbus.server [arguments?]'
+    pymodbus.simulator - usage: 'pipx run --spec pymodbus pymodbus.simulator [arguments?]'
+```
+
+You can run the executables like this:
+
+```
+pipx run --spec pymodbus[repl] pymodbus.console
+pipx run --spec pymodbus[repl] pymodbus.server
+pipx run --spec pymodbus[repl] pymodbus.simulator
+```
+
+### Running a specific version of a package
+
+The `PACKAGE` argument above is actually a [requirement specifier](https://packaging.python.org/en/latest/glossary/#term-Requirement-Specifier). Therefore, you can also specify specific versions, version ranges, or extras. For example:
+
+```
+pipx run mpremote==1.20.0
+pipx run --spec esptool==4.6.2 esptool.py
+pipx run --spec 'esptool>=4.5' esptool.py
+pipx run --spec 'esptool >= 4.5' esptool.py
+```
+
+Notice that some requirement specifiers have to be enclosed in quotes or escaped.
 
 ### Running from Source Control
 
