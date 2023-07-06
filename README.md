@@ -145,7 +145,7 @@ done! ✨ 🌟 ✨
 
 
 >> pipx list
-venvs are in /home/user/.local/pipx/venvs
+venvs are in /home/user/.local/share/pipx/venvs
 apps are exposed on your $PATH at /home/user/.local/bin
    package pycowsay 2.0.3, Python 3.7.3
     - pycowsay

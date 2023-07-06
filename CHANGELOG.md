@@ -9,6 +9,7 @@
 - Fix wrong interpreter usage when injecting local pip-installable dependencies into venvs
 - add pre-commit hook support
 - Don't show escaped backslashes for paths in console output
+- Move `pipx` paths to ensure compatibility with the platform-specific user directories
 - [docs] Add more examples for `pipx run`
 - [docs] Add subsection to make README easier to read
 
