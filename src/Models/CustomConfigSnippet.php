@@ -2,75 +2,75 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
+use Cyberfusion\ClusterApi\Enums\VirtualHostServerSoftwareName;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class MailAccount extends ClusterModel
+class CustomConfigSnippet extends ClusterModel
 {
-    private string $localPart;
-    private string $password;
-    private ?int $quota = null;
-    private int $mailDomainId;
+    private string $name;
+    private string $serverSoftwareName;
+    private ?string $contents = null;
+    private ?string $templateName = null;
+    private int $clusterId;
     private ?int $id = null;
-    private ?int $clusterId = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
 
-    public function getLocalPart(): string
+    public function getName(): string
     {
-        return $this->localPart;
+        return $this->name;
     }
 
-    public function setLocalPart(string $localPart): self
+    public function setName(string $name): self
     {
-        Validator::value($localPart)
-            ->pattern('^[a-z0-9-.]+$')
-            ->maxLength(64)
+        Validator::value($name)
+            ->minLength(1)
+            ->maxLength(32)
+            ->pattern('^[a-z-]+$')
             ->validate();
 
-        $this->localPart = $localPart;
+        $this->name = $name;
 
         return $this;
     }
 
-    public function getPassword(): string
+    public function getServerSoftwareName(): string
     {
-        return $this->password;
+        return $this->serverSoftwareName;
     }
 
-    public function setPassword(string $password): self
+    public function setServerSoftwareName(string $serverSoftwareName): self
     {
-        Validator::value($password)
-            ->pattern('^[ -~]+$')
-            ->minLength(6)
-            ->maxLength(255)
+        Validator::value($serverSoftwareName)
+            ->valueIn(VirtualHostServerSoftwareName::AVAILABLE)
             ->validate();
 
-        $this->password = $password;
+        $this->serverSoftwareName = $serverSoftwareName;
 
         return $this;
     }
 
-    public function getQuota(): ?int
+    public function getContents(): ?string
     {
-        return $this->quota;
+        return $this->contents;
     }
 
-    public function setQuota(?int $quota): self
+    public function setContents(?string $contents): self
     {
-        $this->quota = $quota;
+        $this->contents = $contents;
 
         return $this;
     }
 
-    public function getMailDomainId(): int
+    public function getTemplateName(): ?string
     {
-        return $this->mailDomainId;
+        return $this->templateName;
     }
 
-    public function setMailDomainId(int $mailDomainId): self
+    public function setTemplateName(?string $templateName): self
     {
-        $this->mailDomainId = $mailDomainId;
+        $this->templateName = $templateName;
 
         return $this;
     }
@@ -126,10 +126,9 @@ class MailAccount extends ClusterModel
     public function fromArray(array $data): self
     {
         return $this
-            ->setLocalPart(Arr::get($data, 'local_part'))
-            ->setPassword(Arr::get($data, 'password'))
-            ->setQuota(Arr::get($data, 'quota'))
-            ->setMailDomainId(Arr::get($data, 'mail_domain_id'))
+            ->setName(Arr::get($data, 'name'))
+            ->setServerSoftwareName(Arr::get($data, 'server_software_name'))
+            ->setContents(Arr::get($data, 'contents'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -139,10 +138,10 @@ class MailAccount extends ClusterModel
     public function toArray(): array
     {
         return [
-            'local_part' => $this->getLocalPart(),
-            'password' => $this->getPassword(),
-            'quota' => $this->getQuota(),
-            'mail_domain_id' => $this->getMailDomainId(),
+            'name' => $this->getName(),
+            'server_software_name' => $this->getServerSoftwareName(),
+            'contents' => $this->getContents(),
+            'template_name' => $this->getTemplateName(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),

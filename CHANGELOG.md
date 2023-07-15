@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
 for detailed information.
 
+## [1.99.0]
+
+### Added
+
+- FTP users endpoint.
+- Custom config snippets endpoint.
+
+### Changed
+
+- Update mailaccount validation.
+- Update to [API version 1.183](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.183-2023-07-15).
+
 ## [1.98.0]
 
 ### Removed
