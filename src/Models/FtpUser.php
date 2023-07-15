@@ -5,30 +5,30 @@ namespace Cyberfusion\ClusterApi\Models;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class MailAccount extends ClusterModel
+class FtpUser extends ClusterModel
 {
-    private string $localPart;
+    private string $username;
     private string $password;
-    private ?int $quota = null;
-    private int $mailDomainId;
+    private string $directoryPath;
+    private int $unixUserId;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
 
-    public function getLocalPart(): string
+    public function getUsername(): string
     {
-        return $this->localPart;
+        return $this->username;
     }
 
-    public function setLocalPart(string $localPart): self
+    public function setUsername(string $username): self
     {
-        Validator::value($localPart)
-            ->pattern('^[a-z0-9-.]+$')
-            ->maxLength(64)
+        Validator::value($username)
+            ->maxLength(32)
+            ->pattern('^[a-z0-9-_.@]+$')
             ->validate();
 
-        $this->localPart = $localPart;
+        $this->username = $username;
 
         return $this;
     }
@@ -41,9 +41,9 @@ class MailAccount extends ClusterModel
     public function setPassword(string $password): self
     {
         Validator::value($password)
-            ->pattern('^[ -~]+$')
-            ->minLength(6)
+            ->nullable()
             ->maxLength(255)
+            ->pattern('^[ -~]+$')
             ->validate();
 
         $this->password = $password;
@@ -51,26 +51,26 @@ class MailAccount extends ClusterModel
         return $this;
     }
 
-    public function getQuota(): ?int
+    public function getDirectoryPath(): string
     {
-        return $this->quota;
+        return $this->directoryPath;
     }
 
-    public function setQuota(?int $quota): self
+    public function setDirectoryPath(string $directoryPath): self
     {
-        $this->quota = $quota;
+        $this->directoryPath = $directoryPath;
 
         return $this;
     }
 
-    public function getMailDomainId(): int
+    public function getUnixUserId(): ?int
     {
-        return $this->mailDomainId;
+        return $this->unixUserId;
     }
 
-    public function setMailDomainId(int $mailDomainId): self
+    public function setUnixUserId(?int $unixUserId): self
     {
-        $this->mailDomainId = $mailDomainId;
+        $this->unixUserId = $unixUserId;
 
         return $this;
     }
@@ -126,10 +126,10 @@ class MailAccount extends ClusterModel
     public function fromArray(array $data): self
     {
         return $this
-            ->setLocalPart(Arr::get($data, 'local_part'))
+            ->setUsername(Arr::get($data, 'username'))
             ->setPassword(Arr::get($data, 'password'))
-            ->setQuota(Arr::get($data, 'quota'))
-            ->setMailDomainId(Arr::get($data, 'mail_domain_id'))
+            ->setDirectoryPath(Arr::get($data, 'directory_path'))
+            ->setUnixUserId(Arr::get($data, 'unix_user_id'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -139,10 +139,10 @@ class MailAccount extends ClusterModel
     public function toArray(): array
     {
         return [
-            'local_part' => $this->getLocalPart(),
+            'username' => $this->getUsername(),
             'password' => $this->getPassword(),
-            'quota' => $this->getQuota(),
-            'mail_domain_id' => $this->getMailDomainId(),
+            'directory_path' => $this->getDirectoryPath(),
+            'unix_user_id' => $this->getUnixUserId(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
