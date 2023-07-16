@@ -130,7 +130,7 @@ def _dfs_package_apps(
         dep_dist = get_dist(dep_req.name, venv_inspect_info.distributions)
         if dep_dist is None:
             raise PipxError(
-                "Pipx Internal Error: cannot find package {dep_req.name!r} metadata."
+                f"Pipx Internal Error: cannot find package {dep_req.name!r} metadata."
             )
         app_names = get_apps(dep_dist, venv_inspect_info.bin_path)
         if app_names:
@@ -246,7 +246,7 @@ def inspect_venv(
     root_dist = get_dist(root_req.name, venv_inspect_info.distributions)
     if root_dist is None:
         raise PipxError(
-            "Pipx Internal Error: cannot find package {root_req.name!r} metadata."
+            f"Pipx Internal Error: cannot find package {root_req.name!r} metadata."
         )
     app_paths_of_dependencies = _dfs_package_apps(
         root_dist, root_req, venv_inspect_info, app_paths_of_dependencies
