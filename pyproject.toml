@@ -27,7 +27,7 @@ dependencies = [
   "importlib-metadata>=3.3.0; python_version < '3.8'",
   "packaging>=20.0",
   "platformdirs>=2.1.0",
-  "userpath>=1.6.0",
+  "userpath>=1.9.0",
 ]
 dynamic = ["version"]
 
