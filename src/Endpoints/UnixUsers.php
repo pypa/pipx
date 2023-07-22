@@ -105,7 +105,6 @@ class UnixUsers extends Endpoint
     {
         $this->validateRequired($unixUser, 'create', [
             'username',
-            'password',
             'cluster_id',
         ]);
 
@@ -149,7 +148,6 @@ class UnixUsers extends Endpoint
     {
         $this->validateRequired($unixUser, 'update', [
             'username',
-            'password',
             'id',
             'cluster_id',
             'unix_id',

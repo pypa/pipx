@@ -17,6 +17,7 @@ use Cyberfusion\ClusterApi\Endpoints\Databases;
 use Cyberfusion\ClusterApi\Endpoints\DatabaseUserGrants;
 use Cyberfusion\ClusterApi\Endpoints\DatabaseUsers;
 use Cyberfusion\ClusterApi\Endpoints\DomainRouters;
+use Cyberfusion\ClusterApi\Endpoints\FirewallGroups;
 use Cyberfusion\ClusterApi\Endpoints\FpmPools;
 use Cyberfusion\ClusterApi\Endpoints\FtpUsers;
 use Cyberfusion\ClusterApi\Endpoints\Health;
@@ -107,6 +108,11 @@ class ClusterApi
     public function databaseUserGrants(): DatabaseUserGrants
     {
         return new DatabaseUserGrants($this->client);
+    }
+
+    public function firewallGroups(): FirewallGroups
+    {
+        return new FirewallGroups($this->client);
     }
 
     public function fpmPools(): FpmPools

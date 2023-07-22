@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
 for detailed information.
 
+## [1.100.0]
+
+### Added
+
+- Add Firewall Groups endpoint.
+- Add the new Node groups.
+- Add `php_sessions_spread_enabled`, `automatic_borg_repositories_prune_enabled` and `php_settings` properties to the `Cluster` model.
+- Add `CustomPhpModuleName` enum, to easily see which extensions are available.
+- Add `is_default` property to the `CustomConfigSnippet` model.
+
+### Changed
+
+- Allow underscores in the name of a custom config snippet instead of a dash.
+- Allow `null` as password for UNIX users to limit to SSH key login only. 
+- Update to [API version 1.185.3](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.185.3-2023-07-21).
+
 ## [1.99.0]
 
 ### Added
