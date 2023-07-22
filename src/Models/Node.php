@@ -2,6 +2,7 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
+use Cyberfusion\ClusterApi\Enums\NodeGroup;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
@@ -10,6 +11,7 @@ class Node extends ClusterModel
     private string $hostname;
     private array $groups = [];
     private ?string $comment = null;
+    private array $loadBalancerHealthChecksGroupsPairs = [];
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -52,6 +54,24 @@ class Node extends ClusterModel
             ->validate();
 
         $this->comment = $comment;
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, array<NodeGroup>>
+     */
+    public function getLoadBalancerHealthChecksGroupsPairs(): array
+    {
+        return $this->loadBalancerHealthChecksGroupsPairs;
+    }
+
+    /**
+     * @param array<string, array<NodeGroup>> $loadBalancerHealthChecksGroupsPairs
+     */
+    public function setLoadBalancerHealthChecksGroupsPairs(array $loadBalancerHealthChecksGroupsPairs): self
+    {
+        $this->loadBalancerHealthChecksGroupsPairs = $loadBalancerHealthChecksGroupsPairs;
 
         return $this;
     }
@@ -110,6 +130,7 @@ class Node extends ClusterModel
             ->setHostname(Arr::get($data, 'hostname'))
             ->setGroups(Arr::get($data, 'groups', []))
             ->setComment(Arr::get($data, 'comment'))
+            ->setLoadBalancerHealthChecksGroupsPairs(Arr::get($data, 'load_balancer_health_checks_groups_pairs', []))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -122,6 +143,7 @@ class Node extends ClusterModel
             'hostname' => $this->getHostname(),
             'groups' => $this->getGroups(),
             'comment' => $this->getComment(),
+            'load_balancer_health_checks_groups_pairs' => $this->getLoadBalancerHealthChecksGroupsPairs(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
