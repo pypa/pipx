@@ -9,7 +9,7 @@ use Cyberfusion\ClusterApi\Support\Validator;
 class UnixUser extends ClusterModel
 {
     private string $username;
-    private string $password;
+    private ?string $password = null;
     private ?string $homeDirectory = null;
     private ?string $sshDirectory = null;
     private ?string $description = null;
@@ -48,12 +48,13 @@ class UnixUser extends ClusterModel
         return $this->password;
     }
 
-    public function setPassword(string $password): self
+    public function setPassword(?string $password = null): self
     {
         Validator::value($password)
             ->minLength(24)
             ->maxLength(255)
             ->pattern('^[ -~]+$')
+            ->nullable()
             ->validate();
 
         $this->password = $password;

@@ -2,19 +2,15 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
-use Cyberfusion\ClusterApi\Enums\VirtualHostServerSoftwareName;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
-class CustomConfigSnippet extends ClusterModel
+class FirewallGroup extends ClusterModel
 {
     private string $name;
-    private string $serverSoftwareName;
-    private ?bool $isDefault = null;
-    private ?string $contents = null;
-    private ?string $templateName = null;
-    private int $clusterId;
+    private array $ipNetworks = [];
     private ?int $id = null;
+    private ?int $clusterId = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
 
@@ -28,7 +24,7 @@ class CustomConfigSnippet extends ClusterModel
         Validator::value($name)
             ->minLength(1)
             ->maxLength(32)
-            ->pattern('^[a-z_]+$')
+            ->pattern('^[a-z0-9_]+$')
             ->validate();
 
         $this->name = $name;
@@ -36,54 +32,18 @@ class CustomConfigSnippet extends ClusterModel
         return $this;
     }
 
-    public function getServerSoftwareName(): string
+    public function getIpNetworks(): array
     {
-        return $this->serverSoftwareName;
+        return $this->ipNetworks;
     }
 
-    public function setServerSoftwareName(string $serverSoftwareName): self
+    public function setIpNetworks(array $ipNetworks): self
     {
-        Validator::value($serverSoftwareName)
-            ->valueIn(VirtualHostServerSoftwareName::AVAILABLE)
+        Validator::value($ipNetworks)
+            ->unique()
             ->validate();
 
-        $this->serverSoftwareName = $serverSoftwareName;
-
-        return $this;
-    }
-
-    public function isDefault(): ?bool
-    {
-        return $this->isDefault;
-    }
-
-    public function setIsDefault(?bool $isDefault): self
-    {
-        $this->isDefault = $isDefault;
-
-        return $this;
-    }
-
-    public function getContents(): ?string
-    {
-        return $this->contents;
-    }
-
-    public function setContents(?string $contents): self
-    {
-        $this->contents = $contents;
-
-        return $this;
-    }
-
-    public function getTemplateName(): ?string
-    {
-        return $this->templateName;
-    }
-
-    public function setTemplateName(?string $templateName): self
-    {
-        $this->templateName = $templateName;
+        $this->ipNetworks = $ipNetworks;
 
         return $this;
     }
@@ -140,9 +100,7 @@ class CustomConfigSnippet extends ClusterModel
     {
         return $this
             ->setName(Arr::get($data, 'name'))
-            ->setServerSoftwareName(Arr::get($data, 'server_software_name'))
-            ->setIsDefault(Arr::get($data, 'is_default'))
-            ->setContents(Arr::get($data, 'contents'))
+            ->setIpNetworks(Arr::get($data, 'ip_networks', []))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -153,10 +111,7 @@ class CustomConfigSnippet extends ClusterModel
     {
         return [
             'name' => $this->getName(),
-            'server_software_name' => $this->getServerSoftwareName(),
-            'is_default' => $this->isDefault(),
-            'contents' => $this->getContents(),
-            'template_name' => $this->getTemplateName(),
+            'ip_networks' => $this->getIpNetworks(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),

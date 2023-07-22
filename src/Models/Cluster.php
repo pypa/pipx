@@ -12,6 +12,7 @@ class Cluster extends ClusterModel
     private ?string $unixUsersHomeDirectory = null;
     private array $phpVersions = [];
     private array $customPhpModulesNames = [];
+    private array $phpSettings = [];
     private ?bool $phpIoncubeEnabled = null;
     private array $nodejsVersions = [];
     private ?string $customerId = null;
@@ -21,6 +22,8 @@ class Cluster extends ClusterModel
     private ?bool $malwareToolkitScansEnabled = null;
     private ?bool $bubblewrapToolkitEnabled = null;
     private ?bool $syncToolkitEnabled = null;
+    private ?bool $automaticBorgRepositoriesPruneEnabled = null;
+    private ?bool $phpSessionSpreadEnabled = null;
     private ?string $description = null;
     private ?int $id = null;
     private ?string $createdAt = null;
@@ -92,6 +95,18 @@ class Cluster extends ClusterModel
     public function setCustomPhpModulesNames(array $customPhpModulesNames): self
     {
         $this->customPhpModulesNames = $customPhpModulesNames;
+
+        return $this;
+    }
+
+    public function getPhpSettings(): array
+    {
+        return $this->phpSettings;
+    }
+
+    public function setPhpSettings(array $phpSettings): self
+    {
+        $this->phpSettings = $phpSettings;
 
         return $this;
     }
@@ -215,6 +230,30 @@ class Cluster extends ClusterModel
         return $this;
     }
 
+    public function isAutomaticBorgRepositoriesPruneEnabled(): ?bool
+    {
+        return $this->automaticBorgRepositoriesPruneEnabled;
+    }
+
+    public function setAutomaticBorgRepositoriesPruneEnabled(?bool $automaticBorgRepositoriesPruneEnabled): self
+    {
+        $this->automaticBorgRepositoriesPruneEnabled = $automaticBorgRepositoriesPruneEnabled;
+
+        return $this;
+    }
+
+    public function isPhpSessionSpreadEnabled(): ?bool
+    {
+        return $this->phpSessionSpreadEnabled;
+    }
+
+    public function setPhpSessionSpreadEnabled(?bool $phpSessionSpreadEnabled): self
+    {
+        $this->phpSessionSpreadEnabled = $phpSessionSpreadEnabled;
+
+        return $this;
+    }
+
     public function getDescription(): ?string
     {
         return $this->description;
@@ -276,6 +315,7 @@ class Cluster extends ClusterModel
             ->setGroups(Arr::get($data, 'groups', []))
             ->setUnixUsersHomeDirectory(Arr::get($data, 'unix_users_home_directory'))
             ->setPhpVersions(Arr::get($data, 'php_versions', []))
+            ->setPhpSettings(Arr::get($data, 'php_settings', []))
             ->setCustomPhpModulesNames(Arr::get($data, 'custom_php_modules_names', []))
             ->setPhpIoncubeEnabled(Arr::get($data, 'php_ioncube_enabled'))
             ->setNodejsVersions(Arr::get($data, 'nodejs_versions', []))
@@ -286,6 +326,8 @@ class Cluster extends ClusterModel
             ->setMalwareToolkitScansEnabled(Arr::get($data, 'malware_toolkit_scans_enabled'))
             ->setBubblewrapToolkitEnabled(Arr::get($data, 'bubblewrap_toolkit_enabled'))
             ->setSyncToolkitEnabled(Arr::get($data, 'sync_toolkit_enabled'))
+            ->setAutomaticBorgRepositoriesPruneEnabled(Arr::get($data, 'automatic_borg_repositories_prune_enabled'))
+            ->setPhpSessionSpreadEnabled(Arr::get($data, 'php_sessions_spread_enabled'))
             ->setDescription(Arr::get($data, 'description'))
             ->setId(Arr::get($data, 'id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -299,6 +341,7 @@ class Cluster extends ClusterModel
             'groups' => $this->getGroups(),
             'unix_users_home_directory' => $this->getUnixUsersHomeDirectory(),
             'php_versions' => $this->getPhpVersions(),
+            'php_settings' => $this->getPhpSettings(),
             'custom_php_modules_names' => $this->getCustomPhpModulesNames(),
             'php_ioncube_enabled' => $this->isPhpIoncubeEnabled(),
             'nodejs_versions' => $this->getNodejsVersions(),
@@ -309,6 +352,8 @@ class Cluster extends ClusterModel
             'malware_toolkit_scans_enabled' => $this->isMalwareToolkitScansEnabled(),
             'bubblewrap_toolkit_enabled' => $this->isBubblewrapToolkitEnabled(),
             'sync_toolkit_enabled' => $this->isSyncToolkitEnabled(),
+            'automatic_borg_repositories_prune_enabled' => $this->isAutomaticBorgRepositoriesPruneEnabled(),
+            'php_sessions_spread_enabled' => $this->isPhpSessionSpreadEnabled(),
             'description' => $this->getDescription(),
             'id' => $this->getId(),
             'created_at' => $this->getCreatedAt(),
