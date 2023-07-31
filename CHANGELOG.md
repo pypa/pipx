@@ -12,6 +12,7 @@
 - Move `pipx` paths to ensure compatibility with the platform-specific user directories
 - [docs] Add more examples for `pipx run`
 - [docs] Add subsection to make README easier to read
+- [docs] Add `asreview` and `mu-repo` in programs to try
 
 ## 1.2.0
 
