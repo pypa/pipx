@@ -18,6 +18,14 @@ Record and share your terminal sessions, the right way.
 pipx run asciinema
 ```
 
+### asreview
+
+Active learning for systematic reviews.
+
+```
+pipx run asreview lab
+```
+
 ### black
 
 uncompromising Python code formatter
@@ -104,6 +112,14 @@ web-based notebook environment for interactive computing
 
 ```
 pipx run jupyter
+```
+
+### mu-repo
+
+Tool to help in dealing with multiple git repositories
+
+```
+pipx run mu-repo
 ```
 
 ### pipenv
