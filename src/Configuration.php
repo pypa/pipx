@@ -7,8 +7,8 @@ class Configuration
     private const URL_PRODUCTION = 'https://cluster-api.cyberfusion.nl/api/v1/';
 
     private string $url = self::URL_PRODUCTION;
-    private string $username;
-    private string $password;
+    private ?string $username = null;
+    private ?string $password = null;
     private ?string $accessToken;
 
     public static function withCredentials(string $username, string $password): self
