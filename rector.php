@@ -7,6 +7,7 @@ use Rector\Config\RectorConfig;
 use Rector\Php73\Rector\FuncCall\JsonThrowOnErrorRector;
 use Rector\Php74\Rector\LNumber\AddLiteralSeparatorToNumberRector;
 use Rector\Set\ValueObject\SetList;
+use Rector\Strict\Rector\Empty_\DisallowedEmptyRuleFixerRector;
 
 return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->sets([
@@ -24,6 +25,7 @@ return static function (RectorConfig $rectorConfig): void {
         AddLiteralSeparatorToNumberRector::class,
         CountArrayToEmptyArrayComparisonRector::class,
         JsonThrowOnErrorRector::class,
+        DisallowedEmptyRuleFixerRector::class,
     ]);
 
     $rectorConfig->importNames();
