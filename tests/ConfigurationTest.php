@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 class ConfigurationTest extends TestCase
 {
-    public function testChangingUrl()
+    public function testChangingUrl(): void
     {
         $configuration = new Configuration();
 
@@ -18,7 +18,7 @@ class ConfigurationTest extends TestCase
         $this->assertSame('foo://bar', $configuration->getUrl());
     }
 
-    public function testWithCredentials()
+    public function testWithCredentials(): void
     {
         $configuration = Configuration::withCredentials('foo', 'bar');
 
@@ -28,7 +28,7 @@ class ConfigurationTest extends TestCase
         $this->assertFalse($configuration->hasAccessToken());
     }
 
-    public function testWithAccessToken()
+    public function testWithAccessToken(): void
     {
         $configuration = Configuration::withAccessToken('fooBar');
 
