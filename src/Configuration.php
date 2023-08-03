@@ -61,7 +61,7 @@ class Configuration
 
     public function hasCredentials(): bool
     {
-        return !empty($this->username) && !empty($this->password);
+        return $this->username !== '' && $this->password !== '';
     }
 
     public function getAccessToken(): ?string
@@ -71,7 +71,7 @@ class Configuration
 
     public function hasAccessToken(): bool
     {
-        return !empty($this->accessToken);
+        return $this->accessToken !== null && $this->accessToken !== '';
     }
 
     public function setAccessToken(?string $accessToken): self
