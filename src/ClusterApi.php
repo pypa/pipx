@@ -2,20 +2,21 @@
 
 namespace Cyberfusion\ClusterApi;
 
+use Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
 use Cyberfusion\ClusterApi\Endpoints\ApiUsers;
 use Cyberfusion\ClusterApi\Endpoints\Authentication;
 use Cyberfusion\ClusterApi\Endpoints\BasicAuthenticationRealms;
 use Cyberfusion\ClusterApi\Endpoints\BorgArchives;
 use Cyberfusion\ClusterApi\Endpoints\BorgRepositories;
-use Cyberfusion\ClusterApi\Endpoints\Certificates;
 use Cyberfusion\ClusterApi\Endpoints\CertificateManagers;
+use Cyberfusion\ClusterApi\Endpoints\Certificates;
 use Cyberfusion\ClusterApi\Endpoints\Clusters;
 use Cyberfusion\ClusterApi\Endpoints\Cmses;
 use Cyberfusion\ClusterApi\Endpoints\Crons;
 use Cyberfusion\ClusterApi\Endpoints\CustomConfigSnippets;
 use Cyberfusion\ClusterApi\Endpoints\Databases;
-use Cyberfusion\ClusterApi\Endpoints\DatabaseUsers;
 use Cyberfusion\ClusterApi\Endpoints\DatabaseUserGrants;
+use Cyberfusion\ClusterApi\Endpoints\DatabaseUsers;
 use Cyberfusion\ClusterApi\Endpoints\DomainRouters;
 use Cyberfusion\ClusterApi\Endpoints\FirewallGroups;
 use Cyberfusion\ClusterApi\Endpoints\FpmPools;
@@ -39,7 +40,6 @@ use Cyberfusion\ClusterApi\Endpoints\Tombstones;
 use Cyberfusion\ClusterApi\Endpoints\UnixUsers;
 use Cyberfusion\ClusterApi\Endpoints\UrlRedirects;
 use Cyberfusion\ClusterApi\Endpoints\VirtualHosts;
-use Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
 
 class ClusterApi
 {
