@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
 for detailed information.
 
+## [1.101.0]
+
+### Added
+
+- Add `kernelcare_license_key`, `redis_password`, `redis_memory_limit`, `nodejs_version`, `mariadb_version`, `mariadb_cluster_name`, `mariadb_backup_interval`, `postgresql_version` and `postgresql_backup_interval` attributes to the `Cluster` model.
+- Add `optimizing_enabled` and `backups_enabled` attribute to the `Database` model.
+- Add `group_poperties` to the `Node` model.
+- Add `Tombstone` endpoint.
+- Add `ApiUsers` endpoint, which is just a basic endpoint that returns the raw data.
+- Add the `children` call to the `Clusters` endpoint, which is just a basic endpoint that returns the raw data.
+
+### Changed
+
+- Update to [API version 1.187.1](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.187.1-2023-08-02).
+
 ## [1.100.1]
 
 ### Fixed

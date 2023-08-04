@@ -3,6 +3,7 @@
 namespace Cyberfusion\ClusterApi;
 
 use Cyberfusion\ClusterApi\Contracts\Client as ClientContract;
+use Cyberfusion\ClusterApi\Endpoints\ApiUsers;
 use Cyberfusion\ClusterApi\Endpoints\Authentication;
 use Cyberfusion\ClusterApi\Endpoints\BasicAuthenticationRealms;
 use Cyberfusion\ClusterApi\Endpoints\BorgArchives;
@@ -35,6 +36,7 @@ use Cyberfusion\ClusterApi\Endpoints\RedisInstances;
 use Cyberfusion\ClusterApi\Endpoints\RootSshKeys;
 use Cyberfusion\ClusterApi\Endpoints\SshKeys;
 use Cyberfusion\ClusterApi\Endpoints\TaskCollections;
+use Cyberfusion\ClusterApi\Endpoints\Tombstones;
 use Cyberfusion\ClusterApi\Endpoints\UnixUsers;
 use Cyberfusion\ClusterApi\Endpoints\UrlRedirects;
 use Cyberfusion\ClusterApi\Endpoints\VirtualHosts;
@@ -45,9 +47,19 @@ class ClusterApi
     {
     }
 
+    public function apiUsers(): ApiUsers
+    {
+        return new ApiUsers($this->client);
+    }
+
     public function authentication(): Authentication
     {
         return new Authentication($this->client);
+    }
+
+    public function basicAuthenticationRealms(): BasicAuthenticationRealms
+    {
+        return new BasicAuthenticationRealms($this->client);
     }
 
     public function borgArchives(): BorgArchives
@@ -90,11 +102,6 @@ class ClusterApi
         return new CustomConfigSnippets($this->client);
     }
 
-    public function basicAuthenticationRealms(): BasicAuthenticationRealms
-    {
-        return new BasicAuthenticationRealms($this->client);
-    }
-
     public function databases(): Databases
     {
         return new Databases($this->client);
@@ -108,6 +115,11 @@ class ClusterApi
     public function databaseUserGrants(): DatabaseUserGrants
     {
         return new DatabaseUserGrants($this->client);
+    }
+
+    public function domainRouters(): DomainRouters
+    {
+        return new DomainRouters($this->client);
     }
 
     public function firewallGroups(): FirewallGroups
@@ -125,6 +137,11 @@ class ClusterApi
         return new FtpUsers($this->client);
     }
 
+    public function health(): Health
+    {
+        return new Health($this->client);
+    }
+
     public function htpasswdFiles(): HtpasswdFiles
     {
         return new HtpasswdFiles($this->client);
@@ -133,11 +150,6 @@ class ClusterApi
     public function htpasswdUsers(): HtpasswdUsers
     {
         return new HtpasswdUsers($this->client);
-    }
-
-    public function health(): Health
-    {
-        return new Health($this->client);
     }
 
     public function logs(): Logs
@@ -185,19 +197,24 @@ class ClusterApi
         return new RedisInstances($this->client);
     }
 
-    public function sshKeys(): SshKeys
-    {
-        return new SshKeys($this->client);
-    }
-
     public function rootSshKeys(): RootSshKeys
     {
         return new RootSshKeys($this->client);
     }
 
+    public function sshKeys(): SshKeys
+    {
+        return new SshKeys($this->client);
+    }
+
     public function taskCollections(): TaskCollections
     {
         return new TaskCollections($this->client);
+    }
+
+    public function tombstones(): Tombstones
+    {
+        return new Tombstones($this->client);
     }
 
     public function unixUsers(): UnixUsers
@@ -208,11 +225,6 @@ class ClusterApi
     public function urlRedirects(): UrlRedirects
     {
         return new UrlRedirects($this->client);
-    }
-
-    public function domainRouters(): DomainRouters
-    {
-        return new DomainRouters($this->client);
     }
 
     public function virtualHosts(): VirtualHosts

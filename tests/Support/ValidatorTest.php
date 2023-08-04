@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 class ValidatorTest extends TestCase
 {
-    public function testSingleValueOnly()
+    public function testSingleValueOnly(): void
     {
         $result = Validator::value('test')
             ->validate();
@@ -20,14 +20,14 @@ class ValidatorTest extends TestCase
         $this->assertTrue($result);
     }
 
-    public function testMultipleValuesOnly()
+    public function testMultipleValuesOnly(): void
     {
         $result = Validator::value(['foo', 'bar'])
             ->validate();
         $this->assertTrue($result);
     }
 
-    public function testNullable()
+    public function testNullable(): void
     {
         $result = Validator::value(null)
             ->nullable()
@@ -41,7 +41,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testNullableMultiple()
+    public function testNullableMultiple(): void
     {
         $result = Validator::value([null, null])
             ->each()
@@ -50,7 +50,7 @@ class ValidatorTest extends TestCase
         $this->assertTrue($result);
     }
 
-    public function testMaxLength()
+    public function testMaxLength(): void
     {
         $result = Validator::value('test')
             ->maxLength(5)
@@ -68,7 +68,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testMaxLengthMultiple()
+    public function testMaxLengthMultiple(): void
     {
         $result = Validator::value(['foo', 'bar'])
             ->each()
@@ -89,7 +89,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testMinLength()
+    public function testMinLength(): void
     {
         $result = Validator::value('test')
             ->minLength(2)
@@ -107,7 +107,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testMinLengthMultiple()
+    public function testMinLengthMultiple(): void
     {
         $result = Validator::value(['foo', 'bar'])
             ->each()
@@ -128,7 +128,85 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testPattern()
+    public function testMaxAmount(): void
+    {
+        $result = Validator::value(100)
+            ->maxAmount(500)
+            ->validate();
+        $this->assertTrue($result);
+
+        $result = Validator::value([1, 2, 3, 4, 5])
+            ->maxAmount(10)
+            ->validate();
+        $this->assertTrue($result);
+
+        $this->expectException(ValidationException::class);
+        Validator::value(5)
+            ->maxAmount(2)
+            ->validate();
+    }
+
+    public function testMaxAmountMultiple(): void
+    {
+        $result = Validator::value([2, 5])
+            ->each()
+            ->maxAmount(10)
+            ->validate();
+        $this->assertTrue($result);
+
+        $result = Validator::value([[1, 2, 3, 4, 5], [6, 7, 8]])
+            ->each()
+            ->maxAmount(10)
+            ->validate();
+        $this->assertTrue($result);
+
+        $this->expectException(ValidationException::class);
+        Validator::value([2, 5])
+            ->each()
+            ->maxAmount(4)
+            ->validate();
+    }
+
+    public function testMinAmount(): void
+    {
+        $result = Validator::value(5)
+            ->minAmount(2)
+            ->validate();
+        $this->assertTrue($result);
+
+        $result = Validator::value([1, 2])
+            ->minAmount(0)
+            ->validate();
+        $this->assertTrue($result);
+
+        $this->expectException(ValidationException::class);
+        Validator::value(0)
+            ->minAmount(2)
+            ->validate();
+    }
+
+    public function testMinAmountMultiple(): void
+    {
+        $result = Validator::value([2, 5])
+            ->each()
+            ->minAmount(1)
+            ->validate();
+        $this->assertTrue($result);
+
+        $result = Validator::value([[1, 2], [3, 4, 5]])
+            ->each()
+            ->minAmount(1)
+            ->validate();
+        $this->assertTrue($result);
+
+        $this->expectException(ValidationException::class);
+        Validator::value([1, 2])
+            ->each()
+            ->minAmount(2)
+            ->validate();
+    }
+
+    public function testPattern(): void
     {
         $result = Validator::value('test')
             ->pattern('^[a-z]+$')
@@ -141,7 +219,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testPatternMultiple()
+    public function testPatternMultiple(): void
     {
         $result = Validator::value(['foo', 'bar'])
             ->each()
@@ -156,7 +234,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testValueIn()
+    public function testValueIn(): void
     {
         $result = Validator::value('test')
             ->valueIn(['test', 'foo', 'bar'])
@@ -169,7 +247,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testValueInMultiple()
+    public function testValueInMultiple(): void
     {
         $result = Validator::value(['test', 'foo'])
             ->each()
@@ -184,7 +262,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testValuesIn()
+    public function testValuesIn(): void
     {
         $result = Validator::value(['foo', 'bar'])
             ->valuesIn(['test', 'foo', 'bar'])
@@ -197,7 +275,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testValuesInMultiple()
+    public function testValuesInMultiple(): void
     {
         $result = Validator::value([['foo', 'bar'], ['test', 'bar']])
             ->each()
@@ -212,7 +290,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testUnique()
+    public function testUnique(): void
     {
         $result = Validator::value(['foo', 'bar'])
             ->unique()
@@ -225,7 +303,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testUniqueMultiple()
+    public function testUniqueMultiple(): void
     {
         $result = Validator::value([['foo', 'bar'], ['foo', 'bar']])
             ->each()
@@ -240,7 +318,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testIp()
+    public function testIp(): void
     {
         $result = Validator::value(['127.0.0.1', '192.168.1.1'])
             ->each()
@@ -255,7 +333,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testEmail()
+    public function testEmail(): void
     {
         $result = Validator::value('foo@bar.com')
             ->email()
@@ -268,7 +346,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testEmailMultiple()
+    public function testEmailMultiple(): void
     {
         $result = Validator::value(['foo@bar.com', 'bar@foo.com'])
             ->each()
@@ -283,7 +361,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testPath()
+    public function testPath(): void
     {
         $result = Validator::value('/home/test')
             ->path()
@@ -303,7 +381,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testPathMultiple()
+    public function testPathMultiple(): void
     {
         $result = Validator::value(['/home/test', '/home/foobar'])
             ->each()
@@ -318,7 +396,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testUuid()
+    public function testUuid(): void
     {
         $result = Validator::value(Str::uuid())
             ->uuid()
@@ -331,7 +409,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testUuidMultiple()
+    public function testUuidMultiple(): void
     {
         $result = Validator::value([Str::uuid(), Str::uuid()])
             ->each()
@@ -346,7 +424,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testEndsWith()
+    public function testEndsWith(): void
     {
         $result = Validator::value('test.js')
             ->endsWith('.js')
@@ -359,7 +437,7 @@ class ValidatorTest extends TestCase
             ->validate();
     }
 
-    public function testEndsWithMultiple()
+    public function testEndsWithMultiple(): void
     {
         $result = Validator::value(['test.js', 'app.js'])
             ->each()

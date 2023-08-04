@@ -12,6 +12,7 @@ class Node extends ClusterModel
     private array $groups = [];
     private ?string $comment = null;
     private array $loadBalancerHealthChecksGroupsPairs = [];
+    private array $groupProperties = [];
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -76,6 +77,18 @@ class Node extends ClusterModel
         return $this;
     }
 
+    public function getGroupProperties(): array
+    {
+        return $this->groupProperties;
+    }
+
+    public function setGroupProperties(array $groupProperties): self
+    {
+        $this->groupProperties = $groupProperties;
+
+        return $this;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -131,6 +144,7 @@ class Node extends ClusterModel
             ->setGroups(Arr::get($data, 'groups', []))
             ->setComment(Arr::get($data, 'comment'))
             ->setLoadBalancerHealthChecksGroupsPairs(Arr::get($data, 'load_balancer_health_checks_groups_pairs', []))
+            ->setGroupProperties(Arr::get($data, 'group_properties', []))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -144,6 +158,7 @@ class Node extends ClusterModel
             'groups' => $this->getGroups(),
             'comment' => $this->getComment(),
             'load_balancer_health_checks_groups_pairs' => $this->getLoadBalancerHealthChecksGroupsPairs(),
+            'group_properties' => $this->getGroupProperties(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),

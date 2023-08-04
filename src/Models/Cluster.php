@@ -11,13 +11,22 @@ class Cluster extends ClusterModel
     private array $groups = [];
     private ?string $unixUsersHomeDirectory = null;
     private array $phpVersions = [];
+    private ?string $mariaDbVersion = null;
+    private ?string $mariaDbClusterName = null;
     private array $customPhpModulesNames = [];
     private array $phpSettings = [];
     private ?bool $phpIoncubeEnabled = null;
+    private ?string $kernelcareLicenseKey = null;
+    private ?string $redisPassword = null;
+    private ?int $redisMemoryLimit = null;
     private array $nodejsVersions = [];
+    private ?string $nodeJsVersion = null;
     private ?string $customerId = null;
     private ?bool $wordpressToolkitEnabled = null;
     private ?bool $databaseToolkitEnabled = null;
+    private ?int $mariaDbBackupInterval = null;
+    private ?string $postgreSQLVersion = null;
+    private ?int $postgreSQLBackupInterval = null;
     private ?bool $malwareToolkitEnabled = null;
     private ?bool $malwareToolkitScansEnabled = null;
     private ?bool $bubblewrapToolkitEnabled = null;
@@ -87,6 +96,30 @@ class Cluster extends ClusterModel
         return $this;
     }
 
+    public function getMariaDbVersion(): ?string
+    {
+        return $this->mariaDbVersion;
+    }
+
+    public function setMariaDbVersion(?string $mariaDbVersion): self
+    {
+        $this->mariaDbVersion = $mariaDbVersion;
+
+        return $this;
+    }
+
+    public function getMariaDbClusterName(): ?string
+    {
+        return $this->mariaDbClusterName;
+    }
+
+    public function setMariaDbClusterName(?string $mariaDbClusterName): self
+    {
+        $this->mariaDbClusterName = $mariaDbClusterName;
+
+        return $this;
+    }
+
     public function getCustomPhpModulesNames(): array
     {
         return $this->customPhpModulesNames;
@@ -123,6 +156,47 @@ class Cluster extends ClusterModel
         return $this;
     }
 
+    public function getKernelcareLicenseKey(): ?string
+    {
+        return $this->kernelcareLicenseKey;
+    }
+
+    public function setKernelcareLicenseKey(?string $kernelcareLicenseKey): self
+    {
+        $this->kernelcareLicenseKey = $kernelcareLicenseKey;
+
+        return $this;
+    }
+
+    public function getRedisPassword(): ?string
+    {
+        return $this->redisPassword;
+    }
+
+    public function setRedisPassword(?string $redisPassword): self
+    {
+        $this->redisPassword = $redisPassword;
+
+        return $this;
+    }
+
+    public function getRedisMemoryLimit(): ?int
+    {
+        return $this->redisMemoryLimit;
+    }
+
+    public function setRedisMemoryLimit(?int $redisMemoryLimit): self
+    {
+        Validator::value($redisMemoryLimit)
+            ->minAmount(0)
+            ->nullable()
+            ->validate();
+
+        $this->redisMemoryLimit = $redisMemoryLimit;
+
+        return $this;
+    }
+
     public function getNodejsVersions(): array
     {
         return $this->nodejsVersions;
@@ -136,6 +210,18 @@ class Cluster extends ClusterModel
             ->validate();
 
         $this->nodejsVersions = $nodejsVersions;
+
+        return $this;
+    }
+
+    public function getNodeJsVersion(): ?string
+    {
+        return $this->nodeJsVersion;
+    }
+
+    public function setNodeJsVersion(?string $nodeJsVersion): self
+    {
+        $this->nodeJsVersion = $nodeJsVersion;
 
         return $this;
     }
@@ -179,6 +265,52 @@ class Cluster extends ClusterModel
     {
         $this->databaseToolkitEnabled = $databaseToolkitEnabled;
 
+        return $this;
+    }
+
+    public function getMariaDbBackupInterval(): ?int
+    {
+        return $this->mariaDbBackupInterval;
+    }
+
+    public function setMariaDbBackupInterval(?int $mariaDbBackupInterval): self
+    {
+        Validator::value($mariaDbBackupInterval)
+            ->minAmount(4)
+            ->maxAmount(24)
+            ->nullable()
+            ->validate();
+
+        $this->mariaDbBackupInterval = $mariaDbBackupInterval;
+        return $this;
+    }
+
+    public function getPostgreSQLVersion(): ?string
+    {
+        return $this->postgreSQLVersion;
+    }
+
+    public function setPostgreSQLVersion(?string $postgreSQLVersion): self
+    {
+        $this->postgreSQLVersion = $postgreSQLVersion;
+
+        return $this;
+    }
+
+    public function getPostgreSQLBackupInterval(): ?int
+    {
+        return $this->postgreSQLBackupInterval;
+    }
+
+    public function setPostgreSQLBackupInterval(?int $postgreSQLBackupInterval): self
+    {
+        Validator::value($postgreSQLBackupInterval)
+            ->minAmount(4)
+            ->maxAmount(24)
+            ->nullable()
+            ->validate();
+
+        $this->postgreSQLBackupInterval = $postgreSQLBackupInterval;
         return $this;
     }
 
@@ -315,13 +447,22 @@ class Cluster extends ClusterModel
             ->setGroups(Arr::get($data, 'groups', []))
             ->setUnixUsersHomeDirectory(Arr::get($data, 'unix_users_home_directory'))
             ->setPhpVersions(Arr::get($data, 'php_versions', []))
+            ->setMariaDbVersion(Arr::get($data, 'mariadb_version'))
+            ->setMariaDbClusterName(Arr::get($data, 'mariadb_cluster_name'))
             ->setPhpSettings(Arr::get($data, 'php_settings', []))
             ->setCustomPhpModulesNames(Arr::get($data, 'custom_php_modules_names', []))
             ->setPhpIoncubeEnabled(Arr::get($data, 'php_ioncube_enabled'))
+            ->setKernelcareLicenseKey(Arr::get($data, 'kernelcare_license_key'))
+            ->setRedisPassword(Arr::get($data, 'redis_password'))
+            ->setRedisMemoryLimit(Arr::get($data, 'redis_memory_limit'))
             ->setNodejsVersions(Arr::get($data, 'nodejs_versions', []))
+            ->setNodejsVersion(Arr::get($data, 'nodejs_version'))
             ->setCustomerId(Arr::get($data, 'customer_id'))
             ->setWordpressToolkitEnabled(Arr::get($data, 'wordpress_toolkit_enabled'))
             ->setDatabaseToolkitEnabled(Arr::get($data, 'database_toolkit_enabled'))
+            ->setMariaDbBackupInterval(Arr::get($data, 'mariadb_backup_interval'))
+            ->setPostgreSQLVersion(Arr::get($data, 'postgresql_version'))
+            ->setPostgreSQLBackupInterval(Arr::get($data, 'postgresql_backup_interval'))
             ->setMalwareToolkitEnabled(Arr::get($data, 'malware_toolkit_enabled'))
             ->setMalwareToolkitScansEnabled(Arr::get($data, 'malware_toolkit_scans_enabled'))
             ->setBubblewrapToolkitEnabled(Arr::get($data, 'bubblewrap_toolkit_enabled'))
@@ -341,13 +482,22 @@ class Cluster extends ClusterModel
             'groups' => $this->getGroups(),
             'unix_users_home_directory' => $this->getUnixUsersHomeDirectory(),
             'php_versions' => $this->getPhpVersions(),
+            'mariadb_version' => $this->getMariaDbVersion(),
+            'mariadb_cluster_name' => $this->getMariaDbClusterName(),
             'php_settings' => $this->getPhpSettings(),
             'custom_php_modules_names' => $this->getCustomPhpModulesNames(),
             'php_ioncube_enabled' => $this->isPhpIoncubeEnabled(),
+            'kernelcare_license_key' => $this->getKernelcareLicenseKey(),
+            'redis_password' => $this->getRedisPassword(),
+            'redis_memory_limit' => $this->getRedisMemoryLimit(),
             'nodejs_versions' => $this->getNodejsVersions(),
+            'nodejs_version' => $this->getNodejsVersion(),
             'customer_id' => $this->getCustomerId(),
             'wordpress_toolkit_enabled' => $this->isWordpressToolkitEnabled(),
             'database_toolkit_enabled' => $this->isDatabaseToolkitEnabled(),
+            'mariadb_backup_interval' => $this->getMariaDbBackupInterval(),
+            'postgresql_version' => $this->getPostgreSQLVersion(),
+            'postgresql_backup_interval' => $this->getPostgreSQLBackupInterval(),
             'malware_toolkit_enabled' => $this->istMalwareToolkitEnabled(),
             'malware_toolkit_scans_enabled' => $this->isMalwareToolkitScansEnabled(),
             'bubblewrap_toolkit_enabled' => $this->isBubblewrapToolkitEnabled(),

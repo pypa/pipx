@@ -2,7 +2,7 @@
 
 Client for the [Cyberfusion Cluster API](https://cluster-api.cyberfusion.nl/).
 
-This client was built for and tested on the **1.185.3** version of the API.
+This client was built for and tested on the **1.187.1** version of the API.
 
 ## Support
 

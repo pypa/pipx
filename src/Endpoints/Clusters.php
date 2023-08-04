@@ -65,6 +65,20 @@ class Clusters extends Endpoint
     /**
      * @throws RequestException
      */
+    public function children(int $id): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_GET)
+            ->setUrl(sprintf('clusters/%d/children', $id));
+
+        return $this
+            ->client
+            ->request($request);
+    }
+
+    /**
+     * @throws RequestException
+     */
     public function unixUsersHomeDirectoryUsages(
         int $id,
         DateTimeInterface $from,
