@@ -10,6 +10,8 @@ class Validator
     private const NULLABLE = 'nullable';
     private const MAX_LENGTH = 'length_max';
     private const MIN_LENGTH = 'length_min';
+    private const MIN_AMOUNT = 'amount_min';
+    private const MAX_AMOUNT = 'amount_max';
     private const PATTERN = 'pattern';
     private const VALUE_IN = 'in_list';
     private const VALUES_IN = 'part_of_list';
@@ -52,6 +54,18 @@ class Validator
     public function minLength(int $minLength): self
     {
         $this->validations[self::MIN_LENGTH] = $minLength;
+        return $this;
+    }
+
+    public function maxAmount(int $maxAmount): self
+    {
+        $this->validations[self::MAX_AMOUNT] = $maxAmount;
+        return $this;
+    }
+
+    public function minAmount(int $minAmount): self
+    {
+        $this->validations[self::MIN_AMOUNT] = $minAmount;
         return $this;
     }
 
@@ -125,6 +139,14 @@ class Validator
                 return
                     (is_string($value) && Str::length($value) >= $setting) ||
                     (is_array($value) && count($value) >= $setting);
+            case self::MAX_AMOUNT:
+                return
+                    (is_numeric($value) && $value <= $setting) ||
+                    (is_array($value) && max($value) <= $setting);
+            case self::MIN_AMOUNT:
+                return
+                    (is_numeric($value) && $value >= $setting) ||
+                    (is_array($value) && min($value) >= $setting);
             case self::PATTERN:
                 return is_string($value) && Str::doesMatch($value, sprintf('/%s/', $setting));
             case self::VALUE_IN:

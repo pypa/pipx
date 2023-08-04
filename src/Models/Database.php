@@ -10,6 +10,8 @@ class Database extends ClusterModel
 {
     private string $name;
     private string $serverSoftwareName = DatabaseEngine::SERVER_SOFTWARE_MARIADB;
+    private ?bool $optimizingEnabled = null;
+    private ?bool $backupsEnabled = null;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -44,6 +46,30 @@ class Database extends ClusterModel
             ->validate();
 
         $this->serverSoftwareName = $serverSoftwareName;
+
+        return $this;
+    }
+
+    public function getOptimizingEnabled(): ?bool
+    {
+        return $this->optimizingEnabled;
+    }
+
+    public function setOptimizingEnabled(?bool $optimizingEnabled): self
+    {
+        $this->optimizingEnabled = $optimizingEnabled;
+
+        return $this;
+    }
+
+    public function getBackupsEnabled(): ?bool
+    {
+        return $this->backupsEnabled;
+    }
+
+    public function setBackupsEnabled(?bool $backupsEnabled): self
+    {
+        $this->backupsEnabled = $backupsEnabled;
 
         return $this;
     }
@@ -107,6 +133,8 @@ class Database extends ClusterModel
                     DatabaseEngine::SERVER_SOFTWARE_MARIADB
                 )
             )
+            ->setBackupsEnabled(Arr::get($data, 'backups_enabled'))
+            ->setOptimizingEnabled(Arr::get($data, 'optimizing_enabled'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -118,6 +146,8 @@ class Database extends ClusterModel
         return [
             'name' => $this->getName(),
             'server_software_name' => $this->getServerSoftwareName(),
+            'backups_enabled' => $this->getBackupsEnabled(),
+            'optimizing_enabled' => $this->getOptimizingEnabled(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
