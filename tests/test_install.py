@@ -274,6 +274,7 @@ def test_force_install_changes(pipx_temp_env, capsys):
     captured = capsys.readouterr()
     assert "2022.1.7" not in captured.out
 
+
 def test_preinstall(pipx_temp_env, caplog):
     assert not run_pipx_cli(["install", "--preinstall", "black", "nox"])
     assert "black" in caplog.text
