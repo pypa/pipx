@@ -12,6 +12,7 @@
 - Move `pipx` paths to ensure compatibility with the platform-specific user directories
 - [docs] Add more examples for `pipx run`
 - [docs] Add subsection to make README easier to read
+- Add `pipx install --preinstall` to support preinstalling build requirements
 
 ## 1.2.0
 

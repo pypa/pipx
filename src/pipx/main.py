@@ -213,6 +213,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             verbose,
             force=args.force,
             include_dependencies=args.include_deps,
+            preinstall_packages=args.preinstall,
             suffix=args.suffix,
         )
     elif args.command == "inject":
@@ -348,6 +349,14 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
             "Python to install with. Possible values can be the executable name (python3.11), "
             "the version to pass to py launcher (3.11), or the full path to the executable."
             f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
+        ),
+    )
+    p.add_argument(
+        "--preinstall",
+        action="append",
+        help=(
+            "Optional packages to be installed into the Virtual Environment before "
+            "installing the main package."
         ),
     )
     add_pip_venv_args(p)
