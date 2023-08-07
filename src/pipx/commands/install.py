@@ -20,6 +20,7 @@ def install(
     *,
     force: bool,
     include_dependencies: bool,
+    preinstall_packages: Optional[List[str]],
     suffix: str = "",
 ) -> ExitCode:
     """Returns pipx exit code."""
@@ -58,6 +59,11 @@ def install(
 
     try:
         venv.create_venv(venv_args, pip_args)
+        for dep in preinstall_packages or []:
+            dep_name = package_name_from_spec(
+                dep, python, pip_args=pip_args, verbose=verbose
+            )
+            venv.upgrade_package_no_metadata(dep_name, [])
         venv.install_package(
             package_name=package_name,
             package_or_url=package_spec,
