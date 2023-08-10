@@ -240,11 +240,15 @@ class Venv:
         ):
             # do not use -q with `pip install` so subprocess_post_check_pip_errors
             #   has more information to analyze in case of failure.
-            cmd = (
-                [str(self.python_path), "-m", "pip", "--no-input", "install"]
-                + pip_args
-                + [package_or_url]
-            )
+            cmd = [
+                str(self.python_path),
+                "-m",
+                "pip",
+                "--no-input",
+                "install",
+                *pip_args,
+                package_or_url,
+            ]
             # no logging because any errors will be specially logged by
             #   subprocess_post_check_handle_pip_error()
             pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False)
@@ -284,11 +288,15 @@ class Venv:
         with animate(f"installing {', '.join(requirements)}", self.do_animation):
             # do not use -q with `pip install` so subprocess_post_check_pip_errors
             #   has more information to analyze in case of failure.
-            cmd = (
-                [str(self.python_path), "-m", "pip", "--no-input", "install"]
-                + pip_args
-                + requirements
-            )
+            cmd = [
+                str(self.python_path),
+                "-m",
+                "pip",
+                "--no-input",
+                "install",
+                *pip_args,
+                *requirements,
+            ]
             # no logging because any errors will be specially logged by
             #   subprocess_post_check_handle_pip_error()
             pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False)
@@ -301,11 +309,13 @@ class Venv:
             f"determining package name from {package_or_url!r}", self.do_animation
         ):
             old_package_set = self.list_installed_packages()
-            cmd = (
-                ["--no-input", "install", "--no-dependencies"]
-                + pip_args
-                + [package_or_url]
-            )
+            cmd = [
+                "--no-input",
+                "install",
+                "--no-dependencies",
+                *pip_args,
+                package_or_url,
+            ]
             pip_process = self._run_pip(cmd)
         subprocess_post_check(pip_process, raise_error=False)
         if pip_process.returncode:
