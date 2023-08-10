@@ -78,3 +78,10 @@ max-complexity = 15
 
 [tool.pytest.ini_options]
 markers = ["all_packages: test install with maximum number of packages"]
+
+[[tool.mypy.overrides]]
+module = [
+  "packaging.*",
+  "platformdirs"
+]
+ignore_missing_imports = true

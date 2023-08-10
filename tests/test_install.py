@@ -278,3 +278,9 @@ def test_force_install_changes(pipx_temp_env, capsys):
 def test_preinstall(pipx_temp_env, caplog):
     assert not run_pipx_cli(["install", "--preinstall", "black", "nox"])
     assert "black" in caplog.text
+
+
+@pytest.mark.xfail
+def test_do_not_wait_for_input(pipx_temp_env, pipx_session_shared_dir, monkeypatch):
+    monkeypatch.setenv("PIP_INDEX_URL", "http://127.0.0.1:8080/simple")
+    run_pipx_cli(["install", "pycowsay"])
