@@ -222,6 +222,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             None,
             args.dependencies,
             pip_args,
+            args.requirement,
             verbose=verbose,
             include_apps=args.include_apps,
             include_dependencies=args.include_deps,
@@ -374,8 +375,11 @@ def _add_inject(subparsers, venv_completer: VenvCompleter) -> None:
     ).completer = venv_completer
     p.add_argument(
         "dependencies",
-        nargs="+",
-        help="the packages to inject into the Virtual Environment--either package name or pip package spec",
+        nargs="*",
+        help=(
+            "The packages to inject into the Virtual Environment--either package name or pip package spec. "
+            "If --requirement or -r is passed, a requirements file is required instead of packages."
+        ),
     )
     p.add_argument(
         "--include-apps",
@@ -389,6 +393,13 @@ def _add_inject(subparsers, venv_completer: VenvCompleter) -> None:
         "-f",
         action="store_true",
         help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+    )
+    p.add_argument(
+        "--requirement",
+        "-r",
+        metavar="FILE",
+        action="append",
+        help="Inject packages from the given requirements file",
     )
     p.add_argument("--verbose", action="store_true")
 

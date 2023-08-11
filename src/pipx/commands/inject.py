@@ -84,6 +84,7 @@ def inject(
     package_name: Optional[str],
     package_specs: List[str],
     pip_args: List[str],
+    requirement_files: List[str],
     *,
     verbose: bool,
     include_apps: bool,
@@ -95,8 +96,20 @@ def inject(
         raise PipxError(
             "Cannot pass --include-deps if --include-apps is not passed as well"
         )
+    if not package_specs and not requirement_files:
+        raise PipxError(
+            "Dependencies or requirements files must be provided. See `pipx inject -h` for more info"
+        )
+
+    if requirement_files:
+        packages_list = list()
+        for file in requirement_files:
+            with open(Path(file), "r") as f:
+                for line in f.readlines():
+                    packages_list.append(line.rstrip())
+
     all_success = True
-    for dep in package_specs:
+    for dep in package_specs or packages_list:
         all_success &= inject_dep(
             venv_dir,
             None,
