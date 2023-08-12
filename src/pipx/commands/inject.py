@@ -101,8 +101,13 @@ def inject(
             "Dependencies or requirements files must be provided. See `pipx inject -h` for more info"
         )
 
+    if package_specs and requirement_files:
+        raise PipxError(
+            "Dependencies and --requirement/-r option cannot be passed at the same time"
+        )
+
     if requirement_files:
-        packages_list = list()
+        packages_list = []
         for file in requirement_files:
             with open(Path(file), "r") as f:
                 for line in f.readlines():

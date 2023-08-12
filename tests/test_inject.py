@@ -1,5 +1,6 @@
-import pytest  # type: ignore
 import textwrap
+
+import pytest  # type: ignore
 
 from helpers import mock_legacy_venv, run_pipx_cli
 from package_info import PKG
@@ -81,3 +82,8 @@ def test_inject_with_req_file(pipx_temp_env, capsys, tmp_path):
     )
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", "--requirement", str(req_file)])
+    assert run_pipx_cli(
+        ["inject", "pycowsay", PKG["black"]["spec"], "--requirement", str(req_file)]
+    )
+    captured = capsys.readouterr()
+    assert "cannot be passed at the same time" in captured.err
