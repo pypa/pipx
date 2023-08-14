@@ -399,7 +399,10 @@ def _add_inject(subparsers, venv_completer: VenvCompleter) -> None:
         "-r",
         metavar="FILE",
         action="append",
-        help="Inject packages from the given requirements file",
+        help=(
+            "Inject packages from the given requirements file. "
+            "Once this option is passed, dependencies passing from the command line will be omitted"
+        ),
     )
     p.add_argument("--verbose", action="store_true")
 
