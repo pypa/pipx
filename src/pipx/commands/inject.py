@@ -84,12 +84,12 @@ def inject(
     package_name: Optional[str],
     package_specs: List[str],
     pip_args: List[str],
-    requirement_files: List[str],
     *,
     verbose: bool,
     include_apps: bool,
     include_dependencies: bool,
     force: bool,
+    requirement_files: List[str],
 ) -> ExitCode:
     """Returns pipx exit code."""
     if not include_apps and include_dependencies:
