@@ -222,7 +222,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             None,
             args.dependencies,
             pip_args,
-            args.requirement,
+            requirement_files=args.requirement,
             verbose=verbose,
             include_apps=args.include_apps,
             include_dependencies=args.include_deps,
