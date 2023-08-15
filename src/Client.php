@@ -17,7 +17,7 @@ class Client implements ClientContract
 {
     private const CONNECT_TIMEOUT = 60;
     private const TIMEOUT = 180;
-    private const VERSION = '1.101.0';
+    private const VERSION = '1.101.1';
     private const USER_AGENT = 'cyberfusion-cluster-api-client/' . self::VERSION;
     private GuzzleClient $httpClient;
 
@@ -75,9 +75,9 @@ class Client implements ClientContract
         }
 
         // Store and return if the API is up
-        return $response
+        return (bool) $response
             ->getData('health')
-            ->isUp();
+            ?->isUp();
     }
 
     /**
