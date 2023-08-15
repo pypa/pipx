@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
 for detailed information.
 
+## [1.101.1]
+
+### Fixed
+
+- Use proper name for `groups_properties` in the `Node` model.
+- Improve handling connection issues, for example when an invalid API url is provided, which resulted in an error in the `isUp` check.
+
 ## [1.101.0]
 
 ### Added

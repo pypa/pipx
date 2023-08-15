@@ -12,7 +12,7 @@ class Node extends ClusterModel
     private array $groups = [];
     private ?string $comment = null;
     private array $loadBalancerHealthChecksGroupsPairs = [];
-    private array $groupProperties = [];
+    private array $groupsProperties = [];
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -77,14 +77,14 @@ class Node extends ClusterModel
         return $this;
     }
 
-    public function getGroupProperties(): array
+    public function getGroupsProperties(): array
     {
-        return $this->groupProperties;
+        return $this->groupsProperties;
     }
 
-    public function setGroupProperties(array $groupProperties): self
+    public function setGroupsProperties(array $groupsProperties): self
     {
-        $this->groupProperties = $groupProperties;
+        $this->groupsProperties = $groupsProperties;
 
         return $this;
     }
@@ -144,7 +144,7 @@ class Node extends ClusterModel
             ->setGroups(Arr::get($data, 'groups', []))
             ->setComment(Arr::get($data, 'comment'))
             ->setLoadBalancerHealthChecksGroupsPairs(Arr::get($data, 'load_balancer_health_checks_groups_pairs', []))
-            ->setGroupProperties(Arr::get($data, 'group_properties', []))
+            ->setGroupsProperties(Arr::get($data, 'groups_properties', []))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -158,7 +158,7 @@ class Node extends ClusterModel
             'groups' => $this->getGroups(),
             'comment' => $this->getComment(),
             'load_balancer_health_checks_groups_pairs' => $this->getLoadBalancerHealthChecksGroupsPairs(),
-            'group_properties' => $this->getGroupProperties(),
+            'groups_properties' => $this->getGroupsProperties(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
