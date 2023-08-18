@@ -97,8 +97,8 @@ def refresh_packages_cache(session):
 def tests_with_options(session, net_pypiserver):
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     prebuild_wheels(session, PREBUILD_PACKAGES)
-    session.install("-e", ".", "pytest", "pytest-cov")
-    tests = session.posargs or ["tests"]
+    session.install("-e", ".", "pytest", "pytest-cov", "pytest-xdist")
+    arguments = session.posargs or ["-n", "auto", "tests"]
 
     if net_pypiserver:
         pypiserver_option = ["--net-pypiserver"]
@@ -107,7 +107,7 @@ def tests_with_options(session, net_pypiserver):
         refresh_packages_cache(session)
         pypiserver_option = []
 
-    session.run("pytest", *pypiserver_option, "--cov=pipx", "--cov-report=", *tests)
+    session.run("pytest", *pypiserver_option, "--cov=pipx", "--cov-report=", *arguments)
     session.notify("cover")
 
 
