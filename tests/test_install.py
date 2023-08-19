@@ -295,4 +295,3 @@ def test_passed_python_and_force_flag_warning(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay", "--force"])
     captured = capsys.readouterr()
     assert "--python is ignored when --force is passed." not in captured.out
-    
