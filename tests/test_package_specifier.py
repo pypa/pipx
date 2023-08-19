@@ -20,6 +20,8 @@ TEST_DATA_PATH = "./testdata/test_package_specifier"
         ("Black", "black"),
         ("https://github.com/ambv/black/archive/18.9b0.zip", None),
         ("black @ https://github.com/ambv/black/archive/18.9b0.zip", None),
+        ("black-18.9b0-py36-none-any.whl", None),
+        ("black-18.9b0.tar.gz", None),
     ],
 )
 def test_valid_pypi_name(package_spec_in, package_name_out):
@@ -50,7 +52,6 @@ def test_fix_package_name(package_spec_in, package_name, package_spec_out):
     assert fix_package_name(package_spec_in, package_name) == package_spec_out
 
 
-# TODO: Make sure git+ works with tests, correct in test_install as well
 @pytest.mark.parametrize(
     "package_spec_in,package_or_url_correct,valid_spec",
     [

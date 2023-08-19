@@ -74,9 +74,10 @@ Reference: [pip Environment Variables](https://pip.pypa.io/en/stable/user_guide/
 
 ## `pipx` log files
 Pipx records a verbose log file for every `pipx` command invocation.  The logs
-for the last 10 `pipx` commands can be found in `$PIPX_HOME/logs`.
+for the last 10 `pipx` commands can be found in `$XDG_STATE_HOME/pipx/logs` or user's log path
+if the former is not writable by the user.
 
-For most users this location is `~/.local/pipx/logs`, where `~` is your home
+For most users this location is `~/.local/state/pipx/logs`, where `~` is your home
 directory.
 
 ## Debian, Ubuntu issues
@@ -117,4 +118,22 @@ To clean up after this experiment:
 
 ```
 rm -rf test_venv
+```
+
+## Pipx files not in expected locations according to documentation
+
+The default PIPX_HOME is `~/.local/pipx`, prior to the adoption of the XDG base
+directory specification after version 1.2.0. To maintain compatibility with older 
+versions, pipx will automatically detect the old paths and use them accordingly.
+For a map of old and new paths, See [Installation](installation.md#installation-options)
+
+To migrate from the old path to the new path, you can remove the `~/.local/pipx` directory and 
+reinstall all packages.
+
+For example, on Linux systems, you could read out `pipx`'s package information in JSON via `jq` (which you might need to install first):
+
+```
+packages=($(pipx list --json | jq '.venvs | keys[]' -r))
+rm -rf ~/.local/pipx
+for p in ${packages[@]}; do pipx install "$p"; done
 ```

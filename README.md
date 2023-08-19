@@ -42,7 +42,7 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ```
 
-Upgrade pipx with `python3 -m pip install --user -U pipx`.
+Upgrade pipx with `python3 -m pip install --user --upgrade pipx`.
 
 ### On Windows, install via pip (requires pip 19.0 or later)
 
@@ -61,13 +61,26 @@ If so, go to the mentioned folder, allowing you to run the pipx executable direc
 Enter the following line (even if you did not get the warning):
 
 ```
-pipx ensurepath
+.\pipx.exe ensurepath
 ```
 
 This will add both the above mentioned path and the `%USERPROFILE%\.local\bin` folder to your search path.
 Restart your terminal session and verify `pipx` does run.
 
-Upgrade pipx with `python3 -m pip install --user -U pipx`.
+Upgrade pipx with `python3 -m pip install --user --upgrade pipx`.
+
+### Via zipapp
+
+You can also use pipx without installing it.
+The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a Python 3.7+ interpreter:
+
+```
+python pipx.pyz ensurepath
+```
+
+### Use with pre-commit
+
+pipx [has pre-commit support](installation.md#pre-commit).
 
 ### Shell completions
 
@@ -99,7 +112,7 @@ Python and PyPI allow developers to distribute code with "console script entry p
 
 pipx is a tool to install and run any of these thousands of application-containing packages in a safe, convenient, and reliable way. **In a way, it turns Python Package Index (PyPI) into a big app store for Python applications.** Not all Python packages have entry points, but many do.
 
-If you would like to make your package compatible with pipx, all you need to do is add a [console scripts](https://python-packaging.readthedocs.io/en/latest/command-line-scripts.html#the-console-scripts-entry-point) entry point. If you're a poetry user, use [these instructions](https://python-poetry.org/docs/pyproject/#scripts).
+If you would like to make your package compatible with pipx, all you need to do is add a [console scripts](https://python-packaging.readthedocs.io/en/latest/command-line-scripts.html#the-console-scripts-entry-point) entry point. If you're a poetry user, use [these instructions](https://python-poetry.org/docs/pyproject/#scripts). Or you're using hatch, [try this](https://hatch.pypa.io/latest/config/metadata/#cli).
 
 ## Features
 
@@ -132,7 +145,7 @@ done! ✨ 🌟 ✨
 
 
 >> pipx list
-venvs are in /home/user/.local/pipx/venvs
+venvs are in /home/user/.local/share/pipx/venvs
 apps are exposed on your $PATH at /home/user/.local/bin
    package pycowsay 2.0.3, Python 3.7.3
     - pycowsay
@@ -225,19 +238,99 @@ Any arguments after the application name will be passed directly to the applicat
 
 ```
 
+### Ambiguous arguments
+
+Sometimes pipx can consume arguments provided for the application:
+
+```
+> pipx run pycowsay --py
+
+usage: pipx run [-h] [--no-cache] [--pypackages] [--spec SPEC] [--verbose] [--python PYTHON]
+                [--system-site-packages] [--index-url INDEX_URL] [--editable] [--pip-args PIP_ARGS]
+                app ...
+pipx run: error: ambiguous option: --py could match --pypackages, --python
+```
+
+To prevent this put double dash `--` before APP. It will make pipx to forward the arguments to the right verbatim to the application:
+
+```
+> pipx run -- pycowsay --py
+
+
+  ----
+< --py >
+  ----
+   \   ^__^
+    \  (oo)\_______
+       (__)\       )\/\
+           ||----w |
+           ||     ||
+
+
+```
+
 Re-running the same app is quick because pipx caches Virtual Environments on a per-app basis. The caches only last a few days, and when they expire, pipx will again use the latest version of the package. This way you can be sure you're always running a new version of the package without having to manually upgrade.
 
-If the app name does not match that package name, you can use the `--spec` argument to specify the package to install and app to run separately:
+### Package with multiple apps, or the app name doesn't match the package name
+
+If the app name does not match the package name, you can use the `--spec` argument to specify the `PACKAGE` name, and provide the `APP` to run separately:
 
 ```
 pipx run --spec PACKAGE APP
 ```
 
-You can also specify specific versions, version ranges, or extras:
+For example, the [esptool](https://github.com/espressif/esptool) package doesn't provide an executable with the same name:
 
 ```
-pipx run APP==1.0.0
+>> pipx run esptool
+'esptool' executable script not found in package 'esptool'.
+Available executable scripts:
+    esp_rfc2217_server.py - usage: 'pipx run --spec esptool esp_rfc2217_server.py [arguments?]'
+    espefuse.py - usage: 'pipx run --spec esptool espefuse.py [arguments?]'
+    espsecure.py - usage: 'pipx run --spec esptool espsecure.py [arguments?]'
+    esptool.py - usage: 'pipx run --spec esptool esptool.py [arguments?]'
 ```
+
+You can instead run the executables that this package provides by using `--spec`:
+
+```
+pipx run --spec esptool esp_rfc2217_server.py
+pipx run --spec esptool espefuse.py
+pipx run --spec esptool espsecure.py
+pipx run --spec esptool esptool.py
+```
+
+Note that the `.py` extension is not something you append to the executable name. It is part of the executable name, as provided by the package. This can be anything. For example, when working with the [pymodbus](https://github.com/pymodbus-dev/pymodbus) package:
+
+```
+>> pipx run pymodbus[repl]
+'pymodbus' executable script not found in package 'pymodbus'.
+Available executable scripts:
+    pymodbus.console - usage: 'pipx run --spec pymodbus pymodbus.console [arguments?]'
+    pymodbus.server - usage: 'pipx run --spec pymodbus pymodbus.server [arguments?]'
+    pymodbus.simulator - usage: 'pipx run --spec pymodbus pymodbus.simulator [arguments?]'
+```
+
+You can run the executables like this:
+
+```
+pipx run --spec pymodbus[repl] pymodbus.console
+pipx run --spec pymodbus[repl] pymodbus.server
+pipx run --spec pymodbus[repl] pymodbus.simulator
+```
+
+### Running a specific version of a package
+
+The `PACKAGE` argument above is actually a [requirement specifier](https://packaging.python.org/en/latest/glossary/#term-Requirement-Specifier). Therefore, you can also specify specific versions, version ranges, or extras. For example:
+
+```
+pipx run mpremote==1.20.0
+pipx run --spec esptool==4.6.2 esptool.py
+pipx run --spec 'esptool>=4.5' esptool.py
+pipx run --spec 'esptool >= 4.5' esptool.py
+```
+
+Notice that some requirement specifiers have to be enclosed in quotes or escaped.
 
 ### Running from Source Control
 

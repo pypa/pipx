@@ -8,26 +8,41 @@ import pipx.interpreter
 from pipx.interpreter import (
     _find_default_windows_python,
     _get_absolute_python_interpreter,
+    find_py_launcher_python,
 )
 from pipx.util import PipxError
 
 
-def test_windows_python_venv_present(monkeypatch):
+@pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
+@pytest.mark.parametrize("venv", [True, False])
+def test_windows_python_with_version(monkeypatch, venv):
+    def which(name):
+        return "py"
+
+    major = sys.version_info.major
+    minor = sys.version_info.minor
+    monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: venv)
+    monkeypatch.setattr(shutil, "which", which)
+    python_path = find_py_launcher_python(f"{major}.{minor}")
+    assert f"{major}.{minor}" in python_path or f"{major}{minor}" in python_path
+    assert python_path.endswith("python.exe")
+
+
+def test_windows_python_no_version_with_venv(monkeypatch):
     monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: True)
     assert _find_default_windows_python() == sys.executable
 
 
-def test_windows_python_no_venv_py_present(monkeypatch):
+def test_windows_python_no_version_no_venv_with_py(monkeypatch):
     def which(name):
-        if name == "py":
-            return "py"
+        return "py"
 
     monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: False)
     monkeypatch.setattr(shutil, "which", which)
     assert _find_default_windows_python() == "py"
 
 
-def test_windows_python_no_venv_python_present(monkeypatch):
+def test_windows_python_no_version_no_venv_python_present(monkeypatch):
     def which(name):
         if name == "python":
             return "python"
@@ -38,7 +53,7 @@ def test_windows_python_no_venv_python_present(monkeypatch):
     assert _find_default_windows_python() == "python"
 
 
-def test_windows_python_no_venv_no_python(monkeypatch):
+def test_windows_python_no_version_no_venv_no_python(monkeypatch):
     def which(name):
         return None
 

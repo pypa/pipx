@@ -2,6 +2,7 @@ import logging
 import os
 import subprocess
 import sys
+import textwrap
 from unittest import mock
 
 import pytest  # type: ignore
@@ -181,3 +182,157 @@ def test_package_determination(
 
     assert "Cannot determine package name" not in caplog.text
     assert f"Determined package name: {package}" in caplog.text
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_without_requirements(caplog, pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    out = tmp_path / "output.txt"
+    test_str = "Hello, world!"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+                from pathlib import Path
+                Path({repr(str(out))}).write_text({repr(test_str)})
+            """
+        ).strip()
+    )
+    run_pipx_cli_exit(["run", script.as_uri()])
+    assert out.read_text() == test_str
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    out = tmp_path / "output.txt"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+                # Requirements:
+                # requests==2.28.1
+
+                # Check requests can be imported
+                import requests
+                # Check dependencies of requests can be imported
+                import certifi
+                # Check the installed version
+                from pathlib import Path
+                Path({repr(str(out))}).write_text(requests.__version__)
+            """
+        ).strip()
+    )
+    run_pipx_cli_exit(["run", script.as_uri()])
+    assert out.read_text() == "2.28.1"
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_args(caplog, pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    out = tmp_path / "output.txt"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+                import sys
+                from pathlib import Path
+                Path({repr(str(out))}).write_text(str(int(sys.argv[1]) + 1))
+            """
+        ).strip()
+    )
+    run_pipx_cli_exit(["run", script.as_uri(), "1"])
+    assert out.read_text() == "2"
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_requirements_and_args(caplog, pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    out = tmp_path / "output.txt"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+                # Requirements:
+                # packaging
+
+                import packaging
+                import sys
+                from pathlib import Path
+                Path({repr(str(out))}).write_text(str(int(sys.argv[1]) + 1))
+            """
+        ).strip()
+    )
+    run_pipx_cli_exit(["run", script.as_uri(), "1"])
+    assert out.read_text() == "2"
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_invalid_requirement(capsys, pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    script.write_text(
+        textwrap.dedent(
+            """
+                # Requirements:
+                # this is an invalid requirement
+                print()
+            """
+        ).strip()
+    )
+    ret = run_pipx_cli(["run", script.as_uri()])
+    assert ret == 1
+
+    captured = capsys.readouterr()
+    assert "Invalid requirement this is an invalid requirement" in captured.err
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_script_by_absolute_name(caplog, pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    out = tmp_path / "output.txt"
+    test_str = "Hello, world!"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+                from pathlib import Path
+                Path({repr(str(out))}).write_text({repr(test_str)})
+            """
+        ).strip()
+    )
+    run_pipx_cli_exit(["run", "--path", str(script)])
+    assert out.read_text() == test_str
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_script_by_relative_name(caplog, pipx_temp_env, monkeypatch, tmp_path):
+    script = tmp_path / "test.py"
+    out = tmp_path / "output.txt"
+    test_str = "Hello, world!"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+                from pathlib import Path
+                Path({repr(str(out))}).write_text({repr(test_str)})
+            """
+        ).strip()
+    )
+    with monkeypatch.context() as m:
+        m.chdir(tmp_path)
+        run_pipx_cli_exit(["run", "test.py"])
+    assert out.read_text() == test_str
+
+
+@pytest.mark.skipif(
+    not sys.platform.startswith("win"), reason="uses windows version format"
+)
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_windows_python_version(caplog, pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    out = tmp_path / "output.txt"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+                import sys
+                from pathlib import Path
+                Path({repr(str(out))}).write_text(sys.version)
+            """
+        ).strip()
+    )
+    run_pipx_cli_exit(["run", script.as_uri(), "--python", "3.11"])
+    assert "3.11" in out.read_text()

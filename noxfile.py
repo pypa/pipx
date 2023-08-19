@@ -4,18 +4,16 @@ from pathlib import Path
 
 import nox  # type: ignore
 
-PYTHON_ALL_VERSIONS = ["3.7", "3.8", "3.9", "3.10"]
-PYTHON_DEFAULT_VERSION = "3.10"
+PYTHON_ALL_VERSIONS = ["3.7", "3.8", "3.9", "3.10", "3.11"]
+PYTHON_DEFAULT_VERSION = "3.11"
 DOC_DEPENDENCIES = [".", "jinja2", "mkdocs", "mkdocs-material"]
-MAN_DEPENDENCIES = [".", "argparse-manpage"]
+MAN_DEPENDENCIES = [".", "argparse-manpage[setuptools]"]
 LINT_DEPENDENCIES = [
-    "black==22.3.0",
-    "flake8==4.0.1",
-    "flake8-bugbear==21.11.29",
-    "mypy==0.930",
-    "types-jinja2",
+    "black==22.8.0",
+    "mypy==1.1.1",
     "packaging>=20.0",
-    "isort==5.10.1",
+    "ruff==0.0.254",
+    "types-jinja2",
 ]
 # Packages whose dependencies need an intact system PATH to compile
 # pytest setup clears PATH.  So pre-build some wheels to the pip cache.
@@ -105,7 +103,7 @@ def tests_with_options(session, net_pypiserver):
     if net_pypiserver:
         pypiserver_option = ["--net-pypiserver"]
     else:
-        session.install("pypiserver")
+        session.install("pypiserver[passlib]")
         refresh_packages_cache(session)
         pypiserver_option = []
 
@@ -157,9 +155,8 @@ def lint(session):
     files = [str(Path("src") / "pipx"), "tests", "scripts"] + [
         str(p) for p in Path(".").glob("*.py")
     ]
-    session.run("isort", "--check", "--diff", "--profile", "black", *files)
+    session.run("ruff", *files)
     session.run("black", "--check", *files)
-    session.run("flake8", *files)
     session.run(
         "mypy",
         "--strict-equality",
@@ -202,7 +199,7 @@ def build_docs(session):
         "PIPX__DOC_DEFAULT_PYTHON"
     ] = "typically the python used to execute pipx"
     session.run("python", "scripts/generate_docs.py")
-    session.run("mkdocs", "build")
+    session.run("mkdocs", "build", "--strict")
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
@@ -210,13 +207,14 @@ def publish_docs(session):
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install(*DOC_DEPENDENCIES)
     build_docs(session)
-    session.run("mkdocs", "gh-deploy")
+    session.run("mkdocs", "gh-deploy", "--strict")
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def watch_docs(session):
     session.install(*DOC_DEPENDENCIES)
-    session.run("mkdocs", "serve")
+    session.run("python", "scripts/generate_docs.py")
+    session.run("mkdocs", "serve", "--strict")
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)

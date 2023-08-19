@@ -33,7 +33,6 @@ def get_include_app_paths(
 def uninject_dep(
     venv: Venv, package_name: str, *, local_bin_dir: Path, leave_deps: bool = False
 ) -> bool:
-
     package_name = canonicalize_name(package_name)
 
     if package_name == venv.pipx_metadata.main_package.package:

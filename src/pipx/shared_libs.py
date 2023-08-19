@@ -101,6 +101,7 @@ class _SharedLibs:
                         self.python_path,
                         "-m",
                         "pip",
+                        "--no-input",
                         "--disable-pip-version-check",
                         "install",
                         *_pip_args,

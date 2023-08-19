@@ -197,11 +197,11 @@ class Venv:
 
     def upgrade_packaging_libraries(self, pip_args: List[str]) -> None:
         if self.uses_shared_libs:
-            shared_libs.upgrade(verbose=self.verbose)
+            shared_libs.upgrade(pip_args=pip_args, verbose=self.verbose)
         else:
             # TODO: setuptools and wheel? Original code didn't bother
             # but shared libs code does.
-            self._upgrade_package_no_metadata("pip", pip_args)
+            self.upgrade_package_no_metadata("pip", pip_args)
 
     def uninstall_package(self, package: str, was_injected: bool = False):
         try:
@@ -240,11 +240,15 @@ class Venv:
         ):
             # do not use -q with `pip install` so subprocess_post_check_pip_errors
             #   has more information to analyze in case of failure.
-            cmd = (
-                [str(self.python_path), "-m", "pip", "install"]
-                + pip_args
-                + [package_or_url]
-            )
+            cmd = [
+                str(self.python_path),
+                "-m",
+                "pip",
+                "--no-input",
+                "install",
+                *pip_args,
+                package_or_url,
+            ]
             # no logging because any errors will be specially logged by
             #   subprocess_post_check_handle_pip_error()
             pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False)
@@ -274,12 +278,44 @@ class Venv:
                 wrap_message=False,
             )
 
+    def install_unmanaged_packages(
+        self, requirements: List[str], pip_args: List[str]
+    ) -> None:
+        """Install packages in the venv, but do not record them in the metadata."""
+
+        # Note: We want to install everything at once, as that lets
+        # pip resolve conflicts correctly.
+        with animate(f"installing {', '.join(requirements)}", self.do_animation):
+            # do not use -q with `pip install` so subprocess_post_check_pip_errors
+            #   has more information to analyze in case of failure.
+            cmd = [
+                str(self.python_path),
+                "-m",
+                "pip",
+                "--no-input",
+                "install",
+                *pip_args,
+                *requirements,
+            ]
+            # no logging because any errors will be specially logged by
+            #   subprocess_post_check_handle_pip_error()
+            pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False)
+        subprocess_post_check_handle_pip_error(pip_process)
+        if pip_process.returncode:
+            raise PipxError(f"Error installing {', '.join(requirements)}.")
+
     def install_package_no_deps(self, package_or_url: str, pip_args: List[str]) -> str:
         with animate(
             f"determining package name from {package_or_url!r}", self.do_animation
         ):
             old_package_set = self.list_installed_packages()
-            cmd = ["install"] + ["--no-dependencies"] + pip_args + [package_or_url]
+            cmd = [
+                "--no-input",
+                "install",
+                "--no-dependencies",
+                *pip_args,
+                package_or_url,
+            ]
             pip_process = self._run_pip(cmd)
         subprocess_post_check(pip_process, raise_error=False)
         if pip_process.returncode:
@@ -399,7 +435,7 @@ class Venv:
             return True
         return (self.bin_path / filename).is_file()
 
-    def _upgrade_package_no_metadata(
+    def upgrade_package_no_metadata(
         self, package_name: str, pip_args: List[str]
     ) -> None:
         with animate(
@@ -407,7 +443,7 @@ class Venv:
             self.do_animation,
         ):
             pip_process = self._run_pip(
-                ["install"] + pip_args + ["--upgrade", package_name]
+                ["--no-input", "install"] + pip_args + ["--upgrade", package_name]
             )
         subprocess_post_check(pip_process)
 
@@ -426,7 +462,7 @@ class Venv:
             self.do_animation,
         ):
             pip_process = self._run_pip(
-                ["install"] + pip_args + ["--upgrade", package_or_url]
+                ["--no-input", "install"] + pip_args + ["--upgrade", package_or_url]
             )
         subprocess_post_check(pip_process)
 
