@@ -125,8 +125,8 @@ def test_include_deps(pipx_temp_env, capsys):
 @pytest.mark.parametrize(
     "package_name, package_spec",
     [
-        ("zest-releaser", PKG["zest-releaser"]["spec"]),
         ("tox-ini-fmt", PKG["tox-ini-fmt"]["spec"]),
+        ("zest-releaser", PKG["zest-releaser"]["spec"]),
     ],
 )
 def test_name_tricky_characters(
