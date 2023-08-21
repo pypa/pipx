@@ -816,16 +816,7 @@ def setup_logging(verbose: bool) -> None:
     pipx.constants.pipx_log_file = setup_log_file()
 
     # Determine logging level
-    if verbose >= 1:
-        level_number = logging.DEBUG
-    elif verbose == -1:
-        level_number = logging.WARNING
-    elif verbose == -2:
-        level_number = logging.ERROR
-    elif verbose <= -3:
-        level_number = logging.CRITICAL
-    else:
-        level_number = logging.INFO
+    level_number = max(0, 2 - verbose) * 10
 
     level = logging.getLevelName(level_number)
 
