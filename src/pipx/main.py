@@ -327,9 +327,7 @@ def add_include_dependencies(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--include-deps", help="Include apps of dependent packages", action="store_true")
 
 
-def _add_install(
-    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
-) -> None:
+def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "install",
         help="Install a package",
@@ -370,9 +368,7 @@ def _add_install(
     add_pip_venv_args(p)
 
 
-def _add_inject(
-    subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser
-) -> None:
+def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "inject",
         help="Install packages into an existing Virtual Environment",
@@ -405,20 +401,14 @@ def _add_inject(
         action="store_true",
         help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
-<<<<<<< HEAD
-    p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--with-suffix",
         action="store_true",
         help="Add the suffix (if given) of the Virtual Environment to the packages to inject",
     )
-=======
->>>>>>> baaa574 (Implement quiet and verbose logging for pipx subcommands)
 
 
-def _add_uninject(
-    subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser
-):
+def _add_uninject(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser):
     p = subparsers.add_parser(
         "uninject",
         help="Uninstall injected packages from an existing Virtual Environment",
@@ -441,9 +431,7 @@ def _add_uninject(
     )
 
 
-def _add_upgrade(
-    subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser
-) -> None:
+def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "upgrade",
         help="Upgrade a package",
@@ -465,9 +453,7 @@ def _add_upgrade(
     add_pip_venv_args(p)
 
 
-def _add_upgrade_all(
-    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
-) -> None:
+def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "upgrade-all",
         help="Upgrade all packages. Runs `pip install -U <pkgname>` for each package.",
@@ -488,9 +474,7 @@ def _add_upgrade_all(
     )
 
 
-def _add_uninstall(
-    subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser
-) -> None:
+def _add_uninstall(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "uninstall",
         help="Uninstall a package",
@@ -500,9 +484,7 @@ def _add_uninstall(
     p.add_argument("package").completer = venv_completer
 
 
-def _add_uninstall_all(
-    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
-) -> None:
+def _add_uninstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     subparsers.add_parser(
         "uninstall-all",
         help="Uninstall all packages",
@@ -511,9 +493,7 @@ def _add_uninstall_all(
     )
 
 
-def _add_reinstall(
-    subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser
-) -> None:
+def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "reinstall",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -541,9 +521,7 @@ def _add_reinstall(
     )
 
 
-def _add_reinstall_all(
-    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
-) -> None:
+def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "reinstall-all",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -573,9 +551,7 @@ def _add_reinstall_all(
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
 
 
-def _add_list(
-    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
-) -> None:
+def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "list",
         help="List installed packages",
@@ -592,9 +568,7 @@ def _add_list(
     g.add_argument("--short", action="store_true", help="List packages only.")
 
 
-def _add_run(
-    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
-) -> None:
+def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "run",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -656,9 +630,7 @@ def _add_run(
     p.usage = re.sub(r"\.\.\.", "app ...", p.usage)
 
 
-def _add_runpip(
-    subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser
-) -> None:
+def _add_runpip(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "runpip",
         help="Run pip in an existing pipx-managed Virtual Environment",
@@ -677,9 +649,7 @@ def _add_runpip(
     )
 
 
-def _add_ensurepath(
-    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
-) -> None:
+def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "ensurepath",
         help=("Ensure directories necessary for pipx operation are in your " "PATH environment variable."),
@@ -703,9 +673,7 @@ def _add_ensurepath(
     )
 
 
-def _add_environment(
-    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
-) -> None:
+def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "environment",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -723,13 +691,7 @@ def _add_environment(
         ),
         parents=[shared_parser],
     )
-<<<<<<< HEAD
-    p.add_argument("--value", "-v", metavar="VARIABLE", help="Print the value of the variable.")
-=======
-    p.add_argument(
-        "--value", "-V", metavar="VARIABLE", help="Print the value of the variable."
-    )
->>>>>>> baaa574 (Implement quiet and verbose logging for pipx subcommands)
+    p.add_argument("--value", "-V", metavar="VARIABLE", help="Print the value of the variable.")
 
 
 def get_command_parser() -> argparse.ArgumentParser:
@@ -745,7 +707,7 @@ def get_command_parser() -> argparse.ArgumentParser:
     parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore
 
     subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
-    
+
     shared_parser = argparse.ArgumentParser(add_help=False)
 
     shared_parser.add_argument(
@@ -759,13 +721,7 @@ def get_command_parser() -> argparse.ArgumentParser:
         ),
     )
 
-    shared_parser.add_argument(
-        "--verbose", "-v", action="count", default=0, help=("Give more output.")
-    )
-
-    subparsers = parser.add_subparsers(
-        dest="command", description="Get help for commands with pipx COMMAND --help"
-    )
+    shared_parser.add_argument("--verbose", "-v", action="count", default=0, help=("Give more output."))
 
     _add_install(subparsers, shared_parser)
     _add_uninject(subparsers, completer_venvs.use, shared_parser)
@@ -835,16 +791,7 @@ def setup_logging(verbose: bool) -> None:
     pipx.constants.pipx_log_file = setup_log_file()
 
     # Determine logging level
-    if verbose >= 1:
-        level_number = logging.DEBUG
-    elif verbose == -1:
-        level_number = logging.WARNING
-    elif verbose == -2:
-        level_number = logging.ERROR
-    elif verbose <= -3:
-        level_number = logging.CRITICAL
-    else:
-        level_number = logging.INFO
+    level_number = max(0, 2 - verbose) * 10
 
     level = logging.getLevelName(level_number)
 
