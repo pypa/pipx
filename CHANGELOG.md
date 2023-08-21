@@ -1,6 +1,5 @@
 ## dev
 
-- Apply pyupgrade suggestions
 - Make usage message in `pipx run` show `package_or_url`, so extra will be printed out as well
 - Add `--force-reinstall` to pip arguments when `--force` was passed
 - Use the py launcher, if available, to select Python version with the `--python` option
