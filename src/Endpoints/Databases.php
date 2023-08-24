@@ -84,6 +84,8 @@ class Databases extends Endpoint
                     'name',
                     'server_software_name',
                     'cluster_id',
+                    'backups_enabled',
+                    'optimizing_enabled',
                 ])
             );
 
