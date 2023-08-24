@@ -22,7 +22,12 @@ from pipx.venv import Venv, VenvContainer
 
 
 def reinstall(
-    *, venv_dir: Path, local_bin_dir: Path, python: str, verbose: bool
+    *,
+    venv_dir: Path,
+    local_bin_dir: Path,
+    local_man_dir: Path,
+    python: str,
+    verbose: bool,
 ) -> ExitCode:
     """Returns pipx exit code."""
     if not venv_dir.exists():
@@ -53,7 +58,7 @@ def reinstall(
             f"Remove {PIPX_SHARED_LIBS} and run 'pipx reinstall-all' to fix them."
         )
 
-    uninstall(venv_dir, local_bin_dir, verbose)
+    uninstall(venv_dir, local_bin_dir, local_man_dir, verbose)
 
     # in case legacy original dir name
     venv_dir = venv_dir.with_name(canonicalize_name(venv_dir.name))
@@ -64,6 +69,7 @@ def reinstall(
         venv.main_package_name,
         package_or_url,
         local_bin_dir,
+        local_man_dir,
         python,
         venv.pipx_metadata.main_package.pip_args,
         venv.pipx_metadata.venv_args,
@@ -100,6 +106,7 @@ def reinstall(
 def reinstall_all(
     venv_container: VenvContainer,
     local_bin_dir: Path,
+    local_man_dir: Path,
     python: str,
     verbose: bool,
     *,
@@ -116,6 +123,7 @@ def reinstall_all(
             package_exit = reinstall(
                 venv_dir=venv_dir,
                 local_bin_dir=local_bin_dir,
+                local_man_dir=local_man_dir,
                 python=python,
                 verbose=verbose,
             )

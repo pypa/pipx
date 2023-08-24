@@ -68,6 +68,7 @@ PIPX_DESCRIPTION = textwrap.dedent(
 
     Virtual Environment location is {str(constants.PIPX_LOCAL_VENVS)}.
     Symlinks to apps are placed in {str(constants.LOCAL_BIN_DIR)}.
+    Symlinks to manual are placed in {str(constants.LOCAL_MAN_DIR)}.
 
     """
 )
@@ -76,6 +77,7 @@ PIPX_DESCRIPTION += pipx_wrap(
     optional environment variables:
       PIPX_HOME             Overrides default pipx location. Virtual Environments will be installed to $PIPX_HOME/venvs.
       PIPX_BIN_DIR          Overrides location of app installations. Apps are symlinked or copied here.
+      PIPX_MAN_DIR          Overrides location of manual pages installations. Manual pages are symlinked or copied here.
       PIPX_DEFAULT_PYTHON   Overrides default python used for commands.
       USE_EMOJI             Overrides emoji behavior. Default value varies based on platform.
     """,
@@ -112,6 +114,9 @@ INSTALL_DESCRIPTION = textwrap.dedent(
 
     The default app location is {constants.DEFAULT_PIPX_BIN_DIR} and can be
     overridden by setting the environment variable `PIPX_BIN_DIR`.
+
+    The default manual pages location is {constants.DEFAULT_PIPX_MAN_DIR} and
+    can be overridden by setting the environment variable `PIPX_MAN_DIR`.
 
     The default python executable used to install a package is
     {DOC_DEFAULT_PYTHON} and can be overridden
@@ -207,6 +212,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             None,
             args.package_spec,
             constants.LOCAL_BIN_DIR,
+            constants.LOCAL_MAN_DIR,
             args.python,
             pip_args,
             venv_args,
@@ -256,13 +262,18 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             venv_container, args.include_injected, args.json, args.short
         )
     elif args.command == "uninstall":
-        return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, verbose)
+        return commands.uninstall(
+            venv_dir, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose
+        )
     elif args.command == "uninstall-all":
-        return commands.uninstall_all(venv_container, constants.LOCAL_BIN_DIR, verbose)
+        return commands.uninstall_all(
+            venv_container, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose
+        )
     elif args.command == "reinstall":
         return commands.reinstall(
             venv_dir=venv_dir,
             local_bin_dir=constants.LOCAL_BIN_DIR,
+            local_man_dir=constants.LOCAL_MAN_DIR,
             python=args.python,
             verbose=verbose,
         )
@@ -270,6 +281,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         return commands.reinstall_all(
             venv_container,
             constants.LOCAL_BIN_DIR,
+            constants.LOCAL_MAN_DIR,
             args.python,
             verbose,
             skip=skip_list,
@@ -332,7 +344,7 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
         "--force",
         "-f",
         action="store_true",
-        help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+        help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
     p.add_argument(
         "--suffix",
@@ -388,7 +400,7 @@ def _add_inject(subparsers, venv_completer: VenvCompleter) -> None:
         "--force",
         "-f",
         action="store_true",
-        help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+        help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
     p.add_argument("--verbose", action="store_true")
 
@@ -432,7 +444,7 @@ def _add_upgrade(subparsers, venv_completer: VenvCompleter) -> None:
         "--force",
         "-f",
         action="store_true",
-        help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+        help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
     add_pip_venv_args(p)
     p.add_argument("--verbose", action="store_true")
@@ -454,7 +466,7 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction) -> None:
         "--force",
         "-f",
         action="store_true",
-        help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+        help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
     p.add_argument("--verbose", action="store_true")
 
@@ -672,10 +684,10 @@ def _add_environment(subparsers: argparse._SubParsersAction) -> None:
         description=textwrap.dedent(
             """
             Available variables:
-            PIPX_HOME, PIPX_BIN_DIR, PIPX_SHARED_LIBS, PIPX_LOCAL_VENVS, PIPX_LOG_DIR,
-            PIPX_TRASH_DIR, PIPX_VENV_CACHEDIR
+            PIPX_HOME, PIPX_BIN_DIR, PIPX_MAN_DIR, PIPX_SHARED_LIBS,
+            PIPX_LOCAL_VENVS, PIPX_LOG_DIR, PIPX_TRASH_DIR, PIPX_VENV_CACHEDIR
 
-            Only PIPX_HOME and PIPX_BIN_DIR can be set by users in the above list.
+            Only PIPX_HOME, PIPX_BIN_DIR and PIPX_MAN_DIR can be set by users in the above list.
 
             """
         ),
@@ -821,6 +833,7 @@ def setup(args: argparse.Namespace) -> None:
 
     mkdir(constants.PIPX_LOCAL_VENVS)
     mkdir(constants.LOCAL_BIN_DIR)
+    mkdir(constants.LOCAL_MAN_DIR)
     mkdir(constants.PIPX_VENV_CACHEDIR)
 
     cachedir_tag = constants.PIPX_VENV_CACHEDIR / "CACHEDIR.TAG"

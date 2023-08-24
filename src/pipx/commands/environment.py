@@ -1,6 +1,7 @@
 from pipx.constants import (
     EXIT_CODE_OK,
     LOCAL_BIN_DIR,
+    LOCAL_MAN_DIR,
     PIPX_HOME,
     PIPX_LOCAL_VENVS,
     PIPX_LOG_DIR,
@@ -17,6 +18,7 @@ def environment(value: str) -> ExitCode:
     environment_variables = {
         "PIPX_HOME": PIPX_HOME,
         "PIPX_BIN_DIR": LOCAL_BIN_DIR,
+        "PIPX_MAN_DIR": LOCAL_MAN_DIR,
         "PIPX_SHARED_LIBS": PIPX_SHARED_LIBS,
         "PIPX_LOCAL_VENVS": PIPX_LOCAL_VENVS,
         "PIPX_LOG_DIR": PIPX_LOG_DIR,
@@ -27,7 +29,9 @@ def environment(value: str) -> ExitCode:
         for env_variable in environment_variables:
             print(f"{env_variable}={environment_variables[env_variable]}")
         print("")
-        print("Only PIPX_HOME and PIPX_BIN_DIR can be set by users in the above list.")
+        print(
+            "Only PIPX_HOME, PIPX_BIN_DIR and PIPX_MAN_DIR can be set by users in the above list."
+        )
     elif value in environment_variables:
         print(environment_variables[value])
     else:

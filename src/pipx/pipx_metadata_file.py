@@ -37,6 +37,10 @@ class PackageInfo(NamedTuple):
     apps_of_dependencies: List[str]
     app_paths_of_dependencies: Dict[str, List[Path]]
     package_version: str
+    man_pages: List[str] = []
+    man_paths: List[Path] = []
+    man_pages_of_dependencies: List[str] = []
+    man_paths_of_dependencies: Dict[str, List[Path]] = {}
     suffix: str = ""
 
 
@@ -61,6 +65,10 @@ class PipxMetadata:
             app_paths=[],
             apps_of_dependencies=[],
             app_paths_of_dependencies={},
+            man_pages=[],
+            man_paths=[],
+            man_pages_of_dependencies=[],
+            man_paths_of_dependencies={},
             package_version="",
         )
         self.python_version: Optional[str] = None
