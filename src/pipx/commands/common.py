@@ -486,9 +486,7 @@ def run_post_install_actions(
                 suffix=package_metadata.suffix,
             )
         for _, man_paths in package_metadata.man_paths_of_dependencies.items():
-            expose_resources_globally(
-                "man", local_man_dir, local_man_dir, man_paths, force=force
-            )
+            expose_resources_globally("man", local_man_dir, man_paths, force=force)
 
     package_summary, _ = get_venv_summary(
         venv_dir, package_name=package_name, new_install=True
