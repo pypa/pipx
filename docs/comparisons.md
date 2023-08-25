@@ -90,7 +90,7 @@ None.
 
 [fades](https://github.com/PyAr/fades) is a tool to run **individual** Python scripts inside automatically provisioned virtualenvs with their dependencies installed.
 
-* Both [fades](https://github.com/PyAr/fades#how-to-mark-the-dependencies-to-be-installed) and [pipx](https://github.com/pypa/pipx/pull/916) allow specifying a script's dependencies in specially formatted comments, but the exact syntax differs (see also [PEP 722](https://peps.python.org/pep-0722/) which seeks to standardize such syntax).
+* Both [fades](https://github.com/PyAr/fades#how-to-mark-the-dependencies-to-be-installed) and [pipx](examples.md#pipx-run-examples) allow specifying a script's dependencies in specially formatted comments, but the exact syntax differs (see also [PEP 722](https://peps.python.org/pep-0722/) which seeks to standardize such syntax).
 * Both tools automatically set up reusable virtualenvs containing the necessary dependencies.
 * Both can download Python scripts/packages to execute from remote resources.
 * fades can only run individual script files while pipx can also run packages.
