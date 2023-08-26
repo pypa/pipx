@@ -14,6 +14,7 @@
 - [docs] Add subsection to make README easier to read
 - Add `pipx install --preinstall` to support preinstalling build requirements
 - Pass `--no-input` to pip when output is not piped to parent stdout
+- Fix program name in generated manual page
 
 ## 1.2.0
 
