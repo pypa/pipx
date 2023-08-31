@@ -11,6 +11,7 @@ DEFAULT_PIPX_HOME = user_data_path("pipx")
 FALLBACK_PIPX_HOME = Path.home() / ".local/pipx"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 DEFAULT_PIPX_MAN_DIR = Path.home() / ".local/share/man"
+MAN_SECTIONS = ["man%d" % i for i in range(1, 10)]
 
 if FALLBACK_PIPX_HOME.exists() or os.environ.get("PIPX_HOME") is not None:
     PIPX_HOME = Path(os.environ.get("PIPX_HOME", FALLBACK_PIPX_HOME)).resolve()

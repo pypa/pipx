@@ -14,6 +14,7 @@ from pipx.constants import (
     EXIT_CODE_UNINSTALL_ERROR,
     EXIT_CODE_UNINSTALL_VENV_NONEXISTENT,
     ExitCode,
+    MAN_SECTIONS,
 )
 from pipx.emojis import hazard, sleep, stars
 from pipx.pipx_metadata_file import PackageInfo
@@ -150,8 +151,7 @@ def uninstall(
         "app", venv, venv.bin_path, local_bin_dir
     )
     man_dir_paths = set()
-    for i in range(1, 10):
-        man_section = "man%d" % i
+    for man_section in MAN_SECTIONS:
         man_dir_paths |= _get_venv_resource_paths(
             "man", venv, venv.man_path / man_section, local_man_dir / man_section
         )

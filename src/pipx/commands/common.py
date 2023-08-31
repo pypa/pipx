@@ -15,7 +15,7 @@ from packaging.utils import canonicalize_name
 
 from pipx import constants
 from pipx.colors import bold, red
-from pipx.constants import WINDOWS
+from pipx.constants import WINDOWS, MAN_SECTIONS
 from pipx.emojis import hazard, stars
 from pipx.package_specifier import parse_specifier_for_install, valid_pypi_name
 from pipx.pipx_metadata_file import PackageInfo
@@ -262,8 +262,7 @@ def get_venv_summary(
         - set(exposed_binary_names)
     )
     exposed_man_paths = []
-    for i in range(1, 10):
-        man_section = "man%d" % i
+    for man_section in MAN_SECTIONS:
         exposed_man_paths += get_exposed_man_paths_for_package(
             venv.man_path / man_section,
             constants.LOCAL_MAN_DIR / man_section,

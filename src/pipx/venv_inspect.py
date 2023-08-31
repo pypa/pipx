@@ -12,7 +12,7 @@ try:
 except ImportError:
     import importlib_metadata as metadata  # type: ignore
 
-from pipx.constants import WINDOWS
+from pipx.constants import WINDOWS, MAN_SECTIONS
 from pipx.util import PipxError, run_subprocess
 
 logger = logging.getLogger(__name__)
@@ -70,21 +70,21 @@ def get_package_dependencies(
 
 
 def get_resources(
-    resource_type: str, dist: metadata.Distribution, resource_path: Path
+    dist: metadata.Distribution, bin_path: Path, man_path: Path
 ) -> List[str]:
-    names = set()
+    app_names = set()
+    man_names = set()
 
-    if resource_type == "app":
-        sections = {"console_scripts", "gui_scripts"}
-        # "entry_points" entry in setup.py are found here
-        for ep in dist.entry_points:
-            if ep.group not in sections:
-                continue
-            if (resource_path / ep.name).exists():
-                names.add(ep.name)
-            if WINDOWS and (resource_path / (ep.name + ".exe")).exists():
-                # WINDOWS adds .exe to entry_point name
-                names.add(ep.name + ".exe")
+    sections = {"console_scripts", "gui_scripts"}
+    # "entry_points" entry in setup.py are found here
+    for ep in dist.entry_points:
+        if ep.group not in sections:
+            continue
+        if (bin_path / ep.name).exists():
+            app_names.add(ep.name)
+        if WINDOWS and (bin_path / (ep.name + ".exe")).exists():
+            # WINDOWS adds .exe to entry_point name
+            app_names.add(ep.name + ".exe")
 
     # search installed files
     # "scripts" entry in setup.py is found here (test w/ awscli)
@@ -96,8 +96,13 @@ def get_resources(
 
         dist_file_path = Path(dist.locate_file(path))
         try:
-            if dist_file_path.parent.samefile(resource_path):
-                names.add(path.name)
+            if dist_file_path.parent.samefile(bin_path):
+                app_names.add(path.name)
+            if (
+                dist_file_path.parent.name in MAN_SECTIONS
+                and dist_file_path.parent.parent.samefile(man_path)
+            ):
+                man_names.add(str(Path(dist_file_path.parent.name) / path.name))
         except FileNotFoundError:
             pass
 
@@ -107,31 +112,27 @@ def get_resources(
         entry = line.split(",")[0]  # noqa: T484
         inst_file_path = Path(dist.locate_file(entry)).resolve()
         try:
-            if inst_file_path.parent.samefile(resource_path):
-                names.add(inst_file_path.name)
+            if inst_file_path.parent.samefile(bin_path):
+                app_names.add(inst_file_path.name)
+            if (
+                inst_file_path.parent.name in MAN_SECTIONS
+                and inst_file_path.parent.parent.samefile(man_path)
+            ):
+                man_names.add(
+                    str(Path(inst_file_path.parent.name) / inst_file_path.name)
+                )
         except FileNotFoundError:
             pass
 
-    return sorted(names)
-
-
-def get_man_pages(dist: metadata.Distribution, man_path: Path) -> List[str]:
-    man_pages = []
-    for i in range(1, 10):
-        man_section = "man%d" % i
-        names = get_resources("man", dist, man_path / man_section)
-        for name in names:
-            man_pages += [str(Path(man_section) / name)]
-    return man_pages
+    return sorted(app_names), sorted(man_names)
 
 
 def _dfs_package_resources(
-    resource_type: str,
     dist: metadata.Distribution,
     package_req: Requirement,
     venv_inspect_info: VenvInspectInformation,
-    resource_path: Path,
-    paths_of_dependencies: Dict[str, List[Path]],
+    app_paths_of_dependencies: Dict[str, List[Path]],
+    man_paths_of_dependencies: Dict[str, List[Path]],
     dep_visited: Optional[Dict[str, bool]] = None,
 ) -> Dict[str, List[Path]]:
     if dep_visited is None:
@@ -152,24 +153,28 @@ def _dfs_package_resources(
             raise PipxError(
                 f"Pipx Internal Error: cannot find package {dep_req.name!r} metadata."
             )
-        if resource_type == "man":
-            names = get_man_pages(dep_dist, venv_inspect_info.man_path)
-        else:
-            names = get_resources(resource_type, dep_dist, venv_inspect_info.bin_path)
-        if names:
-            paths_of_dependencies[dep_name] = [resource_path / name for name in names]
+        app_names, man_names = get_resources(
+            dep_dist, venv_inspect_info.bin_path, venv_inspect_info.man_path
+        )
+        if app_names:
+            app_paths_of_dependencies[dep_name] = [
+                venv_inspect_info.bin_path / name for name in app_names
+            ]
+        if man_names:
+            man_paths_of_dependencies[dep_name] = [
+                venv_inspect_info.man_path / name for name in man_names
+            ]
         # recursively search for more
         dep_visited[dep_name] = True
-        paths_of_dependencies = _dfs_package_resources(
-            resource_type,
+        app_paths_of_dependencies, man_paths_of_dependencies = _dfs_package_resources(
             dep_dist,
             dep_req,
             venv_inspect_info,
-            resource_path,
-            paths_of_dependencies,
+            app_paths_of_dependencies,
+            man_paths_of_dependencies,
             dep_visited,
         )
-    return paths_of_dependencies
+    return app_paths_of_dependencies, man_paths_of_dependencies
 
 
 def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
@@ -279,26 +284,16 @@ def inspect_venv(
         raise PipxError(
             f"Pipx Internal Error: cannot find package {root_req.name!r} metadata."
         )
-    app_paths_of_dependencies = _dfs_package_resources(
-        "app",
+    app_paths_of_dependencies, man_paths_of_dependencies = _dfs_package_resources(
         root_dist,
         root_req,
         venv_inspect_info,
-        venv_inspect_info.bin_path,
         app_paths_of_dependencies,
-    )
-    man_paths_of_dependencies = _dfs_package_resources(
-        "man",
-        root_dist,
-        root_req,
-        venv_inspect_info,
-        venv_inspect_info.man_path,
         man_paths_of_dependencies,
     )
 
-    apps = get_resources("app", root_dist, venv_bin_path)
+    apps, man_pages = get_resources(root_dist, venv_bin_path, venv_man_path)
     app_paths = [venv_bin_path / app for app in apps]
-    man_pages = get_man_pages(root_dist, venv_man_path)
     man_paths = [venv_man_path / man_page for man_page in man_pages]
     if WINDOWS:
         app_paths = _windows_extra_app_paths(app_paths)

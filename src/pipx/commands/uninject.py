@@ -10,7 +10,12 @@ from pipx.commands.uninstall import (
     _get_package_bin_dir_app_paths,
     _get_package_man_paths,
 )
-from pipx.constants import EXIT_CODE_OK, EXIT_CODE_UNINJECT_ERROR, ExitCode
+from pipx.constants import (
+    EXIT_CODE_OK,
+    EXIT_CODE_UNINJECT_ERROR,
+    ExitCode,
+    MAN_SECTIONS,
+)
 from pipx.emojis import stars
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv
@@ -24,8 +29,7 @@ def get_include_resource_paths(
     bin_dir_app_paths = _get_package_bin_dir_app_paths(
         venv, venv.package_metadata[package_name], local_bin_dir
     )
-    for i in range(1, 10):
-        man_section = "man%d" % i
+    for man_section in MAN_SECTIONS:
         man_paths += _get_package_man_paths(
             venv, venv.package_metadata[package_name], local_man_dir / man_section
         )
