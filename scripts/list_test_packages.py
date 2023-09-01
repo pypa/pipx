@@ -76,7 +76,7 @@ def parse_package_list(package_list_file: Path) -> List[Dict[str, Any]]:
                         f"ERROR: Unable to parse primary package list line:\n    {line.strip()}"
                     )
                     return []
-    except IOError:
+    except OSError:
         print("ERROR: File problem reading primary package list.")
         return []
     return output_list
@@ -111,10 +111,7 @@ def create_test_packages_list(
             if verbose:
                 print(f"CMD: {' '.join(cmd_list)}")
             pip_download_process = subprocess.run(
-                cmd_list,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
+                cmd_list, capture_output=True, text=True
             )
             if pip_download_process.returncode == 0:
                 print(f"Examined {test_package['spec']}{test_package_option_string}")
