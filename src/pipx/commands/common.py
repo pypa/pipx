@@ -339,10 +339,15 @@ def get_exposed_man_paths_for_package(
     package_man_pages: Optional[List[str]] = None,
 ) -> Set[Path]:
     man_section = venv_man_path.name
+    prefix = man_section + os.sep
     return get_exposed_paths_for_package(
         venv_man_path,
         local_man_dir,
-        [name for name in package_man_pages if name.startswith(man_section + os.sep)],
+        [
+            name.removeprefix(prefix)
+            for name in package_man_pages
+            if name.startswith(prefix)
+        ],
     )
 
 
