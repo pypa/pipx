@@ -365,7 +365,7 @@ def _get_list_output(
         f" {bold(package_version)}{suffix}, installed using {python_version}"
     )
 
-    if new_install and exposed_binary_names:
+    if new_install and (exposed_binary_names or unavailable_binary_names):
         output.append("  These apps are now globally available")
     for name in exposed_binary_names:
         output.append(f"    - {name}")
@@ -373,7 +373,7 @@ def _get_list_output(
         output.append(
             f"    - {red(name)} (symlink missing or pointing to unexpected location)"
         )
-    if new_install and exposed_man_pages:
+    if new_install and (exposed_man_pages or unavailable_man_pages):
         output.append("  These manual pages are now globally available")
     for name in exposed_man_pages:
         output.append(f"    - {name}")
