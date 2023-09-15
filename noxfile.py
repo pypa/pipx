@@ -203,14 +203,6 @@ def build_docs(session):
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
-def publish_docs(session):
-    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
-    session.install(*DOC_DEPENDENCIES)
-    build_docs(session)
-    session.run("mkdocs", "gh-deploy", "--strict")
-
-
-@nox.session(python=PYTHON_DEFAULT_VERSION)
 def watch_docs(session):
     session.install(*DOC_DEPENDENCIES)
     session.run("python", "scripts/generate_docs.py")
