@@ -33,7 +33,7 @@ jobs:
       run: |
         nox --error-on-missing-interpreters --non-interactive --session lint
 
-  build-docs:
+  verify-docs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -93,7 +93,7 @@ jobs:
   pypi-publish:
     name: Publish pipx to PyPI on release
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-    needs: [build-docs, lint, tests]
+    needs: [verify-docs, lint, tests]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout ${{ github.ref }}
@@ -118,7 +118,7 @@ jobs:
   build-zipapp:
     name: Build zipapp
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-    needs: [build-docs, lint, tests]
+    needs: [verify-docs, lint, tests]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout ${{ github.ref }}

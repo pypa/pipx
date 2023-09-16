@@ -7,7 +7,5 @@ build:
   tools:
     python: "3.11"
   commands:
-    - mkdir --parents $READTHEDOCS_OUTPUT/html/
-    - pip install nox
-    - nox --session build_docs
-    - cp --recursive site/* $READTHEDOCS_OUTPUT/html/
+  - pip install nox
+  - nox --session build_docs -- "${READTHEDOCS_OUTPUT}"/html

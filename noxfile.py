@@ -193,13 +193,14 @@ def publish(session):
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def build_docs(session):
+    site_dir = session.posargs or ["site/"]
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install(*DOC_DEPENDENCIES)
     session.env[
         "PIPX__DOC_DEFAULT_PYTHON"
     ] = "typically the python used to execute pipx"
     session.run("python", "scripts/generate_docs.py")
-    session.run("mkdocs", "build", "--strict")
+    session.run("mkdocs", "build", "--strict", "--site-dir", *site_dir)
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
