@@ -124,21 +124,21 @@ rm -rf test_venv
 
 Pipx versions after 1.2.0 adopt the XDG base directory specification for
 the location of `PIPX_HOME` and the data, cache, and log directories.
-Version 1.2.0 and earlier use `PIPX_HOME=~/.local/pipx` and locate the
-data, cache, and log directories under that `PIPX_HOME`. To maintain
+Version 1.2.0 and earlier use `~/.local/pipx` as the default `PIPX_HOME`
+and install the data, cache, and log directories under it. To maintain
 compatibility with older versions, pipx will automatically use this old
 `PIPX_HOME` path if it exists. For a map of old and new paths, see
 [Installation](installation.md#installation-options).
 
 If you have a `pipx` version later than 1.2.0 and want to migrate from
 the old path to the new paths, you can move the `~/.local/pipx`
-directory to the new location and then reinstall all packages. For
-example, on Linux systems, `PIPX_HOME` moves from `~/.local/pipx` to
-`~/.local/share/pipx` so do this:
+directory to the new location (after removing cache, log, and trash
+directories which will get recreated automatically) and then reinstall
+all packages. For example, on Linux systems, `PIPX_HOME` moves from
+`~/.local/pipx` to `~/.local/share/pipx` so you can do this:
 
 ```
 rm -rf ~/.local/pipx/{.cache,logs,trash}
-mkdir -p ~/.local/share
-mv ~/.local/pipx ~/.local/share/
+mkdir -p ~/.local/share && mv ~/.local/pipx ~/.local/share/
 pipx reinstall-all
 ```
