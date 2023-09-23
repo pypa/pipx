@@ -22,12 +22,12 @@ abstract class Endpoint
 
         $missing = [];
         foreach ($requiredAttributes as $requiredAttribute) {
-            $value = $modelFields[$requiredAttribute] ?? null;
-            if (is_null($value)) {
+            if (!array_key_exists($requiredAttribute, $modelFields)) {
                 $missing[] = $requiredAttribute;
                 continue;
             }
 
+            $value = $modelFields[$requiredAttribute] ?? null;
             if (is_string($value) && trim($value) === '') {
                 $missing[] = $requiredAttribute;
             }

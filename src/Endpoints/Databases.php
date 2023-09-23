@@ -106,6 +106,46 @@ class Databases extends Endpoint
     /**
      * @throws RequestException
      */
+    public function update(Database $database): Response
+    {
+        $this->validateRequired($database, 'update', [
+            'name',
+            'server_software_name',
+            'optimizing_enabled',
+            'backups_enabled',
+            'id',
+            'cluster_id',
+        ]);
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_PUT)
+            ->setUrl(sprintf('databases/%d', $database->getId()))
+            ->setBody(
+                $this->filterFields($database->toArray(), [
+                    'name',
+                    'server_software_name',
+                    'optimizing_enabled',
+                    'backups_enabled',
+                    'id',
+                    'cluster_id',
+                ])
+            );
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'database' => (new Database())->fromArray($response->getData()),
+        ]);
+    }
+
+    /**
+     * @throws RequestException
+     */
     public function delete(int $id): Response
     {
         $request = (new Request())

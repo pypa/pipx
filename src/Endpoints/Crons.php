@@ -84,6 +84,7 @@ class Crons extends Endpoint
                     'node_id',
                     'error_count',
                     'random_delay_max_seconds',
+                    'timeout_seconds',
                     'locking_enabled',
                     'is_active',
                 ])
@@ -131,6 +132,7 @@ class Crons extends Endpoint
                     'node_id',
                     'error_count',
                     'random_delay_max_seconds',
+                    'timeout_seconds',
                     'locking_enabled',
                     'is_active',
                     'id',

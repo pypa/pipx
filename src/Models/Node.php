@@ -8,7 +8,6 @@ use Cyberfusion\ClusterApi\Support\Validator;
 
 class Node extends ClusterModel
 {
-    private string $hostname;
     private array $groups = [];
     private ?string $comment = null;
     private array $loadBalancerHealthChecksGroupsPairs = [];
@@ -17,18 +16,6 @@ class Node extends ClusterModel
     private ?int $clusterId = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
-
-    public function getHostname(): string
-    {
-        return $this->hostname;
-    }
-
-    public function setHostname(string $hostname): self
-    {
-        $this->hostname = $hostname;
-
-        return $this;
-    }
 
     public function getGroups(): ?array
     {
@@ -140,7 +127,6 @@ class Node extends ClusterModel
     public function fromArray(array $data): self
     {
         return $this
-            ->setHostname(Arr::get($data, 'hostname'))
             ->setGroups(Arr::get($data, 'groups', []))
             ->setComment(Arr::get($data, 'comment'))
             ->setLoadBalancerHealthChecksGroupsPairs(Arr::get($data, 'load_balancer_health_checks_groups_pairs', []))
@@ -154,7 +140,6 @@ class Node extends ClusterModel
     public function toArray(): array
     {
         return [
-            'hostname' => $this->getHostname(),
             'groups' => $this->getGroups(),
             'comment' => $this->getComment(),
             'load_balancer_health_checks_groups_pairs' => $this->getLoadBalancerHealthChecksGroupsPairs(),

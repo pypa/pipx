@@ -3,12 +3,12 @@
 namespace Cyberfusion\ClusterApi\Endpoints;
 
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Cyberfusion\ClusterApi\Models\Node;
+use Cyberfusion\ClusterApi\Models\SecurityTxtPolicy;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
 use Cyberfusion\ClusterApi\Support\ListFilter;
 
-class Nodes extends Endpoint
+class SecurityTxtPolicies extends Endpoint
 {
     /**
      * @throws RequestException
@@ -21,7 +21,7 @@ class Nodes extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('nodes?%s', $filter->toQuery()));
+            ->setUrl(sprintf('security-txt-policies?%s', $filter->toQuery()));
 
         $response = $this
             ->client
@@ -31,8 +31,8 @@ class Nodes extends Endpoint
         }
 
         return $response->setData([
-            'nodes' => array_map(
-                fn (array $data) => (new Node())->fromArray($data),
+            'securityTxtPolicies' => array_map(
+                fn (array $data) => (new SecurityTxtPolicy())->fromArray($data),
                 $response->getData()
             ),
         ]);
@@ -45,7 +45,7 @@ class Nodes extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('nodes/%d', $id));
+            ->setUrl(sprintf('security-txt-policies/%d', $id));
 
         $response = $this
             ->client
@@ -55,32 +55,40 @@ class Nodes extends Endpoint
         }
 
         return $response->setData([
-            'node' => (new Node())->fromArray($response->getData()),
+            'securityTxtPolicy' => (new SecurityTxtPolicy())->fromArray($response->getData()),
         ]);
     }
 
     /**
      * @throws RequestException
      */
-    public function create(Node $node): Response
+    public function create(SecurityTxtPolicy $securityTxtPolicy): Response
     {
-        $this->validateRequired($node, 'create', [
-            'groups',
-            'comment',
-            'load_balancer_health_checks_groups_pairs',
-            'groups_properties',
+        $this->validateRequired($securityTxtPolicy, 'create', [
+            'expires_timestamp',
+            'email_contacts',
+            'url_contacts',
+            'encryption_key_urls',
+            'acknowledgment_urls',
+            'policy_urls',
+            'opening_urls',
+            'preferred_languages',
             'cluster_id',
         ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('nodes')
+            ->setUrl('security-txt-policies')
             ->setBody(
-                $this->filterFields($node->toArray(), [
-                    'groups',
-                    'comment',
-                    'load_balancer_health_checks_groups_pairs',
-                    'groups_properties',
+                $this->filterFields($securityTxtPolicy->toArray(), [
+                    'expires_timestamp',
+                    'email_contacts',
+                    'url_contacts',
+                    'encryption_key_urls',
+                    'acknowledgment_urls',
+                    'policy_urls',
+                    'opening_urls',
+                    'preferred_languages',
                     'cluster_id',
                 ])
             );
@@ -93,33 +101,41 @@ class Nodes extends Endpoint
         }
 
         return $response->setData([
-            'node' => (new Node())->fromArray($response->getData()),
+            'securityTxtPolicy' => (new SecurityTxtPolicy())->fromArray($response->getData()),
         ]);
     }
 
     /**
      * @throws RequestException
      */
-    public function update(Node $node): Response
+    public function update(SecurityTxtPolicy $securityTxtPolicy): Response
     {
-        $this->validateRequired($node, 'update', [
-            'groups',
-            'comment',
-            'load_balancer_health_checks_groups_pairs',
-            'groups_properties',
+        $this->validateRequired($securityTxtPolicy, 'update', [
+            'expires_timestamp',
+            'email_contacts',
+            'url_contacts',
+            'encryption_key_urls',
+            'acknowledgment_urls',
+            'policy_urls',
+            'opening_urls',
+            'preferred_languages',
             'cluster_id',
             'id',
         ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('nodes/%d', $node->getId()))
+            ->setUrl(sprintf('security-txt-policies/%d', $securityTxtPolicy->getId()))
             ->setBody(
-                $this->filterFields($node->toArray(), [
-                    'groups',
-                    'comment',
-                    'load_balancer_health_checks_groups_pairs',
-                    'groups_properties',
+                $this->filterFields($securityTxtPolicy->toArray(), [
+                    'expires_timestamp',
+                    'email_contacts',
+                    'url_contacts',
+                    'encryption_key_urls',
+                    'acknowledgment_urls',
+                    'policy_urls',
+                    'opening_urls',
+                    'preferred_languages',
                     'cluster_id',
                     'id',
                 ])
@@ -133,7 +149,7 @@ class Nodes extends Endpoint
         }
 
         return $response->setData([
-            'node' => (new Node())->fromArray($response->getData()),
+            'securityTxtPolicy' => (new SecurityTxtPolicy())->fromArray($response->getData()),
         ]);
     }
 
@@ -144,7 +160,7 @@ class Nodes extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
-            ->setUrl(sprintf('nodes/%d', $id));
+            ->setUrl(sprintf('security-txt-policies/%d', $id));
 
         return $this
             ->client

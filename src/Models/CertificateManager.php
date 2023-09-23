@@ -18,6 +18,7 @@ class CertificateManager extends ClusterModel
     private ?string $lastRequestTaskCollectionUuid = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
+    private ?string $deletedAt = null;
 
     public function getMainCommonName(): ?string
     {
@@ -147,6 +148,17 @@ class CertificateManager extends ClusterModel
         return $this;
     }
 
+    public function getDeletedAt(): ?string
+    {
+        return $this->deletedAt;
+    }
+
+    public function setDeletedAt(?string $deletedAt): self
+    {
+        $this->deletedAt = $deletedAt;
+        return $this;
+    }
+
     public function fromArray(array $data): self
     {
         return $this
@@ -159,7 +171,8 @@ class CertificateManager extends ClusterModel
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
-            ->setUpdatedAt(Arr::get($data, 'updated_at'));
+            ->setUpdatedAt(Arr::get($data, 'updated_at'))
+            ->setDeletedAt(Arr::get($data, 'deleted_at'));
     }
 
     public function toArray(): array
@@ -175,6 +188,7 @@ class CertificateManager extends ClusterModel
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),
+            'deleted_at' => $this->getDeletedAt(),
         ];
     }
 }

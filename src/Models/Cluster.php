@@ -21,7 +21,7 @@ class Cluster extends ClusterModel
     private ?int $redisMemoryLimit = null;
     private array $nodejsVersions = [];
     private ?string $nodeJsVersion = null;
-    private ?string $customerId = null;
+    private ?int $customerId = null;
     private ?bool $wordpressToolkitEnabled = null;
     private ?bool $databaseToolkitEnabled = null;
     private ?int $mariaDbBackupInterval = null;
@@ -226,17 +226,17 @@ class Cluster extends ClusterModel
         return $this;
     }
 
-    public function getCustomerId(): ?string
+    public function getCustomerId(): ?int
     {
         return $this->customerId;
     }
 
-    public function setCustomerId(?string $customerId): self
+    public function setCustomerId(?int $customerId): self
     {
         Validator::value($customerId)
             ->nullable()
-            ->maxLength(6)
-            ->pattern('^[A-Z0-9]+$')
+            ->minAmount(0)
+            ->pattern('^[0-9]+$')
             ->validate();
 
         $this->customerId = $customerId;

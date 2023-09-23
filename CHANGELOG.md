@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
 for detailed information.
 
+## [1.102.0]
+
+### Added
+
+- CertificateManagers: Add restore endpoint.
+- Clusters: Add common properties endpoint.
+- Clusters: Add create endpoint.
+- Clusters: Add update endpoint.
+- Clusters: Add destroy endpoint.
+- Crons: Add `timeout_seconds`.
+- Databases: Add update endpoint.
+- HAProxy Listens: Add completely new endpoints.
+- HAProxy Listens To Nodes: Add completely new endpoints.
+- Nodes: Add create endpoint.
+- Nodes: Add update endpoint.
+- Nodes: Add destroy endpoint.
+- Nodes: Add `maldet` node group.
+- SecurityTxtPolicies: Add completely new endpoints.
+
+### Changed
+
+- Clusters: Change `customer_id` validation.
+- Update to [API version 1.198.2](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.198.2-2023-09-20).
+
+### Removed
+
+- Clusters: Remove `name` fields.
+- Nodes: Remove `hostname` field.
+- Nodes: Remove `Main` node group.
+
 ## [1.101.2]
 
 ### Fixed

@@ -90,10 +90,8 @@ class CertificateManagers extends Endpoint
             return $response;
         }
 
-        $certificateManager = (new CertificateManager())->fromArray($response->getData());
-
         return $response->setData([
-            'certificateManager' => $certificateManager,
+            'certificateManager' => (new CertificateManager())->fromArray($response->getData()),
         ]);
     }
 
@@ -136,10 +134,29 @@ class CertificateManagers extends Endpoint
             return $response;
         }
 
-        $certificateManager = (new CertificateManager())->fromArray($response->getData());
+        return $response->setData([
+            'certificateManager' => (new CertificateManager())->fromArray($response->getData()),
+        ]);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function restore(int $id): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl(sprintf('certificate-managers/%d/restore', $id));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
 
         return $response->setData([
-            'certificateManager' => $certificateManager,
+            'certificateManager' => (new CertificateManager())->fromArray($response->getData()),
         ]);
     }
 
@@ -173,10 +190,8 @@ class CertificateManagers extends Endpoint
             return $response;
         }
 
-        $taskCollection = (new TaskCollection())->fromArray($response->getData());
-
         return $response->setData([
-            'taskCollection' => $taskCollection,
+            'taskCollection' => (new TaskCollection())->fromArray($response->getData()),
         ]);
     }
 }

@@ -17,6 +17,7 @@ class Cron extends ClusterModel
     private int $randomDelayMaxSeconds = 10;
     private bool $lockingEnabled = true;
     private bool $isActive = true;
+    private ?int $timeoutSeconds = null;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -133,6 +134,23 @@ class Cron extends ClusterModel
         return $this;
     }
 
+    public function getTimeoutSeconds(): ?int
+    {
+        return $this->timeoutSeconds;
+    }
+
+    public function setTimeoutSeconds(?int $timeoutSeconds): self
+    {
+        Validator::value($timeoutSeconds)
+            ->minAmount(0)
+            ->nullable()
+            ->validate();
+
+        $this->timeoutSeconds = $timeoutSeconds;
+
+        return $this;
+    }
+
     public function isLockingEnabled(): bool
     {
         return $this->lockingEnabled;
@@ -216,6 +234,7 @@ class Cron extends ClusterModel
             ->setNodeId(Arr::get($data, 'node_id'))
             ->setErrorCount(Arr::get($data, 'error_count'))
             ->setRandomDelayMaxSeconds(Arr::get($data, 'random_delay_max_seconds'))
+            ->setTimeoutSeconds(Arr::get($data, 'timeout_seconds'))
             ->setLockingEnabled(Arr::get($data, 'locking_enabled'))
             ->setIsActive(Arr::get($data, 'is_active'))
             ->setId(Arr::get($data, 'id'))
@@ -235,6 +254,7 @@ class Cron extends ClusterModel
             'node_id' => $this->getNodeId(),
             'error_count' => $this->getErrorCount(),
             'random_delay_max_seconds' => $this->getRandomDelayMaxSeconds(),
+            'timeout_seconds' => $this->getTimeoutSeconds(),
             'locking_enabled' => $this->isLockingEnabled(),
             'is_active' => $this->isActive(),
             'id' => $this->getId(),
