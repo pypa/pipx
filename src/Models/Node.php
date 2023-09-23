@@ -130,7 +130,7 @@ class Node extends ClusterModel
         return $this->hostname;
     }
 
-    public function setHostname(?string $hostname): Node
+    public function setHostname(?string $hostname): self
     {
         $this->hostname = $hostname;
         return $this;
