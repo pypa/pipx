@@ -149,6 +149,7 @@ class Clusters extends Endpoint
     public function update(Cluster $cluster): Response
     {
         $this->validateRequired($cluster, 'update', [
+            'name',
             'groups',
             'unix_user_home_directory',
             'php_versions',
@@ -183,6 +184,7 @@ class Clusters extends Endpoint
             ->setUrl(sprintf('clusters/%d', $cluster->getId()))
             ->setBody(
                 $this->filterFields($cluster->toArray(), [
+                    'name',
                     'groups',
                     'unix_user_home_directory',
                     'php_versions',
