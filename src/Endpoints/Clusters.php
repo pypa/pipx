@@ -5,6 +5,7 @@ namespace Cyberfusion\ClusterApi\Endpoints;
 use Cyberfusion\ClusterApi\Enums\TimeUnit;
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Cyberfusion\ClusterApi\Models\Cluster;
+use Cyberfusion\ClusterApi\Models\ClusterCommonProperties;
 use Cyberfusion\ClusterApi\Models\UnixUsersHomeDirectoryUsage;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
@@ -60,6 +61,182 @@ class Clusters extends Endpoint
         return $response->setData([
             'cluster' => (new Cluster())->fromArray($response->getData()),
         ]);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function create(Cluster $cluster): Response
+    {
+        $this->validateRequired($cluster, 'create', [
+            'groups',
+            'unix_user_home_directory',
+            'php_versions',
+            'mariadb_version',
+            'nodejs_version',
+            'postgresql_version',
+            'mariadb_cluster_name',
+            'custom_php_modules_names',
+            'php_settings',
+            'php_ioncube_enabled',
+            'kernelcare_license_key',
+            'redis_password',
+            'redis_memory_limit',
+            'php_sessions_spread_enabled',
+            'nodejs_versions',
+            'description',
+            'wordpress_toolkit_enabled',
+            'automatic_borg_repositories_prune_enabled',
+            'malware_toolkit_enabled',
+            'sync_toolkit_enabled',
+            'bubblewrap_toolkit_enabled',
+            'malware_toolkit_scans_enabled',
+            'database_toolkit_enabled',
+            'mariadb_backup_interval',
+            'postgresql_backup_interval',
+            'customer_id',
+        ]);
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl('clusters')
+            ->setBody(
+                $this->filterFields($cluster->toArray(), [
+                    'groups',
+                    'unix_user_home_directory',
+                    'php_versions',
+                    'mariadb_version',
+                    'nodejs_version',
+                    'postgresql_version',
+                    'mariadb_cluster_name',
+                    'custom_php_modules_names',
+                    'php_settings',
+                    'php_ioncube_enabled',
+                    'kernelcare_license_key',
+                    'redis_password',
+                    'redis_memory_limit',
+                    'php_sessions_spread_enabled',
+                    'nodejs_versions',
+                    'description',
+                    'wordpress_toolkit_enabled',
+                    'automatic_borg_repositories_prune_enabled',
+                    'malware_toolkit_enabled',
+                    'sync_toolkit_enabled',
+                    'bubblewrap_toolkit_enabled',
+                    'malware_toolkit_scans_enabled',
+                    'database_toolkit_enabled',
+                    'mariadb_backup_interval',
+                    'postgresql_backup_interval',
+                    'customer_id',
+                ])
+            );
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'cluster' => (new Cluster())->fromArray($response->getData()),
+        ]);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function update(Cluster $cluster): Response
+    {
+        $this->validateRequired($cluster, 'update', [
+            'groups',
+            'unix_user_home_directory',
+            'php_versions',
+            'mariadb_version',
+            'nodejs_version',
+            'postgresql_version',
+            'mariadb_cluster_name',
+            'custom_php_modules_names',
+            'php_settings',
+            'php_ioncube_enabled',
+            'kernelcare_license_key',
+            'redis_password',
+            'redis_memory_limit',
+            'php_sessions_spread_enabled',
+            'nodejs_versions',
+            'description',
+            'wordpress_toolkit_enabled',
+            'automatic_borg_repositories_prune_enabled',
+            'malware_toolkit_enabled',
+            'sync_toolkit_enabled',
+            'bubblewrap_toolkit_enabled',
+            'malware_toolkit_scans_enabled',
+            'database_toolkit_enabled',
+            'mariadb_backup_interval',
+            'postgresql_backup_interval',
+            'customer_id',
+            'id',
+        ]);
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_PUT)
+            ->setUrl(sprintf('clusters/%d', $cluster->getId()))
+            ->setBody(
+                $this->filterFields($cluster->toArray(), [
+                    'groups',
+                    'unix_user_home_directory',
+                    'php_versions',
+                    'mariadb_version',
+                    'nodejs_version',
+                    'postgresql_version',
+                    'mariadb_cluster_name',
+                    'custom_php_modules_names',
+                    'php_settings',
+                    'php_ioncube_enabled',
+                    'kernelcare_license_key',
+                    'redis_password',
+                    'redis_memory_limit',
+                    'php_sessions_spread_enabled',
+                    'nodejs_versions',
+                    'description',
+                    'wordpress_toolkit_enabled',
+                    'automatic_borg_repositories_prune_enabled',
+                    'malware_toolkit_enabled',
+                    'sync_toolkit_enabled',
+                    'bubblewrap_toolkit_enabled',
+                    'malware_toolkit_scans_enabled',
+                    'database_toolkit_enabled',
+                    'mariadb_backup_interval',
+                    'postgresql_backup_interval',
+                    'customer_id',
+                    'id',
+                ])
+            );
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'cluster' => (new Cluster())->fromArray($response->getData()),
+        ]);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function delete(int $id): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_DELETE)
+            ->setUrl(sprintf('clusters/%d', $id));
+
+        return $this
+            ->client
+            ->request($request);
     }
 
     /**
@@ -127,6 +304,24 @@ class Clusters extends Endpoint
 
         return $response->setData([
             'publicKey' => $response->getData('public_key'),
+        ]);
+    }
+
+    public function commonProperties(): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_GET)
+            ->setUrl('clusters/common-properties');
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'commonProperties' => (new ClusterCommonProperties())->fromArray($response->getData()),
         ]);
     }
 }

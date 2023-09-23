@@ -17,7 +17,7 @@ class NodeGroup
     public const IMAGE_MAGICK = 'ImageMagick';
     public const KERNEL_CARE = 'KernelCare';
     public const LIBRE_OFFICE = 'LibreOffice';
-    public const MAIN = 'Main';
+    public const MALDET = 'maldet';
     public const MARIADB = 'MariaDB';
     public const NGINX = 'nginx';
     public const PASSENGER = 'Passenger';
