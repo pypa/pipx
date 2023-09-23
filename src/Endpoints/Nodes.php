@@ -109,6 +109,7 @@ class Nodes extends Endpoint
             'groups_properties',
             'cluster_id',
             'id',
+            'hostname',
         ]);
 
         $request = (new Request())
@@ -122,6 +123,7 @@ class Nodes extends Endpoint
                     'groups_properties',
                     'cluster_id',
                     'id',
+                    'hostname',
                 ])
             );
 

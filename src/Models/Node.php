@@ -16,6 +16,7 @@ class Node extends ClusterModel
     private ?int $clusterId = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
+    private ?string $hostname = null;
 
     public function getGroups(): ?array
     {
@@ -124,6 +125,17 @@ class Node extends ClusterModel
         return $this;
     }
 
+    public function getHostname(): ?string
+    {
+        return $this->hostname;
+    }
+
+    public function setHostname(?string $hostname): Node
+    {
+        $this->hostname = $hostname;
+        return $this;
+    }
+
     public function fromArray(array $data): self
     {
         return $this
@@ -134,7 +146,8 @@ class Node extends ClusterModel
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
-            ->setUpdatedAt(Arr::get($data, 'updated_at'));
+            ->setUpdatedAt(Arr::get($data, 'updated_at'))
+            ->setHostname(Arr::get($data, 'hostname'));
     }
 
     public function toArray(): array
@@ -148,6 +161,7 @@ class Node extends ClusterModel
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),
+            'hostname' => $this->getHostname(),
         ];
     }
 }
