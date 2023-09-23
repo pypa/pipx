@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
 for detailed information.
 
+## [1.102.2]
+
+### Added
+
+- Add missing endpoints to cluster API entry point.
+
 ## [1.102.1]
 
 ### Fixed

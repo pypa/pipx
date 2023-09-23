@@ -21,6 +21,8 @@ use Cyberfusion\ClusterApi\Endpoints\DomainRouters;
 use Cyberfusion\ClusterApi\Endpoints\FirewallGroups;
 use Cyberfusion\ClusterApi\Endpoints\FpmPools;
 use Cyberfusion\ClusterApi\Endpoints\FtpUsers;
+use Cyberfusion\ClusterApi\Endpoints\HAProxyListens;
+use Cyberfusion\ClusterApi\Endpoints\HAProxyListensToNodes;
 use Cyberfusion\ClusterApi\Endpoints\Health;
 use Cyberfusion\ClusterApi\Endpoints\HtpasswdFiles;
 use Cyberfusion\ClusterApi\Endpoints\HtpasswdUsers;
@@ -34,6 +36,7 @@ use Cyberfusion\ClusterApi\Endpoints\Nodes;
 use Cyberfusion\ClusterApi\Endpoints\PassengerApps;
 use Cyberfusion\ClusterApi\Endpoints\RedisInstances;
 use Cyberfusion\ClusterApi\Endpoints\RootSshKeys;
+use Cyberfusion\ClusterApi\Endpoints\SecurityTxtPolicies;
 use Cyberfusion\ClusterApi\Endpoints\SshKeys;
 use Cyberfusion\ClusterApi\Endpoints\TaskCollections;
 use Cyberfusion\ClusterApi\Endpoints\Tombstones;
@@ -137,6 +140,16 @@ class ClusterApi
         return new FtpUsers($this->client);
     }
 
+    public function haProxyListens(): HAProxyListens
+    {
+        return new HAProxyListens($this->client);
+    }
+
+    public function haProxyListensToNodes(): HAProxyListensToNodes
+    {
+        return new HAProxyListensToNodes($this->client);
+    }
+
     public function health(): Health
     {
         return new Health($this->client);
@@ -200,6 +213,11 @@ class ClusterApi
     public function rootSshKeys(): RootSshKeys
     {
         return new RootSshKeys($this->client);
+    }
+
+    public function securityTxtPolicies(): SecurityTxtPolicies
+    {
+        return new SecurityTxtPolicies($this->client);
     }
 
     public function sshKeys(): SshKeys
