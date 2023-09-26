@@ -67,6 +67,7 @@ class RootSshKeys extends Endpoint
         $this->validateRequired($rootSshKey, 'create', [
             'name',
             'public_key',
+            'cluster_id',
         ]);
 
         $request = (new Request())
@@ -76,6 +77,7 @@ class RootSshKeys extends Endpoint
                 $this->filterFields($rootSshKey->toArray(), [
                     'name',
                     'public_key',
+                    'cluster_id',
                 ])
             );
 
@@ -98,6 +100,7 @@ class RootSshKeys extends Endpoint
         $this->validateRequired($rootSshKey, 'create', [
             'name',
             'private_key',
+            'cluster_id',
         ]);
 
         $request = (new Request())
@@ -107,6 +110,7 @@ class RootSshKeys extends Endpoint
                 $this->filterFields($rootSshKey->toArray(), [
                     'name',
                     'private_key',
+                    'cluster_id',
                 ])
             );
 
