@@ -6,11 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
 for detailed information.
 
+## [1.102.5]
+
+### Fixed
+
+- Clusters: `customer_id` is no longer validated.
+
 ## [1.102.4]
 
 ### Fixed
 
-- RootSshKeys: Add `cluster_id` when creating a public or private ssh key.
+- RootSshKeys: Add `cluster_id` when creating a public or private SSH key.
 
 ## [1.102.3]
 
