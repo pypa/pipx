@@ -233,12 +233,6 @@ class Cluster extends ClusterModel
 
     public function setCustomerId(?int $customerId): self
     {
-        Validator::value($customerId)
-            ->nullable()
-            ->minAmount(0)
-            ->pattern('^[0-9]+$')
-            ->validate();
-
         $this->customerId = $customerId;
 
         return $this;
