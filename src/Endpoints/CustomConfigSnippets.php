@@ -62,11 +62,12 @@ class CustomConfigSnippets extends Endpoint
     /**
      * @throws RequestException
      */
-    public function create(CustomConfigSnippet $customConfigSnippet): Response
+    public function createFromContents(CustomConfigSnippet $customConfigSnippet): Response
     {
         $this->validateRequired($customConfigSnippet, 'create', [
             'name',
             'server_software_name',
+            'contents',
             'cluster_id',
         ]);
 
@@ -74,13 +75,54 @@ class CustomConfigSnippets extends Endpoint
             ->setMethod(Request::METHOD_POST)
             ->setUrl('custom-config-snippets')
             ->setBody(
-                $this->filterFields($customConfigSnippet->toArray(), [
-                    'name',
-                    'server_software_name',
-                    'cluster_id',
-                    'contents',
-                    'template_name',
-                ])
+                array_merge(
+                    $this->filterFields($customConfigSnippet->toArray(), [
+                        'name',
+                        'server_software_name',
+                        'cluster_id',
+                        'contents',
+                    ]),
+                    ['template_name' => null]
+                )
+            );
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'customConfigSnippet' => (new CustomConfigSnippet())->fromArray($response->getData()),
+        ]);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function createFromTemplate(CustomConfigSnippet $customConfigSnippet): Response
+    {
+        $this->validateRequired($customConfigSnippet, 'create', [
+            'name',
+            'server_software_name',
+            'template_name',
+            'cluster_id',
+        ]);
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl('custom-config-snippets')
+            ->setBody(
+                array_merge(
+                    $this->filterFields($customConfigSnippet->toArray(), [
+                        'name',
+                        'server_software_name',
+                        'cluster_id',
+                        'template_name',
+                    ]),
+                    ['contents' => null]
+                )
             );
 
         $response = $this
