@@ -69,12 +69,8 @@ def get_package_dependencies(
     return dependencies
 
 
-def get_resources(
-    dist: metadata.Distribution, bin_path: Path, man_path: Path
-) -> List[str]:
+def get_apps_from_entry_points(dist: metadata.Distribution, bin_path: Path):
     app_names = set()
-    man_names = set()
-
     sections = {"console_scripts", "gui_scripts"}
     # "entry_points" entry in setup.py are found here
     for ep in dist.entry_points:
@@ -85,7 +81,14 @@ def get_resources(
         if WINDOWS and (bin_path / (ep.name + ".exe")).exists():
             # WINDOWS adds .exe to entry_point name
             app_names.add(ep.name + ".exe")
+    return app_names
 
+
+def get_resources_from_dist_files(
+    dist: metadata.Distribution, bin_path: Path, man_path: Path
+):
+    app_names = set()
+    man_names = set()
     # search installed files
     # "scripts" entry in setup.py is found here (test w/ awscli)
     for path in dist.files or []:
@@ -105,7 +108,14 @@ def get_resources(
                 man_names.add(str(Path(dist_file_path.parent.name) / path.name))
         except FileNotFoundError:
             pass
+    return app_names, man_names
 
+
+def get_resources_from_inst_files(
+    dist: metadata.Distribution, bin_path: Path, man_path: Path
+):
+    app_names = set()
+    man_names = set()
     # not sure what is found here
     inst_files = dist.read_text("installed-files.txt") or ""
     for line in inst_files.splitlines():
@@ -123,7 +133,19 @@ def get_resources(
                 )
         except FileNotFoundError:
             pass
+    return app_names, man_names
 
+
+def get_resources(
+    dist: metadata.Distribution, bin_path: Path, man_path: Path
+) -> List[str]:
+    app_names = set()
+    man_names = set()
+    app_names_ep = get_apps_from_entry_points(dist, bin_path)
+    app_names_df, man_names_df = get_resources_from_dist_files(dist, bin_path, man_path)
+    app_names_if, man_names_if = get_resources_from_inst_files(dist, bin_path, man_path)
+    app_names = app_names_ep | app_names_df | app_names_if
+    man_names = man_names_df | man_names_if
     return sorted(app_names), sorted(man_names)
 
 
