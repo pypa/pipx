@@ -8,6 +8,7 @@
 
 import logging
 import re
+import urllib.parse
 from pathlib import Path
 from typing import List, NamedTuple, Optional, Set, Tuple
 
@@ -73,24 +74,17 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
         else:
             raise PipxError(f"{package_path} does not exist")
 
-    # packaging currently (2020-07-19) only does basic syntax checks on URL.
-    #   Some examples of what it will not catch:
-    #       - invalid RCS string (e.g. "gat+https://...")
-    #       - non-existent scheme (e.g. "zzzzz://...")
+    # If this looks like a URL, treat it as such.
     if not valid_pep508:
-        try:
-            package_req = Requirement("notapackagename @ " + package_spec)
-        except InvalidRequirement:
-            # not a valid url
-            pass
-        else:
+        parsed_url = urllib.parse.urlsplit(package_spec)
+        if parsed_url.scheme and parsed_url.netloc:
             valid_url = package_spec
 
+    # Treat the input as a local path if it does not look like a PEP 508
+    # specifier nor a URL. In this case we want to split out the extra part.
     if not valid_pep508 and not valid_url:
         (package_path_str, package_extras_str) = _split_path_extras(package_spec)
-
         (package_path, package_path_exists) = _check_package_path(package_path_str)
-
         if package_path_exists:
             valid_local_path = str(package_path.resolve()) + package_extras_str
 
