@@ -1,8 +1,8 @@
 import logging
+import os
 import shlex
 import shutil
 import sys
-import os
 import tempfile
 import time
 from pathlib import Path
@@ -15,7 +15,7 @@ from packaging.utils import canonicalize_name
 
 from pipx import constants
 from pipx.colors import bold, red
-from pipx.constants import WINDOWS, MAN_SECTIONS
+from pipx.constants import MAN_SECTIONS, WINDOWS
 from pipx.emojis import hazard, stars
 from pipx.package_specifier import parse_specifier_for_install, valid_pypi_name
 from pipx.pipx_metadata_file import PackageInfo

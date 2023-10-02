@@ -12,7 +12,7 @@ try:
 except ImportError:
     import importlib_metadata as metadata  # type: ignore
 
-from pipx.constants import WINDOWS, MAN_SECTIONS
+from pipx.constants import MAN_SECTIONS, WINDOWS
 from pipx.util import PipxError, run_subprocess
 
 logger = logging.getLogger(__name__)

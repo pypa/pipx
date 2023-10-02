@@ -13,8 +13,8 @@ from pipx.commands.uninstall import (
 from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_UNINJECT_ERROR,
-    ExitCode,
     MAN_SECTIONS,
+    ExitCode,
 )
 from pipx.emojis import stars
 from pipx.util import PipxError, pipx_wrap

@@ -6,15 +6,15 @@ from typing import List, Optional, Set
 from pipx.commands.common import (
     add_suffix,
     can_symlink,
-    get_exposed_paths_for_package,
     get_exposed_man_paths_for_package,
+    get_exposed_paths_for_package,
 )
 from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_UNINSTALL_ERROR,
     EXIT_CODE_UNINSTALL_VENV_NONEXISTENT,
-    ExitCode,
     MAN_SECTIONS,
+    ExitCode,
 )
 from pipx.emojis import hazard, sleep, stars
 from pipx.pipx_metadata_file import PackageInfo
