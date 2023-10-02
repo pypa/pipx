@@ -16,7 +16,7 @@ class DomainRouter extends ClusterModel
     private int $clusterId;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
-    private ?string $securityTxtPolicyId = null;
+    private ?int $securityTxtPolicyId = null;
 
     public function getDomain(): string
     {
@@ -138,12 +138,12 @@ class DomainRouter extends ClusterModel
         return $this;
     }
 
-    public function getSecurityTxtPolicyId(): ?string
+    public function getSecurityTxtPolicyId(): ?int
     {
         return $this->securityTxtPolicyId;
     }
 
-    public function setSecurityTxtPolicyId(?string $securityTxtPolicyId): self
+    public function setSecurityTxtPolicyId(?int $securityTxtPolicyId): self
     {
         $this->securityTxtPolicyId = $securityTxtPolicyId;
 
