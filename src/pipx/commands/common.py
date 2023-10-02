@@ -163,7 +163,7 @@ def _symlink_package_resource(
     if resource_type == "app":
         existing_executable_on_path = which(name_suffixed)
     else:
-        existing_executable_on_path = False
+        existing_executable_on_path = None
     symlink_path.symlink_to(path)
 
     if resource_type == "app" and existing_executable_on_path:
@@ -261,9 +261,9 @@ def get_venv_summary(
         {add_suffix(name, package_metadata.suffix) for name in package_metadata.apps}
         - set(exposed_binary_names)
     )
-    exposed_man_paths = []
+    exposed_man_paths = set()
     for man_section in MAN_SECTIONS:
-        exposed_man_paths += get_exposed_man_paths_for_package(
+        exposed_man_paths |= get_exposed_man_paths_for_package(
             venv.man_path / man_section,
             constants.LOCAL_MAN_DIR / man_section,
             man_pages,
@@ -345,7 +345,7 @@ def get_exposed_man_paths_for_package(
         local_man_dir,
         [
             name.removeprefix(prefix)
-            for name in package_man_pages
+            for name in package_man_pages or []
             if name.startswith(prefix)
         ],
     )

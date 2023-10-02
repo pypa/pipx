@@ -114,7 +114,7 @@ def run_pypackage_bin(bin_path: Path, args: List[str]) -> NoReturn:
 
 if WINDOWS:
 
-    def get_venv_paths(root: Path) -> Tuple[Path, Path]:
+    def get_venv_paths(root: Path) -> Tuple[Path, Path, Path]:
         bin_path = root / "Scripts" if not MINGW else root / "bin"
         python_path = bin_path / "python.exe"
         man_path = root / "share" / "man"
@@ -122,7 +122,7 @@ if WINDOWS:
 
 else:
 
-    def get_venv_paths(root: Path) -> Tuple[Path, Path]:
+    def get_venv_paths(root: Path) -> Tuple[Path, Path, Path]:
         bin_path = root / "bin"
         python_path = bin_path / "python"
         man_path = root / "share" / "man"

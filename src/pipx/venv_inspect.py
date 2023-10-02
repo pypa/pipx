@@ -138,7 +138,7 @@ def get_resources_from_inst_files(
 
 def get_resources(
     dist: metadata.Distribution, bin_path: Path, man_path: Path
-) -> List[str]:
+) -> Tuple[List[str], List[str]]:
     app_names = set()
     man_names = set()
     app_names_ep = get_apps_from_entry_points(dist, bin_path)
@@ -156,7 +156,7 @@ def _dfs_package_resources(
     app_paths_of_dependencies: Dict[str, List[Path]],
     man_paths_of_dependencies: Dict[str, List[Path]],
     dep_visited: Optional[Dict[str, bool]] = None,
-) -> Dict[str, List[Path]]:
+) -> Tuple[Dict[str, List[Path]], Dict[str, List[Path]]]:
     if dep_visited is None:
         # Initialize: we have already visited root
         dep_visited = {canonicalize_name(package_req.name): True}

@@ -238,6 +238,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             venv_dir,
             args.dependencies,
             local_bin_dir=constants.LOCAL_BIN_DIR,
+            local_man_dir=constants.LOCAL_MAN_DIR,
             leave_deps=args.leave_deps,
             verbose=verbose,
         )

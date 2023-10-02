@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Callable
 from pathlib import Path
 from shutil import which
 from typing import List, Optional, Set
@@ -66,7 +67,7 @@ def _get_package_bin_dir_app_paths(
     if package_info.include_dependencies:
         apps += package_info.apps_of_dependencies
     return get_exposed_paths_for_package(
-        venv.bin_path, local_bin_dir, [add_suffix(app, suffix) for app in apps]
+        venv_bin_path, local_bin_dir, [add_suffix(app, suffix) for app in apps]
     )
 
 
@@ -86,10 +87,12 @@ def _get_venv_resource_paths(
 ) -> Set[Path]:
     resource_paths = set()
     assert resource_type in ("app", "man"), "invalid resource type"
+    get_package_resource_paths: Callable[[Venv, PackageInfo, Path, Path], Set[Path]]
     get_package_resource_paths = {
         "app": _get_package_bin_dir_app_paths,
         "man": _get_package_man_paths,
     }[resource_type]
+
     if venv.pipx_metadata.main_package.package is not None:
         # Valid metadata for venv
         for package_info in venv.package_metadata.values():
