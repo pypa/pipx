@@ -29,6 +29,7 @@ def get_include_resource_paths(
     bin_dir_app_paths = _get_package_bin_dir_app_paths(
         venv, venv.package_metadata[package_name], local_bin_dir
     )
+    man_paths = []
     for man_section in MAN_SECTIONS:
         man_paths += _get_package_man_paths(
             venv, venv.package_metadata[package_name], local_man_dir / man_section
