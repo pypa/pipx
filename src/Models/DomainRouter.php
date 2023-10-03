@@ -16,6 +16,7 @@ class DomainRouter extends ClusterModel
     private int $clusterId;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
+    private ?int $securityTxtPolicyId = null;
 
     public function getDomain(): string
     {
@@ -137,6 +138,18 @@ class DomainRouter extends ClusterModel
         return $this;
     }
 
+    public function getSecurityTxtPolicyId(): ?int
+    {
+        return $this->securityTxtPolicyId;
+    }
+
+    public function setSecurityTxtPolicyId(?int $securityTxtPolicyId): self
+    {
+        $this->securityTxtPolicyId = $securityTxtPolicyId;
+
+        return $this;
+    }
+
     public function fromArray(array $data): self
     {
         return $this
@@ -147,6 +160,7 @@ class DomainRouter extends ClusterModel
             ->setNodeId(Arr::get($data, 'node_id'))
             ->setCertificateId(Arr::get($data, 'certificate_id'))
             ->setId(Arr::get($data, 'id'))
+            ->setSecurityTxtPolicyId(Arr::get($data, 'security_txt_policy_id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
             ->setUpdatedAt(Arr::get($data, 'updated_at'));
@@ -162,6 +176,7 @@ class DomainRouter extends ClusterModel
             'node_id' => $this->getNodeId(),
             'certificate_id' => $this->getCertificateId(),
             'id' => $this->getId(),
+            'security_txt_policy_id' => $this->getSecurityTxtPolicyId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),

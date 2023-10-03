@@ -66,6 +66,7 @@ class DomainRouters extends Endpoint
                     'force_ssl',
                     'id',
                     'cluster_id',
+                    'security_txt_policy_id',
                 ])
             );
 
