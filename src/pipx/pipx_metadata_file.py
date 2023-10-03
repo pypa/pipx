@@ -141,7 +141,7 @@ class PipxMetadata:
                     sort_keys=True,
                     cls=JsonEncoderHandlesPath,
                 )
-        except IOError:
+        except OSError:
             logger.warning(
                 pipx_wrap(
                     f"""
@@ -160,7 +160,7 @@ class PipxMetadata:
                 self.from_dict(
                     json.load(pipx_metadata_fh, object_hook=_json_decoder_object_hook)
                 )
-        except IOError:  # Reset self if problem reading
+        except OSError:  # Reset self if problem reading
             if verbose:
                 logger.warning(
                     pipx_wrap(
