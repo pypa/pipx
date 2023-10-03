@@ -43,7 +43,7 @@ class UnixUser extends ClusterModel
         return $this;
     }
 
-    public function getPassword(): string
+    public function getPassword(): ?string
     {
         return $this->password;
     }
