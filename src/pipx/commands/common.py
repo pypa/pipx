@@ -58,12 +58,24 @@ def expose_resources_globally(
     force: bool,
     suffix: str = "",
 ) -> None:
-    if not can_symlink(local_resource_dir):
-        _copy_package_resources(resource_type, local_resource_dir, paths, suffix=suffix)
-    else:
-        _symlink_package_resources(
-            resource_type, local_resource_dir, paths, force=force, suffix=suffix
-        )
+    for path in paths:
+        src = path.resolve()
+        if resource_type == "man":
+            dest_dir = local_resource_dir / src.parent.name
+        else:
+            dest_dir = local_resource_dir
+        if not dest_dir.is_dir():
+            mkdir(dest_dir)
+        if not can_symlink(dest_dir):
+            _copy_package_resource(dest_dir, path, suffix=suffix)
+        else:
+            _symlink_package_resource(
+                dest_dir,
+                path,
+                force=force,
+                suffix=suffix,
+                executable=(resource_type == "app"),
+            )
 
 
 _can_symlink_cache: Dict[Path, bool] = {}
@@ -89,40 +101,29 @@ def can_symlink(local_resource_dir: Path) -> bool:
     return _can_symlink_cache[local_resource_dir]
 
 
-def _copy_package_resources(
-    resource_type: str, local_resource_dir: Path, paths: List[Path], suffix: str = ""
-) -> None:
-    for src_unresolved in paths:
-        src = src_unresolved.resolve()
-        if resource_type == "man":
-            name = str(Path(src.parent.name) / src.name)
-            dest = Path(local_resource_dir / name)
-        else:
-            name = src.name
-            dest = Path(local_resource_dir / add_suffix(name, suffix))
-        if not dest.parent.is_dir():
-            mkdir(dest.parent)
-        if dest.exists():
-            logger.warning(f"{hazard}  Overwriting file {str(dest)} with {str(src)}")
-            safe_unlink(dest)
-        if src.exists():
-            shutil.copy(src, dest)
+def _copy_package_resource(dest_dir: Path, path: Path, suffix: str = "") -> None:
+    src = path.resolve()
+    name = src.name
+    dest = Path(dest_dir / add_suffix(name, suffix))
+    if not dest.parent.is_dir():
+        mkdir(dest.parent)
+    if dest.exists():
+        logger.warning(f"{hazard}  Overwriting file {str(dest)} with {str(src)}")
+        safe_unlink(dest)
+    if src.exists():
+        shutil.copy(src, dest)
 
 
 def _symlink_package_resource(
-    resource_type: str,
-    local_resource_dir: Path,
+    dest_dir: Path,
     path: Path,
     *,
     force: bool,
     suffix: str = "",
+    executable: bool = False,
 ) -> None:
-    if resource_type == "man":
-        name_suffixed = str(Path(path.parent.name) / path.name)
-        symlink_path = Path(local_resource_dir / name_suffixed)
-    else:
-        name_suffixed = add_suffix(path.name, suffix)
-        symlink_path = Path(local_resource_dir / name_suffixed)
+    name_suffixed = add_suffix(path.name, suffix)
+    symlink_path = Path(dest_dir / name_suffixed)
 
     if not symlink_path.parent.is_dir():
         mkdir(symlink_path.parent)
@@ -160,13 +161,13 @@ def _symlink_package_resource(
         )
         symlink_path.unlink()
 
-    if resource_type == "app":
+    if executable:
         existing_executable_on_path = which(name_suffixed)
     else:
         existing_executable_on_path = None
     symlink_path.symlink_to(path)
 
-    if resource_type == "app" and existing_executable_on_path:
+    if executable and existing_executable_on_path:
         logger.warning(
             pipx_wrap(
                 f"""
@@ -175,20 +176,6 @@ def _symlink_package_resource(
                 """,
                 subsequent_indent=" " * 4,
             )
-        )
-
-
-def _symlink_package_resources(
-    resource_type: str,
-    local_resource_dir: Path,
-    paths: List[Path],
-    *,
-    force: bool,
-    suffix: str = "",
-) -> None:
-    for path in paths:
-        _symlink_package_resource(
-            resource_type, local_resource_dir, path, force=force, suffix=suffix
         )
 
 
