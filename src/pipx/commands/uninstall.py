@@ -121,7 +121,7 @@ def _get_venv_resource_paths(
         # .local/share/pipx/venvs/VENV_NAME/{bin,Scripts} should be uninstalled.
 
         # For non-symlink systems we give up and return an empty set.
-        if not can_symlink(local_resource_dir):
+        if not local_resource_dir.is_dir() or not can_symlink(local_resource_dir):
             return set()
 
         resource_paths = get_exposed_paths_for_package(
