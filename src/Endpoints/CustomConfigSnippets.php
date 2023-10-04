@@ -75,15 +75,13 @@ class CustomConfigSnippets extends Endpoint
             ->setMethod(Request::METHOD_POST)
             ->setUrl('custom-config-snippets')
             ->setBody(
-                array_merge(
-                    $this->filterFields($customConfigSnippet->toArray(), [
-                        'name',
-                        'server_software_name',
-                        'cluster_id',
-                        'contents',
-                    ]),
-                    ['template_name' => null]
-                )
+                $this->filterFields($customConfigSnippet->toArray(), [
+                    'name',
+                    'server_software_name',
+                    'cluster_id',
+                    'contents',
+                    'is_default',
+                ])
             );
 
         $response = $this
@@ -114,15 +112,13 @@ class CustomConfigSnippets extends Endpoint
             ->setMethod(Request::METHOD_POST)
             ->setUrl('custom-config-snippets')
             ->setBody(
-                array_merge(
-                    $this->filterFields($customConfigSnippet->toArray(), [
-                        'name',
-                        'server_software_name',
-                        'cluster_id',
-                        'template_name',
-                    ]),
-                    ['contents' => null]
-                )
+                $this->filterFields($customConfigSnippet->toArray(), [
+                    'name',
+                    'server_software_name',
+                    'cluster_id',
+                    'template_name',
+                    'is_default',
+                ])
             );
 
         $response = $this
@@ -148,6 +144,8 @@ class CustomConfigSnippets extends Endpoint
             'cluster_id',
             'id',
             'contents',
+            'template_name',
+            'is_default',
         ]);
 
         $request = (new Request())
@@ -160,6 +158,8 @@ class CustomConfigSnippets extends Endpoint
                     'cluster_id',
                     'id',
                     'contents',
+                    'template_name',
+                    'is_default',
                 ])
             );
 
