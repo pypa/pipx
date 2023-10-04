@@ -344,7 +344,7 @@ def get_exposed_man_paths_for_package(
         venv_man_path,
         local_man_dir,
         [
-            (name[len(prefix):] if name.startswith(prefix) else name)
+            (name[len(prefix) :] if name.startswith(prefix) else name)
             for name in package_man_pages or []
             if name.startswith(prefix)
         ],
