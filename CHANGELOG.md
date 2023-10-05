@@ -15,7 +15,7 @@
 - Add `pipx install --preinstall` to support preinstalling build requirements
 - Pass `--no-input` to pip when output is not piped to parent stdout
 - Fix program name in generated manual page
-- Expose package manual pages
+- Expose manual pages included in an application installed with `pipx install`
 
 ## 1.2.0
 
