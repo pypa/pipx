@@ -92,7 +92,10 @@ INSTALL_DESCRIPTION = textwrap.dedent(
     The install command is the preferred way to globally install apps
     from python packages on your system. It creates an isolated virtual
     environment for the package, then ensures the package's apps are
-    accessible on your $PATH.
+    accessible on your $PATH, and package's manual pages installed in
+    share/man/man[1-9] can be viewed with man on operating system where
+    it is available and the path in the environment variable `PIPX_MAN_DIR`
+    (default: {constants.DEFAULT_PIPX_MAN_DIR}) is in the man search path.
 
     The result: apps you can run from anywhere, located in packages
     you can cleanly upgrade or uninstall. Guaranteed to not have
