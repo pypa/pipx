@@ -105,7 +105,7 @@ class SshKeys extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('ssh-keys/public')
+            ->setUrl('ssh-keys/private')
             ->setBody(
                 $this->filterFields($sshKey->toArray(), [
                     'name',
