@@ -218,7 +218,6 @@ def _download_and_run(
     verbose: bool,
 ) -> NoReturn:
     venv = Venv(venv_dir, python=python, verbose=verbose)
-    venv.create_venv(venv_args, pip_args)
 
     if venv.pipx_metadata.main_package.package is not None:
         package_name = venv.pipx_metadata.main_package.package
@@ -227,6 +226,12 @@ def _download_and_run(
             package_or_url, python, pip_args=pip_args, verbose=verbose
         )
 
+    override_shared = False
+
+    if package_name == "pip":
+        override_shared = True
+
+    venv.create_venv(venv_args, pip_args, override_shared)
     venv.install_package(
         package_name=package_name,
         package_or_url=package_or_url,

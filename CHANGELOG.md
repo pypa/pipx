@@ -1,5 +1,7 @@
 ## dev
 
+- Drop `setuptools` and `wheel` from the shared libraries
+- Allow running `pip` with `pipx run`
 - Make usage message in `pipx run` show `package_or_url`, so extra will be printed out as well
 - Add `--force-reinstall` to pip arguments when `--force` was passed
 - Use the py launcher, if available, to select Python version with the `--python` option
