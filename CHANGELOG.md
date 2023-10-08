@@ -1,5 +1,7 @@
 ## dev
 
+- Drop `setuptools` and `wheel` from the shared libraries
+- Allow running `pip` with `pipx run`
 - Support PEP 723 run requirements in `pipx run`.
 - Imply `--include-apps` when running `pipx inject --include-deps`
 - Add `--with-suffix` for `pipx inject` command

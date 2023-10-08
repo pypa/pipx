@@ -339,3 +339,10 @@ def test_run_with_windows_python_version(caplog, pipx_temp_env, tmp_path):
     )
     run_pipx_cli_exit(["run", script.as_uri(), "--python", "3.11"])
     assert "3.11" in out.read_text()
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_shared_lib_as_app(pipx_temp_env, monkeypatch, capfd):
+    run_pipx_cli_exit(["run", "pip", "--help"])
+    captured = capfd.readouterr()
+    assert "pip <command> [options]\n" in captured.out
