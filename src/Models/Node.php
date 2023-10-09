@@ -5,6 +5,7 @@ namespace Cyberfusion\ClusterApi\Models;
 use Cyberfusion\ClusterApi\Enums\NodeGroup;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
+use Cyberfusion\ClusterApi\Support\EmptyDict;
 
 class Node extends ClusterModel
 {
@@ -141,7 +142,7 @@ class Node extends ClusterModel
         return $this
             ->setGroups(Arr::get($data, 'groups', []))
             ->setComment(Arr::get($data, 'comment'))
-            ->setLoadBalancerHealthChecksGroupsPairs(Arr::get($data, 'load_balancer_health_checks_groups_pairs', []))
+            ->setLoadBalancerHealthChecksGroupsPairs(Arr::get($data, 'load_balancer_health_checks_groups_pairs'))
             ->setGroupsProperties(Arr::get($data, 'groups_properties', []))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
@@ -155,7 +156,7 @@ class Node extends ClusterModel
         return [
             'groups' => $this->getGroups(),
             'comment' => $this->getComment(),
-            'load_balancer_health_checks_groups_pairs' => $this->getLoadBalancerHealthChecksGroupsPairs(),
+            'load_balancer_health_checks_groups_pairs' => $this->getLoadBalancerHealthChecksGroupsPairs() !== [] ? $this->getLoadBalancerHealthChecksGroupsPairs() : new EmptyDict(),
             'groups_properties' => $this->getGroupsProperties(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
