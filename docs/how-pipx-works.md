@@ -48,7 +48,7 @@ setup(
 
 In this case `main_func` and `some_func` would be available to pipx after installing the above example package.
 
-To install manual pages, which can be viewed with the `man` command on operating systems which have this command, include a `data_files` section in your `setup.py` file.
+To install manual pages, which can be viewed with the `man` command on operating systems which have this command, include a [`data_files` section](https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/#data-files) in your `setup.py` file.
 ```
 setup(
     # other arguments here...
