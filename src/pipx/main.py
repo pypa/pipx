@@ -68,7 +68,7 @@ PIPX_DESCRIPTION = textwrap.dedent(
 
     Virtual Environment location is {str(constants.PIPX_LOCAL_VENVS)}.
     Symlinks to apps are placed in {str(constants.LOCAL_BIN_DIR)}.
-    Symlinks to manual are placed in {str(constants.LOCAL_MAN_DIR)}.
+    Symlinks to manual pages are placed in {str(constants.LOCAL_MAN_DIR)}.
 
     """
 )
