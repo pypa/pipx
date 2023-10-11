@@ -2,10 +2,10 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
+use ArrayObject;
 use Cyberfusion\ClusterApi\Enums\NodeGroup;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
-use Cyberfusion\ClusterApi\Support\EmptyDict;
 
 class Node extends ClusterModel
 {
@@ -156,8 +156,8 @@ class Node extends ClusterModel
         return [
             'groups' => $this->getGroups(),
             'comment' => $this->getComment(),
-            'load_balancer_health_checks_groups_pairs' => $this->getLoadBalancerHealthChecksGroupsPairs() !== [] ? $this->getLoadBalancerHealthChecksGroupsPairs() : new EmptyDict(),
-            'groups_properties' => $this->getGroupsProperties(),
+            'load_balancer_health_checks_groups_pairs' => new ArrayObject($this->getLoadBalancerHealthChecksGroupsPairs()),
+            'groups_properties' => new ArrayObject($this->getGroupsProperties()),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),

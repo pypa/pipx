@@ -2,6 +2,7 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
+use ArrayObject;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
@@ -478,7 +479,7 @@ class Cluster extends ClusterModel
             'php_versions' => $this->getPhpVersions(),
             'mariadb_version' => $this->getMariaDbVersion(),
             'mariadb_cluster_name' => $this->getMariaDbClusterName(),
-            'php_settings' => $this->getPhpSettings(),
+            'php_settings' => new ArrayObject($this->getPhpSettings()),
             'custom_php_modules_names' => $this->getCustomPhpModulesNames(),
             'php_ioncube_enabled' => $this->isPhpIoncubeEnabled(),
             'kernelcare_license_key' => $this->getKernelcareLicenseKey(),
