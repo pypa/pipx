@@ -12,7 +12,7 @@ class Certificate extends ClusterModel
     private string $certificate;
     private string $caChain;
     private string $privateKey;
-    private string $expiresAt;
+    private ?string $expiresAt = null;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -97,12 +97,12 @@ class Certificate extends ClusterModel
         return $this;
     }
 
-    public function getExpiresAt(): string
+    public function getExpiresAt(): ?string
     {
         return $this->expiresAt;
     }
 
-    public function setExpiresAt(string $expiresAt): self
+    public function setExpiresAt(?string $expiresAt): self
     {
         $this->expiresAt = $expiresAt;
 
