@@ -2,6 +2,7 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
+use ArrayObject;
 use Cyberfusion\ClusterApi\Enums\PassengerAppType;
 use Cyberfusion\ClusterApi\Enums\PassengerEnvironment;
 use Cyberfusion\ClusterApi\Support\Arr;
@@ -301,7 +302,7 @@ class PassengerApp extends ClusterModel
             'name' => $this->getName(),
             'unix_user_id' => $this->getUnixUserId(),
             'environment' => $this->getEnvironment(),
-            'environment_variables' => $this->getEnvironmentVariables(),
+            'environment_variables' => new ArrayObject($this->getEnvironmentVariables()),
             'max_pool_size' => $this->getMaxPoolSize(),
             'max_requests' => $this->getMaxRequests(),
             'pool_idle_time' => $this->getPoolIdleTime(),
