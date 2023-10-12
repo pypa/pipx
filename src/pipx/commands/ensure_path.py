@@ -65,8 +65,8 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
         if not path_added:
             print(
                 pipx_wrap(
-                    f"{location_str} is not added to the PATH environment variable successfully. "
-                    f"You may need to add {location_str} to it manually.",
+                    f"{hazard}  {location_str} is not added to the PATH environment variable successfully. "
+                    f"You may need to add it to PATH manually.",
                     subsequent_indent=" " * 4,
                 )
             )
