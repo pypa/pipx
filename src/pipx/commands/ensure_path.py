@@ -61,14 +61,22 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
     in_current_path = userpath.in_current_path(location_str)
 
     if force or (not in_current_path and not need_shell_restart):
-        userpath.append(location_str, "pipx")
-        print(
-            pipx_wrap(
-                f"Success! Added {location_str} to the PATH environment variable.",
-                subsequent_indent=" " * 4,
+        path_added = userpath.append(location_str, "pipx")
+        if not path_added:
+            print(
+                pipx_wrap(
+                    f"{location_str} is not added to the PATH environment variable successfully. "
+                    f"You may need to add {location_str} to it manually.",
+                    subsequent_indent=" " * 4,
+                )
             )
-        )
-        path_added = True
+        else:
+            print(
+                pipx_wrap(
+                    f"Success! Added {location_str} to the PATH environment variable.",
+                    subsequent_indent=" " * 4,
+                )
+            )
         need_shell_restart = userpath.need_shell_restart(location_str)
     elif not in_current_path and need_shell_restart:
         print(

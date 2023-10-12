@@ -16,6 +16,7 @@
 - Pass `--no-input` to pip when output is not piped to parent stdout
 - Fix program name in generated manual page
 - Print all environment variables in `pipx environment`
+- Return an error message when directory can't be added to PATH successfully
 
 ## 1.2.0
 
