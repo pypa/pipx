@@ -10,6 +10,12 @@ def test_upgrade(pipx_temp_env, capsys):
     assert not run_pipx_cli(["upgrade", "pycowsay"])
 
 
+def test_upgrade_global(pipx_temp_env, capsys):
+    assert run_pipx_cli(["--global", "upgrade", "pycowsay"])
+    assert not run_pipx_cli(["--global", "install", "pycowsay"])
+    assert not run_pipx_cli(["--global", "upgrade", "pycowsay"])
+
+
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
 def test_upgrade_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay"])
@@ -18,7 +24,10 @@ def test_upgrade_legacy_venv(pipx_temp_env, capsys, metadata_version):
     if metadata_version is None:
         assert run_pipx_cli(["upgrade", "pycowsay"])
         captured = capsys.readouterr()
-        assert "Not upgrading pycowsay. It has missing internal pipx metadata." in captured.err
+        assert (
+            "Not upgrading pycowsay. It has missing internal pipx metadata."
+            in captured.err
+        )
     else:
         assert not run_pipx_cli(["upgrade", "pycowsay"])
         captured = capsys.readouterr()

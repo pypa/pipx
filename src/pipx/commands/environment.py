@@ -1,18 +1,6 @@
 import os
 
-from pipx.constants import (
-    EXIT_CODE_OK,
-    LOCAL_BIN_DIR,
-    LOCAL_MAN_DIR,
-    PIPX_HOME,
-    PIPX_LOCAL_VENVS,
-    PIPX_LOG_DIR,
-    PIPX_SHARED_LIBS,
-    PIPX_STANDALONE_PYTHON_CACHEDIR,
-    PIPX_TRASH_DIR,
-    PIPX_VENV_CACHEDIR,
-    ExitCode,
-)
+from pipx.constants import EXIT_CODE_OK, PIPX_DIRS, ExitCode
 from pipx.emojis import EMOJI_SUPPORT
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import PipxError
@@ -30,15 +18,15 @@ def environment(value: str) -> ExitCode:
         "USE_EMOJI",
     ]
     derived_values = {
-        "PIPX_HOME": PIPX_HOME,
-        "PIPX_BIN_DIR": LOCAL_BIN_DIR,
-        "PIPX_MAN_DIR": LOCAL_MAN_DIR,
-        "PIPX_SHARED_LIBS": PIPX_SHARED_LIBS,
-        "PIPX_LOCAL_VENVS": PIPX_LOCAL_VENVS,
-        "PIPX_LOG_DIR": PIPX_LOG_DIR,
-        "PIPX_TRASH_DIR": PIPX_TRASH_DIR,
-        "PIPX_VENV_CACHEDIR": PIPX_VENV_CACHEDIR,
-        "PIPX_STANDALONE_PYTHON_CACHEDIR": PIPX_STANDALONE_PYTHON_CACHEDIR,
+        "PIPX_HOME": PIPX_DIRS.HOME,
+        "PIPX_BIN_DIR": PIPX_DIRS.BIN_DIR,
+        "PIPX_MAN_DIR": PIPX_DIRS.MAN_DIR,
+        "PIPX_SHARED_LIBS": PIPX_DIRS.SHARED_LIBS,
+        "PIPX_LOCAL_VENVS": PIPX_DIRS.LOCAL_VENVS,
+        "PIPX_LOG_DIR": PIPX_DIRS.LOG_DIR,
+        "PIPX_TRASH_DIR": PIPX_DIRS.TRASH_DIR,
+        "PIPX_VENV_CACHEDIR": PIPX_DIRS.VENV_CACHEDIR,
+        "PIPX_STANDALONE_PYTHON_CACHEDIR": PIPX_DIRS.STANDALONE_PYTHON_CACHEDIR,
         "PIPX_DEFAULT_PYTHON": DEFAULT_PYTHON,
         "USE_EMOJI": str(EMOJI_SUPPORT).lower(),
     }

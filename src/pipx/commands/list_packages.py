@@ -45,8 +45,8 @@ def list_short(venv_dirs: Collection[Path]) -> VenvProblems:
 
 def list_text(venv_dirs: Collection[Path], include_injected: bool, venv_root_dir: str) -> VenvProblems:
     print(f"venvs are in {bold(venv_root_dir)}")
-    print(f"apps are exposed on your $PATH at {bold(str(constants.LOCAL_BIN_DIR))}")
-    print(f"manual pages are exposed at {bold(str(constants.LOCAL_MAN_DIR))}")
+    print(f"apps are exposed on your $PATH at {bold(str(constants.PIPX_DIRS.BIN_DIR))}")
+    print(f"manual pages are exposed at {bold(str(constants.PIPX_DIRS.MAN_DIR))}")
 
     all_venv_problems = VenvProblems()
     for venv_dir in venv_dirs:

@@ -10,6 +10,13 @@ def test_reinstall(pipx_temp_env, capsys):
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
 
+def test_reinstall_global(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["--global", "install", "pycowsay"])
+    assert not run_pipx_cli(
+        ["--global", "reinstall", "--python", sys.executable, "pycowsay"]
+    )
+
+
 def test_reinstall_nonexistent(pipx_temp_env, capsys):
     assert run_pipx_cli(["reinstall", "--python", sys.executable, "nonexistent"])
     assert "Nothing to reinstall for nonexistent" in capsys.readouterr().out

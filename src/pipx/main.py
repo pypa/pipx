@@ -13,7 +13,7 @@ import textwrap
 import time
 import urllib.parse
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 import argcomplete
 import platformdirs
@@ -76,8 +76,8 @@ PIPX_DESCRIPTION = textwrap.dedent(
     Binaries can either be installed globally into isolated Virtual Environments
     or run directly in a temporary Virtual Environment.
 
-    Virtual Environment location is {str(constants.PIPX_LOCAL_VENVS)}.
-    Symlinks to apps are placed in {str(constants.LOCAL_BIN_DIR)}.
+    Virtual Environment location is {str(constants.PIPX_DIRS.LOCAL_VENVS)}.
+    Symlinks to apps are placed in {str(constants.PIPX_DIRS.BIN_DIR)}.
     Symlinks to manual pages are placed in {str(constants.LOCAL_MAN_DIR)}.
 
     """
@@ -150,7 +150,11 @@ class InstalledVenvsCompleter:
         self.packages = [str(p.name) for p in sorted(venv_container.iter_venv_dirs())]
 
     def use(self, prefix: str, **kwargs: Any) -> List[str]:
-        return [f"{prefix}{x[len(prefix):]}" for x in self.packages if x.startswith(canonicalize_name(prefix))]
+        return [
+            f"{prefix}{x[len(prefix):]}"
+            for x in self.packages
+            if x.startswith(canonicalize_name(prefix))
+        ]
 
 
 def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
@@ -175,12 +179,16 @@ def get_venv_args(parsed_args: Dict[str, str]) -> List[str]:
     return venv_args
 
 
-def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.ArgumentParser]) -> ExitCode:  # noqa: C901
+def run_pipx_command(
+    args: argparse.Namespace, subparsers: Dict[str, argparse.ArgumentParser]
+) -> ExitCode:  # noqa: C901
     verbose = args.verbose if "verbose" in args else False
+    if args.is_global:
+        constants.PIPX_DIRS.make_global()
     pip_args = get_pip_args(vars(args))
     venv_args = get_venv_args(vars(args))
 
-    venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
+    venv_container = VenvContainer(constants.PIPX_DIRS.LOCAL_VENVS)
 
     if "package" in args:
         package = args.package
@@ -200,7 +208,9 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     if "python" in args and args.python is not None:
         fetch_missing_python = args.fetch_missing_python
         try:
-            interpreter = find_python_interpreter(args.python, fetch_missing_python=fetch_missing_python)
+            interpreter = find_python_interpreter(
+                args.python, fetch_missing_python=fetch_missing_python
+            )
             args.python = interpreter
         except InterpreterResolutionError as e:
             logger.debug("Failed to resolve interpreter:", exc_info=True)
@@ -232,8 +242,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             None,
             None,
             args.package_spec,
-            constants.LOCAL_BIN_DIR,
-            constants.LOCAL_MAN_DIR,
+            constants.PIPX_DIRS.BIN_DIR,
+            constants.PIPX_DIRS.MAN_DIR,
             args.python,
             pip_args,
             venv_args,
@@ -260,8 +270,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         return commands.uninject(
             venv_dir,
             args.dependencies,
-            local_bin_dir=constants.LOCAL_BIN_DIR,
-            local_man_dir=constants.LOCAL_MAN_DIR,
+            local_bin_dir=constants.PIPX_DIRS.BIN_DIR,
+            local_man_dir=constants.PIPX_DIRS.MAN_DIR,
             leave_deps=args.leave_deps,
             verbose=verbose,
         )
@@ -302,22 +312,29 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         else:
             raise PipxError(f"Unknown interpreter command {args.interpreter_command}")
     elif args.command == "uninstall":
-        return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose)
+        return commands.uninstall(
+            venv_dir, constants.PIPX_DIRS.BIN_DIR, constants.PIPX_DIRS.MAN_DIR, verbose
+        )
     elif args.command == "uninstall-all":
-        return commands.uninstall_all(venv_container, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose)
+        return commands.uninstall_all(
+            venv_container,
+            constants.PIPX_DIRS.BIN_DIR,
+            constants.PIPX_DIRS.MAN_DIR,
+            verbose,
+        )
     elif args.command == "reinstall":
         return commands.reinstall(
             venv_dir=venv_dir,
-            local_bin_dir=constants.LOCAL_BIN_DIR,
-            local_man_dir=constants.LOCAL_MAN_DIR,
+            local_bin_dir=constants.PIPX_DIRS.BIN_DIR,
+            local_man_dir=constants.PIPX_DIRS.MAN_DIR,
             python=args.python,
             verbose=verbose,
         )
     elif args.command == "reinstall-all":
         return commands.reinstall_all(
             venv_container,
-            constants.LOCAL_BIN_DIR,
-            constants.LOCAL_MAN_DIR,
+            constants.PIPX_DIRS.BIN_DIR,
+            constants.PIPX_DIRS.MAN_DIR,
             args.python,
             verbose,
             skip=skip_list,
@@ -361,7 +378,9 @@ def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
 
 
 def add_include_dependencies(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--include-deps", help="Include apps of dependent packages", action="store_true")
+    parser.add_argument(
+        "--include-deps", help="Include apps of dependent packages", action="store_true"
+    )
 
 
 def add_python_options(parser: argparse.ArgumentParser) -> None:
@@ -383,7 +402,9 @@ def add_python_options(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+def _add_install(
+    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
+) -> None:
     p = subparsers.add_parser(
         "install",
         help="Install a package",
@@ -391,7 +412,9 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         description=INSTALL_DESCRIPTION,
         parents=[shared_parser],
     )
-    p.add_argument("package_spec", help="package name(s) or pip installation spec(s)", nargs="+")
+    p.add_argument(
+        "package_spec", help="package name(s) or pip installation spec(s)", nargs="+"
+    )
     add_include_dependencies(p)
     p.add_argument(
         "--force",
@@ -411,12 +434,17 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
     p.add_argument(
         "--preinstall",
         action="append",
-        help=("Optional packages to be installed into the Virtual Environment before " "installing the main package."),
+        help=(
+            "Optional packages to be installed into the Virtual Environment before "
+            "installing the main package."
+        ),
     )
     add_pip_venv_args(p)
 
 
-def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
+def _add_inject(
+    subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser
+) -> None:
     p = subparsers.add_parser(
         "inject",
         help="Install packages into an existing Virtual Environment",
@@ -456,7 +484,9 @@ def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
     )
 
 
-def _add_uninject(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser):
+def _add_uninject(
+    subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser
+):
     p = subparsers.add_parser(
         "uninject",
         help="Uninstall injected packages from an existing Virtual Environment",
@@ -479,7 +509,9 @@ def _add_uninject(subparsers, venv_completer: VenvCompleter, shared_parser: argp
     )
 
 
-def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
+def _add_upgrade(
+    subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser
+) -> None:
     p = subparsers.add_parser(
         "upgrade",
         help="Upgrade a package",
@@ -507,7 +539,9 @@ def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argpa
     add_python_options(p)
 
 
-def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+def _add_upgrade_all(
+    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
+) -> None:
     p = subparsers.add_parser(
         "upgrade-all",
         help="Upgrade all packages. Runs `pip install -U <pkgname>` for each package.",
@@ -528,7 +562,9 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argp
     )
 
 
-def _add_uninstall(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
+def _add_uninstall(
+    subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser
+) -> None:
     p = subparsers.add_parser(
         "uninstall",
         help="Uninstall a package",
@@ -538,7 +574,9 @@ def _add_uninstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
     p.add_argument("package").completer = venv_completer
 
 
-def _add_uninstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+def _add_uninstall_all(
+    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
+) -> None:
     subparsers.add_parser(
         "uninstall-all",
         help="Uninstall all packages",
@@ -547,7 +585,9 @@ def _add_uninstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
     )
 
 
-def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
+def _add_reinstall(
+    subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser
+) -> None:
     p = subparsers.add_parser(
         "reinstall",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -567,7 +607,9 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
     add_python_options(p)
 
 
-def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+def _add_reinstall_all(
+    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
+) -> None:
     p = subparsers.add_parser(
         "reinstall-all",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -589,7 +631,9 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
 
 
-def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+def _add_list(
+    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
+) -> None:
     p = subparsers.add_parser(
         "list",
         help="List installed packages",
@@ -602,9 +646,13 @@ def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
         help="Show packages injected into the main app's environment",
     )
     g = p.add_mutually_exclusive_group()
-    g.add_argument("--json", action="store_true", help="Output rich data in json format.")
+    g.add_argument(
+        "--json", action="store_true", help="Output rich data in json format."
+    )
     g.add_argument("--short", action="store_true", help="List packages only.")
-    g.add_argument("--skip-maintenance", action="store_true", help="Skip maintenance tasks.")
+    g.add_argument(
+        "--skip-maintenance", action="store_true", help="Skip maintenance tasks."
+    )
 
 
 def _add_interpreter(
@@ -621,12 +669,22 @@ def _add_interpreter(
         description="Get help for commands with pipx interpreter COMMAND --help",
         dest="interpreter_command",
     )
-    s.add_parser("list", help="List available interpreters", description="List available interpreters")
-    s.add_parser("prune", help="Prune unused interpreters", description="Prune unused interpreters")
+    s.add_parser(
+        "list",
+        help="List available interpreters",
+        description="List available interpreters",
+    )
+    s.add_parser(
+        "prune",
+        help="Prune unused interpreters",
+        description="Prune unused interpreters",
+    )
     return p
 
 
-def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+def _add_run(
+    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
+) -> None:
     p = subparsers.add_parser(
         "run",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -663,7 +721,9 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
         help="app/package name and any arguments to be passed to it",
         default=[],
     )
-    p.add_argument("--path", action="store_true", help="Interpret app name as a local path")
+    p.add_argument(
+        "--path", action="store_true", help="Interpret app name as a local path"
+    )
     p.add_argument(
         "--pypackages",
         action="store_true",
@@ -680,7 +740,9 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
     p.usage = re.sub(r"\.\.\.", "app ...", p.usage)
 
 
-def _add_runpip(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
+def _add_runpip(
+    subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser
+) -> None:
     p = subparsers.add_parser(
         "runpip",
         help="Run pip in an existing pipx-managed Virtual Environment",
@@ -699,10 +761,15 @@ def _add_runpip(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
     )
 
 
-def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+def _add_ensurepath(
+    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
+) -> None:
     p = subparsers.add_parser(
         "ensurepath",
-        help=("Ensure directories necessary for pipx operation are in your " "PATH environment variable."),
+        help=(
+            "Ensure directories necessary for pipx operation are in your "
+            "PATH environment variable."
+        ),
         description=(
             "Ensure directory where pipx stores apps is in your "
             "PATH environment variable. Also if pipx was installed via "
@@ -723,7 +790,9 @@ def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argpa
     )
 
 
-def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+def _add_environment(
+    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
+) -> None:
     p = subparsers.add_parser(
         "environment",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -741,11 +810,13 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
         ),
         parents=[shared_parser],
     )
-    p.add_argument("--value", "-V", metavar="VARIABLE", help="Print the value of the variable.")
+    p.add_argument(
+        "--value", "-V", metavar="VARIABLE", help="Print the value of the variable."
+    )
 
 
 def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.ArgumentParser]]:
-    venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
+    venv_container = VenvContainer(constants.PIPX_DIRS.LOCAL_VENVS)
 
     completer_venvs = InstalledVenvsCompleter(venv_container)
 
@@ -781,7 +852,9 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
     )
     parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore
 
-    subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
+    subparsers = parser.add_subparsers(
+        dest="command", description="Get help for commands with pipx COMMAND --help"
+    )
 
     subparsers_with_subcommands = {}
     _add_install(subparsers, shared_parser)
@@ -794,12 +867,20 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
     _add_reinstall(subparsers, completer_venvs.use, shared_parser)
     _add_reinstall_all(subparsers, shared_parser)
     _add_list(subparsers, shared_parser)
-    subparsers_with_subcommands["interpreter"] = _add_interpreter(subparsers, shared_parser)
+    subparsers_with_subcommands["interpreter"] = _add_interpreter(
+        subparsers, shared_parser
+    )
     _add_run(subparsers, shared_parser)
     _add_runpip(subparsers, completer_venvs.use, shared_parser)
     _add_ensurepath(subparsers, shared_parser)
     _add_environment(subparsers, shared_parser)
 
+    parser.add_argument(
+        "--global",
+        action="store_true",
+        dest="is_global",
+        help="Preform action globally for all users.",
+    )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     subparsers.add_parser(
         "completions",
@@ -822,7 +903,7 @@ def delete_oldest_logs(file_list: List[Path], keep_number: int) -> None:
 
 def _setup_log_file(pipx_log_dir: Optional[Path] = None) -> Path:
     max_logs = 10
-    pipx_log_dir = pipx_log_dir or constants.PIPX_LOG_DIR
+    pipx_log_dir = pipx_log_dir or constants.PIPX_DIRS.LOG_DIR
     # don't use utils.mkdir, to prevent emission of log message
     pipx_log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -911,15 +992,15 @@ def setup(args: argparse.Namespace) -> None:
     logger.info(f"pipx version is {__version__}")
     logger.info(f"Default python interpreter is '{DEFAULT_PYTHON}'")
 
-    mkdir(constants.PIPX_LOCAL_VENVS)
-    mkdir(constants.LOCAL_BIN_DIR)
-    mkdir(constants.LOCAL_MAN_DIR)
-    mkdir(constants.PIPX_VENV_CACHEDIR)
-    mkdir(constants.PIPX_STANDALONE_PYTHON_CACHEDIR)
+    mkdir(constants.PIPX_DIRS.LOCAL_VENVS)
+    mkdir(constants.PIPX_DIRS.BIN_DIR)
+    mkdir(constants.PIPX_DIRS.MAN_DIR)
+    mkdir(constants.PIPX_DIRS.VENV_CACHEDIR)
+    mkdir(constants.PIPX_DIRS.STANDALONE_PYTHON_CACHEDIR)
 
     for cachedir in [
-        constants.PIPX_VENV_CACHEDIR,
-        constants.PIPX_STANDALONE_PYTHON_CACHEDIR,
+        constants.PIPX_DIRS.VENV_CACHEDIR,
+        constants.PIPX_DIRS.STANDALONE_PYTHON_CACHEDIR,
     ]:
         cachedir_tag = cachedir / "CACHEDIR.TAG"
         if not cachedir_tag.exists():
@@ -933,9 +1014,9 @@ def setup(args: argparse.Namespace) -> None:
             with open(cachedir_tag, "w") as file:
                 file.write(signature)
 
-    rmdir(constants.PIPX_TRASH_DIR, False)
+    rmdir(constants.PIPX_DIRS.TRASH_DIR, False)
 
-    old_pipx_venv_location = constants.PIPX_LOCAL_VENVS / "pipx-app"
+    old_pipx_venv_location = constants.PIPX_DIRS.LOCAL_VENVS / "pipx-app"
     if old_pipx_venv_location.exists():
         logger.warning(
             pipx_wrap(
@@ -959,7 +1040,9 @@ def check_args(parsed_pipx_args: argparse.Namespace) -> None:
         # since we would like app to be required but not in a separate argparse
         #   add_argument, we implement our own missing required arg error
         if not parsed_pipx_args.app_with_args:
-            parsed_pipx_args.subparser.error("the following arguments are required: app")
+            parsed_pipx_args.subparser.error(
+                "the following arguments are required: app"
+            )
 
 
 def cli() -> ExitCode:

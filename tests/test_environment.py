@@ -49,3 +49,19 @@ def test_resolve_user_dir_in_env_paths_env_not_set(monkeypatch):
     home = Path.home()
     env_dir = load_dir_from_environ("TEST_DIR", Path.home())
     assert env_dir == home
+
+
+def test_cli_global(monkeypatch, capsys):
+    assert not run_pipx_cli(["--global", "environment"])
+    captured = capsys.readouterr()
+    assert "PIPX_HOME=/opt/pipx" in captured.out
+    assert "PIPX_BIN_DIR=/usr/local/bin" in captured.out
+    assert "PIPX_MAN_DIR=/usr/local/share/man" in captured.out
+    assert "PIPX_SHARED_LIBS=/opt/pipx/shared" in captured.out
+    assert "PIPX_LOCAL_VENVS=/opt/pipx/venvs" in captured.out
+    assert "PIPX_LOG_DIR=/opt/pipx/logs" in captured.out
+    assert "PIPX_TRASH_DIR=/opt/pipx/.trash" in captured.out
+    assert "PIPX_VENV_CACHEDIR=/opt/pipx/.cache" in captured.out
+    # Checking just for the sake of completeness
+    assert "PIPX_DEFAULT_PYTHON" in captured.out
+    assert "USE_EMOJI" in captured.out
