@@ -13,7 +13,7 @@ from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_REINSTALL_INVALID_PYTHON,
     EXIT_CODE_REINSTALL_VENV_NONEXISTENT,
-    PIPX_SHARED_LIBS,
+    PIPX_DIRS,
     ExitCode,
 )
 from pipx.emojis import error, sleep
@@ -50,7 +50,7 @@ def reinstall(
     if importlib.util.find_spec("pip") is None:
         raise PipxError(
             f"Can not find pip. You may encounter issues uninstalling packages. "
-            f"Remove {PIPX_SHARED_LIBS} and run 'pipx reinstall-all' to fix them."
+            f"Remove {PIPX_DIRS.SHARED_LIBS} and run 'pipx reinstall-all' to fix them."
         )
 
     uninstall(venv_dir, local_bin_dir, verbose)

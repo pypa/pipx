@@ -9,6 +9,11 @@ def test_inject_simple(pipx_temp_env, capsys):
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
 
 
+def test_inject_simple_global(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["--global", "install", "pycowsay"])
+    assert not run_pipx_cli(["--global", "inject", "pycowsay", PKG["black"]["spec"]])
+
+
 @pytest.mark.parametrize("metadata_version", [None, "0.1"])
 def test_inject_simple_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay"])

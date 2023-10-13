@@ -66,7 +66,7 @@ def test_cache(pipx_temp_env, monkeypatch, capsys, caplog):
 
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_cachedir_tag(pipx_ultra_temp_env, monkeypatch, capsys, caplog):
-    tag_path = constants.PIPX_VENV_CACHEDIR / "CACHEDIR.TAG"
+    tag_path = constants.PIPX_DIRS.VENV_CACHEDIR / "CACHEDIR.TAG"
     assert not tag_path.exists()
 
     # Run pipx to create tag

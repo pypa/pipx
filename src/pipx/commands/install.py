@@ -32,7 +32,7 @@ def install(
             package_spec, python, pip_args=pip_args, verbose=verbose
         )
     if venv_dir is None:
-        venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
+        venv_container = VenvContainer(constants.PIPX_DIRS.LOCAL_VENVS)
         venv_dir = venv_container.get_venv_dir(f"{package_name}{suffix}")
 
     try:

@@ -23,7 +23,7 @@ SHARED_LIBS_MAX_AGE_SEC = datetime.timedelta(days=30).total_seconds()
 
 class _SharedLibs:
     def __init__(self) -> None:
-        self.root = constants.PIPX_SHARED_LIBS
+        self.root = constants.PIPX_DIRS.SHARED_LIBS
         self.bin_path, self.python_path = get_venv_paths(self.root)
         self.pip_path = self.bin_path / ("pip" if not WINDOWS else "pip.exe")
         # i.e. bin_path is ~/.local/pipx/shared/bin

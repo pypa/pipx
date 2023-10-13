@@ -66,7 +66,7 @@ def inject_dep(
         run_post_install_actions(
             venv,
             package_name,
-            constants.LOCAL_BIN_DIR,
+            constants.PIPX_DIRS.BIN_DIR,
             venv_dir,
             include_dependencies,
             force=force,

@@ -46,17 +46,18 @@ def pipx_temp_env_helper(
 ):
     home_dir = Path(tmp_path) / "subdir" / "pipxhome"
     bin_dir = Path(tmp_path) / "otherdir" / "pipxbindir"
+    global_bin_dir = Path(tmp_path) / "global" / "pipxbindir"
+    global_home_dir = Path(tmp_path) / "global" / "pipxhome"
 
-    monkeypatch.setattr(constants, "PIPX_SHARED_LIBS", pipx_shared_dir)
+    # Patch in test specific base paths
+    monkeypatch.setattr(constants.PIPX_DIRS, "_base_shared_libs", pipx_shared_dir)
+    monkeypatch.setattr(constants.PIPX_DIRS, "_base_home", home_dir)
+    monkeypatch.setattr(constants.PIPX_DIRS, "_base_bin", bin_dir)
+    # Patch the default global paths so developers don't contaminate their own systems
+    monkeypatch.setattr(constants, "DEFAULT_PIPX_GLOBAL_BIN_DIR", global_bin_dir)
+    monkeypatch.setattr(constants, "DEFAULT_PIPX_GLOBAL_HOME", global_home_dir)
     monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())
     monkeypatch.setattr(venv, "shared_libs", shared_libs.shared_libs)
-
-    monkeypatch.setattr(constants, "PIPX_HOME", home_dir)
-    monkeypatch.setattr(constants, "LOCAL_BIN_DIR", bin_dir)
-    monkeypatch.setattr(constants, "PIPX_LOCAL_VENVS", home_dir / "venvs")
-    monkeypatch.setattr(constants, "PIPX_VENV_CACHEDIR", home_dir / ".cache")
-    monkeypatch.setattr(constants, "PIPX_LOG_DIR", home_dir / "logs")
-
     monkeypatch.setattr(interpreter, "DEFAULT_PYTHON", sys.executable)
 
     if "PIPX_DEFAULT_PYTHON" in os.environ:
@@ -65,15 +66,19 @@ def pipx_temp_env_helper(
     # macOS needs /usr/bin in PATH to compile certain packages, but
     #   applications in /usr/bin cause test_install.py tests to raise warnings
     #   which make tests fail (e.g. on Github ansible apps exist in /usr/bin)
-    monkeypatch.setenv("PATH_ORIG", str(bin_dir) + os.pathsep + os.getenv("PATH"))
-    monkeypatch.setenv("PATH_TEST", str(bin_dir))
-    monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + str(utils_temp_dir))
+    monkeypatch.setenv(
+        "PATH_ORIG", str(constants.PIPX_DIRS.BIN_DIR) + os.pathsep + os.getenv("PATH")
+    )
+    monkeypatch.setenv("PATH_TEST", str(constants.PIPX_DIRS.BIN_DIR))
+    monkeypatch.setenv(
+        "PATH", str(constants.PIPX_DIRS.BIN_DIR) + os.pathsep + str(utils_temp_dir)
+    )
     # On Windows, monkeypatch pipx.commands.common._can_symlink_cache to
-    #   indicate that constants.LOCAL_BIN_DIR cannot use symlinks, even if
+    #   indicate that constants.PIPX_DIRS.BIN_DIR cannot use symlinks, even if
     #   we're running as administrator and symlinks are actually possible.
     if WIN:
         monkeypatch.setitem(
-            commands.common._can_symlink_cache, constants.LOCAL_BIN_DIR, False
+            commands.common._can_symlink_cache, constants.PIPX_DIRS.BIN_DIR, False
         )
     if not request.config.option.net_pypiserver:
         # IMPORTANT: use 127.0.0.1 not localhost

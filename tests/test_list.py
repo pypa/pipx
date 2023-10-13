@@ -22,6 +22,12 @@ def test_cli(pipx_temp_env, monkeypatch, capsys):
     assert "nothing has been installed with pipx" in captured.err
 
 
+def test_cli_global(pipx_temp_env, monkeypatch, capsys):
+    assert not run_pipx_cli(["--global", "list"])
+    captured = capsys.readouterr()
+    assert "nothing has been installed with pipx" in captured.err
+
+
 def test_missing_interpreter(pipx_temp_env, monkeypatch, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
 
@@ -72,7 +78,7 @@ def test_list_suffix_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_ve
 
 
 def test_list_json(pipx_temp_env, capsys):
-    pipx_venvs_dir = constants.PIPX_HOME / "venvs"
+    pipx_venvs_dir = constants.PIPX_DIRS.HOME / "venvs"
     venv_bin_dir = "Scripts" if constants.WINDOWS else "bin"
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])

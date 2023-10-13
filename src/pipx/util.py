@@ -23,7 +23,7 @@ from typing import (
 
 import pipx.constants
 from pipx.animate import show_cursor
-from pipx.constants import MINGW, PIPX_TRASH_DIR, WINDOWS
+from pipx.constants import MINGW, WINDOWS
 
 logger = logging.getLogger(__name__)
 
@@ -42,10 +42,10 @@ class RelevantSearch(NamedTuple):
 
 
 def _get_trash_file(path: Path) -> Path:
-    if not PIPX_TRASH_DIR.is_dir():
-        PIPX_TRASH_DIR.mkdir()
+    if not pipx.constants.PIPX_DIRS.TRASH_DIR.is_dir():
+        pipx.constants.PIPX_DIRS.TRASH_DIR.mkdir()
     prefix = "".join(random.choices(string.ascii_lowercase, k=8))
-    return PIPX_TRASH_DIR / f"{prefix}.{path.name}"
+    return pipx.constants.PIPX_DIRS.TRASH_DIR / f"{prefix}.{path.name}"
 
 
 def rmdir(path: Path, safe_rm: bool = True) -> None:

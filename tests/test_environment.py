@@ -30,3 +30,18 @@ def test_cli_with_args(monkeypatch, capsys):
     assert run_pipx_cli(["environment", "--value", "SSS"])
     captured = capsys.readouterr()
     assert "Variable not found." in captured.err
+
+
+def test_cli_global(monkeypatch, capsys):
+    assert not run_pipx_cli(["--global", "environment"])
+    captured = capsys.readouterr()
+    assert "PIPX_HOME=/opt/pipx" in captured.out
+    assert "PIPX_BIN_DIR=/usr/local/bin" in captured.out
+    assert "PIPX_SHARED_LIBS=/opt/pipx/shared" in captured.out
+    assert "PIPX_LOCAL_VENVS=/opt/pipx/venvs" in captured.out
+    assert "PIPX_LOG_DIR=/opt/pipx/logs" in captured.out
+    assert "PIPX_TRASH_DIR=/opt/pipx/.trash" in captured.out
+    assert "PIPX_VENV_CACHEDIR=/opt/pipx/.cache" in captured.out
+    # Checking just for the sake of completeness
+    assert "PIPX_DEFAULT_PYTHON" in captured.out
+    assert "USE_EMOJI" in captured.out

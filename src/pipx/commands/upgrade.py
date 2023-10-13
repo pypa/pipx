@@ -50,7 +50,7 @@ def _upgrade_package(
 
     if package_metadata.include_apps:
         expose_apps_globally(
-            constants.LOCAL_BIN_DIR,
+            constants.PIPX_DIRS.BIN_DIR,
             package_metadata.app_paths,
             force=force,
             suffix=package_metadata.suffix,
@@ -59,7 +59,7 @@ def _upgrade_package(
     if package_metadata.include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             expose_apps_globally(
-                constants.LOCAL_BIN_DIR,
+                constants.PIPX_DIRS.BIN_DIR,
                 app_paths,
                 force=force,
                 suffix=package_metadata.suffix,

@@ -10,6 +10,12 @@ def test_upgrade(pipx_temp_env, capsys):
     assert not run_pipx_cli(["upgrade", "pycowsay"])
 
 
+def test_upgrade_global(pipx_temp_env, capsys):
+    assert run_pipx_cli(["--global", "upgrade", "pycowsay"])
+    assert not run_pipx_cli(["--global", "install", "pycowsay"])
+    assert not run_pipx_cli(["--global", "upgrade", "pycowsay"])
+
+
 @pytest.mark.parametrize("metadata_version", [None, "0.1"])
 def test_upgrade_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay"])

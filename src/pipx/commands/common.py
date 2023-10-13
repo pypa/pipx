@@ -214,7 +214,7 @@ def get_venv_summary(
 
     exposed_app_paths = get_exposed_app_paths_for_package(
         venv.bin_path,
-        constants.LOCAL_BIN_DIR,
+        constants.PIPX_DIRS.BIN_DIR,
         [add_suffix(app, package_metadata.suffix) for app in apps],
     )
     exposed_binary_names = sorted(p.name for p in exposed_app_paths)

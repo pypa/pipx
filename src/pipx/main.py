@@ -66,8 +66,8 @@ PIPX_DESCRIPTION = textwrap.dedent(
     Binaries can either be installed globally into isolated Virtual Environments
     or run directly in a temporary Virtual Environment.
 
-    Virtual Environment location is {str(constants.PIPX_LOCAL_VENVS)}.
-    Symlinks to apps are placed in {str(constants.LOCAL_BIN_DIR)}.
+    Virtual Environment location is {str(constants.PIPX_DIRS.LOCAL_VENVS)}.
+    Symlinks to apps are placed in {str(constants.PIPX_DIRS.BIN_DIR)}.
 
     """
 )
@@ -162,10 +162,12 @@ def get_venv_args(parsed_args: Dict[str, str]) -> List[str]:
 
 def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
     verbose = args.verbose if "verbose" in args else False
+    if args.is_global:
+        constants.PIPX_DIRS.make_global()
     pip_args = get_pip_args(vars(args))
     venv_args = get_venv_args(vars(args))
 
-    venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
+    venv_container = VenvContainer(constants.PIPX_DIRS.LOCAL_VENVS)
 
     if "package" in args:
         package = args.package
@@ -206,7 +208,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             None,
             None,
             args.package_spec,
-            constants.LOCAL_BIN_DIR,
+            constants.PIPX_DIRS.BIN_DIR,
             args.python,
             pip_args,
             venv_args,
@@ -231,7 +233,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         return commands.uninject(
             venv_dir,
             args.dependencies,
-            local_bin_dir=constants.LOCAL_BIN_DIR,
+            local_bin_dir=constants.PIPX_DIRS.BIN_DIR,
             leave_deps=args.leave_deps,
             verbose=verbose,
         )
@@ -256,20 +258,22 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             venv_container, args.include_injected, args.json, args.short
         )
     elif args.command == "uninstall":
-        return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, verbose)
+        return commands.uninstall(venv_dir, constants.PIPX_DIRS.BIN_DIR, verbose)
     elif args.command == "uninstall-all":
-        return commands.uninstall_all(venv_container, constants.LOCAL_BIN_DIR, verbose)
+        return commands.uninstall_all(
+            venv_container, constants.PIPX_DIRS.BIN_DIR, verbose
+        )
     elif args.command == "reinstall":
         return commands.reinstall(
             venv_dir=venv_dir,
-            local_bin_dir=constants.LOCAL_BIN_DIR,
+            local_bin_dir=constants.PIPX_DIRS.BIN_DIR,
             python=args.python,
             verbose=verbose,
         )
     elif args.command == "reinstall-all":
         return commands.reinstall_all(
             venv_container,
-            constants.LOCAL_BIN_DIR,
+            constants.PIPX_DIRS.BIN_DIR,
             args.python,
             verbose,
             skip=skip_list,
@@ -687,7 +691,7 @@ def _add_environment(subparsers: argparse._SubParsersAction) -> None:
 
 
 def get_command_parser() -> argparse.ArgumentParser:
-    venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
+    venv_container = VenvContainer(constants.PIPX_DIRS.LOCAL_VENVS)
 
     completer_venvs = InstalledVenvsCompleter(venv_container)
 
@@ -717,6 +721,12 @@ def get_command_parser() -> argparse.ArgumentParser:
     _add_ensurepath(subparsers)
     _add_environment(subparsers)
 
+    parser.add_argument(
+        "--global",
+        action="store_true",
+        dest="is_global",
+        help="Preform action globally for all users.",
+    )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     subparsers.add_parser(
         "completions",
@@ -738,7 +748,7 @@ def delete_oldest_logs(file_list: List[Path], keep_number: int) -> None:
 
 def _setup_log_file(pipx_log_dir: Optional[Path] = None) -> Path:
     max_logs = 10
-    pipx_log_dir = pipx_log_dir or constants.PIPX_LOG_DIR
+    pipx_log_dir = pipx_log_dir or constants.PIPX_DIRS.LOG_DIR
     # don't use utils.mkdir, to prevent emission of log message
     pipx_log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -820,11 +830,11 @@ def setup(args: argparse.Namespace) -> None:
     logger.info(f"pipx version is {__version__}")
     logger.info(f"Default python interpreter is '{DEFAULT_PYTHON}'")
 
-    mkdir(constants.PIPX_LOCAL_VENVS)
-    mkdir(constants.LOCAL_BIN_DIR)
-    mkdir(constants.PIPX_VENV_CACHEDIR)
+    mkdir(constants.PIPX_DIRS.LOCAL_VENVS)
+    mkdir(constants.PIPX_DIRS.BIN_DIR)
+    mkdir(constants.PIPX_DIRS.VENV_CACHEDIR)
 
-    cachedir_tag = constants.PIPX_VENV_CACHEDIR / "CACHEDIR.TAG"
+    cachedir_tag = constants.PIPX_DIRS.VENV_CACHEDIR / "CACHEDIR.TAG"
     if not cachedir_tag.exists():
         logger.debug("Adding CACHEDIR.TAG to cache directory")
         signature = (
@@ -836,9 +846,9 @@ def setup(args: argparse.Namespace) -> None:
         with open(cachedir_tag, "w") as file:
             file.write(signature)
 
-    rmdir(constants.PIPX_TRASH_DIR, False)
+    rmdir(constants.PIPX_DIRS.TRASH_DIR, False)
 
-    old_pipx_venv_location = constants.PIPX_LOCAL_VENVS / "pipx-app"
+    old_pipx_venv_location = constants.PIPX_DIRS.LOCAL_VENVS / "pipx-app"
     if old_pipx_venv_location.exists():
         logger.warning(
             pipx_wrap(
