@@ -5,6 +5,7 @@ from typing import List, Sequence
 from packaging.utils import canonicalize_name
 
 import pipx.shared_libs  # import instead of from so mockable in tests
+from pipx import paths
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
@@ -12,7 +13,6 @@ from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_REINSTALL_INVALID_PYTHON,
     EXIT_CODE_REINSTALL_VENV_NONEXISTENT,
-    PIPX_DIRS,
     ExitCode,
 )
 from pipx.emojis import error, sleep

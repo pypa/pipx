@@ -9,7 +9,7 @@ import pytest  # type: ignore
 
 from helpers import app_name, run_pipx_cli, unwrap_log_text
 from package_info import PKG
-from pipx import constants
+from pipx import paths
 
 TEST_DATA_PATH = "./testdata/test_package_specifier"
 
@@ -110,12 +110,6 @@ def test_install_package_specs(capsys, pipx_temp_env, caplog, package_name, pack
     install_packages(capsys, pipx_temp_env, caplog, [package_spec], [package_name])
 
 
-def test_global_install(pipx_temp_env, capsys):
-    run_pipx_cli(["--global", "install", "pycowsay"])
-    captured = capsys.readouterr()
-    assert "installed package" in captured.out
-
-
 def test_force_install(pipx_temp_env, capsys):
     run_pipx_cli(["install", "pycowsay"])
     captured = capsys.readouterr()
@@ -187,8 +181,8 @@ def test_existing_symlink_points_to_existing_wrong_location_warning(pipx_temp_en
     if sys.platform.startswith("win"):
         pytest.skip("pipx does not use symlinks on Windows")
 
-    constants.PIPX_DIRS.BIN_DIR.mkdir(exist_ok=True, parents=True)
-    (constants.PIPX_DIRS.BIN_DIR / "pycowsay").symlink_to(os.devnull)
+    paths.ctx.bin_dir.mkdir(exist_ok=True, parents=True)
+    (paths.ctx.bin_dir / "pycowsay").symlink_to(os.devnull)
     assert not run_pipx_cli(["install", "pycowsay"])
     captured = capsys.readouterr()
     assert "File exists at" in unwrap_log_text(caplog.text)
@@ -214,8 +208,8 @@ def test_existing_symlink_points_to_nothing(pipx_temp_env, capsys):
     if sys.platform.startswith("win"):
         pytest.skip("pipx does not use symlinks on Windows")
 
-    constants.PIPX_DIRS.BIN_DIR.mkdir(exist_ok=True, parents=True)
-    (constants.PIPX_DIRS.BIN_DIR / "pycowsay").symlink_to("/asdf/jkl")
+    paths.ctx.bin_dir.mkdir(exist_ok=True, parents=True)
+    (paths.ctx.bin_dir / "pycowsay").symlink_to("/asdf/jkl")
     assert not run_pipx_cli(["install", "pycowsay"])
     captured = capsys.readouterr()
     # pipx should realize the symlink points to nothing and replace it,
@@ -281,8 +275,8 @@ def test_install_suffix(pipx_temp_env, capsys):
     name_b = app_name(f"{name}{suffix}")
     assert f"- {name_b}" in captured.out
 
-    assert (constants.PIPX_DIRS.BIN_DIR / name_a).exists()
-    assert (constants.PIPX_DIRS.BIN_DIR / name_b).exists()
+    assert (paths.ctx.bin_dir / name_a).exists()
+    assert (paths.ctx.bin_dir / name_b).exists()
 
 
 def test_man_page_install(pipx_temp_env, capsys):

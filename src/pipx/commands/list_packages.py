@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from typing import Any, Collection, Dict, Tuple
 
-from pipx import constants, shared_libs
+from pipx import paths, shared_libs
 from pipx.colors import bold
 from pipx.commands.common import VenvProblems, get_venv_summary, venv_health_check
 from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK, ExitCode
@@ -43,14 +43,18 @@ def list_short(venv_dirs: Collection[Path]) -> VenvProblems:
     return all_venv_problems
 
 
-def list_text(venv_dirs: Collection[Path], include_injected: bool, venv_root_dir: str) -> VenvProblems:
+def list_text(
+    venv_dirs: Collection[Path], include_injected: bool, venv_root_dir: str
+) -> VenvProblems:
     print(f"venvs are in {bold(venv_root_dir)}")
-    print(f"apps are exposed on your $PATH at {bold(str(constants.PIPX_DIRS.BIN_DIR))}")
-    print(f"manual pages are exposed at {bold(str(constants.PIPX_DIRS.MAN_DIR))}")
+    print(f"apps are exposed on your $PATH at {bold(str(paths.ctx.bin_dir))}")
+    print(f"manual pages are exposed at {bold(str(paths.ctx.man_dir))}")
 
     all_venv_problems = VenvProblems()
     for venv_dir in venv_dirs:
-        package_summary, venv_problems = get_venv_summary(venv_dir, include_injected=include_injected)
+        package_summary, venv_problems = get_venv_summary(
+            venv_dir, include_injected=include_injected
+        )
         if venv_problems.any_():
             logger.warning(package_summary)
         else:
@@ -68,7 +72,9 @@ def list_json(venv_dirs: Collection[Path]) -> VenvProblems:
     }
     all_venv_problems = VenvProblems()
     for venv_dir in venv_dirs:
-        (venv_metadata, venv_problems, warning_str) = get_venv_metadata_summary(venv_dir)
+        (venv_metadata, venv_problems, warning_str) = get_venv_metadata_summary(
+            venv_dir
+        )
         all_venv_problems.or_(venv_problems)
         if venv_problems.any_():
             warning_messages.append(warning_str)
@@ -77,7 +83,9 @@ def list_json(venv_dirs: Collection[Path]) -> VenvProblems:
         spec_metadata["venvs"][venv_dir.name] = {}
         spec_metadata["venvs"][venv_dir.name]["metadata"] = venv_metadata.to_dict()
 
-    print(json.dumps(spec_metadata, indent=4, sort_keys=True, cls=JsonEncoderHandlesPath))
+    print(
+        json.dumps(spec_metadata, indent=4, sort_keys=True, cls=JsonEncoderHandlesPath)
+    )
     for warning_message in warning_messages:
         logger.warning(warning_message)
 
@@ -119,7 +127,8 @@ def list_packages(
         )
     if all_venv_problems.invalid_interpreter:
         logger.warning(
-            "\nOne or more packages have a missing python interpreter.\n" "    To fix, execute: pipx reinstall-all"
+            "\nOne or more packages have a missing python interpreter.\n"
+            "    To fix, execute: pipx reinstall-all"
         )
     if all_venv_problems.missing_metadata:
         logger.warning(
