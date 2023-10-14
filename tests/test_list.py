@@ -1,5 +1,6 @@
 import json
 import re
+import sys
 
 import pytest  # type: ignore
 
@@ -23,6 +24,8 @@ def test_cli(pipx_temp_env, monkeypatch, capsys):
 
 
 def test_cli_global(pipx_temp_env, monkeypatch, capsys):
+    if sys.platform.startswith("win"):
+        pytest.skip("This behavior is undefined on Windows")
     assert not run_pipx_cli(["--global", "list"])
     captured = capsys.readouterr()
     assert "nothing has been installed with pipx" in captured.err

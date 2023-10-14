@@ -162,7 +162,7 @@ def get_venv_args(parsed_args: Dict[str, str]) -> List[str]:
 
 def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
     verbose = args.verbose if "verbose" in args else False
-    if args.is_global:
+    if not constants.WINDOWS and args.is_global:
         constants.PIPX_DIRS.make_global()
     pip_args = get_pip_args(vars(args))
     venv_args = get_venv_args(vars(args))
@@ -721,12 +721,13 @@ def get_command_parser() -> argparse.ArgumentParser:
     _add_ensurepath(subparsers)
     _add_environment(subparsers)
 
-    parser.add_argument(
-        "--global",
-        action="store_true",
-        dest="is_global",
-        help="Preform action globally for all users.",
-    )
+    if not constants.WINDOWS:
+        parser.add_argument(
+            "--global",
+            action="store_true",
+            dest="is_global",
+            help="Preform action globally for all users.",
+        )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     subparsers.add_parser(
         "completions",

@@ -1,3 +1,7 @@
+import sys
+
+import pytest  # type: ignore
+
 from helpers import run_pipx_cli
 from package_info import PKG
 
@@ -9,6 +13,19 @@ def test_uninject_simple(pipx_temp_env, capsys):
     captured = capsys.readouterr()
     assert "Uninjected package black" in captured.out
     assert not run_pipx_cli(["list", "--include-injected"])
+    captured = capsys.readouterr()
+    assert "black" not in captured.out
+
+
+def test_uninject_simple_global(pipx_temp_env, capsys):
+    if sys.platform.startswith("win"):
+        pytest.skip("This behavior is undefined on Windows")
+    assert not run_pipx_cli(["--global", "install", "pycowsay"])
+    assert not run_pipx_cli(["--global", "inject", "pycowsay", PKG["black"]["spec"]])
+    assert not run_pipx_cli(["--global", "uninject", "pycowsay", "black"])
+    captured = capsys.readouterr()
+    assert "Uninjected package black" in captured.out
+    assert not run_pipx_cli(["--global", "list", "--include-injected"])
     captured = capsys.readouterr()
     assert "black" not in captured.out
 

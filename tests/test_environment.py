@@ -1,3 +1,7 @@
+import sys
+
+import pytest  # type: ignore
+
 from helpers import run_pipx_cli
 
 
@@ -33,6 +37,8 @@ def test_cli_with_args(monkeypatch, capsys):
 
 
 def test_cli_global(monkeypatch, capsys):
+    if sys.platform.startswith("win"):
+        pytest.skip("This behavior is undefined on Windows")
     assert not run_pipx_cli(["--global", "environment"])
     captured = capsys.readouterr()
     assert "PIPX_HOME=/opt/pipx" in captured.out

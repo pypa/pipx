@@ -1,3 +1,5 @@
+import sys
+
 import pytest  # type: ignore
 
 from helpers import mock_legacy_venv, run_pipx_cli
@@ -10,6 +12,8 @@ def test_inject_simple(pipx_temp_env, capsys):
 
 
 def test_inject_simple_global(pipx_temp_env, capsys):
+    if sys.platform.startswith("win"):
+        pytest.skip("This behavior is undefined on Windows")
     assert not run_pipx_cli(["--global", "install", "pycowsay"])
     assert not run_pipx_cli(["--global", "inject", "pycowsay", PKG["black"]["spec"]])
 

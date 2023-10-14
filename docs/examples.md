@@ -15,6 +15,7 @@ pipx install --suffix @branch-name 'black[d] @ git+https://github.com/psf/black.
 pipx install --include-deps jupyter
 pipx install --pip-args='--pre' poetry
 pipx install --pip-args='--index-url=<private-repo-host>:<private-repo-port> --trusted-host=<private-repo-host>:<private-repo-port>' private-repo-package
+pipx --global install pycowsay
 ```
 
 ## `pipx run` examples
