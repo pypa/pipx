@@ -1,4 +1,7 @@
+import sys
 from pathlib import Path
+
+import pytest  # type: ignore
 
 from helpers import run_pipx_cli
 from pipx.constants import load_dir_from_environ
@@ -52,6 +55,8 @@ def test_resolve_user_dir_in_env_paths_env_not_set(monkeypatch):
 
 
 def test_cli_global(monkeypatch, capsys):
+    if sys.platform.startswith("win"):
+        pytest.skip("This behavior is undefined on Windows")
     assert not run_pipx_cli(["--global", "environment"])
     captured = capsys.readouterr()
     assert "PIPX_HOME=/opt/pipx" in captured.out

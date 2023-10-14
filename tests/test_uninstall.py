@@ -23,6 +23,8 @@ def test_uninstall(pipx_temp_env):
 
 
 def test_uninstall_global(pipx_temp_env):
+    if sys.platform.startswith("win"):
+        pytest.skip("This behavior is undefined on Windows")
     assert not run_pipx_cli(["--global", "install", "pycowsay"])
     assert not run_pipx_cli(["--global", "uninstall", "pycowsay"])
 

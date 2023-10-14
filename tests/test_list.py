@@ -28,6 +28,8 @@ def test_cli(pipx_temp_env, monkeypatch, capsys):
 
 
 def test_cli_global(pipx_temp_env, monkeypatch, capsys):
+    if sys.platform.startswith("win"):
+        pytest.skip("This behavior is undefined on Windows")
     assert not run_pipx_cli(["--global", "list"])
     captured = capsys.readouterr()
     assert "nothing has been installed with pipx" in captured.err
@@ -101,7 +103,9 @@ def test_list_json(pipx_temp_env, capsys):
     assert sorted(json_parsed["venvs"].keys()) == ["pycowsay", "pylint"]
 
     # pycowsay venv
-    pycowsay_package_ref = create_package_info_ref("pycowsay", "pycowsay", pipx_venvs_dir)
+    pycowsay_package_ref = create_package_info_ref(
+        "pycowsay", "pycowsay", pipx_venvs_dir
+    )
     assert_package_metadata(
         PackageInfo(**json_parsed["venvs"]["pycowsay"]["metadata"]["main_package"]),
         pycowsay_package_ref,
@@ -113,18 +117,32 @@ def test_list_json(pipx_temp_env, capsys):
         "pylint",
         "pylint",
         pipx_venvs_dir,
-        **{"app_paths_of_dependencies": {"isort": [pipx_venvs_dir / "pylint" / venv_bin_dir / app_name("isort")]}},
+        **{
+            "app_paths_of_dependencies": {
+                "isort": [pipx_venvs_dir / "pylint" / venv_bin_dir / app_name("isort")]
+            }
+        },
     )
     assert_package_metadata(
         PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["main_package"]),
         pylint_package_ref,
     )
-    assert sorted(json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"].keys()) == ["isort"]
-    isort_package_ref = create_package_info_ref("pylint", "isort", pipx_venvs_dir, include_apps=False)
+    assert sorted(
+        json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"].keys()
+    ) == ["isort"]
+    isort_package_ref = create_package_info_ref(
+        "pylint", "isort", pipx_venvs_dir, include_apps=False
+    )
     print(isort_package_ref)
-    print(PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["isort"]))
+    print(
+        PackageInfo(
+            **json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["isort"]
+        )
+    )
     assert_package_metadata(
-        PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["isort"]),
+        PackageInfo(
+            **json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["isort"]
+        ),
         isort_package_ref,
     )
 
@@ -141,7 +159,9 @@ def test_list_short(pipx_temp_env, monkeypatch, capsys):
     assert "pylint 2.3.1" in captured.out
 
 
-def test_list_standalone_interpreter(pipx_temp_env, monkeypatch, mocked_github_api, capsys):
+def test_list_standalone_interpreter(
+    pipx_temp_env, monkeypatch, mocked_github_api, capsys
+):
     def which(name):
         return None
 
