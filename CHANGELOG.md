@@ -17,6 +17,7 @@
 - Fix program name in generated manual page
 - Print all environment variables in `pipx environment`
 - Return an error message when directory can't be added to PATH successfully
+- Added `--global` option to perform actions system-wide, for all users (#754).
 
 ## 1.2.0
 
