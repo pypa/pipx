@@ -21,7 +21,7 @@ from typing import (
     Union,
 )
 
-import pipx.constants
+from pipx import paths
 from pipx.animate import show_cursor
 from pipx.constants import MINGW, WINDOWS
 
@@ -42,10 +42,10 @@ class RelevantSearch(NamedTuple):
 
 
 def _get_trash_file(path: Path) -> Path:
-    if not pipx.constants.PIPX_DIRS.TRASH_DIR.is_dir():
-        pipx.constants.PIPX_DIRS.TRASH_DIR.mkdir()
+    if not paths.ctx.trash.is_dir():
+        paths.ctx.trash.mkdir()
     prefix = "".join(random.choices(string.ascii_lowercase, k=8))
-    return pipx.constants.PIPX_DIRS.TRASH_DIR / f"{prefix}.{path.name}"
+    return paths.ctx.trash / f"{prefix}.{path.name}"
 
 
 def rmdir(path: Path, safe_rm: bool = True) -> None:
@@ -334,10 +334,10 @@ def subprocess_post_check_handle_pip_error(
     if completed_process.returncode:
         logger.info(f"{' '.join(completed_process.args)!r} failed")
         # Save STDOUT and STDERR to file in pipx/logs/
-        if pipx.constants.pipx_log_file is None:
+        if paths.ctx.log_file is None:
             raise PipxError("Pipx internal error: No log_file present.")
-        pip_error_file = pipx.constants.pipx_log_file.parent / (
-            pipx.constants.pipx_log_file.stem + "_pip_errors.log"
+        pip_error_file = paths.ctx.log_file.parent / (
+            paths.ctx.log_file.stem + "_pip_errors.log"
         )
         with pip_error_file.open("w", encoding="utf-8") as pip_error_fh:
             print("PIP STDOUT", file=pip_error_fh)

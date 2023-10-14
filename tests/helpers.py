@@ -9,7 +9,7 @@ from unittest import mock
 from packaging.utils import canonicalize_name
 
 from package_info import PKG
-from pipx import constants, main, pipx_metadata_file, util
+from pipx import constants, main, paths, pipx_metadata_file, util
 
 WIN = sys.platform.startswith("win")
 
@@ -76,7 +76,7 @@ def mock_legacy_venv(venv_name: str, metadata_version: Optional[str] = None) -> 
     one with a previous metadata version.
     metadata_version=None refers to no metadata file (pipx pre-0.15.0.0)
     """
-    venv_dir = Path(constants.PIPX_DIRS.LOCAL_VENVS) / canonicalize_name(venv_name)
+    venv_dir = Path(paths.ctx.venvs) / canonicalize_name(venv_name)
 
     if metadata_version == "0.2":
         # Current metadata version, do nothing
@@ -168,9 +168,7 @@ def assert_package_metadata(test_metadata, ref_metadata):
 
 
 def remove_venv_interpreter(venv_name):
-    _, venv_python_path = util.get_venv_paths(
-        constants.PIPX_DIRS.LOCAL_VENVS / venv_name
-    )
+    _, venv_python_path = util.get_venv_paths(paths.ctx.venvs / venv_name)
     assert venv_python_path.is_file()
     venv_python_path.unlink()
     assert not venv_python_path.is_file()

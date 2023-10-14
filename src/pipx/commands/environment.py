@@ -1,6 +1,7 @@
 import os
 
-from pipx.constants import EXIT_CODE_OK, PIPX_DIRS, ExitCode
+from pipx import paths
+from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojis import EMOJI_SUPPORT
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import PipxError
@@ -16,13 +17,13 @@ def environment(value: str) -> ExitCode:
         "USE_EMOJI",
     ]
     derived_values = {
-        "PIPX_HOME": PIPX_DIRS.HOME,
-        "PIPX_BIN_DIR": PIPX_DIRS.BIN_DIR,
-        "PIPX_SHARED_LIBS": PIPX_DIRS.SHARED_LIBS,
-        "PIPX_LOCAL_VENVS": PIPX_DIRS.LOCAL_VENVS,
-        "PIPX_LOG_DIR": PIPX_DIRS.LOG_DIR,
-        "PIPX_TRASH_DIR": PIPX_DIRS.TRASH_DIR,
-        "PIPX_VENV_CACHEDIR": PIPX_DIRS.VENV_CACHEDIR,
+        "PIPX_HOME": paths.ctx.home,
+        "PIPX_BIN_DIR": paths.ctx.bin_dir,
+        "PIPX_SHARED_LIBS": paths.ctx.shared_libs,
+        "PIPX_LOCAL_VENVS": paths.ctx.venvs,
+        "PIPX_LOG_DIR": paths.ctx.logs,
+        "PIPX_TRASH_DIR": paths.ctx.trash,
+        "PIPX_VENV_CACHEDIR": paths.ctx.venv_cache,
         "PIPX_DEFAULT_PYTHON": DEFAULT_PYTHON,
         "USE_EMOJI": str(EMOJI_SUPPORT).lower(),
     }

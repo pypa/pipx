@@ -6,6 +6,7 @@ from typing import List, Sequence
 from packaging.utils import canonicalize_name
 
 import pipx.shared_libs  # import instead of from so mockable in tests
+from pipx import paths
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
@@ -13,7 +14,6 @@ from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_REINSTALL_INVALID_PYTHON,
     EXIT_CODE_REINSTALL_VENV_NONEXISTENT,
-    PIPX_DIRS,
     ExitCode,
 )
 from pipx.emojis import error, sleep
@@ -50,7 +50,7 @@ def reinstall(
     if importlib.util.find_spec("pip") is None:
         raise PipxError(
             f"Can not find pip. You may encounter issues uninstalling packages. "
-            f"Remove {PIPX_DIRS.SHARED_LIBS} and run 'pipx reinstall-all' to fix them."
+            f"Remove {paths.ctx.shared_libs} and run 'pipx reinstall-all' to fix them."
         )
 
     uninstall(venv_dir, local_bin_dir, verbose)

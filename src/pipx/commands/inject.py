@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
-from pipx import constants
+from pipx import paths
 from pipx.colors import bold
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK, ExitCode
@@ -66,7 +66,7 @@ def inject_dep(
         run_post_install_actions(
             venv,
             package_name,
-            constants.PIPX_DIRS.BIN_DIR,
+            paths.ctx.bin_dir,
             venv_dir,
             include_dependencies,
             force=force,

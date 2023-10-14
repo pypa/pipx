@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from typing import Any, Collection, Dict, Tuple
 
-from pipx import constants
+from pipx import paths
 from pipx.colors import bold
 from pipx.commands.common import VenvProblems, get_venv_summary, venv_health_check
 from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK, ExitCode
@@ -47,7 +47,7 @@ def list_text(
     venv_dirs: Collection[Path], include_injected: bool, venv_root_dir: str
 ) -> VenvProblems:
     print(f"venvs are in {bold(venv_root_dir)}")
-    print(f"apps are exposed on your $PATH at {bold(str(constants.PIPX_DIRS.BIN_DIR))}")
+    print(f"apps are exposed on your $PATH at {bold(str(paths.ctx.bin_dir))}")
 
     all_venv_problems = VenvProblems()
     for venv_dir in venv_dirs:

@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import List, Sequence
 
-from pipx import constants
+from pipx import paths
 from pipx.colors import bold, red
 from pipx.commands.common import expose_apps_globally
 from pipx.constants import EXIT_CODE_OK, ExitCode
@@ -50,7 +50,7 @@ def _upgrade_package(
 
     if package_metadata.include_apps:
         expose_apps_globally(
-            constants.PIPX_DIRS.BIN_DIR,
+            paths.ctx.bin_dir,
             package_metadata.app_paths,
             force=force,
             suffix=package_metadata.suffix,
@@ -59,7 +59,7 @@ def _upgrade_package(
     if package_metadata.include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             expose_apps_globally(
-                constants.PIPX_DIRS.BIN_DIR,
+                paths.ctx.bin_dir,
                 app_paths,
                 force=force,
                 suffix=package_metadata.suffix,

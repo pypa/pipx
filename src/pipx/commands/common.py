@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Set, Tuple
 import userpath  # type: ignore
 from packaging.utils import canonicalize_name
 
-from pipx import constants
+from pipx import paths
 from pipx.colors import bold, red
 from pipx.constants import WINDOWS
 from pipx.emojis import hazard, stars
@@ -214,7 +214,7 @@ def get_venv_summary(
 
     exposed_app_paths = get_exposed_app_paths_for_package(
         venv.bin_path,
-        constants.PIPX_DIRS.BIN_DIR,
+        paths.ctx.bin_dir,
         [add_suffix(app, package_metadata.suffix) for app in apps],
     )
     exposed_binary_names = sorted(p.name for p in exposed_app_paths)

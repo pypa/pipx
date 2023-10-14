@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List, Optional
 
-from pipx import constants
+from pipx import paths
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.constants import EXIT_CODE_INSTALL_VENV_EXISTS, EXIT_CODE_OK, ExitCode
 from pipx.util import pipx_wrap
@@ -32,7 +32,7 @@ def install(
             package_spec, python, pip_args=pip_args, verbose=verbose
         )
     if venv_dir is None:
-        venv_container = VenvContainer(constants.PIPX_DIRS.LOCAL_VENVS)
+        venv_container = VenvContainer(paths.ctx.venvs)
         venv_dir = venv_container.get_venv_dir(f"{package_name}{suffix}")
 
     try:

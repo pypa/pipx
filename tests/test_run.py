@@ -11,7 +11,7 @@ import pipx.main
 import pipx.util
 from helpers import run_pipx_cli
 from package_info import PKG
-from pipx import constants
+from pipx import paths
 
 
 def test_help_text(pipx_temp_env, monkeypatch, capsys):
@@ -66,7 +66,7 @@ def test_cache(pipx_temp_env, monkeypatch, capsys, caplog):
 
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_cachedir_tag(pipx_ultra_temp_env, monkeypatch, capsys, caplog):
-    tag_path = constants.PIPX_DIRS.VENV_CACHEDIR / "CACHEDIR.TAG"
+    tag_path = paths.ctx.venv_cache / "CACHEDIR.TAG"
     assert not tag_path.exists()
 
     # Run pipx to create tag

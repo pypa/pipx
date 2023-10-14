@@ -13,7 +13,7 @@ from helpers import (
     run_pipx_cli,
 )
 from package_info import PKG
-from pipx import constants
+from pipx import constants, paths
 from pipx.pipx_metadata_file import PackageInfo, _json_decoder_object_hook
 
 
@@ -81,7 +81,7 @@ def test_list_suffix_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_ve
 
 
 def test_list_json(pipx_temp_env, capsys):
-    pipx_venvs_dir = constants.PIPX_DIRS.HOME / "venvs"
+    pipx_venvs_dir = paths.ctx.home / "venvs"
     venv_bin_dir = "Scripts" if constants.WINDOWS else "bin"
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
