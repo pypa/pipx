@@ -2,7 +2,7 @@ import json
 import logging
 import textwrap
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import Dict, Iterable, List, NamedTuple, Optional, Set, Tuple
 
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class VenvInspectInformation(NamedTuple):
-    distributions: List[metadata.Distribution]
+    distributions: Iterable[metadata.Distribution]
     env: Dict[str, str]
     bin_path: Path
 
@@ -34,7 +34,7 @@ class VenvMetadata(NamedTuple):
 
 
 def get_dist(
-    package: str, distributions: List[metadata.Distribution]
+    package: str, distributions: Iterable[metadata.Distribution]
 ) -> Optional[metadata.Distribution]:
     """Find matching distribution in the canonicalized sense."""
     for dist in distributions:
@@ -237,10 +237,16 @@ def inspect_venv(
         venv_python_path
     )
 
+    # Collect the generator created from metadata.distributions()
+    # (see `itertools.chain.from_iterable`) into a tuple because we
+    # need to iterate over it multiple times in `_dfs_package_apps`.
+
+    # Tuple is chosen over a list because the program only iterate over
+    # the distributions and never modify it.
+    distributions = tuple(metadata.distributions(path=venv_sys_path))
+
     venv_inspect_info = VenvInspectInformation(
-        bin_path=venv_bin_path,
-        env=venv_env,
-        distributions=list(metadata.distributions(path=venv_sys_path)),
+        bin_path=venv_bin_path, env=venv_env, distributions=distributions
     )
 
     root_dist = get_dist(root_req.name, venv_inspect_info.distributions)
