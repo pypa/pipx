@@ -1,8 +1,9 @@
 import json
 import logging
 import textwrap
+from collections.abc import Collection
 from pathlib import Path
-from typing import Dict, Iterable, List, NamedTuple, Optional, Set, Tuple
+from typing import Dict, List, NamedTuple, Optional, Set, Tuple
 
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class VenvInspectInformation(NamedTuple):
-    distributions: Iterable[metadata.Distribution]
+    distributions: Collection[metadata.Distribution]
     env: Dict[str, str]
     bin_path: Path
 
@@ -34,7 +35,7 @@ class VenvMetadata(NamedTuple):
 
 
 def get_dist(
-    package: str, distributions: Iterable[metadata.Distribution]
+    package: str, distributions: Collection[metadata.Distribution]
 ) -> Optional[metadata.Distribution]:
     """Find matching distribution in the canonicalized sense."""
     for dist in distributions:
