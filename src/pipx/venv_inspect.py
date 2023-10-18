@@ -1,9 +1,14 @@
 import json
 import logging
+import sys
 import textwrap
-from collections.abc import Collection
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Set, Tuple
+
+if sys.version_info >= (3, 9):
+    from collections.abc import Collection
+else:
+    from typing import Collection
 
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
