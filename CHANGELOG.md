@@ -18,6 +18,10 @@
 - Print all environment variables in `pipx environment`
 - Return an error message when directory can't be added to PATH successfully
 
+## 1.2.1
+
+- Fix compatibility to packaging 23.2+ by removing reliance on packaging's requirement validation logic and detecting a URL-based requirement in pipx. (#1070)
+
 ## 1.2.0
 
 - Add test for pip module in `pipx reinstall` to fix an issue with `pipx reinstall-all` (#935)
