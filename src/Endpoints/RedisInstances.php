@@ -67,7 +67,6 @@ class RedisInstances extends Endpoint
         $this->validateRequired($redisInstance, 'create', [
             'name',
             'password',
-            'primary_node_id',
             'cluster_id',
         ]);
 
@@ -81,7 +80,6 @@ class RedisInstances extends Endpoint
                     'memory_limit',
                     'eviction_policy',
                     'max_databases',
-                    'primary_node_id',
                     'cluster_id',
                 ])
             );
@@ -108,7 +106,6 @@ class RedisInstances extends Endpoint
         $this->validateRequired($redisInstance, 'update', [
             'name',
             'password',
-            'primary_node_id',
             'cluster_id',
             'id',
             'port',
@@ -124,7 +121,6 @@ class RedisInstances extends Endpoint
                     'max_databases',
                     'memory_limit',
                     'eviction_policy',
-                    'primary_node_id',
                     'cluster_id',
                     'id',
                     'port',

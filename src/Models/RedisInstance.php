@@ -14,7 +14,6 @@ class RedisInstance extends ClusterModel
     private ?int $port = null;
     private int $memoryLimit = 100;
     private string $evictionPolicy;
-    private int $primaryNodeId;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -107,18 +106,6 @@ class RedisInstance extends ClusterModel
         return $this;
     }
 
-    public function getPrimaryNodeId(): int
-    {
-        return $this->primaryNodeId;
-    }
-
-    public function setPrimaryNodeId(int $primaryNodeId): self
-    {
-        $this->primaryNodeId = $primaryNodeId;
-
-        return $this;
-    }
-
     public function getId(): ?int
     {
         return $this->id;
@@ -176,7 +163,6 @@ class RedisInstance extends ClusterModel
             ->setPort(Arr::get($data, 'port'))
             ->setMemoryLimit(Arr::get($data, 'memory_limit'))
             ->setEvictionPolicy(Arr::get($data, 'eviction_policy'))
-            ->setPrimaryNodeId(Arr::get($data, 'primary_node_id'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -192,7 +178,6 @@ class RedisInstance extends ClusterModel
             'port' => $this->getPort(),
             'memory_limit' => $this->getMemoryLimit(),
             'eviction_policy' => $this->getEvictionPolicy(),
-            'primary_node_id' => $this->getPrimaryNodeId(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
