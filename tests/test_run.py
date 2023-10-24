@@ -345,4 +345,4 @@ def test_run_with_windows_python_version(caplog, pipx_temp_env, tmp_path):
 def test_run_shared_lib_as_app(pipx_temp_env, monkeypatch, capfd):
     run_pipx_cli_exit(["run", "pip", "--help"])
     captured = capfd.readouterr()
-    assert "pip <command> [options]\n" in captured.out
+    assert "pip <command> [options]" in captured.out
