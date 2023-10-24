@@ -1,6 +1,7 @@
 ## dev
 
-- Drop `setuptools` and `wheel` from the shared libraries
+- Drop `setuptools` and `wheel` from the shared libraries. This results in less time consumption when the libraries are
+automatically upgraded.
 - Allow running `pip` with `pipx run`
 - Make usage message in `pipx run` show `package_or_url`, so extra will be printed out as well
 - Add `--force-reinstall` to pip arguments when `--force` was passed
