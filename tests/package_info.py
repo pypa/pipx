@@ -600,9 +600,11 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps_of_dependencies": _exe_if_win(["pygmentize"]),  # pygments EXE
     },
     "pycowsay": {
-        "spec": "pycowsay==0.0.0.1",
+        "spec": "pycowsay==0.0.0.2",
         "apps": _exe_if_win(["pycowsay"]),
         "apps_of_dependencies": [],
+        "man_pages": ["man6/pycowsay.6"],
+        "man_pages_of_dependencies": [],
     },
     "pygdbmi": {"spec": "pygdbmi==0.10.0.0", "apps": [], "apps_of_dependencies": []},
     "pylint": {
@@ -825,6 +827,8 @@ PKG: Dict[str, Dict[str, Any]] = {
         "spec": "youtube-dl==2020.9.20",
         "apps": _exe_if_win(["youtube-dl"]),
         "apps_of_dependencies": [],
+        "man_pages": ["man1/youtube-dl.1"],
+        "man_pages_of_dependencies": [],
     },
     "zeo": {
         "spec": "ZEO==5.2.2",

@@ -262,36 +262,50 @@ def format_report_table_footer(module_globals: ModuleGlobalsData) -> str:
     return footer_string
 
 
-def verify_installed_apps(
-    captured_outerr, package_name: str, test_error_fh: io.StringIO, deps: bool = False
+def verify_installed_resources(
+    resource_type: str,
+    captured_outerr,
+    package_name: str,
+    test_error_fh: io.StringIO,
+    deps: bool = False,
 ) -> bool:
-    package_apps = PKG[package_name]["apps"].copy()
+    resource_name = {"app": "apps", "man": "man_pages"}[resource_type]
+    resource_name_long = {"app": "apps", "man": "manual pages"}[resource_type]
+    package_resources = PKG[package_name][resource_name].copy()
     if deps:
-        package_apps += PKG[package_name]["apps_of_dependencies"]
+        package_resources += PKG[package_name]["%s_of_dependencies" % resource_name]
 
-    reported_apps_re = re.search(
-        r"These apps are now globally available\n((?:    - [^\n]+\n)*)",
+    reported_resources_re = re.search(
+        r"These "
+        + resource_name_long
+        + r" are now globally available\n((?:    - [^\n]+\n)*)",
         captured_outerr.out,
         re.DOTALL,
     )
-    if reported_apps_re:
-        reported_apps = [
-            x.strip()[2:] for x in reported_apps_re.group(1).strip().split("\n")
+    if reported_resources_re:
+        reported_resources = [
+            x.strip()[2:] for x in reported_resources_re.group(1).strip().split("\n")
         ]
-        if set(reported_apps) != set(package_apps):
-            app_success = False
+        if set(reported_resources) != set(package_resources):
+            resource_success = False
             print(
                 "verify_install: REPORTED APPS DO NOT MATCH PACKAGE", file=test_error_fh
             )
-            print(f"pipx reported apps: {reported_apps}", file=test_error_fh)
-            print(f" true package apps: {package_apps}", file=test_error_fh)
+            print(
+                f"pipx reported %s: {reported_resources}" % resource_name,
+                file=test_error_fh,
+            )
+            print(
+                f" true package %s: {package_resources}" % resource_name,
+                file=test_error_fh,
+            )
         else:
-            app_success = True
+            resource_success = True
     else:
-        app_success = False
+        resource_success = False
         print("verify_install: APPS TESTING ERROR", file=test_error_fh)
 
-    return app_success
+    return resource_success
 
 
 def verify_post_install(
@@ -320,11 +334,17 @@ def verify_post_install(
                 pip_error_file = Path(pip_error_file_re.group(1))
 
     if install_success and PKG[package_name].get("apps", None) is not None:
-        app_success = verify_installed_apps(
-            captured_outerr, package_name, test_error_fh, deps=deps
+        app_success = verify_installed_resources(
+            "app", captured_outerr, package_name, test_error_fh, deps=deps
         )
     else:
         app_success = True
+    if install_success and PKG[package_name].get("man_pages", None) is not None:
+        man_success = verify_installed_resources(
+            "man", captured_outerr, package_name, test_error_fh, deps=deps
+        )
+    else:
+        man_success = True
 
     pip_pass = not (
         (pipx_exit_code != 0)
@@ -332,7 +352,9 @@ def verify_post_install(
     )
     pipx_pass: Optional[bool]
     if pip_pass:
-        pipx_pass = install_success and not caplog_problem and app_success
+        pipx_pass = (
+            install_success and not caplog_problem and app_success and man_success
+        )
     else:
         pipx_pass = None
 
