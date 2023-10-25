@@ -19,7 +19,7 @@ kaggle==1.5.12
 nox==2020.8.22
 pbr==5.6.0
 pip
-pycowsay==0.0.0.1
+pycowsay==0.0.0.2
 pygdbmi==0.10.0.0
 pylint
 pylint==2.3.1

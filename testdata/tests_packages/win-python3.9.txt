@@ -120,7 +120,7 @@ psutil==5.9.4
 pure_eval==0.2.2
 py==1.11.0
 pyasn1==0.4.8
-pycowsay==0.0.0.1
+pycowsay==0.0.0.2
 pycparser==2.21
 pydantic==1.10.2
 pygdbmi==0.10.0.0

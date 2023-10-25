@@ -114,7 +114,7 @@ psutil==5.9.4
 ptyprocess==0.7.0
 py==1.11.0
 pyasn1==0.4.8
-pycowsay==0.0.0.1
+pycowsay==0.0.0.2
 pycparser==2.21
 pygdbmi==0.10.0.0
 pylint==2.15.7
