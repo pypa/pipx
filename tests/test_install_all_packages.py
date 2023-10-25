@@ -270,7 +270,9 @@ def verify_installed_apps(
         package_apps += PKG[package_name]["apps_of_dependencies"]
 
     reported_apps_re = re.search(
-        r"These apps are now globally available(.+)", captured_outerr.out, re.DOTALL
+        r"These apps are now globally available\n((?:    - [^\n]+\n)*)",
+        captured_outerr.out,
+        re.DOTALL,
     )
     if reported_apps_re:
         reported_apps = [
