@@ -120,6 +120,15 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "unidecode",  # unidecode EXE
             ]
         ),
+        "man_pages": [],
+        "man_pages_of_dependencies": [
+            "man1/mutagen-pony.1",
+            "man1/mutagen-inspect.1",
+            "man1/moggsplit.1",
+            "man1/mid3v2.1",
+            "man1/mid3iconv.1",
+            "man1/mid3cp.1",
+        ],
     },
     "black": {
         "spec": "black==22.8.0",
@@ -279,6 +288,8 @@ PKG: Dict[str, Dict[str, Any]] = {
         "spec": "httpie==2.3.0",
         "apps": _exe_if_win(["http", "https"]),
         "apps_of_dependencies": _exe_if_win(["chardetect", "pygmentize"]),
+        "man_pages": ["man1/http.1", "man1/httpie.1", "man1/https.1"],
+        "man_pages_of_dependencies": [],
     },
     "hyde": {
         "spec": "hyde==0.8.9",
@@ -290,6 +301,8 @@ PKG: Dict[str, Dict[str, Any]] = {
         "spec": "ipython==7.16.1",
         "apps": _exe_if_win(["iptest", "iptest3", "ipython", "ipython3"]),
         "apps_of_dependencies": _exe_if_win(["pygmentize"]),  # pygments EXE
+        "man_pages": ["man1/ipython.1"],
+        "man_pages_of_dependencies": [],
     },
     "isort": {
         "spec": "isort==5.6.4",
@@ -498,6 +511,8 @@ PKG: Dict[str, Dict[str, Any]] = {
             "rst2xml.py",  # docutils NO_EXE
             "rstpep2html.py",  # docutils NO_EXE
         ],
+        "man_pages": ["man1/nikola.1.gz"],
+        "man_pages_of_dependencies": [],
     },
     "nox": {
         "spec": "nox==2020.8.22",
@@ -693,6 +708,8 @@ PKG: Dict[str, Dict[str, Any]] = {
         "spec": "streamlink==1.7.0",
         "apps": _exe_if_win(["streamlink"] + (["streamlinkw"] if WIN else [])),
         "apps_of_dependencies": _exe_if_win(["chardetect"]) + ["wsdump.py"],
+        "man_pages": ["man1/streamlink.1"],
+        "man_pages_of_dependencies": [],
     },
     "taguette": {
         "spec": "taguette==0.9.2",
@@ -714,6 +731,8 @@ PKG: Dict[str, Dict[str, Any]] = {
         "spec": "visidata==2.0.1",
         "apps": _exe_if_win(["visidata"]) + ["vd"],
         "apps_of_dependencies": [],
+        "man_pages": ["man1/vd.1", "man1/visidata.1"],
+        "man_pages_of_dependencies": [],
     },
     "vulture": {
         "spec": "vulture==2.1",
