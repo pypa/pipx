@@ -90,7 +90,7 @@ class PipxMetadata:
         }
 
     def _convert_legacy_metadata(self, metadata_dict: Dict[str, Any]) -> Dict[str, Any]:
-        if metadata_dict["pipx_metadata_version"] == self.__METADATA_VERSION__:
+        if metadata_dict["pipx_metadata_version"] in ("0.2", self.__METADATA_VERSION__):
             return metadata_dict
         elif metadata_dict["pipx_metadata_version"] == "0.1":
             main_package_data = metadata_dict["main_package"]
