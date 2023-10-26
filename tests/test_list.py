@@ -93,8 +93,6 @@ def test_list_json(pipx_temp_env, capsys):
     pycowsay_package_ref = create_package_info_ref(
         "pycowsay", "pycowsay", pipx_venvs_dir
     )
-    print(PackageInfo(**json_parsed["venvs"]["pycowsay"]["metadata"]["main_package"]))
-    print(pycowsay_package_ref)
     assert_package_metadata(
         PackageInfo(**json_parsed["venvs"]["pycowsay"]["metadata"]["main_package"]),
         pycowsay_package_ref,
