@@ -42,7 +42,7 @@ def test_list_suffix(pipx_temp_env, monkeypatch, capsys):
 
     assert not run_pipx_cli(["list"])
     captured = capsys.readouterr()
-    assert f"package pycowsay 0.0.0.1 (pycowsay{suffix})," in captured.out
+    assert f"package pycowsay 0.0.0.2 (pycowsay{suffix})," in captured.out
 
 
 @pytest.mark.parametrize("metadata_version", [None, "0.1"])
@@ -57,7 +57,7 @@ def test_list_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
     else:
         assert not run_pipx_cli(["list"])
         captured = capsys.readouterr()
-        assert "package pycowsay 0.0.0.1," in captured.out
+        assert "package pycowsay 0.0.0.2," in captured.out
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])
@@ -68,7 +68,7 @@ def test_list_suffix_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_ve
 
     assert not run_pipx_cli(["list"])
     captured = capsys.readouterr()
-    assert f"package pycowsay 0.0.0.1 (pycowsay{suffix})," in captured.out
+    assert f"package pycowsay 0.0.0.2 (pycowsay{suffix})," in captured.out
 
 
 def test_list_json(pipx_temp_env, capsys):
@@ -93,6 +93,8 @@ def test_list_json(pipx_temp_env, capsys):
     pycowsay_package_ref = create_package_info_ref(
         "pycowsay", "pycowsay", pipx_venvs_dir
     )
+    print(PackageInfo(**json_parsed["venvs"]["pycowsay"]["metadata"]["main_package"]))
+    print(pycowsay_package_ref)
     assert_package_metadata(
         PackageInfo(**json_parsed["venvs"]["pycowsay"]["metadata"]["main_package"]),
         pycowsay_package_ref,
@@ -142,5 +144,5 @@ def test_list_short(pipx_temp_env, monkeypatch, capsys):
     assert not run_pipx_cli(["list", "--short"])
     captured = capsys.readouterr()
 
-    assert "pycowsay 0.0.0.1" in captured.out
+    assert "pycowsay 0.0.0.2" in captured.out
     assert "pylint 2.3.1" in captured.out

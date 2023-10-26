@@ -147,6 +147,13 @@ def create_package_info_ref(venv_name, package_name, pipx_venvs_dir, **field_ove
         ],
         apps_of_dependencies=PKG[package_name]["apps_of_dependencies"],
         app_paths_of_dependencies=field_overrides.get("app_paths_of_dependencies", {}),
+        man_pages=PKG[package_name].get("man_pages", []),
+        man_paths=[
+            pipx_venvs_dir / venv_name / "share" / "man" / man_page
+            for man_page in PKG[package_name].get("man_pages", [])
+        ],
+        man_pages_of_dependencies=PKG[package_name].get("man_pages_of_dependencies", []),
+        man_paths_of_dependencies=field_overrides.get("man_paths_of_dependencies", {}),
         package_version=PKG[package_name]["spec"].split("==")[-1],
     )
 
