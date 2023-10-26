@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 from typing import Any, Dict
 
 WIN = sys.platform.startswith("win")
@@ -122,12 +123,12 @@ PKG: Dict[str, Dict[str, Any]] = {
         ),
         "man_pages": [],
         "man_pages_of_dependencies": [
-            "man1/mutagen-pony.1",
-            "man1/mutagen-inspect.1",
-            "man1/moggsplit.1",
-            "man1/mid3v2.1",
-            "man1/mid3iconv.1",
-            "man1/mid3cp.1",
+            str(Path("man1") / "mutagen-pony.1"),
+            str(Path("man1") / "mutagen-inspect.1"),
+            str(Path("man1") / "moggsplit.1"),
+            str(Path("man1") / "mid3v2.1"),
+            str(Path("man1") / "mid3iconv.1"),
+            str(Path("man1") / "mid3cp.1"),
         ],
     },
     "black": {
@@ -288,7 +289,11 @@ PKG: Dict[str, Dict[str, Any]] = {
         "spec": "httpie==2.3.0",
         "apps": _exe_if_win(["http", "https"]),
         "apps_of_dependencies": _exe_if_win(["chardetect", "pygmentize"]),
-        "man_pages": ["man1/http.1", "man1/httpie.1", "man1/https.1"],
+        "man_pages": [
+            str(Path("man1") / "http.1"),
+            str(Path("man1") / "httpie.1"),
+            str(Path("man1") / "https.1"),
+        ],
         "man_pages_of_dependencies": [],
     },
     "hyde": {
@@ -301,7 +306,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         "spec": "ipython==7.16.1",
         "apps": _exe_if_win(["iptest", "iptest3", "ipython", "ipython3"]),
         "apps_of_dependencies": _exe_if_win(["pygmentize"]),  # pygments EXE
-        "man_pages": ["man1/ipython.1"],
+        "man_pages": [str(Path("man1") / "ipython.1")],
         "man_pages_of_dependencies": [],
     },
     "isort": {
@@ -511,7 +516,7 @@ PKG: Dict[str, Dict[str, Any]] = {
             "rst2xml.py",  # docutils NO_EXE
             "rstpep2html.py",  # docutils NO_EXE
         ],
-        "man_pages": ["man1/nikola.1.gz"],
+        "man_pages": [str(Path("man1") / "nikola.1.gz")],
         "man_pages_of_dependencies": [],
     },
     "nox": {
@@ -618,7 +623,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         "spec": "pycowsay==0.0.0.2",
         "apps": _exe_if_win(["pycowsay"]),
         "apps_of_dependencies": [],
-        "man_pages": ["man6/pycowsay.6"],
+        "man_pages": [str(Path("man6") / "pycowsay.6")],
         "man_pages_of_dependencies": [],
     },
     "pygdbmi": {"spec": "pygdbmi==0.10.0.0", "apps": [], "apps_of_dependencies": []},
@@ -708,7 +713,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         "spec": "streamlink==1.7.0",
         "apps": _exe_if_win(["streamlink"] + (["streamlinkw"] if WIN else [])),
         "apps_of_dependencies": _exe_if_win(["chardetect"]) + ["wsdump.py"],
-        "man_pages": ["man1/streamlink.1"],
+        "man_pages": [str(Path("man1") / "streamlink.1")],
         "man_pages_of_dependencies": [],
     },
     "taguette": {
@@ -731,7 +736,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         "spec": "visidata==2.0.1",
         "apps": _exe_if_win(["visidata"]) + ["vd"],
         "apps_of_dependencies": [],
-        "man_pages": ["man1/vd.1", "man1/visidata.1"],
+        "man_pages": [str(Path("man1") / "vd.1"), str(Path("man1") / "visidata.1")],
         "man_pages_of_dependencies": [],
     },
     "vulture": {
@@ -846,7 +851,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         "spec": "youtube-dl==2020.9.20",
         "apps": _exe_if_win(["youtube-dl"]),
         "apps_of_dependencies": [],
-        "man_pages": ["man1/youtube-dl.1"],
+        "man_pages": [str(Path("man1") / "youtube-dl.1")],
         "man_pages_of_dependencies": [],
     },
     "zeo": {
