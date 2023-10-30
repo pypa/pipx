@@ -685,15 +685,16 @@ def _add_environment(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "environment",
         formatter_class=LineWrapRawTextHelpFormatter,
-        help=("Print a list of variables used in pipx.constants."),
+        help="Print a list of environment variables and paths used by pipx.",
         description=textwrap.dedent(
             """
+            Prints the names and current values of environment variables used by pipx,
+            followed by internal pipx variables which are derived from the environment
+            variables and platform specific default values.
+
             Available variables:
-            PIPX_HOME, PIPX_BIN_DIR, PIPX_MAN_DIR, PIPX_SHARED_LIBS,
-            PIPX_LOCAL_VENVS, PIPX_LOG_DIR, PIPX_TRASH_DIR, PIPX_VENV_CACHEDIR
-
-            Only PIPX_HOME, PIPX_BIN_DIR and PIPX_MAN_DIR can be set by users in the above list.
-
+            PIPX_HOME, PIPX_BIN_DIR, PIPX_MAN_DIR, PIPX_SHARED_LIBS, PIPX_LOCAL_VENVS,
+            PIPX_LOG_DIR, PIPX_TRASH_DIR, PIPX_VENV_CACHEDIR, PIPX_DEFAULT_PYTHON, USE_EMOJI
             """
         ),
     )

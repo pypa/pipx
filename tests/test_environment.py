@@ -12,10 +12,9 @@ def test_cli(monkeypatch, capsys):
     assert "PIPX_LOG_DIR" in captured.out
     assert "PIPX_TRASH_DIR" in captured.out
     assert "PIPX_VENV_CACHEDIR" in captured.out
-    assert (
-        "Only PIPX_HOME, PIPX_BIN_DIR and PIPX_MAN_DIR can be set by users in the above list."
-        in captured.out
-    )
+    assert "PIPX_DEFAULT_PYTHON" in captured.out
+    assert "USE_EMOJI" in captured.out
+    assert "Environment variables (set by user):" in captured.out
 
 
 def test_cli_with_args(monkeypatch, capsys):
@@ -27,6 +26,8 @@ def test_cli_with_args(monkeypatch, capsys):
     assert not run_pipx_cli(["environment", "--value", "PIPX_LOG_DIR"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_TRASH_DIR"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_VENV_CACHEDIR"])
+    assert not run_pipx_cli(["environment", "--value", "PIPX_DEFAULT_PYTHON"])
+    assert not run_pipx_cli(["environment", "--value", "USE_EMOJI"])
 
     assert run_pipx_cli(["environment", "--value", "SSS"])
     captured = capsys.readouterr()

@@ -15,7 +15,13 @@
 - Add `pipx install --preinstall` to support preinstalling build requirements
 - Pass `--no-input` to pip when output is not piped to parent stdout
 - Fix program name in generated manual page
+- Print all environment variables in `pipx environment`
+- Return an error message when directory can't be added to PATH successfully
 - Expose manual pages included in an application installed with `pipx install`
+
+## 1.2.1
+
+- Fix compatibility to packaging 23.2+ by removing reliance on packaging's requirement validation logic and detecting a URL-based requirement in pipx. (#1070)
 
 ## 1.2.0
 
