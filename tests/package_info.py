@@ -736,7 +736,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         "spec": "visidata==2.0.1",
         "apps": _exe_if_win(["visidata"]) + ["vd"],
         "apps_of_dependencies": [],
-        "man_pages": [str(Path("man1") / "vd.1"), str(Path("man1") / "visidata.1")],
+        "man_pages": [str(Path("man1") / "vd.1")],
         "man_pages_of_dependencies": [],
     },
     "vulture": {

@@ -341,7 +341,10 @@ def verify_post_install(
         )
     else:
         app_success = True
-    if install_success and PKG[package_name].get("man_pages", None) is not None:
+    if install_success and (
+        PKG[package_name].get("man_pages", None) is not None
+        or PKG[package_name].get("man_pages_of_dependencies", None) is not None
+    ):
         man_success = verify_installed_resources(
             "man", captured_outerr, package_name, test_error_fh, deps=deps
         )
