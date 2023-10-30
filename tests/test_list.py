@@ -45,7 +45,7 @@ def test_list_suffix(pipx_temp_env, monkeypatch, capsys):
     assert f"package pycowsay 0.0.0.2 (pycowsay{suffix})," in captured.out
 
 
-@pytest.mark.parametrize("metadata_version", [None, "0.1"])
+@pytest.mark.parametrize("metadata_version", [None, "0.1", "0.2"])
 def test_list_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)

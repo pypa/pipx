@@ -8,7 +8,7 @@ def test_uninstall_all(pipx_temp_env, capsys):
     assert not run_pipx_cli(["uninstall-all"])
 
 
-@pytest.mark.parametrize("metadata_version", [None, "0.1"])
+@pytest.mark.parametrize("metadata_version", [None, "0.1", "0.2"])
 def test_uninstall_all_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)

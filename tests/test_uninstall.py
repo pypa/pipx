@@ -27,7 +27,7 @@ def test_uninstall_circular_deps(pipx_temp_env):
     assert not run_pipx_cli(["uninstall", "cloudtoken"])
 
 
-@pytest.mark.parametrize("metadata_version", [None, "0.1"])
+@pytest.mark.parametrize("metadata_version", [None, "0.1", "0.2"])
 def test_uninstall_legacy_venv(pipx_temp_env, metadata_version):
     executable_path = constants.LOCAL_BIN_DIR / app_name("pycowsay")
 
