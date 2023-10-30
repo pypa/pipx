@@ -286,8 +286,8 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps_of_dependencies": _exe_if_win(["chardetect", "keep", "pygmentize"]),
     },
     "httpie": {
-        "spec": "httpie==2.3.0",
-        "apps": _exe_if_win(["http", "https"]),
+        "spec": "httpie==3.2.2",
+        "apps": _exe_if_win(["http", "httpie", "https"]),
         "apps_of_dependencies": _exe_if_win(["chardetect", "pygmentize"]),
         "man_pages": [
             str(Path("man1") / "http.1"),
@@ -306,7 +306,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         "spec": "ipython==7.16.1",
         "apps": _exe_if_win(["iptest", "iptest3", "ipython", "ipython3"]),
         "apps_of_dependencies": _exe_if_win(["pygmentize"]),  # pygments EXE
-        "man_pages": [str(Path("man1") / "ipython.1")],
+        "man_pages": [str(Path("man1") / "ipython.1.gz")],
         "man_pages_of_dependencies": [],
     },
     "isort": {
@@ -710,9 +710,9 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps_of_dependencies": [],
     },
     "streamlink": {
-        "spec": "streamlink==1.7.0",
+        "spec": "streamlink==6.3.1",
         "apps": _exe_if_win(["streamlink"] + (["streamlinkw"] if WIN else [])),
-        "apps_of_dependencies": _exe_if_win(["chardetect"]) + ["wsdump.py"],
+        "apps_of_dependencies": _exe_if_win(["normalizer"]) + ["wsdump.py"],
         "man_pages": [str(Path("man1") / "streamlink.1")],
         "man_pages_of_dependencies": [],
     },
