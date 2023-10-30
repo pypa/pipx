@@ -147,6 +147,7 @@ def test_install_local_extra(pipx_temp_env, capsys):
     )
     captured = capsys.readouterr()
     assert f"- {app_name('pycowsay')}\n" in captured.out
+    assert f"- {Path('man6/pycowsay.6')}\n" in captured.out
 
 
 def test_path_warning(pipx_temp_env, capsys, monkeypatch, caplog):
