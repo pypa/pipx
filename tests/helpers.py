@@ -53,7 +53,7 @@ MOCK_PACKAGE_INFO_0_2: Dict[str, Any] = {
     "apps_of_dependencies": [],
     "app_paths_of_dependencies": {},
     "package_version": "",
-	"suffix": "",
+    "suffix": "",
 }
 
 
