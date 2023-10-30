@@ -51,6 +51,14 @@ def test_uninstall_suffix(pipx_temp_env):
     assert not file_or_symlink(executable_path)
 
 
+def test_uninstall_man_page(pipx_temp_env):
+    man_page_path = constants.LOCAL_MAN_DIR / "man6" / "pycowsay.6"
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert man_page_path.exists()
+    assert not run_pipx_cli(["uninstall", "pycowsay"])
+    assert not file_or_symlink(man_page_path)
+
+
 def test_uninstall_injected(pipx_temp_env):
     pycowsay_app_paths = [
         constants.LOCAL_BIN_DIR / app for app in PKG["pycowsay"]["apps"]
