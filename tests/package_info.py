@@ -288,7 +288,7 @@ PKG: Dict[str, Dict[str, Any]] = {
     "httpie": {
         "spec": "httpie==3.2.2",
         "apps": _exe_if_win(["http", "httpie", "https"]),
-        "apps_of_dependencies": _exe_if_win(["chardetect", "pygmentize"]),
+        "apps_of_dependencies": _exe_if_win(["markdown-it", "normalizer", "pygmentize"]),
         "man_pages": [
             str(Path("man1") / "http.1"),
             str(Path("man1") / "httpie.1"),
@@ -712,7 +712,7 @@ PKG: Dict[str, Dict[str, Any]] = {
     "streamlink": {
         "spec": "streamlink==6.3.1",
         "apps": _exe_if_win(["streamlink"] + (["streamlinkw"] if WIN else [])),
-        "apps_of_dependencies": _exe_if_win(["normalizer"]) + ["wsdump.py"],
+        "apps_of_dependencies": _exe_if_win(["normalizer", "wsdump"]),
         "man_pages": [str(Path("man1") / "streamlink.1")],
         "man_pages_of_dependencies": [],
     },
