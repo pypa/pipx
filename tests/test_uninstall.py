@@ -63,8 +63,12 @@ def test_uninstall_injected(pipx_temp_env):
     pycowsay_app_paths = [
         constants.LOCAL_BIN_DIR / app for app in PKG["pycowsay"]["apps"]
     ]
+    pycowsay_man_page_paths = [
+        constants.LOCAL_MAN_DIR / man_page for man_page in PKG["pycowsay"]["man_pages"]
+    ]
     pylint_app_paths = [constants.LOCAL_BIN_DIR / app for app in PKG["pylint"]["apps"]]
     app_paths = pycowsay_app_paths + pylint_app_paths
+    man_page_paths = pycowsay_man_page_paths
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(
@@ -74,10 +78,16 @@ def test_uninstall_injected(pipx_temp_env):
     for app_path in app_paths:
         assert app_path.exists()
 
+    for man_page_path in man_page_paths:
+        assert man_page_path.exists()
+
     assert not run_pipx_cli(["uninstall", "pycowsay"])
 
     for app_path in app_paths:
         assert not file_or_symlink(app_path)
+
+    for man_page_path in man_page_paths:
+        assert not file_or_symlink(man_page_path)
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])
