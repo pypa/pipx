@@ -274,8 +274,8 @@ def verify_installed_resources(
     package_resources = PKG[package_name][resource_name].copy()
     if deps:
         package_resources += PKG[package_name]["%s_of_dependencies" % resource_name]
-	if len(package_resources) == 0:
-		return True
+    if len(package_resources) == 0:
+        return True
 
     reported_resources_re = re.search(
         r"These "
