@@ -267,6 +267,13 @@ def test_install_suffix(pipx_temp_env, capsys):
     assert (constants.LOCAL_BIN_DIR / name_b).exists()
 
 
+def test_man_page_install(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "pycowsay"])
+    captured = capsys.readouterr()
+    assert "- man6/pycowsay.6" in captured.out
+    assert (constants.LOCAL_MAN_DIR / "man6" / "pycowsay.6").exists()
+
+
 def test_install_pip_failure(pipx_temp_env, capsys):
     assert run_pipx_cli(["install", "weblate==4.3.1", "--verbose"])
     captured = capsys.readouterr()
