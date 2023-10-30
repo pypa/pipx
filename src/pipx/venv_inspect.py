@@ -303,7 +303,10 @@ def inspect_venv(
     distributions = tuple(metadata.distributions(path=venv_sys_path))
 
     venv_inspect_info = VenvInspectInformation(
-        bin_path=venv_bin_path, man_path=venv_man_path, env=venv_env, distributions=distributions
+        bin_path=venv_bin_path,
+        man_path=venv_man_path,
+        env=venv_env,
+        distributions=distributions,
     )
 
     root_dist = get_dist(root_req.name, venv_inspect_info.distributions)
