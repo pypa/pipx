@@ -288,7 +288,9 @@ PKG: Dict[str, Dict[str, Any]] = {
     "httpie": {
         "spec": "httpie==3.2.2",
         "apps": _exe_if_win(["http", "httpie", "https"]),
-        "apps_of_dependencies": _exe_if_win(["markdown-it", "normalizer", "pygmentize"]),
+        "apps_of_dependencies": _exe_if_win(
+            ["markdown-it", "normalizer", "pygmentize"]
+        ),
         "man_pages": [
             str(Path("man1") / "http.1"),
             str(Path("man1") / "httpie.1"),
