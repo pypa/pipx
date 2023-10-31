@@ -22,6 +22,7 @@ def environment(value: str) -> ExitCode:
     environment_variables = [
         "PIPX_HOME",
         "PIPX_BIN_DIR",
+        "PIPX_MAN_DIR",
         "PIPX_SHARED_LIBS",
         "PIPX_DEFAULT_PYTHON",
         "USE_EMOJI",
