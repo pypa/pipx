@@ -31,6 +31,7 @@ def execvpe_mock(cmd_path, cmd_args, env):
         capture_output=False,
         encoding="utf-8",
         text=True,
+        check=False,
     ).returncode
     sys.exit(return_code)
 
@@ -145,6 +146,7 @@ def test_run_ensure_null_pythonpath():
             env=env,
             capture_output=True,
             text=True,
+            check=True,
         ).stdout
     )
 

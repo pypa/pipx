@@ -109,7 +109,7 @@ def pipx_local_pypiserver(request):
         str(PIPX_TESTS_PACKAGE_LIST_DIR),
         str(pipx_cache_dir),
     ]
-    check_test_packages_process = subprocess.run(check_test_packages_cmd)
+    check_test_packages_process = subprocess.run(check_test_packages_cmd, check=False)
     if check_test_packages_process.returncode != 0:
         raise Exception(
             f"Directory {str(pipx_cache_dir)} does not contain all "
