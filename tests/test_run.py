@@ -207,7 +207,7 @@ def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
         textwrap.dedent(
             f"""
                 # Requirements:
-                # requests==2.28.1
+                # requests==2.31.0
 
                 # Check requests can be imported
                 import requests
@@ -220,7 +220,7 @@ def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
         ).strip()
     )
     run_pipx_cli_exit(["run", script.as_uri()])
-    assert out.read_text() == "2.28.1"
+    assert out.read_text() == "2.31.0"
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
