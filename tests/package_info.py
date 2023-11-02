@@ -197,9 +197,9 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps_of_dependencies": _exe_if_win(["ashes", "markdown_py"]) + ["ashes.py"],
     },
     "cloudtoken": {
-        "spec": "cloudtoken==2.1.10",
-        "apps": ["cloudtoken"],
-        "apps_of_dependencies": _exe_if_win(["deep", "flask", "keyring"]) + ["jp.py"],
+        "spec": "cloudtoken==0.1.707",
+        "apps": ["awstoken", "cloudtoken", "cloudtoken.app", "cloudtoken_proxy.sh"],
+        "apps_of_dependencies": _exe_if_win(["flask", "keyring", "normalizer"]) + ["jp.py"],
     },
     "coala": {
         "spec": "coala==0.11.0",
