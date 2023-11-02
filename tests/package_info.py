@@ -199,7 +199,8 @@ PKG: Dict[str, Dict[str, Any]] = {
     "cloudtoken": {
         "spec": "cloudtoken==0.1.707",
         "apps": ["awstoken", "cloudtoken", "cloudtoken.app", "cloudtoken_proxy.sh"],
-        "apps_of_dependencies": _exe_if_win(["flask", "keyring", "normalizer"]) + ["jp.py"],
+        "apps_of_dependencies": _exe_if_win(["flask", "keyring", "normalizer"])
+        + ["jp.py"],
     },
     "coala": {
         "spec": "coala==0.11.0",
