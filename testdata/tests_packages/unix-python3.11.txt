@@ -12,6 +12,7 @@ Weblate==4.3.1
 ansible==2.9.13
 anyio==4.0.0
 appdirs==1.4.4
+argcomplete==1.12.3
 argcomplete==3.1.4
 argon2_cffi==23.1.0
 argon2_cffi_bindings==21.2.0
@@ -115,6 +116,7 @@ nest_asyncio==1.5.8
 nh3==0.2.14
 notebook==7.0.6
 notebook_shim==0.2.3
+nox==2022.1.7
 nox==2023.4.22
 ordered_set==4.1.0
 overrides==7.4.0

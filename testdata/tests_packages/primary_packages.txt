@@ -16,6 +16,7 @@ jaraco-clipboard==2.0.1
 zest-releaser==8.0.0
 jupyter==1.0.0
 kaggle==1.5.16
+nox==2022.1.7
 nox[tox_to_nox]==2023.4.22
 pbr==5.6.0
 pip
