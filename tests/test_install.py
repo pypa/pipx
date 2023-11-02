@@ -136,7 +136,7 @@ def test_name_tricky_characters(
 
 
 def test_extra(pipx_temp_env, capsys):
-    assert not run_pipx_cli(["install", "nox[tox_to_nox]==2020.8.22", "--include-deps"])
+    assert not run_pipx_cli(["install", "nox[tox_to_nox]==2023.4.22", "--include-deps"])
     captured = capsys.readouterr()
     assert f"- {app_name('tox')}\n" in captured.out
 

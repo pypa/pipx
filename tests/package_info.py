@@ -535,13 +535,12 @@ PKG: Dict[str, Dict[str, Any]] = {
         "man_pages_of_dependencies": [],
     },
     "nox": {
-        "spec": "nox==2020.8.22",
+        "spec": "nox==2023.4.22",
         "apps": _exe_if_win(["nox", "tox-to-nox"]),
         "apps_of_dependencies": _exe_if_win(["virtualenv"])
         + [
             "activate-global-python-argcomplete",
             "python-argcomplete-check-easy-install-script",
-            "python-argcomplete-tcsh",
             "register-python-argcomplete",
         ],  # from argcomplete
     },
