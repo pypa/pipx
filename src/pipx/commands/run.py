@@ -337,6 +337,10 @@ def _get_requirements_from_script(content: str) -> Optional[List[str]]:
     """
 
     name = "pyproject"
+
+    # Windows is currently getting un-normalized line endings, so normalize
+    content = content.replace("\r\n", "\n")
+
     matches = [m for m in PEP723.finditer(content) if m.group("type") == name]
 
     if not matches:

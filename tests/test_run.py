@@ -218,7 +218,8 @@ def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
                 from pathlib import Path
                 Path({repr(str(out))}).write_text(requests.__version__)
             """
-        ).strip()
+        ).strip(),
+        encoding="utf-8",
     )
     run_pipx_cli_exit(["run", script.as_uri()])
     assert out.read_text() == "2.28.1"
