@@ -78,6 +78,7 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "tabulate",
                 "tqdm",
                 "normalizer",
+                "register-python-argcomplete",
             ]
         )
         + [
@@ -96,7 +97,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         ],
     },
     "beancount": {
-        "spec": "beancount==2.3.3",
+        "spec": "beancount==2.3.6",
         "apps": _exe_if_win(
             [
                 "bean-bake",
@@ -127,9 +128,11 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "pyrsa-sign",  # rsa EXE
                 "pyrsa-verify",  # rsa EXE
                 "pytest",  # pytest EXE
+                "normalizer",
+                "py.test",
             ]
         )
-        + ["bottle.py"],  # bottle NO_EXE
+        + ["bottle.py", "dumppdf.py", "latin2ascii.py", "pdf2txt.py"],  # bottle NO_EXE
     },
     "beets": {
         "spec": "beets==1.4.9",
@@ -207,12 +210,14 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps": _exe_if_win(
             ["coala", "coala-ci", "coala-delete-orig", "coala-format", "coala-json"]
         ),
-        "apps_of_dependencies": _exe_if_win(["pygmentize"]) + ["unidiff"],
+        "apps_of_dependencies": _exe_if_win(["normalizer", "pygmentize"]) + ["unidiff"],
     },
     "cookiecutter": {
         "spec": "cookiecutter==2.4.0",
         "apps": _exe_if_win(["cookiecutter"]),
-        "apps_of_dependencies": _exe_if_win(["markdown-it", "pygmentize", "slugify"]),
+        "apps_of_dependencies": _exe_if_win(
+            ["chardetect", "normalizer", "markdown-it", "pygmentize", "slugify"]
+        ),
     },
     "cython": {
         "spec": "cython==0.29.21",
@@ -222,7 +227,8 @@ PKG: Dict[str, Dict[str, Any]] = {
     "datasette": {
         "spec": "datasette==0.50.2",
         "apps": _exe_if_win(["datasette"]),
-        "apps_of_dependencies": _exe_if_win(["hupper", "uvicorn"]) + ["pint-convert"],
+        "apps_of_dependencies": _exe_if_win(["httpx", "hupper", "uvicorn"])
+        + ["pint-convert"],
     },
     "diffoscope": {
         "spec": "diffoscope==154",
@@ -286,7 +292,9 @@ PKG: Dict[str, Dict[str, Any]] = {
     "howdoi": {
         "spec": "howdoi==2.0.20",
         "apps": _exe_if_win(["howdoi"]),
-        "apps_of_dependencies": _exe_if_win(["markdown-it", "keep", "pygmentize"]),
+        "apps_of_dependencies": _exe_if_win(
+            ["markdown-it", "keep", "normalizer", "pygmentize"]
+        ),
     },
     "httpie": {
         "spec": "httpie==3.2.2",
@@ -320,7 +328,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps_of_dependencies": [],
     },
     "zest-releaser": {
-        "spec": "zest.releaser==8.0.0",
+        "spec": "zest.releaser==9.1.1",
         "apps": _exe_if_win(
             [
                 "addchangelogentry",
@@ -390,7 +398,9 @@ PKG: Dict[str, Dict[str, Any]] = {
     "kaggle": {
         "spec": "kaggle==1.5.16",
         "apps": _exe_if_win(["kaggle"]),
-        "apps_of_dependencies": list(set(_exe_if_win(["slugify", "tqdm"]))),
+        "apps_of_dependencies": list(
+            set(_exe_if_win(["slugify", "normalizer", "tqdm"]))
+        ),
     },
     "kibitzr": {
         "spec": "kibitzr==7.0.5",
@@ -412,13 +422,13 @@ PKG: Dict[str, Dict[str, Any]] = {
         "spec": "Lektor==3.3.10",
         "apps": _exe_if_win(["lektor"]),
         "apps_of_dependencies": _exe_if_win(
-            ["filetype", "flask", "pybabel", "slugify", "watchmedo"]
+            ["filetype", "flask", "pybabel", "normalizer", "slugify", "watchmedo"]
         )
         + ["EXIF.py"],
     },
     "localstack": {
-        "spec": "localstack==2.3.2",
-        "apps": ["localstack", "localstack.bat", "localstack-supervisor"],
+        "spec": "localstack==0.12.1",
+        "apps": ["localstack", "localstack.bat"],
         "apps_of_dependencies": _exe_if_win(
             [
                 "dotenv",
@@ -436,8 +446,11 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "pytail",
                 "tabulate",
                 "undill",
+                "normalizer",
+                "localstack-supervisor",
             ]
-        ),
+        )
+        + ["jp.py"],
     },
     "mackup": {
         "spec": "mackup==0.8.29",
@@ -516,6 +529,7 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "pybabel",  # babel EXE
                 "pygmentize",  # pygments EXE
                 "unidecode",  # unidecode EXE
+                "normalizer",
             ]
         )
         + [
@@ -585,6 +599,7 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "pyserial-ports",
                 "tabulate",
                 "uvicorn",
+                "normalizer",
             ]
         )
         + ["bottle.py", "readelf.py"],
@@ -665,6 +680,7 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "pygmentize",  # pygments EXE
                 "pylupdate6",  # EXE
                 "pyuic6",  # EXE
+                "chardetect",
             ]
         )
         + [
@@ -710,7 +726,9 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps": _exe_if_win(
             ["sphinx-apidoc", "sphinx-autogen", "sphinx-build", "sphinx-quickstart"]
         ),
-        "apps_of_dependencies": _exe_if_win(["docutils", "pybabel", "pygmentize"])
+        "apps_of_dependencies": _exe_if_win(
+            ["docutils", "pybabel", "normalizer", "pygmentize"]
+        )
         + [
             "rst2html.py",  # docutils NO_EXE
             "rst2html4.py",  # docutils NO_EXE
