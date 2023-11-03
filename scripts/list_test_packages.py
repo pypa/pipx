@@ -130,7 +130,7 @@ def create_test_packages_list(
     all_packages = []
     for downloaded_filename in downloaded_list:
         wheel_re = re.search(
-            r"(.+)\-([^-]+)\-([^-]+)\-([^-]+)\-([^-]+)\.whl$", downloaded_filename
+            r"([^-]+)\-([^-]+)\-([^-]+)\-([^-]+)\-([^-]+)(-[^-]+)?\.whl$", downloaded_filename
         )
         src_re = re.search(r"(.+)\-([^-]+)\.(?:tar.gz|zip)$", downloaded_filename)
         if wheel_re:
