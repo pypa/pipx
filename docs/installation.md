@@ -82,8 +82,8 @@ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install PACKAGE
     | `~/.local/pipx/venvs`  | `platformdirs.user_data_dir()/pipx/venv`   |
     | `~/.local/pipx/.cache` | `platformdirs.user_cache_dir()/pipx`       |
     | `~/.local/pipx/logs`   | `platformdirs.user_log_dir()/pipx/log`     |
-    
-    `user_data_dir()`, `user_cache_dir()` and `user_log_dir()` resolve to appropriate platform-specific user data, cache and log directories. 
+
+    `user_data_dir()`, `user_cache_dir()` and `user_log_dir()` resolve to appropriate platform-specific user data, cache and log directories.
     See the [platformdirs documentation](https://platformdirs.readthedocs.io/en/latest/api.html#platforms) for details.
 
 ## Upgrade pipx
