@@ -17,6 +17,7 @@
 - Fix program name in generated manual page
 - Print all environment variables in `pipx environment`
 - Return an error message when directory can't be added to PATH successfully
+- Add ability to install multiple packages at once with `pipx install one two three ...`
 
 ## 1.2.1
 
