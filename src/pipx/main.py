@@ -325,7 +325,9 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
         formatter_class=LineWrapRawTextHelpFormatter,
         description=INSTALL_DESCRIPTION,
     )
-    p.add_argument("package_spec", help="package name or pip installation spec")
+    p.add_argument(
+        "package_spec", help="package name or pip installation spec", nargs="*"
+    )
     add_include_dependencies(p)
     p.add_argument("--verbose", action="store_true")
     p.add_argument(
