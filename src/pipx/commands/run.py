@@ -326,6 +326,7 @@ def _http_get_request(url: str) -> str:
         raise PipxError(str(e)) from e
 
 
+# This regex comes from PEP 723
 PEP723 = re.compile(
     r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$"
 )
