@@ -13,7 +13,7 @@ cloudtoken==0.1.707
 ipython==7.16.1
 isort==5.6.4
 jaraco-clipboard==2.0.1
-zest-releaser==9.1.1
+zest-releaser==8.0.0
 jupyter==1.0.0
 kaggle==1.5.16
 nox==2022.1.7

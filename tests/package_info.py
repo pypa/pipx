@@ -321,7 +321,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps_of_dependencies": [],
     },
     "zest-releaser": {
-        "spec": "zest.releaser==9.1.1",
+        "spec": "zest.releaser==8.0.0",
         "apps": _exe_if_win(
             [
                 "addchangelogentry",
