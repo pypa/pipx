@@ -70,18 +70,12 @@ PKG: Dict[str, Dict[str, Any]] = {
         "spec": "b2==3.12.0",
         "apps": _exe_if_win(["b2"]),
         "apps_of_dependencies": _exe_if_win(
-            [
-                "activate-global-python-argcomplete",
-                "docutils",
-                "python-argcomplete-check-easy-install-script",
-                "rst2ansi",
-                "tabulate",
-                "tqdm",
-                "normalizer",
-                "register-python-argcomplete",
-            ]
+            ["docutils", "rst2ansi", "tabulate", "tqdm", "normalizer"]
         )
         + [
+            "activate-global-python-argcomplete",
+            "python-argcomplete-check-easy-install-script",
+            "register-python-argcomplete",
             "rst2html4.py",
             "rst2html5.py",
             "rst2html.py",
@@ -166,7 +160,7 @@ PKG: Dict[str, Dict[str, Any]] = {
     "cactus": {
         "spec": "cactus==3.3.3",
         "apps": _exe_if_win(["cactus"]),
-        "apps_of_dependencies": _exe_if_win(["keyring"])
+        "apps_of_dependencies": _exe_if_win(["keyring", "markdown2"])
         + [
             "asadmin",
             "bundle_image",
@@ -185,7 +179,6 @@ PKG: Dict[str, Dict[str, Any]] = {
             "launch_instance",
             "list_instances",
             "lss3",
-            "markdown2",
             "mturk",
             "pyami_sendmail",
             "route53",
@@ -350,22 +343,24 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "pkginfo",
                 "pyproject-build",
                 "docutils",
-                "rst2html.py",
-                "rst2html4.py",
-                "rst2html5.py",
-                "rst2latex.py",
-                "rst2man.py",
-                "rst2odt.py",
-                "rst2odt_prepstyles.py",
-                "rst2pseudoxml.py",
-                "rst2s5.py",
-                "rst2xetex.py",
-                "rst2xml.py",
-                "rstpep2html.py",
                 "pygmentize",
                 "keyring",
             ]
-        ),
+        )
+        + [
+            "rst2html.py",
+            "rst2html4.py",
+            "rst2html5.py",
+            "rst2latex.py",
+            "rst2man.py",
+            "rst2odt.py",
+            "rst2odt_prepstyles.py",
+            "rst2pseudoxml.py",
+            "rst2s5.py",
+            "rst2xetex.py",
+            "rst2xml.py",
+            "rstpep2html.py",
+        ],
     },
     "jupyter": {
         "spec": "jupyter==1.0.0",
@@ -432,7 +427,6 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps_of_dependencies": _exe_if_win(
             [
                 "dotenv",
-                "get_objgraph",
                 "markdown-it",
                 "pbr",
                 "pygmentize",
@@ -445,12 +439,10 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "pysemver",
                 "pytail",
                 "tabulate",
-                "undill",
                 "normalizer",
-                "localstack-supervisor",
             ]
         )
-        + ["jp.py"],
+        + ["get_objgraph", "jp.py", "localstack-supervisor", "undill"],
     },
     "mackup": {
         "spec": "mackup==0.8.29",
