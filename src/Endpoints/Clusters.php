@@ -70,7 +70,7 @@ class Clusters extends Endpoint
     {
         $this->validateRequired($cluster, 'create', [
             'groups',
-            'unix_user_home_directory',
+            'unix_users_home_directory',
             'php_versions',
             'mariadb_version',
             'nodejs_version',
@@ -103,7 +103,7 @@ class Clusters extends Endpoint
             ->setBody(
                 $this->filterFields($cluster->toArray(), [
                     'groups',
-                    'unix_user_home_directory',
+                    'unix_users_home_directory',
                     'php_versions',
                     'mariadb_version',
                     'nodejs_version',
@@ -151,7 +151,7 @@ class Clusters extends Endpoint
         $this->validateRequired($cluster, 'update', [
             'name',
             'groups',
-            'unix_user_home_directory',
+            'unix_users_home_directory',
             'php_versions',
             'mariadb_version',
             'nodejs_version',
@@ -186,7 +186,7 @@ class Clusters extends Endpoint
                 $this->filterFields($cluster->toArray(), [
                     'name',
                     'groups',
-                    'unix_user_home_directory',
+                    'unix_users_home_directory',
                     'php_versions',
                     'mariadb_version',
                     'nodejs_version',
