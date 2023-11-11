@@ -34,7 +34,7 @@ class Cluster extends ClusterModel
     private ?bool $syncToolkitEnabled = null;
     private ?bool $automaticBorgRepositoriesPruneEnabled = null;
     private ?bool $phpSessionSpreadEnabled = null;
-    private ?string $description = null;
+    private string $description;
     private ?int $id = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
@@ -381,15 +381,14 @@ class Cluster extends ClusterModel
         return $this;
     }
 
-    public function getDescription(): ?string
+    public function getDescription(): string
     {
         return $this->description;
     }
 
-    public function setDescription(?string $description): self
+    public function setDescription(string $description): self
     {
         Validator::value($description)
-            ->nullable()
             ->maxLength(255)
             ->pattern('^[a-zA-Z0-9-_. ]+$')
             ->validate();
