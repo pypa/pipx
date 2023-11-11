@@ -22,6 +22,9 @@ class Cluster extends ClusterModel
     private ?string $meilisearchMasterKey = null;
     private ?string $meilisearchEnvironment = null;
     private ?int $meilisearchBackupInterval = null;
+    private ?string $newRelicApmLicenseKey = null;
+    private ?string $newRelicMariadbPassword = null;
+    private ?string $newRelicInfrastructureLicenseKey = null;
     private ?string $redisPassword = null;
     private ?int $redisMemoryLimit = null;
     private array $nodejsVersions = [];
@@ -169,6 +172,60 @@ class Cluster extends ClusterModel
     public function setKernelcareLicenseKey(?string $kernelcareLicenseKey): self
     {
         $this->kernelcareLicenseKey = $kernelcareLicenseKey;
+
+        return $this;
+    }
+
+    public function getNewRelicApmLicenseKey(): ?string
+    {
+        return $this->newRelicApmLicenseKey;
+    }
+
+    public function setNewRelicApmLicenseKey(?string $newRelicApmLicenseKey): self
+    {
+        Validator::value($newRelicApmLicenseKey)
+            ->minLength(40)
+            ->maxLength(40)
+            ->pattern('^[a-zA-Z0-9]+$')
+            ->validate();
+
+        $this->newRelicApmLicenseKey = $newRelicApmLicenseKey;
+
+        return $this;
+    }
+
+    public function getNewRelicMariadbPassword(): ?string
+    {
+        return $this->newRelicMariadbPassword;
+    }
+
+    public function setNewRelicMariadbPassword(?string $newRelicMariadbPassword): self
+    {
+        Validator::value($newRelicMariadbPassword)
+            ->minLength(24)
+            ->maxLength(255)
+            ->pattern('^[ -~]+$')
+            ->validate();
+
+        $this->newRelicMariadbPassword = $newRelicMariadbPassword;
+
+        return $this;
+    }
+
+    public function getNewRelicInfrastructureLicenseKey(): ?string
+    {
+        return $this->newRelicInfrastructureLicenseKey;
+    }
+
+    public function setNewRelicInfrastructureLicenseKey(?string $newRelicInfrastructureLicenseKey): self
+    {
+        Validator::value($newRelicInfrastructureLicenseKey)
+            ->minLength(40)
+            ->maxLength(40)
+            ->pattern('^[a-zA-Z0-9]+$')
+            ->validate();
+
+        $this->newRelicInfrastructureLicenseKey = $newRelicInfrastructureLicenseKey;
 
         return $this;
     }
