@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
 for detailed information.
 
+## [1.103.9]
+
+### Fixed
+
+- Clusters: create and update, due to typo in required 'unix_users_home_directory'.
+
 ## [1.103.8]
 
 ### Fixed
