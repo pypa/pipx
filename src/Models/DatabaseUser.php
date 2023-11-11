@@ -13,6 +13,7 @@ class DatabaseUser extends ClusterModel
 
     private string $name;
     private ?string $password;
+    private ?array $phpmyadminFirewallGroupsIds;
     private string $host = self::DEFAULT_HOST;
     private string $serverSoftwareName = DatabaseEngine::SERVER_SOFTWARE_MARIADB;
     private ?int $id = null;
@@ -68,6 +69,18 @@ class DatabaseUser extends ClusterModel
             ->validate();
 
         $this->password = $password;
+
+        return $this;
+    }
+
+    public function getPhpmyadminFirewallGroupsIds(): ?array
+    {
+        return $this->phpmyadminFirewallGroupsIds;
+    }
+
+    public function setPhpmyadminFirewallGroupsIds(?array $phpmyadminFirewallGroupsIds): self
+    {
+        $this->phpmyadminFirewallGroupsIds = $phpmyadminFirewallGroupsIds;
 
         return $this;
     }
@@ -141,6 +154,7 @@ class DatabaseUser extends ClusterModel
         return $this
             ->setName(Arr::get($data, 'name'))
             ->setPassword(Arr::get($data, 'password'))
+            ->setPhpmyadminFirewallGroupsIds(Arr::get($data, 'phpmyadmin_firewall_groups_ids'))
             ->setId(Arr::get($data, 'id'))
             ->setHost(Arr::get($data, 'host', self::DEFAULT_HOST))
             ->setServerSoftwareName(
@@ -162,6 +176,7 @@ class DatabaseUser extends ClusterModel
             'host' => $this->getHost(),
             'password' => $this->getPassword(),
             'server_software_name' => $this->getServerSoftwareName(),
+            'phpmyadmin_firewall_groups_ids' => $this->getPhpmyadminFirewallGroupsIds(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),

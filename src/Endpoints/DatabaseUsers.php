@@ -67,6 +67,7 @@ class DatabaseUsers extends Endpoint
         $this->validateRequired($databaseUser, 'create', [
             'name',
             'password',
+            'phpmyadmin_firewall_groups_ids',
             'server_software_name',
             'cluster_id',
         ]);
@@ -79,6 +80,7 @@ class DatabaseUsers extends Endpoint
                     'name',
                     'host',
                     'password',
+                    'phpmyadmin_firewall_groups_ids',
                     'server_software_name',
                     'cluster_id',
                 ])
@@ -107,6 +109,7 @@ class DatabaseUsers extends Endpoint
             'id',
             'name',
             'password',
+            'phpmyadmin_firewall_groups_ids',
             'server_software_name',
             'cluster_id',
         ]);
@@ -119,6 +122,7 @@ class DatabaseUsers extends Endpoint
                     'name',
                     'host',
                     'password',
+                    'phpmyadmin_firewall_groups_ids',
                     'server_software_name',
                     'cluster_id',
                     'id',
