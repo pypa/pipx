@@ -85,10 +85,10 @@ class HAProxyListen extends ClusterModel
         Validator::value($port)
             ->nullable()
             ->validate();
-        if (!is_null($port) && ($port < 3306 || $port > 5432)) {
+        if (!is_null($port) && ($port < 3306 || $port > 7700)) {
             ValidationException::validationFailed([
                 sprintf(
-                    'port must be between 3306 and 5432, %d given',
+                    'port must be between 3306 and 7700, %d given',
                     $port
                 ),
             ]);
