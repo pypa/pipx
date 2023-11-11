@@ -28,7 +28,7 @@ class CustomConfigSnippet extends ClusterModel
         Validator::value($name)
             ->minLength(1)
             ->maxLength(128)
-            ->pattern('^[a-z0-9_]+$')
+            ->pattern('^[a-z0-9-_]+$')
             ->validate();
 
         $this->name = $name;
