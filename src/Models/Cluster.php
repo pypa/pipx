@@ -3,6 +3,7 @@
 namespace Cyberfusion\ClusterApi\Models;
 
 use ArrayObject;
+use Cyberfusion\ClusterApi\Enums\MeilisearchEnvironment;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
@@ -18,6 +19,9 @@ class Cluster extends ClusterModel
     private array $phpSettings = [];
     private ?bool $phpIoncubeEnabled = null;
     private ?string $kernelcareLicenseKey = null;
+    private ?string $meilisearchMasterKey = null;
+    private ?string $meilisearchEnvironment = null;
+    private ?int $meilisearchBackupInterval = null;
     private ?string $redisPassword = null;
     private ?int $redisMemoryLimit = null;
     private array $nodejsVersions = [];
@@ -165,6 +169,52 @@ class Cluster extends ClusterModel
     public function setKernelcareLicenseKey(?string $kernelcareLicenseKey): self
     {
         $this->kernelcareLicenseKey = $kernelcareLicenseKey;
+
+        return $this;
+    }
+
+    public function getMeilisearchMasterKey(): ?string
+    {
+        return $this->meilisearchMasterKey;
+    }
+
+    public function setMeilisearchMasterKey(?string $meilisearchMasterKey): self
+    {
+        Validator::value($meilisearchMasterKey)
+            ->minLength(16)
+            ->maxLength(24)
+            ->pattern('^[a-zA-Z0-9]+$')
+            ->validate();
+
+        $this->meilisearchMasterKey = $meilisearchMasterKey;
+
+        return $this;
+    }
+
+    public function getMeilisearchEnvironment(): ?string
+    {
+        return $this->meilisearchEnvironment;
+    }
+
+    public function setMeilisearchEnvironment(?string $meilisearchEnvironment): self
+    {
+        Validator::value($meilisearchEnvironment)
+            ->valueIn(MeilisearchEnvironment::AVAILABLE)
+            ->validate();
+
+        $this->meilisearchEnvironment = $meilisearchEnvironment;
+
+        return $this;
+    }
+
+    public function getMeilisearchBackupInterval(): ?int
+    {
+        return $this->meilisearchBackupInterval;
+    }
+
+    public function setMeilisearchBackupInterval(?int $meilisearchBackupInterval): self
+    {
+        $this->meilisearchBackupInterval = $meilisearchBackupInterval;
 
         return $this;
     }
