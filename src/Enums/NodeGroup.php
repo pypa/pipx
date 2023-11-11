@@ -28,4 +28,6 @@ class NodeGroup
     public const REDIS = 'Redis';
     public const WKHTMLTOPDF = 'wkhtmltopdf';
     public const WP_CLI = 'WP-CLI';
+    public const MEILISEARCH = 'Meilisearch';
+    public const NEW_RELIC = 'New Relic';
 }
