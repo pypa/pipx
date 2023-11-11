@@ -391,7 +391,7 @@ class Cluster extends ClusterModel
         Validator::value($description)
             ->nullable()
             ->maxLength(255)
-            ->pattern('^[a-zA-Z0-9-_ ]+$')
+            ->pattern('^[a-zA-Z0-9-_. ]+$')
             ->validate();
 
         $this->description = $description;
