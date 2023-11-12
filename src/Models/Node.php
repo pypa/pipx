@@ -13,6 +13,7 @@ class Node extends ClusterModel
     private ?string $comment = null;
     private array $loadBalancerHealthChecksGroupsPairs = [];
     private array $groupsProperties = [];
+    private ?bool $isReady = true;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -74,6 +75,18 @@ class Node extends ClusterModel
     public function setGroupsProperties(array $groupsProperties): self
     {
         $this->groupsProperties = $groupsProperties;
+
+        return $this;
+    }
+
+    public function getIsReady(): bool
+    {
+        return $this->isReady;
+    }
+
+    public function setIsReady(?bool $isReady): self
+    {
+        $this->isReady = $isReady;
 
         return $this;
     }
@@ -144,6 +157,7 @@ class Node extends ClusterModel
             ->setComment(Arr::get($data, 'comment'))
             ->setLoadBalancerHealthChecksGroupsPairs(Arr::get($data, 'load_balancer_health_checks_groups_pairs'))
             ->setGroupsProperties(Arr::get($data, 'groups_properties', []))
+            ->setIsReady(Arr::get($data, 'is_ready'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -158,6 +172,7 @@ class Node extends ClusterModel
             'comment' => $this->getComment(),
             'load_balancer_health_checks_groups_pairs' => new ArrayObject($this->getLoadBalancerHealthChecksGroupsPairs()),
             'groups_properties' => new ArrayObject($this->getGroupsProperties()),
+            'is_ready' => $this->getIsReady(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),

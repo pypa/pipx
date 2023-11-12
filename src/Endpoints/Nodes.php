@@ -111,6 +111,7 @@ class Nodes extends Endpoint
             'cluster_id',
             'id',
             'hostname',
+            'is_ready',
         ]);
 
         $request = (new Request())
@@ -125,6 +126,7 @@ class Nodes extends Endpoint
                     'cluster_id',
                     'id',
                     'hostname',
+                    'is_ready',
                 ])
             );
 
