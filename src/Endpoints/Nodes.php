@@ -4,6 +4,7 @@ namespace Cyberfusion\ClusterApi\Endpoints;
 
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Cyberfusion\ClusterApi\Models\Node;
+use Cyberfusion\ClusterApi\Models\TaskCollection;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
 use Cyberfusion\ClusterApi\Support\ListFilter;
@@ -93,7 +94,7 @@ class Nodes extends Endpoint
         }
 
         return $response->setData([
-            'node' => (new Node())->fromArray($response->getData()),
+            'taskCollection' => (new TaskCollection())->fromArray($response->getData()),
         ]);
     }
 
