@@ -17,7 +17,7 @@ class Cluster extends ClusterModel
     private ?string $mariaDbClusterName = null;
     private array $customPhpModulesNames = [];
     private array $phpSettings = [];
-    private array $httpRetryProperties = [];
+    private ?array $httpRetryProperties = null;
     private ?bool $phpIoncubeEnabled = null;
     private ?string $kernelcareLicenseKey = null;
     private ?string $meilisearchMasterKey = null;
@@ -153,12 +153,12 @@ class Cluster extends ClusterModel
         return $this;
     }
 
-    public function getHttpRetryProperties(): array
+    public function getHttpRetryProperties(): ?array
     {
         return $this->httpRetryProperties;
     }
 
-    public function setHttpRetryProperties(array $httpRetryProperties): self
+    public function setHttpRetryProperties(?array $httpRetryProperties): self
     {
         $this->httpRetryProperties = $httpRetryProperties;
 
@@ -564,7 +564,7 @@ class Cluster extends ClusterModel
             ->setMariaDbVersion(Arr::get($data, 'mariadb_version'))
             ->setMariaDbClusterName(Arr::get($data, 'mariadb_cluster_name'))
             ->setPhpSettings(Arr::get($data, 'php_settings', []))
-            ->setHttpRetryProperties(Arr::get($data, 'http_retry_properties', []))
+            ->setHttpRetryProperties(Arr::get($data, 'http_retry_properties'))
             ->setCustomPhpModulesNames(Arr::get($data, 'custom_php_modules_names', []))
             ->setPhpIoncubeEnabled(Arr::get($data, 'php_ioncube_enabled'))
             ->setKernelcareLicenseKey(Arr::get($data, 'kernelcare_license_key'))
@@ -600,7 +600,9 @@ class Cluster extends ClusterModel
             'mariadb_version' => $this->getMariaDbVersion(),
             'mariadb_cluster_name' => $this->getMariaDbClusterName(),
             'php_settings' => new ArrayObject($this->getPhpSettings()),
-            'http_retry_properties' => new ArrayObject($this->getHttpRetryProperties()),
+            'http_retry_properties' => $this->getHttpRetryProperties()
+                ? new ArrayObject($this->getHttpRetryProperties())
+                : null,
             'custom_php_modules_names' => $this->getCustomPhpModulesNames(),
             'php_ioncube_enabled' => $this->isPhpIoncubeEnabled(),
             'kernelcare_license_key' => $this->getKernelcareLicenseKey(),
@@ -621,6 +623,12 @@ class Cluster extends ClusterModel
             'automatic_borg_repositories_prune_enabled' => $this->isAutomaticBorgRepositoriesPruneEnabled(),
             'php_sessions_spread_enabled' => $this->isPhpSessionSpreadEnabled(),
             'description' => $this->getDescription(),
+            'new_relic_apm_license_key' => $this->getNewRelicApmLicenseKey(),
+            'new_relic_infrastructure_license_key' => $this->getNewRelicInfrastructureLicenseKey(),
+            'new_relic_mariadb_password' => $this->getNewRelicMariadbPassword(),
+            'meilisearch_master_key' => $this->getMeilisearchMasterKey(),
+            'meilisearch_environment' => $this->getMeilisearchEnvironment(),
+            'meilisearch_backup_interval' => $this->getMeilisearchBackupInterval(),
             'id' => $this->getId(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),

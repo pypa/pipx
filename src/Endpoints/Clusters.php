@@ -101,6 +101,7 @@ class Clusters extends Endpoint
             'mariadb_backup_interval',
             'postgresql_backup_interval',
             'customer_id',
+            'http_retry_properties',
         ]);
 
         $request = (new Request())
@@ -140,6 +141,7 @@ class Clusters extends Endpoint
                     'mariadb_backup_interval',
                     'postgresql_backup_interval',
                     'customer_id',
+                    'http_retry_properties',
                 ])
             );
 
@@ -195,6 +197,7 @@ class Clusters extends Endpoint
             'postgresql_backup_interval',
             'customer_id',
             'id',
+            'http_retry_properties',
         ]);
 
         $request = (new Request())
@@ -236,6 +239,7 @@ class Clusters extends Endpoint
                     'postgresql_backup_interval',
                     'customer_id',
                     'id',
+                    'http_retry_properties',
                 ])
             );
 
