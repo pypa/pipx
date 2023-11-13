@@ -80,6 +80,12 @@ class Clusters extends Endpoint
             'php_settings',
             'php_ioncube_enabled',
             'kernelcare_license_key',
+            'new_relic_apm_license_key',
+            'new_relic_infrastructure_license_key',
+            'new_relic_mariadb_password',
+            'meilisearch_master_key',
+            'meilisearch_environment',
+            'meilisearch_backup_interval',
             'redis_password',
             'redis_memory_limit',
             'php_sessions_spread_enabled',
@@ -95,6 +101,7 @@ class Clusters extends Endpoint
             'mariadb_backup_interval',
             'postgresql_backup_interval',
             'customer_id',
+            'http_retry_properties',
         ]);
 
         $request = (new Request())
@@ -113,6 +120,12 @@ class Clusters extends Endpoint
                     'php_settings',
                     'php_ioncube_enabled',
                     'kernelcare_license_key',
+                    'new_relic_apm_license_key',
+                    'new_relic_infrastructure_license_key',
+                    'new_relic_mariadb_password',
+                    'meilisearch_master_key',
+                    'meilisearch_environment',
+                    'meilisearch_backup_interval',
                     'redis_password',
                     'redis_memory_limit',
                     'php_sessions_spread_enabled',
@@ -128,6 +141,7 @@ class Clusters extends Endpoint
                     'mariadb_backup_interval',
                     'postgresql_backup_interval',
                     'customer_id',
+                    'http_retry_properties',
                 ])
             );
 
@@ -161,6 +175,12 @@ class Clusters extends Endpoint
             'php_settings',
             'php_ioncube_enabled',
             'kernelcare_license_key',
+            'new_relic_apm_license_key',
+            'new_relic_infrastructure_license_key',
+            'new_relic_mariadb_password',
+            'meilisearch_master_key',
+            'meilisearch_environment',
+            'meilisearch_backup_interval',
             'redis_password',
             'redis_memory_limit',
             'php_sessions_spread_enabled',
@@ -177,6 +197,7 @@ class Clusters extends Endpoint
             'postgresql_backup_interval',
             'customer_id',
             'id',
+            'http_retry_properties',
         ]);
 
         $request = (new Request())
@@ -196,6 +217,12 @@ class Clusters extends Endpoint
                     'php_settings',
                     'php_ioncube_enabled',
                     'kernelcare_license_key',
+                    'new_relic_apm_license_key',
+                    'new_relic_infrastructure_license_key',
+                    'new_relic_mariadb_password',
+                    'meilisearch_master_key',
+                    'meilisearch_environment',
+                    'meilisearch_backup_interval',
                     'redis_password',
                     'redis_memory_limit',
                     'php_sessions_spread_enabled',
@@ -212,6 +239,7 @@ class Clusters extends Endpoint
                     'postgresql_backup_interval',
                     'customer_id',
                     'id',
+                    'http_retry_properties',
                 ])
             );
 

@@ -11,8 +11,10 @@ class Node extends ClusterModel
 {
     private array $groups = [];
     private ?string $comment = null;
+    private string $product;
     private array $loadBalancerHealthChecksGroupsPairs = [];
     private array $groupsProperties = [];
+    private ?bool $isReady = true;
     private ?int $id = null;
     private ?int $clusterId = null;
     private ?string $createdAt = null;
@@ -48,6 +50,18 @@ class Node extends ClusterModel
         return $this;
     }
 
+    public function getProduct(): string
+    {
+        return $this->product;
+    }
+
+    public function setProduct(string $product): self
+    {
+        $this->product = $product;
+
+        return $this;
+    }
+
     /**
      * @return array<string, array<NodeGroup>>
      */
@@ -74,6 +88,18 @@ class Node extends ClusterModel
     public function setGroupsProperties(array $groupsProperties): self
     {
         $this->groupsProperties = $groupsProperties;
+
+        return $this;
+    }
+
+    public function getIsReady(): bool
+    {
+        return $this->isReady;
+    }
+
+    public function setIsReady(?bool $isReady): self
+    {
+        $this->isReady = $isReady;
 
         return $this;
     }
@@ -142,8 +168,10 @@ class Node extends ClusterModel
         return $this
             ->setGroups(Arr::get($data, 'groups', []))
             ->setComment(Arr::get($data, 'comment'))
+            ->setProduct(Arr::get($data, 'product'))
             ->setLoadBalancerHealthChecksGroupsPairs(Arr::get($data, 'load_balancer_health_checks_groups_pairs'))
             ->setGroupsProperties(Arr::get($data, 'groups_properties', []))
+            ->setIsReady(Arr::get($data, 'is_ready'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -156,8 +184,10 @@ class Node extends ClusterModel
         return [
             'groups' => $this->getGroups(),
             'comment' => $this->getComment(),
+            'product' => $this->getProduct(),
             'load_balancer_health_checks_groups_pairs' => new ArrayObject($this->getLoadBalancerHealthChecksGroupsPairs()),
             'groups_properties' => new ArrayObject($this->getGroupsProperties()),
+            'is_ready' => $this->getIsReady(),
             'id' => $this->getId(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),

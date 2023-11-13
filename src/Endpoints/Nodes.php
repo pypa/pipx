@@ -4,6 +4,7 @@ namespace Cyberfusion\ClusterApi\Endpoints;
 
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Cyberfusion\ClusterApi\Models\Node;
+use Cyberfusion\ClusterApi\Models\TaskCollection;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
 use Cyberfusion\ClusterApi\Support\ListFilter;
@@ -67,6 +68,7 @@ class Nodes extends Endpoint
         $this->validateRequired($node, 'create', [
             'groups',
             'comment',
+            'product',
             'load_balancer_health_checks_groups_pairs',
             'groups_properties',
             'cluster_id',
@@ -79,6 +81,7 @@ class Nodes extends Endpoint
                 $this->filterFields($node->toArray(), [
                     'groups',
                     'comment',
+                    'product',
                     'load_balancer_health_checks_groups_pairs',
                     'groups_properties',
                     'cluster_id',
@@ -93,7 +96,7 @@ class Nodes extends Endpoint
         }
 
         return $response->setData([
-            'node' => (new Node())->fromArray($response->getData()),
+            'taskCollection' => (new TaskCollection())->fromArray($response->getData()),
         ]);
     }
 
@@ -105,11 +108,13 @@ class Nodes extends Endpoint
         $this->validateRequired($node, 'update', [
             'groups',
             'comment',
+            'product',
             'load_balancer_health_checks_groups_pairs',
             'groups_properties',
             'cluster_id',
             'id',
             'hostname',
+            'is_ready',
         ]);
 
         $request = (new Request())
@@ -119,11 +124,13 @@ class Nodes extends Endpoint
                 $this->filterFields($node->toArray(), [
                     'groups',
                     'comment',
+                    'product',
                     'load_balancer_health_checks_groups_pairs',
                     'groups_properties',
                     'cluster_id',
                     'id',
                     'hostname',
+                    'is_ready',
                 ])
             );
 

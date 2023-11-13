@@ -3,6 +3,7 @@
 namespace Cyberfusion\ClusterApi\Models;
 
 use ArrayObject;
+use Cyberfusion\ClusterApi\Enums\MeilisearchEnvironment;
 use Cyberfusion\ClusterApi\Support\Arr;
 use Cyberfusion\ClusterApi\Support\Validator;
 
@@ -16,8 +17,15 @@ class Cluster extends ClusterModel
     private ?string $mariaDbClusterName = null;
     private array $customPhpModulesNames = [];
     private array $phpSettings = [];
+    private ?array $httpRetryProperties = null;
     private ?bool $phpIoncubeEnabled = null;
     private ?string $kernelcareLicenseKey = null;
+    private ?string $meilisearchMasterKey = null;
+    private ?string $meilisearchEnvironment = null;
+    private ?int $meilisearchBackupInterval = null;
+    private ?string $newRelicApmLicenseKey = null;
+    private ?string $newRelicMariadbPassword = null;
+    private ?string $newRelicInfrastructureLicenseKey = null;
     private ?string $redisPassword = null;
     private ?int $redisMemoryLimit = null;
     private array $nodejsVersions = [];
@@ -34,7 +42,7 @@ class Cluster extends ClusterModel
     private ?bool $syncToolkitEnabled = null;
     private ?bool $automaticBorgRepositoriesPruneEnabled = null;
     private ?bool $phpSessionSpreadEnabled = null;
-    private ?string $description = null;
+    private string $description;
     private ?int $id = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
@@ -145,6 +153,18 @@ class Cluster extends ClusterModel
         return $this;
     }
 
+    public function getHttpRetryProperties(): ?array
+    {
+        return $this->httpRetryProperties;
+    }
+
+    public function setHttpRetryProperties(?array $httpRetryProperties): self
+    {
+        $this->httpRetryProperties = $httpRetryProperties;
+
+        return $this;
+    }
+
     public function isPhpIoncubeEnabled(): ?bool
     {
         return $this->phpIoncubeEnabled;
@@ -165,6 +185,106 @@ class Cluster extends ClusterModel
     public function setKernelcareLicenseKey(?string $kernelcareLicenseKey): self
     {
         $this->kernelcareLicenseKey = $kernelcareLicenseKey;
+
+        return $this;
+    }
+
+    public function getNewRelicApmLicenseKey(): ?string
+    {
+        return $this->newRelicApmLicenseKey;
+    }
+
+    public function setNewRelicApmLicenseKey(?string $newRelicApmLicenseKey): self
+    {
+        Validator::value($newRelicApmLicenseKey)
+            ->minLength(40)
+            ->maxLength(40)
+            ->pattern('^[a-zA-Z0-9]+$')
+            ->validate();
+
+        $this->newRelicApmLicenseKey = $newRelicApmLicenseKey;
+
+        return $this;
+    }
+
+    public function getNewRelicMariadbPassword(): ?string
+    {
+        return $this->newRelicMariadbPassword;
+    }
+
+    public function setNewRelicMariadbPassword(?string $newRelicMariadbPassword): self
+    {
+        Validator::value($newRelicMariadbPassword)
+            ->minLength(24)
+            ->maxLength(255)
+            ->pattern('^[ -~]+$')
+            ->validate();
+
+        $this->newRelicMariadbPassword = $newRelicMariadbPassword;
+
+        return $this;
+    }
+
+    public function getNewRelicInfrastructureLicenseKey(): ?string
+    {
+        return $this->newRelicInfrastructureLicenseKey;
+    }
+
+    public function setNewRelicInfrastructureLicenseKey(?string $newRelicInfrastructureLicenseKey): self
+    {
+        Validator::value($newRelicInfrastructureLicenseKey)
+            ->minLength(40)
+            ->maxLength(40)
+            ->pattern('^[a-zA-Z0-9]+$')
+            ->validate();
+
+        $this->newRelicInfrastructureLicenseKey = $newRelicInfrastructureLicenseKey;
+
+        return $this;
+    }
+
+    public function getMeilisearchMasterKey(): ?string
+    {
+        return $this->meilisearchMasterKey;
+    }
+
+    public function setMeilisearchMasterKey(?string $meilisearchMasterKey): self
+    {
+        Validator::value($meilisearchMasterKey)
+            ->minLength(16)
+            ->maxLength(24)
+            ->pattern('^[a-zA-Z0-9]+$')
+            ->validate();
+
+        $this->meilisearchMasterKey = $meilisearchMasterKey;
+
+        return $this;
+    }
+
+    public function getMeilisearchEnvironment(): ?string
+    {
+        return $this->meilisearchEnvironment;
+    }
+
+    public function setMeilisearchEnvironment(?string $meilisearchEnvironment): self
+    {
+        Validator::value($meilisearchEnvironment)
+            ->valueIn(MeilisearchEnvironment::AVAILABLE)
+            ->validate();
+
+        $this->meilisearchEnvironment = $meilisearchEnvironment;
+
+        return $this;
+    }
+
+    public function getMeilisearchBackupInterval(): ?int
+    {
+        return $this->meilisearchBackupInterval;
+    }
+
+    public function setMeilisearchBackupInterval(?int $meilisearchBackupInterval): self
+    {
+        $this->meilisearchBackupInterval = $meilisearchBackupInterval;
 
         return $this;
     }
@@ -381,17 +501,16 @@ class Cluster extends ClusterModel
         return $this;
     }
 
-    public function getDescription(): ?string
+    public function getDescription(): string
     {
         return $this->description;
     }
 
-    public function setDescription(?string $description): self
+    public function setDescription(string $description): self
     {
         Validator::value($description)
-            ->nullable()
             ->maxLength(255)
-            ->pattern('^[a-zA-Z0-9-_ ]+$')
+            ->pattern('^[a-zA-Z0-9-_. ]+$')
             ->validate();
 
         $this->description = $description;
@@ -445,6 +564,7 @@ class Cluster extends ClusterModel
             ->setMariaDbVersion(Arr::get($data, 'mariadb_version'))
             ->setMariaDbClusterName(Arr::get($data, 'mariadb_cluster_name'))
             ->setPhpSettings(Arr::get($data, 'php_settings', []))
+            ->setHttpRetryProperties(Arr::get($data, 'http_retry_properties'))
             ->setCustomPhpModulesNames(Arr::get($data, 'custom_php_modules_names', []))
             ->setPhpIoncubeEnabled(Arr::get($data, 'php_ioncube_enabled'))
             ->setKernelcareLicenseKey(Arr::get($data, 'kernelcare_license_key'))
@@ -480,6 +600,9 @@ class Cluster extends ClusterModel
             'mariadb_version' => $this->getMariaDbVersion(),
             'mariadb_cluster_name' => $this->getMariaDbClusterName(),
             'php_settings' => new ArrayObject($this->getPhpSettings()),
+            'http_retry_properties' => $this->getHttpRetryProperties()
+                ? new ArrayObject($this->getHttpRetryProperties())
+                : null,
             'custom_php_modules_names' => $this->getCustomPhpModulesNames(),
             'php_ioncube_enabled' => $this->isPhpIoncubeEnabled(),
             'kernelcare_license_key' => $this->getKernelcareLicenseKey(),
@@ -500,6 +623,12 @@ class Cluster extends ClusterModel
             'automatic_borg_repositories_prune_enabled' => $this->isAutomaticBorgRepositoriesPruneEnabled(),
             'php_sessions_spread_enabled' => $this->isPhpSessionSpreadEnabled(),
             'description' => $this->getDescription(),
+            'new_relic_apm_license_key' => $this->getNewRelicApmLicenseKey(),
+            'new_relic_infrastructure_license_key' => $this->getNewRelicInfrastructureLicenseKey(),
+            'new_relic_mariadb_password' => $this->getNewRelicMariadbPassword(),
+            'meilisearch_master_key' => $this->getMeilisearchMasterKey(),
+            'meilisearch_environment' => $this->getMeilisearchEnvironment(),
+            'meilisearch_backup_interval' => $this->getMeilisearchBackupInterval(),
             'id' => $this->getId(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),

@@ -9,7 +9,6 @@ class UserInfo extends ClusterModel
     private int $id;
     private string $username;
     private bool $isActive;
-    private bool $isProvisioningUser;
     private bool $isSuperUser;
     private array $clusters = [];
 
@@ -49,18 +48,6 @@ class UserInfo extends ClusterModel
         return $this;
     }
 
-    public function isProvisioningUser(): bool
-    {
-        return $this->isProvisioningUser;
-    }
-
-    public function setIsProvisioningUser(bool $isProvisioningUser): self
-    {
-        $this->isProvisioningUser = $isProvisioningUser;
-
-        return $this;
-    }
-
     public function isSuperUser(): bool
     {
         return $this->isSuperUser;
@@ -91,7 +78,6 @@ class UserInfo extends ClusterModel
             ->setId(Arr::get($data, 'id'))
             ->setUsername(Arr::get($data, 'username'))
             ->setIsActive(Arr::get($data, 'is_active'))
-            ->setIsProvisioningUser(Arr::get($data, 'is_provisioning_user'))
             ->setIsSuperUser(Arr::get($data, 'is_superuser'))
             ->setClusters(Arr::get($data, 'clusters', []));
     }
@@ -102,7 +88,6 @@ class UserInfo extends ClusterModel
             'id' => $this->getId(),
             'username' => $this->getUsername(),
             'is_active' => $this->isActive(),
-            'is_provisioning_user' => $this->isProvisioningUser(),
             'is_superuser' => $this->isSuperUser(),
             'clusters' => $this->getClusters(),
         ];
