@@ -17,6 +17,7 @@ class Cluster extends ClusterModel
     private ?string $mariaDbClusterName = null;
     private array $customPhpModulesNames = [];
     private array $phpSettings = [];
+    private array $httpRetryProperties = [];
     private ?bool $phpIoncubeEnabled = null;
     private ?string $kernelcareLicenseKey = null;
     private ?string $meilisearchMasterKey = null;
@@ -148,6 +149,18 @@ class Cluster extends ClusterModel
     public function setPhpSettings(array $phpSettings): self
     {
         $this->phpSettings = $phpSettings;
+
+        return $this;
+    }
+
+    public function getHttpRetryProperties(): array
+    {
+        return $this->httpRetryProperties;
+    }
+
+    public function setHttpRetryProperties(array $httpRetryProperties): self
+    {
+        $this->httpRetryProperties = $httpRetryProperties;
 
         return $this;
     }
@@ -551,6 +564,7 @@ class Cluster extends ClusterModel
             ->setMariaDbVersion(Arr::get($data, 'mariadb_version'))
             ->setMariaDbClusterName(Arr::get($data, 'mariadb_cluster_name'))
             ->setPhpSettings(Arr::get($data, 'php_settings', []))
+            ->setHttpRetryProperties(Arr::get($data, 'http_retry_properties', []))
             ->setCustomPhpModulesNames(Arr::get($data, 'custom_php_modules_names', []))
             ->setPhpIoncubeEnabled(Arr::get($data, 'php_ioncube_enabled'))
             ->setKernelcareLicenseKey(Arr::get($data, 'kernelcare_license_key'))
@@ -586,6 +600,7 @@ class Cluster extends ClusterModel
             'mariadb_version' => $this->getMariaDbVersion(),
             'mariadb_cluster_name' => $this->getMariaDbClusterName(),
             'php_settings' => new ArrayObject($this->getPhpSettings()),
+            'http_retry_properties' => new ArrayObject($this->getHttpRetryProperties()),
             'custom_php_modules_names' => $this->getCustomPhpModulesNames(),
             'php_ioncube_enabled' => $this->isPhpIoncubeEnabled(),
             'kernelcare_license_key' => $this->getKernelcareLicenseKey(),
