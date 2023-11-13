@@ -68,6 +68,7 @@ class Nodes extends Endpoint
         $this->validateRequired($node, 'create', [
             'groups',
             'comment',
+            'product',
             'load_balancer_health_checks_groups_pairs',
             'groups_properties',
             'cluster_id',
@@ -80,6 +81,7 @@ class Nodes extends Endpoint
                 $this->filterFields($node->toArray(), [
                     'groups',
                     'comment',
+                    'product',
                     'load_balancer_health_checks_groups_pairs',
                     'groups_properties',
                     'cluster_id',
@@ -106,6 +108,7 @@ class Nodes extends Endpoint
         $this->validateRequired($node, 'update', [
             'groups',
             'comment',
+            'product',
             'load_balancer_health_checks_groups_pairs',
             'groups_properties',
             'cluster_id',
@@ -121,6 +124,7 @@ class Nodes extends Endpoint
                 $this->filterFields($node->toArray(), [
                     'groups',
                     'comment',
+                    'product',
                     'load_balancer_health_checks_groups_pairs',
                     'groups_properties',
                     'cluster_id',

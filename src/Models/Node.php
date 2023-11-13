@@ -11,6 +11,7 @@ class Node extends ClusterModel
 {
     private array $groups = [];
     private ?string $comment = null;
+    private string $product;
     private array $loadBalancerHealthChecksGroupsPairs = [];
     private array $groupsProperties = [];
     private ?bool $isReady = true;
@@ -45,6 +46,18 @@ class Node extends ClusterModel
             ->validate();
 
         $this->comment = $comment;
+
+        return $this;
+    }
+
+    public function getProduct(): string
+    {
+        return $this->product;
+    }
+
+    public function setProduct(string $product): self
+    {
+        $this->product = $product;
 
         return $this;
     }
@@ -155,6 +168,7 @@ class Node extends ClusterModel
         return $this
             ->setGroups(Arr::get($data, 'groups', []))
             ->setComment(Arr::get($data, 'comment'))
+            ->setProduct(Arr::get($data, 'product'))
             ->setLoadBalancerHealthChecksGroupsPairs(Arr::get($data, 'load_balancer_health_checks_groups_pairs'))
             ->setGroupsProperties(Arr::get($data, 'groups_properties', []))
             ->setIsReady(Arr::get($data, 'is_ready'))
@@ -170,6 +184,7 @@ class Node extends ClusterModel
         return [
             'groups' => $this->getGroups(),
             'comment' => $this->getComment(),
+            'product' => $this->getProduct(),
             'load_balancer_health_checks_groups_pairs' => new ArrayObject($this->getLoadBalancerHealthChecksGroupsPairs()),
             'groups_properties' => new ArrayObject($this->getGroupsProperties()),
             'is_ready' => $this->getIsReady(),
