@@ -47,8 +47,8 @@ Upgrade pipx with `python3 -m pip install --user --upgrade pipx`.
 ### On Windows, install via pip (requires pip 19.0 or later)
 
 ```
-# If you installed python using the app-store, replace `python` with `python3` in the next line.
-python -m pip install --user pipx
+# If you installed python using Microsoft Store, replace `py` with `python3` in the next line.
+py -m pip install --user pipx
 ```
 
 It is possible (even most likely) the above finishes with a WARNING looking similar to this:
@@ -67,7 +67,7 @@ Enter the following line (even if you did not get the warning):
 This will add both the above mentioned path and the `%USERPROFILE%\.local\bin` folder to your search path.
 Restart your terminal session and verify `pipx` does run.
 
-Upgrade pipx with `python3 -m pip install --user --upgrade pipx`.
+Upgrade pipx with `py -m pip install --user --upgrade pipx`.
 
 ### Via zipapp
 
