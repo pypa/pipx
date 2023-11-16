@@ -46,6 +46,7 @@ python pipx.pyz ensurepath
 ### <a name="pre-commit"></a> Using pipx with pre-commit
 
 Pipx has [pre-commit](https://pre-commit.com/) support. This lets you run applications:
+
 * That can be run using `pipx run` but don't have native pre-commit support.
 * Using its prebuilt wheel from pypi.org instead of building it from source.
 * Using pipx's `--spec` and `--index-url` flags.
