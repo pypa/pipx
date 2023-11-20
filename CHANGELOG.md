@@ -1,5 +1,6 @@
 ## dev
 
+- Use virtual environment's Python to check for pip's availability during reinstalling process
 - Drop support for Python 3.7
 - Make usage message in `pipx run` show `package_or_url`, so extra will be printed out as well
 - Add `--force-reinstall` to pip arguments when `--force` was passed

@@ -45,13 +45,13 @@ def reinstall(
         package_or_url = venv.pipx_metadata.main_package.package_or_url
     else:
         package_or_url = venv.main_package_name
-    
+
     check_pip = "import importlib.util; print(importlib.util.find_spec('pip'))"
     out = run_subprocess(
-            [venv.python_path, "-c", check_pip],
-            capture_stderr=False,
-            log_cmd_str="<checking pip's availability>",
-        ).stdout.strip()
+        [venv.python_path, "-c", check_pip],
+        capture_stderr=False,
+        log_cmd_str="<checking pip's availability>",
+    ).stdout.strip()
     if out == "None":
         raise PipxError(
             f"Can not find pip. You may encounter issues uninstalling packages. "
