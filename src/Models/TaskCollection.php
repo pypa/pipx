@@ -11,7 +11,7 @@ class TaskCollection extends ClusterModel
     private string $uuid;
     private string $description;
     private string $collectionType;
-    private ?string $objectId = null;
+    private ?int $objectId = null;
     private string $objectModelName;
     private ?int $id = null;
     private ?int $clusterId = null;
@@ -63,12 +63,12 @@ class TaskCollection extends ClusterModel
         return $this;
     }
 
-    public function getObjectId(): ?string
+    public function getObjectId(): ?int
     {
         return $this->objectId;
     }
 
-    public function setObjectId(?string $objectId): self
+    public function setObjectId(?int $objectId): self
     {
         $this->objectId = $objectId;
 
