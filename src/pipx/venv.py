@@ -2,6 +2,8 @@ import json
 import logging
 import re
 import time
+import os
+import uuid
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Dict, Generator, List, NoReturn, Optional, Set
@@ -158,7 +160,7 @@ class Venv:
 
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
-            cmd = [self.python, "-m", "venv", "--without-pip"]
+            cmd = [self.python, "-Im", "venv", "--without-pip"]
             venv_process = run_subprocess(cmd + venv_args + [str(self.root)])
         subprocess_post_check(venv_process)
 
