@@ -212,6 +212,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             venv_args,
             verbose,
             force=args.force,
+            reinstall=False,
             include_dependencies=args.include_deps,
             preinstall_packages=args.preinstall,
             suffix=args.suffix,
@@ -226,6 +227,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             include_apps=args.include_apps,
             include_dependencies=args.include_deps,
             force=args.force,
+            suffix=args.with_suffix,
         )
     elif args.command == "uninject":
         return commands.uninject(
@@ -344,7 +346,7 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
     )
     p.add_argument(
         "--python",
-        default=DEFAULT_PYTHON,
+        # Don't pass a default Python here so we know whether --python flag was passed
         help=(
             "Python to install with. Possible values can be the executable name (python3.11), "
             "the version to pass to py launcher (3.11), or the full path to the executable."
@@ -382,7 +384,11 @@ def _add_inject(subparsers, venv_completer: VenvCompleter) -> None:
         action="store_true",
         help="Add apps from the injected packages onto your PATH",
     )
-    add_include_dependencies(p)
+    p.add_argument(
+        "--include-deps",
+        help="Include apps of dependent packages. Implies --include-apps",
+        action="store_true",
+    )
     add_pip_venv_args(p)
     p.add_argument(
         "--force",
@@ -391,6 +397,11 @@ def _add_inject(subparsers, venv_completer: VenvCompleter) -> None:
         help="Modify existing virtual environment and files in PIPX_BIN_DIR",
     )
     p.add_argument("--verbose", action="store_true")
+    p.add_argument(
+        "--with-suffix",
+        action="store_true",
+        help="Add the suffix (if given) of the Virtual Environment to the packages to inject",
+    )
 
 
 def _add_uninject(subparsers, venv_completer: VenvCompleter):
