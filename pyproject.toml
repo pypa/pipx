@@ -25,6 +25,7 @@ dependencies = [
   "colorama>=0.4.4; sys_platform == 'win32'",
   "packaging>=20.0",
   "platformdirs>=2.1.0",
+  "tomli; python_version < '3.11'",
   "userpath>=1.6.0,!=1.9.0",
 ]
 dynamic = ["version"]

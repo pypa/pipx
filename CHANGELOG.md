@@ -1,5 +1,6 @@
 ## dev
 
+- Support PEP 723 run requirements in `pipx run`.
 - Imply `--include-apps` when running `pipx inject --include-deps`
 - Add `--with-suffix` for `pipx inject` command
 - `pipx install`: emit a warning when `--force` and `--python` were passed at the same time
