@@ -1,6 +1,7 @@
 ## dev
 
 - Add `--quiet` and `--verbose` options for the `pipx` subcommands
+- Drop support for Python 3.7
 - Make usage message in `pipx run` show `package_or_url`, so extra will be printed out as well
 - Add `--force-reinstall` to pip arguments when `--force` was passed
 - Use the py launcher, if available, to select Python version with the `--python` option
@@ -15,6 +16,13 @@
 - [docs] Add subsection to make README easier to read
 - Add `pipx install --preinstall` to support preinstalling build requirements
 - Pass `--no-input` to pip when output is not piped to parent stdout
+- Fix program name in generated manual page
+- Print all environment variables in `pipx environment`
+- Return an error message when directory can't be added to PATH successfully
+
+## 1.2.1
+
+- Fix compatibility to packaging 23.2+ by removing reliance on packaging's requirement validation logic and detecting a URL-based requirement in pipx. (#1070)
 
 ## 1.2.0
 
