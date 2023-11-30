@@ -257,7 +257,7 @@ def test_install_pip_failure(pipx_temp_env, capsys):
 def test_install_local_archive(pipx_temp_env, monkeypatch, capsys):
     monkeypatch.chdir(Path(TEST_DATA_PATH) / "local_extras")
 
-    subprocess.run([sys.executable, "-m", "pip", "wheel", "."])
+    subprocess.run([sys.executable, "-m", "pip", "wheel", "."], check=True)
     assert not run_pipx_cli(["install", "repeatme-0.1-py3-none-any.whl"])
     captured = capsys.readouterr()
     assert f"- {app_name('repeatme')}\n" in captured.out

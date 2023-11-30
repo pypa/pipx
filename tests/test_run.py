@@ -28,10 +28,10 @@ def execvpe_mock(cmd_path, cmd_args, env):
     return_code = subprocess.run(
         [str(x) for x in cmd_args],
         env=env,
-        stdout=None,
-        stderr=None,
+        capture_output=False,
         encoding="utf-8",
-        universal_newlines=True,
+        text=True,
+        check=False,
     ).returncode
     sys.exit(return_code)
 
@@ -143,10 +143,10 @@ def test_run_ensure_null_pythonpath():
                 "-c",
                 "import os; print(os.environ.get('PYTHONPATH'))",
             ],
-            universal_newlines=True,
             env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
+            text=True,
+            check=True,
         ).stdout
     )
 
