@@ -384,7 +384,11 @@ def _add_inject(subparsers, venv_completer: VenvCompleter) -> None:
         action="store_true",
         help="Add apps from the injected packages onto your PATH",
     )
-    add_include_dependencies(p)
+    p.add_argument(
+        "--include-deps",
+        help="Include apps of dependent packages. Implies --include-apps",
+        action="store_true",
+    )
     add_pip_venv_args(p)
     p.add_argument(
         "--force",

@@ -98,9 +98,7 @@ def inject(
 ) -> ExitCode:
     """Returns pipx exit code."""
     if not include_apps and include_dependencies:
-        raise PipxError(
-            "Cannot pass --include-deps if --include-apps is not passed as well"
-        )
+        include_apps = True
     all_success = True
     for dep in package_specs:
         all_success &= inject_dep(

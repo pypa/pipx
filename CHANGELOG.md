@@ -1,5 +1,6 @@
 ## dev
 
+- Imply `--include-apps` when running `pipx inject --include-deps`
 - Add `--with-suffix` for `pipx inject` command
 - `pipx install`: emit a warning when `--force` and `--python` were passed at the same time
 - Drop support for Python 3.7
