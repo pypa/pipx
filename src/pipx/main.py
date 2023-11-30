@@ -212,6 +212,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             venv_args,
             verbose,
             force=args.force,
+            reinstall=False,
             include_dependencies=args.include_deps,
             preinstall_packages=args.preinstall,
             suffix=args.suffix,
@@ -344,7 +345,7 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
     )
     p.add_argument(
         "--python",
-        default=DEFAULT_PYTHON,
+        # Don't pass a default Python here so we know whether --python flag was passed
         help=(
             "Python to install with. Possible values can be the executable name (python3.11), "
             "the version to pass to py launcher (3.11), or the full path to the executable."
