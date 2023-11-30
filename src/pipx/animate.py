@@ -101,11 +101,13 @@ def print_animation(
 # for Windows pre-ANSI-terminal-support (before Windows 10 TH2 (v1511))
 # https://stackoverflow.com/a/10455937
 def win_cursor(visible: bool) -> None:
+    if sys.platform != "win32":  # hello mypy
+        return
     ci = _CursorInfo()
-    handle = ctypes.windll.kernel32.GetStdHandle(-11)  # type: ignore[attr-defined]
-    ctypes.windll.kernel32.GetConsoleCursorInfo(handle, ctypes.byref(ci))  # type: ignore[attr-defined]
+    handle = ctypes.windll.kernel32.GetStdHandle(-11)
+    ctypes.windll.kernel32.GetConsoleCursorInfo(handle, ctypes.byref(ci))
     ci.visible = visible
-    ctypes.windll.kernel32.SetConsoleCursorInfo(handle, ctypes.byref(ci))  # type: ignore[attr-defined]
+    ctypes.windll.kernel32.SetConsoleCursorInfo(handle, ctypes.byref(ci))
 
 
 def hide_cursor() -> None:

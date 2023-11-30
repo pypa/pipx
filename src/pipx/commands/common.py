@@ -350,6 +350,13 @@ def run_post_install_actions(
 
     display_name = f"{package_name}{package_metadata.suffix}"
 
+    if (
+        not venv.main_package_name == package_name
+        and venv.package_metadata[venv.main_package_name].suffix
+        == package_metadata.suffix
+    ):
+        package_name = display_name
+
     if not package_metadata.apps:
         if not package_metadata.apps_of_dependencies:
             if venv.safe_to_remove():
@@ -409,7 +416,7 @@ def warn_if_not_on_path(local_bin_dir: Path) -> None:
         logger.warning(
             pipx_wrap(
                 f"""
-                {hazard}  Note: {str(local_bin_dir)!r} is not on your PATH
+                {hazard}  Note: '{local_bin_dir}' is not on your PATH
                 environment variable. These apps will not be globally
                 accessible until your PATH is updated. Run `pipx ensurepath` to
                 automatically add it, or manually modify your PATH in your

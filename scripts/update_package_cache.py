@@ -49,8 +49,7 @@ def process_command_line(argv: List[str]) -> argparse.Namespace:
         "download or delete files.",
     )
 
-    args = parser.parse_args(argv)
-    return args
+    return parser.parse_args(argv)
 
 
 def update_test_packages_cache(
@@ -92,7 +91,7 @@ def update_test_packages_cache(
 
     try:
         platform_package_list_fh = platform_package_list_path.open("r")
-    except IOError:
+    except OSError:
         print(
             f"ERROR.  File {str(platform_package_list_path)}\n"
             "    is not readable.  Cannot continue.\n",
@@ -135,7 +134,9 @@ def update_test_packages_cache(
                 packages_dir_hits.append(matches[0])
                 continue
             elif len(matches) > 1:
-                print("ERROR: more than one match for {package_spec}.", file=sys.stderr)
+                print(
+                    f"ERROR: more than one match for {package_spec}.", file=sys.stderr
+                )
                 print(f"    {matches}", file=sys.stderr)
                 exit_code = 1
                 continue
@@ -159,9 +160,9 @@ def update_test_packages_cache(
                     "-d",
                     str(packages_dir_path),
                 ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
+                capture_output=True,
+                text=True,
+                check=False,
             )
             if pip_download_process.returncode == 0:
                 print(f"Successfully downloaded {package_spec}")

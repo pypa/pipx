@@ -6,18 +6,18 @@
 
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.4.0
+  rev: v4.5.0
   hooks:
   - id: end-of-file-fixer
   - id: check-added-large-files
   - id: trailing-whitespace
   - id: check-yaml
-- repo: https://github.com/charliermarsh/ruff-pre-commit
-  rev: v0.0.254
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.1.3
   hooks:
     - id: ruff
 - repo: https://github.com/psf/black
-  rev: 23.1.0
+  rev: 23.10.1
   hooks:
   - id: black
 # mypy args:
@@ -27,8 +27,8 @@ repos:
 #   cannot use --warn-unused-ignores because it conflicts with
 #     --ignore-missing-imports
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.1.1
+  rev: v1.6.1
   hooks:
   - id: mypy
-    args: ['--ignore-missing-imports', '--strict-equality','--no-implicit-optional']
+    args: ['--warn-unused-ignores', '--strict-equality','--no-implicit-optional']
     exclude: 'testdata/test_package_specifier/local_extras/setup.py'
