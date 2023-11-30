@@ -4,6 +4,7 @@ from typing import List, Optional
 from pipx import constants
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.constants import EXIT_CODE_INSTALL_VENV_EXISTS, EXIT_CODE_OK, ExitCode
+from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import pipx_wrap
 from pipx.venv import Venv, VenvContainer
 
@@ -13,18 +14,23 @@ def install(
     package_name: Optional[str],
     package_spec: str,
     local_bin_dir: Path,
-    python: str,
+    python: Optional[str],
     pip_args: List[str],
     venv_args: List[str],
     verbose: bool,
     *,
     force: bool,
+    reinstall: bool,
     include_dependencies: bool,
+    preinstall_packages: Optional[List[str]],
     suffix: str = "",
 ) -> ExitCode:
     """Returns pipx exit code."""
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
+    python_flag_was_passed = python is not None
+
+    python = python or DEFAULT_PYTHON
 
     if package_name is None:
         package_name = package_name_from_spec(
@@ -41,14 +47,25 @@ def install(
 
     venv = Venv(venv_dir, python=python, verbose=verbose)
     if exists:
+        if not reinstall and force and python_flag_was_passed:
+            print(
+                pipx_wrap(
+                    f"""
+                    --python is ignored when --force is passed.
+                    If you want to reinstall {package_name} with {python},
+                    run `pipx reinstall {package_spec} --python {python}` instead.
+                    """
+                )
+            )
         if force:
             print(f"Installing to existing venv {venv.name!r}")
+            pip_args += ["--force-reinstall"]
         else:
             print(
                 pipx_wrap(
                     f"""
                     {venv.name!r} already seems to be installed. Not modifying
-                    existing installation in {str(venv_dir)!r}. Pass '--force'
+                    existing installation in '{venv_dir}'. Pass '--force'
                     to force installation.
                     """
                 )
@@ -57,6 +74,11 @@ def install(
 
     try:
         venv.create_venv(venv_args, pip_args)
+        for dep in preinstall_packages or []:
+            dep_name = package_name_from_spec(
+                dep, python, pip_args=pip_args, verbose=verbose
+            )
+            venv.upgrade_package_no_metadata(dep_name, [])
         venv.install_package(
             package_name=package_name,
             package_or_url=package_spec,

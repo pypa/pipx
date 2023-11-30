@@ -2,6 +2,7 @@ import os
 import shutil
 import subprocess
 import sys
+from typing import Optional
 
 from pipx.constants import WINDOWS
 from pipx.util import PipxError
@@ -26,15 +27,23 @@ def has_venv() -> bool:
 # so we try to locate the system Python and use that instead.
 
 
-def _find_default_windows_python() -> str:
+def find_py_launcher_python(python_version: Optional[str] = None) -> Optional[str]:
+    py = shutil.which("py")
+    if py and python_version:
+        py = subprocess.run(
+            [py, f"-{python_version}", "-c", "import sys; print(sys.executable)"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+    return py
 
+
+def _find_default_windows_python() -> str:
     if has_venv():
         return sys.executable
+    python = find_py_launcher_python() or shutil.which("python")
 
-    py = shutil.which("py")
-    if py:
-        return py
-    python = shutil.which("python")
     if python is None:
         raise PipxError("No suitable Python found")
 
@@ -46,7 +55,7 @@ def _find_default_windows_python() -> str:
     # https://twitter.com/zooba/status/1212454929379581952
 
     proc = subprocess.run(
-        [python, "-V"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
+        [python, "-V"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False
     )
     if proc.returncode != 0:
         # Cover the 9009 return code pre-emptively.
@@ -67,7 +76,7 @@ def _get_sys_executable() -> str:
 def _get_absolute_python_interpreter(env_python: str) -> str:
     which_python = shutil.which(env_python)
     if not which_python:
-        raise PipxError(f"Default python interpreter {repr(env_python)} is invalid.")
+        raise PipxError(f"Default python interpreter '{env_python}' is invalid.")
     return which_python
 
 

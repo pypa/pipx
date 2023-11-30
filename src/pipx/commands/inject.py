@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 from typing import List, Optional
@@ -48,7 +49,10 @@ def inject_dep(
     #   zip file, or tar.gz file.
     if package_name is None:
         package_name = package_name_from_spec(
-            package_spec, venv.python, pip_args=pip_args, verbose=verbose
+            package_spec,
+            os.fspath(venv.python_path),
+            pip_args=pip_args,
+            verbose=verbose,
         )
     if suffix:
         venv_suffix = venv.package_metadata[venv.main_package_name].suffix

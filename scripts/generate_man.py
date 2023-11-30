@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 import os.path
+import sys
 import textwrap
 
 from build_manpages.manpage import Manpage  # type: ignore
@@ -10,6 +10,7 @@ from pipx.main import get_command_parser
 
 
 def main():
+    sys.argv[0] = "pipx"
     parser = get_command_parser()
     parser.man_short_description = parser.description.splitlines()[1]
 

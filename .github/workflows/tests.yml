@@ -20,7 +20,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ env.default-python }}
       uses: actions/setup-python@v4
       with:
@@ -36,7 +36,7 @@ jobs:
   verify-docs:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ env.default-python }}
       uses: actions/setup-python@v4
       with:
@@ -55,7 +55,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
         include:
           - os: windows-latest
             python-version: "3.11"
@@ -63,7 +63,7 @@ jobs:
             python-version: "3.11"
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
@@ -97,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout ${{ github.ref }}
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Set up Python ${{ env.default-python }}
       uses: actions/setup-python@v4
       with:
@@ -110,7 +110,7 @@ jobs:
       run: |
         nox --error-on-missing-interpreters --non-interactive --session build
     - name: Publish to PyPi
-      uses: pypa/gh-action-pypi-publish@v1.6.4
+      uses: pypa/gh-action-pypi-publish@v1.8.11
       with:
         user: __token__
         password: ${{ secrets.pypi_password }}
@@ -122,7 +122,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout ${{ github.ref }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Python ${{ env.default-python }}
         uses: actions/setup-python@v4
         with:

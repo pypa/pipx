@@ -18,8 +18,8 @@ pipx ensurepath
 On Windows (requires pip 19.0 or later):
 
 ```
-py -3 -m pip install --user pipx
-py -3 -m pipx ensurepath
+py -m pip install --user pipx
+py -m pipx ensurepath
 ```
 
 Otherwise, install via pip (requires pip 19.0 or later):
@@ -38,11 +38,31 @@ The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx
 python pipx.pyz ensurepath
 ```
 
+<a name="pre-commit"></a>Or use with pre-commit:
+
+Pipx has [pre-commit](https://pre-commit.com/) support. This lets you run applications:
+* That can be run using `pipx run` but don't have native pre-commit support.
+* Using its prebuilt wheel from pypi.org instead of building it from source.
+* Using pipx's `--spec` and `--index-url` flags.
+
+Example configuration for use of the code linter [yapf](https://github.com/google/yapf/). This is to be added to your `.pre-commit-config.yaml`.
+
+```yaml
+- repo: https://github.com/pypa/pipx
+  rev: 53e7f27
+  hooks:
+  - id: pipx
+    alias: yapf
+    name: yapf
+    args: ['yapf', '-i']
+    types: ['python']
+```
+
 ### Installation Options
 
 The default binary location for pipx-installed apps is `~/.local/bin`. This can be overridden with the environment variable `PIPX_BIN_DIR`.
 
-pipx's default virtual environment location is `~/.local/pipx`. This can be overridden with the environment variable `PIPX_HOME`.
+pipx's default virtual environment location is typically `~/.local/share/pipx` on Linux/Unix, `%USERPROFILE%\AppData\Local\pipx` on Windows and `~/Library/Application Support/pipx` on macOS, and for compatibility reasons, if `~/.local/pipx` exists, it will be used as the default location instead. This can be overridden with the `PIPX_HOME` environment variable.
 
 As an example, you can install global apps accessible by all users on your system with the following command (on MacOS, Linux, and Windows WSL):
 
@@ -50,6 +70,21 @@ As an example, you can install global apps accessible by all users on your syste
 sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install PACKAGE
 # Example: $ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install cowsay
 ```
+
+!!! note
+
+    After version 1.2.0, the default pipx paths have been moved from `~/.local/pipx` to specific user data directories on each platform using [platformdirs](https://pypi.org/project/platformdirs/) library
+
+    | Old Path               | New Path                                   |
+    | ---------------------- | ------------------------------------------ |
+    | `~/.local/pipx/.trash` | `platformdirs.user_data_dir()/pipx/trash`  |
+    | `~/.local/pipx/shared` | `platformdirs.user_data_dir()/pipx/shared` |
+    | `~/.local/pipx/venvs`  | `platformdirs.user_data_dir()/pipx/venv`   |
+    | `~/.local/pipx/.cache` | `platformdirs.user_cache_dir()/pipx`       |
+    | `~/.local/pipx/logs`   | `platformdirs.user_log_dir()/pipx/log`     |
+
+    `user_data_dir()`, `user_cache_dir()` and `user_log_dir()` resolve to appropriate platform-specific user data, cache and log directories.
+    See the [platformdirs documentation](https://platformdirs.readthedocs.io/en/latest/api.html#platforms) for details.
 
 ## Upgrade pipx
 

@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout ${{ github.ref }}
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Set up Python ${{ env.default-python }}
       uses: actions/setup-python@v4
       with:
@@ -32,7 +32,7 @@ jobs:
       run: |
         nox --error-on-missing-interpreters --non-interactive --session build
     - name: Publish to Test PyPi
-      uses: pypa/gh-action-pypi-publish@v1.6.4
+      uses: pypa/gh-action-pypi-publish@v1.8.11
       with:
         user: __token__
         password: ${{ secrets.test_pypi_password }}

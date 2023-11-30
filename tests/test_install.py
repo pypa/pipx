@@ -71,11 +71,10 @@ def test_install_tricky_packages(
     install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
 
 
-# TODO: Add git+... spec when git is in binpath of tests (Issue #303)
 @pytest.mark.parametrize(
     "package_name, package_spec",
     [
-        # ("nox", "git+https://github.com/cs01/nox.git@5ea70723e9e6"),
+        ("pycowsay", "git+https://github.com/cs01/pycowsay.git@master"),
         ("pylint", PKG["pylint"]["spec"]),
         ("nox", "https://github.com/wntrblm/nox/archive/2022.1.7.zip"),
     ],
@@ -144,7 +143,7 @@ def test_extra(pipx_temp_env, capsys):
 
 def test_install_local_extra(pipx_temp_env, capsys):
     assert not run_pipx_cli(
-        ["install", TEST_DATA_PATH + "/local_extras[cow]", "--include-deps"]
+        ["install", f"{TEST_DATA_PATH}/local_extras[cow]", "--include-deps"]
     )
     captured = capsys.readouterr()
     assert f"- {app_name('pycowsay')}\n" in captured.out
@@ -250,7 +249,7 @@ def test_install_pip_failure(pipx_temp_env, capsys):
         r"Full pip output in file:\s+(\S.+)$", captured.err, re.MULTILINE
     )
     assert pip_log_file_match
-    assert Path(pip_log_file_match.group(1)).exists()
+    assert Path(pip_log_file_match[1]).exists()
 
     assert re.search(r"pip (failed|seemed to fail) to build package", captured.err)
 
@@ -258,7 +257,41 @@ def test_install_pip_failure(pipx_temp_env, capsys):
 def test_install_local_archive(pipx_temp_env, monkeypatch, capsys):
     monkeypatch.chdir(Path(TEST_DATA_PATH) / "local_extras")
 
-    subprocess.run([sys.executable, "-m", "pip", "wheel", "."])
+    subprocess.run([sys.executable, "-m", "pip", "wheel", "."], check=True)
     assert not run_pipx_cli(["install", "repeatme-0.1-py3-none-any.whl"])
     captured = capsys.readouterr()
     assert f"- {app_name('repeatme')}\n" in captured.out
+
+
+def test_force_install_changes(pipx_temp_env, capsys):
+    assert not run_pipx_cli(
+        ["install", "https://github.com/wntrblm/nox/archive/2022.1.7.zip"]
+    )
+    captured = capsys.readouterr()
+    assert "2022.1.7" in captured.out
+
+    assert not run_pipx_cli(["install", "nox", "--force"])
+    captured = capsys.readouterr()
+    assert "2022.1.7" not in captured.out
+
+
+def test_preinstall(pipx_temp_env, caplog):
+    assert not run_pipx_cli(["install", "--preinstall", "black", "nox"])
+    assert "black" in caplog.text
+
+
+@pytest.mark.xfail
+def test_do_not_wait_for_input(pipx_temp_env, pipx_session_shared_dir, monkeypatch):
+    monkeypatch.setenv("PIP_INDEX_URL", "http://127.0.0.1:8080/simple")
+    run_pipx_cli(["install", "pycowsay"])
+
+
+def test_passed_python_and_force_flag_warning(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "black"])
+    assert not run_pipx_cli(["install", "--python", sys.executable, "--force", "black"])
+    captured = capsys.readouterr()
+    assert "--python is ignored when --force is passed." in captured.out
+
+    assert not run_pipx_cli(["install", "pycowsay", "--force"])
+    captured = capsys.readouterr()
+    assert "--python is ignored when --force is passed." not in captured.out
