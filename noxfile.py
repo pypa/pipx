@@ -9,10 +9,10 @@ PYTHON_DEFAULT_VERSION = "3.11"
 DOC_DEPENDENCIES = [".", "jinja2", "mkdocs", "mkdocs-material"]
 MAN_DEPENDENCIES = [".", "argparse-manpage[setuptools]"]
 LINT_DEPENDENCIES = [
-    "black==22.8.0",
-    "mypy==1.1.1",
+    "black==23.10.1",
+    "mypy==1.6.1",
     "packaging>=20.0",
-    "ruff==0.0.254",
+    "ruff==0.1.3",
     "types-jinja2",
 ]
 # Packages whose dependencies need an intact system PATH to compile
