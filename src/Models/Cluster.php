@@ -42,6 +42,7 @@ class Cluster extends ClusterModel
     private ?bool $syncToolkitEnabled = null;
     private ?bool $automaticBorgRepositoriesPruneEnabled = null;
     private ?bool $phpSessionSpreadEnabled = null;
+    private ?bool $automaticUpgradesEnabled = null;
     private string $description;
     private ?int $id = null;
     private ?string $createdAt = null;
@@ -501,6 +502,18 @@ class Cluster extends ClusterModel
         return $this;
     }
 
+    public function getAutomaticUpgradesEnabled(): ?bool
+    {
+        return $this->automaticUpgradesEnabled;
+    }
+
+    public function setAutomaticUpgradesEnabled(?bool $automaticUpgradesEnabled): self
+    {
+        $this->automaticUpgradesEnabled = $automaticUpgradesEnabled;
+
+        return $this;
+    }
+
     public function getDescription(): string
     {
         return $this->description;
@@ -584,6 +597,7 @@ class Cluster extends ClusterModel
             ->setSyncToolkitEnabled(Arr::get($data, 'sync_toolkit_enabled'))
             ->setAutomaticBorgRepositoriesPruneEnabled(Arr::get($data, 'automatic_borg_repositories_prune_enabled'))
             ->setPhpSessionSpreadEnabled(Arr::get($data, 'php_sessions_spread_enabled'))
+            ->setAutomaticUpgradesEnabled(Arr::get($data, 'automatic_upgrades_enabled'))
             ->setDescription(Arr::get($data, 'description'))
             ->setId(Arr::get($data, 'id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
@@ -629,6 +643,7 @@ class Cluster extends ClusterModel
             'meilisearch_master_key' => $this->getMeilisearchMasterKey(),
             'meilisearch_environment' => $this->getMeilisearchEnvironment(),
             'meilisearch_backup_interval' => $this->getMeilisearchBackupInterval(),
+            'automatic_upgrades_enabled' => $this->getAutomaticUpgradesEnabled(),
             'id' => $this->getId(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),
