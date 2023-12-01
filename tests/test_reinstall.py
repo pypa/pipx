@@ -27,9 +27,7 @@ def test_reinstall_suffix(pipx_temp_env, capsys):
     suffix = "_x"
     assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
 
-    assert not run_pipx_cli(
-        ["reinstall", "--python", sys.executable, f"pycowsay{suffix}"]
-    )
+    assert not run_pipx_cli(["reinstall", "--python", sys.executable, f"pycowsay{suffix}"])
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])
@@ -38,9 +36,7 @@ def test_reinstall_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
     mock_legacy_venv(f"pycowsay{suffix}", metadata_version=metadata_version)
 
-    assert not run_pipx_cli(
-        ["reinstall", "--python", sys.executable, f"pycowsay{suffix}"]
-    )
+    assert not run_pipx_cli(["reinstall", "--python", sys.executable, f"pycowsay{suffix}"])
 
 
 def test_reinstall_specifier(pipx_temp_env, capsys):

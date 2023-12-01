@@ -54,9 +54,7 @@ def _find_default_windows_python() -> str:
     # Special treatment to detect Windows Store stub.
     # https://twitter.com/zooba/status/1212454929379581952
 
-    proc = subprocess.run(
-        [python, "-V"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False
-    )
+    proc = subprocess.run([python, "-V"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
     if proc.returncode != 0:
         # Cover the 9009 return code pre-emptively.
         raise PipxError("No suitable Python found")

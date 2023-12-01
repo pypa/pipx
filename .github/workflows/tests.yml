@@ -9,12 +9,18 @@
 name: tests
 
 on:
-  pull_request:
   push:
+    tags-ignore: ["**"]
+  pull_request:
+  schedule:
+    - cron: "0 8 * * *"
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
 
 # If changing default-python be sure to change job "tests" matrix: include: also
 env:
-  default-python: "3.11"
+  default-python: "3.12"
 
 jobs:
   lint:
@@ -55,12 +61,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.12", "3.11", "3.10", "3.9", "3.8"]
         include:
           - os: windows-latest
-            python-version: "3.11"
+            python-version: "3.12"
           - os: macos-latest
-            python-version: "3.11"
+            python-version: "3.12"
 
     steps:
     - uses: actions/checkout@v4

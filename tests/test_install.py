@@ -16,9 +16,7 @@ TEST_DATA_PATH = "./testdata/test_package_specifier"
 
 def test_help_text(monkeypatch, capsys):
     mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
-    with mock.patch.object(sys, "exit", mock_exit), pytest.raises(
-        ValueError, match="raised in test to exit early"
-    ):
+    with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
         run_pipx_cli(["install", "--help"])
     captured = capsys.readouterr()
     assert "apps you can run from anywhere" in captured.out
@@ -45,9 +43,7 @@ def install_package(capsys, pipx_temp_env, caplog, package, package_name=""):
     "package_name, package_spec",
     [("pycowsay", "pycowsay"), ("black", PKG["black"]["spec"])],
 )
-def test_install_easy_packages(
-    capsys, pipx_temp_env, caplog, package_name, package_spec
-):
+def test_install_easy_packages(capsys, pipx_temp_env, caplog, package_name, package_spec):
     install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
 
 
@@ -60,9 +56,7 @@ def test_install_easy_packages(
         ("shell-functools", PKG["shell-functools"]["spec"]),
     ],
 )
-def test_install_tricky_packages(
-    capsys, pipx_temp_env, caplog, package_name, package_spec
-):
+def test_install_tricky_packages(capsys, pipx_temp_env, caplog, package_name, package_spec):
     if os.getenv("FAST"):
         pytest.skip("skipping slow tests")
     if sys.platform.startswith("win") and package_name == "ansible":
@@ -79,9 +73,7 @@ def test_install_tricky_packages(
         ("nox", "https://github.com/wntrblm/nox/archive/2022.1.7.zip"),
     ],
 )
-def test_install_package_specs(
-    capsys, pipx_temp_env, caplog, package_name, package_spec
-):
+def test_install_package_specs(capsys, pipx_temp_env, caplog, package_name, package_spec):
     install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
 
 
@@ -111,10 +103,7 @@ def test_install_same_package_twice_no_force(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["install", "pycowsay"])
     captured = capsys.readouterr()
-    assert (
-        "'pycowsay' already seems to be installed. Not modifying existing installation"
-        in captured.out
-    )
+    assert "'pycowsay' already seems to be installed. Not modifying existing installation" in captured.out
 
 
 def test_include_deps(pipx_temp_env, capsys):
@@ -129,9 +118,7 @@ def test_include_deps(pipx_temp_env, capsys):
         ("tox-ini-fmt", PKG["tox-ini-fmt"]["spec"]),
     ],
 )
-def test_name_tricky_characters(
-    caplog, capsys, pipx_temp_env, package_name, package_spec
-):
+def test_name_tricky_characters(caplog, capsys, pipx_temp_env, package_name, package_spec):
     install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
 
 
@@ -141,10 +128,8 @@ def test_extra(pipx_temp_env, capsys):
     assert f"- {app_name('tox')}\n" in captured.out
 
 
-def test_install_local_extra(pipx_temp_env, capsys):
-    assert not run_pipx_cli(
-        ["install", f"{TEST_DATA_PATH}/local_extras[cow]", "--include-deps"]
-    )
+def test_install_local_extra(pipx_temp_env, capsys, monkeypatch, root):
+    assert not run_pipx_cli(["install", str(root / f"{TEST_DATA_PATH}/local_extras[cow]"), "--include-deps"])
     captured = capsys.readouterr()
     assert f"- {app_name('pycowsay')}\n" in captured.out
     assert f"- {Path('man6/pycowsay.6')}\n" in captured.out
@@ -152,18 +137,14 @@ def test_install_local_extra(pipx_temp_env, capsys):
 
 def test_path_warning(pipx_temp_env, capsys, monkeypatch, caplog):
     assert not run_pipx_cli(["install", "pycowsay"])
-    assert "is not on your PATH environment variable" not in unwrap_log_text(
-        caplog.text
-    )
+    assert "is not on your PATH environment variable" not in unwrap_log_text(caplog.text)
 
     monkeypatch.setenv("PATH", "")
     assert not run_pipx_cli(["install", "pycowsay", "--force"])
     assert "is not on your PATH environment variable" in unwrap_log_text(caplog.text)
 
 
-def test_existing_symlink_points_to_existing_wrong_location_warning(
-    pipx_temp_env, caplog, capsys
-):
+def test_existing_symlink_points_to_existing_wrong_location_warning(pipx_temp_env, caplog, capsys):
     if sys.platform.startswith("win"):
         pytest.skip("pipx does not use symlinks on Windows")
 
@@ -178,9 +159,7 @@ def test_existing_symlink_points_to_existing_wrong_location_warning(
     assert "is not on your PATH environment variable" not in captured.err
 
 
-def test_existing_man_page_symlink_points_to_existing_wrong_location_warning(
-    pipx_temp_env, caplog, capsys
-):
+def test_existing_man_page_symlink_points_to_existing_wrong_location_warning(pipx_temp_env, caplog, capsys):
     if sys.platform.startswith("win"):
         pytest.skip("pipx does not use symlinks on Windows")
 
@@ -280,17 +259,15 @@ def test_install_pip_failure(pipx_temp_env, capsys):
 
     assert "Fatal error from pip" in captured.err
 
-    pip_log_file_match = re.search(
-        r"Full pip output in file:\s+(\S.+)$", captured.err, re.MULTILINE
-    )
+    pip_log_file_match = re.search(r"Full pip output in file:\s+(\S.+)$", captured.err, re.MULTILINE)
     assert pip_log_file_match
     assert Path(pip_log_file_match[1]).exists()
 
     assert re.search(r"pip (failed|seemed to fail) to build package", captured.err)
 
 
-def test_install_local_archive(pipx_temp_env, monkeypatch, capsys):
-    monkeypatch.chdir(Path(TEST_DATA_PATH) / "local_extras")
+def test_install_local_archive(pipx_temp_env, monkeypatch, capsys, root):
+    monkeypatch.chdir(root / TEST_DATA_PATH / "local_extras")
 
     subprocess.run([sys.executable, "-m", "pip", "wheel", "."], check=True)
     assert not run_pipx_cli(["install", "repeatme-0.1-py3-none-any.whl"])
@@ -299,9 +276,7 @@ def test_install_local_archive(pipx_temp_env, monkeypatch, capsys):
 
 
 def test_force_install_changes(pipx_temp_env, capsys):
-    assert not run_pipx_cli(
-        ["install", "https://github.com/wntrblm/nox/archive/2022.1.7.zip"]
-    )
+    assert not run_pipx_cli(["install", "https://github.com/wntrblm/nox/archive/2022.1.7.zip"])
     captured = capsys.readouterr()
     assert "2022.1.7" in captured.out
 

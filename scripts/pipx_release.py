@@ -8,9 +8,7 @@ def python_mypy_ok(filepath: Path) -> bool:
     return True if mypy_proc.returncode == 0 else False
 
 
-def copy_file_replace_line(
-    orig_file: Path, new_file: Path, line_re: str, new_line: str
-) -> None:
+def copy_file_replace_line(orig_file: Path, new_file: Path, line_re: str, new_line: str) -> None:
     old_version_fh = orig_file.open("r")
     new_version_fh = new_file.open("w")
     for line in old_version_fh:

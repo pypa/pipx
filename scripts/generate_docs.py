@@ -17,9 +17,7 @@ def get_help(pipxcmd: Optional[str]) -> str:
         cmd = ["pipx", "--help"]
 
     helptext = (
-        subprocess.run(cmd, stdout=subprocess.PIPE, check=True)
-        .stdout.decode()
-        .replace(os.path.expanduser("~"), "~")
+        subprocess.run(cmd, stdout=subprocess.PIPE, check=True).stdout.decode().replace(os.path.expanduser("~"), "~")
     )
     return f"""
 ```

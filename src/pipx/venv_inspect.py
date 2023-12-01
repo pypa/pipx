@@ -38,9 +38,7 @@ class VenvMetadata(NamedTuple):
     python_version: str
 
 
-def get_dist(
-    package: str, distributions: Collection[metadata.Distribution]
-) -> Optional[metadata.Distribution]:
+def get_dist(package: str, distributions: Collection[metadata.Distribution]) -> Optional[metadata.Distribution]:
     """Find matching distribution in the canonicalized sense."""
     for dist in distributions:
         if canonicalize_name(dist.metadata["name"]) == canonicalize_name(package):
@@ -48,9 +46,7 @@ def get_dist(
     return None
 
 
-def get_package_dependencies(
-    dist: metadata.Distribution, extras: Set[str], env: Dict[str, str]
-) -> List[Requirement]:
+def get_package_dependencies(dist: metadata.Distribution, extras: Set[str], env: Dict[str, str]) -> List[Requirement]:
     eval_env = env.copy()
     # Add an empty extra to enable evaluation of non-extra markers
     if not extras:
@@ -84,9 +80,7 @@ def get_apps_from_entry_points(dist: metadata.Distribution, bin_path: Path):
     return app_names
 
 
-def get_resources_from_dist_files(
-    dist: metadata.Distribution, bin_path: Path, man_path: Path
-):
+def get_resources_from_dist_files(dist: metadata.Distribution, bin_path: Path, man_path: Path):
     app_names = set()
     man_names = set()
     # search installed files
@@ -101,19 +95,14 @@ def get_resources_from_dist_files(
         try:
             if dist_file_path.parent.samefile(bin_path):
                 app_names.add(path.name)
-            if (
-                dist_file_path.parent.name in MAN_SECTIONS
-                and dist_file_path.parent.parent.samefile(man_path)
-            ):
+            if dist_file_path.parent.name in MAN_SECTIONS and dist_file_path.parent.parent.samefile(man_path):
                 man_names.add(str(Path(dist_file_path.parent.name) / path.name))
         except FileNotFoundError:
             pass
     return app_names, man_names
 
 
-def get_resources_from_inst_files(
-    dist: metadata.Distribution, bin_path: Path, man_path: Path
-):
+def get_resources_from_inst_files(dist: metadata.Distribution, bin_path: Path, man_path: Path):
     app_names = set()
     man_names = set()
     # not sure what is found here
@@ -124,21 +113,14 @@ def get_resources_from_inst_files(
         try:
             if inst_file_path.parent.samefile(bin_path):
                 app_names.add(inst_file_path.name)
-            if (
-                inst_file_path.parent.name in MAN_SECTIONS
-                and inst_file_path.parent.parent.samefile(man_path)
-            ):
-                man_names.add(
-                    str(Path(inst_file_path.parent.name) / inst_file_path.name)
-                )
+            if inst_file_path.parent.name in MAN_SECTIONS and inst_file_path.parent.parent.samefile(man_path):
+                man_names.add(str(Path(inst_file_path.parent.name) / inst_file_path.name))
         except FileNotFoundError:
             pass
     return app_names, man_names
 
 
-def get_resources(
-    dist: metadata.Distribution, bin_path: Path, man_path: Path
-) -> Tuple[List[str], List[str]]:
+def get_resources(dist: metadata.Distribution, bin_path: Path, man_path: Path) -> Tuple[List[str], List[str]]:
     app_names = set()
     man_names = set()
     app_names_ep = get_apps_from_entry_points(dist, bin_path)
@@ -161,9 +143,7 @@ def _dfs_package_resources(
         # Initialize: we have already visited root
         dep_visited = {canonicalize_name(package_req.name): True}
 
-    dependencies = get_package_dependencies(
-        dist, package_req.extras, venv_inspect_info.env
-    )
+    dependencies = get_package_dependencies(dist, package_req.extras, venv_inspect_info.env)
     for dep_req in dependencies:
         dep_name = canonicalize_name(dep_req.name)
         if dep_name in dep_visited:
@@ -172,20 +152,12 @@ def _dfs_package_resources(
 
         dep_dist = get_dist(dep_req.name, venv_inspect_info.distributions)
         if dep_dist is None:
-            raise PipxError(
-                f"Pipx Internal Error: cannot find package {dep_req.name!r} metadata."
-            )
-        app_names, man_names = get_resources(
-            dep_dist, venv_inspect_info.bin_path, venv_inspect_info.man_path
-        )
+            raise PipxError(f"Pipx Internal Error: cannot find package {dep_req.name!r} metadata.")
+        app_names, man_names = get_resources(dep_dist, venv_inspect_info.bin_path, venv_inspect_info.man_path)
         if app_names:
-            app_paths_of_dependencies[dep_name] = [
-                venv_inspect_info.bin_path / name for name in app_names
-            ]
+            app_paths_of_dependencies[dep_name] = [venv_inspect_info.bin_path / name for name in app_names]
         if man_names:
-            man_paths_of_dependencies[dep_name] = [
-                venv_inspect_info.man_path / name for name in man_names
-            ]
+            man_paths_of_dependencies[dep_name] = [venv_inspect_info.man_path / name for name in man_names]
         # recursively search for more
         dep_visited[dep_name] = True
         app_paths_of_dependencies, man_paths_of_dependencies = _dfs_package_resources(
@@ -290,9 +262,7 @@ def inspect_venv(
     root_req = Requirement(root_package_name)
     root_req.extras = root_package_extras
 
-    (venv_sys_path, venv_env, venv_python_version) = fetch_info_in_venv(
-        venv_python_path
-    )
+    (venv_sys_path, venv_env, venv_python_version) = fetch_info_in_venv(venv_python_path)
 
     # Collect the generator created from metadata.distributions()
     # (see `itertools.chain.from_iterable`) into a tuple because we
@@ -311,9 +281,7 @@ def inspect_venv(
 
     root_dist = get_dist(root_req.name, venv_inspect_info.distributions)
     if root_dist is None:
-        raise PipxError(
-            f"Pipx Internal Error: cannot find package {root_req.name!r} metadata."
-        )
+        raise PipxError(f"Pipx Internal Error: cannot find package {root_req.name!r} metadata.")
     app_paths_of_dependencies, man_paths_of_dependencies = _dfs_package_resources(
         root_dist,
         root_req,
@@ -329,17 +297,12 @@ def inspect_venv(
         app_paths = _windows_extra_app_paths(app_paths)
 
     for dep in app_paths_of_dependencies:
-        apps_of_dependencies += [
-            dep_path.name for dep_path in app_paths_of_dependencies[dep]
-        ]
+        apps_of_dependencies += [dep_path.name for dep_path in app_paths_of_dependencies[dep]]
         if WINDOWS:
-            app_paths_of_dependencies[dep] = _windows_extra_app_paths(
-                app_paths_of_dependencies[dep]
-            )
+            app_paths_of_dependencies[dep] = _windows_extra_app_paths(app_paths_of_dependencies[dep])
     for dep in man_paths_of_dependencies:
         man_pages_of_dependencies += [
-            str(Path(dep_path.parent.name) / dep_path.name)
-            for dep_path in man_paths_of_dependencies[dep]
+            str(Path(dep_path.parent.name) / dep_path.name) for dep_path in man_paths_of_dependencies[dep]
         ]
 
     venv_metadata = VenvMetadata(

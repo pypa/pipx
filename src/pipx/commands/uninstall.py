@@ -66,14 +66,10 @@ def _get_package_bin_dir_app_paths(
         apps += package_info.apps
     if package_info.include_dependencies:
         apps += package_info.apps_of_dependencies
-    return get_exposed_paths_for_package(
-        venv_bin_path, local_bin_dir, [add_suffix(app, suffix) for app in apps]
-    )
+    return get_exposed_paths_for_package(venv_bin_path, local_bin_dir, [add_suffix(app, suffix) for app in apps])
 
 
-def _get_package_man_paths(
-    venv: Venv, package_info: PackageInfo, venv_man_path: Path, local_man_dir: Path
-) -> Set[Path]:
+def _get_package_man_paths(venv: Venv, package_info: PackageInfo, venv_man_path: Path, local_man_dir: Path) -> Set[Path]:
     man_pages = []
     if package_info.include_apps:
         man_pages += package_info.man_pages
@@ -96,9 +92,7 @@ def _get_venv_resource_paths(
     if venv.pipx_metadata.main_package.package is not None:
         # Valid metadata for venv
         for package_info in venv.package_metadata.values():
-            resource_paths |= get_package_resource_paths(
-                venv, package_info, venv_resource_path, local_resource_dir
-            )
+            resource_paths |= get_package_resource_paths(venv, package_info, venv_resource_path, local_resource_dir)
     elif venv.python_path.is_file():
         # No metadata from pipx_metadata.json, but valid python interpreter.
         # In pre-metadata-pipx venv.root.name is name of main package
@@ -107,12 +101,8 @@ def _get_venv_resource_paths(
         # not include_dependencies.  Other PackageInfo fields are irrelevant
         # here.
         venv_metadata = venv.get_venv_metadata_for_package(venv.root.name, set())
-        main_package_info = _venv_metadata_to_package_info(
-            venv_metadata, venv.root.name
-        )
-        resource_paths = get_package_resource_paths(
-            venv, main_package_info, venv_resource_path, local_resource_dir
-        )
+        main_package_info = _venv_metadata_to_package_info(venv_metadata, venv.root.name)
+        resource_paths = get_package_resource_paths(venv, main_package_info, venv_resource_path, local_resource_dir)
     else:
         # No metadata and no valid python interpreter.
         # We'll take our best guess on what to uninstall here based on symlink
@@ -124,16 +114,12 @@ def _get_venv_resource_paths(
         if not local_resource_dir.is_dir() or not can_symlink(local_resource_dir):
             return set()
 
-        resource_paths = get_exposed_paths_for_package(
-            venv_resource_path, local_resource_dir
-        )
+        resource_paths = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
 
     return resource_paths
 
 
-def uninstall(
-    venv_dir: Path, local_bin_dir: Path, local_man_dir: Path, verbose: bool
-) -> ExitCode:
+def uninstall(venv_dir: Path, local_bin_dir: Path, local_man_dir: Path, verbose: bool) -> ExitCode:
     """Uninstall entire venv_dir, including main package and all injected
     packages.
 
@@ -143,21 +129,15 @@ def uninstall(
         print(f"Nothing to uninstall for {venv_dir.name} {sleep}")
         app = which(venv_dir.name)
         if app:
-            print(
-                f"{hazard}  Note: '{app}' still exists on your system and is on your PATH"
-            )
+            print(f"{hazard}  Note: '{app}' still exists on your system and is on your PATH")
         return EXIT_CODE_UNINSTALL_VENV_NONEXISTENT
 
     venv = Venv(venv_dir, verbose=verbose)
 
-    bin_dir_app_paths = _get_venv_resource_paths(
-        "app", venv, venv.bin_path, local_bin_dir
-    )
+    bin_dir_app_paths = _get_venv_resource_paths("app", venv, venv.bin_path, local_bin_dir)
     man_dir_paths = set()
     for man_section in MAN_SECTIONS:
-        man_dir_paths |= _get_venv_resource_paths(
-            "man", venv, venv.man_path / man_section, local_man_dir / man_section
-        )
+        man_dir_paths |= _get_venv_resource_paths("man", venv, venv.man_path / man_section, local_man_dir / man_section)
 
     for path in bin_dir_app_paths | man_dir_paths:
         try:

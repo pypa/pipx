@@ -3,6 +3,7 @@ import argparse
 import re
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import List
 
@@ -45,16 +46,13 @@ def process_command_line(argv: List[str]) -> argparse.Namespace:
         "-c",
         "--check-only",
         action="store_true",
-        help="Only check to see if needed packages are in PACKAGES_DIR, do not "
-        "download or delete files.",
+        help="Only check to see if needed packages are in PACKAGES_DIR, do not " "download or delete files.",
     )
 
     return parser.parse_args(argv)
 
 
-def update_test_packages_cache(
-    package_list_dir_path: Path, pipx_package_cache_path: Path, check_only: bool
-) -> int:
+def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_path: Path, check_only: bool) -> int:
     exit_code = 0
 
     platform_package_list_path = get_platform_list_path(package_list_dir_path)
@@ -65,8 +63,7 @@ def update_test_packages_cache(
 
     if not platform_package_list_path.exists():
         print(
-            f"WARNING.  File {str(platform_package_list_path)}\n"
-            "    does not exist.  Creating now...",
+            f"WARNING.  File {str(platform_package_list_path)}\n" "    does not exist.  Creating now...",
             file=sys.stderr,
         )
         create_list_returncode = create_test_packages_list(
@@ -83,8 +80,7 @@ def update_test_packages_cache(
             )
         else:
             print(
-                f"ERROR.  Unable to create {str(platform_package_list_path)}\n"
-                "    Cannot continue.\n",
+                f"ERROR.  Unable to create {str(platform_package_list_path)}\n" "    Cannot continue.\n",
                 file=sys.stderr,
             )
             return 1
@@ -93,8 +89,7 @@ def update_test_packages_cache(
         platform_package_list_fh = platform_package_list_path.open("r")
     except OSError:
         print(
-            f"ERROR.  File {str(platform_package_list_path)}\n"
-            "    is not readable.  Cannot continue.\n",
+            f"ERROR.  File {str(platform_package_list_path)}\n" "    is not readable.  Cannot continue.\n",
             file=sys.stderr,
         )
         return 1
@@ -119,12 +114,7 @@ def update_test_packages_cache(
 
             package_name = package_spec_re.group(1)
             package_ver = package_spec_re.group(2)
-            package_dist_patt = (
-                re.escape(package_name)
-                + r"-"
-                + re.escape(package_ver)
-                + r"(.tar.gz|.zip|-)"
-            )
+            package_dist_patt = re.escape(package_name) + r"-" + re.escape(package_ver) + r"(.tar.gz|.zip|-)"
             matches = []
             for output_dir_file in packages_dir_files:
                 if re.search(package_dist_patt, output_dir_file.name):
@@ -134,9 +124,7 @@ def update_test_packages_cache(
                 packages_dir_hits.append(matches[0])
                 continue
             elif len(matches) > 1:
-                print(
-                    f"ERROR: more than one match for {package_spec}.", file=sys.stderr
-                )
+                print(f"ERROR: more than one match for {package_spec}.", file=sys.stderr)
                 print(f"    {matches}", file=sys.stderr)
                 exit_code = 1
                 continue
@@ -150,27 +138,10 @@ def update_test_packages_cache(
     if check_only:
         return 0 if len(packages_dir_missing) == 0 else 1
     else:
-        for package_spec in packages_dir_missing:
-            pip_download_process = subprocess.run(
-                [
-                    "pip",
-                    "download",
-                    "--no-deps",
-                    package_spec,
-                    "-d",
-                    str(packages_dir_path),
-                ],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            if pip_download_process.returncode == 0:
-                print(f"Successfully downloaded {package_spec}")
-            else:
-                print(f"ERROR downloading {package_spec}", file=sys.stderr)
-                print(pip_download_process.stdout, file=sys.stderr)
-                print(pip_download_process.stderr, file=sys.stderr)
-                exit_code = 1
+        with ThreadPoolExecutor(max_workers=12) as pool:
+            futures = {pool.submit(download, pkg, packages_dir_path) for pkg in packages_dir_missing}
+            for future in as_completed(futures):
+                exit_code = future.result() or exit_code
 
         for unused_file in packages_dir_files:
             print(f"Deleting {unused_file}...")
@@ -179,11 +150,33 @@ def update_test_packages_cache(
     return exit_code
 
 
+def download(package_spec: str, packages_dir_path: Path) -> int:
+    pip_download_process = subprocess.run(
+        [
+            "pip",
+            "download",
+            "--no-deps",
+            package_spec,
+            "-d",
+            str(packages_dir_path),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if pip_download_process.returncode == 0:
+        print(f"Successfully downloaded {package_spec}")
+        return 0
+
+    print(f"ERROR downloading {package_spec}", file=sys.stderr)
+    print(pip_download_process.stdout, file=sys.stderr)
+    print(pip_download_process.stderr, file=sys.stderr)
+    return 1
+
+
 def main(argv: List[str]) -> int:
     args = process_command_line(argv)
-    return update_test_packages_cache(
-        Path(args.package_list_dir), Path(args.pipx_package_cache_dir), args.check_only
-    )
+    return update_test_packages_cache(Path(args.package_list_dir), Path(args.pipx_package_cache_dir), args.check_only)
 
 
 if __name__ == "__main__":

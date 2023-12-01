@@ -1,6 +1,7 @@
 import shutil
 import subprocess
 import sys
+from unittest.mock import Mock
 
 import pytest  # type: ignore
 
@@ -24,6 +25,7 @@ def test_windows_python_with_version(monkeypatch, venv):
     monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: venv)
     monkeypatch.setattr(shutil, "which", which)
     python_path = find_py_launcher_python(f"{major}.{minor}")
+    assert python_path is not None
     assert f"{major}.{minor}" in python_path or f"{major}{minor}" in python_path
     assert python_path.endswith("python.exe")
 
@@ -75,10 +77,7 @@ def test_windows_python_no_venv_store_python(monkeypatch):
             self.out = out
 
         def __call__(self, *args, **kw):
-            class Ret:
-                pass
-
-            ret = Ret()
+            ret = Mock()
             ret.returncode = self.rc
             ret.stdout = self.out
             return ret

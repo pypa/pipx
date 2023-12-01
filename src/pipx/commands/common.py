@@ -155,10 +155,7 @@ def _symlink_package_resource(
             )
         return
     if is_symlink and not exists:
-        logger.info(
-            f"Removing existing symlink {str(symlink_path)} since it "
-            "pointed non-existent location"
-        )
+        logger.info(f"Removing existing symlink {str(symlink_path)} since it " "pointed non-existent location")
         symlink_path.unlink()
 
     if executable:
@@ -179,9 +176,7 @@ def _symlink_package_resource(
         )
 
 
-def venv_health_check(
-    venv: Venv, package_name: Optional[str] = None
-) -> Tuple[VenvProblems, str]:
+def venv_health_check(venv: Venv, package_name: Optional[str] = None) -> Tuple[VenvProblems, str]:
     venv_dir = venv.root
     python_path = venv.python_path.resolve()
 
@@ -191,26 +186,22 @@ def venv_health_check(
     if not python_path.is_file():
         return (
             VenvProblems(invalid_interpreter=True),
-            f"   package {red(bold(venv_dir.name))} has invalid "
-            f"interpreter {str(python_path)}\r{hazard}",
+            f"   package {red(bold(venv_dir.name))} has invalid " f"interpreter {str(python_path)}\r{hazard}",
         )
     if not venv.package_metadata:
         return (
             VenvProblems(missing_metadata=True),
-            f"   package {red(bold(venv_dir.name))} has missing "
-            f"internal pipx metadata.\r{hazard}",
+            f"   package {red(bold(venv_dir.name))} has missing " f"internal pipx metadata.\r{hazard}",
         )
     if venv_dir.name != canonicalize_name(venv_dir.name):
         return (
             VenvProblems(bad_venv_name=True),
-            f"   package {red(bold(venv_dir.name))} needs its "
-            f"internal data updated.\r{hazard}",
+            f"   package {red(bold(venv_dir.name))} needs its " f"internal data updated.\r{hazard}",
         )
     if venv.package_metadata[package_name].package_version == "":
         return (
             VenvProblems(not_installed=True),
-            f"   package {red(bold(package_name))} {red('is not installed')} "
-            f"in the venv {venv_dir.name}\r{hazard}",
+            f"   package {red(bold(package_name))} {red('is not installed')} " f"in the venv {venv_dir.name}\r{hazard}",
         )
     return (VenvProblems(), "")
 
@@ -245,8 +236,7 @@ def get_venv_summary(
     )
     exposed_binary_names = sorted(p.name for p in exposed_app_paths)
     unavailable_binary_names = sorted(
-        {add_suffix(name, package_metadata.suffix) for name in package_metadata.apps}
-        - set(exposed_binary_names)
+        {add_suffix(name, package_metadata.suffix) for name in package_metadata.apps} - set(exposed_binary_names)
     )
     exposed_man_paths = set()
     for man_section in MAN_SECTIONS:
@@ -255,19 +245,11 @@ def get_venv_summary(
             constants.LOCAL_MAN_DIR / man_section,
             man_pages,
         )
-    exposed_man_pages = sorted(
-        str(Path(p.parent.name) / p.name) for p in exposed_man_paths
-    )
-    unavailable_man_pages = sorted(
-        set(package_metadata.man_pages) - set(exposed_man_pages)
-    )
+    exposed_man_pages = sorted(str(Path(p.parent.name) / p.name) for p in exposed_man_paths)
+    unavailable_man_pages = sorted(set(package_metadata.man_pages) - set(exposed_man_pages))
     # The following is to satisfy mypy that python_version is str and not
     #   Optional[str]
-    python_version = (
-        venv.pipx_metadata.python_version
-        if venv.pipx_metadata.python_version is not None
-        else ""
-    )
+    python_version = venv.pipx_metadata.python_version if venv.pipx_metadata.python_version is not None else ""
     return (
         _get_list_output(
             python_version,
@@ -362,17 +344,13 @@ def _get_list_output(
     for name in exposed_binary_names:
         output.append(f"    - {name}")
     for name in unavailable_binary_names:
-        output.append(
-            f"    - {red(name)} (symlink missing or pointing to unexpected location)"
-        )
+        output.append(f"    - {red(name)} (symlink missing or pointing to unexpected location)")
     if new_install and (exposed_man_pages or unavailable_man_pages):
         output.append("  These manual pages are now globally available")
     for name in exposed_man_pages:
         output.append(f"    - {name}")
     for name in unavailable_man_pages:
-        output.append(
-            f"    - {red(name)} (symlink missing or pointing to unexpected location)"
-        )
+        output.append(f"    - {red(name)} (symlink missing or pointing to unexpected location)")
     if injected_packages:
         output.append("    Injected Packages:")
         for name in injected_packages:
@@ -380,9 +358,7 @@ def _get_list_output(
     return "\n".join(output)
 
 
-def package_name_from_spec(
-    package_spec: str, python: str, *, pip_args: List[str], verbose: bool
-) -> str:
+def package_name_from_spec(package_spec: str, python: str, *, pip_args: List[str], verbose: bool) -> str:
     start_time = time.time()
 
     # shortcut if valid PyPI name
@@ -401,9 +377,7 @@ def package_name_from_spec(
     with tempfile.TemporaryDirectory() as temp_venv_dir:
         venv = Venv(Path(temp_venv_dir), python=python, verbose=verbose)
         venv.create_venv(venv_args=[], pip_args=[])
-        package_name = venv.install_package_no_deps(
-            package_or_url=package_spec, pip_args=pip_args
-        )
+        package_name = venv.install_package_no_deps(package_or_url=package_spec, pip_args=pip_args)
 
     logger.info(f"Package name determined in {time.time()-start_time:.1f}s")
     return package_name
@@ -425,8 +399,7 @@ def run_post_install_actions(
 
     if (
         not venv.main_package_name == package_name
-        and venv.package_metadata[venv.main_package_name].suffix
-        == package_metadata.suffix
+        and venv.package_metadata[venv.main_package_name].suffix == package_metadata.suffix
     ):
         package_name = display_name
 
@@ -446,9 +419,7 @@ def run_post_install_actions(
                 dep,
                 dependent_apps,
             ) in package_metadata.app_paths_of_dependencies.items():
-                print(
-                    f"Note: Dependent package '{dep}' contains {len(dependent_apps)} apps"
-                )
+                print(f"Note: Dependent package '{dep}' contains {len(dependent_apps)} apps")
                 for app in dependent_apps:
                     print(f"  - {app.name}")
             if venv.safe_to_remove():
@@ -470,9 +441,7 @@ def run_post_install_actions(
         force=force,
         suffix=package_metadata.suffix,
     )
-    expose_resources_globally(
-        "man", local_man_dir, package_metadata.man_paths, force=force
-    )
+    expose_resources_globally("man", local_man_dir, package_metadata.man_paths, force=force)
 
     if include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
@@ -486,9 +455,7 @@ def run_post_install_actions(
         for _, man_paths in package_metadata.man_paths_of_dependencies.items():
             expose_resources_globally("man", local_man_dir, man_paths, force=force)
 
-    package_summary, _ = get_venv_summary(
-        venv_dir, package_name=package_name, new_install=True
-    )
+    package_summary, _ = get_venv_summary(venv_dir, package_name=package_name, new_install=True)
     print(package_summary)
     warn_if_not_on_path(local_bin_dir)
     print(f"done! {stars}", file=sys.stderr)

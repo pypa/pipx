@@ -83,9 +83,7 @@ class PipxMetadata:
             "main_package": self.main_package._asdict(),
             "python_version": self.python_version,
             "venv_args": self.venv_args,
-            "injected_packages": {
-                name: data._asdict() for (name, data) in self.injected_packages.items()
-            },
+            "injected_packages": {name: data._asdict() for (name, data) in self.injected_packages.items()},
             "pipx_metadata_version": self.__METADATA_VERSION__,
         }
 
@@ -96,9 +94,7 @@ class PipxMetadata:
             main_package_data = metadata_dict["main_package"]
             if main_package_data["package"] != self.venv_dir.name:
                 # handle older suffixed packages gracefully
-                main_package_data["suffix"] = self.venv_dir.name.replace(
-                    main_package_data["package"], ""
-                )
+                main_package_data["suffix"] = self.venv_dir.name.replace(main_package_data["package"], "")
             return metadata_dict
         else:
             raise PipxError(
@@ -131,9 +127,7 @@ class PipxMetadata:
     def write(self) -> None:
         self._validate_before_write()
         try:
-            with open(
-                self.venv_dir / PIPX_INFO_FILENAME, "w", encoding="utf-8"
-            ) as pipx_metadata_fh:
+            with open(self.venv_dir / PIPX_INFO_FILENAME, "w", encoding="utf-8") as pipx_metadata_fh:
                 json.dump(
                     self.to_dict(),
                     pipx_metadata_fh,
@@ -157,9 +151,7 @@ class PipxMetadata:
     def read(self, verbose: bool = False) -> None:
         try:
             with open(self.venv_dir / PIPX_INFO_FILENAME, "rb") as pipx_metadata_fh:
-                self.from_dict(
-                    json.load(pipx_metadata_fh, object_hook=_json_decoder_object_hook)
-                )
+                self.from_dict(json.load(pipx_metadata_fh, object_hook=_json_decoder_object_hook))
         except OSError:  # Reset self if problem reading
             if verbose:
                 logger.warning(
