@@ -2,8 +2,6 @@ import json
 import logging
 import re
 import time
-import os
-import uuid
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Dict, Generator, List, NoReturn, Optional, Set
