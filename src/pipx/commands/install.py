@@ -4,6 +4,7 @@ from typing import List, Optional
 from pipx import constants
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.constants import EXIT_CODE_INSTALL_VENV_EXISTS, EXIT_CODE_OK, ExitCode
+from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import pipx_wrap
 from pipx.venv import Venv, VenvContainer
 
@@ -13,12 +14,13 @@ def install(
     package_name: Optional[str],
     package_spec: str,
     local_bin_dir: Path,
-    python: str,
+    python: Optional[str],
     pip_args: List[str],
     venv_args: List[str],
     verbose: bool,
     *,
     force: bool,
+    reinstall: bool,
     include_dependencies: bool,
     preinstall_packages: Optional[List[str]],
     suffix: str = "",
@@ -26,6 +28,9 @@ def install(
     """Returns pipx exit code."""
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
+    python_flag_was_passed = python is not None
+
+    python = python or DEFAULT_PYTHON
 
     if package_name is None:
         package_name = package_name_from_spec(
@@ -42,6 +47,16 @@ def install(
 
     venv = Venv(venv_dir, python=python, verbose=verbose)
     if exists:
+        if not reinstall and force and python_flag_was_passed:
+            print(
+                pipx_wrap(
+                    f"""
+                    --python is ignored when --force is passed.
+                    If you want to reinstall {package_name} with {python},
+                    run `pipx reinstall {package_spec} --python {python}` instead.
+                    """
+                )
+            )
         if force:
             print(f"Installing to existing venv {venv.name!r}")
             pip_args += ["--force-reinstall"]
@@ -59,10 +74,7 @@ def install(
 
     try:
         # Enable installing shared library `pip` with `pipx`
-        override_shared = False
-
-        if package_name == "pip":
-            override_shared = True
+        override_shared = package_name == "pip"
         venv.create_venv(venv_args, pip_args, override_shared)
         for dep in preinstall_packages or []:
             dep_name = package_name_from_spec(

@@ -38,7 +38,7 @@ def main():
 
     error = False
     for package in packages:
-        ret = subprocess.run(["pipsi", "uninstall", "--yes", package])
+        ret = subprocess.run(["pipsi", "uninstall", "--yes", package], check=False)
         if ret.returncode:
             error = True
             print(
@@ -49,7 +49,7 @@ def main():
             print(
                 f"uninstalled {package!r} with pipsi. Now attempting to install with pipx."
             )
-            ret = subprocess.run(["pipx", "install", package])
+            ret = subprocess.run(["pipx", "install", package], check=False)
             if ret.returncode:
                 error = True
                 print(f"Failed to install {package!r} with pipx.")

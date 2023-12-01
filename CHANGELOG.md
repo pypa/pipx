@@ -3,6 +3,11 @@
 - Drop `setuptools` and `wheel` from the shared libraries. This results in less time consumption when the libraries are
 automatically upgraded.
 - Allow running `pip` with `pipx run`
+- Support PEP 723 run requirements in `pipx run`.
+- Imply `--include-apps` when running `pipx inject --include-deps`
+- Add `--with-suffix` for `pipx inject` command
+- `pipx install`: emit a warning when `--force` and `--python` were passed at the same time
+- Drop support for Python 3.7
 - Make usage message in `pipx run` show `package_or_url`, so extra will be printed out as well
 - Add `--force-reinstall` to pip arguments when `--force` was passed
 - Use the py launcher, if available, to select Python version with the `--python` option
@@ -19,6 +24,11 @@ automatically upgraded.
 - Pass `--no-input` to pip when output is not piped to parent stdout
 - Fix program name in generated manual page
 - Print all environment variables in `pipx environment`
+- Return an error message when directory can't be added to PATH successfully
+
+## 1.2.1
+
+- Fix compatibility to packaging 23.2+ by removing reliance on packaging's requirement validation logic and detecting a URL-based requirement in pipx. (#1070)
 
 ## 1.2.0
 

@@ -96,7 +96,7 @@ def test_fix_package_name(package_spec_in, package_name, package_spec_out):
             True,
         ),
         (
-            'my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git ; python_version<"3.7"',
+            'my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git ; python_version<"3.8"',
             "my-project[cli]@ git+ssh://git@bitbucket.org/my-company/myproject.git",
             True,
         ),
@@ -165,7 +165,7 @@ def test_parse_specifier_for_metadata(
             True,
         ),
         (
-            'my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git ; python_version<"3.7"',
+            'my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git ; python_version<"3.8"',
             "my-project[cli]@ git+ssh://git@bitbucket.org/my-company/myproject.git",
             True,
         ),
