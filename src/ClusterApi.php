@@ -14,6 +14,7 @@ use Cyberfusion\ClusterApi\Endpoints\Clusters;
 use Cyberfusion\ClusterApi\Endpoints\Cmses;
 use Cyberfusion\ClusterApi\Endpoints\Crons;
 use Cyberfusion\ClusterApi\Endpoints\CustomConfigSnippets;
+use Cyberfusion\ClusterApi\Endpoints\Customers;
 use Cyberfusion\ClusterApi\Endpoints\Databases;
 use Cyberfusion\ClusterApi\Endpoints\DatabaseUserGrants;
 use Cyberfusion\ClusterApi\Endpoints\DatabaseUsers;
@@ -98,6 +99,11 @@ class ClusterApi
     public function crons(): Crons
     {
         return new Crons($this->client);
+    }
+
+    public function customers(): Customers
+    {
+        return new Customers($this->client);
     }
 
     public function customConfigSnippets(): CustomConfigSnippets

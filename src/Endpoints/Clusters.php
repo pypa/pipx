@@ -6,6 +6,7 @@ use Cyberfusion\ClusterApi\Enums\TimeUnit;
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Cyberfusion\ClusterApi\Models\Cluster;
 use Cyberfusion\ClusterApi\Models\ClusterCommonProperties;
+use Cyberfusion\ClusterApi\Models\HostIpAddress;
 use Cyberfusion\ClusterApi\Models\UnixUsersHomeDirectoryUsage;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
@@ -352,6 +353,29 @@ class Clusters extends Endpoint
 
         return $response->setData([
             'commonProperties' => (new ClusterCommonProperties())->fromArray($response->getData()),
+        ]);
+    }
+
+    public function ipAddresses(int $clusterId): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_GET)
+            ->setUrl(sprintf('clusters/%d/ip-addresses', $clusterId));
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $ipAddresses = [];
+        foreach ($response->getData() as $name => $data) {
+            $ipAddresses[$name] = (new HostIpAddress())->fromArray($data);
+        }
+
+        return $response->setData([
+            'ipAddresses' => $ipAddresses,
         ]);
     }
 }

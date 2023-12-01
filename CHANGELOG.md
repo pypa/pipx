@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
 for detailed information.
 
+## [1.105.0]
+
+### Added
+
+- Add `ipAddresses` endpoint for customers.
+- Add `ipAddresses` endpoint for clusters.
+- Add `automatic_upgrades_enabled` property to the Cluster model.
+- Add `retry` endpoint for task collections.
+- Add option to list filter to include soft deleted items (currently only used for CertificateManagers).
+
+### Changed
+
+- Update to [API version 1.214.0](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.214-2023-11-29).
+
 ## [1.104.2]
 
 ### Fixed
@@ -20,7 +34,9 @@ for detailed information.
 
 ## [1.104]
 
-Update to Cluster API version 1.208.
+### Changed
+
+- Update to Cluster API version 1.208.
 
 ## [1.103.9]
 

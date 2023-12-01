@@ -26,6 +26,7 @@ class ListFilter implements Filter
     private array $filter = [];
     /** @var array<SortEntry> */
     private array $sort = [];
+    private bool $includeSoftDeleted = false;
 
     /**
      * @param Model|class-string $model
@@ -202,6 +203,18 @@ class ListFilter implements Filter
         return $this;
     }
 
+    public function includeSoftDeleted(): bool
+    {
+        return $this->includeSoftDeleted;
+    }
+
+    public function setIncludeSoftDeleted(bool $includeSoftDeleted = false): self
+    {
+        $this->includeSoftDeleted = $includeSoftDeleted;
+
+        return $this;
+    }
+
     public function toQuery(): string
     {
         $builder = (new Builder())
@@ -212,6 +225,9 @@ class ListFilter implements Filter
         }
         foreach ($this->sort as $entry) {
             $builder->add('sort', $entry->toString());
+        }
+        if ($this->includeSoftDeleted) {
+            $builder->add('include_soft_deleted', 'true');
         }
         return $builder->build();
     }
