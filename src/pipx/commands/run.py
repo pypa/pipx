@@ -233,10 +233,7 @@ def _download_and_run(
             package_or_url, python, pip_args=pip_args, verbose=verbose
         )
 
-    override_shared = False
-
-    if package_name == "pip":
-        override_shared = True
+    override_shared = package_name == "pip"
 
     venv.create_venv(venv_args, pip_args, override_shared)
     venv.install_package(
