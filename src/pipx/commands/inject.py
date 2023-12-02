@@ -72,6 +72,7 @@ def inject_dep(
             venv,
             package_name,
             constants.LOCAL_BIN_DIR,
+            constants.LOCAL_MAN_DIR,
             venv_dir,
             include_dependencies,
             force=force,

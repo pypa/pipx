@@ -89,7 +89,7 @@ class Venv:
     ) -> None:
         self.root = path
         self.python = python
-        self.bin_path, self.python_path = get_venv_paths(self.root)
+        self.bin_path, self.python_path, self.man_path = get_venv_paths(self.root)
         self.pipx_metadata = PipxMetadata(venv_dir=path)
         self.verbose = verbose
         self.do_animation = not verbose
@@ -355,7 +355,7 @@ class Venv:
     ) -> VenvMetadata:
         data_start = time.time()
         venv_metadata = inspect_venv(
-            package_name, package_extras, self.bin_path, self.python_path
+            package_name, package_extras, self.bin_path, self.python_path, self.man_path
         )
         logger.info(
             f"get_venv_metadata_for_package: {1e3*(time.time()-data_start):.0f}ms"
@@ -385,6 +385,10 @@ class Venv:
             app_paths=venv_package_metadata.app_paths,
             apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
             app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
+            man_pages=venv_package_metadata.man_pages,
+            man_paths=venv_package_metadata.man_paths,
+            man_pages_of_dependencies=venv_package_metadata.man_pages_of_dependencies,
+            man_paths_of_dependencies=venv_package_metadata.man_paths_of_dependencies,
             package_version=venv_package_metadata.package_version,
             suffix=suffix,
         )

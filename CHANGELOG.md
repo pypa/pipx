@@ -25,6 +25,7 @@ automatically upgraded.
 - Fix program name in generated manual page
 - Print all environment variables in `pipx environment`
 - Return an error message when directory can't be added to PATH successfully
+- Expose manual pages included in an application installed with `pipx install`
 
 ## 1.2.1
 
