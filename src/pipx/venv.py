@@ -159,7 +159,9 @@ class Venv:
     def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
         with animate("creating virtual environment", self.do_animation):
             cmd = [self.python, "-m", "venv", "--without-pip"]
-            venv_process = run_subprocess(cmd + venv_args + [str(self.root)], run_dir=str(self.root))
+            venv_process = run_subprocess(
+                cmd + venv_args + [str(self.root)], run_dir=str(self.root)
+            )
 
         subprocess_post_check(venv_process)
 
@@ -252,7 +254,9 @@ class Venv:
             ]
             # no logging because any errors will be specially logged by
             #   subprocess_post_check_handle_pip_error()
-            pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False, run_dir=str(self.root))
+            pip_process = run_subprocess(
+                cmd, log_stdout=False, log_stderr=False, run_dir=str(self.root)
+            )
         subprocess_post_check_handle_pip_error(pip_process)
         if pip_process.returncode:
             raise PipxError(
