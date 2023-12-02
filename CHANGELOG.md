@@ -1,5 +1,7 @@
 ## dev
 
+- Run venv creation and install_package subprocesses inside distination directory self.root instead of current directory
+
 ## 1.3.1
 
 - Fix combining of --editable and --force flag
