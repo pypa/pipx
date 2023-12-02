@@ -163,7 +163,7 @@ def module_globals() -> ModuleGlobalsData:
 
 
 def pip_cache_purge() -> None:
-    subprocess.run([sys.executable, "-m", "pip", "cache", "purge"])
+    subprocess.run([sys.executable, "-m", "pip", "cache", "purge"], check=True)
 
 
 def write_report_legend(report_legend_path: Path) -> None:

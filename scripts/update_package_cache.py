@@ -162,6 +162,7 @@ def update_test_packages_cache(
                 ],
                 capture_output=True,
                 text=True,
+                check=False,
             )
             if pip_download_process.returncode == 0:
                 print(f"Successfully downloaded {package_spec}")

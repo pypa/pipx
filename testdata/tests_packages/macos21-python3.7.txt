@@ -20,8 +20,8 @@ astroid==2.15.8
 attrs==23.1.0
 awscli==1.18.168
 backcall==0.2.0
-beautifulsoup4==4.12.2
-black-22.10.0==1fixedarch
+beautifulsoup4==4.11.1
+black==22.10.0
 black==22.8.0
 bleach==6.0.0
 boto3==1.28.79

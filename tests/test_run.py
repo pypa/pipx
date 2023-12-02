@@ -31,6 +31,7 @@ def execvpe_mock(cmd_path, cmd_args, env):
         capture_output=False,
         encoding="utf-8",
         text=True,
+        check=False,
     ).returncode
     sys.exit(return_code)
 
@@ -145,6 +146,7 @@ def test_run_ensure_null_pythonpath():
             env=env,
             capture_output=True,
             text=True,
+            check=True,
         ).stdout
     )
 
@@ -206,8 +208,9 @@ def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
     script.write_text(
         textwrap.dedent(
             f"""
-                # Requirements:
-                # requests==2.31.0
+                # /// pyproject
+                # run.requirements = ["requests==2.28.1"]
+                # ///
 
                 # Check requests can be imported
                 import requests
@@ -217,7 +220,8 @@ def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
                 from pathlib import Path
                 Path({repr(str(out))}).write_text(requests.__version__)
             """
-        ).strip()
+        ).strip(),
+        encoding="utf-8",
     )
     run_pipx_cli_exit(["run", script.as_uri()])
     assert out.read_text() == "2.31.0"
@@ -247,9 +251,9 @@ def test_run_with_requirements_and_args(caplog, pipx_temp_env, tmp_path):
     script.write_text(
         textwrap.dedent(
             f"""
-                # Requirements:
-                # packaging
-
+                # /// pyproject
+                # run.requirements = ["packaging"]
+                # ///
                 import packaging
                 import sys
                 from pathlib import Path
@@ -267,8 +271,9 @@ def test_run_with_invalid_requirement(capsys, pipx_temp_env, tmp_path):
     script.write_text(
         textwrap.dedent(
             """
-                # Requirements:
-                # this is an invalid requirement
+                # /// pyproject
+                # run.requirements = ["this is an invalid requirement"]
+                # ///
                 print()
             """
         ).strip()
@@ -334,3 +339,10 @@ def test_run_with_windows_python_version(caplog, pipx_temp_env, tmp_path):
     )
     run_pipx_cli_exit(["run", script.as_uri(), "--python", "3.11"])
     assert "3.11" in out.read_text()
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_shared_lib_as_app(pipx_temp_env, monkeypatch, capfd):
+    run_pipx_cli_exit(["run", "pip", "--help"])
+    captured = capfd.readouterr()
+    assert "pip <command> [options]" in captured.out

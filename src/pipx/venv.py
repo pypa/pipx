@@ -156,24 +156,32 @@ class Venv:
         else:
             return self.pipx_metadata.main_package.package
 
-    def create_venv(self, venv_args: List[str], pip_args: List[str]) -> None:
+    def create_venv(
+        self, venv_args: List[str], pip_args: List[str], override_shared: bool = False
+    ) -> None:
+        """
+        override_shared -- Override installing shared libraries to the pipx shared directory (default False)
+        """
         with animate("creating virtual environment", self.do_animation):
-            cmd = [self.python, "-m", "venv", "--without-pip"]
+            cmd = [self.python, "-m", "venv"]
+            if not override_shared:
+                cmd.append("--without-pip")
             venv_process = run_subprocess(cmd + venv_args + [str(self.root)])
         subprocess_post_check(venv_process)
 
         shared_libs.create(self.verbose)
-        pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
-        # write path pointing to the shared libs site-packages directory
-        # example pipx_pth location:
-        #   ~/.local/pipx/venvs/black/lib/python3.8/site-packages/pipx_shared.pth
-        # example shared_libs.site_packages location:
-        #   ~/.local/pipx/shared/lib/python3.6/site-packages
-        #
-        # https://docs.python.org/3/library/site.html
-        # A path configuration file is a file whose name has the form 'name.pth'.
-        # its contents are additional items (one per line) to be added to sys.path
-        pipx_pth.write_text(f"{shared_libs.site_packages}\n", encoding="utf-8")
+        if not override_shared:
+            pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
+            # write path pointing to the shared libs site-packages directory
+            # example pipx_pth location:
+            #   ~/.local/share/pipx/venvs/black/lib/python3.8/site-packages/pipx_shared.pth
+            # example shared_libs.site_packages location:
+            #   ~/.local/share/pipx/shared/lib/python3.6/site-packages
+            #
+            # https://docs.python.org/3/library/site.html
+            # A path configuration file is a file whose name has the form 'name.pth'.
+            # its contents are additional items (one per line) to be added to sys.path
+            pipx_pth.write_text(f"{shared_libs.site_packages}\n", encoding="utf-8")
 
         self.pipx_metadata.venv_args = venv_args
         self.pipx_metadata.python_version = self.get_python_version()
