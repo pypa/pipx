@@ -16,7 +16,7 @@ from pipx.constants import (
     ExitCode,
 )
 from pipx.emojis import error, sleep
-from pipx.util import PipxError, run_subprocess
+from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
 
@@ -45,18 +45,6 @@ def reinstall(
         package_or_url = venv.pipx_metadata.main_package.package_or_url
     else:
         package_or_url = venv.main_package_name
-
-    check_pip = "import importlib.util; print(importlib.util.find_spec('pip'))"
-    out = run_subprocess(
-        [venv.python_path, "-c", check_pip],
-        capture_stderr=False,
-        log_cmd_str="<checking pip's availability>",
-    ).stdout.strip()
-    if out == "None":
-        raise PipxError(
-            f"Can not find pip. You may encounter issues uninstalling packages. "
-            f"Remove {PIPX_SHARED_LIBS} and run 'pipx reinstall-all' to fix them."
-        )
 
     uninstall(venv_dir, local_bin_dir, verbose)
 
