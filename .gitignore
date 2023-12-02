@@ -17,4 +17,6 @@ docs/docs.md
 pipx.1
 .pipx_tests
 /.coverage*
-testdata
+/testdata
+!/testdata/empty_project
+/.idea
