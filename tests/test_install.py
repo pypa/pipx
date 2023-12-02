@@ -13,8 +13,6 @@ from pipx import constants
 
 TEST_DATA_PATH = "./testdata/test_package_specifier"
 
-SOURCE_DIR = Path(__file__).parent.parent.resolve()
-
 
 def test_help_text(monkeypatch, capsys):
     mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
@@ -287,8 +285,8 @@ def test_force_install_changes(pipx_temp_env, capsys):
     assert "2022.1.7" not in captured.out
 
 
-def test_force_install_changes_editable(pipx_temp_env, capsys):
-    empty_project_path_as_string = (SOURCE_DIR / "testdata" / "empty_project").as_posix()
+def test_force_install_changes_editable(pipx_temp_env, root, capsys):
+    empty_project_path_as_string = (root / "testdata" / "empty_project").as_posix()
     assert not run_pipx_cli(["install", "--editable", empty_project_path_as_string])
     captured = capsys.readouterr()
     assert "empty-project" in captured.out
