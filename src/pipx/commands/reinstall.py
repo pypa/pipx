@@ -12,7 +12,6 @@ from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_REINSTALL_INVALID_PYTHON,
     EXIT_CODE_REINSTALL_VENV_NONEXISTENT,
-    PIPX_SHARED_LIBS,
     ExitCode,
 )
 from pipx.emojis import error, sleep
