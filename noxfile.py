@@ -9,10 +9,10 @@ PYTHON_DEFAULT_VERSION = "3.11"
 DOC_DEPENDENCIES = [".", "jinja2", "mkdocs", "mkdocs-material"]
 MAN_DEPENDENCIES = [".", "argparse-manpage[setuptools]"]
 LINT_DEPENDENCIES = [
-    "black==22.8.0",
-    "mypy==1.1.1",
+    "black==23.10.1",
+    "mypy==1.6.1",
     "packaging>=20.0",
-    "ruff==0.0.254",
+    "ruff==0.1.3",
     "types-jinja2",
 ]
 # Packages whose dependencies need an intact system PATH to compile
@@ -193,21 +193,14 @@ def publish(session):
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def build_docs(session):
+    site_dir = session.posargs or ["site/"]
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install(*DOC_DEPENDENCIES)
     session.env[
         "PIPX__DOC_DEFAULT_PYTHON"
     ] = "typically the python used to execute pipx"
     session.run("python", "scripts/generate_docs.py")
-    session.run("mkdocs", "build", "--strict")
-
-
-@nox.session(python=PYTHON_DEFAULT_VERSION)
-def publish_docs(session):
-    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
-    session.install(*DOC_DEPENDENCIES)
-    build_docs(session)
-    session.run("mkdocs", "gh-deploy", "--strict")
+    session.run("mkdocs", "build", "--strict", "--site-dir", *site_dir)
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)

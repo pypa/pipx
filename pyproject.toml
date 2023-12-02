@@ -25,6 +25,7 @@ dependencies = [
   "colorama>=0.4.4; sys_platform == 'win32'",
   "packaging>=20.0",
   "platformdirs>=2.1.0",
+  "tomli; python_version < '3.11'",
   "userpath>=1.6.0,!=1.9.0",
 ]
 dynamic = ["version"]
@@ -48,6 +49,9 @@ include = ["/src", "/logo.png", "/pipx_demo.gif", "/*.md"]
 skip-magic-trailing-comma = true
 
 [tool.ruff]
+line-length = 121
+
+[tool.ruff.lint]
 select = [
   "A",
   "B",
@@ -65,21 +69,24 @@ select = [
 ignore = [
   "B904",
 ]
-line-length = 121
-show-source = true
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["helpers", "package_info", "pipx"]
 
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 max-complexity = 15
 
 [tool.pytest.ini_options]
 markers = ["all_packages: test install with maximum number of packages"]
 
+[tool.mypy]
+show_error_codes = true
+
 [[tool.mypy.overrides]]
 module = [
   "packaging.*",
-  "platformdirs"
+  "platformdirs",
+  "pycowsay.*",
+  "jinja2",
 ]
 ignore_missing_imports = true

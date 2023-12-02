@@ -26,8 +26,8 @@ class _SharedLibs:
         self.root = constants.PIPX_SHARED_LIBS
         self.bin_path, self.python_path = get_venv_paths(self.root)
         self.pip_path = self.bin_path / ("pip" if not WINDOWS else "pip.exe")
-        # i.e. bin_path is ~/.local/pipx/shared/bin
-        # i.e. python_path is ~/.local/pipx/shared/python
+        # i.e. bin_path is ~/.local/share/pipx/shared/bin
+        # i.e. python_path is ~/.local/share/pipx/shared/python
         self._site_packages: Optional[Path] = None
         self.has_been_updated_this_run = False
         self.has_been_logged_this_run = False
@@ -106,9 +106,7 @@ class _SharedLibs:
                         "install",
                         *_pip_args,
                         "--upgrade",
-                        "pip",
-                        "setuptools",
-                        "wheel",
+                        "pip >= 23.1",
                     ]
                 )
             subprocess_post_check(upgrade_process)
