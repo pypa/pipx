@@ -4,7 +4,7 @@ from typing import List, Sequence
 
 from pipx import constants
 from pipx.colors import bold, red
-from pipx.commands.common import expose_apps_globally
+from pipx.commands.common import expose_resources_globally
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojis import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
@@ -49,20 +49,29 @@ def _upgrade_package(
     new_version = package_metadata.package_version
 
     if package_metadata.include_apps:
-        expose_apps_globally(
+        expose_resources_globally(
+            "app",
             constants.LOCAL_BIN_DIR,
             package_metadata.app_paths,
             force=force,
             suffix=package_metadata.suffix,
         )
+        expose_resources_globally(
+            "man", constants.LOCAL_MAN_DIR, package_metadata.man_paths, force=force
+        )
 
     if package_metadata.include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
-            expose_apps_globally(
+            expose_resources_globally(
+                "app",
                 constants.LOCAL_BIN_DIR,
                 app_paths,
                 force=force,
                 suffix=package_metadata.suffix,
+            )
+        for _, man_paths in package_metadata.man_paths_of_dependencies.items():
+            expose_resources_globally(
+                "man", constants.LOCAL_MAN_DIR, man_paths, force=force
             )
 
     if old_version == new_version:

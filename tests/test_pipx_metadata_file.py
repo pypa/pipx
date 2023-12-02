@@ -18,6 +18,9 @@ TEST_PACKAGE1 = PackageInfo(
     app_paths=[Path("/usr/bin")],
     apps_of_dependencies=["dep1"],
     app_paths_of_dependencies={"dep1": [Path("bin")]},
+    man_pages=[str(Path("man1/testapp.1"))],
+    man_pages_of_dependencies=[str(Path("man1/dep1.1"))],
+    man_paths_of_dependencies={"dep1": [Path("man1/dep1.1")]},
     package_version="0.1.2",
 )
 TEST_PACKAGE2 = PackageInfo(
@@ -30,6 +33,9 @@ TEST_PACKAGE2 = PackageInfo(
     app_paths=[Path("/usr/bin")],
     apps_of_dependencies=["dep2"],
     app_paths_of_dependencies={"dep2": [Path("bin")]},
+    man_pages=[str(Path("man1/injapp.1"))],
+    man_pages_of_dependencies=[str(Path("man1/dep2.1"))],
+    man_paths_of_dependencies={"dep2": [Path("man1/dep2.1")]},
     package_version="6.7.8",
 )
 

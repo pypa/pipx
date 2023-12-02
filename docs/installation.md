@@ -67,14 +67,15 @@ Example configuration for use of the code linter [yapf](https://github.com/googl
 ## Installation Options
 
 The default binary location for pipx-installed apps is `~/.local/bin`. This can be overridden with the environment variable `PIPX_BIN_DIR`.
+The default manual page location for pipx-installed apps is `~/.local/share/man`. This can be overridden with the environment variable `PIPX_MAN_DIR`.
 
 pipx's default virtual environment location is typically `~/.local/share/pipx` on Linux/Unix, `%USERPROFILE%\AppData\Local\pipx` on Windows and `~/Library/Application Support/pipx` on macOS, and for compatibility reasons, if `~/.local/pipx` exists, it will be used as the default location instead. This can be overridden with the `PIPX_HOME` environment variable.
 
 As an example, you can install global apps accessible by all users on your system with the following command (on MacOS, Linux, and Windows WSL):
 
 ```
-sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install PACKAGE
-# Example: $ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install cowsay
+sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin PIPX_MAN_DIR=/usr/local/share/man pipx install PACKAGE
+# Example: $ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin PIPX_MAN_DIR=/usr/local/share/man pipx install cowsay
 ```
 
 !!! note

@@ -46,6 +46,7 @@ def pipx_temp_env_helper(
 ):
     home_dir = Path(tmp_path) / "subdir" / "pipxhome"
     bin_dir = Path(tmp_path) / "otherdir" / "pipxbindir"
+    man_dir = Path(tmp_path) / "otherdir" / "pipxmandir"
 
     monkeypatch.setattr(constants, "PIPX_SHARED_LIBS", pipx_shared_dir)
     monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())
@@ -53,6 +54,7 @@ def pipx_temp_env_helper(
 
     monkeypatch.setattr(constants, "PIPX_HOME", home_dir)
     monkeypatch.setattr(constants, "LOCAL_BIN_DIR", bin_dir)
+    monkeypatch.setattr(constants, "LOCAL_MAN_DIR", man_dir)
     monkeypatch.setattr(constants, "PIPX_LOCAL_VENVS", home_dir / "venvs")
     monkeypatch.setattr(constants, "PIPX_VENV_CACHEDIR", home_dir / ".cache")
     monkeypatch.setattr(constants, "PIPX_LOG_DIR", home_dir / "logs")
@@ -69,11 +71,15 @@ def pipx_temp_env_helper(
     monkeypatch.setenv("PATH_TEST", str(bin_dir))
     monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + str(utils_temp_dir))
     # On Windows, monkeypatch pipx.commands.common._can_symlink_cache to
-    #   indicate that constants.LOCAL_BIN_DIR cannot use symlinks, even if
-    #   we're running as administrator and symlinks are actually possible.
+    #   indicate that constants.LOCAL_BIN_DIR and constants.LOCAL_MAN_DIR
+    #   cannot use symlinks, even if we're running as administrator and
+    #   symlinks are actually possible.
     if WIN:
         monkeypatch.setitem(
             commands.common._can_symlink_cache, constants.LOCAL_BIN_DIR, False
+        )
+        monkeypatch.setitem(
+            commands.common._can_symlink_cache, constants.LOCAL_MAN_DIR, False
         )
     if not request.config.option.net_pypiserver:
         # IMPORTANT: use 127.0.0.1 not localhost

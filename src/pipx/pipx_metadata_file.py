@@ -37,12 +37,16 @@ class PackageInfo(NamedTuple):
     apps_of_dependencies: List[str]
     app_paths_of_dependencies: Dict[str, List[Path]]
     package_version: str
+    man_pages: List[str] = []
+    man_paths: List[Path] = []
+    man_pages_of_dependencies: List[str] = []
+    man_paths_of_dependencies: Dict[str, List[Path]] = {}
     suffix: str = ""
 
 
 class PipxMetadata:
     # Only change this if file format changes
-    __METADATA_VERSION__: str = "0.2"
+    __METADATA_VERSION__: str = "0.3"
 
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
@@ -61,6 +65,10 @@ class PipxMetadata:
             app_paths=[],
             apps_of_dependencies=[],
             app_paths_of_dependencies={},
+            man_pages=[],
+            man_paths=[],
+            man_pages_of_dependencies=[],
+            man_paths_of_dependencies={},
             package_version="",
         )
         self.python_version: Optional[str] = None
@@ -82,7 +90,7 @@ class PipxMetadata:
         }
 
     def _convert_legacy_metadata(self, metadata_dict: Dict[str, Any]) -> Dict[str, Any]:
-        if metadata_dict["pipx_metadata_version"] == self.__METADATA_VERSION__:
+        if metadata_dict["pipx_metadata_version"] in ("0.2", self.__METADATA_VERSION__):
             return metadata_dict
         elif metadata_dict["pipx_metadata_version"] == "0.1":
             main_package_data = metadata_dict["main_package"]
