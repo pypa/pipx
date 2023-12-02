@@ -53,7 +53,7 @@
 ## 1.1.0
 
 - Fix encoding issue on Windows when pip fails to install a package
-- Improve the behaviour of `shlex.split` on Windows, so paths on Windows can be handled peoperly when they are passed in
+- Improve the behaviour of `shlex.split` on Windows, so paths on Windows can be handled properly when they are passed in
   `--pip-args`. (#794)
 - Add `pipx environment` command (#793)
 - Add `list --short` option to list only package names (#804)
@@ -172,7 +172,7 @@
 - [feature] Autocomplete for venv names is no longer restricted to an exact match to the literal venv name, but will
   autocomplete any logically-similar python package name (i.e. case does not matter, and `.`, `-`, `_` characters are
   all equivalent.)
-- pipx now reinstalls its internal shared libraries when the user executes `reinstall-all`.
+- pipx now reinstall its internal shared libraries when the user executes `reinstall-all`.
 - Made sure shell exit codes from every pipx command are correct. In the past some (like from `pipx upgrade`) were
   wrong. The exit code from `pipx runpip` is now the exit code from the `pip` command run. The exit code from
   `pipx list` will be 1 if one or more venvs have problems that need to be addressed.
@@ -325,7 +325,7 @@ by running `pipx reinstall-all` or `pipx uninstall-all`, then reinstalling manua
 
 ## 0.13.2.0
 
-- Add shell autocompletions. Also add `pipx completions` command to print instructions on how to add pipx completions to
+- Add shell autocompletion. Also add `pipx completions` command to print instructions on how to add pipx completions to
   your shell.
 - Un-deprecate `ensurepath`. Use `userpath` internally instead of instructing users to run the `userpath` cli command.
 - Improve detection of PIPX_BIN_DIR not being on PATH

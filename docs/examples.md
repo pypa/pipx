@@ -51,10 +51,9 @@ pipx run https://example.com/test.py
 pipx run https://example.com/test.py 1 2 3
 ```
 
-A simple filename is ambiguous - it could be a file, or a package on PyPI. It
-will be treated as a filename if the file exists, or as a package if not. To
-force interpretation as a local path, use `--path`, and to force interpretation
-as a package name, use `--spec` (with the PyPI name of the package).
+A simple filename is ambiguous - it could be a file, or a package on PyPI. It will be treated as a filename if the file
+exists, or as a package if not. To force interpretation as a local path, use `--path`, and to force interpretation as a
+package name, use `--spec` (with the PyPI name of the package).
 
 ```
 pipx run myscript.py # Local file, if myscript.py exists
@@ -98,7 +97,8 @@ pipx install ptpython
 pipx inject ptpython requests pendulum
 ```
 
-After running the above commands, you will be able to import and use the `requests` and `pendulum` packages inside a `ptpython` repl.
+After running the above commands, you will be able to import and use the `requests` and `pendulum` packages inside a
+`ptpython` repl.
 
 ## `pipx list` example
 
