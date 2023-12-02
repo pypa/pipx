@@ -57,7 +57,7 @@ def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_p
 
     platform_package_list_path = get_platform_list_path(package_list_dir_path)
     packages_dir_path = get_platform_packages_dir_path(pipx_package_cache_path)
-    packages_dir_path.mkdir(exist_ok=True)
+    packages_dir_path.mkdir(exist_ok=True, parents=True)
 
     packages_dir_files = list(packages_dir_path.iterdir())
 
