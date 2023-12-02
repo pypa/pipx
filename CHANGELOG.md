@@ -27,6 +27,7 @@ automatically upgraded.
 - Print all environment variables in `pipx environment`
 - Return an error message when directory can't be added to PATH successfully
 - Expose manual pages included in an application installed with `pipx install`
+- Add explicit 3.12 support
 
 ## 1.2.1
 
