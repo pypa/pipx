@@ -53,7 +53,17 @@ class _SharedLibs:
 
     @property
     def is_valid(self) -> bool:
-        return self.python_path.is_file() and self.pip_path.is_file()
+        if self.python_path.is_file():
+            check_pip = "import importlib.util; print(importlib.util.find_spec('pip'))"
+            out = run_subprocess(
+                [self.python_path, "-c", check_pip],
+                capture_stderr=False,
+                log_cmd_str="<checking pip's availability>",
+            ).stdout.strip()
+
+            return self.pip_path.is_file() and out != "None"
+        else:
+            return False
 
     @property
     def needs_upgrade(self) -> bool:

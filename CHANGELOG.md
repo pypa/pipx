@@ -1,5 +1,6 @@
 ## dev
 
+- Check whether pip module exists in shared lib before performing any actions, such as `reinstall-all`.
 - Drop `setuptools` and `wheel` from the shared libraries. This results in less time consumption when the libraries are
 automatically upgraded.
 - Allow running `pip` with `pipx run`
