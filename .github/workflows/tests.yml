@@ -10,7 +10,6 @@ name: tests
 
 on:
   push:
-    tags-ignore: ["**"]
   pull_request:
   schedule:
     - cron: "0 8 * * *"
@@ -83,7 +82,7 @@ jobs:
   pypi-publish:
     name: Publish pipx to PyPI on release
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-    needs: [verify-docs, lint, tests]
+    needs: [lint, tests]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout ${{ github.ref }}
@@ -108,7 +107,7 @@ jobs:
   build-zipapp:
     name: Build zipapp
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-    needs: [verify-docs, lint, tests]
+    needs: [lint, tests]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout ${{ github.ref }}
