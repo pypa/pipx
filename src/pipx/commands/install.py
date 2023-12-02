@@ -34,9 +34,7 @@ def install(
     python = python or DEFAULT_PYTHON
 
     if package_name is None:
-        package_name = package_name_from_spec(
-            package_spec, python, pip_args=pip_args, verbose=verbose
-        )
+        package_name = package_name_from_spec(package_spec, python, pip_args=pip_args, verbose=verbose)
     if venv_dir is None:
         venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
         venv_dir = venv_container.get_venv_dir(f"{package_name}{suffix}")
@@ -78,9 +76,7 @@ def install(
         override_shared = package_name == "pip"
         venv.create_venv(venv_args, pip_args, override_shared)
         for dep in preinstall_packages or []:
-            dep_name = package_name_from_spec(
-                dep, python, pip_args=pip_args, verbose=verbose
-            )
+            dep_name = package_name_from_spec(dep, python, pip_args=pip_args, verbose=verbose)
             venv.upgrade_package_no_metadata(dep_name, [])
         venv.install_package(
             package_name=package_name,

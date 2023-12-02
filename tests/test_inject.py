@@ -41,15 +41,9 @@ def test_inject_include_apps(pipx_temp_env, capsys, with_suffix):
         install_args = [f"--suffix={suffix}"]
 
     assert not run_pipx_cli(["install", "pycowsay", *install_args])
-    assert not run_pipx_cli(
-        ["inject", f"pycowsay{suffix}", PKG["black"]["spec"], "--include-deps"]
-    )
+    assert not run_pipx_cli(["inject", f"pycowsay{suffix}", PKG["black"]["spec"], "--include-deps"])
 
     if suffix:
-        assert run_pipx_cli(
-            ["inject", "pycowsay", PKG["black"]["spec"], "--include-deps"]
-        )
+        assert run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--include-deps"])
 
-    assert not run_pipx_cli(
-        ["inject", f"pycowsay{suffix}", PKG["black"]["spec"], "--include-deps"]
-    )
+    assert not run_pipx_cli(["inject", f"pycowsay{suffix}", PKG["black"]["spec"], "--include-deps"])

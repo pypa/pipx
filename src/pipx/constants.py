@@ -28,9 +28,7 @@ else:
     PIPX_TRASH_DIR = PIPX_HOME / "trash"
     PIPX_VENV_CACHEDIR = user_cache_path("pipx")
 
-PIPX_SHARED_LIBS = Path(
-    os.environ.get("PIPX_SHARED_LIBS", DEFAULT_PIPX_SHARED_LIBS)
-).resolve()
+PIPX_SHARED_LIBS = Path(os.environ.get("PIPX_SHARED_LIBS", DEFAULT_PIPX_SHARED_LIBS)).resolve()
 PIPX_SHARED_PTH = "pipx_shared.pth"
 LOCAL_BIN_DIR = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resolve()
 LOCAL_MAN_DIR = Path(os.environ.get("PIPX_MAN_DIR", DEFAULT_PIPX_MAN_DIR)).resolve()

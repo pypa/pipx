@@ -69,9 +69,7 @@ PKG: Dict[str, Dict[str, Any]] = {
     "b2": {
         "spec": "b2==3.12.0",
         "apps": _exe_if_win(["b2"]),
-        "apps_of_dependencies": _exe_if_win(
-            ["docutils", "rst2ansi", "tabulate", "tqdm", "normalizer"]
-        )
+        "apps_of_dependencies": _exe_if_win(["docutils", "rst2ansi", "tabulate", "tqdm", "normalizer"])
         + [
             "activate-global-python-argcomplete",
             "python-argcomplete-check-easy-install-script",
@@ -195,22 +193,17 @@ PKG: Dict[str, Dict[str, Any]] = {
     "cloudtoken": {
         "spec": "cloudtoken==0.1.707",
         "apps": ["awstoken", "cloudtoken", "cloudtoken.app", "cloudtoken_proxy.sh"],
-        "apps_of_dependencies": _exe_if_win(["flask", "keyring", "normalizer"])
-        + ["jp.py"],
+        "apps_of_dependencies": _exe_if_win(["flask", "keyring", "normalizer"]) + ["jp.py"],
     },
     "coala": {
         "spec": "coala==0.11.0",
-        "apps": _exe_if_win(
-            ["coala", "coala-ci", "coala-delete-orig", "coala-format", "coala-json"]
-        ),
+        "apps": _exe_if_win(["coala", "coala-ci", "coala-delete-orig", "coala-format", "coala-json"]),
         "apps_of_dependencies": _exe_if_win(["normalizer", "pygmentize"]) + ["unidiff"],
     },
     "cookiecutter": {
         "spec": "cookiecutter==2.4.0",
         "apps": _exe_if_win(["cookiecutter"]),
-        "apps_of_dependencies": _exe_if_win(
-            ["chardetect", "normalizer", "markdown-it", "pygmentize", "slugify"]
-        ),
+        "apps_of_dependencies": _exe_if_win(["chardetect", "normalizer", "markdown-it", "pygmentize", "slugify"]),
     },
     "cython": {
         "spec": "cython==0.29.21",
@@ -220,8 +213,7 @@ PKG: Dict[str, Dict[str, Any]] = {
     "datasette": {
         "spec": "datasette==0.50.2",
         "apps": _exe_if_win(["datasette"]),
-        "apps_of_dependencies": _exe_if_win(["httpx", "hupper", "uvicorn"])
-        + ["pint-convert"],
+        "apps_of_dependencies": _exe_if_win(["httpx", "hupper", "uvicorn"]) + ["pint-convert"],
     },
     "diffoscope": {
         "spec": "diffoscope==154",
@@ -285,16 +277,12 @@ PKG: Dict[str, Dict[str, Any]] = {
     "howdoi": {
         "spec": "howdoi==2.0.20",
         "apps": _exe_if_win(["howdoi"]),
-        "apps_of_dependencies": _exe_if_win(
-            ["markdown-it", "keep", "normalizer", "pygmentize"]
-        ),
+        "apps_of_dependencies": _exe_if_win(["markdown-it", "keep", "normalizer", "pygmentize"]),
     },
     "httpie": {
         "spec": "httpie==3.2.2",
         "apps": _exe_if_win(["http", "httpie", "https"]),
-        "apps_of_dependencies": _exe_if_win(
-            ["markdown-it", "normalizer", "pygmentize"]
-        ),
+        "apps_of_dependencies": _exe_if_win(["markdown-it", "normalizer", "pygmentize"]),
         "man_pages": [
             str(Path("man1") / "http.1"),
             str(Path("man1") / "httpie.1"),
@@ -305,8 +293,7 @@ PKG: Dict[str, Dict[str, Any]] = {
     "hyde": {
         "spec": "hyde==0.8.9",
         "apps": _exe_if_win(["hyde"]),
-        "apps_of_dependencies": _exe_if_win(["markdown_py", "pygmentize"])
-        + ["smartypants"],
+        "apps_of_dependencies": _exe_if_win(["markdown_py", "pygmentize"]) + ["smartypants"],
     },
     "ipython": {
         "spec": "ipython==7.16.1",
@@ -393,9 +380,7 @@ PKG: Dict[str, Dict[str, Any]] = {
     "kaggle": {
         "spec": "kaggle==1.5.16",
         "apps": _exe_if_win(["kaggle"]),
-        "apps_of_dependencies": list(
-            set(_exe_if_win(["slugify", "normalizer", "tqdm"]))
-        ),
+        "apps_of_dependencies": list(set(_exe_if_win(["slugify", "normalizer", "tqdm"]))),
     },
     "kibitzr": {
         "spec": "kibitzr==7.0.5",
@@ -416,9 +401,7 @@ PKG: Dict[str, Dict[str, Any]] = {
     "lektor": {
         "spec": "Lektor==3.3.10",
         "apps": _exe_if_win(["lektor"]),
-        "apps_of_dependencies": _exe_if_win(
-            ["filetype", "flask", "pybabel", "normalizer", "slugify", "watchmedo"]
-        )
+        "apps_of_dependencies": _exe_if_win(["filetype", "flask", "pybabel", "normalizer", "slugify", "watchmedo"])
         + ["EXIF.py"],
     },
     "localstack": {
@@ -563,9 +546,7 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "pelican-themes",
             ]
         ),
-        "apps_of_dependencies": _exe_if_win(
-            ["docutils", "markdown-it", "pygmentize", "unidecode"]
-        )
+        "apps_of_dependencies": _exe_if_win(["docutils", "markdown-it", "pygmentize", "unidecode"])
         + [
             "rst2html.py",  # docutils NO_EXE
             "rst2html4.py",  # docutils NO_EXE
@@ -715,12 +696,8 @@ PKG: Dict[str, Dict[str, Any]] = {
     },
     "sphinx": {
         "spec": "Sphinx==7.2.6",
-        "apps": _exe_if_win(
-            ["sphinx-apidoc", "sphinx-autogen", "sphinx-build", "sphinx-quickstart"]
-        ),
-        "apps_of_dependencies": _exe_if_win(
-            ["docutils", "pybabel", "normalizer", "pygmentize"]
-        )
+        "apps": _exe_if_win(["sphinx-apidoc", "sphinx-autogen", "sphinx-build", "sphinx-quickstart"]),
+        "apps_of_dependencies": _exe_if_win(["docutils", "pybabel", "normalizer", "pygmentize"])
         + [
             "rst2html.py",  # docutils NO_EXE
             "rst2html4.py",  # docutils NO_EXE
@@ -751,8 +728,7 @@ PKG: Dict[str, Dict[str, Any]] = {
     "taguette": {
         "spec": "taguette==0.9.2",
         "apps": _exe_if_win(["taguette"]),
-        "apps_of_dependencies": _exe_if_win(["alembic", "mako-render"])
-        + ["vba_extract.py"],
+        "apps_of_dependencies": _exe_if_win(["alembic", "mako-render"]) + ["vba_extract.py"],
     },
     "term2048": {
         "spec": "term2048==0.2.7",

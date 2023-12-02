@@ -52,45 +52,51 @@ nox -l
 
 At the time of this writing, the output looks like this
 ```
-- refresh_packages_cache-3.6 -> Populate .pipx_tests/package_cache
-- refresh_packages_cache-3.7 -> Populate .pipx_tests/package_cache
-- refresh_packages_cache-3.8 -> Populate .pipx_tests/package_cache
+- refresh_packages_cache-3.12 -> Populate .pipx_tests/package_cache
+- refresh_packages_cache-3.11 -> Populate .pipx_tests/package_cache
+- refresh_packages_cache-3.10 -> Populate .pipx_tests/package_cache
 - refresh_packages_cache-3.9 -> Populate .pipx_tests/package_cache
-- tests_internet-3.6 -> Tests using internet pypi only
-- tests_internet-3.7 -> Tests using internet pypi only
-- tests_internet-3.8 -> Tests using internet pypi only
+- refresh_packages_cache-3.8 -> Populate .pipx_tests/package_cache
+- tests_internet-3.12 -> Tests using internet pypi only
+- tests_internet-3.11 -> Tests using internet pypi only
+- tests_internet-3.10 -> Tests using internet pypi only
 - tests_internet-3.9 -> Tests using internet pypi only
-* tests-3.6 -> Tests using local pypiserver only
-* tests-3.7 -> Tests using local pypiserver only
-* tests-3.8 -> Tests using local pypiserver only
+- tests_internet-3.8 -> Tests using internet pypi only
+* tests-3.12 -> Tests using local pypiserver only
+* tests-3.11 -> Tests using local pypiserver only
+* tests-3.10 -> Tests using local pypiserver only
 * tests-3.9 -> Tests using local pypiserver only
-- test_all_packages-3.6
-- test_all_packages-3.7
-- test_all_packages-3.8
+* tests-3.8 -> Tests using local pypiserver only
+- test_all_packages-3.12
+- test_all_packages-3.11
+- test_all_packages-3.10
 - test_all_packages-3.9
+- test_all_packages-3.8
 - cover -> Coverage analysis
 * lint
-- develop-3.6
-- develop-3.7
-- develop-3.8
+- develop-3.12
+- develop-3.11
+- develop-3.10
 - develop-3.9
+- develop-3.8
 - build
 - publish
 * build_docs
-- publish_docs
 - watch_docs
+* build_man
 - pre_release
 - post_release
-- create_test_package_list-3.6
-- create_test_package_list-3.7
-- create_test_package_list-3.8
+- create_test_package_list-3.12
+- create_test_package_list-3.11
+- create_test_package_list-3.10
 - create_test_package_list-3.9
+- create_test_package_list-3.8
 ```
 
 ### Unit Tests
-To run unit tests in Python3.9, you can run
+To run unit tests in Python3.12, you can run
 ```
-nox -s tests-3.9
+nox -s tests-3.12
 ```
 
 !!! tip

@@ -23,9 +23,7 @@ from pipx.venv import Venv
 logger = logging.getLogger(__name__)
 
 
-def get_include_resource_paths(
-    package_name: str, venv: Venv, local_bin_dir: Path, local_man_dir: Path
-) -> Set[Path]:
+def get_include_resource_paths(package_name: str, venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> Set[Path]:
     bin_dir_app_paths = _get_package_bin_dir_app_paths(
         venv, venv.package_metadata[package_name], venv.bin_path, local_bin_dir
     )
@@ -78,9 +76,7 @@ def uninject_dep(
 
     need_app_uninstall = venv.package_metadata[package_name].include_apps
 
-    new_resource_paths = get_include_resource_paths(
-        package_name, venv, local_bin_dir, local_man_dir
-    )
+    new_resource_paths = get_include_resource_paths(package_name, venv, local_bin_dir, local_man_dir)
 
     if not leave_deps:
         orig_not_required_packages = venv.list_installed_packages(not_required=True)
@@ -114,9 +110,7 @@ def uninject_dep(
             else:
                 logger.info(f"removed file {path}")
 
-    print(
-        f"Uninjected package {bold(package_name)}{deps_string} from venv {bold(venv.root.name)} {stars}"
-    )
+    print(f"Uninjected package {bold(package_name)}{deps_string} from venv {bold(venv.root.name)} {stars}")
     return True
 
 

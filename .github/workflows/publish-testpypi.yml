@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 env:
-  default-python: "3.11"
+  default-python: "3.12"
 
 jobs:
   testpypi-publish:

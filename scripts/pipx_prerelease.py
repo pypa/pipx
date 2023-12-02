@@ -28,9 +28,7 @@ def fix_changelog(new_version: str) -> bool:
     changelog_file = Path("docs/changelog.md")
     new_changelog_file = Path("docs/changelog.new")
 
-    copy_file_replace_line(
-        changelog_file, new_changelog_file, line_re=r"^\s*dev\s*$", new_line=new_version
-    )
+    copy_file_replace_line(changelog_file, new_changelog_file, line_re=r"^\s*dev\s*$", new_line=new_version)
     new_changelog_file.rename(changelog_file)
 
     return True

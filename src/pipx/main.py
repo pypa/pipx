@@ -140,11 +140,7 @@ class InstalledVenvsCompleter:
         self.packages = [str(p.name) for p in sorted(venv_container.iter_venv_dirs())]
 
     def use(self, prefix: str, **kwargs: Any) -> List[str]:
-        return [
-            f"{prefix}{x[len(prefix):]}"
-            for x in self.packages
-            if x.startswith(canonicalize_name(prefix))
-        ]
+        return [f"{prefix}{x[len(prefix):]}" for x in self.packages if x.startswith(canonicalize_name(prefix))]
 
 
 def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
@@ -267,17 +263,11 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             force=args.force,
         )
     elif args.command == "list":
-        return commands.list_packages(
-            venv_container, args.include_injected, args.json, args.short
-        )
+        return commands.list_packages(venv_container, args.include_injected, args.json, args.short)
     elif args.command == "uninstall":
-        return commands.uninstall(
-            venv_dir, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose
-        )
+        return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose)
     elif args.command == "uninstall-all":
-        return commands.uninstall_all(
-            venv_container, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose
-        )
+        return commands.uninstall_all(venv_container, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose)
     elif args.command == "reinstall":
         return commands.reinstall(
             venv_dir=venv_dir,
@@ -334,9 +324,7 @@ def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
 
 
 def add_include_dependencies(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "--include-deps", help="Include apps of dependent packages", action="store_true"
-    )
+    parser.add_argument("--include-deps", help="Include apps of dependent packages", action="store_true")
 
 
 def _add_install(subparsers: argparse._SubParsersAction) -> None:
@@ -375,10 +363,7 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
     p.add_argument(
         "--preinstall",
         action="append",
-        help=(
-            "Optional packages to be installed into the Virtual Environment before "
-            "installing the main package."
-        ),
+        help=("Optional packages to be installed into the Virtual Environment before " "installing the main package."),
     )
     add_pip_venv_args(p)
 
@@ -578,9 +563,7 @@ def _add_list(subparsers: argparse._SubParsersAction) -> None:
         help="Show packages injected into the main app's environment",
     )
     g = p.add_mutually_exclusive_group()
-    g.add_argument(
-        "--json", action="store_true", help="Output rich data in json format."
-    )
+    g.add_argument("--json", action="store_true", help="Output rich data in json format.")
     g.add_argument("--short", action="store_true", help="List packages only.")
     p.add_argument("--verbose", action="store_true")
 
@@ -621,9 +604,7 @@ def _add_run(subparsers: argparse._SubParsersAction) -> None:
         help="app/package name and any arguments to be passed to it",
         default=[],
     )
-    p.add_argument(
-        "--path", action="store_true", help="Interpret app name as a local path"
-    )
+    p.add_argument("--path", action="store_true", help="Interpret app name as a local path")
     p.add_argument(
         "--pypackages",
         action="store_true",
@@ -671,10 +652,7 @@ def _add_runpip(subparsers, venv_completer: VenvCompleter) -> None:
 def _add_ensurepath(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "ensurepath",
-        help=(
-            "Ensure directories necessary for pipx operation are in your "
-            "PATH environment variable."
-        ),
+        help=("Ensure directories necessary for pipx operation are in your " "PATH environment variable."),
         description=(
             "Ensure directory where pipx stores apps is in your "
             "PATH environment variable. Also if pipx was installed via "
@@ -711,9 +689,7 @@ def _add_environment(subparsers: argparse._SubParsersAction) -> None:
             """
         ),
     )
-    p.add_argument(
-        "--value", "-v", metavar="VARIABLE", help="Print the value of the variable."
-    )
+    p.add_argument("--value", "-v", metavar="VARIABLE", help="Print the value of the variable.")
 
 
 def get_command_parser() -> argparse.ArgumentParser:
@@ -728,9 +704,7 @@ def get_command_parser() -> argparse.ArgumentParser:
     )
     parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore
 
-    subparsers = parser.add_subparsers(
-        dest="command", description="Get help for commands with pipx COMMAND --help"
-    )
+    subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
 
     _add_install(subparsers)
     _add_uninject(subparsers, completer_venvs.use)
@@ -893,9 +867,7 @@ def check_args(parsed_pipx_args: argparse.Namespace) -> None:
         # since we would like app to be required but not in a separate argparse
         #   add_argument, we implement our own missing required arg error
         if not parsed_pipx_args.app_with_args:
-            parsed_pipx_args.subparser.error(
-                "the following arguments are required: app"
-            )
+            parsed_pipx_args.subparser.error("the following arguments are required: app")
 
 
 def cli() -> ExitCode:

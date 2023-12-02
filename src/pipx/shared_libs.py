@@ -42,9 +42,7 @@ class _SharedLibs:
     def create(self, verbose: bool = False) -> None:
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
-                create_process = run_subprocess(
-                    [DEFAULT_PYTHON, "-m", "venv", "--clear", self.root]
-                )
+                create_process = run_subprocess([DEFAULT_PYTHON, "-m", "venv", "--clear", self.root])
             subprocess_post_check(create_process)
 
             # ignore installed packages to ensure no unexpected patches from the OS vendor
@@ -83,9 +81,7 @@ class _SharedLibs:
             self.has_been_logged_this_run = True
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
-    def upgrade(
-        self, *, pip_args: Optional[List[str]] = None, verbose: bool = False
-    ) -> None:
+    def upgrade(self, *, pip_args: Optional[List[str]] = None, verbose: bool = False) -> None:
         if not self.is_valid:
             self.create(verbose=verbose)
             return

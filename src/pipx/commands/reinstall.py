@@ -78,9 +78,7 @@ def reinstall(
         if injected_package.package_or_url is None:
             # This should never happen, but package_or_url is type
             #   Optional[str] so mypy thinks it could be None
-            raise PipxError(
-                f"Internal Error injecting package {injected_package} into {venv.name}"
-            )
+            raise PipxError(f"Internal Error injecting package {injected_package} into {venv.name}")
         inject_dep(
             venv_dir,
             injected_name,
@@ -127,8 +125,6 @@ def reinstall_all(
             if package_exit != 0:
                 failed.append(venv_dir.name)
     if len(failed) > 0:
-        raise PipxError(
-            f"The following package(s) failed to reinstall: {', '.join(failed)}"
-        )
+        raise PipxError(f"The following package(s) failed to reinstall: {', '.join(failed)}")
     # Any failure to install will raise PipxError, otherwise success
     return EXIT_CODE_OK

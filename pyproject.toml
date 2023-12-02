@@ -1,15 +1,23 @@
 [build-system]
-requires = ["hatchling>=0.15.0"]
 build-backend = "hatchling.build"
+requires = [
+  "hatchling>=0.15",
+]
 
 [project]
 name = "pipx"
 description = "Install and Run Python Applications in Isolated Environments"
 readme = "README.md"
+keywords = [
+  "cli",
+  "install",
+  "pip",
+  "Virtual Environment",
+  "workflow",
+]
 license = "MIT"
-requires-python = ">=3.8"
-keywords = ["pip", "install", "cli", "workflow", "Virtual Environment"]
 authors = [{ name = "Chad Smith", email = "chadsmith.software@gmail.com" }]
+requires-python = ">=3.8"
 classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
@@ -19,40 +27,34 @@ classifiers = [
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+dynamic = [
+  "version",
 ]
 dependencies = [
   "argcomplete>=1.9.4",
-  "colorama>=0.4.4; sys_platform == 'win32'",
-  "packaging>=20.0",
-  "platformdirs>=2.1.0",
-  "tomli; python_version < '3.11'",
-  "userpath>=1.6.0,!=1.9.0",
+  'colorama>=0.4.4; sys_platform == "win32"',
+  "packaging>=20",
+  "platformdirs>=2.1",
+  'tomli; python_version < "3.11"',
+  "userpath!=1.9.0,>=1.6",
 ]
-dynamic = ["version"]
+urls."Bug Tracker" = "https://github.com/pypa/pipx/issues"
+urls.Documentation = "https://pipx.pypa.io"
+urls.Homepage = "https://pipx.pypa.io"
+urls."Release Notes" = "https://pipx.pypa.io/latest/changelog/"
+urls."Source Code" = "https://github.com/pypa/pipx"
+scripts.pipx = "pipx.main:cli"
 
-[project.urls]
-Documentation = "https://pypa.github.io/pipx/"
-"Source Code" = "https://github.com/pypa/pipx"
-"Bug Tracker" = "https://github.com/pypa/pipx/issues"
-
-[project.scripts]
-pipx = "pipx.main:cli"
-
-[tool.hatch.version]
-source = "code"
-path = "src/pipx/version.py"
-
-[tool.hatch.build.targets.sdist]
-include = ["/src", "/logo.png", "/pipx_demo.gif", "/*.md"]
-
-[tool.black]
-skip-magic-trailing-comma = true
+[tool.hatch]
+version.source = "code"
+version.path = "src/pipx/version.py"
+build.targets.sdist.include = ["/src", "/logo.png", "/pipx_demo.gif", "/*.md"]
 
 [tool.ruff]
 line-length = 121
-
-[tool.ruff.lint]
-select = [
+lint.select = [
   "A",
   "B",
   "C4",
@@ -66,27 +68,22 @@ select = [
   "RSE",
   "W",
 ]
-ignore = [
+lint.ignore = [
   "B904",
 ]
-
-[tool.ruff.lint.isort]
-known-first-party = ["helpers", "package_info", "pipx"]
-
-[tool.ruff.lint.mccabe]
-max-complexity = 15
+isort = {known-first-party = ["helpers", "package_info", "pipx"]}
+lint.mccabe.max-complexity = 15
 
 [tool.pytest.ini_options]
 markers = ["all_packages: test install with maximum number of packages"]
 
 [tool.mypy]
 show_error_codes = true
-
-[[tool.mypy.overrides]]
-module = [
+overrides = [
+  { module = [
   "packaging.*",
   "platformdirs",
   "pycowsay.*",
   "jinja2",
+  ], ignore_missing_imports = true },
 ]
-ignore_missing_imports = true
