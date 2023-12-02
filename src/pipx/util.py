@@ -168,7 +168,6 @@ def run_subprocess(
     """Run arbitrary command as subprocess, capturing stderr and stout"""
     env = dict(os.environ)
     env = _fix_subprocess_env(env)
-    
     if log_cmd_str is None:
         log_cmd_str = " ".join(str(c) for c in cmd)
     logger.info(f"running {log_cmd_str}")
