@@ -26,6 +26,12 @@ _For comparison to other tools including pipsi, see [Comparison to Other Tools](
 
 ## Install pipx
 
+> [!NOTE]
+> It is not recommended to install `pipx` via `pipx`. If you'd like
+> to do this anyway, take a look at the
+> [`pipx-in-pipx`](https://github.com/mattsb42-meta/pipx-in-pipx) project and
+> read about the limitations there.
+
 ### On macOS
 
 ```
@@ -35,7 +41,17 @@ pipx ensurepath
 
 Upgrade pipx with `brew update && brew upgrade pipx`.
 
-### On Linux, install via pip (requires pip 19.0 or later)
+### On Linux
+
+-  Ubuntu 23.04 or above
+
+```
+sudo apt update
+sudo apt install pipx
+pipx ensurepath
+```
+
+-  Ubuntu 22.04 or below
 
 ```
 python3 -m pip install --user pipx
@@ -69,7 +85,7 @@ Restart your terminal session and verify `pipx` does run.
 
 Upgrade pipx with `py -m pip install --user --upgrade pipx`.
 
-### Via zipapp
+### Using pipx without installing (via zipapp)
 
 You can also use pipx without installing it.
 The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a Python 3.7+ interpreter:
