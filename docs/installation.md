@@ -6,7 +6,7 @@ You also need to have `pip` installed on your machine for `python3`. Installing 
 
 pipx works on macOS, linux, and Windows.
 
-## Install pipx
+## Installing pipx
 
 On macOS:
 
@@ -29,18 +29,24 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 ```
 
-Or via zipapp:
+!!!caution
+    It is not recommended to install `pipx` via `pipx`. If you'd like
+    to do this anyway, take a look at the
+    [`pipx-in-pipx`](https://github.com/mattsb42-meta/pipx-in-pipx) project and
+    read about the limitations there.
 
-You can also use pipx without installing it.
+
+### Using pipx without installing (via zipapp)
 The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a Python 3.7+ interpreter:
 
 ```
 python pipx.pyz ensurepath
 ```
 
-<a name="pre-commit"></a>Or use with pre-commit:
+### <a name="pre-commit"></a> Using pipx with pre-commit
 
 Pipx has [pre-commit](https://pre-commit.com/) support. This lets you run applications:
+
 * That can be run using `pipx run` but don't have native pre-commit support.
 * Using its prebuilt wheel from pypi.org instead of building it from source.
 * Using pipx's `--spec` and `--index-url` flags.
@@ -58,7 +64,7 @@ Example configuration for use of the code linter [yapf](https://github.com/googl
     types: ['python']
 ```
 
-### Installation Options
+## Installation Options
 
 The default binary location for pipx-installed apps is `~/.local/bin`. This can be overridden with the environment variable `PIPX_BIN_DIR`.
 
@@ -82,8 +88,8 @@ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install PACKAGE
     | `~/.local/pipx/venvs`  | `platformdirs.user_data_dir()/pipx/venv`   |
     | `~/.local/pipx/.cache` | `platformdirs.user_cache_dir()/pipx`       |
     | `~/.local/pipx/logs`   | `platformdirs.user_log_dir()/pipx/log`     |
-    
-    `user_data_dir()`, `user_cache_dir()` and `user_log_dir()` resolve to appropriate platform-specific user data, cache and log directories. 
+
+    `user_data_dir()`, `user_cache_dir()` and `user_log_dir()` resolve to appropriate platform-specific user data, cache and log directories.
     See the [platformdirs documentation](https://platformdirs.readthedocs.io/en/latest/api.html#platforms) for details.
 
 ## Upgrade pipx

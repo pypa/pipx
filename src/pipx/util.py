@@ -180,6 +180,7 @@ def run_subprocess(
         stderr=subprocess.PIPE if capture_stderr else None,
         encoding="utf-8",
         universal_newlines=True,
+        check=False,
     )
 
     if capture_stdout and log_stdout:
@@ -396,6 +397,7 @@ def exec_app(
                 stderr=None,
                 encoding="utf-8",
                 universal_newlines=True,
+                check=False,
             ).returncode
         )
     else:

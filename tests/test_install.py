@@ -257,7 +257,7 @@ def test_install_pip_failure(pipx_temp_env, capsys):
 def test_install_local_archive(pipx_temp_env, monkeypatch, capsys):
     monkeypatch.chdir(Path(TEST_DATA_PATH) / "local_extras")
 
-    subprocess.run([sys.executable, "-m", "pip", "wheel", "."])
+    subprocess.run([sys.executable, "-m", "pip", "wheel", "."], check=True)
     assert not run_pipx_cli(["install", "repeatme-0.1-py3-none-any.whl"])
     captured = capsys.readouterr()
     assert f"- {app_name('repeatme')}\n" in captured.out
@@ -284,3 +284,14 @@ def test_preinstall(pipx_temp_env, caplog):
 def test_do_not_wait_for_input(pipx_temp_env, pipx_session_shared_dir, monkeypatch):
     monkeypatch.setenv("PIP_INDEX_URL", "http://127.0.0.1:8080/simple")
     run_pipx_cli(["install", "pycowsay"])
+
+
+def test_passed_python_and_force_flag_warning(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "black"])
+    assert not run_pipx_cli(["install", "--python", sys.executable, "--force", "black"])
+    captured = capsys.readouterr()
+    assert "--python is ignored when --force is passed." in captured.out
+
+    assert not run_pipx_cli(["install", "pycowsay", "--force"])
+    captured = capsys.readouterr()
+    assert "--python is ignored when --force is passed." not in captured.out

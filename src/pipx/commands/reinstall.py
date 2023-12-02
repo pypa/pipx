@@ -61,6 +61,7 @@ def reinstall(
         venv.pipx_metadata.venv_args,
         verbose,
         force=True,
+        reinstall=True,
         include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
         preinstall_packages=[],
         suffix=venv.pipx_metadata.main_package.suffix,
