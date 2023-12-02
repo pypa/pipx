@@ -18,9 +18,9 @@
 
 </p>
 
-**Documentation**: https://pipx.pypa.io
+**Documentation**: <https://pipx.pypa.io>
 
-**Source Code**: https://github.com/pypa/pipx
+**Source Code**: <https://github.com/pypa/pipx>
 
 _For comparison to other tools including pipsi, see
 [Comparison to Other Tools](https://pipx.pypa.io/stable/comparisons/)._
