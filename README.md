@@ -22,15 +22,13 @@
 
 **Source Code**: https://github.com/pypa/pipx
 
-_For comparison to other tools including pipsi, see [Comparison to Other Tools](https://pypa.github.io/pipx/comparisons/)._
+_For comparison to other tools including pipsi, see
+[Comparison to Other Tools](https://pypa.github.io/pipx/comparisons/)._
 
 ## Install pipx
 
-> [!NOTE]
-> It is not recommended to install `pipx` via `pipx`. If you'd like
-> to do this anyway, take a look at the
-> [`pipx-in-pipx`](https://github.com/mattsb42-meta/pipx-in-pipx) project and
-> read about the limitations there.
+> [!NOTE] It is not recommended to install `pipx` via `pipx`. If you'd like to do this anyway, take a look at the
+> [`pipx-in-pipx`](https://github.com/mattsb42-meta/pipx-in-pipx) project and read about the limitations there.
 
 ### On macOS
 
@@ -43,7 +41,7 @@ Upgrade pipx with `brew update && brew upgrade pipx`.
 
 ### On Linux
 
--  Ubuntu 23.04 or above
+- Ubuntu 23.04 or above
 
 ```
 sudo apt update
@@ -51,7 +49,7 @@ sudo apt install pipx
 pipx ensurepath
 ```
 
--  Ubuntu 22.04 or below
+- Ubuntu 22.04 or below
 
 ```
 python3 -m pip install --user pipx
@@ -73,22 +71,22 @@ It is possible (even most likely) the above finishes with a WARNING looking simi
 WARNING: The script pipx.exe is installed in `<USER folder>\AppData\Roaming\Python\Python3x\Scripts` which is not on PATH
 ```
 
-If so, go to the mentioned folder, allowing you to run the pipx executable directly.
-Enter the following line (even if you did not get the warning):
+If so, go to the mentioned folder, allowing you to run the pipx executable directly. Enter the following line (even if
+you did not get the warning):
 
 ```
 .\pipx.exe ensurepath
 ```
 
-This will add both the above mentioned path and the `%USERPROFILE%\.local\bin` folder to your search path.
-Restart your terminal session and verify `pipx` does run.
+This will add both the above mentioned path and the `%USERPROFILE%\.local\bin` folder to your search path. Restart your
+terminal session and verify `pipx` does run.
 
 Upgrade pipx with `py -m pip install --user --upgrade pipx`.
 
 ### Using pipx without installing (via zipapp)
 
-You can also use pipx without installing it.
-The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a Python 3.7+ interpreter:
+You can also use pipx without installing it. The zipapp can be downloaded from
+[Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a Python 3.7+ interpreter:
 
 ```
 python pipx.pyz ensurepath
@@ -110,35 +108,49 @@ For more details, see the [installation instructions](https://pypa.github.io/pip
 
 ## Overview: What is `pipx`?
 
-pipx is a tool to help you install and run end-user applications written in Python. It's roughly similar to macOS's `brew`, JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b), and Linux's `apt`.
+pipx is a tool to help you install and run end-user applications written in Python. It's roughly similar to macOS's
+`brew`, JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b), and
+Linux's `apt`.
 
-It's closely related to pip. In fact, it uses pip, but is focused on installing and managing Python packages that can be run from the command line directly as applications.
+It's closely related to pip. In fact, it uses pip, but is focused on installing and managing Python packages that can be
+run from the command line directly as applications.
 
 ### How is it Different from pip?
 
-pip is a general-purpose package installer for both libraries and apps with no environment isolation. pipx is made specifically for application installation, as it adds isolation yet still makes the apps available in your shell: pipx creates an isolated environment for each application and its associated packages.
+pip is a general-purpose package installer for both libraries and apps with no environment isolation. pipx is made
+specifically for application installation, as it adds isolation yet still makes the apps available in your shell: pipx
+creates an isolated environment for each application and its associated packages.
 
 pipx does not ship with pip, but installing it is often an important part of bootstrapping your system.
 
 ### Where Does `pipx` Install Apps From?
 
-By default, pipx uses the same package index as pip, [PyPI](https://pypi.org/). pipx can also install from all other sources pip can, such as a local directory, wheel, git url, etc.
+By default, pipx uses the same package index as pip, [PyPI](https://pypi.org/). pipx can also install from all other
+sources pip can, such as a local directory, wheel, git url, etc.
 
-Python and PyPI allow developers to distribute code with "console script entry points". These entry points let users call into Python code from the command line, effectively acting like standalone applications.
+Python and PyPI allow developers to distribute code with "console script entry points". These entry points let users
+call into Python code from the command line, effectively acting like standalone applications.
 
-pipx is a tool to install and run any of these thousands of application-containing packages in a safe, convenient, and reliable way. **In a way, it turns Python Package Index (PyPI) into a big app store for Python applications.** Not all Python packages have entry points, but many do.
+pipx is a tool to install and run any of these thousands of application-containing packages in a safe, convenient, and
+reliable way. **In a way, it turns Python Package Index (PyPI) into a big app store for Python applications.** Not all
+Python packages have entry points, but many do.
 
-If you would like to make your package compatible with pipx, all you need to do is add a [console scripts](https://python-packaging.readthedocs.io/en/latest/command-line-scripts.html#the-console-scripts-entry-point) entry point. If you're a poetry user, use [these instructions](https://python-poetry.org/docs/pyproject/#scripts). Or you're using hatch, [try this](https://hatch.pypa.io/latest/config/metadata/#cli).
+If you would like to make your package compatible with pipx, all you need to do is add a
+[console scripts](https://python-packaging.readthedocs.io/en/latest/command-line-scripts.html#the-console-scripts-entry-point)
+entry point. If you're a poetry user, use [these instructions](https://python-poetry.org/docs/pyproject/#scripts). Or
+you're using hatch, [try this](https://hatch.pypa.io/latest/config/metadata/#cli).
 
 ## Features
 
 `pipx` enables you to
 
-- Expose CLI entrypoints of packages ("apps") installed to isolated environments with the `install` command. This guarantees no dependency conflicts and clean uninstalls!
+- Expose CLI entrypoints of packages ("apps") installed to isolated environments with the `install` command. This
+  guarantees no dependency conflicts and clean uninstalls!
 - Easily list, upgrade, and uninstall packages that were installed with pipx
 - Run the latest version of a Python application in a temporary environment with the `run` command
 
-Best of all, pipx runs with regular user permissions, never calling `sudo pip install` (you aren't doing that, are you? 😄).
+Best of all, pipx runs with regular user permissions, never calling `sudo pip install` (you aren't doing that, are you?
+😄).
 
 ### Walkthrough: Installing a Package and its Applications With `pipx`
 
@@ -148,7 +160,10 @@ You can globally install an application by running
 pipx install PACKAGE
 ```
 
-This automatically creates a virtual environment, installs the package, and adds the package's associated applications (entry points) to a location on your `PATH`. For example, `pipx install pycowsay` makes the `pycowsay` command available globally, but sandboxes the pycowsay package in its own virtual environment. **pipx never needs to run as sudo to do this.**
+This automatically creates a virtual environment, installs the package, and adds the package's associated applications
+(entry points) to a location on your `PATH`. For example, `pipx install pycowsay` makes the `pycowsay` command available
+globally, but sandboxes the pycowsay package in its own virtual environment. **pipx never needs to run as sudo to do
+this.**
 
 Example:
 
@@ -203,15 +218,22 @@ pipx install "git+https://github.com/psf/black.git#egg=black[jupyter]"
 
 This is an alternative to `pipx install`.
 
-`pipx run` downloads and runs the above mentioned Python "apps" in a one-time, temporary environment, leaving your system untouched afterwards.
+`pipx run` downloads and runs the above mentioned Python "apps" in a one-time, temporary environment, leaving your
+system untouched afterwards.
 
-This can be handy when you need to run the latest version of an app, but don't necessarily want it installed on your computer.
+This can be handy when you need to run the latest version of an app, but don't necessarily want it installed on your
+computer.
 
-You may want to do this when you are initializing a new project and want to set up the right directory structure, when you want to view the help text of an application, or if you simply want to run an app in a one-off case and leave your system untouched afterwards.
+You may want to do this when you are initializing a new project and want to set up the right directory structure, when
+you want to view the help text of an application, or if you simply want to run an app in a one-off case and leave your
+system untouched afterwards.
 
-For example, the blog post [How to set up a perfect Python project](https://sourcery.ai/blog/python-best-practices/) uses `pipx run` to kickstart a new project with [cookiecutter](https://github.com/cookiecutter/cookiecutter), a tool that creates projects from project templates.
+For example, the blog post [How to set up a perfect Python project](https://sourcery.ai/blog/python-best-practices/)
+uses `pipx run` to kickstart a new project with [cookiecutter](https://github.com/cookiecutter/cookiecutter), a tool
+that creates projects from project templates.
 
-A nice side benefit is that you don't have to remember to upgrade the app since `pipx run` will automatically run a recent version for you.
+A nice side benefit is that you don't have to remember to upgrade the app since `pipx run` will automatically run a
+recent version for you.
 
 Okay, let's see what this looks like in practice!
 
@@ -267,7 +289,8 @@ usage: pipx run [-h] [--no-cache] [--pypackages] [--spec SPEC] [--verbose] [--py
 pipx run: error: ambiguous option: --py could match --pypackages, --python
 ```
 
-To prevent this put double dash `--` before APP. It will make pipx to forward the arguments to the right verbatim to the application:
+To prevent this put double dash `--` before APP. It will make pipx to forward the arguments to the right verbatim to the
+application:
 
 ```
 > pipx run -- pycowsay --py
@@ -285,17 +308,21 @@ To prevent this put double dash `--` before APP. It will make pipx to forward th
 
 ```
 
-Re-running the same app is quick because pipx caches Virtual Environments on a per-app basis. The caches only last a few days, and when they expire, pipx will again use the latest version of the package. This way you can be sure you're always running a new version of the package without having to manually upgrade.
+Re-running the same app is quick because pipx caches Virtual Environments on a per-app basis. The caches only last a few
+days, and when they expire, pipx will again use the latest version of the package. This way you can be sure you're
+always running a new version of the package without having to manually upgrade.
 
 ### Package with multiple apps, or the app name doesn't match the package name
 
-If the app name does not match the package name, you can use the `--spec` argument to specify the `PACKAGE` name, and provide the `APP` to run separately:
+If the app name does not match the package name, you can use the `--spec` argument to specify the `PACKAGE` name, and
+provide the `APP` to run separately:
 
 ```
 pipx run --spec PACKAGE APP
 ```
 
-For example, the [esptool](https://github.com/espressif/esptool) package doesn't provide an executable with the same name:
+For example, the [esptool](https://github.com/espressif/esptool) package doesn't provide an executable with the same
+name:
 
 ```
 >> pipx run esptool
@@ -316,7 +343,9 @@ pipx run --spec esptool espsecure.py
 pipx run --spec esptool esptool.py
 ```
 
-Note that the `.py` extension is not something you append to the executable name. It is part of the executable name, as provided by the package. This can be anything. For example, when working with the [pymodbus](https://github.com/pymodbus-dev/pymodbus) package:
+Note that the `.py` extension is not something you append to the executable name. It is part of the executable name, as
+provided by the package. This can be anything. For example, when working with the
+[pymodbus](https://github.com/pymodbus-dev/pymodbus) package:
 
 ```
 >> pipx run pymodbus[repl]
@@ -337,7 +366,9 @@ pipx run --spec pymodbus[repl] pymodbus.simulator
 
 ### Running a specific version of a package
 
-The `PACKAGE` argument above is actually a [requirement specifier](https://packaging.python.org/en/latest/glossary/#term-Requirement-Specifier). Therefore, you can also specify specific versions, version ranges, or extras. For example:
+The `PACKAGE` argument above is actually a
+[requirement specifier](https://packaging.python.org/en/latest/glossary/#term-Requirement-Specifier). Therefore, you can
+also specify specific versions, version ranges, or extras. For example:
 
 ```
 pipx run mpremote==1.20.0
@@ -370,7 +401,8 @@ pipx is working!
 
 ### Summary
 
-That's it! Those are the most important commands `pipx` offers. To see all of pipx's documentation, run `pipx --help` or see the [docs](https://pypa.github.io/pipx/docs/).
+That's it! Those are the most important commands `pipx` offers. To see all of pipx's documentation, run `pipx --help` or
+see the [docs](https://pypa.github.io/pipx/docs/).
 
 ## Testimonials
 
@@ -403,7 +435,10 @@ That's it! Those are the most important commands `pipx` offers. To see all of pi
 
 ## Credits
 
-pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https://github.com/npm/npx). It was created by [Chad Smith](https://github.com/cs01/) and has had lots of help from [contributors](https://github.com/pypa/pipx/graphs/contributors). The logo was created by [@IrishMorales](https://github.com/IrishMorales).
+pipx was inspired by [pipsi](https://github.com/mitsuhiko/pipsi) and [npx](https://github.com/npm/npx). It was created
+by [Chad Smith](https://github.com/cs01/) and has had lots of help from
+[contributors](https://github.com/pypa/pipx/graphs/contributors). The logo was created by
+[@IrishMorales](https://github.com/IrishMorales).
 
 pipx is maintained by a team of volunteers (in alphabetical order)
 
@@ -414,6 +449,6 @@ pipx is maintained by a team of volunteers (in alphabetical order)
 
 ## Contributing
 
-Issues and Pull Requests are definitely welcome! Check out [Contributing](https://pypa.github.io/pipx/contributing/) to get started.
-Everyone who interacts with the pipx project via codebase, issue tracker, chat rooms, or otherwise is expected to follow
-the [PSF Code of Conduct](https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md).
+Issues and Pull Requests are definitely welcome! Check out [Contributing](https://pypa.github.io/pipx/contributing/) to
+get started. Everyone who interacts with the pipx project via codebase, issue tracker, chat rooms, or otherwise is
+expected to follow the [PSF Code of Conduct](https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md).
