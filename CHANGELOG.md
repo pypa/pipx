@@ -18,7 +18,7 @@
 - Fix program name in generated manual page
 - Print all environment variables in `pipx environment`
 - Return an error message when directory can't be added to PATH successfully
-- Run venv creation in isolated mode with -I
+- Run venv creation and install_package subprocesses inside distination directory self.root instead of current directory
 
 ## 1.2.1
 
