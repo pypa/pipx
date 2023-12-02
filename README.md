@@ -18,12 +18,12 @@
 
 </p>
 
-**Documentation**: https://pypa.github.io/pipx/
+**Documentation**: https://pipx.pypa.io
 
 **Source Code**: https://github.com/pypa/pipx
 
 _For comparison to other tools including pipsi, see
-[Comparison to Other Tools](https://pypa.github.io/pipx/comparisons/)._
+[Comparison to Other Tools](https://pipx.pypa.io/stable/comparisons/)._
 
 ## Install pipx
 
@@ -104,7 +104,7 @@ Shell completions are available by following the instructions printed with this 
 pipx completions
 ```
 
-For more details, see the [installation instructions](https://pypa.github.io/pipx/installation/).
+For more details, see the [installation instructions](https://pipx.pypa.io/stable/installation/).
 
 ## Overview: What is `pipx`?
 
@@ -402,7 +402,7 @@ pipx is working!
 ### Summary
 
 That's it! Those are the most important commands `pipx` offers. To see all of pipx's documentation, run `pipx --help` or
-see the [docs](https://pypa.github.io/pipx/docs/).
+see the [docs](https://pipx.pypa.io/stable/docs/).
 
 ## Testimonials
 
@@ -449,6 +449,6 @@ pipx is maintained by a team of volunteers (in alphabetical order)
 
 ## Contributing
 
-Issues and Pull Requests are definitely welcome! Check out [Contributing](https://pypa.github.io/pipx/contributing/) to
+Issues and Pull Requests are definitely welcome! Check out [Contributing](https://pipx.pypa.io/stable/contributing/) to
 get started. Everyone who interacts with the pipx project via codebase, issue tracker, chat rooms, or otherwise is
 expected to follow the [PSF Code of Conduct](https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md).

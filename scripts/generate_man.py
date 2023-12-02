@@ -28,7 +28,7 @@ def main():
         .IR pipx (1)
         was written by Chad Smith and contributors.
         The project can be found online at
-        .UR https://pypa.github.io/pipx/
+        .UR https://pipx.pypa.io
         .UE
         .SH SEE ALSO
         .IR pip (1),

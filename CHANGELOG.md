@@ -58,7 +58,7 @@
 - Add `pipx environment` command (#793)
 - Add `list --short` option to list only package names (#804)
 - [docs] Fix the command for
-  [installing development version](https://pypa.github.io/pipx/installation/#install-pipx-development-versions). (#801)
+  [installing development version](https://pipx.pypa.io/stable/installation/#install-pipx-development-versions). (#801)
 - [docs] Fix test status badge in readme file
 - [docs] Add more examples
 - [dev] Change github action job names
@@ -85,7 +85,7 @@
 - Fixed `pipx list` output phrasing to convey that python version displayed is the one with which package was installed.
 - Fixed `pipx install` to provide return code 0 if venv already exists, similar to pip’s behavior. (#736)
 - [docs] Update ansible's install command in
-  [Programs to Try document](https://pypa.github.io/pipx/programs-to-try/#ansible) to work with Ansible 2.10+ (#742)
+  [Programs to Try document](https://pipx.pypa.io/stable/programs-to-try/#ansible) to work with Ansible 2.10+ (#742)
 
 ## 0.16.4
 
@@ -106,7 +106,7 @@
 - Changed default nox tests, Github Workflow tests, and pytest behavior to use local pypi server with fixed lists of
   available packages. This allows greater test isolation (no network pypi access needed) and determinism (fixed
   available dependencies.) It also allows running the tests offline with some extra preparation beforehand (See
-  [Running Unit Tests Offline](https://pypa.github.io/pipx/contributing/#running-unit-tests-offline)). The old style
+  [Running Unit Tests Offline](https://pipx.pypa.io/stable/contributing/#running-unit-tests-offline)). The old style
   tests that use the internet to access pypi.org are still available using `nox -s tests_internet` or
   `pytest --net-pypiserver tests`. (#686)
 
