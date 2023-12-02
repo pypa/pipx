@@ -1,5 +1,7 @@
 ## dev
 
+- Fix combining of --editable and --force flag
+
 ## 1.3.0
 
 - Check whether pip module exists in shared lib before performing any actions, such as `reinstall-all`.

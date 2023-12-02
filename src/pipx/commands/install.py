@@ -58,7 +58,7 @@ def install(
             )
         if force:
             print(f"Installing to existing venv {venv.name!r}")
-            pip_args += ["--force-reinstall"]
+            pip_args = ["--force-reinstall"] + pip_args
         else:
             print(
                 pipx_wrap(

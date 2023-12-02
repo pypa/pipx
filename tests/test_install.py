@@ -285,6 +285,17 @@ def test_force_install_changes(pipx_temp_env, capsys):
     assert "2022.1.7" not in captured.out
 
 
+def test_force_install_changes_editable(pipx_temp_env, root, capsys):
+    empty_project_path_as_string = (root / "testdata" / "empty_project").as_posix()
+    assert not run_pipx_cli(["install", "--editable", empty_project_path_as_string])
+    captured = capsys.readouterr()
+    assert "empty-project" in captured.out
+
+    assert not run_pipx_cli(["install", "--editable", empty_project_path_as_string, "--force"])
+    captured = capsys.readouterr()
+    assert "Installing to existing venv 'empty-project'" in captured.out
+
+
 def test_preinstall(pipx_temp_env, caplog):
     assert not run_pipx_cli(["install", "--preinstall", "black", "nox"])
     assert "black" in caplog.text
