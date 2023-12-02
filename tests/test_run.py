@@ -326,7 +326,7 @@ def test_run_with_windows_python_version(caplog, pipx_temp_env, tmp_path):
         ).strip()
     )
     run_pipx_cli_exit(["run", script.as_uri(), "--python", "3.12"])
-    assert "3.11" in out.read_text()
+    assert "3.12" in out.read_text()
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
