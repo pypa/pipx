@@ -209,7 +209,7 @@ def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
         textwrap.dedent(
             f"""
                 # /// pyproject
-                # run.requirements = ["requests==2.28.1"]
+                # run.requirements = ["requests==2.31.0"]
                 # ///
 
                 # Check requests can be imported
