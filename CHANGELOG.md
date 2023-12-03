@@ -2,6 +2,7 @@
 
 ## 1.3.1
 
+- Temporarily remove support for PEP 723, until it is eventually accepted
 - Fix combining of --editable and --force flag
 
 ## 1.3.0

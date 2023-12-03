@@ -79,27 +79,28 @@ def run_script(
     verbose: bool,
     use_cache: bool,
 ) -> NoReturn:
-    requirements = _get_requirements_from_script(content)
-    if requirements is None:
-        exec_app([python, "-c", content, *app_args])
-    else:
-        # Note that the environment name is based on the identified
-        # requirements, and *not* on the script name. This is deliberate, as
-        # it ensures that two scripts with the same requirements can use the
-        # same environment, which means fewer environments need to be
-        # managed. The requirements are normalised (in
-        # _get_requirements_from_script), so that irrelevant differences in
-        # whitespace, and similar, don't prevent environment sharing.
-        venv_dir = _get_temporary_venv_path(requirements, python, pip_args, venv_args)
-        venv = Venv(venv_dir)
-        _prepare_venv_cache(venv, None, use_cache)
-        if venv_dir.exists():
-            logger.info(f"Reusing cached venv {venv_dir}")
-        else:
-            venv = Venv(venv_dir, python=python, verbose=verbose)
-            venv.create_venv(venv_args, pip_args)
-            venv.install_unmanaged_packages(requirements, pip_args)
-        exec_app([venv.python_path, "-c", content, *app_args])
+    # TODO: Add back support for PEP 723 after it's accepted
+    # requirements = _get_requirements_from_script(content)
+    # if requirements is None:
+    exec_app([python, "-c", content, *app_args])
+    # else:
+    #     # Note that the environment name is based on the identified
+    #     # requirements, and *not* on the script name. This is deliberate, as
+    #     # it ensures that two scripts with the same requirements can use the
+    #     # same environment, which means fewer environments need to be
+    #     # managed. The requirements are normalised (in
+    #     # _get_requirements_from_script), so that irrelevant differences in
+    #     # whitespace, and similar, don't prevent environment sharing.
+    #     venv_dir = _get_temporary_venv_path(requirements, python, pip_args, venv_args)
+    #     venv = Venv(venv_dir)
+    #     _prepare_venv_cache(venv, None, use_cache)
+    #     if venv_dir.exists():
+    #         logger.info(f"Reusing cached venv {venv_dir}")
+    #     else:
+    #         venv = Venv(venv_dir, python=python, verbose=verbose)
+    #         venv.create_venv(venv_args, pip_args)
+    #         venv.install_unmanaged_packages(requirements, pip_args)
+    #     exec_app([venv.python_path, "-c", content, *app_args])
 
 
 def run_package(
@@ -319,43 +320,44 @@ def _http_get_request(url: str) -> str:
         raise PipxError(str(e)) from e
 
 
-# This regex comes from PEP 723
-PEP723 = re.compile(r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$")
+# Temporarily remove the support for PEP 723 until it's accepted
+# # This regex comes from PEP 723
+# PEP723 = re.compile(r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$")
 
 
-def _get_requirements_from_script(content: str) -> Optional[List[str]]:
-    """
-    Supports PEP 723.
-    """
+# def _get_requirements_from_script(content: str) -> Optional[List[str]]:
+#     """
+#     Supports PEP 723.
+#     """
 
-    name = "pyproject"
+#     name = "pyproject"
 
-    # Windows is currently getting un-normalized line endings, so normalize
-    content = content.replace("\r\n", "\n")
+#     # Windows is currently getting un-normalized line endings, so normalize
+#     content = content.replace("\r\n", "\n")
 
-    matches = [m for m in PEP723.finditer(content) if m.group("type") == name]
+#     matches = [m for m in PEP723.finditer(content) if m.group("type") == name]
 
-    if not matches:
-        return None
+#     if not matches:
+#         return None
 
-    if len(matches) > 1:
-        raise ValueError(f"Multiple {name} blocks found")
+#     if len(matches) > 1:
+#         raise ValueError(f"Multiple {name} blocks found")
 
-    content = "".join(
-        line[2:] if line.startswith("# ") else line[1:] for line in matches[0].group("content").splitlines(keepends=True)
-    )
+#     content = "".join(
+#         line[2:] if line.startswith("# ") else line[1:] for line in matches[0].group("content").splitlines(keepends=True)
+#     )
 
-    pyproject = tomllib.loads(content)
+#     pyproject = tomllib.loads(content)
 
-    requirements = []
-    for requirement in pyproject.get("run", {}).get("requirements", []):
-        # Validate the requirement
-        try:
-            req = Requirement(requirement)
-        except InvalidRequirement as e:
-            raise PipxError(f"Invalid requirement {requirement}: {e}") from e
+#     requirements = []
+#     for requirement in pyproject.get("run", {}).get("requirements", []):
+#         # Validate the requirement
+#         try:
+#             req = Requirement(requirement)
+#         except InvalidRequirement as e:
+#             raise PipxError(f"Invalid requirement {requirement}: {e}") from e
 
-        # Use the normalised form of the requirement
-        requirements.append(str(req))
+#         # Use the normalised form of the requirement
+#         requirements.append(str(req))
 
-    return requirements
+#     return requirements

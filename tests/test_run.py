@@ -191,30 +191,31 @@ def test_run_without_requirements(caplog, pipx_temp_env, tmp_path):
     assert out.read_text() == test_str
 
 
-@mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
-    script = tmp_path / "test.py"
-    out = tmp_path / "output.txt"
-    script.write_text(
-        textwrap.dedent(
-            f"""
-                # /// pyproject
-                # run.requirements = ["requests==2.31.0"]
-                # ///
+# TODO: Add back support for PEP 723 after it's accepted
+# @mock.patch("os.execvpe", new=execvpe_mock)
+# def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
+#     script = tmp_path / "test.py"
+#     out = tmp_path / "output.txt"
+#     script.write_text(
+#         textwrap.dedent(
+#             f"""
+#                 # /// pyproject
+#                 # run.requirements = ["requests==2.31.0"]
+#                 # ///
 
-                # Check requests can be imported
-                import requests
-                # Check dependencies of requests can be imported
-                import certifi
-                # Check the installed version
-                from pathlib import Path
-                Path({repr(str(out))}).write_text(requests.__version__)
-            """
-        ).strip(),
-        encoding="utf-8",
-    )
-    run_pipx_cli_exit(["run", script.as_uri()])
-    assert out.read_text() == "2.31.0"
+#                 # Check requests can be imported
+#                 import requests
+#                 # Check dependencies of requests can be imported
+#                 import certifi
+#                 # Check the installed version
+#                 from pathlib import Path
+#                 Path({repr(str(out))}).write_text(requests.__version__)
+#             """
+#         ).strip(),
+#         encoding="utf-8",
+#     )
+#     run_pipx_cli_exit(["run", script.as_uri()])
+#     assert out.read_text() == "2.31.0"
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
@@ -234,45 +235,47 @@ def test_run_with_args(caplog, pipx_temp_env, tmp_path):
     assert out.read_text() == "2"
 
 
-@mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_with_requirements_and_args(caplog, pipx_temp_env, tmp_path):
-    script = tmp_path / "test.py"
-    out = tmp_path / "output.txt"
-    script.write_text(
-        textwrap.dedent(
-            f"""
-                # /// pyproject
-                # run.requirements = ["packaging"]
-                # ///
-                import packaging
-                import sys
-                from pathlib import Path
-                Path({repr(str(out))}).write_text(str(int(sys.argv[1]) + 1))
-            """
-        ).strip()
-    )
-    run_pipx_cli_exit(["run", script.as_uri(), "1"])
-    assert out.read_text() == "2"
+# TODO: Add back support for PEP 723 after it's accepted
+# @mock.patch("os.execvpe", new=execvpe_mock)
+# def test_run_with_requirements_and_args(caplog, pipx_temp_env, tmp_path):
+#     script = tmp_path / "test.py"
+#     out = tmp_path / "output.txt"
+#     script.write_text(
+#         textwrap.dedent(
+#             f"""
+#                 # /// pyproject
+#                 # run.requirements = ["packaging"]
+#                 # ///
+#                 import packaging
+#                 import sys
+#                 from pathlib import Path
+#                 Path({repr(str(out))}).write_text(str(int(sys.argv[1]) + 1))
+#             """
+#         ).strip()
+#     )
+#     run_pipx_cli_exit(["run", script.as_uri(), "1"])
+#     assert out.read_text() == "2"
 
 
-@mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_with_invalid_requirement(capsys, pipx_temp_env, tmp_path):
-    script = tmp_path / "test.py"
-    script.write_text(
-        textwrap.dedent(
-            """
-                # /// pyproject
-                # run.requirements = ["this is an invalid requirement"]
-                # ///
-                print()
-            """
-        ).strip()
-    )
-    ret = run_pipx_cli(["run", script.as_uri()])
-    assert ret == 1
+# TODO: Add back support for PEP 723 after it's accepted
+# @mock.patch("os.execvpe", new=execvpe_mock)
+# def test_run_with_invalid_requirement(capsys, pipx_temp_env, tmp_path):
+#     script = tmp_path / "test.py"
+#     script.write_text(
+#         textwrap.dedent(
+#             """
+#                 # /// pyproject
+#                 # run.requirements = ["this is an invalid requirement"]
+#                 # ///
+#                 print()
+#             """
+#         ).strip()
+#     )
+#     ret = run_pipx_cli(["run", script.as_uri()])
+#     assert ret == 1
 
-    captured = capsys.readouterr()
-    assert "Invalid requirement this is an invalid requirement" in captured.err
+#     captured = capsys.readouterr()
+#     assert "Invalid requirement this is an invalid requirement" in captured.err
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
