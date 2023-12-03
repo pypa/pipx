@@ -40,3 +40,11 @@ nav:
 
 markdown_extensions:
   - admonition  #  note blocks, warning blocks -- https://github.com/mkdocs/mkdocs/issues/1659
+
+plugins:
+  - search:
+      lang: en
+      enabled: true
+  - gen-files:
+      scripts:
+        - scripts/gen_doc_pages.py

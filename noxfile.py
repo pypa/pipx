@@ -6,14 +6,9 @@ import nox  # type: ignore
 
 PYTHON_ALL_VERSIONS = ["3.12", "3.11", "3.10", "3.9", "3.8"]
 PYTHON_DEFAULT_VERSION = "3.12"
-DOC_DEPENDENCIES = [".", "jinja2", "mkdocs", "mkdocs-material"]
-MAN_DEPENDENCIES = [".", "argparse-manpage[setuptools]"]
-LINT_DEPENDENCIES = [
-    "mypy==1.7.1",
-    "packaging>=20.0",
-    "ruff==0.1.6",
-    "types-jinja2",
-]
+DOC_DEPENDENCIES = ["jinja2", "mkdocs", "mkdocs-material", "mkdocs-gen-files"]
+MAN_DEPENDENCIES = ["argparse-manpage[setuptools]"]
+TEST_DEPENDENCIES = ["pytest", "pypiserver[passlib]", 'setuptools; python_version>="3.12"', "pytest-cov"]
 # Packages whose dependencies need an intact system PATH to compile
 # pytest setup clears PATH.  So pre-build some wheels to the pip cache.
 PREBUILD_PACKAGES = {"all": ["jupyter==1.0.0"], "macos": [], "unix": [], "win": []}
@@ -49,23 +44,14 @@ def prebuild_wheels(session, prebuild_dict):
 
 
 def has_changes():
-    status = (
-        subprocess.run("git status --porcelain", shell=True, check=True, stdout=subprocess.PIPE).stdout.decode().strip()
-    )
+    cmd = "git status --porcelain"
+    status = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE).stdout.decode().strip()
     return len(status) > 0
 
 
 def get_branch():
-    return (
-        subprocess.run(
-            "git rev-parse --abbrev-ref HEAD",
-            shell=True,
-            check=True,
-            stdout=subprocess.PIPE,
-        )
-        .stdout.decode()
-        .strip()
-    )
+    cmd = "git rev-parse --abbrev-ref HEAD"
+    return subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE).stdout.decode().strip()
 
 
 def on_main_no_changes(session):
@@ -90,19 +76,17 @@ def refresh_packages_cache(session):
 
 
 def tests_with_options(session, net_pypiserver):
-    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     prebuild_wheels(session, PREBUILD_PACKAGES)
-    session.install("-e", ".", "pytest", "pytest-cov")
-    tests = session.posargs or ["tests"]
+    session.install("-e", ".", *TEST_DEPENDENCIES)
+    test_dir = session.posargs or ["tests"]
 
     if net_pypiserver:
         pypiserver_option = ["--net-pypiserver"]
     else:
-        session.install("pypiserver[passlib]", 'setuptools; python_version>="3.12"')
         refresh_packages_cache(session)
         pypiserver_option = []
 
-    session.run("pytest", *pypiserver_option, "--cov=pipx", "--cov-report=", *tests)
+    session.run("pytest", *pypiserver_option, "--cov=pipx", "--cov-report=", *test_dir)
     session.notify("cover")
 
 
@@ -120,24 +104,14 @@ def tests(session):
 
 @nox.session(python=PYTHON_ALL_VERSIONS)
 def test_all_packages(session):
-    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
-    session.install("-e", ".", "pytest")
-    tests = session.posargs or ["tests"]
-    session.run(
-        "pytest",
-        "-v",
-        "--tb=no",
-        "--show-capture=no",
-        "--net-pypiserver",
-        "--all-packages",
-        *tests,
-    )
+    session.install("-e", ".", *TEST_DEPENDENCIES)
+    test_dir = session.posargs or ["tests"]
+    session.run("pytest", "-v", "--tb=no", "--show-capture=no", "--net-pypiserver", "--all-packages", *test_dir)
 
 
 @nox.session
 def cover(session):
     """Coverage analysis"""
-    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install("coverage")
     session.run("coverage", "report", "--show-missing", "--fail-under=70")
     session.run("coverage", "erase")
@@ -145,7 +119,6 @@ def cover(session):
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def lint(session):
-    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.run("python", "-m", "pip", "install", "pre-commit")
     session.run("pre-commit", "run", "--all-files")
 
@@ -153,13 +126,11 @@ def lint(session):
 @nox.session(python=PYTHON_ALL_VERSIONS)
 def develop(session):
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
-    session.install(*DOC_DEPENDENCIES, *LINT_DEPENDENCIES)
-    session.install("-e", ".", "pytest", "pypiserver[passlib]", 'setuptools; python_version>="3.12"')
+    session.install(*DOC_DEPENDENCIES, *TEST_DEPENDENCIES, *MAN_DEPENDENCIES, "-e", ".")
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def build(session):
-    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install("build")
     session.run("rm", "-rf", "dist", "build", external=True)
     session.run("python", "-m", "build")
@@ -168,7 +139,6 @@ def build(session):
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def publish(session):
     on_main_no_changes(session)
-    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install("twine")
     build(session)
     print("REMINDER: Has the changelog been updated?")
@@ -178,66 +148,27 @@ def publish(session):
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def build_docs(session):
     site_dir = session.posargs or ["site/"]
-    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
-    session.install(*DOC_DEPENDENCIES)
+    session.install(*DOC_DEPENDENCIES, ".")
     session.env["PIPX__DOC_DEFAULT_PYTHON"] = "typically the python used to execute pipx"
-    session.run("python", "scripts/generate_docs.py")
     session.run("mkdocs", "build", "--strict", "--site-dir", *site_dir)
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def watch_docs(session):
-    session.install(*DOC_DEPENDENCIES)
-    session.run("python", "scripts/generate_docs.py")
+    session.install(*DOC_DEPENDENCIES, ".")
     session.run("mkdocs", "serve", "--strict")
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def build_man(session):
-    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     session.install(*MAN_DEPENDENCIES)
     session.env["PIPX__DOC_DEFAULT_PYTHON"] = "typically the python used to execute pipx"
     session.run("python", "scripts/generate_man.py")
-
-
-@nox.session(python=PYTHON_DEFAULT_VERSION)
-def pre_release(session):
-    on_main_no_changes(session)
-    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
-    session.install("mypy")
-    if session.posargs:
-        new_version = session.posargs[0]
-    else:
-        new_version = input("Enter new version: ")
-    session.run("python", "scripts/pipx_prerelease.py", new_version)
-    session.run("git", "--no-pager", "diff", external=True)
-    print("")
-    session.log(
-        "If `git diff` above looks ok, execute the following command:\n\n"
-        f"    git commit -a -m 'Pre-release {new_version}.'\n"
-    )
-
-
-@nox.session(python=PYTHON_DEFAULT_VERSION)
-def post_release(session):
-    on_main_no_changes(session)
-    session.run("python", "-m", "pip", "install", "--upgrade", "pip")
-    session.install("mypy")
-    session.run("python", "scripts/pipx_postrelease.py")
-    session.run("git", "--no-pager", "diff", external=True)
-    print("")
-    session.log(
-        "If `git diff` above looks ok, execute the following command:\n\n" "    git commit -a -m 'Post-release.'\n"
-    )
 
 
 @nox.session(python=PYTHON_ALL_VERSIONS)
 def create_test_package_list(session):
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
     output_dir = session.posargs[0] if session.posargs else str(PIPX_TESTS_PACKAGE_LIST_DIR)
-    session.run(
-        "python",
-        "scripts/list_test_packages.py",
-        str(PIPX_TESTS_PACKAGE_LIST_DIR / "primary_packages.txt"),
-        output_dir,
-    )
+    primary = str(PIPX_TESTS_PACKAGE_LIST_DIR / "primary_packages.txt")
+    session.run("python", "scripts/list_test_packages.py", primary, output_dir)

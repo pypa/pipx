@@ -1,7 +1,8 @@
 [build-system]
 build-backend = "hatchling.build"
 requires = [
-  "hatchling>=0.15",
+  "hatch-vcs>=0.4",
+  "hatchling>=1.18",
 ]
 
 [project]
@@ -48,9 +49,9 @@ urls."Source Code" = "https://github.com/pypa/pipx"
 scripts.pipx = "pipx.main:cli"
 
 [tool.hatch]
-version.source = "code"
-version.path = "src/pipx/version.py"
+build.hooks.vcs.version-file = "src/pipx/version.py"
 build.targets.sdist.include = ["/src", "/logo.png", "/pipx_demo.gif", "/*.md"]
+version.source = "vcs"
 
 [tool.ruff]
 line-length = 121
@@ -81,6 +82,8 @@ markers = ["all_packages: test install with maximum number of packages"]
 show_error_codes = true
 overrides = [
   { module = [
+  "pipx.version",
+  "mkdocs_gen_files.*",
   "packaging.*",
   "platformdirs",
   "pycowsay.*",

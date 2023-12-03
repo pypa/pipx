@@ -1,5 +1,7 @@
 ## dev
 
+- Pull version for documentation and package during build from the VCS
+
 ## 1.3.1
 
 - Fix combining of --editable and --force flag
