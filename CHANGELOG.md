@@ -1,5 +1,7 @@
 ## dev
 
+## 1.3.2
+
 - The project version number is now dynamic and generated from the VCS at build time
 - [docs] Add additonal example for --pip-args option, to docs/examples.md
 
