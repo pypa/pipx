@@ -22,22 +22,6 @@ env:
   default-python: "3.12"
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python ${{ env.default-python }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.default-python }}
-    - name: Upgrade pip, Install nox
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install nox
-    - name: Lint
-      run: |
-        nox --error-on-missing-interpreters --non-interactive --session lint
-
   tests:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -82,7 +66,7 @@ jobs:
   pypi-publish:
     name: Publish pipx to PyPI on release
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-    needs: [lint, tests]
+    needs: [tests]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout ${{ github.ref }}
@@ -107,7 +91,7 @@ jobs:
   build-zipapp:
     name: Build zipapp
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-    needs: [lint, tests]
+    needs: [tests]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout ${{ github.ref }}

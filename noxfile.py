@@ -146,17 +146,8 @@ def cover(session):
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def lint(session):
     session.run("python", "-m", "pip", "install", "--upgrade", "pip")
-    session.install(*LINT_DEPENDENCIES)
-    files = [str(Path("src") / "pipx"), "tests", "scripts"] + [str(p) for p in Path(".").glob("*.py")]
-    session.run("ruff", *files)
-    session.run(
-        "mypy",
-        "--strict-equality",
-        "--no-implicit-optional",
-        "--warn-unused-ignores",
-        "--check-untyped-defs",
-        *files,
-    )
+    session.run("python", "-m", "pip", "install", "pre-commit")
+    session.run("pre-commit", "run", "--all-files")
 
 
 @nox.session(python=PYTHON_ALL_VERSIONS)
