@@ -1,6 +1,7 @@
 ## dev
 
-- Pull version for documentation and package during build from the VCS
+- The project version number is now dynamic and generated from the VCS at build time
+- [docs] Add additonal example for --pip-args option, to docs/examples.md
 
 ## 1.3.1
 
