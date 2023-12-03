@@ -319,7 +319,10 @@ def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--pip-args",
-        help="Arbitrary pip arguments to pass directly to pip install/upgrade commands",
+        help=(
+            "Arbitrary pip arguments to pass directly to pip install/upgrade commands. "
+            "Example: pipx install --index-url https://test.pypi.org/simple/ --pip-args='--extra-index-url https://pypi.org/simple/' some-package"
+        ),
     )
 
 
