@@ -1,5 +1,7 @@
 ## dev
 
+- Append to instead of overwrite pip errors log file
+
 ## 1.3.1
 
 - Fix combining of --editable and --force flag
