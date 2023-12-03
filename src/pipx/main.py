@@ -15,7 +15,7 @@ import urllib.parse
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-import argcomplete  # type: ignore
+import argcomplete
 import platformdirs
 from packaging.utils import canonicalize_name
 
