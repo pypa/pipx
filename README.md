@@ -1,5 +1,5 @@
 <p align="center">
-<a href="https://pypa.github.io/pipx/">
+<a href="https://pipx.pypa.io">
 <img align="center" src="https://github.com/pypa/pipx/raw/main/logo.png" width="200"/>
 </a>
 </p>
