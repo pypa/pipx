@@ -1,5 +1,7 @@
 ## dev
 
+- [docs] Add additonal example for --pip-args option, to docs/examples.md
+
 ## 1.3.1
 
 - Fix combining of --editable and --force flag
