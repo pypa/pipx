@@ -141,4 +141,4 @@ jobs:
           git config --global user.name 'Github Actions'
           git config --global user.email 'gh-action@users.noreply.github.com'
           git commit -am "Bump changelog for $RELEASE_VERSION"
-          git push
+          git push origin HEAD:main
