@@ -44,7 +44,7 @@ jobs:
       - name: Execute Tests
         run: nox --error-on-missing-interpreters --non-interactive --session tests-${{ matrix.python-version }}
   man:
-    name: Build mang page
+    name: Build man page
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
