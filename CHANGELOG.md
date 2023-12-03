@@ -1,6 +1,6 @@
 ## dev
 
-- Add example for --pip-args option, to docs/examples.md
+- [docs] Add additonal example for --pip-args option, to docs/examples.md
 
 ## 1.3.1
 
