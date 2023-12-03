@@ -2,7 +2,7 @@ name: Exhaustive Package Test (slow)
 on:
   workflow_dispatch:
 concurrency:
-  group: check-${{ github.ref }}
+  group: exhaustive-package-test-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   test_all_packages:
@@ -15,24 +15,22 @@ jobs:
         python-version: ["3.12", "3.11", "3.10", "3.9", "3.8"]
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Upgrade pip, Install nox
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install nox
-    - name: Execute Tests
-      continue-on-error: true
-      run: |
-        nox --non-interactive --session test_all_packages-${{ matrix.python-version }}
-    - name: Store reports as artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: reports-raw
-        path: reports
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+      - name: Install nox
+        run: python -m pip install nox
+      - name: Execute Tests
+        continue-on-error: true
+        run: nox --non-interactive --session test_all_packages-${{ matrix.python-version }}
+      - name: Store reports as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: reports-raw
+          path: reports
 
   report_all_packages:
     name: Collate test reports
@@ -40,26 +38,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Get report artifacts
-      uses: actions/download-artifact@v3
-      with:
-        name: reports-raw
-    - name: Collate reports
-      run: |
-        ls # DEBUG
-        mkdir reports
-        cat all_packages_report_legend.txt > all_nodeps_reports_lf.txt
-        cat all_packages_nodeps_report_* >> all_nodeps_reports_lf.txt
-        tr -d '\r' < all_nodeps_reports_lf.txt > reports/all_nodeps_reports.txt
-        cat all_packages_nodeps_errors_* > all_nodeps_errors_lf.txt
-        tr -d '\r' < all_nodeps_errors_lf.txt > reports/all_nodeps_errors.txt
-        cat all_packages_report_legend.txt > all_deps_reports_lf.txt
-        cat all_packages_deps_report_* >> all_deps_reports_lf.txt
-        tr -d '\r' < all_deps_reports_lf.txt > reports/all_deps_reports.txt
-        cat all_packages_deps_errors_* > all_deps_errors_lf.txt
-        tr -d '\r' < all_deps_errors_lf.txt > reports/all_deps_errors.txt
-    - name: Store collated and raw reports as artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: reports-final
-        path: reports
+      - name: Get report artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: reports-raw
+      - name: Collate reports
+        run: |
+          ls # DEBUG
+          mkdir reports
+          cat all_packages_report_legend.txt > all_nodeps_reports_lf.txt
+          cat all_packages_nodeps_report_* >> all_nodeps_reports_lf.txt
+          tr -d '\r' < all_nodeps_reports_lf.txt > reports/all_nodeps_reports.txt
+          cat all_packages_nodeps_errors_* > all_nodeps_errors_lf.txt
+          tr -d '\r' < all_nodeps_errors_lf.txt > reports/all_nodeps_errors.txt
+          cat all_packages_report_legend.txt > all_deps_reports_lf.txt
+          cat all_packages_deps_report_* >> all_deps_reports_lf.txt
+          tr -d '\r' < all_deps_reports_lf.txt > reports/all_deps_reports.txt
+          cat all_packages_deps_errors_* > all_deps_errors_lf.txt
+          tr -d '\r' < all_deps_errors_lf.txt > reports/all_deps_errors.txt
+      - name: Store collated and raw reports as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: reports-final
+          path: reports
