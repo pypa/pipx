@@ -10,3 +10,8 @@ __pycache__
 /.coverage*
 /.pipx_tests
 /testdata/tests_packages/*.txt
+/pipx.pyz
+*.egg-info
+build
+*.whl
+/pipx.1

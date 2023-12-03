@@ -83,10 +83,6 @@ show_error_codes = true
 overrides = [
   { module = [
   "pipx.version",
-  "mkdocs_gen_files.*",
-  "packaging.*",
-  "platformdirs",
   "pycowsay.*",
-  "jinja2",
   ], ignore_missing_imports = true },
 ]

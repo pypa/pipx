@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 from subprocess import check_output
@@ -10,9 +11,11 @@ from pipx.main import __version__
 
 
 def get_help(cmd: Optional[str]) -> str:
-    base = [sys.executable, "-m", "pipx"]
+    base = ["pipx"]
     args = base + ([cmd] if cmd else []) + ["--help"]
-    content = check_output(args, text=True)
+    env_patch = os.environ.copy()
+    env_patch["PATH"] = os.pathsep.join([str(Path(sys.executable).parent)] + env_patch["PATH"].split(os.pathsep))
+    content = check_output(args, text=True, env=env_patch)
     content = content.replace(str(Path("~").expanduser()), "~")
     return f"""
 ```
