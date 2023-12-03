@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 import os
 import subprocess
@@ -18,9 +17,7 @@ def get_help(pipxcmd: Optional[str]) -> str:
         cmd = ["pipx", "--help"]
 
     helptext = (
-        subprocess.run(cmd, stdout=subprocess.PIPE, check=True)
-        .stdout.decode()
-        .replace(os.path.expanduser("~"), "~")
+        subprocess.run(cmd, stdout=subprocess.PIPE, check=True).stdout.decode().replace(os.path.expanduser("~"), "~")
     )
     return f"""
 ```

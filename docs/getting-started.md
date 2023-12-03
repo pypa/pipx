@@ -1,4 +1,5 @@
 Now that you have pipx installed, you can install a program:
+
 ```
 pipx install PACKAGE
 ```
@@ -10,11 +11,13 @@ pipx install pycowsay
 ```
 
 You can list programs installed:
+
 ```
 pipx list
 ```
 
 Or you can run a program without installing it:
+
 ```
 pipx run pycowsay moooo!
 ```

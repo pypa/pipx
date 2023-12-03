@@ -8,6 +8,7 @@ dist
 activate
 __pypackages__
 venv
+.venv
 .DS_Store
 .tox
 __pycache__
@@ -16,4 +17,6 @@ docs/docs.md
 pipx.1
 .pipx_tests
 /.coverage*
-testdata
+/testdata
+!/testdata/empty_project
+/.idea

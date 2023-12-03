@@ -13,19 +13,19 @@ import textwrap
 import time
 import urllib.parse
 from pathlib import Path
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 import argcomplete  # type: ignore
-from packaging.requirements import InvalidRequirement, Requirement
+import platformdirs
 from packaging.utils import canonicalize_name
 
 import pipx.constants
 from pipx import commands, constants
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
-from pipx.constants import WINDOWS, ExitCode
+from pipx.constants import MINIMUM_PYTHON_VERSION, WINDOWS, ExitCode
 from pipx.emojis import hazard
-from pipx.interpreter import DEFAULT_PYTHON
+from pipx.interpreter import DEFAULT_PYTHON, find_py_launcher_python
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import VenvContainer
 from pipx.version import __version__
@@ -68,6 +68,7 @@ PIPX_DESCRIPTION = textwrap.dedent(
 
     Virtual Environment location is {str(constants.PIPX_LOCAL_VENVS)}.
     Symlinks to apps are placed in {str(constants.LOCAL_BIN_DIR)}.
+    Symlinks to manual pages are placed in {str(constants.LOCAL_MAN_DIR)}.
 
     """
 )
@@ -76,6 +77,7 @@ PIPX_DESCRIPTION += pipx_wrap(
     optional environment variables:
       PIPX_HOME             Overrides default pipx location. Virtual Environments will be installed to $PIPX_HOME/venvs.
       PIPX_BIN_DIR          Overrides location of app installations. Apps are symlinked or copied here.
+      PIPX_MAN_DIR          Overrides location of manual pages installations. Manual pages are symlinked or copied here.
       PIPX_DEFAULT_PYTHON   Overrides default python used for commands.
       USE_EMOJI             Overrides emoji behavior. Default value varies based on platform.
     """,
@@ -90,7 +92,11 @@ INSTALL_DESCRIPTION = textwrap.dedent(
     The install command is the preferred way to globally install apps
     from python packages on your system. It creates an isolated virtual
     environment for the package, then ensures the package's apps are
-    accessible on your $PATH.
+    accessible on your $PATH. The package's manual pages installed in
+    share/man/man[1-9] can be viewed with man on an operating system where
+    it is available and the path in the environment variable `PIPX_MAN_DIR`
+    (default: {constants.DEFAULT_PIPX_MAN_DIR}) is in the man search path
+    ($MANPATH).
 
     The result: apps you can run from anywhere, located in packages
     you can cleanly upgrade or uninstall. Guaranteed to not have
@@ -113,6 +119,9 @@ INSTALL_DESCRIPTION = textwrap.dedent(
     The default app location is {constants.DEFAULT_PIPX_BIN_DIR} and can be
     overridden by setting the environment variable `PIPX_BIN_DIR`.
 
+    The default manual pages location is {constants.DEFAULT_PIPX_MAN_DIR} and
+    can be overridden by setting the environment variable `PIPX_MAN_DIR`.
+
     The default python executable used to install a package is
     {DOC_DEFAULT_PYTHON} and can be overridden
     by setting the environment variable `PIPX_DEFAULT_PYTHON`.
@@ -131,11 +140,7 @@ class InstalledVenvsCompleter:
         self.packages = [str(p.name) for p in sorted(venv_container.iter_venv_dirs())]
 
     def use(self, prefix: str, **kwargs: Any) -> List[str]:
-        return [
-            f"{prefix}{x[len(prefix):]}"
-            for x in self.packages
-            if x.startswith(canonicalize_name(prefix))
-        ]
+        return [f"{prefix}{x[len(prefix):]}" for x in self.packages if x.startswith(canonicalize_name(prefix))]
 
 
 def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
@@ -182,31 +187,24 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
 
-    if args.command == "run":
-        package_or_url = (
-            args.spec
-            if ("spec" in args and args.spec is not None)
-            else args.app_with_args[0]
-        )
-        # For any package, we need to just use the name
-        try:
-            package_name = Requirement(args.app_with_args[0]).name
-        except InvalidRequirement:
-            # Raw URLs to scripts are supported, too, so continue if
-            # we can't parse this as a package
-            package_name = args.app_with_args[0]
+    if "python" in args:
+        if args.python is not None and not Path(args.python).is_file():
+            py_launcher_python = find_py_launcher_python(args.python)
+            if py_launcher_python:
+                args.python = py_launcher_python
 
-        use_cache = not args.no_cache
+    if args.command == "run":
         commands.run(
-            package_name,
-            package_or_url,
+            args.app_with_args[0],
+            args.spec,
+            args.path,
             args.app_with_args[1:],
             args.python,
             pip_args,
             venv_args,
             args.pypackages,
             verbose,
-            use_cache,
+            not args.no_cache,
         )
         # We should never reach here because run() is NoReturn.
         return ExitCode(1)
@@ -216,12 +214,15 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             None,
             args.package_spec,
             constants.LOCAL_BIN_DIR,
+            constants.LOCAL_MAN_DIR,
             args.python,
             pip_args,
             venv_args,
             verbose,
             force=args.force,
+            reinstall=False,
             include_dependencies=args.include_deps,
+            preinstall_packages=args.preinstall,
             suffix=args.suffix,
         )
     elif args.command == "install-all":
@@ -238,12 +239,14 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             include_apps=args.include_apps,
             include_dependencies=args.include_deps,
             force=args.force,
+            suffix=args.with_suffix,
         )
     elif args.command == "uninject":
         return commands.uninject(
             venv_dir,
             args.dependencies,
             local_bin_dir=constants.LOCAL_BIN_DIR,
+            local_man_dir=constants.LOCAL_MAN_DIR,
             leave_deps=args.leave_deps,
             verbose=verbose,
         )
@@ -264,17 +267,16 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             force=args.force,
         )
     elif args.command == "list":
-        return commands.list_packages(
-            venv_container, args.include_injected, args.json, args.short
-        )
+        return commands.list_packages(venv_container, args.include_injected, args.json, args.short)
     elif args.command == "uninstall":
-        return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, verbose)
+        return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose)
     elif args.command == "uninstall-all":
-        return commands.uninstall_all(venv_container, constants.LOCAL_BIN_DIR, verbose)
+        return commands.uninstall_all(venv_container, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose)
     elif args.command == "reinstall":
         return commands.reinstall(
             venv_dir=venv_dir,
             local_bin_dir=constants.LOCAL_BIN_DIR,
+            local_man_dir=constants.LOCAL_MAN_DIR,
             python=args.python,
             verbose=verbose,
         )
@@ -282,6 +284,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         return commands.reinstall_all(
             venv_container,
             constants.LOCAL_BIN_DIR,
+            constants.LOCAL_MAN_DIR,
             args.python,
             verbose,
             skip=skip_list,
@@ -325,9 +328,7 @@ def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
 
 
 def add_include_dependencies(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "--include-deps", help="Include apps of dependent packages", action="store_true"
-    )
+    parser.add_argument("--include-deps", help="Include apps of dependent packages", action="store_true")
 
 
 def _add_install(subparsers: argparse._SubParsersAction) -> None:
@@ -344,7 +345,7 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
         "--force",
         "-f",
         action="store_true",
-        help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+        help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
     p.add_argument(
         "--suffix",
@@ -356,11 +357,17 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
     )
     p.add_argument(
         "--python",
-        default=DEFAULT_PYTHON,
+        # Don't pass a default Python here so we know whether --python flag was passed
         help=(
-            "The Python executable used to create the Virtual Environment and run the "
-            "associated app/apps. Must be v3.6+."
+            "Python to install with. Possible values can be the executable name (python3.11), "
+            "the version to pass to py launcher (3.11), or the full path to the executable."
+            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
+    )
+    p.add_argument(
+        "--preinstall",
+        action="append",
+        help=("Optional packages to be installed into the Virtual Environment before " "installing the main package."),
     )
     add_pip_venv_args(p)
 
@@ -400,17 +407,26 @@ def _add_inject(subparsers, venv_completer: VenvCompleter) -> None:
     p.add_argument(
         "--include-apps",
         action="store_true",
-        help="Add apps from the injected packages onto your PATH",
+        help="Add apps from the injected packages onto your PATH and expose their manual pages",
     )
-    add_include_dependencies(p)
+    p.add_argument(
+        "--include-deps",
+        help="Include apps of dependent packages. Implies --include-apps",
+        action="store_true",
+    )
     add_pip_venv_args(p)
     p.add_argument(
         "--force",
         "-f",
         action="store_true",
-        help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+        help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
     p.add_argument("--verbose", action="store_true")
+    p.add_argument(
+        "--with-suffix",
+        action="store_true",
+        help="Add the suffix (if given) of the Virtual Environment to the packages to inject",
+    )
 
 
 def _add_uninject(subparsers, venv_completer: VenvCompleter):
@@ -452,7 +468,7 @@ def _add_upgrade(subparsers, venv_completer: VenvCompleter) -> None:
         "--force",
         "-f",
         action="store_true",
-        help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+        help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
     add_pip_venv_args(p)
     p.add_argument("--verbose", action="store_true")
@@ -474,7 +490,7 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction) -> None:
         "--force",
         "-f",
         action="store_true",
-        help="Modify existing virtual environment and files in PIPX_BIN_DIR",
+        help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
     p.add_argument("--verbose", action="store_true")
 
@@ -518,8 +534,9 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter) -> None:
         "--python",
         default=DEFAULT_PYTHON,
         help=(
-            "The Python executable used to recreate the Virtual Environment "
-            "and run the associated app/apps. Must be v3.6+."
+            "Python to reinstall with. Possible values can be the executable name (python3.11), "
+            "the version to pass to py launcher (3.11), or the full path to the executable."
+            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )
     p.add_argument("--verbose", action="store_true")
@@ -546,8 +563,9 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction) -> None:
         "--python",
         default=DEFAULT_PYTHON,
         help=(
-            "The Python executable used to recreate the Virtual Environment "
-            "and run the associated app/apps. Must be v3.6+."
+            "Python to reinstall with. Possible values can be the executable name (python3.11), "
+            "the version to pass to py launcher (3.11), or the full path to the executable."
+            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
@@ -566,9 +584,7 @@ def _add_list(subparsers: argparse._SubParsersAction) -> None:
         help="Show packages injected into the main app's environment",
     )
     g = p.add_mutually_exclusive_group()
-    g.add_argument(
-        "--json", action="store_true", help="Output rich data in json format."
-    )
+    g.add_argument("--json", action="store_true", help="Output rich data in json format.")
     g.add_argument("--short", action="store_true", help="List packages only.")
     p.add_argument("--verbose", action="store_true")
 
@@ -609,6 +625,7 @@ def _add_run(subparsers: argparse._SubParsersAction) -> None:
         help="app/package name and any arguments to be passed to it",
         default=[],
     )
+    p.add_argument("--path", action="store_true", help="Interpret app name as a local path")
     p.add_argument(
         "--pypackages",
         action="store_true",
@@ -619,7 +636,11 @@ def _add_run(subparsers: argparse._SubParsersAction) -> None:
     p.add_argument(
         "--python",
         default=DEFAULT_PYTHON,
-        help="The Python version to run package's CLI app with. Must be v3.6+.",
+        help=(
+            "Python to run with. Possible values can be the executable name (python3.11), "
+            "the version to pass to py launcher (3.11), or the full path to the executable. "
+            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
+        ),
     )
     add_pip_venv_args(p)
     p.set_defaults(subparser=p)
@@ -652,10 +673,7 @@ def _add_runpip(subparsers, venv_completer: VenvCompleter) -> None:
 def _add_ensurepath(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "ensurepath",
-        help=(
-            "Ensure directories necessary for pipx operation are in your "
-            "PATH environment variable."
-        ),
+        help=("Ensure directories necessary for pipx operation are in your " "PATH environment variable."),
         description=(
             "Ensure directory where pipx stores apps is in your "
             "PATH environment variable. Also if pipx was installed via "
@@ -679,21 +697,20 @@ def _add_environment(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
         "environment",
         formatter_class=LineWrapRawTextHelpFormatter,
-        help=("Print a list of variables used in pipx.constants."),
+        help="Print a list of environment variables and paths used by pipx.",
         description=textwrap.dedent(
             """
+            Prints the names and current values of environment variables used by pipx,
+            followed by internal pipx variables which are derived from the environment
+            variables and platform specific default values.
+
             Available variables:
-            PIPX_HOME, PIPX_BIN_DIR, PIPX_SHARED_LIBS, PIPX_LOCAL_VENVS, PIPX_LOG_DIR,
-            PIPX_TRASH_DIR, PIPX_VENV_CACHEDIR
-
-            Only PIPX_HOME and PIPX_BIN_DIR can be set by users in the above list.
-
+            PIPX_HOME, PIPX_BIN_DIR, PIPX_MAN_DIR, PIPX_SHARED_LIBS, PIPX_LOCAL_VENVS,
+            PIPX_LOG_DIR, PIPX_TRASH_DIR, PIPX_VENV_CACHEDIR, PIPX_DEFAULT_PYTHON, USE_EMOJI
             """
         ),
     )
-    p.add_argument(
-        "--value", "-v", metavar="VARIABLE", help="Print the value of the variable."
-    )
+    p.add_argument("--value", "-v", metavar="VARIABLE", help="Print the value of the variable.")
 
 
 def get_command_parser() -> argparse.ArgumentParser:
@@ -708,9 +725,7 @@ def get_command_parser() -> argparse.ArgumentParser:
     )
     parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore
 
-    subparsers = parser.add_subparsers(
-        dest="command", description="Get help for commands with pipx COMMAND --help"
-    )
+    subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
 
     _add_install(subparsers)
     _add_install_all(subparsers)
@@ -747,24 +762,32 @@ def delete_oldest_logs(file_list: List[Path], keep_number: int) -> None:
                 pass
 
 
-def setup_log_file() -> Path:
+def _setup_log_file(pipx_log_dir: Optional[Path] = None) -> Path:
     max_logs = 10
+    pipx_log_dir = pipx_log_dir or constants.PIPX_LOG_DIR
     # don't use utils.mkdir, to prevent emission of log message
-    constants.PIPX_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    pipx_log_dir.mkdir(parents=True, exist_ok=True)
 
-    delete_oldest_logs(list(constants.PIPX_LOG_DIR.glob("cmd_*[0-9].log")), max_logs)
-    delete_oldest_logs(
-        list(constants.PIPX_LOG_DIR.glob("cmd_*_pip_errors.log")), max_logs
-    )
+    delete_oldest_logs(list(pipx_log_dir.glob("cmd_*[0-9].log")), max_logs)
+    delete_oldest_logs(list(pipx_log_dir.glob("cmd_*_pip_errors.log")), max_logs)
 
     datetime_str = time.strftime("%Y-%m-%d_%H.%M.%S")
-    log_file = constants.PIPX_LOG_DIR / f"cmd_{datetime_str}.log"
+    log_file = pipx_log_dir / f"cmd_{datetime_str}.log"
     counter = 1
     while log_file.exists() and counter < 10:
-        log_file = constants.PIPX_LOG_DIR / f"cmd_{datetime_str}_{counter}.log"
+        log_file = pipx_log_dir / f"cmd_{datetime_str}_{counter}.log"
         counter += 1
 
+    log_file.touch()
+
     return log_file
+
+
+def setup_log_file() -> Path:
+    try:
+        return _setup_log_file()
+    except PermissionError:
+        return _setup_log_file(platformdirs.user_log_path("pipx"))
 
 
 def setup_logging(verbose: bool) -> None:
@@ -821,10 +844,11 @@ def setup(args: argparse.Namespace) -> None:
     logger.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
     logger.debug(f"{' '.join(sys.argv)}")
     logger.info(f"pipx version is {__version__}")
-    logger.info(f"Default python interpreter is {repr(DEFAULT_PYTHON)}")
+    logger.info(f"Default python interpreter is '{DEFAULT_PYTHON}'")
 
     mkdir(constants.PIPX_LOCAL_VENVS)
     mkdir(constants.LOCAL_BIN_DIR)
+    mkdir(constants.LOCAL_MAN_DIR)
     mkdir(constants.PIPX_VENV_CACHEDIR)
 
     cachedir_tag = constants.PIPX_VENV_CACHEDIR / "CACHEDIR.TAG"
@@ -865,9 +889,7 @@ def check_args(parsed_pipx_args: argparse.Namespace) -> None:
         # since we would like app to be required but not in a separate argparse
         #   add_argument, we implement our own missing required arg error
         if not parsed_pipx_args.app_with_args:
-            parsed_pipx_args.subparser.error(
-                "the following arguments are required: app"
-            )
+            parsed_pipx_args.subparser.error("the following arguments are required: app")
 
 
 def cli() -> ExitCode:

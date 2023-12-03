@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 from typing import List, Optional
@@ -21,6 +22,7 @@ def inject_dep(
     include_apps: bool,
     include_dependencies: bool,
     force: bool,
+    suffix: bool = False,
 ) -> bool:
     if not venv_dir.exists() or not next(venv_dir.iterdir()):
         raise PipxError(
@@ -47,9 +49,15 @@ def inject_dep(
     #   zip file, or tar.gz file.
     if package_name is None:
         package_name = package_name_from_spec(
-            package_spec, venv.python, pip_args=pip_args, verbose=verbose
+            package_spec,
+            os.fspath(venv.python_path),
+            pip_args=pip_args,
+            verbose=verbose,
         )
-
+    if suffix:
+        venv_suffix = venv.package_metadata[venv.main_package_name].suffix
+    else:
+        venv_suffix = ""
     venv.install_package(
         package_name=package_name,
         package_or_url=package_spec,
@@ -57,12 +65,14 @@ def inject_dep(
         include_dependencies=include_dependencies,
         include_apps=include_apps,
         is_main_package=False,
+        suffix=venv_suffix,
     )
     if include_apps:
         run_post_install_actions(
             venv,
             package_name,
             constants.LOCAL_BIN_DIR,
+            constants.LOCAL_MAN_DIR,
             venv_dir,
             include_dependencies,
             force=force,
@@ -85,12 +95,11 @@ def inject(
     include_apps: bool,
     include_dependencies: bool,
     force: bool,
+    suffix: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
     if not include_apps and include_dependencies:
-        raise PipxError(
-            "Cannot pass --include-deps if --include-apps is not passed as well"
-        )
+        include_apps = True
     all_success = True
     for dep in package_specs:
         all_success &= inject_dep(
@@ -102,6 +111,7 @@ def inject(
             include_apps=include_apps,
             include_dependencies=include_dependencies,
             force=force,
+            suffix=suffix,
         )
 
     # Any failure to install will raise PipxError, otherwise success

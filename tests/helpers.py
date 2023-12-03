@@ -21,6 +21,14 @@ MOCK_PIPXMETADATA_0_1: Dict[str, Any] = {
     "pipx_metadata_version": "0.1",
 }
 
+MOCK_PIPXMETADATA_0_2: Dict[str, Any] = {
+    "main_package": None,
+    "python_version": None,
+    "venv_args": [],
+    "injected_packages": {},
+    "pipx_metadata_version": "0.2",
+}
+
 MOCK_PACKAGE_INFO_0_1: Dict[str, Any] = {
     "package": None,
     "package_or_url": None,
@@ -32,6 +40,20 @@ MOCK_PACKAGE_INFO_0_1: Dict[str, Any] = {
     "apps_of_dependencies": [],
     "app_paths_of_dependencies": {},
     "package_version": "",
+}
+
+MOCK_PACKAGE_INFO_0_2: Dict[str, Any] = {
+    "package": None,
+    "package_or_url": None,
+    "pip_args": [],
+    "include_dependencies": False,
+    "include_apps": True,
+    "apps": [],
+    "app_paths": [],
+    "apps_of_dependencies": [],
+    "app_paths_of_dependencies": {},
+    "package_version": "",
+    "suffix": "",
 }
 
 
@@ -54,15 +76,13 @@ def unwrap_log_text(log_text: str):
     return re.sub(r"\n\s+", " ", log_text)
 
 
-def _mock_legacy_package_info(
-    modern_package_info: Dict[str, Any], metadata_version: str
-) -> Dict[str, Any]:
-    if metadata_version == "0.1":
+def _mock_legacy_package_info(modern_package_info: Dict[str, Any], metadata_version: str) -> Dict[str, Any]:
+    if metadata_version == "0.2":
+        mock_package_info_template = MOCK_PACKAGE_INFO_0_2
+    elif metadata_version == "0.1":
         mock_package_info_template = MOCK_PACKAGE_INFO_0_1
     else:
-        raise Exception(
-            f"Internal Test Error: Unknown metadata_version={metadata_version}"
-        )
+        raise Exception(f"Internal Test Error: Unknown metadata_version={metadata_version}")
 
     mock_package_info = {}
     for key in mock_package_info_template:
@@ -78,9 +98,11 @@ def mock_legacy_venv(venv_name: str, metadata_version: Optional[str] = None) -> 
     """
     venv_dir = Path(constants.PIPX_LOCAL_VENVS) / canonicalize_name(venv_name)
 
-    if metadata_version == "0.2":
+    if metadata_version == "0.3":
         # Current metadata version, do nothing
         return
+    elif metadata_version == "0.2":
+        mock_pipx_metadata_template = MOCK_PIPXMETADATA_0_2
     elif metadata_version == "0.1":
         mock_pipx_metadata_template = MOCK_PIPXMETADATA_0_1
     elif metadata_version is None:
@@ -88,9 +110,7 @@ def mock_legacy_venv(venv_name: str, metadata_version: Optional[str] = None) -> 
         os.remove(venv_dir / "pipx_metadata.json")
         return
     else:
-        raise Exception(
-            f"Internal Test Error: Unknown metadata_version={metadata_version}"
-        )
+        raise Exception(f"Internal Test Error: Unknown metadata_version={metadata_version}")
 
     modern_metadata = pipx_metadata_file.PipxMetadata(venv_dir).to_dict()
 
@@ -98,9 +118,7 @@ def mock_legacy_venv(venv_name: str, metadata_version: Optional[str] = None) -> 
     mock_pipx_metadata = {}
     for key in mock_pipx_metadata_template:
         if key == "main_package":
-            mock_pipx_metadata[key] = _mock_legacy_package_info(
-                modern_metadata[key], metadata_version=metadata_version
-            )
+            mock_pipx_metadata[key] = _mock_legacy_package_info(modern_metadata[key], metadata_version=metadata_version)
         if key == "injected_packages":
             mock_pipx_metadata[key] = {}
             for injected in modern_metadata[key]:
@@ -109,9 +127,7 @@ def mock_legacy_venv(venv_name: str, metadata_version: Optional[str] = None) -> 
                 )
         else:
             mock_pipx_metadata[key] = modern_metadata[key]
-    mock_pipx_metadata["pipx_metadata_version"] = mock_pipx_metadata_template[
-        "pipx_metadata_version"
-    ]
+    mock_pipx_metadata["pipx_metadata_version"] = mock_pipx_metadata_template["pipx_metadata_version"]
 
     # replicate pipx_metadata_file.PipxMetadata.write()
     with open(venv_dir / "pipx_metadata.json", "w") as pipx_metadata_fh:
@@ -141,12 +157,16 @@ def create_package_info_ref(venv_name, package_name, pipx_venvs_dir, **field_ove
         include_apps=field_overrides.get("include_apps", True),
         include_dependencies=field_overrides.get("include_dependencies", False),
         apps=PKG[package_name]["apps"],
-        app_paths=[
-            pipx_venvs_dir / venv_name / venv_bin_dir / app
-            for app in PKG[package_name]["apps"]
-        ],
+        app_paths=[pipx_venvs_dir / venv_name / venv_bin_dir / app for app in PKG[package_name]["apps"]],
         apps_of_dependencies=PKG[package_name]["apps_of_dependencies"],
         app_paths_of_dependencies=field_overrides.get("app_paths_of_dependencies", {}),
+        man_pages=PKG[package_name].get("man_pages", []),
+        man_paths=[
+            pipx_venvs_dir / venv_name / "share" / "man" / man_page
+            for man_page in PKG[package_name].get("man_pages", [])
+        ],
+        man_pages_of_dependencies=PKG[package_name].get("man_pages_of_dependencies", []),
+        man_paths_of_dependencies=field_overrides.get("man_paths_of_dependencies", {}),
         package_version=PKG[package_name]["spec"].split("==")[-1],
     )
 
@@ -168,7 +188,7 @@ def assert_package_metadata(test_metadata, ref_metadata):
 
 
 def remove_venv_interpreter(venv_name):
-    _, venv_python_path = util.get_venv_paths(constants.PIPX_LOCAL_VENVS / venv_name)
+    _, venv_python_path, _ = util.get_venv_paths(constants.PIPX_LOCAL_VENVS / venv_name)
     assert venv_python_path.is_file()
     venv_python_path.unlink()
     assert not venv_python_path.is_file()

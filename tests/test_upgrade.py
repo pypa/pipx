@@ -18,10 +18,7 @@ def test_upgrade_legacy_venv(pipx_temp_env, capsys, metadata_version):
     if metadata_version is None:
         assert run_pipx_cli(["upgrade", "pycowsay"])
         captured = capsys.readouterr()
-        assert (
-            "Not upgrading pycowsay. It has missing internal pipx metadata."
-            in captured.err
-        )
+        assert "Not upgrading pycowsay. It has missing internal pipx metadata." in captured.err
     else:
         assert not run_pipx_cli(["upgrade", "pycowsay"])
         captured = capsys.readouterr()
@@ -60,7 +57,7 @@ def test_upgrade_specifier(pipx_temp_env, capsys):
 
 def test_upgrade_include_injected(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
-    assert not run_pipx_cli(["inject", "pylint", "black==18.9.b0"])
+    assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])
     captured = capsys.readouterr()
     assert not run_pipx_cli(["upgrade", "--include-injected", "pylint"])
     captured = capsys.readouterr()
@@ -70,7 +67,7 @@ def test_upgrade_include_injected(pipx_temp_env, capsys):
 
 def test_upgrade_no_include_injected(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
-    assert not run_pipx_cli(["inject", "pylint", "black==18.9.b0"])
+    assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])
     captured = capsys.readouterr()
     assert not run_pipx_cli(["upgrade", "pylint"])
     captured = capsys.readouterr()

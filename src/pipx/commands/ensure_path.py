@@ -61,14 +61,22 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
     in_current_path = userpath.in_current_path(location_str)
 
     if force or (not in_current_path and not need_shell_restart):
-        userpath.append(location_str, "pipx")
-        print(
-            pipx_wrap(
-                f"Success! Added {location_str} to the PATH environment variable.",
-                subsequent_indent=" " * 4,
+        path_added = userpath.append(location_str, "pipx")
+        if not path_added:
+            print(
+                pipx_wrap(
+                    f"{hazard}  {location_str} is not added to the PATH environment variable successfully. "
+                    f"You may need to add it to PATH manually.",
+                    subsequent_indent=" " * 4,
+                )
             )
-        )
-        path_added = True
+        else:
+            print(
+                pipx_wrap(
+                    f"Success! Added {location_str} to the PATH environment variable.",
+                    subsequent_indent=" " * 4,
+                )
+            )
         need_shell_restart = userpath.need_shell_restart(location_str)
     elif not in_current_path and need_shell_restart:
         print(
@@ -82,16 +90,14 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
             )
         )
     else:
-        print(
-            pipx_wrap(f"{location_str} is already in PATH.", subsequent_indent=" " * 4)
-        )
+        print(pipx_wrap(f"{location_str} is already in PATH.", subsequent_indent=" " * 4))
 
     return (path_added, need_shell_restart)
 
 
 def ensure_pipx_paths(force: bool) -> ExitCode:
     """Returns pipx exit code."""
-    bin_paths = set([constants.LOCAL_BIN_DIR])
+    bin_paths = {constants.LOCAL_BIN_DIR}
 
     pipx_user_bin_path = get_pipx_user_bin_path()
     if pipx_user_bin_path is not None:
@@ -100,9 +106,7 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
     path_added = False
     need_shell_restart = False
     for bin_path in bin_paths:
-        (path_added_current, need_shell_restart_current) = ensure_path(
-            bin_path, force=force
-        )
+        (path_added_current, need_shell_restart_current) = ensure_path(bin_path, force=force)
         path_added |= path_added_current
         need_shell_restart |= need_shell_restart_current
 

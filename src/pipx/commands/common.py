@@ -1,4 +1,5 @@
 import logging
+import os
 import shlex
 import shutil
 import sys
@@ -14,7 +15,7 @@ from packaging.utils import canonicalize_name
 
 from pipx import constants
 from pipx.colors import bold, red
-from pipx.constants import WINDOWS
+from pipx.constants import MAN_SECTIONS, WINDOWS
 from pipx.emojis import hazard, stars
 from pipx.package_specifier import parse_specifier_for_install, valid_pypi_name
 from pipx.pipx_metadata_file import PackageInfo
@@ -49,116 +50,133 @@ class VenvProblems:
             )
 
 
-def expose_apps_globally(
-    local_bin_dir: Path, app_paths: List[Path], *, force: bool, suffix: str = ""
+def expose_resources_globally(
+    resource_type: str,
+    local_resource_dir: Path,
+    paths: List[Path],
+    *,
+    force: bool,
+    suffix: str = "",
 ) -> None:
-    if not can_symlink(local_bin_dir):
-        _copy_package_apps(local_bin_dir, app_paths, suffix=suffix)
-    else:
-        _symlink_package_apps(local_bin_dir, app_paths, force=force, suffix=suffix)
+    for path in paths:
+        src = path.resolve()
+        if resource_type == "man":
+            dest_dir = local_resource_dir / src.parent.name
+        else:
+            dest_dir = local_resource_dir
+        if not dest_dir.is_dir():
+            mkdir(dest_dir)
+        if not can_symlink(dest_dir):
+            _copy_package_resource(dest_dir, path, suffix=suffix)
+        else:
+            _symlink_package_resource(
+                dest_dir,
+                path,
+                force=force,
+                suffix=suffix,
+                executable=(resource_type == "app"),
+            )
 
 
 _can_symlink_cache: Dict[Path, bool] = {}
 
 
-def can_symlink(local_bin_dir: Path) -> bool:
-
+def can_symlink(local_resource_dir: Path) -> bool:
     if not WINDOWS:
         # Technically, even on Unix this depends on the filesystem
         return True
 
-    if local_bin_dir not in _can_symlink_cache:
-        with TemporaryDirectory(dir=local_bin_dir) as d:
+    if local_resource_dir not in _can_symlink_cache:
+        with TemporaryDirectory(dir=local_resource_dir) as d:
             p = Path(d)
             target = p / "a"
             target.touch()
             lnk = p / "b"
             try:
                 lnk.symlink_to(target)
-                _can_symlink_cache[local_bin_dir] = True
+                _can_symlink_cache[local_resource_dir] = True
             except (OSError, NotImplementedError):
-                _can_symlink_cache[local_bin_dir] = False
+                _can_symlink_cache[local_resource_dir] = False
 
-    return _can_symlink_cache[local_bin_dir]
+    return _can_symlink_cache[local_resource_dir]
 
 
-def _copy_package_apps(
-    local_bin_dir: Path, app_paths: List[Path], suffix: str = ""
+def _copy_package_resource(dest_dir: Path, path: Path, suffix: str = "") -> None:
+    src = path.resolve()
+    name = src.name
+    dest = Path(dest_dir / add_suffix(name, suffix))
+    if not dest.parent.is_dir():
+        mkdir(dest.parent)
+    if dest.exists():
+        logger.warning(f"{hazard}  Overwriting file {str(dest)} with {str(src)}")
+        safe_unlink(dest)
+    if src.exists():
+        shutil.copy(src, dest)
+
+
+def _symlink_package_resource(
+    dest_dir: Path,
+    path: Path,
+    *,
+    force: bool,
+    suffix: str = "",
+    executable: bool = False,
 ) -> None:
-    for src_unresolved in app_paths:
-        src = src_unresolved.resolve()
-        app = src.name
-        dest = Path(local_bin_dir / add_suffix(app, suffix))
-        if not dest.parent.is_dir():
-            mkdir(dest.parent)
-        if dest.exists():
-            logger.warning(f"{hazard}  Overwriting file {str(dest)} with {str(src)}")
-            safe_unlink(dest)
-        if src.exists():
-            shutil.copy(src, dest)
+    name_suffixed = add_suffix(path.name, suffix)
+    symlink_path = Path(dest_dir / name_suffixed)
 
+    if not symlink_path.parent.is_dir():
+        mkdir(symlink_path.parent)
 
-def _symlink_package_apps(
-    local_bin_dir: Path, app_paths: List[Path], *, force: bool, suffix: str = ""
-) -> None:
-    for app_path in app_paths:
-        app_name = app_path.name
-        app_name_suffixed = add_suffix(app_name, suffix)
-        symlink_path = Path(local_bin_dir / app_name_suffixed)
-        if not symlink_path.parent.is_dir():
-            mkdir(symlink_path.parent)
-
-        if force:
-            logger.info(f"Force is true. Removing {str(symlink_path)}.")
-            try:
-                symlink_path.unlink()
-            except FileNotFoundError:
-                pass
-            except IsADirectoryError:
-                rmdir(symlink_path)
-
-        exists = symlink_path.exists()
-        is_symlink = symlink_path.is_symlink()
-        if exists:
-            if symlink_path.samefile(app_path):
-                logger.info(f"Same path {str(symlink_path)} and {str(app_path)}")
-            else:
-                logger.warning(
-                    pipx_wrap(
-                        f"""
-                        {hazard}  File exists at {str(symlink_path)} and points
-                        to {symlink_path.resolve()}, not {str(app_path)}. Not
-                        modifying.
-                        """,
-                        subsequent_indent=" " * 4,
-                    )
-                )
-            continue
-        if is_symlink and not exists:
-            logger.info(
-                f"Removing existing symlink {str(symlink_path)} since it "
-                "pointed non-existent location"
-            )
+    if force:
+        logger.info(f"Force is true. Removing {str(symlink_path)}.")
+        try:
             symlink_path.unlink()
+        except FileNotFoundError:
+            pass
+        except IsADirectoryError:
+            rmdir(symlink_path)
 
-        existing_executable_on_path = which(app_name_suffixed)
-        symlink_path.symlink_to(app_path)
-
-        if existing_executable_on_path:
+    exists = symlink_path.exists()
+    is_symlink = symlink_path.is_symlink()
+    if exists:
+        if symlink_path.samefile(path):
+            logger.info(f"Same path {str(symlink_path)} and {str(path)}")
+        else:
             logger.warning(
                 pipx_wrap(
                     f"""
-                    {hazard}  Note: {app_name_suffixed} was already on your
-                    PATH at {existing_executable_on_path}
+                    {hazard}  File exists at {str(symlink_path)} and points
+                    to {symlink_path.resolve()}, not {str(path)}. Not
+                    modifying.
                     """,
                     subsequent_indent=" " * 4,
                 )
             )
+        return
+    if is_symlink and not exists:
+        logger.info(f"Removing existing symlink {str(symlink_path)} since it " "pointed non-existent location")
+        symlink_path.unlink()
+
+    if executable:
+        existing_executable_on_path = which(name_suffixed)
+    else:
+        existing_executable_on_path = None
+    symlink_path.symlink_to(path)
+
+    if executable and existing_executable_on_path:
+        logger.warning(
+            pipx_wrap(
+                f"""
+                {hazard}  Note: {name_suffixed} was already on your
+                PATH at {existing_executable_on_path}
+                """,
+                subsequent_indent=" " * 4,
+            )
+        )
 
 
-def venv_health_check(
-    venv: Venv, package_name: Optional[str] = None
-) -> Tuple[VenvProblems, str]:
+def venv_health_check(venv: Venv, package_name: Optional[str] = None) -> Tuple[VenvProblems, str]:
     venv_dir = venv.root
     python_path = venv.python_path.resolve()
 
@@ -168,26 +186,22 @@ def venv_health_check(
     if not python_path.is_file():
         return (
             VenvProblems(invalid_interpreter=True),
-            f"   package {red(bold(venv_dir.name))} has invalid "
-            f"interpreter {str(python_path)}\r{hazard}",
+            f"   package {red(bold(venv_dir.name))} has invalid " f"interpreter {str(python_path)}\r{hazard}",
         )
     if not venv.package_metadata:
         return (
             VenvProblems(missing_metadata=True),
-            f"   package {red(bold(venv_dir.name))} has missing "
-            f"internal pipx metadata.\r{hazard}",
+            f"   package {red(bold(venv_dir.name))} has missing " f"internal pipx metadata.\r{hazard}",
         )
     if venv_dir.name != canonicalize_name(venv_dir.name):
         return (
             VenvProblems(bad_venv_name=True),
-            f"   package {red(bold(venv_dir.name))} needs its "
-            f"internal data updated.\r{hazard}",
+            f"   package {red(bold(venv_dir.name))} needs its " f"internal data updated.\r{hazard}",
         )
     if venv.package_metadata[package_name].package_version == "":
         return (
             VenvProblems(not_installed=True),
-            f"   package {red(bold(package_name))} {red('is not installed')} "
-            f"in the venv {venv_dir.name}\r{hazard}",
+            f"   package {red(bold(package_name))} {red('is not installed')} " f"in the venv {venv_dir.name}\r{hazard}",
         )
     return (VenvProblems(), "")
 
@@ -210,26 +224,32 @@ def get_venv_summary(
 
     package_metadata = venv.package_metadata[package_name]
     apps = package_metadata.apps
+    man_pages = package_metadata.man_pages
     if package_metadata.include_dependencies:
         apps += package_metadata.apps_of_dependencies
+        man_pages += package_metadata.man_pages_of_dependencies
 
-    exposed_app_paths = get_exposed_app_paths_for_package(
+    exposed_app_paths = get_exposed_paths_for_package(
         venv.bin_path,
         constants.LOCAL_BIN_DIR,
         [add_suffix(app, package_metadata.suffix) for app in apps],
     )
     exposed_binary_names = sorted(p.name for p in exposed_app_paths)
     unavailable_binary_names = sorted(
-        {add_suffix(name, package_metadata.suffix) for name in package_metadata.apps}
-        - set(exposed_binary_names)
+        {add_suffix(name, package_metadata.suffix) for name in package_metadata.apps} - set(exposed_binary_names)
     )
+    exposed_man_paths = set()
+    for man_section in MAN_SECTIONS:
+        exposed_man_paths |= get_exposed_man_paths_for_package(
+            venv.man_path / man_section,
+            constants.LOCAL_MAN_DIR / man_section,
+            man_pages,
+        )
+    exposed_man_pages = sorted(str(Path(p.parent.name) / p.name) for p in exposed_man_paths)
+    unavailable_man_pages = sorted(set(package_metadata.man_pages) - set(exposed_man_pages))
     # The following is to satisfy mypy that python_version is str and not
     #   Optional[str]
-    python_version = (
-        venv.pipx_metadata.python_version
-        if venv.pipx_metadata.python_version is not None
-        else ""
-    )
+    python_version = venv.pipx_metadata.python_version if venv.pipx_metadata.python_version is not None else ""
     return (
         _get_list_output(
             python_version,
@@ -238,6 +258,8 @@ def get_venv_summary(
             new_install,
             exposed_binary_names,
             unavailable_binary_names,
+            exposed_man_pages,
+            unavailable_man_pages,
             venv.pipx_metadata.injected_packages if include_injected else None,
             suffix=package_metadata.suffix,
         ),
@@ -245,18 +267,21 @@ def get_venv_summary(
     )
 
 
-def get_exposed_app_paths_for_package(
-    venv_bin_path: Path,
-    local_bin_dir: Path,
-    package_binary_names: Optional[List[str]] = None,
+def get_exposed_paths_for_package(
+    venv_resource_path: Path,
+    local_resource_dir: Path,
+    package_resource_names: Optional[List[str]] = None,
 ) -> Set[Path]:
     # package_binary_names is used only if local_bin_path cannot use symlinks.
     # It is necessary for non-symlink systems to return valid app_paths.
-    if package_binary_names is None:
-        package_binary_names = []
+    if package_resource_names is None:
+        package_resource_names = []
 
-    bin_symlinks = set()
-    for b in local_bin_dir.iterdir():
+    if not local_resource_dir.exists():
+        return set()
+
+    symlinks = set()
+    for b in local_resource_dir.iterdir():
         try:
             # sometimes symlinks can resolve to a file of a different name
             # (in the case of ansible for example) so checking the resolved paths
@@ -264,17 +289,35 @@ def get_exposed_app_paths_for_package(
             # We always use the stricter check on non-Windows systems. On
             # Windows, we use a less strict check if we don't have a symlink.
             is_same_file = False
-            if can_symlink(local_bin_dir) and b.is_symlink():
-                is_same_file = b.resolve().parent.samefile(venv_bin_path)
-            elif not can_symlink(local_bin_dir):
-                is_same_file = b.name in package_binary_names
+            if can_symlink(local_resource_dir) and b.is_symlink():
+                is_same_file = b.resolve().parent.samefile(venv_resource_path)
+            elif not can_symlink(local_resource_dir):
+                is_same_file = b.name in package_resource_names
 
             if is_same_file:
-                bin_symlinks.add(b)
+                symlinks.add(b)
 
         except FileNotFoundError:
             pass
-    return bin_symlinks
+    return symlinks
+
+
+def get_exposed_man_paths_for_package(
+    venv_man_path: Path,
+    local_man_dir: Path,
+    package_man_pages: Optional[List[str]] = None,
+) -> Set[Path]:
+    man_section = venv_man_path.name
+    prefix = man_section + os.sep
+    return get_exposed_paths_for_package(
+        venv_man_path,
+        local_man_dir,
+        [
+            (name[len(prefix) :] if name.startswith(prefix) else name)
+            for name in package_man_pages or []
+            if name.startswith(prefix)
+        ],
+    )
 
 
 def _get_list_output(
@@ -284,6 +327,8 @@ def _get_list_output(
     new_install: bool,
     exposed_binary_names: List[str],
     unavailable_binary_names: List[str],
+    exposed_man_pages: List[str],
+    unavailable_man_pages: List[str],
     injected_packages: Optional[Dict[str, PackageInfo]] = None,
     suffix: str = "",
 ) -> str:
@@ -294,14 +339,18 @@ def _get_list_output(
         f" {bold(package_version)}{suffix}, installed using {python_version}"
     )
 
-    if new_install and exposed_binary_names:
+    if new_install and (exposed_binary_names or unavailable_binary_names):
         output.append("  These apps are now globally available")
     for name in exposed_binary_names:
         output.append(f"    - {name}")
     for name in unavailable_binary_names:
-        output.append(
-            f"    - {red(name)} (symlink missing or pointing to unexpected location)"
-        )
+        output.append(f"    - {red(name)} (symlink missing or pointing to unexpected location)")
+    if new_install and (exposed_man_pages or unavailable_man_pages):
+        output.append("  These manual pages are now globally available")
+    for name in exposed_man_pages:
+        output.append(f"    - {name}")
+    for name in unavailable_man_pages:
+        output.append(f"    - {red(name)} (symlink missing or pointing to unexpected location)")
     if injected_packages:
         output.append("    Injected Packages:")
         for name in injected_packages:
@@ -309,9 +358,7 @@ def _get_list_output(
     return "\n".join(output)
 
 
-def package_name_from_spec(
-    package_spec: str, python: str, *, pip_args: List[str], verbose: bool
-) -> str:
+def package_name_from_spec(package_spec: str, python: str, *, pip_args: List[str], verbose: bool) -> str:
     start_time = time.time()
 
     # shortcut if valid PyPI name
@@ -330,9 +377,7 @@ def package_name_from_spec(
     with tempfile.TemporaryDirectory() as temp_venv_dir:
         venv = Venv(Path(temp_venv_dir), python=python, verbose=verbose)
         venv.create_venv(venv_args=[], pip_args=[])
-        package_name = venv.install_package_no_deps(
-            package_or_url=package_spec, pip_args=pip_args
-        )
+        package_name = venv.install_package_no_deps(package_or_url=package_spec, pip_args=pip_args)
 
     logger.info(f"Package name determined in {time.time()-start_time:.1f}s")
     return package_name
@@ -342,6 +387,7 @@ def run_post_install_actions(
     venv: Venv,
     package_name: str,
     local_bin_dir: Path,
+    local_man_dir: Path,
     venv_dir: Path,
     include_dependencies: bool,
     *,
@@ -350,6 +396,12 @@ def run_post_install_actions(
     package_metadata = venv.package_metadata[package_name]
 
     display_name = f"{package_name}{package_metadata.suffix}"
+
+    if (
+        not venv.main_package_name == package_name
+        and venv.package_metadata[venv.main_package_name].suffix == package_metadata.suffix
+    ):
+        package_name = display_name
 
     if not package_metadata.apps:
         if not package_metadata.apps_of_dependencies:
@@ -367,9 +419,7 @@ def run_post_install_actions(
                 dep,
                 dependent_apps,
             ) in package_metadata.app_paths_of_dependencies.items():
-                print(
-                    f"Note: Dependent package '{dep}' contains {len(dependent_apps)} apps"
-                )
+                print(f"Note: Dependent package '{dep}' contains {len(dependent_apps)} apps")
                 for app in dependent_apps:
                     print(f"  - {app.name}")
             if venv.safe_to_remove():
@@ -380,26 +430,32 @@ def run_post_install_actions(
                 with '--include-deps' to include apps of dependent packages,
                 which are listed above. If you are attempting to install a
                 library, pipx should not be used. Consider using pip or a
-                similar tool instead."
+                similar tool instead.
                 """
             )
 
-    expose_apps_globally(
+    expose_resources_globally(
+        "app",
         local_bin_dir,
         package_metadata.app_paths,
         force=force,
         suffix=package_metadata.suffix,
     )
+    expose_resources_globally("man", local_man_dir, package_metadata.man_paths, force=force)
 
     if include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
-            expose_apps_globally(
-                local_bin_dir, app_paths, force=force, suffix=package_metadata.suffix
+            expose_resources_globally(
+                "app",
+                local_bin_dir,
+                app_paths,
+                force=force,
+                suffix=package_metadata.suffix,
             )
+        for _, man_paths in package_metadata.man_paths_of_dependencies.items():
+            expose_resources_globally("man", local_man_dir, man_paths, force=force)
 
-    package_summary, _ = get_venv_summary(
-        venv_dir, package_name=package_name, new_install=True
-    )
+    package_summary, _ = get_venv_summary(venv_dir, package_name=package_name, new_install=True)
     print(package_summary)
     warn_if_not_on_path(local_bin_dir)
     print(f"done! {stars}", file=sys.stderr)
@@ -410,7 +466,7 @@ def warn_if_not_on_path(local_bin_dir: Path) -> None:
         logger.warning(
             pipx_wrap(
                 f"""
-                {hazard}  Note: {str(local_bin_dir)!r} is not on your PATH
+                {hazard}  Note: '{local_bin_dir}' is not on your PATH
                 environment variable. These apps will not be globally
                 accessible until your PATH is updated. Run `pipx ensurepath` to
                 automatically add it, or manually modify your PATH in your

@@ -9,18 +9,23 @@
 name: tests
 
 on:
-  pull_request:
   push:
+  pull_request:
+  schedule:
+    - cron: "0 8 * * *"
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
 
 # If changing default-python be sure to change job "tests" matrix: include: also
 env:
-  default-python: "3.10"
+  default-python: "3.12"
 
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ env.default-python }}
       uses: actions/setup-python@v4
       with:
@@ -33,37 +38,21 @@ jobs:
       run: |
         nox --error-on-missing-interpreters --non-interactive --session lint
 
-  verify-docs:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ env.default-python }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.default-python }}
-    - name: Upgrade pip, Install nox
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install nox
-    - name: Verify Docs
-      run: |
-        nox --error-on-missing-interpreters --non-interactive --session build_docs
-
   tests:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.12", "3.11", "3.10", "3.9", "3.8"]
         include:
           - os: windows-latest
-            python-version: "3.10"
+            python-version: "3.12"
           - os: macos-latest
-            python-version: "3.10"
+            python-version: "3.12"
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
@@ -93,11 +82,11 @@ jobs:
   pypi-publish:
     name: Publish pipx to PyPI on release
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-    needs: [verify-docs, lint, tests]
+    needs: [lint, tests]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout ${{ github.ref }}
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Set up Python ${{ env.default-python }}
       uses: actions/setup-python@v4
       with:
@@ -110,7 +99,34 @@ jobs:
       run: |
         nox --error-on-missing-interpreters --non-interactive --session build
     - name: Publish to PyPi
-      uses: pypa/gh-action-pypi-publish@v1.5.0
+      uses: pypa/gh-action-pypi-publish@v1.8.11
       with:
         user: __token__
         password: ${{ secrets.pypi_password }}
+
+  build-zipapp:
+    name: Build zipapp
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+    needs: [lint, tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ${{ github.ref }}
+        uses: actions/checkout@v4
+      - name: Set up Python ${{ env.default-python }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.default-python }}
+      - name: Upgrade pip, Install shiv
+        run: |
+          python -m pip install --upgrade pip
+          pip install shiv
+      - name: Build zipapp
+        run: shiv -c pipx -o ./pipx.pyz git+https://github.com/pypa/pipx@${{ github.ref_name }}
+      - name: Test zipapp
+        run: |
+          python ./pipx.pyz --version
+          python ./pipx.pyz install black
+      - name: Upload to releases
+        uses: softprops/action-gh-release@v1
+        with:
+          files: pipx.pyz

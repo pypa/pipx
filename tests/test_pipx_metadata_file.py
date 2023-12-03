@@ -18,6 +18,9 @@ TEST_PACKAGE1 = PackageInfo(
     app_paths=[Path("/usr/bin")],
     apps_of_dependencies=["dep1"],
     app_paths_of_dependencies={"dep1": [Path("bin")]},
+    man_pages=[str(Path("man1/testapp.1"))],
+    man_pages_of_dependencies=[str(Path("man1/dep1.1"))],
+    man_paths_of_dependencies={"dep1": [Path("man1/dep1.1")]},
     package_version="0.1.2",
 )
 TEST_PACKAGE2 = PackageInfo(
@@ -30,6 +33,9 @@ TEST_PACKAGE2 = PackageInfo(
     app_paths=[Path("/usr/bin")],
     apps_of_dependencies=["dep2"],
     app_paths_of_dependencies={"dep2": [Path("bin")]},
+    man_pages=[str(Path("man1/injapp.1"))],
+    man_pages_of_dependencies=[str(Path("man1/dep2.1"))],
+    man_paths_of_dependencies={"dep2": [Path("man1/dep2.1")]},
     package_version="6.7.8",
 )
 
@@ -86,9 +92,7 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     assert (pipx_venvs_dir / "pycowsay" / "pipx_metadata.json").is_file()
 
     pipx_metadata = PipxMetadata(pipx_venvs_dir / "pycowsay")
-    pycowsay_package_ref = create_package_info_ref(
-        "pycowsay", "pycowsay", pipx_venvs_dir
-    )
+    pycowsay_package_ref = create_package_info_ref("pycowsay", "pycowsay", pipx_venvs_dir)
     assert_package_metadata(pipx_metadata.main_package, pycowsay_package_ref)
     assert pipx_metadata.injected_packages == {}
 
@@ -103,7 +107,5 @@ def test_package_inject(monkeypatch, tmp_path, pipx_temp_env):
     pipx_metadata = PipxMetadata(pipx_venvs_dir / "pycowsay")
 
     assert pipx_metadata.injected_packages.keys() == {"black"}
-    black_package_ref = create_package_info_ref(
-        "pycowsay", "black", pipx_venvs_dir, include_apps=False
-    )
+    black_package_ref = create_package_info_ref("pycowsay", "black", pipx_venvs_dir, include_apps=False)
     assert_package_metadata(pipx_metadata.injected_packages["black"], black_package_ref)

@@ -1,0 +1,21 @@
+[build-system]
+requires = [
+  "setuptools",
+  "wheel",
+]
+
+[project]
+name = "empty-project"
+version = "0.1.0"
+description = "Empty Python Project"
+authors = [{ name = "My Name", email = "me@example.com" }]
+requires-python = ">=3.8"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+scripts.empty-project = "empty_project.main:cli"

@@ -20,6 +20,8 @@ TEST_DATA_PATH = "./testdata/test_package_specifier"
         ("Black", "black"),
         ("https://github.com/ambv/black/archive/18.9b0.zip", None),
         ("black @ https://github.com/ambv/black/archive/18.9b0.zip", None),
+        ("black-18.9b0-py36-none-any.whl", None),
+        ("black-18.9b0.tar.gz", None),
     ],
 )
 def test_valid_pypi_name(package_spec_in, package_name_out):
@@ -50,7 +52,9 @@ def test_fix_package_name(package_spec_in, package_name, package_spec_out):
     assert fix_package_name(package_spec_in, package_name) == package_spec_out
 
 
-# TODO: Make sure git+ works with tests, correct in test_install as well
+_ROOT = Path(__file__).parents[1]
+
+
 @pytest.mark.parametrize(
     "package_spec_in,package_or_url_correct,valid_spec",
     [
@@ -63,7 +67,7 @@ def test_fix_package_name(package_spec_in, package_name, package_spec_out):
         ('pipx==0.15.0;python_version>="3.6"', "pipx==0.15.0", True),
         ("pipx[extra1]", "pipx[extra1]", True),
         ("pipx[extra1, extra2]", "pipx[extra1,extra2]", True),
-        ("src/pipx", str(Path("src/pipx").resolve()), True),
+        ("src/pipx", str((_ROOT / "src" / "pipx").resolve()), True),
         (
             "git+https://github.com/cs01/nox.git@5ea70723e9e6",
             "git+https://github.com/cs01/nox.git@5ea70723e9e6",
@@ -95,7 +99,7 @@ def test_fix_package_name(package_spec_in, package_name, package_spec_out):
             True,
         ),
         (
-            'my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git ; python_version<"3.7"',
+            'my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git ; python_version<"3.8"',
             "my-project[cli]@ git+ssh://git@bitbucket.org/my-company/myproject.git",
             True,
         ),
@@ -107,9 +111,8 @@ def test_fix_package_name(package_spec_in, package_name, package_spec_out):
         ),
     ],
 )
-def test_parse_specifier_for_metadata(
-    package_spec_in, package_or_url_correct, valid_spec
-):
+def test_parse_specifier_for_metadata(package_spec_in, package_or_url_correct, valid_spec, monkeypatch, root):
+    monkeypatch.chdir(root)
     if valid_spec:
         package_or_url = parse_specifier_for_metadata(package_spec_in)
         assert package_or_url == package_or_url_correct
@@ -132,7 +135,7 @@ def test_parse_specifier_for_metadata(
         ('pipx==0.15.0;python_version>="3.6"', "pipx", True),
         ("pipx[extra1]", "pipx[extra1]", True),
         ("pipx[extra1, extra2]", "pipx[extra1,extra2]", True),
-        ("src/pipx", str(Path("src/pipx").resolve()), True),
+        ("src/pipx", str((_ROOT / "src" / "pipx").resolve()), True),
         (
             "git+https://github.com/cs01/nox.git@5ea70723e9e6",
             "git+https://github.com/cs01/nox.git@5ea70723e9e6",
@@ -164,7 +167,7 @@ def test_parse_specifier_for_metadata(
             True,
         ),
         (
-            'my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git ; python_version<"3.7"',
+            'my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git ; python_version<"3.8"',
             "my-project[cli]@ git+ssh://git@bitbucket.org/my-company/myproject.git",
             True,
         ),
@@ -176,9 +179,8 @@ def test_parse_specifier_for_metadata(
         ),
     ],
 )
-def test_parse_specifier_for_upgrade(
-    package_spec_in, package_or_url_correct, valid_spec
-):
+def test_parse_specifier_for_upgrade(package_spec_in, package_or_url_correct, valid_spec, monkeypatch, root):
+    monkeypatch.chdir(root)
     if valid_spec:
         package_or_url = parse_specifier_for_upgrade(package_spec_in)
         assert package_or_url == package_or_url_correct
@@ -266,9 +268,10 @@ def test_parse_specifier_for_install(
     package_spec_expected,
     pip_args_expected,
     warning_str,
+    monkeypatch,
+    root,
 ):
-    [package_or_url_out, pip_args_out] = parse_specifier_for_install(
-        package_spec_in, pip_args_in
-    )
+    monkeypatch.chdir(root)
+    [package_or_url_out, pip_args_out] = parse_specifier_for_install(package_spec_in, pip_args_in)
     if warning_str is not None:
         assert warning_str in caplog.text

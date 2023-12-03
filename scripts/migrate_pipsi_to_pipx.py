@@ -38,18 +38,13 @@ def main():
 
     error = False
     for package in packages:
-        ret = subprocess.run(["pipsi", "uninstall", "--yes", package])
+        ret = subprocess.run(["pipsi", "uninstall", "--yes", package], check=False)
         if ret.returncode:
             error = True
-            print(
-                f"Failed to uninstall {package!r} with pipsi. "
-                "Not attempting to install with pipx."
-            )
+            print(f"Failed to uninstall {package!r} with pipsi. " "Not attempting to install with pipx.")
         else:
-            print(
-                f"uninstalled {package!r} with pipsi. Now attempting to install with pipx."
-            )
-            ret = subprocess.run(["pipx", "install", package])
+            print(f"uninstalled {package!r} with pipsi. Now attempting to install with pipx.")
+            ret = subprocess.run(["pipx", "install", package], check=False)
             if ret.returncode:
                 error = True
                 print(f"Failed to install {package!r} with pipx.")
@@ -58,14 +53,11 @@ def main():
 
     print(f"Done migrating {len(packages)} packages!")
     print(
-        "You may still need to run `pipsi uninstall pipsi` or `pip uninstall pipsi`. "
-        "Refer to pipsi's documentation."
+        "You may still need to run `pipsi uninstall pipsi` or `pip uninstall pipsi`. " "Refer to pipsi's documentation."
     )
 
     if error:
-        print(
-            "Note: Finished with errors. Review output to manually complete migration."
-        )
+        print("Note: Finished with errors. Review output to manually complete migration.")
 
 
 if __name__ == "__main__":

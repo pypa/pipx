@@ -9,7 +9,7 @@ def test_inject_simple(pipx_temp_env, capsys):
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
 
 
-@pytest.mark.parametrize("metadata_version", [None, "0.1"])
+@pytest.mark.parametrize("metadata_version", [None, "0.1", "0.2"])
 def test_inject_simple_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
@@ -41,27 +41,9 @@ def test_inject_include_apps(pipx_temp_env, capsys, with_suffix):
         install_args = [f"--suffix={suffix}"]
 
     assert not run_pipx_cli(["install", "pycowsay", *install_args])
-    assert run_pipx_cli(
-        ["inject", f"pycowsay{suffix}", PKG["black"]["spec"], "--include-deps"]
-    )
+    assert not run_pipx_cli(["inject", f"pycowsay{suffix}", PKG["black"]["spec"], "--include-deps"])
 
     if suffix:
-        assert run_pipx_cli(
-            [
-                "inject",
-                "pycowsay",
-                PKG["black"]["spec"],
-                "--include-deps",
-                "--include-apps",
-            ]
-        )
+        assert run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--include-deps"])
 
-    assert not run_pipx_cli(
-        [
-            "inject",
-            f"pycowsay{suffix}",
-            PKG["black"]["spec"],
-            "--include-deps",
-            "--include-apps",
-        ]
-    )
+    assert not run_pipx_cli(["inject", f"pycowsay{suffix}", PKG["black"]["spec"], "--include-deps"])
