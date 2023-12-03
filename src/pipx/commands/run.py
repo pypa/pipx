@@ -1,7 +1,6 @@
 import datetime
 import hashlib
 import logging
-import re
 import sys
 import time
 import urllib.parse
@@ -27,9 +26,9 @@ from pipx.util import (
 from pipx.venv import Venv
 
 if sys.version_info < (3, 11):
-    import tomli as tomllib
+    pass
 else:
-    import tomllib
+    pass
 
 logger = logging.getLogger(__name__)
 
