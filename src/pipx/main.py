@@ -226,9 +226,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             suffix=args.suffix,
         )
     elif args.command == "install-all":
-        return commands.install_all(
-            args.json_file, None, constants.LOCAL_BIN_DIR, verbose, force=args.force
-        )
+        return commands.install_all(args.json_file, None, constants.LOCAL_BIN_DIR, verbose, force=args.force)
     elif args.command == "inject":
         return commands.inject(
             venv_dir,

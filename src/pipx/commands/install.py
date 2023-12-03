@@ -115,7 +115,6 @@ def install_all(
     *,
     force: bool,
 ) -> ExitCode:
-
     install_success_count = 0
     total_package_count = 0
 
@@ -129,9 +128,7 @@ def install_all(
                 metadata = venvs[package]["metadata"]
                 package_name = metadata["main_package"]["package"]
                 package_or_url = metadata["main_package"]["package_or_url"]
-                python_version = (
-                    "python" + re.findall(r"\d.\d+", metadata["python_version"])[0]
-                )
+                python_version = "python" + re.findall(r"\d.\d+", metadata["python_version"])[0]
                 venv_args = metadata["venv_args"]
                 pip_args = metadata["main_package"]["pip_args"]
                 include_dependencies = metadata["main_package"]["include_dependencies"]
