@@ -1,5 +1,7 @@
 ## dev
 
+## 1.3.3
+
 - [docs] Make the logo more visible in dark mode
 
 ## 1.3.2
