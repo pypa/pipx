@@ -1,5 +1,7 @@
 ## dev
 
+- [docs] Make the logo more visible in dark mode
+
 ## 1.3.2
 
 - The project version number is now dynamic and generated from the VCS at build time
