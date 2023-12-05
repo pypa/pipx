@@ -40,7 +40,7 @@ interpreter: `pipx install black --python=python3.7` where python3.7 was install
 - pipx and pipsi both install packages in a similar way
 - pipx is under active development. pipsi is no longer maintained.
 - pipx always makes sure you're using the latest version of pip
-- pipx has the ability to run a app in one line, leaving your system unchanged after it finishes (`pipx run APP`) where
+- pipx has the ability to run an app in one line, leaving your system unchanged after it finishes (`pipx run APP`) where
   pipsi does not
 - pipx has the ability to recursively install binaries from dependent packages
 - pipx adds more useful information to its output
