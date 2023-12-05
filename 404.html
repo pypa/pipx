@@ -1,9 +1,16 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta http-equiv="refresh" content="0; url='https://pipx.pypa.io'" />
-  </head>
-  <body>
-    <p>You will be redirected to https://pipx.pypa.io soon!</p>
-  </body>
+<head>
+  <meta http-equiv="refresh" content="5">
+</head>
+<body>
+  <script>
+    var urlObject = new URL(window.location.href);
+    var pathParts = urlObject.pathname.split("/");
+    var lastPart = pathParts[pathParts.length - 1];
+    var redirectUrl = `https://pipx.pypa.io/stable/${lastPart}`;
+    document.querySelector('meta[http-equiv="refresh"]').content = `5; URL=${redirectUrl}`;
+  </script>
+  <p>You will be redirected to https://pipx.pypa.io soon!</p>
+</body>
 </html>
