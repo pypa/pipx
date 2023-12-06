@@ -2,23 +2,23 @@ import datetime
 import hashlib
 import logging
 import re
-import requests
 import subprocess
 import sys
 import time
 import urllib.parse
 import urllib.request
-from bs4 import BeautifulSoup
 from pathlib import Path
 from shutil import which
 from typing import List, NoReturn, Optional
 
-from packaging.requirements import InvalidRequirement, Requirement
+import requests
+from bs4 import BeautifulSoup
 from packaging import version
+from packaging.requirements import InvalidRequirement, Requirement
 
 from pipx import constants
 from pipx.commands.common import package_name_from_spec
-from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS, PIPX_LOCAL_VENVS
+from pipx.constants import PIPX_LOCAL_VENVS, TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
 from pipx.emojis import hazard
 from pipx.util import (
     PipxError,
@@ -214,16 +214,16 @@ def run(
             use_cache,
         )
 
-def check_version(app: str):   
+
+def check_version(app: str):
     venv_dir = PIPX_LOCAL_VENVS / app
 
-    # If the "pipx_version_check" file does not exist 
+    # If the "pipx_version_check" file does not exist
     # or is already expired, check for a new package version.
-    if not (venv_dir / "pipx_version_check").exists() or _is_version_check_expired(venv_dir):        
-
+    if not (venv_dir / "pipx_version_check").exists() or _is_version_check_expired(venv_dir):
         # If the "pipx_version_check" file does not exist, we create a new file.
         # If it already exists, we update the timestamp.
-        (venv_dir/"pipx_version_check").touch()
+        (venv_dir / "pipx_version_check").touch()
         current_version = Venv(venv_dir).package_metadata[app].package_version
         latest_version = _get_latest_version(app)
 
@@ -231,18 +231,20 @@ def check_version(app: str):
         # and the current version is out-of-date.
         if latest_version:
             if version.parse(latest_version) > version.parse(current_version):
-               subprocess.run(["pipx", "upgrade", app])
+                subprocess.run(["pipx", "upgrade", app])
+
 
 def _is_version_check_expired(venv_dir: Path) -> bool:
     version_check_file = venv_dir / "pipx_version_check"
     created_time_sec = version_check_file.stat().st_ctime
     current_time_sec = time.mktime(datetime.datetime.now().timetuple())
     age = current_time_sec - created_time_sec
-    expiration_threshold_sec = 60 * 60 * 24     # 24 hours
+    expiration_threshold_sec = 60 * 60 * 24  # 24 hours
     return age > expiration_threshold_sec
 
+
 def _get_latest_version(app) -> str:
-    pypi_url = f'https://pypi.org/project/{app}/'
+    pypi_url = f"https://pypi.org/project/{app}/"
 
     try:
         response = requests.get(pypi_url)
@@ -250,10 +252,10 @@ def _get_latest_version(app) -> str:
         html_content = response.text
         if html_content:
             # Parse the HTML content using BeautifulSoup
-            soup = BeautifulSoup(html_content, 'html.parser')
+            soup = BeautifulSoup(html_content, "html.parser")
 
             # Extract the latest version from the HTML
-            version_element = soup.select_one('.package-header__name')
+            version_element = soup.select_one(".package-header__name")
 
             if version_element:
                 # Extract the version from the h1 element text
@@ -271,6 +273,7 @@ def _get_latest_version(app) -> str:
     except requests.RequestException as e:
         print(f"Error during request: {e}")
         return ""
+
 
 def _download_and_run(
     venv_dir: Path,
