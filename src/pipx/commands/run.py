@@ -1,20 +1,23 @@
 import datetime
 import hashlib
 import logging
-import re
-import sys
+import requests
+import subprocess
 import time
 import urllib.parse
 import urllib.request
+
+from bs4 import BeautifulSoup
 from pathlib import Path
 from shutil import which
 from typing import List, NoReturn, Optional
 
 from packaging.requirements import InvalidRequirement, Requirement
+from packaging import version
 
 from pipx import constants
 from pipx.commands.common import package_name_from_spec
-from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
+from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS, PIPX_LOCAL_VENVS
 from pipx.emojis import hazard
 from pipx.util import (
     PipxError,
@@ -25,11 +28,6 @@ from pipx.util import (
     run_pypackage_bin,
 )
 from pipx.venv import Venv
-
-if sys.version_info < (3, 11):
-    import tomli as tomllib
-else:
-    import tomllib
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +130,9 @@ def run_package(
 
     pypackage_bin_path = get_pypackage_bin_path(app)
     if pypackage_bin_path.exists():
-        logger.info(f"Using app in local __pypackages__ directory at '{pypackage_bin_path}'")
+        logger.info(
+            f"Using app in local __pypackages__ directory at '{pypackage_bin_path}'"
+        )
         run_pypackage_bin(pypackage_bin_path, app_args)
     if pypackages:
         raise PipxError(
@@ -187,6 +187,7 @@ def run(
     # For any package, we need to just use the name
     try:
         package_name = Requirement(app).name
+        check_version(app)
     except InvalidRequirement:
         # Raw URLs to scripts are supported, too, so continue if
         # we can't parse this as a package
@@ -209,7 +210,64 @@ def run(
             use_cache,
         )
 
+def check_version(app: str):   
+    venv_dir = PIPX_LOCAL_VENVS / app
 
+    # If the "pipx_version_check" file does not exist 
+    # or is already expired, check for a new package version.
+    if not (venv_dir / "pipx_version_check").exists() or _is_version_check_expired(venv_dir):        
+
+        # If the "pipx_version_check" file does not exist, we create a new file.
+        # If it already exists, we update the timestamp.
+        (venv_dir/"pipx_version_check").touch()
+        current_version = Venv(venv_dir).package_metadata[app].package_version
+        latest_version = _get_latest_version(app)
+
+        # Upgrade the package if the latest version is found,
+        # and the current version is out-of-date.
+        if latest_version:
+            if version.parse(latest_version) > version.parse(current_version):
+               subprocess.run(["pipx", "upgrade", app])
+        
+def _is_version_check_expired(venv_dir: Path) -> bool:
+    version_check_file = venv_dir / "pipx_version_check"
+    created_time_sec = version_check_file.stat().st_ctime
+    current_time_sec = time.mktime(datetime.datetime.now().timetuple())
+    age = current_time_sec - created_time_sec
+    expiration_threshold_sec = 60 * 60 * 24     # 24 hours
+    return age > expiration_threshold_sec
+
+def _get_latest_version(app) -> str:
+    pypi_url = f'https://pypi.org/project/{app}/'
+
+    try:
+        response = requests.get(pypi_url)
+        response.raise_for_status()
+        html_content = response.text
+        if html_content:
+            # Parse the HTML content using BeautifulSoup
+            soup = BeautifulSoup(html_content, 'html.parser')
+        
+            # Extract the latest version from the HTML
+            version_element = soup.select_one('.package-header__name')
+        
+            if version_element:
+                # Extract the version from the h1 element text
+                version_text = version_element.text.strip()
+                # Split the text and get the last part, assuming version is at the end
+                latest_version = version_text.split()[-1]
+                return latest_version
+            else:
+                print(f"Unable to find version information on the PyPI page for {app}.")
+                return ""
+        else:
+            print(f"Unable to retrieve HTML content for {app}.")
+            return ""
+
+    except requests.RequestException as e:
+        print(f"Error during request: {e}")
+        return ""
+        
 def _download_and_run(
     venv_dir: Path,
     package_or_url: str,
@@ -223,15 +281,15 @@ def _download_and_run(
     verbose: bool,
 ) -> NoReturn:
     venv = Venv(venv_dir, python=python, verbose=verbose)
+    venv.create_venv(venv_args, pip_args)
 
     if venv.pipx_metadata.main_package.package is not None:
         package_name = venv.pipx_metadata.main_package.package
     else:
-        package_name = package_name_from_spec(package_or_url, python, pip_args=pip_args, verbose=verbose)
+        package_name = package_name_from_spec(
+            package_or_url, python, pip_args=pip_args, verbose=verbose
+        )
 
-    override_shared = package_name == "pip"
-
-    venv.create_venv(venv_args, pip_args, override_shared)
     venv.install_package(
         package_name=package_name,
         package_or_url=package_or_url,
@@ -254,7 +312,10 @@ def _download_and_run(
             else:
                 app_filename = app
         else:
-            all_apps = (f"{a} - usage: 'pipx run --spec {package_or_url} {a} [arguments?]'" for a in apps)
+            all_apps = (
+                f"{a} - usage: 'pipx run --spec {package_or_url} {a} [arguments?]'"
+                for a in apps
+            )
             raise PipxError(
                 APP_NOT_FOUND_ERROR_MESSAGE.format(
                     app=app,
@@ -271,7 +332,9 @@ def _download_and_run(
     venv.run_app(app, app_filename, app_args)
 
 
-def _get_temporary_venv_path(requirements: List[str], python: str, pip_args: List[str], venv_args: List[str]) -> Path:
+def _get_temporary_venv_path(
+    requirements: List[str], python: str, pip_args: List[str], venv_args: List[str]
+) -> Path:
     """Computes deterministic path using hashing function on arguments relevant
     to virtual environment's end state. Arguments used should result in idempotent
     virtual environment. (i.e. args passed to app aren't relevant, but args
@@ -319,43 +382,41 @@ def _http_get_request(url: str) -> str:
         raise PipxError(str(e)) from e
 
 
-# This regex comes from PEP 723
-PEP723 = re.compile(r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$")
-
-
 def _get_requirements_from_script(content: str) -> Optional[List[str]]:
-    """
-    Supports PEP 723.
-    """
+    # An iterator over the lines in the script. We will
+    # read through this in sections, so it needs to be an
+    # iterator, not just a list.
+    lines = iter(content.splitlines())
 
-    name = "pyproject"
-
-    # Windows is currently getting un-normalized line endings, so normalize
-    content = content.replace("\r\n", "\n")
-
-    matches = [m for m in PEP723.finditer(content) if m.group("type") == name]
-
-    if not matches:
+    for line in lines:
+        if not line.startswith("#"):
+            continue
+        line_content = line[1:].strip()
+        if line_content == "Requirements:":
+            break
+    else:
+        # No "Requirements:" line in the file
         return None
 
-    if len(matches) > 1:
-        raise ValueError(f"Multiple {name} blocks found")
-
-    content = "".join(
-        line[2:] if line.startswith("# ") else line[1:] for line in matches[0].group("content").splitlines(keepends=True)
-    )
-
-    pyproject = tomllib.loads(content)
-
+    # We are now at the first requirement
     requirements = []
-    for requirement in pyproject.get("run", {}).get("requirements", []):
+    for line in lines:
+        # Stop at the end of the comment block
+        if not line.startswith("#"):
+            break
+        line_content = line[1:].strip()
+        # Stop at a blank comment line
+        if not line_content:
+            break
+
         # Validate the requirement
         try:
-            req = Requirement(requirement)
+            req = Requirement(line_content)
         except InvalidRequirement as e:
-            raise PipxError(f"Invalid requirement {requirement}: {e}") from e
+            raise PipxError(f"Invalid requirement {line_content}: {str(e)}") from e
 
-        # Use the normalised form of the requirement
+        # Use the normalised form of the requirement,
+        # not the original line.
         requirements.append(str(req))
 
     return requirements
