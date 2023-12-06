@@ -1,5 +1,7 @@
 ## dev
 
+- Check for latest version and upgrade to latest version if it exists when running pipx run
+
 ## 1.3.3
 
 - [docs] Make the logo more visible in dark mode
