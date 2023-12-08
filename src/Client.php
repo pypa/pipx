@@ -10,25 +10,33 @@ use Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Cyberfusion\ClusterApi\Models\DetailMessage;
 use Cyberfusion\ClusterApi\Models\HttpValidationError;
 use GuzzleHttp\Client as GuzzleClient;
+use GuzzleHttp\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
 use Throwable;
 
 class Client implements ClientContract
 {
     private const CONNECT_TIMEOUT = 60;
+
     private const TIMEOUT = 180;
-    private const VERSION = '1.105.0';
+
+    private const VERSION = '1.106.0';
+
     private const USER_AGENT = 'cyberfusion-cluster-api-client/' . self::VERSION;
-    private GuzzleClient $httpClient;
+
+    private ClientInterface $httpClient;
 
     /**
      * @throws ClientException
      * @throws ClusterApiException
      */
-    public function __construct(private Configuration $configuration, bool $manuallyAuthenticate = false)
-    {
+    public function __construct(
+        private Configuration $configuration,
+        bool $manuallyAuthenticate = false,
+        ClientInterface $httpClient = null
+    ) {
         // Initialize the HTTP client
-        $this->initHttpClient();
+        $this->initHttpClient($httpClient);
 
         // Check if the API is available
         if (!$this->isUp()) {
@@ -44,17 +52,17 @@ class Client implements ClientContract
     /**
      * Initialize the HTTP client with default configuration which is used for every request.
      */
-    private function initHttpClient(): void
+    private function initHttpClient(ClientInterface $httpClient = null): void
     {
-        $baseUri = $this
-            ->configuration
-            ->getUrl();
+        if ($httpClient instanceof ClientInterface) {
+            $this->httpClient = $httpClient;
+
+            return;
+        }
 
         $this->httpClient = new GuzzleClient([
-            'base_uri' => $baseUri,
             'timeout' => self::TIMEOUT,
             'connect_timeout' => self::CONNECT_TIMEOUT,
-            'http_errors' => false,
             'headers' => [
                 'User-Agent' => self::USER_AGENT,
             ]
@@ -194,7 +202,15 @@ class Client implements ClientContract
      */
     private function getRequestOptions(Request $request): array
     {
-        $requestOptions = [];
+        $requestOptions = [
+            // Never throw exceptions on 4xx and 5xx responses to ensure package behaviour
+            'http_errors' => false,
+
+            // Always use the base uri from the configuration
+            'base_uri' => $this
+                ->configuration
+                ->getUrl(),
+        ];
         if ($request->getBodySchema() === Request::BODY_SCHEMA_JSON) {
             $requestOptions['json'] = $request->getBody();
         } else {

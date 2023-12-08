@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
 for detailed information.
 
+## [1.106.0]
+
+### Added
+
+- Add option to the `Client` to provide your own Guzzle HTTP client. Which is, for example, useful for adding your own Guzzle middleware.
+
 ## [1.105.0]
 
 ### Added
