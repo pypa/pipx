@@ -54,7 +54,7 @@ class Client implements ClientContract
      */
     private function initHttpClient(ClientInterface $httpClient = null): void
     {
-        if ($httpClient !== null) {
+        if ($httpClient instanceof ClientInterface) {
             $this->httpClient = $httpClient;
 
             return;
