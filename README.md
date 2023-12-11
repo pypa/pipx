@@ -58,6 +58,15 @@ python3 -m pipx ensurepath
 
 Upgrade pipx with `python3 -m pip install --user --upgrade pipx`.
 
+### On Windows, install via [Scoop](https://scoop.sh/)
+
+```
+scoop install pipx
+pipx ensurepath
+```
+
+Upgrade pipx with `scoop update pipx`.
+
 ### On Windows, install via pip (requires pip 19.0 or later)
 
 ```
