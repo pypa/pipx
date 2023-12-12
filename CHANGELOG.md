@@ -1,5 +1,7 @@
 ## dev
 
+- [docs] Add Scoop installation instructions
+
 ## 1.3.3
 
 - [docs] Make the logo more visible in dark mode
