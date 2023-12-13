@@ -68,7 +68,7 @@ you did not get the warning):
 This will add both the above mentioned path and the `%USERPROFILE%\.local\bin` folder to your search path. Restart your
 terminal session and verify `pipx` does run.
 
-!!! warning 
+!!! warning
 
     It is not recommended to install `pipx` via `pipx`. If you'd like to do this anyway, take a look at the
     [`pipx-in-pipx`](https://github.com/mattsb42-meta/pipx-in-pipx) project and read about the limitations there.
