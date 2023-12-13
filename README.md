@@ -51,12 +51,15 @@ pipx ensurepath
 
 - Ubuntu 22.04 or below
 
-```
-python3 -m pip install --user pipx
-python3 -m pipx ensurepath
+```sh
+sudo apt install python3-venv
+sudo python3 -m venv --upgrade-deps /opt/pipx
+sudo /opt/pipx/bin/pip install pipx
+sudo ln -s /opt/pipx/bin/pipx /usr/local/bin/pipx
+pipx ensurepath
 ```
 
-Upgrade pipx with `python3 -m pip install --user --upgrade pipx`.
+Upgrade pipx with `sudo /opt/pipx/bin/pip install --upgrade pipx`.
 
 ### On Windows
 
