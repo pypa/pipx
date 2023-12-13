@@ -11,36 +11,67 @@ pipx works on macOS, linux, and Windows.
 
 ## Installing pipx
 
-On macOS:
+#### On macOS:
 
 ```
 brew install pipx
 pipx ensurepath
 ```
 
-On Windows:
+#### On Linux:
 
-Install via [Scoop](https://scoop.sh/):
+- Ubuntu 23.04 or above
+
+```
+sudo apt update
+sudo apt install pipx
+pipx ensurepath
+```
+
+- Ubuntu 22.04 or below
+
+```
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+```
+
+
+#### On Windows:
+
+- Install via [Scoop](https://scoop.sh/):
 
 ```
 scoop install pipx
 pipx ensurepath
 ```
 
-Otherwise, install via pip (requires pip 19.0 or later):
+- Install via pip (requires pip 19.0 or later)
 
 ```
+# If you installed python using Microsoft Store, replace `py` with `python3` in the next line.
 py -m pip install --user pipx
-py -m pipx ensurepath
-```
-Or
-```
-python3 -m pip install --user pipx
-python3 -m pipx ensurepath
 ```
 
-!!!caution It is not recommended to install `pipx` via `pipx`. If you'd like to do this anyway, take a look at the
-[`pipx-in-pipx`](https://github.com/mattsb42-meta/pipx-in-pipx) project and read about the limitations there.
+It is possible (even most likely) the above finishes with a WARNING looking similar to this:
+
+```
+WARNING: The script pipx.exe is installed in `<USER folder>\AppData\Roaming\Python\Python3x\Scripts` which is not on PATH
+```
+
+If so, go to the mentioned folder, allowing you to run the pipx executable directly. Enter the following line (even if
+you did not get the warning):
+
+```
+.\pipx.exe ensurepath
+```
+
+This will add both the above mentioned path and the `%USERPROFILE%\.local\bin` folder to your search path. Restart your
+terminal session and verify `pipx` does run.
+
+!!! warning 
+
+    It is not recommended to install `pipx` via `pipx`. If you'd like to do this anyway, take a look at the
+    [`pipx-in-pipx`](https://github.com/mattsb42-meta/pipx-in-pipx) project and read about the limitations there.
 
 ### Using pipx without installing (via zipapp)
 
@@ -113,6 +144,18 @@ On macOS:
 
 ```
 brew update && brew upgrade pipx
+```
+
+On Linux:
+
+```
+sudo apt upgrade pipx
+```
+
+On Windows:
+
+```
+scoop update pipx
 ```
 
 Otherwise, upgrade via pip:
