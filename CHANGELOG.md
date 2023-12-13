@@ -1,6 +1,7 @@
 ## dev
 
 - [docs] Add Scoop installation instructions
+- [docs] Change Ubuntu <=22.04 installation instructions to also use a global installation (with own virtual environment)
 
 ## 1.3.3
 
