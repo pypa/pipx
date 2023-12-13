@@ -11,14 +11,14 @@ pipx works on macOS, linux, and Windows.
 
 ## Installing pipx
 
-#### On macOS:
+### On macOS:
 
 ```
 brew install pipx
 pipx ensurepath
 ```
 
-#### On Linux:
+### On Linux:
 
 - Ubuntu 23.04 or above
 
@@ -36,7 +36,7 @@ python3 -m pipx ensurepath
 ```
 
 
-#### On Windows:
+### On Windows:
 
 - Install via [Scoop](https://scoop.sh/):
 
