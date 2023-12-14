@@ -21,7 +21,8 @@
 - Drop `setuptools` and `wheel` from the shared libraries. This results in less time consumption when the libraries are
   automatically upgraded.
 - Allow running `pip` with `pipx run`
-- Support PEP 723 run requirements in `pipx run`.
+- Support [inline script metadata](https://packaging.python.org/en/latest/specifications/inline-script-metadata/)
+  in `pipx run`.
 - Imply `--include-apps` when running `pipx inject --include-deps`
 - Add `--with-suffix` for `pipx inject` command
 - `pipx install`: emit a warning when `--force` and `--python` were passed at the same time

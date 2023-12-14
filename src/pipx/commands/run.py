@@ -319,13 +319,13 @@ def _http_get_request(url: str) -> str:
         raise PipxError(str(e)) from e
 
 
-# This regex comes from PEP 723
-PEP723 = re.compile(r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$")
+# This regex comes from the inline script metadata spec
+INLINE_SCRIPT_METADATA = re.compile(r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$")
 
 
 def _get_requirements_from_script(content: str) -> Optional[List[str]]:
     """
-    Supports PEP 723.
+    Supports inline script metadata.
     """
 
     name = "pyproject"
@@ -333,7 +333,7 @@ def _get_requirements_from_script(content: str) -> Optional[List[str]]:
     # Windows is currently getting un-normalized line endings, so normalize
     content = content.replace("\r\n", "\n")
 
-    matches = [m for m in PEP723.finditer(content) if m.group("type") == name]
+    matches = [m for m in INLINE_SCRIPT_METADATA.finditer(content) if m.group("type") == name]
 
     if not matches:
         return None

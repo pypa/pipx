@@ -103,8 +103,9 @@ virtualenvs with their dependencies installed.
 
 - Both [fades](https://github.com/PyAr/fades#how-to-mark-the-dependencies-to-be-installed) and
   [pipx run](examples.md#pipx-run-examples) allow specifying a script's dependencies in specially formatted comments,
-  but the exact syntax differs (see also [PEP 722](https://peps.python.org/pep-0722/) which seeks to standardize such
-  syntax).
+  but the exact syntax differs. (pipx's syntax is standardized by a
+  [provisional specification](https://packaging.python.org/en/latest/specifications/inline-script-metadata/),
+  fades's syntax is not standardized.)
 - Both tools automatically set up reusable virtualenvs containing the necessary dependencies.
 - Both can download Python scripts/packages to execute from remote resources.
 - fades can only run individual script files while pipx can also run packages.
