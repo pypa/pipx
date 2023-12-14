@@ -30,7 +30,7 @@ jobs:
         run:
           nox --non-interactive --session create_test_package_list-${{ matrix.python-version }} -- ./new_tests_packages
       - name: Store reports as artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: lists
           path: ./new_tests_packages
