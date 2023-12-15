@@ -355,8 +355,8 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
         "--python",
         # Don't pass a default Python here so we know whether --python flag was passed
         help=(
-            "Python to install with. Possible values can be the executable name (python3.11), "
-            "the version to pass to py launcher (3.11), or the full path to the executable."
+            "Python to run with. Possible values can be the version to pass to py launcher "
+            "(3.11) or the full path to the executable. "
             f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )
@@ -616,8 +616,8 @@ def _add_run(subparsers: argparse._SubParsersAction) -> None:
         "--python",
         default=DEFAULT_PYTHON,
         help=(
-            "Python to run with. Possible values can be the executable name (python3.11), "
-            "the version to pass to py launcher (3.11), or the full path to the executable. "
+            "Python to run with. Possible values can be the version to pass to py launcher "
+            "(3.11) or the full path to the executable. "
             f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )

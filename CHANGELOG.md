@@ -1,5 +1,6 @@
 ## dev
 
+- Fix `--help` by removing the option to pass an executable name to `--python`
 - [docs] Add Scoop installation instructions
 
 ## 1.3.3
