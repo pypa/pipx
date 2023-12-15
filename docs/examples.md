@@ -3,7 +3,7 @@
 ```
 pipx install pycowsay
 pipx install --python python3.10 pycowsay
-pipx install --python 3.11 pycowsay
+pipx install --python 3.12 pycowsay
 pipx install git+https://github.com/psf/black
 pipx install git+https://github.com/psf/black.git@branch-name
 pipx install git+https://github.com/psf/black.git@git-hash
@@ -15,6 +15,7 @@ pipx install --suffix @branch-name 'black[d] @ git+https://github.com/psf/black.
 pipx install --include-deps jupyter
 pipx install --pip-args='--pre' poetry
 pipx install --pip-args='--index-url=<private-repo-host>:<private-repo-port> --trusted-host=<private-repo-host>:<private-repo-port>' private-repo-package
+pipx install --index-url https://test.pypi.org/simple/ --pip-args='--extra-index-url https://pypi.org/simple/' some-package
 ```
 
 ## `pipx run` examples
@@ -51,10 +52,9 @@ pipx run https://example.com/test.py
 pipx run https://example.com/test.py 1 2 3
 ```
 
-A simple filename is ambiguous - it could be a file, or a package on PyPI. It
-will be treated as a filename if the file exists, or as a package if not. To
-force interpretation as a local path, use `--path`, and to force interpretation
-as a package name, use `--spec` (with the PyPI name of the package).
+A simple filename is ambiguous - it could be a file, or a package on PyPI. It will be treated as a filename if the file
+exists, or as a package if not. To force interpretation as a local path, use `--path`, and to force interpretation as a
+package name, use `--spec` (with the PyPI name of the package).
 
 ```
 pipx run myscript.py # Local file, if myscript.py exists
@@ -98,7 +98,8 @@ pipx install ptpython
 pipx inject ptpython requests pendulum
 ```
 
-After running the above commands, you will be able to import and use the `requests` and `pendulum` packages inside a `ptpython` repl.
+After running the above commands, you will be able to import and use the `requests` and `pendulum` packages inside a
+`ptpython` repl.
 
 ## `pipx list` example
 

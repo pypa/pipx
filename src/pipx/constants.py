@@ -10,6 +10,8 @@ from platformdirs import user_cache_path, user_data_path, user_log_path
 DEFAULT_PIPX_HOME = user_data_path("pipx")
 FALLBACK_PIPX_HOME = Path.home() / ".local/pipx"
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
+DEFAULT_PIPX_MAN_DIR = Path.home() / ".local/share/man"
+MAN_SECTIONS = ["man%d" % i for i in range(1, 10)]
 
 if FALLBACK_PIPX_HOME.exists() or os.environ.get("PIPX_HOME") is not None:
     PIPX_HOME = Path(os.environ.get("PIPX_HOME", FALLBACK_PIPX_HOME)).resolve()
@@ -26,11 +28,10 @@ else:
     PIPX_TRASH_DIR = PIPX_HOME / "trash"
     PIPX_VENV_CACHEDIR = user_cache_path("pipx")
 
-PIPX_SHARED_LIBS = Path(
-    os.environ.get("PIPX_SHARED_LIBS", DEFAULT_PIPX_SHARED_LIBS)
-).resolve()
+PIPX_SHARED_LIBS = Path(os.environ.get("PIPX_SHARED_LIBS", DEFAULT_PIPX_SHARED_LIBS)).resolve()
 PIPX_SHARED_PTH = "pipx_shared.pth"
 LOCAL_BIN_DIR = Path(os.environ.get("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)).resolve()
+LOCAL_MAN_DIR = Path(os.environ.get("PIPX_MAN_DIR", DEFAULT_PIPX_MAN_DIR)).resolve()
 TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 14
 MINIMUM_PYTHON_VERSION = "3.8"
 

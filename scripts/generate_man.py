@@ -3,6 +3,7 @@
 import os.path
 import sys
 import textwrap
+from typing import cast
 
 from build_manpages.manpage import Manpage  # type: ignore
 
@@ -12,7 +13,7 @@ from pipx.main import get_command_parser
 def main():
     sys.argv[0] = "pipx"
     parser = get_command_parser()
-    parser.man_short_description = parser.description.splitlines()[1]
+    parser.man_short_description = cast(str, parser.description).splitlines()[1]  # type: ignore[attr-defined]
 
     manpage = Manpage(parser)
     body = str(manpage)
@@ -27,7 +28,7 @@ def main():
         .IR pipx (1)
         was written by Chad Smith and contributors.
         The project can be found online at
-        .UR https://pypa.github.io/pipx/
+        .UR https://pipx.pypa.io
         .UE
         .SH SEE ALSO
         .IR pip (1),

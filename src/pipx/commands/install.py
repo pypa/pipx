@@ -14,6 +14,7 @@ def install(
     package_names: Optional[List[str]],
     package_specs: List[str],
     local_bin_dir: Path,
+    local_man_dir: Path,
     python: Optional[str],
     pip_args: List[str],
     venv_args: List[str],
@@ -34,16 +35,12 @@ def install(
 
     if package_names is None:
         package_names = [
-            package_name_from_spec(
-                package_spec, python, pip_args=pip_args, verbose=verbose
-            )
+            package_name_from_spec(package_spec, python, pip_args=pip_args, verbose=verbose)
             for package_spec in package_specs
         ]
     elif len(package_names) != len(package_specs):
         package_names = [
-            package_name_from_spec(
-                package_spec, python, pip_args=pip_args, verbose=verbose
-            )
+            package_name_from_spec(package_spec, python, pip_args=pip_args, verbose=verbose)
             for package_spec in package_specs
         ]
 
@@ -71,7 +68,7 @@ def install(
                 )
             if force:
                 print(f"Installing to existing venv {venv.name!r}")
-                pip_args += ["--force-reinstall"]
+                pip_args = ["--force-reinstall"] + pip_args
             else:
                 print(
                     pipx_wrap(
@@ -89,9 +86,7 @@ def install(
             override_shared = package_name == "pip"
             venv.create_venv(venv_args, pip_args, override_shared)
             for dep in preinstall_packages or []:
-                dep_name = package_name_from_spec(
-                    dep, python, pip_args=pip_args, verbose=verbose
-                )
+                dep_name = package_name_from_spec(dep, python, pip_args=pip_args, verbose=verbose)
                 venv.upgrade_package_no_metadata(dep_name, [])
             venv.install_package(
                 package_name=package_name,
@@ -106,6 +101,7 @@ def install(
                 venv,
                 package_name,
                 local_bin_dir,
+                local_man_dir,
                 venv_dir,
                 include_dependencies,
                 force=force,

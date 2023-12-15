@@ -84,12 +84,10 @@ class VenvContainer:
 class Venv:
     """Abstraction for a virtual environment with various useful methods for pipx"""
 
-    def __init__(
-        self, path: Path, *, verbose: bool = False, python: str = DEFAULT_PYTHON
-    ) -> None:
+    def __init__(self, path: Path, *, verbose: bool = False, python: str = DEFAULT_PYTHON) -> None:
         self.root = path
         self.python = python
-        self.bin_path, self.python_path = get_venv_paths(self.root)
+        self.bin_path, self.python_path, self.man_path = get_venv_paths(self.root)
         self.pipx_metadata = PipxMetadata(venv_dir=path)
         self.verbose = verbose
         self.do_animation = not verbose
@@ -121,10 +119,7 @@ class Venv:
     @property
     def name(self) -> str:
         if self.pipx_metadata.main_package.package is not None:
-            venv_name = (
-                f"{self.pipx_metadata.main_package.package}"
-                f"{self.pipx_metadata.main_package.suffix}"
-            )
+            venv_name = f"{self.pipx_metadata.main_package.package}" f"{self.pipx_metadata.main_package.suffix}"
         else:
             venv_name = self.root.name
         return venv_name
@@ -142,9 +137,7 @@ class Venv:
     def package_metadata(self) -> Dict[str, PackageInfo]:
         return_dict = self.pipx_metadata.injected_packages.copy()
         if self.pipx_metadata.main_package.package is not None:
-            return_dict[
-                self.pipx_metadata.main_package.package
-            ] = self.pipx_metadata.main_package
+            return_dict[self.pipx_metadata.main_package.package] = self.pipx_metadata.main_package
         return return_dict
 
     @property
@@ -156,9 +149,7 @@ class Venv:
         else:
             return self.pipx_metadata.main_package.package
 
-    def create_venv(
-        self, venv_args: List[str], pip_args: List[str], override_shared: bool = False
-    ) -> None:
+    def create_venv(self, venv_args: List[str], pip_args: List[str], override_shared: bool = False) -> None:
         """
         override_shared -- Override installing shared libraries to the pipx shared directory (default False)
         """
@@ -238,9 +229,7 @@ class Venv:
         package_or_url = fix_package_name(package_or_url, package_name)
 
         # check syntax and clean up spec and pip_args
-        (package_or_url, pip_args) = parse_specifier_for_install(
-            package_or_url, pip_args
-        )
+        (package_or_url, pip_args) = parse_specifier_for_install(package_or_url, pip_args)
 
         with animate(
             f"installing {full_package_description(package_name, package_or_url)}",
@@ -262,9 +251,7 @@ class Venv:
             pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False)
         subprocess_post_check_handle_pip_error(pip_process)
         if pip_process.returncode:
-            raise PipxError(
-                f"Error installing {full_package_description(package_name, package_or_url)}."
-            )
+            raise PipxError(f"Error installing {full_package_description(package_name, package_or_url)}.")
 
         self._update_package_metadata(
             package_name=package_name,
@@ -286,9 +273,7 @@ class Venv:
                 wrap_message=False,
             )
 
-    def install_unmanaged_packages(
-        self, requirements: List[str], pip_args: List[str]
-    ) -> None:
+    def install_unmanaged_packages(self, requirements: List[str], pip_args: List[str]) -> None:
         """Install packages in the venv, but do not record them in the metadata."""
 
         # Note: We want to install everything at once, as that lets
@@ -313,9 +298,7 @@ class Venv:
             raise PipxError(f"Error installing {', '.join(requirements)}.")
 
     def install_package_no_deps(self, package_or_url: str, pip_args: List[str]) -> str:
-        with animate(
-            f"determining package name from {package_or_url!r}", self.do_animation
-        ):
+        with animate(f"determining package name from {package_or_url!r}", self.do_animation):
             old_package_set = self.list_installed_packages()
             cmd = [
                 "--no-input",
@@ -350,16 +333,10 @@ class Venv:
 
         return package_name
 
-    def get_venv_metadata_for_package(
-        self, package_name: str, package_extras: Set[str]
-    ) -> VenvMetadata:
+    def get_venv_metadata_for_package(self, package_name: str, package_extras: Set[str]) -> VenvMetadata:
         data_start = time.time()
-        venv_metadata = inspect_venv(
-            package_name, package_extras, self.bin_path, self.python_path
-        )
-        logger.info(
-            f"get_venv_metadata_for_package: {1e3*(time.time()-data_start):.0f}ms"
-        )
+        venv_metadata = inspect_venv(package_name, package_extras, self.bin_path, self.python_path, self.man_path)
+        logger.info(f"get_venv_metadata_for_package: {1e3*(time.time()-data_start):.0f}ms")
         return venv_metadata
 
     def _update_package_metadata(
@@ -372,9 +349,7 @@ class Venv:
         is_main_package: bool,
         suffix: str = "",
     ) -> None:
-        venv_package_metadata = self.get_venv_metadata_for_package(
-            package_name, get_extras(package_or_url)
-        )
+        venv_package_metadata = self.get_venv_metadata_for_package(package_name, get_extras(package_or_url))
         package_info = PackageInfo(
             package=package_name,
             package_or_url=parse_specifier_for_metadata(package_or_url),
@@ -385,6 +360,10 @@ class Venv:
             app_paths=venv_package_metadata.app_paths,
             apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
             app_paths_of_dependencies=venv_package_metadata.app_paths_of_dependencies,
+            man_pages=venv_package_metadata.man_pages,
+            man_paths=venv_package_metadata.man_paths,
+            man_pages_of_dependencies=venv_package_metadata.man_pages_of_dependencies,
+            man_paths_of_dependencies=venv_package_metadata.man_paths_of_dependencies,
             package_version=venv_package_metadata.package_version,
             suffix=suffix,
         )
@@ -400,8 +379,7 @@ class Venv:
 
     def list_installed_packages(self, not_required=False) -> Set[str]:
         cmd_run = run_subprocess(
-            [str(self.python_path), "-m", "pip", "list", "--format=json"]
-            + (["--not-required"] if not_required else [])
+            [str(self.python_path), "-m", "pip", "list", "--format=json"] + (["--not-required"] if not_required else [])
         )
         pip_list = json.loads(cmd_run.stdout.strip())
         return {x["name"] for x in pip_list}
@@ -409,9 +387,7 @@ class Venv:
     def _find_entry_point(self, app: str) -> Optional[EntryPoint]:
         if not self.python_path.exists():
             return None
-        dists = Distribution.discover(
-            name=self.main_package_name, path=[str(get_site_packages(self.python_path))]
-        )
+        dists = Distribution.discover(name=self.main_package_name, path=[str(get_site_packages(self.python_path))])
         for dist in dists:
             for ep in dist.entry_points:
                 if ep.group == "pipx.run" and ep.name == app:
@@ -431,11 +407,7 @@ class Venv:
         match = _entry_point_value_pattern.match(entry_point.value)
         assert match is not None, "invalid entry point"
         module, attr = match.group("module", "attr")
-        code = (
-            f"import sys, {module}\n"
-            f"sys.argv[0] = {entry_point.name!r}\n"
-            f"sys.exit({module}.{attr}())\n"
-        )
+        code = f"import sys, {module}\n" f"sys.argv[0] = {entry_point.name!r}\n" f"sys.exit({module}.{attr}())\n"
         exec_app([str(self.python_path), "-c", code] + app_args)
 
     def has_app(self, app: str, filename: str) -> bool:
@@ -443,16 +415,12 @@ class Venv:
             return True
         return (self.bin_path / filename).is_file()
 
-    def upgrade_package_no_metadata(
-        self, package_name: str, pip_args: List[str]
-    ) -> None:
+    def upgrade_package_no_metadata(self, package_name: str, pip_args: List[str]) -> None:
         with animate(
             f"upgrading {full_package_description(package_name, package_name)}",
             self.do_animation,
         ):
-            pip_process = self._run_pip(
-                ["--no-input", "install"] + pip_args + ["--upgrade", package_name]
-            )
+            pip_process = self._run_pip(["--no-input", "install"] + pip_args + ["--upgrade", package_name])
         subprocess_post_check(pip_process)
 
     def upgrade_package(
@@ -469,9 +437,7 @@ class Venv:
             f"upgrading {full_package_description(package_name, package_or_url)}",
             self.do_animation,
         ):
-            pip_process = self._run_pip(
-                ["--no-input", "install"] + pip_args + ["--upgrade", package_or_url]
-            )
+            pip_process = self._run_pip(["--no-input", "install"] + pip_args + ["--upgrade", package_or_url])
         subprocess_post_check(pip_process)
 
         self._update_package_metadata(
@@ -494,9 +460,7 @@ class Venv:
         cmd = [str(self.python_path), "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
-        returncode = run_subprocess(
-            cmd, capture_stdout=False, capture_stderr=False
-        ).returncode
+        returncode = run_subprocess(cmd, capture_stdout=False, capture_stderr=False).returncode
         if returncode:
             cmd_str = " ".join(str(c) for c in cmd)
             logger.error(f"{cmd_str!r} failed")

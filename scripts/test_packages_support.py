@@ -14,9 +14,7 @@ else:
 
 
 def get_platform_list_path(package_list_dir_path: Path) -> Path:
-    platform_package_list_path = (
-        package_list_dir_path / f"{FULL_PLATFORM}-python{PYTHON_VERSION_STR}.txt"
-    )
+    platform_package_list_path = package_list_dir_path / f"{FULL_PLATFORM}-python{PYTHON_VERSION_STR}.txt"
     return platform_package_list_path
 
 

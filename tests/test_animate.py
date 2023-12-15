@@ -40,9 +40,7 @@ def check_animate_output(
 
     print("check_animate_output() Test Debug Output:")
     if len(captured.err) < chars_to_test:
-        print(
-            "Not enough captured characters--Likely need to increase extra_animate_time"
-        )
+        print("Not enough captured characters--Likely need to increase extra_animate_time")
     print(f"captured characters: {len(captured.err)}")
     print(f"chars_to_test: {chars_to_test}")
     for i in range(0, chars_to_test, 40):
@@ -82,12 +80,8 @@ def test_line_lengths_emoji(capsys, monkeypatch, env_columns, expected_frame_mes
     monkeypatch.setenv("COLUMNS", str(env_columns))
 
     frames_to_test = 4
-    frame_strings = [
-        f"\r{CLEAR_LINE}{x} {expected_frame_message}" for x in EMOJI_ANIMATION_FRAMES
-    ]
-    check_animate_output(
-        capsys, TEST_STRING_40_CHAR, frame_strings, EMOJI_FRAME_PERIOD, frames_to_test
-    )
+    frame_strings = [f"\r{CLEAR_LINE}{x} {expected_frame_message}" for x in EMOJI_ANIMATION_FRAMES]
+    check_animate_output(capsys, TEST_STRING_40_CHAR, frame_strings, EMOJI_FRAME_PERIOD, frames_to_test)
 
 
 @pytest.mark.parametrize(
@@ -98,9 +92,7 @@ def test_line_lengths_emoji(capsys, monkeypatch, env_columns, expected_frame_mes
         (45, f"{TEST_STRING_40_CHAR}"),
     ],
 )
-def test_line_lengths_no_emoji(
-    capsys, monkeypatch, env_columns, expected_frame_message
-):
+def test_line_lengths_no_emoji(capsys, monkeypatch, env_columns, expected_frame_message):
     # EMOJI_SUPPORT and stderr_is_tty is set only at import animate.py
     # since we are already after that, we must override both here
     monkeypatch.setattr(pipx.animate, "stderr_is_tty", True)
@@ -109,9 +101,7 @@ def test_line_lengths_no_emoji(
     monkeypatch.setenv("COLUMNS", str(env_columns))
 
     frames_to_test = 2
-    frame_strings = [
-        f"\r{CLEAR_LINE}{expected_frame_message}{x}" for x in NONEMOJI_ANIMATION_FRAMES
-    ]
+    frame_strings = [f"\r{CLEAR_LINE}{expected_frame_message}{x}" for x in NONEMOJI_ANIMATION_FRAMES]
 
     check_animate_output(
         capsys,
@@ -122,9 +112,7 @@ def test_line_lengths_no_emoji(
     )
 
 
-@pytest.mark.parametrize(
-    "env_columns,stderr_is_tty", [(0, True), (8, True), (16, True), (17, False)]
-)
+@pytest.mark.parametrize("env_columns,stderr_is_tty", [(0, True), (8, True), (16, True), (17, False)])
 def test_env_no_animate(capsys, monkeypatch, env_columns, stderr_is_tty):
     monkeypatch.setattr(pipx.animate, "stderr_is_tty", stderr_is_tty)
     monkeypatch.setenv("COLUMNS", str(env_columns))

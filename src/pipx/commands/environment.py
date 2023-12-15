@@ -3,6 +3,7 @@ import os
 from pipx.constants import (
     EXIT_CODE_OK,
     LOCAL_BIN_DIR,
+    LOCAL_MAN_DIR,
     PIPX_HOME,
     PIPX_LOCAL_VENVS,
     PIPX_LOG_DIR,
@@ -21,6 +22,7 @@ def environment(value: str) -> ExitCode:
     environment_variables = [
         "PIPX_HOME",
         "PIPX_BIN_DIR",
+        "PIPX_MAN_DIR",
         "PIPX_SHARED_LIBS",
         "PIPX_DEFAULT_PYTHON",
         "USE_EMOJI",
@@ -28,6 +30,7 @@ def environment(value: str) -> ExitCode:
     derived_values = {
         "PIPX_HOME": PIPX_HOME,
         "PIPX_BIN_DIR": LOCAL_BIN_DIR,
+        "PIPX_MAN_DIR": LOCAL_MAN_DIR,
         "PIPX_SHARED_LIBS": PIPX_SHARED_LIBS,
         "PIPX_LOCAL_VENVS": PIPX_LOCAL_VENVS,
         "PIPX_LOG_DIR": PIPX_LOG_DIR,

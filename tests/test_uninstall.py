@@ -27,7 +27,7 @@ def test_uninstall_circular_deps(pipx_temp_env):
     assert not run_pipx_cli(["uninstall", "cloudtoken"])
 
 
-@pytest.mark.parametrize("metadata_version", [None, "0.1"])
+@pytest.mark.parametrize("metadata_version", [None, "0.1", "0.2"])
 def test_uninstall_legacy_venv(pipx_temp_env, metadata_version):
     executable_path = constants.LOCAL_BIN_DIR / app_name("pycowsay")
 
@@ -51,25 +51,37 @@ def test_uninstall_suffix(pipx_temp_env):
     assert not file_or_symlink(executable_path)
 
 
+def test_uninstall_man_page(pipx_temp_env):
+    man_page_path = constants.LOCAL_MAN_DIR / "man6" / "pycowsay.6"
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert man_page_path.exists()
+    assert not run_pipx_cli(["uninstall", "pycowsay"])
+    assert not file_or_symlink(man_page_path)
+
+
 def test_uninstall_injected(pipx_temp_env):
-    pycowsay_app_paths = [
-        constants.LOCAL_BIN_DIR / app for app in PKG["pycowsay"]["apps"]
-    ]
+    pycowsay_app_paths = [constants.LOCAL_BIN_DIR / app for app in PKG["pycowsay"]["apps"]]
+    pycowsay_man_page_paths = [constants.LOCAL_MAN_DIR / man_page for man_page in PKG["pycowsay"]["man_pages"]]
     pylint_app_paths = [constants.LOCAL_BIN_DIR / app for app in PKG["pylint"]["apps"]]
     app_paths = pycowsay_app_paths + pylint_app_paths
+    man_page_paths = pycowsay_man_page_paths
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
-    assert not run_pipx_cli(
-        ["inject", "--include-apps", "pycowsay", PKG["pylint"]["spec"]]
-    )
+    assert not run_pipx_cli(["inject", "--include-apps", "pycowsay", PKG["pylint"]["spec"]])
 
     for app_path in app_paths:
         assert app_path.exists()
+
+    for man_page_path in man_page_paths:
+        assert man_page_path.exists()
 
     assert not run_pipx_cli(["uninstall", "pycowsay"])
 
     for app_path in app_paths:
         assert not file_or_symlink(app_path)
+
+    for man_page_path in man_page_paths:
+        assert not file_or_symlink(man_page_path)
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])
@@ -130,9 +142,7 @@ def test_uninstall_proper_dep_behavior(pipx_temp_env, metadata_version):
 
 
 @pytest.mark.parametrize("metadata_version", [None, "0.1", "0.2"])
-def test_uninstall_proper_dep_behavior_missing_interpreter(
-    pipx_temp_env, metadata_version
-):
+def test_uninstall_proper_dep_behavior_missing_interpreter(pipx_temp_env, metadata_version):
     # isort is a dependency of pylint.  Make sure that uninstalling pylint
     #   does not also uninstall isort app in LOCAL_BIN_DIR
     isort_app_paths = [constants.LOCAL_BIN_DIR / app for app in PKG["isort"]["apps"]]

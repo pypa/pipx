@@ -1,31 +1,36 @@
 name: Create tests package lists for offline tests
 on:
   workflow_dispatch:
-
+concurrency:
+  group: create-tests-package-lists-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   create_package_lists:
     name: Create package lists
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
-
+        os: [ubuntu-latest]
+        python-version: ["3.12", "3.11", "3.10", "3.9", "3.8"]
+        include:
+          - os: macos-latest
+            python-version: "3.12"
+          - os: windows-latest
+            python-version: "3.12"
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Upgrade pip, Install nox
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install nox
-    - name: Create lists
-      run: |
-        nox --non-interactive --session create_test_package_list-${{ matrix.python-version }} -- ./new_tests_packages
-    - name: Store reports as artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: lists
-        path: ./new_tests_packages
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+      - name: Install nox
+        run: python -m pip install nox
+      - name: Create lists
+        run:
+          nox --non-interactive --session create_test_package_list-${{ matrix.python-version }} -- ./new_tests_packages
+      - name: Store reports as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: lists
+          path: ./new_tests_packages

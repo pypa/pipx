@@ -90,9 +90,7 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
             )
         )
     else:
-        print(
-            pipx_wrap(f"{location_str} is already in PATH.", subsequent_indent=" " * 4)
-        )
+        print(pipx_wrap(f"{location_str} is already in PATH.", subsequent_indent=" " * 4))
 
     return (path_added, need_shell_restart)
 
@@ -108,9 +106,7 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
     path_added = False
     need_shell_restart = False
     for bin_path in bin_paths:
-        (path_added_current, need_shell_restart_current) = ensure_path(
-            bin_path, force=force
-        )
+        (path_added_current, need_shell_restart_current) = ensure_path(bin_path, force=force)
         path_added |= path_added_current
         need_shell_restart |= need_shell_restart_current
 

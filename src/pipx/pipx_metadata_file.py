@@ -37,12 +37,16 @@ class PackageInfo(NamedTuple):
     apps_of_dependencies: List[str]
     app_paths_of_dependencies: Dict[str, List[Path]]
     package_version: str
+    man_pages: List[str] = []
+    man_paths: List[Path] = []
+    man_pages_of_dependencies: List[str] = []
+    man_paths_of_dependencies: Dict[str, List[Path]] = {}
     suffix: str = ""
 
 
 class PipxMetadata:
     # Only change this if file format changes
-    __METADATA_VERSION__: str = "0.2"
+    __METADATA_VERSION__: str = "0.3"
 
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
@@ -61,6 +65,10 @@ class PipxMetadata:
             app_paths=[],
             apps_of_dependencies=[],
             app_paths_of_dependencies={},
+            man_pages=[],
+            man_paths=[],
+            man_pages_of_dependencies=[],
+            man_paths_of_dependencies={},
             package_version="",
         )
         self.python_version: Optional[str] = None
@@ -75,22 +83,18 @@ class PipxMetadata:
             "main_package": self.main_package._asdict(),
             "python_version": self.python_version,
             "venv_args": self.venv_args,
-            "injected_packages": {
-                name: data._asdict() for (name, data) in self.injected_packages.items()
-            },
+            "injected_packages": {name: data._asdict() for (name, data) in self.injected_packages.items()},
             "pipx_metadata_version": self.__METADATA_VERSION__,
         }
 
     def _convert_legacy_metadata(self, metadata_dict: Dict[str, Any]) -> Dict[str, Any]:
-        if metadata_dict["pipx_metadata_version"] == self.__METADATA_VERSION__:
+        if metadata_dict["pipx_metadata_version"] in ("0.2", self.__METADATA_VERSION__):
             return metadata_dict
         elif metadata_dict["pipx_metadata_version"] == "0.1":
             main_package_data = metadata_dict["main_package"]
             if main_package_data["package"] != self.venv_dir.name:
                 # handle older suffixed packages gracefully
-                main_package_data["suffix"] = self.venv_dir.name.replace(
-                    main_package_data["package"], ""
-                )
+                main_package_data["suffix"] = self.venv_dir.name.replace(main_package_data["package"], "")
             return metadata_dict
         else:
             raise PipxError(
@@ -123,9 +127,7 @@ class PipxMetadata:
     def write(self) -> None:
         self._validate_before_write()
         try:
-            with open(
-                self.venv_dir / PIPX_INFO_FILENAME, "w", encoding="utf-8"
-            ) as pipx_metadata_fh:
+            with open(self.venv_dir / PIPX_INFO_FILENAME, "w", encoding="utf-8") as pipx_metadata_fh:
                 json.dump(
                     self.to_dict(),
                     pipx_metadata_fh,
@@ -149,9 +151,7 @@ class PipxMetadata:
     def read(self, verbose: bool = False) -> None:
         try:
             with open(self.venv_dir / PIPX_INFO_FILENAME, "rb") as pipx_metadata_fh:
-                self.from_dict(
-                    json.load(pipx_metadata_fh, object_hook=_json_decoder_object_hook)
-                )
+                self.from_dict(json.load(pipx_metadata_fh, object_hook=_json_decoder_object_hook))
         except OSError:  # Reset self if problem reading
             if verbose:
                 logger.warning(

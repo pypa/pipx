@@ -30,9 +30,7 @@ def _env_supports_animation() -> bool:
 
 
 @contextmanager
-def animate(
-    message: str, do_animation: bool, *, delay: float = 0
-) -> Generator[None, None, None]:
+def animate(message: str, do_animation: bool, *, delay: float = 0) -> Generator[None, None, None]:
     if not do_animation or not _env_supports_animation():
         # No animation, just a single print of message
         sys.stderr.write(f"{message}...\n")

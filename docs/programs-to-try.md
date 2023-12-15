@@ -1,6 +1,7 @@
 ## Programs
 
-Here are some programs you can try out. If you've never used the program before, make sure you add the `--help` flag so it doesn't do something you don't expect. If you decide you want to install, you can run `pipx install PACKAGE` instead.
+Here are some programs you can try out. If you've never used the program before, make sure you add the `--help` flag so
+it doesn't do something you don't expect. If you decide you want to install, you can run `pipx install PACKAGE` instead.
 
 ### ansible
 
@@ -140,7 +141,7 @@ pipx run pyinstaller
 
 ### pyxtermjs
 
-fully functional terminal in the browser  
+fully functional terminal in the browser
 
 ```
 pipx run pyxtermjs

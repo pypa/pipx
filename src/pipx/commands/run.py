@@ -132,9 +132,7 @@ def run_package(
 
     pypackage_bin_path = get_pypackage_bin_path(app)
     if pypackage_bin_path.exists():
-        logger.info(
-            f"Using app in local __pypackages__ directory at '{pypackage_bin_path}'"
-        )
+        logger.info(f"Using app in local __pypackages__ directory at '{pypackage_bin_path}'")
         run_pypackage_bin(pypackage_bin_path, app_args)
     if pypackages:
         raise PipxError(
@@ -229,9 +227,7 @@ def _download_and_run(
     if venv.pipx_metadata.main_package.package is not None:
         package_name = venv.pipx_metadata.main_package.package
     else:
-        package_name = package_name_from_spec(
-            package_or_url, python, pip_args=pip_args, verbose=verbose
-        )
+        package_name = package_name_from_spec(package_or_url, python, pip_args=pip_args, verbose=verbose)
 
     override_shared = package_name == "pip"
 
@@ -258,10 +254,7 @@ def _download_and_run(
             else:
                 app_filename = app
         else:
-            all_apps = (
-                f"{a} - usage: 'pipx run --spec {package_or_url} {a} [arguments?]'"
-                for a in apps
-            )
+            all_apps = (f"{a} - usage: 'pipx run --spec {package_or_url} {a} [arguments?]'" for a in apps)
             raise PipxError(
                 APP_NOT_FOUND_ERROR_MESSAGE.format(
                     app=app,
@@ -278,9 +271,7 @@ def _download_and_run(
     venv.run_app(app, app_filename, app_args)
 
 
-def _get_temporary_venv_path(
-    requirements: List[str], python: str, pip_args: List[str], venv_args: List[str]
-) -> Path:
+def _get_temporary_venv_path(requirements: List[str], python: str, pip_args: List[str], venv_args: List[str]) -> Path:
     """Computes deterministic path using hashing function on arguments relevant
     to virtual environment's end state. Arguments used should result in idempotent
     virtual environment. (i.e. args passed to app aren't relevant, but args
@@ -328,15 +319,13 @@ def _http_get_request(url: str) -> str:
         raise PipxError(str(e)) from e
 
 
-# This regex comes from PEP 723
-PEP723 = re.compile(
-    r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$"
-)
+# This regex comes from the inline script metadata spec
+INLINE_SCRIPT_METADATA = re.compile(r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$")
 
 
 def _get_requirements_from_script(content: str) -> Optional[List[str]]:
     """
-    Supports PEP 723.
+    Supports inline script metadata.
     """
 
     name = "pyproject"
@@ -344,7 +333,7 @@ def _get_requirements_from_script(content: str) -> Optional[List[str]]:
     # Windows is currently getting un-normalized line endings, so normalize
     content = content.replace("\r\n", "\n")
 
-    matches = [m for m in PEP723.finditer(content) if m.group("type") == name]
+    matches = [m for m in INLINE_SCRIPT_METADATA.finditer(content) if m.group("type") == name]
 
     if not matches:
         return None
@@ -353,8 +342,7 @@ def _get_requirements_from_script(content: str) -> Optional[List[str]]:
         raise ValueError(f"Multiple {name} blocks found")
 
     content = "".join(
-        line[2:] if line.startswith("# ") else line[1:]
-        for line in matches[0].group("content").splitlines(keepends=True)
+        line[2:] if line.startswith("# ") else line[1:] for line in matches[0].group("content").splitlines(keepends=True)
     )
 
     pyproject = tomllib.loads(content)

@@ -4,7 +4,7 @@ from typing import List, Sequence
 
 from pipx import constants
 from pipx.colors import bold, red
-from pipx.commands.common import expose_apps_globally
+from pipx.commands.common import expose_resources_globally
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojis import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
@@ -26,9 +26,7 @@ def _upgrade_package(
     package_metadata = venv.package_metadata[package_name]
 
     if package_metadata.package_or_url is None:
-        raise PipxError(
-            f"Internal Error: package {package_name} has corrupt pipx metadata."
-        )
+        raise PipxError(f"Internal Error: package {package_name} has corrupt pipx metadata.")
 
     package_or_url = parse_specifier_for_upgrade(package_metadata.package_or_url)
     old_version = package_metadata.package_version
@@ -49,21 +47,26 @@ def _upgrade_package(
     new_version = package_metadata.package_version
 
     if package_metadata.include_apps:
-        expose_apps_globally(
+        expose_resources_globally(
+            "app",
             constants.LOCAL_BIN_DIR,
             package_metadata.app_paths,
             force=force,
             suffix=package_metadata.suffix,
         )
+        expose_resources_globally("man", constants.LOCAL_MAN_DIR, package_metadata.man_paths, force=force)
 
     if package_metadata.include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
-            expose_apps_globally(
+            expose_resources_globally(
+                "app",
                 constants.LOCAL_BIN_DIR,
                 app_paths,
                 force=force,
                 suffix=package_metadata.suffix,
             )
+        for _, man_paths in package_metadata.man_paths_of_dependencies.items():
+            expose_resources_globally("man", constants.LOCAL_MAN_DIR, man_paths, force=force)
 
     if old_version == new_version:
         if upgrading_all:
@@ -185,10 +188,7 @@ def upgrade_all(
     venvs_upgraded = 0
     for venv_dir in venv_container.iter_venv_dirs():
         venv = Venv(venv_dir, verbose=verbose)
-        if (
-            venv_dir.name in skip
-            or "--editable" in venv.pipx_metadata.main_package.pip_args
-        ):
+        if venv_dir.name in skip or "--editable" in venv.pipx_metadata.main_package.pip_args:
             continue
         try:
             venvs_upgraded += _upgrade_venv(
@@ -206,13 +206,10 @@ def upgrade_all(
             logger.error(f"{e}\n")
 
     if venvs_upgraded == 0:
-        print(
-            f"Versions did not change after running 'pipx upgrade' for each package {sleep}"
-        )
+        print(f"Versions did not change after running 'pipx upgrade' for each package {sleep}")
     if venv_error:
         raise PipxError(
-            "\nSome packages encountered errors during upgrade.\n"
-            "    See specific error messages above.",
+            "\nSome packages encountered errors during upgrade.\n" "    See specific error messages above.",
             wrap_message=False,
         )
 

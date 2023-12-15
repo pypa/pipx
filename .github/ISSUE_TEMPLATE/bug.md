@@ -1,7 +1,6 @@
 ---
 name: Bug
 about: Report a bug or unexpected behavior.
-
 ---
 
 <!--
@@ -12,10 +11,13 @@ https://pypa.github.io/pipx/troubleshooting/
 -->
 
 **Describe the bug**
+
 <!-- Please be as detailed as possible! -->
 
 **How to reproduce**
+
 <!-- If possible, include output of `pipx --verbose ...` -->
 
 **Expected behavior**
+
 <!-- What should have happened? -->

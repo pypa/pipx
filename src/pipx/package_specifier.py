@@ -103,9 +103,7 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
     )
 
 
-def package_or_url_from_pep508(
-    requirement: Requirement, remove_version_specifiers: bool = False
-) -> str:
+def package_or_url_from_pep508(requirement: Requirement, remove_version_specifiers: bool = False) -> str:
     requirement.marker = None
     requirement.name = canonicalize_name(requirement.name)
     if remove_version_specifiers:
@@ -113,9 +111,7 @@ def package_or_url_from_pep508(
     return str(requirement)
 
 
-def _parsed_package_to_package_or_url(
-    parsed_package: ParsedPackage, remove_version_specifiers: bool
-) -> str:
+def _parsed_package_to_package_or_url(parsed_package: ParsedPackage, remove_version_specifiers: bool) -> str:
     if parsed_package.valid_pep508 is not None:
         if parsed_package.valid_pep508.marker is not None:
             logger.warning(
@@ -142,9 +138,7 @@ def _parsed_package_to_package_or_url(
     return package_or_url
 
 
-def parse_specifier_for_install(
-    package_spec: str, pip_args: List[str]
-) -> Tuple[str, List[str]]:
+def parse_specifier_for_install(package_spec: str, pip_args: List[str]) -> Tuple[str, List[str]]:
     """Return package_or_url and pip_args suitable for pip install
 
     Specifically:
@@ -153,9 +147,7 @@ def parse_specifier_for_install(
     * Convert local paths to absolute paths
     """
     parsed_package = _parse_specifier(package_spec)
-    package_or_url = _parsed_package_to_package_or_url(
-        parsed_package, remove_version_specifiers=False
-    )
+    package_or_url = _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=False)
     if "--editable" in pip_args and not parsed_package.valid_local_path:
         logger.warning(
             pipx_wrap(
@@ -180,9 +172,7 @@ def parse_specifier_for_metadata(package_spec: str) -> str:
     * Convert local paths to absolute paths
     """
     parsed_package = _parse_specifier(package_spec)
-    package_or_url = _parsed_package_to_package_or_url(
-        parsed_package, remove_version_specifiers=False
-    )
+    package_or_url = _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=False)
     return package_or_url
 
 
@@ -195,9 +185,7 @@ def parse_specifier_for_upgrade(package_spec: str) -> str:
     * Convert local paths to absolute paths
     """
     parsed_package = _parse_specifier(package_spec)
-    package_or_url = _parsed_package_to_package_or_url(
-        parsed_package, remove_version_specifiers=True
-    )
+    package_or_url = _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=True)
     return package_or_url
 
 

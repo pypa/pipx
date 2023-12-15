@@ -139,9 +139,7 @@ class ModuleGlobalsData:
     def __init__(self):
         self.errors_path = Path(".")
         self.install_data: List[PackageData] = []
-        self.py_version_display = "Python {0.major}.{0.minor}.{0.micro}".format(
-            sys.version_info
-        )
+        self.py_version_display = "Python {0.major}.{0.minor}.{0.micro}".format(sys.version_info)
         self.py_version_short = "{0.major}.{0.minor}".format(sys.version_info)
         self.report_path = Path(".")
         self.sys_platform = sys.platform
@@ -262,34 +260,46 @@ def format_report_table_footer(module_globals: ModuleGlobalsData) -> str:
     return footer_string
 
 
-def verify_installed_apps(
-    captured_outerr, package_name: str, test_error_fh: io.StringIO, deps: bool = False
+def verify_installed_resources(
+    resource_type: str,
+    captured_outerr,
+    package_name: str,
+    test_error_fh: io.StringIO,
+    deps: bool = False,
 ) -> bool:
-    package_apps = PKG[package_name]["apps"].copy()
+    resource_name = {"app": "apps", "man": "man_pages"}[resource_type]
+    resource_name_long = {"app": "apps", "man": "manual pages"}[resource_type]
+    package_resources = PKG[package_name][resource_name].copy()
     if deps:
-        package_apps += PKG[package_name]["apps_of_dependencies"]
+        package_resources += PKG[package_name]["%s_of_dependencies" % resource_name]
+    if len(package_resources) == 0:
+        return True
 
-    reported_apps_re = re.search(
-        r"These apps are now globally available(.+)", captured_outerr.out, re.DOTALL
+    reported_resources_re = re.search(
+        r"These " + resource_name_long + r" are now globally available\n((?:    - [^\n]+\n)*)",
+        captured_outerr.out,
+        re.DOTALL,
     )
-    if reported_apps_re:
-        reported_apps = [
-            x.strip()[2:] for x in reported_apps_re.group(1).strip().split("\n")
-        ]
-        if set(reported_apps) != set(package_apps):
-            app_success = False
+    if reported_resources_re:
+        reported_resources = [x.strip()[2:] for x in reported_resources_re.group(1).strip().split("\n")]
+        if set(reported_resources) != set(package_resources):
+            resource_success = False
+            print("verify_install: REPORTED APPS DO NOT MATCH PACKAGE", file=test_error_fh)
             print(
-                "verify_install: REPORTED APPS DO NOT MATCH PACKAGE", file=test_error_fh
+                f"pipx reported %s: {reported_resources}" % resource_name,
+                file=test_error_fh,
             )
-            print(f"pipx reported apps: {reported_apps}", file=test_error_fh)
-            print(f" true package apps: {package_apps}", file=test_error_fh)
+            print(
+                f" true package %s: {package_resources}" % resource_name,
+                file=test_error_fh,
+            )
         else:
-            app_success = True
+            resource_success = True
     else:
-        app_success = False
+        resource_success = False
         print("verify_install: APPS TESTING ERROR", file=test_error_fh)
 
-    return app_success
+    return resource_success
 
 
 def verify_post_install(
@@ -311,26 +321,26 @@ def verify_post_install(
             print("verify_install: WARNING IN CAPLOG:", file=test_error_fh)
             print(record.message, file=test_error_fh)
         if "Fatal error from pip prevented installation" in record.message:
-            pip_error_file_re = re.search(
-                r"pip output in file:\s+(\S.+)$", record.message
-            )
+            pip_error_file_re = re.search(r"pip output in file:\s+(\S.+)$", record.message)
             if pip_error_file_re:
                 pip_error_file = Path(pip_error_file_re.group(1))
 
     if install_success and PKG[package_name].get("apps", None) is not None:
-        app_success = verify_installed_apps(
-            captured_outerr, package_name, test_error_fh, deps=deps
-        )
+        app_success = verify_installed_resources("app", captured_outerr, package_name, test_error_fh, deps=deps)
     else:
         app_success = True
+    if install_success and (
+        PKG[package_name].get("man_pages", None) is not None
+        or PKG[package_name].get("man_pages_of_dependencies", None) is not None
+    ):
+        man_success = verify_installed_resources("man", captured_outerr, package_name, test_error_fh, deps=deps)
+    else:
+        man_success = True
 
-    pip_pass = not (
-        (pipx_exit_code != 0)
-        and f"Error installing {package_name}" in captured_outerr.err
-    )
+    pip_pass = not ((pipx_exit_code != 0) and f"Error installing {package_name}" in captured_outerr.err)
     pipx_pass: Optional[bool]
     if pip_pass:
-        pipx_pass = install_success and not caplog_problem and app_success
+        pipx_pass = install_success and not caplog_problem and app_success and man_success
     else:
         pipx_pass = None
 
@@ -349,8 +359,7 @@ def print_error_report(
         print("\n\n", file=errors_fh)
         print("=" * 79, file=errors_fh)
         print(
-            f"{package_spec:24}{test_type:16}{module_globals.sys_platform:16}"
-            f"{module_globals.py_version_display}",
+            f"{package_spec:24}{test_type:16}{module_globals.sys_platform:16}" f"{module_globals.py_version_display}",
             file=errors_fh,
         )
         print("\nSTDOUT:", file=errors_fh)
@@ -383,14 +392,11 @@ def install_and_verify(
 
     test_error_fh = io.StringIO()
 
-    monkeypatch.setenv(
-        "PATH", os.getenv("PATH_TEST" if using_clear_path else "PATH_ORIG")
-    )
+    monkeypatch.setenv("PATH", os.getenv("PATH_TEST" if using_clear_path else "PATH_ORIG"))
 
     start_time = time.time()
     pipx_exit_code = run_pipx_cli(
-        ["install", package_data.package_spec, "--verbose"]
-        + (["--include-deps"] if deps else [])
+        ["install", package_data.package_spec, "--verbose"] + (["--include-deps"] if deps else [])
     )
     elapsed_time = time.time() - start_time
     captured = capsys.readouterr()
