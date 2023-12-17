@@ -27,7 +27,7 @@ jobs:
         continue-on-error: true
         run: nox --non-interactive --session test_all_packages-${{ matrix.python-version }}
       - name: Store reports as artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reports-raw
           path: reports
@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Get report artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: reports-raw
       - name: Collate reports
@@ -57,7 +57,7 @@ jobs:
           cat all_packages_deps_errors_* > all_deps_errors_lf.txt
           tr -d '\r' < all_deps_errors_lf.txt > reports/all_deps_errors.txt
       - name: Store collated and raw reports as artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reports-final
           path: reports
