@@ -44,7 +44,7 @@ def install(
             for package_spec in package_specs
         ]
 
-    for package_name, package_spec in zip(package_names, package_specs, strict=True):
+    for package_name, package_spec in zip(package_names, package_specs):
         if venv_dir is None:
             venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
             venv_dir = venv_container.get_venv_dir(f"{package_name}{suffix}")
