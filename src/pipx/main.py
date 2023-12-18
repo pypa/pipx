@@ -103,7 +103,7 @@ INSTALL_DESCRIPTION = textwrap.dedent(
     dependency version conflicts or interfere with your OS's python
     packages. 'sudo' is not required to do this.
 
-    pipx install PACKAGE_NAME
+    pipx install PACKAGE_NAME ...
     pipx install --python PYTHON PACKAGE_NAME
     pipx install VCS_URL
     pipx install ./LOCAL_PATH
@@ -334,7 +334,7 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
         formatter_class=LineWrapRawTextHelpFormatter,
         description=INSTALL_DESCRIPTION,
     )
-    p.add_argument("package_spec", help="package name or pip installation spec")
+    p.add_argument("package_spec", help="package name(s) or pip installation spec(s)", nargs="*")
     add_include_dependencies(p)
     p.add_argument("--verbose", action="store_true")
     p.add_argument(

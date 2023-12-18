@@ -58,8 +58,8 @@ def reinstall(
     # install main package first
     install(
         venv_dir,
-        venv.main_package_name,
-        package_or_url,
+        [venv.main_package_name],
+        [package_or_url],
         local_bin_dir,
         local_man_dir,
         python,

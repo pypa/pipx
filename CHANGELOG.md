@@ -1,6 +1,7 @@
 ## dev
 
 - [docs] Add Scoop installation instructions
+- Add ability to install multiple packages at once
 
 ## 1.3.3
 
