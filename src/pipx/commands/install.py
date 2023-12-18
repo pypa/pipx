@@ -11,8 +11,8 @@ from pipx.venv import Venv, VenvContainer
 
 def install(
     venv_dir: Optional[Path],
-    package_name: Optional[str],
-    package_spec: str,
+    package_names: Optional[List[str]],
+    package_specs: List[str],
     local_bin_dir: Path,
     local_man_dir: Path,
     python: Optional[str],
@@ -33,73 +33,82 @@ def install(
 
     python = python or DEFAULT_PYTHON
 
-    if package_name is None:
-        package_name = package_name_from_spec(package_spec, python, pip_args=pip_args, verbose=verbose)
-    if venv_dir is None:
-        venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
-        venv_dir = venv_container.get_venv_dir(f"{package_name}{suffix}")
+    package_names = package_names or []
+    if len(package_names) != len(package_specs):
+        package_names = [
+            package_name_from_spec(package_spec, python, pip_args=pip_args, verbose=verbose)
+            for package_spec in package_specs
+        ]
 
-    try:
-        exists = venv_dir.exists() and bool(next(venv_dir.iterdir()))
-    except StopIteration:
-        exists = False
+    for package_name, package_spec in zip(package_names, package_specs):
+        if venv_dir is None:
+            venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
+            venv_dir = venv_container.get_venv_dir(f"{package_name}{suffix}")
 
-    venv = Venv(venv_dir, python=python, verbose=verbose)
-    if exists:
-        if not reinstall and force and python_flag_was_passed:
-            print(
-                pipx_wrap(
-                    f"""
-                    --python is ignored when --force is passed.
-                    If you want to reinstall {package_name} with {python},
-                    run `pipx reinstall {package_spec} --python {python}` instead.
-                    """
+        try:
+            exists = venv_dir.exists() and bool(next(venv_dir.iterdir()))
+        except StopIteration:
+            exists = False
+
+        venv = Venv(venv_dir, python=python, verbose=verbose)
+        if exists:
+            if not reinstall and force and python_flag_was_passed:
+                print(
+                    pipx_wrap(
+                        f"""
+                        --python is ignored when --force is passed.
+                        If you want to reinstall {package_name} with {python},
+                        run `pipx reinstall {package_spec} --python {python}` instead.
+                        """
+                    )
                 )
-            )
-        if force:
-            print(f"Installing to existing venv {venv.name!r}")
-            pip_args = ["--force-reinstall"] + pip_args
-        else:
-            print(
-                pipx_wrap(
-                    f"""
-                    {venv.name!r} already seems to be installed. Not modifying
-                    existing installation in '{venv_dir}'. Pass '--force'
-                    to force installation.
-                    """
+            if force:
+                print(f"Installing to existing venv {venv.name!r}")
+                pip_args = ["--force-reinstall"] + pip_args
+            else:
+                print(
+                    pipx_wrap(
+                        f"""
+                        {venv.name!r} already seems to be installed. Not modifying
+                        existing installation in '{venv_dir}'. Pass '--force'
+                        to force installation.
+                        """
+                    )
                 )
-            )
-            return EXIT_CODE_INSTALL_VENV_EXISTS
+                return EXIT_CODE_INSTALL_VENV_EXISTS
 
-    try:
-        # Enable installing shared library `pip` with `pipx`
-        override_shared = package_name == "pip"
-        venv.create_venv(venv_args, pip_args, override_shared)
-        for dep in preinstall_packages or []:
-            dep_name = package_name_from_spec(dep, python, pip_args=pip_args, verbose=verbose)
-            venv.upgrade_package_no_metadata(dep_name, [])
-        venv.install_package(
-            package_name=package_name,
-            package_or_url=package_spec,
-            pip_args=pip_args,
-            include_dependencies=include_dependencies,
-            include_apps=True,
-            is_main_package=True,
-            suffix=suffix,
-        )
-        run_post_install_actions(
-            venv,
-            package_name,
-            local_bin_dir,
-            local_man_dir,
-            venv_dir,
-            include_dependencies,
-            force=force,
-        )
-    except (Exception, KeyboardInterrupt):
-        print()
-        venv.remove_venv()
-        raise
+        try:
+            # Enable installing shared library `pip` with `pipx`
+            override_shared = package_name == "pip"
+            venv.create_venv(venv_args, pip_args, override_shared)
+            for dep in preinstall_packages or []:
+                dep_name = package_name_from_spec(dep, python, pip_args=pip_args, verbose=verbose)
+                venv.upgrade_package_no_metadata(dep_name, [])
+            venv.install_package(
+                package_name=package_name,
+                package_or_url=package_spec,
+                pip_args=pip_args,
+                include_dependencies=include_dependencies,
+                include_apps=True,
+                is_main_package=True,
+                suffix=suffix,
+            )
+            run_post_install_actions(
+                venv,
+                package_name,
+                local_bin_dir,
+                local_man_dir,
+                venv_dir,
+                include_dependencies,
+                force=force,
+            )
+        except (Exception, KeyboardInterrupt):
+            print()
+            venv.remove_venv()
+            raise
+
+        # Reset venv_dir to None ready to install the next package in the list
+        venv_dir = None
 
     # Any failure to install will raise PipxError, otherwise success
     return EXIT_CODE_OK

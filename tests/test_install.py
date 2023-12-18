@@ -22,13 +22,14 @@ def test_help_text(monkeypatch, capsys):
     assert "apps you can run from anywhere" in captured.out
 
 
-def install_package(capsys, pipx_temp_env, caplog, package, package_name=""):
-    if not package_name:
-        package_name = package
+def install_packages(capsys, pipx_temp_env, caplog, packages, package_names=()):
+    if len(package_names) != len(packages):
+        package_names = packages
 
-    run_pipx_cli(["install", package, "--verbose"])
+    run_pipx_cli(["install", *packages, "--verbose"])
     captured = capsys.readouterr()
-    assert f"installed package {package_name}" in captured.out
+    for package_name in package_names:
+        assert f"installed package {package_name}" in captured.out
     if not sys.platform.startswith("win"):
         # TODO assert on windows too
         # https://github.com/pypa/pipx/issues/217
@@ -44,7 +45,17 @@ def install_package(capsys, pipx_temp_env, caplog, package, package_name=""):
     [("pycowsay", "pycowsay"), ("black", PKG["black"]["spec"])],
 )
 def test_install_easy_packages(capsys, pipx_temp_env, caplog, package_name, package_spec):
-    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
+    install_packages(capsys, pipx_temp_env, caplog, [package_spec], [package_name])
+
+
+def test_install_easy_multiple_packages(capsys, pipx_temp_env, caplog):
+    install_packages(
+        capsys,
+        pipx_temp_env,
+        caplog,
+        ["pycowsay", PKG["black"]["spec"]],
+        ["pycowsay", "black"],
+    )
 
 
 @pytest.mark.parametrize(
@@ -62,7 +73,17 @@ def test_install_tricky_packages(capsys, pipx_temp_env, caplog, package_name, pa
     if sys.platform.startswith("win") and package_name == "ansible":
         pytest.skip("Ansible is not installable on Windows")
 
-    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
+    install_packages(capsys, pipx_temp_env, caplog, [package_spec], [package_name])
+
+
+def test_install_tricky_multiple_packages(capsys, pipx_temp_env, caplog):
+    if os.getenv("FAST"):
+        pytest.skip("skipping slow tests")
+
+    packages = ["cloudtoken", "awscli", "shell-functools"]
+    package_specs = [PKG[package]["spec"] for package in packages]
+
+    install_packages(capsys, pipx_temp_env, caplog, package_specs, packages)
 
 
 @pytest.mark.parametrize(
@@ -74,7 +95,7 @@ def test_install_tricky_packages(capsys, pipx_temp_env, caplog, package_name, pa
     ],
 )
 def test_install_package_specs(capsys, pipx_temp_env, caplog, package_name, package_spec):
-    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
+    install_packages(capsys, pipx_temp_env, caplog, [package_spec], [package_name])
 
 
 def test_force_install(pipx_temp_env, capsys):
@@ -119,7 +140,7 @@ def test_include_deps(pipx_temp_env, capsys):
     ],
 )
 def test_name_tricky_characters(caplog, capsys, pipx_temp_env, package_name, package_spec):
-    install_package(capsys, pipx_temp_env, caplog, package_spec, package_name)
+    install_packages(capsys, pipx_temp_env, caplog, [package_spec], [package_name])
 
 
 def test_extra(pipx_temp_env, capsys):
