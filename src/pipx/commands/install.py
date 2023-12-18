@@ -33,12 +33,8 @@ def install(
 
     python = python or DEFAULT_PYTHON
 
-    if package_names is None:
-        package_names = [
-            package_name_from_spec(package_spec, python, pip_args=pip_args, verbose=verbose)
-            for package_spec in package_specs
-        ]
-    elif len(package_names) != len(package_specs):
+    package_names = package_names or []
+    if len(package_names) != len(package_specs):
         package_names = [
             package_name_from_spec(package_spec, python, pip_args=pip_args, verbose=verbose)
             for package_spec in package_specs
