@@ -1,6 +1,7 @@
 ## dev
 
 - [docs] Add Scoop installation instructions
+- `pipx run`: Verify whether the script name provided is a file before running it
 
 ## 1.3.3
 
