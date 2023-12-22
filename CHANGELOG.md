@@ -1,5 +1,6 @@
 ## dev
 
+- Allow skipping maintenance tasks during list command
 - [docs] Add Scoop installation instructions
 - Add ability to install multiple packages at once
 

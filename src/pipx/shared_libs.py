@@ -31,6 +31,7 @@ class _SharedLibs:
         self._site_packages: Optional[Path] = None
         self.has_been_updated_this_run = False
         self.has_been_logged_this_run = False
+        self.skip_maintenance = False
 
     @property
     def site_packages(self) -> Path:
@@ -65,7 +66,7 @@ class _SharedLibs:
 
     @property
     def needs_upgrade(self) -> bool:
-        if self.has_been_updated_this_run:
+        if self.has_been_updated_this_run or self.skip_maintenance:
             return False
 
         if not self.pip_path.is_file():
