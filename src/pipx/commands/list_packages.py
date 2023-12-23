@@ -97,7 +97,7 @@ def list_packages(
         print(f"nothing has been installed with pipx {sleep}", file=sys.stderr)
 
     if skip_maintenance:
-        shared_libs.shared_libs.skip_maintenance = True
+        shared_libs.shared_libs.skip_upgrade = True
         logger.info("Skipping shared libs maintenance tasks")
 
     venv_container.verify_shared_libs()

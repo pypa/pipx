@@ -151,6 +151,6 @@ def test_skip_maintenance(pipx_temp_env):
     shared_libs.shared_libs.has_been_updated_this_run = False
     assert shared_libs.shared_libs.needs_upgrade
     run_pipx_cli(["list", "--skip-maintenance"])
-    shared_libs.shared_libs.skip_maintenance = False
+    shared_libs.shared_libs.skip_upgrade = False
     assert not shared_libs.shared_libs.has_been_updated_this_run
     assert shared_libs.shared_libs.needs_upgrade
