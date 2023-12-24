@@ -1,5 +1,6 @@
 ## dev
 
+- Fix "No pyvenv.cfg file" error when using Microsoft Store Python (#1164)
 - Add `--quiet` and `--verbose` options for the `pipx` subcommands
 - [docs] Add Scoop installation instructions
 - Add ability to install multiple packages at once

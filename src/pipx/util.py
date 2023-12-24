@@ -171,6 +171,14 @@ def run_subprocess(
     logger.info(f"running {log_cmd_str}")
     # windows cannot take Path objects, only strings
     cmd_str_list = [str(c) for c in cmd]
+    # Make sure to call the binary using its real path. This matters especially on Windows when using the packaged app
+    # (Microsoft Store) version of Python, which uses path redirection for sandboxing. If the path to the executable is
+    # redirected, the executable can get confused as to which directory it's being run from, leading to problems.
+    # See https://github.com/pypa/pipx/issues/1164
+    # Conversely, if the binary is a symlink, then we should NOT use the real path, as Python expects to receive the
+    # symlink in argv[0] so that it can locate the venv.
+    if not os.path.islink(cmd_str_list[0]):
+        cmd_str_list[0] = os.path.realpath(cmd_str_list[0])
     completed_process = subprocess.run(
         cmd_str_list,
         env=env,
