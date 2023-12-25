@@ -76,6 +76,7 @@ class _PathContext:
     def make_global(self) -> None:
         self._base_home = DEFAULT_PIPX_GLOBAL_HOME
         self._base_bin = DEFAULT_PIPX_GLOBAL_BIN_DIR
+        self._base_man = DEFAULT_PIPX_GLOBAL_MAN_DIR
 
     @property
     def standalone_python_cachedir(self) -> Path:
