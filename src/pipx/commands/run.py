@@ -48,7 +48,7 @@ def maybe_script_content(app: str, is_path: bool) -> Optional[str]:
 
     # Look for a local file first.
     app_path = Path(app)
-    if app_path.exists() and app_path.is_file():
+    if app_path.is_file():
         return app_path.read_text(encoding="utf-8")
     elif is_path:
         raise PipxError(f"The specified path {app} does not exist")
