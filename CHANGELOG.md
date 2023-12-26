@@ -1,6 +1,7 @@
 ## dev
 
 - [docs] Add Scoop installation instructions
+- Add ability to install multiple packages at once
 - `pipx run`: Verify whether the script name provided is a file before running it
 
 ## 1.3.3
