@@ -2,6 +2,7 @@
 
 - [docs] Add Scoop installation instructions
 - Add ability to install multiple packages at once
+- Raise more user friendly error when provided `--python` version is not found.
 
 ## 1.3.3
 
