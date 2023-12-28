@@ -54,12 +54,7 @@ def rmdir(path: Path, safe_rm: bool = True) -> None:
 
     logger.info(f"removing directory {path}")
     try:
-        if WINDOWS:
-            # The packaged app (Microsoft Store) version of Python uses path redirections, but `rmdir` won't follow
-            # these, so use realpath() to manually apply the redirection first.
-            os.system(f'rmdir /S /Q "{os.path.realpath(path)}"')
-        else:
-            shutil.rmtree(path)
+        shutil.rmtree(path)
     except FileNotFoundError:
         pass
 
