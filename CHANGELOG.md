@@ -1,5 +1,6 @@
 ## dev
 
+- Add `--quiet` and `--verbose` options for the `pipx` subcommands
 - [docs] Add Scoop installation instructions
 - Add ability to install multiple packages at once
 
