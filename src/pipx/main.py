@@ -569,7 +569,6 @@ def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
     g.add_argument("--json", action="store_true", help="Output rich data in json format.")
     g.add_argument("--short", action="store_true", help="List packages only.")
     g.add_argument("--skip-maintenance", action="store_true", help="Skip maintenance tasks.")
-    p.add_argument("--verbose", action="store_true")
 
 
 def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
