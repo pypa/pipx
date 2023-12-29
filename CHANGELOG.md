@@ -1,5 +1,6 @@
 ## dev
 
+- Don't show debug messages when `--verbose` isn't passed
 - Delete directories directly instead of spawning rmdir on Windows
 - Fix "Failed to delete" error when using Microsoft Store Python
 - Fix "No pyvenv.cfg file" error when using Microsoft Store Python (#1164)
