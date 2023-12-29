@@ -82,7 +82,7 @@ def test_list_json(pipx_temp_env, capsys):
     assert not run_pipx_cli(["inject", "pylint", PKG["isort"]["spec"]])
     captured = capsys.readouterr()
 
-    assert not run_pipx_cli(["list", "--json"])
+    assert not run_pipx_cli(["list", "-q", "--json"])
     captured = capsys.readouterr()
 
     assert not re.search(r"\S", captured.err)

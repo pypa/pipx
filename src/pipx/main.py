@@ -329,16 +329,16 @@ def add_include_dependencies(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--include-deps", help="Include apps of dependent packages", action="store_true")
 
 
-def _add_install(subparsers: argparse._SubParsersAction) -> None:
+def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "install",
         help="Install a package",
         formatter_class=LineWrapRawTextHelpFormatter,
         description=INSTALL_DESCRIPTION,
+        parents=[shared_parser],
     )
     p.add_argument("package_spec", help="package name(s) or pip installation spec(s)", nargs="*")
     add_include_dependencies(p)
-    p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--force",
         "-f",
@@ -370,11 +370,12 @@ def _add_install(subparsers: argparse._SubParsersAction) -> None:
     add_pip_venv_args(p)
 
 
-def _add_inject(subparsers, venv_completer: VenvCompleter) -> None:
+def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "inject",
         help="Install packages into an existing Virtual Environment",
         description="Installs packages to an existing pipx-managed virtual environment.",
+        parents=[shared_parser],
     )
     p.add_argument(
         "package",
@@ -402,7 +403,6 @@ def _add_inject(subparsers, venv_completer: VenvCompleter) -> None:
         action="store_true",
         help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
-    p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--with-suffix",
         action="store_true",
@@ -410,11 +410,12 @@ def _add_inject(subparsers, venv_completer: VenvCompleter) -> None:
     )
 
 
-def _add_uninject(subparsers, venv_completer: VenvCompleter):
+def _add_uninject(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser):
     p = subparsers.add_parser(
         "uninject",
         help="Uninstall injected packages from an existing Virtual Environment",
         description="Uninstalls injected packages from an existing pipx-managed virtual environment.",
+        parents=[shared_parser],
     )
     p.add_argument(
         "package",
@@ -430,14 +431,14 @@ def _add_uninject(subparsers, venv_completer: VenvCompleter):
         action="store_true",
         help="Only uninstall the main injected package but leave its dependencies installed.",
     )
-    p.add_argument("--verbose", action="store_true")
 
 
-def _add_upgrade(subparsers, venv_completer: VenvCompleter) -> None:
+def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "upgrade",
         help="Upgrade a package",
         description="Upgrade a package in a pipx-managed Virtual Environment by running 'pip install --upgrade PACKAGE'",
+        parents=[shared_parser],
     )
     p.add_argument("package").completer = venv_completer
     p.add_argument(
@@ -452,14 +453,14 @@ def _add_upgrade(subparsers, venv_completer: VenvCompleter) -> None:
         help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
     add_pip_venv_args(p)
-    p.add_argument("--verbose", action="store_true")
 
 
-def _add_upgrade_all(subparsers: argparse._SubParsersAction) -> None:
+def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "upgrade-all",
         help="Upgrade all packages. Runs `pip install -U <pkgname>` for each package.",
         description="Upgrades all packages within their virtual environments by running 'pip install --upgrade PACKAGE'",
+        parents=[shared_parser],
     )
     p.add_argument(
         "--include-injected",
@@ -473,29 +474,28 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction) -> None:
         action="store_true",
         help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
-    p.add_argument("--verbose", action="store_true")
 
 
-def _add_uninstall(subparsers, venv_completer: VenvCompleter) -> None:
+def _add_uninstall(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "uninstall",
         help="Uninstall a package",
         description="Uninstalls a pipx-managed Virtual Environment by deleting it and any files that point to its apps.",
+        parents=[shared_parser],
     )
     p.add_argument("package").completer = venv_completer
-    p.add_argument("--verbose", action="store_true")
 
 
-def _add_uninstall_all(subparsers: argparse._SubParsersAction) -> None:
-    p = subparsers.add_parser(
+def _add_uninstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+    subparsers.add_parser(
         "uninstall-all",
         help="Uninstall all packages",
         description="Uninstall all pipx-managed packages",
+        parents=[shared_parser],
     )
-    p.add_argument("--verbose", action="store_true")
 
 
-def _add_reinstall(subparsers, venv_completer: VenvCompleter) -> None:
+def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "reinstall",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -509,6 +509,7 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter) -> None:
 
             """
         ),
+        parents=[shared_parser],
     )
     p.add_argument("package").completer = venv_completer
     p.add_argument(
@@ -520,10 +521,9 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter) -> None:
             f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )
-    p.add_argument("--verbose", action="store_true")
 
 
-def _add_reinstall_all(subparsers: argparse._SubParsersAction) -> None:
+def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "reinstall-all",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -539,6 +539,7 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction) -> None:
 
             """
         ),
+        parents=[shared_parser],
     )
     p.add_argument(
         "--python",
@@ -550,14 +551,14 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction) -> None:
         ),
     )
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
-    p.add_argument("--verbose", action="store_true")
 
 
-def _add_list(subparsers: argparse._SubParsersAction) -> None:
+def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "list",
         help="List installed packages",
         description="List packages and apps installed with pipx",
+        parents=[shared_parser],
     )
     p.add_argument(
         "--include-injected",
@@ -571,7 +572,7 @@ def _add_list(subparsers: argparse._SubParsersAction) -> None:
     p.add_argument("--verbose", action="store_true")
 
 
-def _add_run(subparsers: argparse._SubParsersAction) -> None:
+def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "run",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -594,6 +595,7 @@ def _add_run(subparsers: argparse._SubParsersAction) -> None:
             removed in the future. See https://github.com/cs01/pythonloc.
             """
         ),
+        parents=[shared_parser],
     )
     p.add_argument(
         "--no-cache",
@@ -614,7 +616,6 @@ def _add_run(subparsers: argparse._SubParsersAction) -> None:
         help="Require app to be run from local __pypackages__ directory",
     )
     p.add_argument("--spec", help=SPEC_HELP)
-    p.add_argument("--verbose", action="store_true")
     p.add_argument(
         "--python",
         default=DEFAULT_PYTHON,
@@ -633,11 +634,12 @@ def _add_run(subparsers: argparse._SubParsersAction) -> None:
     p.usage = re.sub(r"\.\.\.", "app ...", p.usage)
 
 
-def _add_runpip(subparsers, venv_completer: VenvCompleter) -> None:
+def _add_runpip(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "runpip",
         help="Run pip in an existing pipx-managed Virtual Environment",
         description="Run pip in an existing pipx-managed Virtual Environment",
+        parents=[shared_parser],
     )
     p.add_argument(
         "package",
@@ -649,10 +651,9 @@ def _add_runpip(subparsers, venv_completer: VenvCompleter) -> None:
         default=[],
         help="Arguments to forward to pip command",
     )
-    p.add_argument("--verbose", action="store_true")
 
 
-def _add_ensurepath(subparsers: argparse._SubParsersAction) -> None:
+def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "ensurepath",
         help=("Ensure directories necessary for pipx operation are in your " "PATH environment variable."),
@@ -663,6 +664,7 @@ def _add_ensurepath(subparsers: argparse._SubParsersAction) -> None:
             "Note that running this may modify "
             "your shell's configuration file(s) such as '~/.bashrc'."
         ),
+        parents=[shared_parser],
     )
     p.add_argument(
         "--force",
@@ -675,7 +677,7 @@ def _add_ensurepath(subparsers: argparse._SubParsersAction) -> None:
     )
 
 
-def _add_environment(subparsers: argparse._SubParsersAction) -> None:
+def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "environment",
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -691,8 +693,9 @@ def _add_environment(subparsers: argparse._SubParsersAction) -> None:
             PIPX_LOG_DIR, PIPX_TRASH_DIR, PIPX_VENV_CACHEDIR, PIPX_DEFAULT_PYTHON, USE_EMOJI
             """
         ),
+        parents=[shared_parser],
     )
-    p.add_argument("--value", "-v", metavar="VARIABLE", help="Print the value of the variable.")
+    p.add_argument("--value", "-V", metavar="VARIABLE", help="Print the value of the variable.")
 
 
 def get_command_parser() -> argparse.ArgumentParser:
@@ -709,26 +712,42 @@ def get_command_parser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
 
-    _add_install(subparsers)
-    _add_uninject(subparsers, completer_venvs.use)
-    _add_inject(subparsers, completer_venvs.use)
-    _add_upgrade(subparsers, completer_venvs.use)
-    _add_upgrade_all(subparsers)
-    _add_uninstall(subparsers, completer_venvs.use)
-    _add_uninstall_all(subparsers)
-    _add_reinstall(subparsers, completer_venvs.use)
-    _add_reinstall_all(subparsers)
-    _add_list(subparsers)
-    _add_run(subparsers)
-    _add_runpip(subparsers, completer_venvs.use)
-    _add_ensurepath(subparsers)
-    _add_environment(subparsers)
+    shared_parser = argparse.ArgumentParser(add_help=False)
+
+    shared_parser.add_argument(
+        "--quiet",
+        "-q",
+        action="count",
+        default=0,
+        help=(
+            "Give less output. May be used multiple times corresponding to the"
+            " WARNING, ERROR, and CRITICAL logging levels."
+        ),
+    )
+
+    shared_parser.add_argument("--verbose", "-v", action="count", default=0, help=("Give more output."))
+
+    _add_install(subparsers, shared_parser)
+    _add_uninject(subparsers, completer_venvs.use, shared_parser)
+    _add_inject(subparsers, completer_venvs.use, shared_parser)
+    _add_upgrade(subparsers, completer_venvs.use, shared_parser)
+    _add_upgrade_all(subparsers, shared_parser)
+    _add_uninstall(subparsers, completer_venvs.use, shared_parser)
+    _add_uninstall_all(subparsers, shared_parser)
+    _add_reinstall(subparsers, completer_venvs.use, shared_parser)
+    _add_reinstall_all(subparsers, shared_parser)
+    _add_list(subparsers, shared_parser)
+    _add_run(subparsers, shared_parser)
+    _add_runpip(subparsers, completer_venvs.use, shared_parser)
+    _add_ensurepath(subparsers, shared_parser)
+    _add_environment(subparsers, shared_parser)
 
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     subparsers.add_parser(
         "completions",
         help="Print instructions on enabling shell completions for pipx",
         description="Print instructions on enabling shell completions for pipx",
+        parents=[shared_parser],
     )
     return parser
 
@@ -775,6 +794,11 @@ def setup_logging(verbose: bool) -> None:
     pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
     pipx.constants.pipx_log_file = setup_log_file()
 
+    # Determine logging level
+    level_number = max(0, 2 - verbose) * 10
+
+    level = logging.getLevelName(level_number)
+
     # "incremental" is False so previous pytest tests don't accumulate handlers
     logging_config = {
         "version": 1,
@@ -799,7 +823,7 @@ def setup_logging(verbose: bool) -> None:
             "stream": {
                 "class": "logging.StreamHandler",
                 "formatter": "stream_verbose" if verbose else "stream_nonverbose",
-                "level": "INFO" if verbose else "WARNING",
+                "level": level,
             },
             "file": {
                 "class": "logging.FileHandler",
@@ -820,7 +844,9 @@ def setup(args: argparse.Namespace) -> None:
         print_version()
         sys.exit(0)
 
-    setup_logging("verbose" in args and args.verbose)
+    verbose = args.verbose - args.quiet
+
+    setup_logging(verbose)
 
     logger.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
     logger.debug(f"{' '.join(sys.argv)}")
