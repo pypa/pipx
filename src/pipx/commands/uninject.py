@@ -80,19 +80,19 @@ def uninject_dep(
 
     if not leave_deps:
         orig_not_required_packages = venv.list_installed_packages(not_required=True)
-        logger.info(f"Original not required packages: {orig_not_required_packages}")
+        logger.debug(f"Original not required packages: {orig_not_required_packages}")
 
     venv.uninstall_package(package=package_name, was_injected=True)
 
     if not leave_deps:
         new_not_required_packages = venv.list_installed_packages(not_required=True)
-        logger.info(f"New not required packages: {new_not_required_packages}")
+        logger.debug(f"New not required packages: {new_not_required_packages}")
 
         deps_of_uninstalled = new_not_required_packages - orig_not_required_packages
         if len(deps_of_uninstalled) == 0:
             pass
         else:
-            logger.info(f"Dependencies of uninstalled package: {deps_of_uninstalled}")
+            logger.debug(f"Dependencies of uninstalled package: {deps_of_uninstalled}")
 
         for dep_package_name in deps_of_uninstalled:
             venv.uninstall_package(package=dep_package_name, was_injected=False)
@@ -106,9 +106,9 @@ def uninject_dep(
             try:
                 os.unlink(path)
             except FileNotFoundError:
-                logger.info(f"tried to remove but couldn't find {path}")
+                logger.debug(f"tried to remove but couldn't find {path}")
             else:
-                logger.info(f"removed file {path}")
+                logger.debug(f"removed file {path}")
 
     print(f"Uninjected package {bold(package_name)}{deps_string} from venv {bold(venv.root.name)} {stars}")
     return True

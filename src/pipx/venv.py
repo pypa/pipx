@@ -320,10 +320,10 @@ class Venv:
         installed_packages = self.list_installed_packages() - old_package_set
         if len(installed_packages) == 1:
             package_name = installed_packages.pop()
-            logger.info(f"Determined package name: {package_name}")
+            logger.debug(f"Determined package name: {package_name}")
         else:
-            logger.info(f"old_package_set = {old_package_set}")
-            logger.info(f"install_packages = {installed_packages}")
+            logger.debug(f"old_package_set = {old_package_set}")
+            logger.debug(f"install_packages = {installed_packages}")
             raise PipxError(
                 f"""
                 Cannot determine package name from spec {package_or_url!r}.
@@ -336,7 +336,7 @@ class Venv:
     def get_venv_metadata_for_package(self, package_name: str, package_extras: Set[str]) -> VenvMetadata:
         data_start = time.time()
         venv_metadata = inspect_venv(package_name, package_extras, self.bin_path, self.python_path, self.man_path)
-        logger.info(f"get_venv_metadata_for_package: {1e3*(time.time()-data_start):.0f}ms")
+        logger.debug(f"get_venv_metadata_for_package: {1e3*(time.time()-data_start):.0f}ms")
         return venv_metadata
 
     def _update_package_metadata(

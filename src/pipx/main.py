@@ -183,7 +183,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
                     args.spec = args.spec + f"#egg={package}"
 
         venv_dir = venv_container.get_venv_dir(package)
-        logger.info(f"Virtual Environment location is {venv_dir}")
+        logger.debug(f"Virtual Environment location is {venv_dir}")
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
 
@@ -846,8 +846,8 @@ def setup(args: argparse.Namespace) -> None:
 
     logger.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
     logger.debug(f"{' '.join(sys.argv)}")
-    logger.info(f"pipx version is {__version__}")
-    logger.info(f"Default python interpreter is '{DEFAULT_PYTHON}'")
+    logger.debug(f"pipx version is {__version__}")
+    logger.debug(f"Default python interpreter is '{DEFAULT_PYTHON}'")
 
     mkdir(constants.PIPX_LOCAL_VENVS)
     mkdir(constants.LOCAL_BIN_DIR)

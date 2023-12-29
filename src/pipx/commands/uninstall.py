@@ -143,9 +143,9 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, local_man_dir: Path, verbose:
         try:
             safe_unlink(path)
         except FileNotFoundError:
-            logger.info(f"tried to remove but couldn't find {path}")
+            logger.debug(f"tried to remove but couldn't find {path}")
         else:
-            logger.info(f"removed file {path}")
+            logger.debug(f"removed file {path}")
 
     rmdir(venv_dir)
     print(f"uninstalled {venv.name}! {stars}")

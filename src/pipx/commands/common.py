@@ -129,7 +129,7 @@ def _symlink_package_resource(
         mkdir(symlink_path.parent)
 
     if force:
-        logger.info(f"Force is true. Removing {str(symlink_path)}.")
+        logger.debug(f"Force is true. Removing {str(symlink_path)}.")
         try:
             symlink_path.unlink()
         except FileNotFoundError:
@@ -141,7 +141,7 @@ def _symlink_package_resource(
     is_symlink = symlink_path.is_symlink()
     if exists:
         if symlink_path.samefile(path):
-            logger.info(f"Same path {str(symlink_path)} and {str(path)}")
+            logger.debug(f"Same path {str(symlink_path)} and {str(path)}")
         else:
             logger.warning(
                 pipx_wrap(
@@ -155,7 +155,7 @@ def _symlink_package_resource(
             )
         return
     if is_symlink and not exists:
-        logger.info(f"Removing existing symlink {str(symlink_path)} since it " "pointed non-existent location")
+        logger.debug(f"Removing existing symlink {str(symlink_path)} since it pointed to non-existent location")
         symlink_path.unlink()
 
     if executable:
@@ -367,8 +367,8 @@ def package_name_from_spec(package_spec: str, python: str, *, pip_args: List[str
         # NOTE: if pypi name and installed package name differ, this means pipx
         #       will use the pypi name
         package_name = pypi_name
-        logger.info(f"Determined package name: {package_name}")
-        logger.info(f"Package name determined in {time.time()-start_time:.1f}s")
+        logger.debug(f"Determined package name: {package_name}")
+        logger.debug(f"Package name determined in {time.time()-start_time:.1f}s")
         return package_name
 
     # check syntax and clean up spec and pip_args
@@ -379,7 +379,7 @@ def package_name_from_spec(package_spec: str, python: str, *, pip_args: List[str
         venv.create_venv(venv_args=[], pip_args=[])
         package_name = venv.install_package_no_deps(package_or_url=package_spec, pip_args=pip_args)
 
-    logger.info(f"Package name determined in {time.time()-start_time:.1f}s")
+    logger.debug(f"Package name determined in {time.time()-start_time:.1f}s")
     return package_name
 
 

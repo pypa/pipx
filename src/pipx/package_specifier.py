@@ -134,7 +134,7 @@ def _parsed_package_to_package_or_url(parsed_package: ParsedPackage, remove_vers
     elif parsed_package.valid_local_path is not None:
         package_or_url = parsed_package.valid_local_path
 
-    logger.info(f"cleaned package spec: {package_or_url}")
+    logger.debug(f"cleaned package spec: {package_or_url}")
     return package_or_url
 
 

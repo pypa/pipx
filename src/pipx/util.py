@@ -52,7 +52,7 @@ def rmdir(path: Path, safe_rm: bool = True) -> None:
     if not path.is_dir():
         return
 
-    logger.info(f"removing directory {path}")
+    logger.debug(f"removing directory {path}")
     try:
         shutil.rmtree(path)
     except FileNotFoundError:
@@ -71,7 +71,7 @@ def rmdir(path: Path, safe_rm: bool = True) -> None:
 def mkdir(path: Path) -> None:
     if path.is_dir():
         return
-    logger.info(f"creating directory {path}")
+    logger.debug(f"creating directory {path}")
     path.mkdir(parents=True, exist_ok=True)
 
 
@@ -165,7 +165,7 @@ def run_subprocess(
 
     if log_cmd_str is None:
         log_cmd_str = " ".join(str(c) for c in cmd)
-    logger.info(f"running {log_cmd_str}")
+    logger.debug(f"running {log_cmd_str}")
     # windows cannot take Path objects, only strings
     cmd_str_list = [str(c) for c in cmd]
     # Make sure to call the binary using its real path. This matters especially on Windows when using the packaged app
@@ -204,7 +204,7 @@ def subprocess_post_check(completed_process: "subprocess.CompletedProcess[str]",
         if raise_error:
             raise PipxError(f"{' '.join([str(x) for x in completed_process.args])!r} failed")
         else:
-            logger.info(f"{' '.join(completed_process.args)!r} failed")
+            logger.debug(f"{' '.join(completed_process.args)!r} failed")
 
 
 def dedup_ordered(input_list: List[Any]) -> List[Any]:
@@ -324,7 +324,7 @@ def subprocess_post_check_handle_pip_error(
     completed_process: "subprocess.CompletedProcess[str]",
 ) -> None:
     if completed_process.returncode:
-        logger.info(f"{' '.join(completed_process.args)!r} failed")
+        logger.debug(f"{' '.join(completed_process.args)!r} failed")
         # Save STDOUT and STDERR to file in pipx/logs/
         if pipx.constants.pipx_log_file is None:
             raise PipxError("Pipx internal error: No log_file present.")
@@ -367,7 +367,7 @@ def exec_app(
     # make sure we show cursor again before handing over control
     show_cursor()
 
-    logger.info("exec_app: " + " ".join([str(c) for c in cmd]))
+    logger.debug("exec_app: " + " ".join([str(c) for c in cmd]))
 
     if WINDOWS:
         sys.exit(

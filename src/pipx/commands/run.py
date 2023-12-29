@@ -62,7 +62,7 @@ def maybe_script_content(app: str, is_path: bool) -> Optional[str]:
                 end with '.py'. To run from an SVN, try pipx --spec URL BINARY
                 """
             )
-        logger.info("Detected url. Downloading and executing as a Python file.")
+        logger.debug("Detected url. Downloading and executing as a Python file.")
 
         return _http_get_request(app)
 
@@ -94,7 +94,7 @@ def run_script(
         venv = Venv(venv_dir)
         _prepare_venv_cache(venv, None, use_cache)
         if venv_dir.exists():
-            logger.info(f"Reusing cached venv {venv_dir}")
+            logger.debug(f"Reusing cached venv {venv_dir}")
         else:
             venv = Venv(venv_dir, python=python, verbose=verbose)
             venv.create_venv(venv_args, pip_args)
@@ -126,13 +126,13 @@ def run_package(
 
     if WINDOWS:
         app_filename = f"{app}.exe"
-        logger.info(f"Assuming app is {app_filename!r} (Windows only)")
+        logger.debug(f"Assuming app is {app_filename!r} (Windows only)")
     else:
         app_filename = app
 
     pypackage_bin_path = get_pypackage_bin_path(app)
     if pypackage_bin_path.exists():
-        logger.info(f"Using app in local __pypackages__ directory at '{pypackage_bin_path}'")
+        logger.debug(f"Using app in local __pypackages__ directory at '{pypackage_bin_path}'")
         run_pypackage_bin(pypackage_bin_path, app_args)
     if pypackages:
         raise PipxError(
@@ -150,10 +150,10 @@ def run_package(
     _prepare_venv_cache(venv, bin_path, use_cache)
 
     if venv.has_app(app, app_filename):
-        logger.info(f"Reusing cached venv {venv_dir}")
+        logger.debug(f"Reusing cached venv {venv_dir}")
         venv.run_app(app, app_filename, app_args)
     else:
-        logger.info(f"venv location is {venv_dir}")
+        logger.debug(f"venv location is {venv_dir}")
         _download_and_run(
             Path(venv_dir),
             package_or_url,
@@ -250,7 +250,7 @@ def _download_and_run(
             print(f"NOTE: running app {app!r} from {package_name!r}")
             if WINDOWS:
                 app_filename = f"{app}.exe"
-                logger.info(f"Assuming app is {app_filename!r} (Windows only)")
+                logger.debug(f"Assuming app is {app_filename!r} (Windows only)")
             else:
                 app_filename = app
         else:
@@ -297,7 +297,7 @@ def _is_temporary_venv_expired(venv_dir: Path) -> bool:
 def _prepare_venv_cache(venv: Venv, bin_path: Optional[Path], use_cache: bool) -> None:
     venv_dir = venv.root
     if not use_cache and (bin_path is None or bin_path.exists()):
-        logger.info(f"Removing cached venv {str(venv_dir)}")
+        logger.debug(f"Removing cached venv {str(venv_dir)}")
         rmdir(venv_dir)
     _remove_all_expired_venvs()
 
@@ -305,7 +305,7 @@ def _prepare_venv_cache(venv: Venv, bin_path: Optional[Path], use_cache: bool) -
 def _remove_all_expired_venvs() -> None:
     for venv_dir in Path(constants.PIPX_VENV_CACHEDIR).iterdir():
         if _is_temporary_venv_expired(venv_dir):
-            logger.info(f"Removing expired venv {str(venv_dir)}")
+            logger.debug(f"Removing expired venv {str(venv_dir)}")
             rmdir(venv_dir)
 
 

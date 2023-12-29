@@ -74,7 +74,7 @@ class _SharedLibs:
         now = time.time()
         time_since_last_update_sec = now - self.pip_path.stat().st_mtime
         if not self.has_been_logged_this_run:
-            logger.info(
+            logger.debug(
                 f"Time since last upgrade of shared libs, in seconds: {time_since_last_update_sec:.0f}. "
                 f"Upgrade will be run by pipx if greater than {SHARED_LIBS_MAX_AGE_SEC:.0f}."
             )
@@ -88,13 +88,13 @@ class _SharedLibs:
 
         # Don't try to upgrade multiple times per run
         if self.has_been_updated_this_run:
-            logger.info(f"Already upgraded libraries in {self.root}")
+            logger.debug(f"Already upgraded libraries in {self.root}")
             return
 
         if pip_args is None:
             pip_args = []
 
-        logger.info(f"Upgrading shared libraries in {self.root}")
+        logger.debug(f"Upgrading shared libraries in {self.root}")
 
         ignored_args = ["--editable"]
         _pip_args = [arg for arg in pip_args if arg not in ignored_args]
