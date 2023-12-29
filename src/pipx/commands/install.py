@@ -109,7 +109,7 @@ def install(
             )
         except FileNotFoundError as e:
             venv.remove_venv()
-            if python in str(e):
+            if python in str(e) or "The system cannot find the file specified" in str(e):
                 print(
                     (
                         f"No executable for the provided Python version '{python}' found.\n"
