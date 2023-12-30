@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Dict, Generator, List, NoReturn, Optional, Set
+
 from progiter import ProgIter
 
 try:
