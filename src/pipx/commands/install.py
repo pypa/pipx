@@ -111,11 +111,13 @@ def install(
             venv.remove_venv()
             if python in str(e) or "The system cannot find the file specified" in str(e):
                 print(
-                    (
-                        f"No executable for the provided Python version '{python}' found.\n"
-                        "Please make sure the executable name is on your PATH/"
-                        "the path to the executable is correct."
-                    )
+                      pipx_wrap(
+                            f"""
+                            No executable for the provided Python version '{python}' found.\n
+                           Please make sure the executable name is on your PATH/
+                           the path to the executable is correct.
+                           """
+                      )
                 )
                 return EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND
             else:
