@@ -113,10 +113,10 @@ def install(
                 print(
                     pipx_wrap(
                         f"""
-                            No executable for the provided Python version '{python}' found.\n
-                           Please make sure the executable name is on your PATH/
+                           No executable for the provided Python version '{python}' found.
+                           Please make sure the executable name is on your PATH /
                            the path to the executable is correct.
-                           """
+                        """
                     )
                 )
                 return EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND
