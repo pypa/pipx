@@ -786,12 +786,12 @@ def setup_log_file() -> Path:
         return _setup_log_file(platformdirs.user_log_path("pipx"))
 
 
-def setup_logging(verbose: bool) -> None:
+def setup_logging(verbose: int) -> None:
     pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
     pipx.constants.pipx_log_file = setup_log_file()
 
     # Determine logging level
-    level_number = max(0, 2 - verbose) * 10
+    level_number = max(0, logging.WARNING - 10 * verbose)
 
     level = logging.getLevelName(level_number)
 
@@ -840,7 +840,7 @@ def setup(args: argparse.Namespace) -> None:
         print_version()
         sys.exit(0)
 
-    verbose = args.verbose - args.quiet
+    verbose = getattr(args, 'verbose', 0) - getattr(args, 'quiet', 0)
 
     setup_logging(verbose)
 
