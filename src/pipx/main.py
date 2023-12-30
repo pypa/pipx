@@ -840,7 +840,7 @@ def setup(args: argparse.Namespace) -> None:
         print_version()
         sys.exit(0)
 
-    verbose = getattr(args, 'verbose', 0) - getattr(args, 'quiet', 0)
+    verbose = getattr(args, "verbose", 0) - getattr(args, "quiet", 0)
 
     setup_logging(verbose)
 
