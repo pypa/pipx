@@ -699,15 +699,6 @@ def get_command_parser() -> argparse.ArgumentParser:
 
     completer_venvs = InstalledVenvsCompleter(venv_container)
 
-    parser = argparse.ArgumentParser(
-        prog=prog_name(),
-        formatter_class=LineWrapRawTextHelpFormatter,
-        description=PIPX_DESCRIPTION,
-    )
-    parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore
-
-    subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
-
     shared_parser = argparse.ArgumentParser(add_help=False)
 
     shared_parser.add_argument(
@@ -722,6 +713,16 @@ def get_command_parser() -> argparse.ArgumentParser:
     )
 
     shared_parser.add_argument("--verbose", "-v", action="count", default=0, help=("Give more output."))
+
+    parser = argparse.ArgumentParser(
+        prog=prog_name(),
+        formatter_class=LineWrapRawTextHelpFormatter,
+        description=PIPX_DESCRIPTION,
+        parents=[shared_parser],
+    )
+    parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore
+
+    subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
 
     _add_install(subparsers, shared_parser)
     _add_uninject(subparsers, completer_venvs.use, shared_parser)
@@ -840,7 +841,7 @@ def setup(args: argparse.Namespace) -> None:
         print_version()
         sys.exit(0)
 
-    verbose = getattr(args, "verbose", 0) - getattr(args, "quiet", 0)
+    verbose = args.verbose - args.quiet
 
     setup_logging(verbose)
 
