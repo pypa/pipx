@@ -5,8 +5,7 @@ import time
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Dict, Generator, List, NoReturn, Optional, Set
-
-from tqdm import tqdm
+import tqdm
 
 try:
     from importlib.metadata import Distribution, EntryPoint
