@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Dict, Generator, List, NoReturn, Optional, Set
-import tqdm
+from progiter import ProgIter
 
 try:
     from importlib.metadata import Distribution, EntryPoint
@@ -100,10 +100,10 @@ class Venv:
         if self._existing and self.uses_shared_libs:
             if shared_libs.is_valid:
                 if shared_libs.needs_upgrade:
-                    with tqdm(total=100, desc="Upgrading libraries", dynamic_ncols=True) as pb:
+                    with ProgIter(total=100, desc="Upgrading libraries") as pb:
                         shared_libs.upgrade(verbose=verbose, progress_callback=lambda x: pb.update(x))
             else:
-                with tqdm(total=100, desc="Creating libraries", dynamic_ncols=True) as pb:
+                with ProgIter(total=100, desc="Creating libraries") as pb:
                     shared_libs.create(verbose, progress_callback=lambda x: pb.update(x))
 
             if not shared_libs.is_valid:
