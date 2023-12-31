@@ -81,19 +81,6 @@ def run_script(
 ) -> NoReturn:
     requirements = _get_requirements_from_script(content)
     if requirements is None:
-        requirements = _get_requirements_from_script(content, script=False)
-        if requirements is not None:
-            logger.warning(
-                pipx_wrap(
-                    f"""
-                {hazard}  Using old form of requirements table. Use updated PEP
-                723 syntax by replacing `# /// pyproject` with `# /// script`
-                and `run.requirements` with `requirements`.
-                """,
-                    subsequent_indent=" " * 4,
-                )
-            )
-    if requirements is None:
         exec_app([python, "-c", content, *app_args])
     else:
         # Note that the environment name is based on the identified
@@ -336,12 +323,12 @@ def _http_get_request(url: str) -> str:
 INLINE_SCRIPT_METADATA = re.compile(r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$")
 
 
-def _get_requirements_from_script(content: str, *, script: bool = True) -> Optional[List[str]]:
+def _get_requirements_from_script(content: str) -> Optional[List[str]]:
     """
-    Supports inline script metadata. `script=True` is the updated version of PEP 723.
+    Supports inline script metadata.
     """
 
-    name = "script" if script else "pyproject"
+    name = "script"
 
     # Windows is currently getting un-normalized line endings, so normalize
     content = content.replace("\r\n", "\n")
@@ -349,6 +336,20 @@ def _get_requirements_from_script(content: str, *, script: bool = True) -> Optio
     matches = [m for m in INLINE_SCRIPT_METADATA.finditer(content) if m.group("type") == name]
 
     if not matches:
+        pyproject_matches = [m for m in INLINE_SCRIPT_METADATA.finditer(content) if m.group("type") == "pyproject"]
+        if pyproject_matches:
+            logger.error(
+                pipx_wrap(
+                    f"""
+                    {hazard}  Using old form of requirements table. Use updated PEP
+                    723 syntax by replacing `# /// pyproject` with `# /// script`
+                    and `run.dependencies` (or `run.requirements`) with
+                    `dependencies`.
+                    """,
+                    subsequent_indent=" " * 4,
+                )
+            )
+            raise ValueError("Old 'pyproject' table found")
         return None
 
     if len(matches) > 1:
@@ -361,8 +362,7 @@ def _get_requirements_from_script(content: str, *, script: bool = True) -> Optio
     pyproject = tomllib.loads(content)
 
     requirements = []
-    req_table = pyproject if script else pyproject.get("run", {})
-    for requirement in req_table.get("requirements", []):
+    for requirement in pyproject.get("dependencies", []):
         # Validate the requirement
         try:
             req = Requirement(requirement)

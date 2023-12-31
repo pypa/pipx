@@ -199,7 +199,7 @@ def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
         textwrap.dedent(
             f"""
                 # /// script
-                # requirements = ["requests==2.31.0"]
+                # dependencies = ["requests==2.31.0"]
                 # ///
 
                 # Check requests can be imported
@@ -218,7 +218,7 @@ def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_with_requirements_deprecated(caplog, pipx_temp_env, tmp_path):
+def test_run_with_requirements_old(caplog, pipx_temp_env, tmp_path):
     script = tmp_path / "test.py"
     out = tmp_path / "output.txt"
     script.write_text(
@@ -239,8 +239,8 @@ def test_run_with_requirements_deprecated(caplog, pipx_temp_env, tmp_path):
         ).strip(),
         encoding="utf-8",
     )
-    run_pipx_cli_exit(["run", script.as_uri()])
-    assert out.read_text() == "2.31.0"
+    with pytest.raises(ValueError):
+        run_pipx_cli_exit(["run", script.as_uri()])
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
@@ -268,7 +268,7 @@ def test_run_with_requirements_and_args(caplog, pipx_temp_env, tmp_path):
         textwrap.dedent(
             f"""
                 # /// script
-                # requirements = ["packaging"]
+                # dependencies = ["packaging"]
                 # ///
                 import packaging
                 import sys
@@ -288,7 +288,7 @@ def test_run_with_invalid_requirement(capsys, pipx_temp_env, tmp_path):
         textwrap.dedent(
             """
                 # /// script
-                # requirements = ["this is an invalid requirement"]
+                # dependencies = ["this is an invalid requirement"]
                 # ///
                 print()
             """
