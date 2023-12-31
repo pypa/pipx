@@ -198,6 +198,32 @@ def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
     script.write_text(
         textwrap.dedent(
             f"""
+                # /// script
+                # requirements = ["requests==2.31.0"]
+                # ///
+
+                # Check requests can be imported
+                import requests
+                # Check dependencies of requests can be imported
+                import certifi
+                # Check the installed version
+                from pathlib import Path
+                Path({repr(str(out))}).write_text(requests.__version__)
+            """
+        ).strip(),
+        encoding="utf-8",
+    )
+    run_pipx_cli_exit(["run", script.as_uri()])
+    assert out.read_text() == "2.31.0"
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_requirements_deprecated(caplog, pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    out = tmp_path / "output.txt"
+    script.write_text(
+        textwrap.dedent(
+            f"""
                 # /// pyproject
                 # run.requirements = ["requests==2.31.0"]
                 # ///
@@ -241,8 +267,8 @@ def test_run_with_requirements_and_args(caplog, pipx_temp_env, tmp_path):
     script.write_text(
         textwrap.dedent(
             f"""
-                # /// pyproject
-                # run.requirements = ["packaging"]
+                # /// script
+                # requirements = ["packaging"]
                 # ///
                 import packaging
                 import sys
@@ -261,8 +287,8 @@ def test_run_with_invalid_requirement(capsys, pipx_temp_env, tmp_path):
     script.write_text(
         textwrap.dedent(
             """
-                # /// pyproject
-                # run.requirements = ["this is an invalid requirement"]
+                # /// script
+                # requirements = ["this is an invalid requirement"]
                 # ///
                 print()
             """
