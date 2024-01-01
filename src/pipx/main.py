@@ -699,15 +699,6 @@ def get_command_parser() -> argparse.ArgumentParser:
 
     completer_venvs = InstalledVenvsCompleter(venv_container)
 
-    parser = argparse.ArgumentParser(
-        prog=prog_name(),
-        formatter_class=LineWrapRawTextHelpFormatter,
-        description=PIPX_DESCRIPTION,
-    )
-    parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore
-
-    subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
-
     shared_parser = argparse.ArgumentParser(add_help=False)
 
     shared_parser.add_argument(
@@ -722,6 +713,16 @@ def get_command_parser() -> argparse.ArgumentParser:
     )
 
     shared_parser.add_argument("--verbose", "-v", action="count", default=0, help=("Give more output."))
+
+    parser = argparse.ArgumentParser(
+        prog=prog_name(),
+        formatter_class=LineWrapRawTextHelpFormatter,
+        description=PIPX_DESCRIPTION,
+        parents=[shared_parser],
+    )
+    parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore
+
+    subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
 
     _add_install(subparsers, shared_parser)
     _add_uninject(subparsers, completer_venvs.use, shared_parser)
@@ -786,12 +787,12 @@ def setup_log_file() -> Path:
         return _setup_log_file(platformdirs.user_log_path("pipx"))
 
 
-def setup_logging(verbose: bool) -> None:
+def setup_logging(verbose: int) -> None:
     pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
     pipx.constants.pipx_log_file = setup_log_file()
 
     # Determine logging level
-    level_number = max(0, 2 - verbose) * 10
+    level_number = max(0, logging.WARNING - 10 * verbose)
 
     level = logging.getLevelName(level_number)
 
