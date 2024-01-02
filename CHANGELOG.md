@@ -1,6 +1,7 @@
 ## dev
 
 - Set default logging level to WARNING, so debug log messages won't be shown without passing additional flags such as `--verbose`
+- Autofix python version for pylauncher, when version is provided prefixed with `python`
 
 ## 1.4.0
 

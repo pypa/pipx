@@ -30,6 +30,22 @@ def test_windows_python_with_version(monkeypatch, venv):
     assert python_path.endswith("python.exe")
 
 
+@pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
+@pytest.mark.parametrize("venv", [True, False])
+def test_windows_python_with_python_and_version(monkeypatch, venv):
+    def which(name):
+        return "py"
+
+    major = sys.version_info.major
+    minor = sys.version_info.minor
+    monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: venv)
+    monkeypatch.setattr(shutil, "which", which)
+    python_path = find_py_launcher_python(f"python{major}.{minor}")
+    assert python_path is not None
+    assert f"{major}.{minor}" in python_path or f"{major}{minor}" in python_path
+    assert python_path.endswith("python.exe")
+
+
 def test_windows_python_no_version_with_venv(monkeypatch):
     monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: True)
     assert _find_default_windows_python() == sys.executable

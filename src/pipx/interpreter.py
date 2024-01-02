@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 import subprocess
@@ -6,6 +7,8 @@ from typing import Optional
 
 from pipx.constants import WINDOWS
 from pipx.util import PipxError
+
+logger = logging.getLogger(__name__)
 
 
 def has_venv() -> bool:
@@ -30,8 +33,14 @@ def has_venv() -> bool:
 def find_py_launcher_python(python_version: Optional[str] = None) -> Optional[str]:
     py = shutil.which("py")
     if py and python_version:
+        python_semver = python_version
+        if python_version.startswith("python"):
+            logging.warn(
+                "Removing `python` from the start of the version, as pylauncher just expects the semantic version"
+            )
+            python_semver = python_semver.lstrip("python")
         py = subprocess.run(
-            [py, f"-{python_version}", "-c", "import sys; print(sys.executable)"],
+            [py, f"-{python_semver}", "-c", "import sys; print(sys.executable)"],
             capture_output=True,
             text=True,
             check=True,
