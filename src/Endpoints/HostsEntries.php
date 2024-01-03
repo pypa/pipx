@@ -66,7 +66,7 @@ class HostsEntries extends Endpoint
     {
         $this->validateRequired($hostsEntry, 'create', [
             'node_id',
-            'hostname',
+            'host_name',
             'cluster_id',
         ]);
 
