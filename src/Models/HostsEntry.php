@@ -6,19 +6,19 @@ use Cyberfusion\ClusterApi\Support\Arr;
 
 class HostsEntry extends ClusterModel
 {
-    private int $nodeId;
+    private ?int $nodeId = null;
     private string $hostname;
-    private int $clusterId;
+    private ?int $clusterId = null;
     private ?int $id = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
 
-    public function getNodeId(): int
+    public function getNodeId(): ?int
     {
         return $this->nodeId;
     }
 
-    public function setNodeId(int $nodeId): self
+    public function setNodeId(?int $nodeId): self
     {
         $this->nodeId = $nodeId;
 
@@ -48,12 +48,12 @@ class HostsEntry extends ClusterModel
         return $this;
     }
 
-    public function getClusterId(): int
+    public function getClusterId(): ?int
     {
         return $this->clusterId;
     }
 
-    public function setClusterId(int $clusterId): self
+    public function setClusterId(?int $clusterId): self
     {
         $this->clusterId = $clusterId;
 
