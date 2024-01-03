@@ -138,7 +138,7 @@ jobs:
         run: echo -e "## dev\n\n## $RELEASE_VERSION\n$(tail -n +2 CHANGELOG.md)" > CHANGELOG.md
       - name: Commit and push change
         run: |
-          git config --global user.name 'Github Actions'
-          git config --global user.email 'gh-action@users.noreply.github.com'
+          git config --global user.name 'chrysle'
+          git config --global user.email '96722107+chrysle@users.noreply.github.com'
           git commit -am "Bump changelog for $RELEASE_VERSION"
           git push origin HEAD:main
