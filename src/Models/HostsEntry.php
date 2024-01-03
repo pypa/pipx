@@ -87,8 +87,8 @@ class HostsEntry extends ClusterModel
     public function fromArray(array $data): self
     {
         return $this
-            ->setNodeId(Arr::get($data, 'name'))
-            ->setHostName(Arr::get($data, 'name'))
+            ->setNodeId(Arr::get($data, 'node_id'))
+            ->setHostName(Arr::get($data, 'host_name'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setId(Arr::get($data, 'id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
