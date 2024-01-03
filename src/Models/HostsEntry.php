@@ -7,7 +7,7 @@ use Cyberfusion\ClusterApi\Support\Arr;
 class HostsEntry extends ClusterModel
 {
     private ?int $nodeId = null;
-    private string $hostname;
+    private string $hostName;
     private ?int $clusterId = null;
     private ?int $id = null;
     private ?string $createdAt = null;
@@ -25,14 +25,14 @@ class HostsEntry extends ClusterModel
         return $this;
     }
 
-    public function getHostname(): string
+    public function getHostName(): string
     {
-        return $this->hostname;
+        return $this->hostName;
     }
 
-    public function setHostname(string $hostname): self
+    public function setHostName(string $hostName): self
     {
-        $this->hostname = $hostname;
+        $this->hostName = $hostName;
         return $this;
     }
 
