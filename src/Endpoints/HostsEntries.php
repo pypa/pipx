@@ -55,7 +55,7 @@ class HostsEntries extends Endpoint
         }
 
         return $response->setData([
-            'redisInstance' => (new HostsEntry())->fromArray($response->getData()),
+            'hostsEntry' => (new HostsEntry())->fromArray($response->getData()),
         ]);
     }
 
@@ -72,7 +72,7 @@ class HostsEntries extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('redis-instances')
+            ->setUrl('hosts-entries')
             ->setBody(
                 $this->filterFields($hostsEntry->toArray(), [
                     'node_id',
