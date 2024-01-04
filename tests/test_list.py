@@ -1,5 +1,7 @@
 import json
+import os
 import re
+import time
 
 import pytest  # type: ignore
 
@@ -12,7 +14,7 @@ from helpers import (
     run_pipx_cli,
 )
 from package_info import PKG
-from pipx import constants
+from pipx import constants, shared_libs
 from pipx.pipx_metadata_file import PackageInfo, _json_decoder_object_hook
 
 
@@ -80,7 +82,7 @@ def test_list_json(pipx_temp_env, capsys):
     assert not run_pipx_cli(["inject", "pylint", PKG["isort"]["spec"]])
     captured = capsys.readouterr()
 
-    assert not run_pipx_cli(["list", "-q", "--json"])
+    assert not run_pipx_cli(["list", "--json"])
     captured = capsys.readouterr()
 
     assert not re.search(r"\S", captured.err)
@@ -128,3 +130,27 @@ def test_list_short(pipx_temp_env, monkeypatch, capsys):
 
     assert "pycowsay 0.0.0.2" in captured.out
     assert "pylint 2.3.1" in captured.out
+
+
+def test_skip_maintenance(pipx_temp_env):
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
+
+    now = time.time()
+    shared_libs.shared_libs.create(verbose=True)
+    shared_libs.shared_libs.has_been_updated_this_run = False
+
+    access_time = now  # this can be anything
+    os.utime(shared_libs.shared_libs.pip_path, (access_time, -shared_libs.SHARED_LIBS_MAX_AGE_SEC - 5 * 60 + now))
+    assert shared_libs.shared_libs.needs_upgrade
+    run_pipx_cli(["list"])
+    assert shared_libs.shared_libs.has_been_updated_this_run
+    assert not shared_libs.shared_libs.needs_upgrade
+
+    os.utime(shared_libs.shared_libs.pip_path, (access_time, -shared_libs.SHARED_LIBS_MAX_AGE_SEC - 5 * 60 + now))
+    shared_libs.shared_libs.has_been_updated_this_run = False
+    assert shared_libs.shared_libs.needs_upgrade
+    run_pipx_cli(["list", "--skip-maintenance"])
+    shared_libs.shared_libs.skip_upgrade = False
+    assert not shared_libs.shared_libs.has_been_updated_this_run
+    assert shared_libs.shared_libs.needs_upgrade

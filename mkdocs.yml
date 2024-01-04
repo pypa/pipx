@@ -44,7 +44,6 @@ markdown_extensions:
 plugins:
   - search:
       lang: en
-      enabled: true
   - gen-files:
       scripts:
         - scripts/gen_doc_pages.py

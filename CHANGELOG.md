@@ -1,5 +1,14 @@
 ## dev
 
+- Allow skipping maintenance tasks during list command
+ 
+## 1.4.1
+
+- Set default logging level to WARNING, so debug log messages won't be shown without passing additional flags such as `--verbose`
+- Raise more user friendly error when provided `--python` version is not found.
+
+## 1.4.0
+
 - Delete directories directly instead of spawning rmdir on Windows
 - Fix "Failed to delete" error when using Microsoft Store Python
 - Fix "No pyvenv.cfg file" error when using Microsoft Store Python (#1164)

@@ -263,7 +263,9 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             force=args.force,
         )
     elif args.command == "list":
-        return commands.list_packages(venv_container, args.include_injected, args.json, args.short)
+        return commands.list_packages(
+            venv_container, args.include_injected, args.json, args.short, args.skip_maintenance
+        )
     elif args.command == "uninstall":
         return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose)
     elif args.command == "uninstall-all":
@@ -566,6 +568,7 @@ def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
     g = p.add_mutually_exclusive_group()
     g.add_argument("--json", action="store_true", help="Output rich data in json format.")
     g.add_argument("--short", action="store_true", help="List packages only.")
+    g.add_argument("--skip-maintenance", action="store_true", help="Skip maintenance tasks.")
 
 
 def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -699,15 +702,6 @@ def get_command_parser() -> argparse.ArgumentParser:
 
     completer_venvs = InstalledVenvsCompleter(venv_container)
 
-    parser = argparse.ArgumentParser(
-        prog=prog_name(),
-        formatter_class=LineWrapRawTextHelpFormatter,
-        description=PIPX_DESCRIPTION,
-    )
-    parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore
-
-    subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
-
     shared_parser = argparse.ArgumentParser(add_help=False)
 
     shared_parser.add_argument(
@@ -722,6 +716,16 @@ def get_command_parser() -> argparse.ArgumentParser:
     )
 
     shared_parser.add_argument("--verbose", "-v", action="count", default=0, help=("Give more output."))
+
+    parser = argparse.ArgumentParser(
+        prog=prog_name(),
+        formatter_class=LineWrapRawTextHelpFormatter,
+        description=PIPX_DESCRIPTION,
+        parents=[shared_parser],
+    )
+    parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore
+
+    subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
 
     _add_install(subparsers, shared_parser)
     _add_uninject(subparsers, completer_venvs.use, shared_parser)
@@ -786,12 +790,12 @@ def setup_log_file() -> Path:
         return _setup_log_file(platformdirs.user_log_path("pipx"))
 
 
-def setup_logging(verbose: bool) -> None:
+def setup_logging(verbose: int) -> None:
     pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
     pipx.constants.pipx_log_file = setup_log_file()
 
     # Determine logging level
-    level_number = max(0, 2 - verbose) * 10
+    level_number = max(0, logging.WARNING - 10 * verbose)
 
     level = logging.getLevelName(level_number)
 
