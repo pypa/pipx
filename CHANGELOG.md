@@ -1,5 +1,7 @@
 ## dev
 
+- Allow skipping maintenance tasks during list command
+ 
 ## 1.4.1
 
 - Set default logging level to WARNING, so debug log messages won't be shown without passing additional flags such as `--verbose`
