@@ -8,7 +8,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 from shutil import which
-from typing import List, NoReturn, Optional
+from typing import List, NoReturn, Optional, Union
 
 from packaging.requirements import InvalidRequirement, Requirement
 
@@ -42,14 +42,14 @@ Available executable scripts:
     {app_lines}"""
 
 
-def maybe_script_content(app: str, is_path: bool) -> Optional[str]:
+def maybe_script_content(app: str, is_path: bool) -> Optional[Union[str, Path]]:
     # If the app is a script, return its content.
     # Return None if it should be treated as a package name.
 
     # Look for a local file first.
     app_path = Path(app)
     if app_path.is_file():
-        return app_path.read_text(encoding="utf-8")
+        return app_path
     elif is_path:
         raise PipxError(f"The specified path {app} does not exist")
 
@@ -71,7 +71,7 @@ def maybe_script_content(app: str, is_path: bool) -> Optional[str]:
 
 
 def run_script(
-    content: str,
+    content: Union[str, Path],
     app_args: List[str],
     python: str,
     pip_args: List[str],
@@ -81,7 +81,10 @@ def run_script(
 ) -> NoReturn:
     requirements = _get_requirements_from_script(content)
     if requirements is None:
-        exec_app([python, "-c", content, *app_args])
+        if isinstance(content, Path):
+            exec_app([python, content, *app_args])
+        else:
+            exec_app([python, "-c", content, *app_args])
     else:
         # Note that the environment name is based on the identified
         # requirements, and *not* on the script name. This is deliberate, as
@@ -99,7 +102,10 @@ def run_script(
             venv = Venv(venv_dir, python=python, verbose=verbose)
             venv.create_venv(venv_args, pip_args)
             venv.install_unmanaged_packages(requirements, pip_args)
-        exec_app([venv.python_path, "-c", content, *app_args])
+        if isinstance(content, Path):
+            exec_app([venv.python_path, content, *app_args])
+        else:
+            exec_app([venv.python_path, "-c", content, *app_args])
 
 
 def run_package(
@@ -323,10 +329,13 @@ def _http_get_request(url: str) -> str:
 INLINE_SCRIPT_METADATA = re.compile(r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$")
 
 
-def _get_requirements_from_script(content: str) -> Optional[List[str]]:
+def _get_requirements_from_script(content: Union[str, Path]) -> Optional[List[str]]:
     """
     Supports inline script metadata.
     """
+
+    if isinstance(content, Path):
+        content = content.read_text(encoding="utf-8")
 
     name = "script"
 
