@@ -248,11 +248,7 @@ def _download_and_run(
         if app == package_name and len(apps) == 1:
             app = apps[0]
             print(f"NOTE: running app {app!r} from {package_name!r}")
-            if WINDOWS:
-                app_filename = f"{app}.exe"
-                logger.info(f"Assuming app is {app_filename!r} (Windows only)")
-            else:
-                app_filename = app
+            app_filename = app
         else:
             all_apps = (f"{a} - usage: 'pipx run --spec {package_or_url} {a} [arguments?]'" for a in apps)
             raise PipxError(
