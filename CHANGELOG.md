@@ -15,6 +15,7 @@
 - Add `--quiet` and `--verbose` options for the `pipx` subcommands
 - [docs] Add Scoop installation instructions
 - Add ability to install multiple packages at once
+- Update `pipx run` on scripts using `/// script` and no `run` table following PEP 723 (#1180)
 
 ## 1.3.3
 
