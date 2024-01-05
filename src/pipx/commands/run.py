@@ -81,10 +81,7 @@ def run_script(
 ) -> NoReturn:
     requirements = _get_requirements_from_script(content)
     if requirements is None:
-        if isinstance(content, Path):
-            exec_app([python, content, *app_args])
-        else:
-            exec_app([python, "-c", content, *app_args])
+        python_path = python
     else:
         # Note that the environment name is based on the identified
         # requirements, and *not* on the script name. This is deliberate, as
@@ -102,10 +99,12 @@ def run_script(
             venv = Venv(venv_dir, python=python, verbose=verbose)
             venv.create_venv(venv_args, pip_args)
             venv.install_unmanaged_packages(requirements, pip_args)
-        if isinstance(content, Path):
-            exec_app([venv.python_path, content, *app_args])
-        else:
-            exec_app([venv.python_path, "-c", content, *app_args])
+        python_path = venv.python_path
+
+    if isinstance(content, Path):
+        exec_app([python_path, content, *app_args])
+    else:
+        exec_app([python_path, "-c", content, *app_args])
 
 
 def run_package(
