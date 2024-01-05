@@ -81,7 +81,7 @@ def run_script(
 ) -> NoReturn:
     requirements = _get_requirements_from_script(content)
     if requirements is None:
-        python_path = python
+        python_path = Path(python)
     else:
         # Note that the environment name is based on the identified
         # requirements, and *not* on the script name. This is deliberate, as
