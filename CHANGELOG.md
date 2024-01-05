@@ -1,6 +1,7 @@
 ## dev
 
 - Allow skipping maintenance tasks during list command
+- Avoid repeated exception logging in a few rare cases (#1192)
 
 ## 1.4.1
 
