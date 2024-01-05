@@ -25,6 +25,7 @@ use Cyberfusion\ClusterApi\Endpoints\FtpUsers;
 use Cyberfusion\ClusterApi\Endpoints\HAProxyListens;
 use Cyberfusion\ClusterApi\Endpoints\HAProxyListensToNodes;
 use Cyberfusion\ClusterApi\Endpoints\Health;
+use Cyberfusion\ClusterApi\Endpoints\HostsEntries;
 use Cyberfusion\ClusterApi\Endpoints\HtpasswdFiles;
 use Cyberfusion\ClusterApi\Endpoints\HtpasswdUsers;
 use Cyberfusion\ClusterApi\Endpoints\Logs;
@@ -159,6 +160,11 @@ class ClusterApi
     public function health(): Health
     {
         return new Health($this->client);
+    }
+
+    public function hostsEntries(): HostsEntries
+    {
+        return new HostsEntries($this->client);
     }
 
     public function htpasswdFiles(): HtpasswdFiles
