@@ -12,6 +12,7 @@ concurrency:
 
 env:
   default-python: "3.12"
+  minimum-supported-python: "3.8"
 
 jobs:
   tests:
@@ -66,10 +67,10 @@ jobs:
     steps:
       - name: Checkout ${{ github.ref }}
         uses: actions/checkout@v4
-      - name: Set up Python ${{ env.default-python }}
+      - name: Set up Python ${{ env.minimum-supported-python }}
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.default-python }}
+          python-version: ${{ env.minimum-supported-python }}
           cache: "pip"
       - name: Install nox
         run: pip install nox
