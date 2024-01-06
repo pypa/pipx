@@ -209,7 +209,7 @@ class Venv:
                 self._run_pip(cmd)
         except PipxError as e:
             logging.info(e)
-            raise PipxError(f"Error uninstalling {package}.")
+            raise PipxError(f"Error uninstalling {package}.") from None
 
         if was_injected:
             self.pipx_metadata.injected_packages.pop(package)

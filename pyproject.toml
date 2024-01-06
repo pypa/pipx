@@ -55,13 +55,12 @@ version.source = "vcs"
 
 [tool.ruff]
 line-length = 121
-lint.select = [
+src = ["src"]
+lint.extend-select = [
   "A",
   "B",
   "C4",
   "C9",
-  "E",
-  "F",
   "I",
   "PLC",
   "PLE",
@@ -69,20 +68,12 @@ lint.select = [
   "RSE",
   "W",
 ]
-lint.ignore = [
-  "B904",
-]
-isort = {known-first-party = ["helpers", "package_info", "pipx"]}
+lint.isort = {known-first-party = ["helpers", "package_info", "pipx"]}
 lint.mccabe.max-complexity = 15
 
 [tool.pytest.ini_options]
 markers = ["all_packages: test install with maximum number of packages"]
 
-[tool.mypy]
-show_error_codes = true
-overrides = [
-  { module = [
-  "pipx.version",
-  "pycowsay.*",
-  ], ignore_missing_imports = true },
-]
+[[tool.mypy.overrides]]
+module = ["pipx.version", "pycowsay.*"]
+ignore_missing_imports = true

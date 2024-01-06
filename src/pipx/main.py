@@ -263,7 +263,9 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             force=args.force,
         )
     elif args.command == "list":
-        return commands.list_packages(venv_container, args.include_injected, args.json, args.short)
+        return commands.list_packages(
+            venv_container, args.include_injected, args.json, args.short, args.skip_maintenance
+        )
     elif args.command == "uninstall":
         return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose)
     elif args.command == "uninstall-all":
@@ -294,7 +296,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             return commands.ensure_pipx_paths(force=args.force)
         except Exception as e:
             logger.debug("Uncaught Exception:", exc_info=True)
-            raise PipxError(str(e), wrap_message=False)
+            raise PipxError(str(e), wrap_message=False) from None
     elif args.command == "completions":
         print(constants.completion_instructions)
         return ExitCode(0)
@@ -566,6 +568,7 @@ def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
     g = p.add_mutually_exclusive_group()
     g.add_argument("--json", action="store_true", help="Output rich data in json format.")
     g.add_argument("--short", action="store_true", help="List packages only.")
+    g.add_argument("--skip-maintenance", action="store_true", help="Skip maintenance tasks.")
 
 
 def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:

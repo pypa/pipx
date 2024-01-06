@@ -1,9 +1,14 @@
 from pathlib import Path
 from typing import List, Optional
 
-from pipx import constants
+from pipx import constants, emojis
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
-from pipx.constants import EXIT_CODE_INSTALL_VENV_EXISTS, EXIT_CODE_OK, ExitCode
+from pipx.constants import (
+    EXIT_CODE_INSTALL_VENV_EXISTS,
+    EXIT_CODE_OK,
+    EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND,
+    ExitCode,
+)
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import pipx_wrap
 from pipx.venv import Venv, VenvContainer
@@ -102,6 +107,23 @@ def install(
                 include_dependencies,
                 force=force,
             )
+        except FileNotFoundError as e:
+            venv.remove_venv()
+            if python in str(e) or "The system cannot find the file specified" in str(e):
+                print(
+                    pipx_wrap(
+                        f"""
+                           {emojis.hazard} No executable for the provided Python version '{python}' found.
+                           Please make sure the executable name is on your PATH /
+                           the path to the executable is correct.
+                        """,
+                        subsequent_indent=" " * 4,
+                    )
+                )
+                return EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND
+            else:
+                print()
+                raise
         except (Exception, KeyboardInterrupt):
             print()
             venv.remove_venv()
