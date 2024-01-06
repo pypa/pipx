@@ -23,9 +23,9 @@ import pipx.constants
 from pipx import commands, constants
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
-from pipx.constants import MINIMUM_PYTHON_VERSION, WINDOWS, ExitCode
+from pipx.constants import EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND, MINIMUM_PYTHON_VERSION, WINDOWS, ExitCode
 from pipx.emojis import hazard
-from pipx.interpreter import DEFAULT_PYTHON, find_py_launcher_python
+from pipx.interpreter import DEFAULT_PYTHON, InterpreterResolutionError, find_python_interpreter
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import VenvContainer
 from pipx.version import __version__
@@ -187,11 +187,18 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
 
-    if "python" in args:
-        if args.python is not None and not Path(args.python).is_file():
-            py_launcher_python = find_py_launcher_python(args.python)
-            if py_launcher_python:
-                args.python = py_launcher_python
+    if "python" in args and args.python is not None:
+        try:
+            interpreter = find_python_interpreter(args.python)
+            args.python = interpreter
+        except InterpreterResolutionError as e:
+            print(
+                pipx_wrap(
+                    f"{hazard} {e}",
+                    subsequent_indent=" " * 4,
+                )
+            )
+            return EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND
 
     if args.command == "run":
         commands.run(

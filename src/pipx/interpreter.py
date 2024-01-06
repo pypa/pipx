@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 from typing import Optional
 
 from pipx.constants import WINDOWS
@@ -18,6 +19,48 @@ def has_venv() -> bool:
         return True
     except ImportError:
         return False
+
+
+class InterpreterResolutionError(PipxError):
+    def __init__(self, source: str, version: str, wrap_message: bool = True):
+        self.source = source
+        self.version = version
+        potentially_pylauncher = "python" not in version
+        message = (
+            f"No executable for the provided Python version '{version}' found in {source}."
+            " Please make sure the provided version is "
+        )
+        if source == "py launcher":
+            message += "listed when running `py --list`."
+        if source == "PATH":
+            message += "on your PATH or the file path is valid. "
+            if potentially_pylauncher:
+                message += (
+                    "The provided version looks like a version for Python Launcher, " "but `py` was not found on PATH."
+                )
+        super().__init__(message, wrap_message)
+
+
+def find_python_interpreter(python_version: str) -> str:
+    if Path(python_version).is_file():
+        return python_version
+    try:
+        py_executable = find_py_launcher_python(python_version)
+        if py_executable:
+            return py_executable
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        raise InterpreterResolutionError(source="py launcher", version=python_version) from e
+    try:
+        proc = subprocess.run(
+            [python_version, "-c", "import sys; print(sys.executable)"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        proc.check_returncode()
+        return python_version
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        raise InterpreterResolutionError(source="PATH", version=python_version) from e
 
 
 # The following code was copied from https://github.com/uranusjr/pipx-standalone
