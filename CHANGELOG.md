@@ -4,6 +4,7 @@
 - Raise more user friendly error when provided `--python` version is not found
 - Update `pipx run` on scripts using `/// script` and no `run` table following the updated version of PEP 723 (#1180)
 - Avoid repeated exception logging in a few rare cases (#1192)
+- Include `tomli` into `pipx.pyz` (zipapp) so that it can be executed with Python 3.10 or earlier (#1142)
 
 ## 1.4.1
 
