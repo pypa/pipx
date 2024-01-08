@@ -25,7 +25,9 @@ class InterpreterResolutionError(PipxError):
     def __init__(self, source: str, version: str, wrap_message: bool = True):
         self.source = source
         self.version = version
-        potentially_pylauncher = "python" not in version
+        potentially_path = "/" in version
+        potentially_pylauncher = "python" not in version and not potentially_path
+
         message = (
             f"No executable for the provided Python version '{version}' found in {source}."
             " Please make sure the provided version is "
@@ -34,6 +36,8 @@ class InterpreterResolutionError(PipxError):
             message += "listed when running `py --list`."
         if source == "PATH":
             message += "on your PATH or the file path is valid. "
+            if potentially_path:
+                message += "The provided version looks like a path, but no executable was found there."
             if potentially_pylauncher:
                 message += (
                     "The provided version looks like a version for Python Launcher, " "but `py` was not found on PATH."
