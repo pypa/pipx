@@ -7,9 +7,10 @@ import pytest  # type: ignore
 
 import pipx.interpreter
 from pipx.interpreter import (
+    InterpreterResolutionError,
     _find_default_windows_python,
     _get_absolute_python_interpreter,
-    find_py_launcher_python,
+    find_python_interpreter,
 )
 from pipx.util import PipxError
 
@@ -24,7 +25,7 @@ def test_windows_python_with_version(monkeypatch, venv):
     minor = sys.version_info.minor
     monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: venv)
     monkeypatch.setattr(shutil, "which", which)
-    python_path = find_py_launcher_python(f"{major}.{minor}")
+    python_path = find_python_interpreter(f"{major}.{minor}")
     assert python_path is not None
     assert f"{major}.{minor}" in python_path or f"{major}{minor}" in python_path
     assert python_path.endswith("python.exe")
@@ -40,10 +41,25 @@ def test_windows_python_with_python_and_version(monkeypatch, venv):
     minor = sys.version_info.minor
     monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: venv)
     monkeypatch.setattr(shutil, "which", which)
-    python_path = find_py_launcher_python(f"python{major}.{minor}")
+    python_path = find_python_interpreter(f"python{major}.{minor}")
     assert python_path is not None
     assert f"{major}.{minor}" in python_path or f"{major}{minor}" in python_path
     assert python_path.endswith("python.exe")
+
+
+@pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
+@pytest.mark.parametrize("venv", [True, False])
+def test_windows_python_with_python_and_unavailable_version(monkeypatch, venv):
+    def which(name):
+        return "py"
+
+    major = sys.version_info.major + 99
+    minor = sys.version_info.minor
+    monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: venv)
+    monkeypatch.setattr(shutil, "which", which)
+    with pytest.raises(InterpreterResolutionError) as e:
+        find_python_interpreter(f"python{major}.{minor}")
+        assert "py --list" in str(e)
 
 
 def test_windows_python_no_version_with_venv(monkeypatch):
@@ -124,3 +140,30 @@ def test_bad_env_python(monkeypatch):
 def test_good_env_python(monkeypatch, capsys):
     good_exec = _get_absolute_python_interpreter(sys.executable)
     assert good_exec == sys.executable
+
+
+def test_find_python_interpreter_by_path(monkeypatch):
+    interpreter_path = sys.executable
+    assert interpreter_path == find_python_interpreter(interpreter_path)
+
+
+def test_find_python_interpreter_by_version(monkeypatch):
+    major = sys.version_info.major
+    minor = sys.version_info.minor
+    python_path = find_python_interpreter(f"python{major}.{minor}")
+    assert python_path == f"python{major}.{minor}"
+
+
+def test_find_python_interpreter_by_wrong_path_raises(monkeypatch):
+    interpreter_path = sys.executable + "99"
+    with pytest.raises(InterpreterResolutionError) as e:
+        find_python_interpreter(interpreter_path)
+        assert "like a path" in str(e)
+
+
+def test_find_python_interpreter_missing_on_path_raises(monkeypatch):
+    interpreter = "1.1"
+    with pytest.raises(InterpreterResolutionError) as e:
+        find_python_interpreter(interpreter)
+        assert "Python Launcher" in str(e)
+        assert "on your PATH" in str(e)
