@@ -151,7 +151,7 @@ def test_find_python_interpreter_by_version(monkeypatch):
     major = sys.version_info.major
     minor = sys.version_info.minor
     python_path = find_python_interpreter(f"python{major}.{minor}")
-    assert python_path == f"python{major}.{minor}"
+    assert python_path == f"python{major}.{minor}" or f"Python\\{major}.{minor}" in python_path
 
 
 def test_find_python_interpreter_by_wrong_path_raises(monkeypatch):
