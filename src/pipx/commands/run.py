@@ -328,7 +328,7 @@ def _get_requirements_from_script(content: str) -> Optional[List[str]]:
     Supports inline script metadata.
     """
 
-    name = "pyproject"
+    name = "script"
 
     # Windows is currently getting un-normalized line endings, so normalize
     content = content.replace("\r\n", "\n")
@@ -336,6 +336,20 @@ def _get_requirements_from_script(content: str) -> Optional[List[str]]:
     matches = [m for m in INLINE_SCRIPT_METADATA.finditer(content) if m.group("type") == name]
 
     if not matches:
+        pyproject_matches = [m for m in INLINE_SCRIPT_METADATA.finditer(content) if m.group("type") == "pyproject"]
+        if pyproject_matches:
+            logger.error(
+                pipx_wrap(
+                    f"""
+                    {hazard}  Using old form of requirements table. Use updated PEP
+                    723 syntax by replacing `# /// pyproject` with `# /// script`
+                    and `run.dependencies` (or `run.requirements`) with
+                    `dependencies`.
+                    """,
+                    subsequent_indent=" " * 4,
+                )
+            )
+            raise ValueError("Old 'pyproject' table found")
         return None
 
     if len(matches) > 1:
@@ -348,7 +362,7 @@ def _get_requirements_from_script(content: str) -> Optional[List[str]]:
     pyproject = tomllib.loads(content)
 
     requirements = []
-    for requirement in pyproject.get("run", {}).get("requirements", []):
+    for requirement in pyproject.get("dependencies", []):
         # Validate the requirement
         try:
             req = Requirement(requirement)

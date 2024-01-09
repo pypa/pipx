@@ -3,12 +3,14 @@ Thanks for your interest in contributing to pipx!
 Everyone who interacts with the pipx project via codebase, issue tracker, chat rooms, or otherwise is expected to follow
 the [PSF Code of Conduct](https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md).
 
-## Running pipx From Source Tree
+## Running pipx For Development
 
-To run the pipx executable from your source tree during development, run pipx from the src directory:
+To develop `pipx`, either create a [developer environment](#creating-a-developer-environment), or perform an editable
+install:
 
 ```
-python src/pipx --version
+python -m pip install -e .
+python -m pipx --version
 ```
 
 ## Running Tests
