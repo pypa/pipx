@@ -48,23 +48,17 @@ class InterpreterResolutionError(PipxError):
 def find_python_interpreter(python_version: str) -> str:
     if Path(python_version).is_file():
         return python_version
+
     try:
         py_executable = find_py_launcher_python(python_version)
         if py_executable:
             return py_executable
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         raise InterpreterResolutionError(source="py launcher", version=python_version) from e
-    try:
-        proc = subprocess.run(
-            [python_version, "-c", "import sys; print(sys.executable)"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        proc.check_returncode()
+
+    if shutil.which(python_version):
         return python_version
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        raise InterpreterResolutionError(source="PATH", version=python_version) from e
+    raise InterpreterResolutionError(source="PATH", version=python_version)
 
 
 # The following code was copied from https://github.com/uranusjr/pipx-standalone
