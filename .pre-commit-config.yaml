@@ -28,3 +28,7 @@ repos:
     - "packaging>=20"
     - "platformdirs>=2.1"
     - "tomli; python_version < '3.11'"
+- repo: https://github.com/twisted/towncrier
+  rev: 23.11.0
+  hooks:
+    - id: towncrier-check
