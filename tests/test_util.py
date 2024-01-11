@@ -1,6 +1,6 @@
 import sys
 
-import pytest
+import pytest  # type: ignore
 
 from pipx import util
 from pipx.util import run_subprocess
