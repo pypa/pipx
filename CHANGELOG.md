@@ -6,6 +6,7 @@
 - Avoid repeated exception logging in a few rare cases (#1192)
 - Include `tomli` into `pipx.pyz` (zipapp) so that it can be executed with Python 3.10 or earlier (#1142)
 - Fix resolving the python executable path on linux
+- `pipx run`: Verify whether the script name provided is a file before running it
 
 ## 1.4.1
 
