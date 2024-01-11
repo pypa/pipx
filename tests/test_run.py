@@ -356,6 +356,14 @@ def test_run_with_windows_python_version(caplog, pipx_temp_env, tmp_path):
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_verify_script_name_provided(pipx_temp_env, capsys, tmpdir):
+    tmpdir.mkdir("black")
+    run_pipx_cli_exit(["run", "black"])
+    captured = capsys.readouterr()
+    assert "black" in captured.err
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_shared_lib_as_app(pipx_temp_env, monkeypatch, capfd):
     run_pipx_cli_exit(["run", "pip", "--help"])
     captured = capfd.readouterr()
