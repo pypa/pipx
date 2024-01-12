@@ -1,6 +1,6 @@
 <!-- add an 'x' in the brackets below -->
 
-- [ ] I have added an entry to `changelog.d`
+- [ ] I have added a news fragment under `changelog.d/` (if the patch affects the end users)
 
 ## Summary of changes
 
