@@ -1,5 +1,7 @@
 ## dev
 
+## 1.4.2
+
 - Allow skipping maintenance tasks during list command
 - Raise more user friendly error when provided `--python` version is not found
 - Update `pipx run` on scripts using `/// script` and no `run` table following the updated version of PEP 723 (#1180)
