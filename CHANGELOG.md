@@ -10,49 +10,52 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 ## [1.4.1](https://github.com/pypa/pipx/tree/1.4.1)
 
-### Fixed
+### Bugfixes
 
 - Set default logging level to WARNING, so debug log messages won't be shown without passing additional flags such as `--verbose`
 
 ## [1.4.0](https://github.com/pypa/pipx/tree/1.4.0)
 
-### Added
+### Features
 
 - Add `--quiet` and `--verbose` options for the `pipx` subcommands
-- [docs] Add Scoop installation instructions
 - Add ability to install multiple packages at once
-
-### Changed
-
 - Delete directories directly instead of spawning rmdir on Windows
 
-### Fixed
+### Improved Documentation
+
+- Add Scoop installation instructions
+
+### Bugfixes
 
 - "Failed to delete" error when using Microsoft Store Python
 - "No pyvenv.cfg file" error when using Microsoft Store Python (#1164)
 
 ## [1.3.3](https://github.com/pypa/pipx/tree/1.3.3)
 
-### Fixed
+### Improved Documentation
 
-- [docs] Make the logo more visible in dark mode
+- Make the logo more visible in dark mode
 
 ## [1.3.2](https://github.com/pypa/pipx/tree/1.3.2)
 
-### Changed
+### Features
 
 - The project version number is now dynamic and generated from the VCS at build time
-- [docs] Add additonal example for --pip-args option, to docs/examples.md
+
+### Improved Documentation
+
+- Add additonal example for --pip-args option, to docs/examples.md
 
 ## [1.3.1](https://github.com/pypa/pipx/tree/1.3.1)
 
-### Fixed
+### Bugfixes
 
 - Fix combining of --editable and --force flag
 
 ## [1.3.0](https://github.com/pypa/pipx/tree/1.3.0)
 
-### Added
+### Features
 
 - Allow running `pip` with `pipx run`
 - Add `--with-suffix` for `pipx inject` command
@@ -64,9 +67,6 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 - Add `pipx install --preinstall` to support preinstalling build requirements
 - Return an error message when directory can't be added to PATH successfully
 - Expose manual pages included in an application installed with `pipx install`
-
-### Changed
-
 - Check whether pip module exists in shared lib before performing any actions, such as `reinstall-all`.
 - Drop `setuptools` and `wheel` from the shared libraries. This results in less time consumption when the libraries are
   automatically upgraded.
@@ -80,83 +80,86 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
   for multi-user (e.g. system-wide) installs of applications
 - Don't show escaped backslashes for paths in console output
 - Move `pipx` paths to ensure compatibility with the platform-specific user directories
-- [docs] Add more examples for `pipx run`
-- [docs] Add subsection to make README easier to read
 - Pass `--no-input` to pip when output is not piped to parent stdout
 - Print all environment variables in `pipx environment`
 
-### Removed
+### Improved Documentation
+
+- Add more examples for `pipx run`
+- Add subsection to make README easier to read
+
+### Deprecations and Removals
 
 - Drop support for Python 3.7
 
-### Fixed
+### Bugfixes
 
 - Fix wrong interpreter usage when injecting local pip-installable dependencies into venvs
 - Fix program name in generated manual page
 
 ## [1.2.1](https://github.com/pypa/pipx/tree/1.2.1)
 
-### Fixed
+### Bugfixes
 
 - Fix compatibility to packaging 23.2+ by removing reliance on packaging's requirement validation logic and detecting a
   URL-based requirement in pipx. (#1070)
 
 ## [1.2.0](https://github.com/pypa/pipx/tree/1.2.0)
 
-### Added
+### Features
 
 - Add `pipx uninject` command (#820)
-- [docs] Add an example for installation from source with extras
 - Ship a [zipapp](https://docs.python.org/3/library/zipapp.html) of pipx
-
-### Changed
-
 - Match pip's behaviour when package name ends with archive extension (treat it as a path)
 - Change the program name to `path/to/python -m pipx` when running as `python -m pipx`
 - Improve the detection logic for MSYS2 to avoid entering infinite loop (#908) (#938)
 - Remove extra trailing quote from exception message
 - Fix EncodingWarning in `pipx_metadata_file`.
 
-### Fixed
+### Improved Documentation
 
-- [docs] Fix `pipx run` examples and update Python versions used by `pipx install` examples
+- Add an example for installation from source with extras
+- Fix `pipx run` examples and update Python versions used by `pipx install` examples
+
+### Bugfixes
 
 - Add test for pip module in `pipx reinstall` to fix an issue with `pipx reinstall-all` (#935)
 
 ## [1.1.0](https://github.com/pypa/pipx/tree/1.1.0)
 
-### Added
+### Features
 
 - Add `pipx environment` command (#793)
 - Add `list --short` option to list only package names (#804)
-
-### Changed
-
 - Improve the behaviour of `shlex.split` on Windows, so paths on Windows can be handled properly when they are passed in
   `--pip-args`. (#794)
-- [docs] Add more examples
 - [dev] Change github action job names
-- [docs] Add additional examples for installation from git repos
+- Add additional examples for installation from git repos
 - [packaging] Switch to [PEP 621](https://www.python.org/dev/peps/pep-0621/)
 - Add a CACHEDIR.TAG to the cache directory to prevent it from being included in archives and backups. For more
   information about cache directory tags, see https://bford.info/cachedir
 
-### Fixed
+### Bugfixes
 
 - Fix encoding issue on Windows when pip fails to install a package
-- [docs] Fix the command for
+
+### Improved Documentation
+
+- Add more examples
+- Fix the command for
   [installing development version](https://pipx.pypa.io/stable/installation/#install-pipx-development-versions). (#801)
-- [docs] Fix test status badge in readme file
+- Fix test status badge in readme file
 
 ## [1.0.0](https://github.com/pypa/pipx/tree/1.0.0)
 
-### Added
+### Features
+
 - Support [argcomplete 2.0.0](https://pypi.org/project/argcomplete/2.0.0) (#790)
 - Include machinery to build a manpage for pipx with [argparse-manpage](https://pypi.org/project/argparse-manpage/).
 - Add better handling for 'app not found' when a single app is present in the project, and an improved error message
   (#733)
 
-### Fixed
+### Bugfixes
 
 - Fixed animations sending output to stdout, which can break JSON output. (#769)
 - Fix typo in `pipx upgrade-all` output
