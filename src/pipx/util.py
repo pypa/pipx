@@ -174,7 +174,7 @@ def run_subprocess(
     # See https://github.com/pypa/pipx/issues/1164
     # Conversely, if the binary is a symlink, then we should NOT use the real path, as Python expects to receive the
     # symlink in argv[0] so that it can locate the venv.
-    if not os.path.islink(cmd_str_list[0]):
+    if not os.path.islink(cmd_str_list[0]) and WINDOWS:
         cmd_str_list[0] = os.path.realpath(cmd_str_list[0])
     completed_process = subprocess.run(
         cmd_str_list,
