@@ -8,6 +8,21 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [1.4.2](https://github.com/pypa/pipx/tree/1.4.2)
+
+### Features
+
+- Allow skipping maintenance tasks during list command
+- Raise more user friendly error when provided `--python` version is not found
+- Update `pipx run` on scripts using `/// script` and no `run` table following the updated version of PEP 723 (#1180)
+
+### Bugfixes
+
+- Include `tomli` into `pipx.pyz` (zipapp) so that it can be executed with Python 3.10 or earlier (#1142)
+- Fix resolving the python executable path on linux
+- `pipx run`: Verify whether the script name provided is a file before running it
+- Avoid repeated exception logging in a few rare cases (#1192)
+
 ## [1.4.1](https://github.com/pypa/pipx/tree/1.4.1)
 
 ### Bugfixes
