@@ -55,14 +55,20 @@ def tests_with_options(session: nox.Session, *, net_pypiserver: bool) -> None:
     session.notify("cover")
 
 
-def format_draft_changelog(draft_changelog_content: str):
-    lines_to_keep = draft_changelog_content.split("\n")
-    end = 0
-    for i, line in enumerate(lines_to_keep):
-        if line.startswith("##"):
-            end = i
-            break
-    return "\n".join(lines_to_keep[end:])
+def create_upcoming_changelog(session: nox.Session) -> Path:
+    draft_changelog_content = session.run("towncrier", "build", "--version", "Upcoming", "--draft", silent=True)
+    draft_changelog = Path("docs", "_draft_changelog.md")
+    if draft_changelog_content and "No significant changes" not in draft_changelog_content:
+        lines_to_keep = draft_changelog_content.split("\n")
+        changelog_start = 0
+        for i, line in enumerate(lines_to_keep):
+            if line.startswith("##"):
+                changelog_start = i
+                break
+        lines_to_keep[changelog_start] = "## Planned for next release"
+        clean_changelog_content = "\n".join(lines_to_keep[changelog_start:])
+        draft_changelog.write_text(clean_changelog_content)
+    return draft_changelog
 
 
 @nox.session(python=PYTHON_ALL_VERSIONS)
@@ -122,19 +128,17 @@ def build_docs(session: nox.Session) -> None:
     site_dir = session.posargs or ["site/"]
     session.install(*DOC_DEPENDENCIES, ".")
     session.env["PIPX__DOC_DEFAULT_PYTHON"] = "typically the python used to execute pipx"
-    draft_changelog_content = session.run("towncrier", "build", "--version", "Next", "--draft", silent=True)
-    draft_changelog = Path("docs", "_draft_changelog.md")
-    if draft_changelog_content and "No significant changes" not in draft_changelog_content:
-        clean_changelog_content = format_draft_changelog(draft_changelog_content)
-        draft_changelog.write_text(clean_changelog_content)
+    upcoming_changelog = create_upcoming_changelog(session)
     session.run("mkdocs", "build", "--strict", "--site-dir", *site_dir)
-    draft_changelog.unlink(missing_ok=True)
+    upcoming_changelog.unlink(missing_ok=True)
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def watch_docs(session: nox.Session) -> None:
     session.install(*DOC_DEPENDENCIES, ".")
+    upcoming_changelog = create_upcoming_changelog(session)
     session.run("mkdocs", "serve", "--strict")
+    upcoming_changelog.unlink(missing_ok=True)
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
