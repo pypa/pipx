@@ -6,7 +6,7 @@ import nox
 
 PYTHON_ALL_VERSIONS = ["3.12", "3.11", "3.10", "3.9", "3.8"]
 PYTHON_DEFAULT_VERSION = "3.12"
-DOC_DEPENDENCIES = ["jinja2", "mkdocs", "mkdocs-material", "mkdocs-gen-files", "towncrier"]
+DOC_DEPENDENCIES = ["jinja2", "mkdocs", "mkdocs-material", "mkdocs-gen-files", "mkdocs-macros-plugin", "towncrier"]
 MAN_DEPENDENCIES = ["argparse-manpage[setuptools]"]
 TEST_DEPENDENCIES = ["pytest", "pypiserver[passlib]", 'setuptools; python_version>="3.12"', "pytest-cov"]
 # Packages whose dependencies need an intact system PATH to compile
@@ -112,8 +112,12 @@ def build_docs(session: nox.Session) -> None:
     site_dir = session.posargs or ["site/"]
     session.install(*DOC_DEPENDENCIES, ".")
     session.env["PIPX__DOC_DEFAULT_PYTHON"] = "typically the python used to execute pipx"
-    session.run("towncrier", "build", "--version", "Next", "--keep")
+    draft_changelog_content = session.run("towncrier", "build", "--version", "Next", "--draft", silent=True)
+    draft_changelog = Path("docs", "_draft_changelog.md")
+    if draft_changelog_content:
+        draft_changelog.write_text(draft_changelog_content)
     session.run("mkdocs", "build", "--strict", "--site-dir", *site_dir)
+    draft_changelog.unlink(missing_ok=True)
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
