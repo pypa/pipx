@@ -1,5 +1,7 @@
 ## dev
 
+- [docs] Add workaround for using pipx applications in shebang under macOS
+
 ## 1.4.2
 
 - Allow skipping maintenance tasks during list command

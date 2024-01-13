@@ -94,6 +94,19 @@ sudo apt install python3-venv python3-pip
 Reference:
 [Python Packaging User Guide: Installing pip/setuptools/wheel with Linux Package Managers](https://packaging.python.org/guides/installing-using-linux-tools)
 
+## macOS issues
+
+If you want to use a Pipx-installed package in a shebang (a common example is the AWS CLI),
+you will likely not be able to, because the binary will be stored under `~/Library/Application Support/pipx/`.
+The space in the path is not supported in a shebang. A simple solution is symlinking
+`~/Library/Application Support/pipx` to `~/Library/ApplicationSupport/pipx`, and using that as the
+path in the shebang instead.
+
+```
+mkdir $HOME/Library/ApplicationSupport
+ln -s $HOME/Library/Application\ Support/pipx $HOME/Library/ApplicationSupport/pipx
+```
+
 ## Does it work to install your package with `pip`?
 
 This is a tip for advanced users. An easy way to check if pipx is the problem or a package you're trying to install is
