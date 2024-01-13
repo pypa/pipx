@@ -15,10 +15,10 @@ the [PSF Code of Conduct](https://github.com/pypa/.github/blob/main/CODE_OF_COND
 ### Changelog entries
 
 The `CHANGELOG.md` file is built by
-[towncrier](https://pypi.org/project/towncrier/) from files in the
-`changelog.d/` directory. To add an entry, create a file in that directory
+[towncrier](https://pypi.org/project/towncrier/) from news fragments in the
+`changelog.d/` directory. To add an entry, create a news fragment in that directory
 named `{number}.{type}.md`, where `{number}` is the issue number,
-and `{type}` is `feature`, `bugfix`, `doc`, `removal`, or `misc`.
+and `{type}` is one of `feature`, `bugfix`, `doc`, `removal`, or `misc`.
 
 For example, if your issue number is 1234 and it's fixing a bug, then you
 would create `changelog.d/1234.bugfix.md`. PRs can span multiple

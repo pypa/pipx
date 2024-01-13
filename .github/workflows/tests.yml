@@ -139,7 +139,7 @@ jobs:
       - name: Create pull request branch
         run: git switch -c "bump-changelog-for-${RELEASE_VERSION}"
       - name: Update changelog
-        run: pipx run towncrier build --version $RELEASE_VERSION
+        run: pipx run towncrier build --yes --version $RELEASE_VERSION
       - name: Commit and push change
         run: |
           git config --global user.name 'github-actions[bot]'
