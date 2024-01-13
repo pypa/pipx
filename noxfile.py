@@ -112,6 +112,7 @@ def build_docs(session: nox.Session) -> None:
     site_dir = session.posargs or ["site/"]
     session.install(*DOC_DEPENDENCIES, ".")
     session.env["PIPX__DOC_DEFAULT_PYTHON"] = "typically the python used to execute pipx"
+    session.run("towncrier", "build", "--version", "Next", "--keep")
     session.run("mkdocs", "build", "--strict", "--site-dir", *site_dir)
 
 
