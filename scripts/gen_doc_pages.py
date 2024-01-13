@@ -46,8 +46,3 @@ env = Environment(loader=FileSystemLoader(Path(__file__).parent / "templates"))
 with mkdocs_gen_files.open("docs.md", "wt") as file_handler:
     file_handler.write(env.get_template("docs.md").render(**params))
     file_handler.write("\n")
-
-with mkdocs_gen_files.open("changelog.md", "rt") as file_handler:
-    text = file_handler.read()
-with mkdocs_gen_files.open("changelog.md", "wt") as file_handler:
-    file_handler.write(f"## {__version__}" + text[len("## dev") :])
