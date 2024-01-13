@@ -96,14 +96,15 @@ Reference:
 
 ## macOS issues
 
-If you want to use a Pipx installed package in a shebang (a common example is the AWS cli),
-you will likely not be able to, because the binary will be under `~/Library/Application Support/pipx`.
+If you want to use a Pipx-installed package in a shebang (a common example is the AWS CLI),
+you will likely not be able to, because the binary will be stored under `~/Library/Application Support/pipx/`.
 The space in the path is not supported in a shebang. A simple solution is symlinking
 `~/Library/Application Support/pipx` to `~/Library/ApplicationSupport/pipx`, and using that as the
 path in the shebang instead.
 
 ```
-ln -s $HOME/Library/Application Support/pipx $HOME/Library/ApplicationSupport/pipx
+mkdir $HOME/Library/ApplicationSupport
+ln -s $HOME/Library/Application\ Support/pipx $HOME/Library/ApplicationSupport/pipx
 ```
 
 ## Does it work to install your package with `pip`?
