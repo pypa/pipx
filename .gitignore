@@ -15,3 +15,4 @@ __pycache__
 build
 *.whl
 /pipx.1
+/docs/_draft_changelog.md
