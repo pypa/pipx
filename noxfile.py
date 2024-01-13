@@ -55,6 +55,16 @@ def tests_with_options(session: nox.Session, *, net_pypiserver: bool) -> None:
     session.notify("cover")
 
 
+def format_draft_changelog(draft_changelog_content: str):
+    lines_to_keep = draft_changelog_content.split("\n")
+    end = 0
+    for i, line in enumerate(lines_to_keep):
+        if line.startswith("##"):
+            end = i
+            break
+    return "\n".join(lines_to_keep[end:])
+
+
 @nox.session(python=PYTHON_ALL_VERSIONS)
 def tests(session: nox.Session) -> None:
     """Tests using local pypiserver only"""
@@ -114,8 +124,9 @@ def build_docs(session: nox.Session) -> None:
     session.env["PIPX__DOC_DEFAULT_PYTHON"] = "typically the python used to execute pipx"
     draft_changelog_content = session.run("towncrier", "build", "--version", "Next", "--draft", silent=True)
     draft_changelog = Path("docs", "_draft_changelog.md")
-    if draft_changelog_content:
-        draft_changelog.write_text(draft_changelog_content)
+    if draft_changelog_content and "No significant changes" not in draft_changelog_content:
+        clean_changelog_content = format_draft_changelog(draft_changelog_content)
+        draft_changelog.write_text(clean_changelog_content)
     session.run("mkdocs", "build", "--strict", "--site-dir", *site_dir)
     draft_changelog.unlink(missing_ok=True)
 
