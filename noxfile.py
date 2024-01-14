@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -6,7 +7,7 @@ import nox
 
 PYTHON_ALL_VERSIONS = ["3.12", "3.11", "3.10", "3.9", "3.8"]
 PYTHON_DEFAULT_VERSION = "3.12"
-DOC_DEPENDENCIES = ["jinja2", "mkdocs", "mkdocs-material", "mkdocs-gen-files"]
+DOC_DEPENDENCIES = ["jinja2", "mkdocs", "mkdocs-material", "mkdocs-gen-files", "mkdocs-macros-plugin", "towncrier"]
 MAN_DEPENDENCIES = ["argparse-manpage[setuptools]"]
 TEST_DEPENDENCIES = ["pytest", "pypiserver[passlib]", 'setuptools; python_version>="3.12"', "pytest-cov"]
 # Packages whose dependencies need an intact system PATH to compile
@@ -53,6 +54,22 @@ def tests_with_options(session: nox.Session, *, net_pypiserver: bool) -> None:
         pypiserver_option = []
     session.run("pytest", *pypiserver_option, "--cov=pipx", "--cov-report=", *test_dir)
     session.notify("cover")
+
+
+def create_upcoming_changelog(session: nox.Session) -> Path:
+    draft_changelog_content = session.run("towncrier", "build", "--version", "Upcoming", "--draft", silent=True)
+    draft_changelog = Path("docs", "_draft_changelog.md")
+    if draft_changelog_content and "No significant changes" not in draft_changelog_content:
+        lines_to_keep = draft_changelog_content.split("\n")
+        changelog_start = 0
+        for i, line in enumerate(lines_to_keep):
+            if line.startswith("##"):
+                changelog_start = i
+                break
+        lines_to_keep[changelog_start] = "## Planned for next release"
+        clean_changelog_content = "\n".join(lines_to_keep[changelog_start:])
+        draft_changelog.write_text(clean_changelog_content)
+    return draft_changelog
 
 
 @nox.session(python=PYTHON_ALL_VERSIONS)
@@ -112,13 +129,19 @@ def build_docs(session: nox.Session) -> None:
     site_dir = session.posargs or ["site/"]
     session.install(*DOC_DEPENDENCIES, ".")
     session.env["PIPX__DOC_DEFAULT_PYTHON"] = "typically the python used to execute pipx"
+    upcoming_changelog = create_upcoming_changelog(session)
     session.run("mkdocs", "build", "--strict", "--site-dir", *site_dir)
+    upcoming_changelog.unlink(missing_ok=True)
+    for site in site_dir:
+        shutil.rmtree(Path(site, "_draft_changelog"))
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
 def watch_docs(session: nox.Session) -> None:
     session.install(*DOC_DEPENDENCIES, ".")
+    upcoming_changelog = create_upcoming_changelog(session)
     session.run("mkdocs", "serve", "--strict")
+    upcoming_changelog.unlink(missing_ok=True)
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
