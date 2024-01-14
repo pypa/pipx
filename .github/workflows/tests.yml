@@ -130,6 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - name: Checkout ${{ github.ref }}
         uses: actions/checkout@v4
@@ -138,7 +139,7 @@ jobs:
       - name: Create pull request branch
         run: git switch -c "bump-changelog-for-${RELEASE_VERSION}"
       - name: Update changelog
-        run: echo -e "## dev\n\n## $RELEASE_VERSION\n$(tail -n +2 CHANGELOG.md)" > CHANGELOG.md
+        run: pipx run towncrier build --yes --version $RELEASE_VERSION
       - name: Commit and push change
         run: |
           git config --global user.name 'github-actions[bot]'

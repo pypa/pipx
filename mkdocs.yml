@@ -47,3 +47,4 @@ plugins:
   - gen-files:
       scripts:
         - scripts/gen_doc_pages.py
+  - macros

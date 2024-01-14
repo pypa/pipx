@@ -74,6 +74,15 @@ lint.mccabe.max-complexity = 15
 [tool.pytest.ini_options]
 markers = ["all_packages: test install with maximum number of packages"]
 
+[tool.towncrier]
+directory = "changelog.d"
+filename = "CHANGELOG.md"
+start_string = "<!-- towncrier release notes start -->\n"
+underlines = ["", "", ""]
+title_format = "## [{version}](https://github.com/pypa/pipx/tree/{version}) - {project_date}"
+issue_format = "[#{issue}](https://github.com/pypa/pipx/issues/{issue})"
+package = "pipx"
+
 [[tool.mypy.overrides]]
 module = ["pipx.version", "pycowsay.*"]
 ignore_missing_imports = true
