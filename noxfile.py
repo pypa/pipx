@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -131,6 +132,8 @@ def build_docs(session: nox.Session) -> None:
     upcoming_changelog = create_upcoming_changelog(session)
     session.run("mkdocs", "build", "--strict", "--site-dir", *site_dir)
     upcoming_changelog.unlink(missing_ok=True)
+    for site in site_dir:
+        shutil.rmtree(Path(site, "_draft_changelog"))
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
