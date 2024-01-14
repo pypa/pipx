@@ -32,5 +32,5 @@ jobs:
       - name: Store reports as artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: lists
+          name: lists-${{ matrix.os }}-${{ matrix.python-version }}
           path: ./new_tests_packages

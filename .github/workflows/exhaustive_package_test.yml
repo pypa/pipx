@@ -29,7 +29,7 @@ jobs:
       - name: Store reports as artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: reports-raw
+          name: reports-raw-${{ matrix.os }}-${{ matrix.python-version }}
           path: reports
 
   report_all_packages:
@@ -41,7 +41,8 @@ jobs:
       - name: Get report artifacts
         uses: actions/download-artifact@v4
         with:
-          name: reports-raw
+          pattern: reports-raw-*
+          merge-multiple: true
       - name: Collate reports
         run: |
           ls # DEBUG
