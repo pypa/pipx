@@ -84,5 +84,5 @@ issue_format = "[#{issue}](https://github.com/pypa/pipx/issues/{issue})"
 package = "pipx"
 
 [[tool.mypy.overrides]]
-module = ["pipx.version", "pycowsay.*"]
+module = ["pycowsay.*"]
 ignore_missing_imports = true
