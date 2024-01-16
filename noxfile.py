@@ -145,6 +145,12 @@ def watch_docs(session: nox.Session) -> None:
 
 
 @nox.session(python=PYTHON_DEFAULT_VERSION)
+def build_changelog(session: nox.Session) -> None:
+    session.install(*DOC_DEPENDENCIES, ".")
+    session.run("towncrier", "build", "--version", session.posargs[0], "--yes")
+
+
+@nox.session(python=PYTHON_DEFAULT_VERSION)
 def build_man(session: nox.Session) -> None:
     session.install(*MAN_DEPENDENCIES, ".")
     session.env["PIPX__DOC_DEFAULT_PYTHON"] = "typically the python used to execute pipx"
