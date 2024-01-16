@@ -244,6 +244,24 @@ def test_run_with_requirements_old(caplog, pipx_temp_env, tmp_path):
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_correct_traceback(capfd, pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    script.write_text(
+        textwrap.dedent(
+            """
+                raise RuntimeError("Should fail")
+            """
+        ).strip()
+    )
+
+    with pytest.raises(SystemExit):
+        run_pipx_cli(["run", str(script)])
+
+    captured = capfd.readouterr()
+    assert "test.py" in captured.err
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_args(caplog, pipx_temp_env, tmp_path):
     script = tmp_path / "test.py"
     out = tmp_path / "output.txt"
