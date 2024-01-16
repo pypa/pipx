@@ -28,7 +28,7 @@ from pipx.emojis import hazard
 from pipx.interpreter import DEFAULT_PYTHON, InterpreterResolutionError, find_python_interpreter
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import VenvContainer
-from pipx.version import __version__
+from pipx.version import version as __version__
 
 logger = logging.getLogger(__name__)
 
