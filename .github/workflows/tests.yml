@@ -140,7 +140,7 @@ jobs:
         run: git switch -c "bump-changelog-for-${RELEASE_VERSION}"
       - name: Update changelog
         run: |
-          pipx install towncrier
+          pip install --user towncrier
           towncrier build --yes --version $RELEASE_VERSION
       - name: Commit and push change
         run: |
