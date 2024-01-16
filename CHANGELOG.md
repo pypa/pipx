@@ -9,6 +9,21 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 <!-- towncrier release notes start -->
 
+## [1.4.3](https://github.com/pypa/pipx/tree/1.4.3) - 2024-01-16
+
+
+### Bugfixes
+
+- Autofix python version for pylauncher, when version is provided prefixed with `python` ([#1150](https://github.com/pypa/pipx/issues/1150))
+- Support building pipx wheels with setuptools-scm<7, such as on FreeBSD. ([#1208](https://github.com/pypa/pipx/issues/1208))
+
+### Improved Documentation
+
+- Provide useful error messages when unresolvable python version is passed ([#1150](https://github.com/pypa/pipx/issues/1150))
+- Introduce towncrier for managing the changelog ([#1161](https://github.com/pypa/pipx/issues/1161))
+- Add workaround for using pipx applications in shebang under macOS ([#1198](https://github.com/pypa/pipx/issues/1198))
+
+
 ## [1.4.2](https://github.com/pypa/pipx/tree/1.4.2)
 
 ### Features
