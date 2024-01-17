@@ -114,7 +114,7 @@ Example interaction: None.
 
 ## pipx vs pae/pactivate
 
-_pae_ is a Bash command-line function distributed with [pactivate](https://github.com/cynic-net/pactivate) that uses pactivate to create non-ephermeral environments that can be used for both command-line applications and libraries.
+_pae_ is a Bash command-line function distributed with [pactivate](https://github.com/cynic-net/pactivate) that uses pactivate to create non-ephemeral environments that can be used for both command-line applications and libraries.
 
 - pae and pipx both create isolated environments without having to specify (and remember) a directory in which to store them.
 - pae allows you to use any Python interpreter available on your system, so you can use arbitrary versions of Python.
