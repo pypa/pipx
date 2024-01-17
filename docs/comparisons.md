@@ -120,7 +120,7 @@ _pae_ is a Bash command-line function distributed with [pactivate](https://githu
 - pae allows you to use any Python interpreter available on your system, so you can use arbitrary versions of Python.
 - pae does not require you to have anything other than a Python interpreter available; it downloads and bootstraps `pip` and `virtualenv`, always using the latest releases of both.
 - pae and pipx both make it simple to run commands in the isolated environments, but pae does not add these commands to your PATH by default. You must use `pae COMMAND` or `pae ENV COMMAND` to run them, or `pae -a ENV` to activate the environment.
-- pae allows you to activate and deactivate an isolated environment so you you can use libraries within it.
+- pae allows you to activate and deactivate an isolated environment so you can use libraries within it.
 - With pae, packages must be manually installed in an environment with `pae ENV pip install ...`.
 - pae does not create temporary environments; they must be manually created with `pae -c` and removed with `pae --rm` when no longer needed.
 - pae is significantly slower to create virtual environments due to the bootstrap process.
