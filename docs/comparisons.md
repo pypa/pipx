@@ -111,3 +111,30 @@ virtualenvs with their dependencies installed.
 - fades can only run individual script files while pipx can also run packages.
 
 Example interaction: None.
+
+## pipx vs pae/pactivate
+
+_pae_ is a Bash command-line function distributed with [pactivate](https://github.com/cynic-net/pactivate) that uses pactivate to create non-ephemeral environments focused on general use, rather than just running command-line applications.
+
+There is [a very detailed comparison here](https://github.com/cynic-net/pactivate/blob/main/doc/vs-pipx.md), but to briefly summarize:
+
+Similarities:
+
+- Both create isolated environments without having to specify (and remember) a directory in which to store them.
+- Both allow you to use any Python interpreter available on your system (subject to version restrictions below).
+
+pae advantages:
+
+- Supports all versions of Python from 2.7 upward. pipx requires ≥3.8.
+- Fewer dependencies. (See the detailed comparison for more information.)
+- Easier to have multiple versions of a single program and/or use different Python versions for a single program.
+- Somewhat more convenient for running arbitrary command-line programs in virtual environments, installing multiple packages in a single environment, and activating virtual environments.
+- Integrates well with source code repos using [pactivate](https://github.com/cynic-net/pactivate).
+
+pae disadvantages:
+
+- Usable with Bash shell only.
+- Slightly less quick and convenient for installing/running command-line programs from single Python packages.
+- Can be slower than pipx at creating virtual environments.
+
+Example interaction: None. Either one or the other should be used. These tools compete for a similar workflow.
