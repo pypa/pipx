@@ -27,7 +27,9 @@ _For comparison to other tools including pipsi, see
 
 ## Install pipx
 
-> [!NOTE] It is not recommended to install `pipx` via `pipx`. If you'd like to do this anyway, take a look at the
+> [!WARNING]
+>
+> It is not recommended to install `pipx` via `pipx`. If you'd like to do this anyway, take a look at the
 > [`pipx-in-pipx`](https://github.com/mattsb42-meta/pipx-in-pipx) project and read about the limitations there.
 
 ### On macOS

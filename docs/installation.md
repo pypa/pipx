@@ -68,10 +68,10 @@ you did not get the warning):
 This will add both the above mentioned path and the `%USERPROFILE%\.local\bin` folder to your search path. Restart your
 terminal session and verify `pipx` does run.
 
-!!! warning
-
-    It is not recommended to install `pipx` via `pipx`. If you'd like to do this anyway, take a look at the
-    [`pipx-in-pipx`](https://github.com/mattsb42-meta/pipx-in-pipx) project and read about the limitations there.
+> [!WARNING]
+>
+> It is not recommended to install `pipx` via `pipx`. If you'd like to do this anyway, take a look at the
+> [`pipx-in-pipx`](https://github.com/mattsb42-meta/pipx-in-pipx) project and read about the limitations there.
 
 ### Using pipx without installing (via zipapp)
 
@@ -123,20 +123,21 @@ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin PIPX_MAN_DIR=/usr/local/sha
 # Example: $ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin PIPX_MAN_DIR=/usr/local/share/man pipx install cowsay
 ```
 
-!!! note
-
-    After version 1.2.0, the default pipx paths have been moved from `~/.local/pipx` to specific user data directories on each platform using [platformdirs](https://pypi.org/project/platformdirs/) library
-
-    | Old Path               | New Path                                   |
-    | ---------------------- | ------------------------------------------ |
-    | `~/.local/pipx/.trash` | `platformdirs.user_data_dir()/pipx/trash`  |
-    | `~/.local/pipx/shared` | `platformdirs.user_data_dir()/pipx/shared` |
-    | `~/.local/pipx/venvs`  | `platformdirs.user_data_dir()/pipx/venv`   |
-    | `~/.local/pipx/.cache` | `platformdirs.user_cache_dir()/pipx`       |
-    | `~/.local/pipx/logs`   | `platformdirs.user_log_dir()/pipx/log`     |
-
-    `user_data_dir()`, `user_cache_dir()` and `user_log_dir()` resolve to appropriate platform-specific user data, cache and log directories.
-    See the [platformdirs documentation](https://platformdirs.readthedocs.io/en/latest/api.html#platforms) for details.
+> [!NOTE]
+>
+> After version 1.2.0, the default pipx paths have been moved from `~/.local/pipx` to specific user data directories on
+> each platform using [platformdirs](https://pypi.org/project/platformdirs/) library
+>
+> | Old Path               | New Path                                   |
+> | ---------------------- | ------------------------------------------ |
+> | `~/.local/pipx/.trash` | `platformdirs.user_data_dir()/pipx/trash`  |
+> | `~/.local/pipx/shared` | `platformdirs.user_data_dir()/pipx/shared` |
+> | `~/.local/pipx/venvs`  | `platformdirs.user_data_dir()/pipx/venv`   |
+> | `~/.local/pipx/.cache` | `platformdirs.user_cache_dir()/pipx`       |
+> | `~/.local/pipx/logs`   | `platformdirs.user_log_dir()/pipx/log`     |
+>
+> `user_data_dir()`, `user_cache_dir()` and `user_log_dir()` resolve to appropriate platform-specific user data, cache and log directories.
+> See the [platformdirs documentation](https://platformdirs.readthedocs.io/en/latest/api.html#platforms) for details.
 
 ## Upgrade pipx
 
