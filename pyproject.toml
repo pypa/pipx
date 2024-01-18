@@ -72,6 +72,7 @@ lint.isort = {known-first-party = ["helpers", "package_info", "pipx"]}
 lint.mccabe.max-complexity = 15
 
 [tool.codespell]
+# Ref: https://github.com/codespell-project/codespell#using-a-config-file
 skip = '.git,*.pdf,*.svg,go.sum'
 check-hidden = true
 # case sensitive etc
@@ -93,5 +94,3 @@ package = "pipx"
 [[tool.mypy.overrides]]
 module = ["pycowsay.*"]
 ignore_missing_imports = true
-
-# Ref: https://github.com/codespell-project/codespell#using-a-config-file
