@@ -138,5 +138,3 @@ pae disadvantages:
 - Can be slower than pipx at creating virtual environments.
 
 Example interaction: None. Either one or the other should be used. These tools compete for a similar workflow.
-
-
