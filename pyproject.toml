@@ -71,6 +71,13 @@ lint.extend-select = [
 lint.isort = {known-first-party = ["helpers", "package_info", "pipx"]}
 lint.mccabe.max-complexity = 15
 
+[tool.codespell]
+skip = '.git,*.pdf,*.svg,go.sum'
+check-hidden = true
+# case sensitive etc
+ignore-regex = '\b(UE|path/doesnt/exist)\b'
+ignore-words-list = 'astroid'
+
 [tool.pytest.ini_options]
 markers = ["all_packages: test install with maximum number of packages"]
 
@@ -88,9 +95,3 @@ module = ["pycowsay.*"]
 ignore_missing_imports = true
 
 # Ref: https://github.com/codespell-project/codespell#using-a-config-file
-[tool.codespell]
-skip = '.git,*.pdf,*.svg,go.sum'
-check-hidden = true
-# case sensitive etc
-ignore-regex = '\b(UE|path/doesnt/exist)\b'
-ignore-words-list = 'astroid'
