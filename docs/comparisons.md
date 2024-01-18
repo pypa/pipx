@@ -114,17 +114,29 @@ Example interaction: None.
 
 ## pipx vs pae/pactivate
 
-_pae_ is a Bash command-line function distributed with [pactivate](https://github.com/cynic-net/pactivate) that uses pactivate to create non-ephemeral environments that can be used for both command-line applications and libraries.
+_pae_ is a Bash command-line function distributed with [pactivate](https://github.com/cynic-net/pactivate) that uses pactivate to create non-ephemeral environments focused on general use, rather than just running command-line applications.
 
-- pae and pipx both create isolated environments without having to specify (and remember) a directory in which to store them. Both allow you to use any Python interpreter available on your system, so you can use arbitrary versions of Python.
-- The pipx UI is focused on running the programs from one package; pae is more focused on using virtual environments that may have multiple different packages installed. E.g., `pipx install grip` leaves `grip` in your path. pae sets this up with `pae -c grip; pae grip pip install grip`, where you then use `pae grip grip`, or `pae grip` for short, to run a program, but you can also add other programs or libraries to that virtual environment and easily activate it with `pae -a grip`.
-- pae uses the latest [`virtualenv`](/latest/development.html) package, not the `venv` subset used by pipx.
-- pae inherently does not require you to have anything other than a minimal Python interpreter available; it downloads and bootstraps `pip` and `virtualenv`, always using the latest releases of both. The (slightly less convenient) [zipapp packaging](https://pipx.pypa.io/latest/installation/#using-pipx-without-installing-via-zipapp) of pipx includes most dependencies, but may still fail with with OS-supplied minimal Python installations, such as on Debian without the `python3.11-venv` package.)
-- pae and pipx both make it simple to run commands in the isolated environments, but pae does not add these commands to your PATH by default. You must use `pae COMMAND` or `pae ENV COMMAND` to run them, or `pae -a ENV` to activate the environment.
-- pae allows you to activate and deactivate an isolated environment so you can use libraries within it.
-- With pae, packages must be manually installed in an environment with `pae ENV pip install ...`.
-- pae does not create temporary environments; they must be manually created with `pae -c` and removed with `pae --rm` when no longer needed.
-- pae is significantly slower to create virtual environments due to the bootstrap process.
-- pae works only with Bash.
+There is [a very detailed comparison here](https://github.com/cynic-net/pactivate/blob/main/doc/vs-pipx.md), but to briefly summarize:
+
+Similarities:
+
+- Both create isolated environments without having to specify (and remember) a directory in which to store them.
+- Both allow you to use any Python interpreter available on your system (subject to version restrictions below).
+
+pae advantages:
+
+- Supports all versions of Python from 2.7 upward. pipx requires ≥3.8.
+- Fewer dependencies. (See the detailed comparison for more information.)
+- Easier to have multiple versions of a single program and/or use different Python versions for a single program.
+- Somewhat more convenient for running arbitrary command-line programs in virtual environments, installing multiple packages in a single environment, and activating virtual environments.
+- Integrates well with source code repos using [pactivate](https://github.com/cynic-net/pactivate).
+
+pae disadvantages:
+
+- Usable with Bash shell only.
+- Slightly less quick and convenient for installing/running command-line programs from single Python packages.
+- Can be slower than pipx at creating virtual environments.
 
 Example interaction: None. Either one or the other should be used. These tools compete for a similar workflow.
+
+
