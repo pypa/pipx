@@ -36,7 +36,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
       - name: Persistent .pipx_tests/package_cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.pipx_tests/package_cache/${{ matrix.python-version }}
           key: pipx-tests-package-cache-${{ runner.os }}-${{ matrix.python-version }}
