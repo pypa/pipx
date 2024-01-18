@@ -86,3 +86,10 @@ package = "pipx"
 [[tool.mypy.overrides]]
 module = ["pycowsay.*"]
 ignore_missing_imports = true
+
+# Ref: https://github.com/codespell-project/codespell#using-a-config-file
+[tool.codespell]
+skip = '.git,*.pdf,*.svg,go.sum'
+check-hidden = true
+# ignore-regex = ''
+# ignore-words-list = ''
