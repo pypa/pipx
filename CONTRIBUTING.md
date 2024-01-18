@@ -126,19 +126,21 @@ To run unit tests in Python3.12, you can run
 nox -s tests-3.12
 ```
 
-!!! tip You can run a specific unit test by passing arguments to pytest, the test runner pipx uses:
-
-    ```
-    nox -s tests-3.8 -- -k EXPRESSION
-    ```
-
-    `EXPRESSION` can be a test name, such as
-
-    ```
-    nox -s tests-3.8 -- -k test_uninstall
-    ```
-
-    Coverage errors can usually be ignored when only running a subset of tests.
+> [!TIP]
+>
+> You can run a specific unit test by passing arguments to pytest, the test runner pipx uses:
+>
+> ```
+> nox -s tests-3.8 -- -k EXPRESSION
+> ```
+>
+> `EXPRESSION` can be a test name, such as
+>
+> ```
+> nox -s tests-3.8 -- -k test_uninstall
+> ```
+>
+> Coverage errors can usually be ignored when only running a subset of tests.
 
 ### Running Unit Tests Offline
 

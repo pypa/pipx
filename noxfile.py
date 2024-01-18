@@ -7,7 +7,15 @@ import nox
 
 PYTHON_ALL_VERSIONS = ["3.12", "3.11", "3.10", "3.9", "3.8"]
 PYTHON_DEFAULT_VERSION = "3.12"
-DOC_DEPENDENCIES = ["jinja2", "mkdocs", "mkdocs-material", "mkdocs-gen-files", "mkdocs-macros-plugin", "towncrier"]
+DOC_DEPENDENCIES = [
+    "jinja2",
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocs-gen-files",
+    "mkdocs-macros-plugin",
+    "towncrier",
+    "markdown-gfm-admonition",
+]
 MAN_DEPENDENCIES = ["argparse-manpage[setuptools]"]
 TEST_DEPENDENCIES = ["pytest", "pypiserver[passlib]", 'setuptools; python_version>="3.12"', "pytest-cov"]
 # Packages whose dependencies need an intact system PATH to compile
