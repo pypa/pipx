@@ -91,5 +91,6 @@ ignore_missing_imports = true
 [tool.codespell]
 skip = '.git,*.pdf,*.svg,go.sum'
 check-hidden = true
-# ignore-regex = ''
-# ignore-words-list = ''
+# case sensitive etc
+ignore-regex = '\b(UE|path/doesnt/exist)\b'
+ignore-words-list = 'astroid'
