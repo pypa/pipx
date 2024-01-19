@@ -76,7 +76,7 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 ### Improved Documentation
 
-- Add additonal example for --pip-args option, to docs/examples.md
+- Add additional example for --pip-args option, to docs/examples.md
 
 ## [1.3.1](https://github.com/pypa/pipx/tree/1.3.1)
 
