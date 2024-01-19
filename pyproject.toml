@@ -73,7 +73,7 @@ lint.mccabe.max-complexity = 15
 
 [tool.codespell]
 # Ref: https://github.com/codespell-project/codespell#using-a-config-file
-skip = '.git,*.pdf,*.svg,go.sum'
+skip = '.git,*.pdf,*.svg,.nox'
 check-hidden = true
 # case sensitive etc
 ignore-regex = '\b(UE|path/doesnt/exist)\b'
