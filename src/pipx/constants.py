@@ -64,6 +64,9 @@ MINGW: bool = is_mingw()
 
 completion_instructions = dedent(
     """
+If you are using zipapp, run `pipx install argcomplete` before
+running any of the following commands.
+
 Add the appropriate command to your shell's config file
 so that it is run on startup. You will likely have to restart
 or re-login for the autocompletion to start working.
