@@ -35,3 +35,4 @@ repos:
   - id: codespell
     additional_dependencies:
     - tomli
+    exclude: ^testdata
