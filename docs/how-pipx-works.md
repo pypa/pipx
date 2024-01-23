@@ -3,7 +3,7 @@
 When installing a package and its binaries on linux (`pipx install package`) pipx will
 
 - create directory `~/.local/share/pipx/venvs/PACKAGE`
-- create or re-use a shared virtual environment that contains shared packaging library `pip` in
+- create or reuse a shared virtual environment that contains shared packaging library `pip` in
   `~/.local/share/pipx/shared/`
 - ensure the library is updated to its latest version
 - create a Virtual Environment in `~/.local/share/pipx/venvs/PACKAGE` that uses the shared pip mentioned above but
@@ -19,7 +19,7 @@ When installing a package and its binaries on linux (`pipx install package`) pip
 
 When running a binary (`pipx run BINARY`), pipx will
 
-- create or re-use a shared virtual environment that contains the shared packaging library `pip`
+- create or reuse a shared virtual environment that contains the shared packaging library `pip`
 - ensure the library is updated to its latest version
 - create a temporary directory (or reuse a cached virtual environment for this package) with a name based on a hash of
   the attributes that make the run reproducible. This includes things like the package name, spec, python version, and

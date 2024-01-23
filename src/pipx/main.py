@@ -593,7 +593,7 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
             then run an app from it. The environment will be cached
             and re-used for up to {constants.TEMP_VENV_EXPIRATION_THRESHOLD_DAYS} days. This
             means subsequent calls to 'run' for the same package will be faster
-            since they can re-use the cached Virtual Environment.
+            since they can reuse the cached Virtual Environment.
 
             In support of PEP 582 'run' will use apps found in a local __pypackages__
             directory, if present. Please note that this behavior is experimental,
@@ -606,7 +606,7 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
     p.add_argument(
         "--no-cache",
         action="store_true",
-        help="Do not re-use cached virtual environment if it exists",
+        help="Do not reuse cached virtual environment if it exists",
     )
     p.add_argument(
         "app_with_args",

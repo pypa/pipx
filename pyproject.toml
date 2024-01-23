@@ -71,6 +71,13 @@ lint.extend-select = [
 lint.isort = {known-first-party = ["helpers", "package_info", "pipx"]}
 lint.mccabe.max-complexity = 15
 
+[tool.codespell]
+# Ref: https://github.com/codespell-project/codespell#using-a-config-file
+skip = '.git,*.pdf,*.svg,.nox,testdata,.mypy_cache'
+check-hidden = true
+# case sensitive etc
+ignore-regex = '\b(UE|path/doesnt/exist)\b'
+
 [tool.pytest.ini_options]
 markers = ["all_packages: test install with maximum number of packages"]
 
