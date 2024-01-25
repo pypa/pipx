@@ -47,6 +47,8 @@ class _SharedLibs:
                     [DEFAULT_PYTHON, "-m", "venv", "--clear", self.root], run_dir=str(self.root)
                 )
             subprocess_post_check(create_process)
+            # Recompute these paths, as they might resolve differently now, see comment in get_venv_paths
+            self.bin_path, self.python_path, self.man_path = get_venv_paths(self.root)
 
             # ignore installed packages to ensure no unexpected patches from the OS vendor
             # are used

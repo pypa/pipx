@@ -108,6 +108,10 @@ def run_pypackage_bin(bin_path: Path, args: List[str]) -> NoReturn:
 if WINDOWS:
 
     def get_venv_paths(root: Path) -> Tuple[Path, Path, Path]:
+        # Make sure to use the real root path. This matters especially on Windows when using the packaged app
+        # (Microsoft Store) version of Python, which uses path redirection for sandboxing.
+        # See https://github.com/pypa/pipx/issues/1164
+        root = root.resolve()
         bin_path = root / "Scripts" if not MINGW else root / "bin"
         python_path = bin_path / "python.exe"
         man_path = root / "share" / "man"
@@ -171,14 +175,6 @@ def run_subprocess(
         os.makedirs(run_dir, exist_ok=True)
     # windows cannot take Path objects, only strings
     cmd_str_list = [str(c) for c in cmd]
-    # Make sure to call the binary using its real path. This matters especially on Windows when using the packaged app
-    # (Microsoft Store) version of Python, which uses path redirection for sandboxing. If the path to the executable is
-    # redirected, the executable can get confused as to which directory it's being run from, leading to problems.
-    # See https://github.com/pypa/pipx/issues/1164
-    # Conversely, if the binary is a symlink, then we should NOT use the real path, as Python expects to receive the
-    # symlink in argv[0] so that it can locate the venv.
-    if not os.path.islink(cmd_str_list[0]) and WINDOWS:
-        cmd_str_list[0] = os.path.realpath(cmd_str_list[0])
 
     # TODO: Switch to using `-P` / PYTHONSAFEPATH instead of running in
     # separate directory in Python 3.11
