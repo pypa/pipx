@@ -53,10 +53,11 @@ def rmdir(path: Path, safe_rm: bool = True) -> None:
         return
 
     logger.info(f"removing directory {path}")
-    try:
-        shutil.rmtree(path)
-    except FileNotFoundError:
-        pass
+    # Windows doesn't let us delete or overwrite files that are being run
+    # But it does let us rename/move it. To get around this issue, we can move
+    # the file to a temporary folder (to be deleted at a later time)
+    # So, if safe_rm is True, we ignore any errors and move the file to the trash with below code
+    shutil.rmtree(path, ignore_errors=safe_rm)
 
     # move it to be deleted later if it still exists
     if path.is_dir():
