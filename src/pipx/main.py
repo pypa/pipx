@@ -323,7 +323,11 @@ def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
         help="Give the virtual environment access to the system site-packages dir.",
     )
     parser.add_argument("--index-url", "-i", help="Base URL of Python Package Index")
-    parser.add_argument("--pre", help="Include pre-release and development versions", action="store_true",)
+    parser.add_argument(
+        "--pre",
+        help="Include pre-release and development versions",
+        action="store_true",
+    )
     parser.add_argument(
         "--editable",
         "-e",
