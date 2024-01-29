@@ -148,6 +148,9 @@ def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
     if parsed_args.get("index_url"):
         pip_args += ["--index-url", parsed_args["index_url"]]
 
+    if parsed_args.get("pre"):
+        pip_args += ["--pre"]
+
     if parsed_args.get("pip_args"):
         pip_args += shlex.split(parsed_args.get("pip_args", ""), posix=not WINDOWS)
 
@@ -320,6 +323,7 @@ def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
         help="Give the virtual environment access to the system site-packages dir.",
     )
     parser.add_argument("--index-url", "-i", help="Base URL of Python Package Index")
+    parser.add_argument("--pre", help="Include pre-release and development versions", action="store_true",)
     parser.add_argument(
         "--editable",
         "-e",
