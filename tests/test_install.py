@@ -344,4 +344,4 @@ def test_install_run_in_separate_directory(caplog, capsys, pipx_temp_env, monkey
     f = Path("argparse.py")
     f.touch()
 
-    install_package(capsys, pipx_temp_env, caplog, "pycowsay", "pycowsay")
+    install_packages(capsys, pipx_temp_env, caplog, ["pycowsay"], ["pycowsay"])

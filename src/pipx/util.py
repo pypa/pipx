@@ -179,7 +179,7 @@ def run_subprocess(
     # symlink in argv[0] so that it can locate the venv.
     if not os.path.islink(cmd_str_list[0]) and WINDOWS:
         cmd_str_list[0] = os.path.realpath(cmd_str_list[0])
-    
+
     # TODO: Switch to using `-P` / PYTHONSAFEPATH instead of running in
     # separate directory in Python 3.11
     completed_process = subprocess.run(
