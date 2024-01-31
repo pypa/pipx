@@ -296,7 +296,7 @@ class Venv:
             ]
             # no logging because any errors will be specially logged by
             #   subprocess_post_check_handle_pip_error()
-            pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False)
+            pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False, run_dir=str(self.root))
         subprocess_post_check_handle_pip_error(pip_process)
         if pip_process.returncode:
             raise PipxError(f"Error installing {', '.join(requirements)}.")
@@ -458,7 +458,7 @@ class Venv:
         cmd = [str(self.python_path), "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
-        return run_subprocess(cmd)
+        return run_subprocess(cmd, run_dir=str(self.root))
 
     def run_pip_get_exit_code(self, cmd: List[str]) -> ExitCode:
         cmd = [str(self.python_path), "-m", "pip"] + cmd
