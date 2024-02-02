@@ -51,7 +51,14 @@ sudo apt install pipx
 pipx ensurepath
 ```
 
-- Ubuntu 22.04 or below
+- Fedora:
+
+```
+sudo dnf install pipx
+pipx ensurepath
+```
+
+- Using `pip` on other distributions:
 
 ```
 python3 -m pip install --user pipx

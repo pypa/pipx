@@ -28,7 +28,14 @@ sudo apt install pipx
 pipx ensurepath
 ```
 
-- Ubuntu 22.04 or below
+- Fedora:
+
+```
+sudo dnf install pipx
+pipx ensurepath
+```
+
+- Using `pip` on other distributions:
 
 ```
 python3 -m pip install --user pipx
@@ -147,11 +154,18 @@ On macOS:
 brew update && brew upgrade pipx
 ```
 
-On Linux:
+On Ubuntu Linux:
 
 ```
 sudo apt upgrade pipx
 ```
+
+On Fedora Linux:
+
+```
+sudo dnf update pipx
+```
+
 
 On Windows:
 
