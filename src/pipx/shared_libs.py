@@ -43,7 +43,9 @@ class _SharedLibs:
     def create(self, verbose: bool = False) -> None:
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
-                create_process = run_subprocess([DEFAULT_PYTHON, "-m", "venv", "--clear", self.root])
+                create_process = run_subprocess(
+                    [DEFAULT_PYTHON, "-m", "venv", "--clear", self.root], run_dir=str(self.root)
+                )
             subprocess_post_check(create_process)
 
             # ignore installed packages to ensure no unexpected patches from the OS vendor

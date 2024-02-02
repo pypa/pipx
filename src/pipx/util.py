@@ -158,6 +158,7 @@ def run_subprocess(
     log_cmd_str: Optional[str] = None,
     log_stdout: bool = True,
     log_stderr: bool = True,
+    run_dir: Optional[str] = None,
 ) -> "subprocess.CompletedProcess[str]":
     """Run arbitrary command as subprocess, capturing stderr and stout"""
     env = dict(os.environ)
@@ -166,6 +167,8 @@ def run_subprocess(
     if log_cmd_str is None:
         log_cmd_str = " ".join(str(c) for c in cmd)
     logger.info(f"running {log_cmd_str}")
+    if run_dir:
+        os.makedirs(run_dir, exist_ok=True)
     # windows cannot take Path objects, only strings
     cmd_str_list = [str(c) for c in cmd]
     # Make sure to call the binary using its real path. This matters especially on Windows when using the packaged app
@@ -176,6 +179,9 @@ def run_subprocess(
     # symlink in argv[0] so that it can locate the venv.
     if not os.path.islink(cmd_str_list[0]) and WINDOWS:
         cmd_str_list[0] = os.path.realpath(cmd_str_list[0])
+
+    # TODO: Switch to using `-P` / PYTHONSAFEPATH instead of running in
+    # separate directory in Python 3.11
     completed_process = subprocess.run(
         cmd_str_list,
         env=env,
@@ -184,6 +190,7 @@ def run_subprocess(
         encoding="utf-8",
         universal_newlines=True,
         check=False,
+        cwd=run_dir,
     )
 
     if capture_stdout and log_stdout:
