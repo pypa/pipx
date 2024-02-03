@@ -43,3 +43,9 @@ def test_resolve_user_dir_in_env_paths(monkeypatch):
     env_dir = load_dir_from_environ("TEST_DIR", Path.home())
     assert "~" not in str(env_dir)
     assert env_dir == home / "test"
+
+
+def test_resolve_user_dir_in_env_paths_env_not_set(monkeypatch):
+    home = Path.home()
+    env_dir = load_dir_from_environ("TEST_DIR", Path.home())
+    assert env_dir == home
