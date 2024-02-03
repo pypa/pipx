@@ -70,10 +70,9 @@ If you have a script `test.py` that needs a 3rd party library like requests:
 ```
 # test.py
 
-# Requirements:
-# requests
-#
-# The list of requirements is terminated by a blank line or an empty comment line.
+# /// script
+# dependencies = ["requests"]
+# ///
 
 import sys
 import requests
