@@ -46,6 +46,86 @@ class NotAvailable(Exception):
 
 
 
+def download_python_build_standalone(python_version: str):
+    """When all other python executable resolutions have failed, 
+    attempt to download and use an apropriate python build 
+    from https://github.com/indygreg/python-build-standalone
+    and unpack it into the pipx shared directory."""
+
+    # python_version can be a bare version number like "3.9" or a "binary name" like python3.10
+    # let's coerce it to a bare version number
+    python_version = re.sub(r"[c]?python", "", python_version)
+
+
+    install_dir = PIPX_STANDALONE_PYTHON_CACHEDIR / python_version
+
+    if install_dir.exists():
+        return str(install_dir / "bin/python3")
+
+    try:
+        full_version, download_link = resolve_python_version(python_version)
+    except NotAvailable as e:
+        raise PipxError(f"Unable to aquire a standalone python build matching {python_version}.") from e
+    
+    download_dir = PIPX_STANDALONE_PYTHON_CACHEDIR / f'{python_version}_install_only'
+    download_dir.mkdir(parents=True, exist_ok=True)
+    install_dir.mkdir(parents=True, exist_ok=True)
+
+    # download the python build gz
+    archive_path = download_dir / f"python-{full_version}.tar.gz"
+    with animate(f"Downloading python {full_version} build", True):
+        try:
+            # python standalone builds are typically ~32MB in size. to avoid
+            # ballooning memory usage, we read the file in chunks
+            with urlopen(download_link) as response, archive_path.open("wb") as archive_file:
+                for data in iter(partial(response.read, 32768), b""):
+                    archive_file.write(data)
+        except urllib.error.URLError as e:
+            raise PipxError(f"Unable to download python {full_version} build.") from e
+        
+    # unpack the python build
+    with animate(f"Unpacking python {full_version} build", True):
+        # Calculate checksum
+        with open(archive_path, "rb") as python_zip:
+            checksum = hashlib.sha256(python_zip.read()).hexdigest()
+
+        # Validate checksum
+        checksum_link = download_link + ".sha256"
+        expected_checksum = urlopen(checksum_link).read().decode().rstrip("\n")
+        if checksum != expected_checksum:
+            raise PipxError(
+                f"Checksum mismatch for python {full_version} build. "
+                f"Expected {expected_checksum}, got {checksum}."
+            )
+
+        with tarfile.open(archive_path, mode="r:gz") as tar:
+            tar.extractall(download_dir)
+
+        archive_path.unlink()
+        (download_dir / "python").rename(install_dir)
+
+    return str(install_dir / "bin/python3")
+
+
+def get_or_update_index():
+    """Get or update the index of available python builds from
+    the python-build-standalone repository."""
+    index_file = PIPX_STANDALONE_PYTHON_CACHEDIR / "index.json"
+    if index_file.exists():
+        index = json.loads(index_file.read_text())
+        # update index if it's been more than a month
+        fetched = datetime.datetime.fromtimestamp(index["fetched"])
+        if datetime.datetime.now() - fetched > datetime.timedelta(days=30):
+            index = {}
+    else:
+        index = {}
+    if not index:
+        releases = get_latest_python_releases()
+        index = {"fetched": datetime.datetime.now().timestamp(), "releases": releases}
+        # update index
+        index_file.write_text(json.dumps(index))
+    return index
+
 
 def get_latest_python_releases() -> list[str]:
     """Returns the list of python download links from the latest github release."""
