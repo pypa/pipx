@@ -23,9 +23,18 @@ import pipx.constants
 from pipx import commands, constants
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
-from pipx.constants import EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND, MINIMUM_PYTHON_VERSION, WINDOWS, ExitCode
+from pipx.constants import (
+    EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND,
+    MINIMUM_PYTHON_VERSION,
+    WINDOWS,
+    ExitCode,
+)
 from pipx.emojis import hazard
-from pipx.interpreter import DEFAULT_PYTHON, InterpreterResolutionError, find_python_interpreter
+from pipx.interpreter import (
+    DEFAULT_PYTHON,
+    InterpreterResolutionError,
+    find_python_interpreter,
+)
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import VenvContainer
 from pipx.version import version as __version__
@@ -188,8 +197,9 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         skip_list = [canonicalize_name(x) for x in args.skip]
 
     if "python" in args and args.python is not None:
+        fetch_missing_python = args.fetch_missing_python
         try:
-            interpreter = find_python_interpreter(args.python)
+            interpreter = find_python_interpreter(args.python, fetch_missing_python=fetch_missing_python)
             args.python = interpreter
         except InterpreterResolutionError as e:
             print(
@@ -271,7 +281,11 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         )
     elif args.command == "list":
         return commands.list_packages(
-            venv_container, args.include_injected, args.json, args.short, args.skip_maintenance
+            venv_container,
+            args.include_injected,
+            args.json,
+            args.short,
+            args.skip_maintenance,
         )
     elif args.command == "uninstall":
         return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose)
@@ -367,6 +381,13 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
             "Python to install with. Possible values can be the executable name (python3.11), "
             "the version to pass to py launcher (3.11), or the full path to the executable."
             f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
+        ),
+    )
+    p.add_argument(
+        "--fetch-missing-python",
+        action="store_true",
+        help=(
+            "Whether to fetch a standalone python build from GitHub if the specified python version is not found locally on the system."
         ),
     )
     p.add_argument(
@@ -528,6 +549,13 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
             f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )
+    p.add_argument(
+        "--fetch-missing-python",
+        action="store_true",
+        help=(
+            "Whether to fetch a standalone python build from GitHub if the specified python version is not found locally on the system."
+        ),
+    )
 
 
 def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -555,6 +583,13 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
             "Python to reinstall with. Possible values can be the executable name (python3.11), "
             "the version to pass to py launcher (3.11), or the full path to the executable."
             f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
+        ),
+    )
+    p.add_argument(
+        "--fetch-missing-python",
+        action="store_true",
+        help=(
+            "Whether to fetch a standalone python build from GitHub if the specified python version is not found locally on the system."
         ),
     )
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
@@ -629,6 +664,13 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
             "Python to run with. Possible values can be the executable name (python3.11), "
             "the version to pass to py launcher (3.11), or the full path to the executable. "
             f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
+        ),
+    )
+    p.add_argument(
+        "--fetch-missing-python",
+        action="store_true",
+        help=(
+            "Whether to fetch a standalone python build from GitHub if the specified python version is not found locally on the system."
         ),
     )
     add_pip_venv_args(p)
@@ -866,7 +908,10 @@ def setup(args: argparse.Namespace) -> None:
     mkdir(constants.PIPX_VENV_CACHEDIR)
     mkdir(constants.PIPX_STANDALONE_PYTHON_CACHEDIR)
 
-    for cachedir in [constants.PIPX_VENV_CACHEDIR, constants.PIPX_STANDALONE_PYTHON_CACHEDIR]:
+    for cachedir in [
+        constants.PIPX_VENV_CACHEDIR,
+        constants.PIPX_STANDALONE_PYTHON_CACHEDIR,
+    ]:
         cachedir_tag = cachedir / "CACHEDIR.TAG"
         if not cachedir_tag.exists():
             logger.debug("Adding CACHEDIR.TAG to cache directory")

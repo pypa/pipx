@@ -46,7 +46,7 @@ class InterpreterResolutionError(PipxError):
         super().__init__(message, wrap_message)
 
 
-def find_python_interpreter(python_version: str) -> str:
+def find_python_interpreter(python_version: str, fetch_missing_python: bool = False) -> str:
     if Path(python_version).is_file():
         return python_version
 
@@ -60,11 +60,14 @@ def find_python_interpreter(python_version: str) -> str:
     if shutil.which(python_version):
         return python_version
 
-    try:
-        standalone_executable = download_python_build_standalone(python_version)
-        return standalone_executable
-    except PipxError as e:
-        raise InterpreterResolutionError(source="PATH", version=python_version) from e
+    if fetch_missing_python:
+        try:
+            standalone_executable = download_python_build_standalone(python_version)
+            return standalone_executable
+        except PipxError as e:
+            raise InterpreterResolutionError(source="PATH", version=python_version) from e
+
+    raise InterpreterResolutionError(source="PATH", version=python_version)
 
 
 # The following code was copied from https://github.com/uranusjr/pipx-standalone
