@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from pipx.constants import WINDOWS
+from pipx.standalone_python import download_python_build_standalone
 from pipx.util import PipxError
 
 logger = logging.getLogger(__name__)
@@ -58,7 +59,12 @@ def find_python_interpreter(python_version: str) -> str:
 
     if shutil.which(python_version):
         return python_version
-    raise InterpreterResolutionError(source="PATH", version=python_version)
+
+    try:
+        standalone_executable = download_python_build_standalone(python_version)
+        return standalone_executable
+    except PipxError as e:
+        raise InterpreterResolutionError(source="PATH", version=python_version) from e
 
 
 # The following code was copied from https://github.com/uranusjr/pipx-standalone
