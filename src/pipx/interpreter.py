@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from pipx.constants import WINDOWS
+from pipx.constants import FETCH_MISSING_PYTHON, WINDOWS
 from pipx.standalone_python import download_python_build_standalone
 from pipx.util import PipxError
 
@@ -60,7 +60,7 @@ def find_python_interpreter(python_version: str, fetch_missing_python: bool = Fa
     if shutil.which(python_version):
         return python_version
 
-    if fetch_missing_python:
+    if fetch_missing_python or FETCH_MISSING_PYTHON:
         try:
             standalone_executable = download_python_build_standalone(python_version)
             return standalone_executable

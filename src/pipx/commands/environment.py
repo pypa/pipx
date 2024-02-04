@@ -26,6 +26,7 @@ def environment(value: str) -> ExitCode:
         "PIPX_MAN_DIR",
         "PIPX_SHARED_LIBS",
         "PIPX_DEFAULT_PYTHON",
+        "PIPX_FETCH_MISSING_PYTHON",
         "USE_EMOJI",
     ]
     derived_values = {
