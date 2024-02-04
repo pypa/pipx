@@ -864,18 +864,20 @@ def setup(args: argparse.Namespace) -> None:
     mkdir(constants.LOCAL_BIN_DIR)
     mkdir(constants.LOCAL_MAN_DIR)
     mkdir(constants.PIPX_VENV_CACHEDIR)
+    mkdir(constants.PIPX_STANDALONE_PYTHON_CACHEDIR)
 
-    cachedir_tag = constants.PIPX_VENV_CACHEDIR / "CACHEDIR.TAG"
-    if not cachedir_tag.exists():
-        logger.debug("Adding CACHEDIR.TAG to cache directory")
-        signature = (
-            "Signature: 8a477f597d28d172789f06886806bc55\n"
-            "# This file is a cache directory tag created by pipx.\n"
-            "# For information about cache directory tags, see:\n"
-            "#       https://bford.info/cachedir/\n"
-        )
-        with open(cachedir_tag, "w") as file:
-            file.write(signature)
+    for cachedir in [constants.PIPX_VENV_CACHEDIR, constants.PIPX_STANDALONE_PYTHON_CACHEDIR]:
+        cachedir_tag = cachedir / "CACHEDIR.TAG"
+        if not cachedir_tag.exists():
+            logger.debug("Adding CACHEDIR.TAG to cache directory")
+            signature = (
+                "Signature: 8a477f597d28d172789f06886806bc55\n"
+                "# This file is a cache directory tag created by pipx.\n"
+                "# For information about cache directory tags, see:\n"
+                "#       https://bford.info/cachedir/\n"
+            )
+            with open(cachedir_tag, "w") as file:
+                file.write(signature)
 
     rmdir(constants.PIPX_TRASH_DIR, False)
 

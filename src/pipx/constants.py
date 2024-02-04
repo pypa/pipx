@@ -16,6 +16,7 @@ MAN_SECTIONS = ["man%d" % i for i in range(1, 10)]
 if FALLBACK_PIPX_HOME.exists() or os.environ.get("PIPX_HOME") is not None:
     PIPX_HOME = Path(os.environ.get("PIPX_HOME", FALLBACK_PIPX_HOME)).resolve()
     PIPX_LOCAL_VENVS = PIPX_HOME / "venvs"
+    PIPX_STANDALONE_PYTHON_CACHEDIR = PIPX_HOME / "py"
     PIPX_LOG_DIR = PIPX_HOME / "logs"
     DEFAULT_PIPX_SHARED_LIBS = PIPX_HOME / "shared"
     PIPX_TRASH_DIR = PIPX_HOME / ".trash"
@@ -23,6 +24,7 @@ if FALLBACK_PIPX_HOME.exists() or os.environ.get("PIPX_HOME") is not None:
 else:
     PIPX_HOME = DEFAULT_PIPX_HOME
     PIPX_LOCAL_VENVS = PIPX_HOME / "venvs"
+    PIPX_STANDALONE_PYTHON_CACHEDIR = PIPX_HOME / "py"
     PIPX_LOG_DIR = user_log_path("pipx")
     DEFAULT_PIPX_SHARED_LIBS = PIPX_HOME / "shared"
     PIPX_TRASH_DIR = PIPX_HOME / "trash"
