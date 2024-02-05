@@ -1,8 +1,10 @@
 import datetime
 import hashlib
 import json
+import logging
 import platform
 import re
+import shutil
 import tarfile
 import tempfile
 import urllib.error
@@ -14,6 +16,8 @@ from urllib.request import urlopen
 from pipx.animate import animate
 from pipx.constants import PIPX_STANDALONE_PYTHON_CACHEDIR, WINDOWS
 from pipx.util import PipxError
+
+logger = logging.getLogger(__name__)
 
 # Much of the code in this module is adapted with extreme gratitude from
 # https://github.com/tusharsadhwani/yen/blob/main/src/yen/github.py
@@ -61,12 +65,14 @@ def download_python_build_standalone(python_version: str):
     if installed_python.exists():
         return str(installed_python)
 
+    if install_dir.exists():
+        logger.warning(f"A previous attempt to install python {python_version} failed. Retrying.")
+        shutil.rmtree(install_dir)
+
     try:
         full_version, download_link = resolve_python_version(python_version)
     except NotAvailable as e:
         raise PipxError(f"Unable to acquire a standalone python build matching {python_version}.") from e
-
-    install_dir.mkdir(parents=True, exist_ok=True)
 
     with tempfile.TemporaryDirectory() as tempdir:
         archive = Path(tempdir) / f"python-{full_version}.tar.gz"
@@ -167,7 +173,9 @@ def list_pythons() -> Dict[str, str]:
     python_versions: dict[str, str] = {}
     for link in available_python_links:
         match = PYTHON_VERSION_REGEX.search(link)
-        assert match is not None
+        if match is None:
+            logger.warning(f"Could not parse python version from link {link}. Skipping.")
+            continue
         python_version = match[1]
         python_versions[python_version] = link
 

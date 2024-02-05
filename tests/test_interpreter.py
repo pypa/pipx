@@ -33,7 +33,7 @@ def test_windows_python_with_version(monkeypatch, venv):
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
-def test_windows_python_fetch_missing(monkeypatch, venv):
+def test_windows_python_fetch_missing(monkeypatch):
     def which(name):
         return None
 
