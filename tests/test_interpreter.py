@@ -33,13 +33,11 @@ def test_windows_python_with_version(monkeypatch, venv):
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
-@pytest.mark.parametrize("venv", [True, False])
 def test_windows_python_fetch_missing(monkeypatch, venv):
     def which(name):
-        return "py"
+        return None
 
     major, minor = _derive_target_python_version()
-    monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: venv)
     monkeypatch.setattr(shutil, "which", which)
     python_path = find_python_interpreter(f"{major}.{minor}", fetch_missing_python=True)
     assert python_path is not None
@@ -187,7 +185,11 @@ def test_find_python_interpreter_missing_on_path_raises(monkeypatch):
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Looks for python3")
 def test_fetch_missing_python(monkeypatch):
+    def which(name):
+        return None
+
     major, minor = _derive_target_python_version()
+    monkeypatch.setattr(shutil, "which", which)
 
     python_path = find_python_interpreter(f"{major}.{minor}", fetch_missing_python=True)
     assert python_path is not None
