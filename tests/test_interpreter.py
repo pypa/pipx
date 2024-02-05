@@ -6,6 +6,7 @@ from unittest.mock import Mock
 import pytest  # type: ignore
 
 import pipx.interpreter
+from pipx.constants import MINIMUM_PYTHON_VERSION
 from pipx.interpreter import (
     InterpreterResolutionError,
     _find_default_windows_python,
@@ -37,11 +38,7 @@ def test_windows_python_fetch_missing(monkeypatch, venv):
     def which(name):
         return "py"
 
-    major = sys.version_info.major
-
-    # For this test, we want to ask pipx for a version that doesn't exist locally.
-    # Since we test on all supported versions, we can't just pick a specific version to test with.
-    minor = 11 if sys.version_info.minor == 10 else 10
+    major, minor = _derive_target_python_version()
     monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: venv)
     monkeypatch.setattr(shutil, "which", which)
     python_path = find_python_interpreter(f"{major}.{minor}", fetch_missing_python=True)
@@ -190,13 +187,27 @@ def test_find_python_interpreter_missing_on_path_raises(monkeypatch):
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Looks for python3")
 def test_fetch_missing_python(monkeypatch):
-    major = sys.version_info.major
-
-    # For this test, we want to ask pipx for a version that doesn't exist locally.
-    # Since we test on all supported versions, we can't just pick a specific version to test with.
-    minor = 11 if sys.version_info.minor == 10 else 10
+    major, minor = _derive_target_python_version()
 
     python_path = find_python_interpreter(f"{major}.{minor}", fetch_missing_python=True)
     assert python_path is not None
     assert f"{major}.{minor}" in python_path or f"{major}{minor}" in python_path
     assert python_path.endswith("python3")
+
+def _derive_target_python_version():
+    major = sys.version_info.major
+    minor = sys.version_info.minor
+
+    # For this test, we want to ask pipx for a version that doesn't exist locally.
+    # Since we test on all supported versions, we can't just pick a specific version to test with.
+    # the requested minor version will always be one less than the minor version currently being tested,
+    # unless the current minor version is the minimum supported version, in which case the requested
+    # minor version will be one more than the current minor version.
+    # ie if the test is running on python 3.9, the requested version will be 3.8
+    # if the test is running on python 3.8, the requested version will be 3.9
+    if f"{major}.{minor}" == MINIMUM_PYTHON_VERSION:
+        minor += 1
+    else:
+        minor -= 1
+
+    return major, minor
