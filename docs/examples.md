@@ -65,28 +65,38 @@ pipx run --spec test-py test.py # Always a package on PyPI
 
 You can also run scripts that have dependencies:
 
-If you have a script `test.py` that needs a 3rd party library like requests:
+If you have a script `test.py` that needs 3rd party libraries,
+you can add [inline script metadata](https://packaging.python.org/en/latest/specifications/inline-script-metadata/)
+in the style of PEP 723.
 
 ```
 # test.py
 
-# Requirements:
-# requests
-#
-# The list of requirements is terminated by a blank line or an empty comment line.
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#   "requests<3",
+#   "rich",
+# ]
+# ///
 
-import sys
 import requests
-project = sys.argv[1]
-pipx_data = requests.get(f"https://pypi.org/pypi/{project}/json").json()
-print(pipx_data["info"]["version"])
+from rich.pretty import pprint
+
+resp = requests.get("https://peps.python.org/api/peps.json")
+data = resp.json()
+pprint([(k, v["title"]) for k, v in data.items()][:3])
 ```
 
 Then you can run it as follows:
 
 ```
-> pipx run test.py pipx
-1.1.0
+> pipx run test.py
+[
+│   ('1', 'PEP Purpose and Guidelines'),
+│   ('2', 'Procedure for Adding New Modules'),
+│   ('3', 'Guidelines for Handling Bug Reports')
+]
 ```
 
 ## `pipx inject` example
