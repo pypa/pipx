@@ -33,6 +33,25 @@ def test_windows_python_with_version(monkeypatch, venv):
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
 @pytest.mark.parametrize("venv", [True, False])
+def test_windows_python_fetch_missing(monkeypatch, venv):
+    def which(name):
+        return "py"
+
+    major = sys.version_info.major
+
+    # For this test, we want to ask pipx for a version that doesn't exist locally.
+    # Since we test on all supported versions, we can't just pick a specific version to test with.
+    minor = 11 if sys.version_info.minor == 10 else 10
+    monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: venv)
+    monkeypatch.setattr(shutil, "which", which)
+    python_path = find_python_interpreter(f"{major}.{minor}", fetch_missing_python=True)
+    assert python_path is not None
+    assert f"{major}.{minor}" in python_path or f"{major}{minor}" in python_path
+    assert python_path.endswith("python.exe")
+
+
+@pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
+@pytest.mark.parametrize("venv", [True, False])
 def test_windows_python_with_python_and_version(monkeypatch, venv):
     def which(name):
         return "py"
@@ -167,3 +186,17 @@ def test_find_python_interpreter_missing_on_path_raises(monkeypatch):
         find_python_interpreter(interpreter)
         assert "Python Launcher" in str(e)
         assert "on your PATH" in str(e)
+
+
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Looks for python3")
+def test_fetch_missing_python(monkeypatch):
+    major = sys.version_info.major
+
+    # For this test, we want to ask pipx for a version that doesn't exist locally.
+    # Since we test on all supported versions, we can't just pick a specific version to test with.
+    minor = 11 if sys.version_info.minor == 10 else 10
+
+    python_path = find_python_interpreter(f"{major}.{minor}", fetch_missing_python=True)
+    assert python_path is not None
+    assert f"{major}.{minor}" in python_path or f"{major}{minor}" in python_path
+    assert python_path.endswith("python3")
