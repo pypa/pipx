@@ -6,13 +6,13 @@ from unittest.mock import Mock
 import pytest  # type: ignore
 
 import pipx.interpreter
-from pipx.constants import MINIMUM_PYTHON_VERSION
 from pipx.interpreter import (
     InterpreterResolutionError,
     _find_default_windows_python,
     _get_absolute_python_interpreter,
     find_python_interpreter,
 )
+from pipx.standalone_python import list_pythons
 from pipx.util import PipxError
 
 
@@ -194,7 +194,10 @@ def test_fetch_missing_python(monkeypatch):
     assert f"{major}.{minor}" in python_path or f"{major}{minor}" in python_path
     assert python_path.endswith("python3")
 
+
 def _derive_target_python_version():
+    minimum_standalone_python_version = list(list_pythons().keys())[-1]
+    minimum_minor_version = int(minimum_standalone_python_version.split(".")[1])
     major = sys.version_info.major
     minor = sys.version_info.minor
 
@@ -205,8 +208,8 @@ def _derive_target_python_version():
     # minor version will be one more than the current minor version.
     # ie if the test is running on python 3.9, the requested version will be 3.8
     # if the test is running on python 3.8, the requested version will be 3.9
-    if f"{major}.{minor}" == MINIMUM_PYTHON_VERSION:
-        minor += 1
+    if minor <= minimum_minor_version:
+        minor = minimum_minor_version + 1
     else:
         minor -= 1
 

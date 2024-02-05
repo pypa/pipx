@@ -123,7 +123,7 @@ def get_or_update_index():
     index_file = PIPX_STANDALONE_PYTHON_CACHEDIR / "index.json"
     if index_file.exists():
         index = json.loads(index_file.read_text())
-        # update index if it's been more than a month
+        # update index after 30 days
         fetched = datetime.datetime.fromtimestamp(index["fetched"])
         if datetime.datetime.now() - fetched > datetime.timedelta(days=30):
             index = {}
