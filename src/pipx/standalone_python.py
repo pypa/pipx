@@ -3,15 +3,16 @@ import hashlib
 import json
 import platform
 import re
-import shutil
 import tarfile
+import tempfile
 import urllib.error
 from functools import partial
+from pathlib import Path
 from typing import Any, Dict, List
 from urllib.request import urlopen
 
 from pipx.animate import animate
-from pipx.constants import PIPX_STANDALONE_PYTHON_CACHEDIR
+from pipx.constants import PIPX_STANDALONE_PYTHON_CACHEDIR, WINDOWS
 from pipx.util import PipxError
 
 # Much of the code in this module is adapted with extreme gratitude from
@@ -50,39 +51,58 @@ def download_python_build_standalone(python_version: str):
     and unpack it into the pipx shared directory."""
 
     # python_version can be a bare version number like "3.9" or a "binary name" like python3.10
-    # let's coerce it to a bare version number
+    # we'll convert it to a bare version number
     python_version = re.sub(r"[c]?python", "", python_version)
+    python_bin = "python.exe" if WINDOWS else "python3"
 
     install_dir = PIPX_STANDALONE_PYTHON_CACHEDIR / python_version
+    installed_python = install_dir / "bin" / python_bin
 
-    if install_dir.exists():
-        return str(install_dir / "bin/python3")
+    if installed_python.exists():
+        return str(installed_python)
 
     try:
         full_version, download_link = resolve_python_version(python_version)
     except NotAvailable as e:
         raise PipxError(f"Unable to acquire a standalone python build matching {python_version}.") from e
 
-    download_dir = PIPX_STANDALONE_PYTHON_CACHEDIR / f"{python_version}_install_only"
-    download_dir.mkdir(parents=True, exist_ok=True)
     install_dir.mkdir(parents=True, exist_ok=True)
 
-    # download the python build gz
-    archive_path = download_dir / f"python-{full_version}.tar.gz"
+    with tempfile.TemporaryDirectory() as tempdir:
+        archive = Path(tempdir) / f"python-{full_version}.tar.gz"
+        download_dir = Path(tempdir) / "download"
+
+        # download the python build gz
+        _download(full_version, download_link, archive)
+
+        # unpack the python build
+        _unpack(full_version, download_link, archive, download_dir)
+
+        # the python installation we want is nested in the tarball
+        # under a directory named 'python'. We move it to the install
+        # directory
+        extracted_dir = download_dir / "python"
+        extracted_dir.rename(install_dir)
+
+    return str(installed_python)
+
+
+def _download(full_version: str, download_link: str, archive: Path):
     with animate(f"Downloading python {full_version} build", True):
         try:
             # python standalone builds are typically ~32MB in size. to avoid
             # ballooning memory usage, we read the file in chunks
-            with urlopen(download_link) as response, archive_path.open("wb") as archive_file:
+            with urlopen(download_link) as response, open(archive, "wb") as file_handle:
                 for data in iter(partial(response.read, 32768), b""):
-                    archive_file.write(data)
+                    file_handle.write(data)
         except urllib.error.URLError as e:
             raise PipxError(f"Unable to download python {full_version} build.") from e
 
-    # unpack the python build
+
+def _unpack(full_version, download_link, archive: Path, download_dir: Path):
     with animate(f"Unpacking python {full_version} build", True):
         # Calculate checksum
-        with open(archive_path, "rb") as python_zip:
+        with open(archive, "rb") as python_zip:
             checksum = hashlib.sha256(python_zip.read()).hexdigest()
 
         # Validate checksum
@@ -93,13 +113,8 @@ def download_python_build_standalone(python_version: str):
                 f"Checksum mismatch for python {full_version} build. " f"Expected {expected_checksum}, got {checksum}."
             )
 
-        with tarfile.open(archive_path, mode="r:gz") as tar:
+        with tarfile.open(archive, mode="r:gz") as tar:
             tar.extractall(download_dir)
-
-        (download_dir / "python").rename(install_dir)
-        shutil.rmtree(download_dir, ignore_errors=True)
-
-    return str(install_dir / "bin/python3")
 
 
 def get_or_update_index():
@@ -130,7 +145,7 @@ def get_latest_python_releases() -> List[str]:
 
     except urllib.error.URLError as e:
         # raise
-        raise PipxError("Unable to fetch python-build-standalone release data.") from e
+        raise PipxError(f"Unable to fetch python-build-standalone release data (from {GITHUB_API_URL}).") from e
 
     return [asset["browser_download_url"] for asset in release_data["assets"]]
 
