@@ -1,3 +1,4 @@
+import json
 import shutil
 import subprocess
 import sys
@@ -6,6 +7,7 @@ from unittest.mock import Mock
 import pytest  # type: ignore
 
 import pipx.interpreter
+import pipx.standalone_python
 from pipx.interpreter import (
     InterpreterResolutionError,
     _find_default_windows_python,
@@ -14,6 +16,39 @@ from pipx.interpreter import (
 )
 from pipx.standalone_python import list_pythons
 from pipx.util import PipxError
+
+
+@pytest.fixture()
+def mocked_github_api(monkeypatch, root):
+    """
+    Fixture to replace the github index with a local copy,
+    to prevent unit tests from exceeding github's API request limit.
+    """
+    with open(root / "testdata" / "standalone_python_index.json") as f:
+        index = json.load(f)
+    monkeypatch.setattr(pipx.standalone_python, "get_or_update_index", lambda: index)
+
+
+@pytest.fixture()
+def standalone_target_python(mocked_github_api):
+    minimum_standalone_python_version = list(list_pythons().keys())[-1]
+    minimum_minor_version = int(minimum_standalone_python_version.split(".")[1])
+    major = sys.version_info.major
+    minor = sys.version_info.minor
+
+    # For this test, we want to ask pipx for a version that doesn't exist locally.
+    # Since we test on all supported versions, we can't just pick a specific version to test with.
+    # the requested minor version will always be one less than the minor version currently being tested,
+    # unless the current minor version is the minimum supported version, in which case the requested
+    # minor version will be one more than the current minor version.
+    # ie if the test is running on python 3.9, the requested version will be 3.8
+    # if the test is running on python 3.8, the requested version will be 3.9
+    if minor <= minimum_minor_version:
+        minor = minimum_minor_version + 1
+    else:
+        minor -= 1
+
+    return f"{major}.{minor}"
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
@@ -33,15 +68,14 @@ def test_windows_python_with_version(monkeypatch, venv):
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
-def test_windows_python_fetch_missing(monkeypatch):
+def test_windows_python_fetch_missing(monkeypatch, standalone_target_python, mocked_github_api):
     def which(name):
         return None
 
-    major, minor = _derive_target_python_version()
     monkeypatch.setattr(shutil, "which", which)
-    python_path = find_python_interpreter(f"{major}.{minor}", fetch_missing_python=True)
+    python_path = find_python_interpreter(standalone_target_python, fetch_missing_python=True)
     assert python_path is not None
-    assert f"{major}.{minor}" in python_path or f"{major}{minor}" in python_path
+    assert standalone_target_python in python_path
     assert python_path.endswith("python.exe")
 
 
@@ -184,35 +218,13 @@ def test_find_python_interpreter_missing_on_path_raises(monkeypatch):
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Looks for python3")
-def test_fetch_missing_python(monkeypatch):
+def test_fetch_missing_python(monkeypatch, standalone_target_python, mocked_github_api):
     def which(name):
         return None
 
-    major, minor = _derive_target_python_version()
     monkeypatch.setattr(shutil, "which", which)
 
-    python_path = find_python_interpreter(f"{major}.{minor}", fetch_missing_python=True)
+    python_path = find_python_interpreter(standalone_target_python, fetch_missing_python=True)
     assert python_path is not None
-    assert f"{major}.{minor}" in python_path or f"{major}{minor}" in python_path
+    assert standalone_target_python in python_path
     assert python_path.endswith("python3")
-
-
-def _derive_target_python_version():
-    minimum_standalone_python_version = list(list_pythons().keys())[-1]
-    minimum_minor_version = int(minimum_standalone_python_version.split(".")[1])
-    major = sys.version_info.major
-    minor = sys.version_info.minor
-
-    # For this test, we want to ask pipx for a version that doesn't exist locally.
-    # Since we test on all supported versions, we can't just pick a specific version to test with.
-    # the requested minor version will always be one less than the minor version currently being tested,
-    # unless the current minor version is the minimum supported version, in which case the requested
-    # minor version will be one more than the current minor version.
-    # ie if the test is running on python 3.9, the requested version will be 3.8
-    # if the test is running on python 3.8, the requested version will be 3.9
-    if minor <= minimum_minor_version:
-        minor = minimum_minor_version + 1
-    else:
-        minor -= 1
-
-    return major, minor
