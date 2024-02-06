@@ -228,3 +228,18 @@ def test_fetch_missing_python(monkeypatch, standalone_target_python, mocked_gith
     assert python_path is not None
     assert standalone_target_python in python_path
     assert python_path.endswith("python3")
+
+
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Looks for python3")
+def test_unfetchable_missing_python(monkeypatch, mocked_github_api):
+    def which(name):
+        return None
+
+    # request a python version that's not available in the python-build-standalone project
+    target_python = "3.5"
+
+    monkeypatch.setattr(shutil, "which", which)
+
+    with pytest.raises(InterpreterResolutionError) as e:
+        find_python_interpreter(target_python, fetch_missing_python=True)
+        assert "not found" in str(e)
