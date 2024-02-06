@@ -8,13 +8,13 @@ import pytest  # type: ignore
 
 import pipx.interpreter
 import pipx.standalone_python
+from pipx.constants import PIPX_STANDALONE_PYTHON_CACHEDIR
 from pipx.interpreter import (
     InterpreterResolutionError,
     _find_default_windows_python,
     _get_absolute_python_interpreter,
     find_python_interpreter,
 )
-from pipx.standalone_python import list_pythons
 from pipx.util import PipxError
 
 
@@ -27,28 +27,6 @@ def mocked_github_api(monkeypatch, root):
     with open(root / "testdata" / "standalone_python_index.json") as f:
         index = json.load(f)
     monkeypatch.setattr(pipx.standalone_python, "get_or_update_index", lambda: index)
-
-
-@pytest.fixture()
-def standalone_target_python(mocked_github_api):
-    minimum_standalone_python_version = list(list_pythons().keys())[-1]
-    minimum_minor_version = int(minimum_standalone_python_version.split(".")[1])
-    major = sys.version_info.major
-    minor = sys.version_info.minor
-
-    # For this test, we want to ask pipx for a version that doesn't exist locally.
-    # Since we test on all supported versions, we can't just pick a specific version to test with.
-    # the requested minor version will always be one less than the minor version currently being tested,
-    # unless the current minor version is the minimum supported version, in which case the requested
-    # minor version will be one more than the current minor version.
-    # ie if the test is running on python 3.9, the requested version will be 3.8
-    # if the test is running on python 3.8, the requested version will be 3.9
-    if minor <= minimum_minor_version:
-        minor = minimum_minor_version + 1
-    else:
-        minor -= 1
-
-    return f"{major}.{minor}"
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
@@ -68,15 +46,27 @@ def test_windows_python_with_version(monkeypatch, venv):
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
-def test_windows_python_fetch_missing(monkeypatch, standalone_target_python, mocked_github_api):
+def test_windows_python_fetch_missing(monkeypatch, mocked_github_api):
     def which(name):
         return None
 
     monkeypatch.setattr(shutil, "which", which)
-    python_path = find_python_interpreter(standalone_target_python, fetch_missing_python=True)
-    assert python_path is not None
-    assert standalone_target_python in python_path
-    assert python_path.endswith("python.exe")
+
+    major = sys.version_info.major
+    minor = sys.version_info.minor
+    target_python = f"{major}.{minor}"
+
+    if target_python == "3.8":
+        # 3.8 is not available in the standalone python project
+        with pytest.raises(InterpreterResolutionError) as e:
+            find_python_interpreter(target_python, fetch_missing_python=True)
+            assert "not found" in str(e)
+    else:
+        python_path = find_python_interpreter(target_python, fetch_missing_python=True)
+        assert python_path is not None
+        assert target_python in python_path
+        assert str(PIPX_STANDALONE_PYTHON_CACHEDIR) in python_path
+        assert python_path.endswith("python.exe")
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
@@ -218,28 +208,24 @@ def test_find_python_interpreter_missing_on_path_raises(monkeypatch):
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Looks for python3")
-def test_fetch_missing_python(monkeypatch, standalone_target_python, mocked_github_api):
+def test_fetch_missing_python(monkeypatch, mocked_github_api):
     def which(name):
         return None
 
     monkeypatch.setattr(shutil, "which", which)
 
-    python_path = find_python_interpreter(standalone_target_python, fetch_missing_python=True)
-    assert python_path is not None
-    assert standalone_target_python in python_path
-    assert python_path.endswith("python3")
+    major = sys.version_info.major
+    minor = sys.version_info.minor
+    target_python = f"{major}.{minor}"
 
-
-@pytest.mark.skipif(sys.platform.startswith("win"), reason="Looks for python3")
-def test_unfetchable_missing_python(monkeypatch, mocked_github_api):
-    def which(name):
-        return None
-
-    # request a python version that's not available in the python-build-standalone project
-    target_python = "3.5"
-
-    monkeypatch.setattr(shutil, "which", which)
-
-    with pytest.raises(InterpreterResolutionError) as e:
-        find_python_interpreter(target_python, fetch_missing_python=True)
-        assert "not found" in str(e)
+    if target_python == "3.8":
+        # 3.8 is not available in the standalone python project
+        with pytest.raises(InterpreterResolutionError) as e:
+            find_python_interpreter(target_python, fetch_missing_python=True)
+            assert "not found" in str(e)
+    else:
+        python_path = find_python_interpreter(target_python, fetch_missing_python=True)
+        assert python_path is not None
+        assert target_python in python_path
+        assert str(PIPX_STANDALONE_PYTHON_CACHEDIR) in python_path
+        assert python_path.endswith("python3")
