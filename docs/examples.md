@@ -65,7 +65,7 @@ pipx run --spec test-py test.py # Always a package on PyPI
 
 You can also run scripts that have dependencies:
 
-If you have a script `test.py` that needs a 3rd party library like requests:
+If you have a script `test.py` that needs 3rd party libraries, you can add [inline script metadata](https://packaging.python.org/en/latest/specifications/inline-script-metadata/) in the style of PEP 723.
 
 ```
 # test.py
