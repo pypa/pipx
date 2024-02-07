@@ -202,6 +202,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             interpreter = find_python_interpreter(args.python, fetch_missing_python=fetch_missing_python)
             args.python = interpreter
         except InterpreterResolutionError as e:
+            logger.debug("Failed to resolve interpreter:", exc_info=True)
             print(
                 pipx_wrap(
                     f"{hazard} {e}",
