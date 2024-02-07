@@ -193,5 +193,7 @@ def test_fetch_missing_python(monkeypatch, mocked_github_api):
         assert str(PIPX_STANDALONE_PYTHON_CACHEDIR) in python_path
         if WINDOWS:
             assert python_path.endswith("python.exe")
+            subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)
         else:
             assert python_path.endswith("python3")
+            subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)
