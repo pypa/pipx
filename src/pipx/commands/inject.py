@@ -2,7 +2,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import Generator, List, Optional
 
 from pipx import constants
 from pipx.colors import bold
