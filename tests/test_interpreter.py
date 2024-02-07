@@ -1,3 +1,4 @@
+import json
 import shutil
 import subprocess
 import sys
@@ -6,6 +7,8 @@ from unittest.mock import Mock
 import pytest  # type: ignore
 
 import pipx.interpreter
+import pipx.standalone_python
+from pipx.constants import PIPX_STANDALONE_PYTHON_CACHEDIR, WINDOWS
 from pipx.interpreter import (
     InterpreterResolutionError,
     _find_default_windows_python,
@@ -13,6 +16,17 @@ from pipx.interpreter import (
     find_python_interpreter,
 )
 from pipx.util import PipxError
+
+
+@pytest.fixture()
+def mocked_github_api(monkeypatch, root):
+    """
+    Fixture to replace the github index with a local copy,
+    to prevent unit tests from exceeding github's API request limit.
+    """
+    with open(root / "testdata" / "standalone_python_index.json") as f:
+        index = json.load(f)
+    monkeypatch.setattr(pipx.standalone_python, "get_or_update_index", lambda: index)
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
@@ -167,3 +181,29 @@ def test_find_python_interpreter_missing_on_path_raises(monkeypatch):
         find_python_interpreter(interpreter)
         assert "Python Launcher" in str(e)
         assert "on your PATH" in str(e)
+
+
+def test_fetch_missing_python(monkeypatch, mocked_github_api):
+    def which(name):
+        return None
+
+    monkeypatch.setattr(shutil, "which", which)
+
+    major = sys.version_info.major
+    minor = sys.version_info.minor
+    target_python = f"{major}.{minor}"
+
+    if target_python == "3.8":
+        # 3.8 is not available in the standalone python project
+        with pytest.raises(InterpreterResolutionError) as e:
+            find_python_interpreter(target_python, fetch_missing_python=True)
+            assert "not found" in str(e)
+    else:
+        python_path = find_python_interpreter(target_python, fetch_missing_python=True)
+        assert python_path is not None
+        assert target_python in python_path
+        assert str(PIPX_STANDALONE_PYTHON_CACHEDIR) in python_path
+        if WINDOWS:
+            assert python_path.endswith("python.exe")
+        else:
+            assert python_path.endswith("python3")
