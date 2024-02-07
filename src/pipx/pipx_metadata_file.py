@@ -46,7 +46,7 @@ class PackageInfo(NamedTuple):
 
 class PipxMetadata:
     # Only change this if file format changes
-    __METADATA_VERSION__: str = "0.3"
+    __METADATA_VERSION__: str = "0.4"
 
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
@@ -72,6 +72,7 @@ class PipxMetadata:
             package_version="",
         )
         self.python_version: Optional[str] = None
+        self.source_interpreter: Optional[Path] = None
         self.venv_args: List[str] = []
         self.injected_packages: Dict[str, PackageInfo] = {}
 
@@ -82,19 +83,24 @@ class PipxMetadata:
         return {
             "main_package": self.main_package._asdict(),
             "python_version": self.python_version,
+            "source_interpreter": self.source_interpreter,
             "venv_args": self.venv_args,
             "injected_packages": {name: data._asdict() for (name, data) in self.injected_packages.items()},
             "pipx_metadata_version": self.__METADATA_VERSION__,
         }
 
     def _convert_legacy_metadata(self, metadata_dict: Dict[str, Any]) -> Dict[str, Any]:
-        if metadata_dict["pipx_metadata_version"] in ("0.2", self.__METADATA_VERSION__):
+        if metadata_dict["pipx_metadata_version"] in (self.__METADATA_VERSION__):
+            return metadata_dict
+        elif metadata_dict["pipx_metadata_version"] in ("0.2", "0.3"):
+            metadata_dict["source_interpreter"] = None
             return metadata_dict
         elif metadata_dict["pipx_metadata_version"] == "0.1":
             main_package_data = metadata_dict["main_package"]
             if main_package_data["package"] != self.venv_dir.name:
                 # handle older suffixed packages gracefully
                 main_package_data["suffix"] = self.venv_dir.name.replace(main_package_data["package"], "")
+            metadata_dict["source_interpreter"] = None
             return metadata_dict
         else:
             raise PipxError(
@@ -109,6 +115,9 @@ class PipxMetadata:
         input_dict = self._convert_legacy_metadata(input_dict)
         self.main_package = PackageInfo(**input_dict["main_package"])
         self.python_version = input_dict["python_version"]
+        self.source_interpreter = (
+            Path(input_dict["source_interpreter"]) if input_dict["source_interpreter"] is not None else None
+        )
         self.venv_args = input_dict["venv_args"]
         self.injected_packages = {
             f"{name}{data.get('suffix', '')}": PackageInfo(**data)
