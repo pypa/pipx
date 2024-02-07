@@ -6,7 +6,8 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from pipx.constants import WINDOWS
+from pipx.constants import FETCH_MISSING_PYTHON, WINDOWS
+from pipx.standalone_python import download_python_build_standalone
 from pipx.util import PipxError
 
 logger = logging.getLogger(__name__)
@@ -42,10 +43,12 @@ class InterpreterResolutionError(PipxError):
                 message += (
                     "The provided version looks like a version for Python Launcher, " "but `py` was not found on PATH."
                 )
+        if source == "the python-build-standalone project":
+            message += "listed in https://github.com/indygreg/python-build-standalone/releases/latest."
         super().__init__(message, wrap_message)
 
 
-def find_python_interpreter(python_version: str) -> str:
+def find_python_interpreter(python_version: str, fetch_missing_python: bool = False) -> str:
     if Path(python_version).is_file():
         return python_version
 
@@ -58,6 +61,14 @@ def find_python_interpreter(python_version: str) -> str:
 
     if shutil.which(python_version):
         return python_version
+
+    if fetch_missing_python or FETCH_MISSING_PYTHON:
+        try:
+            standalone_executable = download_python_build_standalone(python_version)
+            return standalone_executable
+        except PipxError as e:
+            raise InterpreterResolutionError(source="the python-build-standalone project", version=python_version) from e
+
     raise InterpreterResolutionError(source="PATH", version=python_version)
 
 

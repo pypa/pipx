@@ -8,6 +8,7 @@ from pipx.constants import (
     PIPX_LOCAL_VENVS,
     PIPX_LOG_DIR,
     PIPX_SHARED_LIBS,
+    PIPX_STANDALONE_PYTHON_CACHEDIR,
     PIPX_TRASH_DIR,
     PIPX_VENV_CACHEDIR,
     ExitCode,
@@ -25,6 +26,7 @@ def environment(value: str) -> ExitCode:
         "PIPX_MAN_DIR",
         "PIPX_SHARED_LIBS",
         "PIPX_DEFAULT_PYTHON",
+        "PIPX_FETCH_MISSING_PYTHON",
         "USE_EMOJI",
     ]
     derived_values = {
@@ -36,6 +38,7 @@ def environment(value: str) -> ExitCode:
         "PIPX_LOG_DIR": PIPX_LOG_DIR,
         "PIPX_TRASH_DIR": PIPX_TRASH_DIR,
         "PIPX_VENV_CACHEDIR": PIPX_VENV_CACHEDIR,
+        "PIPX_STANDALONE_PYTHON_CACHEDIR": PIPX_STANDALONE_PYTHON_CACHEDIR,
         "PIPX_DEFAULT_PYTHON": DEFAULT_PYTHON,
         "USE_EMOJI": str(EMOJI_SUPPORT).lower(),
     }
