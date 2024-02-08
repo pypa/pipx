@@ -50,6 +50,7 @@ def test_inject_include_apps(pipx_temp_env, capsys, with_suffix):
 
     assert not run_pipx_cli(["inject", f"pycowsay{suffix}", PKG["black"]["spec"], "--include-deps"])
 
+
 def test_inject_with_req_file(pipx_temp_env, capsys, tmp_path):
     req_file = tmp_path / "requirements.txt"
     req_file.write_text(
@@ -63,6 +64,4 @@ def test_inject_with_req_file(pipx_temp_env, capsys, tmp_path):
     )
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", "--requirement", str(req_file)])
-    assert not run_pipx_cli(
-        ["inject", "pycowsay", PKG["black"]["spec"], "--requirement", str(req_file)]
-    )
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--requirement", str(req_file)])
