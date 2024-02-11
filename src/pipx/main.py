@@ -23,9 +23,18 @@ import pipx.constants
 from pipx import commands, constants
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
-from pipx.constants import EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND, MINIMUM_PYTHON_VERSION, WINDOWS, ExitCode
+from pipx.constants import (
+    EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND,
+    MINIMUM_PYTHON_VERSION,
+    WINDOWS,
+    ExitCode,
+)
 from pipx.emojis import hazard
-from pipx.interpreter import DEFAULT_PYTHON, InterpreterResolutionError, find_python_interpreter
+from pipx.interpreter import (
+    DEFAULT_PYTHON,
+    InterpreterResolutionError,
+    find_python_interpreter,
+)
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import VenvContainer
 from pipx.version import version as __version__
@@ -188,8 +197,9 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         skip_list = [canonicalize_name(x) for x in args.skip]
 
     if "python" in args and args.python is not None:
+        fetch_missing_python = args.fetch_missing_python
         try:
-            interpreter = find_python_interpreter(args.python)
+            interpreter = find_python_interpreter(args.python, fetch_missing_python=fetch_missing_python)
             args.python = interpreter
         except InterpreterResolutionError as e:
             print(
@@ -271,7 +281,11 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
         )
     elif args.command == "list":
         return commands.list_packages(
-            venv_container, args.include_injected, args.json, args.short, args.skip_maintenance
+            venv_container,
+            args.include_injected,
+            args.json,
+            args.short,
+            args.skip_maintenance,
         )
     elif args.command == "uninstall":
         return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose)
@@ -336,6 +350,25 @@ def add_include_dependencies(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--include-deps", help="Include apps of dependent packages", action="store_true")
 
 
+def add_python_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--python",
+        default=DEFAULT_PYTHON,
+        help=(
+            "Python to install with. Possible values can be the executable name (python3.11), "
+            "the version to pass to py launcher (3.11), or the full path to the executable."
+            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
+        ),
+    )
+    parser.add_argument(
+        "--fetch-missing-python",
+        action="store_true",
+        help=(
+            "Whether to fetch a standalone python build from GitHub if the specified python version is not found locally on the system."
+        ),
+    )
+
+
 def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "install",
@@ -360,15 +393,7 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
             "NOTE: The suffix feature is experimental and subject to change."
         ),
     )
-    p.add_argument(
-        "--python",
-        # Don't pass a default Python here so we know whether --python flag was passed
-        help=(
-            "Python to install with. Possible values can be the executable name (python3.11), "
-            "the version to pass to py launcher (3.11), or the full path to the executable."
-            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
-        ),
-    )
+    add_python_options(p)
     p.add_argument(
         "--preinstall",
         action="append",
@@ -519,15 +544,7 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
         parents=[shared_parser],
     )
     p.add_argument("package").completer = venv_completer
-    p.add_argument(
-        "--python",
-        default=DEFAULT_PYTHON,
-        help=(
-            "Python to reinstall with. Possible values can be the executable name (python3.11), "
-            "the version to pass to py launcher (3.11), or the full path to the executable."
-            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
-        ),
-    )
+    add_python_options(p)
 
 
 def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -548,15 +565,7 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
         ),
         parents=[shared_parser],
     )
-    p.add_argument(
-        "--python",
-        default=DEFAULT_PYTHON,
-        help=(
-            "Python to reinstall with. Possible values can be the executable name (python3.11), "
-            "the version to pass to py launcher (3.11), or the full path to the executable."
-            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
-        ),
-    )
+    add_python_options(p)
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
 
 
@@ -622,15 +631,7 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
         help="Require app to be run from local __pypackages__ directory",
     )
     p.add_argument("--spec", help=SPEC_HELP)
-    p.add_argument(
-        "--python",
-        default=DEFAULT_PYTHON,
-        help=(
-            "Python to run with. Possible values can be the executable name (python3.11), "
-            "the version to pass to py launcher (3.11), or the full path to the executable. "
-            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
-        ),
-    )
+    add_python_options(p)
     add_pip_venv_args(p)
     p.set_defaults(subparser=p)
 
@@ -864,18 +865,23 @@ def setup(args: argparse.Namespace) -> None:
     mkdir(constants.LOCAL_BIN_DIR)
     mkdir(constants.LOCAL_MAN_DIR)
     mkdir(constants.PIPX_VENV_CACHEDIR)
+    mkdir(constants.PIPX_STANDALONE_PYTHON_CACHEDIR)
 
-    cachedir_tag = constants.PIPX_VENV_CACHEDIR / "CACHEDIR.TAG"
-    if not cachedir_tag.exists():
-        logger.debug("Adding CACHEDIR.TAG to cache directory")
-        signature = (
-            "Signature: 8a477f597d28d172789f06886806bc55\n"
-            "# This file is a cache directory tag created by pipx.\n"
-            "# For information about cache directory tags, see:\n"
-            "#       https://bford.info/cachedir/\n"
-        )
-        with open(cachedir_tag, "w") as file:
-            file.write(signature)
+    for cachedir in [
+        constants.PIPX_VENV_CACHEDIR,
+        constants.PIPX_STANDALONE_PYTHON_CACHEDIR,
+    ]:
+        cachedir_tag = cachedir / "CACHEDIR.TAG"
+        if not cachedir_tag.exists():
+            logger.debug("Adding CACHEDIR.TAG to cache directory")
+            signature = (
+                "Signature: 8a477f597d28d172789f06886806bc55\n"
+                "# This file is a cache directory tag created by pipx.\n"
+                "# For information about cache directory tags, see:\n"
+                "#       https://bford.info/cachedir/\n"
+            )
+            with open(cachedir_tag, "w") as file:
+                file.write(signature)
 
     rmdir(constants.PIPX_TRASH_DIR, False)
 

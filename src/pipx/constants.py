@@ -22,6 +22,7 @@ MAN_SECTIONS = ["man%d" % i for i in range(1, 10)]
 if FALLBACK_PIPX_HOME.exists() or os.environ.get("PIPX_HOME") is not None:
     PIPX_HOME = load_dir_from_environ("PIPX_HOME", FALLBACK_PIPX_HOME)
     PIPX_LOCAL_VENVS = PIPX_HOME / "venvs"
+    PIPX_STANDALONE_PYTHON_CACHEDIR = PIPX_HOME / "py"
     PIPX_LOG_DIR = PIPX_HOME / "logs"
     DEFAULT_PIPX_SHARED_LIBS = PIPX_HOME / "shared"
     PIPX_TRASH_DIR = PIPX_HOME / ".trash"
@@ -29,6 +30,7 @@ if FALLBACK_PIPX_HOME.exists() or os.environ.get("PIPX_HOME") is not None:
 else:
     PIPX_HOME = DEFAULT_PIPX_HOME
     PIPX_LOCAL_VENVS = PIPX_HOME / "venvs"
+    PIPX_STANDALONE_PYTHON_CACHEDIR = PIPX_HOME / "py"
     PIPX_LOG_DIR = user_log_path("pipx")
     DEFAULT_PIPX_SHARED_LIBS = PIPX_HOME / "shared"
     PIPX_TRASH_DIR = PIPX_HOME / "trash"
@@ -38,6 +40,7 @@ PIPX_SHARED_LIBS = load_dir_from_environ("PIPX_SHARED_LIBS", DEFAULT_PIPX_SHARED
 PIPX_SHARED_PTH = "pipx_shared.pth"
 LOCAL_BIN_DIR = load_dir_from_environ("PIPX_BIN_DIR", DEFAULT_PIPX_BIN_DIR)
 LOCAL_MAN_DIR = load_dir_from_environ("PIPX_MAN_DIR", DEFAULT_PIPX_MAN_DIR)
+FETCH_MISSING_PYTHON = os.environ.get("PIPX_FETCH_MISSING_PYTHON", False)
 TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 14
 MINIMUM_PYTHON_VERSION = "3.8"
 
