@@ -178,7 +178,7 @@ class Venv:
         self.pipx_metadata.venv_args = venv_args
         self.pipx_metadata.python_version = self.get_python_version()
         source_interpreter = shutil.which(self.python)
-        if source_interpreter is not None:
+        if source_interpreter:
             self.pipx_metadata.source_interpreter = Path(source_interpreter)
 
     def safe_to_remove(self) -> bool:
