@@ -430,7 +430,7 @@ def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
             "file containing the packages to inject into the Virtual Environment--"
             "one package name or pip package spec per line. "
             "May be specified multiple times."
-         ),
+        ),
     )
     p.add_argument(
         "--include-apps",
