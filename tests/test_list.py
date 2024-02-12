@@ -8,6 +8,7 @@ import time
 import pytest  # type: ignore
 
 from helpers import (
+    PIPX_METADATA_LEGACY_VERSIONS,
     app_name,
     assert_package_metadata,
     create_package_info_ref,
@@ -49,7 +50,7 @@ def test_list_suffix(pipx_temp_env, monkeypatch, capsys):
     assert f"package pycowsay 0.0.0.2 (pycowsay{suffix})," in captured.out
 
 
-@pytest.mark.parametrize("metadata_version", [None, "0.1", "0.2"])
+@pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
 def test_list_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)

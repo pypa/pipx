@@ -118,7 +118,9 @@ class PipxMetadata:
         input_dict = self._convert_legacy_metadata(input_dict)
         self.main_package = PackageInfo(**input_dict["main_package"])
         self.python_version = input_dict["python_version"]
-        self.source_interpreter = Path(input_dict["source_interpreter"]) if input_dict["source_interpreter"] else None
+        self.source_interpreter = (
+            Path(input_dict["source_interpreter"]) if input_dict.get("source_interpreter") else None
+        )
         self.venv_args = input_dict["venv_args"]
         self.injected_packages = {
             f"{name}{data.get('suffix', '')}": PackageInfo(**data)

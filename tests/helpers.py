@@ -13,6 +13,8 @@ from pipx import constants, main, pipx_metadata_file, util
 
 WIN = sys.platform.startswith("win")
 
+PIPX_METADATA_LEGACY_VERSIONS = [None, "0.1", "0.2", "0.3"]
+
 MOCK_PIPXMETADATA_0_1: Dict[str, Any] = {
     "main_package": None,
     "python_version": None,
@@ -27,6 +29,18 @@ MOCK_PIPXMETADATA_0_2: Dict[str, Any] = {
     "venv_args": [],
     "injected_packages": {},
     "pipx_metadata_version": "0.2",
+}
+
+MOCK_PIPXMETADATA_0_3: Dict[str, Any] = {
+    "main_package": None,
+    "python_version": None,
+    "venv_args": [],
+    "injected_packages": {},
+    "pipx_metadata_version": "0.4",
+    "man_pages": [],
+    "man_paths": [],
+    "man_pages_of_dependencies": [],
+    "man_paths_of_dependencies": {},
 }
 
 MOCK_PACKAGE_INFO_0_1: Dict[str, Any] = {
@@ -77,7 +91,7 @@ def unwrap_log_text(log_text: str):
 
 
 def _mock_legacy_package_info(modern_package_info: Dict[str, Any], metadata_version: str) -> Dict[str, Any]:
-    if metadata_version == "0.2":
+    if metadata_version in ["0.2", "0.3"]:
         mock_package_info_template = MOCK_PACKAGE_INFO_0_2
     elif metadata_version == "0.1":
         mock_package_info_template = MOCK_PACKAGE_INFO_0_1
@@ -98,9 +112,11 @@ def mock_legacy_venv(venv_name: str, metadata_version: Optional[str] = None) -> 
     """
     venv_dir = Path(constants.PIPX_LOCAL_VENVS) / canonicalize_name(venv_name)
 
-    if metadata_version == "0.3":
+    if metadata_version == "0.4":
         # Current metadata version, do nothing
         return
+    elif metadata_version == "0.3":
+        mock_pipx_metadata_template = MOCK_PIPXMETADATA_0_3
     elif metadata_version == "0.2":
         mock_pipx_metadata_template = MOCK_PIPXMETADATA_0_2
     elif metadata_version == "0.1":
@@ -115,7 +131,7 @@ def mock_legacy_venv(venv_name: str, metadata_version: Optional[str] = None) -> 
     modern_metadata = pipx_metadata_file.PipxMetadata(venv_dir).to_dict()
 
     # Convert to mock old metadata
-    mock_pipx_metadata = {}
+    mock_pipx_metadata: dict[str, Any] = {}
     for key in mock_pipx_metadata_template:
         if key == "main_package":
             mock_pipx_metadata[key] = _mock_legacy_package_info(modern_metadata[key], metadata_version=metadata_version)
@@ -126,7 +142,7 @@ def mock_legacy_venv(venv_name: str, metadata_version: Optional[str] = None) -> 
                     modern_metadata[key][injected], metadata_version=metadata_version
                 )
         else:
-            mock_pipx_metadata[key] = modern_metadata[key]
+            mock_pipx_metadata[key] = modern_metadata.get(key)
     mock_pipx_metadata["pipx_metadata_version"] = mock_pipx_metadata_template["pipx_metadata_version"]
 
     # replicate pipx_metadata_file.PipxMetadata.write()
