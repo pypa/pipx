@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from helpers import run_pipx_cli
+from pipx.constants import load_dir_from_environ
 
 
 def test_cli(monkeypatch, capsys):
@@ -32,3 +35,17 @@ def test_cli_with_args(monkeypatch, capsys):
     assert run_pipx_cli(["environment", "--value", "SSS"])
     captured = capsys.readouterr()
     assert "Variable not found." in captured.err
+
+
+def test_resolve_user_dir_in_env_paths(monkeypatch):
+    monkeypatch.setenv("TEST_DIR", "~/test")
+    home = Path.home()
+    env_dir = load_dir_from_environ("TEST_DIR", Path.home())
+    assert "~" not in str(env_dir)
+    assert env_dir == home / "test"
+
+
+def test_resolve_user_dir_in_env_paths_env_not_set(monkeypatch):
+    home = Path.home()
+    env_dir = load_dir_from_environ("TEST_DIR", Path.home())
+    assert env_dir == home
