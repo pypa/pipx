@@ -36,7 +36,7 @@ MOCK_PIPXMETADATA_0_3: Dict[str, Any] = {
     "python_version": None,
     "venv_args": [],
     "injected_packages": {},
-    "pipx_metadata_version": "0.4",
+    "pipx_metadata_version": "0.3",
     "man_pages": [],
     "man_paths": [],
     "man_pages_of_dependencies": [],
