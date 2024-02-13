@@ -1,4 +1,3 @@
-import json
 import shutil
 import subprocess
 import sys
@@ -16,17 +15,6 @@ from pipx.interpreter import (
     find_python_interpreter,
 )
 from pipx.util import PipxError
-
-
-@pytest.fixture()
-def mocked_github_api(monkeypatch, root):
-    """
-    Fixture to replace the github index with a local copy,
-    to prevent unit tests from exceeding github's API request limit.
-    """
-    with open(root / "testdata" / "standalone_python_index.json") as f:
-        index = json.load(f)
-    monkeypatch.setattr(pipx.standalone_python, "get_or_update_index", lambda: index)
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
@@ -207,3 +195,4 @@ def test_fetch_missing_python(monkeypatch, mocked_github_api):
             assert python_path.endswith("python.exe")
         else:
             assert python_path.endswith("python3")
+        subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)

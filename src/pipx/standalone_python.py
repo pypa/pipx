@@ -57,10 +57,9 @@ def download_python_build_standalone(python_version: str):
     # python_version can be a bare version number like "3.9" or a "binary name" like python3.10
     # we'll convert it to a bare version number
     python_version = re.sub(r"[c]?python", "", python_version)
-    python_bin = "python.exe" if WINDOWS else "python3"
 
     install_dir = PIPX_STANDALONE_PYTHON_CACHEDIR / python_version
-    installed_python = install_dir / "bin" / python_bin
+    installed_python = install_dir / "python.exe" if WINDOWS else install_dir / "bin" / "python3"
 
     if installed_python.exists():
         return str(installed_python)

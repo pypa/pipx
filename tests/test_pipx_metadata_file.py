@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import pytest  # type: ignore
@@ -47,6 +48,7 @@ def test_pipx_metadata_file_create(tmp_path):
     pipx_metadata = PipxMetadata(venv_dir)
     pipx_metadata.main_package = TEST_PACKAGE1
     pipx_metadata.python_version = "3.4.5"
+    pipx_metadata.source_interpreter = Path(sys.executable)
     pipx_metadata.venv_args = ["--system-site-packages"]
     pipx_metadata.injected_packages = {"injected": TEST_PACKAGE2}
     pipx_metadata.write()
@@ -78,6 +80,7 @@ def test_pipx_metadata_file_validation(tmp_path, test_package):
     pipx_metadata = PipxMetadata(venv_dir)
     pipx_metadata.main_package = test_package
     pipx_metadata.python_version = "3.4.5"
+    pipx_metadata.source_interpreter = Path(sys.executable)
     pipx_metadata.venv_args = ["--system-site-packages"]
     pipx_metadata.injected_packages = {}
 
