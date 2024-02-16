@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import socket
@@ -13,7 +14,7 @@ from urllib.request import urlopen
 import pytest  # type: ignore
 
 from helpers import WIN
-from pipx import commands, constants, interpreter, shared_libs, venv
+from pipx import commands, constants, interpreter, shared_libs, standalone_python, venv
 
 PIPX_TESTS_DIR = Path(".pipx_tests")
 PIPX_TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
@@ -22,6 +23,17 @@ PIPX_TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
 @pytest.fixture(scope="session")
 def root() -> Path:
     return Path(__file__).parents[1]
+
+
+@pytest.fixture()
+def mocked_github_api(monkeypatch, root):
+    """
+    Fixture to replace the github index with a local copy,
+    to prevent unit tests from exceeding github's API request limit.
+    """
+    with open(root / "testdata" / "standalone_python_index.json") as f:
+        index = json.load(f)
+    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda: index)
 
 
 def pytest_addoption(parser):

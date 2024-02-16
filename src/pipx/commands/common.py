@@ -15,7 +15,7 @@ from packaging.utils import canonicalize_name
 
 from pipx import constants
 from pipx.colors import bold, red
-from pipx.constants import MAN_SECTIONS, WINDOWS
+from pipx.constants import MAN_SECTIONS, PIPX_STANDALONE_PYTHON_CACHEDIR, WINDOWS
 from pipx.emojis import hazard, stars
 from pipx.package_specifier import parse_specifier_for_install, valid_pypi_name
 from pipx.pipx_metadata_file import PackageInfo
@@ -250,9 +250,16 @@ def get_venv_summary(
     # The following is to satisfy mypy that python_version is str and not
     #   Optional[str]
     python_version = venv.pipx_metadata.python_version if venv.pipx_metadata.python_version is not None else ""
+    source_interpreter = venv.pipx_metadata.source_interpreter
+    is_standalone = (
+        str(source_interpreter).startswith(str(PIPX_STANDALONE_PYTHON_CACHEDIR.resolve()))
+        if source_interpreter
+        else False
+    )
     return (
         _get_list_output(
             python_version,
+            is_standalone,
             package_metadata.package_version,
             package_name,
             new_install,
@@ -322,6 +329,7 @@ def get_exposed_man_paths_for_package(
 
 def _get_list_output(
     python_version: str,
+    python_is_standalone: bool,
     package_version: str,
     package_name: str,
     new_install: bool,
@@ -337,6 +345,7 @@ def _get_list_output(
     output.append(
         f"  {'installed' if new_install else ''} package {bold(shlex.quote(package_name))}"
         f" {bold(package_version)}{suffix}, installed using {python_version}"
+        + (" (standalone)" if python_is_standalone else "")
     )
 
     if new_install and (exposed_binary_names or unavailable_binary_names):

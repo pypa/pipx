@@ -2,7 +2,7 @@ import sys
 
 import pytest  # type: ignore
 
-from helpers import app_name, mock_legacy_venv, remove_venv_interpreter, run_pipx_cli
+from helpers import PIPX_METADATA_LEGACY_VERSIONS, app_name, mock_legacy_venv, remove_venv_interpreter, run_pipx_cli
 from package_info import PKG
 from pipx import constants
 
@@ -27,7 +27,7 @@ def test_uninstall_circular_deps(pipx_temp_env):
     assert not run_pipx_cli(["uninstall", "cloudtoken"])
 
 
-@pytest.mark.parametrize("metadata_version", [None, "0.1", "0.2"])
+@pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
 def test_uninstall_legacy_venv(pipx_temp_env, metadata_version):
     executable_path = constants.LOCAL_BIN_DIR / app_name("pycowsay")
 
@@ -100,7 +100,7 @@ def test_uninstall_suffix_legacy_venv(pipx_temp_env, metadata_version):
     assert not file_or_symlink(executable_path)
 
 
-@pytest.mark.parametrize("metadata_version", [None, "0.1", "0.2"])
+@pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
 def test_uninstall_with_missing_interpreter(pipx_temp_env, metadata_version):
     executable_path = constants.LOCAL_BIN_DIR / app_name("pycowsay")
 
@@ -116,7 +116,7 @@ def test_uninstall_with_missing_interpreter(pipx_temp_env, metadata_version):
         assert not file_or_symlink(executable_path)
 
 
-@pytest.mark.parametrize("metadata_version", [None, "0.1", "0.2"])
+@pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
 def test_uninstall_proper_dep_behavior(pipx_temp_env, metadata_version):
     # isort is a dependency of pylint.  Make sure that uninstalling pylint
     #   does not also uninstall isort app in LOCAL_BIN_DIR
@@ -141,7 +141,7 @@ def test_uninstall_proper_dep_behavior(pipx_temp_env, metadata_version):
         assert isort_app_path.exists()
 
 
-@pytest.mark.parametrize("metadata_version", [None, "0.1", "0.2"])
+@pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
 def test_uninstall_proper_dep_behavior_missing_interpreter(pipx_temp_env, metadata_version):
     # isort is a dependency of pylint.  Make sure that uninstalling pylint
     #   does not also uninstall isort app in LOCAL_BIN_DIR

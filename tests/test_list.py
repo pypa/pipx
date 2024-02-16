@@ -1,11 +1,14 @@
 import json
 import os
 import re
+import shutil
+import sys
 import time
 
 import pytest  # type: ignore
 
 from helpers import (
+    PIPX_METADATA_LEGACY_VERSIONS,
     app_name,
     assert_package_metadata,
     create_package_info_ref,
@@ -47,7 +50,7 @@ def test_list_suffix(pipx_temp_env, monkeypatch, capsys):
     assert f"package pycowsay 0.0.0.2 (pycowsay{suffix})," in captured.out
 
 
-@pytest.mark.parametrize("metadata_version", [None, "0.1", "0.2"])
+@pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
 def test_list_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
@@ -132,6 +135,34 @@ def test_list_short(pipx_temp_env, monkeypatch, capsys):
     assert "pylint 2.3.1" in captured.out
 
 
+def test_list_standalone_interpreter(pipx_temp_env, monkeypatch, mocked_github_api, capsys):
+    def which(name):
+        return None
+
+    monkeypatch.setattr(shutil, "which", which)
+
+    major = sys.version_info.major
+    # Minor version 3.8 is not supported for fetching standalone versions
+    minor = sys.version_info.minor if sys.version_info.minor != 8 else 9
+    target_python = f"{major}.{minor}"
+
+    assert not run_pipx_cli(
+        [
+            "install",
+            "--fetch-missing-python",
+            "--python",
+            target_python,
+            PKG["pycowsay"]["spec"],
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert not run_pipx_cli(["list"])
+    captured = capsys.readouterr()
+
+    assert "standalone" in captured.out
+
+
 def test_skip_maintenance(pipx_temp_env):
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
@@ -141,13 +172,19 @@ def test_skip_maintenance(pipx_temp_env):
     shared_libs.shared_libs.has_been_updated_this_run = False
 
     access_time = now  # this can be anything
-    os.utime(shared_libs.shared_libs.pip_path, (access_time, -shared_libs.SHARED_LIBS_MAX_AGE_SEC - 5 * 60 + now))
+    os.utime(
+        shared_libs.shared_libs.pip_path,
+        (access_time, -shared_libs.SHARED_LIBS_MAX_AGE_SEC - 5 * 60 + now),
+    )
     assert shared_libs.shared_libs.needs_upgrade
     run_pipx_cli(["list"])
     assert shared_libs.shared_libs.has_been_updated_this_run
     assert not shared_libs.shared_libs.needs_upgrade
 
-    os.utime(shared_libs.shared_libs.pip_path, (access_time, -shared_libs.SHARED_LIBS_MAX_AGE_SEC - 5 * 60 + now))
+    os.utime(
+        shared_libs.shared_libs.pip_path,
+        (access_time, -shared_libs.SHARED_LIBS_MAX_AGE_SEC - 5 * 60 + now),
+    )
     shared_libs.shared_libs.has_been_updated_this_run = False
     assert shared_libs.shared_libs.needs_upgrade
     run_pipx_cli(["list", "--skip-maintenance"])
