@@ -58,7 +58,7 @@ class ListFilter implements Filter
 
     private function hasAvailableFields(): bool
     {
-        return !is_null($this->availableFields);
+        return $this->availableFields !== null;
     }
 
     public function setAvailableFields(?array $availableFields): self

@@ -3,12 +3,12 @@
 namespace Cyberfusion\ClusterApi\Endpoints;
 
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Cyberfusion\ClusterApi\Models\BasicAuthenticationRealm;
+use Cyberfusion\ClusterApi\Models\CustomConfig;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
 use Cyberfusion\ClusterApi\Support\ListFilter;
 
-class BasicAuthenticationRealms extends Endpoint
+class CustomConfigs extends Endpoint
 {
     /**
      * @throws RequestException
@@ -21,7 +21,7 @@ class BasicAuthenticationRealms extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('basic-authentication-realms?%s', $filter->toQuery()));
+            ->setUrl(sprintf('custom-configs?%s', $filter->toQuery()));
 
         $response = $this
             ->client
@@ -31,8 +31,8 @@ class BasicAuthenticationRealms extends Endpoint
         }
 
         return $response->setData([
-            'basicAuthenticationRealms' => array_map(
-                fn (array $data) => (new BasicAuthenticationRealm())->fromArray($data),
+            'customConfigs' => array_map(
+                fn (array $data) => (new CustomConfig())->fromArray($data),
                 $response->getData()
             ),
         ]);
@@ -45,7 +45,7 @@ class BasicAuthenticationRealms extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('basic-authentication-realms/%d', $id));
+            ->setUrl(sprintf('custom-configs/%d', $id));
 
         $response = $this
             ->client
@@ -55,72 +55,30 @@ class BasicAuthenticationRealms extends Endpoint
         }
 
         return $response->setData([
-            'basicAuthenticationRealm' => (new BasicAuthenticationRealm())->fromArray($response->getData()),
+            'customConfigs' => (new CustomConfig())->fromArray($response->getData())
         ]);
     }
 
     /**
      * @throws RequestException
      */
-    public function create(BasicAuthenticationRealm $basicAuthenticationRealm): Response
+    public function create(CustomConfig $customConfig): Response
     {
-        $this->validateRequired($basicAuthenticationRealm, 'create', [
+        $this->validateRequired($customConfig, 'create', [
             'name',
-            'directory_path',
-            'htpasswd_file_id',
-            'virtual_host_id',
-        ]);
-
-        $request = (new Request())
-            ->setMethod(Request::METHOD_POST)
-            ->setUrl('basic-authentication-realms')
-            ->setBody(
-                $this->filterFields($basicAuthenticationRealm->toArray(), [
-                    'name',
-                    'directory_path',
-                    'htpasswd_file_id',
-                    'virtual_host_id',
-                ])
-            );
-
-        $response = $this
-            ->client
-            ->request($request);
-        if (!$response->isSuccess()) {
-            return $response;
-        }
-
-        $basicAuthenticationRealm = (new BasicAuthenticationRealm())->fromArray($response->getData());
-
-        return $response->setData([
-            'basicAuthenticationRealm' => $basicAuthenticationRealm,
-        ]);
-    }
-
-    /**
-     * @throws RequestException
-     */
-    public function update(BasicAuthenticationRealm $basicAuthenticationRealm): Response
-    {
-        $this->validateRequired($basicAuthenticationRealm, 'update', [
-            'name',
-            'directory_path',
-            'htpasswd_file_id',
-            'virtual_host_id',
-            'id',
+            'server_software_name',
+            'contents',
             'cluster_id',
         ]);
 
         $request = (new Request())
-            ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('basic-authentication-realms/%d', $basicAuthenticationRealm->getId()))
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl('custom-configs')
             ->setBody(
-                $this->filterFields($basicAuthenticationRealm->toArray(), [
+                $this->filterFields($customConfig->toArray(), [
                     'name',
-                    'directory_path',
-                    'htpasswd_file_id',
-                    'virtual_host_id',
-                    'id',
+                    'server_software_name',
+                    'contents',
                     'cluster_id',
                 ])
             );
@@ -132,10 +90,44 @@ class BasicAuthenticationRealms extends Endpoint
             return $response;
         }
 
-        $basicAuthenticationRealm = (new BasicAuthenticationRealm())->fromArray($response->getData());
+        return $response->setData([
+            'customConfig' => (new CustomConfig())->fromArray($response->getData()),
+        ]);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function update(CustomConfig $customConfig): Response
+    {
+        $this->validateRequired($customConfig, 'update', [
+            'name',
+            'server_software_name',
+            'contents',
+            'cluster_id',
+        ]);
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_PUT)
+            ->setUrl(sprintf('custom-configs/%d', $customConfig->getId()))
+            ->setBody(
+                $this->filterFields($customConfig->toArray(), [
+                    'name',
+                    'server_software_name',
+                    'contents',
+                    'cluster_id',
+                ])
+            );
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
 
         return $response->setData([
-            'basicAuthenticationRealm' => $basicAuthenticationRealm,
+            'customConfig' => (new CustomConfig())->fromArray($response->getData()),
         ]);
     }
 
@@ -146,7 +138,7 @@ class BasicAuthenticationRealms extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
-            ->setUrl(sprintf('basic-authentication-realms/%d', $id));
+            ->setUrl(sprintf('custom-configs/%d', $id));
 
         return $this
             ->client

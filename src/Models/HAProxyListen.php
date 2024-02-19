@@ -53,21 +53,7 @@ class HAProxyListen extends ClusterModel
     public function setNodesGroup(string $nodesGroup): self
     {
         Validator::value($nodesGroup)
-            ->valueIn([
-                NodeGroup::ADMIN,
-                NodeGroup::APACHE,
-                NodeGroup::NGINX,
-                NodeGroup::DOVECOT,
-                NodeGroup::MARIADB,
-                NodeGroup::POSTGRESQL,
-                NodeGroup::MALDET,
-                NodeGroup::PHP,
-                NodeGroup::PASSENGER,
-                NodeGroup::BORG,
-                NodeGroup::FAST_REDIRECT,
-                NodeGroup::REDIS,
-                'HAProxy',
-            ])
+            ->valueIn(NodeGroup::AVAILABLE)
             ->validate();
 
         $this->nodesGroup = $nodesGroup;
@@ -85,7 +71,7 @@ class HAProxyListen extends ClusterModel
         Validator::value($port)
             ->nullable()
             ->validate();
-        if (!is_null($port) && ($port < 3306 || $port > 7700)) {
+        if ($port !== null && ($port < 3306 || $port > 7700)) {
             ValidationException::validationFailed([
                 sprintf(
                     'port must be between 3306 and 7700, %d given',

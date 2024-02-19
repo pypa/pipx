@@ -3,12 +3,12 @@
 namespace Cyberfusion\ClusterApi\Endpoints;
 
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Cyberfusion\ClusterApi\Models\Tombstone;
+use Cyberfusion\ClusterApi\Models\Site;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
 use Cyberfusion\ClusterApi\Support\ListFilter;
 
-class Tombstones extends Endpoint
+class Sites extends Endpoint
 {
     /**
      * @throws RequestException
@@ -21,7 +21,7 @@ class Tombstones extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('tombstones?%s', $filter->toQuery()));
+            ->setUrl(sprintf('sites?%s', $filter->toQuery()));
 
         $response = $this
             ->client
@@ -31,8 +31,8 @@ class Tombstones extends Endpoint
         }
 
         return $response->setData([
-            'tombstones' => array_map(
-                fn (array $data) => (new Tombstone())->fromArray($data),
+            'sites' => array_map(
+                fn (array $data) => (new Site())->fromArray($data),
                 $response->getData()
             ),
         ]);

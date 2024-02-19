@@ -3,12 +3,12 @@
 namespace Cyberfusion\ClusterApi\Endpoints;
 
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Cyberfusion\ClusterApi\Models\BasicAuthenticationRealm;
+use Cyberfusion\ClusterApi\Models\FirewallRule;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
 use Cyberfusion\ClusterApi\Support\ListFilter;
 
-class BasicAuthenticationRealms extends Endpoint
+class FirewallRules extends Endpoint
 {
     /**
      * @throws RequestException
@@ -21,7 +21,7 @@ class BasicAuthenticationRealms extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('basic-authentication-realms?%s', $filter->toQuery()));
+            ->setUrl(sprintf('firewall-rules?%s', $filter->toQuery()));
 
         $response = $this
             ->client
@@ -31,8 +31,8 @@ class BasicAuthenticationRealms extends Endpoint
         }
 
         return $response->setData([
-            'basicAuthenticationRealms' => array_map(
-                fn (array $data) => (new BasicAuthenticationRealm())->fromArray($data),
+            'mailAccounts' => array_map(
+                fn (array $data) => (new FirewallRule())->fromArray($data),
                 $response->getData()
             ),
         ]);
@@ -45,7 +45,7 @@ class BasicAuthenticationRealms extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('basic-authentication-realms/%d', $id));
+            ->setUrl(sprintf('firewall-rules/%d', $id));
 
         $response = $this
             ->client
@@ -55,31 +55,35 @@ class BasicAuthenticationRealms extends Endpoint
         }
 
         return $response->setData([
-            'basicAuthenticationRealm' => (new BasicAuthenticationRealm())->fromArray($response->getData()),
+            'firewallRule' => (new FirewallRule())->fromArray($response->getData()),
         ]);
     }
 
     /**
      * @throws RequestException
      */
-    public function create(BasicAuthenticationRealm $basicAuthenticationRealm): Response
+    public function create(FirewallRule $firewallRule): Response
     {
-        $this->validateRequired($basicAuthenticationRealm, 'create', [
-            'name',
-            'directory_path',
-            'htpasswd_file_id',
-            'virtual_host_id',
+        $this->validateRequired($firewallRule, 'create', [
+            'node_id',
+            'firewall_group_id',
+            'external_provider_name',
+            'service_name',
+            'haproxy_listen_id',
+            'port',
         ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('basic-authentication-realms')
+            ->setUrl('firewall-rules')
             ->setBody(
-                $this->filterFields($basicAuthenticationRealm->toArray(), [
-                    'name',
-                    'directory_path',
-                    'htpasswd_file_id',
-                    'virtual_host_id',
+                $this->filterFields($firewallRule->toArray(), [
+                    'node_id',
+                    'firewall_group_id',
+                    'external_provider_name',
+                    'service_name',
+                    'haproxy_listen_id',
+                    'port',
                 ])
             );
 
@@ -90,36 +94,38 @@ class BasicAuthenticationRealms extends Endpoint
             return $response;
         }
 
-        $basicAuthenticationRealm = (new BasicAuthenticationRealm())->fromArray($response->getData());
-
         return $response->setData([
-            'basicAuthenticationRealm' => $basicAuthenticationRealm,
+            'firewallRule' => (new FirewallRule())->fromArray($response->getData()),
         ]);
     }
 
     /**
      * @throws RequestException
      */
-    public function update(BasicAuthenticationRealm $basicAuthenticationRealm): Response
+    public function update(FirewallRule $firewallRule): Response
     {
-        $this->validateRequired($basicAuthenticationRealm, 'update', [
-            'name',
-            'directory_path',
-            'htpasswd_file_id',
-            'virtual_host_id',
+        $this->validateRequired($firewallRule, 'update', [
+            'node_id',
+            'firewall_group_id',
+            'external_provider_name',
+            'service_name',
+            'haproxy_listen_id',
+            'port',
             'id',
             'cluster_id',
         ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('basic-authentication-realms/%d', $basicAuthenticationRealm->getId()))
+            ->setUrl(sprintf('firewall-rules/%d', $firewallRule->getId()))
             ->setBody(
-                $this->filterFields($basicAuthenticationRealm->toArray(), [
-                    'name',
-                    'directory_path',
-                    'htpasswd_file_id',
-                    'virtual_host_id',
+                $this->filterFields($firewallRule->toArray(), [
+                    'node_id',
+                    'firewall_group_id',
+                    'external_provider_name',
+                    'service_name',
+                    'haproxy_listen_id',
+                    'port',
                     'id',
                     'cluster_id',
                 ])
@@ -132,10 +138,8 @@ class BasicAuthenticationRealms extends Endpoint
             return $response;
         }
 
-        $basicAuthenticationRealm = (new BasicAuthenticationRealm())->fromArray($response->getData());
-
         return $response->setData([
-            'basicAuthenticationRealm' => $basicAuthenticationRealm,
+            'firewallRule' => (new FirewallRule())->fromArray($response->getData()),
         ]);
     }
 
@@ -146,7 +150,7 @@ class BasicAuthenticationRealms extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
-            ->setUrl(sprintf('basic-authentication-realms/%d', $id));
+            ->setUrl(sprintf('firewall-rules/%d', $id));
 
         return $this
             ->client

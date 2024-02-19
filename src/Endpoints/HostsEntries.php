@@ -15,7 +15,7 @@ class HostsEntries extends Endpoint
      */
     public function list(?ListFilter $filter = null): Response
     {
-        if (is_null($filter)) {
+        if (!$filter instanceof ListFilter) {
             $filter = new ListFilter();
         }
 
@@ -32,7 +32,7 @@ class HostsEntries extends Endpoint
 
         return $response->setData([
             'hostsEntries' => array_map(
-                fn(array $data) => (new HostsEntry())->fromArray($data),
+                fn (array $data) => (new HostsEntry())->fromArray($data),
                 $response->getData()
             ),
         ]);

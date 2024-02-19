@@ -15,7 +15,7 @@ class RootSshKeys extends Endpoint
      */
     public function list(?ListFilter $filter = null): Response
     {
-        if (is_null($filter)) {
+        if (!$filter instanceof ListFilter) {
             $filter = new ListFilter();
         }
 

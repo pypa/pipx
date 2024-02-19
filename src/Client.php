@@ -20,7 +20,7 @@ class Client implements ClientContract
 
     private const TIMEOUT = 180;
 
-    private const VERSION = '1.107.0';
+    private const VERSION = '1.108.0';
 
     private const USER_AGENT = 'cyberfusion-cluster-api-client/' . self::VERSION;
 
@@ -110,7 +110,7 @@ class Client implements ClientContract
         // The access token isn't provided or valid, so check if the username/password can be used
         if ($this->configuration->hasCredentials()) {
             $accessToken = $this->retrieveAccessToken();
-            if (is_null($accessToken)) {
+            if ($accessToken === null) {
                 throw ClientException::invalidCredentials();
             }
 

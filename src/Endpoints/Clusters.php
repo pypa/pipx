@@ -7,6 +7,9 @@ use Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Cyberfusion\ClusterApi\Models\Cluster;
 use Cyberfusion\ClusterApi\Models\ClusterCommonProperties;
 use Cyberfusion\ClusterApi\Models\HostIpAddress;
+use Cyberfusion\ClusterApi\Models\IpAddressCreate;
+use Cyberfusion\ClusterApi\Models\IpAddressProduct;
+use Cyberfusion\ClusterApi\Models\TaskCollection;
 use Cyberfusion\ClusterApi\Models\UnixUsersHomeDirectoryUsage;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
@@ -20,7 +23,7 @@ class Clusters extends Endpoint
      */
     public function list(?ListFilter $filter = null): Response
     {
-        if (is_null($filter)) {
+        if (!$filter instanceof ListFilter) {
             $filter = new ListFilter();
         }
 
@@ -74,35 +77,43 @@ class Clusters extends Endpoint
             'unix_users_home_directory',
             'php_versions',
             'mariadb_version',
-            'nodejs_version',
-            'postgresql_version',
             'mariadb_cluster_name',
-            'custom_php_modules_names',
             'php_settings',
+            'http_retry_properties',
+            'custom_php_modules_names',
             'php_ioncube_enabled',
             'kernelcare_license_key',
+            'redis_password',
+            'redis_memory_limit',
+            'nodejs_versions',
+            'nodejs_version',
+            'customer_id',
+            'wordpress_toolkit_enabled',
+            'database_toolkit_enabled',
+            'mariadb_backup_interval',
+            'mariadb_backup_local_retention',
+            'postgresql_version',
+            'postgresql_backup_interval',
+            'postgresql_backup_local_retention',
+            'malware_toolkit_enabled',
+            'malware_toolkit_scans_enabled',
+            'mariadb_toolkit_enabled',
+            'mariadb_toolkit_scans_enabled',
+            'bubblewrap_toolkit_enabled',
+            'sync_toolkit_enabled',
+            'automatic_borg_repositories_prune_enabled',
+            'php_sessions_spread_enabled',
+            'description',
             'new_relic_apm_license_key',
             'new_relic_infrastructure_license_key',
             'new_relic_mariadb_password',
             'meilisearch_master_key',
             'meilisearch_environment',
             'meilisearch_backup_interval',
-            'redis_password',
-            'redis_memory_limit',
-            'php_sessions_spread_enabled',
-            'nodejs_versions',
-            'description',
-            'wordpress_toolkit_enabled',
-            'automatic_borg_repositories_prune_enabled',
-            'malware_toolkit_enabled',
-            'sync_toolkit_enabled',
-            'bubblewrap_toolkit_enabled',
-            'malware_toolkit_scans_enabled',
-            'database_toolkit_enabled',
-            'mariadb_backup_interval',
-            'postgresql_backup_interval',
-            'customer_id',
-            'http_retry_properties',
+            'meilisearch_backup_local_retention',
+            'automatic_upgrades_enabled',
+            'firewall_rules_external_providers_enabled',
+            'site_id',
         ]);
 
         $request = (new Request())
@@ -114,35 +125,43 @@ class Clusters extends Endpoint
                     'unix_users_home_directory',
                     'php_versions',
                     'mariadb_version',
-                    'nodejs_version',
-                    'postgresql_version',
                     'mariadb_cluster_name',
-                    'custom_php_modules_names',
                     'php_settings',
+                    'http_retry_properties',
+                    'custom_php_modules_names',
                     'php_ioncube_enabled',
                     'kernelcare_license_key',
+                    'redis_password',
+                    'redis_memory_limit',
+                    'nodejs_versions',
+                    'nodejs_version',
+                    'customer_id',
+                    'wordpress_toolkit_enabled',
+                    'database_toolkit_enabled',
+                    'mariadb_backup_interval',
+                    'mariadb_backup_local_retention',
+                    'postgresql_version',
+                    'postgresql_backup_interval',
+                    'postgresql_backup_local_retention',
+                    'malware_toolkit_enabled',
+                    'malware_toolkit_scans_enabled',
+                    'mariadb_toolkit_enabled',
+                    'mariadb_toolkit_scans_enabled',
+                    'bubblewrap_toolkit_enabled',
+                    'sync_toolkit_enabled',
+                    'automatic_borg_repositories_prune_enabled',
+                    'php_sessions_spread_enabled',
+                    'description',
                     'new_relic_apm_license_key',
                     'new_relic_infrastructure_license_key',
                     'new_relic_mariadb_password',
                     'meilisearch_master_key',
                     'meilisearch_environment',
                     'meilisearch_backup_interval',
-                    'redis_password',
-                    'redis_memory_limit',
-                    'php_sessions_spread_enabled',
-                    'nodejs_versions',
-                    'description',
-                    'wordpress_toolkit_enabled',
-                    'automatic_borg_repositories_prune_enabled',
-                    'malware_toolkit_enabled',
-                    'sync_toolkit_enabled',
-                    'bubblewrap_toolkit_enabled',
-                    'malware_toolkit_scans_enabled',
-                    'database_toolkit_enabled',
-                    'mariadb_backup_interval',
-                    'postgresql_backup_interval',
-                    'customer_id',
-                    'http_retry_properties',
+                    'meilisearch_backup_local_retention',
+                    'automatic_upgrades_enabled',
+                    'firewall_rules_external_providers_enabled',
+                    'site_id',
                 ])
             );
 
@@ -169,36 +188,45 @@ class Clusters extends Endpoint
             'unix_users_home_directory',
             'php_versions',
             'mariadb_version',
-            'nodejs_version',
-            'postgresql_version',
             'mariadb_cluster_name',
-            'custom_php_modules_names',
             'php_settings',
+            'http_retry_properties',
+            'custom_php_modules_names',
             'php_ioncube_enabled',
             'kernelcare_license_key',
+            'redis_password',
+            'redis_memory_limit',
+            'nodejs_versions',
+            'nodejs_version',
+            'customer_id',
+            'wordpress_toolkit_enabled',
+            'database_toolkit_enabled',
+            'mariadb_backup_interval',
+            'mariadb_backup_local_retention',
+            'postgresql_version',
+            'postgresql_backup_interval',
+            'postgresql_backup_local_retention',
+            'malware_toolkit_enabled',
+            'malware_toolkit_scans_enabled',
+            'mariadb_toolkit_enabled',
+            'mariadb_toolkit_scans_enabled',
+            'bubblewrap_toolkit_enabled',
+            'sync_toolkit_enabled',
+            'automatic_borg_repositories_prune_enabled',
+            'php_sessions_spread_enabled',
+            'description',
             'new_relic_apm_license_key',
             'new_relic_infrastructure_license_key',
             'new_relic_mariadb_password',
             'meilisearch_master_key',
             'meilisearch_environment',
             'meilisearch_backup_interval',
-            'redis_password',
-            'redis_memory_limit',
-            'php_sessions_spread_enabled',
-            'nodejs_versions',
-            'description',
-            'wordpress_toolkit_enabled',
-            'automatic_borg_repositories_prune_enabled',
-            'malware_toolkit_enabled',
-            'sync_toolkit_enabled',
-            'bubblewrap_toolkit_enabled',
-            'malware_toolkit_scans_enabled',
-            'database_toolkit_enabled',
-            'mariadb_backup_interval',
-            'postgresql_backup_interval',
+            'meilisearch_backup_local_retention',
+            'automatic_upgrades_enabled',
+            'firewall_rules_external_providers_enabled',
+            'site_id',
             'customer_id',
             'id',
-            'http_retry_properties',
         ]);
 
         $request = (new Request())
@@ -211,36 +239,45 @@ class Clusters extends Endpoint
                     'unix_users_home_directory',
                     'php_versions',
                     'mariadb_version',
-                    'nodejs_version',
-                    'postgresql_version',
                     'mariadb_cluster_name',
-                    'custom_php_modules_names',
                     'php_settings',
+                    'http_retry_properties',
+                    'custom_php_modules_names',
                     'php_ioncube_enabled',
                     'kernelcare_license_key',
+                    'redis_password',
+                    'redis_memory_limit',
+                    'nodejs_versions',
+                    'nodejs_version',
+                    'customer_id',
+                    'wordpress_toolkit_enabled',
+                    'database_toolkit_enabled',
+                    'mariadb_backup_interval',
+                    'mariadb_backup_local_retention',
+                    'postgresql_version',
+                    'postgresql_backup_interval',
+                    'postgresql_backup_local_retention',
+                    'malware_toolkit_enabled',
+                    'malware_toolkit_scans_enabled',
+                    'mariadb_toolkit_enabled',
+                    'mariadb_toolkit_scans_enabled',
+                    'bubblewrap_toolkit_enabled',
+                    'sync_toolkit_enabled',
+                    'automatic_borg_repositories_prune_enabled',
+                    'php_sessions_spread_enabled',
+                    'description',
                     'new_relic_apm_license_key',
                     'new_relic_infrastructure_license_key',
                     'new_relic_mariadb_password',
                     'meilisearch_master_key',
                     'meilisearch_environment',
                     'meilisearch_backup_interval',
-                    'redis_password',
-                    'redis_memory_limit',
-                    'php_sessions_spread_enabled',
-                    'nodejs_versions',
-                    'description',
-                    'wordpress_toolkit_enabled',
-                    'automatic_borg_repositories_prune_enabled',
-                    'malware_toolkit_enabled',
-                    'sync_toolkit_enabled',
-                    'bubblewrap_toolkit_enabled',
-                    'malware_toolkit_scans_enabled',
-                    'database_toolkit_enabled',
-                    'mariadb_backup_interval',
-                    'postgresql_backup_interval',
+                    'meilisearch_backup_local_retention',
+                    'automatic_upgrades_enabled',
+                    'firewall_rules_external_providers_enabled',
+                    'site_id',
                     'customer_id',
                     'id',
-                    'http_retry_properties',
                 ])
             );
 
@@ -356,6 +393,9 @@ class Clusters extends Endpoint
         ]);
     }
 
+    /**
+     * @throws RequestException
+     */
     public function ipAddresses(int $clusterId): Response
     {
         $request = (new Request())
@@ -376,6 +416,78 @@ class Clusters extends Endpoint
 
         return $response->setData([
             'ipAddresses' => $ipAddresses,
+        ]);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function createIpAddress(int $clusterId, IpAddressCreate $ipAddress): Response
+    {
+        $this->validateRequired($ipAddress, 'create', [
+            'service_account_name',
+            'dns_name',
+            'address_family',
+        ]);
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl(sprintf('clusters/%d/ip-addresses', $clusterId))
+            ->setBody(
+                $this->filterFields($ipAddress->toArray(), [
+                    'service_account_name',
+                    'dns_name',
+                    'address_family',
+                ])
+            );
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'taskCollection' => (new TaskCollection())->fromArray($response->getData()),
+        ]);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function deleteIpAddress(int $customerId, int $id): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_DELETE)
+            ->setUrl(sprintf('clusters/%d/ip-addresses/%d', $customerId, $id));
+
+        return $this
+            ->client
+            ->request($request);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function products(): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_GET)
+            ->setUrl('clusters/ip-addresses/products');
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'ipAddressProducts' => array_map(
+                fn (array $data) => (new IpAddressProduct())->fromArray($data),
+                $response->getData()
+            ),
         ]);
     }
 }

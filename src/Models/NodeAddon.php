@@ -3,13 +3,15 @@
 namespace Cyberfusion\ClusterApi\Models;
 
 use Cyberfusion\ClusterApi\Support\Arr;
+use Cyberfusion\ClusterApi\Support\Validator;
 
-class HostsEntry extends ClusterModel
+class NodeAddon extends ClusterModel
 {
     private ?int $nodeId = null;
-    private string $hostName;
-    private ?int $clusterId = null;
+    private ?string $product = null;
+    private ?int $quantity = null;
     private ?int $id = null;
+    private ?int $clusterId = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
 
@@ -20,19 +22,47 @@ class HostsEntry extends ClusterModel
 
     public function setNodeId(?int $nodeId): self
     {
-        $this->nodeId = $nodeId;
+        Validator::value($nodeId)
+            ->minAmount(1)
+            ->nullable()
+            ->validate();
 
+        $this->nodeId = $nodeId;
         return $this;
     }
 
-    public function getHostName(): string
+    public function getProduct(): ?string
     {
-        return $this->hostName;
+        return $this->product;
     }
 
-    public function setHostName(string $hostName): self
+    public function setProduct(?string $product): self
     {
-        $this->hostName = $hostName;
+        Validator::value($product)
+            ->minLength(1)
+            ->maxLength(64)
+            ->pattern('^[a-zA-Z0-9 ]+$')
+            ->nullable()
+            ->validate();
+
+        $this->product = $product;
+        return $this;
+    }
+
+    public function getQuantity(): ?int
+    {
+        return $this->quantity;
+    }
+
+    public function setQuantity(?int $quantity): self
+    {
+        Validator::value($quantity)
+            ->minAmount(1)
+            ->maxAmount(16)
+            ->nullable()
+            ->validate();
+
+        $this->quantity = $quantity;
         return $this;
     }
 
@@ -88,9 +118,10 @@ class HostsEntry extends ClusterModel
     {
         return $this
             ->setNodeId(Arr::get($data, 'node_id'))
-            ->setHostName(Arr::get($data, 'host_name'))
-            ->setClusterId(Arr::get($data, 'cluster_id'))
+            ->setProduct(Arr::get($data, 'product'))
+            ->setQuantity(Arr::get($data, 'quantity'))
             ->setId(Arr::get($data, 'id'))
+            ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
             ->setUpdatedAt(Arr::get($data, 'updated_at'));
     }
@@ -99,9 +130,10 @@ class HostsEntry extends ClusterModel
     {
         return [
             'node_id' => $this->getNodeId(),
-            'host_name' => $this->getHostName(),
-            'cluster_id' => $this->getClusterId(),
+            'product' => $this->getProduct(),
+            'quantity' => $this->getQuantity(),
             'id' => $this->getId(),
+            'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),
         ];

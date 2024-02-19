@@ -126,7 +126,7 @@ class Validator
     private function performValidation(string $type, $setting, $value): bool
     {
         // When the field is nullable and the value is null no other validations need to be performed
-        if (is_null($value) && Arr::has($this->validations, self::NULLABLE)) {
+        if ($value === null && Arr::has($this->validations, self::NULLABLE)) {
             return true;
         }
 

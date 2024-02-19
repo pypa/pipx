@@ -25,7 +25,7 @@ class Response
 
     public function getData(?string $attribute = null): mixed
     {
-        if (is_null($attribute)) {
+        if ($attribute === null) {
             return $this->data;
         }
 

@@ -23,6 +23,7 @@ class Cluster extends ClusterModel
     private ?string $meilisearchMasterKey = null;
     private ?string $meilisearchEnvironment = null;
     private ?int $meilisearchBackupInterval = null;
+    private ?int $meilisearchBackupLocalRetention = null;
     private ?string $newRelicApmLicenseKey = null;
     private ?string $newRelicMariadbPassword = null;
     private ?string $newRelicInfrastructureLicenseKey = null;
@@ -34,8 +35,10 @@ class Cluster extends ClusterModel
     private ?bool $wordpressToolkitEnabled = null;
     private ?bool $databaseToolkitEnabled = null;
     private ?int $mariaDbBackupInterval = null;
+    private ?int $mariaDbBackupLocalRetention = null;
     private ?string $postgreSQLVersion = null;
     private ?int $postgreSQLBackupInterval = null;
+    private ?int $posgreSQLBackupLocalRetention = null;
     private ?bool $malwareToolkitEnabled = null;
     private ?bool $malwareToolkitScansEnabled = null;
     private ?bool $bubblewrapToolkitEnabled = null;
@@ -43,10 +46,24 @@ class Cluster extends ClusterModel
     private ?bool $automaticBorgRepositoriesPruneEnabled = null;
     private ?bool $phpSessionSpreadEnabled = null;
     private ?bool $automaticUpgradesEnabled = null;
-    private string $description;
+    private ?bool $firewallRulesExternalProvidersEnabled = null;
+    private ?string $description = null;
+    private ?int $siteId = null;
     private ?int $id = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
+    private ?string $grafanaDomain = null;
+    private ?string $singleStoreStudioDomain = null;
+    private ?string $singleStoreApiDomain = null;
+    private ?string $singleStoreLicenseKey = null;
+    private ?string $singleStoreRootPassword = null;
+    private ?string $elasticsearchDefaultUsersPassword = null;
+    private ?string $rabbitMqErlangCookie = null;
+    private ?string $rabbitMqAdminPassword = null;
+    private ?string $metabaseDomain = null;
+    private ?string $metabaseDatabasePassword = null;
+    private ?string $kibanaDomain = null;
+    private ?string $rabbitMqManagementDomain = null;
 
     public function getName(): string
     {
@@ -285,8 +302,31 @@ class Cluster extends ClusterModel
 
     public function setMeilisearchBackupInterval(?int $meilisearchBackupInterval): self
     {
+        Validator::value($meilisearchBackupInterval)
+            ->minAmount(1)
+            ->maxAmount(24)
+            ->nullable()
+            ->validate();
+
         $this->meilisearchBackupInterval = $meilisearchBackupInterval;
 
+        return $this;
+    }
+
+    public function getMeilisearchBackupLocalRetention(): ?int
+    {
+        return $this->meilisearchBackupLocalRetention;
+    }
+
+    public function setMeilisearchBackupLocalRetention(?int $meilisearchBackupLocalRetention): self
+    {
+        Validator::value($meilisearchBackupLocalRetention)
+            ->minAmount(1)
+            ->maxAmount(24)
+            ->nullable()
+            ->validate();
+
+        $this->meilisearchBackupLocalRetention = $meilisearchBackupLocalRetention;
         return $this;
     }
 
@@ -392,12 +432,29 @@ class Cluster extends ClusterModel
     public function setMariaDbBackupInterval(?int $mariaDbBackupInterval): self
     {
         Validator::value($mariaDbBackupInterval)
-            ->minAmount(4)
+            ->minAmount(1)
             ->maxAmount(24)
             ->nullable()
             ->validate();
 
         $this->mariaDbBackupInterval = $mariaDbBackupInterval;
+        return $this;
+    }
+
+    public function getMariaDbBackupLocalRetention(): ?int
+    {
+        return $this->mariaDbBackupLocalRetention;
+    }
+
+    public function setMariaDbBackupLocalRetention(?int $mariaDbBackupLocalRetention): self
+    {
+        Validator::value($mariaDbBackupLocalRetention)
+            ->minAmount(1)
+            ->maxAmount(24)
+            ->nullable()
+            ->validate();
+
+        $this->mariaDbBackupLocalRetention = $mariaDbBackupLocalRetention;
         return $this;
     }
 
@@ -421,7 +478,7 @@ class Cluster extends ClusterModel
     public function setPostgreSQLBackupInterval(?int $postgreSQLBackupInterval): self
     {
         Validator::value($postgreSQLBackupInterval)
-            ->minAmount(4)
+            ->minAmount(1)
             ->maxAmount(24)
             ->nullable()
             ->validate();
@@ -430,7 +487,24 @@ class Cluster extends ClusterModel
         return $this;
     }
 
-    public function istMalwareToolkitEnabled(): ?bool
+    public function getPosgreSQLBackupLocalRetention(): ?int
+    {
+        return $this->posgreSQLBackupLocalRetention;
+    }
+
+    public function setPosgreSQLBackupLocalRetention(?int $posgreSQLBackupLocalRetention): self
+    {
+        Validator::value($posgreSQLBackupLocalRetention)
+            ->minAmount(1)
+            ->maxAmount(24)
+            ->nullable()
+            ->validate();
+
+        $this->posgreSQLBackupLocalRetention = $posgreSQLBackupLocalRetention;
+        return $this;
+    }
+
+    public function isMalwareToolkitEnabled(): ?bool
     {
         return $this->malwareToolkitEnabled;
     }
@@ -514,6 +588,28 @@ class Cluster extends ClusterModel
         return $this;
     }
 
+    public function getFirewallRulesExternalProvidersEnabled(): ?bool
+    {
+        return $this->firewallRulesExternalProvidersEnabled;
+    }
+
+    public function setFirewallRulesExternalProvidersEnabled(?bool $firewallRulesExternalProvidersEnabled): self
+    {
+        $this->firewallRulesExternalProvidersEnabled = $firewallRulesExternalProvidersEnabled;
+        return $this;
+    }
+
+    public function getSiteId(): ?int
+    {
+        return $this->siteId;
+    }
+
+    public function setSiteId(?int $siteId): self
+    {
+        $this->siteId = $siteId;
+        return $this;
+    }
+
     public function getDescription(): string
     {
         return $this->description;
@@ -528,6 +624,138 @@ class Cluster extends ClusterModel
 
         $this->description = $description;
 
+        return $this;
+    }
+
+    public function getGrafanaDomain(): ?string
+    {
+        return $this->grafanaDomain;
+    }
+
+    public function setGrafanaDomain(?string $grafanaDomain): self
+    {
+        $this->grafanaDomain = $grafanaDomain;
+        return $this;
+    }
+
+    public function getSingleStoreStudioDomain(): ?string
+    {
+        return $this->singleStoreStudioDomain;
+    }
+
+    public function setSingleStoreStudioDomain(?string $singleStoreStudioDomain): self
+    {
+        $this->singleStoreStudioDomain = $singleStoreStudioDomain;
+        return $this;
+    }
+
+    public function getSingleStoreApiDomain(): ?string
+    {
+        return $this->singleStoreApiDomain;
+    }
+
+    public function setSingleStoreApiDomain(?string $singleStoreApiDomain): self
+    {
+        $this->singleStoreApiDomain = $singleStoreApiDomain;
+        return $this;
+    }
+
+    public function getSingleStoreLicenseKey(): ?string
+    {
+        return $this->singleStoreLicenseKey;
+    }
+
+    public function setSingleStoreLicenseKey(?string $singleStoreLicenseKey): self
+    {
+        $this->singleStoreLicenseKey = $singleStoreLicenseKey;
+        return $this;
+    }
+
+    public function getSingleStoreRootPassword(): ?string
+    {
+        return $this->singleStoreRootPassword;
+    }
+
+    public function setSingleStoreRootPassword(?string $singleStoreRootPassword): self
+    {
+        $this->singleStoreRootPassword = $singleStoreRootPassword;
+        return $this;
+    }
+
+    public function getElasticsearchDefaultUsersPassword(): ?string
+    {
+        return $this->elasticsearchDefaultUsersPassword;
+    }
+
+    public function setElasticsearchDefaultUsersPassword(?string $elasticsearchDefaultUsersPassword): self
+    {
+        $this->elasticsearchDefaultUsersPassword = $elasticsearchDefaultUsersPassword;
+        return $this;
+    }
+
+    public function getRabbitMqErlangCookie(): ?string
+    {
+        return $this->rabbitMqErlangCookie;
+    }
+
+    public function setRabbitMqErlangCookie(?string $rabbitMqErlangCookie): self
+    {
+        $this->rabbitMqErlangCookie = $rabbitMqErlangCookie;
+        return $this;
+    }
+
+    public function getRabbitMqAdminPassword(): ?string
+    {
+        return $this->rabbitMqAdminPassword;
+    }
+
+    public function setRabbitMqAdminPassword(?string $rabbitMqAdminPassword): self
+    {
+        $this->rabbitMqAdminPassword = $rabbitMqAdminPassword;
+        return $this;
+    }
+
+    public function getMetabaseDomain(): ?string
+    {
+        return $this->metabaseDomain;
+    }
+
+    public function setMetabaseDomain(?string $metabaseDomain): self
+    {
+        $this->metabaseDomain = $metabaseDomain;
+        return $this;
+    }
+
+    public function getMetabaseDatabasePassword(): ?string
+    {
+        return $this->metabaseDatabasePassword;
+    }
+
+    public function setMetabaseDatabasePassword(?string $metabaseDatabasePassword): self
+    {
+        $this->metabaseDatabasePassword = $metabaseDatabasePassword;
+        return $this;
+    }
+
+    public function getKibanaDomain(): ?string
+    {
+        return $this->kibanaDomain;
+    }
+
+    public function setKibanaDomain(?string $kibanaDomain): self
+    {
+        $this->kibanaDomain = $kibanaDomain;
+        return $this;
+    }
+
+    public function getRabbitMqManagementDomain(): ?string
+    {
+        return $this->rabbitMqManagementDomain;
+    }
+
+    public function setRabbitMqManagementDomain(?string $rabbitMqManagementDomain): self
+    {
+        $this->rabbitMqManagementDomain = $rabbitMqManagementDomain;
         return $this;
     }
 
@@ -576,11 +804,18 @@ class Cluster extends ClusterModel
             ->setPhpVersions(Arr::get($data, 'php_versions', []))
             ->setMariaDbVersion(Arr::get($data, 'mariadb_version'))
             ->setMariaDbClusterName(Arr::get($data, 'mariadb_cluster_name'))
+            ->setCustomPhpModulesNames(Arr::get($data, 'custom_php_modules_names', []))
             ->setPhpSettings(Arr::get($data, 'php_settings', []))
             ->setHttpRetryProperties(Arr::get($data, 'http_retry_properties'))
-            ->setCustomPhpModulesNames(Arr::get($data, 'custom_php_modules_names', []))
             ->setPhpIoncubeEnabled(Arr::get($data, 'php_ioncube_enabled'))
             ->setKernelcareLicenseKey(Arr::get($data, 'kernelcare_license_key'))
+            ->setNewRelicApmLicenseKey(Arr::get($data, 'new_relic_apm_license_key'))
+            ->setNewRelicMariadbPassword(Arr::get($data, 'new_relic_mariadb_password'))
+            ->setNewRelicInfrastructureLicenseKey(Arr::get($data, 'new_relic_infrastructure_license_key'))
+            ->setMeilisearchMasterKey(Arr::get($data, 'meilisearch_master_key'))
+            ->setMeilisearchEnvironment(Arr::get($data, 'meilisearch_environment'))
+            ->setMeilisearchBackupInterval(Arr::get($data, 'meilisearch_backup_interval'))
+            ->setMeilisearchBackupLocalRetention(Arr::get($data, 'meilisearch_backup_local_retention'))
             ->setRedisPassword(Arr::get($data, 'redis_password'))
             ->setRedisMemoryLimit(Arr::get($data, 'redis_memory_limit'))
             ->setNodejsVersions(Arr::get($data, 'nodejs_versions', []))
@@ -589,8 +824,10 @@ class Cluster extends ClusterModel
             ->setWordpressToolkitEnabled(Arr::get($data, 'wordpress_toolkit_enabled'))
             ->setDatabaseToolkitEnabled(Arr::get($data, 'database_toolkit_enabled'))
             ->setMariaDbBackupInterval(Arr::get($data, 'mariadb_backup_interval'))
+            ->setMariaDbBackupLocalRetention(Arr::get($data, 'mariadb_backup_local_retention'))
             ->setPostgreSQLVersion(Arr::get($data, 'postgresql_version'))
             ->setPostgreSQLBackupInterval(Arr::get($data, 'postgresql_backup_interval'))
+            ->setPosgreSQLBackupLocalRetention(Arr::get($data, 'postgresql_backup_local_retention'))
             ->setMalwareToolkitEnabled(Arr::get($data, 'malware_toolkit_enabled'))
             ->setMalwareToolkitScansEnabled(Arr::get($data, 'malware_toolkit_scans_enabled'))
             ->setBubblewrapToolkitEnabled(Arr::get($data, 'bubblewrap_toolkit_enabled'))
@@ -598,7 +835,21 @@ class Cluster extends ClusterModel
             ->setAutomaticBorgRepositoriesPruneEnabled(Arr::get($data, 'automatic_borg_repositories_prune_enabled'))
             ->setPhpSessionSpreadEnabled(Arr::get($data, 'php_sessions_spread_enabled'))
             ->setAutomaticUpgradesEnabled(Arr::get($data, 'automatic_upgrades_enabled'))
+            ->setFirewallRulesExternalProvidersEnabled(Arr::get($data, 'firewall_rules_external_providers_enabled'))
+            ->setSiteId(Arr::get($data, 'site_id'))
             ->setDescription(Arr::get($data, 'description'))
+            ->setGrafanaDomain(Arr::get($data, 'grafana_domain'))
+            ->setSingleStoreStudioDomain(Arr::get($data, 'single_store_studio_domain'))
+            ->setSingleStoreApiDomain(Arr::get($data, 'single_store_api_domain'))
+            ->setSingleStoreLicenseKey(Arr::get($data, 'single_store_license_key'))
+            ->setSingleStoreRootPassword(Arr::get($data, 'single_store_root_password'))
+            ->setElasticsearchDefaultUsersPassword(Arr::get($data, 'elastisearch_default_users_password'))
+            ->setRabbitMqErlangCookie(Arr::get($data, 'rabbit_mq_erlang_cookie'))
+            ->setRabbitMqAdminPassword(Arr::get($data, 'rabbit_mq_admin_password'))
+            ->setMetabaseDomain(Arr::get($data, 'metabase_domain'))
+            ->setMetabaseDatabasePassword(Arr::get($data, 'metabase_database_password'))
+            ->setKibanaDomain(Arr::get($data, 'kibana_domain'))
+            ->setRabbitMqManagementDomain(Arr::get($data, 'rabbit_mq_management_domain'))
             ->setId(Arr::get($data, 'id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
             ->setUpdatedAt(Arr::get($data, 'updated_at'));
@@ -628,9 +879,11 @@ class Cluster extends ClusterModel
             'wordpress_toolkit_enabled' => $this->isWordpressToolkitEnabled(),
             'database_toolkit_enabled' => $this->isDatabaseToolkitEnabled(),
             'mariadb_backup_interval' => $this->getMariaDbBackupInterval(),
+            'mariadb_backup_local_retention' => $this->getMariaDbBackupLocalRetention(),
             'postgresql_version' => $this->getPostgreSQLVersion(),
             'postgresql_backup_interval' => $this->getPostgreSQLBackupInterval(),
-            'malware_toolkit_enabled' => $this->istMalwareToolkitEnabled(),
+            'postgresql_backup_local_retention' => $this->getPosgreSQLBackupLocalRetention(),
+            'malware_toolkit_enabled' => $this->isMalwareToolkitEnabled(),
             'malware_toolkit_scans_enabled' => $this->isMalwareToolkitScansEnabled(),
             'bubblewrap_toolkit_enabled' => $this->isBubblewrapToolkitEnabled(),
             'sync_toolkit_enabled' => $this->isSyncToolkitEnabled(),
@@ -643,7 +896,22 @@ class Cluster extends ClusterModel
             'meilisearch_master_key' => $this->getMeilisearchMasterKey(),
             'meilisearch_environment' => $this->getMeilisearchEnvironment(),
             'meilisearch_backup_interval' => $this->getMeilisearchBackupInterval(),
+            'meilisearch_backup_local_retention' => $this->getMeilisearchBackupLocalRetention(),
             'automatic_upgrades_enabled' => $this->getAutomaticUpgradesEnabled(),
+            'firewall_rules_external_providers_enabled' => $this->getFirewallRulesExternalProvidersEnabled(),
+            'site_id' => $this->getSiteId(),
+            'grafana_domain' => $this->getGrafanaDomain(),
+            'single_store_studio_domain' => $this->getSingleStoreStudioDomain(),
+            'single_store_api_domain' => $this->getSingleStoreApiDomain(),
+            'single_store_license_key' => $this->getSingleStoreLicenseKey(),
+            'single_store_root_password' => $this->getSingleStoreRootPassword(),
+            'elasticsearch_default_users_password' => $this->getElasticsearchDefaultUsersPassword(),
+            'rabbit_mq_erlang_cookie' => $this->getRabbitMqErlangCookie(),
+            'rabbit_mq_admin_password' => $this->getRabbitMqAdminPassword(),
+            'metabase_domain' => $this->getMetabaseDomain(),
+            'metabase_database_password' => $this->getMetabaseDatabasePassword(),
+            'kibana_domain' => $this->getKibanaDomain(),
+            'rabbit_mq_management_domain' => $this->getRabbitMqManagementDomain(),
             'id' => $this->getId(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),

@@ -3,12 +3,14 @@
 namespace Cyberfusion\ClusterApi\Endpoints;
 
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Cyberfusion\ClusterApi\Models\HtpasswdUser;
+use Cyberfusion\ClusterApi\Models\NodeAddon;
+use Cyberfusion\ClusterApi\Models\NodeAddonProduct;
+use Cyberfusion\ClusterApi\Models\TaskCollection;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
 use Cyberfusion\ClusterApi\Support\ListFilter;
 
-class HtpasswdUsers extends Endpoint
+class NodeAddons extends Endpoint
 {
     /**
      * @throws RequestException
@@ -21,7 +23,7 @@ class HtpasswdUsers extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('htpasswd-users?%s', $filter->toQuery()));
+            ->setUrl(sprintf('nodes-add-ons?%s', $filter->toQuery()));
 
         $response = $this
             ->client
@@ -31,8 +33,32 @@ class HtpasswdUsers extends Endpoint
         }
 
         return $response->setData([
-            'htpasswdUsers' => array_map(
-                fn (array $data) => (new HtpasswdUser())->fromArray($data),
+            'nodeAddons' => array_map(
+                fn (array $data) => (new NodeAddon())->fromArray($data),
+                $response->getData()
+            ),
+        ]);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function products(): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_GET)
+            ->setUrl('nodes-add-ons/products');
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'nodeAddonProducts' => array_map(
+                fn (array $data) => (new NodeAddonProduct())->fromArray($data),
                 $response->getData()
             ),
         ]);
@@ -45,7 +71,7 @@ class HtpasswdUsers extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('htpasswd-users/%d', $id));
+            ->setUrl(sprintf('node-add-ons/%d', $id));
 
         $response = $this
             ->client
@@ -55,29 +81,29 @@ class HtpasswdUsers extends Endpoint
         }
 
         return $response->setData([
-            'htpasswdUser' => (new HtpasswdUser())->fromArray($response->getData()),
+            'nodeAddon' => (new NodeAddon())->fromArray($response->getData()),
         ]);
     }
 
     /**
      * @throws RequestException
      */
-    public function create(HtpasswdUser $htpasswdUser): Response
+    public function create(NodeAddon $nodeAddon): Response
     {
-        $this->validateRequired($htpasswdUser, 'create', [
-            'username',
-            'password',
-            'htpasswd_file_id',
+        $this->validateRequired($nodeAddon, 'create', [
+            'node_id',
+            'product',
+            'quantity',
         ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('htpasswd-users')
+            ->setUrl('node-add-ons')
             ->setBody(
-                $this->filterFields($htpasswdUser->toArray(), [
-                    'username',
-                    'password',
-                    'htpasswd_file_id',
+                $this->filterFields($nodeAddon->toArray(), [
+                    'node_id',
+                    'product',
+                    'quantity',
                 ])
             );
 
@@ -88,50 +114,8 @@ class HtpasswdUsers extends Endpoint
             return $response;
         }
 
-        $htpasswdUser = (new HtpasswdUser())->fromArray($response->getData());
-
         return $response->setData([
-            'htpasswdUser' => $htpasswdUser,
-        ]);
-    }
-
-    /**
-     * @throws RequestException
-     */
-    public function update(HtpasswdUser $htpasswdUser): Response
-    {
-        $this->validateRequired($htpasswdUser, 'update', [
-            'username',
-            'password',
-            'htpasswd_file_id',
-            'id',
-            'cluster_id',
-        ]);
-
-        $request = (new Request())
-            ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('htpasswd-users/%d', $htpasswdUser->getId()))
-            ->setBody(
-                $this->filterFields($htpasswdUser->toArray(), [
-                    'username',
-                    'password',
-                    'htpasswd_file_id',
-                    'id',
-                    'cluster_id',
-                ])
-            );
-
-        $response = $this
-            ->client
-            ->request($request);
-        if (!$response->isSuccess()) {
-            return $response;
-        }
-
-        $htpasswdUser = (new HtpasswdUser())->fromArray($response->getData());
-
-        return $response->setData([
-            'htpasswdUser' => $htpasswdUser,
+            'taskCollection' => (new TaskCollection())->fromArray($response->getData()),
         ]);
     }
 
@@ -142,7 +126,7 @@ class HtpasswdUsers extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
-            ->setUrl(sprintf('htpasswd-users/%d', $id));
+            ->setUrl(sprintf('node-add-ons/%d', $id));
 
         return $this
             ->client

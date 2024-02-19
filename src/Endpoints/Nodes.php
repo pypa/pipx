@@ -4,10 +4,12 @@ namespace Cyberfusion\ClusterApi\Endpoints;
 
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Cyberfusion\ClusterApi\Models\Node;
+use Cyberfusion\ClusterApi\Models\NodeProduct;
 use Cyberfusion\ClusterApi\Models\TaskCollection;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
 use Cyberfusion\ClusterApi\Support\ListFilter;
+use Cyberfusion\ClusterApi\Support\Str;
 
 class Nodes extends Endpoint
 {
@@ -16,7 +18,7 @@ class Nodes extends Endpoint
      */
     public function list(?ListFilter $filter = null): Response
     {
-        if (is_null($filter)) {
+        if (!$filter instanceof ListFilter) {
             $filter = new ListFilter();
         }
 
@@ -63,7 +65,7 @@ class Nodes extends Endpoint
     /**
      * @throws RequestException
      */
-    public function create(Node $node): Response
+    public function create(Node $node, ?string $callbackUrl = null): Response
     {
         $this->validateRequired($node, 'create', [
             'groups',
@@ -74,9 +76,11 @@ class Nodes extends Endpoint
             'cluster_id',
         ]);
 
+        $url = Str::optionalQueryParameters('nodes', ['callback_url' => $callbackUrl]);
+
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('nodes')
+            ->setUrl($url)
             ->setBody(
                 $this->filterFields($node->toArray(), [
                     'groups',
@@ -158,5 +162,55 @@ class Nodes extends Endpoint
         return $this
             ->client
             ->request($request);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function products(): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_GET)
+            ->setUrl('nodes/products');
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'nodeProducts' => array_map(
+                fn (array $data) => (new NodeProduct())->fromArray($data),
+                $response->getData()
+            ),
+        ]);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function xgrade(int $id, string $product, ?string $callbackUrl = null): Response
+    {
+        $url = Str::optionalQueryParameters(
+            sprintf('nodes/%d/xgrade?product=%s', $id, $product),
+            ['callback_url' => $callbackUrl]
+        );
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl($url);
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'taskCollection' => (new TaskCollection())->fromArray($response->getData()),
+        ]);
     }
 }

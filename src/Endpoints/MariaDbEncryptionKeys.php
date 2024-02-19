@@ -3,12 +3,12 @@
 namespace Cyberfusion\ClusterApi\Endpoints;
 
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Cyberfusion\ClusterApi\Models\HAProxyListen;
+use Cyberfusion\ClusterApi\Models\MariaDbEncryptionKey;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
 use Cyberfusion\ClusterApi\Support\ListFilter;
 
-class HAProxyListens extends Endpoint
+class MariaDbEncryptionKeys extends Endpoint
 {
     /**
      * @throws RequestException
@@ -21,7 +21,7 @@ class HAProxyListens extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('haproxy-listens?%s', $filter->toQuery()));
+            ->setUrl(sprintf('mariadb-encryption-keys?%s', $filter->toQuery()));
 
         $response = $this
             ->client
@@ -31,8 +31,8 @@ class HAProxyListens extends Endpoint
         }
 
         return $response->setData([
-            'haProxyListens' => array_map(
-                fn (array $data) => (new HAProxyListen())->fromArray($data),
+            'mariaDbEncryptionKeys' => array_map(
+                fn (array $data) => (new MariaDbEncryptionKey())->fromArray($data),
                 $response->getData()
             ),
         ]);
@@ -45,7 +45,7 @@ class HAProxyListens extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('haproxy-listens/%d', $id));
+            ->setUrl(sprintf('mariadb-encryption-keys/%d', $id));
 
         $response = $this
             ->client
@@ -55,37 +55,21 @@ class HAProxyListens extends Endpoint
         }
 
         return $response->setData([
-            'haProxyListen' => (new HAProxyListen())->fromArray($response->getData()),
+            'mariaDbEncryptionKey' => (new MariaDbEncryptionKey())->fromArray($response->getData()),
         ]);
     }
 
     /**
      * @throws RequestException
      */
-    public function create(HAProxyListen $haProxyListen): Response
+    public function create(int $clusterId): Response
     {
-        $this->validateRequired($haProxyListen, 'create', [
-            'name',
-            'nodes_group',
-            'port',
-            'socket_path',
-            'destination_cluster_id',
-            'cluster_id',
-        ]);
-
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('haproxy-listens')
-            ->setBody(
-                $this->filterFields($haProxyListen->toArray(), [
-                    'name',
-                    'nodes_group',
-                    'port',
-                    'socket_path',
-                    'destination_cluster_id',
-                    'cluster_id',
-                ])
-            );
+            ->setUrl('mariadb-encryption-keys')
+            ->setBody([
+                'cluster_id' => $clusterId
+            ]);
 
         $response = $this
             ->client
@@ -95,21 +79,7 @@ class HAProxyListens extends Endpoint
         }
 
         return $response->setData([
-            'haProxyListens' => (new HAProxyListen())->fromArray($response->getData()),
+            'mariaDbEncryptionKey' => (new MariaDbEncryptionKey())->fromArray($response->getData()),
         ]);
-    }
-
-    /**
-     * @throws RequestException
-     */
-    public function delete(int $id): Response
-    {
-        $request = (new Request())
-            ->setMethod(Request::METHOD_DELETE)
-            ->setUrl(sprintf('haproxy-listens/%d', $id));
-
-        return $this
-            ->client
-            ->request($request);
     }
 }
