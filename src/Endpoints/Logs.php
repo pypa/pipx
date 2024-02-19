@@ -16,7 +16,7 @@ class Logs extends Endpoint
      */
     public function accessLogs(int $virtualHostId, ?LogFilter $filter = null): Response
     {
-        if ($filter === null) {
+        if (!$filter instanceof LogFilter) {
             $filter = new LogFilter();
         }
 
@@ -44,7 +44,7 @@ class Logs extends Endpoint
      */
     public function errorLogs(int $virtualHostId, ?LogFilter $filter = null): Response
     {
-        if ($filter === null) {
+        if (!$filter instanceof LogFilter) {
             $filter = new LogFilter();
         }
 

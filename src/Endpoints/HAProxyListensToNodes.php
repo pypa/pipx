@@ -17,7 +17,7 @@ class HAProxyListensToNodes extends Endpoint
      */
     public function list(?ListFilter $filter = null): Response
     {
-        if ($filter === null) {
+        if (!$filter instanceof ListFilter) {
             $filter = HAProxyListenToNode::listFilter();
         }
 
