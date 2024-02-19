@@ -3,12 +3,12 @@
 namespace Cyberfusion\ClusterApi\Endpoints;
 
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Cyberfusion\ClusterApi\Models\HostsEntry;
+use Cyberfusion\ClusterApi\Models\MariaDbEncryptionKey;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
 use Cyberfusion\ClusterApi\Support\ListFilter;
 
-class HostsEntries extends Endpoint
+class MariaDbEncryptionKeys extends Endpoint
 {
     /**
      * @throws RequestException
@@ -21,7 +21,7 @@ class HostsEntries extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('hosts-entries?%s', $filter->toQuery()));
+            ->setUrl(sprintf('mariadb-encryption-keys?%s', $filter->toQuery()));
 
         $response = $this
             ->client
@@ -31,8 +31,8 @@ class HostsEntries extends Endpoint
         }
 
         return $response->setData([
-            'hostsEntries' => array_map(
-                fn (array $data) => (new HostsEntry())->fromArray($data),
+            'mariaDbEncryptionKeys' => array_map(
+                fn (array $data) => (new MariaDbEncryptionKey())->fromArray($data),
                 $response->getData()
             ),
         ]);
@@ -45,7 +45,7 @@ class HostsEntries extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('hosts-entries/%d', $id));
+            ->setUrl(sprintf('mariadb-encryption-keys/%d', $id));
 
         $response = $this
             ->client
@@ -55,31 +55,21 @@ class HostsEntries extends Endpoint
         }
 
         return $response->setData([
-            'hostsEntry' => (new HostsEntry())->fromArray($response->getData()),
+            'mariaDbEncryptionKey' => (new MariaDbEncryptionKey())->fromArray($response->getData()),
         ]);
     }
 
     /**
      * @throws RequestException
      */
-    public function create(HostsEntry $hostsEntry): Response
+    public function create(int $clusterId): Response
     {
-        $this->validateRequired($hostsEntry, 'create', [
-            'node_id',
-            'host_name',
-            'cluster_id',
-        ]);
-
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('hosts-entries')
-            ->setBody(
-                $this->filterFields($hostsEntry->toArray(), [
-                    'node_id',
-                    'host_name',
-                    'cluster_id',
-                ])
-            );
+            ->setUrl('mariadb-encryption-keys')
+            ->setBody([
+                'cluster_id' => $clusterId
+            ]);
 
         $response = $this
             ->client
@@ -88,24 +78,8 @@ class HostsEntries extends Endpoint
             return $response;
         }
 
-        $hostsEntry = (new HostsEntry())->fromArray($response->getData());
-
         return $response->setData([
-            'hostsEntry' => $hostsEntry,
+            'mariaDbEncryptionKey' => (new MariaDbEncryptionKey())->fromArray($response->getData()),
         ]);
-    }
-
-    /**
-     * @throws RequestException
-     */
-    public function delete(int $id): Response
-    {
-        $request = (new Request())
-            ->setMethod(Request::METHOD_DELETE)
-            ->setUrl(sprintf('hosts-entries/%d', $id));
-
-        return $this
-            ->client
-            ->request($request);
     }
 }

@@ -2,15 +2,14 @@
 
 Client for the [Cyberfusion Cluster API](https://cluster-api.cyberfusion.nl/).
 
-This client was built for and tested on the **1.214** version of the API.
+This client was built for and tested on the **1.227** version of the API.
 
 ## Support
 
 This client is officially supported by Cyberfusion. If you have any questions, open an issue on GitHub or email 
 support@cyberfusion.nl.
 
-The client was created by Vdhicts, a company which develops and implements IT solutions for businesses and educational 
-institutions.
+The client was created by @dvdheiden.
 
 ## Requirements
 

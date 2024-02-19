@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
 for detailed information.
 
+# [1.108.0]
+
+### Added
+
+- Add `NodeAddons` endpoints.
+- Add `Customers` endpoints.
+- Add IP-address endpoints to Customers.
+- Add IP-address endpoints to Clusters.
+- Add `FirewallRules` endpoints.
+- Add 'firewall_rules_external_providers_enabled' property to clusters.
+- Add 'Docker' node group option.
+- Add `Products` endpoint to Nodes.
+- Add `callback_url` to the `create` method of the `Nodes` endpoint.
+- Add `xgrade` method to the `Nodes` endpoint.
+- Add `Sites` endpoints.
+- Add `site_id` property to the `Cluster` model.
+- Add `MariaDbEncryptionKeys` endpoints.
+- Add `category` and `firewall_groups_ids` properties to domain router.
+- Add Grafana, SingleStore, Metabase, Elasticsearch and RabbitMQ as Node groups.
+- Add `grafana_domain`, `singlestore_studio_domain`, `singlestore_api_domain`, `singlestore_license_key`, `singlestore_root_password`, `metabase_domain`, `metabase_database_password`, `kibana_domain`, `rabbitmq_management_domain`, `rabbitmq_admin_password` and `rabbitmq_erlang_cookie` properties to the `Cluster` model.
+- Add `CustomConfigs` endpoints.
+
+### Changed
+
+- Change the minimum values of backup interval properties of the cluster.
+- Update to [API version 1.227.0](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.227-2024-02-10).
+
+### Fixed
+
+- Renamed `istMalwareToolkitEnabled` to `isMalwareToolkitEnabled` at the `Cluster` model.
+- Make sure all properties in the `Cluster` model are set in `fromArray`.
+
 ## [1.107.0]
 
 ### Added

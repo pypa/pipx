@@ -51,6 +51,9 @@ class DomainRouters extends Endpoint
             'force_ssl',
             'id',
             'cluster_id',
+            'security_txt_policy_id',
+            'firewall_groups_ids',
+            'category',
         ]);
 
         $request = (new Request())
@@ -67,6 +70,8 @@ class DomainRouters extends Endpoint
                     'id',
                     'cluster_id',
                     'security_txt_policy_id',
+                    'firewall_groups_ids',
+                    'category',
                 ])
             );
 

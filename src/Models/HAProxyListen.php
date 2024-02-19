@@ -53,21 +53,7 @@ class HAProxyListen extends ClusterModel
     public function setNodesGroup(string $nodesGroup): self
     {
         Validator::value($nodesGroup)
-            ->valueIn([
-                NodeGroup::ADMIN,
-                NodeGroup::APACHE,
-                NodeGroup::NGINX,
-                NodeGroup::DOVECOT,
-                NodeGroup::MARIADB,
-                NodeGroup::POSTGRESQL,
-                NodeGroup::MALDET,
-                NodeGroup::PHP,
-                NodeGroup::PASSENGER,
-                NodeGroup::BORG,
-                NodeGroup::FAST_REDIRECT,
-                NodeGroup::REDIS,
-                'HAProxy',
-            ])
+            ->valueIn(NodeGroup::AVAILABLE)
             ->validate();
 
         $this->nodesGroup = $nodesGroup;

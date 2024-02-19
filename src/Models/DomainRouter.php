@@ -2,7 +2,9 @@
 
 namespace Cyberfusion\ClusterApi\Models;
 
+use Cyberfusion\ClusterApi\Enums\DomainRouterCategory;
 use Cyberfusion\ClusterApi\Support\Arr;
+use Cyberfusion\ClusterApi\Support\Validator;
 
 class DomainRouter extends ClusterModel
 {
@@ -12,11 +14,13 @@ class DomainRouter extends ClusterModel
     private ?int $urlRedirectId = null;
     private ?int $nodeId = null;
     private ?int $certificateId = null;
+    private ?int $securityTxtPolicyId = null;
+    private array $firewallGroupsIds = [];
+    private ?string $category = null;
     private int $id;
     private int $clusterId;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
-    private ?int $securityTxtPolicyId = null;
 
     public function getDomain(): string
     {
@@ -90,6 +94,33 @@ class DomainRouter extends ClusterModel
         return $this;
     }
 
+    public function getFirewallGroupsIds(): array
+    {
+        return $this->firewallGroupsIds;
+    }
+
+    public function setFirewallGroupsIds(array $firewallGroupIds): self
+    {
+        $this->firewallGroupsIds = $firewallGroupIds;
+        return $this;
+    }
+
+    public function getCategory(): ?string
+    {
+        return $this->category;
+    }
+
+    public function setCategory(?string $category): self
+    {
+        Validator::value($category)
+            ->valueIn(DomainRouterCategory::AVAILABLE)
+            ->nullable()
+            ->validate();
+
+        $this->category = $category;
+        return $this;
+    }
+
     public function getId(): int
     {
         return $this->id;
@@ -159,6 +190,8 @@ class DomainRouter extends ClusterModel
             ->setUrlRedirectId(Arr::get($data, 'url_redirect_id'))
             ->setNodeId(Arr::get($data, 'node_id'))
             ->setCertificateId(Arr::get($data, 'certificate_id'))
+            ->setFirewallGroupsIds(Arr::get($data, 'firewall_group_ids', []))
+            ->setCategory(Arr::get($data, 'category'))
             ->setId(Arr::get($data, 'id'))
             ->setSecurityTxtPolicyId(Arr::get($data, 'security_txt_policy_id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
@@ -177,6 +210,8 @@ class DomainRouter extends ClusterModel
             'certificate_id' => $this->getCertificateId(),
             'id' => $this->getId(),
             'security_txt_policy_id' => $this->getSecurityTxtPolicyId(),
+            'firewall_groups_ids' => $this->getFirewallGroupsIds(),
+            'category' => $this->getCategory(),
             'cluster_id' => $this->getClusterId(),
             'created_at' => $this->getCreatedAt(),
             'updated_at' => $this->getUpdatedAt(),

@@ -2,6 +2,7 @@
 
 namespace Cyberfusion\ClusterApi\Endpoints;
 
+use Cyberfusion\ClusterApi\Exceptions\ListFilterException;
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
 use Cyberfusion\ClusterApi\Models\HAProxyListenToNode;
 use Cyberfusion\ClusterApi\Request;
@@ -12,6 +13,7 @@ class HAProxyListensToNodes extends Endpoint
 {
     /**
      * @throws RequestException
+     * @throws ListFilterException
      */
     public function list(?ListFilter $filter = null): Response
     {

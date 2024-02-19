@@ -3,12 +3,14 @@
 namespace Cyberfusion\ClusterApi\Endpoints;
 
 use Cyberfusion\ClusterApi\Exceptions\RequestException;
-use Cyberfusion\ClusterApi\Models\HostsEntry;
+use Cyberfusion\ClusterApi\Models\NodeAddon;
+use Cyberfusion\ClusterApi\Models\NodeAddonProduct;
+use Cyberfusion\ClusterApi\Models\TaskCollection;
 use Cyberfusion\ClusterApi\Request;
 use Cyberfusion\ClusterApi\Response;
 use Cyberfusion\ClusterApi\Support\ListFilter;
 
-class HostsEntries extends Endpoint
+class NodeAddons extends Endpoint
 {
     /**
      * @throws RequestException
@@ -21,7 +23,7 @@ class HostsEntries extends Endpoint
 
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('hosts-entries?%s', $filter->toQuery()));
+            ->setUrl(sprintf('nodes-add-ons?%s', $filter->toQuery()));
 
         $response = $this
             ->client
@@ -31,8 +33,32 @@ class HostsEntries extends Endpoint
         }
 
         return $response->setData([
-            'hostsEntries' => array_map(
-                fn (array $data) => (new HostsEntry())->fromArray($data),
+            'nodeAddons' => array_map(
+                fn (array $data) => (new NodeAddon())->fromArray($data),
+                $response->getData()
+            ),
+        ]);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function products(): Response
+    {
+        $request = (new Request())
+            ->setMethod(Request::METHOD_GET)
+            ->setUrl('nodes-add-ons/products');
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        return $response->setData([
+            'nodeAddonProducts' => array_map(
+                fn (array $data) => (new NodeAddonProduct())->fromArray($data),
                 $response->getData()
             ),
         ]);
@@ -45,7 +71,7 @@ class HostsEntries extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_GET)
-            ->setUrl(sprintf('hosts-entries/%d', $id));
+            ->setUrl(sprintf('node-add-ons/%d', $id));
 
         $response = $this
             ->client
@@ -55,29 +81,29 @@ class HostsEntries extends Endpoint
         }
 
         return $response->setData([
-            'hostsEntry' => (new HostsEntry())->fromArray($response->getData()),
+            'nodeAddon' => (new NodeAddon())->fromArray($response->getData()),
         ]);
     }
 
     /**
      * @throws RequestException
      */
-    public function create(HostsEntry $hostsEntry): Response
+    public function create(NodeAddon $nodeAddon): Response
     {
-        $this->validateRequired($hostsEntry, 'create', [
+        $this->validateRequired($nodeAddon, 'create', [
             'node_id',
-            'host_name',
-            'cluster_id',
+            'product',
+            'quantity',
         ]);
 
         $request = (new Request())
             ->setMethod(Request::METHOD_POST)
-            ->setUrl('hosts-entries')
+            ->setUrl('node-add-ons')
             ->setBody(
-                $this->filterFields($hostsEntry->toArray(), [
+                $this->filterFields($nodeAddon->toArray(), [
                     'node_id',
-                    'host_name',
-                    'cluster_id',
+                    'product',
+                    'quantity',
                 ])
             );
 
@@ -88,10 +114,8 @@ class HostsEntries extends Endpoint
             return $response;
         }
 
-        $hostsEntry = (new HostsEntry())->fromArray($response->getData());
-
         return $response->setData([
-            'hostsEntry' => $hostsEntry,
+            'taskCollection' => (new TaskCollection())->fromArray($response->getData()),
         ]);
     }
 
@@ -102,7 +126,7 @@ class HostsEntries extends Endpoint
     {
         $request = (new Request())
             ->setMethod(Request::METHOD_DELETE)
-            ->setUrl(sprintf('hosts-entries/%d', $id));
+            ->setUrl(sprintf('node-add-ons/%d', $id));
 
         return $this
             ->client

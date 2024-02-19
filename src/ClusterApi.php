@@ -13,6 +13,7 @@ use Cyberfusion\ClusterApi\Endpoints\Certificates;
 use Cyberfusion\ClusterApi\Endpoints\Clusters;
 use Cyberfusion\ClusterApi\Endpoints\Cmses;
 use Cyberfusion\ClusterApi\Endpoints\Crons;
+use Cyberfusion\ClusterApi\Endpoints\CustomConfigs;
 use Cyberfusion\ClusterApi\Endpoints\CustomConfigSnippets;
 use Cyberfusion\ClusterApi\Endpoints\Customers;
 use Cyberfusion\ClusterApi\Endpoints\Databases;
@@ -20,6 +21,7 @@ use Cyberfusion\ClusterApi\Endpoints\DatabaseUserGrants;
 use Cyberfusion\ClusterApi\Endpoints\DatabaseUsers;
 use Cyberfusion\ClusterApi\Endpoints\DomainRouters;
 use Cyberfusion\ClusterApi\Endpoints\FirewallGroups;
+use Cyberfusion\ClusterApi\Endpoints\FirewallRules;
 use Cyberfusion\ClusterApi\Endpoints\FpmPools;
 use Cyberfusion\ClusterApi\Endpoints\FtpUsers;
 use Cyberfusion\ClusterApi\Endpoints\HAProxyListens;
@@ -34,11 +36,14 @@ use Cyberfusion\ClusterApi\Endpoints\MailAliases;
 use Cyberfusion\ClusterApi\Endpoints\MailDomains;
 use Cyberfusion\ClusterApi\Endpoints\MailHostnames;
 use Cyberfusion\ClusterApi\Endpoints\Malwares;
+use Cyberfusion\ClusterApi\Endpoints\MariaDbEncryptionKeys;
+use Cyberfusion\ClusterApi\Endpoints\NodeAddons;
 use Cyberfusion\ClusterApi\Endpoints\Nodes;
 use Cyberfusion\ClusterApi\Endpoints\PassengerApps;
 use Cyberfusion\ClusterApi\Endpoints\RedisInstances;
 use Cyberfusion\ClusterApi\Endpoints\RootSshKeys;
 use Cyberfusion\ClusterApi\Endpoints\SecurityTxtPolicies;
+use Cyberfusion\ClusterApi\Endpoints\Sites;
 use Cyberfusion\ClusterApi\Endpoints\SshKeys;
 use Cyberfusion\ClusterApi\Endpoints\TaskCollections;
 use Cyberfusion\ClusterApi\Endpoints\Tombstones;
@@ -107,6 +112,11 @@ class ClusterApi
         return new Customers($this->client);
     }
 
+    public function customConfigs(): CustomConfigs
+    {
+        return new CustomConfigs($this->client);
+    }
+
     public function customConfigSnippets(): CustomConfigSnippets
     {
         return new CustomConfigSnippets($this->client);
@@ -135,6 +145,11 @@ class ClusterApi
     public function firewallGroups(): FirewallGroups
     {
         return new FirewallGroups($this->client);
+    }
+
+    public function firewallRules(): FirewallRules
+    {
+        return new FirewallRules($this->client);
     }
 
     public function fpmPools(): FpmPools
@@ -207,9 +222,19 @@ class ClusterApi
         return new Malwares($this->client);
     }
 
+    public function mariaDbEncryptionKeys(): MariaDbEncryptionKeys
+    {
+        return new MariaDbEncryptionKeys($this->client);
+    }
+
     public function nodes(): Nodes
     {
         return new Nodes($this->client);
+    }
+
+    public function nodeAddons(): NodeAddons
+    {
+        return new NodeAddons($this->client);
     }
 
     public function passengerApps(): PassengerApps
@@ -230,6 +255,11 @@ class ClusterApi
     public function securityTxtPolicies(): SecurityTxtPolicies
     {
         return new SecurityTxtPolicies($this->client);
+    }
+
+    public function sites(): Sites
+    {
+        return new Sites($this->client);
     }
 
     public function sshKeys(): SshKeys
