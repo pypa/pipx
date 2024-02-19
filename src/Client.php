@@ -110,7 +110,7 @@ class Client implements ClientContract
         // The access token isn't provided or valid, so check if the username/password can be used
         if ($this->configuration->hasCredentials()) {
             $accessToken = $this->retrieveAccessToken();
-            if (is_null($accessToken)) {
+            if ($accessToken === null) {
                 throw ClientException::invalidCredentials();
             }
 

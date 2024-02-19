@@ -74,7 +74,7 @@ class LogFilter implements Filter
     public function toQuery(): string
     {
         return http_build_query([
-            'timestamp' => is_null($this->timestamp) ? null : $this->timestamp->format('c'),
+            'timestamp' => $this->timestamp === null ? null : $this->timestamp->format('c'),
             'limit' => $this->limit,
             'sort' => $this->sort,
             'show_raw_message' => $this->showRawMessage,

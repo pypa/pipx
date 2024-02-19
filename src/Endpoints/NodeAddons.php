@@ -17,7 +17,7 @@ class NodeAddons extends Endpoint
      */
     public function list(?ListFilter $filter = null): Response
     {
-        if (is_null($filter)) {
+        if ($filter === null) {
             $filter = new ListFilter();
         }
 
