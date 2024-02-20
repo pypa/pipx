@@ -218,6 +218,7 @@ class Cluster extends ClusterModel
             ->minLength(40)
             ->maxLength(40)
             ->pattern('^[a-zA-Z0-9]+$')
+            ->nullable()
             ->validate();
 
         $this->newRelicApmLicenseKey = $newRelicApmLicenseKey;
@@ -236,6 +237,7 @@ class Cluster extends ClusterModel
             ->minLength(24)
             ->maxLength(255)
             ->pattern('^[ -~]+$')
+            ->nullable()
             ->validate();
 
         $this->newRelicMariadbPassword = $newRelicMariadbPassword;
@@ -254,6 +256,7 @@ class Cluster extends ClusterModel
             ->minLength(40)
             ->maxLength(40)
             ->pattern('^[a-zA-Z0-9]+$')
+            ->nullable()
             ->validate();
 
         $this->newRelicInfrastructureLicenseKey = $newRelicInfrastructureLicenseKey;
@@ -272,6 +275,7 @@ class Cluster extends ClusterModel
             ->minLength(16)
             ->maxLength(24)
             ->pattern('^[a-zA-Z0-9]+$')
+            ->nullable()
             ->validate();
 
         $this->meilisearchMasterKey = $meilisearchMasterKey;
