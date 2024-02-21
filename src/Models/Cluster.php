@@ -292,6 +292,7 @@ class Cluster extends ClusterModel
     {
         Validator::value($meilisearchEnvironment)
             ->valueIn(MeilisearchEnvironment::AVAILABLE)
+            ->nullable()
             ->validate();
 
         $this->meilisearchEnvironment = $meilisearchEnvironment;
