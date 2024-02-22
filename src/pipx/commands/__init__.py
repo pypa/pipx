@@ -2,6 +2,7 @@ from pipx.commands.ensure_path import ensure_pipx_paths
 from pipx.commands.environment import environment
 from pipx.commands.inject import inject
 from pipx.commands.install import install
+from pipx.commands.interpreter import list_interpreters, prune_interpreters
 from pipx.commands.list_packages import list_packages
 from pipx.commands.reinstall import reinstall, reinstall_all
 from pipx.commands.run import run
@@ -25,4 +26,6 @@ __all__ = [
     "run_pip",
     "ensure_pipx_paths",
     "environment",
+    "list_interpreters",
+    "prune_interpreters",
 ]

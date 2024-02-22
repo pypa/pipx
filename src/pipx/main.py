@@ -288,6 +288,13 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:  # noqa: C901
             args.short,
             args.skip_maintenance,
         )
+    elif args.command == "interpreter":
+        if args.interpreter_command == "list":
+            return commands.list_interpreters(venv_container)
+        elif args.interpreter_command == "prune":
+            return commands.prune_interpreters(venv_container)
+        else:
+            raise PipxError(f"Unknown interpreter command {args.interpreter_command}")
     elif args.command == "uninstall":
         return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose)
     elif args.command == "uninstall-all":
@@ -588,6 +595,18 @@ def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
     g.add_argument("--skip-maintenance", action="store_true", help="Skip maintenance tasks.")
 
 
+def _add_interpreter(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+    p: argparse.ArgumentParser = subparsers.add_parser(
+        "interpreter",
+        help="Interact with interpreters managed by pipx",
+        description="Interact with interpreters managed by pipx",
+        parents=[shared_parser],
+    )
+    s = p.add_subparsers(dest="interpreter_command")
+    s.add_parser("list", help="List available interpreters", description="List available interpreters")
+    s.add_parser("prune", help="Prune unused interpreters", description="Prune unused interpreters")
+
+
 def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "run",
@@ -746,6 +765,7 @@ def get_command_parser() -> argparse.ArgumentParser:
     _add_reinstall(subparsers, completer_venvs.use, shared_parser)
     _add_reinstall_all(subparsers, shared_parser)
     _add_list(subparsers, shared_parser)
+    _add_interpreter(subparsers, shared_parser)
     _add_run(subparsers, shared_parser)
     _add_runpip(subparsers, completer_venvs.use, shared_parser)
     _add_ensurepath(subparsers, shared_parser)

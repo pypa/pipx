@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import Any, Dict, List
 from urllib.request import urlopen
 
+from pipx import constants
 from pipx.animate import animate
-from pipx.constants import PIPX_STANDALONE_PYTHON_CACHEDIR, WINDOWS
 from pipx.util import PipxError
 
 logger = logging.getLogger(__name__)
@@ -58,8 +58,8 @@ def download_python_build_standalone(python_version: str):
     # we'll convert it to a bare version number
     python_version = re.sub(r"[c]?python", "", python_version)
 
-    install_dir = PIPX_STANDALONE_PYTHON_CACHEDIR / python_version
-    installed_python = install_dir / "python.exe" if WINDOWS else install_dir / "bin" / "python3"
+    install_dir = constants.PIPX_STANDALONE_PYTHON_CACHEDIR / python_version
+    installed_python = install_dir / "python.exe" if constants.WINDOWS else install_dir / "bin" / "python3"
 
     if installed_python.exists():
         return str(installed_python)
@@ -125,7 +125,7 @@ def _unpack(full_version, download_link, archive: Path, download_dir: Path):
 def get_or_update_index():
     """Get or update the index of available python builds from
     the python-build-standalone repository."""
-    index_file = PIPX_STANDALONE_PYTHON_CACHEDIR / "index.json"
+    index_file = constants.PIPX_STANDALONE_PYTHON_CACHEDIR / "index.json"
     if index_file.exists():
         index = json.loads(index_file.read_text())
         # update index after 30 days
