@@ -3,7 +3,7 @@ from typing import List
 
 from pipx import constants
 from pipx.pipx_metadata_file import PipxMetadata
-from pipx.util import rmdir
+from pipx.util import is_paths_relative, rmdir
 from pipx.venv import Venv, VenvContainer
 
 
@@ -21,14 +21,6 @@ def get_venvs_using_standalone_interpreter(venv_container: VenvContainer) -> Lis
 
 
 def get_interpreter_users(interpreter: Path, venvs: List[Venv]) -> List[PipxMetadata]:
-    def is_paths_relative(path: Path, parent: Path):
-        # Can be replaced with path.is_relative_to() if support for python3.8 is dropped
-        try:
-            path.resolve().relative_to(parent.resolve())
-            return True
-        except ValueError:
-            return False
-
     return [
         venv.pipx_metadata
         for venv in venvs
