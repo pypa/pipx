@@ -73,3 +73,9 @@ def test_upgrade_no_include_injected(pipx_temp_env, capsys):
     captured = capsys.readouterr()
     assert "upgraded package pylint" in captured.out
     assert "upgraded package black" not in captured.out
+
+
+def test_upgrade_install_missing(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["upgrade", "pycowsay", "--install"])
+    captured = capsys.readouterr()
+    assert "installed package pycowsay" in captured.out

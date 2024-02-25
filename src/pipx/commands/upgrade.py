@@ -1,8 +1,9 @@
 import logging
+import os
 from pathlib import Path
-from typing import List, Sequence
+from typing import List, Optional, Sequence
 
-from pipx import constants
+from pipx import commands, constants
 from pipx.colors import bold, red
 from pipx.commands.common import expose_resources_globally
 from pipx.constants import EXIT_CODE_OK, ExitCode
@@ -101,15 +102,38 @@ def _upgrade_venv(
     include_injected: bool,
     upgrading_all: bool,
     force: bool,
+    install: bool = False,
+    python: Optional[str] = None,
 ) -> int:
-    """Returns number of packages with changed versions."""
+    """Return number of packages with changed versions."""
     if not venv_dir.is_dir():
-        raise PipxError(
-            f"""
-            Package is not installed. Expected to find {str(venv_dir)}, but it
-            does not exist.
-            """
-        )
+        if install:
+            commands.install(
+                venv_dir=None,
+                venv_args=[],
+                package_names=None,
+                package_specs=[str(venv_dir).split(os.path.sep)[-1]],
+                local_bin_dir=constants.LOCAL_BIN_DIR,
+                local_man_dir=constants.LOCAL_MAN_DIR,
+                python=python,
+                pip_args=pip_args,
+                verbose=verbose,
+                force=force,
+                reinstall=False,
+                include_dependencies=False,
+                preinstall_packages=None,
+            )
+            return 0
+        else:
+            raise PipxError(
+                f"""
+                Package is not installed. Expected to find {str(venv_dir)}, but it
+                does not exist.
+                """
+            )
+
+    if python and not install:
+        logger.info("Ignoring --python as not combined with --install")
 
     venv = Venv(venv_dir, verbose=verbose)
 
@@ -154,13 +178,15 @@ def _upgrade_venv(
 
 def upgrade(
     venv_dir: Path,
+    python: Optional[str],
     pip_args: List[str],
     verbose: bool,
     *,
     include_injected: bool,
     force: bool,
+    install: bool,
 ) -> ExitCode:
-    """Returns pipx exit code."""
+    """Return pipx exit code."""
 
     _ = _upgrade_venv(
         venv_dir,
@@ -169,6 +195,8 @@ def upgrade(
         include_injected=include_injected,
         upgrading_all=False,
         force=force,
+        install=install,
+        python=python,
     )
 
     # Any error in upgrade will raise PipxError (e.g. from venv.upgrade_package())
@@ -194,7 +222,7 @@ def upgrade_all(
             venvs_upgraded += _upgrade_venv(
                 venv_dir,
                 venv.pipx_metadata.main_package.pip_args,
-                verbose,
+                verbose=verbose,
                 include_injected=include_injected,
                 upgrading_all=True,
                 force=force,
