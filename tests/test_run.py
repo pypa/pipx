@@ -115,7 +115,7 @@ def test_run_script_from_internet(pipx_temp_env, capsys):
     ],
 )
 def test_appargs_doubledash(pipx_temp_env, capsys, monkeypatch, input_run_args, expected_app_with_args):
-    parser = pipx.main.get_command_parser()
+    parser, _ = pipx.main.get_command_parser()
     monkeypatch.setattr(sys, "argv", ["pipx", "run"] + input_run_args)
     parsed_pipx_args = parser.parse_args()
     pipx.main.check_args(parsed_pipx_args)
