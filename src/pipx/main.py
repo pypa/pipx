@@ -609,7 +609,9 @@ def _add_interpreter(
         parents=[shared_parser],
     )
     s = p.add_subparsers(
-        title="subcommands", description="Get help for commands with pipx COMMAND --help", dest="interpreter_command"
+        title="subcommands",
+        description="Get help for commands with pipx interpreter COMMAND --help",
+        dest="interpreter_command",
     )
     s.add_parser("list", help="List available interpreters", description="List available interpreters")
     s.add_parser("prune", help="Prune unused interpreters", description="Prune unused interpreters")
