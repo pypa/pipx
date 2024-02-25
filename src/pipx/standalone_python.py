@@ -87,7 +87,7 @@ def download_python_build_standalone(python_version: str):
         # under a directory named 'python'. We move it to the install
         # directory
         extracted_dir = download_dir / "python"
-        extracted_dir.rename(install_dir)
+        shutil.move(extracted_dir, install_dir)
 
     return str(installed_python)
 
