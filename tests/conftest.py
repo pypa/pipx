@@ -76,6 +76,7 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_
     monkeypatch.setattr(constants, "PIPX_HOME", home_dir)
     monkeypatch.setattr(constants, "LOCAL_BIN_DIR", bin_dir)
     monkeypatch.setattr(constants, "LOCAL_MAN_DIR", man_dir)
+    monkeypatch.setattr(constants, "PIPX_STANDALONE_PYTHON_CACHEDIR", home_dir / "py")
     monkeypatch.setattr(constants, "PIPX_LOCAL_VENVS", home_dir / "venvs")
     monkeypatch.setattr(constants, "PIPX_VENV_CACHEDIR", home_dir / ".cache")
     monkeypatch.setattr(constants, "PIPX_LOG_DIR", home_dir / "logs")

@@ -12,7 +12,7 @@ from pipx.main import get_command_parser
 
 def main():
     sys.argv[0] = "pipx"
-    parser = get_command_parser()
+    parser, _ = get_command_parser()
     parser.man_short_description = cast(str, parser.description).splitlines()[1]  # type: ignore[attr-defined]
 
     manpage = Manpage(parser)
