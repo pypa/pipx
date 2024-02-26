@@ -421,3 +421,12 @@ def pipx_wrap(text: str, subsequent_indent: str = "", keep_newlines: bool = Fals
             subsequent_indent=subsequent_indent,
             break_on_hyphens=False,
         )
+
+
+def is_paths_relative(path: Path, parent: Path):
+    # Can be replaced with path.is_relative_to() if support for python3.8 is dropped
+    try:
+        path.resolve().relative_to(parent.resolve())
+        return True
+    except ValueError:
+        return False
