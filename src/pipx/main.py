@@ -268,10 +268,12 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     elif args.command == "upgrade":
         return commands.upgrade(
             venv_dir,
+            args.python,
             pip_args,
             verbose,
             include_injected=args.include_injected,
             force=args.force,
+            install=args.install,
         )
     elif args.command == "upgrade-all":
         return commands.upgrade_all(
@@ -497,6 +499,12 @@ def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argpa
         help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
     add_pip_venv_args(p)
+    p.add_argument(
+        "--install",
+        action="store_true",
+        help="Install package spec if missing",
+    )
+    add_python_options(p)
 
 
 def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
