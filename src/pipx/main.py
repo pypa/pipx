@@ -389,7 +389,7 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         description=INSTALL_DESCRIPTION,
         parents=[shared_parser],
     )
-    p.add_argument("package_spec", help="package name(s) or pip installation spec(s)", nargs="*")
+    p.add_argument("package_spec", help="package name(s) or pip installation spec(s)", nargs="+")
     add_include_dependencies(p)
     p.add_argument(
         "--force",
