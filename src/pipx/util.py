@@ -211,7 +211,7 @@ def subprocess_post_check(completed_process: "subprocess.CompletedProcess[str]",
             logger.info(f"{' '.join(completed_process.args)!r} failed")
 
 
-def dedup_ordered(input_list: List[Any]) -> List[Any]:
+def dedup_ordered(input_list: List[Tuple[str, Any]]) -> List[Tuple[str, Any]]:
     output_list = []
     seen = set()
     for x in input_list:
