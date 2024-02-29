@@ -39,7 +39,9 @@ If you are a developer and want to be able to run
 pipx install MY_PACKAGE
 ```
 
-make sure you include `project.scripts` and, optionally for Windows GUI applications, `project.gui-scripts` sections in `pyproject.toml`
+make sure you include `scripts` and, optionally for Windows GUI applications, `gui-scripts` sections under your main table[^1] in `pyproject.toml`
+
+[^1]: This is often the `[project]` table, but might also be differently named. Read more in the [PyPUG](https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#writing-your-pyproject-toml). 
 
 ```
 [project.scripts]
