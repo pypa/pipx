@@ -66,7 +66,23 @@ In this case the manual page `manpage.1` could be accessed by the user after ins
 
 Note that the `data-files` keyword is "discouraged" in the [setuptools documentation](https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#setuptools-specific-configuration) but there is no alternative if `man` pages are a requirement.
 
-Alternatively, the legacy `setup.py` file can be used for configuration with the equivalent `entry_point` and `data_files` keys:
+Whilst `pyproject.toml` is preferred, the legacy `setup.cfg` file can be also be used: 
+
+```
+[options.entry_points]
+console_scripts =
+    foo = my_package.some_module:main_func
+    bar = other_module:some_func
+gui_scripts =
+    baz = my_package_gui:start_func
+
+[options.data_files]
+share/man/man1 = 
+    manpage.1
+
+```
+
+as can `setup.py`:
 
 ```
 setup(
