@@ -52,7 +52,7 @@ bar = "other_module:some_func"
 baz = "my_package_gui:start_func"
 ```
 
-In this case `main_func` and `some_func` would be available to pipx after installing the above example package.
+In this case `foo` and `bar` (and `baz` on Windows), e. g. their corresponding entry point functions, would be available as "applications" to pipx after installing the above example package.
 
 
 If you wish to provide documentation via `man` pages on UNIX-like systems then these can be added via a `tool.setuptools.data-files` section in `pyproject.toml`:
