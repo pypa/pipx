@@ -39,7 +39,32 @@ If you are a developer and want to be able to run
 pipx install MY_PACKAGE
 ```
 
-make sure you include an `entry_points` section in your `setup.py` file.
+make sure you include `project.scripts` and, optionally for Windows GUI applications, `project.gui-scripts` sections in `pyproject.toml`
+
+```
+[project.scripts]
+foo = "my_package.some_module:main_func"
+bar = "other_module:some_func"
+
+[project.gui-scripts]
+baz = "my_package_gui:start_func"
+```
+
+In this case `main_func` and `some_func` would be available to pipx after installing the above example package.
+
+
+If you wish to provide documentation via `man` pages on UNIX-like systems then these can be added via a `tool.setuptools.data-files` section in `pyproject.toml`:
+
+```
+[tool.setuptools.data-files]
+"share/man/man1" = [ "manpage.1",]
+```
+
+In this case the manual page `manpage.1` would be available to pipx after installing the above example package.
+
+Note that the `data-files` keyword is "discouraged" in the [setuptools documentation](https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#setuptools-specific-configuration) but there is no alternative if `man` pages are a requirement.
+
+Alternatively, the legacy `setup.py` file can be used for configuration with the equivalent `entry_point` and `data_files` keys:
 
 ```
 setup(
@@ -52,28 +77,11 @@ setup(
         'gui_scripts': [
             'baz = my_package_gui:start_func',
         ]
-    }
-)
-```
-
-In this case `main_func` and `some_func` would be available to pipx after installing the above example package.
-
-To install manual pages, which can be viewed with the `man` command on operating systems which have this command,
-include a
-[`data_files` section](https://packaging.python.org/en/latest/guides/distributing-packages-using-setuptools/#data-files)
-in your `setup.py` file.
-
-```
-setup(
-    # other arguments here...
+    },
     data_files=[('share/man/man1', ['manpage.1'])]
 )
 ```
 
-In this case the manual page `manpage.1` would be available to pipx after installing the above example package.
+For a real-world example, see [pycowsay](https://github.com/cs01/pycowsay/blob/master/setup.py)'s `setup.py` source code.
 
-For a real-world example, see [pycowsay](https://github.com/cs01/pycowsay/blob/master/setup.py)'s `setup.py` source
-code.
-
-You can read more about entry points
-[here](https://setuptools.pypa.io/en/latest/userguide/quickstart.html#entry-points-and-automatic-script-creation).
+You can read more about entry points [here](https://setuptools.pypa.io/en/latest/userguide/quickstart.html#entry-points-and-automatic-script-creation).
