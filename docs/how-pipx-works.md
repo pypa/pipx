@@ -62,7 +62,7 @@ If you wish to provide documentation via `man` pages on UNIX-like systems then t
 "share/man/man1" = [ "manpage.1",]
 ```
 
-In this case the manual page `manpage.1` would be available to pipx after installing the above example package.
+In this case the manual page `manpage.1` could be accessed by the user after installing the above example package.
 
 Note that the `data-files` keyword is "discouraged" in the [setuptools documentation](https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#setuptools-specific-configuration) but there is no alternative if `man` pages are a requirement.
 
