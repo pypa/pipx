@@ -40,6 +40,10 @@ nav:
 
 markdown_extensions:
   - markdown_gfm_admonition  # GitHub's admonition (alert) syntax
+  - footnotes
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
 
 plugins:
   - search:
