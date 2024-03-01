@@ -68,7 +68,7 @@ make sure you include `scripts` and, optionally for Windows GUI applications `gu
         baz = my_package_gui:start_func
 
     [options.data_files]
-    share/man/man1 = 
+    share/man/man1 =
         manpage.1
     ```
 
