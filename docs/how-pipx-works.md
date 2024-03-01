@@ -64,9 +64,11 @@ If you wish to provide documentation via `man` pages on UNIX-like systems then t
 
 In this case the manual page `manpage.1` could be accessed by the user after installing the above example package.
 
-Note that the `data-files` keyword is "discouraged" in the [setuptools documentation](https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#setuptools-specific-configuration) but there is no alternative if `man` pages are a requirement.
+> [!WARNING]
+>
+> The `data-files` keyword is "discouraged" in the [setuptools documentation](https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#setuptools-specific-configuration) but there is no alternative if `man` pages are a requirement.
 
-Whilst `pyproject.toml` is preferred, the legacy `setup.cfg` file can be also be used:
+Whilst `pyproject.toml` is preferred, the legacy `setup.cfg` file can be also be used: 
 
 ```
 [options.entry_points]
@@ -77,7 +79,7 @@ gui_scripts =
     baz = my_package_gui:start_func
 
 [options.data_files]
-share/man/man1 =
+share/man/man1 = 
     manpage.1
 
 ```
