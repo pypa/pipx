@@ -39,68 +39,66 @@ If you are a developer and want to be able to run
 pipx install MY_PACKAGE
 ```
 
-make sure you include `scripts` and, optionally for Windows GUI applications, `gui-scripts` sections under your main table[^1] in `pyproject.toml`
+make sure you include `scripts` and, optionally for Windows GUI applications `gui-scripts`, sections under your main table[^1] in `pyproject.toml` or their legacy equivalents for `setup.cfg` and `setup.py`.
 
 [^1]: This is often the `[project]` table, but might also be differently named. Read more in the [PyPUG](https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#writing-your-pyproject-toml).
 
-```
-[project.scripts]
-foo = "my_package.some_module:main_func"
-bar = "other_module:some_func"
+=== "pyproject.toml"
 
-[project.gui-scripts]
-baz = "my_package_gui:start_func"
-```
+    ```ini
+    [project.scripts]
+    foo = "my_package.some_module:main_func"
+    bar = "other_module:some_func"
 
-In this case `foo` and `bar` (and `baz` on Windows), e. g. their corresponding entry point functions, would be available as "applications" to pipx after installing the above example package.
+    [project.gui-scripts]
+    baz = "my_package_gui:start_func"
 
+    [tool.setuptools.data-files]
+    "share/man/man1" = [ "manpage.1",]
+    ```
 
-If you wish to provide documentation via `man` pages on UNIX-like systems then these can be added via a `tool.setuptools.data-files` section in `pyproject.toml`:
+=== "setup.cfg"
 
-```
-[tool.setuptools.data-files]
-"share/man/man1" = [ "manpage.1",]
-```
+    ```ini
+    [options.entry_points]
+    console_scripts =
+        foo = my_package.some_module:main_func
+        bar = other_module:some_func
+    gui_scripts =
+        baz = my_package_gui:start_func
+
+    [options.data_files]
+    share/man/man1 = 
+        manpage.1
+    ```
+
+=== "setup.py"
+
+    ```python
+    setup(
+        # other arguments here...
+        entry_points={
+            'console_scripts': [
+                'foo = my_package.some_module:main_func',
+                'bar = other_module:some_func',
+            ],
+            'gui_scripts': [
+                'baz = my_package_gui:start_func',
+            ]
+        },
+        data_files=[('share/man/man1', ['manpage.1'])]
+    )
+    ```
+
+In this case `foo` and `bar` (and `baz` on Windows) would be available as "applications" to pipx after installing the above example package, invoking their corresponding entry point functions.
+
+If you wish to provide documentation via `man` pages on UNIX-like systems then these can be added via a `data-files` keyword.
 
 In this case the manual page `manpage.1` could be accessed by the user after installing the above example package.
 
 > [!WARNING]
 >
 > The `data-files` keyword is "discouraged" in the [setuptools documentation](https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#setuptools-specific-configuration) but there is no alternative if `man` pages are a requirement.
-
-Whilst `pyproject.toml` is preferred, the legacy `setup.cfg` file can be also be used: 
-
-```
-[options.entry_points]
-console_scripts =
-    foo = my_package.some_module:main_func
-    bar = other_module:some_func
-gui_scripts =
-    baz = my_package_gui:start_func
-
-[options.data_files]
-share/man/man1 = 
-    manpage.1
-
-```
-
-as can `setup.py`:
-
-```
-setup(
-    # other arguments here...
-    entry_points={
-        'console_scripts': [
-            'foo = my_package.some_module:main_func',
-            'bar = other_module:some_func',
-        ],
-        'gui_scripts': [
-            'baz = my_package_gui:start_func',
-        ]
-    },
-    data_files=[('share/man/man1', ['manpage.1'])]
-)
-```
 
 For a real-world example, see [pycowsay](https://github.com/cs01/pycowsay/blob/master/setup.py)'s `setup.py` source code.
 
