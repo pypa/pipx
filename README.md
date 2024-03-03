@@ -18,6 +18,8 @@
 
 </p>
 
+[![Packaging status](https://repology.org/badge/vertical-allrepos/pipx.svg)](https://repology.org/metapackage/pipx/versions)
+
 **Documentation**: <https://pipx.pypa.io>
 
 **Source Code**: <https://github.com/pypa/pipx>
