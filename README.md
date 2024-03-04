@@ -18,8 +18,6 @@
 
 </p>
 
-[![Packaging status](https://repology.org/badge/vertical-allrepos/pipx.svg)](https://repology.org/metapackage/pipx/versions)
-
 **Documentation**: <https://pipx.pypa.io>
 
 **Source Code**: <https://github.com/pypa/pipx>
@@ -28,6 +26,8 @@ _For comparison to other tools including pipsi, see
 [Comparison to Other Tools](https://pipx.pypa.io/stable/comparisons/)._
 
 ## Install pipx
+
+[![Packaging status](https://repology.org/badge/vertical-allrepos/pipx.svg?columns=3&exclude_unsupported=1)](https://repology.org/metapackage/pipx/versions)
 
 > [!WARNING]
 >
