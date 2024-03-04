@@ -27,7 +27,11 @@ _For comparison to other tools including pipsi, see
 
 ## Install pipx
 
-[![Packaging status](https://repology.org/badge/vertical-allrepos/pipx.svg?columns=3&exclude_unsupported=1)](https://repology.org/metapackage/pipx/versions)
+<details>
+  <summary>Packaging status</summary>
+  
+  [![Packaging status](https://repology.org/badge/vertical-allrepos/pipx.svg?columns=3&exclude_unsupported=1)](https://repology.org/metapackage/pipx/versions)
+</details>
 
 > [!WARNING]
 >
