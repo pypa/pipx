@@ -9,6 +9,9 @@ You also need to have `pip` installed on your machine for `python3`. Installing 
 
 pipx works on macOS, linux, and Windows.
 
+[![Packaging status](https://repology.org/badge/vertical-allrepos/pipx.svg?columns=3&exclude_unsupported=1)](https://repology.org/metapackage/pipx/versions)
+
+
 ## Installing pipx
 
 ### On macOS:
