@@ -10,9 +10,9 @@ for detailed information.
 
 ### Changed
 
-* Redis memory limit.
+* Redis memory limit validation.
 
-### Deleted
+### Removed
 
 * Malware toolkit attributes.
 * Firewall rules update.

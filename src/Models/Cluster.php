@@ -39,8 +39,6 @@ class Cluster extends ClusterModel
     private ?string $postgreSQLVersion = null;
     private ?int $postgreSQLBackupInterval = null;
     private ?int $posgreSQLBackupLocalRetention = null;
-    private ?bool $malwareToolkitEnabled = null;
-    private ?bool $malwareToolkitScansEnabled = null;
     private ?bool $bubblewrapToolkitEnabled = null;
     private ?bool $syncToolkitEnabled = null;
     private ?bool $automaticBorgRepositoriesPruneEnabled = null;
@@ -509,30 +507,6 @@ class Cluster extends ClusterModel
         return $this;
     }
 
-    public function isMalwareToolkitEnabled(): ?bool
-    {
-        return $this->malwareToolkitEnabled;
-    }
-
-    public function setMalwareToolkitEnabled(?bool $malwareToolkitEnabled): self
-    {
-        $this->malwareToolkitEnabled = $malwareToolkitEnabled;
-
-        return $this;
-    }
-
-    public function isMalwareToolkitScansEnabled(): ?bool
-    {
-        return $this->malwareToolkitScansEnabled;
-    }
-
-    public function setMalwareToolkitScansEnabled(?bool $malwareToolkitScansEnabled): self
-    {
-        $this->malwareToolkitScansEnabled = $malwareToolkitScansEnabled;
-
-        return $this;
-    }
-
     public function isBubblewrapToolkitEnabled(): ?bool
     {
         return $this->bubblewrapToolkitEnabled;
@@ -833,8 +807,6 @@ class Cluster extends ClusterModel
             ->setPostgreSQLVersion(Arr::get($data, 'postgresql_version'))
             ->setPostgreSQLBackupInterval(Arr::get($data, 'postgresql_backup_interval'))
             ->setPosgreSQLBackupLocalRetention(Arr::get($data, 'postgresql_backup_local_retention'))
-            ->setMalwareToolkitEnabled(Arr::get($data, 'malware_toolkit_enabled'))
-            ->setMalwareToolkitScansEnabled(Arr::get($data, 'malware_toolkit_scans_enabled'))
             ->setBubblewrapToolkitEnabled(Arr::get($data, 'bubblewrap_toolkit_enabled'))
             ->setSyncToolkitEnabled(Arr::get($data, 'sync_toolkit_enabled'))
             ->setAutomaticBorgRepositoriesPruneEnabled(Arr::get($data, 'automatic_borg_repositories_prune_enabled'))
@@ -888,8 +860,6 @@ class Cluster extends ClusterModel
             'postgresql_version' => $this->getPostgreSQLVersion(),
             'postgresql_backup_interval' => $this->getPostgreSQLBackupInterval(),
             'postgresql_backup_local_retention' => $this->getPosgreSQLBackupLocalRetention(),
-            'malware_toolkit_enabled' => $this->isMalwareToolkitEnabled(),
-            'malware_toolkit_scans_enabled' => $this->isMalwareToolkitScansEnabled(),
             'bubblewrap_toolkit_enabled' => $this->isBubblewrapToolkitEnabled(),
             'sync_toolkit_enabled' => $this->isSyncToolkitEnabled(),
             'automatic_borg_repositories_prune_enabled' => $this->isAutomaticBorgRepositoriesPruneEnabled(),
