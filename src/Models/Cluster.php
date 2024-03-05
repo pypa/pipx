@@ -353,7 +353,8 @@ class Cluster extends ClusterModel
     public function setRedisMemoryLimit(?int $redisMemoryLimit): self
     {
         Validator::value($redisMemoryLimit)
-            ->minAmount(0)
+            ->minAmount(8)
+            ->maxAmount(4096)
             ->nullable()
             ->validate();
 
