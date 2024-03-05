@@ -14,7 +14,7 @@ for detailed information.
 
 ### Removed
 
-* Cluster Mmalware toolkit attributes.
+* Cluster malware toolkit attributes.
 * Firewall rules update endpoint.
 
 # [1.108.2]
