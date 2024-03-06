@@ -34,6 +34,7 @@ def inject_dep(
         )
 
     venv = Venv(venv_dir, verbose=verbose)
+    venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
 
     if not venv.package_metadata:
         raise PipxError(

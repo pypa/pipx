@@ -9,7 +9,7 @@ import pytest  # type: ignore
 
 from helpers import app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
 from package_info import PKG
-from pipx import paths
+from pipx import paths, shared_libs
 
 TEST_DATA_PATH = "./testdata/test_package_specifier"
 
@@ -217,6 +217,21 @@ def test_existing_man_page_symlink_points_to_nothing(pipx_temp_env, capsys):
     # pipx should realize the symlink points to nothing and replace it,
     # so no warning should be present
     assert "symlink missing or pointing to unexpected location" not in captured.out
+
+
+def test_pip_args_forwarded_to_shared_libs(pipx_ultra_temp_env, capsys, caplog):
+    # strategy:
+    # 1. start from an empty env to ensure the next command would trigger a shared lib update
+    assert shared_libs.shared_libs.needs_upgrade
+    # 2. install any package with --no-index
+    # and check that the shared library update phase fails
+    return_code = run_pipx_cli(["install", "pycowsay", "--verbose", "--pip-args='--no-index'"])
+    assert "Upgrading shared libraries in" in caplog.text
+
+    captured = capsys.readouterr()
+    assert return_code != 0
+    assert "ERROR: Could not find a version that satisfies the requirement pip" in captured.err
+    assert "Failed to upgrade shared libraries" in caplog.text
 
 
 def test_pip_args_forwarded_to_package_name_determination(pipx_temp_env, capsys):

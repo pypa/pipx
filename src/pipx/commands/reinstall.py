@@ -44,6 +44,7 @@ def reinstall(
         return EXIT_CODE_REINSTALL_INVALID_PYTHON
 
     venv = Venv(venv_dir, verbose=verbose)
+    venv.check_upgrade_shared_libs(pip_args=venv.pipx_metadata.main_package.pip_args, verbose=verbose)
 
     if venv.pipx_metadata.main_package.package_or_url is not None:
         package_or_url = venv.pipx_metadata.main_package.package_or_url

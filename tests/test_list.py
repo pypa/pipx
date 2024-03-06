@@ -175,7 +175,7 @@ def test_list_standalone_interpreter(pipx_temp_env, monkeypatch, mocked_github_a
     assert "standalone" in captured.out
 
 
-def test_skip_maintenance(pipx_temp_env):
+def test_list_does_not_trigger_maintenance(pipx_temp_env, caplog):
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
 
@@ -190,9 +190,11 @@ def test_skip_maintenance(pipx_temp_env):
     )
     assert shared_libs.shared_libs.needs_upgrade
     run_pipx_cli(["list"])
-    assert shared_libs.shared_libs.has_been_updated_this_run
-    assert not shared_libs.shared_libs.needs_upgrade
+    assert not shared_libs.shared_libs.has_been_updated_this_run
+    assert shared_libs.shared_libs.needs_upgrade
 
+    # same test with --skip-maintenance, which is a no-op
+    # we expect the same result, along with a warning
     os.utime(
         shared_libs.shared_libs.pip_path,
         (access_time, -shared_libs.SHARED_LIBS_MAX_AGE_SEC - 5 * 60 + now),
@@ -200,6 +202,6 @@ def test_skip_maintenance(pipx_temp_env):
     shared_libs.shared_libs.has_been_updated_this_run = False
     assert shared_libs.shared_libs.needs_upgrade
     run_pipx_cli(["list", "--skip-maintenance"])
-    shared_libs.shared_libs.skip_upgrade = False
     assert not shared_libs.shared_libs.has_been_updated_this_run
     assert shared_libs.shared_libs.needs_upgrade
+    assert "Deprecation notice" in caplog.text

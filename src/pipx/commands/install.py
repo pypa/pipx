@@ -55,6 +55,7 @@ def install(
             exists = False
 
         venv = Venv(venv_dir, python=python, verbose=verbose)
+        venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
         if exists:
             if not reinstall and force and python_flag_was_passed:
                 print(
