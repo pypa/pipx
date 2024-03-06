@@ -225,7 +225,7 @@ def test_pip_args_forwarded_to_shared_libs(pipx_ultra_temp_env, capsys, caplog):
     assert shared_libs.shared_libs.needs_upgrade
     # 2. install any package with --no-index
     # and check that the shared library update phase fails
-    return_code = run_pipx_cli(["install", "pycowsay", "--verbose", "--pip-args='--no-index'"])
+    return_code = run_pipx_cli(["install", "--verbose", "--pip-args=--no-index", "pycowsay"])
     assert "Upgrading shared libraries in" in caplog.text
 
     captured = capsys.readouterr()
