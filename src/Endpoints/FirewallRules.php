@@ -102,50 +102,6 @@ class FirewallRules extends Endpoint
     /**
      * @throws RequestException
      */
-    public function update(FirewallRule $firewallRule): Response
-    {
-        $this->validateRequired($firewallRule, 'update', [
-            'node_id',
-            'firewall_group_id',
-            'external_provider_name',
-            'service_name',
-            'haproxy_listen_id',
-            'port',
-            'id',
-            'cluster_id',
-        ]);
-
-        $request = (new Request())
-            ->setMethod(Request::METHOD_PUT)
-            ->setUrl(sprintf('firewall-rules/%d', $firewallRule->getId()))
-            ->setBody(
-                $this->filterFields($firewallRule->toArray(), [
-                    'node_id',
-                    'firewall_group_id',
-                    'external_provider_name',
-                    'service_name',
-                    'haproxy_listen_id',
-                    'port',
-                    'id',
-                    'cluster_id',
-                ])
-            );
-
-        $response = $this
-            ->client
-            ->request($request);
-        if (!$response->isSuccess()) {
-            return $response;
-        }
-
-        return $response->setData([
-            'firewallRule' => (new FirewallRule())->fromArray($response->getData()),
-        ]);
-    }
-
-    /**
-     * @throws RequestException
-     */
     public function delete(int $id): Response
     {
         $request = (new Request())
