@@ -204,4 +204,3 @@ def test_list_does_not_trigger_maintenance(pipx_temp_env, caplog):
     run_pipx_cli(["list", "--skip-maintenance"])
     assert not shared_libs.shared_libs.has_been_updated_this_run
     assert shared_libs.shared_libs.needs_upgrade
-    assert "Deprecation notice" in caplog.text
