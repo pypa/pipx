@@ -16,9 +16,7 @@ TEST_DATA_PATH = "./testdata/test_package_specifier"
 
 def test_help_text(monkeypatch, capsys):
     mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
-    with mock.patch.object(sys, "exit", mock_exit), pytest.raises(
-        ValueError, match="raised in test to exit early"
-    ):
+    with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
         run_pipx_cli(["install", "--help"])
     captured = capsys.readouterr()
     assert "apps you can run from anywhere" in captured.out
@@ -46,9 +44,7 @@ def install_packages(capsys, pipx_temp_env, caplog, packages, package_names=()):
     "package_name, package_spec",
     [("pycowsay", "pycowsay"), ("black", PKG["black"]["spec"])],
 )
-def test_install_easy_packages(
-    capsys, pipx_temp_env, caplog, package_name, package_spec
-):
+def test_install_easy_packages(capsys, pipx_temp_env, caplog, package_name, package_spec):
     install_packages(capsys, pipx_temp_env, caplog, [package_spec], [package_name])
 
 
@@ -66,9 +62,7 @@ def test_install_easy_multiple_packages(capsys, pipx_temp_env, caplog):
     "package_name, package_spec",
     [("pycowsay", "pycowsay"), ("black", PKG["black"]["spec"])],
 )
-def test_install_easy_packages_globally(
-    capsys, pipx_temp_env, caplog, package_name, package_spec
-):
+def test_install_easy_packages_globally(capsys, pipx_temp_env, caplog, package_name, package_spec):
     if sys.platform.startswith("win"):
         pytest.skip("This behavior is undefined on Windows")
     install_packages(capsys, pipx_temp_env, caplog, [package_spec], [package_name])
@@ -83,9 +77,7 @@ def test_install_easy_packages_globally(
         ("shell-functools", PKG["shell-functools"]["spec"]),
     ],
 )
-def test_install_tricky_packages(
-    capsys, pipx_temp_env, caplog, package_name, package_spec
-):
+def test_install_tricky_packages(capsys, pipx_temp_env, caplog, package_name, package_spec):
     if os.getenv("FAST"):
         pytest.skip("skipping slow tests")
     if sys.platform.startswith("win") and package_name == "ansible":
@@ -112,9 +104,7 @@ def test_install_tricky_multiple_packages(capsys, pipx_temp_env, caplog):
         ("nox", "https://github.com/wntrblm/nox/archive/2022.1.7.zip"),
     ],
 )
-def test_install_package_specs(
-    capsys, pipx_temp_env, caplog, package_name, package_spec
-):
+def test_install_package_specs(capsys, pipx_temp_env, caplog, package_name, package_spec):
     install_packages(capsys, pipx_temp_env, caplog, [package_spec], [package_name])
 
 
@@ -144,10 +134,7 @@ def test_install_same_package_twice_no_force(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["install", "pycowsay"])
     captured = capsys.readouterr()
-    assert (
-        "'pycowsay' already seems to be installed. Not modifying existing installation"
-        in captured.out
-    )
+    assert "'pycowsay' already seems to be installed. Not modifying existing installation" in captured.out
 
 
 def test_include_deps(pipx_temp_env, capsys):
@@ -162,9 +149,7 @@ def test_include_deps(pipx_temp_env, capsys):
         ("tox-ini-fmt", PKG["tox-ini-fmt"]["spec"]),
     ],
 )
-def test_name_tricky_characters(
-    caplog, capsys, pipx_temp_env, package_name, package_spec
-):
+def test_name_tricky_characters(caplog, capsys, pipx_temp_env, package_name, package_spec):
     install_packages(capsys, pipx_temp_env, caplog, [package_spec], [package_name])
 
 
@@ -175,9 +160,7 @@ def test_extra(pipx_temp_env, capsys):
 
 
 def test_install_local_extra(pipx_temp_env, capsys, monkeypatch, root):
-    assert not run_pipx_cli(
-        ["install", str(root / f"{TEST_DATA_PATH}/local_extras[cow]"), "--include-deps"]
-    )
+    assert not run_pipx_cli(["install", str(root / f"{TEST_DATA_PATH}/local_extras[cow]"), "--include-deps"])
     captured = capsys.readouterr()
     assert f"- {app_name('pycowsay')}\n" in captured.out
     assert f"- {Path('man6/pycowsay.6')}\n" in captured.out
@@ -185,18 +168,14 @@ def test_install_local_extra(pipx_temp_env, capsys, monkeypatch, root):
 
 def test_path_warning(pipx_temp_env, capsys, monkeypatch, caplog):
     assert not run_pipx_cli(["install", "pycowsay"])
-    assert "is not on your PATH environment variable" not in unwrap_log_text(
-        caplog.text
-    )
+    assert "is not on your PATH environment variable" not in unwrap_log_text(caplog.text)
 
     monkeypatch.setenv("PATH", "")
     assert not run_pipx_cli(["install", "pycowsay", "--force"])
     assert "is not on your PATH environment variable" in unwrap_log_text(caplog.text)
 
 
-def test_existing_symlink_points_to_existing_wrong_location_warning(
-    pipx_temp_env, caplog, capsys
-):
+def test_existing_symlink_points_to_existing_wrong_location_warning(pipx_temp_env, caplog, capsys):
     if sys.platform.startswith("win"):
         pytest.skip("pipx does not use symlinks on Windows")
 
@@ -211,14 +190,12 @@ def test_existing_symlink_points_to_existing_wrong_location_warning(
     assert "is not on your PATH environment variable" not in captured.err
 
 
-def test_existing_man_page_symlink_points_to_existing_wrong_location_warning(
-    pipx_temp_env, caplog, capsys
-):
+def test_existing_man_page_symlink_points_to_existing_wrong_location_warning(pipx_temp_env, caplog, capsys):
     if sys.platform.startswith("win"):
         pytest.skip("pipx does not use symlinks on Windows")
 
-    (constants.LOCAL_MAN_DIR / "man6").mkdir(exist_ok=True, parents=True)
-    (constants.LOCAL_MAN_DIR / "man6" / "pycowsay.6").symlink_to(os.devnull)
+    (paths.ctx.man_dir / "man6").mkdir(exist_ok=True, parents=True)
+    (paths.ctx.man_dir / "man6" / "pycowsay.6").symlink_to(os.devnull)
     assert not run_pipx_cli(["install", "pycowsay"])
     captured = capsys.readouterr()
     assert "File exists at" in unwrap_log_text(caplog.text)
@@ -242,8 +219,8 @@ def test_existing_man_page_symlink_points_to_nothing(pipx_temp_env, capsys):
     if sys.platform.startswith("win"):
         pytest.skip("pipx does not use symlinks on Windows")
 
-    (constants.LOCAL_MAN_DIR / "man6").mkdir(exist_ok=True, parents=True)
-    (constants.LOCAL_MAN_DIR / "man6" / "pycowsay.6").symlink_to("/asdf/jkl")
+    (paths.ctx.man_dir / "man6").mkdir(exist_ok=True, parents=True)
+    (paths.ctx.man_dir / "man6" / "pycowsay.6").symlink_to("/asdf/jkl")
     assert not run_pipx_cli(["install", "pycowsay"])
     captured = capsys.readouterr()
     # pipx should realize the symlink points to nothing and replace it,
@@ -304,7 +281,7 @@ def test_man_page_install(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
     captured = capsys.readouterr()
     assert f"- {Path('man6/pycowsay.6')}" in captured.out
-    assert (constants.LOCAL_MAN_DIR / "man6" / "pycowsay.6").exists()
+    assert (paths.ctx.man_dir / "man6" / "pycowsay.6").exists()
 
 
 def test_install_pip_failure(pipx_temp_env, capsys):
@@ -313,9 +290,7 @@ def test_install_pip_failure(pipx_temp_env, capsys):
 
     assert "Fatal error from pip" in captured.err
 
-    pip_log_file_match = re.search(
-        r"Full pip output in file:\s+(\S.+)$", captured.err, re.MULTILINE
-    )
+    pip_log_file_match = re.search(r"Full pip output in file:\s+(\S.+)$", captured.err, re.MULTILINE)
     assert pip_log_file_match
     assert Path(pip_log_file_match[1]).exists()
 
@@ -332,9 +307,7 @@ def test_install_local_archive(pipx_temp_env, monkeypatch, capsys, root):
 
 
 def test_force_install_changes(pipx_temp_env, capsys):
-    assert not run_pipx_cli(
-        ["install", "https://github.com/wntrblm/nox/archive/2022.1.7.zip"]
-    )
+    assert not run_pipx_cli(["install", "https://github.com/wntrblm/nox/archive/2022.1.7.zip"])
     captured = capsys.readouterr()
     assert "2022.1.7" in captured.out
 
@@ -349,9 +322,7 @@ def test_force_install_changes_editable(pipx_temp_env, root, capsys):
     captured = capsys.readouterr()
     assert "empty-project" in captured.out
 
-    assert not run_pipx_cli(
-        ["install", "--editable", empty_project_path_as_string, "--force"]
-    )
+    assert not run_pipx_cli(["install", "--editable", empty_project_path_as_string, "--force"])
     captured = capsys.readouterr()
     assert "Installing to existing venv 'empty-project'" in captured.out
 
@@ -378,9 +349,7 @@ def test_passed_python_and_force_flag_warning(pipx_temp_env, capsys):
     assert "--python is ignored when --force is passed." not in captured.out
 
 
-def test_install_run_in_separate_directory(
-    caplog, capsys, pipx_temp_env, monkeypatch, tmp_path
-):
+def test_install_run_in_separate_directory(caplog, capsys, pipx_temp_env, monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     f = Path("argparse.py")
     f.touch()

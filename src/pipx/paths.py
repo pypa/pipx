@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 from platformdirs import user_cache_path, user_data_path, user_log_path
 
@@ -16,15 +16,15 @@ DEFAULT_PIPX_GLOBAL_MAN_DIR = "/usr/local/share/man"
 def get_expanded_environ(env_name: str) -> Optional[Path]:
     val = os.environ.get(env_name)
     if val is not None:
-        val = Path(val).expanduser().resolve()
+        return Path(val).expanduser().resolve()
     return val
 
 
 class _PathContext:
-    _base_home: Optional[Path] = get_expanded_environ("PIPX_HOME")
-    _base_bin: Optional[Path] = get_expanded_environ("PIPX_BIN_DIR")
-    _base_man: Optional[Path] = get_expanded_environ("PIPX_MAN_DIR")
-    _base_shared_libs: Optional[Path] = get_expanded_environ("PIPX_SHARED_LIBS")
+    _base_home: Optional[Union[Path, str]] = get_expanded_environ("PIPX_HOME")
+    _base_bin: Optional[Union[Path, str]] = get_expanded_environ("PIPX_BIN_DIR")
+    _base_man: Optional[Union[Path, str]] = get_expanded_environ("PIPX_MAN_DIR")
+    _base_shared_libs: Optional[Union[Path, str]] = get_expanded_environ("PIPX_SHARED_LIBS")
     _fallback_home: Path = Path.home() / ".local/pipx"
     _in_home: bool = _base_home is not None or _fallback_home.exists()
     log_file: Optional[Path] = None

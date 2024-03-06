@@ -64,9 +64,7 @@ def pytest_configure(config):
     config.option.markexpr = new_markexpr
 
 
-def pipx_temp_env_helper(
-    pipx_shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pypi
-):
+def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pypi):
     home_dir = Path(tmp_path) / "subdir" / "pipxhome"
     bin_dir = Path(tmp_path) / "otherdir" / "pipxbindir"
     man_dir = Path(tmp_path) / "otherdir" / "pipxmandir"
@@ -95,24 +93,16 @@ def pipx_temp_env_helper(
     # macOS needs /usr/bin in PATH to compile certain packages, but
     #   applications in /usr/bin cause test_install.py tests to raise warnings
     #   which make tests fail (e.g. on Github ansible apps exist in /usr/bin)
-    monkeypatch.setenv(
-        "PATH_ORIG", str(paths.ctx.bin_dir) + os.pathsep + os.environ["PATH"]
-    )
+    monkeypatch.setenv("PATH_ORIG", str(paths.ctx.bin_dir) + os.pathsep + os.environ["PATH"])
     monkeypatch.setenv("PATH_TEST", str(paths.ctx.bin_dir))
-    monkeypatch.setenv(
-        "PATH", str(paths.ctx.bin_dir) + os.pathsep + str(utils_temp_dir)
-    )
+    monkeypatch.setenv("PATH", str(paths.ctx.bin_dir) + os.pathsep + str(utils_temp_dir))
     # On Windows, monkeypatch pipx.commands.common._can_symlink_cache to
     #   indicate that paths.ctx.bin_dir and paths.ctx.man_dir
     #   cannot use symlinks, even if we're running as administrator and
     #   symlinks are actually possible.
     if WIN:
-        monkeypatch.setitem(
-            commands.common._can_symlink_cache, paths.ctx.bin_dir, False
-        )
-        monkeypatch.setitem(
-            commands.common._can_symlink_cache, paths.ctx.man_dir, False
-        )
+        monkeypatch.setitem(commands.common._can_symlink_cache, paths.ctx.bin_dir, False)
+        monkeypatch.setitem(commands.common._can_symlink_cache, paths.ctx.man_dir, False)
     if not request.config.option.net_pypiserver:
         # IMPORTANT: use 127.0.0.1 not localhost
         #   Using localhost on Windows creates enormous slowdowns
@@ -143,9 +133,7 @@ def pipx_local_pypiserver(request, root: Path, tmp_path_factory) -> Iterator[str
         str(PIPX_TESTS_PACKAGE_LIST_DIR),
         str(pipx_cache_dir),
     ]
-    check_test_packages_process = subprocess.run(
-        check_test_packages_cmd, check=False, cwd=root
-    )
+    check_test_packages_process = subprocess.run(check_test_packages_cmd, check=False, cwd=root)
     if check_test_packages_process.returncode != 0:
         raise Exception(
             f"Directory {str(pipx_cache_dir)} does not contain all "
@@ -240,9 +228,7 @@ def pipx_temp_env(
 
 
 @pytest.fixture
-def pipx_ultra_temp_env(
-    tmp_path, monkeypatch, request, utils_temp_dir, pipx_local_pypiserver
-):
+def pipx_ultra_temp_env(tmp_path, monkeypatch, request, utils_temp_dir, pipx_local_pypiserver):
     """Sets up temporary paths for pipx to install into.
 
     Fully temporary environment, every test function starts as if pipx has

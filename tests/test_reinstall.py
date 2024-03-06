@@ -14,9 +14,7 @@ def test_reinstall_global(pipx_temp_env, capsys):
     if sys.platform.startswith("win"):
         pytest.skip("This behavior is undefined on Windows")
     assert not run_pipx_cli(["--global", "install", "pycowsay"])
-    assert not run_pipx_cli(
-        ["--global", "reinstall", "--python", sys.executable, "pycowsay"]
-    )
+    assert not run_pipx_cli(["--global", "reinstall", "--python", sys.executable, "pycowsay"])
 
 
 def test_reinstall_nonexistent(pipx_temp_env, capsys):

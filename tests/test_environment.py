@@ -1,10 +1,15 @@
+import os
 import sys
 from pathlib import Path
 
 import pytest  # type: ignore
 
 from helpers import run_pipx_cli
-from pipx.constants import load_dir_from_environ
+
+
+def load_dir_from_environ(dir_name: str, default: Path) -> Path:
+    env = os.environ.get(dir_name, default)
+    return Path(os.path.expanduser(env)).resolve()
 
 
 def test_cli(monkeypatch, capsys):

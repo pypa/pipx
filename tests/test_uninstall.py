@@ -2,7 +2,13 @@ import sys
 
 import pytest  # type: ignore
 
-from helpers import PIPX_METADATA_LEGACY_VERSIONS, app_name, mock_legacy_venv, remove_venv_interpreter, run_pipx_cli
+from helpers import (
+    PIPX_METADATA_LEGACY_VERSIONS,
+    app_name,
+    mock_legacy_venv,
+    remove_venv_interpreter,
+    run_pipx_cli,
+)
 from package_info import PKG
 from pipx import paths
 
@@ -59,7 +65,7 @@ def test_uninstall_suffix(pipx_temp_env):
 
 
 def test_uninstall_man_page(pipx_temp_env):
-    man_page_path = constants.LOCAL_MAN_DIR / "man6" / "pycowsay.6"
+    man_page_path = paths.ctx.man_dir / "man6" / "pycowsay.6"
     assert not run_pipx_cli(["install", "pycowsay"])
     assert man_page_path.exists()
     assert not run_pipx_cli(["uninstall", "pycowsay"])
