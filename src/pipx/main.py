@@ -934,7 +934,9 @@ def setup(args: argparse.Namespace) -> None:
 
     mkdir(paths.ctx.venvs)
     mkdir(paths.ctx.bin_dir)
+    mkdir(paths.ctx.man_dir)
     mkdir(paths.ctx.venv_cache)
+    mkdir(paths.ctx.standalone_python_cachedir)
 
     for cachedir in [
         paths.ctx.venv_cache,
