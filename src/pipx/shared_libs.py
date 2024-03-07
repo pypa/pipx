@@ -39,7 +39,7 @@ class _SharedLibs:
 
         return self._site_packages
 
-    def create(self, verbose: bool = False, pip_args: Optional[List[str]] = None) -> None:
+    def create(self, pip_args: List[str], verbose: bool = False) -> None:
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
                 create_process = run_subprocess(
@@ -87,7 +87,7 @@ class _SharedLibs:
             self.has_been_logged_this_run = True
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
-    def upgrade(self, *, pip_args: Optional[List[str]] = None, verbose: bool = False) -> None:
+    def upgrade(self, *, pip_args: List[str], verbose: bool = False) -> None:
         if not self.is_valid:
             self.create(verbose=verbose, pip_args=pip_args)
             return

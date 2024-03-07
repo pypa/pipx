@@ -180,7 +180,7 @@ def test_list_does_not_trigger_maintenance(pipx_temp_env, caplog):
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
 
     now = time.time()
-    shared_libs.shared_libs.create(verbose=True)
+    shared_libs.shared_libs.create(verbose=True, pip_args=[])
     shared_libs.shared_libs.has_been_updated_this_run = False
 
     access_time = now  # this can be anything

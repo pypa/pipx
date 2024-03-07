@@ -93,10 +93,18 @@ class Venv:
         except StopIteration:
             self._existing = False
 
-    def check_upgrade_shared_libs(self, verbose: bool, pip_args: List[str]):
+    def check_upgrade_shared_libs(self, verbose: bool, pip_args: List[str], force_upgrade: bool = False):
+        """
+        If necessary, run maintenance tasks to keep the shared libs up-to-date.
+
+        This can trigger `pip install`/`pip install --upgrade` operations,
+        so we expect the caller to provide sensible `pip_args`
+        ( provided by the user in the current CLI call
+        or retrieved from the metadata of a previous installation)
+        """
         if self._existing and self.uses_shared_libs:
             if shared_libs.is_valid:
-                if shared_libs.needs_upgrade:
+                if force_upgrade or shared_libs.needs_upgrade:
                     shared_libs.upgrade(verbose=verbose, pip_args=pip_args)
             else:
                 shared_libs.create(verbose=verbose, pip_args=pip_args)
