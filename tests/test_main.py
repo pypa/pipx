@@ -35,3 +35,15 @@ def test_prog_name(monkeypatch, argv, executable, expected):
     monkeypatch.setattr("pipx.main.sys.argv", [argv])
     monkeypatch.setattr("pipx.main.sys.executable", executable)
     assert main.prog_name() == expected
+
+
+def test_limit_verbosity():
+    mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
+    with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
+        assert not run_pipx_cli(["--version", "-qqq"])
+    mock_exit.assert_called_with(0)
+
+    mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
+    with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
+        assert not run_pipx_cli(["--version", "-vvv"])
+    mock_exit.assert_called_with(0)
