@@ -39,4 +39,4 @@ def test_prog_name(monkeypatch, argv, executable, expected):
 
 def test_limit_verbosity():
     assert not run_pipx_cli(["list", "-qqq"])
-    assert not run_pipx_cli(["list", "-vvv"])
+    assert not run_pipx_cli(["list", "-vvvv"])
