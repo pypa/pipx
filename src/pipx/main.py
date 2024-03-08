@@ -758,11 +758,20 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
         default=0,
         help=(
             "Give less output. May be used multiple times corresponding to the"
-            " WARNING, ERROR, and CRITICAL logging levels."
+            " ERROR and CRITICAL logging levels. The count maxes out at 2."
         ),
     )
 
-    shared_parser.add_argument("--verbose", "-v", action="count", default=0, help=("Give more output."))
+    shared_parser.add_argument(
+        "--verbose",
+        "-v",
+        action="count",
+        default=0,
+        help=(
+            "Give more output. May be used multiple times corresponding to the"
+            " INFO, DEBUG and NOTSET logging levels. The count maxes out at 3."
+        ),
+    )
 
     parser = argparse.ArgumentParser(
         prog=prog_name(),
@@ -843,8 +852,8 @@ def setup_logging(verbose: int) -> None:
     pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
     pipx.constants.pipx_log_file = setup_log_file()
 
-    # Determine logging level
-    level_number = max(0, logging.WARNING - 10 * verbose)
+    # Determine logging level, a value between 0 and 50
+    level_number = min(max(0, logging.WARNING - 10 * verbose), 50)
 
     level = logging.getLevelName(level_number)
 

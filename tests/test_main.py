@@ -35,3 +35,8 @@ def test_prog_name(monkeypatch, argv, executable, expected):
     monkeypatch.setattr("pipx.main.sys.argv", [argv])
     monkeypatch.setattr("pipx.main.sys.executable", executable)
     assert main.prog_name() == expected
+
+
+def test_limit_verbosity():
+    assert not run_pipx_cli(["list", "-qqq"])
+    assert not run_pipx_cli(["list", "-vvvv"])
