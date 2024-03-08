@@ -758,7 +758,7 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
         default=0,
         help=(
             "Give less output. May be used multiple times corresponding to the"
-            " ERROR and CRITICAL logging levels. Any count > 2 is ignored."
+            " ERROR and CRITICAL logging levels. The count maxes out at 2."
         ),
     )
 
@@ -769,7 +769,7 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
         default=0,
         help=(
             "Give more output. May be used multiple times corresponding to the"
-            " INFO, DEBUG and NOTSET logging levels. Any count > 3 is ignored."
+            " INFO, DEBUG and NOTSET logging levels. The count maxes out at 3."
         ),
     )
 
