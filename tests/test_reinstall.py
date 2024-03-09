@@ -2,7 +2,7 @@ import sys
 
 import pytest  # type: ignore
 
-from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli
+from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, skip_if_windows
 
 
 def test_reinstall(pipx_temp_env, capsys):
@@ -10,9 +10,8 @@ def test_reinstall(pipx_temp_env, capsys):
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
 
+@skip_if_windows
 def test_reinstall_global(pipx_temp_env, capsys):
-    if sys.platform.startswith("win"):
-        pytest.skip("This behavior is undefined on Windows")
     assert not run_pipx_cli(["--global", "install", "pycowsay"])
     assert not run_pipx_cli(["--global", "reinstall", "--python", sys.executable, "pycowsay"])
 

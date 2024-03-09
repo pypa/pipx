@@ -15,6 +15,7 @@ from helpers import (
     mock_legacy_venv,
     remove_venv_interpreter,
     run_pipx_cli,
+    skip_if_windows,
 )
 from package_info import PKG
 from pipx import constants, paths, shared_libs
@@ -27,9 +28,8 @@ def test_cli(pipx_temp_env, monkeypatch, capsys):
     assert "nothing has been installed with pipx" in captured.err
 
 
+@skip_if_windows
 def test_cli_global(pipx_temp_env, monkeypatch, capsys):
-    if sys.platform.startswith("win"):
-        pytest.skip("This behavior is undefined on Windows")
     assert not run_pipx_cli(["--global", "list"])
     captured = capsys.readouterr()
     assert "nothing has been installed with pipx" in captured.err

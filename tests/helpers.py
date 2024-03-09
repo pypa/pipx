@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from unittest import mock
 
+import pytest
 from packaging.utils import canonicalize_name
 
 from package_info import PKG
@@ -208,3 +209,6 @@ def remove_venv_interpreter(venv_name):
     assert venv_python_path.is_file()
     venv_python_path.unlink()
     assert not venv_python_path.is_file()
+
+
+skip_if_windows = pytest.mark.skipif(sys.platform.startswith("win"), reason="This behavior is undefined on Windows")

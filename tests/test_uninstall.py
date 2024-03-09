@@ -8,6 +8,7 @@ from helpers import (
     mock_legacy_venv,
     remove_venv_interpreter,
     run_pipx_cli,
+    skip_if_windows,
 )
 from package_info import PKG
 from pipx import paths
@@ -28,9 +29,8 @@ def test_uninstall(pipx_temp_env):
     assert not run_pipx_cli(["uninstall", "pycowsay"])
 
 
+@skip_if_windows
 def test_uninstall_global(pipx_temp_env):
-    if sys.platform.startswith("win"):
-        pytest.skip("This behavior is undefined on Windows")
     assert not run_pipx_cli(["--global", "install", "pycowsay"])
     assert not run_pipx_cli(["--global", "uninstall", "pycowsay"])
 

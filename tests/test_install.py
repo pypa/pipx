@@ -7,7 +7,7 @@ from unittest import mock
 
 import pytest  # type: ignore
 
-from helpers import app_name, run_pipx_cli, unwrap_log_text
+from helpers import app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
 from package_info import PKG
 from pipx import paths
 
@@ -62,9 +62,8 @@ def test_install_easy_multiple_packages(capsys, pipx_temp_env, caplog):
     "package_name, package_spec",
     [("pycowsay", "pycowsay"), ("black", PKG["black"]["spec"])],
 )
+@skip_if_windows
 def test_install_easy_packages_globally(capsys, pipx_temp_env, caplog, package_name, package_spec):
-    if sys.platform.startswith("win"):
-        pytest.skip("This behavior is undefined on Windows")
     install_packages(capsys, pipx_temp_env, caplog, [package_spec], [package_name])
 
 
@@ -175,10 +174,8 @@ def test_path_warning(pipx_temp_env, capsys, monkeypatch, caplog):
     assert "is not on your PATH environment variable" in unwrap_log_text(caplog.text)
 
 
+@skip_if_windows
 def test_existing_symlink_points_to_existing_wrong_location_warning(pipx_temp_env, caplog, capsys):
-    if sys.platform.startswith("win"):
-        pytest.skip("pipx does not use symlinks on Windows")
-
     paths.ctx.bin_dir.mkdir(exist_ok=True, parents=True)
     (paths.ctx.bin_dir / "pycowsay").symlink_to(os.devnull)
     assert not run_pipx_cli(["install", "pycowsay"])
@@ -190,10 +187,8 @@ def test_existing_symlink_points_to_existing_wrong_location_warning(pipx_temp_en
     assert "is not on your PATH environment variable" not in captured.err
 
 
+@skip_if_windows
 def test_existing_man_page_symlink_points_to_existing_wrong_location_warning(pipx_temp_env, caplog, capsys):
-    if sys.platform.startswith("win"):
-        pytest.skip("pipx does not use symlinks on Windows")
-
     (paths.ctx.man_dir / "man6").mkdir(exist_ok=True, parents=True)
     (paths.ctx.man_dir / "man6" / "pycowsay.6").symlink_to(os.devnull)
     assert not run_pipx_cli(["install", "pycowsay"])
@@ -202,10 +197,8 @@ def test_existing_man_page_symlink_points_to_existing_wrong_location_warning(pip
     assert "symlink missing or pointing to unexpected location" in captured.out
 
 
+@skip_if_windows
 def test_existing_symlink_points_to_nothing(pipx_temp_env, capsys):
-    if sys.platform.startswith("win"):
-        pytest.skip("pipx does not use symlinks on Windows")
-
     paths.ctx.bin_dir.mkdir(exist_ok=True, parents=True)
     (paths.ctx.bin_dir / "pycowsay").symlink_to("/asdf/jkl")
     assert not run_pipx_cli(["install", "pycowsay"])
@@ -215,10 +208,8 @@ def test_existing_symlink_points_to_nothing(pipx_temp_env, capsys):
     assert "symlink missing or pointing to unexpected location" not in captured.out
 
 
+@skip_if_windows
 def test_existing_man_page_symlink_points_to_nothing(pipx_temp_env, capsys):
-    if sys.platform.startswith("win"):
-        pytest.skip("pipx does not use symlinks on Windows")
-
     (paths.ctx.man_dir / "man6").mkdir(exist_ok=True, parents=True)
     (paths.ctx.man_dir / "man6" / "pycowsay.6").symlink_to("/asdf/jkl")
     assert not run_pipx_cli(["install", "pycowsay"])
