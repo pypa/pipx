@@ -26,7 +26,7 @@ class _PathContext:
     _base_man: Optional[Union[Path, str]] = get_expanded_environ("PIPX_MAN_DIR")
     _base_shared_libs: Optional[Union[Path, str]] = get_expanded_environ("PIPX_SHARED_LIBS")
     _fallback_home: Path = Path.home() / ".local/pipx"
-    _in_home: bool = _base_home is not None or _fallback_home.exists()
+    _home_exists: bool = _base_home is not None or _fallback_home.exists()
     log_file: Optional[Path] = None
 
     @property
@@ -35,19 +35,19 @@ class _PathContext:
 
     @property
     def logs(self) -> Path:
-        if self._in_home:
+        if self._home_exists:
             return self.home / "logs"
         return user_log_path("pipx")
 
     @property
     def trash(self) -> Path:
-        if self._in_home:
+        if self._home_exists:
             return self.home / ".trash"
         return self.home / "trash"
 
     @property
     def venv_cache(self) -> Path:
-        if self._in_home:
+        if self._home_exists:
             return self.home / ".cache"
         return user_cache_path("pipx")
 
@@ -74,9 +74,9 @@ class _PathContext:
         return Path(self._base_shared_libs or self.home / "shared").resolve()
 
     def make_global(self) -> None:
-        self._base_home = DEFAULT_PIPX_GLOBAL_HOME
-        self._base_bin = DEFAULT_PIPX_GLOBAL_BIN_DIR
-        self._base_man = DEFAULT_PIPX_GLOBAL_MAN_DIR
+        self._base_home = get_expanded_environ("PIPX_GLOBAL_HOME") or DEFAULT_PIPX_GLOBAL_HOME
+        self._base_bin = get_expanded_environ("PIPX_GLOBAL_BIN_DIR") or DEFAULT_PIPX_GLOBAL_BIN_DIR
+        self._base_man = get_expanded_environ("PIPX_GLOBAL_MAN_DIR") or DEFAULT_PIPX_GLOBAL_MAN_DIR
 
     @property
     def standalone_python_cachedir(self) -> Path:

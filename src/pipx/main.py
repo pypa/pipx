@@ -627,16 +627,8 @@ def _add_interpreter(
         description="Get help for commands with pipx interpreter COMMAND --help",
         dest="interpreter_command",
     )
-    s.add_parser(
-        "list",
-        help="List available interpreters",
-        description="List available interpreters",
-    )
-    s.add_parser(
-        "prune",
-        help="Prune unused interpreters",
-        description="Prune unused interpreters",
-    )
+    s.add_parser("list", help="List available interpreters", description="List available interpreters")
+    s.add_parser("prune", help="Prune unused interpreters", description="Prune unused interpreters")
     return p
 
 

@@ -30,6 +30,10 @@ def test_cli(pipx_temp_env, monkeypatch, capsys):
 
 @skip_if_windows
 def test_cli_global(pipx_temp_env, monkeypatch, capsys):
+    assert not run_pipx_cli(["install", "pycowsay"])
+    captured = capsys.readouterr()
+    assert "installed package" in captured.out
+
     assert not run_pipx_cli(["--global", "list"])
     captured = capsys.readouterr()
     assert "nothing has been installed with pipx" in captured.err
