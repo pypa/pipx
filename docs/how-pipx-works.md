@@ -17,7 +17,7 @@ When installing a package and its binaries on linux (`pipx install package`) pip
 - on operating systems which have the `man` command, as long as `~/.local/share/man` is a recognized search path of man,
   you can now view the new manual pages globally
 - adding `--global` flag to any `pipx` command will execute the action in global scope which will expose app to all
-  users - [reference](installation.md#global-installation)
+  users - [reference](installation.md#global-installation). Note that this is not available on Windows.
 
 When running a binary (`pipx run BINARY`), pipx will
 

@@ -133,13 +133,6 @@ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin PIPX_MAN_DIR=/usr/local/sha
 # Example: $ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin PIPX_MAN_DIR=/usr/local/share/man pipx install cowsay
 ```
 
-### Global installation
-
-Pipx also comes with a `--global` argument which helps to execute actions globally to give app access to any user. By
-default the global binary location is set to `/usr/local/bin`, can be overridden with `PIPX_GLOBAL_BIN_DIR`. Default
-global manual page location is `/usr/local/share/man`. This can be overridden with `PIPX_GLOBAL_MAN_DIR`. Default global
-virtual environment location is `/opt/pipx`, can be overridden with `PIPX_GLOBAL_HOME`.
-
 > [!NOTE]
 >
 > After version 1.2.0, the default pipx paths have been moved from `~/.local/pipx` to specific user data directories on
@@ -155,6 +148,16 @@ virtual environment location is `/opt/pipx`, can be overridden with `PIPX_GLOBAL
 >
 > `user_data_dir()`, `user_cache_dir()` and `user_log_dir()` resolve to appropriate platform-specific user data, cache and log directories.
 > See the [platformdirs documentation](https://platformdirs.readthedocs.io/en/latest/api.html#platforms) for details.
+
+### Global installation
+
+Pipx also comes with a `--global` argument which helps to execute actions in global scope which exposes the app to
+all system users. By default the global binary location is set to `/usr/local/bin` and can be overridden with the
+environment variable `PIPX_GLOBAL_BIN_DIR`. Default global manual page location is `/usr/local/share/man`. This
+can be overridden with environment variable `PIPX_GLOBAL_MAN_DIR`. Finally, default global virtual environment location
+is `/opt/pipx`, can be overridden with environment variable `PIPX_GLOBAL_HOME`.
+
+Note that `--global` argument is not supported on Windows.
 
 ## Upgrade pipx
 
