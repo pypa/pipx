@@ -133,10 +133,12 @@ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin PIPX_MAN_DIR=/usr/local/sha
 # Example: $ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin PIPX_MAN_DIR=/usr/local/share/man pipx install cowsay
 ```
 
-Pipx also comes with a `--global` which helps to execute actions globally to give access to any user. By default the
-global binary location is set to `/usr/local/bin`, can be overridden with `PIPX_GLOBAL_BIN_DIR`. Default global manual
-page location is `/usr/local/share/man`. This can be overridden with `PIPX_GLOBAL_MAN_DIR`. Default global virtual
-environment location is `/opt/pipx`, can be overridden with `PIPX_GLOBAL_HOME`.
+### Global installation
+
+Pipx also comes with a `--global` argument which helps to execute actions globally to give app access to any user. By
+default the global binary location is set to `/usr/local/bin`, can be overridden with `PIPX_GLOBAL_BIN_DIR`. Default
+global manual page location is `/usr/local/share/man`. This can be overridden with `PIPX_GLOBAL_MAN_DIR`. Default global
+virtual environment location is `/opt/pipx`, can be overridden with `PIPX_GLOBAL_HOME`.
 
 > [!NOTE]
 >
