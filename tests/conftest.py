@@ -154,17 +154,7 @@ def pipx_local_pypiserver(request, root: Path, tmp_path_factory) -> Iterator[str
     os.environ["NO_PROXY"] = "127.0.0.1"
     cache = str(pipx_cache_dir / f"{sys.version_info[0]}.{sys.version_info[1]}")
     server = str(Path(sys.executable).parent / "pypi-server")
-    cmd = [
-        server,
-        "run",
-        "--verbose",
-        "--disable-fallback",
-        "--host",
-        "127.0.0.1",
-        "--port",
-        str(port),
-        cache,
-    ]
+    cmd = [server, "run", "--verbose", "--disable-fallback", "--host", "127.0.0.1", "--port", str(port), cache]
     cmd += ["--log-file", str(server_log)]
     pypiserver_process = subprocess.Popen(cmd, cwd=root)
     url = f"http://127.0.0.1:{port}/simple/"
@@ -201,14 +191,7 @@ def utils_temp_dir(tmp_path_factory):
 
 
 @pytest.fixture
-def pipx_temp_env(
-    tmp_path,
-    monkeypatch,
-    pipx_session_shared_dir,
-    request,
-    utils_temp_dir,
-    pipx_local_pypiserver,
-):
+def pipx_temp_env(tmp_path, monkeypatch, pipx_session_shared_dir, request, utils_temp_dir, pipx_local_pypiserver):
     """Sets up temporary paths for pipx to install into.
 
     Shared libs are setup once per session, all other pipx dirs, constants are
@@ -217,14 +200,7 @@ def pipx_temp_env(
     Also adds environment variables as necessary to make pip installations
     seamless.
     """
-    pipx_temp_env_helper(
-        pipx_session_shared_dir,
-        tmp_path,
-        monkeypatch,
-        request,
-        utils_temp_dir,
-        pipx_local_pypiserver,
-    )
+    pipx_temp_env_helper(pipx_session_shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pipx_local_pypiserver)
 
 
 @pytest.fixture
@@ -238,11 +214,4 @@ def pipx_ultra_temp_env(tmp_path, monkeypatch, request, utils_temp_dir, pipx_loc
     seamless.
     """
     shared_dir = Path(tmp_path) / "shareddir"
-    pipx_temp_env_helper(
-        shared_dir,
-        tmp_path,
-        monkeypatch,
-        request,
-        utils_temp_dir,
-        pipx_local_pypiserver,
-    )
+    pipx_temp_env_helper(shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pipx_local_pypiserver)
