@@ -227,6 +227,7 @@ class Venv:
         include_dependencies: bool,
         include_apps: bool,
         is_main_package: bool,
+        use_input: bool,
         suffix: str = "",
     ) -> None:
         # package_name in package specifier can mismatch URL due to user error
@@ -250,6 +251,11 @@ class Venv:
                 *pip_args,
                 package_or_url,
             ]
+
+            # An error occurred when installing the Google Artifact Registry package locally, adding the
+            if use_input:
+                cmd.remove("--no-input")
+
             # no logging because any errors will be specially logged by
             #   subprocess_post_check_handle_pip_error()
             pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False, run_dir=str(self.root))

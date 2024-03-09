@@ -28,6 +28,7 @@ def install(
     reinstall: bool,
     include_dependencies: bool,
     preinstall_packages: Optional[List[str]],
+    use_input: bool,
     suffix: str = "",
 ) -> ExitCode:
     """Returns pipx exit code."""
@@ -95,6 +96,7 @@ def install(
                 include_dependencies=include_dependencies,
                 include_apps=True,
                 is_main_package=True,
+                use_input=use_input,
                 suffix=suffix,
             )
             run_post_install_actions(
