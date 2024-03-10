@@ -73,6 +73,12 @@ class _PathContext:
     def shared_libs(self) -> Path:
         return Path(self._base_shared_libs or self.home / "shared").resolve()
 
+    def make_local(self) -> None:
+        self._base_home = get_expanded_environ("PIPX_HOME")
+        self._base_bin = get_expanded_environ("PIPX_BIN_DIR")
+        self._base_man = get_expanded_environ("PIPX_MAN_DIR")
+        self._home_exists = self._base_home is not None or self._fallback_home.exists()
+
     def make_global(self) -> None:
         self._base_home = get_expanded_environ("PIPX_GLOBAL_HOME") or DEFAULT_PIPX_GLOBAL_HOME
         self._base_bin = get_expanded_environ("PIPX_GLOBAL_BIN_DIR") or DEFAULT_PIPX_GLOBAL_BIN_DIR

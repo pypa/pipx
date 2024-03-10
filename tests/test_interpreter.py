@@ -176,6 +176,8 @@ def test_fetch_missing_python(monkeypatch, mocked_github_api):
     def which(name):
         return None
 
+    pipx.paths.ctx.make_local()
+
     monkeypatch.setattr(shutil, "which", which)
 
     major = sys.version_info.major
