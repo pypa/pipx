@@ -352,7 +352,12 @@ def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
         help="Give the virtual environment access to the system site-packages dir.",
     )
     parser.add_argument("--index-url", "-i", help="Base URL of Python Package Index")
-    parser.add_argument("--extra-index-url", help=("Extra URLs of package indexes to use in addition to --index-url. Should follow the same rules as --index-url."))
+    parser.add_argument(
+        "--extra-index-url",
+        help=(
+            "Extra URLs of package indexes to use in addition to --index-url. Should follow the same rules as --index-url."
+        ),
+    )
     parser.add_argument(
         "--editable",
         "-e",
@@ -418,11 +423,7 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         action="append",
         help=("Optional packages to be installed into the Virtual Environment before " "installing the main package."),
     )
-    p.add_argument(
-        "--use-input",
-        action="store_true",
-        help="Enable prompting for input."
-    )
+    p.add_argument("--use-input", action="store_true", help="Enable prompting for input.")
     add_pip_venv_args(p)
 
 
