@@ -3,6 +3,7 @@ import sys
 import pytest  # type: ignore
 
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, skip_if_windows
+from pipx import paths
 
 
 def test_reinstall(pipx_temp_env, capsys):
@@ -14,6 +15,8 @@ def test_reinstall(pipx_temp_env, capsys):
 def test_reinstall_global(pipx_temp_env, capsys):
     assert not run_pipx_cli(["--global", "install", "pycowsay"])
     assert not run_pipx_cli(["--global", "reinstall", "--python", sys.executable, "pycowsay"])
+    # reset to local to avoid side effects
+    paths.ctx.make_local()
 
 
 def test_reinstall_nonexistent(pipx_temp_env, capsys):

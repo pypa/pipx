@@ -38,6 +38,9 @@ def test_cli_global(pipx_temp_env, monkeypatch, capsys):
     captured = capsys.readouterr()
     assert "nothing has been installed with pipx" in captured.err
 
+    # reset to local to avoid side effects
+    paths.ctx.make_local()
+
 
 def test_missing_interpreter(pipx_temp_env, monkeypatch, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])

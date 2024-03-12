@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 from helpers import run_pipx_cli, skip_if_windows
+from pipx import paths
 
 
 def load_dir_from_environ(dir_name: str, default: Path) -> Path:
@@ -71,3 +72,5 @@ def test_cli_global(monkeypatch, capsys):
     # Checking just for the sake of completeness
     assert "PIPX_DEFAULT_PYTHON" in captured.out
     assert "USE_EMOJI" in captured.out
+    # reset to local to avoid side effects
+    paths.ctx.make_local()

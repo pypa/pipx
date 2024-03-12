@@ -33,6 +33,8 @@ def test_uninstall(pipx_temp_env):
 def test_uninstall_global(pipx_temp_env):
     assert not run_pipx_cli(["--global", "install", "pycowsay"])
     assert not run_pipx_cli(["--global", "uninstall", "pycowsay"])
+    # reset to local to avoid side effects
+    paths.ctx.make_local()
 
 
 def test_uninstall_circular_deps(pipx_temp_env):
