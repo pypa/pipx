@@ -98,6 +98,15 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
 def ensure_pipx_paths(force: bool) -> ExitCode:
     """Returns pipx exit code."""
     bin_paths = {paths.ctx.bin_dir}
+    if paths.ctx.is_global:
+        paths.ctx.make_local()
+        another_path = paths.ctx.bin_dir
+        paths.ctx.make_global()
+    else:
+        paths.ctx.make_global()
+        another_path = paths.ctx.bin_dir
+        paths.ctx.make_local()
+    bin_paths.add(another_path)
 
     pipx_user_bin_path = get_pipx_user_bin_path()
     if pipx_user_bin_path is not None:
