@@ -1,6 +1,5 @@
 from helpers import run_pipx_cli, skip_if_windows
 from package_info import PKG
-from pipx import paths
 
 
 def test_uninject_simple(pipx_temp_env, capsys):
@@ -24,8 +23,6 @@ def test_uninject_simple_global(pipx_temp_env, capsys):
     assert not run_pipx_cli(["--global", "list", "--include-injected"])
     captured = capsys.readouterr()
     assert "black" not in captured.out
-    # reset to local to avoid side effects
-    paths.ctx.make_local()
 
 
 def test_uninject_with_include_apps(pipx_temp_env, capsys, caplog):

@@ -70,8 +70,8 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_
     man_dir = Path(tmp_path) / "otherdir" / "pipxmandir"
 
     global_home_dir = Path(tmp_path) / "global" / "pipxhome"
-    global_bin_dir = Path(tmp_path) / "global" / "pipxbindir"
-    global_man_dir = Path(tmp_path) / "otherdir" / "pipxmandir"
+    global_bin_dir = Path(tmp_path) / "global_otherdir" / "pipxbindir"
+    global_man_dir = Path(tmp_path) / "global_otherdir" / "pipxmandir"
 
     # Patch in test specific base paths
     monkeypatch.setattr(paths.ctx, "_base_shared_libs", pipx_shared_dir)

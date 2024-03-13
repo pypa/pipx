@@ -2,7 +2,6 @@ import pytest  # type: ignore
 
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, skip_if_windows
 from package_info import PKG
-from pipx import paths
 
 
 def test_upgrade(pipx_temp_env, capsys):
@@ -32,9 +31,6 @@ def test_upgrade_global(pipx_temp_env, capsys):
     assert not run_pipx_cli(["--global", "upgrade", "pycowsay"])
     captured = capsys.readouterr()
     assert "pycowsay is already at latest version" in captured.out
-
-    # reset to local to avoid side effects
-    paths.ctx.make_local()
 
 
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
