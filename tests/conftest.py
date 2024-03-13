@@ -201,6 +201,8 @@ def pipx_temp_env(tmp_path, monkeypatch, pipx_session_shared_dir, request, utils
     seamless.
     """
     pipx_temp_env_helper(pipx_session_shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pipx_local_pypiserver)
+    yield
+    paths.ctx.make_local()
 
 
 @pytest.fixture
@@ -215,3 +217,5 @@ def pipx_ultra_temp_env(tmp_path, monkeypatch, request, utils_temp_dir, pipx_loc
     """
     shared_dir = Path(tmp_path) / "shareddir"
     pipx_temp_env_helper(shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pipx_local_pypiserver)
+    yield
+    paths.ctx.make_local()
