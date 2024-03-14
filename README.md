@@ -37,6 +37,7 @@ _For comparison to other tools including pipsi, see
 ```
 brew install pipx
 pipx ensurepath
+sudo pipx ensurepath --global # optional to allow pipx actions with --global argument
 ```
 
 Upgrade pipx with `brew update && brew upgrade pipx`.
@@ -49,6 +50,7 @@ Upgrade pipx with `brew update && brew upgrade pipx`.
 sudo apt update
 sudo apt install pipx
 pipx ensurepath
+sudo pipx ensurepath --global # optional to allow pipx actions with --global argument
 ```
 
 - Fedora:
@@ -56,6 +58,7 @@ pipx ensurepath
 ```
 sudo dnf install pipx
 pipx ensurepath
+sudo pipx ensurepath --global # optional to allow pipx actions with --global argument
 ```
 
 - Using `pip` on other distributions:
@@ -63,6 +66,7 @@ pipx ensurepath
 ```
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
+sudo pipx ensurepath --global # optional to allow pipx actions with --global argument
 ```
 
 Upgrade pipx with `python3 -m pip install --user --upgrade pipx`.
