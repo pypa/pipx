@@ -162,7 +162,7 @@ can be overridden with environment variable `PIPX_GLOBAL_MAN_DIR`. Finally, defa
 is `/opt/pipx`, can be overridden with environment variable `PIPX_GLOBAL_HOME`. Make sure to run `sudo pipx ensurepath --global`
 if you intend to use this feature.
 
-Note that `--global` argument is not supported on Windows.
+Note that the `--global` argument is not supported on Windows.
 
 ## Upgrade pipx
 
