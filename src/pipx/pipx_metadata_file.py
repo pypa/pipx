@@ -42,6 +42,7 @@ class PackageInfo(NamedTuple):
     man_pages_of_dependencies: List[str] = []
     man_paths_of_dependencies: Dict[str, List[Path]] = {}
     suffix: str = ""
+    pinned: bool = False
 
 
 class PipxMetadata:
@@ -49,7 +50,7 @@ class PipxMetadata:
     # V0.1 -> original version
     # V0.2 -> Improve handling of suffixes
     # V0.3 -> Add man pages fields
-    # V0.4 -> Add source interpreter
+    # V0.4 -> Add source interpreter, pinned
     __METADATA_VERSION__: str = "0.4"
 
     def __init__(self, venv_dir: Path, read: bool = True):
