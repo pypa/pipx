@@ -1,13 +1,13 @@
 name: Cluster API
 
-on: [ push, pull_request ]
+on: [ push ]
 
 jobs:
   cluster-api-tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php-versions: [ '8.0', '8.1', '8.2' ]
+        php-versions: [ '8.0', '8.1', '8.2', '8.3' ]
 
     name: PHP ${{ matrix.php-versions }}
 
