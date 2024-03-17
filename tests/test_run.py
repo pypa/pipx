@@ -354,6 +354,32 @@ def test_run_script_by_relative_name(caplog, pipx_temp_env, monkeypatch, tmp_pat
         run_pipx_cli_exit(["run", "test.py"])
     assert out.read_text() == test_str
 
+@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="uses file descriptor")
+def test_run_script_by_file_descriptor(caplog, pipx_temp_env, monkeypatch, tmp_path):
+    read_fd, write_fd = os.pipe()
+    out = tmp_path / "output.txt"
+    test_str = "Hello, world!"
+
+    os.write(
+        write_fd,
+        textwrap.dedent(
+            f"""
+                from pathlib import Path
+                Path({repr(str(out))}).write_text({repr(test_str)})
+            """
+        ).strip().encode("utf-8")
+    )
+    os.close(write_fd)
+    
+    with monkeypatch.context() as m:
+        m.chdir(tmp_path)
+        try:
+            run_pipx_cli_exit(["run", f'/dev/fd/{read_fd}'])        
+        finally:
+            os.close(read_fd)
+    assert out.read_text() == test_str
+
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="uses windows version format")
 @mock.patch("os.execvpe", new=execvpe_mock)

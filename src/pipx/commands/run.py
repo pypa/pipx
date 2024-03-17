@@ -42,16 +42,18 @@ Available executable scripts:
     {app_lines}"""
 
 
-def maybe_script_content(app: str, is_path: bool) -> Optional[Union[str, Path]]:
+def maybe_script_content(app: str, is_path: bool) -> Optional[str]:
     # If the app is a script, return its content.
     # Return None if it should be treated as a package name.
+    # Look for a local file first
+    try:
+        return Path(app).read_text(encoding="utf-8")
+    except (FileNotFoundError, IsADirectoryError):
+        pass
 
-    # Look for a local file first.
-    app_path = Path(app)
-    if app_path.is_file():
-        return app_path
-    elif is_path:
+    if is_path:
         raise PipxError(f"The specified path {app} does not exist")
+
 
     # Check for a URL
     if urllib.parse.urlparse(app).scheme:
