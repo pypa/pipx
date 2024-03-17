@@ -191,3 +191,16 @@ def test_skip_maintenance(pipx_temp_env):
     shared_libs.shared_libs.skip_upgrade = False
     assert not shared_libs.shared_libs.has_been_updated_this_run
     assert shared_libs.shared_libs.needs_upgrade
+
+
+def test_list_pinned_packages_only(pipx_temp_env, monkeypatch, capsys):
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["black"]["spec"]])
+    captured = capsys.readouterr()
+
+    assert not run_pipx_cli(["pin", "black"])
+    assert not run_pipx_cli(["list", "--pinned"])
+
+    captured = capsys.readouterr()
+    assert "black 22.8.0" in captured.out
+    assert "pycowsay 0.0.0.2" not in captured.out
