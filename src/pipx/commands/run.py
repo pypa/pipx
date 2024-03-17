@@ -45,6 +45,7 @@ Available executable scripts:
 def maybe_script_content(app: str, is_path: bool) -> Optional[Union[str, Path]]:
     # If the app is a script, return its content.
     # Return None if it should be treated as a package name.
+
     # Look for a local file first
     app_path = Path(app)
     if app_path.is_file():
