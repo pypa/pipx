@@ -489,7 +489,8 @@ def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.
         help="Pin the specified package to prevent it from being upgraded",
         parents=[shared_parser],
     )
-    p.add_argument("package").completer = venv_completer
+    p.add_argument("package", help="Installed package to pin")
+
 
 def _add_unpin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
@@ -497,7 +498,7 @@ def _add_unpin(subparsers, venv_completer: VenvCompleter, shared_parser: argpars
         help="Unpin the specified package to allow it being upgraded",
         parents=[shared_parser],
     )
-    p.add_argument("package").completer = venv_completer
+    p.add_argument("package", help="Installed package to unpin")
 
 
 def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
