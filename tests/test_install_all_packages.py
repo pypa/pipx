@@ -12,6 +12,7 @@ Test pytest outcomes:
             including a pipx error or warning, incorrect list of
             installed apps, etc.
 """
+
 import io
 import os
 import re
