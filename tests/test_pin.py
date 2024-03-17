@@ -40,13 +40,11 @@ def test_pin_and_unpin_warning(monkeypatch, capsys, pipx_temp_env, caplog):
     assert not run_pipx_cli(["pin", "nox"])
     assert not run_pipx_cli(["pin", "nox"])
 
-    capsys.readouterr()
     assert "⚠️ Package nox already pinned" in caplog.text
 
     assert not run_pipx_cli(["unpin", "nox"])
     assert not run_pipx_cli(["unpin", "nox"])
 
-    capsys.readouterr()
     assert "⚠️ Package nox not pinned" in caplog.text
 
 
