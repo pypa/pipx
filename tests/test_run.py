@@ -354,6 +354,7 @@ def test_run_script_by_relative_name(caplog, pipx_temp_env, monkeypatch, tmp_pat
         run_pipx_cli_exit(["run", "test.py"])
     assert out.read_text() == test_str
 
+
 @mock.patch("os.execvpe", new=execvpe_mock)
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="uses file descriptor")
 def test_run_script_by_file_descriptor(caplog, pipx_temp_env, monkeypatch, tmp_path):
@@ -368,14 +369,16 @@ def test_run_script_by_file_descriptor(caplog, pipx_temp_env, monkeypatch, tmp_p
                 from pathlib import Path
                 Path({repr(str(out))}).write_text({repr(test_str)})
             """
-        ).strip().encode("utf-8")
+        )
+        .strip()
+        .encode("utf-8"),
     )
     os.close(write_fd)
-    
+
     with monkeypatch.context() as m:
         m.chdir(tmp_path)
         try:
-            run_pipx_cli_exit(["run", f'/dev/fd/{read_fd}'])        
+            run_pipx_cli_exit(["run", f"/dev/fd/{read_fd}"])
         finally:
             os.close(read_fd)
     assert out.read_text() == test_str

@@ -54,7 +54,6 @@ def maybe_script_content(app: str, is_path: bool) -> Optional[str]:
     if is_path:
         raise PipxError(f"The specified path {app} does not exist")
 
-
     # Check for a URL
     if urllib.parse.urlparse(app).scheme:
         if not app.endswith(".py"):
