@@ -91,7 +91,7 @@ def list_pinned(venv_dirs: Collection[Path]) -> VenvProblems:
         if venv_problems.any_():
             logger.warning(warning_str)
         else:
-            if venv_metadata.main_package.pinned:     
+            if venv_metadata.main_package.pinned:
                 print(
                     venv_metadata.main_package.package,
                     venv_metadata.main_package.package_version,
