@@ -136,6 +136,7 @@ def _upgrade_venv(
         logger.info("Ignoring --python as not combined with --install")
 
     venv = Venv(venv_dir, verbose=verbose)
+    venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
 
     if not venv.package_metadata:
         raise PipxError(
@@ -207,6 +208,7 @@ def upgrade_all(
     venv_container: VenvContainer,
     verbose: bool,
     *,
+    pip_args: List[str],
     include_injected: bool,
     skip: Sequence[str],
     force: bool,
@@ -216,6 +218,7 @@ def upgrade_all(
     venvs_upgraded = 0
     for venv_dir in venv_container.iter_venv_dirs():
         venv = Venv(venv_dir, verbose=verbose)
+        venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
         if venv_dir.name in skip or "--editable" in venv.pipx_metadata.main_package.pip_args:
             continue
         try:
