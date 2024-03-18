@@ -14,7 +14,7 @@ from urllib.request import urlopen
 import pytest  # type: ignore
 
 from helpers import WIN
-from pipx import commands, constants, interpreter, shared_libs, standalone_python, venv
+from pipx import commands, interpreter, paths, shared_libs, standalone_python, venv
 
 PIPX_TESTS_DIR = Path(".pipx_tests")
 PIPX_TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
@@ -69,17 +69,21 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_
     bin_dir = Path(tmp_path) / "otherdir" / "pipxbindir"
     man_dir = Path(tmp_path) / "otherdir" / "pipxmandir"
 
-    monkeypatch.setattr(constants, "PIPX_SHARED_LIBS", pipx_shared_dir)
+    global_home_dir = Path(tmp_path) / "global" / "pipxhome"
+    global_bin_dir = Path(tmp_path) / "global_otherdir" / "pipxbindir"
+    global_man_dir = Path(tmp_path) / "global_otherdir" / "pipxmandir"
+
+    # Patch in test specific base paths
+    monkeypatch.setattr(paths.ctx, "_base_shared_libs", pipx_shared_dir)
+    monkeypatch.setattr(paths.ctx, "_base_home", home_dir)
+    monkeypatch.setattr(paths.ctx, "_base_bin", bin_dir)
+    monkeypatch.setattr(paths.ctx, "_base_man", man_dir)
+    # Patch the default global paths so developers don't contaminate their own systems
+    monkeypatch.setattr(paths, "DEFAULT_PIPX_GLOBAL_BIN_DIR", global_bin_dir)
+    monkeypatch.setattr(paths, "DEFAULT_PIPX_GLOBAL_HOME", global_home_dir)
+    monkeypatch.setattr(paths, "DEFAULT_PIPX_GLOBAL_MAN_DIR", global_man_dir)
     monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())
     monkeypatch.setattr(venv, "shared_libs", shared_libs.shared_libs)
-
-    monkeypatch.setattr(constants, "PIPX_HOME", home_dir)
-    monkeypatch.setattr(constants, "LOCAL_BIN_DIR", bin_dir)
-    monkeypatch.setattr(constants, "LOCAL_MAN_DIR", man_dir)
-    monkeypatch.setattr(constants, "PIPX_STANDALONE_PYTHON_CACHEDIR", home_dir / "py")
-    monkeypatch.setattr(constants, "PIPX_LOCAL_VENVS", home_dir / "venvs")
-    monkeypatch.setattr(constants, "PIPX_VENV_CACHEDIR", home_dir / ".cache")
-    monkeypatch.setattr(constants, "PIPX_LOG_DIR", home_dir / "logs")
 
     monkeypatch.setattr(interpreter, "DEFAULT_PYTHON", sys.executable)
 
@@ -89,16 +93,16 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_
     # macOS needs /usr/bin in PATH to compile certain packages, but
     #   applications in /usr/bin cause test_install.py tests to raise warnings
     #   which make tests fail (e.g. on Github ansible apps exist in /usr/bin)
-    monkeypatch.setenv("PATH_ORIG", str(bin_dir) + os.pathsep + os.environ["PATH"])
-    monkeypatch.setenv("PATH_TEST", str(bin_dir))
-    monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + str(utils_temp_dir))
+    monkeypatch.setenv("PATH_ORIG", str(paths.ctx.bin_dir) + os.pathsep + os.environ["PATH"])
+    monkeypatch.setenv("PATH_TEST", str(paths.ctx.bin_dir))
+    monkeypatch.setenv("PATH", str(paths.ctx.bin_dir) + os.pathsep + str(utils_temp_dir))
     # On Windows, monkeypatch pipx.commands.common._can_symlink_cache to
-    #   indicate that constants.LOCAL_BIN_DIR and constants.LOCAL_MAN_DIR
+    #   indicate that paths.ctx.bin_dir and paths.ctx.man_dir
     #   cannot use symlinks, even if we're running as administrator and
     #   symlinks are actually possible.
     if WIN:
-        monkeypatch.setitem(commands.common._can_symlink_cache, constants.LOCAL_BIN_DIR, False)
-        monkeypatch.setitem(commands.common._can_symlink_cache, constants.LOCAL_MAN_DIR, False)
+        monkeypatch.setitem(commands.common._can_symlink_cache, paths.ctx.bin_dir, False)
+        monkeypatch.setitem(commands.common._can_symlink_cache, paths.ctx.man_dir, False)
     if not request.config.option.net_pypiserver:
         # IMPORTANT: use 127.0.0.1 not localhost
         #   Using localhost on Windows creates enormous slowdowns
@@ -197,6 +201,8 @@ def pipx_temp_env(tmp_path, monkeypatch, pipx_session_shared_dir, request, utils
     seamless.
     """
     pipx_temp_env_helper(pipx_session_shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pipx_local_pypiserver)
+    yield
+    paths.ctx.make_local()
 
 
 @pytest.fixture
@@ -211,3 +217,5 @@ def pipx_ultra_temp_env(tmp_path, monkeypatch, request, utils_temp_dir, pipx_loc
     """
     shared_dir = Path(tmp_path) / "shareddir"
     pipx_temp_env_helper(shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pipx_local_pypiserver)
+    yield
+    paths.ctx.make_local()

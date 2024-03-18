@@ -15,14 +15,26 @@ from helpers import (
     mock_legacy_venv,
     remove_venv_interpreter,
     run_pipx_cli,
+    skip_if_windows,
 )
 from package_info import PKG
-from pipx import constants, shared_libs
+from pipx import constants, paths, shared_libs
 from pipx.pipx_metadata_file import PackageInfo, _json_decoder_object_hook
 
 
 def test_cli(pipx_temp_env, monkeypatch, capsys):
     assert not run_pipx_cli(["list"])
+    captured = capsys.readouterr()
+    assert "nothing has been installed with pipx" in captured.err
+
+
+@skip_if_windows
+def test_cli_global(pipx_temp_env, monkeypatch, capsys):
+    assert not run_pipx_cli(["install", "pycowsay"])
+    captured = capsys.readouterr()
+    assert "installed package" in captured.out
+
+    assert not run_pipx_cli(["--global", "list"])
     captured = capsys.readouterr()
     assert "nothing has been installed with pipx" in captured.err
 
@@ -77,7 +89,7 @@ def test_list_suffix_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_ve
 
 
 def test_list_json(pipx_temp_env, capsys):
-    pipx_venvs_dir = constants.PIPX_HOME / "venvs"
+    pipx_venvs_dir = paths.ctx.home / "venvs"
     venv_bin_dir = "Scripts" if constants.WINDOWS else "bin"
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])

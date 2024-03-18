@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from typing import List, Optional
 
-from pipx import constants
+from pipx import paths
 from pipx.animate import animate
 from pipx.constants import WINDOWS
 from pipx.interpreter import DEFAULT_PYTHON
@@ -23,7 +23,7 @@ SHARED_LIBS_MAX_AGE_SEC = datetime.timedelta(days=30).total_seconds()
 
 class _SharedLibs:
     def __init__(self) -> None:
-        self.root = constants.PIPX_SHARED_LIBS
+        self.root = paths.ctx.shared_libs
         self.bin_path, self.python_path, self.man_path = get_venv_paths(self.root)
         self.pip_path = self.bin_path / ("pip" if not WINDOWS else "pip.exe")
         # i.e. bin_path is ~/.local/share/pipx/shared/bin

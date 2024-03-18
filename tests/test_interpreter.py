@@ -6,8 +6,9 @@ from unittest.mock import Mock
 import pytest  # type: ignore
 
 import pipx.interpreter
+import pipx.paths
 import pipx.standalone_python
-from pipx.constants import PIPX_STANDALONE_PYTHON_CACHEDIR, WINDOWS
+from pipx.constants import WINDOWS
 from pipx.interpreter import (
     InterpreterResolutionError,
     _find_default_windows_python,
@@ -190,7 +191,7 @@ def test_fetch_missing_python(monkeypatch, mocked_github_api):
         python_path = find_python_interpreter(target_python, fetch_missing_python=True)
         assert python_path is not None
         assert target_python in python_path
-        assert str(PIPX_STANDALONE_PYTHON_CACHEDIR) in python_path
+        assert str(pipx.paths.ctx.standalone_python_cachedir) in python_path
         if WINDOWS:
             assert python_path.endswith("python.exe")
         else:

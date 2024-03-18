@@ -1,13 +1,36 @@
 import pytest  # type: ignore
 
-from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli
+from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, skip_if_windows
 from package_info import PKG
 
 
 def test_upgrade(pipx_temp_env, capsys):
     assert run_pipx_cli(["upgrade", "pycowsay"])
+    captured = capsys.readouterr()
+    assert "Package is not installed" in captured.err
+
     assert not run_pipx_cli(["install", "pycowsay"])
+    captured = capsys.readouterr()
+    assert "installed package pycowsay" in captured.out
+
     assert not run_pipx_cli(["upgrade", "pycowsay"])
+    captured = capsys.readouterr()
+    assert "pycowsay is already at latest version" in captured.out
+
+
+@skip_if_windows
+def test_upgrade_global(pipx_temp_env, capsys):
+    assert run_pipx_cli(["--global", "upgrade", "pycowsay"])
+    captured = capsys.readouterr()
+    assert "Package is not installed" in captured.err
+
+    assert not run_pipx_cli(["--global", "install", "pycowsay"])
+    captured = capsys.readouterr()
+    assert "installed package pycowsay" in captured.out
+
+    assert not run_pipx_cli(["--global", "upgrade", "pycowsay"])
+    captured = capsys.readouterr()
+    assert "pycowsay is already at latest version" in captured.out
 
 
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
