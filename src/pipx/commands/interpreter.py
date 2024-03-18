@@ -1,14 +1,14 @@
 from pathlib import Path
 from typing import List
 
-from pipx import constants
+from pipx import constants, paths
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.util import is_paths_relative, rmdir
 from pipx.venv import Venv, VenvContainer
 
 
 def get_installed_standalone_interpreters() -> List[Path]:
-    return [python_dir for python_dir in constants.PIPX_STANDALONE_PYTHON_CACHEDIR.iterdir() if python_dir.is_dir()]
+    return [python_dir for python_dir in paths.ctx.standalone_python_cachedir.iterdir() if python_dir.is_dir()]
 
 
 def get_venvs_using_standalone_interpreter(venv_container: VenvContainer) -> List[Venv]:
@@ -35,7 +35,7 @@ def list_interpreters(
     interpreters = get_installed_standalone_interpreters()
     venvs = get_venvs_using_standalone_interpreter(venv_container)
     output: list[str] = []
-    output.append(f"Standalone interpreters are in {constants.PIPX_STANDALONE_PYTHON_CACHEDIR}")
+    output.append(f"Standalone interpreters are in {paths.ctx.standalone_python_cachedir}")
     for interpreter in interpreters:
         output.append(f"Python {interpreter.name}")
         used_in = get_interpreter_users(interpreter, venvs)

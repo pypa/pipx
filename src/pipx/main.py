@@ -19,8 +19,7 @@ import argcomplete
 import platformdirs
 from packaging.utils import canonicalize_name
 
-import pipx.constants
-from pipx import commands, constants
+from pipx import commands, constants, paths
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
 from pipx.constants import (
@@ -76,9 +75,9 @@ PIPX_DESCRIPTION = textwrap.dedent(
     Binaries can either be installed globally into isolated Virtual Environments
     or run directly in a temporary Virtual Environment.
 
-    Virtual Environment location is {str(constants.PIPX_LOCAL_VENVS)}.
-    Symlinks to apps are placed in {str(constants.LOCAL_BIN_DIR)}.
-    Symlinks to manual pages are placed in {str(constants.LOCAL_MAN_DIR)}.
+    Virtual Environment location is {str(paths.ctx.venvs)}.
+    Symlinks to apps are placed in {str(paths.ctx.bin_dir)}.
+    Symlinks to manual pages are placed in {str(paths.ctx.man_dir)}.
 
     """
 )
@@ -105,7 +104,7 @@ INSTALL_DESCRIPTION = textwrap.dedent(
     accessible on your $PATH. The package's manual pages installed in
     share/man/man[1-9] can be viewed with man on an operating system where
     it is available and the path in the environment variable `PIPX_MAN_DIR`
-    (default: {constants.DEFAULT_PIPX_MAN_DIR}) is in the man search path
+    (default: {paths.DEFAULT_PIPX_MAN_DIR}) is in the man search path
     ($MANPATH).
 
     The result: apps you can run from anywhere, located in packages
@@ -122,14 +121,14 @@ INSTALL_DESCRIPTION = textwrap.dedent(
 
     The PACKAGE_SPEC argument is passed directly to `pip install`.
 
-    The default virtual environment location is {constants.DEFAULT_PIPX_HOME}
+    The default virtual environment location is {paths.DEFAULT_PIPX_HOME}
     and can be overridden by setting the environment variable `PIPX_HOME`
     (Virtual Environments will be installed to `$PIPX_HOME/venvs`).
 
-    The default app location is {constants.DEFAULT_PIPX_BIN_DIR} and can be
+    The default app location is {paths.DEFAULT_PIPX_BIN_DIR} and can be
     overridden by setting the environment variable `PIPX_BIN_DIR`.
 
-    The default manual pages location is {constants.DEFAULT_PIPX_MAN_DIR} and
+    The default manual pages location is {paths.DEFAULT_PIPX_MAN_DIR} and
     can be overridden by setting the environment variable `PIPX_MAN_DIR`.
 
     The default python executable used to install a package is
@@ -177,10 +176,12 @@ def get_venv_args(parsed_args: Dict[str, str]) -> List[str]:
 
 def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.ArgumentParser]) -> ExitCode:  # noqa: C901
     verbose = args.verbose if "verbose" in args else False
+    if not constants.WINDOWS and args.is_global:
+        paths.ctx.make_global()
     pip_args = get_pip_args(vars(args))
     venv_args = get_venv_args(vars(args))
 
-    venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
+    venv_container = VenvContainer(paths.ctx.venvs)
 
     if "package" in args:
         package = args.package
@@ -232,8 +233,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             None,
             None,
             args.package_spec,
-            constants.LOCAL_BIN_DIR,
-            constants.LOCAL_MAN_DIR,
+            paths.ctx.bin_dir,
+            paths.ctx.man_dir,
             args.python,
             pip_args,
             venv_args,
@@ -260,8 +261,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         return commands.uninject(
             venv_dir,
             args.dependencies,
-            local_bin_dir=constants.LOCAL_BIN_DIR,
-            local_man_dir=constants.LOCAL_MAN_DIR,
+            local_bin_dir=paths.ctx.bin_dir,
+            local_man_dir=paths.ctx.man_dir,
             leave_deps=args.leave_deps,
             verbose=verbose,
         )
@@ -307,22 +308,27 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     elif args.command == "unpin":
         return commands.pin(venv_dir, verbose, unpin=True)
     elif args.command == "uninstall":
-        return commands.uninstall(venv_dir, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose)
+        return commands.uninstall(venv_dir, paths.ctx.bin_dir, paths.ctx.man_dir, verbose)
     elif args.command == "uninstall-all":
-        return commands.uninstall_all(venv_container, constants.LOCAL_BIN_DIR, constants.LOCAL_MAN_DIR, verbose)
+        return commands.uninstall_all(
+            venv_container,
+            paths.ctx.bin_dir,
+            paths.ctx.man_dir,
+            verbose,
+        )
     elif args.command == "reinstall":
         return commands.reinstall(
             venv_dir=venv_dir,
-            local_bin_dir=constants.LOCAL_BIN_DIR,
-            local_man_dir=constants.LOCAL_MAN_DIR,
+            local_bin_dir=paths.ctx.bin_dir,
+            local_man_dir=paths.ctx.man_dir,
             python=args.python,
             verbose=verbose,
         )
     elif args.command == "reinstall-all":
         return commands.reinstall_all(
             venv_container,
-            constants.LOCAL_BIN_DIR,
-            constants.LOCAL_MAN_DIR,
+            paths.ctx.bin_dir,
+            paths.ctx.man_dir,
             args.python,
             verbose,
             skip=skip_list,
@@ -769,7 +775,7 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
 
 
 def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.ArgumentParser]]:
-    venv_container = VenvContainer(constants.PIPX_LOCAL_VENVS)
+    venv_container = VenvContainer(paths.ctx.venvs)
 
     completer_venvs = InstalledVenvsCompleter(venv_container)
 
@@ -826,6 +832,13 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
     _add_ensurepath(subparsers, shared_parser)
     _add_environment(subparsers, shared_parser)
 
+    if not constants.WINDOWS:
+        parser.add_argument(
+            "--global",
+            action="store_true",
+            dest="is_global",
+            help="Perform action globally for all users.",
+        )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     subparsers.add_parser(
         "completions",
@@ -848,7 +861,7 @@ def delete_oldest_logs(file_list: List[Path], keep_number: int) -> None:
 
 def _setup_log_file(pipx_log_dir: Optional[Path] = None) -> Path:
     max_logs = 10
-    pipx_log_dir = pipx_log_dir or constants.PIPX_LOG_DIR
+    pipx_log_dir = pipx_log_dir or paths.ctx.logs
     # don't use utils.mkdir, to prevent emission of log message
     pipx_log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -876,7 +889,7 @@ def setup_log_file() -> Path:
 
 def setup_logging(verbose: int) -> None:
     pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
-    pipx.constants.pipx_log_file = setup_log_file()
+    paths.ctx.log_file = setup_log_file()
 
     # Determine logging level, a value between 0 and 50
     level_number = min(max(0, logging.WARNING - 10 * verbose), 50)
@@ -912,7 +925,7 @@ def setup_logging(verbose: int) -> None:
             "file": {
                 "class": "logging.FileHandler",
                 "formatter": "file",
-                "filename": str(pipx.constants.pipx_log_file),
+                "filename": str(paths.ctx.log_file),
                 "encoding": "utf-8",
                 "level": "DEBUG",
             },
@@ -937,15 +950,15 @@ def setup(args: argparse.Namespace) -> None:
     logger.info(f"pipx version is {__version__}")
     logger.info(f"Default python interpreter is '{DEFAULT_PYTHON}'")
 
-    mkdir(constants.PIPX_LOCAL_VENVS)
-    mkdir(constants.LOCAL_BIN_DIR)
-    mkdir(constants.LOCAL_MAN_DIR)
-    mkdir(constants.PIPX_VENV_CACHEDIR)
-    mkdir(constants.PIPX_STANDALONE_PYTHON_CACHEDIR)
+    mkdir(paths.ctx.venvs)
+    mkdir(paths.ctx.bin_dir)
+    mkdir(paths.ctx.man_dir)
+    mkdir(paths.ctx.venv_cache)
+    mkdir(paths.ctx.standalone_python_cachedir)
 
     for cachedir in [
-        constants.PIPX_VENV_CACHEDIR,
-        constants.PIPX_STANDALONE_PYTHON_CACHEDIR,
+        paths.ctx.venv_cache,
+        paths.ctx.standalone_python_cachedir,
     ]:
         cachedir_tag = cachedir / "CACHEDIR.TAG"
         if not cachedir_tag.exists():
@@ -959,9 +972,9 @@ def setup(args: argparse.Namespace) -> None:
             with open(cachedir_tag, "w") as file:
                 file.write(signature)
 
-    rmdir(constants.PIPX_TRASH_DIR, False)
+    rmdir(paths.ctx.trash, False)
 
-    old_pipx_venv_location = constants.PIPX_LOCAL_VENVS / "pipx-app"
+    old_pipx_venv_location = paths.ctx.venvs / "pipx-app"
     if old_pipx_venv_location.exists():
         logger.warning(
             pipx_wrap(
