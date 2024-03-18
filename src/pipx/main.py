@@ -303,7 +303,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         else:
             raise PipxError(f"Unknown interpreter command {args.interpreter_command}")
     elif args.command == "pin":
-        return commands.pin(venv_dir, verbose, unpin=False)
+        return commands.pin(venv_dir, verbose)
     elif args.command == "unpin":
         return commands.pin(venv_dir, verbose, unpin=True)
     elif args.command == "uninstall":
