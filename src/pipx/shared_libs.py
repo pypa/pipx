@@ -31,7 +31,6 @@ class _SharedLibs:
         self._site_packages: Optional[Path] = None
         self.has_been_updated_this_run = False
         self.has_been_logged_this_run = False
-        self.skip_upgrade = False
 
     @property
     def site_packages(self) -> Path:
@@ -40,7 +39,7 @@ class _SharedLibs:
 
         return self._site_packages
 
-    def create(self, verbose: bool = False) -> None:
+    def create(self, pip_args: List[str], verbose: bool = False) -> None:
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
                 create_process = run_subprocess(
@@ -52,7 +51,9 @@ class _SharedLibs:
 
             # ignore installed packages to ensure no unexpected patches from the OS vendor
             # are used
-            self.upgrade(pip_args=["--force-reinstall"], verbose=verbose)
+            pip_args = pip_args or []
+            pip_args.append("--force-reinstall")
+            self.upgrade(pip_args=pip_args, verbose=verbose)
 
     @property
     def is_valid(self) -> bool:
@@ -70,7 +71,7 @@ class _SharedLibs:
 
     @property
     def needs_upgrade(self) -> bool:
-        if self.has_been_updated_this_run or self.skip_upgrade:
+        if self.has_been_updated_this_run:
             return False
 
         if not self.pip_path.is_file():
@@ -86,9 +87,9 @@ class _SharedLibs:
             self.has_been_logged_this_run = True
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
-    def upgrade(self, *, pip_args: Optional[List[str]] = None, verbose: bool = False) -> None:
+    def upgrade(self, *, pip_args: List[str], verbose: bool = False) -> None:
         if not self.is_valid:
-            self.create(verbose=verbose)
+            self.create(verbose=verbose, pip_args=pip_args)
             return
 
         # Don't try to upgrade multiple times per run

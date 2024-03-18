@@ -97,6 +97,7 @@ def run_script(
             logger.info(f"Reusing cached venv {venv_dir}")
         else:
             venv = Venv(venv_dir, python=python, verbose=verbose)
+            venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
             venv.create_venv(venv_args, pip_args)
             venv.install_unmanaged_packages(requirements, pip_args)
         python_path = venv.python_path
@@ -228,6 +229,7 @@ def _download_and_run(
     verbose: bool,
 ) -> NoReturn:
     venv = Venv(venv_dir, python=python, verbose=verbose)
+    venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
 
     if venv.pipx_metadata.main_package.package is not None:
         package_name = venv.pipx_metadata.main_package.package

@@ -15,7 +15,7 @@ from pipx import shared_libs
 )
 def test_auto_update_shared_libs(capsys, pipx_ultra_temp_env, mtime_minus_now, needs_upgrade):
     now = time.time()
-    shared_libs.shared_libs.create(verbose=True)
+    shared_libs.shared_libs.create(verbose=True, pip_args=[])
     shared_libs.shared_libs.has_been_updated_this_run = False
 
     access_time = now  # this can be anything
