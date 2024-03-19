@@ -19,7 +19,7 @@ pipx install --pip-args='--index-url=<private-repo-host>:<private-repo-port> --t
 pipx install --index-url https://test.pypi.org/simple/ --pip-args='--extra-index-url https://pypi.org/simple/' some-package
 pipx --global install pycowsay
 pipx install .
-pipx install ./src
+pipx install path/to/some-project
 ```
 
 ## `pipx run` examples
