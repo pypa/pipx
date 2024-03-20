@@ -8,7 +8,7 @@ use Cyberfusion\ClusterApi\Support\Validator;
 class BasicAuthenticationRealm extends ClusterModel
 {
     private string $name;
-    private string $directoryPath;
+    private ?string $directoryPath;
     private int $virtualHostId;
     private int $htpasswdFileId;
     private ?int $id = null;
@@ -24,6 +24,7 @@ class BasicAuthenticationRealm extends ClusterModel
     public function setName(string $name): self
     {
         Validator::value($name)
+            ->minLength(1)
             ->maxLength(64)
             ->pattern('^[a-zA-Z0-9-_ ]+$')
             ->validate();
@@ -33,15 +34,16 @@ class BasicAuthenticationRealm extends ClusterModel
         return $this;
     }
 
-    public function getDirectoryPath(): string
+    public function getDirectoryPath(): ?string
     {
         return $this->directoryPath;
     }
 
-    public function setDirectoryPath(string $directoryPath): self
+    public function setDirectoryPath(?string $directoryPath): self
     {
         Validator::value($directoryPath)
             ->path()
+            ->nullable()
             ->validate();
 
         $this->directoryPath = $directoryPath;

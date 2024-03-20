@@ -6,13 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
 for detailed information.
 
-# [1.110.0]
+## [1.111.0]
+
+### Changed
+
+- Updated the minimum password length validation for the `HtpasswdUser` model.
+
+### Fixed
+
+- Change the `directory_path` to be nullable for the `BasicAuthenticationRealm` model.
+
+## [1.110.0]
 
 ### Added
 
 - Add support for Laravel 11.
 
-# [1.109.0]
+## [1.109.0]
 
 ### Changed
 
@@ -23,19 +33,19 @@ for detailed information.
 * Cluster malware toolkit attributes.
 * Firewall rules update endpoint.
 
-# [1.108.2]
+## [1.108.2]
 
 ### Fixed
 
 * In clusters, add `nullable()` to `meilisearchEnvironment` validator. This one was missed in 1.108.1.
 
-# [1.108.1]
+## [1.108.1]
 
 ### Fixed
 
 * In clusters, add `nullable()` to validators where missing.
 
-# [1.108.0]
+## [1.108.0]
 
 ### Added
 
