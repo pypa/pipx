@@ -23,6 +23,7 @@ class HtpasswdUser extends ClusterModel
     public function setUsername(string $username): self
     {
         Validator::value($username)
+            ->minLength(1)
             ->maxLength(255)
             ->pattern('^[a-z0-9-_]+$')
             ->validate();
@@ -40,6 +41,7 @@ class HtpasswdUser extends ClusterModel
     public function setPassword(string $password): self
     {
         Validator::value($password)
+            ->minLength(24)
             ->maxLength(255)
             ->pattern('^[ -~]+$')
             ->validate();
