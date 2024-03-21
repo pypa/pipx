@@ -62,13 +62,11 @@ zsh:
 
     eval "$(register-python-argcomplete pipx)"
 
-    > [!NOTE]
-    >
-    > If your version of argcomplete is earlier than v3, you may need to
+    NOTE: If your version of argcomplete is earlier than v3, you may need to
     have bashcompinit enabled in zsh by running:
-    >
-    > autoload -U bashcompinit
-    > bashcompinit
+    
+    autoload -U bashcompinit
+    bashcompinit
 
 
 tcsh:
