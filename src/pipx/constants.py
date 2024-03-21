@@ -58,19 +58,18 @@ zsh:
 
     autoload -U compinit && compinit
 
-    Afterwards you can enable completion for pipx:
+    Afterwards you can enable completions for pipx:
 
     eval "$(register-python-argcomplete pipx)"
 
-    NOTE: If your version of argcomplete is earlier than v3, you may need to
+    > [!NOTE]
+    >
+    > If your version of argcomplete is earlier than v3, you may need to
     have bashcompinit enabled in zsh by running:
+    >
+    > autoload -U bashcompinit
+    > bashcompinit
 
-    autoload -U bashcompinit
-    bashcompinit
-
-    and then following with:
-
-    eval "$(register-python-argcomplete pipx)"
 
 tcsh:
     eval `register-python-argcomplete --shell tcsh pipx`
