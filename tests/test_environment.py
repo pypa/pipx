@@ -1,13 +1,8 @@
 import fnmatch
-import os
 from pathlib import Path
 
 from helpers import run_pipx_cli, skip_if_windows
-
-
-def load_dir_from_environ(dir_name: str, default: Path) -> Path:
-    env = os.environ.get(dir_name, default)
-    return Path(os.path.expanduser(env)).resolve()
+from pipx.paths import get_expanded_environ
 
 
 def test_cli(pipx_temp_env, monkeypatch, capsys):
@@ -47,15 +42,11 @@ def test_cli_with_args(monkeypatch, capsys):
 def test_resolve_user_dir_in_env_paths(monkeypatch):
     monkeypatch.setenv("TEST_DIR", "~/test")
     home = Path.home()
-    env_dir = load_dir_from_environ("TEST_DIR", Path.home())
+    env_dir = get_expanded_environ("TEST_DIR")
     assert "~" not in str(env_dir)
     assert env_dir == home / "test"
-
-
-def test_resolve_user_dir_in_env_paths_env_not_set(monkeypatch):
-    home = Path.home()
-    env_dir = load_dir_from_environ("TEST_DIR", Path.home())
-    assert env_dir == home
+    env_dir = get_expanded_environ("THIS_SHOULD_NOT_EXIST")
+    assert env_dir is None
 
 
 @skip_if_windows
