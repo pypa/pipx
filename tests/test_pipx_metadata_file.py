@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest  # type: ignore
 
-import pipx.constants
 from helpers import assert_package_metadata, create_package_info_ref, run_pipx_cli
 from package_info import PKG
+from pipx import paths
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 from pipx.util import PipxError
 
@@ -89,7 +89,7 @@ def test_pipx_metadata_file_validation(tmp_path, test_package):
 
 
 def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
-    pipx_venvs_dir = pipx.constants.PIPX_HOME / "venvs"
+    pipx_venvs_dir = paths.ctx.home / "venvs"
 
     run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert (pipx_venvs_dir / "pycowsay" / "pipx_metadata.json").is_file()
@@ -101,7 +101,7 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
 
 
 def test_package_inject(monkeypatch, tmp_path, pipx_temp_env):
-    pipx_venvs_dir = pipx.constants.PIPX_HOME / "venvs"
+    pipx_venvs_dir = paths.ctx.home / "venvs"
 
     run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])

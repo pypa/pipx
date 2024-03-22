@@ -11,7 +11,7 @@ import pipx.main
 import pipx.util
 from helpers import run_pipx_cli
 from package_info import PKG
-from pipx import constants
+from pipx import paths, shared_libs
 
 
 def test_help_text(pipx_temp_env, monkeypatch, capsys):
@@ -63,7 +63,7 @@ def test_cache(pipx_temp_env, monkeypatch, capsys, caplog):
 
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_cachedir_tag(pipx_ultra_temp_env, monkeypatch, capsys, caplog):
-    tag_path = constants.PIPX_VENV_CACHEDIR / "CACHEDIR.TAG"
+    tag_path = paths.ctx.venv_cache / "CACHEDIR.TAG"
     assert not tag_path.exists()
 
     # Run pipx to create tag
@@ -297,6 +297,21 @@ def test_run_with_requirements_and_args(caplog, pipx_temp_env, tmp_path):
     )
     run_pipx_cli_exit(["run", script.as_uri(), "1"])
     assert out.read_text() == "2"
+
+
+def test_pip_args_forwarded_to_shared_libs(pipx_ultra_temp_env, capsys, caplog):
+    # strategy:
+    # 1. start from an empty env to ensure the next command would trigger a shared lib update
+    assert shared_libs.shared_libs.needs_upgrade
+    # 2. install any package with --no-index
+    # and check that the shared library update phase fails
+    return_code = run_pipx_cli(["run", "--verbose", "--pip-args=--no-index", "pycowsay", "hello"])
+    assert "Upgrading shared libraries in" in caplog.text
+
+    captured = capsys.readouterr()
+    assert return_code != 0
+    assert "ERROR: Could not find a version that satisfies the requirement pip" in captured.err
+    assert "Failed to upgrade shared libraries" in caplog.text
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)

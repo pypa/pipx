@@ -15,14 +15,26 @@ from helpers import (
     mock_legacy_venv,
     remove_venv_interpreter,
     run_pipx_cli,
+    skip_if_windows,
 )
 from package_info import PKG
-from pipx import constants, shared_libs
+from pipx import constants, paths, shared_libs
 from pipx.pipx_metadata_file import PackageInfo, _json_decoder_object_hook
 
 
 def test_cli(pipx_temp_env, monkeypatch, capsys):
     assert not run_pipx_cli(["list"])
+    captured = capsys.readouterr()
+    assert "nothing has been installed with pipx" in captured.err
+
+
+@skip_if_windows
+def test_cli_global(pipx_temp_env, monkeypatch, capsys):
+    assert not run_pipx_cli(["install", "pycowsay"])
+    captured = capsys.readouterr()
+    assert "installed package" in captured.out
+
+    assert not run_pipx_cli(["--global", "list"])
     captured = capsys.readouterr()
     assert "nothing has been installed with pipx" in captured.err
 
@@ -77,7 +89,7 @@ def test_list_suffix_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_ve
 
 
 def test_list_json(pipx_temp_env, capsys):
-    pipx_venvs_dir = constants.PIPX_HOME / "venvs"
+    pipx_venvs_dir = paths.ctx.home / "venvs"
     venv_bin_dir = "Scripts" if constants.WINDOWS else "bin"
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
@@ -163,12 +175,12 @@ def test_list_standalone_interpreter(pipx_temp_env, monkeypatch, mocked_github_a
     assert "standalone" in captured.out
 
 
-def test_skip_maintenance(pipx_temp_env):
+def test_list_does_not_trigger_maintenance(pipx_temp_env, caplog):
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
 
     now = time.time()
-    shared_libs.shared_libs.create(verbose=True)
+    shared_libs.shared_libs.create(verbose=True, pip_args=[])
     shared_libs.shared_libs.has_been_updated_this_run = False
 
     access_time = now  # this can be anything
@@ -178,9 +190,11 @@ def test_skip_maintenance(pipx_temp_env):
     )
     assert shared_libs.shared_libs.needs_upgrade
     run_pipx_cli(["list"])
-    assert shared_libs.shared_libs.has_been_updated_this_run
-    assert not shared_libs.shared_libs.needs_upgrade
+    assert not shared_libs.shared_libs.has_been_updated_this_run
+    assert shared_libs.shared_libs.needs_upgrade
 
+    # same test with --skip-maintenance, which is a no-op
+    # we expect the same result, along with a warning
     os.utime(
         shared_libs.shared_libs.pip_path,
         (access_time, -shared_libs.SHARED_LIBS_MAX_AGE_SEC - 5 * 60 + now),
@@ -188,6 +202,5 @@ def test_skip_maintenance(pipx_temp_env):
     shared_libs.shared_libs.has_been_updated_this_run = False
     assert shared_libs.shared_libs.needs_upgrade
     run_pipx_cli(["list", "--skip-maintenance"])
-    shared_libs.shared_libs.skip_upgrade = False
     assert not shared_libs.shared_libs.has_been_updated_this_run
     assert shared_libs.shared_libs.needs_upgrade

@@ -17,6 +17,9 @@ pipx install --include-deps jupyter
 pipx install --pip-args='--pre' poetry
 pipx install --pip-args='--index-url=<private-repo-host>:<private-repo-port> --trusted-host=<private-repo-host>:<private-repo-port>' private-repo-package
 pipx install --index-url https://test.pypi.org/simple/ --pip-args='--extra-index-url https://pypi.org/simple/' some-package
+pipx --global install pycowsay
+pipx install .
+pipx install path/to/some-project
 ```
 
 ## `pipx run` examples

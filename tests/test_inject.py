@@ -1,12 +1,18 @@
 import pytest  # type: ignore
 
-from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli
+from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, skip_if_windows
 from package_info import PKG
 
 
 def test_inject_simple(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
+
+
+@skip_if_windows
+def test_inject_simple_global(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["--global", "install", "pycowsay"])
+    assert not run_pipx_cli(["--global", "inject", "pycowsay", PKG["black"]["spec"]])
 
 
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)

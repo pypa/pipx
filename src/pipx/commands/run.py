@@ -12,7 +12,7 @@ from typing import List, NoReturn, Optional, Union
 
 from packaging.requirements import InvalidRequirement, Requirement
 
-from pipx import constants
+from pipx import paths
 from pipx.commands.common import package_name_from_spec
 from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
 from pipx.emojis import hazard
@@ -101,6 +101,7 @@ def run_script(
             logger.info(f"Reusing cached venv {venv_dir}")
         else:
             venv = Venv(venv_dir, python=python, verbose=verbose)
+            venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
             venv.create_venv(venv_args, pip_args)
             venv.install_unmanaged_packages(requirements, pip_args)
         python_path = venv.python_path
@@ -232,6 +233,7 @@ def _download_and_run(
     verbose: bool,
 ) -> NoReturn:
     venv = Venv(venv_dir, python=python, verbose=verbose)
+    venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
 
     if venv.pipx_metadata.main_package.package is not None:
         package_name = venv.pipx_metadata.main_package.package
@@ -292,7 +294,7 @@ def _get_temporary_venv_path(requirements: List[str], python: str, pip_args: Lis
     m.update("".join(pip_args).encode())
     m.update("".join(venv_args).encode())
     venv_folder_name = m.hexdigest()[:15]  # 15 chosen arbitrarily
-    return Path(constants.PIPX_VENV_CACHEDIR) / venv_folder_name
+    return Path(paths.ctx.venv_cache) / venv_folder_name
 
 
 def _is_temporary_venv_expired(venv_dir: Path) -> bool:
@@ -312,7 +314,7 @@ def _prepare_venv_cache(venv: Venv, bin_path: Optional[Path], use_cache: bool) -
 
 
 def _remove_all_expired_venvs() -> None:
-    for venv_dir in Path(constants.PIPX_VENV_CACHEDIR).iterdir():
+    for venv_dir in Path(paths.ctx.venv_cache).iterdir():
         if _is_temporary_venv_expired(venv_dir):
             logger.info(f"Removing expired venv {str(venv_dir)}")
             rmdir(venv_dir)

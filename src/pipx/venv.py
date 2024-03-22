@@ -77,10 +77,6 @@ class VenvContainer:
         """Return the expected venv path for given `package_name`."""
         return self._root.joinpath(canonicalize_name(package_name))
 
-    def verify_shared_libs(self) -> None:
-        for p in self.iter_venv_dirs():
-            Venv(p)
-
 
 class Venv:
     """Abstraction for a virtual environment with various useful methods for pipx"""
@@ -97,12 +93,21 @@ class Venv:
         except StopIteration:
             self._existing = False
 
+    def check_upgrade_shared_libs(self, verbose: bool, pip_args: List[str], force_upgrade: bool = False):
+        """
+        If necessary, run maintenance tasks to keep the shared libs up-to-date.
+
+        This can trigger `pip install`/`pip install --upgrade` operations,
+        so we expect the caller to provide sensible `pip_args`
+        ( provided by the user in the current CLI call
+        or retrieved from the metadata of a previous installation)
+        """
         if self._existing and self.uses_shared_libs:
             if shared_libs.is_valid:
-                if shared_libs.needs_upgrade:
-                    shared_libs.upgrade(verbose=verbose)
+                if force_upgrade or shared_libs.needs_upgrade:
+                    shared_libs.upgrade(verbose=verbose, pip_args=pip_args)
             else:
-                shared_libs.create(verbose)
+                shared_libs.create(verbose=verbose, pip_args=pip_args)
 
             if not shared_libs.is_valid:
                 raise PipxError(
@@ -161,7 +166,7 @@ class Venv:
             venv_process = run_subprocess(cmd + venv_args + [str(self.root)], run_dir=str(self.root))
         subprocess_post_check(venv_process)
 
-        shared_libs.create(self.verbose)
+        shared_libs.create(verbose=self.verbose, pip_args=pip_args)
         if not override_shared:
             pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
             # write path pointing to the shared libs site-packages directory

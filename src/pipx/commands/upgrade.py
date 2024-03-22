@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from typing import List, Optional, Sequence
 
-from pipx import commands, constants
+from pipx import commands, paths
 from pipx.colors import bold, red
 from pipx.commands.common import expose_resources_globally
 from pipx.constants import EXIT_CODE_OK, ExitCode
@@ -50,24 +50,24 @@ def _upgrade_package(
     if package_metadata.include_apps:
         expose_resources_globally(
             "app",
-            constants.LOCAL_BIN_DIR,
+            paths.ctx.bin_dir,
             package_metadata.app_paths,
             force=force,
             suffix=package_metadata.suffix,
         )
-        expose_resources_globally("man", constants.LOCAL_MAN_DIR, package_metadata.man_paths, force=force)
+        expose_resources_globally("man", paths.ctx.man_dir, package_metadata.man_paths, force=force)
 
     if package_metadata.include_dependencies:
         for _, app_paths in package_metadata.app_paths_of_dependencies.items():
             expose_resources_globally(
                 "app",
-                constants.LOCAL_BIN_DIR,
+                paths.ctx.bin_dir,
                 app_paths,
                 force=force,
                 suffix=package_metadata.suffix,
             )
         for _, man_paths in package_metadata.man_paths_of_dependencies.items():
-            expose_resources_globally("man", constants.LOCAL_MAN_DIR, man_paths, force=force)
+            expose_resources_globally("man", paths.ctx.man_dir, man_paths, force=force)
 
     if old_version == new_version:
         if upgrading_all:
@@ -113,8 +113,8 @@ def _upgrade_venv(
                 venv_args=[],
                 package_names=None,
                 package_specs=[str(venv_dir).split(os.path.sep)[-1]],
-                local_bin_dir=constants.LOCAL_BIN_DIR,
-                local_man_dir=constants.LOCAL_MAN_DIR,
+                local_bin_dir=paths.ctx.bin_dir,
+                local_man_dir=paths.ctx.man_dir,
                 python=python,
                 pip_args=pip_args,
                 verbose=verbose,
@@ -136,6 +136,7 @@ def _upgrade_venv(
         logger.info("Ignoring --python as not combined with --install")
 
     venv = Venv(venv_dir, verbose=verbose)
+    venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
 
     if not venv.package_metadata:
         raise PipxError(
@@ -207,6 +208,7 @@ def upgrade_all(
     venv_container: VenvContainer,
     verbose: bool,
     *,
+    pip_args: List[str],
     include_injected: bool,
     skip: Sequence[str],
     force: bool,
@@ -216,6 +218,7 @@ def upgrade_all(
     venvs_upgraded = 0
     for venv_dir in venv_container.iter_venv_dirs():
         venv = Venv(venv_dir, verbose=verbose)
+        venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
         if venv_dir.name in skip or "--editable" in venv.pipx_metadata.main_package.pip_args:
             continue
         try:

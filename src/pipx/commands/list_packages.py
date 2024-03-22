@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from typing import Any, Collection, Dict, Tuple
 
-from pipx import constants, shared_libs
+from pipx import paths
 from pipx.colors import bold
 from pipx.commands.common import VenvProblems, get_venv_summary, venv_health_check
 from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK, ExitCode
@@ -45,8 +45,8 @@ def list_short(venv_dirs: Collection[Path]) -> VenvProblems:
 
 def list_text(venv_dirs: Collection[Path], include_injected: bool, venv_root_dir: str) -> VenvProblems:
     print(f"venvs are in {bold(venv_root_dir)}")
-    print(f"apps are exposed on your $PATH at {bold(str(constants.LOCAL_BIN_DIR))}")
-    print(f"manual pages are exposed at {bold(str(constants.LOCAL_MAN_DIR))}")
+    print(f"apps are exposed on your $PATH at {bold(str(paths.ctx.bin_dir))}")
+    print(f"manual pages are exposed at {bold(str(paths.ctx.man_dir))}")
 
     all_venv_problems = VenvProblems()
     for venv_dir in venv_dirs:
@@ -89,18 +89,11 @@ def list_packages(
     include_injected: bool,
     json_format: bool,
     short_format: bool,
-    skip_maintenance: bool,
 ) -> ExitCode:
     """Returns pipx exit code."""
     venv_dirs: Collection[Path] = sorted(venv_container.iter_venv_dirs())
     if not venv_dirs:
         print(f"nothing has been installed with pipx {sleep}", file=sys.stderr)
-
-    if skip_maintenance:
-        shared_libs.shared_libs.skip_upgrade = True
-        logger.info("Skipping shared libs maintenance tasks")
-
-    venv_container.verify_shared_libs()
 
     if json_format:
         all_venv_problems = list_json(venv_dirs)
