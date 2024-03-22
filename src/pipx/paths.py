@@ -4,8 +4,10 @@ from typing import Optional, Union
 
 from platformdirs import user_cache_path, user_data_path, user_log_path
 
-DEFAULT_PIPX_HOME = user_data_path("pipx")
-FALLBACK_PIPX_HOME = Path.home() / ".local/pipx"
+from pipx.constants import LINUX
+
+DEFAULT_PIPX_HOME = user_data_path("pipx") if LINUX else Path.home() / ".local/pipx"
+FALLBACK_PIPX_HOME = Path.home() / ".local/pipx" if LINUX else user_data_path("pipx")
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 DEFAULT_PIPX_MAN_DIR = Path.home() / ".local/share/man"
 DEFAULT_PIPX_GLOBAL_HOME = "/opt/pipx"
@@ -25,7 +27,7 @@ class _PathContext:
     _base_bin: Optional[Union[Path, str]] = get_expanded_environ("PIPX_BIN_DIR")
     _base_man: Optional[Union[Path, str]] = get_expanded_environ("PIPX_MAN_DIR")
     _base_shared_libs: Optional[Union[Path, str]] = get_expanded_environ("PIPX_SHARED_LIBS")
-    _fallback_home: Path = Path.home() / ".local/pipx"
+    _fallback_home: Path = FALLBACK_PIPX_HOME
     _home_exists: bool = _base_home is not None or _fallback_home.exists()
     log_file: Optional[Path] = None
 
@@ -35,7 +37,7 @@ class _PathContext:
 
     @property
     def logs(self) -> Path:
-        if self._home_exists:
+        if self._home_exists or not LINUX:
             return self.home / "logs"
         return user_log_path("pipx")
 
@@ -47,7 +49,7 @@ class _PathContext:
 
     @property
     def venv_cache(self) -> Path:
-        if self._home_exists:
+        if self._home_exists or not LINUX:
             return self.home / ".cache"
         return user_cache_path("pipx")
 

@@ -29,11 +29,21 @@ def is_windows() -> bool:
     return sys.platform == "win32"
 
 
+def is_macos() -> bool:
+    return sys.platform == "darwin"
+
+
+def is_linux() -> bool:
+    return not WINDOWS and not MACOS
+
+
 def is_mingw() -> bool:
     return sysconfig.get_platform().startswith("mingw")
 
 
 WINDOWS: bool = is_windows()
+MACOS: bool = is_macos()
+LINUX: bool = is_linux()
 MINGW: bool = is_mingw()
 
 completion_instructions = dedent(
