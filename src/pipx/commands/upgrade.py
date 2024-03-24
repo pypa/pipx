@@ -28,6 +28,8 @@ def _upgrade_package(
 
     if package_metadata.package_or_url is None:
         raise PipxError(f"Internal Error: package {package_name} has corrupt pipx metadata.")
+    elif package_metadata.pinned:
+        raise PipxError(f"Not upgrading pinned package {venv.name}. Run `pipx unpin {venv.name}` to unpin it.")
 
     package_or_url = parse_specifier_for_upgrade(package_metadata.package_or_url)
     old_version = package_metadata.package_version
