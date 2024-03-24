@@ -38,7 +38,7 @@ MINGW: bool = is_mingw()
 
 completion_instructions = dedent(
     """
-If you do not already have argcomplete installed,
+If you encountered register-python-argcomplete command not found error,
 or if you are using zipapp, run
 
     pipx install argcomplete
