@@ -50,7 +50,11 @@ def maybe_script_content(app: str, is_path: bool) -> Optional[Union[str, Path]]:
     app_path = Path(app)
     if app_path.is_file():
         return app_path
-    elif is_path:
+    # In case it's a named pipe, read it out to pass to the interpreter
+    if app_path.is_fifo():
+        return app_path.read_text(encoding="utf-8")
+
+    if is_path:
         raise PipxError(f"The specified path {app} does not exist")
 
     # Check for a URL
