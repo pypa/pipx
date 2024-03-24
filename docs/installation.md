@@ -155,8 +155,9 @@ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin PIPX_MAN_DIR=/usr/local/sha
 >
 > `user_data_dir()`, `user_cache_dir()` and `user_log_dir()` resolve to appropriate platform-specific user data, cache and log directories.
 > See the [platformdirs documentation](https://platformdirs.readthedocs.io/en/latest/api.html#platforms) for details.
+>
 > This was reverted in 1.5.0 for Windows and MacOS. We heavily recommend not using these locations on Windows and MacOS anymore, due to
-> multiple incompatibilities discovered with these files, documented [here](https://github.com/pypa/pipx/discussions/1247#discussion-6188916).
+> multiple incompatibilities discovered with these locations, documented [here](https://github.com/pypa/pipx/discussions/1247#discussion-6188916).
 
 ### Global installation
 
