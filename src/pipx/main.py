@@ -157,6 +157,9 @@ def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
     if parsed_args.get("index_url"):
         pip_args += ["--index-url", parsed_args["index_url"]]
 
+    if parsed_args.get("extra_index_url"):
+        pip_args += ["--extra-index-url", parsed_args["extra_index_url"]]
+
     if parsed_args.get("pip_args"):
         pip_args += shlex.split(parsed_args.get("pip_args", ""), posix=not WINDOWS)
 
@@ -243,6 +246,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             reinstall=False,
             include_dependencies=args.include_deps,
             preinstall_packages=args.preinstall,
+            use_input=args.use_input,
             suffix=args.suffix,
         )
     elif args.command == "inject":
@@ -355,6 +359,12 @@ def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument("--index-url", "-i", help="Base URL of Python Package Index")
     parser.add_argument(
+        "--extra-index-url",
+        help=(
+            "Extra URLs of package indexes to use in addition to --index-url. Should follow the same rules as --index-url."
+        ),
+    )
+    parser.add_argument(
         "--editable",
         "-e",
         help="Install a project in editable mode",
@@ -419,6 +429,7 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         action="append",
         help=("Optional packages to be installed into the Virtual Environment before " "installing the main package."),
     )
+    p.add_argument("--use-input", action="store_true", help="Enable prompting for input.")
     add_pip_venv_args(p)
 
 

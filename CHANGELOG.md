@@ -9,6 +9,15 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 <!-- towncrier release notes start -->
 
+## [Unreleased] - 2024-03-10
+
+### Features
+
+- Add `--extra-index-url` options for the `pipx` subcommands
+- Add `--use-input` options for the `pipx install` subcommand:
+  The `--use-input` option was being forced by pipx install when installing from the Google Artifact Registry, causing the package to fail to install because `--no-input` was enforced by pipx install, so the `--use-input` option enabled the `--no-input` option to be the default but temporarily disabled. We covered this in https://github.com/pypa/pipx/discussions/1280#discussion-6329294.
+
+
 ## [1.4.3](https://github.com/pypa/pipx/tree/1.4.3) - 2024-01-16
 
 
