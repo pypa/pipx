@@ -220,7 +220,8 @@ nox -s watch_docs
 
 ## Releasing New `pipx` Versions
 
-To publish to PyPI simply create a "published" release on GitHub. This will trigger GitHub workflows that publishes:
+To release a new version, manually run the `bump-changelog` action under the *"Actions"* tab, passing it the version to
+be released. Then, simply create a "published" release on GitHub. This will trigger GitHub workflows that publish:
 
 - the pipx version to PyPI,
 - the documentation to readthedocs,
