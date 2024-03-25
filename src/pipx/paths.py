@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from typing import Optional, Union
@@ -5,6 +6,7 @@ from typing import Optional, Union
 from platformdirs import user_cache_path, user_data_path, user_log_path
 
 from pipx.constants import LINUX
+from pipx.util import pipx_wrap
 
 DEFAULT_PIPX_HOME = user_data_path("pipx") if LINUX else Path.home() / ".local/pipx"
 FALLBACK_PIPX_HOME = Path.home() / ".local/pipx" if LINUX else user_data_path("pipx")
@@ -13,6 +15,9 @@ DEFAULT_PIPX_MAN_DIR = Path.home() / ".local/share/man"
 DEFAULT_PIPX_GLOBAL_HOME = "/opt/pipx"
 DEFAULT_PIPX_GLOBAL_BIN_DIR = "/usr/local/bin"
 DEFAULT_PIPX_GLOBAL_MAN_DIR = "/usr/local/share/man"
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_expanded_environ(env_name: str) -> Optional[Path]:
@@ -91,5 +96,19 @@ class _PathContext:
     def standalone_python_cachedir(self) -> Path:
         return self.home / "py"
 
+    def log_warnings(self):
+        if " " in str(self.home):
+            logger.warning(
+                pipx_wrap(
+                    (
+                        ":hazard: Found a space in the home path. We heavily discourage this, due to "
+                        "multiple incompatibilities. Please check our docs for more information on this, "
+                        "as well as some pointers on how to migrate to a different home path."
+                    ),
+                    subsequent_indent=" " * 4,
+                )
+            )
+
 
 ctx = _PathContext()
+ctx.log_warnings()
