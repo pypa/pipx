@@ -109,6 +109,18 @@ class _PathContext:
                 )
             )
 
+        if self._fallback_home.exists() and DEFAULT_PIPX_HOME.exists():
+            logger.warning(
+                pipx_wrap(
+                    (
+                        f":hazard: Both the default pipx home folder ({DEFAULT_PIPX_HOME}) and the fallback "
+                        f"pipx home folder ({self._fallback_home}) exist. If you are done migrating from the"
+                        "fallback to the new default, it is safe to delete the fallback location."
+                    ),
+                    subsequent_indent=" " * 4,
+                )
+            )
+
 
 ctx = _PathContext()
 ctx.log_warnings()
