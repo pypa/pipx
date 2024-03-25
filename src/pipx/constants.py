@@ -1,5 +1,5 @@
 import os
-import sys
+import platform
 import sysconfig
 from textwrap import dedent
 from typing import NewType
@@ -26,15 +26,15 @@ EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND = ExitCode(1)
 
 
 def is_windows() -> bool:
-    return sys.platform == "win32"
+    return platform.system() == "Windows"
 
 
 def is_macos() -> bool:
-    return sys.platform == "darwin"
+    return platform.system() == "Darwin"
 
 
 def is_linux() -> bool:
-    return not WINDOWS and not MACOS
+    return platform.system() == "Linux"
 
 
 def is_mingw() -> bool:
