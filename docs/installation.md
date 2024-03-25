@@ -130,7 +130,8 @@ on Windows or `~/Library/Application Support/pipx` on MacOS exists, it will be u
 This can be overridden with the `PIPX_HOME` environment variable.
 
 In case one of these fallback locations exist, we recommend either manually moving the pipx files to the new default location
-(see the `Troubleshooting` section of the docs), or setting the `PIPX_HOME` environment variable.
+(see the `Troubleshooting` section of the docs), or setting the `PIPX_HOME` environment variable (discarding files existing in
+the fallback location).
 
 As an example, you can install global apps accessible by all users on your system with the following command (on MacOS,
 Linux, and Windows WSL):
