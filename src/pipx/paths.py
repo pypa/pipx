@@ -5,11 +5,19 @@ from typing import Optional, Union
 
 from platformdirs import user_cache_path, user_data_path, user_log_path
 
-from pipx.constants import LINUX
+from pipx.constants import LINUX, WINDOWS
 from pipx.util import pipx_wrap
 
-DEFAULT_PIPX_HOME = user_data_path("pipx") if LINUX else Path.home() / ".local/pipx"
-FALLBACK_PIPX_HOME = Path.home() / ".local/pipx" if LINUX else user_data_path("pipx")
+if LINUX:
+    DEFAULT_PIPX_HOME = user_data_path("pipx")
+    FALLBACK_PIPX_HOMES = [Path.home() / ".local/pipx"]
+elif WINDOWS:
+    DEFAULT_PIPX_HOME = Path.home() / "pipx"
+    FALLBACK_PIPX_HOMES = [Path.home() / ".local/pipx", user_data_path("pipx")]
+else:
+    DEFAULT_PIPX_HOME = Path.home() / ".local/pipx"
+    FALLBACK_PIPX_HOMES = [user_data_path("pipx")]
+
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 DEFAULT_PIPX_MAN_DIR = Path.home() / ".local/share/man"
 DEFAULT_PIPX_GLOBAL_HOME = "/opt/pipx"
@@ -32,8 +40,9 @@ class _PathContext:
     _base_bin: Optional[Union[Path, str]] = get_expanded_environ("PIPX_BIN_DIR")
     _base_man: Optional[Union[Path, str]] = get_expanded_environ("PIPX_MAN_DIR")
     _base_shared_libs: Optional[Union[Path, str]] = get_expanded_environ("PIPX_SHARED_LIBS")
-    _fallback_home: Path = FALLBACK_PIPX_HOME
-    _home_exists: bool = _base_home is not None or _fallback_home.exists()
+    _fallback_homes: list[Path] = FALLBACK_PIPX_HOMES
+    _fallback_home: Optional[Path] = next(iter([fallback for fallback in _fallback_homes if fallback.exists()]), None)
+    _home_exists: bool = _base_home is not None or any(fallback.exists() for fallback in _fallback_homes)
     log_file: Optional[Path] = None
 
     @property
@@ -70,7 +79,7 @@ class _PathContext:
     def home(self) -> Path:
         if self._base_home:
             home = Path(self._base_home)
-        elif self._fallback_home.exists():
+        elif self._fallback_home:
             home = self._fallback_home
         else:
             home = Path(DEFAULT_PIPX_HOME)
@@ -84,13 +93,13 @@ class _PathContext:
         self._base_home = get_expanded_environ("PIPX_HOME")
         self._base_bin = get_expanded_environ("PIPX_BIN_DIR")
         self._base_man = get_expanded_environ("PIPX_MAN_DIR")
-        self._home_exists = self._base_home is not None or self._fallback_home.exists()
+        self._home_exists = self._base_home is not None or any(fallback.exists() for fallback in self._fallback_homes)
 
     def make_global(self) -> None:
         self._base_home = get_expanded_environ("PIPX_GLOBAL_HOME") or DEFAULT_PIPX_GLOBAL_HOME
         self._base_bin = get_expanded_environ("PIPX_GLOBAL_BIN_DIR") or DEFAULT_PIPX_GLOBAL_BIN_DIR
         self._base_man = get_expanded_environ("PIPX_GLOBAL_MAN_DIR") or DEFAULT_PIPX_GLOBAL_MAN_DIR
-        self._home_exists = self._base_home is not None or self._fallback_home.exists()
+        self._home_exists = self._base_home is not None or any(fallback.exists() for fallback in self._fallback_homes)
 
     @property
     def standalone_python_cachedir(self) -> Path:
@@ -109,12 +118,12 @@ class _PathContext:
                 )
             )
 
-        if self._fallback_home.exists() and DEFAULT_PIPX_HOME.exists():
+        if self._fallback_homes and DEFAULT_PIPX_HOME.exists():
             logger.warning(
                 pipx_wrap(
                     (
                         f":hazard: Both the default pipx home folder ({DEFAULT_PIPX_HOME}) and the fallback "
-                        f"pipx home folder ({self._fallback_home}) exist. If you are done migrating from the"
+                        f"pipx home folder ({self._fallback_homes}) exist. If you are done migrating from the"
                         "fallback to the new default, it is safe to delete the fallback location."
                     ),
                     subsequent_indent=" " * 4,
