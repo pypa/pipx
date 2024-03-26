@@ -1,9 +1,10 @@
 import json
 import logging
 import sys
-import toml
 from pathlib import Path
 from typing import Any, Collection, Dict, Tuple
+
+import toml
 
 from pipx import paths
 from pipx.colors import bold

@@ -611,7 +611,7 @@ def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
     g.add_argument("--json", action="store_true", help="Output rich data in json format.")
     g.add_argument("--short", action="store_true", help="List packages only.")
     g.add_argument("--skip-maintenance", action="store_true", help="(deprecated) No-op")
-    g.add_argument('--pyproject', action="store_true", help="List packages from pyproject.toml files.")
+    g.add_argument("--pyproject", action="store_true", help="List packages from pyproject.toml files.")
 
 
 def _add_interpreter(
