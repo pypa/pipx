@@ -291,6 +291,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             args.include_injected,
             args.json,
             args.short,
+            args.pyproject,
         )
     elif args.command == "interpreter":
         if args.interpreter_command == "list":

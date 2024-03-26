@@ -1,10 +1,9 @@
 import json
 import logging
 import sys
+import toml
 from pathlib import Path
 from typing import Any, Collection, Dict, Tuple
-
-import toml
 
 from pipx import paths
 from pipx.colors import bold
@@ -17,18 +16,34 @@ from pipx.venv import Venv, VenvContainer
 logger = logging.getLogger(__name__)
 
 PIPX_SPEC_VERSION = "0.1"
+dependencies = []
 
 
-def get_package_specs():
-    with open("json_packages.json", "r") as f:
-        packages_json = json.load(f)
+def generate_package_spec(dependencies):
+    package_spec = {
+        "tool": {
+            "pipx": {
+                "dependencies": dependencies
+            }
+        }
+    }
 
-    package_specs = {}
-    for package_name, package_data in packages_json.items():
-        package_spec = f"{package_name}=={package_data['package']['version']}"
-        package_specs[package_name] = package_spec
+    return package_spec
 
-    return package_specs
+def list_pyproject(venv_dirs: Collection[Path]) -> VenvProblems:
+    all_venv_problems = VenvProblems()
+    for venv_dir in venv_dirs:
+        (venv_metadata, venv_problems, warning_str) = get_venv_metadata_summary(venv_dir)
+        if venv_problems.any_():
+            logger.warning(warning_str)
+        else:
+            package_spec = generate_package_spec(
+                venv_metadata.main_package.package
+            )
+            print(toml.dumps(package_spec))
+        all_venv_problems.or_(venv_problems)
+
+    return all_venv_problems
 
 
 def get_venv_metadata_summary(venv_dir: Path) -> Tuple[PipxMetadata, VenvProblems, str]:
@@ -39,28 +54,6 @@ def get_venv_metadata_summary(venv_dir: Path) -> Tuple[PipxMetadata, VenvProblem
         return (PipxMetadata(venv_dir, read=False), venv_problems, warning_message)
 
     return (venv.pipx_metadata, venv_problems, "")
-
-
-def list_pyproject(venv_dirs: Collection[Path]) -> VenvProblems:
-    all_venv_problems = VenvProblems()
-    for venv_dir in venv_dirs:
-        venv_problems, warning_str = get_venv_metadata_summary(venv_dir)
-        if venv_problems.any_():
-            logger.warning(warning_str)
-        else:
-            package_specs = get_package_specs()
-            toml_output = format_as_toml(package_specs)
-            print(toml_output)
-        all_venv_problems.or_(venv_problems)
-
-    return all_venv_problems
-
-
-def format_as_toml(package_specs):
-    pyproject_toml = {"tool": {"pipx": {"packages": package_specs}}}
-    toml_output = toml.dumps(pyproject_toml)
-
-    return toml_output
 
 
 def list_short(venv_dirs: Collection[Path]) -> VenvProblems:
