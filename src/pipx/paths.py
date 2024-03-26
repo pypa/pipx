@@ -1,11 +1,12 @@
 import logging
 import os
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 from platformdirs import user_cache_path, user_data_path, user_log_path
 
 from pipx.constants import LINUX, WINDOWS
+from pipx.emojis import hazard
 from pipx.util import pipx_wrap
 
 if LINUX:
@@ -40,7 +41,7 @@ class _PathContext:
     _base_bin: Optional[Union[Path, str]] = get_expanded_environ("PIPX_BIN_DIR")
     _base_man: Optional[Union[Path, str]] = get_expanded_environ("PIPX_MAN_DIR")
     _base_shared_libs: Optional[Union[Path, str]] = get_expanded_environ("PIPX_SHARED_LIBS")
-    _fallback_homes: list[Path] = FALLBACK_PIPX_HOMES
+    _fallback_homes: List[Path] = FALLBACK_PIPX_HOMES
     _fallback_home: Optional[Path] = next(iter([fallback for fallback in _fallback_homes if fallback.exists()]), None)
     _home_exists: bool = _base_home is not None or any(fallback.exists() for fallback in _fallback_homes)
     log_file: Optional[Path] = None
@@ -110,7 +111,7 @@ class _PathContext:
             logger.warning(
                 pipx_wrap(
                     (
-                        ":hazard: Found a space in the home path. We heavily discourage this, due to "
+                        f"{hazard} Found a space in the home path. We heavily discourage this, due to "
                         "multiple incompatibilities. Please check our docs for more information on this, "
                         "as well as some pointers on how to migrate to a different home path."
                     ),
@@ -118,13 +119,15 @@ class _PathContext:
                 )
             )
 
-        if self._fallback_homes and DEFAULT_PIPX_HOME.exists():
+        fallback_home_exists = self._fallback_home is not None and self._fallback_home.exists()
+        specific_home_exists = self.home != self._fallback_home
+        if fallback_home_exists and specific_home_exists:
             logger.info(
                 pipx_wrap(
                     (
-                        f"Both the default pipx home folder ({DEFAULT_PIPX_HOME}) and the fallback "
-                        f"pipx home folder ({self._fallback_homes}) exist. If you are done migrating from the"
-                        "fallback to the new default, it is safe to delete the fallback location."
+                        f"Both a specific pipx home folder ({self.home}) and the fallback "
+                        f"pipx home folder ({self._fallback_home}) exist. If you are done migrating from the"
+                        "fallback to the new location, it is safe to delete the fallback location."
                     ),
                     subsequent_indent=" " * 4,
                 )

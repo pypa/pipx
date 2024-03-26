@@ -124,9 +124,9 @@ The default binary location for pipx-installed apps is `~/.local/bin`. This can 
 variable `PIPX_BIN_DIR`. The default manual page location for pipx-installed apps is `~/.local/share/man`. This can be
 overridden with the environment variable `PIPX_MAN_DIR`.
 
-pipx's default virtual environment location is typically `~/.local/share/pipx` on Linux/Unix
-and `~/.local/pipx` on Windows and MacOS. For compatibility reasons, if `~/.local/pipx` on Linux, `%USERPROFILE%\AppData\Local\pipx`
-on Windows or `~/Library/Application Support/pipx` on MacOS exists, it will be used as the default location instead.
+pipx's default virtual environment location is typically `~/.local/share/pipx` on Linux/Unix, `~/.local/pipx` on MacOS
+and `~\pipx` on Windows. For compatibility reasons, if `~/.local/pipx` on Linux, `%USERPROFILE%\AppData\Local\pipx` or
+`~\.local\pipx` on Windows or `~/Library/Application Support/pipx` on MacOS exists, it will be used as the default location instead.
 This can be overridden with the `PIPX_HOME` environment variable.
 
 In case one of these fallback locations exist, we recommend either manually moving the pipx files to the new default location
