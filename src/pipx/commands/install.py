@@ -1,5 +1,6 @@
+import json
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Iterator
 
 from pipx import paths
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
@@ -11,6 +12,9 @@ from pipx.constants import (
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import pipx_wrap
 from pipx.venv import Venv, VenvContainer
+from pipx.pipx_metadata_file import _json_decoder_object_hook, PackageInfo, PipxMetadata
+from pipx.util import PipxError
+from pipx import commands
 
 
 def install(
@@ -114,6 +118,91 @@ def install(
 
         # Reset venv_dir to None ready to install the next package in the list
         venv_dir = None
+
+    # Any failure to install will raise PipxError, otherwise success
+    return EXIT_CODE_OK
+
+
+def extract_venv_metadata(spec_metadata_file: Path) -> Iterator[PipxMetadata]:
+    """Extracts venv metadata from spec metadata file."""
+    with open(spec_metadata_file) as spec_metadata_fh:
+        try:
+            spec_metadata_dict = json.load(spec_metadata_fh, object_hook=_json_decoder_object_hook)
+        except json.decoder.JSONDecodeError as exc:
+            raise PipxError("The spec metadata file is an invalid JSON file.") from exc
+
+        if not ("venvs" in spec_metadata_dict and len(spec_metadata_dict["venvs"])):
+            raise PipxError("No packages found in the spec metadata file.")
+
+        venvs_metadata_dict = spec_metadata_dict["venvs"]
+
+        if not isinstance(venvs_metadata_dict, dict):
+            raise PipxError("The spec metadata file is invalid.")
+
+        for package_path_name in venvs_metadata_dict:
+            venv_dir = paths.ctx.venvs.joinpath(package_path_name)
+            venv_metadata = PipxMetadata(venv_dir, read=False)
+            venv_metadata.from_dict(venvs_metadata_dict[package_path_name]["metadata"])
+            yield venv_metadata
+
+
+def generate_package_spec(package_info: PackageInfo) -> str:
+    """Generate more precisely package spec from package info."""
+    if not package_info.package_or_url:
+        raise PipxError(f"The package_or_url of {package_info.package} is empty.")
+
+    if package_info.package == package_info.package_or_url:
+        return f"{package_info.package}=={package_info.package_version}"
+    return package_info.package_or_url
+
+
+def install_all(
+    spec_metadata_file: Path,
+    local_bin_dir: Path,
+    local_man_dir: Path,
+    pip_args: List[str],
+    venv_args: List[str],
+    verbose: bool,
+    *,
+    force: bool,
+) -> ExitCode:
+    """Returns pipx exit code."""
+    venv_container = VenvContainer(paths.ctx.venvs)
+
+    for venv_metadata in extract_venv_metadata(spec_metadata_file):
+        # Install the main package
+        main_package = venv_metadata.main_package
+        venv_dir = venv_container.get_venv_dir(f"{main_package.package}{main_package.suffix}")
+        install(
+            venv_dir,
+            None,
+            [generate_package_spec(main_package)],
+            local_bin_dir,
+            local_man_dir,
+            venv_metadata.python_version,
+            pip_args,
+            venv_args,
+            verbose,
+            force=force,
+            reinstall=False,
+            include_dependencies=main_package.include_dependencies,
+            preinstall_packages=[],
+            suffix=main_package.suffix,
+        )
+
+        # Install the injected packages
+        for inject_package in venv_metadata.injected_packages.values():
+            commands.inject(
+                venv_dir,
+                None,
+                [generate_package_spec(inject_package)],
+                pip_args,
+                verbose=verbose,
+                include_apps=inject_package.include_apps,
+                include_dependencies=inject_package.include_dependencies,
+                force=force,
+                suffix=inject_package.suffix == main_package.suffix,
+            )
 
     # Any failure to install will raise PipxError, otherwise success
     return EXIT_CODE_OK
