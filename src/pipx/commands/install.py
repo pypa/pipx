@@ -147,7 +147,7 @@ def extract_venv_metadata(spec_metadata_file: Path) -> Iterator[PipxMetadata]:
 def generate_package_spec(package_info: PackageInfo) -> str:
     """Generate more precise package spec from package info."""
     if not package_info.package_or_url:
-        raise PipxError(f"The package_or_url of {package_info.package} is empty.")
+        raise PipxError(f"A package spec is not available for {package_info.package}")
 
     if package_info.package == package_info.package_or_url:
         return f"{package_info.package}=={package_info.package_version}"
