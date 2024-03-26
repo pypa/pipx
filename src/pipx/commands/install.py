@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
-from typing import List, Optional, Iterator
+from typing import Iterator, List, Optional
 
-from pipx import paths
+from pipx import commands, paths
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.constants import (
     EXIT_CODE_INSTALL_VENV_EXISTS,
@@ -10,11 +10,9 @@ from pipx.constants import (
     ExitCode,
 )
 from pipx.interpreter import DEFAULT_PYTHON
-from pipx.util import pipx_wrap
+from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, _json_decoder_object_hook
+from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv, VenvContainer
-from pipx.pipx_metadata_file import _json_decoder_object_hook, PackageInfo, PipxMetadata
-from pipx.util import PipxError
-from pipx import commands
 
 
 def install(
