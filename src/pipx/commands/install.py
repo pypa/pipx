@@ -164,7 +164,7 @@ def install_all(
     *,
     force: bool,
 ) -> ExitCode:
-    """Returns pipx exit code."""
+    """Return pipx exit code."""
     venv_container = VenvContainer(paths.ctx.venvs)
 
     for venv_metadata in extract_venv_metadata(spec_metadata_file):
