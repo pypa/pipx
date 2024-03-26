@@ -122,7 +122,7 @@ def install(
 
 
 def extract_venv_metadata(spec_metadata_file: Path) -> Iterator[PipxMetadata]:
-    """Extracts venv metadata from spec metadata file."""
+    """Extract venv metadata from spec metadata file."""
     with open(spec_metadata_file) as spec_metadata_fh:
         try:
             spec_metadata_dict = json.load(spec_metadata_fh, object_hook=_json_decoder_object_hook)
