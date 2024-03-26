@@ -1,9 +1,10 @@
 import json
 import logging
 import sys
-import toml
 from pathlib import Path
 from typing import Any, Collection, Dict, Tuple
+
+import toml
 
 from pipx import paths
 from pipx.colors import bold
@@ -20,15 +21,10 @@ dependencies = []
 
 
 def generate_package_spec(dependencies):
-    package_spec = {
-        "tool": {
-            "pipx": {
-                "dependencies": dependencies
-            }
-        }
-    }
+    package_spec = {"tool": {"pipx": {"dependencies": dependencies}}}
 
     return package_spec
+
 
 def list_pyproject(venv_dirs: Collection[Path]) -> VenvProblems:
     all_venv_problems = VenvProblems()
@@ -37,9 +33,7 @@ def list_pyproject(venv_dirs: Collection[Path]) -> VenvProblems:
         if venv_problems.any_():
             logger.warning(warning_str)
         else:
-            package_spec = generate_package_spec(
-                venv_metadata.main_package.package
-            )
+            package_spec = generate_package_spec(venv_metadata.main_package.package)
             print(toml.dumps(package_spec))
         all_venv_problems.or_(venv_problems)
 
