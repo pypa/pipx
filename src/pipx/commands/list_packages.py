@@ -1,6 +1,7 @@
 import json
 import logging
 import sys
+import toml
 from pathlib import Path
 from typing import Any, Collection, Dict, Tuple
 
@@ -17,6 +18,18 @@ logger = logging.getLogger(__name__)
 PIPX_SPEC_VERSION = "0.1"
 
 
+def get_package_specs():
+    with open("json_packages.json", "r") as f:
+        packages_json = json.load(f)
+
+    package_specs = {}
+    for package_name, package_data in packages_json.items():
+        package_spec = f"{package_name}=={package_data['package']['version']}"
+        package_specs[package_name] = package_spec
+
+    return package_specs
+
+
 def get_venv_metadata_summary(venv_dir: Path) -> Tuple[PipxMetadata, VenvProblems, str]:
     venv = Venv(venv_dir)
 
@@ -25,6 +38,28 @@ def get_venv_metadata_summary(venv_dir: Path) -> Tuple[PipxMetadata, VenvProblem
         return (PipxMetadata(venv_dir, read=False), venv_problems, warning_message)
 
     return (venv.pipx_metadata, venv_problems, "")
+
+
+def list_pyproject(venv_dirs: Collection[Path]) -> VenvProblems:
+    all_venv_problems = VenvProblems()
+    for venv_dir in venv_dirs:
+        venv_problems, warning_str = get_venv_metadata_summary(venv_dir)
+        if venv_problems.any_():
+            logger.warning(warning_str)
+        else:
+            package_specs = get_package_specs()
+            toml_output = format_as_toml(package_specs)
+            print(toml_output)
+        all_venv_problems.or_(venv_problems)
+
+    return all_venv_problems
+
+
+def format_as_toml(package_specs):
+    pyproject_toml = {"tool": {"pipx": {"packages": package_specs}}}
+    toml_output = toml.dumps(pyproject_toml)
+
+    return toml_output
 
 
 def list_short(venv_dirs: Collection[Path]) -> VenvProblems:
@@ -89,6 +124,7 @@ def list_packages(
     include_injected: bool,
     json_format: bool,
     short_format: bool,
+    pyproject_format: bool,
 ) -> ExitCode:
     """Returns pipx exit code."""
     venv_dirs: Collection[Path] = sorted(venv_container.iter_venv_dirs())
@@ -99,6 +135,8 @@ def list_packages(
         all_venv_problems = list_json(venv_dirs)
     elif short_format:
         all_venv_problems = list_short(venv_dirs)
+    elif pyproject_format:
+        all_venv_problems = list_pyproject(venv_dirs)
     else:
         if not venv_dirs:
             return EXIT_CODE_OK
