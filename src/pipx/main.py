@@ -449,7 +449,7 @@ def _add_install_all(subparsers: argparse._SubParsersAction, shared_parser: argp
         description="Installs all the packages according to spec metadata file.",
         parents=[shared_parser],
     )
-    p.add_argument("spec_metadata_file", help="Spec metadata file generated from pipx list")
+    p.add_argument("spec_metadata_file", help="Spec metadata file generated from pipx list --json")
     p.add_argument(
         "--force",
         "-f",
