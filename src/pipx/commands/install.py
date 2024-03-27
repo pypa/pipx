@@ -154,10 +154,30 @@ def generate_package_spec(package_info: PackageInfo) -> str:
     return package_info.package_or_url
 
 
+def get_python_interpreter(
+    source_interpreter: Optional[Path],
+) -> Optional[str]:
+    """Get appropriate python interpreter."""
+    if source_interpreter is not None and source_interpreter.is_file():
+        return str(source_interpreter)
+
+    print(
+        pipx_wrap(
+            f"""
+            The exported python interpreter '{source_interpreter}' is ignored
+            as not found.
+            """
+        )
+    )
+
+    return None
+
+
 def install_all(
     spec_metadata_file: Path,
     local_bin_dir: Path,
     local_man_dir: Path,
+    python: Optional[str],
     pip_args: List[str],
     venv_args: List[str],
     verbose: bool,
@@ -177,7 +197,7 @@ def install_all(
             [generate_package_spec(main_package)],
             local_bin_dir,
             local_man_dir,
-            venv_metadata.python_version,
+            python or get_python_interpreter(venv_metadata.source_interpreter),
             pip_args,
             venv_args,
             verbose,
