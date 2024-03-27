@@ -7,7 +7,7 @@ from pipx import paths
 from pipx.colors import bold
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK, ExitCode
-from pipx.emojis import stars
+from pipx.emojis import hazard, stars
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv
 
