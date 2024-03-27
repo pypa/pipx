@@ -8,7 +8,7 @@ from pipx.colors import bold
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK, ExitCode
 from pipx.emojis import stars
-from pipx.util import PipxError
+from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv
 
 
@@ -55,6 +55,19 @@ def inject_dep(
             pip_args=pip_args,
             verbose=verbose,
         )
+
+    if not force and venv.has_package(package_name):
+        print(
+            pipx_wrap(
+                f"""
+                {package_name} already seems to be injected in {venv.name!r}.
+                Not modifying existing installation in '{venv_dir}'.
+                Pass '--force' to force installation.
+                """
+            )
+        )
+        return True
+
     if suffix:
         venv_suffix = venv.package_metadata[venv.main_package_name].suffix
     else:
