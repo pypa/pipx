@@ -60,7 +60,7 @@ def inject_dep(
         print(
             pipx_wrap(
                 f"""
-                {package_name} already seems to be injected in {venv.name!r}.
+                {hazard} {package_name} already seems to be injected in {venv.name!r}.
                 Not modifying existing installation in '{venv_dir}'.
                 Pass '--force' to force installation.
                 """
