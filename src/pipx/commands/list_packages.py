@@ -4,6 +4,8 @@ import sys
 from pathlib import Path
 from typing import Any, Collection, Dict, Tuple
 
+import toml
+
 from pipx import paths
 from pipx.colors import bold
 from pipx.commands.common import VenvProblems, get_venv_summary, venv_health_check
@@ -15,6 +17,26 @@ from pipx.venv import Venv, VenvContainer
 logger = logging.getLogger(__name__)
 
 PIPX_SPEC_VERSION = "0.1"
+
+
+def generate_package_spec(dependencies):
+    package_spec = {"tool": {"pipx": {"dependencies": dependencies}}}
+
+    return package_spec
+
+
+def list_pyproject(venv_dirs: Collection[Path]) -> VenvProblems:
+    all_venv_problems = VenvProblems()
+    for venv_dir in venv_dirs:
+        (venv_metadata, venv_problems, warning_str) = get_venv_metadata_summary(venv_dir)
+        if venv_problems.any_():
+            logger.warning(warning_str)
+        else:
+            package_spec = generate_package_spec(venv_metadata.main_package.package)
+            print(toml.dumps(package_spec))
+        all_venv_problems.or_(venv_problems)
+
+    return all_venv_problems
 
 
 def get_venv_metadata_summary(venv_dir: Path) -> Tuple[PipxMetadata, VenvProblems, str]:
@@ -89,6 +111,7 @@ def list_packages(
     include_injected: bool,
     json_format: bool,
     short_format: bool,
+    pyproject_format: bool,
 ) -> ExitCode:
     """Returns pipx exit code."""
     venv_dirs: Collection[Path] = sorted(venv_container.iter_venv_dirs())
@@ -99,6 +122,8 @@ def list_packages(
         all_venv_problems = list_json(venv_dirs)
     elif short_format:
         all_venv_problems = list_short(venv_dirs)
+    elif pyproject_format:
+        all_venv_problems = list_pyproject(venv_dirs)
     else:
         if not venv_dirs:
             return EXIT_CODE_OK
