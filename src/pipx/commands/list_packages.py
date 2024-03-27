@@ -17,7 +17,6 @@ from pipx.venv import Venv, VenvContainer
 logger = logging.getLogger(__name__)
 
 PIPX_SPEC_VERSION = "0.1"
-dependencies = []
 
 
 def generate_package_spec(dependencies):

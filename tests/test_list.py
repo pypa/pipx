@@ -4,6 +4,8 @@ import re
 import shutil
 import sys
 import time
+from pathlib import Path
+from unittest.mock import Mock, patch
 
 import pytest  # type: ignore
 
@@ -19,6 +21,8 @@ from helpers import (
 )
 from package_info import PKG
 from pipx import constants, paths, shared_libs
+from pipx.commands.common import VenvProblems
+from pipx.commands.list_packages import list_pyproject
 from pipx.pipx_metadata_file import PackageInfo, _json_decoder_object_hook
 
 
@@ -204,3 +208,16 @@ def test_list_does_not_trigger_maintenance(pipx_temp_env, caplog):
     run_pipx_cli(["list", "--skip-maintenance"])
     assert not shared_libs.shared_libs.has_been_updated_this_run
     assert shared_libs.shared_libs.needs_upgrade
+
+
+def test_list_pyproject_prints_package_spec(pipx_temp_env):
+    venv_dirs = [Path("/path/to/venv1")]
+    with patch("pipx.commands.list_packages.get_venv_metadata_summary") as mock_get_venv_metadata_summary:
+        mock_package = Mock()
+        mock_package.package = "package1"
+        mock_get_venv_metadata_summary.return_value = (Mock(main_package=mock_package), VenvProblems(), "")
+        with patch("pipx.commands.list_packages.toml.dumps") as mock_toml_dumps:
+            with patch("builtins.print") as mock_print:
+                list_pyproject(venv_dirs)
+                mock_toml_dumps.assert_called_once_with({"tool": {"pipx": {"dependencies": "package1"}}})
+                mock_print.assert_called_once_with(mock_toml_dumps.return_value)
