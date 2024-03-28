@@ -112,8 +112,8 @@ INSTALL_DESCRIPTION = textwrap.dedent(
     dependency version conflicts or interfere with your OS's python
     packages. 'sudo' is not required to do this.
 
-    pipx install PACKAGE_NAME ...
-    pipx install --python PYTHON PACKAGE_NAME
+    pipx install PACKAGE_SPEC ...
+    pipx install --python PYTHON PACKAGE_SPEC
     pipx install VCS_URL
     pipx install ./LOCAL_PATH
     pipx install ZIP_FILE
