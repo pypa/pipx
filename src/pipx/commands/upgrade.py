@@ -122,6 +122,7 @@ def _upgrade_venv(
                 reinstall=False,
                 include_dependencies=False,
                 preinstall_packages=None,
+                python_flag_passed=bool(python)
             )
             return 0
         else:
