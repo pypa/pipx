@@ -74,7 +74,7 @@ def reinstall(
         include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
         preinstall_packages=[],
         suffix=venv.pipx_metadata.main_package.suffix,
-        python_flag_passed=bool(python)
+        python_flag_passed=bool(python),
     )
 
     # now install injected packages
