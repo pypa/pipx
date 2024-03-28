@@ -424,6 +424,9 @@ class Venv:
             return True
         return (self.bin_path / filename).is_file()
 
+    def has_package(self, package_name: str) -> bool:
+        return bool(list(Distribution.discover(name=package_name, path=[str(get_site_packages(self.python_path))])))
+
     def upgrade_package_no_metadata(self, package_name: str, pip_args: List[str]) -> None:
         with animate(
             f"upgrading {full_package_description(package_name, package_name)}",

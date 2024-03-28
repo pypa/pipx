@@ -94,7 +94,7 @@ def test_list_json(pipx_temp_env, capsys):
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
-    assert not run_pipx_cli(["inject", "pylint", PKG["isort"]["spec"]])
+    assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])
     captured = capsys.readouterr()
 
     assert not run_pipx_cli(["list", "--json"])
@@ -125,13 +125,13 @@ def test_list_json(pipx_temp_env, capsys):
         PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["main_package"]),
         pylint_package_ref,
     )
-    assert sorted(json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"].keys()) == ["isort"]
-    isort_package_ref = create_package_info_ref("pylint", "isort", pipx_venvs_dir, include_apps=False)
-    print(isort_package_ref)
-    print(PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["isort"]))
+    assert sorted(json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"].keys()) == ["black"]
+    black_package_ref = create_package_info_ref("pylint", "black", pipx_venvs_dir, include_apps=False)
+    print(black_package_ref)
+    print(PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["black"]))
     assert_package_metadata(
-        PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["isort"]),
-        isort_package_ref,
+        PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["black"]),
+        black_package_ref,
     )
 
 
