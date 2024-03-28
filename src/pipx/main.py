@@ -112,8 +112,8 @@ INSTALL_DESCRIPTION = textwrap.dedent(
     dependency version conflicts or interfere with your OS's python
     packages. 'sudo' is not required to do this.
 
-    pipx install PACKAGE_NAME ...
-    pipx install --python PYTHON PACKAGE_NAME
+    pipx install PACKAGE_SPEC ...
+    pipx install --python PYTHON PACKAGE_SPEC
     pipx install VCS_URL
     pipx install ./LOCAL_PATH
     pipx install ZIP_FILE
@@ -202,7 +202,9 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     if "python" in args:
         fetch_missing_python = args.fetch_missing_python
         try:
-            interpreter = find_python_interpreter(args.python or DEFAULT_PYTHON, fetch_missing_python=fetch_missing_python)
+            interpreter = find_python_interpreter(
+                args.python or DEFAULT_PYTHON, fetch_missing_python=fetch_missing_python
+            )
             args.python = interpreter
         except InterpreterResolutionError as e:
             logger.debug("Failed to resolve interpreter:", exc_info=True)
