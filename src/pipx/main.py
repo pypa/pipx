@@ -197,7 +197,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         logger.info(f"Virtual Environment location is {venv_dir}")
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
-    
+
     python_flag_passed = False
 
     if "python" in args:
@@ -249,7 +249,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             include_dependencies=args.include_deps,
             preinstall_packages=args.preinstall,
             suffix=args.suffix,
-            python_flag_passed=python_flag_passed
+            python_flag_passed=python_flag_passed,
         )
     elif args.command == "inject":
         return commands.inject(
