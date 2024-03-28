@@ -29,7 +29,7 @@ def install(
     include_dependencies: bool,
     preinstall_packages: Optional[List[str]],
     suffix: str = "",
-    python_flag_passed: Optional[bool] = False,
+    python_flag_passed = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
     # package_spec is anything pip-installable, including package_name, vcs spec,
