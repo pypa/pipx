@@ -197,12 +197,14 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         logger.info(f"Virtual Environment location is {venv_dir}")
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
-    
+
     if "python" in args:
         fetch_missing_python = args.fetch_missing_python
-        python_flag_passed = bool(args.python)
+        bool(args.python)
         try:
-            interpreter = find_python_interpreter(args.python or DEFAULT_PYTHON, fetch_missing_python=fetch_missing_python)
+            interpreter = find_python_interpreter(
+                args.python or DEFAULT_PYTHON, fetch_missing_python=fetch_missing_python
+            )
             args.python = interpreter
         except InterpreterResolutionError as e:
             logger.debug("Failed to resolve interpreter:", exc_info=True)
