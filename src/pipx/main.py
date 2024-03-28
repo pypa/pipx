@@ -197,11 +197,12 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         logger.info(f"Virtual Environment location is {venv_dir}")
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
-
-    if "python" in args and args.python is not None:
+    
+    if "python" in args:
         fetch_missing_python = args.fetch_missing_python
+        python_flag_passed = bool(args.python)
         try:
-            interpreter = find_python_interpreter(args.python, fetch_missing_python=fetch_missing_python)
+            interpreter = find_python_interpreter(args.python or DEFAULT_PYTHON, fetch_missing_python=fetch_missing_python)
             args.python = interpreter
         except InterpreterResolutionError as e:
             logger.debug("Failed to resolve interpreter:", exc_info=True)
@@ -373,7 +374,7 @@ def add_include_dependencies(parser: argparse.ArgumentParser) -> None:
 def add_python_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--python",
-        default=DEFAULT_PYTHON,
+        default="",
         help=(
             "Python to install with. Possible values can be the executable name (python3.11), "
             "the version to pass to py launcher (3.11), or the full path to the executable."
