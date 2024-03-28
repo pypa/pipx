@@ -198,9 +198,9 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
     
+    python_flag_passed = bool(args.python)
     if "python" in args:
         fetch_missing_python = args.fetch_missing_python
-        python_flag_passed = bool(args.python)
         try:
             interpreter = find_python_interpreter(args.python or DEFAULT_PYTHON, fetch_missing_python=fetch_missing_python)
             args.python = interpreter
@@ -245,6 +245,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             include_dependencies=args.include_deps,
             preinstall_packages=args.preinstall,
             suffix=args.suffix,
+            python_flag_passed=python_flag_passed
         )
     elif args.command == "inject":
         return commands.inject(
@@ -374,7 +375,6 @@ def add_include_dependencies(parser: argparse.ArgumentParser) -> None:
 def add_python_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--python",
-        default="",
         help=(
             "Python to install with. Possible values can be the executable name (python3.11), "
             "the version to pass to py launcher (3.11), or the full path to the executable."

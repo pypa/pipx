@@ -29,11 +29,11 @@ def install(
     include_dependencies: bool,
     preinstall_packages: Optional[List[str]],
     suffix: str = "",
+    python_flag_passed: Optional[bool] = False
 ) -> ExitCode:
     """Returns pipx exit code."""
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
-    python_flag_was_passed = python != DEFAULT_PYTHON
 
     python = python or DEFAULT_PYTHON
 
@@ -57,7 +57,7 @@ def install(
         venv = Venv(venv_dir, python=python, verbose=verbose)
         venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
         if exists:
-            if not reinstall and force and python_flag_was_passed:
+            if not reinstall and force and python_flag_passed:
                 print(
                     pipx_wrap(
                         f"""
