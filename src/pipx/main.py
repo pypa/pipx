@@ -198,8 +198,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
     
-    python_flag_passed = bool(args.python)
     if "python" in args:
+        python_flag_passed = bool(args.python)
         fetch_missing_python = args.fetch_missing_python
         try:
             interpreter = find_python_interpreter(
@@ -247,7 +247,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             include_dependencies=args.include_deps,
             preinstall_packages=args.preinstall,
             suffix=args.suffix,
-            python_flag_passed=python_flag_passed
+            python_flag_passed=python_flag_passed or False
         )
     elif args.command == "inject":
         return commands.inject(
