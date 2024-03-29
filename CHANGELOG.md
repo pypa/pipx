@@ -9,6 +9,50 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 <!-- towncrier release notes start -->
 
+## [1.5.0](https://github.com/pypa/pipx/tree/1.5.0) - 2024-03-29
+
+
+### Features
+
+- Add `--global` option to `pipx` commands.
+      - This will run the action in a global scope and affect environment for all system users. ([#754](https://github.com/pypa/pipx/issues/754))
+- Add a `--fetch-missing-python` flag to all commands that accept a `--python` flag.
+      - When combined, this will automatically download a standalone copy of the requested python version if it's not already available on the user's system. ([#1242](https://github.com/pypa/pipx/issues/1242))
+- Add commands to list and prune standalone interpreters ([#1248](https://github.com/pypa/pipx/issues/1248))
+- Revert platform-specific directories on MacOS and Windows
+      - They were leading to a lot of issues with Windows sandboxing and spaces in shebangs on MacOS. ([#1257](https://github.com/pypa/pipx/issues/1257))
+- Add `--install` option to `pipx upgrade` command.
+      - This will install the package given as argument if it is not already installed. ([#1262](https://github.com/pypa/pipx/issues/1262))
+
+### Bugfixes
+
+- Correctly resolve home directory in pipx directory environment variables. ([#94](https://github.com/pypa/pipx/issues/94))
+- Pass through `pip` arguments when upgrading shared libraries. ([#964](https://github.com/pypa/pipx/issues/964))
+- Fix installation issues when files in the working directory interfere with venv creation process. ([#1091](https://github.com/pypa/pipx/issues/1091))
+- Report correct filename in tracebacks with `pipx run <scriptname>` ([#1191](https://github.com/pypa/pipx/issues/1191))
+- Let self-managed pipx uninstall itself on windows again. ([#1203](https://github.com/pypa/pipx/issues/1203))
+- Fix path resolution for python executables looked up in PATH on windows. ([#1205](https://github.com/pypa/pipx/issues/1205))
+- Display help message when `pipx install` is run without arguments. ([#1266](https://github.com/pypa/pipx/issues/1266))
+- Fix crashes due to superfluous `-q ` flags by discarding exceeding values ([#1283](https://github.com/pypa/pipx/issues/1283))
+
+### Improved Documentation
+
+- Update the completion instructions for zipapp users. ([#1072](https://github.com/pypa/pipx/issues/1072))
+- Update the example for running scripts with dependencies. ([#1227](https://github.com/pypa/pipx/issues/1227))
+- Update the docs for package developers on the use of configuration using pyproject.toml ([#1229](https://github.com/pypa/pipx/issues/1229))
+- Add installation instructions for Fedora ([#1239](https://github.com/pypa/pipx/issues/1239))
+- Update the examples for installation from local dir ([#1277](https://github.com/pypa/pipx/issues/1277))
+- Fix inconsistent wording in `pipx install` command description. ([#1307](https://github.com/pypa/pipx/issues/1307))
+
+### Deprecations and Removals
+
+- Deprecate `--skip-maintenance` flag of `pipx list`; maintenance is now never executed there ([#1256](https://github.com/pypa/pipx/issues/1256))
+
+### Misc
+
+- [#1296](https://github.com/pypa/pipx/issues/1296)
+
+
 ## [1.4.3](https://github.com/pypa/pipx/tree/1.4.3) - 2024-01-16
 
 
