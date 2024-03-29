@@ -478,6 +478,7 @@ pipx is maintained by a team of volunteers (in alphabetical order)
 - [Chad Smith](https://github.com/cs01) - co-lead maintainer
 - [Jason Lam](https://github.com/dukecat0)
 - [Matthew Clapp](https://github.com/itsayellow) - co-lead maintainer
+- [Robert Offner](https://github.com/gitznik)
 - [Tzu-ping Chung](https://github.com/uranusjr)
 
 ## Contributing
