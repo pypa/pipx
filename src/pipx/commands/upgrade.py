@@ -104,7 +104,7 @@ def _upgrade_venv(
     force: bool,
     install: bool = False,
     python: Optional[str] = None,
-    python_flag_passed: bool = False
+    python_flag_passed: bool = False,
 ) -> int:
     """Return number of packages with changed versions."""
     if not venv_dir.is_dir():
@@ -123,7 +123,7 @@ def _upgrade_venv(
                 reinstall=False,
                 include_dependencies=False,
                 preinstall_packages=None,
-                python_flag_passed=python_flag_passed
+                python_flag_passed=python_flag_passed,
             )
             return 0
         else:
@@ -188,7 +188,7 @@ def upgrade(
     include_injected: bool,
     force: bool,
     install: bool,
-    python_flag_passed: bool = False
+    python_flag_passed: bool = False,
 ) -> ExitCode:
     """Return pipx exit code."""
 
@@ -201,7 +201,7 @@ def upgrade(
         force=force,
         install=install,
         python=python,
-        python_flag_passed=python_flag_passed
+        python_flag_passed=python_flag_passed,
     )
 
     # Any error in upgrade will raise PipxError (e.g. from venv.upgrade_package())
@@ -216,7 +216,7 @@ def upgrade_all(
     include_injected: bool,
     skip: Sequence[str],
     force: bool,
-    python_flag_passed: bool = False
+    python_flag_passed: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
     venv_error = False
@@ -234,7 +234,7 @@ def upgrade_all(
                 include_injected=include_injected,
                 upgrading_all=True,
                 force=force,
-                python_flag_passed=python_flag_passed
+                python_flag_passed=python_flag_passed,
             )
 
         except PipxError as e:
