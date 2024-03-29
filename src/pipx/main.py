@@ -281,6 +281,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             include_injected=args.include_injected,
             force=args.force,
             install=args.install,
+            python_flag_passed=python_flag_passed
         )
     elif args.command == "upgrade-all":
         return commands.upgrade_all(
@@ -290,6 +291,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             skip=skip_list,
             force=args.force,
             pip_args=pip_args,
+            python_flag_passed=python_flag_passed
         )
     elif args.command == "list":
         return commands.list_packages(
@@ -324,6 +326,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             local_man_dir=paths.ctx.man_dir,
             python=args.python,
             verbose=verbose,
+            python_flag_passed=python_flag_passed
         )
     elif args.command == "reinstall-all":
         return commands.reinstall_all(
@@ -333,6 +336,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             args.python,
             verbose,
             skip=skip_list,
+            python_flag_passed=python_flag_passed
         )
     elif args.command == "runpip":
         if not venv_dir:
