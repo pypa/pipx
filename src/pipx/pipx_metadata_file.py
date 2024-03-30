@@ -50,8 +50,9 @@ class PipxMetadata:
     # V0.1 -> original version
     # V0.2 -> Improve handling of suffixes
     # V0.3 -> Add man pages fields
-    # V0.4 -> Add source interpreter, pinned
-    __METADATA_VERSION__: str = "0.4"
+    # V0.4 -> Add source interpreter
+    # V0.5 -> Add pinned
+    __METADATA_VERSION__: str = "0.5"
 
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
@@ -97,7 +98,7 @@ class PipxMetadata:
     def _convert_legacy_metadata(self, metadata_dict: Dict[str, Any]) -> Dict[str, Any]:
         if metadata_dict["pipx_metadata_version"] in (self.__METADATA_VERSION__):
             pass
-        elif metadata_dict["pipx_metadata_version"] in ("0.2", "0.3"):
+        elif metadata_dict["pipx_metadata_version"] in ("0.2", "0.3", "0.4"):
             metadata_dict["source_interpreter"] = None
         elif metadata_dict["pipx_metadata_version"] == "0.1":
             main_package_data = metadata_dict["main_package"]

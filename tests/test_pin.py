@@ -60,3 +60,14 @@ def test_unpin_not_installed_package(monkeypatch, capsys, pipx_temp_env):
 
     captured = capsys.readouterr()
     assert "Package pkg is not installed" in captured.err
+
+
+def test_pin_injected_packages_only(monkeypatch, capsys, pipx_temp_env):
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["inject", "pycowsay", "black", PKG["pylint"]["spec"]])
+
+    assert not run_pipx_cli(["pin", "pycowsay", "--injected-packages-only"])
+
+    captured = capsys.readouterr()
+
+    assert "Pinned 2 packages in venv pycowsay" in captured.out

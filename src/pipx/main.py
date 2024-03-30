@@ -304,9 +304,9 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         else:
             raise PipxError(f"Unknown interpreter command {args.interpreter_command}")
     elif args.command == "pin":
-        return commands.pin(venv_dir, verbose)
+        return commands.pin(venv_dir, verbose, skip_list, args.injected_packages_only)
     elif args.command == "unpin":
-        return commands.pin(venv_dir, verbose, unpin=True)
+        return commands.unpin(venv_dir, verbose)
     elif args.command == "uninstall":
         return commands.uninstall(venv_dir, paths.ctx.bin_dir, paths.ctx.man_dir, verbose)
     elif args.command == "uninstall-all":
@@ -497,6 +497,20 @@ def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.
         parents=[shared_parser],
     )
     p.add_argument("package", help="Installed package to pin")
+    p.add_argument(
+        "--injected-packages-only",
+        action="store_true",
+        help=(
+            "Pin injected packages in main app only, so that they will not be upgraded during `pipx upgrade-all --include-injected`. "
+            "Note that this should not be passed if you wish to pin both main package and injected packages in it."
+        ),
+    )
+    p.add_argument(
+        "--skip",
+        nargs="+",
+        default=[],
+        help="Skip these packages. Must be used with `--injected-packages-only`.",
+    )
 
 
 def _add_unpin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
@@ -651,8 +665,16 @@ def _add_interpreter(
         description="Get help for commands with pipx interpreter COMMAND --help",
         dest="interpreter_command",
     )
-    s.add_parser("list", help="List available interpreters", description="List available interpreters")
-    s.add_parser("prune", help="Prune unused interpreters", description="Prune unused interpreters")
+    s.add_parser(
+        "list",
+        help="List available interpreters",
+        description="List available interpreters",
+    )
+    s.add_parser(
+        "prune",
+        help="Prune unused interpreters",
+        description="Prune unused interpreters",
+    )
     return p
 
 
