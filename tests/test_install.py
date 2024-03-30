@@ -354,10 +354,15 @@ def test_passed_python_and_force_flag_warning(pipx_temp_env, capsys):
     captured = capsys.readouterr()
     assert "--python is ignored when --force is passed." not in captured.out
 
-
 def test_install_run_in_separate_directory(caplog, capsys, pipx_temp_env, monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     f = Path("argparse.py")
     f.touch()
 
     install_packages(capsys, pipx_temp_env, caplog, ["pycowsay"], ["pycowsay"])
+
+def test_force_install_python_flag_warning(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["install", "pycowsay", "--force"])
+    captured = capsys.readouterr()
+    assert "--python is ignored when --force is passed." not in captured.out
