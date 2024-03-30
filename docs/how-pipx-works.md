@@ -54,9 +54,6 @@ make sure you include `scripts` and, optionally for Windows GUI applications `gu
 
     [project.gui-scripts]
     baz = "my_package_gui:start_func"
-
-    [tool.setuptools.data-files]
-    "share/man/man1" = [ "manpage.1",]
     ```
 
 === "setup.cfg"
@@ -68,10 +65,6 @@ make sure you include `scripts` and, optionally for Windows GUI applications `gu
         bar = other_module:some_func
     gui_scripts =
         baz = my_package_gui:start_func
-
-    [options.data_files]
-    share/man/man1 =
-        manpage.1
     ```
 
 === "setup.py"
@@ -88,19 +81,54 @@ make sure you include `scripts` and, optionally for Windows GUI applications `gu
                 'baz = my_package_gui:start_func',
             ]
         },
-        data_files=[('share/man/man1', ['manpage.1'])]
     )
     ```
 
 In this case `foo` and `bar` (and `baz` on Windows) would be available as "applications" to pipx after installing the above example package, invoking their corresponding entry point functions.
 
-If you wish to provide documentation via `man` pages on UNIX-like systems then these can be added via a `data-files` keyword.
+### Manual pages
+
+If you wish to provide documentation via `man` pages on UNIX-like systems then these can be added as data files:
+
+=== "setuptools"
+
+    ```toml title="pyproject.toml"
+    [tool.setuptools.data-files]
+    "share/man/man1" = [
+      "manpage.1",
+    ]
+    ```
+
+    ```ini title="setup.cfg"
+    [options.data_files]
+    share/man/man1 =
+        manpage.1
+    ```
+
+    ```python title="setup.py"
+    setup(
+        # other arguments here...
+        data_files=[('share/man/man1', ['manpage.1'])]
+    )
+    ```
+
+    > [!WARNING]
+    >
+    > The `data-files` keyword is "discouraged" in the [setuptools documentation](https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#setuptools-specific-configuration) but there is no alternative if `man` pages are a requirement.
+
+=== "pdm-backend"
+
+    ```toml title="pyproject.toml"
+    [tool.pdm.build]
+    source-includes = ["share"]
+
+    [tool.pdm.build.wheel-data]
+    data = [
+        {path = "share/man/man1/*", relative-to = "."},
+    ]
+    ```
 
 In this case the manual page `manpage.1` could be accessed by the user after installing the above example package.
-
-> [!WARNING]
->
-> The `data-files` keyword is "discouraged" in the [setuptools documentation](https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#setuptools-specific-configuration) but there is no alternative if `man` pages are a requirement.
 
 For a real-world example, see [pycowsay](https://github.com/cs01/pycowsay/blob/master/setup.py)'s `setup.py` source code.
 
