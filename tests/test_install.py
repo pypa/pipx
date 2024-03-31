@@ -350,9 +350,13 @@ def test_passed_python_and_force_flag_warning(pipx_temp_env, capsys):
     captured = capsys.readouterr()
     assert "--python is ignored when --force is passed." in captured.out
 
+    assert not run_pipx_cli(["install", "black", "--force"])
+    captured = capsys.readouterr()
+    assert "--python is ignored when --force is passed." not in captured.out, "Should only print warning if both flags present"
+
     assert not run_pipx_cli(["install", "pycowsay", "--force"])
     captured = capsys.readouterr()
-    assert "--python is ignored when --force is passed." not in captured.out
+    assert "--python is ignored when --force is passed." not in captured.out, "Should not print warning if package does not exist yet"
 
 def test_install_run_in_separate_directory(caplog, capsys, pipx_temp_env, monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
@@ -360,9 +364,3 @@ def test_install_run_in_separate_directory(caplog, capsys, pipx_temp_env, monkey
     f.touch()
 
     install_packages(capsys, pipx_temp_env, caplog, ["pycowsay"], ["pycowsay"])
-
-def test_force_install_python_flag_warning(pipx_temp_env, capsys):
-    assert not run_pipx_cli(["install", "pycowsay"])
-    assert not run_pipx_cli(["install", "pycowsay", "--force"])
-    captured = capsys.readouterr()
-    assert "--python is ignored when --force is passed." not in captured.out
