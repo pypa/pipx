@@ -26,6 +26,7 @@ def reinstall(
     python: str,
     verbose: bool,
     force_reinstall_shared_libs: bool = False,
+    python_flag_passed: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
     if not venv_dir.exists():
@@ -74,6 +75,7 @@ def reinstall(
         include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
         preinstall_packages=[],
         suffix=venv.pipx_metadata.main_package.suffix,
+        python_flag_passed=python_flag_passed,
     )
 
     # now install injected packages
@@ -105,6 +107,7 @@ def reinstall_all(
     verbose: bool,
     *,
     skip: Sequence[str],
+    python_flag_passed: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
     failed: List[str] = []
@@ -124,6 +127,7 @@ def reinstall_all(
                 python=python,
                 verbose=verbose,
                 force_reinstall_shared_libs=first_reinstall,
+                python_flag_passed=python_flag_passed,
             )
         except PipxError as e:
             print(e, file=sys.stderr)

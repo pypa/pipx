@@ -198,10 +198,15 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
 
-    if "python" in args and args.python is not None:
+    python_flag_passed = False
+
+    if "python" in args:
+        python_flag_passed = bool(args.python)
         fetch_missing_python = args.fetch_missing_python
         try:
-            interpreter = find_python_interpreter(args.python, fetch_missing_python=fetch_missing_python)
+            interpreter = find_python_interpreter(
+                args.python or DEFAULT_PYTHON, fetch_missing_python=fetch_missing_python
+            )
             args.python = interpreter
         except InterpreterResolutionError as e:
             logger.debug("Failed to resolve interpreter:", exc_info=True)
@@ -244,6 +249,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             include_dependencies=args.include_deps,
             preinstall_packages=args.preinstall,
             suffix=args.suffix,
+            python_flag_passed=python_flag_passed,
         )
     elif args.command == "inject":
         return commands.inject(
@@ -275,6 +281,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             include_injected=args.include_injected,
             force=args.force,
             install=args.install,
+            python_flag_passed=python_flag_passed,
         )
     elif args.command == "upgrade-all":
         return commands.upgrade_all(
@@ -284,6 +291,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             skip=skip_list,
             force=args.force,
             pip_args=pip_args,
+            python_flag_passed=python_flag_passed,
         )
     elif args.command == "list":
         return commands.list_packages(
@@ -318,6 +326,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             local_man_dir=paths.ctx.man_dir,
             python=args.python,
             verbose=verbose,
+            python_flag_passed=python_flag_passed,
         )
     elif args.command == "reinstall-all":
         return commands.reinstall_all(
@@ -327,6 +336,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             args.python,
             verbose,
             skip=skip_list,
+            python_flag_passed=python_flag_passed,
         )
     elif args.command == "runpip":
         if not venv_dir:
@@ -373,7 +383,6 @@ def add_include_dependencies(parser: argparse.ArgumentParser) -> None:
 def add_python_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--python",
-        default=DEFAULT_PYTHON,
         help=(
             "Python to install with. Possible values can be the executable name (python3.11), "
             "the version to pass to py launcher (3.11), or the full path to the executable."
