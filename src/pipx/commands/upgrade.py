@@ -252,3 +252,15 @@ def upgrade_all(
         )
 
     return EXIT_CODE_OK
+
+
+def upgrade_shared(
+    verbose: bool,
+    pip_args: List[str],
+) -> ExitCode:
+    """Returns pipx exit code."""
+    from pipx.shared_libs import shared_libs
+
+    shared_libs.upgrade(verbose=verbose, pip_args=pip_args, raises=True)
+
+    return EXIT_CODE_OK

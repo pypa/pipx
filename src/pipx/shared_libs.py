@@ -53,7 +53,7 @@ class _SharedLibs:
             # are used
             pip_args = pip_args or []
             pip_args.append("--force-reinstall")
-            self.upgrade(pip_args=pip_args, verbose=verbose)
+            self.upgrade(pip_args=pip_args, verbose=verbose, raises=True)
 
     @property
     def is_valid(self) -> bool:
@@ -87,7 +87,7 @@ class _SharedLibs:
             self.has_been_logged_this_run = True
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
-    def upgrade(self, *, pip_args: List[str], verbose: bool = False) -> None:
+    def upgrade(self, *, pip_args: List[str], verbose: bool = False, raises: bool = False) -> None:
         if not self.is_valid:
             self.create(verbose=verbose, pip_args=pip_args)
             return
@@ -127,7 +127,9 @@ class _SharedLibs:
             self.pip_path.touch()
 
         except Exception:
-            logger.error("Failed to upgrade shared libraries", exc_info=True)
+            logger.error("Failed to upgrade shared libraries", exc_info=not raises)
+            if raises:
+                raise
 
 
 shared_libs = _SharedLibs()
