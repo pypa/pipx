@@ -339,9 +339,9 @@ def test_preinstall(pipx_temp_env, caplog):
 
 
 def test_preinstall_multiple(pipx_temp_env, caplog):
-    assert not run_pipx_cli(["install", "--preinstall", "ansible-lint", "--preinstall", "mitogen", "ansible-core"])
-    assert "ansible-lint" in caplog.text
-    assert "mitogen" in caplog.text
+    assert not run_pipx_cli(["install", "--preinstall", "chardet", "--preinstall", "colorama", "nox"])
+    assert "chardet" in caplog.text
+    assert "colorama" in caplog.text
 
 
 @pytest.mark.xfail
