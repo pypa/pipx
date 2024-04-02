@@ -337,6 +337,10 @@ def test_preinstall(pipx_temp_env, caplog):
     assert not run_pipx_cli(["install", "--preinstall", "black", "nox"])
     assert "black" in caplog.text
 
+def test_preinstall_multiple(pipx_temp_env, caplog):
+    assert not run_pipx_cli(["install", "--preinstall", "ansible-lint", "--preinstall", "mitogen", "ansible-core"])
+    assert "ansible-lint" in caplog.text
+    assert "mitogen" in caplog.text
 
 @pytest.mark.xfail
 def test_do_not_wait_for_input(pipx_temp_env, pipx_session_shared_dir, monkeypatch):
