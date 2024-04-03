@@ -437,7 +437,10 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
     p.add_argument(
         "--preinstall",
         action="append",
-        help=("Optional packages to be installed into the Virtual Environment before " "installing the main package."),
+        help=(
+            "Optional package to be installed into the Virtual Environment before "
+            "installing the main package. Use this flag multiple times if you want to preinstall multiple packages."
+        ),
     )
     add_pip_venv_args(p)
 
