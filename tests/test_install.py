@@ -338,6 +338,12 @@ def test_preinstall(pipx_temp_env, caplog):
     assert "black" in caplog.text
 
 
+def test_preinstall_multiple(pipx_temp_env, caplog):
+    assert not run_pipx_cli(["install", "--preinstall", "chardet", "--preinstall", "colorama", "nox"])
+    assert "chardet" in caplog.text
+    assert "colorama" in caplog.text
+
+
 @pytest.mark.xfail
 def test_do_not_wait_for_input(pipx_temp_env, pipx_session_shared_dir, monkeypatch):
     monkeypatch.setenv("PIP_INDEX_URL", "http://127.0.0.1:8080/simple")

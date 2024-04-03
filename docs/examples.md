@@ -11,6 +11,7 @@ pipx install git+https://github.com/psf/black.git@git-hash
 pipx install git+ssh://<username>@<private-repo-domain>/<path-to-package.git>
 pipx install https://github.com/psf/black/archive/18.9b0.zip
 pipx install black[d]
+pipx install --preinstall ansible-lint --preinstall mitogen ansible-core
 pipx install 'black[d] @ git+https://github.com/psf/black.git@branch-name'
 pipx install --suffix @branch-name 'black[d] @ git+https://github.com/psf/black.git@branch-name'
 pipx install --include-deps jupyter
@@ -119,4 +120,25 @@ binaries are exposed on your $PATH at /Users/user/.local/bin
 > pipx list --short
 black 18.9b0
 pipx 0.10.0
+```
+
+## `pipx install-all` example
+
+```shell
+> pipx list --json > pipx.json
+> pipx instal-all pipx.json
+'black' already seems to be installed. Not modifying existing installation in '/usr/local/pipx/venvs/black'. Pass '--force' to force installation.
+'pipx' already seems to be installed. Not modifying existing installation in '/usr/local/pipx/venvs/black'. Pass '--force' to force installation.
+> pipx install-all pipx.json --force
+Installing to existing venv 'black'
+  installed package black 24.3.0, installed using Python 3.10.12
+  These apps are now globally available
+    - black
+    - blackd
+done! ✨ 🌟 ✨
+Installing to existing venv 'pipx'
+  installed package pipx 1.4.3, installed using Python 3.10.12
+  These apps are now globally available
+    - pipx
+done! ✨ 🌟 ✨
 ```
