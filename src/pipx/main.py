@@ -251,6 +251,17 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             suffix=args.suffix,
             python_flag_passed=python_flag_passed,
         )
+    elif args.command == "install-all":
+        return commands.install_all(
+            args.spec_metadata_file,
+            paths.ctx.bin_dir,
+            paths.ctx.man_dir,
+            args.python,
+            pip_args,
+            venv_args,
+            verbose,
+            force=args.force,
+        )
     elif args.command == "inject":
         return commands.inject(
             venv_dir,
@@ -431,6 +442,25 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
             "installing the main package. Use this flag multiple times if you want to preinstall multiple packages."
         ),
     )
+    add_pip_venv_args(p)
+
+
+def _add_install_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+    p = subparsers.add_parser(
+        "install-all",
+        help="Install all packages",
+        formatter_class=LineWrapRawTextHelpFormatter,
+        description="Installs all the packages according to spec metadata file.",
+        parents=[shared_parser],
+    )
+    p.add_argument("spec_metadata_file", help="Spec metadata file generated from pipx list --json")
+    p.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
+    )
+    add_python_options(p)
     add_pip_venv_args(p)
 
 
@@ -803,6 +833,7 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
 
     subparsers_with_subcommands = {}
     _add_install(subparsers, shared_parser)
+    _add_install_all(subparsers, shared_parser)
     _add_uninject(subparsers, completer_venvs.use, shared_parser)
     _add_inject(subparsers, completer_venvs.use, shared_parser)
     _add_upgrade(subparsers, completer_venvs.use, shared_parser)
