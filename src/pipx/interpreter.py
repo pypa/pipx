@@ -87,7 +87,7 @@ def find_py_launcher_python(python_version: Optional[str] = None) -> Optional[st
     if py and python_version:
         python_semver = python_version
         if python_version.startswith("python"):
-            logging.warn(
+            logger.warning(
                 "Removing `python` from the start of the version, as pylauncher just expects the semantic version"
             )
             python_semver = python_semver.lstrip("python")
