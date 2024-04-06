@@ -142,3 +142,17 @@ Installing to existing venv 'pipx'
     - pipx
 done! ✨ 🌟 ✨
 ```
+
+## `pipx upgrade-shared` examples
+
+One use of the upgrade-shared command is to force a `pip` upgrade.
+
+```shell
+> pipx upgrade-shared
+```
+
+Another use of the upgrade-shared command is to pin (temporarily) `pip` to a specific version.
+
+```shell
+> pipx upgrade-shared --pip-args='pip==24.0'
+```
