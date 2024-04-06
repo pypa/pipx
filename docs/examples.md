@@ -154,5 +154,5 @@ One use of the upgrade-shared command is to force a `pip` upgrade.
 Another use of the upgrade-shared command is to pin (temporarily) `pip` to a specific version.
 
 ```shell
-> pipx upgrade-shared --pip-args='pip==24.0'
+> pipx upgrade-shared --pip-args=pip==24.0
 ```
