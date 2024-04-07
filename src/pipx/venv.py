@@ -75,16 +75,6 @@ class VenvContainer:
 
     def get_venv_dir(self, package_name: str) -> Path:
         """Return the expected venv path for given `package_name`."""
-        if Path(package_name).is_absolute():
-            # An absolute path given would be returned as venv dir
-            raise PipxError(
-                pipx_wrap(
-                    f"""
-                    Error: Path '{package_name}' given as
-                    package name.
-                    """
-                )
-            )
         return self._root.joinpath(canonicalize_name(package_name))
 
 
