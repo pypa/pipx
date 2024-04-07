@@ -7,8 +7,6 @@ from typing import Optional
 import mkdocs_gen_files
 from jinja2 import Environment, FileSystemLoader
 
-from pipx.main import __version__
-
 
 def get_help(cmd: Optional[str]) -> str:
     base = ["pipx"]
