@@ -19,24 +19,29 @@ def get_help(cmd: Optional[str]) -> str:
     content = content.replace(str(Path("~").expanduser()), "~")
     return f"""
 ```
-{" ".join(args[2:])}
 {content}
 ```
 """
 
 
 params = {
-    "runpip": get_help("runpip"),
     "install": get_help("install"),
+    "installall": get_help("install-all"),
+    "uninject": get_help("uninject"),
+    "inject": get_help("inject"),
     "upgrade": get_help("upgrade"),
     "upgradeall": get_help("upgrade-all"),
-    "inject": get_help("inject"),
     "uninstall": get_help("uninstall"),
     "uninstallall": get_help("uninstall-all"),
+    "reinstall": get_help("reinstall"),
     "reinstallall": get_help("reinstall-all"),
     "list": get_help("list"),
+    "interpreter": get_help("interpreter"),
     "run": get_help("run"),
-    "version": __version__,
+    "runpip": get_help("runpip"),
+    "ensurepath": get_help("ensurepath"),
+    "environment": get_help("environment"),
+    "completions": get_help("completions"),
     "usage": get_help(None),
 }
 
