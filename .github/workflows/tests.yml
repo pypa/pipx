@@ -86,6 +86,31 @@ jobs:
           path: pipx.pyz
           retention-days: 3
 
+  create-release:
+    name: >-
+        Create a release on GitHub's UI
+        which triggers the actual release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: >-
+        github.event_name == 'pull_request'
+        && github.event.pull_request.merged == true
+        && github.event.pull_request.labels.name == 'release-version'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract version to be released
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "VERSION=${TITLE##bump changelog for }" >> "$GITHUB_ENV"
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          generateReleaseNotes: true
+          tag: "$VERSION"
+          commit: ${{ github.event.pull_request.merge_commit_sha }}
+
   pypi-publish:
     name: Publish pipx to PyPI on release
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
