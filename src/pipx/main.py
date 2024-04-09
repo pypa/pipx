@@ -185,7 +185,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
 
     if "package" in args:
         package = args.package
-        if urllib.parse.urlparse(package).scheme:
+        url_parse_package = urllib.parse.urlparse(package)
+        if url_parse_package.scheme and url_parse_package.netloc:
             raise PipxError("Package cannot be a url")
 
         if "spec" in args and args.spec is not None:
