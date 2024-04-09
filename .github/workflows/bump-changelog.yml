@@ -47,6 +47,6 @@ jobs:
       - name: Create pull request
         run: |
           git fetch origin
-          gh pr create --base main --fill
+          gh pr create --base main --fill --label release-version
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
