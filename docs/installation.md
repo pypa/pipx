@@ -19,7 +19,7 @@ pipx works on macOS, linux, and Windows.
 ```
 brew install pipx
 pipx ensurepath
-sudo pipx ensurepath --global # optional to allow pipx actions in global scope. See "Global installation" section below.
+sudo pipx --global ensurepath # optional to allow pipx actions in global scope. See "Global installation" section below.
 ```
 
 ### On Linux:
@@ -30,7 +30,7 @@ sudo pipx ensurepath --global # optional to allow pipx actions in global scope. 
 sudo apt update
 sudo apt install pipx
 pipx ensurepath
-sudo pipx ensurepath --global # optional to allow pipx actions in global scope. See "Global installation" section below.
+sudo pipx --global ensurepath # optional to allow pipx actions in global scope. See "Global installation" section below.
 ```
 
 - Fedora:
@@ -38,7 +38,7 @@ sudo pipx ensurepath --global # optional to allow pipx actions in global scope. 
 ```
 sudo dnf install pipx
 pipx ensurepath
-sudo pipx ensurepath --global # optional to allow pipx actions in global scope. See "Global installation" section below.
+sudo pipx --global ensurepath # optional to allow pipx actions in global scope. See "Global installation" section below.
 ```
 
 - Using `pip` on other distributions:
@@ -46,7 +46,7 @@ sudo pipx ensurepath --global # optional to allow pipx actions in global scope. 
 ```
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
-sudo pipx ensurepath --global # optional to allow pipx actions in global scope. See "Global installation" section below.
+sudo pipx --global ensurepath # optional to allow pipx actions in global scope. See "Global installation" section below.
 ```
 
 
@@ -166,7 +166,7 @@ Pipx also comes with a `--global` argument which helps to execute actions in glo
 all system users. By default the global binary location is set to `/usr/local/bin` and can be overridden with the
 environment variable `PIPX_GLOBAL_BIN_DIR`. Default global manual page location is `/usr/local/share/man`. This
 can be overridden with environment variable `PIPX_GLOBAL_MAN_DIR`. Finally, default global virtual environment location
-is `/opt/pipx`, can be overridden with environment variable `PIPX_GLOBAL_HOME`. Make sure to run `sudo pipx ensurepath --global`
+is `/opt/pipx`, can be overridden with environment variable `PIPX_GLOBAL_HOME`. Make sure to run `sudo pipx --global ensurepath`
 if you intend to use this feature.
 
 Note that the `--global` argument is not supported on Windows.
