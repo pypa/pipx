@@ -195,6 +195,14 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
 
         venv_dir = venv_container.get_venv_dir(package)
         logger.info(f"Virtual Environment location is {venv_dir}")
+
+    if "packages" in args:
+        if any(urllib.parse.urlparse(package).scheme for package in args.packages):
+            raise PipxError("Package cannot be a url")
+        venv_dirs = {package: venv_container.get_venv_dir(package) for package in args.packages}
+        venv_dirs_msg = "\n".join(f"- {key} : {value}" for key, value in venv_dirs.items())
+        logger.info(f"Virtual Environment locations are:\n{venv_dirs_msg}")
+
     if "skip" in args:
         skip_list = [canonicalize_name(x) for x in args.skip]
 
@@ -285,7 +293,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         )
     elif args.command == "upgrade":
         return commands.upgrade(
-            venv_dir,
+            venv_dirs,
             args.python,
             pip_args,
             verbose,
@@ -531,10 +539,10 @@ def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argpa
     p = subparsers.add_parser(
         "upgrade",
         help="Upgrade a package",
-        description="Upgrade a package in a pipx-managed Virtual Environment by running 'pip install --upgrade PACKAGE'",
+        description="Upgrade package(s) in pipx-managed Virtual Environment(s) by running 'pip install --upgrade PACKAGE'",
         parents=[shared_parser],
     )
-    p.add_argument("package").completer = venv_completer
+    p.add_argument("packages", help="package names(s) to upgrade", nargs="+").completer = venv_completer
     p.add_argument(
         "--include-injected",
         action="store_true",
