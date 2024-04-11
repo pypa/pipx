@@ -129,7 +129,7 @@ def _get_sys_executable() -> str:
     if WINDOWS:
         return _find_default_windows_python()
     else:
-        return sys.executable
+        return str(Path(sys.executable).resolve())
 
 
 def _get_absolute_python_interpreter(env_python: str) -> str:
