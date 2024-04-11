@@ -192,8 +192,8 @@ def upgrade(
 ) -> ExitCode:
     """Return pipx exit code."""
 
-    _ = [
-        _upgrade_venv(
+    for venv_dir in venv_dirs.values():
+        _ = _upgrade_venv(
             venv_dir,
             pip_args,
             verbose,
@@ -204,8 +204,6 @@ def upgrade(
             python=python,
             python_flag_passed=python_flag_passed,
         )
-        for venv_dir in venv_dirs.values()
-    ]
 
     # Any error in upgrade will raise PipxError (e.g. from venv.upgrade_package())
     return EXIT_CODE_OK
