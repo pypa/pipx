@@ -416,7 +416,7 @@ def test_install_non_exist_python_command_version(pipx_temp_env, capsys):
     python_version = f"{sys.version_info.major + 99}.{sys.version_info.minor}"
     assert run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
     captured = capsys.readouterr()
-    assert f"Command `{python_version}` was not found" in captured.err
+    assert f"Command `python{python_version}` was not found" in captured.err
 
 
 def test_install_mismatch_macro_python_command_version(capsys):
