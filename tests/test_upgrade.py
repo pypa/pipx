@@ -102,3 +102,17 @@ def test_upgrade_install_missing(pipx_temp_env, capsys):
     assert not run_pipx_cli(["upgrade", "pycowsay", "--install"])
     captured = capsys.readouterr()
     assert "installed package pycowsay" in captured.out
+
+
+def test_upgrade_multiple(pipx_temp_env, capsys):
+    name = "pylint"
+    pkg_spec = PKG[name]["spec"]
+    initial_version = pkg_spec.split("==")[-1]
+    assert not run_pipx_cli(["install", pkg_spec])
+
+    assert not run_pipx_cli(["install", "pycowsay"])
+
+    assert not run_pipx_cli(["upgrade", name, "pycowsay"])
+    captured = capsys.readouterr()
+    assert f"upgraded package {name} from {initial_version} to" in captured.out
+    assert "pycowsay is already at latest version" in captured.out

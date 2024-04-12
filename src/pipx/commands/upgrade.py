@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence
 
 from pipx import commands, paths
 from pipx.colors import bold, red
@@ -180,7 +180,7 @@ def _upgrade_venv(
 
 
 def upgrade(
-    venv_dir: Path,
+    venv_dirs: Dict[str, Path],
     python: Optional[str],
     pip_args: List[str],
     verbose: bool,
@@ -192,17 +192,18 @@ def upgrade(
 ) -> ExitCode:
     """Return pipx exit code."""
 
-    _ = _upgrade_venv(
-        venv_dir,
-        pip_args,
-        verbose,
-        include_injected=include_injected,
-        upgrading_all=False,
-        force=force,
-        install=install,
-        python=python,
-        python_flag_passed=python_flag_passed,
-    )
+    for venv_dir in venv_dirs.values():
+        _ = _upgrade_venv(
+            venv_dir,
+            pip_args,
+            verbose,
+            include_injected=include_injected,
+            upgrading_all=False,
+            force=force,
+            install=install,
+            python=python,
+            python_flag_passed=python_flag_passed,
+        )
 
     # Any error in upgrade will raise PipxError (e.g. from venv.upgrade_package())
     return EXIT_CODE_OK
