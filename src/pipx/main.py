@@ -198,7 +198,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
 
     if "packages" in args:
         if any(urllib.parse.urlparse(package).scheme for package in args.packages):
-            raise PipxError("Package cannot be a url")
+            raise PipxError("Package cannot be a url. Package name should be passed instead.")
         venv_dirs = {package: venv_container.get_venv_dir(package) for package in args.packages}
         venv_dirs_msg = "\n".join(f"- {key} : {value}" for key, value in venv_dirs.items())
         logger.info(f"Virtual Environment locations are:\n{venv_dirs_msg}")
