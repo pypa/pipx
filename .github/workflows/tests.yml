@@ -96,7 +96,7 @@ jobs:
       contents: write
     if: >-
         github.event.pull_request.merged == true
-        && github.event.pull_request.labels.name == 'release-version'
+        && contains(github.event.pull_request.labels.*.name, 'release-version')
     steps:
       - uses: actions/checkout@v4
       - name: Extract version to be released
