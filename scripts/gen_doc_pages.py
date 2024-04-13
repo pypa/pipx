@@ -29,6 +29,7 @@ params = {
     "inject": get_help("inject"),
     "upgrade": get_help("upgrade"),
     "upgradeall": get_help("upgrade-all"),
+    "upgradeshared": get_help("upgrade-shared"),
     "uninstall": get_help("uninstall"),
     "uninstallall": get_help("uninstall-all"),
     "reinstall": get_help("reinstall"),
