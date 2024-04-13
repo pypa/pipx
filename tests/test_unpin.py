@@ -17,7 +17,6 @@ def test_unpin(monkeypatch, capsys, pipx_temp_env):
     assert "nox is already at latest version" in captured.out
 
 
-
 def test_unpin_with_suffix(monkeypatch, capsys, pipx_temp_env):
     assert not run_pipx_cli(["install", PKG["black"]["spec"], "--suffix", "@1"])
     assert not run_pipx_cli(["pin", "black@1"])

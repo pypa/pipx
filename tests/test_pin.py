@@ -25,14 +25,12 @@ def test_pin_with_suffix(monkeypatch, capsys, pipx_temp_env):
     assert "Unpinned 1 packages in venv black@1" in captured.out
 
 
-
 def test_pin_warning(monkeypatch, capsys, pipx_temp_env, caplog):
     assert not run_pipx_cli(["install", PKG["nox"]["spec"]])
     assert not run_pipx_cli(["pin", "nox"])
     assert not run_pipx_cli(["pin", "nox"])
 
     assert "Package nox already pinned 😴" in caplog.text
-
 
 
 def test_pin_not_installed_package(monkeypatch, capsys, pipx_temp_env):
@@ -80,5 +78,3 @@ def test_pin_injected_packages_with_skip(monkeypatch, capsys, pipx_temp_env):
 
     assert "pylint" in captured.out
     assert "isort" not in captured.out
-
-
