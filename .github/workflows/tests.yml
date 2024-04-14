@@ -6,7 +6,9 @@ on:
     branches:
       - "main"
   pull_request:
-    types: [opened, reopened, synchronize, closed]
+  pull_request_target:
+    types:
+      - closed
   schedule:
     - cron: "0 8 * * *"
 concurrency:
