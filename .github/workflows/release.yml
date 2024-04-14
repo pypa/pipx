@@ -1,0 +1,31 @@
+name: Release
+
+on:
+  pull_request_target:
+    types:
+      - closed
+
+jobs:
+  create-release:
+    name: >-
+        Create a release on GitHub's UI
+        which triggers the actual release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: >-
+        github.event.pull_request.merged == true
+        && contains(github.event.pull_request.labels.*.name, 'release-version')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract version to be released
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "VERSION=${TITLE##bump changelog for }" >> "$GITHUB_ENV"
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          generateReleaseNotes: true
+          tag: "${{ env.VERSION }}"
+          commit: ${{ github.event.pull_request.merge_commit_sha }}
