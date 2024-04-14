@@ -110,7 +110,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           generateReleaseNotes: true
-          tag: "$VERSION"
+          tag: "${{ env.VERSION }}"
           commit: ${{ github.event.pull_request.merge_commit_sha }}
 
   pypi-publish:
