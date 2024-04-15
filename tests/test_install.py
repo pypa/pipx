@@ -386,13 +386,14 @@ def test_install_run_in_separate_directory(caplog, capsys, pipx_temp_env, monkey
 
     install_packages(capsys, pipx_temp_env, caplog, ["pycowsay"], ["pycowsay"])
 
+
 @pytest.mark.parametrize(
     "python_version",
     [
         str(sys.version_info.major),
         f"{sys.version_info.major}.{sys.version_info.minor}",
         f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
-    ]
+    ],
 )
 def test_install_valid_python_command_version(capsys, python_version):
     assert not run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])

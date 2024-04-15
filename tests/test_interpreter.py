@@ -198,12 +198,13 @@ def test_fetch_missing_python(monkeypatch, mocked_github_api):
             assert python_path.endswith("python3")
         subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)
 
+
 @pytest.mark.parametrize(
     "python_version",
     [
         str(sys.version_info.major),
         f"{sys.version_info.major}.{sys.version_info.minor}",
-    ]
+    ],
 )
 def test_valid_python_command_version(python_version):
     python_path = find_python_interpreter(python_version)
