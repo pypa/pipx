@@ -62,9 +62,9 @@ def test_reinstall_with_path(pipx_temp_env, capsys, tmp_path):
     assert run_pipx_cli(["reinstall", str(path)])
     captured = capsys.readouterr()
 
-    assert f"Path '{str(path)}' given as package" in captured.err.replace("\n", " ")
+    assert "Expected the name of an installed package" in captured.err.replace("\n", " ")
 
     assert run_pipx_cli(["reinstall", str(path.resolve())])
     captured = capsys.readouterr()
 
-    assert f"Path '{str(path.resolve())}' given as package" in captured.err.replace("\n", " ")
+    assert "Expected the name of an installed package" in captured.err.replace("\n", " ")

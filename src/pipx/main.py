@@ -202,7 +202,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
                     pipx_wrap(
                         f"""
                         Error: Path '{package}' given as
-                        package name.
+                        package. Expected the name of
+                        an installed package.
                         """
                     )
                 )
