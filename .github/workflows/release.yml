@@ -4,6 +4,10 @@ on:
   pull_request_target:
     types:
       - closed
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
 
 jobs:
   create-release:
