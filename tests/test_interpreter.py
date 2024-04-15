@@ -198,26 +198,24 @@ def test_fetch_missing_python(monkeypatch, mocked_github_api):
             assert python_path.endswith("python3")
         subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)
 
-
-def test_valid_python_command_version():
-    major = sys.version_info.major
-    minor = sys.version_info.minor
-    micro = sys.version_info.micro
-
-    python_version = str(major)
+@pytest.mark.parametrize(
+    "python_version",
+    [
+        str(sys.version_info.major),
+        f"{sys.version_info.major}.{sys.version_info.minor}",
+    ]
+)
+def test_valid_python_command_version(python_version):
     python_path = find_python_interpreter(python_version)
     assert python_path is not None
-    assert python_path.endswith(f"python{major}")
+    assert python_path.endswith(f"python{python_version}")
 
-    python_version = f"{major}.{minor}"
+
+def test_valid_micro_python_command_version():
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     python_path = find_python_interpreter(python_version)
     assert python_path is not None
-    assert python_path.endswith(f"python{major}.{minor}")
-
-    python_version = f"{major}.{minor}.{micro}"
-    python_path = find_python_interpreter(python_version)
-    assert python_path is not None
-    assert python_path.endswith(f"python{major}.{minor}")
+    assert python_path.endswith(f"python{sys.version_info.major}.{sys.version_info.minor}")
 
 
 def test_invalid_python_command_version():
