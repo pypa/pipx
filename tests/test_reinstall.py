@@ -57,18 +57,15 @@ def test_reinstall_specifier(pipx_temp_env, capsys):
     assert "installed package pylint 2.3.1" in captured.out
 
 
-linux_paths = ["/opt/path/file", "rel/path/", "~/tilde-path"]
-windows_paths = ["C:\\Program Files\\PATH", "D:\\TEST\\DIR", "REL\\PATH"]
+def test_reinstall_with_path(pipx_temp_env, capsys, tmp_path):
+    path = tmp_path / "some" / "path"
 
-
-@pytest.mark.parametrize("path", windows_paths if sys.platform.startswith("win") else linux_paths)
-def test_reinstall_with_path(pipx_temp_env, capsys, path):
-    try:
-        Path(path).mkdir(parents=True, exist_ok=True)
-    except PermissionError:
-        pass
-
-    assert run_pipx_cli(["reinstall", path])
+    assert run_pipx_cli(["reinstall", str(path)])
     captured = capsys.readouterr()
 
-    assert "given as package name" in captured.err
+    assert f"Path '{str(path)}' given as package" in captured.err.replace("\n", " ")
+
+    assert run_pipx_cli(["reinstall", str(path.resolve())])
+    captured = capsys.readouterr()
+
+    assert f"Path '{str(path.resolve())}' given as package" in captured.err.replace("\n", " ")
