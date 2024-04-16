@@ -54,3 +54,17 @@ def test_reinstall_specifier(pipx_temp_env, capsys):
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pylint"])
     captured = capsys.readouterr()
     assert "installed package pylint 2.3.1" in captured.out
+
+
+def test_reinstall_with_path(pipx_temp_env, capsys, tmp_path):
+    path = tmp_path / "some" / "path"
+
+    assert run_pipx_cli(["reinstall", str(path)])
+    captured = capsys.readouterr()
+
+    assert "Expected the name of an installed package" in captured.err.replace("\n", " ")
+
+    assert run_pipx_cli(["reinstall", str(path.resolve())])
+    captured = capsys.readouterr()
+
+    assert "Expected the name of an installed package" in captured.err.replace("\n", " ")

@@ -185,13 +185,28 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
 
     if "package" in args:
         package = args.package
-        if urllib.parse.urlparse(package).scheme:
+        url_parse_package = urllib.parse.urlparse(package)
+        if url_parse_package.scheme and url_parse_package.netloc:
             raise PipxError("Package cannot be a url")
 
         if "spec" in args and args.spec is not None:
             if urllib.parse.urlparse(args.spec).scheme:
                 if "#egg=" not in args.spec:
                     args.spec = args.spec + f"#egg={package}"
+
+        if args.command == "reinstall":
+            # Passing paths into `reinstall` might have unintended
+            # side effects.
+            if Path(package).is_absolute() or Path(package).exists():
+                raise PipxError(
+                    pipx_wrap(
+                        f"""
+                        Error: Path '{package}' given as
+                        package. Expected the name of
+                        an installed package.
+                        """
+                    )
+                )
 
         venv_dir = venv_container.get_venv_dir(package)
         logger.info(f"Virtual Environment location is {venv_dir}")
