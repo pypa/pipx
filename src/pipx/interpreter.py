@@ -51,7 +51,7 @@ class InterpreterResolutionError(PipxError):
         super().__init__(message, wrap_message)
 
 
-def find_python_command(python_version: str) -> Optional[str]:
+def find_unix_command_python(python_version: str) -> Optional[str]:
     try:
         parsed_python_version = version.parse(python_version)
     except version.InvalidVersion:
@@ -73,7 +73,7 @@ def find_python_command(python_version: str) -> Optional[str]:
             else f"{parsed_python_version.major}.{parsed_python_version.minor}"
         )
 
-        python_command = f"python{python_command_version}.exe" if WINDOWS else f"python{python_command_version}"
+        python_command = f"python{python_command_version}"
         if not shutil.which(python_command):
             logger.info(f"Command `{python_command}` was not found")
             return None
@@ -101,9 +101,10 @@ def find_python_interpreter(python_version: str, fetch_missing_python: bool = Fa
     if shutil.which(python_version):
         return python_version
 
-    python_command = find_python_command(python_version)
-    if python_command:
-        return python_command
+    if not WINDOWS:
+        python_unix_command = find_unix_command_python(python_version)
+        if python_unix_command:
+            return python_unix_command
 
     try:
         py_executable = find_py_launcher_python(python_version)

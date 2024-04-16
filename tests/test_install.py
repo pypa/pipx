@@ -387,6 +387,7 @@ def test_install_run_in_separate_directory(caplog, capsys, pipx_temp_env, monkey
     install_packages(capsys, pipx_temp_env, caplog, ["pycowsay"], ["pycowsay"])
 
 
+@skip_if_windows
 @pytest.mark.parametrize(
     "python_version",
     [
@@ -395,32 +396,33 @@ def test_install_run_in_separate_directory(caplog, capsys, pipx_temp_env, monkey
         f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
     ],
 )
-def test_install_valid_python_command_version(capsys, python_version):
+def test_install_python_command_version(python_version):
     assert not run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
 
 
-def test_install_invalid_python_command_version(pipx_temp_env, capsys):
+@skip_if_windows
+def test_install_python_command_version_invalid(pipx_temp_env, capsys):
     python_version = "3.x"
     assert run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
     captured = capsys.readouterr()
     assert f"Invalid python version: {python_version}" in captured.err
 
-
-def test_install_unsupported_python_command_version(pipx_temp_env, capsys):
+@skip_if_windows
+def test_install_python_command_version_unsupported(pipx_temp_env, capsys):
     python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}.dev"
     assert run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
     captured = capsys.readouterr()
     assert f"Unsupported python version: {python_version}" in captured.err
 
-
-def test_install_non_exist_python_command_version(pipx_temp_env, capsys):
+@skip_if_windows
+def test_install_python_command_version_non_exist(pipx_temp_env, capsys):
     python_version = f"{sys.version_info.major + 99}.{sys.version_info.minor}"
     assert run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
     captured = capsys.readouterr()
     assert f"Command `python{python_version}` was not found" in captured.err
 
-
-def test_install_mismatch_macro_python_command_version(capsys):
+@skip_if_windows
+def test_install_python_command_version_micro_mismatch(capsys):
     python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro + 1}"
     assert run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
     captured = capsys.readouterr()

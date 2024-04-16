@@ -16,6 +16,7 @@ from pipx.interpreter import (
     find_python_interpreter,
 )
 from pipx.util import PipxError
+from helpers import skip_if_windows
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
@@ -199,6 +200,7 @@ def test_fetch_missing_python(monkeypatch, mocked_github_api):
         subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)
 
 
+@skip_if_windows
 @pytest.mark.parametrize(
     "python_version",
     [
@@ -206,41 +208,46 @@ def test_fetch_missing_python(monkeypatch, mocked_github_api):
         f"{sys.version_info.major}.{sys.version_info.minor}",
     ],
 )
-def test_valid_python_command_version(python_version):
+def test_find_unix_command_python_valid(python_version):
     python_path = find_python_interpreter(python_version)
     assert python_path is not None
     assert python_path.endswith(f"python{python_version}")
 
 
-def test_valid_micro_python_command_version():
+@skip_if_windows
+def test_find_unix_command_python_micro():
     python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     python_path = find_python_interpreter(python_version)
     assert python_path is not None
     assert python_path.endswith(f"python{sys.version_info.major}.{sys.version_info.minor}")
 
 
-def test_invalid_python_command_version():
+@skip_if_windows
+def test_find_unix_command_python_invalid():
     python_version = f"{sys.version_info.major}.x"
     with pytest.raises(InterpreterResolutionError) as e:
         find_python_interpreter(python_version)
     assert "the python command" in str(e)
 
 
-def test_unsupported_python_command_version():
+@skip_if_windows
+def test_find_unix_command_python_unsupported():
     python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}.dev"
     with pytest.raises(InterpreterResolutionError) as e:
         find_python_interpreter(python_version)
     assert "the python command" in str(e)
 
 
-def test_non_exist_python_command_version():
+@skip_if_windows
+def test_find_unix_command_python_no_exist():
     python_version = f"{sys.version_info.major + 99}.{sys.version_info.minor}"
     with pytest.raises(InterpreterResolutionError) as e:
         find_python_interpreter(python_version)
     assert "the python command" in str(e)
 
 
-def test_mismatch_macro_python_command_version():
+@skip_if_windows
+def test_find_unix_command_python_micro_mismatch():
     python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro + 1}"
     with pytest.raises(InterpreterResolutionError) as e:
         find_python_interpreter(python_version)
