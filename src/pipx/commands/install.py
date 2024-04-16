@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 from typing import Iterator, List, Optional
 
@@ -185,42 +186,52 @@ def install_all(
     force: bool,
 ) -> ExitCode:
     """Return pipx exit code."""
+    failed: List[str] = []
     venv_container = VenvContainer(paths.ctx.venvs)
 
     for venv_metadata in extract_venv_metadata(spec_metadata_file):
         # Install the main package
         main_package = venv_metadata.main_package
         venv_dir = venv_container.get_venv_dir(f"{main_package.package}{main_package.suffix}")
-        install(
-            venv_dir,
-            None,
-            [generate_package_spec(main_package)],
-            local_bin_dir,
-            local_man_dir,
-            python or get_python_interpreter(venv_metadata.source_interpreter),
-            pip_args,
-            venv_args,
-            verbose,
-            force=force,
-            reinstall=False,
-            include_dependencies=main_package.include_dependencies,
-            preinstall_packages=[],
-            suffix=main_package.suffix,
-        )
-
-        # Install the injected packages
-        for inject_package in venv_metadata.injected_packages.values():
-            commands.inject(
+        try:
+            package_exit = 0
+            package_exit |= install(
                 venv_dir,
                 None,
-                [generate_package_spec(inject_package)],
+                [generate_package_spec(main_package)],
+                local_bin_dir,
+                local_man_dir,
+                python or get_python_interpreter(venv_metadata.source_interpreter),
                 pip_args,
-                verbose=verbose,
-                include_apps=inject_package.include_apps,
-                include_dependencies=inject_package.include_dependencies,
+                venv_args,
+                verbose,
                 force=force,
-                suffix=inject_package.suffix == main_package.suffix,
+                reinstall=False,
+                include_dependencies=main_package.include_dependencies,
+                preinstall_packages=[],
+                suffix=main_package.suffix,
             )
 
+            # Install the injected packages
+            for inject_package in venv_metadata.injected_packages.values():
+                package_exit |= commands.inject(
+                    venv_dir,
+                    None,
+                    [generate_package_spec(inject_package)],
+                    pip_args,
+                    verbose=verbose,
+                    include_apps=inject_package.include_apps,
+                    include_dependencies=inject_package.include_dependencies,
+                    force=force,
+                    suffix=inject_package.suffix == main_package.suffix,
+                )
+        except PipxError as e:
+            print(e, file=sys.stderr)
+            failed.append(venv_dir.name)
+        else:
+            if package_exit != 0:
+                failed.append(venv_dir.name)
+    if len(failed) > 0:
+        raise PipxError(f"The following package(s) failed to install: {', '.join(failed)}")
     # Any failure to install will raise PipxError, otherwise success
     return EXIT_CODE_OK
