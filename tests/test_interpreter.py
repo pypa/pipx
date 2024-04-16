@@ -23,7 +23,8 @@ from pipx.util import PipxError
 @pytest.mark.parametrize("venv", [True, False])
 def test_windows_python_with_version(monkeypatch, venv):
     def which(name):
-        return "py"
+        if name == "py":
+            return "py"
 
     major = sys.version_info.major
     minor = sys.version_info.minor
@@ -39,7 +40,8 @@ def test_windows_python_with_version(monkeypatch, venv):
 @pytest.mark.parametrize("venv", [True, False])
 def test_windows_python_with_python_and_version(monkeypatch, venv):
     def which(name):
-        return "py"
+        if name == "py":
+            return "py"
 
     major = sys.version_info.major
     minor = sys.version_info.minor
@@ -55,7 +57,8 @@ def test_windows_python_with_python_and_version(monkeypatch, venv):
 @pytest.mark.parametrize("venv", [True, False])
 def test_windows_python_with_python_and_unavailable_version(monkeypatch, venv):
     def which(name):
-        return "py"
+        if name == "py":
+            return "py"
 
     major = sys.version_info.major + 99
     minor = sys.version_info.minor
@@ -73,6 +76,8 @@ def test_windows_python_no_version_with_venv(monkeypatch):
 
 def test_windows_python_no_version_no_venv_with_py(monkeypatch):
     def which(name):
+        if name == "py":
+            return "py"
         return "py"
 
     monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: False)
