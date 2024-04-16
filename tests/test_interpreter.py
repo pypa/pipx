@@ -8,6 +8,7 @@ import pytest  # type: ignore
 import pipx.interpreter
 import pipx.paths
 import pipx.standalone_python
+from helpers import skip_if_windows
 from pipx.constants import WINDOWS
 from pipx.interpreter import (
     InterpreterResolutionError,
@@ -16,7 +17,6 @@ from pipx.interpreter import (
     find_python_interpreter,
 )
 from pipx.util import PipxError
-from helpers import skip_if_windows
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
