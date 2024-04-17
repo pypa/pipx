@@ -185,10 +185,10 @@ def list_pythons() -> Dict[str, str]:
 
 def resolve_python_version(requested_version: str):
     pythons = list_pythons()
-    requested_release = tuple(int(i) for i in requested_version.split("."))
+    requested_release = requested_version.split(".")
 
     for full_version, download_link in pythons.items():
-        standalone_release = tuple(int(i) for i in full_version.split("."))
+        standalone_release = full_version.split(".")
         if requested_release == standalone_release[: len(requested_release)]:
             return full_version, download_link
 
