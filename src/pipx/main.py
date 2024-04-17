@@ -339,6 +339,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             return commands.list_interpreters(venv_container)
         elif args.interpreter_command == "prune":
             return commands.prune_interpreters(venv_container)
+        elif args.interpreter_command == "upgrade":
+            return commands.upgrade_interpreters(venv_container, verbose)
         elif args.interpreter_command is None:
             subparsers["interpreter"].print_help()
             return EXIT_CODE_OK
@@ -694,6 +696,11 @@ def _add_interpreter(
     )
     s.add_parser("list", help="List available interpreters", description="List available interpreters")
     s.add_parser("prune", help="Prune unused interpreters", description="Prune unused interpreters")
+    s.add_parser(
+        "upgrade",
+        help="Upgrade installed interpreters to the latest available micro/patch version",
+        description="Upgrade installed interpreters to the latest available micro/patch version",
+    )
     return p
 
 
