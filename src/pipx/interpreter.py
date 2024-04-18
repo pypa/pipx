@@ -78,18 +78,11 @@ def find_unix_command_python(python_version: str) -> Optional[str]:
             logger.info(f"Command `{python_command}` was not found on the system")
             return None
 
-        # Check consistency when micro part is specified
         if parsed_python_version.micro != 0:
-            command = [python_command, "-c", "import sys; print('.'.join(map(str,sys.version_info[:3])))"]
-            python_command_full_version = subprocess.run(
-                command, text=True, capture_output=True, check=True
-            ).stdout.strip()
-            if parsed_python_version != version.Version(python_command_full_version):
-                logger.info(
-                    f"The command `{python_command}` is at version {python_command_full_version}, "
-                    f"which does not match the requested version {python_version} in patch level"
-                )
-                return None
+            logger.warning(
+                f"The command `{python_command}` will be used and "
+                f"may not match the specified version {python_version} at the micro/patch level"
+            )
 
         return python_command
 
