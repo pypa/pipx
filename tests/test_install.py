@@ -434,4 +434,4 @@ def test_install_python_command_version_micro_mismatch(pipx_temp_env, monkeypatc
     python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro + 1}"
     assert not run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
     captured = capsys.readouterr()
-    assert f"may not match the specified version {python_version} at the micro/patch level" in captured.err
+    assert f"It may not match the specified version {python_version} at the micro/patch level" in captured.err

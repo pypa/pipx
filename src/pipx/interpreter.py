@@ -74,17 +74,18 @@ def find_unix_command_python(python_version: str) -> Optional[str]:
         )
 
         python_command = f"python{python_command_version}"
-        if not shutil.which(python_command):
+        python_path = shutil.which(python_command)
+        if not python_path:
             logger.info(f"Command `{python_command}` was not found on the system")
             return None
 
         if parsed_python_version.micro != 0:
             logger.warning(
-                f"The command `{python_command}` will be used and "
-                f"may not match the specified version {python_version} at the micro/patch level"
+                f"The command `{python_command}` located at `{python_path}` will be used. "
+                f"It may not match the specified version {python_version} at the micro/patch level."
             )
 
-        return python_command
+        return python_path
 
 
 def find_python_interpreter(python_version: str, fetch_missing_python: bool = False) -> str:
