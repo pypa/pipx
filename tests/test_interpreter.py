@@ -252,6 +252,6 @@ def test_find_unix_command_python_no_exist():
 @skip_if_windows
 def test_find_unix_command_python_micro_mismatch():
     python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro + 1}"
-    with pytest.raises(InterpreterResolutionError) as e:
-        find_python_interpreter(python_version)
-    assert "the python command" in str(e)
+    python_path = find_python_interpreter(python_version)
+    assert python_path is not None
+    assert f"{sys.version_info.major}.{sys.version_info.minor}" in python_path

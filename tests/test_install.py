@@ -432,6 +432,6 @@ def test_install_python_command_version_non_exist(pipx_temp_env, monkeypatch, ca
 def test_install_python_command_version_micro_mismatch(pipx_temp_env, monkeypatch, capsys):
     monkeypatch.setenv("PATH", os.getenv("PATH_ORIG"))
     python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro + 1}"
-    assert run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
+    assert not run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
     captured = capsys.readouterr()
-    assert f"which does not match the requested version {python_version} in patch level" in captured.err
+    assert f"may not match the specified version {python_version} at the micro/patch level" in captured.err
