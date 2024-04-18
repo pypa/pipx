@@ -428,7 +428,7 @@ def add_python_options(parser: argparse.ArgumentParser) -> None:
         "--python",
         help=(
             "Python to install with. Possible values can be the executable name (python3.11), "
-            "the version to construct python command or to pass to py launcher (3.11), "
+            "the version of an available system Python or to pass to py launcher (3.11), "
             f"or the full path to the executable. Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )

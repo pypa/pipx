@@ -76,8 +76,6 @@ def test_windows_python_no_version_with_venv(monkeypatch):
 
 def test_windows_python_no_version_no_venv_with_py(monkeypatch):
     def which(name):
-        if name == "py":
-            return "py"
         return "py"
 
     monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: False)

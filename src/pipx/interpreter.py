@@ -55,7 +55,7 @@ def find_unix_command_python(python_version: str) -> Optional[str]:
     try:
         parsed_python_version = version.parse(python_version)
     except version.InvalidVersion:
-        logger.info(f"Invalid python version: {python_version}")
+        logger.info(f"Invalid Python version: {python_version}")
         return None
     else:
         if (
@@ -64,7 +64,7 @@ def find_unix_command_python(python_version: str) -> Optional[str]:
             or parsed_python_version.is_postrelease
             or parsed_python_version.is_prerelease
         ):
-            logger.info(f"Unsupported python version: {python_version}")
+            logger.info(f"Unsupported Python version: {python_version}")
             return None
 
         python_command_version = (
@@ -75,7 +75,7 @@ def find_unix_command_python(python_version: str) -> Optional[str]:
 
         python_command = f"python{python_command_version}"
         if not shutil.which(python_command):
-            logger.info(f"Command `{python_command}` was not found")
+            logger.info(f"Command `{python_command}` was not found on the system")
             return None
 
         # Check consistency when micro part is specified
@@ -95,10 +95,7 @@ def find_unix_command_python(python_version: str) -> Optional[str]:
 
 
 def find_python_interpreter(python_version: str, fetch_missing_python: bool = False) -> str:
-    if Path(python_version).is_file():
-        return python_version
-
-    if shutil.which(python_version):
+    if Path(python_version).is_file() or shutil.which(python_version):
         return python_version
 
     if not WINDOWS:

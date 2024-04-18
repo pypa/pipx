@@ -405,7 +405,7 @@ def test_install_python_command_version_invalid(pipx_temp_env, capsys):
     python_version = "3.x"
     assert run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
     captured = capsys.readouterr()
-    assert f"Invalid python version: {python_version}" in captured.err
+    assert f"Invalid Python version: {python_version}" in captured.err
 
 
 @skip_if_windows
@@ -413,7 +413,7 @@ def test_install_python_command_version_unsupported(pipx_temp_env, capsys):
     python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}.dev"
     assert run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
     captured = capsys.readouterr()
-    assert f"Unsupported python version: {python_version}" in captured.err
+    assert f"Unsupported Python version: {python_version}" in captured.err
 
 
 @skip_if_windows
