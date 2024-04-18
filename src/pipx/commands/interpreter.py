@@ -6,6 +6,7 @@ from typing import List
 from packaging import version
 
 from pipx import commands, constants, paths, standalone_python
+from pipx.animate import animate
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.util import is_paths_relative, rmdir
 from pipx.venv import Venv, VenvContainer
@@ -86,7 +87,8 @@ def get_latest_micro_version(
 
 
 def upgrade_interpreters(venv_container: VenvContainer, verbose: bool):
-    latest_pythons = standalone_python.list_pythons(use_cache=False)
+    with animate("Getting the index of the latest standalone python builds", not verbose):
+        latest_pythons = standalone_python.list_pythons(use_cache=False)
 
     parsed_latest_python_versions = []
     for latest_python_version in latest_pythons:
@@ -94,6 +96,8 @@ def upgrade_interpreters(venv_container: VenvContainer, verbose: bool):
             parsed_latest_python_versions.append(version.parse(latest_python_version))
         except version.InvalidVersion:
             logger.info(f"Invalid version found in latest pythons: {latest_python_version}. Skipping.")
+
+    upgraded = []
 
     for interpreter_dir in paths.ctx.standalone_python_cachedir.iterdir():
         if not interpreter_dir.is_dir():
@@ -122,6 +126,9 @@ def upgrade_interpreters(venv_container: VenvContainer, verbose: bool):
                 if venv.pipx_metadata.source_interpreter is not None and is_paths_relative(
                     venv.pipx_metadata.source_interpreter, interpreter_dir
                 ):
+                    print(
+                        f"Upgrade the interpreter of {venv.name} from {interpreter_full_version} to {latest_micro_version}"
+                    )
                     commands.reinstall(
                         venv_dir=venv_dir,
                         local_bin_dir=paths.ctx.bin_dir,
@@ -129,6 +136,14 @@ def upgrade_interpreters(venv_container: VenvContainer, verbose: bool):
                         python=str(interpreter_python),
                         verbose=verbose,
                     )
+                    upgraded.append((venv.name, interpreter_full_version, latest_micro_version))
+
+    if upgraded:
+        print("Successfully upgraded the interpreter(s):")
+        for venv_name, old_version, new_version in upgraded:
+            print(f" - {venv_name}: {old_version} -> {new_version}")
+    else:
+        print("Nothing to upgrade")
 
     # Any failure to upgrade will raise PipxError, otherwise success
     return constants.EXIT_CODE_OK

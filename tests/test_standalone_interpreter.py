@@ -126,10 +126,15 @@ def test_upgrade_standalone_interpreter(pipx_temp_env, root, monkeypatch, capsys
             PKG["pycowsay"]["spec"],
         ]
     )
-    _ = capsys.readouterr()
 
     with open(root / "testdata" / "standalone_python_index_20240224.json") as f:
         new_index = json.load(f)
     monkeypatch.setattr(standalone_python, "get_or_update_index", lambda _: new_index)
 
     assert not run_pipx_cli(["interpreter", "upgrade"])
+
+
+def test_upgrade_standalone_interpreter_nothing_to_upgrade(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["interpreter", "upgrade"])
+    captured = capsys.readouterr()
+    assert "Nothing to upgrade" in captured.out
