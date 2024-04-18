@@ -16,3 +16,7 @@ def test_install_all(pipx_temp_env, tmp_path, capsys):
         pipx_list_fh.write(captured.out)
 
     assert not run_pipx_cli(["install-all", str(pipx_list_path)])
+    
+    captured = capsys.readouterr()
+    assert "black" in captured.out
+    assert "pycowsay" in captured.out
