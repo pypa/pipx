@@ -124,8 +124,8 @@ def upgrade_interpreters(venv_container: VenvContainer, verbose: bool):
                 ):
                     commands.reinstall(
                         venv_dir=venv_dir,
-                        local_bin_dir=venv.bin_path,
-                        local_man_dir=venv.man_path,
+                        local_bin_dir=paths.ctx.bin_dir,
+                        local_man_dir=paths.ctx.man_dir,
                         python=str(interpreter_python),
                         verbose=verbose,
                     )
