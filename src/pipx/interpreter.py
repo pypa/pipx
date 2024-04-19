@@ -67,13 +67,9 @@ def find_unix_command_python(python_version: str) -> Optional[str]:
             logger.info(f"Unsupported Python version: {python_version}")
             return None
 
-        python_command_version = (
-            str(parsed_python_version.major)
-            if parsed_python_version.minor == 0
-            else f"{parsed_python_version.major}.{parsed_python_version.minor}"
-        )
+        # Python command could be `python3` or `python3.x` without micro version
+        python_command = f"python{'.'.join(python_version.split('.')[:2])}"
 
-        python_command = f"python{python_command_version}"
         python_path = shutil.which(python_command)
         if not python_path:
             logger.info(f"Command `{python_command}` was not found on the system")
