@@ -33,7 +33,7 @@ def test_pin_not_installed_package(monkeypatch, capsys, pipx_temp_env):
     assert "Package abc is not installed" in captured.err
 
 
-def test_pin_unpin_injected_packages_only(monkeypatch, capsys, pipx_temp_env, caplog):
+def test_pin_injected_packages_only(monkeypatch, capsys, pipx_temp_env, caplog):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", "black", PKG["pylint"]["spec"]])
 
@@ -48,8 +48,7 @@ def test_pin_unpin_injected_packages_only(monkeypatch, capsys, pipx_temp_env, ca
     assert not run_pipx_cli(["upgrade", "pycowsay", "--include-injected"])
 
     assert "Not upgrading pinned package black in venv pycowsay" in caplog.text
-    assert "Not upgrading pinned package ruff in venv pycowsay" in caplog.text
-    assert "Not upgrading pinned package tox in venv pycowsay" in caplog.text
+    assert "Not upgrading pinned package pylint in venv pycowsay" in caplog.text
 
 
 def test_pin_injected_packages_with_skip(monkeypatch, capsys, pipx_temp_env):
