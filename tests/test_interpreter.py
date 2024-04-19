@@ -197,3 +197,52 @@ def test_fetch_missing_python(monkeypatch, mocked_github_api):
         else:
             assert python_path.endswith("python3")
         subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)
+
+
+def test_valid_python_command_version():
+    major = sys.version_info.major
+    minor = sys.version_info.minor
+    micro = sys.version_info.micro
+
+    python_version = str(major)
+    python_path = find_python_interpreter(python_version)
+    assert python_path is not None
+    assert python_path.endswith(f"python{major}")
+
+    python_version = f"{major}.{minor}"
+    python_path = find_python_interpreter(python_version)
+    assert python_path is not None
+    assert python_path.endswith(f"python{major}.{minor}")
+
+    python_version = f"{major}.{minor}.{micro}"
+    python_path = find_python_interpreter(python_version)
+    assert python_path is not None
+    assert python_path.endswith(f"python{major}.{minor}")
+
+
+def test_invalid_python_command_version():
+    python_version = f"{sys.version_info.major}.x"
+    with pytest.raises(InterpreterResolutionError) as e:
+        find_python_interpreter(python_version)
+    assert "the python command" in str(e)
+
+
+def test_unsupported_python_command_version():
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}.dev"
+    with pytest.raises(InterpreterResolutionError) as e:
+        find_python_interpreter(python_version)
+    assert "the python command" in str(e)
+
+
+def test_non_exist_python_command_version():
+    python_version = f"{sys.version_info.major + 99}.{sys.version_info.minor}"
+    with pytest.raises(InterpreterResolutionError) as e:
+        find_python_interpreter(python_version)
+    assert "the python command" in str(e)
+
+
+def test_mismatch_macro_python_command_version():
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro + 1}"
+    with pytest.raises(InterpreterResolutionError) as e:
+        find_python_interpreter(python_version)
+    assert "the python command" in str(e)

@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from packaging import version
+
 from pipx.constants import FETCH_MISSING_PYTHON, WINDOWS
 from pipx.standalone_python import download_python_build_standalone
 from pipx.util import PipxError
@@ -41,11 +43,54 @@ class InterpreterResolutionError(PipxError):
                 message += "The provided version looks like a path, but no executable was found there."
             if potentially_pylauncher:
                 message += (
-                    "The provided version looks like a version for Python Launcher, " "but `py` was not found on PATH."
+                    "The provided version looks like a version, "
+                    "but both the python command and the Python Launcher were not found on PATH."
                 )
         if source == "the python-build-standalone project":
             message += "listed in https://github.com/indygreg/python-build-standalone/releases/latest."
         super().__init__(message, wrap_message)
+
+
+def find_python_command(python_version: str) -> Optional[str]:
+    try:
+        parsed_python_version = version.parse(python_version)
+    except version.InvalidVersion:
+        logger.info(f"Invalid python version: {python_version}")
+        return None
+    else:
+        if (
+            parsed_python_version.epoch != 0
+            or parsed_python_version.is_devrelease
+            or parsed_python_version.is_postrelease
+            or parsed_python_version.is_prerelease
+        ):
+            logger.info(f"Unsupported python version: {python_version}")
+            return None
+
+        if parsed_python_version.minor == 0:
+            python_command_version = str(parsed_python_version.major)
+        else:
+            python_command_version = f"{parsed_python_version.major}.{parsed_python_version.minor}"
+
+        python_command = f"python{python_command_version}"
+        if not shutil.which(python_command):
+            logger.info(f"Command `{python_command}` was not found")
+            return None
+
+        # Check consistency when micro part is specified
+        if parsed_python_version.micro != 0:
+            command = [python_command, "-c", "import sys; print('.'.join(map(str,sys.version_info[:3])))"]
+            python_command_full_version = subprocess.run(
+                command, text=True, capture_output=True, check=True
+            ).stdout.strip()
+            if parsed_python_version != version.Version(python_command_full_version):
+                logger.info(
+                    f"The command `{python_command}` is at version {python_command_full_version}, "
+                    f"which does not match the requested version {python_version} in patch level"
+                )
+                return None
+
+        return python_command
 
 
 def find_python_interpreter(python_version: str, fetch_missing_python: bool = False) -> str:
@@ -61,6 +106,10 @@ def find_python_interpreter(python_version: str, fetch_missing_python: bool = Fa
 
     if shutil.which(python_version):
         return python_version
+
+    python_command = find_python_command(python_version)
+    if python_command:
+        return python_command
 
     if fetch_missing_python or FETCH_MISSING_PYTHON:
         try:
