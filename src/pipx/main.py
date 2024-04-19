@@ -174,6 +174,12 @@ def get_venv_args(parsed_args: Dict[str, str]) -> List[str]:
     return venv_args
 
 
+def validate_package_arg(package: str):
+    url_parse_package = urllib.parse.urlparse(package)
+    if url_parse_package.scheme and url_parse_package.netloc:
+        raise PipxError("Package cannot be a url. Package name should be passed instead.")
+
+
 def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.ArgumentParser]) -> ExitCode:  # noqa: C901
     verbose = args.verbose if "verbose" in args else False
     if not constants.WINDOWS and args.is_global:
@@ -185,9 +191,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
 
     if "package" in args:
         package = args.package
-        url_parse_package = urllib.parse.urlparse(package)
-        if url_parse_package.scheme and url_parse_package.netloc:
-            raise PipxError("Package cannot be a url")
+        validate_package_arg(package)
 
         if "spec" in args and args.spec is not None:
             if urllib.parse.urlparse(args.spec).scheme:
@@ -212,8 +216,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         logger.info(f"Virtual Environment location is {venv_dir}")
 
     if "packages" in args:
-        if any(urllib.parse.urlparse(package).scheme for package in args.packages):
-            raise PipxError("Package cannot be a url. Package name should be passed instead.")
+        for package in args.packages:
+            validate_package_arg(package)
         venv_dirs = {package: venv_container.get_venv_dir(package) for package in args.packages}
         venv_dirs_msg = "\n".join(f"- {key} : {value}" for key, value in venv_dirs.items())
         logger.info(f"Virtual Environment locations are:\n{venv_dirs_msg}")
