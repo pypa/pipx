@@ -79,7 +79,7 @@ def unpin(venv_dir: Path, verbose: bool) -> ExitCode:
 
     unpinned_packages_count = 0
     unpinned_packages_list = []
-    
+
     for package_name in venv.package_metadata:
         if package_name == main_package_metadata.package and main_package_metadata.pinned:
             unpinned_packages_count += _update_pin_info(venv, package_name, is_main_package=True, unpin=True)

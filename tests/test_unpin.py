@@ -52,6 +52,6 @@ def test_unpin_injected_packages(monkeypatch, capsys, pipx_temp_env):
     assert not run_pipx_cli(["inject", "black", "nox", "pylint"])
     assert not run_pipx_cli(["pin", "black"])
     assert not run_pipx_cli(["unpin", "black"])
-    
+
     captured = capsys.readouterr()
     assert "Unpinned 3 packages in venv black" in captured.out

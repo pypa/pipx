@@ -17,6 +17,7 @@ def test_pin_with_suffix(monkeypatch, capsys, pipx_temp_env, caplog):
 
     assert "Not upgrading pinned package black@1" in caplog.text
 
+
 def test_pin_warning(monkeypatch, capsys, pipx_temp_env, caplog):
     assert not run_pipx_cli(["install", PKG["nox"]["spec"]])
     assert not run_pipx_cli(["pin", "nox"])
