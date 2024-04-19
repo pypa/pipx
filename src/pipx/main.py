@@ -174,10 +174,10 @@ def get_venv_args(parsed_args: Dict[str, str]) -> List[str]:
     return venv_args
 
 
-def package_is_url(package: str, raise: bool = True): -> bool
+def package_is_url(package: str, raise_error: bool = True) -> bool:
     url_parse_package = urllib.parse.urlparse(package)
     if url_parse_package.scheme and url_parse_package.netloc:
-        if not raise:
+        if not raise_error:
             return True
         raise PipxError("Package cannot be a URL. A valid package name should be passed instead.")
     return False
@@ -197,7 +197,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         package_is_url(package)
 
         if "spec" in args and args.spec is not None:
-            if package_is_url(args.spec, raise=False):
+            if package_is_url(args.spec, raise_error=False):
                 if "#egg=" not in args.spec:
                     args.spec = args.spec + f"#egg={package}"
 
