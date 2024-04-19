@@ -44,10 +44,6 @@ GITHUB_API_URL = "https://api.github.com/repos/indygreg/python-build-standalone/
 PYTHON_VERSION_REGEX = re.compile(r"cpython-(\d+\.\d+\.\d+)")
 
 
-class NotAvailable(Exception):
-    """Raised when the asked Python version is not available."""
-
-
 def download_python_build_standalone(python_version: str):
     """When all other python executable resolutions have failed,
     attempt to download and use an appropriate python build
@@ -68,10 +64,7 @@ def download_python_build_standalone(python_version: str):
         logger.warning(f"A previous attempt to install python {python_version} failed. Retrying.")
         shutil.rmtree(install_dir)
 
-    try:
-        full_version, download_link = resolve_python_version(python_version)
-    except NotAvailable as e:
-        raise PipxError(f"Unable to acquire a standalone python build matching {python_version}.") from e
+    full_version, download_link = resolve_python_version(python_version)
 
     with tempfile.TemporaryDirectory() as tempdir:
         archive = Path(tempdir) / f"python-{full_version}.tar.gz"
@@ -192,13 +185,11 @@ def list_pythons() -> Dict[str, str]:
 
 def resolve_python_version(requested_version: str):
     pythons = list_pythons()
+    requested_release = requested_version.split(".")
 
-    for version, version_download_link in pythons.items():
-        if version.startswith(requested_version):
-            python_version = version
-            download_link = version_download_link
-            break
-    else:
-        raise NotAvailable(f"Python version {requested_version} is not available.")
+    for full_version, download_link in pythons.items():
+        standalone_release = full_version.split(".")
+        if requested_release == standalone_release[: len(requested_release)]:
+            return full_version, download_link
 
-    return python_version, download_link
+    raise PipxError(f"Unable to acquire a standalone python build matching {requested_version}.")
