@@ -369,9 +369,11 @@ def test_passed_python_and_force_flag_warning(pipx_temp_env, capsys):
     ), "Should not print warning if package does not exist yet"
 
 
-def test_install_run_in_separate_directory(caplog, capsys, pipx_temp_env, monkeypatch, tmp_path):
-    monkeypatch.chdir(tmp_path)
-    f = Path("argparse.py")
-    f.touch()
-
-    install_packages(capsys, pipx_temp_env, caplog, ["pycowsay"], ["pycowsay"])
+@pytest.mark.parametrize(
+    "python_version",
+    ["3.0", "3.1"],
+)
+def test_install_fetch_missing_python_invalid(capsys, python_version):
+    assert run_pipx_cli(["install", "--python", python_version, "--fetch-missing-python", "pycowsay"])
+    captured = capsys.readouterr()
+    assert f"No executable for the provided Python version '{python_version}' found" in captured.out
