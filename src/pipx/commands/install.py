@@ -186,16 +186,15 @@ def install_all(
     force: bool,
 ) -> ExitCode:
     """Return pipx exit code."""
-    failed: List[str] = []
     venv_container = VenvContainer(paths.ctx.venvs)
+    failed: List[str] = []
 
     for venv_metadata in extract_venv_metadata(spec_metadata_file):
         # Install the main package
         main_package = venv_metadata.main_package
         venv_dir = venv_container.get_venv_dir(f"{main_package.package}{main_package.suffix}")
         try:
-            package_exit = 0
-            package_exit |= install(
+            install(
                 venv_dir,
                 None,
                 [generate_package_spec(main_package)],
@@ -214,7 +213,7 @@ def install_all(
 
             # Install the injected packages
             for inject_package in venv_metadata.injected_packages.values():
-                package_exit |= commands.inject(
+                commands.inject(
                     venv_dir,
                     None,
                     [generate_package_spec(inject_package)],
