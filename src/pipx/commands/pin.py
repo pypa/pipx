@@ -30,37 +30,42 @@ def pin(
     venv_dir: Path,
     verbose: bool,
     skip: Sequence[str],
-    injected_packages_only: bool = False,
+    injected_only: bool = False,
 ) -> ExitCode:
     venv = Venv(venv_dir, verbose=verbose)
     try:
         main_package_metadata = venv.package_metadata[venv.main_package_name]
-        if main_package_metadata.pinned:
-            logger.warning(f"Package {main_package_metadata.package} already pinned {sleep}")
-        elif skip and not injected_packages_only:
-            raise PipxError("--skip must be used with --injected-packages-only")
-        elif injected_packages_only:
-            pinned_packages_count = 0
-            pinned_packages_list = []
-            for package_name in venv.package_metadata:
-                if package_name == venv.main_package_name or package_name in skip:
-                    continue
-
-                if venv.package_metadata[package_name].pinned:
-                    logger.warning(f"{package_name} was pinned. Not modifying.")
-                    continue
-
-                pinned_packages_count += _update_pin_info(venv, package_name, is_main_package=False, unpin=False)
-                pinned_packages_list.append(package_name)
-
-            if pinned_packages_count != 0:
-                print(bold(f"Pinned {pinned_packages_count} packages in venv {venv.name}"))
-                for package in pinned_packages_list:
-                    print("  -", package)
-        else:
-            _update_pin_info(venv, venv.main_package_name, is_main_package=True, unpin=False)
     except KeyError as e:
         raise PipxError(f"Package {venv.name} is not installed") from e
+
+    if main_package_metadata.pinned:
+        logger.warning(f"Package {main_package_metadata.package} already pinned {sleep}")
+    elif skip and not injected_only:
+        raise PipxError("--skip must be used with --injected-only")
+    elif injected_only:
+        pinned_packages_count = 0
+        pinned_packages_list = []
+        for package_name in venv.package_metadata:
+            if package_name == venv.main_package_name or package_name in skip:
+                continue
+
+            if venv.package_metadata[package_name].pinned:
+                logger.warning(f"{package_name} was pinned. Not modifying.")
+                continue
+
+            pinned_packages_count += _update_pin_info(venv, package_name, is_main_package=False, unpin=False)
+            pinned_packages_list.append(package_name)
+
+        if pinned_packages_count != 0:
+            print(bold(f"Pinned {pinned_packages_count} packages in venv {venv.name}"))
+            for package in pinned_packages_list:
+                print("  -", package)
+    else:
+        for package_name in venv.package_metadata:
+            if package_name == venv.main_package_name:
+                _update_pin_info(venv, venv.main_package_name, is_main_package=True, unpin=False)
+            else:
+                _update_pin_info(venv, package_name, is_main_package=False, unpin=False)
 
     return ExitCode(0)
 
@@ -69,23 +74,24 @@ def unpin(venv_dir: Path, verbose: bool) -> ExitCode:
     venv = Venv(venv_dir, verbose=verbose)
     try:
         main_package_metadata = venv.package_metadata[venv.main_package_name]
-        unpinned_packages_count = 0
-        unpinned_packages_list = []
-        for package_name in venv.package_metadata:
-            if package_name == main_package_metadata.package and main_package_metadata.pinned:
-                unpinned_packages_count += _update_pin_info(venv, package_name, is_main_package=True, unpin=True)
-                unpinned_packages_list.append(package_name)
-            elif venv.package_metadata[package_name].pinned:
-                unpinned_packages_count += _update_pin_info(venv, package_name, is_main_package=False, unpin=True)
-                unpinned_packages_list.append(package_name)
-
-        if unpinned_packages_count != 0:
-            print(bold(f"Unpinned {unpinned_packages_count} packages in venv {venv.name}"))
-            for package in unpinned_packages_list:
-                print("  -", package)
-        else:
-            logger.warning(f"No packages to unpin in venv {venv.name}")
     except KeyError as e:
         raise PipxError(f"Package {venv.name} is not installed") from e
+
+    unpinned_packages_count = 0
+    unpinned_packages_list = []
+    
+    for package_name in venv.package_metadata:
+        if package_name == main_package_metadata.package and main_package_metadata.pinned:
+            unpinned_packages_count += _update_pin_info(venv, package_name, is_main_package=True, unpin=True)
+        elif venv.package_metadata[package_name].pinned:
+            unpinned_packages_count += _update_pin_info(venv, package_name, is_main_package=False, unpin=True)
+        unpinned_packages_list.append(package_name)
+
+    if unpinned_packages_count != 0:
+        print(bold(f"Unpinned {unpinned_packages_count} packages in venv {venv.name}"))
+        for package in unpinned_packages_list:
+            print("  -", package)
+    else:
+        logger.warning(f"No packages to unpin in venv {venv.name}")
 
     return ExitCode(0)

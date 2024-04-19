@@ -304,7 +304,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         else:
             raise PipxError(f"Unknown interpreter command {args.interpreter_command}")
     elif args.command == "pin":
-        return commands.pin(venv_dir, verbose, skip_list, args.injected_packages_only)
+        return commands.pin(venv_dir, verbose, skip_list, args.injected_only)
     elif args.command == "unpin":
         return commands.unpin(venv_dir, verbose)
     elif args.command == "uninstall":
@@ -498,18 +498,18 @@ def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.
     )
     p.add_argument("package", help="Installed package to pin")
     p.add_argument(
-        "--injected-packages-only",
+        "--injected-only",
         action="store_true",
         help=(
             "Pin injected packages in main app only, so that they will not be upgraded during `pipx upgrade-all --include-injected`. "
-            "Note that this should not be passed if you wish to pin both main package and injected packages in it."
+            "Note that this should not be passed if you wish to pin both main package and injected packages."
         ),
     )
     p.add_argument(
         "--skip",
         nargs="+",
         default=[],
-        help="Skip these packages. Must be used with `--injected-packages-only`.",
+        help="Skip these packages. Must be used with `--injected-only`.",
     )
 
 
