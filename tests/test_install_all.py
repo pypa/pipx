@@ -27,3 +27,4 @@ def test_install_all_multiple_errors(pipx_temp_env, root, capsys):
     assert run_pipx_cli(["install-all", str(pipx_metadata_path)])
     captured = capsys.readouterr()
     assert "The following package(s) failed to install: dotenv, weblate" in captured.err
+    assert "No packages installed after running 'pipx install-all" in captured.out

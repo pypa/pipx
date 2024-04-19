@@ -10,6 +10,7 @@ from pipx.constants import (
     EXIT_CODE_OK,
     ExitCode,
 )
+from pipx.emojis import sleep
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, _json_decoder_object_hook
 from pipx.util import PipxError, pipx_wrap
@@ -188,6 +189,7 @@ def install_all(
     """Return pipx exit code."""
     venv_container = VenvContainer(paths.ctx.venvs)
     failed: List[str] = []
+    installed: List[str] = []
 
     for venv_metadata in extract_venv_metadata(spec_metadata_file):
         # Install the main package
@@ -227,6 +229,10 @@ def install_all(
         except PipxError as e:
             print(e, file=sys.stderr)
             failed.append(venv_dir.name)
+        else:
+            installed.append(venv_dir.name)
+    if len(installed) == 0:
+        print(f"No packages installed after running 'pipx install-all {spec_metadata_file}' {sleep}")
     if len(failed) > 0:
         raise PipxError(f"The following package(s) failed to install: {', '.join(failed)}")
     # Any failure to install will raise PipxError, otherwise success
