@@ -17,6 +17,6 @@ def test_upgrade_all_legacy_venv(pipx_temp_env, capsys, caplog, metadata_version
     if metadata_version is None:
         capsys.readouterr()
         assert run_pipx_cli(["upgrade-all"])
-        assert "Error encountered when upgrading pycowsay" in caplog.text
+        assert "The following package(s) failed to upgrade: pycowsay" in caplog.text
     else:
         assert not run_pipx_cli(["upgrade-all"])
