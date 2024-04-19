@@ -180,7 +180,7 @@ def package_is_url(package: str, raise: bool = True): -> bool
         if not raise:
             return True
         raise PipxError("Package cannot be a URL. A valid package name should be passed instead.")
-    return False   
+    return False
 
 
 def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.ArgumentParser]) -> ExitCode:  # noqa: C901
