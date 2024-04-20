@@ -111,6 +111,7 @@ def reinstall_all(
 ) -> ExitCode:
     """Returns pipx exit code."""
     failed: List[str] = []
+    reinstalled: List[str] = []
 
     # iterate on all packages and reinstall them
     # for the first one, we also trigger
@@ -134,6 +135,9 @@ def reinstall_all(
             failed.append(venv_dir.name)
         else:
             first_reinstall = False
+            reinstalled.append(venv_dir.name)
+    if len(reinstalled) == 0:
+        print(f"No packages reinstalled after running 'pipx reinstall-all' {sleep}")
     if len(failed) > 0:
         raise PipxError(f"The following package(s) failed to reinstall: {', '.join(failed)}")
     # Any failure to install will raise PipxError, otherwise success

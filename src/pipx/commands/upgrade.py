@@ -245,7 +245,7 @@ def upgrade_all(
         else:
             upgraded.append(venv_dir.name)
     if len(upgraded) == 0:
-        print(f"Versions did not change after running 'pipx upgrade' for each package {sleep}")
+        print(f"No packages upgraded after running 'pipx upgrade-all' {sleep}")
     if len(failed) > 0:
         raise PipxError(f"The following package(s) failed to upgrade: {','.join(failed)}")
     # Any failure to install will raise PipxError, otherwise success

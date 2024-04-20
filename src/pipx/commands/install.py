@@ -232,7 +232,7 @@ def install_all(
         else:
             installed.append(venv_dir.name)
     if len(installed) == 0:
-        print(f"{sleep} No packages installed after running 'pipx install-all {spec_metadata_file}'")
+        print(f"No packages installed after running 'pipx install-all {spec_metadata_file}' {sleep}")
     if len(failed) > 0:
         raise PipxError(f"The following package(s) failed to install: {', '.join(failed)}")
     # Any failure to install will raise PipxError, otherwise success
