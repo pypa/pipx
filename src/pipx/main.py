@@ -493,7 +493,7 @@ def _add_uninject(subparsers, venv_completer: VenvCompleter, shared_parser: argp
 def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "pin",
-        help="Pin the specified package to prevent it from being upgraded",
+        description="Pin the specified package to prevent it from being upgraded",
         parents=[shared_parser],
     )
     p.add_argument("package", help="Installed package to pin")
@@ -516,7 +516,7 @@ def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.
 def _add_unpin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "unpin",
-        help="Unpin the specified package to allow it being upgraded",
+        description="Unpin the specified package and all injected packages in its venv to allow them being upgraded",
         parents=[shared_parser],
     )
     p.add_argument("package", help="Installed package to unpin")
@@ -647,7 +647,11 @@ def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
     g = p.add_mutually_exclusive_group()
     g.add_argument("--json", action="store_true", help="Output rich data in json format.")
     g.add_argument("--short", action="store_true", help="List packages only.")
-    g.add_argument("--pinned", action="store_true", help="List pinned packages only.")
+    g.add_argument(
+        "--pinned",
+        action="store_true",
+        help="List pinned packages only. Pass --include-injected at the same time to list injected packages that were pinned.",
+    )
     g.add_argument("--skip-maintenance", action="store_true", help="(deprecated) No-op")
 
 
