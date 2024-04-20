@@ -479,7 +479,7 @@ def warn_if_not_on_path(local_bin_dir: Path) -> None:
                 environment variable. These apps will not be globally
                 accessible until your PATH is updated. Run `pipx ensurepath` to
                 automatically add it, or manually modify your PATH in your
-                shell's config file (i.e. ~/.bashrc).
+                shell's config file (e.g. ~/.bashrc).
                 """,
                 subsequent_indent=" " * 4,
             )
