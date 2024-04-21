@@ -1,12 +1,19 @@
 import subprocess
 
+import pytest  # type: ignore
+
 from helpers import run_pipx_cli
 
 
-def test_upgrade_shared(pipx_ultra_temp_env, capsys, caplog):
+@pytest.fixture
+def shared_libs(pipx_ultra_temp_env):
     # local import to get the shared_libs object patched by fixtures
-    from pipx.shared_libs import shared_libs
+    from pipx.shared_libs import shared_libs as _shared_libs
 
+    yield _shared_libs
+
+
+def test_upgrade_shared(shared_libs, capsys, caplog):
     assert shared_libs.has_been_updated_this_run is False
     assert shared_libs.is_valid is False
     assert run_pipx_cli(["upgrade-shared", "-v"]) == 0
@@ -29,10 +36,7 @@ def test_upgrade_shared(pipx_ultra_temp_env, capsys, caplog):
     assert "Already upgraded libraries in" in caplog.text
 
 
-def test_upgrade_shared_pip_args(pipx_ultra_temp_env, capsys, caplog):
-    # local import to get the shared_libs object patched by fixtures
-    from pipx.shared_libs import shared_libs
-
+def test_upgrade_shared_pip_args(shared_libs, capsys, caplog):
     assert shared_libs.has_been_updated_this_run is False
     assert shared_libs.is_valid is False
     assert run_pipx_cli(["upgrade-shared", "-v", "--pip-args='--no-index'"]) == 1
@@ -45,10 +49,7 @@ def test_upgrade_shared_pip_args(pipx_ultra_temp_env, capsys, caplog):
     assert shared_libs.is_valid is True
 
 
-def test_upgrade_shared_pin_pip(pipx_ultra_temp_env, capsys, caplog):
-    # local import to get the shared_libs object patched by fixtures
-    from pipx.shared_libs import shared_libs
-
+def test_upgrade_shared_pin_pip(shared_libs, capsys, caplog):
     def pip_version():
         cmd = "from importlib.metadata import version; print(version('pip'))"
         ret = subprocess.run([shared_libs.python_path, "-c", cmd], check=True, capture_output=True, text=True)
