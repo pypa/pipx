@@ -4,6 +4,7 @@ from helpers import run_pipx_cli
 
 
 def test_upgrade_shared(pipx_ultra_temp_env, capsys, caplog):
+    # local import to get the shared_libs object patched by fixtures
     from pipx.shared_libs import shared_libs
 
     assert shared_libs.has_been_updated_this_run is False
@@ -29,6 +30,7 @@ def test_upgrade_shared(pipx_ultra_temp_env, capsys, caplog):
 
 
 def test_upgrade_shared_pip_args(pipx_ultra_temp_env, capsys, caplog):
+    # local import to get the shared_libs object patched by fixtures
     from pipx.shared_libs import shared_libs
 
     assert shared_libs.has_been_updated_this_run is False
@@ -44,6 +46,7 @@ def test_upgrade_shared_pip_args(pipx_ultra_temp_env, capsys, caplog):
 
 
 def test_upgrade_shared_pin_pip(pipx_ultra_temp_env, capsys, caplog):
+    # local import to get the shared_libs object patched by fixtures
     from pipx.shared_libs import shared_libs
 
     def pip_version():
