@@ -49,7 +49,7 @@ def test_upgrade_shared_pip_args(shared_libs, capsys, caplog):
     assert shared_libs.is_valid is True
 
 
-def test_upgrade_shared_pin_pip(shared_libs, capsys, caplog):
+def test_upgrade_shared_pin_pip(shared_libs):
     def pip_version():
         cmd = "from importlib.metadata import version; print(version('pip'))"
         ret = subprocess.run([shared_libs.python_path, "-c", cmd], check=True, capture_output=True, text=True)
