@@ -3,7 +3,7 @@ import subprocess
 from helpers import run_pipx_cli
 
 
-def test_upgrade_shared(pipx_ultra_temp_env, capsys, caplog, monkeypatch):
+def test_upgrade_shared(pipx_ultra_temp_env, capsys, caplog):
     from pipx.shared_libs import shared_libs
 
     assert shared_libs.has_been_updated_this_run is False
@@ -28,7 +28,7 @@ def test_upgrade_shared(pipx_ultra_temp_env, capsys, caplog, monkeypatch):
     assert "Already upgraded libraries in" in caplog.text
 
 
-def test_upgrade_shared_pip_args(pipx_ultra_temp_env, capsys, caplog, monkeypatch):
+def test_upgrade_shared_pip_args(pipx_ultra_temp_env, capsys, caplog):
     from pipx.shared_libs import shared_libs
 
     assert shared_libs.has_been_updated_this_run is False
@@ -43,7 +43,7 @@ def test_upgrade_shared_pip_args(pipx_ultra_temp_env, capsys, caplog, monkeypatc
     assert shared_libs.is_valid is True
 
 
-def test_upgrade_shared_pin_pip(pipx_ultra_temp_env, capsys, caplog, monkeypatch):
+def test_upgrade_shared_pin_pip(pipx_ultra_temp_env, capsys, caplog):
     from pipx.shared_libs import shared_libs
 
     def pip_version():
