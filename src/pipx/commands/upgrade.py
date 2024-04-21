@@ -219,7 +219,7 @@ def upgrade_all(
     force: bool,
     python_flag_passed: bool = False,
 ) -> ExitCode:
-    """Returns pipx exit code."""
+    """Return pipx exit code."""
     venv_error = False
     venvs_upgraded = 0
     for venv_dir in venv_container.iter_venv_dirs():
@@ -258,7 +258,7 @@ def upgrade_shared(
     verbose: bool,
     pip_args: List[str],
 ) -> ExitCode:
-    """Returns pipx exit code."""
+    """Return pipx exit code."""
     from pipx.shared_libs import shared_libs
 
     shared_libs.upgrade(verbose=verbose, pip_args=pip_args, raises=True)
