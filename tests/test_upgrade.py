@@ -116,3 +116,9 @@ def test_upgrade_multiple(pipx_temp_env, capsys):
     captured = capsys.readouterr()
     assert f"upgraded package {name} from {initial_version} to" in captured.out
     assert "pycowsay is already at latest version" in captured.out
+
+
+def test_upgrade_absolute_path(pipx_temp_env, capsys, root):
+    assert run_pipx_cli(["upgrade", "--verbose", str((root / "testdata" / "empty_project").resolve())])
+    captured = capsys.readouterr()
+    assert "Package cannot be a URL" not in captured.err
