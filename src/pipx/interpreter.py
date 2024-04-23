@@ -57,31 +57,31 @@ def find_unix_command_python(python_version: str) -> Optional[str]:
     except version.InvalidVersion:
         logger.info(f"Invalid Python version: {python_version}")
         return None
-    else:
-        if (
-            parsed_python_version.epoch != 0
-            or parsed_python_version.is_devrelease
-            or parsed_python_version.is_postrelease
-            or parsed_python_version.is_prerelease
-        ):
-            logger.info(f"Unsupported Python version: {python_version}")
-            return None
 
-        # Python command could be `python3` or `python3.x` without micro version component
-        python_command = f"python{'.'.join(python_version.split('.')[:2])}"
+    if (
+        parsed_python_version.epoch != 0
+        or parsed_python_version.is_devrelease
+        or parsed_python_version.is_postrelease
+        or parsed_python_version.is_prerelease
+    ):
+        logger.info(f"Unsupported Python version: {python_version}")
+        return None
 
-        python_path = shutil.which(python_command)
-        if not python_path:
-            logger.info(f"Command `{python_command}` was not found on the system")
-            return None
+    # Python command could be `python3` or `python3.x` without micro version component
+    python_command = f"python{'.'.join(python_version.split('.')[:2])}"
 
-        if parsed_python_version.micro != 0:
-            logger.warning(
-                f"The command '{python_command}' located at '{python_path}' will be used. "
-                f"It may not match the specified version {python_version} at the micro/patch level."
-            )
+    python_path = shutil.which(python_command)
+    if not python_path:
+        logger.info(f"Command `{python_command}` was not found on the system")
+        return None
 
-        return python_path
+    if parsed_python_version.micro != 0:
+        logger.warning(
+            f"The command '{python_command}' located at '{python_path}' will be used. "
+            f"It may not match the specified version {python_version} at the micro/patch level."
+        )
+
+    return python_path
 
 
 def find_python_interpreter(python_version: str, fetch_missing_python: bool = False) -> str:
