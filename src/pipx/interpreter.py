@@ -67,7 +67,7 @@ def find_unix_command_python(python_version: str) -> Optional[str]:
             logger.info(f"Unsupported Python version: {python_version}")
             return None
 
-        # Python command could be `python3` or `python3.x` without micro version
+        # Python command could be `python3` or `python3.x` without micro version component
         python_command = f"python{'.'.join(python_version.split('.')[:2])}"
 
         python_path = shutil.which(python_command)
