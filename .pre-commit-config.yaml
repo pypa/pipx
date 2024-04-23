@@ -7,11 +7,11 @@ repos:
   - id: trailing-whitespace
   - id: check-yaml
 - repo: https://github.com/tox-dev/pyproject-fmt
-  rev: "1.7.0"
+  rev: "1.8.0"
   hooks:
     - id: pyproject-fmt
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.3.7
+  rev: v0.4.1
   hooks:
   - id: ruff-format
   - id: ruff
