@@ -17,7 +17,6 @@ from pipx.interpreter import (
 )
 from pipx.util import PipxError
 
-
 original_which = shutil.which
 
 
