@@ -77,7 +77,7 @@ def find_unix_command_python(python_version: str) -> Optional[str]:
 
         if parsed_python_version.micro != 0:
             logger.warning(
-                f"The command `{python_command}` located at `{python_path}` will be used. "
+                f"The command '{python_command}' located at '{python_path}' will be used. "
                 f"It may not match the specified version {python_version} at the micro/patch level."
             )
 

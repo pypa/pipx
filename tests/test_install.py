@@ -420,7 +420,7 @@ def test_install_python_command_version_unsupported(pipx_temp_env, capsys):
 
 
 @skip_if_windows
-def test_install_python_command_version_non_exist(pipx_temp_env, monkeypatch, capsys):
+def test_install_python_command_version_missing(pipx_temp_env, monkeypatch, capsys):
     monkeypatch.setenv("PATH", os.getenv("PATH_ORIG"))
     python_version = f"{sys.version_info.major + 99}.{sys.version_info.minor}"
     assert run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
