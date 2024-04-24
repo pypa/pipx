@@ -134,7 +134,7 @@ def test_upgrade_standalone_interpreter(pipx_temp_env, root, monkeypatch, capsys
     assert not run_pipx_cli(["interpreter", "upgrade"])
 
 
-def test_upgrade_standalone_interpreter_nothing_to_upgrade(pipx_temp_env, capsys):
+def test_upgrade_standalone_interpreter_nothing_to_upgrade(pipx_temp_env, capsys, mocked_github_api):
     assert not run_pipx_cli(["interpreter", "upgrade"])
     captured = capsys.readouterr()
     assert "Nothing to upgrade" in captured.out
