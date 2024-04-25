@@ -122,9 +122,9 @@ def test_list_json(pipx_temp_env, capsys):
         **{
             "app_paths_of_dependencies": {
                 "dill": [
-                    pipx_venvs_dir / "pylint" / venv_bin_dir / app_name("get_gprof"),
-                    pipx_venvs_dir / "pylint" / venv_bin_dir / app_name("get_objgraph"),
-                    pipx_venvs_dir / "pylint" / venv_bin_dir / app_name("undill"),
+                    pipx_venvs_dir / "pylint" / venv_bin_dir / "get_gprof",
+                    pipx_venvs_dir / "pylint" / venv_bin_dir / "get_objgraph",
+                    pipx_venvs_dir / "pylint" / venv_bin_dir / "undill",
                 ],
                 "isort": [
                     pipx_venvs_dir / "pylint" / venv_bin_dir / app_name("isort"),
