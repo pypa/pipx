@@ -639,7 +639,7 @@ PKG: Dict[str, Dict[str, Any]] = {
     },
     "pygdbmi": {"spec": "pygdbmi==0.10.0.0", "apps": [], "apps_of_dependencies": []},
     "pylint": {
-        "spec": "pylint==2.3.1",
+        "spec": "pylint==3.1.0",
         "apps": _exe_if_win(["epylint", "pylint", "pyreverse", "symilar"]),
         "apps_of_dependencies": _exe_if_win(["isort"]),
     },
