@@ -333,7 +333,7 @@ def subprocess_post_check_handle_pip_error(
         if paths.ctx.log_file is None:
             raise PipxError("Pipx internal error: No log_file present.")
         pip_error_file = paths.ctx.log_file.parent / (paths.ctx.log_file.stem + "_pip_errors.log")
-        with pip_error_file.open("w", encoding="utf-8") as pip_error_fh:
+        with pip_error_file.open("a", encoding="utf-8") as pip_error_fh:
             print("PIP STDOUT", file=pip_error_fh)
             print("----------", file=pip_error_fh)
             if completed_process.stdout is not None:
