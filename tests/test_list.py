@@ -144,7 +144,7 @@ def test_list_short(pipx_temp_env, monkeypatch, capsys):
     captured = capsys.readouterr()
 
     assert "pycowsay 0.0.0.2" in captured.out
-    assert "pylint 2.3.1" in captured.out
+    assert "pylint 3.1.0" in captured.out
 
 
 def test_list_standalone_interpreter(pipx_temp_env, monkeypatch, mocked_github_api, capsys):
