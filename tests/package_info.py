@@ -15,7 +15,7 @@ def _exe_if_win(apps):
 # Only apply _exe_if_win to entry_points, NOT scripts
 PKG: Dict[str, Dict[str, Any]] = {
     "ansible": {
-        "spec": "ansible==9.4.0",
+        "spec": "ansible==7.1.0",
         "apps": [
             "ansible",
             "ansible-config",
@@ -191,7 +191,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps_of_dependencies": _exe_if_win(["ashes", "markdown_py"]) + ["ashes.py"],
     },
     "cloudtoken": {
-        "spec": "cloudtoken==2.1.15",
+        "spec": "cloudtoken==2.1.13",
         "apps": ["awstoken", "cloudtoken", "cloudtoken.app", "cloudtoken_proxy.sh"],
         "apps_of_dependencies": _exe_if_win(["flask", "keyring", "normalizer"]) + ["jp.py"],
     },

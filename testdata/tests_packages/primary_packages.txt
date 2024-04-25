@@ -5,11 +5,11 @@
 
 # spec  no-deps
 Cython                  # in 'setup_requires' of jupyter dep pywinpty on Win
-ansible==9.4.0
+ansible==7.1.0
 awscli==1.18.168
 black==22.8.0
 black==22.10.0
-cloudtoken==2.1.15
+cloudtoken==2.1.13
 ipython==7.16.1
 isort==5.6.4
 jaraco-clipboard==2.0.1
