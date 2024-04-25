@@ -15,6 +15,7 @@ argcomplete==3.3.0
 argon2_cffi==23.1.0
 argon2_cffi_bindings==21.2.0
 arrow==1.3.0
+astroid==3.0.3
 astroid==3.1.0
 asttokens==2.4.1
 async_lru==2.0.4
@@ -138,6 +139,7 @@ pycowsay==0.0.0.2
 pycparser==2.22
 pygdbmi==0.10.0.0
 pygments==2.17.2
+pylint==3.0.4
 pylint==3.1.0
 pyperclip==1.8.2
 pyproject_api==1.6.1

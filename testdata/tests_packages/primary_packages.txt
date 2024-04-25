@@ -23,7 +23,7 @@ pip
 pycowsay==0.0.0.2
 pygdbmi==0.10.0.0
 pylint
-pylint==3.1.0
+pylint==3.0.4
 setuptools-scm
 setuptools>=41.0
 shell-functools==0.3.0

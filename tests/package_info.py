@@ -639,9 +639,9 @@ PKG: Dict[str, Dict[str, Any]] = {
     },
     "pygdbmi": {"spec": "pygdbmi==0.10.0.0", "apps": [], "apps_of_dependencies": []},
     "pylint": {
-        "spec": "pylint==3.1.0",
-        "apps": _exe_if_win(["epylint", "pylint", "pyreverse", "symilar"]),
-        "apps_of_dependencies": _exe_if_win(["isort"]),
+        "spec": "pylint==3.0.4",
+        "apps": _exe_if_win(["pylint", "pylint-config", "pyreverse", "symilar"]),
+        "apps_of_dependencies": _exe_if_win(["isort", "isort-identify-imports", "get_gprof", "get_objgraph", "undill"]),
     },
     "retext": {
         "spec": "ReText==8.0.1",
