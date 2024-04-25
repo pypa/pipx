@@ -15,7 +15,7 @@ def _exe_if_win(apps):
 # Only apply _exe_if_win to entry_points, NOT scripts
 PKG: Dict[str, Dict[str, Any]] = {
     "ansible": {
-        "spec": "ansible==2.9.13",
+        "spec": "ansible==9.4.0",
         "apps": [
             "ansible",
             "ansible-config",
@@ -191,7 +191,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps_of_dependencies": _exe_if_win(["ashes", "markdown_py"]) + ["ashes.py"],
     },
     "cloudtoken": {
-        "spec": "cloudtoken==0.1.707",
+        "spec": "cloudtoken==2.1.15",
         "apps": ["awstoken", "cloudtoken", "cloudtoken.app", "cloudtoken_proxy.sh"],
         "apps_of_dependencies": _exe_if_win(["flask", "keyring", "normalizer"]) + ["jp.py"],
     },
@@ -308,7 +308,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps_of_dependencies": [],
     },
     "zest-releaser": {
-        "spec": "zest.releaser==8.0.0",
+        "spec": "zest.releaser==9.1.2",
         "apps": _exe_if_win(
             [
                 "addchangelogentry",
@@ -378,7 +378,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         ),
     },
     "kaggle": {
-        "spec": "kaggle==1.5.16",
+        "spec": "kaggle==1.6.11",
         "apps": _exe_if_win(["kaggle"]),
         "apps_of_dependencies": list(set(_exe_if_win(["slugify", "normalizer", "tqdm"]))),
     },
