@@ -38,12 +38,13 @@ cffi==1.16.0
 chardet==5.2.0
 charset_normalizer==3.3.2
 click==8.1.7
-cloudtoken==2.1.15
+cloudtoken==2.1.13
 cmarkgfm==2024.1.14
 colorama==0.4.3
 colorama==0.4.6
 colorlog==6.8.2
 comm==0.2.2
+cryptography==41.0.7
 cryptography==42.0.5
 debugpy==1.8.1
 decorator==5.1.1
@@ -102,6 +103,7 @@ jupyterlab_pygments==0.3.0
 jupyterlab_server==2.27.1
 jupyterlab_widgets==3.0.10
 kaggle==1.6.11
+keyring==23.13.1
 keyring==25.1.0
 log_symbols==0.0.14
 lxml==4.9.2
