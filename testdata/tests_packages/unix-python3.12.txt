@@ -8,8 +8,8 @@ QtPy==2.4.1
 SecretStorage==3.3.3
 Send2Trash==1.8.3
 Weblate==4.3.1
-ansible==7.1.0
-ansible_core==2.14.16
+ansible==6.7.0
+ansible_core==2.13.13
 anyio==4.3.0
 argcomplete==1.12.3
 argcomplete==3.3.0

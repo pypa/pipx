@@ -7,8 +7,8 @@ PyYAML==6.0.1
 QtPy==2.4.1
 Send2Trash==1.8.3
 Weblate==4.3.1
-ansible==7.1.0
-ansible_core==2.14.16
+ansible==6.7.0
+ansible_core==2.13.13
 anyio==4.3.0
 appdirs==1.4.4
 argcomplete==1.12.3
@@ -29,9 +29,9 @@ black==22.10.0
 black==22.8.0
 bleach==6.1.0
 blinker==1.7.0
-boto3==1.34.91
+boto3==1.34.92
 botocore==1.19.8
-botocore==1.34.91
+botocore==1.34.92
 build==1.2.1
 cachetools==5.3.3
 certifi==2024.2.2
