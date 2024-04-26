@@ -641,7 +641,8 @@ PKG: Dict[str, Dict[str, Any]] = {
     "pylint": {
         "spec": "pylint==3.0.4",
         "apps": _exe_if_win(["pylint", "pylint-config", "pyreverse", "symilar"]),
-        "apps_of_dependencies": _exe_if_win(["isort", "isort-identify-imports", "get_gprof", "get_objgraph", "undill"]),
+        "apps_of_dependencies": _exe_if_win(["isort", "isort-identify-imports"])
+        + ["get_gprof", "get_objgraph", "undill"],
     },
     "retext": {
         "spec": "ReText==8.0.1",
