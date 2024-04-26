@@ -34,7 +34,7 @@ def test_inject_tricky_character(pipx_temp_env, capsys):
 
 def test_spec(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
-    assert not run_pipx_cli(["inject", "pycowsay", "pylint==2.3.1"])
+    assert not run_pipx_cli(["inject", "pycowsay", "pylint==3.0.4"])
 
 
 @pytest.mark.parametrize("with_suffix,", [(False,), (True,)])

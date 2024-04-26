@@ -46,14 +46,14 @@ def test_reinstall_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
 
 
 def test_reinstall_specifier(pipx_temp_env, capsys):
-    assert not run_pipx_cli(["install", "pylint==2.3.1"])
+    assert not run_pipx_cli(["install", "pylint==3.0.4"])
 
     # clear capsys before reinstall
     captured = capsys.readouterr()
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pylint"])
     captured = capsys.readouterr()
-    assert "installed package pylint 2.3.1" in captured.out
+    assert "installed package pylint 3.0.4" in captured.out
 
 
 def test_reinstall_with_path(pipx_temp_env, capsys, tmp_path):

@@ -119,7 +119,19 @@ def test_list_json(pipx_temp_env, capsys):
         "pylint",
         "pylint",
         pipx_venvs_dir,
-        **{"app_paths_of_dependencies": {"isort": [pipx_venvs_dir / "pylint" / venv_bin_dir / app_name("isort")]}},
+        **{
+            "app_paths_of_dependencies": {
+                "dill": [
+                    pipx_venvs_dir / "pylint" / venv_bin_dir / "get_gprof",
+                    pipx_venvs_dir / "pylint" / venv_bin_dir / "get_objgraph",
+                    pipx_venvs_dir / "pylint" / venv_bin_dir / "undill",
+                ],
+                "isort": [
+                    pipx_venvs_dir / "pylint" / venv_bin_dir / app_name("isort"),
+                    pipx_venvs_dir / "pylint" / venv_bin_dir / app_name("isort-identify-imports"),
+                ],
+            }
+        },
     )
     assert_package_metadata(
         PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["main_package"]),
@@ -127,8 +139,6 @@ def test_list_json(pipx_temp_env, capsys):
     )
     assert sorted(json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"].keys()) == ["black"]
     black_package_ref = create_package_info_ref("pylint", "black", pipx_venvs_dir, include_apps=False)
-    print(black_package_ref)
-    print(PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["black"]))
     assert_package_metadata(
         PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["black"]),
         black_package_ref,
@@ -144,7 +154,7 @@ def test_list_short(pipx_temp_env, monkeypatch, capsys):
     captured = capsys.readouterr()
 
     assert "pycowsay 0.0.0.2" in captured.out
-    assert "pylint 2.3.1" in captured.out
+    assert "pylint 3.0.4" in captured.out
 
 
 def test_list_standalone_interpreter(pipx_temp_env, monkeypatch, mocked_github_api, capsys):
