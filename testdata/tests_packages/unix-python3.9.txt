@@ -1,5 +1,7 @@
 Babel==2.14.0
 Cython==3.0.10
+Flask==1.1.4
+Jinja2==2.11.3
 Jinja2==3.1.3
 MarkupSafe==2.1.5
 PyYAML==5.3.1
@@ -8,6 +10,7 @@ QtPy==2.4.1
 SecretStorage==3.3.3
 Send2Trash==1.8.3
 Weblate==4.3.1
+Werkzeug==1.0.1
 ansible==6.7.0
 ansible_core==2.13.13
 anyio==4.3.0
@@ -29,7 +32,6 @@ beautifulsoup4==4.12.3
 black==22.10.0
 black==22.8.0
 bleach==6.1.0
-blinker==1.7.0
 boto3==1.34.92
 botocore==1.19.8
 botocore==1.34.92
@@ -39,14 +41,14 @@ certifi==2024.2.2
 cffi==1.16.0
 chardet==5.2.0
 charset_normalizer==3.3.2
+click==7.1.2
 click==8.1.7
-cloudtoken==2.1.13
+cloudtoken==2.1.0
 cmarkgfm==2024.1.14
 colorama==0.4.3
 colorama==0.4.6
 colorlog==6.8.2
 comm==0.2.2
-cryptography==41.0.7
 cryptography==42.0.5
 debugpy==1.8.1
 decorator==5.1.1
@@ -61,7 +63,6 @@ exceptiongroup==1.2.1
 executing==2.0.1
 fastjsonschema==2.19.1
 filelock==3.13.4
-flask==2.3.3
 fqdn==1.5.1
 h11==0.14.0
 halo==0.0.31
@@ -78,7 +79,7 @@ ipywidgets==8.1.2
 isoduration==20.11.0
 isort==5.13.2
 isort==5.6.4
-itsdangerous==2.2.0
+itsdangerous==1.1.0
 jaraco.classes==3.4.0
 jaraco.clipboard==2.0.1
 jaraco.context==5.3.0
@@ -104,10 +105,10 @@ jupyterlab_pygments==0.3.0
 jupyterlab_server==2.27.1
 jupyterlab_widgets==3.0.10
 kaggle==1.6.11
-keyring==23.13.1
+keyring==21.8.0
 keyring==25.1.0
 log_symbols==0.0.14
-lxml==4.9.2
+lxml==4.9.4
 markdown_it_py==3.0.0
 matplotlib_inline==0.1.7
 mccabe==0.7.0
@@ -208,7 +209,6 @@ wcwidth==0.2.13
 webcolors==1.13
 webencodings==0.5.1
 websocket_client==1.8.0
-werkzeug==3.0.2
 wheel==0.43.0
 widgetsnbextension==4.0.10
 xdg==5.1.1
