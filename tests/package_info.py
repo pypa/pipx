@@ -15,7 +15,7 @@ def _exe_if_win(apps):
 # Only apply _exe_if_win to entry_points, NOT scripts
 PKG: Dict[str, Dict[str, Any]] = {
     "ansible": {
-        "spec": "ansible==7.1.0",
+        "spec": "ansible==6.7.0",
         "apps": [
             "ansible",
             "ansible-config",
