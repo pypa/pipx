@@ -183,7 +183,7 @@ def package_is_url(package: str, raise_error: bool = True) -> bool:
     return False
 
 
-def package_is_abspath(package: str):
+def package_is_path(package: str):
     if os.path.sep in package:
         raise PipxError(
             pipx_wrap(
@@ -207,7 +207,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     if "package" in args:
         package = args.package
         package_is_url(package)
-        package_is_abspath(package)
+        package_is_path(package)
 
         if "spec" in args and args.spec is not None:
             if package_is_url(args.spec, raise_error=False):
@@ -220,7 +220,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     if "packages" in args:
         for package in args.packages:
             package_is_url(package)
-            package_is_abspath(package)
+            package_is_path(package)
         venv_dirs = {package: venv_container.get_venv_dir(package) for package in args.packages}
         venv_dirs_msg = "\n".join(f"- {key} : {value}" for key, value in venv_dirs.items())
         logger.info(f"Virtual Environment locations are:\n{venv_dirs_msg}")
