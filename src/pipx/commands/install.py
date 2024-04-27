@@ -12,6 +12,7 @@ from pipx.constants import (
 )
 from pipx.emojis import sleep
 from pipx.interpreter import DEFAULT_PYTHON
+from pipx.package_specifier import parse_specifier_for_install
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, _json_decoder_object_hook
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv, VenvContainer
@@ -91,7 +92,8 @@ def install(
             override_shared = package_name == "pip"
             venv.create_venv(venv_args, pip_args, override_shared)
             for dep in preinstall_packages or []:
-                venv.upgrade_package_no_metadata(dep, [])
+                dep_name, _ = parse_specifier_for_install(dep, [])
+                venv.upgrade_package_no_metadata(dep_name, [])
             venv.install_package(
                 package_name=package_name,
                 package_or_url=package_spec,
