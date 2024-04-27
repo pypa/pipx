@@ -174,6 +174,15 @@ def get_venv_args(parsed_args: Dict[str, str]) -> List[str]:
     return venv_args
 
 
+def package_is_url(package: str, raise_error: bool = True) -> bool:
+    url_parse_package = urllib.parse.urlparse(package)
+    if url_parse_package.scheme and url_parse_package.netloc:
+        if not raise_error:
+            return True
+        raise PipxError("Package cannot be a URL. A valid package name should be passed instead.")
+    return False
+
+
 def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.ArgumentParser]) -> ExitCode:  # noqa: C901
     verbose = args.verbose if "verbose" in args else False
     if not constants.WINDOWS and args.is_global:
@@ -185,12 +194,10 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
 
     if "package" in args:
         package = args.package
-        url_parse_package = urllib.parse.urlparse(package)
-        if url_parse_package.scheme and url_parse_package.netloc:
-            raise PipxError("Package cannot be a url")
+        package_is_url(package)
 
         if "spec" in args and args.spec is not None:
-            if urllib.parse.urlparse(args.spec).scheme:
+            if package_is_url(args.spec, raise_error=False):
                 if "#egg=" not in args.spec:
                     args.spec = args.spec + f"#egg={package}"
 
@@ -212,8 +219,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         logger.info(f"Virtual Environment location is {venv_dir}")
 
     if "packages" in args:
-        if any(urllib.parse.urlparse(package).scheme for package in args.packages):
-            raise PipxError("Package cannot be a url. Package name should be passed instead.")
+        for package in args.packages:
+            package_is_url(package)
         venv_dirs = {package: venv_container.get_venv_dir(package) for package in args.packages}
         venv_dirs_msg = "\n".join(f"- {key} : {value}" for key, value in venv_dirs.items())
         logger.info(f"Virtual Environment locations are:\n{venv_dirs_msg}")
@@ -344,6 +351,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             return commands.list_interpreters(venv_container)
         elif args.interpreter_command == "prune":
             return commands.prune_interpreters(venv_container)
+        elif args.interpreter_command == "upgrade":
+            return commands.upgrade_interpreters(venv_container, verbose)
         elif args.interpreter_command is None:
             subparsers["interpreter"].print_help()
             return EXIT_CODE_OK
@@ -712,6 +721,11 @@ def _add_interpreter(
     )
     s.add_parser("list", help="List available interpreters", description="List available interpreters")
     s.add_parser("prune", help="Prune unused interpreters", description="Prune unused interpreters")
+    s.add_parser(
+        "upgrade",
+        help="Upgrade installed interpreters to the latest available micro/patch version",
+        description="Upgrade installed interpreters to the latest available micro/patch version",
+    )
     return p
 
 

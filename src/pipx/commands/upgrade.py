@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 
@@ -220,15 +221,16 @@ def upgrade_all(
     python_flag_passed: bool = False,
 ) -> ExitCode:
     """Return pipx exit code."""
-    venv_error = False
-    venvs_upgraded = 0
+    failed: List[str] = []
+    upgraded: List[str] = []
+
     for venv_dir in venv_container.iter_venv_dirs():
         venv = Venv(venv_dir, verbose=verbose)
         venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
         if venv_dir.name in skip or "--editable" in venv.pipx_metadata.main_package.pip_args:
             continue
         try:
-            venvs_upgraded += _upgrade_venv(
+            _upgrade_venv(
                 venv_dir,
                 venv.pipx_metadata.main_package.pip_args,
                 verbose=verbose,
@@ -237,20 +239,16 @@ def upgrade_all(
                 force=force,
                 python_flag_passed=python_flag_passed,
             )
-
         except PipxError as e:
-            venv_error = True
-            logger.error(f"Error encountered when upgrading {venv_dir.name}:")
-            logger.error(f"{e}\n")
-
-    if venvs_upgraded == 0:
-        print(f"Versions did not change after running 'pipx upgrade' for each package {sleep}")
-    if venv_error:
-        raise PipxError(
-            "\nSome packages encountered errors during upgrade.\n" "    See specific error messages above.",
-            wrap_message=False,
-        )
-
+            print(e, file=sys.stderr)
+            failed.append(venv_dir.name)
+        else:
+            upgraded.append(venv_dir.name)
+    if len(upgraded) == 0:
+        print(f"No packages upgraded after running 'pipx upgrade-all' {sleep}")
+    if len(failed) > 0:
+        raise PipxError(f"The following package(s) failed to upgrade: {','.join(failed)}")
+    # Any failure to install will raise PipxError, otherwise success
     return EXIT_CODE_OK
 
 

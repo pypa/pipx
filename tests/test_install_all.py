@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from helpers import run_pipx_cli
+from pipx import paths
 
 
 def test_install_all(pipx_temp_env, tmp_path, capsys):
@@ -28,3 +29,8 @@ def test_install_all_multiple_errors(pipx_temp_env, root, capsys):
     captured = capsys.readouterr()
     assert "The following package(s) failed to install: dotenv, weblate" in captured.err
     assert f"No packages installed after running 'pipx install-all {pipx_metadata_path}'" in captured.out
+    if paths.ctx.log_file:
+        with open(paths.ctx.log_file.parent / (paths.ctx.log_file.stem + "_pip_errors.log")) as log_fh:
+            log_contents = log_fh.read()
+            assert "dotenv" in log_contents
+            assert "weblate" in log_contents

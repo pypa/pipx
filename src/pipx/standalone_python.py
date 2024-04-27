@@ -44,7 +44,7 @@ GITHUB_API_URL = "https://api.github.com/repos/indygreg/python-build-standalone/
 PYTHON_VERSION_REGEX = re.compile(r"cpython-(\d+\.\d+\.\d+)")
 
 
-def download_python_build_standalone(python_version: str):
+def download_python_build_standalone(python_version: str, override: bool = False):
     """When all other python executable resolutions have failed,
     attempt to download and use an appropriate python build
     from https://github.com/indygreg/python-build-standalone
@@ -57,12 +57,16 @@ def download_python_build_standalone(python_version: str):
     install_dir = paths.ctx.standalone_python_cachedir / python_version
     installed_python = install_dir / "python.exe" if constants.WINDOWS else install_dir / "bin" / "python3"
 
-    if installed_python.exists():
-        return str(installed_python)
+    if override:
+        if install_dir.exists():
+            shutil.rmtree(install_dir)
+    else:
+        if installed_python.exists():
+            return str(installed_python)
 
-    if install_dir.exists():
-        logger.warning(f"A previous attempt to install python {python_version} failed. Retrying.")
-        shutil.rmtree(install_dir)
+        if install_dir.exists():
+            logger.warning(f"A previous attempt to install python {python_version} failed. Retrying.")
+            shutil.rmtree(install_dir)
 
     full_version, download_link = resolve_python_version(python_version)
 
@@ -115,11 +119,11 @@ def _unpack(full_version, download_link, archive: Path, download_dir: Path):
             tar.extractall(download_dir)
 
 
-def get_or_update_index():
+def get_or_update_index(use_cache: bool = True):
     """Get or update the index of available python builds from
     the python-build-standalone repository."""
     index_file = paths.ctx.standalone_python_cachedir / "index.json"
-    if index_file.exists():
+    if use_cache and index_file.exists():
         index = json.loads(index_file.read_text())
         # update index after 30 days
         fetched = datetime.datetime.fromtimestamp(index["fetched"])
@@ -148,7 +152,7 @@ def get_latest_python_releases() -> List[str]:
     return [asset["browser_download_url"] for asset in release_data["assets"]]
 
 
-def list_pythons() -> Dict[str, str]:
+def list_pythons(use_cache: bool = True) -> Dict[str, str]:
     """Returns available python versions for your machine and their download links."""
     system, machine = platform.system(), platform.machine()
     download_link_suffix = MACHINE_SUFFIX[system][machine]
@@ -158,7 +162,7 @@ def list_pythons() -> Dict[str, str]:
         libc_version = platform.libc_ver()[0] or "musl"
         download_link_suffix = download_link_suffix[libc_version]
 
-    python_releases = get_or_update_index()["releases"]
+    python_releases = get_or_update_index(use_cache)["releases"]
 
     available_python_links = [link for link in python_releases if link.endswith(download_link_suffix)]
 
