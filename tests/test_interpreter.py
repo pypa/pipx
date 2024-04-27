@@ -17,12 +17,16 @@ from pipx.interpreter import (
 )
 from pipx.util import PipxError
 
+original_which = shutil.which
+
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
 @pytest.mark.parametrize("venv", [True, False])
 def test_windows_python_with_version(monkeypatch, venv):
     def which(name):
-        return "py"
+        if name == "py":
+            return "py"
+        return original_which(name)
 
     major = sys.version_info.major
     minor = sys.version_info.minor
@@ -38,7 +42,9 @@ def test_windows_python_with_version(monkeypatch, venv):
 @pytest.mark.parametrize("venv", [True, False])
 def test_windows_python_with_python_and_version(monkeypatch, venv):
     def which(name):
-        return "py"
+        if name == "py":
+            return "py"
+        return original_which(name)
 
     major = sys.version_info.major
     minor = sys.version_info.minor
@@ -54,7 +60,9 @@ def test_windows_python_with_python_and_version(monkeypatch, venv):
 @pytest.mark.parametrize("venv", [True, False])
 def test_windows_python_with_python_and_unavailable_version(monkeypatch, venv):
     def which(name):
-        return "py"
+        if name == "py":
+            return "py"
+        return original_which(name)
 
     major = sys.version_info.major + 99
     minor = sys.version_info.minor

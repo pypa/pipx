@@ -377,3 +377,61 @@ def test_install_fetch_missing_python_invalid(capsys, python_version):
     assert run_pipx_cli(["install", "--python", python_version, "--fetch-missing-python", "pycowsay"])
     captured = capsys.readouterr()
     assert f"No executable for the provided Python version '{python_version}' found" in captured.out
+
+
+def test_install_run_in_separate_directory(caplog, capsys, pipx_temp_env, monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    f = Path("argparse.py")
+    f.touch()
+
+    install_packages(capsys, pipx_temp_env, caplog, ["pycowsay"], ["pycowsay"])
+
+
+@skip_if_windows
+@pytest.mark.parametrize(
+    "python_version",
+    [
+        str(sys.version_info.major),
+        f"{sys.version_info.major}.{sys.version_info.minor}",
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+    ],
+)
+def test_install_python_command_version(pipx_temp_env, monkeypatch, capsys, python_version):
+    monkeypatch.setenv("PATH", os.getenv("PATH_ORIG"))
+    assert not run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
+    captured = capsys.readouterr()
+    assert python_version in captured.out
+
+
+@skip_if_windows
+def test_install_python_command_version_invalid(pipx_temp_env, capsys):
+    python_version = "3.x"
+    assert run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
+    captured = capsys.readouterr()
+    assert f"Invalid Python version: {python_version}" in captured.err
+
+
+@skip_if_windows
+def test_install_python_command_version_unsupported(pipx_temp_env, capsys):
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}.dev"
+    assert run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
+    captured = capsys.readouterr()
+    assert f"Unsupported Python version: {python_version}" in captured.err
+
+
+@skip_if_windows
+def test_install_python_command_version_missing(pipx_temp_env, monkeypatch, capsys):
+    monkeypatch.setenv("PATH", os.getenv("PATH_ORIG"))
+    python_version = f"{sys.version_info.major + 99}.{sys.version_info.minor}"
+    assert run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
+    captured = capsys.readouterr()
+    assert f"Command `python{python_version}` was not found" in captured.err
+
+
+@skip_if_windows
+def test_install_python_command_version_micro_mismatch(pipx_temp_env, monkeypatch, capsys):
+    monkeypatch.setenv("PATH", os.getenv("PATH_ORIG"))
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro + 1}"
+    assert not run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
+    captured = capsys.readouterr()
+    assert f"It may not match the specified version {python_version} at the micro/patch level" in captured.err
