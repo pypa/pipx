@@ -184,7 +184,7 @@ def package_is_url(package: str, raise_error: bool = True) -> bool:
 
 
 def package_is_abspath(package: str):
-    if Path(package).is_absolute() or Path(package).exists():
+    if os.path.sep in package:
         raise PipxError(
             pipx_wrap(
                 f"""
