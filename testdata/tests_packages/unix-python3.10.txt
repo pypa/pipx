@@ -135,6 +135,7 @@ pathspec==0.12.1
 pbr==5.6.0
 pexpect==4.9.0
 pickleshare==0.7.5
+pip==23.3.2
 pip==24.0
 pkginfo==1.10.0
 platformdirs==4.2.1

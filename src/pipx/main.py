@@ -334,6 +334,11 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             pip_args=pip_args,
             python_flag_passed=python_flag_passed,
         )
+    elif args.command == "upgrade-shared":
+        return commands.upgrade_shared(
+            verbose,
+            pip_args,
+        )
     elif args.command == "list":
         return commands.list_packages(
             venv_container,
@@ -608,6 +613,19 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argp
     )
 
 
+def _add_upgrade_shared(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+    p = subparsers.add_parser(
+        "upgrade-shared",
+        help="Upgrade shared libraries.",
+        description="Upgrade shared libraries.",
+        parents=[shared_parser],
+    )
+    p.add_argument(
+        "--pip-args",
+        help="Arbitrary pip arguments to pass directly to pip install/upgrade commands",
+    )
+
+
 def _add_uninstall(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "uninstall",
@@ -875,6 +893,7 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
     _add_inject(subparsers, completer_venvs.use, shared_parser)
     _add_upgrade(subparsers, completer_venvs.use, shared_parser)
     _add_upgrade_all(subparsers, shared_parser)
+    _add_upgrade_shared(subparsers, shared_parser)
     _add_uninstall(subparsers, completer_venvs.use, shared_parser)
     _add_uninstall_all(subparsers, shared_parser)
     _add_reinstall(subparsers, completer_venvs.use, shared_parser)
