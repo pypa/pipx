@@ -183,6 +183,18 @@ def package_is_url(package: str, raise_error: bool = True) -> bool:
     return False
 
 
+def package_is_path(package: str):
+    if os.path.sep in package:
+        raise PipxError(
+            pipx_wrap(
+                f"""
+                Error: '{package}' looks like a path.
+                Expected the name of an installed package.
+                """
+            )
+        )
+
+
 def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.ArgumentParser]) -> ExitCode:  # noqa: C901
     verbose = args.verbose if "verbose" in args else False
     if not constants.WINDOWS and args.is_global:
@@ -195,25 +207,12 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     if "package" in args:
         package = args.package
         package_is_url(package)
+        package_is_path(package)
 
         if "spec" in args and args.spec is not None:
             if package_is_url(args.spec, raise_error=False):
                 if "#egg=" not in args.spec:
                     args.spec = args.spec + f"#egg={package}"
-
-        if args.command == "reinstall":
-            # Passing paths into `reinstall` might have unintended
-            # side effects.
-            if Path(package).is_absolute() or Path(package).exists():
-                raise PipxError(
-                    pipx_wrap(
-                        f"""
-                        Error: Path '{package}' given as
-                        package. Expected the name of
-                        an installed package.
-                        """
-                    )
-                )
 
         venv_dir = venv_container.get_venv_dir(package)
         logger.info(f"Virtual Environment location is {venv_dir}")
@@ -221,6 +220,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     if "packages" in args:
         for package in args.packages:
             package_is_url(package)
+            package_is_path(package)
         venv_dirs = {package: venv_container.get_venv_dir(package) for package in args.packages}
         venv_dirs_msg = "\n".join(f"- {key} : {value}" for key, value in venv_dirs.items())
         logger.info(f"Virtual Environment locations are:\n{venv_dirs_msg}")
