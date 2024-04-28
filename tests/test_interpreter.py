@@ -17,12 +17,16 @@ from pipx.interpreter import (
 )
 from pipx.util import PipxError
 
+original_which = shutil.which
+
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
 @pytest.mark.parametrize("venv", [True, False])
 def test_windows_python_with_version(monkeypatch, venv):
     def which(name):
-        return "py"
+        if name == "py":
+            return "py"
+        return original_which(name)
 
     major = sys.version_info.major
     minor = sys.version_info.minor
@@ -38,7 +42,9 @@ def test_windows_python_with_version(monkeypatch, venv):
 @pytest.mark.parametrize("venv", [True, False])
 def test_windows_python_with_python_and_version(monkeypatch, venv):
     def which(name):
-        return "py"
+        if name == "py":
+            return "py"
+        return original_which(name)
 
     major = sys.version_info.major
     minor = sys.version_info.minor
@@ -54,7 +60,9 @@ def test_windows_python_with_python_and_version(monkeypatch, venv):
 @pytest.mark.parametrize("venv", [True, False])
 def test_windows_python_with_python_and_unavailable_version(monkeypatch, venv):
     def which(name):
-        return "py"
+        if name == "py":
+            return "py"
+        return original_which(name)
 
     major = sys.version_info.major + 99
     minor = sys.version_info.minor
@@ -182,18 +190,12 @@ def test_fetch_missing_python(monkeypatch, mocked_github_api):
     minor = sys.version_info.minor
     target_python = f"{major}.{minor}"
 
-    if target_python == "3.8":
-        # 3.8 is not available in the standalone python project
-        with pytest.raises(InterpreterResolutionError) as e:
-            find_python_interpreter(target_python, fetch_missing_python=True)
-            assert "not found" in str(e)
+    python_path = find_python_interpreter(target_python, fetch_missing_python=True)
+    assert python_path is not None
+    assert target_python in python_path
+    assert str(pipx.paths.ctx.standalone_python_cachedir) in python_path
+    if WINDOWS:
+        assert python_path.endswith("python.exe")
     else:
-        python_path = find_python_interpreter(target_python, fetch_missing_python=True)
-        assert python_path is not None
-        assert target_python in python_path
-        assert str(pipx.paths.ctx.standalone_python_cachedir) in python_path
-        if WINDOWS:
-            assert python_path.endswith("python.exe")
-        else:
-            assert python_path.endswith("python3")
-        subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)
+        assert python_path.endswith("python3")
+    subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)

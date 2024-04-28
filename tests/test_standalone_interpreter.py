@@ -9,8 +9,7 @@ from package_info import PKG
 from pipx import standalone_python
 
 MAJOR_PYTHON_VERSION = sys.version_info.major
-# Minor version 3.8 is not supported for fetching standalone versions
-MINOR_PYTHON_VERSION = sys.version_info.minor if sys.version_info.minor != 8 else 9
+MINOR_PYTHON_VERSION = sys.version_info.minor
 TARGET_PYTHON_VERSION = f"{MAJOR_PYTHON_VERSION}.{MINOR_PYTHON_VERSION}"
 
 original_which = shutil.which
