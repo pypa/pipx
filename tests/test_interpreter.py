@@ -190,18 +190,12 @@ def test_fetch_missing_python(monkeypatch, mocked_github_api):
     minor = sys.version_info.minor
     target_python = f"{major}.{minor}"
 
-    if target_python == "3.8":
-        # 3.8 is not available in the standalone python project
-        with pytest.raises(InterpreterResolutionError) as e:
-            find_python_interpreter(target_python, fetch_missing_python=True)
-            assert "not found" in str(e)
+    python_path = find_python_interpreter(target_python, fetch_missing_python=True)
+    assert python_path is not None
+    assert target_python in python_path
+    assert str(pipx.paths.ctx.standalone_python_cachedir) in python_path
+    if WINDOWS:
+        assert python_path.endswith("python.exe")
     else:
-        python_path = find_python_interpreter(target_python, fetch_missing_python=True)
-        assert python_path is not None
-        assert target_python in python_path
-        assert str(pipx.paths.ctx.standalone_python_cachedir) in python_path
-        if WINDOWS:
-            assert python_path.endswith("python.exe")
-        else:
-            assert python_path.endswith("python3")
-        subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)
+        assert python_path.endswith("python3")
+    subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)
