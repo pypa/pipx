@@ -188,7 +188,7 @@ def package_is_path(package: str):
         raise PipxError(
             pipx_wrap(
                 f"""
-                Error: Path '{package}' given as package.
+                Error: '{package}' looks like a path.
                 Expected the name of an installed package.
                 """
             )
