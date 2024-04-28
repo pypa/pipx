@@ -24,6 +24,10 @@
 
 {{upgradeall}}
 
+### pipx upgrade-shared
+
+{{upgradeshared}}
+
 ### pipx uninstall
 
 {{uninstall}}

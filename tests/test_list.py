@@ -164,8 +164,7 @@ def test_list_standalone_interpreter(pipx_temp_env, monkeypatch, mocked_github_a
     monkeypatch.setattr(shutil, "which", which)
 
     major = sys.version_info.major
-    # Minor version 3.8 is not supported for fetching standalone versions
-    minor = sys.version_info.minor if sys.version_info.minor != 8 else 9
+    minor = sys.version_info.minor
     target_python = f"{major}.{minor}"
 
     assert not run_pipx_cli(

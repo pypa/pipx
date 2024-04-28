@@ -19,6 +19,8 @@ kaggle==1.6.11
 nox==2022.1.7
 nox[tox_to_nox]==2023.4.22
 pbr==5.6.0
+pip==23.3.2
+pip==24.0
 pip
 pycowsay==0.0.0.2
 pygdbmi==0.10.0.0
