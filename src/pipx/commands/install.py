@@ -12,7 +12,6 @@ from pipx.constants import (
 )
 from pipx.emojis import sleep
 from pipx.interpreter import DEFAULT_PYTHON
-from pipx.package_specifier import parse_specifier_for_install
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, _json_decoder_object_hook
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv, VenvContainer
