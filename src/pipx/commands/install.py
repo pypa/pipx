@@ -92,8 +92,7 @@ def install(
             override_shared = package_name == "pip"
             venv.create_venv(venv_args, pip_args, override_shared)
             for dep in preinstall_packages or []:
-                dep_name, _ = parse_specifier_for_install(dep, [])
-                venv.upgrade_package_no_metadata(dep_name, [])
+                venv.upgrade_package_no_metadata(dep, [])
             venv.install_package(
                 package_name=package_name,
                 package_or_url=package_spec,
