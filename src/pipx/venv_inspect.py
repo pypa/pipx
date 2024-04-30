@@ -91,7 +91,7 @@ def get_resources_from_dist_files(dist: metadata.Distribution, bin_path: Path, m
         if Path(path).parts[0] != "..":
             continue
 
-        dist_file_path = Path(dist.locate_file(path))
+        dist_file_path = Path(str(dist.locate_file(path)))
         try:
             if dist_file_path.parent.samefile(bin_path):
                 app_names.add(path.name)
@@ -109,7 +109,7 @@ def get_resources_from_inst_files(dist: metadata.Distribution, bin_path: Path, m
     inst_files = dist.read_text("installed-files.txt") or ""
     for line in inst_files.splitlines():
         entry = line.split(",")[0]  # noqa: T484
-        inst_file_path = Path(dist.locate_file(entry)).resolve()
+        inst_file_path = Path(str(dist.locate_file(entry))).resolve()
         try:
             if inst_file_path.parent.samefile(bin_path):
                 app_names.add(inst_file_path.name)
