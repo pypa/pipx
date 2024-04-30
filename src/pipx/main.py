@@ -183,6 +183,18 @@ def package_is_url(package: str, raise_error: bool = True) -> bool:
     return False
 
 
+def package_is_path(package: str):
+    if os.path.sep in package:
+        raise PipxError(
+            pipx_wrap(
+                f"""
+                Error: '{package}' looks like a path.
+                Expected the name of an installed package.
+                """
+            )
+        )
+
+
 def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.ArgumentParser]) -> ExitCode:  # noqa: C901
     verbose = args.verbose if "verbose" in args else False
     if not constants.WINDOWS and args.is_global:
@@ -195,25 +207,12 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     if "package" in args:
         package = args.package
         package_is_url(package)
+        package_is_path(package)
 
         if "spec" in args and args.spec is not None:
             if package_is_url(args.spec, raise_error=False):
                 if "#egg=" not in args.spec:
                     args.spec = args.spec + f"#egg={package}"
-
-        if args.command == "reinstall":
-            # Passing paths into `reinstall` might have unintended
-            # side effects.
-            if Path(package).is_absolute() or Path(package).exists():
-                raise PipxError(
-                    pipx_wrap(
-                        f"""
-                        Error: Path '{package}' given as
-                        package. Expected the name of
-                        an installed package.
-                        """
-                    )
-                )
 
         venv_dir = venv_container.get_venv_dir(package)
         logger.info(f"Virtual Environment location is {venv_dir}")
@@ -221,6 +220,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     if "packages" in args:
         for package in args.packages:
             package_is_url(package)
+            package_is_path(package)
         venv_dirs = {package: venv_container.get_venv_dir(package) for package in args.packages}
         venv_dirs_msg = "\n".join(f"- {key} : {value}" for key, value in venv_dirs.items())
         logger.info(f"Virtual Environment locations are:\n{venv_dirs_msg}")
@@ -335,6 +335,11 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             pip_args=pip_args,
             python_flag_passed=python_flag_passed,
         )
+    elif args.command == "upgrade-shared":
+        return commands.upgrade_shared(
+            verbose,
+            pip_args,
+        )
     elif args.command == "list":
         return commands.list_packages(
             venv_container,
@@ -429,8 +434,8 @@ def add_python_options(parser: argparse.ArgumentParser) -> None:
         "--python",
         help=(
             "Python to install with. Possible values can be the executable name (python3.11), "
-            "the version to pass to py launcher (3.11), or the full path to the executable."
-            f"Requires Python {MINIMUM_PYTHON_VERSION} or above."
+            "the version of an available system Python or to pass to py launcher (3.11), "
+            f"or the full path to the executable. Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )
     parser.add_argument(
@@ -606,6 +611,19 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argp
         "-f",
         action="store_true",
         help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
+    )
+
+
+def _add_upgrade_shared(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+    p = subparsers.add_parser(
+        "upgrade-shared",
+        help="Upgrade shared libraries.",
+        description="Upgrade shared libraries.",
+        parents=[shared_parser],
+    )
+    p.add_argument(
+        "--pip-args",
+        help="Arbitrary pip arguments to pass directly to pip install/upgrade commands",
     )
 
 
@@ -876,6 +894,7 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
     _add_inject(subparsers, completer_venvs.use, shared_parser)
     _add_upgrade(subparsers, completer_venvs.use, shared_parser)
     _add_upgrade_all(subparsers, shared_parser)
+    _add_upgrade_shared(subparsers, shared_parser)
     _add_uninstall(subparsers, completer_venvs.use, shared_parser)
     _add_uninstall_all(subparsers, shared_parser)
     _add_reinstall(subparsers, completer_venvs.use, shared_parser)

@@ -228,7 +228,7 @@ def upgrade_all(
     force: bool,
     python_flag_passed: bool = False,
 ) -> ExitCode:
-    """Returns pipx exit code."""
+    """Return pipx exit code."""
     failed: List[str] = []
     upgraded: List[str] = []
 
@@ -257,4 +257,16 @@ def upgrade_all(
     if len(failed) > 0:
         raise PipxError(f"The following package(s) failed to upgrade: {','.join(failed)}")
     # Any failure to install will raise PipxError, otherwise success
+    return EXIT_CODE_OK
+
+
+def upgrade_shared(
+    verbose: bool,
+    pip_args: List[str],
+) -> ExitCode:
+    """Return pipx exit code."""
+    from pipx.shared_libs import shared_libs
+
+    shared_libs.upgrade(verbose=verbose, pip_args=pip_args, raises=True)
+
     return EXIT_CODE_OK
