@@ -104,15 +104,18 @@ def _upgrade_venv(
     upgrading_all: bool,
     force: bool,
     install: bool = False,
+    venv_args: Optional[List[str]] = None,
     python: Optional[str] = None,
     python_flag_passed: bool = False,
 ) -> int:
     """Return number of packages with changed versions."""
     if not venv_dir.is_dir():
         if install:
+            if venv_args is None:
+                venv_args = []
             commands.install(
                 venv_dir=None,
-                venv_args=[],
+                venv_args=venv_args,
                 package_names=None,
                 package_specs=[str(venv_dir).split(os.path.sep)[-1]],
                 local_bin_dir=paths.ctx.bin_dir,
@@ -134,6 +137,9 @@ def _upgrade_venv(
                 does not exist.
                 """
             )
+
+    if venv_args and not install:
+        logger.info("Ignoring " + ", ".join(venv_args) + " as not combined with --install")
 
     if python and not install:
         logger.info("Ignoring --python as not combined with --install")
@@ -184,6 +190,7 @@ def upgrade(
     venv_dirs: Dict[str, Path],
     python: Optional[str],
     pip_args: List[str],
+    venv_args: List[str],
     verbose: bool,
     *,
     include_injected: bool,
@@ -202,6 +209,7 @@ def upgrade(
             upgrading_all=False,
             force=force,
             install=install,
+            venv_args=venv_args,
             python=python,
             python_flag_passed=python_flag_passed,
         )

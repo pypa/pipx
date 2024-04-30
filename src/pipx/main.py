@@ -318,6 +318,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             venv_dirs,
             args.python,
             pip_args,
+            venv_args,
             verbose,
             include_injected=args.include_injected,
             force=args.force,
