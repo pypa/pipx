@@ -1,6 +1,6 @@
 name: Cluster API
 
-on: [ push ]
+on: [ push, pull_request ]
 
 jobs:
   cluster-api-tests:
