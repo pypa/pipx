@@ -50,6 +50,7 @@ use Cyberfusion\ClusterApi\Endpoints\Tombstones;
 use Cyberfusion\ClusterApi\Endpoints\UnixUsers;
 use Cyberfusion\ClusterApi\Endpoints\UrlRedirects;
 use Cyberfusion\ClusterApi\Endpoints\VirtualHosts;
+use Cyberfusion\ClusterApi\Endpoints\Daemons;
 
 class ClusterApi
 {
@@ -290,5 +291,10 @@ class ClusterApi
     public function virtualHosts(): VirtualHosts
     {
         return new VirtualHosts($this->client);
+    }
+
+    public function daemons(): Daemons
+    {
+        return new Daemons($this->client);
     }
 }

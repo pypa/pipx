@@ -20,7 +20,7 @@ class Client implements ClientContract
 
     private const TIMEOUT = 180;
 
-    private const VERSION = '1.111.0';
+    private const VERSION = '1.112.0';
 
     private const USER_AGENT = 'cyberfusion-cluster-api-client/' . self::VERSION;
 
