@@ -163,7 +163,27 @@ def parse_specifier_for_install(package_spec: str, pip_args: List[str]) -> Tuple
         )
         pip_args.remove("--editable")
 
-    return (package_or_url, pip_args)
+    for index, option in enumerate(pip_args):
+        if not option.startswith(("-c", "--constraint")):
+            continue
+
+        if option in ("-c", "--constraint"):
+            argument_index = index + 1
+            if argument_index < len(pip_args):
+                constraints_file = pip_args[argument_index]
+                pip_args[argument_index] = str(Path(constraints_file).expanduser().resolve())
+
+        else:  # option == "--constraint=some_path"
+            option_list = option.split("=")
+
+            if len(option_list) == 2:
+                key, value = option_list
+                value_path = Path(value).expanduser().resolve()
+                pip_args[index] = f"{key}={value_path}"
+
+        break
+
+    return package_or_url, pip_args
 
 
 def parse_specifier_for_metadata(package_spec: str) -> str:
