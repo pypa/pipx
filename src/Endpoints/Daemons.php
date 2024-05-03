@@ -107,6 +107,7 @@ class Daemons extends Endpoint
             'command',
             'unix_user_id',
             'nodes_ids',
+            'cluster_id',
             'id',
         ]);
 
@@ -119,6 +120,7 @@ class Daemons extends Endpoint
                     'command',
                     'unix_user_id',
                     'nodes_ids',
+                    'node_id',
                     'id',
                 ])
             );

@@ -13,6 +13,8 @@ class Daemon extends ClusterModel
     private array $nodesIds;
     private ?int $id;
     private int $clusterId;
+    private ?string $createdAt = null;
+    private ?string $updatedAt = null;
 
     public function getName(): string
     {
@@ -67,7 +69,7 @@ class Daemon extends ClusterModel
 
     public function setNodesIds(array $nodeIds): self
     {
-        $this->nodeIds = $nodeIds;
+        $this->nodesIds = $nodesIds;
 
         return $this;
     }
@@ -126,7 +128,7 @@ class Daemon extends ClusterModel
             ->setName(Arr::get($data, 'name'))
             ->setCommand(Arr::get($data, 'command'))
             ->setUnixUserId(Arr::get($data, 'unix_user_id'))
-            ->setNodesIds(Arr::get($data, 'node_id'))
+            ->setNodesIds(Arr::get($data, 'nodes_ids'))
             ->setId(Arr::get($data, 'id'))
             ->setClusterId(Arr::get($data, 'cluster_id'))
             ->setCreatedAt(Arr::get($data, 'created_at'))
