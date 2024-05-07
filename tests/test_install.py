@@ -264,6 +264,26 @@ def test_pip_args_with_windows_path(pipx_temp_env, capsys):
     assert r"D:\\TEST\\DIR" in captured.err
 
 
+@pytest.mark.parametrize("constraint_flag", ["-c ", "--constraint ", "--constraint="])
+def test_pip_args_with_constraint_relative_path(constraint_flag, pipx_temp_env, tmp_path, caplog):
+    constraint_file_name = "constraints.txt"
+    package_name = "ipython"
+    package_version = "8.23.0"
+
+    os.chdir(tmp_path)
+    constraints_file = tmp_path / constraint_file_name
+    constraints_file.write_text(f"{package_name}!={package_version}")
+    constraints_file.touch()
+
+    assert not run_pipx_cli(["install", f"--pip-args='{constraint_flag}{constraint_file_name}'", package_name])
+
+    assert f"{constraint_flag}{constraints_file}" in caplog.text
+
+    subprocess_package_version = subprocess.run([package_name, "--version"], capture_output=True, text=True, check=False)
+    subprocess_package_version_output = subprocess_package_version.stdout.strip()
+    assert subprocess_package_version_output != package_version
+
+
 def test_install_suffix(pipx_temp_env, capsys):
     name = "pbr"
 
