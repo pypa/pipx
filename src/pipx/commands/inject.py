@@ -119,10 +119,10 @@ def inject(
     suffix: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
-    # Combined list of packages
-    packages = list(package_specs)
+    # Combined collection of package specifications
+    packages = set(package_specs)
     for filename in requirement_files:
-        packages.extend(parse_requirements(filename))
+        packages.update(parse_requirements(filename))
 
     if not packages:
         raise PipxError("No packages have been specified.")
