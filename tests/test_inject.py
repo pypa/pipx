@@ -1,4 +1,5 @@
 import logging
+import re
 import textwrap
 
 import pytest  # type: ignore
@@ -84,7 +85,7 @@ def test_inject_with_req_file(pipx_temp_env, capsys, caplog, tmp_path, with_pack
     assert not run_pipx_cli(["install", "pycowsay"])
 
     assert not run_pipx_cli(
-        ["inject", "pycowsay"] + [PKG[pkg]["spec"] for pkg in with_packages] + ["--requirement", str(req_file)]
+        ["inject", "pycowsay", *(PKG[pkg]["spec"] for pkg in with_packages), "--requirement", str(req_file)]
     )
 
     packages = [
@@ -98,5 +99,5 @@ def test_inject_with_req_file(pipx_temp_env, capsys, caplog, tmp_path, with_pack
     assert f"Injecting packages: {[p for _, p in packages]!r}" in caplog.text
 
     captured = capsys.readouterr()
-    for pkg, _ in packages:
-        assert f"injected package {pkg} into venv pycowsay" in captured.out
+    injected = re.findall(r"injected package (.+?) into venv pycowsay", captured.out)
+    assert set(injected) == {pkg for pkg, _ in packages}
