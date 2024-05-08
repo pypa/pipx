@@ -98,12 +98,35 @@ Then you can run it as follows:
 One use of the inject command is setting up a REPL with some useful extra packages.
 
 ```
-pipx install ptpython
-pipx inject ptpython requests pendulum
+> pipx install ptpython
+> pipx inject ptpython requests pendulum
 ```
 
 After running the above commands, you will be able to import and use the `requests` and `pendulum` packages inside a
 `ptpython` repl.
+
+Equivalently, the extra packages can be listed in a text file
+(e.g. `useful-packages.txt`)
+with one on each line,
+
+```
+# Additional packages
+requests
+
+pendulum # for easier datetimes
+```
+
+then the packages injected in one go.
+
+```
+> pipx inject ptpython -r useful-packages.txt
+```
+
+Note that these options can be repeated and used together, e.g.
+
+```
+> pipx inject ptpython package-1 -r extra-packages-1.txt -r extra-packages-2.txt package-2
+```
 
 ## `pipx list` example
 
