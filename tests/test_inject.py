@@ -58,7 +58,7 @@ def test_inject_include_apps(pipx_temp_env, capsys, with_suffix):
 
 
 def test_inject_with_req_file(pipx_temp_env, capsys, tmp_path):
-    req_file = tmp_path / "requirements.txt"
+    req_file = tmp_path / "inject-requirements.txt"
     req_file.write_text(
         textwrap.dedent(
             f"""
