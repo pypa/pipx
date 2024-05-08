@@ -59,11 +59,12 @@ def test_inject_include_apps(pipx_temp_env, capsys, with_suffix):
 
 
 @pytest.mark.parametrize(
-    "with_packages,", [
-        (), # no extra packages
-        ("black",), # duplicate from requirements file
-        ("isort",) # additional package
-    ]
+    "with_packages,",
+    [
+        (),  # no extra packages
+        ("black",),  # duplicate from requirements file
+        ("isort",),  # additional package
+    ],
 )
 def test_inject_with_req_file(pipx_temp_env, capsys, caplog, tmp_path, with_packages):
     caplog.set_level(logging.INFO)
@@ -83,9 +84,7 @@ def test_inject_with_req_file(pipx_temp_env, capsys, caplog, tmp_path, with_pack
     assert not run_pipx_cli(["install", "pycowsay"])
 
     assert not run_pipx_cli(
-        ["inject", "pycowsay"]
-        + [PKG[pkg]["spec"] for pkg in with_packages]
-        + ["--requirement", str(req_file)]
+        ["inject", "pycowsay"] + [PKG[pkg]["spec"] for pkg in with_packages] + ["--requirement", str(req_file)]
     )
 
     packages = [
