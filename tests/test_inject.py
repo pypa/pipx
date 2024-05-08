@@ -62,9 +62,10 @@ def test_inject_with_req_file(pipx_temp_env, capsys, tmp_path):
     req_file.write_text(
         textwrap.dedent(
             f"""
-                {PKG["black"]["spec"]}
+                {PKG["black"]["spec"]} # a comment inline
                 {PKG["nox"]["spec"]}
                 {PKG["pylint"]["spec"]}
+                # comment on separate line
             """
         ).strip()
     )
