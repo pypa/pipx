@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import sys
@@ -11,6 +12,8 @@ from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK, ExitCode
 from pipx.emojis import hazard, stars
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv
+
+logger = logging.getLogger(__name__)
 
 COMMENT_RE = re.compile(r"(^|\s+)#.*$")
 
@@ -116,12 +119,15 @@ def inject(
     suffix: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
-    packages = package_specs[:]
+    # Combined list of packages
+    packages = list(package_specs)
     for filename in requirement_files:
         packages.extend(parse_requirements(filename))
+    logger.debug("Injecting packages: %r", sorted(packages))
     if not packages:
-        raise ValueError("No packages have been specified.")
+        raise PipxError("No packages have been specified.")
 
+    # Inject packages
     if not include_apps and include_dependencies:
         include_apps = True
     all_success = True
@@ -142,7 +148,7 @@ def inject(
     return EXIT_CODE_OK if all_success else EXIT_CODE_INJECT_ERROR
 
 
-def parse_requirements(filename: str) -> Generator[str, None, None]:
+def parse_requirements(filename: os.PathLike) -> Generator[str, None, None]:
     """
     Extracts package specifications from requirements file.
     
