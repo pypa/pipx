@@ -158,6 +158,5 @@ def parse_requirements(filename: Union[str, os.PathLike]) -> Generator[str, None
     with open(filename) as f:
         for line in f:
             # Strip comments and filter empty lines
-            pkgspec = COMMENT_RE.sub("", line).strip()
-            if pkgspec:
+            if pkgspec := COMMENT_RE.sub("", line).strip():
                 yield pkgspec
