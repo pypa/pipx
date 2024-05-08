@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from pathlib import Path
 from typing import List, Optional
@@ -10,6 +11,8 @@ from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK, ExitCode
 from pipx.emojis import hazard, stars
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv
+
+COMMENT_RE = re.compile(r"(^|\s+)#.*$")
 
 
 def inject_dep(
@@ -103,6 +106,7 @@ def inject(
     venv_dir: Path,
     package_name: Optional[str],
     package_specs: List[str],
+    requirement_files: List[str],
     pip_args: List[str],
     *,
     verbose: bool,
@@ -112,10 +116,16 @@ def inject(
     suffix: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
+    packages = package_specs[:]
+    for filename in requirement_files:
+        packages.extend(parse_requirements(filename))
+    if not packages:
+        raise ValueError("No packages have been specified.")
+
     if not include_apps and include_dependencies:
         include_apps = True
     all_success = True
-    for dep in package_specs:
+    for dep in packages:
         all_success &= inject_dep(
             venv_dir,
             None,
@@ -130,3 +140,19 @@ def inject(
 
     # Any failure to install will raise PipxError, otherwise success
     return EXIT_CODE_OK if all_success else EXIT_CODE_INJECT_ERROR
+
+
+def parse_requirements(filename: str) -> Generator[str, None, None]:
+    """
+    Extracts package specifications from requirements file.
+    
+    Just returns all of the non-empty lines with comments removed.
+    """
+    # Based on https://github.com/pypa/pip/blob/main/src/pip/_internal/req/req_file.py
+    with open(filename) as f:
+        for line in f:
+            # Strip comments and filter empty lines
+            line = COMMENT_RE.sub("", line)
+            line = line.strip()
+            if line:
+                yield line

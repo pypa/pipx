@@ -297,6 +297,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             venv_dir,
             None,
             args.dependencies,
+            args.requirements,
             pip_args,
             verbose=verbose,
             include_apps=args.include_apps,
@@ -515,8 +516,18 @@ def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
     ).completer = venv_completer
     p.add_argument(
         "dependencies",
-        nargs="+",
+        nargs="*",
         help="the packages to inject into the Virtual Environment--either package name or pip package spec",
+    )
+    p.add_argument(
+        "-r",
+        "--requirement",
+        dest="requirements",
+        action="append",
+        default=[],
+        metavar="file",
+        help="Read packages from the requirements file to inject into the Virtual Environment. "
+        "Note that only files that contain lists of packages are currently supported.",
     )
     p.add_argument(
         "--include-apps",
