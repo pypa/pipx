@@ -8,9 +8,29 @@ from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cl
 from package_info import PKG
 
 
-def test_inject_simple(pipx_temp_env, capsys):
+@pytest.mark.parametrize(
+    "pkg_spec,",
+    [
+        PKG["black"]["spec"],  # was test_inject_simple
+        "jaraco.clipboard==2.0.1",  # was test_inject_tricky_character
+        "pylint==3.0.4", # was test_spec
+        PKG["nox"]["spec"],  # used in test_inject_with_req_file
+        PKG["pylint"]["spec"],  # used in test_inject_with_req_file
+        PKG["isort"]["spec"],  # used in test_inject_with_req_file
+    ],
+)
+def test_inject_single_package(pipx_temp_env, capsys, caplog, pkg_spec):
     assert not run_pipx_cli(["install", "pycowsay"])
-    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
+    assert not run_pipx_cli(["inject", "pycowsay", pkg_spec])
+
+    # Check arguments have been parsed correctly
+    assert f"Injecting packages: {[pkg_spec]!r}" in caplog.text
+
+    # Check it's actually being installed and into correct venv
+    captured = capsys.readouterr()
+    injected = re.findall(r"injected package (.+?) into venv pycowsay", captured.out)
+    pkg_name, *_ = pkg_spec.split("=", 1)  # assuming spec is always of the form <name>==<version>
+    assert set(injected) == {pkg_name}
 
 
 @skip_if_windows
@@ -29,16 +49,6 @@ def test_inject_simple_legacy_venv(pipx_temp_env, capsys, metadata_version):
         # no metadata in venv should result in PipxError with message
         assert run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
         assert "Please uninstall and install" in capsys.readouterr().err
-
-
-def test_inject_tricky_character(pipx_temp_env, capsys):
-    assert not run_pipx_cli(["install", "pycowsay"])
-    assert not run_pipx_cli(["inject", "pycowsay", "jaraco.clipboard==2.0.1"])
-
-
-def test_spec(pipx_temp_env, capsys):
-    assert not run_pipx_cli(["install", "pycowsay"])
-    assert not run_pipx_cli(["inject", "pycowsay", "pylint==3.0.4"])
 
 
 @pytest.mark.parametrize("with_suffix,", [(False,), (True,)])
@@ -96,8 +106,10 @@ def test_inject_with_req_file(pipx_temp_env, capsys, caplog, tmp_path, with_pack
     packages.extend((pkg, PKG[pkg]["spec"]) for pkg in with_packages)
     packages = sorted(set(packages))
 
+    # Check arguments and files have been parsed correctly
     assert f"Injecting packages: {[p for _, p in packages]!r}" in caplog.text
 
+    # Check they're actually being installed and into correct venv
     captured = capsys.readouterr()
     injected = re.findall(r"injected package (.+?) into venv pycowsay", captured.out)
     assert set(injected) == {pkg for pkg, _ in packages}
