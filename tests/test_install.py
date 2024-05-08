@@ -284,6 +284,19 @@ def test_pip_args_with_constraint_relative_path(constraint_flag, pipx_temp_env, 
     assert subprocess_package_version_output != package_version
 
 
+@pytest.mark.parametrize("constraint_flag", ["-c ", "--constraint ", "--constraint="])
+def test_pip_args_with_wrong_constraint_fail(constraint_flag, pipx_ultra_temp_env, tmp_path, capsys):
+    constraint_file_name = "constraints.txt"
+    os.chdir(tmp_path)
+
+    assert run_pipx_cli(["install", f"--pip-args='{constraint_flag}{constraint_file_name}'", "pycowsay"])
+
+    assert (
+        f"ERROR: Could not open requirements file: [Errno 2] No such file or directory: '{constraint_file_name}'"
+        in capsys.readouterr().err
+    )
+
+
 def test_install_suffix(pipx_temp_env, capsys):
     name = "pbr"
 
