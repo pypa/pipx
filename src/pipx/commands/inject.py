@@ -123,9 +123,10 @@ def inject(
     packages = list(package_specs)
     for filename in requirement_files:
         packages.extend(parse_requirements(filename))
-    logger.debug("Injecting packages: %r", sorted(packages))
+
     if not packages:
         raise PipxError("No packages have been specified.")
+    logger.info("Injecting packages: %r", sorted(packages))
 
     # Inject packages
     if not include_apps and include_dependencies:
