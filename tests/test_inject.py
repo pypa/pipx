@@ -29,7 +29,7 @@ def test_inject_single_package(pipx_temp_env, capsys, caplog, pkg_spec):
     # Check it's actually being installed and into correct venv
     captured = capsys.readouterr()
     injected = re.findall(r"injected package (.+?) into venv pycowsay", captured.out)
-    pkg_name, *_ = pkg_spec.split("=", 1)  # assuming spec is always of the form <name>==<version>
+    pkg_name = pkg_spec.split("=", 1)[0].replace(".", "-")  # assuming spec is always of the form <name>==<version>
     assert set(injected) == {pkg_name}
 
 
