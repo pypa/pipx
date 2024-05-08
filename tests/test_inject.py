@@ -1,3 +1,4 @@
+import logging
 import textwrap
 
 import pytest  # type: ignore
@@ -57,7 +58,16 @@ def test_inject_include_apps(pipx_temp_env, capsys, with_suffix):
     assert not run_pipx_cli(["inject", f"pycowsay{suffix}", PKG["black"]["spec"], "--include-deps"])
 
 
-def test_inject_with_req_file(pipx_temp_env, capsys, tmp_path):
+@pytest.mark.parametrize(
+    "with_packages,", [
+        (), # no extra packages
+        ("black",), # duplicate from requirements file
+        ("isort",) # additional package
+    ]
+)
+def test_inject_with_req_file(pipx_temp_env, capsys, caplog, tmp_path, with_packages):
+    caplog.set_level(logging.INFO)
+
     req_file = tmp_path / "inject-requirements.txt"
     req_file.write_text(
         textwrap.dedent(
@@ -71,5 +81,23 @@ def test_inject_with_req_file(pipx_temp_env, capsys, tmp_path):
         ).strip()
     )
     assert not run_pipx_cli(["install", "pycowsay"])
-    assert not run_pipx_cli(["inject", "pycowsay", "--requirement", str(req_file)])
-    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--requirement", str(req_file)])
+
+    assert not run_pipx_cli(
+        ["inject", "pycowsay"]
+        + [PKG[pkg]["spec"] for pkg in with_packages]
+        + ["--requirement", str(req_file)]
+    )
+
+    packages = [
+        ("black", PKG["black"]["spec"]),
+        ("nox", PKG["nox"]["spec"]),
+        ("pylint", PKG["pylint"]["spec"]),
+    ]
+    packages.extend((pkg, PKG[pkg]["spec"]) for pkg in with_packages)
+    packages = sorted(set(packages))
+
+    assert f"Injecting packages: {[p for _, p in packages]!r}" in caplog.text
+
+    captured = capsys.readouterr()
+    for pkg, _ in packages:
+        assert f"injected package {pkg} into venv pycowsay" in captured.out
