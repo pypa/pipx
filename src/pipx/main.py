@@ -524,10 +524,9 @@ def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
         "--requirement",
         dest="requirements",
         action="append",
-        default=[],
         metavar="file",
-        help="Read packages from the requirements file to inject into the Virtual Environment. "
-        "Note that only files that contain lists of packages are currently supported.",
+        help="file containing the packages to inject into the Virtual Environment--"
+        "one package name or pip package spec per line."
     )
     p.add_argument(
         "--include-apps",
