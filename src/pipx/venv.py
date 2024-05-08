@@ -217,7 +217,7 @@ class Venv:
                 cmd = ["uninstall", "-y"] + [package]
                 self._run_pip(cmd)
         except PipxError as e:
-            logging.info(e)
+            logger.info(e)
             raise PipxError(f"Error uninstalling {package}.") from None
 
         if was_injected:
