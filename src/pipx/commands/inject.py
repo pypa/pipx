@@ -3,7 +3,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Generator, List, Optional
+from typing import Generator, List, Optional, Union
 
 from pipx import paths
 from pipx.colors import bold
@@ -148,7 +148,7 @@ def inject(
     return EXIT_CODE_OK if all_success else EXIT_CODE_INJECT_ERROR
 
 
-def parse_requirements(filename: os.PathLike) -> Generator[str, None, None]:
+def parse_requirements(filename: Union[str, os.PathLike]) -> Generator[str, None, None]:
     """
     Extracts package specifications from requirements file.
 
@@ -158,7 +158,6 @@ def parse_requirements(filename: os.PathLike) -> Generator[str, None, None]:
     with open(filename) as f:
         for line in f:
             # Strip comments and filter empty lines
-            line = COMMENT_RE.sub("", line)
-            line = line.strip()
-            if line:
-                yield line
+            pkgspec = COMMENT_RE.sub("", line).strip()
+            if pkgspec:
+                yield pkgspec
