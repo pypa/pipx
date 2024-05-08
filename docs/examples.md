@@ -114,7 +114,7 @@ requests
 pendulum # for easier datetimes
 ```
 
-then the packages injected in one go.
+This file can then be given to `pipx inject` on the command line:
 
 ```
 > pipx inject ptpython -r useful-packages.txt
