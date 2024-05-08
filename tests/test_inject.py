@@ -13,7 +13,7 @@ from package_info import PKG
     [
         PKG["black"]["spec"],  # was test_inject_simple
         "jaraco.clipboard==2.0.1",  # was test_inject_tricky_character
-        "pylint==3.0.4", # was test_spec
+        "pylint==3.0.4",  # was test_spec
         PKG["nox"]["spec"],  # used in test_inject_with_req_file
         PKG["pylint"]["spec"],  # used in test_inject_with_req_file
         PKG["isort"]["spec"],  # used in test_inject_with_req_file
