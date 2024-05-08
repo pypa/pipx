@@ -105,9 +105,7 @@ One use of the inject command is setting up a REPL with some useful extra packag
 After running the above commands, you will be able to import and use the `requests` and `pendulum` packages inside a
 `ptpython` repl.
 
-Equivalently, the extra packages can be listed in a text file
-(e.g. `useful-packages.txt`)
-with one on each line,
+Equivalently, the extra packages can be listed in a text file (e.g. `useful-packages.txt`) with one on each line (comments ignored):
 
 ```
 # Additional packages
