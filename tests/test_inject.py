@@ -1,3 +1,5 @@
+import textwrap
+
 import pytest  # type: ignore
 
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, skip_if_windows
@@ -53,3 +55,20 @@ def test_inject_include_apps(pipx_temp_env, capsys, with_suffix):
         assert run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--include-deps"])
 
     assert not run_pipx_cli(["inject", f"pycowsay{suffix}", PKG["black"]["spec"], "--include-deps"])
+
+def test_inject_with_req_file(pipx_temp_env, capsys, tmp_path):
+    req_file = tmp_path / "requirements.txt"
+    req_file.write_text(
+        textwrap.dedent(
+            f"""
+                {PKG["black"]["spec"]}
+                {PKG["nox"]["spec"]}
+                {PKG["pylint"]["spec"]}
+            """
+        ).strip()
+    )
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["inject", "pycowsay", "--requirement", str(req_file)])
+    assert not run_pipx_cli(
+        ["inject", "pycowsay", PKG["black"]["spec"], "--requirement", str(req_file)]
+    )
