@@ -246,7 +246,7 @@ If an application installed by pipx requires additional packages, you can add th
 pipx inject ipython matplotlib
 ```
 
-You can inject multiple packages by adding them all to the command line,
+You can inject multiple packages by specifying them all on the command line,
 or by listing them in a text file, with one package per line,
 or a combination. For example:
 
