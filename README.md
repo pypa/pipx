@@ -248,8 +248,7 @@ pipx inject ipython matplotlib
 
 You can inject multiple packages by adding them all to the command line,
 or by listing them in a text file, with one package per line,
-or a combination.
-For example:
+or a combination. For example:
 
 ```
 pipx inject ipython matplotlib pandas
