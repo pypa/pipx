@@ -150,9 +150,9 @@ def inject(
 
 def parse_requirements(filename: Union[str, os.PathLike]) -> Generator[str, None, None]:
     """
-    Extracts package specifications from requirements file.
+    Extract package specifications from requirements file.
 
-    Just returns all of the non-empty lines with comments removed.
+    Return all of the non-empty lines with comments removed.
     """
     # Based on https://github.com/pypa/pip/blob/main/src/pip/_internal/req/req_file.py
     with open(filename) as f:
