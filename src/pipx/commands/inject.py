@@ -3,7 +3,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Generator, List, Optional, Union
+from typing import Generator, Iterable, List, Optional, Union
 
 from pipx import paths
 from pipx.colors import bold
@@ -111,8 +111,8 @@ def inject_dep(
 def inject(
     venv_dir: Path,
     package_name: Optional[str],
-    package_specs: List[str],
-    requirement_files: List[str],
+    package_specs: Iterable[str],
+    requirement_files: Iterable[str],
     pip_args: List[str],
     *,
     verbose: bool,
@@ -123,10 +123,12 @@ def inject(
 ) -> ExitCode:
     """Returns pipx exit code."""
     # Combined collection of package specifications
-    packages = set(package_specs)
+    packages = list(package_specs)
     for filename in requirement_files:
-        packages.update(parse_requirements(filename))
-    packages = sorted(packages)  # make order deterministic
+        packages.extend(parse_requirements(filename))
+
+    # Remove duplicates and order deterministically
+    packages = sorted(set(packages))
 
     if not packages:
         raise PipxError("No packages have been specified.")
