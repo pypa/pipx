@@ -16,7 +16,7 @@ from package_info import PKG
         "pylint==3.0.4",  # was test_spec
         PKG["nox"]["spec"],  # used in test_inject_with_req_file
         PKG["pylint"]["spec"],  # used in test_inject_with_req_file
-        PKG["isort"]["spec"],  # used in test_inject_with_req_file
+        PKG["ipython"]["spec"],  # used in test_inject_with_req_file
     ],
 )
 def test_inject_single_package(pipx_temp_env, capsys, caplog, pkg_spec):
@@ -74,7 +74,7 @@ def test_inject_include_apps(pipx_temp_env, capsys, with_suffix):
     [
         (),  # no extra packages
         ("black",),  # duplicate from requirements file
-        ("isort",),  # additional package
+        ("ipython",),  # additional package
     ],
 )
 def test_inject_with_req_file(pipx_temp_env, capsys, caplog, tmp_path, with_packages):
