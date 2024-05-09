@@ -30,6 +30,8 @@ def inject_dep(
     force: bool,
     suffix: bool = False,
 ) -> bool:
+    logger.debug("Injecting package %s", package_spec)
+
     if not venv_dir.exists() or not next(venv_dir.iterdir()):
         raise PipxError(
             f"""
@@ -63,6 +65,7 @@ def inject_dep(
         )
 
     if not force and venv.has_package(package_name):
+        logger.info("Package %s has already been injected", package_name)
         print(
             pipx_wrap(
                 f"""
@@ -135,9 +138,9 @@ def inject(
     for dep in packages:
         all_success &= inject_dep(
             venv_dir,
-            None,
-            dep,
-            pip_args,
+            package_name=None,
+            package_spec=dep,
+            pip_args=pip_args,
             verbose=verbose,
             include_apps=include_apps,
             include_dependencies=include_dependencies,
