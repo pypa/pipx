@@ -126,10 +126,11 @@ def inject(
     packages = set(package_specs)
     for filename in requirement_files:
         packages.update(parse_requirements(filename))
+    packages = sorted(packages)  # make order deterministic
 
     if not packages:
         raise PipxError("No packages have been specified.")
-    logger.info("Injecting packages: %r", sorted(packages))
+    logger.info("Injecting packages: %r", packages)
 
     # Inject packages
     if not include_apps and include_dependencies:
