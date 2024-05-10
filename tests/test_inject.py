@@ -11,12 +11,11 @@ from package_info import PKG
 @pytest.mark.parametrize(
     "pkg_spec,",
     [
-        PKG["black"]["spec"],  # was test_inject_simple
-        "jaraco.clipboard==2.0.1",  # was test_inject_tricky_character
-        "pylint==3.0.4",  # was test_spec
+        PKG["black"]["spec"],  # used in test_inject_with_req_file
         PKG["nox"]["spec"],  # used in test_inject_with_req_file
         PKG["pylint"]["spec"],  # used in test_inject_with_req_file
         PKG["ipython"]["spec"],  # used in test_inject_with_req_file
+        "jaraco.clipboard==2.0.1",  # tricky character
     ],
 )
 def test_inject_single_package(pipx_temp_env, capsys, caplog, pkg_spec):
