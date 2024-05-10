@@ -8,13 +8,14 @@ from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cl
 from package_info import PKG
 
 
+# Note that this also checks that packages used in other tests can be injected individually
 @pytest.mark.parametrize(
     "pkg_spec,",
     [
-        PKG["black"]["spec"],  # used in test_inject_with_req_file
-        PKG["nox"]["spec"],  # used in test_inject_with_req_file
-        PKG["pylint"]["spec"],  # used in test_inject_with_req_file
-        PKG["ipython"]["spec"],  # used in test_inject_with_req_file
+        PKG["black"]["spec"],
+        PKG["nox"]["spec"],
+        PKG["pylint"]["spec"],
+        PKG["ipython"]["spec"],
         "jaraco.clipboard==2.0.1",  # tricky character
     ],
 )
