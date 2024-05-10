@@ -16,6 +16,7 @@ use Cyberfusion\ClusterApi\Endpoints\Crons;
 use Cyberfusion\ClusterApi\Endpoints\CustomConfigs;
 use Cyberfusion\ClusterApi\Endpoints\CustomConfigSnippets;
 use Cyberfusion\ClusterApi\Endpoints\Customers;
+use Cyberfusion\ClusterApi\Endpoints\Daemons;
 use Cyberfusion\ClusterApi\Endpoints\Databases;
 use Cyberfusion\ClusterApi\Endpoints\DatabaseUserGrants;
 use Cyberfusion\ClusterApi\Endpoints\DatabaseUsers;
@@ -50,7 +51,6 @@ use Cyberfusion\ClusterApi\Endpoints\Tombstones;
 use Cyberfusion\ClusterApi\Endpoints\UnixUsers;
 use Cyberfusion\ClusterApi\Endpoints\UrlRedirects;
 use Cyberfusion\ClusterApi\Endpoints\VirtualHosts;
-use Cyberfusion\ClusterApi\Endpoints\Daemons;
 
 class ClusterApi
 {
