@@ -12,8 +12,8 @@ def test_reinstall(pipx_temp_env, capsys):
 
 @skip_if_windows
 def test_reinstall_global(pipx_temp_env, capsys):
-    assert not run_pipx_cli(["--global", "install", "pycowsay"])
-    assert not run_pipx_cli(["--global", "reinstall", "--python", sys.executable, "pycowsay"])
+    assert not run_pipx_cli(["install", "--global", "pycowsay"])
+    assert not run_pipx_cli(["reinstall", "--global", "--python", sys.executable, "pycowsay"])
 
 
 def test_reinstall_nonexistent(pipx_temp_env, capsys):
