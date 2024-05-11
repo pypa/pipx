@@ -877,6 +877,14 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
         ),
     )
 
+    if not constants.WINDOWS:
+        shared_parser.add_argument(
+            "--global",
+            action="store_true",
+            dest="is_global",
+            help="Perform action globally for all users.",
+        )
+
     parser = argparse.ArgumentParser(
         prog=prog_name(),
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -906,13 +914,6 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
     _add_ensurepath(subparsers, shared_parser)
     _add_environment(subparsers, shared_parser)
 
-    if not constants.WINDOWS:
-        parser.add_argument(
-            "--global",
-            action="store_true",
-            dest="is_global",
-            help="Perform action globally for all users.",
-        )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     subparsers.add_parser(
         "completions",

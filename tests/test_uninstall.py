@@ -31,8 +31,8 @@ def test_uninstall(pipx_temp_env):
 
 @skip_if_windows
 def test_uninstall_global(pipx_temp_env):
-    assert not run_pipx_cli(["--global", "install", "pycowsay"])
-    assert not run_pipx_cli(["--global", "uninstall", "pycowsay"])
+    assert not run_pipx_cli(["install", "--global", "pycowsay"])
+    assert not run_pipx_cli(["uninstall", "--global", "pycowsay"])
 
 
 def test_uninstall_circular_deps(pipx_temp_env):
