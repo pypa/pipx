@@ -66,6 +66,7 @@ lint.extend-select = [
   "PLE",
   "PLW",
   "RSE",
+  "RUF100",
   "W",
 ]
 lint.isort = {known-first-party = ["helpers", "package_info", "pipx"]}
