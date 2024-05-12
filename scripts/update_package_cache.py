@@ -46,7 +46,7 @@ def process_command_line(argv: List[str]) -> argparse.Namespace:
         "-c",
         "--check-only",
         action="store_true",
-        help="Only check to see if needed packages are in PACKAGES_DIR, do not " "download or delete files.",
+        help="Only check to see if needed packages are in PACKAGES_DIR, do not download or delete files.",
     )
 
     return parser.parse_args(argv)
@@ -63,7 +63,7 @@ def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_p
 
     if not platform_package_list_path.exists():
         print(
-            f"WARNING.  File {platform_package_list_path!s}\n" "    does not exist.  Creating now...",
+            f"WARNING.  File {platform_package_list_path!s}\n    does not exist.  Creating now...",
             file=sys.stderr,
         )
         create_list_returncode = create_test_packages_list(
@@ -80,7 +80,7 @@ def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_p
             )
         else:
             print(
-                f"ERROR.  Unable to create {platform_package_list_path!s}\n" "    Cannot continue.\n",
+                f"ERROR.  Unable to create {platform_package_list_path!s}\n    Cannot continue.\n",
                 file=sys.stderr,
             )
             return 1
@@ -89,7 +89,7 @@ def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_p
         platform_package_list_fh = platform_package_list_path.open("r")
     except OSError:
         print(
-            f"ERROR.  File {platform_package_list_path!s}\n" "    is not readable.  Cannot continue.\n",
+            f"ERROR.  File {platform_package_list_path!s}\n    is not readable.  Cannot continue.\n",
             file=sys.stderr,
         )
         return 1

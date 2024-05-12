@@ -155,7 +155,7 @@ def _symlink_package_resource(
             )
         return
     if is_symlink and not exists:
-        logger.info(f"Removing existing symlink {symlink_path!s} since it " "pointed non-existent location")
+        logger.info(f"Removing existing symlink {symlink_path!s} since it pointed non-existent location")
         symlink_path.unlink()
 
     if executable:
@@ -186,22 +186,22 @@ def venv_health_check(venv: Venv, package_name: Optional[str] = None) -> Tuple[V
     if not python_path.is_file():
         return (
             VenvProblems(invalid_interpreter=True),
-            f"   package {red(bold(venv_dir.name))} has invalid " f"interpreter {python_path!s}\r{hazard}",
+            f"   package {red(bold(venv_dir.name))} has invalid interpreter {python_path!s}\r{hazard}",
         )
     if not venv.package_metadata:
         return (
             VenvProblems(missing_metadata=True),
-            f"   package {red(bold(venv_dir.name))} has missing " f"internal pipx metadata.\r{hazard}",
+            f"   package {red(bold(venv_dir.name))} has missing internal pipx metadata.\r{hazard}",
         )
     if venv_dir.name != canonicalize_name(venv_dir.name):
         return (
             VenvProblems(bad_venv_name=True),
-            f"   package {red(bold(venv_dir.name))} needs its " f"internal data updated.\r{hazard}",
+            f"   package {red(bold(venv_dir.name))} needs its internal data updated.\r{hazard}",
         )
     if venv.package_metadata[package_name].package_version == "":
         return (
             VenvProblems(not_installed=True),
-            f"   package {red(bold(package_name))} {red('is not installed')} " f"in the venv {venv_dir.name}\r{hazard}",
+            f"   package {red(bold(package_name))} {red('is not installed')} in the venv {venv_dir.name}\r{hazard}",
         )
     return (VenvProblems(), "")
 

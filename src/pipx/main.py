@@ -806,7 +806,7 @@ def _add_runpip(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
 def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "ensurepath",
-        help=("Ensure directories necessary for pipx operation are in your " "PATH environment variable."),
+        help=("Ensure directories necessary for pipx operation are in your PATH environment variable."),
         description=(
             "Ensure directory where pipx stores apps is in your "
             "PATH environment variable. Also if pipx was installed via "

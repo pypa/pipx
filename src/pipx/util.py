@@ -343,7 +343,7 @@ def subprocess_post_check_handle_pip_error(
             if completed_process.stderr is not None:
                 print(completed_process.stderr, file=pip_error_fh, end="")
 
-        logger.error("Fatal error from pip prevented installation. Full pip output in file:\n" f"    {pip_error_file}")
+        logger.error(f"Fatal error from pip prevented installation. Full pip output in file:\n    {pip_error_file}")
 
         analyze_pip_output(completed_process.stdout, completed_process.stderr)
 
