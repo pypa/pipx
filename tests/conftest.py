@@ -136,7 +136,7 @@ def pipx_local_pypiserver(request, root: Path, tmp_path_factory) -> Iterator[str
     check_test_packages_process = subprocess.run(check_test_packages_cmd, check=False, cwd=root)
     if check_test_packages_process.returncode != 0:
         raise Exception(
-            f"Directory {str(pipx_cache_dir)} does not contain all "
+            f"Directory {pipx_cache_dir!s} does not contain all "
             "package distribution files necessary to run pipx tests. Please "
             "run the following command to populate it: "
             f"{' '.join(update_test_packages_cmd)}"
