@@ -304,7 +304,7 @@ def _is_temporary_venv_expired(venv_dir: Path) -> bool:
 def _prepare_venv_cache(venv: Venv, bin_path: Optional[Path], use_cache: bool) -> None:
     venv_dir = venv.root
     if not use_cache and (bin_path is None or bin_path.exists()):
-        logger.info(f"Removing cached venv {str(venv_dir)}")
+        logger.info(f"Removing cached venv {venv_dir!s}")
         rmdir(venv_dir)
     _remove_all_expired_venvs()
 
@@ -312,7 +312,7 @@ def _prepare_venv_cache(venv: Venv, bin_path: Optional[Path], use_cache: bool) -
 def _remove_all_expired_venvs() -> None:
     for venv_dir in Path(paths.ctx.venv_cache).iterdir():
         if _is_temporary_venv_expired(venv_dir):
-            logger.info(f"Removing expired venv {str(venv_dir)}")
+            logger.info(f"Removing expired venv {venv_dir!s}")
             rmdir(venv_dir)
 
 

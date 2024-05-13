@@ -63,7 +63,7 @@ def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_p
 
     if not platform_package_list_path.exists():
         print(
-            f"WARNING.  File {str(platform_package_list_path)}\n" "    does not exist.  Creating now...",
+            f"WARNING.  File {platform_package_list_path!s}\n" "    does not exist.  Creating now...",
             file=sys.stderr,
         )
         create_list_returncode = create_test_packages_list(
@@ -73,14 +73,14 @@ def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_p
         )
         if create_list_returncode == 0:
             print(
-                f"File {str(platform_package_list_path)}\n"
+                f"File {platform_package_list_path!s}\n"
                 "    successfully created.  Please check this file in to the"
                 "    repository for future use.",
                 file=sys.stderr,
             )
         else:
             print(
-                f"ERROR.  Unable to create {str(platform_package_list_path)}\n" "    Cannot continue.\n",
+                f"ERROR.  Unable to create {platform_package_list_path!s}\n" "    Cannot continue.\n",
                 file=sys.stderr,
             )
             return 1
@@ -89,7 +89,7 @@ def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_p
         platform_package_list_fh = platform_package_list_path.open("r")
     except OSError:
         print(
-            f"ERROR.  File {str(platform_package_list_path)}\n" "    is not readable.  Cannot continue.\n",
+            f"ERROR.  File {platform_package_list_path!s}\n" "    is not readable.  Cannot continue.\n",
             file=sys.stderr,
         )
         return 1
@@ -97,9 +97,9 @@ def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_p
         platform_package_list_fh.close()
 
     print("Using the following file to specify needed package files:")
-    print(f"    {str(platform_package_list_path)}")
+    print(f"    {platform_package_list_path!s}")
     print("Ensuring the following directory contains necessary package files:")
-    print(f"    {str(packages_dir_path)}")
+    print(f"    {packages_dir_path!s}")
 
     packages_dir_hits = []
     packages_dir_missing = []

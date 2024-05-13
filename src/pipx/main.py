@@ -75,9 +75,9 @@ PIPX_DESCRIPTION = textwrap.dedent(
     Binaries can either be installed globally into isolated Virtual Environments
     or run directly in a temporary Virtual Environment.
 
-    Virtual Environment location is {str(paths.ctx.venvs)}.
-    Symlinks to apps are placed in {str(paths.ctx.bin_dir)}.
-    Symlinks to manual pages are placed in {str(paths.ctx.man_dir)}.
+    Virtual Environment location is {paths.ctx.venvs!s}.
+    Symlinks to apps are placed in {paths.ctx.bin_dir!s}.
+    Symlinks to manual pages are placed in {paths.ctx.man_dir!s}.
 
     """
 )
@@ -1055,7 +1055,7 @@ def setup(args: argparse.Namespace) -> None:
             pipx_wrap(
                 f"""
                 {hazard}  A virtual environment for pipx was detected at
-                {str(old_pipx_venv_location)}. The 'pipx-app' package has been
+                {old_pipx_venv_location!s}. The 'pipx-app' package has been
                 renamed back to 'pipx'
                 (https://github.com/pypa/pipx/issues/82).
                 """,
