@@ -43,9 +43,12 @@ jobs:
     # needs: pypi-publish
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: dawidd6/action-download-artifact@v3
         with:
           name: pipx.pyz
+          workflow: tests.yml
+          workflow_conclusion: ""
+          pr: ${{ github.event.pull_request.number }}
       - name: Upload to release
         uses: softprops/action-gh-release@v1
         with:
