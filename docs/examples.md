@@ -121,9 +121,9 @@ pendulum # for easier datetimes
 
 This file can then be given to `pipx inject` on the command line:
 
-```
+```shell
 > pipx inject ptpython --requirement useful-packages.txt
-or:
+# or:
 > pipx inject ptpython -r useful-packages.txt
 ```
 
