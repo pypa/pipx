@@ -108,7 +108,7 @@ def get_resources_from_inst_files(dist: metadata.Distribution, bin_path: Path, m
     # not sure what is found here
     inst_files = dist.read_text("installed-files.txt") or ""
     for line in inst_files.splitlines():
-        entry = line.split(",")[0]  # noqa: T484
+        entry = line.split(",")[0]
         inst_file_path = Path(str(dist.locate_file(entry))).resolve()
         try:
             if inst_file_path.parent.samefile(bin_path):

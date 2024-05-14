@@ -51,7 +51,7 @@ def test_resolve_user_dir_in_env_paths(monkeypatch):
 
 @skip_if_windows
 def test_cli_global(pipx_temp_env, monkeypatch, capsys):
-    assert not run_pipx_cli(["--global", "environment"])
+    assert not run_pipx_cli(["environment", "--global"])
     captured = capsys.readouterr()
     assert fnmatch.fnmatch(captured.out, "*PIPX_HOME=*global/pipxhome*")
     assert fnmatch.fnmatch(captured.out, "*PIPX_BIN_DIR=*global_otherdir/pipxbindir*")

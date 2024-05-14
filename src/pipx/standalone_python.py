@@ -112,7 +112,7 @@ def _unpack(full_version, download_link, archive: Path, download_dir: Path):
         expected_checksum = urlopen(checksum_link).read().decode().rstrip("\n")
         if checksum != expected_checksum:
             raise PipxError(
-                f"Checksum mismatch for python {full_version} build. " f"Expected {expected_checksum}, got {checksum}."
+                f"Checksum mismatch for python {full_version} build. Expected {expected_checksum}, got {checksum}."
             )
 
         with tarfile.open(archive, mode="r:gz") as tar:

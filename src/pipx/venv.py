@@ -125,7 +125,7 @@ class Venv:
     @property
     def name(self) -> str:
         if self.pipx_metadata.main_package.package is not None:
-            venv_name = f"{self.pipx_metadata.main_package.package}" f"{self.pipx_metadata.main_package.suffix}"
+            venv_name = f"{self.pipx_metadata.main_package.package}{self.pipx_metadata.main_package.suffix}"
         else:
             venv_name = self.root.name
         return venv_name
@@ -417,7 +417,7 @@ class Venv:
         match = _entry_point_value_pattern.match(entry_point.value)
         assert match is not None, "invalid entry point"
         module, attr = match.group("module", "attr")
-        code = f"import sys, {module}\n" f"sys.argv[0] = {entry_point.name!r}\n" f"sys.exit({module}.{attr}())\n"
+        code = f"import sys, {module}\nsys.argv[0] = {entry_point.name!r}\nsys.exit({module}.{attr}())\n"
         exec_app([str(self.python_path), "-c", code] + app_args)
 
     def has_app(self, app: str, filename: str) -> bool:

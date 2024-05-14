@@ -20,15 +20,15 @@ def test_upgrade(pipx_temp_env, capsys):
 
 @skip_if_windows
 def test_upgrade_global(pipx_temp_env, capsys):
-    assert run_pipx_cli(["--global", "upgrade", "pycowsay"])
+    assert run_pipx_cli(["upgrade", "--global", "pycowsay"])
     captured = capsys.readouterr()
     assert "Package is not installed" in captured.err
 
-    assert not run_pipx_cli(["--global", "install", "pycowsay"])
+    assert not run_pipx_cli(["install", "--global", "pycowsay"])
     captured = capsys.readouterr()
     assert "installed package pycowsay" in captured.out
 
-    assert not run_pipx_cli(["--global", "upgrade", "pycowsay"])
+    assert not run_pipx_cli(["upgrade", "--global", "pycowsay"])
     captured = capsys.readouterr()
     assert "pycowsay is already at latest version" in captured.out
 

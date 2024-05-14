@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def has_venv() -> bool:
     try:
-        import venv  # noqa
+        import venv  # noqa: F401
 
         return True
     except ImportError:
