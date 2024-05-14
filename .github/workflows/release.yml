@@ -40,7 +40,7 @@ jobs:
 
   upload-zipapp:
     name: Upload zipapp to GitHub Release
-    needs: pypi-publish
+    # needs: pypi-publish
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -53,7 +53,7 @@ jobs:
 
   create-release:
     name: Create a release on GitHub's UI
-    needs: [pypi-publish, upload-zipapp]
+    needs: upload-zipapp # [pypi-publish, upload-zipapp]
     runs-on: ubuntu-latest
     permissions:
       contents: write
