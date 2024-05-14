@@ -10,16 +10,51 @@ concurrency:
 
 
 jobs:
+  pypi-publish:
+    name: Publish pipx to PyPI
+    if: >-
+      github.event.pull_request.merged == true
+      && contains(github.event.pull_request.labels.*.name, 'release-version')
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/p/pipx
+    permissions:
+      id-token: write
+    steps:
+      - name: Checkout ${{ github.ref }}
+        uses: actions/checkout@v4
+      - name: Set up Python ${{ env.default-python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.default-python }}
+          cache: "pip"
+      - name: Install nox
+        run: pip install nox
+      - name: Build  sdist and wheel
+        run: nox --error-on-missing-interpreters --non-interactive --session build
+      - name: Publish to PyPi
+        uses: pypa/gh-action-pypi-publish@v1.8.14
+
+  upload-zipapp:
+    name: Upload zipapp to GitHub Release
+    needs: pypi-publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: pipx.pyz
+      - name: Upload to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: pipx.pyz
+
   create-release:
-    name: >-
-        Create a release on GitHub's UI
-        which triggers the actual release
+    name: Create a release on GitHub's UI
+    needs: [pypi-publish, upload-zipapp]
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    if: >-
-        github.event.pull_request.merged == true
-        && contains(github.event.pull_request.labels.*.name, 'release-version')
     steps:
       - uses: actions/checkout@v4
       - name: Extract version to be released
