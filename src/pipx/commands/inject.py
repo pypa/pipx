@@ -1,7 +1,9 @@
+import logging
 import os
+import re
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import Generator, Iterable, List, Optional, Union
 
 from pipx import paths
 from pipx.colors import bold
@@ -10,6 +12,10 @@ from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK, ExitCode
 from pipx.emojis import hazard, stars
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv
+
+logger = logging.getLogger(__name__)
+
+COMMENT_RE = re.compile(r"(^|\s+)#.*$")
 
 
 def inject_dep(
@@ -24,6 +30,8 @@ def inject_dep(
     force: bool,
     suffix: bool = False,
 ) -> bool:
+    logger.debug("Injecting package %s", package_spec)
+
     if not venv_dir.exists() or not next(venv_dir.iterdir()):
         raise PipxError(
             f"""
@@ -57,6 +65,7 @@ def inject_dep(
         )
 
     if not force and venv.has_package(package_name):
+        logger.info("Package %s has already been injected", package_name)
         print(
             pipx_wrap(
                 f"""
@@ -102,7 +111,8 @@ def inject_dep(
 def inject(
     venv_dir: Path,
     package_name: Optional[str],
-    package_specs: List[str],
+    package_specs: Iterable[str],
+    requirement_files: Iterable[str],
     pip_args: List[str],
     *,
     verbose: bool,
@@ -112,15 +122,28 @@ def inject(
     suffix: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
+    # Combined collection of package specifications
+    packages = list(package_specs)
+    for filename in requirement_files:
+        packages.extend(parse_requirements(filename))
+
+    # Remove duplicates and order deterministically
+    packages = sorted(set(packages))
+
+    if not packages:
+        raise PipxError("No packages have been specified.")
+    logger.info("Injecting packages: %r", packages)
+
+    # Inject packages
     if not include_apps and include_dependencies:
         include_apps = True
     all_success = True
-    for dep in package_specs:
+    for dep in packages:
         all_success &= inject_dep(
             venv_dir,
-            None,
-            dep,
-            pip_args,
+            package_name=None,
+            package_spec=dep,
+            pip_args=pip_args,
             verbose=verbose,
             include_apps=include_apps,
             include_dependencies=include_dependencies,
@@ -130,3 +153,17 @@ def inject(
 
     # Any failure to install will raise PipxError, otherwise success
     return EXIT_CODE_OK if all_success else EXIT_CODE_INJECT_ERROR
+
+
+def parse_requirements(filename: Union[str, os.PathLike]) -> Generator[str, None, None]:
+    """
+    Extract package specifications from requirements file.
+
+    Return all of the non-empty lines with comments removed.
+    """
+    # Based on https://github.com/pypa/pip/blob/main/src/pip/_internal/req/req_file.py
+    with open(filename) as f:
+        for line in f:
+            # Strip comments and filter empty lines
+            if pkgspec := COMMENT_RE.sub("", line).strip():
+                yield pkgspec

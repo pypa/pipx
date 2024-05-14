@@ -246,6 +246,16 @@ If an application installed by pipx requires additional packages, you can add th
 pipx inject ipython matplotlib
 ```
 
+You can inject multiple packages by specifying them all on the command line,
+or by listing them in a text file, with one package per line,
+or a combination. For example:
+
+```
+pipx inject ipython matplotlib pandas
+# or:
+pipx inject ipython -r useful-packages.txt
+```
+
 ### Walkthrough: Running an Application in a Temporary Virtual Environment
 
 This is an alternative to `pipx install`.
