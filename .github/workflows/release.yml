@@ -66,6 +66,8 @@ jobs:
     # needs: pypi-publish
     needs: create-release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: dawidd6/action-download-artifact@v3
         with:
