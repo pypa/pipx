@@ -73,3 +73,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: pipx.pyz
+          tag_name: "${{ env.VERSION }}"
