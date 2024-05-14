@@ -42,20 +42,23 @@ jobs:
     name: Create a release on GitHub's UI
     # needs: pypi-publish
     runs-on: ubuntu-latest
+    outputs:
+      release-tag: ${{ steps.get-version.outputs.version }}
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Extract version to be released
+        id: get-version
         env:
           TITLE: ${{ github.event.pull_request.title }}
         run: |
-          echo "VERSION=${TITLE##bump changelog for }" >> "$GITHUB_ENV"
+          echo "version=${TITLE##bump changelog for }" >> "$GITHUB_OUTPUT"
       - name: Create release
         uses: ncipollo/release-action@v1
         with:
           generateReleaseNotes: true
-          tag: "${{ env.VERSION }}"
+          tag: "${{ steps.get-version.outputs.version }}"
           commit: ${{ github.event.pull_request.merge_commit_sha }}
 
   upload-zipapp:
@@ -74,4 +77,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: pipx.pyz
-          tag_name: "${{ env.VERSION }}"
+          tag_name: "${{ needs.create-release.outputs.release-tag }}"
