@@ -38,25 +38,9 @@ jobs:
       - name: Publish to PyPi
         uses: pypa/gh-action-pypi-publish@v1.8.14
 
-  upload-zipapp:
-    name: Upload zipapp to GitHub Release
-    # needs: pypi-publish
-    runs-on: ubuntu-latest
-    steps:
-      - uses: dawidd6/action-download-artifact@v3
-        with:
-          name: pipx.pyz
-          workflow: tests.yml
-          workflow_conclusion: ""
-          pr: ${{ github.event.pull_request.number }}
-      - name: Upload to release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: pipx.pyz
-
   create-release:
     name: Create a release on GitHub's UI
-    needs: upload-zipapp # [pypi-publish, upload-zipapp]
+    # needs: pypi-publish
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -73,3 +57,19 @@ jobs:
           generateReleaseNotes: true
           tag: "${{ env.VERSION }}"
           commit: ${{ github.event.pull_request.merge_commit_sha }}
+
+  upload-zipapp:
+    name: Upload zipapp to GitHub Release
+    # needs: pypi-publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dawidd6/action-download-artifact@v3
+        with:
+          name: pipx.pyz
+          workflow: tests.yml
+          workflow_conclusion: ""
+          pr: ${{ github.event.pull_request.number }}
+      - name: Upload to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: pipx.pyz
