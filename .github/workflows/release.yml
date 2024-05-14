@@ -8,6 +8,8 @@ concurrency:
   group: tests-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  default-python: "3.12"
 
 jobs:
   pypi-publish:
