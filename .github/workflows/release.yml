@@ -61,6 +61,7 @@ jobs:
   upload-zipapp:
     name: Upload zipapp to GitHub Release
     # needs: pypi-publish
+    needs: create-release
     runs-on: ubuntu-latest
     steps:
       - uses: dawidd6/action-download-artifact@v3
