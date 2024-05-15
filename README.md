@@ -61,6 +61,14 @@ pipx ensurepath
 sudo pipx ensurepath --global # optional to allow pipx actions with --global argument
 ```
 
+- Arch:
+
+```
+sudo pacman -S python-pipx
+pipx ensurepath
+sudo pipx ensurepath --global # optional to allow pipx actions with --global argument
+```
+
 - Using `pip` on other distributions:
 
 ```
