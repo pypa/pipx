@@ -40,7 +40,7 @@ jobs:
 
   create-release:
     name: Create a release on GitHub's UI
-    # needs: pypi-publish
+    needs: pypi-publish
     runs-on: ubuntu-latest
     outputs:
       release-tag: ${{ steps.get-version.outputs.version }}
@@ -53,7 +53,7 @@ jobs:
         env:
           TITLE: ${{ github.event.pull_request.title }}
         run: |
-          echo "version=${TITLE##bump changelog for }" >> "$GITHUB_OUTPUT"
+          echo "version=${TITLE/: [[:alnum:]]*} }" >> "$GITHUB_OUTPUT"
       - name: Create release
         uses: ncipollo/release-action@v1
         with:
@@ -63,7 +63,6 @@ jobs:
 
   upload-zipapp:
     name: Upload zipapp to GitHub Release
-    # needs: pypi-publish
     needs: create-release
     runs-on: ubuntu-latest
     permissions:
@@ -73,7 +72,7 @@ jobs:
         with:
           name: pipx.pyz
           workflow: tests.yml
-          workflow_conclusion: ""
+          workflow_conclusion: success
           pr: ${{ github.event.pull_request.number }}
       - name: Upload to release
         uses: softprops/action-gh-release@v1
