@@ -78,7 +78,7 @@ def _upgrade_package(
                 pipx_wrap(
                     f"""
                     {display_name} is already at latest version {old_version}
-                    (location: {str(venv.root)})
+                    (location: {venv.root!s})
                     """
                 )
             )
@@ -88,7 +88,7 @@ def _upgrade_package(
             pipx_wrap(
                 f"""
                 upgraded package {display_name} from {old_version} to
-                {new_version} (location: {str(venv.root)})
+                {new_version} (location: {venv.root!s})
                 """
             )
         )
@@ -133,7 +133,7 @@ def _upgrade_venv(
         else:
             raise PipxError(
                 f"""
-                Package is not installed. Expected to find {str(venv_dir)}, but it
+                Package is not installed. Expected to find {venv_dir!s}, but it
                 does not exist.
                 """
             )

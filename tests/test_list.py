@@ -34,7 +34,7 @@ def test_cli_global(pipx_temp_env, monkeypatch, capsys):
     captured = capsys.readouterr()
     assert "installed package" in captured.out
 
-    assert not run_pipx_cli(["--global", "list"])
+    assert not run_pipx_cli(["list", "--global"])
     captured = capsys.readouterr()
     assert "nothing has been installed with pipx" in captured.err
 

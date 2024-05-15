@@ -17,7 +17,9 @@ keywords = [
   "workflow",
 ]
 license = "MIT"
-authors = [{ name = "Chad Smith", email = "chadsmith.software@gmail.com" }]
+authors = [
+  { name = "Chad Smith", email = "chadsmith.software@gmail.com" },
+]
 requires-python = ">=3.8"
 classifiers = [
   "License :: OSI Approved :: MIT License",
@@ -35,11 +37,11 @@ dynamic = [
 ]
 dependencies = [
   "argcomplete>=1.9.4",
-  'colorama>=0.4.4; sys_platform == "win32"',
+  "colorama>=0.4.4; sys_platform=='win32'",
   "packaging>=20",
   "platformdirs>=2.1",
-  'tomli; python_version < "3.11"',
-  "userpath!=1.9.0,>=1.6",
+  "tomli; python_version<'3.11'",
+  "userpath!=1.9,>=1.6",
 ]
 urls."Bug Tracker" = "https://github.com/pypa/pipx/issues"
 urls.Documentation = "https://pipx.pypa.io"
@@ -50,25 +52,38 @@ scripts.pipx = "pipx.main:cli"
 
 [tool.hatch]
 build.hooks.vcs.version-file = "src/pipx/version.py"
-build.targets.sdist.include = ["/src", "/logo.png", "/pipx_demo.gif", "/*.md"]
+build.targets.sdist.include = [
+  "/src",
+  "/logo.png",
+  "/pipx_demo.gif",
+  "/*.md",
+]
 version.source = "vcs"
 
 [tool.ruff]
 line-length = 121
-src = ["src"]
+src = [
+  "src",
+]
 lint.extend-select = [
   "A",
   "B",
   "C4",
   "C9",
   "I",
+  "ISC",
   "PLC",
   "PLE",
   "PLW",
   "RSE",
+  "RUF100",
   "W",
 ]
-lint.isort = {known-first-party = ["helpers", "package_info", "pipx"]}
+lint.isort = { known-first-party = [
+  "helpers",
+  "package_info",
+  "pipx",
+] }
 lint.mccabe.max-complexity = 15
 
 [tool.codespell]
@@ -79,17 +94,25 @@ check-hidden = true
 ignore-regex = '\b(UE|path/doesnt/exist)\b'
 
 [tool.pytest.ini_options]
-markers = ["all_packages: test install with maximum number of packages"]
+markers = [
+  "all_packages: test install with maximum number of packages",
+]
 
 [tool.towncrier]
 directory = "changelog.d"
 filename = "CHANGELOG.md"
 start_string = "<!-- towncrier release notes start -->\n"
-underlines = ["", "", ""]
+underlines = [
+  "",
+  "",
+  "",
+]
 title_format = "## [{version}](https://github.com/pypa/pipx/tree/{version}) - {project_date}"
 issue_format = "[#{issue}](https://github.com/pypa/pipx/issues/{issue})"
 package = "pipx"
 
 [[tool.mypy.overrides]]
-module = ["pycowsay.*"]
+module = [
+  "pycowsay.*",
+]
 ignore_missing_imports = true

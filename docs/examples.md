@@ -98,12 +98,43 @@ Then you can run it as follows:
 One use of the inject command is setting up a REPL with some useful extra packages.
 
 ```
-pipx install ptpython
-pipx inject ptpython requests pendulum
+> pipx install ptpython
+> pipx inject ptpython requests pendulum
 ```
 
 After running the above commands, you will be able to import and use the `requests` and `pendulum` packages inside a
 `ptpython` repl.
+
+Equivalently, the extra packages can be listed in a text file (e.g. `useful-packages.txt`).
+Each line is a separate package specifier with the same syntax as the command line.
+Comments are supported with a `#` prefix.
+Hence, the syntax is a strict subset of the pip [requirements file format][pip-requirements] syntax.
+
+[pip-requirements]: https://pip.pypa.io/en/stable/reference/requirements-file-format/
+
+```
+# Additional packages
+requests
+
+pendulum # for easier datetimes
+```
+
+This file can then be given to `pipx inject` on the command line:
+
+```shell
+> pipx inject ptpython --requirement useful-packages.txt
+# or:
+> pipx inject ptpython -r useful-packages.txt
+```
+
+Note that these options can be repeated and used together, e.g.
+
+```
+> pipx inject ptpython package-1 -r extra-packages-1.txt -r extra-packages-2.txt package-2
+```
+
+If you require full pip functionality, then use the `runpip` command instead;
+however, the installed packages won't be recognised as "injected".
 
 ## `pipx list` example
 

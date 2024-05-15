@@ -75,9 +75,9 @@ PIPX_DESCRIPTION = textwrap.dedent(
     Binaries can either be installed globally into isolated Virtual Environments
     or run directly in a temporary Virtual Environment.
 
-    Virtual Environment location is {str(paths.ctx.venvs)}.
-    Symlinks to apps are placed in {str(paths.ctx.bin_dir)}.
-    Symlinks to manual pages are placed in {str(paths.ctx.man_dir)}.
+    Virtual Environment location is {paths.ctx.venvs!s}.
+    Symlinks to apps are placed in {paths.ctx.bin_dir!s}.
+    Symlinks to manual pages are placed in {paths.ctx.man_dir!s}.
 
     """
 )
@@ -297,6 +297,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             venv_dir,
             None,
             args.dependencies,
+            args.requirements,
             pip_args,
             verbose=verbose,
             include_apps=args.include_apps,
@@ -515,8 +516,21 @@ def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
     ).completer = venv_completer
     p.add_argument(
         "dependencies",
-        nargs="+",
+        nargs="*",
         help="the packages to inject into the Virtual Environment--either package name or pip package spec",
+    )
+    p.add_argument(
+        "-r",
+        "--requirement",
+        dest="requirements",
+        action="append",
+        default=[],
+        metavar="file",
+        help=(
+            "file containing the packages to inject into the Virtual Environment--"
+            "one package name or pip package spec per line. "
+            "May be specified multiple times."
+        ),
     )
     p.add_argument(
         "--include-apps",
@@ -806,7 +820,7 @@ def _add_runpip(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
 def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "ensurepath",
-        help=("Ensure directories necessary for pipx operation are in your " "PATH environment variable."),
+        help=("Ensure directories necessary for pipx operation are in your PATH environment variable."),
         description=(
             "Ensure directory where pipx stores apps is in your "
             "PATH environment variable. Also if pipx was installed via "
@@ -877,6 +891,14 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
         ),
     )
 
+    if not constants.WINDOWS:
+        shared_parser.add_argument(
+            "--global",
+            action="store_true",
+            dest="is_global",
+            help="Perform action globally for all users.",
+        )
+
     parser = argparse.ArgumentParser(
         prog=prog_name(),
         formatter_class=LineWrapRawTextHelpFormatter,
@@ -906,13 +928,6 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
     _add_ensurepath(subparsers, shared_parser)
     _add_environment(subparsers, shared_parser)
 
-    if not constants.WINDOWS:
-        parser.add_argument(
-            "--global",
-            action="store_true",
-            dest="is_global",
-            help="Perform action globally for all users.",
-        )
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     subparsers.add_parser(
         "completions",
@@ -1054,7 +1069,7 @@ def setup(args: argparse.Namespace) -> None:
             pipx_wrap(
                 f"""
                 {hazard}  A virtual environment for pipx was detected at
-                {str(old_pipx_venv_location)}. The 'pipx-app' package has been
+                {old_pipx_venv_location!s}. The 'pipx-app' package has been
                 renamed back to 'pipx'
                 (https://github.com/pypa/pipx/issues/82).
                 """,

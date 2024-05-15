@@ -45,8 +45,8 @@ def check_animate_output(
     print(f"chars_to_test: {chars_to_test}")
     for i in range(0, chars_to_test, 40):
         i_end = min(i + 40, chars_to_test)
-        print(f"expected_string[{i}:{i_end}]: {repr(expected_string[i:i_end])}")
-        print(f"captured.err[{i}:{i_end}]   : {repr(captured.err[i:i_end])}")
+        print(f"expected_string[{i}:{i_end}]: {expected_string[i:i_end]!r}")
+        print(f"captured.err[{i}:{i_end}]   : {captured.err[i:i_end]!r}")
 
     assert captured.err[:chars_to_test] == expected_string[:chars_to_test]
 

@@ -360,7 +360,7 @@ def print_error_report(
         print("\n\n", file=errors_fh)
         print("=" * 79, file=errors_fh)
         print(
-            f"{package_spec:24}{test_type:16}{module_globals.sys_platform:16}" f"{module_globals.py_version_display}",
+            f"{package_spec:24}{test_type:16}{module_globals.sys_platform:16}{module_globals.py_version_display}",
             file=errors_fh,
         )
         print("\nSTDOUT:", file=errors_fh)
