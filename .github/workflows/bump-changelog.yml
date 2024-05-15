@@ -41,7 +41,7 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -am "Bump changelog for $RELEASE_VERSION"
+          git commit -am "$RELEASE_VERSION: Bump changelog"
           git fetch origin
           git push origin $PR_BRANCH
       - name: Create pull request

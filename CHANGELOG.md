@@ -14,7 +14,6 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 ### Features
 
-<<<<<<< HEAD
 - Add `--global` option to `pipx` commands.
       - This will run the action in a global scope and affect environment for all system users. ([#754](https://github.com/pypa/pipx/issues/754))
 - Add a `--fetch-missing-python` flag to all commands that accept a `--python` flag.
@@ -24,23 +23,11 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
       - They were leading to a lot of issues with Windows sandboxing and spaces in shebangs on MacOS. ([#1257](https://github.com/pypa/pipx/issues/1257))
 - Add `--install` option to `pipx upgrade` command.
       - This will install the package given as argument if it is not already installed. ([#1262](https://github.com/pypa/pipx/issues/1262))
-=======
-- Add a `--fetch-missing-python` flag to all commands that accept a `--python` flag.
-
-  When combined, this will automatically download a standalone copy of the requested python version if it's not already available on the user's system. ([#1242](https://github.com/pypa/pipx/issues/1242))
-- Add commands to list and prune standalone interpreters ([#1248](https://github.com/pypa/pipx/issues/1248))
-- Add `--install` option to `pipx upgrade` command.
-
-  This will install the package given as argument if it is not already installed. ([#1262](https://github.com/pypa/pipx/issues/1262))
->>>>>>> Bump changelog for 1.0.0 (#2)
 
 ### Bugfixes
 
 - Correctly resolve home directory in pipx directory environment variables. ([#94](https://github.com/pypa/pipx/issues/94))
-<<<<<<< HEAD
 - Pass through `pip` arguments when upgrading shared libraries. ([#964](https://github.com/pypa/pipx/issues/964))
-=======
->>>>>>> Bump changelog for 1.0.0 (#2)
 - Fix installation issues when files in the working directory interfere with venv creation process. ([#1091](https://github.com/pypa/pipx/issues/1091))
 - Report correct filename in tracebacks with `pipx run <scriptname>` ([#1191](https://github.com/pypa/pipx/issues/1191))
 - Let self-managed pipx uninstall itself on windows again. ([#1203](https://github.com/pypa/pipx/issues/1203))
@@ -54,7 +41,6 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 - Update the example for running scripts with dependencies. ([#1227](https://github.com/pypa/pipx/issues/1227))
 - Update the docs for package developers on the use of configuration using pyproject.toml ([#1229](https://github.com/pypa/pipx/issues/1229))
 - Add installation instructions for Fedora ([#1239](https://github.com/pypa/pipx/issues/1239))
-<<<<<<< HEAD
 - Update the examples for installation from local dir ([#1277](https://github.com/pypa/pipx/issues/1277))
 - Fix inconsistent wording in `pipx install` command description. ([#1307](https://github.com/pypa/pipx/issues/1307))
 
@@ -65,8 +51,6 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 ### Misc
 
 - [#1296](https://github.com/pypa/pipx/issues/1296)
-=======
->>>>>>> Bump changelog for 1.0.0 (#2)
 
 
 ## [1.4.3](https://github.com/pypa/pipx/tree/1.4.3) - 2024-01-16
