@@ -1,0 +1,55 @@
+name: Bump changelog before release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to be released'
+        required: true
+        type: string
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  default-python: "3.12"
+  minimum-supported-python: "3.8"
+
+jobs:
+  bump-changelog:
+    name: Bump changelog
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout ${{ github.ref }}
+        uses: actions/checkout@v4
+      - name: Set up Python ${{ env.default-python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.default-python }}
+          cache: "pip"
+      - name: Get release version and construct PR branch
+        run: |
+          echo "RELEASE_VERSION=${{ inputs.version }}" >> $GITHUB_ENV
+          echo "PR_BRANCH=bump-changelog-for-${{ inputs.version }}" >> $GITHUB_ENV
+      - name: Create pull request branch
+        run: git switch -c $PR_BRANCH
+      - name: Install nox
+        run: python -m pip install nox
+      - name: Update changelog
+        run: nox --error-on-missing-interpreters --non-interactive --session build_changelog -- $RELEASE_VERSION
+      - name: Commit and push change
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -am "$RELEASE_VERSION: Bump changelog"
+          git fetch origin
+          git push origin $PR_BRANCH
+      - name: Create pull request
+        run: |
+          git fetch origin
+          gh pr create --base main --fill --label release-version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
