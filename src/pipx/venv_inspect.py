@@ -305,7 +305,7 @@ def inspect_venv(
             str(Path(dep_path.parent.name) / dep_path.name) for dep_path in man_paths_of_dependencies[dep]
         ]
 
-    venv_metadata = VenvMetadata(
+    return VenvMetadata(
         apps=apps,
         app_paths=app_paths,
         apps_of_dependencies=apps_of_dependencies,
@@ -317,5 +317,3 @@ def inspect_venv(
         package_version=root_dist.version,
         python_version=venv_python_version,
     )
-
-    return venv_metadata

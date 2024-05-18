@@ -6,9 +6,7 @@ WIN = sys.platform.startswith("win")
 
 
 def _exe_if_win(apps):
-    app_strings = []
-    app_strings = [f"{app}.exe" if WIN else app for app in apps]
-    return app_strings
+    return [f"{app}.exe" if WIN else app for app in apps]
 
 
 # Versions of all packages possibly used in our tests

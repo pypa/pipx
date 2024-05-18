@@ -214,15 +214,13 @@ def format_report_table_row(package_data: PackageData) -> str:
     else:
         sys_install_time = ""
 
-    row_string = (
+    return (
         f"{package_data.package_spec:24}{package_data.overall_pf_str:12}"
         f"{package_data.clear_pip_pf_str:8}{package_data.clear_pipx_pf_str:8}"
         f"{clear_install_time:8}"
         f"{package_data.sys_pip_pf_str:8}{package_data.sys_pipx_pf_str:8}"
         f"{sys_install_time:8}"
     )
-
-    return row_string
 
 
 def format_report_table_footer(module_globals: ModuleGlobalsData) -> str:

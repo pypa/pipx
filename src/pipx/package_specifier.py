@@ -172,8 +172,7 @@ def parse_specifier_for_metadata(package_spec: str) -> str:
     * Convert local paths to absolute paths
     """
     parsed_package = _parse_specifier(package_spec)
-    package_or_url = _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=False)
-    return package_or_url
+    return _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=False)
 
 
 def parse_specifier_for_upgrade(package_spec: str) -> str:
@@ -185,8 +184,7 @@ def parse_specifier_for_upgrade(package_spec: str) -> str:
     * Convert local paths to absolute paths
     """
     parsed_package = _parse_specifier(package_spec)
-    package_or_url = _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=True)
-    return package_or_url
+    return _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=True)
 
 
 def get_extras(package_spec: str) -> Set[str]:
