@@ -2,7 +2,7 @@ import sys
 from io import BytesIO, TextIOWrapper
 from unittest import mock
 
-import pytest  # type: ignore
+import pytest  # type: ignore[import-not-found]
 
 from pipx.emojis import use_emojis
 

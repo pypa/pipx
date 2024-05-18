@@ -1,6 +1,6 @@
 import subprocess
 
-import pytest  # type: ignore
+import pytest  # type: ignore[import-not-found]
 
 from helpers import run_pipx_cli
 

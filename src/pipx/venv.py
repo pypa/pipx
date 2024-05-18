@@ -10,7 +10,7 @@ from typing import Dict, Generator, List, NoReturn, Optional, Set
 try:
     from importlib.metadata import Distribution, EntryPoint
 except ImportError:
-    from importlib_metadata import Distribution, EntryPoint  # type: ignore
+    from importlib_metadata import Distribution, EntryPoint  # type: ignore[import-not-found,no-redef]
 
 from packaging.utils import canonicalize_name
 

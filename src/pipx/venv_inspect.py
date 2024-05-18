@@ -10,7 +10,7 @@ from packaging.utils import canonicalize_name
 try:
     from importlib import metadata
 except ImportError:
-    import importlib_metadata as metadata  # type: ignore
+    import importlib_metadata as metadata  # type: ignore[import-not-found,no-redef]
 
 from pipx.constants import MAN_SECTIONS, WINDOWS
 from pipx.util import PipxError, run_subprocess

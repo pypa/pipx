@@ -2,7 +2,7 @@ import logging
 import re
 import textwrap
 
-import pytest  # type: ignore
+import pytest  # type: ignore[import-not-found]
 
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, skip_if_windows
 from package_info import PKG

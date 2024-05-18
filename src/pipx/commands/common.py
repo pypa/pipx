@@ -10,7 +10,7 @@ from shutil import which
 from tempfile import TemporaryDirectory
 from typing import Dict, List, Optional, Set, Tuple
 
-import userpath  # type: ignore
+import userpath  # type: ignore[import-not-found]
 from packaging.utils import canonicalize_name
 
 from pipx import paths

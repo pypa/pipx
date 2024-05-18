@@ -5,7 +5,7 @@ import sys
 import textwrap
 from unittest import mock
 
-import pytest  # type: ignore
+import pytest  # type: ignore[import-not-found]
 
 import pipx.main
 import pipx.util
