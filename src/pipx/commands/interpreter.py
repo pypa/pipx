@@ -48,10 +48,7 @@ def list_interpreters(
         used_in = get_interpreter_users(interpreter, venvs)
         if used_in:
             output.append("    Used in:")
-            output.extend(
-                f"     - {p.main_package.package} {p.main_package.package_version}"
-                for p in used_in
-            )
+            output.extend(f"     - {p.main_package.package} {p.main_package.package_version}" for p in used_in)
         else:
             output.append("    Unused")
 
