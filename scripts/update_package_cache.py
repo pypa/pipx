@@ -115,10 +115,11 @@ def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_p
             package_name = package_spec_re.group(1)
             package_ver = package_spec_re.group(2)
             package_dist_patt = re.escape(package_name) + r"-" + re.escape(package_ver) + r"(.tar.gz|.zip|-)"
-            matches = []
-            for output_dir_file in packages_dir_files:
-                if re.search(package_dist_patt, output_dir_file.name):
-                    matches.append(output_dir_file)
+            matches = [
+                output_dir_file
+                for output_dir_file in packages_dir_files
+                if re.search(package_dist_patt, output_dir_file.name)
+            ]
             if len(matches) == 1:
                 packages_dir_files.remove(matches[0])
                 packages_dir_hits.append(matches[0])

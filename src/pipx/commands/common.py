@@ -350,20 +350,30 @@ def _get_list_output(
 
     if new_install and (exposed_binary_names or unavailable_binary_names):
         output.append("  These apps are now globally available")
-    for name in exposed_binary_names:
-        output.append(f"    - {name}")
-    for name in unavailable_binary_names:
-        output.append(f"    - {red(name)} (symlink missing or pointing to unexpected location)")
+    output.extend(
+        f"    - {name}"
+        for name in exposed_binary_names
+    )
+    output.extend(
+        f"    - {red(name)} (symlink missing or pointing to unexpected location)"
+        for name in unavailable_binary_names
+    )
     if new_install and (exposed_man_pages or unavailable_man_pages):
         output.append("  These manual pages are now globally available")
-    for name in exposed_man_pages:
-        output.append(f"    - {name}")
-    for name in unavailable_man_pages:
-        output.append(f"    - {red(name)} (symlink missing or pointing to unexpected location)")
+    output.extend(
+        f"    - {name}"
+        for name in exposed_man_pages
+    )
+    output.extend(
+        f"    - {red(name)} (symlink missing or pointing to unexpected location)"
+        for name in unavailable_man_pages
+    )
     if injected_packages:
         output.append("    Injected Packages:")
-        for name in injected_packages:
-            output.append(f"      - {name} {injected_packages[name].package_version}")
+        output.extend(
+            f"      - {name} {injected_packages[name].package_version}"
+            for name in injected_packages
+        )
     return "\n".join(output)
 
 
