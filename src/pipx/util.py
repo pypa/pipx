@@ -427,6 +427,6 @@ def is_paths_relative(path: Path, parent: Path):
     # Can be replaced with path.is_relative_to() if support for python3.8 is dropped
     try:
         path.resolve().relative_to(parent.resolve())
-        return True
     except ValueError:
         return False
+    return True

@@ -18,10 +18,9 @@ logger = logging.getLogger(__name__)
 def has_venv() -> bool:
     try:
         import venv  # noqa: F401
-
-        return True
     except ImportError:
         return False
+    return True
 
 
 class InterpreterResolutionError(PipxError):
