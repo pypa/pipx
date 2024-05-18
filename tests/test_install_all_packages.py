@@ -270,7 +270,7 @@ def verify_installed_resources(
     resource_name_long = {"app": "apps", "man": "manual pages"}[resource_type]
     package_resources = PKG[package_name][resource_name].copy()
     if deps:
-        package_resources += PKG[package_name]["%s_of_dependencies" % resource_name]
+        package_resources += PKG[package_name][f"{resource_name}_of_dependencies"]
     if len(package_resources) == 0:
         return True
 
