@@ -185,7 +185,7 @@ def run_subprocess(
         stdout=subprocess.PIPE if capture_stdout else None,
         stderr=subprocess.PIPE if capture_stderr else None,
         encoding="utf-8",
-        universal_newlines=True,
+        text=True,
         check=False,
         cwd=run_dir,
     )
@@ -381,7 +381,7 @@ def exec_app(
                 stdout=None,
                 stderr=None,
                 encoding="utf-8",
-                universal_newlines=True,
+                text=True,
                 check=False,
             ).returncode
         )
