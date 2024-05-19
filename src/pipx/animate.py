@@ -21,7 +21,7 @@ if WINDOWS:
     import ctypes
 
     class _CursorInfo(ctypes.Structure):
-        _fields_ = [("size", ctypes.c_int), ("visible", ctypes.c_byte)]
+        _fields_ = (("size", ctypes.c_int), ("visible", ctypes.c_byte))
 
 
 def _env_supports_animation() -> bool:

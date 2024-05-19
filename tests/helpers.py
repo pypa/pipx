@@ -2,6 +2,7 @@ import json
 import os
 import re
 import sys
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from unittest import mock
@@ -195,13 +196,15 @@ def assert_package_metadata(test_metadata, ref_metadata):
     assert isinstance(test_metadata.apps, list)
     assert isinstance(test_metadata.app_paths, list)
 
-    test_metadata_replaced = test_metadata._replace(
+    test_metadata_replaced = replace(
+        test_metadata,
         apps=sorted(test_metadata.apps),
         app_paths=sorted(test_metadata.app_paths),
         apps_of_dependencies=sorted(test_metadata.apps_of_dependencies),
         app_paths_of_dependencies={key: sorted(value) for key, value in test_metadata.app_paths_of_dependencies.items()},
     )
-    ref_metadata_replaced = ref_metadata._replace(
+    ref_metadata_replaced = replace(
+        ref_metadata,
         apps=sorted(ref_metadata.apps),
         app_paths=sorted(ref_metadata.app_paths),
         apps_of_dependencies=sorted(ref_metadata.apps_of_dependencies),
