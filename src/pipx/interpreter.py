@@ -18,10 +18,9 @@ logger = logging.getLogger(__name__)
 def has_venv() -> bool:
     try:
         import venv  # noqa: F401
-
-        return True
     except ImportError:
         return False
+    return True
 
 
 class InterpreterResolutionError(PipxError):
@@ -102,8 +101,7 @@ def find_python_interpreter(python_version: str, fetch_missing_python: bool = Fa
 
     if fetch_missing_python or FETCH_MISSING_PYTHON:
         try:
-            standalone_executable = download_python_build_standalone(python_version)
-            return standalone_executable
+            return download_python_build_standalone(python_version)
         except PipxError as e:
             raise InterpreterResolutionError(source="the python-build-standalone project", version=python_version) from e
 

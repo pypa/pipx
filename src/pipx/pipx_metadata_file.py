@@ -22,7 +22,7 @@ class JsonEncoderHandlesPath(json.JSONEncoder):
 
 
 def _json_decoder_object_hook(json_dict: Dict[str, Any]) -> Union[Dict[str, Any], Path]:
-    if json_dict.get("__type__", None) == "Path" and "__Path__" in json_dict:
+    if json_dict.get("__type__") == "Path" and "__Path__" in json_dict:
         return Path(json_dict["__Path__"])
     return json_dict
 

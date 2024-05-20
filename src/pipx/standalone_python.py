@@ -175,7 +175,7 @@ def list_pythons(use_cache: bool = True) -> Dict[str, str]:
         python_version = match[1]
         python_versions[python_version] = link
 
-    sorted_python_versions = {
+    return {
         version: python_versions[version]
         for version in sorted(
             python_versions,
@@ -184,7 +184,6 @@ def list_pythons(use_cache: bool = True) -> Dict[str, str]:
             reverse=True,
         )
     }
-    return sorted_python_versions
 
 
 def resolve_python_version(requested_version: str):

@@ -40,9 +40,7 @@ def process_command_line(argv: List[str]) -> argparse.Namespace:
     # switches/options:
     parser.add_argument("-v", "--verbose", action="store_true", help="Maximum verbosity, especially for pip operations.")
 
-    args = parser.parse_args(argv)
-
-    return args
+    return parser.parse_args(argv)
 
 
 def parse_package_list(package_list_file: Path) -> List[Dict[str, Any]]:

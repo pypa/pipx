@@ -185,7 +185,7 @@ def run_subprocess(
         stdout=subprocess.PIPE if capture_stdout else None,
         stderr=subprocess.PIPE if capture_stderr else None,
         encoding="utf-8",
-        universal_newlines=True,
+        text=True,
         check=False,
         cwd=run_dir,
     )
@@ -381,7 +381,7 @@ def exec_app(
                 stdout=None,
                 stderr=None,
                 encoding="utf-8",
-                universal_newlines=True,
+                text=True,
                 check=False,
             ).returncode
         )
@@ -427,6 +427,6 @@ def is_paths_relative(path: Path, parent: Path):
     # Can be replaced with path.is_relative_to() if support for python3.8 is dropped
     try:
         path.resolve().relative_to(parent.resolve())
-        return True
     except ValueError:
         return False
+    return True
