@@ -3,7 +3,7 @@ import subprocess
 import sys
 from unittest.mock import Mock
 
-import pytest  # type: ignore
+import pytest  # type: ignore[import-not-found]
 
 import pipx.interpreter
 import pipx.paths

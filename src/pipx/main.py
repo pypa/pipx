@@ -905,7 +905,7 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
         description=PIPX_DESCRIPTION,
         parents=[shared_parser],
     )
-    parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore
+    parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore[attr-defined]
 
     subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
 

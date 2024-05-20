@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from typing import Optional, Tuple
 
-import userpath  # type: ignore
+import userpath  # type: ignore[import-not-found]
 
 from pipx import paths
 from pipx.constants import EXIT_CODE_OK, ExitCode

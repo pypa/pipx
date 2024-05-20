@@ -11,7 +11,7 @@ from typing import Iterator
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
-import pytest  # type: ignore
+import pytest  # type: ignore[import-not-found]
 
 from helpers import WIN
 from pipx import commands, interpreter, paths, shared_libs, standalone_python, venv

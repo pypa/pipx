@@ -1,7 +1,7 @@
 import sys
 from unittest import mock
 
-import pytest  # type: ignore
+import pytest  # type: ignore[import-not-found]
 
 from helpers import run_pipx_cli
 from pipx import main
