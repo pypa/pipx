@@ -7,12 +7,12 @@ import string
 import subprocess
 import sys
 import textwrap
+from dataclasses import dataclass
 from pathlib import Path
 from typing import (
     Any,
     Dict,
     List,
-    NamedTuple,
     NoReturn,
     Optional,
     Pattern,
@@ -36,7 +36,8 @@ class PipxError(Exception):
             super().__init__(message)
 
 
-class RelevantSearch(NamedTuple):
+@dataclass(frozen=True)
+class RelevantSearch:
     pattern: Pattern[str]
     category: str
 

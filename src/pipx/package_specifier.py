@@ -9,8 +9,9 @@
 import logging
 import re
 import urllib.parse
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
@@ -24,7 +25,8 @@ logger = logging.getLogger(__name__)
 ARCHIVE_EXTENSIONS = (".whl", ".tar.gz", ".zip")
 
 
-class ParsedPackage(NamedTuple):
+@dataclass(frozen=True)
+class ParsedPackage:
     valid_pep508: Optional[Requirement]
     valid_url: Optional[str]
     valid_local_path: Optional[str]
