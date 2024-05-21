@@ -5,7 +5,7 @@ import shutil
 import sys
 import time
 
-import pytest  # type: ignore
+import pytest  # type: ignore[import-not-found]
 
 from helpers import (
     PIPX_METADATA_LEGACY_VERSIONS,
@@ -34,7 +34,7 @@ def test_cli_global(pipx_temp_env, monkeypatch, capsys):
     captured = capsys.readouterr()
     assert "installed package" in captured.out
 
-    assert not run_pipx_cli(["--global", "list"])
+    assert not run_pipx_cli(["list", "--global"])
     captured = capsys.readouterr()
     assert "nothing has been installed with pipx" in captured.err
 
@@ -94,7 +94,7 @@ def test_list_json(pipx_temp_env, capsys):
 
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
-    assert not run_pipx_cli(["inject", "pylint", PKG["isort"]["spec"]])
+    assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])
     captured = capsys.readouterr()
 
     assert not run_pipx_cli(["list", "--json"])
@@ -119,19 +119,29 @@ def test_list_json(pipx_temp_env, capsys):
         "pylint",
         "pylint",
         pipx_venvs_dir,
-        **{"app_paths_of_dependencies": {"isort": [pipx_venvs_dir / "pylint" / venv_bin_dir / app_name("isort")]}},
+        **{
+            "app_paths_of_dependencies": {
+                "dill": [
+                    pipx_venvs_dir / "pylint" / venv_bin_dir / "get_gprof",
+                    pipx_venvs_dir / "pylint" / venv_bin_dir / "get_objgraph",
+                    pipx_venvs_dir / "pylint" / venv_bin_dir / "undill",
+                ],
+                "isort": [
+                    pipx_venvs_dir / "pylint" / venv_bin_dir / app_name("isort"),
+                    pipx_venvs_dir / "pylint" / venv_bin_dir / app_name("isort-identify-imports"),
+                ],
+            }
+        },
     )
     assert_package_metadata(
         PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["main_package"]),
         pylint_package_ref,
     )
-    assert sorted(json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"].keys()) == ["isort"]
-    isort_package_ref = create_package_info_ref("pylint", "isort", pipx_venvs_dir, include_apps=False)
-    print(isort_package_ref)
-    print(PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["isort"]))
+    assert sorted(json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"].keys()) == ["black"]
+    black_package_ref = create_package_info_ref("pylint", "black", pipx_venvs_dir, include_apps=False)
     assert_package_metadata(
-        PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["isort"]),
-        isort_package_ref,
+        PackageInfo(**json_parsed["venvs"]["pylint"]["metadata"]["injected_packages"]["black"]),
+        black_package_ref,
     )
 
 
@@ -144,7 +154,7 @@ def test_list_short(pipx_temp_env, monkeypatch, capsys):
     captured = capsys.readouterr()
 
     assert "pycowsay 0.0.0.2" in captured.out
-    assert "pylint 2.3.1" in captured.out
+    assert "pylint 3.0.4" in captured.out
 
 
 def test_list_standalone_interpreter(pipx_temp_env, monkeypatch, mocked_github_api, capsys):
@@ -154,8 +164,7 @@ def test_list_standalone_interpreter(pipx_temp_env, monkeypatch, mocked_github_a
     monkeypatch.setattr(shutil, "which", which)
 
     major = sys.version_info.major
-    # Minor version 3.8 is not supported for fetching standalone versions
-    minor = sys.version_info.minor if sys.version_info.minor != 8 else 9
+    minor = sys.version_info.minor
     target_python = f"{major}.{minor}"
 
     assert not run_pipx_cli(

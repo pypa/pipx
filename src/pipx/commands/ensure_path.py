@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from typing import Optional, Tuple
 
-import userpath  # type: ignore
+import userpath  # type: ignore[import-not-found]
 
 from pipx import paths
 from pipx.constants import EXIT_CODE_OK, ExitCode
@@ -84,7 +84,8 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
                 f"""
                 {location_str} has been been added to PATH, but you need to
                 open a new terminal or re-login for this PATH change to take
-                effect.
+                effect. Alternatively, you can source your shell's config file
+                with e.g. 'source ~/.bashrc'.
                 """,
                 subsequent_indent=" " * 4,
             )
@@ -140,7 +141,8 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
             pipx_wrap(
                 """
                 You will need to open a new terminal or re-login for the PATH
-                changes to take effect.
+                changes to take effect. Alternatively, you can source your shell's
+                config file with e.g. 'source ~/.bashrc'.
                 """
             )
             + "\n"

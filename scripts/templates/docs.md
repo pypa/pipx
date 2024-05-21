@@ -1,12 +1,20 @@
-{{ usage }}
+{{usage}}
 
 ### pipx install
 
-{{ install }}
+{{install}}
 
-### pipx run
+### pipx install-all
 
-{{run}}
+{{installall}}
+
+### pipx uninject
+
+{{uninject}}
+
+### pipx inject
+
+{{inject}}
 
 ### pipx upgrade
 
@@ -16,9 +24,9 @@
 
 {{upgradeall}}
 
-### pipx inject
+### pipx upgrade-shared
 
-{{inject}}
+{{upgradeshared}}
 
 ### pipx uninstall
 
@@ -28,6 +36,10 @@
 
 {{uninstallall}}
 
+### pipx reinstall
+
+{{reinstall}}
+
 ### pipx reinstall-all
 
 {{reinstallall}}
@@ -36,6 +48,26 @@
 
 {{list}}
 
+### pipx interpreter
+
+{{interpreter}}
+
+### pipx run
+
+{{run}}
+
 ### pipx runpip
 
 {{runpip}}
+
+### pipx ensurepath
+
+{{ensurepath}}
+
+### pipx environment
+
+{{environment}}
+
+### pipx completions
+
+{{completions}}

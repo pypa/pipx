@@ -11,6 +11,7 @@ pipx install git+https://github.com/psf/black.git@git-hash
 pipx install git+ssh://<username>@<private-repo-domain>/<path-to-package.git>
 pipx install https://github.com/psf/black/archive/18.9b0.zip
 pipx install black[d]
+pipx install --preinstall ansible-lint --preinstall mitogen ansible-core
 pipx install 'black[d] @ git+https://github.com/psf/black.git@branch-name'
 pipx install --suffix @branch-name 'black[d] @ git+https://github.com/psf/black.git@branch-name'
 pipx install --include-deps jupyter
@@ -97,12 +98,43 @@ Then you can run it as follows:
 One use of the inject command is setting up a REPL with some useful extra packages.
 
 ```
-pipx install ptpython
-pipx inject ptpython requests pendulum
+> pipx install ptpython
+> pipx inject ptpython requests pendulum
 ```
 
 After running the above commands, you will be able to import and use the `requests` and `pendulum` packages inside a
 `ptpython` repl.
+
+Equivalently, the extra packages can be listed in a text file (e.g. `useful-packages.txt`).
+Each line is a separate package specifier with the same syntax as the command line.
+Comments are supported with a `#` prefix.
+Hence, the syntax is a strict subset of the pip [requirements file format][pip-requirements] syntax.
+
+[pip-requirements]: https://pip.pypa.io/en/stable/reference/requirements-file-format/
+
+```
+# Additional packages
+requests
+
+pendulum # for easier datetimes
+```
+
+This file can then be given to `pipx inject` on the command line:
+
+```shell
+> pipx inject ptpython --requirement useful-packages.txt
+# or:
+> pipx inject ptpython -r useful-packages.txt
+```
+
+Note that these options can be repeated and used together, e.g.
+
+```
+> pipx inject ptpython package-1 -r extra-packages-1.txt -r extra-packages-2.txt package-2
+```
+
+If you require full pip functionality, then use the `runpip` command instead;
+however, the installed packages won't be recognised as "injected".
 
 ## `pipx list` example
 
@@ -119,4 +151,39 @@ binaries are exposed on your $PATH at /Users/user/.local/bin
 > pipx list --short
 black 18.9b0
 pipx 0.10.0
+```
+
+## `pipx install-all` example
+
+```shell
+> pipx list --json > pipx.json
+> pipx instal-all pipx.json
+'black' already seems to be installed. Not modifying existing installation in '/usr/local/pipx/venvs/black'. Pass '--force' to force installation.
+'pipx' already seems to be installed. Not modifying existing installation in '/usr/local/pipx/venvs/black'. Pass '--force' to force installation.
+> pipx install-all pipx.json --force
+Installing to existing venv 'black'
+  installed package black 24.3.0, installed using Python 3.10.12
+  These apps are now globally available
+    - black
+    - blackd
+done! ✨ 🌟 ✨
+Installing to existing venv 'pipx'
+  installed package pipx 1.4.3, installed using Python 3.10.12
+  These apps are now globally available
+    - pipx
+done! ✨ 🌟 ✨
+```
+
+## `pipx upgrade-shared` examples
+
+One use of the upgrade-shared command is to force a `pip` upgrade.
+
+```shell
+> pipx upgrade-shared
+```
+
+This example pins `pip` (temporarily, until the next automatic upgrade, if that is not explicitly turned off) to a specific version.
+
+```shell
+> pipx upgrade-shared --pip-args=pip==24.0
 ```

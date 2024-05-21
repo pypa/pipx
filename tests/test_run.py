@@ -5,7 +5,7 @@ import sys
 import textwrap
 from unittest import mock
 
-import pytest  # type: ignore
+import pytest  # type: ignore[import-not-found]
 
 import pipx.main
 import pipx.util
@@ -183,7 +183,7 @@ def test_run_without_requirements(caplog, pipx_temp_env, tmp_path):
         textwrap.dedent(
             f"""
                 from pathlib import Path
-                Path({repr(str(out))}).write_text({repr(test_str)})
+                Path({str(out)!r}).write_text({test_str!r})
             """
         ).strip()
     )
@@ -208,7 +208,7 @@ def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
                 import certifi
                 # Check the installed version
                 from pathlib import Path
-                Path({repr(str(out))}).write_text(requests.__version__)
+                Path({str(out)!r}).write_text(requests.__version__)
             """
         ).strip(),
         encoding="utf-8",
@@ -234,7 +234,7 @@ def test_run_with_requirements_old(caplog, pipx_temp_env, tmp_path):
                 import certifi
                 # Check the installed version
                 from pathlib import Path
-                Path({repr(str(out))}).write_text(requests.__version__)
+                Path({str(out)!r}).write_text(requests.__version__)
             """
         ).strip(),
         encoding="utf-8",
@@ -270,7 +270,7 @@ def test_run_with_args(caplog, pipx_temp_env, tmp_path):
             f"""
                 import sys
                 from pathlib import Path
-                Path({repr(str(out))}).write_text(str(int(sys.argv[1]) + 1))
+                Path({str(out)!r}).write_text(str(int(sys.argv[1]) + 1))
             """
         ).strip()
     )
@@ -291,7 +291,7 @@ def test_run_with_requirements_and_args(caplog, pipx_temp_env, tmp_path):
                 import packaging
                 import sys
                 from pathlib import Path
-                Path({repr(str(out))}).write_text(str(int(sys.argv[1]) + 1))
+                Path({str(out)!r}).write_text(str(int(sys.argv[1]) + 1))
             """
         ).strip()
     )
@@ -343,7 +343,7 @@ def test_run_script_by_absolute_name(caplog, pipx_temp_env, tmp_path):
         textwrap.dedent(
             f"""
                 from pathlib import Path
-                Path({repr(str(out))}).write_text({repr(test_str)})
+                Path({str(out)!r}).write_text({test_str!r})
             """
         ).strip()
     )
@@ -360,7 +360,7 @@ def test_run_script_by_relative_name(caplog, pipx_temp_env, monkeypatch, tmp_pat
         textwrap.dedent(
             f"""
                 from pathlib import Path
-                Path({repr(str(out))}).write_text({repr(test_str)})
+                Path({str(out)!r}).write_text({test_str!r})
             """
         ).strip()
     )
@@ -380,7 +380,7 @@ def test_run_with_windows_python_version(caplog, pipx_temp_env, tmp_path):
             f"""
                 import sys
                 from pathlib import Path
-                Path({repr(str(out))}).write_text(sys.version)
+                Path({str(out)!r}).write_text(sys.version)
             """
         ).strip()
     )

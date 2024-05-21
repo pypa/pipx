@@ -10,7 +10,7 @@ from typing import Dict, Generator, List, NoReturn, Optional, Set
 try:
     from importlib.metadata import Distribution, EntryPoint
 except ImportError:
-    from importlib_metadata import Distribution, EntryPoint  # type: ignore
+    from importlib_metadata import Distribution, EntryPoint  # type: ignore[import-not-found,no-redef]
 
 from packaging.utils import canonicalize_name
 
@@ -125,7 +125,7 @@ class Venv:
     @property
     def name(self) -> str:
         if self.pipx_metadata.main_package.package is not None:
-            venv_name = f"{self.pipx_metadata.main_package.package}" f"{self.pipx_metadata.main_package.suffix}"
+            venv_name = f"{self.pipx_metadata.main_package.package}{self.pipx_metadata.main_package.suffix}"
         else:
             venv_name = self.root.name
         return venv_name
@@ -159,6 +159,7 @@ class Venv:
         """
         override_shared -- Override installing shared libraries to the pipx shared directory (default False)
         """
+        logger.info("Creating virtual environment")
         with animate("creating virtual environment", self.do_animation):
             cmd = [self.python, "-m", "venv"]
             if not override_shared:
@@ -213,11 +214,12 @@ class Venv:
 
     def uninstall_package(self, package: str, was_injected: bool = False):
         try:
+            logger.info("Uninstalling %s", package)
             with animate(f"uninstalling {package}", self.do_animation):
                 cmd = ["uninstall", "-y"] + [package]
                 self._run_pip(cmd)
         except PipxError as e:
-            logging.info(e)
+            logger.info(e)
             raise PipxError(f"Error uninstalling {package}.") from None
 
         if was_injected:
@@ -240,10 +242,8 @@ class Venv:
         # check syntax and clean up spec and pip_args
         (package_or_url, pip_args) = parse_specifier_for_install(package_or_url, pip_args)
 
-        with animate(
-            f"installing {full_package_description(package_name, package_or_url)}",
-            self.do_animation,
-        ):
+        logger.info("Installing %s", package_descr := full_package_description(package_name, package_or_url))
+        with animate(f"installing {package_descr}", self.do_animation):
             # do not use -q with `pip install` so subprocess_post_check_pip_errors
             #   has more information to analyze in case of failure.
             cmd = [
@@ -287,7 +287,8 @@ class Venv:
 
         # Note: We want to install everything at once, as that lets
         # pip resolve conflicts correctly.
-        with animate(f"installing {', '.join(requirements)}", self.do_animation):
+        logger.info("Installing %s", package_descr := ", ".join(requirements))
+        with animate(f"installing {package_descr}", self.do_animation):
             # do not use -q with `pip install` so subprocess_post_check_pip_errors
             #   has more information to analyze in case of failure.
             cmd = [
@@ -418,7 +419,7 @@ class Venv:
         match = _entry_point_value_pattern.match(entry_point.value)
         assert match is not None, "invalid entry point"
         module, attr = match.group("module", "attr")
-        code = f"import sys, {module}\n" f"sys.argv[0] = {entry_point.name!r}\n" f"sys.exit({module}.{attr}())\n"
+        code = f"import sys, {module}\nsys.argv[0] = {entry_point.name!r}\nsys.exit({module}.{attr}())\n"
         exec_app([str(self.python_path), "-c", code] + app_args)
 
     def has_app(self, app: str, filename: str) -> bool:
@@ -426,11 +427,12 @@ class Venv:
             return True
         return (self.bin_path / filename).is_file()
 
+    def has_package(self, package_name: str) -> bool:
+        return bool(list(Distribution.discover(name=package_name, path=[str(get_site_packages(self.python_path))])))
+
     def upgrade_package_no_metadata(self, package_name: str, pip_args: List[str]) -> None:
-        with animate(
-            f"upgrading {full_package_description(package_name, package_name)}",
-            self.do_animation,
-        ):
+        logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_name))
+        with animate(f"upgrading {package_descr}", self.do_animation):
             pip_process = self._run_pip(["--no-input", "install"] + pip_args + ["--upgrade", package_name])
         subprocess_post_check(pip_process)
 
@@ -444,10 +446,8 @@ class Venv:
         is_main_package: bool,
         suffix: str = "",
     ) -> None:
-        with animate(
-            f"upgrading {full_package_description(package_name, package_or_url)}",
-            self.do_animation,
-        ):
+        logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_or_url))
+        with animate(f"upgrading {package_descr}", self.do_animation):
             pip_process = self._run_pip(["--no-input", "install"] + pip_args + ["--upgrade", package_or_url])
         subprocess_post_check(pip_process)
 

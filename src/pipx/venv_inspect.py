@@ -10,7 +10,7 @@ from packaging.utils import canonicalize_name
 try:
     from importlib import metadata
 except ImportError:
-    import importlib_metadata as metadata  # type: ignore
+    import importlib_metadata as metadata  # type: ignore[import-not-found,no-redef]
 
 from pipx.constants import MAN_SECTIONS, WINDOWS
 from pipx.util import PipxError, run_subprocess
@@ -91,7 +91,7 @@ def get_resources_from_dist_files(dist: metadata.Distribution, bin_path: Path, m
         if Path(path).parts[0] != "..":
             continue
 
-        dist_file_path = Path(dist.locate_file(path))
+        dist_file_path = Path(str(dist.locate_file(path)))
         try:
             if dist_file_path.parent.samefile(bin_path):
                 app_names.add(path.name)
@@ -108,8 +108,8 @@ def get_resources_from_inst_files(dist: metadata.Distribution, bin_path: Path, m
     # not sure what is found here
     inst_files = dist.read_text("installed-files.txt") or ""
     for line in inst_files.splitlines():
-        entry = line.split(",")[0]  # noqa: T484
-        inst_file_path = Path(dist.locate_file(entry)).resolve()
+        entry = line.split(",")[0]
+        inst_file_path = Path(str(dist.locate_file(entry))).resolve()
         try:
             if inst_file_path.parent.samefile(bin_path):
                 app_names.add(inst_file_path.name)
@@ -305,7 +305,7 @@ def inspect_venv(
             str(Path(dep_path.parent.name) / dep_path.name) for dep_path in man_paths_of_dependencies[dep]
         ]
 
-    venv_metadata = VenvMetadata(
+    return VenvMetadata(
         apps=apps,
         app_paths=app_paths,
         apps_of_dependencies=apps_of_dependencies,
@@ -317,5 +317,3 @@ def inspect_venv(
         package_version=root_dist.version,
         python_version=venv_python_version,
     )
-
-    return venv_metadata

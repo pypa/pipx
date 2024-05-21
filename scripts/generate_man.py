@@ -5,7 +5,7 @@ import sys
 import textwrap
 from typing import cast
 
-from build_manpages.manpage import Manpage  # type: ignore
+from build_manpages.manpage import Manpage  # type: ignore[import-not-found]
 
 from pipx.main import get_command_parser
 

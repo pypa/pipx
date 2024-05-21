@@ -33,16 +33,14 @@ def process_command_line(argv: List[str]) -> argparse.Namespace:
     # required arguments
     parser.add_argument(
         "primary_package_list",
-        help="Main packages to examine, getting list of " "matching distribution files and dependencies.",
+        help="Main packages to examine, getting list of matching distribution files and dependencies.",
     )
     parser.add_argument("package_list_dir", help="Directory to output package distribution lists.")
 
     # switches/options:
     parser.add_argument("-v", "--verbose", action="store_true", help="Maximum verbosity, especially for pip operations.")
 
-    args = parser.parse_args(argv)
-
-    return args
+    return parser.parse_args(argv)
 
 
 def parse_package_list(package_list_file: Path) -> List[Dict[str, Any]]:

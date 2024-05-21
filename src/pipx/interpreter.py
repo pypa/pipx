@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from packaging import version
+
 from pipx.constants import FETCH_MISSING_PYTHON, WINDOWS
 from pipx.standalone_python import download_python_build_standalone
 from pipx.util import PipxError
@@ -15,11 +17,10 @@ logger = logging.getLogger(__name__)
 
 def has_venv() -> bool:
     try:
-        import venv  # noqa
-
-        return True
+        import venv  # noqa: F401
     except ImportError:
         return False
+    return True
 
 
 class InterpreterResolutionError(PipxError):
@@ -41,16 +42,55 @@ class InterpreterResolutionError(PipxError):
                 message += "The provided version looks like a path, but no executable was found there."
             if potentially_pylauncher:
                 message += (
-                    "The provided version looks like a version for Python Launcher, " "but `py` was not found on PATH."
+                    "The provided version looks like a version, "
+                    "but both the python command and the Python Launcher were not found on PATH."
                 )
         if source == "the python-build-standalone project":
             message += "listed in https://github.com/indygreg/python-build-standalone/releases/latest."
         super().__init__(message, wrap_message)
 
 
+def find_unix_command_python(python_version: str) -> Optional[str]:
+    try:
+        parsed_python_version = version.parse(python_version)
+    except version.InvalidVersion:
+        logger.info(f"Invalid Python version: {python_version}")
+        return None
+
+    if (
+        parsed_python_version.epoch != 0
+        or parsed_python_version.is_devrelease
+        or parsed_python_version.is_postrelease
+        or parsed_python_version.is_prerelease
+    ):
+        logger.info(f"Unsupported Python version: {python_version}")
+        return None
+
+    # Python command could be `python3` or `python3.x` without micro version component
+    python_command = f"python{'.'.join(python_version.split('.')[:2])}"
+
+    python_path = shutil.which(python_command)
+    if not python_path:
+        logger.info(f"Command `{python_command}` was not found on the system")
+        return None
+
+    if parsed_python_version.micro != 0:
+        logger.warning(
+            f"The command '{python_command}' located at '{python_path}' will be used. "
+            f"It may not match the specified version {python_version} at the micro/patch level."
+        )
+
+    return python_path
+
+
 def find_python_interpreter(python_version: str, fetch_missing_python: bool = False) -> str:
-    if Path(python_version).is_file():
+    if Path(python_version).is_file() or shutil.which(python_version):
         return python_version
+
+    if not WINDOWS:
+        python_unix_command = find_unix_command_python(python_version)
+        if python_unix_command:
+            return python_unix_command
 
     try:
         py_executable = find_py_launcher_python(python_version)
@@ -59,13 +99,9 @@ def find_python_interpreter(python_version: str, fetch_missing_python: bool = Fa
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         raise InterpreterResolutionError(source="py launcher", version=python_version) from e
 
-    if shutil.which(python_version):
-        return python_version
-
     if fetch_missing_python or FETCH_MISSING_PYTHON:
         try:
-            standalone_executable = download_python_build_standalone(python_version)
-            return standalone_executable
+            return download_python_build_standalone(python_version)
         except PipxError as e:
             raise InterpreterResolutionError(source="the python-build-standalone project", version=python_version) from e
 
@@ -87,7 +123,7 @@ def find_py_launcher_python(python_version: Optional[str] = None) -> Optional[st
     if py and python_version:
         python_semver = python_version
         if python_version.startswith("python"):
-            logging.warn(
+            logger.warning(
                 "Removing `python` from the start of the version, as pylauncher just expects the semantic version"
             )
             python_semver = python_semver.lstrip("python")
@@ -129,7 +165,7 @@ def _get_sys_executable() -> str:
     if WINDOWS:
         return _find_default_windows_python()
     else:
-        return sys.executable
+        return str(Path(sys.executable).resolve())
 
 
 def _get_absolute_python_interpreter(env_python: str) -> str:

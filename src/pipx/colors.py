@@ -2,7 +2,7 @@ import sys
 from typing import Callable
 
 try:
-    import colorama  # type: ignore
+    import colorama  # type: ignore[import-untyped]
 except ImportError:  # Colorama is Windows only package
     colorama = None
 

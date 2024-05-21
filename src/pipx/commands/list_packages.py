@@ -136,7 +136,7 @@ def list_packages(
         )
     if all_venv_problems.invalid_interpreter:
         logger.warning(
-            "\nOne or more packages have a missing python interpreter.\n" "    To fix, execute: pipx reinstall-all"
+            "\nOne or more packages have a missing python interpreter.\n    To fix, execute: pipx reinstall-all"
         )
     if all_venv_problems.missing_metadata:
         logger.warning(

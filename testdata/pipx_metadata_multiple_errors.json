@@ -1,0 +1,65 @@
+{
+    "pipx_spec_version": "0.1",
+    "venvs": {
+        "dotenv": {
+            "metadata": {
+                "injected_packages": {},
+                "main_package": {
+                    "app_paths": [
+                    ],
+                    "app_paths_of_dependencies": {},
+                    "apps": [
+                    ],
+                    "apps_of_dependencies": [],
+                    "include_apps": true,
+                    "include_dependencies": false,
+                    "man_pages": [],
+                    "man_pages_of_dependencies": [],
+                    "man_paths": [],
+                    "man_paths_of_dependencies": {},
+                    "package": "dotenv",
+                    "package_or_url": "dotenv",
+                    "package_version": "0.0.5",
+                    "pip_args": [],
+                    "suffix": ""
+                },
+                "pipx_metadata_version": "0.4",
+                "python_version": "Python 3.10.12",
+                "source_interpreter": {
+                },
+                "venv_args": []
+            }
+        },
+        "weblate": {
+            "metadata": {
+                "injected_packages": {},
+                "main_package": {
+                    "app_paths": [
+                    ],
+                    "app_paths_of_dependencies": {},
+                    "apps": [
+                    ],
+                    "apps_of_dependencies": [],
+                    "include_apps": true,
+                    "include_dependencies": false,
+                    "man_pages": [
+                    ],
+                    "man_pages_of_dependencies": [],
+                    "man_paths": [
+                    ],
+                    "man_paths_of_dependencies": {},
+                    "package": "weblate",
+                    "package_or_url": "weblate",
+                    "package_version": "4.3.1",
+                    "pip_args": [],
+                    "suffix": ""
+                },
+                "pipx_metadata_version": "0.4",
+                "python_version": "Python 3.10.12",
+                "source_interpreter": {
+                },
+                "venv_args": []
+            }
+        }
+    }
+}

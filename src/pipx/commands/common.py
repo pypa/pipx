@@ -10,7 +10,7 @@ from shutil import which
 from tempfile import TemporaryDirectory
 from typing import Dict, List, Optional, Set, Tuple
 
-import userpath  # type: ignore
+import userpath  # type: ignore[import-not-found]
 from packaging.utils import canonicalize_name
 
 from pipx import paths
@@ -108,7 +108,7 @@ def _copy_package_resource(dest_dir: Path, path: Path, suffix: str = "") -> None
     if not dest.parent.is_dir():
         mkdir(dest.parent)
     if dest.exists():
-        logger.warning(f"{hazard}  Overwriting file {str(dest)} with {str(src)}")
+        logger.warning(f"{hazard}  Overwriting file {dest!s} with {src!s}")
         safe_unlink(dest)
     if src.exists():
         shutil.copy(src, dest)
@@ -129,7 +129,7 @@ def _symlink_package_resource(
         mkdir(symlink_path.parent)
 
     if force:
-        logger.info(f"Force is true. Removing {str(symlink_path)}.")
+        logger.info(f"Force is true. Removing {symlink_path!s}.")
         try:
             symlink_path.unlink()
         except FileNotFoundError:
@@ -141,13 +141,13 @@ def _symlink_package_resource(
     is_symlink = symlink_path.is_symlink()
     if exists:
         if symlink_path.samefile(path):
-            logger.info(f"Same path {str(symlink_path)} and {str(path)}")
+            logger.info(f"Same path {symlink_path!s} and {path!s}")
         else:
             logger.warning(
                 pipx_wrap(
                     f"""
-                    {hazard}  File exists at {str(symlink_path)} and points
-                    to {symlink_path.resolve()}, not {str(path)}. Not
+                    {hazard}  File exists at {symlink_path!s} and points
+                    to {symlink_path.resolve()}, not {path!s}. Not
                     modifying.
                     """,
                     subsequent_indent=" " * 4,
@@ -155,7 +155,7 @@ def _symlink_package_resource(
             )
         return
     if is_symlink and not exists:
-        logger.info(f"Removing existing symlink {str(symlink_path)} since it " "pointed non-existent location")
+        logger.info(f"Removing existing symlink {symlink_path!s} since it pointed non-existent location")
         symlink_path.unlink()
 
     if executable:
@@ -186,22 +186,22 @@ def venv_health_check(venv: Venv, package_name: Optional[str] = None) -> Tuple[V
     if not python_path.is_file():
         return (
             VenvProblems(invalid_interpreter=True),
-            f"   package {red(bold(venv_dir.name))} has invalid " f"interpreter {str(python_path)}\r{hazard}",
+            f"   package {red(bold(venv_dir.name))} has invalid interpreter {python_path!s}\r{hazard}",
         )
     if not venv.package_metadata:
         return (
             VenvProblems(missing_metadata=True),
-            f"   package {red(bold(venv_dir.name))} has missing " f"internal pipx metadata.\r{hazard}",
+            f"   package {red(bold(venv_dir.name))} has missing internal pipx metadata.\r{hazard}",
         )
     if venv_dir.name != canonicalize_name(venv_dir.name):
         return (
             VenvProblems(bad_venv_name=True),
-            f"   package {red(bold(venv_dir.name))} needs its " f"internal data updated.\r{hazard}",
+            f"   package {red(bold(venv_dir.name))} needs its internal data updated.\r{hazard}",
         )
     if venv.package_metadata[package_name].package_version == "":
         return (
             VenvProblems(not_installed=True),
-            f"   package {red(bold(package_name))} {red('is not installed')} " f"in the venv {venv_dir.name}\r{hazard}",
+            f"   package {red(bold(package_name))} {red('is not installed')} in the venv {venv_dir.name}\r{hazard}",
         )
     return (VenvProblems(), "")
 
@@ -350,20 +350,19 @@ def _get_list_output(
 
     if new_install and (exposed_binary_names or unavailable_binary_names):
         output.append("  These apps are now globally available")
-    for name in exposed_binary_names:
-        output.append(f"    - {name}")
-    for name in unavailable_binary_names:
-        output.append(f"    - {red(name)} (symlink missing or pointing to unexpected location)")
+    output.extend(f"    - {name}" for name in exposed_binary_names)
+    output.extend(
+        f"    - {red(name)} (symlink missing or pointing to unexpected location)" for name in unavailable_binary_names
+    )
     if new_install and (exposed_man_pages or unavailable_man_pages):
         output.append("  These manual pages are now globally available")
-    for name in exposed_man_pages:
-        output.append(f"    - {name}")
-    for name in unavailable_man_pages:
-        output.append(f"    - {red(name)} (symlink missing or pointing to unexpected location)")
+    output.extend(f"    - {name}" for name in exposed_man_pages)
+    output.extend(
+        f"    - {red(name)} (symlink missing or pointing to unexpected location)" for name in unavailable_man_pages
+    )
     if injected_packages:
         output.append("    Injected Packages:")
-        for name in injected_packages:
-            output.append(f"      - {name} {injected_packages[name].package_version}")
+        output.extend(f"      - {name} {injected_packages[name].package_version}" for name in injected_packages)
     return "\n".join(output)
 
 
@@ -479,7 +478,7 @@ def warn_if_not_on_path(local_bin_dir: Path) -> None:
                 environment variable. These apps will not be globally
                 accessible until your PATH is updated. Run `pipx ensurepath` to
                 automatically add it, or manually modify your PATH in your
-                shell's config file (i.e. ~/.bashrc).
+                shell's config file (e.g. ~/.bashrc).
                 """,
                 subsequent_indent=" " * 4,
             )

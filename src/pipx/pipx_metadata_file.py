@@ -1,7 +1,8 @@
 import json
 import logging
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from pipx.emojis import hazard
 from pipx.util import PipxError, pipx_wrap
@@ -21,12 +22,13 @@ class JsonEncoderHandlesPath(json.JSONEncoder):
 
 
 def _json_decoder_object_hook(json_dict: Dict[str, Any]) -> Union[Dict[str, Any], Path]:
-    if json_dict.get("__type__", None) == "Path" and "__Path__" in json_dict:
+    if json_dict.get("__type__") == "Path" and "__Path__" in json_dict:
         return Path(json_dict["__Path__"])
     return json_dict
 
 
-class PackageInfo(NamedTuple):
+@dataclass(frozen=True)
+class PackageInfo:
     package: Optional[str]
     package_or_url: Optional[str]
     pip_args: List[str]
@@ -37,10 +39,10 @@ class PackageInfo(NamedTuple):
     apps_of_dependencies: List[str]
     app_paths_of_dependencies: Dict[str, List[Path]]
     package_version: str
-    man_pages: List[str] = []
-    man_paths: List[Path] = []
-    man_pages_of_dependencies: List[str] = []
-    man_paths_of_dependencies: Dict[str, List[Path]] = {}
+    man_pages: List[str] = field(default_factory=list)
+    man_paths: List[Path] = field(default_factory=list)
+    man_pages_of_dependencies: List[str] = field(default_factory=list)
+    man_paths_of_dependencies: Dict[str, List[Path]] = field(default_factory=dict)
     suffix: str = ""
     pinned: bool = False
 
@@ -87,11 +89,11 @@ class PipxMetadata:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "main_package": self.main_package._asdict(),
+            "main_package": asdict(self.main_package),
             "python_version": self.python_version,
             "source_interpreter": self.source_interpreter,
             "venv_args": self.venv_args,
-            "injected_packages": {name: data._asdict() for (name, data) in self.injected_packages.items()},
+            "injected_packages": {name: asdict(data) for (name, data) in self.injected_packages.items()},
             "pipx_metadata_version": self.__METADATA_VERSION__,
         }
 

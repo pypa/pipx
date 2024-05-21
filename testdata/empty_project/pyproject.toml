@@ -8,7 +8,9 @@ requires = [
 name = "empty-project"
 version = "0.1.0"
 description = "Empty Python Project"
-authors = [{ name = "My Name", email = "me@example.com" }]
+authors = [
+  { name = "My Name", email = "me@example.com" },
+]
 requires-python = ">=3.8"
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",

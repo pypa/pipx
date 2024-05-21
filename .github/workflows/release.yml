@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  pull_request_target:
+    types:
+      - closed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  default-python: "3.12"
+
+jobs:
+  pypi-publish:
+    name: Publish pipx to PyPI
+    if: >-
+      github.event.pull_request.merged == true
+      && contains(github.event.pull_request.labels.*.name, 'release-version')
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/p/pipx
+    permissions:
+      id-token: write
+    steps:
+      - name: Checkout ${{ github.ref }}
+        uses: actions/checkout@v4
+      - name: Set up Python ${{ env.default-python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.default-python }}
+          cache: "pip"
+      - name: Install nox
+        run: pip install nox
+      - name: Build  sdist and wheel
+        run: nox --error-on-missing-interpreters --non-interactive --session build
+      - name: Publish to PyPi
+        uses: pypa/gh-action-pypi-publish@v1.8.14
+
+  create-release:
+    name: Create a release on GitHub's UI
+    needs: pypi-publish
+    runs-on: ubuntu-latest
+    outputs:
+      release-tag: ${{ steps.get-version.outputs.version }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract version to be released
+        id: get-version
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "version=${TITLE/: [[:alnum:]]*} }" >> "$GITHUB_OUTPUT"
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          generateReleaseNotes: true
+          tag: "${{ steps.get-version.outputs.version }}"
+          commit: ${{ github.event.pull_request.merge_commit_sha }}
+
+  upload-zipapp:
+    name: Upload zipapp to GitHub Release
+    needs: create-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: dawidd6/action-download-artifact@v3
+        with:
+          name: pipx.pyz
+          workflow: tests.yml
+          workflow_conclusion: success
+          pr: ${{ github.event.pull_request.number }}
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: pipx.pyz
+          tag_name: "${{ needs.create-release.outputs.release-tag }}"
