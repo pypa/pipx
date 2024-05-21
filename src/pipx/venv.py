@@ -400,8 +400,13 @@ class Venv:
         dists = Distribution.discover(name=self.main_package_name, path=[str(get_site_packages(self.python_path))])
         for dist in dists:
             for ep in dist.entry_points:
-                if ep.group == "pipx.run" and ep.name == app:
-                    return ep
+                if ep.group == "pipx.run":
+                    if ep.name == app:
+                        return ep
+                    # Try to infer app name from dist's metadata if given
+                    # local path
+                    if Path(app).exists() and dist.metadata["Name"] == ep.name:
+                        return ep
         return None
 
     def run_app(self, app: str, filename: str, app_args: List[str]) -> NoReturn:
@@ -416,6 +421,7 @@ class Venv:
         # "entry_point.module" and "entry_point.attr" instead.
         match = _entry_point_value_pattern.match(entry_point.value)
         assert match is not None, "invalid entry point"
+        logger.info("Using discovered entry point for 'pipx run'")
         module, attr = match.group("module", "attr")
         code = f"import sys, {module}\nsys.argv[0] = {entry_point.name!r}\nsys.exit({module}.{attr}())\n"
         exec_app([str(self.python_path), "-c", code] + app_args)
