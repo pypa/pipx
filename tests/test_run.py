@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 import textwrap
+from pathlib import Path
 from unittest import mock
 
 import pytest  # type: ignore[import-not-found]
@@ -401,3 +402,15 @@ def test_run_shared_lib_as_app(pipx_temp_env, monkeypatch, capfd):
     run_pipx_cli_exit(["run", "pip", "--help"])
     captured = capfd.readouterr()
     assert "pip <command> [options]" in captured.out
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_local_path_entry_point(pipx_temp_env, caplog, root):
+    empty_project_path = (Path("testdata") / "empty_project").as_posix()
+    os.chdir(root)
+
+    caplog.set_level(logging.INFO)
+
+    run_pipx_cli_exit(["run", empty_project_path])
+
+    assert "Using discovered entry point for 'pipx run'" in caplog.text

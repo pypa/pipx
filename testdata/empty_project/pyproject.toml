@@ -1,7 +1,8 @@
 [build-system]
+build-backend = "setuptools.build_meta"
+
 requires = [
   "setuptools",
-  "wheel",
 ]
 
 [project]
@@ -21,3 +22,4 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
 ]
 scripts.empty-project = "empty_project.main:cli"
+entry-points."pipx.run".empty-project = "empty_project.main:cli"
