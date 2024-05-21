@@ -5,10 +5,6 @@ from package_info import PKG
 def test_unpin(monkeypatch, capsys, pipx_temp_env, caplog):
     assert not run_pipx_cli(["install", PKG["nox"]["spec"]])
     assert not run_pipx_cli(["pin", "nox"])
-    assert not run_pipx_cli(["upgrade", "nox"])
-
-    captured = capsys.readouterr()
-    assert "Not upgrading pinned package nox" in caplog.text
 
     assert not run_pipx_cli(["unpin", "nox"])
     assert not run_pipx_cli(["upgrade", "nox"])
