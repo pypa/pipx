@@ -242,5 +242,5 @@ def test_list_pinned_packages_include_injected(pipx_temp_env, monkeypatch, capsy
     captured = capsys.readouterr()
 
     assert "nox 2023.4.22" in captured.out
-    assert "pylint 2.3.1" in captured.out
+    assert "pylint 3.0.4" in captured.out
     assert "black 22.8.0 (injected in venv pylint)" in captured.out

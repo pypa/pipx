@@ -786,6 +786,11 @@ def _add_interpreter(
         help="Prune unused interpreters",
         description="Prune unused interpreters",
     )
+    s.add_parser(
+        "upgrade",
+        help="Upgrade installed interpreters to the latest available micro/patch version",
+        description="Upgrade installed interpreters to the latest available micro/patch version",
+    )
     return p
 
 
