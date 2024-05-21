@@ -595,7 +595,7 @@ def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.
         "--injected-only",
         action="store_true",
         help=(
-            "Pin injected packages in main app only, so that they will not be upgraded during `pipx upgrade-all --include-injected`. "
+            "Pin injected packages in venv only, so that they will not be upgraded during upgrade operations. "
             "Note that this should not be passed if you wish to pin both main package and injected packages."
         ),
     )
@@ -610,7 +610,7 @@ def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.
 def _add_unpin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "unpin",
-        description="Unpin the specified package and all injected packages in its venv to allow them being upgraded",
+        description="Unpin the specified package and all injected packages in its venv to allow them to be upgraded",
         parents=[shared_parser],
     )
     p.add_argument("package", help="Installed package to unpin")
