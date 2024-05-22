@@ -40,9 +40,7 @@ def pin(
 
     if main_package_metadata.pinned:
         logger.warning(f"Package {main_package_metadata.package} already pinned {sleep}")
-    elif skip and not injected_only:
-        raise PipxError("--skip must be used with --injected-only")
-    elif injected_only:
+    elif injected_only or skip:
         pinned_packages_count = 0
         pinned_packages_list = []
         for package_name in venv.package_metadata:
@@ -50,11 +48,11 @@ def pin(
                 continue
 
             if venv.package_metadata[package_name].pinned:
-                logger.warning(f"{package_name} was pinned. Not modifying.")
+                print(f"{package_name} was pinned. Not modifying.")
                 continue
 
             pinned_packages_count += _update_pin_info(venv, package_name, is_main_package=False, unpin=False)
-            pinned_packages_list.append(package_name)
+            pinned_packages_list.append(f"{package_name} {venv.package_metadata[package_name].package_version}")
 
         if pinned_packages_count != 0:
             print(bold(f"Pinned {pinned_packages_count} packages in venv {venv.name}"))

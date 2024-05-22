@@ -603,7 +603,7 @@ def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.
         "--skip",
         nargs="+",
         default=[],
-        help="Skip these packages. Must be used with `--injected-only`.",
+        help="Skip these packages. Implies `--injected-only`.",
     )
 
 
@@ -776,16 +776,8 @@ def _add_interpreter(
         description="Get help for commands with pipx interpreter COMMAND --help",
         dest="interpreter_command",
     )
-    s.add_parser(
-        "list",
-        help="List available interpreters",
-        description="List available interpreters",
-    )
-    s.add_parser(
-        "prune",
-        help="Prune unused interpreters",
-        description="Prune unused interpreters",
-    )
+    s.add_parser("list", help="List available interpreters", description="List available interpreters")
+    s.add_parser("prune", help="Prune unused interpreters", description="Prune unused interpreters")
     s.add_parser(
         "upgrade",
         help="Upgrade installed interpreters to the latest available micro/patch version",
