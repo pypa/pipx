@@ -4,6 +4,7 @@ from pipx.commands.inject import inject
 from pipx.commands.install import install, install_all
 from pipx.commands.interpreter import list_interpreters, prune_interpreters, upgrade_interpreters
 from pipx.commands.list_packages import list_packages
+from pipx.commands.pin import pin, unpin
 from pipx.commands.reinstall import reinstall, reinstall_all
 from pipx.commands.run import run
 from pipx.commands.run_pip import run_pip
@@ -30,5 +31,7 @@ __all__ = [
     "environment",
     "list_interpreters",
     "prune_interpreters",
+    "pin",
+    "unpin",
     "upgrade_interpreters",
 ]

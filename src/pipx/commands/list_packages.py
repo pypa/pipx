@@ -84,11 +84,33 @@ def list_json(venv_dirs: Collection[Path]) -> VenvProblems:
     return all_venv_problems
 
 
+def list_pinned(venv_dirs: Collection[Path], include_injected: bool) -> VenvProblems:
+    all_venv_problems = VenvProblems()
+    for venv_dir in venv_dirs:
+        venv_metadata, venv_problems, warning_str = get_venv_metadata_summary(venv_dir)
+        if venv_problems.any_():
+            logger.warning(warning_str)
+        else:
+            if venv_metadata.main_package.pinned:
+                print(
+                    venv_metadata.main_package.package,
+                    venv_metadata.main_package.package_version,
+                )
+            if include_injected:
+                for pkg, info in venv_metadata.injected_packages.items():
+                    if info.pinned:
+                        print(pkg, info.package_version, f"(injected in venv {venv_dir.name})")
+        all_venv_problems.or_(venv_problems)
+
+    return all_venv_problems
+
+
 def list_packages(
     venv_container: VenvContainer,
     include_injected: bool,
     json_format: bool,
     short_format: bool,
+    pinned_only: bool,
 ) -> ExitCode:
     """Returns pipx exit code."""
     venv_dirs: Collection[Path] = sorted(venv_container.iter_venv_dirs())
@@ -99,6 +121,8 @@ def list_packages(
         all_venv_problems = list_json(venv_dirs)
     elif short_format:
         all_venv_problems = list_short(venv_dirs)
+    elif pinned_only:
+        all_venv_problems = list_pinned(venv_dirs, include_injected)
     else:
         if not venv_dirs:
             return EXIT_CODE_OK

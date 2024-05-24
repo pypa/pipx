@@ -213,3 +213,34 @@ def test_list_does_not_trigger_maintenance(pipx_temp_env, caplog):
     run_pipx_cli(["list", "--skip-maintenance"])
     assert not shared_libs.shared_libs.has_been_updated_this_run
     assert shared_libs.shared_libs.needs_upgrade
+
+
+def test_list_pinned_packages(pipx_temp_env, monkeypatch, capsys):
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["black"]["spec"]])
+    captured = capsys.readouterr()
+
+    assert not run_pipx_cli(["pin", "black"])
+    assert not run_pipx_cli(["list", "--pinned"])
+
+    captured = capsys.readouterr()
+    assert "black 22.8.0" in captured.out
+    assert "pycowsay 0.0.0.2" not in captured.out
+
+
+def test_list_pinned_packages_include_injected(pipx_temp_env, monkeypatch, capsys):
+    assert not run_pipx_cli(["install", PKG["pylint"]["spec"], PKG["nox"]["spec"]])
+    assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])
+
+    assert not run_pipx_cli(["pin", "pylint"])
+    assert not run_pipx_cli(["pin", "nox"])
+
+    captured = capsys.readouterr()
+
+    assert not run_pipx_cli(["list", "--pinned", "--include-injected"])
+
+    captured = capsys.readouterr()
+
+    assert "nox 2023.4.22" in captured.out
+    assert "pylint 3.0.4" in captured.out
+    assert "black 22.8.0 (injected in venv pylint)" in captured.out

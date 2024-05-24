@@ -262,7 +262,7 @@ class Venv:
         if pip_process.returncode:
             raise PipxError(f"Error installing {full_package_description(package_name, package_or_url)}.")
 
-        self._update_package_metadata(
+        self.update_package_metadata(
             package_name=package_name,
             package_or_url=package_or_url,
             pip_args=pip_args,
@@ -349,7 +349,7 @@ class Venv:
         logger.info(f"get_venv_metadata_for_package: {1e3*(time.time()-data_start):.0f}ms")
         return venv_metadata
 
-    def _update_package_metadata(
+    def update_package_metadata(
         self,
         package_name: str,
         package_or_url: str,
@@ -358,6 +358,7 @@ class Venv:
         include_apps: bool,
         is_main_package: bool,
         suffix: str = "",
+        pinned: bool = False,
     ) -> None:
         venv_package_metadata = self.get_venv_metadata_for_package(package_name, get_extras(package_or_url))
         package_info = PackageInfo(
@@ -376,6 +377,7 @@ class Venv:
             man_paths_of_dependencies=venv_package_metadata.man_paths_of_dependencies,
             package_version=venv_package_metadata.package_version,
             suffix=suffix,
+            pinned=pinned,
         )
         if is_main_package:
             self.pipx_metadata.main_package = package_info
@@ -455,7 +457,7 @@ class Venv:
             pip_process = self._run_pip(["--no-input", "install"] + pip_args + ["--upgrade", package_or_url])
         subprocess_post_check(pip_process)
 
-        self._update_package_metadata(
+        self.update_package_metadata(
             package_name=package_name,
             package_or_url=package_or_url,
             pip_args=pip_args,
