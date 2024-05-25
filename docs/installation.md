@@ -90,7 +90,7 @@ terminal session and verify `pipx` does run.
 ### Using pipx without installing (via zipapp)
 
 The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a
-Python 3.7+ interpreter:
+Python 3.8+ interpreter:
 
 ```
 python pipx.pyz ensurepath
