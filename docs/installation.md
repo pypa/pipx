@@ -1,6 +1,6 @@
 ## System Requirements
 
-python 3.7+ is required to install pipx. pipx can run binaries from packages with Python 3.3+. Don't have Python 3.7 or
+python 3.8+ is required to install pipx. pipx can run binaries from packages with Python 3.3+. Don't have Python 3.8 or
 later? See [Python 3 Installation & Setup Guide](https://realpython.com/installing-python/).
 
 You also need to have `pip` installed on your machine for `python3`. Installing it varies from system to system. Consult
@@ -90,7 +90,7 @@ terminal session and verify `pipx` does run.
 ### Using pipx without installing (via zipapp)
 
 The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a
-Python 3.7+ interpreter:
+Python 3.8+ interpreter:
 
 ```
 python pipx.pyz ensurepath

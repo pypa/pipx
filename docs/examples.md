@@ -30,7 +30,7 @@ pipx enables you to test various combinations of Python versions and package ver
 ```
 pipx run BINARY  # latest version of binary is run with python3
 pipx run --spec PACKAGE==2.0.0 BINARY  # specific version of package is run
-pipx run --python python3.7 BINARY  # Installed and invoked with specific Python version
+pipx run --python python3.10 BINARY  # Installed and invoked with specific Python version
 pipx run --python python3.9 --spec PACKAGE=1.7.3 BINARY
 pipx run --spec git+https://url.git BINARY  # latest version on default branch is run
 pipx run --spec git+https://url.git@branch BINARY
@@ -142,10 +142,10 @@ however, the installed packages won't be recognised as "injected".
 > pipx list
 venvs are in /Users/user/.local/pipx/venvs
 binaries are exposed on your $PATH at /Users/user/.local/bin
-   package black 18.9b0, Python 3.7.0
+   package black 18.9b0, Python 3.10.0
     - black
     - blackd
-   package pipx 0.10.0, Python 3.7.0
+   package pipx 0.10.0, Python 3.10.0
     - pipx
 
 > pipx list --short
