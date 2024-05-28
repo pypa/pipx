@@ -37,7 +37,7 @@ _For comparison to other tools including pipsi, see
 ```
 brew install pipx
 pipx ensurepath
-sudo pipx ensurepath --global # optional to allow pipx actions with --global argument
+sudo pipx --global ensurepath # optional to allow pipx actions with --global argument
 ```
 
 Upgrade pipx with `brew update && brew upgrade pipx`.
