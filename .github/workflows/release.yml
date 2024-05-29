@@ -12,11 +12,31 @@ env:
   default-python: "3.12"
 
 jobs:
-  pypi-publish:
-    name: Publish pipx to PyPI
+  create-tag:
+    name: Create the Git tag
     if: >-
       github.event.pull_request.merged == true
       && contains(github.event.pull_request.labels.*.name, 'release-version')
+    runs-on: ubuntu-latest
+    outputs:
+      release-tag: ${{ steps.get-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract version to be released
+        id: get-version
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "version=${TITLE/: [[:alnum:]]*}" >> "$GITHUB_OUTPUT"
+      - name: Bump version and push tag
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          custom_tag: "${{ steps.get-version.outputs.version }}"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  pypi-publish:
+    name: Publish pipx to PyPI
+    needs: create-tag
     runs-on: ubuntu-latest
     environment:
       name: release
@@ -24,8 +44,10 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - name: Checkout ${{ github.ref }}
+      - name: Checkout ${{ needs.create-tag.outputs.release-tag }}
         uses: actions/checkout@v4
+        with:
+          ref: "${{ needs.create-tag.outputs.release-tag }}"
       - name: Set up Python ${{ env.default-python }}
         uses: actions/setup-python@v5
         with:
@@ -35,31 +57,26 @@ jobs:
         run: pip install nox
       - name: Build  sdist and wheel
         run: nox --error-on-missing-interpreters --non-interactive --session build
-      - name: Publish to PyPi
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@v1.8.14
 
   create-release:
     name: Create a release on GitHub's UI
-    needs: pypi-publish
+<<<<<<< HEAD
+=======
+    if: always()
+>>>>>>> Create Git tag before releasing, ideally
+    needs: [pypi-publish, create-tag]
     runs-on: ubuntu-latest
-    outputs:
-      release-tag: ${{ steps.get-version.outputs.version }}
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Extract version to be released
-        id: get-version
-        env:
-          TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          echo "version=${TITLE/: [[:alnum:]]*} }" >> "$GITHUB_OUTPUT"
       - name: Create release
-        uses: ncipollo/release-action@v1
+        uses: softprops/action-gh-release@v2
         with:
-          generateReleaseNotes: true
-          tag: "${{ steps.get-version.outputs.version }}"
-          commit: ${{ github.event.pull_request.merge_commit_sha }}
+          generate_release_notes: true
+          tag_name: "${{ needs.create-tag.outputs.release-tag }}"
 
   upload-zipapp:
     name: Upload zipapp to GitHub Release
