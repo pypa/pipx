@@ -18,12 +18,12 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 - Introduce `pipx pin` and `pipx unpin` commands, which can be used to pin or unpin the version
   of an installed package, so it will not be upgraded by `pipx upgrade` or `pipx upgrade-all`. ([#891](https://github.com/pypa/pipx/issues/891))
 - Add a new option `--pinned` to `pipx list` command for listing pinned packages only. ([#891](https://github.com/pypa/pipx/issues/891))
-- add `pipx interpreter upgrade` command to upgrade local standalone python in micro/patch level ([#1249](https://github.com/pypa/pipx/issues/1249))
+- Add `pipx interpreter upgrade` command to upgrade local standalone python in micro/patch level ([#1249](https://github.com/pypa/pipx/issues/1249))
 - Add `--requirement` option to `inject` command to read list of packages from a text file. ([#1252](https://github.com/pypa/pipx/issues/1252))
 - Add `pipx upgrade-shared` command, to create/upgrade shared libraries as a standalone command. ([#1316](https://github.com/pypa/pipx/issues/1316))
 - Allow `upgrade` command to accept multiple packages as arguments. ([#1336](https://github.com/pypa/pipx/issues/1336))
 - Support Python version for `--python` arg when py launcher is not available ([#1342](https://github.com/pypa/pipx/issues/1342))
-- make `install-all` gather errors in batch ([#1348](https://github.com/pypa/pipx/issues/1348))
+- Make `install-all` gather errors in batch ([#1348](https://github.com/pypa/pipx/issues/1348))
 
 ### Bugfixes
 
@@ -33,7 +33,7 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 - Only show `--python` and `--force` flag warning if both flags are present ([#1304](https://github.com/pypa/pipx/issues/1304))
 - Don't allow paths to be passed into `pipx reinstall`, as this might wreak havoc. ([#1324](https://github.com/pypa/pipx/issues/1324))
 - Make the Python `venv` module arguments work with `upgrade --install` ([#1344](https://github.com/pypa/pipx/issues/1344))
-- fix version check for standalone python ([#1349](https://github.com/pypa/pipx/issues/1349))
+- Fix version check for standalone python ([#1349](https://github.com/pypa/pipx/issues/1349))
 - Validate package(s) argument should not be path(s). ([#1354](https://github.com/pypa/pipx/issues/1354))
 - Validate whether a package is an URL correctly. ([#1355](https://github.com/pypa/pipx/issues/1355))
 - Support python3.8 for standalone python builds ([#1375](https://github.com/pypa/pipx/issues/1375))
