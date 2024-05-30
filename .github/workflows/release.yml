@@ -64,10 +64,6 @@ jobs:
 
   create-release:
     name: Create a release on GitHub's UI
-<<<<<<< HEAD
-=======
-    if: always()
->>>>>>> Create Git tag before releasing, ideally
     needs: [pypi-publish, create-tag]
     runs-on: ubuntu-latest
     permissions:
