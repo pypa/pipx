@@ -20,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release-tag: ${{ steps.get-version.outputs.version }}
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Extract version to be released
