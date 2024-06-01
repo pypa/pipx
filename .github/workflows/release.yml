@@ -12,35 +12,11 @@ env:
   default-python: "3.12"
 
 jobs:
-  pypi-publish:
-    name: Publish pipx to PyPI
+  create-tag:
+    name: Create the Git tag
     if: >-
       github.event.pull_request.merged == true
       && contains(github.event.pull_request.labels.*.name, 'release-version')
-    runs-on: ubuntu-latest
-    environment:
-      name: release
-      url: https://pypi.org/p/pipx
-    permissions:
-      id-token: write
-    steps:
-      - name: Checkout ${{ github.ref }}
-        uses: actions/checkout@v4
-      - name: Set up Python ${{ env.default-python }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.default-python }}
-          cache: "pip"
-      - name: Install nox
-        run: pip install nox
-      - name: Build  sdist and wheel
-        run: nox --error-on-missing-interpreters --non-interactive --session build
-      - name: Publish to PyPi
-        uses: pypa/gh-action-pypi-publish@v1.8.14
-
-  create-release:
-    name: Create a release on GitHub's UI
-    needs: pypi-publish
     runs-on: ubuntu-latest
     outputs:
       release-tag: ${{ steps.get-version.outputs.version }}
@@ -53,13 +29,52 @@ jobs:
         env:
           TITLE: ${{ github.event.pull_request.title }}
         run: |
-          echo "version=${TITLE/: [[:alnum:]]*} }" >> "$GITHUB_OUTPUT"
-      - name: Create release
-        uses: ncipollo/release-action@v1
+          echo "version=${TITLE/: [[:alnum:]]*}" >> "$GITHUB_OUTPUT"
+      - name: Bump version and push tag
+        uses: mathieudutour/github-tag-action@v6.2
         with:
-          generateReleaseNotes: true
-          tag: "${{ steps.get-version.outputs.version }}"
-          commit: ${{ github.event.pull_request.merge_commit_sha }}
+          custom_tag: "${{ steps.get-version.outputs.version }}"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  pypi-publish:
+    name: Publish pipx to PyPI
+    needs: create-tag
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/p/pipx
+    permissions:
+      id-token: write
+    steps:
+      - name: Checkout ${{ needs.create-tag.outputs.release-tag }}
+        uses: actions/checkout@v4
+        with:
+          ref: "${{ needs.create-tag.outputs.release-tag }}"
+      - name: Set up Python ${{ env.default-python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.default-python }}
+          cache: "pip"
+      - name: Install nox
+        run: pip install nox
+      - name: Build  sdist and wheel
+        run: nox --error-on-missing-interpreters --non-interactive --session build
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.8.14
+
+  create-release:
+    name: Create a release on GitHub's UI
+    needs: [pypi-publish, create-tag]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          tag_name: "${{ needs.create-tag.outputs.release-tag }}"
 
   upload-zipapp:
     name: Upload zipapp to GitHub Release
