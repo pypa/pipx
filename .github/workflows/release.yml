@@ -1,6 +1,7 @@
 name: Release
 
 on:
+  workflow_dispatch:
   pull_request_target:
     types:
       - closed
