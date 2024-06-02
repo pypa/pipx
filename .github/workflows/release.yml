@@ -37,7 +37,7 @@ jobs:
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
           else
-            TITLE=${{ github.event.pull_request.title }}
+            TITLE="${{ github.event.pull_request.title }}"
             echo "version=${TITLE/: [[:alnum:]]*}" >> "$GITHUB_OUTPUT"
           fi
       - name: Bump version and push tag
