@@ -2,6 +2,10 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release"
+        required: true
   pull_request_target:
     types:
       - closed
@@ -16,6 +20,7 @@ jobs:
   create-tag:
     name: Create the Git tag
     if: >-
+      github.event_name == 'workflow_dispatch' ||
       github.event.pull_request.merged == true
       && contains(github.event.pull_request.labels.*.name, 'release-version')
     runs-on: ubuntu-latest
@@ -27,10 +32,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Extract version to be released
         id: get-version
-        env:
-          TITLE: ${{ github.event.pull_request.title }}
         run: |
-          echo "version=${TITLE/: [[:alnum:]]*}" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            TITLE=${{ github.event.pull_request.title }}
+            echo "version=${TITLE/: [[:alnum:]]*}" >> "$GITHUB_OUTPUT"
+          fi
       - name: Bump version and push tag
         uses: mathieudutour/github-tag-action@v6.2
         with:
