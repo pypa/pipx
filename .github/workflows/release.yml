@@ -104,4 +104,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: pipx.pyz
-          tag_name: "${{ needs.create-release.outputs.release-tag }}"
+          tag_name: "${{ needs.create-tag.outputs.release-tag }}"
