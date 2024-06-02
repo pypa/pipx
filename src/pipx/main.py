@@ -587,6 +587,7 @@ def _add_uninject(subparsers, venv_completer: VenvCompleter, shared_parser: argp
 def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "pin",
+        help="Pin the specified package to prevent it from being upgraded",
         description="Pin the specified package to prevent it from being upgraded",
         parents=[shared_parser],
     )
@@ -610,6 +611,7 @@ def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.
 def _add_unpin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "unpin",
+        help="Unpin the specified package",
         description="Unpin the specified package and all injected packages in its venv to allow them to be upgraded",
         parents=[shared_parser],
     )
