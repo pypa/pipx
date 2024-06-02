@@ -6,6 +6,7 @@ on:
       version:
         description: "Version to release"
         required: true
+        type: string
   pull_request_target:
     types:
       - closed
