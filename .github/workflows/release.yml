@@ -37,7 +37,7 @@ jobs:
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
           else
-            TITLE=${{ github.event.pull_request.title }}
+            TITLE="${{ github.event.pull_request.title }}"
             echo "version=${TITLE/: [[:alnum:]]*}" >> "$GITHUB_OUTPUT"
           fi
       - name: Bump version and push tag
@@ -68,7 +68,7 @@ jobs:
           cache: "pip"
       - name: Install nox
         run: pip install nox
-      - name: Build  sdist and wheel
+      - name: Build sdist and wheel
         run: nox --error-on-missing-interpreters --non-interactive --session build
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@v1.8.14
@@ -89,19 +89,26 @@ jobs:
 
   upload-zipapp:
     name: Upload zipapp to GitHub Release
-    needs: create-release
+    needs: [create-release, create-tag]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: dawidd6/action-download-artifact@v3
+      - name: Checkout ${{ needs.create-tag.outputs.release-tag }}
+        uses: actions/checkout@v4
         with:
-          name: pipx.pyz
-          workflow: tests.yml
-          workflow_conclusion: success
-          pr: ${{ github.event.pull_request.number }}
+          ref: "${{ needs.create-tag.outputs.release-tag }}"
+      - name: Set up Python ${{ env.default-python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.default-python }}
+          cache: "pip"
+      - name: Install nox
+        run: pip install nox
+      - name: Build zipapp
+        run: nox --error-on-missing-interpreters --non-interactive --session zipapp
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
           files: pipx.pyz
-          tag_name: "${{ needs.create-release.outputs.release-tag }}"
+          tag_name: "${{ needs.create-tag.outputs.release-tag }}"
