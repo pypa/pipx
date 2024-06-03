@@ -89,7 +89,7 @@ jobs:
 
   upload-zipapp:
     name: Upload zipapp to GitHub Release
-    needs: create-tag
+    needs: [create-release, create-tag]
     runs-on: ubuntu-latest
     permissions:
       contents: write
