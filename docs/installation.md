@@ -223,3 +223,62 @@ You can easily get your shell's tab completions working by following instruction
 ```
 pipx completions
 ```
+
+## Moving your pipx installation
+
+The below code snippets show how to move your pipx installation to a new directory.
+As an example, they move from a non-default location to the current default locations.
+If you wish to move to a different location, just replace the `NEW_LOCATION` value.
+
+### MacOS
+
+Current default location: `~/.local`
+
+```bash
+NEW_LOCATION=~/.local
+cache_dir=$(pipx environment --value PIPX_VENV_CACHEDIR)
+logs_dir=$(pipx environment --value PIPX_LOG_DIR)
+trash_dir=$(pipx environment --value PIPX_TRASH_DIR)
+home_dir=$(pipx environment --value PIPX_HOME)
+rm -rf "$cache_dir" "$logs_dir" "$trash_dir"
+mkdir -p $NEW_LOCATION && mv "$home_dir" $NEW_LOCATION
+pipx reinstall-all
+```
+
+### Linux
+
+Current default location: `~/.local/share`
+
+```bash
+cache_dir=$(pipx environment --value PIPX_VENV_CACHEDIR)
+logs_dir=$(pipx environment --value PIPX_LOG_DIR)
+trash_dir=$(pipx environment --value PIPX_TRASH_DIR)
+home_dir=$(pipx environment --value PIPX_HOME)
+# If you wish another location, replace the if block below
+# and set `NEW_LOCATION` explicitly
+if [ -n "$XDG_DATA_HOME" ]; then
+    NEW_LOCATION="$XDG_DATA_HOME"
+else
+    NEW_LOCATION="$HOME/.local/share"
+fi
+rm -rf $cache_dir $logs_dir $trash_dir
+mkdir -p $NEW_LOCATION && mv $home_dir $NEW_LOCATION
+pipx reinstall-all
+```
+
+### Windows
+
+Requires bash (for example `git bash`)
+
+Current default location: `~`
+
+```bash
+NEW_LOCATION=~
+cache_dir=$(pipx environment --value PIPX_VENV_CACHEDIR)
+logs_dir=$(pipx environment --value PIPX_LOG_DIR)
+trash_dir=$(pipx environment --value PIPX_TRASH_DIR)
+home_dir=$(pipx environment --value PIPX_HOME)
+rm -rf $cache_dir $logs_dir $trash_dir
+mv $home_dir $NEW_LOCATION
+pipx reinstall-all
+```
