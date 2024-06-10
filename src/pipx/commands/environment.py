@@ -17,6 +17,7 @@ def environment(value: str) -> ExitCode:
         "PIPX_DEFAULT_PYTHON",
         "PIPX_FETCH_MISSING_PYTHON",
         "USE_EMOJI",
+        "PIPX_HOME_ALLOW_SPACE",
     ]
     derived_values = {
         "PIPX_HOME": paths.ctx.home,
@@ -30,6 +31,7 @@ def environment(value: str) -> ExitCode:
         "PIPX_STANDALONE_PYTHON_CACHEDIR": paths.ctx.standalone_python_cachedir,
         "PIPX_DEFAULT_PYTHON": DEFAULT_PYTHON,
         "USE_EMOJI": str(EMOJI_SUPPORT).lower(),
+        "PIPX_HOME_ALLOW_SPACE": str(paths.ctx.allow_spaces_in_home_path).lower(),
     }
     if value is None:
         print("Environment variables (set by user):")

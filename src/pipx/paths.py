@@ -6,7 +6,7 @@ from typing import List, Optional, Union
 from platformdirs import user_cache_path, user_data_path, user_log_path
 
 from pipx.constants import LINUX, WINDOWS
-from pipx.emojis import hazard
+from pipx.emojis import hazard, strtobool
 from pipx.util import pipx_wrap
 
 if LINUX:
@@ -106,12 +106,16 @@ class _PathContext:
     def standalone_python_cachedir(self) -> Path:
         return self.home / "py"
 
+    @property
+    def allow_spaces_in_home_path(self) -> bool:
+        return strtobool(os.getenv("PIPX_HOME_ALLOW_SPACE", "0"))
+
     def log_warnings(self):
-        if " " in str(self.home):
+        if " " in str(self.home) and not self.allow_spaces_in_home_path:
             logger.warning(
                 pipx_wrap(
                     (
-                        f"{hazard} Found a space in the home path. We heavily discourage this, due to "
+                        f"{hazard} Found a space in the pipx home path. We heavily discourage this, due to "
                         "multiple incompatibilities. Please check our docs for more information on this, "
                         "as well as some pointers on how to migrate to a different home path."
                     ),
