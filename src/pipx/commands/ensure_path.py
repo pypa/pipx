@@ -51,8 +51,9 @@ def get_pipx_user_bin_path() -> Optional[Path]:
     return pipx_bin_path
 
 
-def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
+def ensure_path(location: Path, *, force: bool, prepend: bool = False) -> Tuple[bool, bool]:
     """Ensure location is in user's PATH or add it to PATH.
+    If prepend is True, location will be prepended to PATH, else appended.
     Returns True if location was added to PATH
     """
     location_str = str(location)
@@ -61,7 +62,10 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
     in_current_path = userpath.in_current_path(location_str)
 
     if force or (not in_current_path and not need_shell_restart):
-        path_added = userpath.append(location_str, "pipx")
+        if prepend:
+            path_added = userpath.prepend(location_str, "pipx")
+        else:
+            path_added = userpath.append(location_str, "pipx")
         if not path_added:
             print(
                 pipx_wrap(
@@ -96,7 +100,7 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
     return (path_added, need_shell_restart)
 
 
-def ensure_pipx_paths(force: bool) -> ExitCode:
+def ensure_pipx_paths(force: bool, prepend: bool = False) -> ExitCode:
     """Returns pipx exit code."""
     bin_paths = {paths.ctx.bin_dir}
 
@@ -106,8 +110,10 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
 
     path_added = False
     need_shell_restart = False
+    path_action_str = "prepended to" if prepend else "appended to"
+
     for bin_path in bin_paths:
-        (path_added_current, need_shell_restart_current) = ensure_path(bin_path, force=force)
+        (path_added_current, need_shell_restart_current) = ensure_path(bin_path, prepend=prepend, force=force)
         path_added |= path_added_current
         need_shell_restart |= need_shell_restart_current
 
@@ -128,7 +134,7 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
         logger.warning(
             pipx_wrap(
                 f"""
-                {hazard}  All pipx binary directories have been added to PATH. If you
+                {hazard}  All pipx binary directories have been {path_action_str} PATH. If you
                 are sure you want to proceed, try again with the '--force'
                 flag.
                 """
