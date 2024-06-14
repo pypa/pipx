@@ -19,8 +19,19 @@ pipx works on macOS, linux, and Windows.
 ```
 brew install pipx
 pipx ensurepath
-sudo pipx ensurepath --global # optional to allow pipx actions in global scope. See "Customising your installation" section below.
-sudo pipx ensurepath --prepend # optional to prepend the pipx bin directory to PATH instead of appending it. See "Customising your installation" section below.
+```
+
+#### Additional (optional) commands
+
+To allow pipx actions in global scope. See "Customising your installation" section below.
+```
+sudo pipx ensurepath --global
+```
+
+To prepend the pipx bin directory to PATH instead of appending it. See "Customising your installation" section below.
+
+```
+sudo pipx ensurepath --prepend
 ```
 
 ### On Linux:
@@ -31,8 +42,6 @@ sudo pipx ensurepath --prepend # optional to prepend the pipx bin directory to P
 sudo apt update
 sudo apt install pipx
 pipx ensurepath
-sudo pipx ensurepath --global # optional to allow pipx actions in global scope. See "Customising your installation" section below.
-sudo pipx ensurepath --prepend # optional to prepend the pipx bin directory to PATH instead of appending it. See "Customising your installation" section below.
 ```
 
 - Fedora:
@@ -40,8 +49,6 @@ sudo pipx ensurepath --prepend # optional to prepend the pipx bin directory to P
 ```
 sudo dnf install pipx
 pipx ensurepath
-sudo pipx ensurepath --global # optional to allow pipx actions in global scope. See "Customising your installation" section below.
-sudo pipx ensurepath --prepend # optional to prepend the pipx bin directory to PATH instead of appending it. See "Customising your installation" section below.
 ```
 
 - Using `pip` on other distributions:
@@ -49,10 +56,21 @@ sudo pipx ensurepath --prepend # optional to prepend the pipx bin directory to P
 ```
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
-sudo pipx ensurepath --global # optional to allow pipx actions in global scope. See "Customising your installation" section below.
-sudo pipx ensurepath --prepend # optional to prepend the pipx bin directory to PATH instead of appending it. See "Customising your installation" section below.
 ```
 
+#### Additional (optional) commands
+
+To allow pipx actions in global scope. See "Customising your installation" section below.
+
+```
+sudo pipx ensurepath --global
+```
+
+To prepend the pipx bin directory to PATH instead of appending it. See "Customising your installation" section below.
+
+```
+sudo pipx ensurepath --prepend
+```
 
 ### On Windows:
 
