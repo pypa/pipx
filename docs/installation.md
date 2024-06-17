@@ -281,9 +281,13 @@ $home_dir = pipx environment --value PIPX_HOME
 
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $cache_dir, $logs_dir, $trash_dir
 
-# Remove the destionation directory to ensure rename behavior of `Move-Item`
+# Remove the destination directory to ensure rename behavior of `Move-Item`
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $NEW_LOCATION
 
 Move-Item -Path $home_dir -Destination $NEW_LOCATION
 pipx reinstall-all
 ```
+
+If you would prefer doing it in bash via git-bash/WSL, feel free to use
+the MacOS/Linux instructions, changing the `$NEW_LOCATION` to the Windows
+version.
