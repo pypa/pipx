@@ -272,13 +272,18 @@ Requires bash (for example `git bash`)
 
 Current default location: `~/pipx`
 
-```bash
-NEW_LOCATION=~
-cache_dir=$(pipx environment --value PIPX_VENV_CACHEDIR)
-logs_dir=$(pipx environment --value PIPX_LOG_DIR)
-trash_dir=$(pipx environment --value PIPX_TRASH_DIR)
-home_dir=$(pipx environment --value PIPX_HOME)
-rm -rf $cache_dir $logs_dir $trash_dir
-mv $home_dir $NEW_LOCATION
+```powershell
+$NEW_LOCATION = Join-Path $HOME 'pipx'
+$cache_dir = pipx environment --value PIPX_VENV_CACHEDIR
+$logs_dir = pipx environment --value PIPX_LOG_DIR
+$trash_dir = pipx environment --value PIPX_TRASH_DIR
+$home_dir = pipx environment --value PIPX_HOME
+
+Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $cache_dir, $logs_dir, $trash_dir
+
+# Remove the destionation directory to ensure rename behavior of `Move-Item`
+Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $NEW_LOCATION
+
+Move-Item -Path $home_dir -Destination $NEW_LOCATION
 pipx reinstall-all
 ```
