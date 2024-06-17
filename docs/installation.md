@@ -261,8 +261,8 @@ if [ -n "$XDG_DATA_HOME" ]; then
 else
     NEW_LOCATION="$HOME/.local/share"
 fi
-rm -rf $cache_dir $logs_dir $trash_dir
-mkdir -p $NEW_LOCATION && mv $home_dir $NEW_LOCATION
+rm -rf "$cache_dir" "$logs_dir" "$trash_dir"
+mkdir -p $NEW_LOCATION && mv "$home_dir" $NEW_LOCATION
 pipx reinstall-all
 ```
 
