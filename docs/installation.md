@@ -270,7 +270,7 @@ pipx reinstall-all
 
 Requires bash (for example `git bash`)
 
-Current default location: `~`
+Current default location: `~/pipx`
 
 ```bash
 NEW_LOCATION=~
