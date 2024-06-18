@@ -260,6 +260,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             args.pypackages,
             verbose,
             not args.no_cache,
+            args.inspect,
         )
         # We should never reach here because run() is NoReturn.
         return ExitCode(1)
@@ -834,6 +835,7 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
     p.add_argument("--spec", help=SPEC_HELP)
     add_python_options(p)
     add_pip_venv_args(p)
+    p.add_argument("--inspect", action="store_true", help="Inspect interactively after running script")
     p.set_defaults(subparser=p)
 
     # modify usage text to show required app argument
