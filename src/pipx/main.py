@@ -399,7 +399,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         return commands.run_pip(package, venv_dir, args.pipargs, args.verbose)
     elif args.command == "ensurepath":
         try:
-            return commands.ensure_pipx_paths(force=args.force)
+            return commands.ensure_pipx_paths(prepend=args.prepend, force=args.force)
         except Exception as e:
             logger.debug("Uncaught Exception:", exc_info=True)
             raise PipxError(str(e), wrap_message=False) from None
@@ -873,6 +873,14 @@ def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argpa
             "your shell's configuration file(s) such as '~/.bashrc'."
         ),
         parents=[shared_parser],
+    )
+    p.add_argument(
+        "--prepend",
+        action="store_true",
+        help=(
+            "Prepend directories to your PATH instead of appending. "
+            "This is useful if you want to prioritize pipx apps over system apps."
+        ),
     )
     p.add_argument(
         "--force",

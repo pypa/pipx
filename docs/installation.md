@@ -19,8 +19,22 @@ pipx works on macOS, linux, and Windows.
 ```
 brew install pipx
 pipx ensurepath
-sudo pipx ensurepath --global # optional to allow pipx actions in global scope. See "Global installation" section below.
 ```
+
+#### Additional (optional) commands
+
+To allow pipx actions in global scope.
+```
+sudo pipx ensurepath --global
+```
+
+To prepend the pipx bin directory to PATH instead of appending it.
+
+```
+sudo pipx ensurepath --prepend
+```
+
+For more details, refer to [Customising your installation](#customising-your-installation).
 
 ### On Linux:
 
@@ -30,7 +44,6 @@ sudo pipx ensurepath --global # optional to allow pipx actions in global scope. 
 sudo apt update
 sudo apt install pipx
 pipx ensurepath
-sudo pipx ensurepath --global # optional to allow pipx actions in global scope. See "Global installation" section below.
 ```
 
 - Fedora:
@@ -38,7 +51,6 @@ sudo pipx ensurepath --global # optional to allow pipx actions in global scope. 
 ```
 sudo dnf install pipx
 pipx ensurepath
-sudo pipx ensurepath --global # optional to allow pipx actions in global scope. See "Global installation" section below.
 ```
 
 - Using `pip` on other distributions:
@@ -46,9 +58,23 @@ sudo pipx ensurepath --global # optional to allow pipx actions in global scope. 
 ```
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
-sudo pipx ensurepath --global # optional to allow pipx actions in global scope. See "Global installation" section below.
 ```
 
+#### Additional (optional) commands
+
+To allow pipx actions in global scope.
+
+```
+sudo pipx ensurepath --global
+```
+
+To prepend the pipx bin directory to PATH instead of appending it.
+
+```
+sudo pipx ensurepath --prepend
+```
+
+For more details, refer to [Customising your installation](#customising-your-installation).
 
 ### On Windows:
 
@@ -160,7 +186,9 @@ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin PIPX_MAN_DIR=/usr/local/sha
 > This was reverted in 1.5.0 for Windows and MacOS. We heavily recommend not using these locations on Windows and MacOS anymore, due to
 > multiple incompatibilities discovered with these locations, documented [here](https://github.com/pypa/pipx/discussions/1247#discussion-6188916).
 
-### Global installation
+### Customising your installation
+
+#### `--global` argument
 
 Pipx also comes with a `--global` argument which helps to execute actions in global scope which exposes the app to
 all system users. By default the global binary location is set to `/usr/local/bin` and can be overridden with the
@@ -170,6 +198,12 @@ is `/opt/pipx`, can be overridden with environment variable `PIPX_GLOBAL_HOME`. 
 if you intend to use this feature.
 
 Note that the `--global` argument is not supported on Windows.
+
+#### `--prepend` argument
+
+The `--prepend` argument can be passed to the `pipx ensurepath` command to prepend the `pipx` bin directory to the user's PATH
+environment variable instead of appending to it. This can be useful if you want to prioritise `pipx`-installed binaries over
+system-installed binaries of the same name.
 
 ## Upgrade pipx
 
