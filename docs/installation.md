@@ -156,8 +156,8 @@ and `~\pipx` on Windows. For compatibility reasons, if `~/.local/pipx` on Linux,
 This can be overridden with the `PIPX_HOME` environment variable.
 
 In case one of these fallback locations exist, we recommend either manually moving the pipx files to the new default location
-(see the `Troubleshooting` section of the docs), or setting the `PIPX_HOME` environment variable (discarding files existing in
-the fallback location).
+(see the [Moving your pipx installation](installation.md#moving-your-pipx-installation) section of the docs), or setting the
+`PIPX_HOME` environment variable (discarding files existing in the fallback location).
 
 As an example, you can install global apps accessible by all users on your system with the following command (on MacOS,
 Linux, and Windows WSL):
@@ -184,7 +184,7 @@ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin PIPX_MAN_DIR=/usr/local/sha
 > See the [platformdirs documentation](https://platformdirs.readthedocs.io/en/latest/api.html#platforms) for details.
 >
 > This was reverted in 1.5.0 for Windows and MacOS. We heavily recommend not using these locations on Windows and MacOS anymore, due to
-> multiple incompatibilities discovered with these locations, documented [here](https://github.com/pypa/pipx/discussions/1247#discussion-6188916).
+> multiple incompatibilities discovered with these locations, documented [here](troubleshooting.md#why-are-spaces-in-the-pipx_home-path-bad).
 
 ### Customising your installation
 
@@ -297,8 +297,6 @@ pipx reinstall-all
 ```
 
 ### Windows
-
-Requires bash (for example `git bash`).
 
 Current default location: `~/pipx`
 
