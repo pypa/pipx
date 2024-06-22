@@ -172,4 +172,4 @@ If you want to use a script installed via pipx in a shebang itself (common for e
 You can generally fix this by using our default locations, as long as your `$HOME` path does not contain spaces.
 Please refer to our [Installation](installation.md#moving-your-pipx-installation) docs on how to move the `pipx` installation.
 
-If you're really sure you want to stick to your path with spaces, you can set the `PIPX_HOME_ALLOW_SPACE` environment variable to `true`.
+If you're really sure you want to stick to your path with spaces, to suppress the warning set the `PIPX_HOME_ALLOW_SPACE` environment variable to `true`.

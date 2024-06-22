@@ -288,13 +288,9 @@ cache_dir=$(pipx environment --value PIPX_VENV_CACHEDIR)
 logs_dir=$(pipx environment --value PIPX_LOG_DIR)
 trash_dir=$(pipx environment --value PIPX_TRASH_DIR)
 home_dir=$(pipx environment --value PIPX_HOME)
-# If you wish another location, replace the if block below
+# If you wish another location, replace the expression below
 # and set `NEW_LOCATION` explicitly
-if [ -n "$XDG_DATA_HOME" ]; then
-    NEW_LOCATION="$XDG_DATA_HOME"
-else
-    NEW_LOCATION="$HOME/.local/share"
-fi
+NEW_LOCATION="${XDG_DATA_HOME:-$HOME/.local/share}"
 rm -rf "$cache_dir" "$logs_dir" "$trash_dir"
 mkdir -p $NEW_LOCATION && mv "$home_dir" $NEW_LOCATION
 pipx reinstall-all
@@ -302,7 +298,7 @@ pipx reinstall-all
 
 ### Windows
 
-Requires bash (for example `git bash`)
+Requires bash (for example `git bash`).
 
 Current default location: `~/pipx`
 
