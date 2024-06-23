@@ -2,6 +2,7 @@ import fnmatch
 from pathlib import Path
 
 from helpers import run_pipx_cli, skip_if_windows
+from pipx import paths
 from pipx.paths import get_expanded_environ
 
 
@@ -19,6 +20,7 @@ def test_cli(pipx_temp_env, monkeypatch, capsys):
     # Checking just for the sake of completeness
     assert "PIPX_DEFAULT_PYTHON" in captured.out
     assert "USE_EMOJI" in captured.out
+    assert "PIPX_HOME_ALLOW_SPACE" in captured.out
     assert "Environment variables (set by user):" in captured.out
 
 
@@ -33,6 +35,7 @@ def test_cli_with_args(monkeypatch, capsys):
     assert not run_pipx_cli(["environment", "--value", "PIPX_VENV_CACHEDIR"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_DEFAULT_PYTHON"])
     assert not run_pipx_cli(["environment", "--value", "USE_EMOJI"])
+    assert not run_pipx_cli(["environment", "--value", "PIPX_HOME_ALLOW_SPACE"])
 
     assert run_pipx_cli(["environment", "--value", "SSS"])
     captured = capsys.readouterr()
@@ -47,6 +50,29 @@ def test_resolve_user_dir_in_env_paths(monkeypatch):
     assert env_dir == home / "test"
     env_dir = get_expanded_environ("THIS_SHOULD_NOT_EXIST")
     assert env_dir is None
+
+
+def test_allow_space_in_pipx_home(
+    monkeypatch,
+    capsys,
+    tmp_path,
+):
+    home_dir = Path(tmp_path) / "path with space"
+    monkeypatch.setattr(paths.ctx, "_base_home", home_dir)
+    assert not run_pipx_cli(["environment", "--value", "PIPX_HOME_ALLOW_SPACE"])
+    paths.ctx.log_warnings()
+    captured = capsys.readouterr()
+    assert "Found a space" in captured.err
+    assert "false" in captured.out
+
+    monkeypatch.setenv("PIPX_HOME_ALLOW_SPACE", "1")
+    assert not run_pipx_cli(["environment", "--value", "PIPX_HOME_ALLOW_SPACE"])
+    paths.ctx.log_warnings()
+    captured = capsys.readouterr()
+    assert "Found a space" not in captured.err
+    assert "true" in captured.out
+
+    paths.ctx.make_local()
 
 
 @skip_if_windows
@@ -64,3 +90,4 @@ def test_cli_global(pipx_temp_env, monkeypatch, capsys):
     # Checking just for the sake of completeness
     assert "PIPX_DEFAULT_PYTHON" in captured.out
     assert "USE_EMOJI" in captured.out
+    assert "PIPX_DEFAULT_PYTHON" in captured.out

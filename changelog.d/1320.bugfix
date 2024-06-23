@@ -1,0 +1,1 @@
+Introduce `PIPX_HOME_ALLOW_SPACE` environment variable, to silence the spaces in pipx home path warning

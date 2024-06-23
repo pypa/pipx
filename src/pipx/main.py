@@ -84,11 +84,12 @@ PIPX_DESCRIPTION = textwrap.dedent(
 PIPX_DESCRIPTION += pipx_wrap(
     """
     optional environment variables:
-      PIPX_HOME             Overrides default pipx location. Virtual Environments will be installed to $PIPX_HOME/venvs.
-      PIPX_BIN_DIR          Overrides location of app installations. Apps are symlinked or copied here.
-      PIPX_MAN_DIR          Overrides location of manual pages installations. Manual pages are symlinked or copied here.
-      PIPX_DEFAULT_PYTHON   Overrides default python used for commands.
-      USE_EMOJI             Overrides emoji behavior. Default value varies based on platform.
+      PIPX_HOME              Overrides default pipx location. Virtual Environments will be installed to $PIPX_HOME/venvs.
+      PIPX_BIN_DIR           Overrides location of app installations. Apps are symlinked or copied here.
+      PIPX_MAN_DIR           Overrides location of manual pages installations. Manual pages are symlinked or copied here.
+      PIPX_DEFAULT_PYTHON    Overrides default python used for commands.
+      USE_EMOJI              Overrides emoji behavior. Default value varies based on platform.
+      PIPX_HOME_ALLOW_SPACE  Overrides default warning on spaces in the home path
     """,
     subsequent_indent=" " * 24,  # match the indent of argparse options
     keep_newlines=True,
@@ -906,7 +907,7 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
 
             Available variables:
             PIPX_HOME, PIPX_BIN_DIR, PIPX_MAN_DIR, PIPX_SHARED_LIBS, PIPX_LOCAL_VENVS,
-            PIPX_LOG_DIR, PIPX_TRASH_DIR, PIPX_VENV_CACHEDIR, PIPX_DEFAULT_PYTHON, USE_EMOJI
+            PIPX_LOG_DIR, PIPX_TRASH_DIR, PIPX_VENV_CACHEDIR, PIPX_DEFAULT_PYTHON, USE_EMOJI, PIPX_HOME_ALLOW_SPACE
             """
         ),
         parents=[shared_parser],

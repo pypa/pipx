@@ -156,8 +156,8 @@ and `~\pipx` on Windows. For compatibility reasons, if `~/.local/pipx` on Linux,
 This can be overridden with the `PIPX_HOME` environment variable.
 
 In case one of these fallback locations exist, we recommend either manually moving the pipx files to the new default location
-(see the `Troubleshooting` section of the docs), or setting the `PIPX_HOME` environment variable (discarding files existing in
-the fallback location).
+(see the [Moving your pipx installation](installation.md#moving-your-pipx-installation) section of the docs), or setting the
+`PIPX_HOME` environment variable (discarding files existing in the fallback location).
 
 As an example, you can install global apps accessible by all users on your system with the following command (on MacOS,
 Linux, and Windows WSL):
@@ -184,7 +184,7 @@ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin PIPX_MAN_DIR=/usr/local/sha
 > See the [platformdirs documentation](https://platformdirs.readthedocs.io/en/latest/api.html#platforms) for details.
 >
 > This was reverted in 1.5.0 for Windows and MacOS. We heavily recommend not using these locations on Windows and MacOS anymore, due to
-> multiple incompatibilities discovered with these locations, documented [here](https://github.com/pypa/pipx/discussions/1247#discussion-6188916).
+> multiple incompatibilities discovered with these locations, documented [here](troubleshooting.md#why-are-spaces-in-the-pipx_home-path-bad).
 
 ### Customising your installation
 
@@ -257,3 +257,65 @@ You can easily get your shell's tab completions working by following instruction
 ```
 pipx completions
 ```
+
+## Moving your pipx installation
+
+The below code snippets show how to move your pipx installation to a new directory.
+As an example, they move from a non-default location to the current default locations.
+If you wish to move to a different location, just replace the `NEW_LOCATION` value.
+
+### MacOS
+
+Current default location: `~/.local`
+
+```bash
+NEW_LOCATION=~/.local
+cache_dir=$(pipx environment --value PIPX_VENV_CACHEDIR)
+logs_dir=$(pipx environment --value PIPX_LOG_DIR)
+trash_dir=$(pipx environment --value PIPX_TRASH_DIR)
+home_dir=$(pipx environment --value PIPX_HOME)
+rm -rf "$cache_dir" "$logs_dir" "$trash_dir"
+mkdir -p $NEW_LOCATION && mv "$home_dir" $NEW_LOCATION
+pipx reinstall-all
+```
+
+### Linux
+
+Current default location: `~/.local/share`
+
+```bash
+cache_dir=$(pipx environment --value PIPX_VENV_CACHEDIR)
+logs_dir=$(pipx environment --value PIPX_LOG_DIR)
+trash_dir=$(pipx environment --value PIPX_TRASH_DIR)
+home_dir=$(pipx environment --value PIPX_HOME)
+# If you wish another location, replace the expression below
+# and set `NEW_LOCATION` explicitly
+NEW_LOCATION="${XDG_DATA_HOME:-$HOME/.local/share}"
+rm -rf "$cache_dir" "$logs_dir" "$trash_dir"
+mkdir -p $NEW_LOCATION && mv "$home_dir" $NEW_LOCATION
+pipx reinstall-all
+```
+
+### Windows
+
+Current default location: `~/pipx`
+
+```powershell
+$NEW_LOCATION = Join-Path "$HOME" 'pipx'
+$cache_dir = pipx environment --value PIPX_VENV_CACHEDIR
+$logs_dir = pipx environment --value PIPX_LOG_DIR
+$trash_dir = pipx environment --value PIPX_TRASH_DIR
+$home_dir = pipx environment --value PIPX_HOME
+
+Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$cache_dir", "$logs_dir", "$trash_dir"
+
+# Remove the destination directory to ensure rename behavior of `Move-Item`
+Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$NEW_LOCATION"
+
+Move-Item -Path $home_dir -Destination "$NEW_LOCATION"
+pipx reinstall-all
+```
+
+If you would prefer doing it in bash via git-bash/WSL, feel free to use
+the MacOS/Linux instructions, changing the `$NEW_LOCATION` to the Windows
+version.

@@ -148,13 +148,28 @@ In Pipx version 1.5.0, this was reverted for Windows and MacOS. It defaults agai
 
 If you have a `pipx` version later than 1.2.0 and want to migrate from the old path to the new paths, you can move the
 `~/.local/pipx` directory to the new location (after removing cache, log, and trash directories which will get recreated
-automatically) and then reinstall all packages. For example, on Linux systems, `PIPX_HOME` moves from `~/.local/pipx` to
-`~/.local/share/pipx` so you can do this:
+automatically) and then reinstall all packages.
 
-```
-rm -rf ~/.local/pipx/{.cache,logs,trash}
-mkdir -p ~/.local/share && mv ~/.local/pipx ~/.local/share/
-pipx reinstall-all
-```
+Please refer to [Installation](installation.md#moving-your-pipx-installation) on how to move it.
 
-For moving the paths back after 1.5.0, you can perform the same steps, switching the paths around.
+## Warning: Found a space in the pipx home path
+
+In pipx version 1.5, we introduced the warning you're seeing, as multiple incompatibilites with spaces in the pipx home path were discovered. You may see this for the following reasons:
+
+1. From pipx version 1.3 to 1.5, we were by default using a path with a space on it on MacOS. This unfortunately means, that all users that installed pipx in this time frame and were using the default behavior are seeing this warning now.
+2. You set your `PIPX_HOME` to a path with spaces in it explicitly or because your `$HOME` path contains a space.
+
+### Why are spaces in the `PIPX_HOME` path bad
+
+The main reason we can't support paths with spaces is that shebangs don't support spaces in the interpreter path. All applications installed via `pipx` are installed via `pip`, which creates a script with a shebang at the top, defining the interpreter of the `venv` to use.
+
+`pip` does some magic to the shebang for scripts defined as a `script`, that resolves this issue. Unfortunately, many libraries define their scripts as `console_scripts`, where `pip` does not perform this logic. Therefore, these scripts cannot be run if installed with `pipx` in a path with spaces, as the path to the `venv` and therefore the interpreter to use will contain spaces.
+
+If you want to use a script installed via pipx in a shebang itself (common for example for the aws cli), you run into a similar problem, as the path to the installed script will contain a space.
+
+### How to fix
+
+You can generally fix this by using our default locations, as long as your `$HOME` path does not contain spaces.
+Please refer to our [Installation](installation.md#moving-your-pipx-installation) docs on how to move the `pipx` installation.
+
+If you're really sure you want to stick to your path with spaces, to suppress the warning set the `PIPX_HOME_ALLOW_SPACE` environment variable to `true`.
