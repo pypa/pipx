@@ -440,3 +440,13 @@ def test_install_python_command_version_micro_mismatch(pipx_temp_env, monkeypatc
     assert not run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
     captured = capsys.readouterr()
     assert f"It may not match the specified version {python_version} at the micro/patch level" in captured.err
+
+
+def test_install_upgrade(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "black==22.8.0"])
+    captured = capsys.readouterr()
+    assert "22.8.0" in captured.out
+
+    assert not run_pipx_cli(["install", "--upgrade", "black"])
+    captured = capsys.readouterr()
+    assert "22.8.0" not in captured.out

@@ -276,6 +276,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             venv_args,
             verbose,
             force=args.force,
+            upgrade=args.upgrade,
             reinstall=False,
             include_dependencies=args.include_deps,
             preinstall_packages=args.preinstall,
@@ -469,6 +470,12 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         "-f",
         action="store_true",
         help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
+    )
+    p.add_argument(
+        "--upgrade",
+        "-U",
+        action="store_true",
+        help="Upgrade all specified packages to the newest available version.",
     )
     p.add_argument(
         "--suffix",

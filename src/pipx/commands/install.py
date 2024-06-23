@@ -29,6 +29,7 @@ def install(
     verbose: bool,
     *,
     force: bool,
+    upgrade: bool,
     reinstall: bool,
     include_dependencies: bool,
     preinstall_packages: Optional[List[str]],
@@ -60,7 +61,7 @@ def install(
 
         venv = Venv(venv_dir, python=python, verbose=verbose)
         venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
-        if exists:
+        if exists and not upgrade:
             if not reinstall and force and python_flag_passed:
                 print(
                     pipx_wrap(
@@ -85,6 +86,8 @@ def install(
                     )
                 )
                 return EXIT_CODE_INSTALL_VENV_EXISTS
+        elif exists:
+            pip_args = ["--upgrade"] + pip_args
 
         try:
             # Enable installing shared library `pip` with `pipx`
@@ -207,6 +210,7 @@ def install_all(
                 verbose,
                 force=force,
                 reinstall=False,
+                upgrade=False,
                 include_dependencies=main_package.include_dependencies,
                 preinstall_packages=[],
                 suffix=main_package.suffix,

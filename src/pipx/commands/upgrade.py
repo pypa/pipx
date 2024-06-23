@@ -134,6 +134,7 @@ def _upgrade_venv(
                 verbose=verbose,
                 force=force,
                 reinstall=False,
+                upgrade=False,
                 include_dependencies=False,
                 preinstall_packages=None,
                 python_flag_passed=python_flag_passed,
