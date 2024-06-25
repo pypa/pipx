@@ -159,7 +159,9 @@ def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
         pip_args += ["--index-url", parsed_args["index_url"]]
 
     if parsed_args.get("pip_args"):
-        pip_args += shlex.split(parsed_args.get("pip_args", ""), posix=not WINDOWS)
+        # Stripping the single quote that can be parsed from several shells
+        pip_args_striped = parsed_args["pip_args"].strip("'")
+        pip_args += shlex.split(pip_args_striped, posix=not WINDOWS)
 
     # make sure --editable is last because it needs to be right before
     #   package specification
