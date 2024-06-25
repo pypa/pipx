@@ -157,7 +157,7 @@ pipx 0.10.0
 
 ```shell
 > pipx list --json > pipx.json
-> pipx instal-all pipx.json
+> pipx install-all pipx.json
 'black' already seems to be installed. Not modifying existing installation in '/usr/local/pipx/venvs/black'. Pass '--force' to force installation.
 'pipx' already seems to be installed. Not modifying existing installation in '/usr/local/pipx/venvs/black'. Pass '--force' to force installation.
 > pipx install-all pipx.json --force
