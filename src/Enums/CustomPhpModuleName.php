@@ -17,4 +17,10 @@ class CustomPhpModuleName
     public const SQLSRV = 'sqlsrv';
     public const XDEBUG = 'xdebug';
     public const XMLRPC = 'xmlrpc';
+    public const GMP = 'gmp';
+    public const VIPS = 'vips';
+    public const EXCIMER = 'excimer';
+    public const MAILPARSE = 'mailparse';
+    public const UV = 'uv';
+    public const TIDEWAYS = 'tideways';
 }

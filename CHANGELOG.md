@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
 for detailed information.
 
+## [1.113.0]
+
+### Added
+
+- Add `gmp`, `vips`, `excimer`, `mailparse`, `uv` and `tideways` to `CustomPhpModuleName` enum.
+- Add Nextcloud CMS installation endpoint.
+
+### Changed
+
+- Updated WordPress CMS installation endpoint.
+
 ## [1.112.0]
 
 ### Added

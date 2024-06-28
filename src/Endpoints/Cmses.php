@@ -114,10 +114,54 @@ class Cmses extends Endpoint
             ->request($request);
     }
 
+    public function installNextcloud(int $id, CmsInstallation $cmsInstallation, ?string $callbackUrl = null): Response
+    {
+        $this->validateRequired($cmsInstallation, 'create', [
+            'database_name',
+            'database_user_name',
+            'database_user_password',
+            'database_host',
+            'admin_username',
+            'admin_password',
+        ]);
+
+        $url = Str::optionalQueryParameters(
+            sprintf('cmses/%d/install/nextcloud', $id),
+            ['callback_url' => $callbackUrl]
+        );
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_POST)
+            ->setUrl($url)
+            ->setBody(
+                $this->filterFields($cmsInstallation->toArray(), [
+                    'database_name',
+                    'database_user_name',
+                    'database_user_password',
+                    'database_host',
+                    'admin_username',
+                    'admin_password',
+                ])
+            );
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $taskCollection = (new TaskCollection())->fromArray($response->getData());
+
+        return $response->setData([
+            'taskCollection' => $taskCollection,
+        ]);
+    }
+
     /**
      * @throws RequestException
      */
-    public function install(int $id, CmsInstallation $cmsInstallation, ?string $callbackUrl = null): Response
+    public function installWordpress(int $id, CmsInstallation $cmsInstallation, ?string $callbackUrl = null): Response
     {
         $this->validateRequired($cmsInstallation, 'create', [
             'database_name',
@@ -134,7 +178,7 @@ class Cmses extends Endpoint
         ]);
 
         $url = Str::optionalQueryParameters(
-            sprintf('cmses/%d/install', $id),
+            sprintf('cmses/%d/install/wordpress', $id),
             ['callback_url' => $callbackUrl]
         );
 
