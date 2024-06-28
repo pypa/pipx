@@ -24,20 +24,23 @@ logger = logging.getLogger(__name__)
 
 MACHINE_SUFFIX: Dict[str, Dict[str, Any]] = {
     "Darwin": {
-        "arm64": "aarch64-apple-darwin-install_only.tar.gz",
-        "x86_64": "x86_64-apple-darwin-install_only.tar.gz",
+        "arm64": ["aarch64-apple-darwin-install_only.tar.gz"],
+        "x86_64": ["x86_64-apple-darwin-install_only.tar.gz"],
     },
     "Linux": {
         "aarch64": {
-            "glibc": "aarch64-unknown-linux-gnu-install_only.tar.gz",
+            "glibc": ["aarch64-unknown-linux-gnu-install_only.tar.gz"],
             # musl doesn't exist
         },
         "x86_64": {
-            "glibc": "x86_64-unknown-linux-gnu-install_only.tar.gz",
-            "musl": "x86_64-unknown-linux-musl-install_only.tar.gz",
+            "glibc": [
+                "x86_64_v3-unknown-linux-gnu-install_only.tar.gz",
+                "x86_64-unknown-linux-gnu-install_only.tar.gz",
+            ],
+            "musl": ["x86_64_v3-unknown-linux-musl-install_only.tar.gz"],
         },
     },
-    "Windows": {"AMD64": "x86_64-pc-windows-msvc-shared-install_only.tar.gz"},
+    "Windows": {"AMD64": ["x86_64-pc-windows-msvc-shared-install_only.tar.gz"]},
 }
 
 GITHUB_API_URL = "https://api.github.com/repos/indygreg/python-build-standalone/releases/latest"
@@ -155,24 +158,32 @@ def get_latest_python_releases() -> List[str]:
 def list_pythons(use_cache: bool = True) -> Dict[str, str]:
     """Returns available python versions for your machine and their download links."""
     system, machine = platform.system(), platform.machine()
-    download_link_suffix = MACHINE_SUFFIX[system][machine]
+    download_link_suffixes = MACHINE_SUFFIX[system][machine]
     # linux suffixes are nested under glibc or musl builds
     if system == "Linux":
         # fallback to musl if libc version is not found
         libc_version = platform.libc_ver()[0] or "musl"
-        download_link_suffix = download_link_suffix[libc_version]
+        download_link_suffixes = download_link_suffixes[libc_version]
 
     python_releases = get_or_update_index(use_cache)["releases"]
 
-    available_python_links = [link for link in python_releases if link.endswith(download_link_suffix)]
+    available_python_links = [
+        link
+        # Suffixes are in order of preference.
+        for download_link_suffix in download_link_suffixes
+        for link in python_releases
+        if link.endswith(download_link_suffix)
+    ]
 
     python_versions: dict[str, str] = {}
     for link in available_python_links:
         match = PYTHON_VERSION_REGEX.search(link)
-        if match is None:
-            logger.warning(f"Could not parse python version from link {link}. Skipping.")
-            continue
+        assert match is not None
         python_version = match[1]
+        # Don't override already found versions, they are in order of preference
+        if python_version in python_versions:
+            continue
+
         python_versions[python_version] = link
 
     return {
