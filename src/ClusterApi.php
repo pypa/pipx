@@ -16,6 +16,7 @@ use Cyberfusion\ClusterApi\Endpoints\Crons;
 use Cyberfusion\ClusterApi\Endpoints\CustomConfigs;
 use Cyberfusion\ClusterApi\Endpoints\CustomConfigSnippets;
 use Cyberfusion\ClusterApi\Endpoints\Customers;
+use Cyberfusion\ClusterApi\Endpoints\Daemons;
 use Cyberfusion\ClusterApi\Endpoints\Databases;
 use Cyberfusion\ClusterApi\Endpoints\DatabaseUserGrants;
 use Cyberfusion\ClusterApi\Endpoints\DatabaseUsers;
@@ -290,5 +291,10 @@ class ClusterApi
     public function virtualHosts(): VirtualHosts
     {
         return new VirtualHosts($this->client);
+    }
+
+    public function daemons(): Daemons
+    {
+        return new Daemons($this->client);
     }
 }

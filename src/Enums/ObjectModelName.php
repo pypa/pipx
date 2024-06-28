@@ -34,6 +34,7 @@ class ObjectModelName
     public const HA_PROXY_LISTEN = 'HAProxyListen';
     public const HA_PROXY_LISTEN_TO_NODE = 'HAProxyListenToNode';
     public const URL_REDIRECT = 'URLRedirect';
+    public const DAEMON = 'Daemon';
 
     public const AVAILABLE = [
         self::BORG_ARCHIVE,
@@ -66,5 +67,6 @@ class ObjectModelName
         self::HA_PROXY_LISTEN,
         self::HA_PROXY_LISTEN_TO_NODE,
         self::URL_REDIRECT,
+        self::DAEMON
     ];
 }
