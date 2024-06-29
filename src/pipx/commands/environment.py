@@ -42,8 +42,8 @@ def environment(value: str) -> ExitCode:
         print("")
         print("Derived values (computed by pipx):")
         print("")
-        for env_variable in derived_values:
-            print(f"{env_variable}={derived_values[env_variable]}")
+        for env_variable, derived_value in derived_values.items():
+            print(f"{env_variable}={derived_value}")
     elif value in derived_values:
         print(derived_values[value])
     else:
