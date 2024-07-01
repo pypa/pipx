@@ -13,7 +13,7 @@ class DatabaseUser extends ClusterModel
 
     private string $name;
     private ?string $password;
-    private ?array $phpmyadminFirewallGroupsIds;
+    private ?array $phpmyadminFirewallGroupsIds = null;
     private string $host = self::DEFAULT_HOST;
     private string $serverSoftwareName = DatabaseEngine::SERVER_SOFTWARE_MARIADB;
     private ?int $id = null;
