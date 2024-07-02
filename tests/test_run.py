@@ -39,7 +39,7 @@ def run_pipx_cli_exit(pipx_cmd_list, assert_exit=None):
     with pytest.raises(SystemExit) as sys_exit:
         run_pipx_cli(pipx_cmd_list)
     if assert_exit is not None:
-        assert sys_exit.type == SystemExit
+        assert sys_exit.type is SystemExit
         assert sys_exit.value.code == assert_exit
 
 
