@@ -68,7 +68,7 @@ def _upgrade_package(
         expose_resources_globally("man", paths.ctx.man_dir, package_metadata.man_paths, force=force)
 
     if package_metadata.include_dependencies:
-        for _, app_paths in package_metadata.app_paths_of_dependencies.items():
+        for app_paths in package_metadata.app_paths_of_dependencies.values():
             expose_resources_globally(
                 "app",
                 paths.ctx.bin_dir,
@@ -76,7 +76,7 @@ def _upgrade_package(
                 force=force,
                 suffix=package_metadata.suffix,
             )
-        for _, man_paths in package_metadata.man_paths_of_dependencies.items():
+        for man_paths in package_metadata.man_paths_of_dependencies.values():
             expose_resources_globally("man", paths.ctx.man_dir, man_paths, force=force)
 
     if old_version == new_version:
