@@ -72,6 +72,7 @@ lint.extend-select = [
   "C9",
   "I",
   "ISC",
+  "PERF",
   "PGH",
   "PLC",
   "PLE",
@@ -80,6 +81,9 @@ lint.extend-select = [
   "RUF012",
   "RUF100",
   "W",
+]
+lint.ignore = [
+  "PERF203",
 ]
 lint.isort = { known-first-party = [
   "helpers",
