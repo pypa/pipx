@@ -452,7 +452,7 @@ def run_post_install_actions(
     expose_resources_globally("man", local_man_dir, package_metadata.man_paths, force=force)
 
     if include_dependencies:
-        for _, app_paths in package_metadata.app_paths_of_dependencies.items():
+        for app_paths in package_metadata.app_paths_of_dependencies.values():
             expose_resources_globally(
                 "app",
                 local_bin_dir,
@@ -460,7 +460,7 @@ def run_post_install_actions(
                 force=force,
                 suffix=package_metadata.suffix,
             )
-        for _, man_paths in package_metadata.man_paths_of_dependencies.items():
+        for man_paths in package_metadata.man_paths_of_dependencies.values():
             expose_resources_globally("man", local_man_dir, man_paths, force=force)
 
     package_summary, _ = get_venv_summary(venv_dir, package_name=package_name, new_install=True)

@@ -4,8 +4,10 @@ import re
 import shutil
 import time
 from pathlib import Path
-from subprocess import CompletedProcess
-from typing import Dict, Generator, List, NoReturn, Optional, Set
+from typing import TYPE_CHECKING, Dict, Generator, List, NoReturn, Optional, Set
+
+if TYPE_CHECKING:
+    from subprocess import CompletedProcess
 
 try:
     from importlib.metadata import Distribution, EntryPoint

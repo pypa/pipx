@@ -1,8 +1,10 @@
 import logging
-from collections.abc import Callable
 from pathlib import Path
 from shutil import which
-from typing import List, Optional, Set
+from typing import TYPE_CHECKING, List, Optional, Set
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 from pipx.commands.common import (
     add_suffix,
