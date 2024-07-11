@@ -126,7 +126,7 @@ python pipx.pyz ensurepath
 
 ### Use with pre-commit
 
-pipx [has pre-commit support](installation.md#pre-commit).
+pipx [has pre-commit support](docs/installation.md#pre-commit).
 
 ### Shell completions
 
