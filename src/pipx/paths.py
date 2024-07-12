@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from platformdirs import user_cache_path, user_data_path, user_log_path
 
@@ -44,9 +44,8 @@ class _PathContext:
     _base_man: Optional[Union[Path, str]] = get_expanded_environ("PIPX_MAN_DIR")
     _default_man: Union[Path, str] = DEFAULT_PIPX_MAN_DIR
     _base_shared_libs: Optional[Union[Path, str]] = get_expanded_environ("PIPX_SHARED_LIBS")
-    _fallback_homes: List[Path] = FALLBACK_PIPX_HOMES
-    _fallback_home: Optional[Path] = next(iter([fallback for fallback in _fallback_homes if fallback.exists()]), None)
-    _home_exists: bool = _base_home is not None or any(fallback.exists() for fallback in _fallback_homes)
+    _fallback_home: Optional[Path] = next(iter([fallback for fallback in FALLBACK_PIPX_HOMES if fallback.exists()]), None)
+    _home_exists: bool = _base_home is not None or any(fallback.exists() for fallback in FALLBACK_PIPX_HOMES)
     log_file: Optional[Path] = None
 
     @property
@@ -101,9 +100,8 @@ class _PathContext:
         self._base_man = get_expanded_environ("PIPX_MAN_DIR")
         self._default_man = DEFAULT_PIPX_MAN_DIR
         self._base_shared_libs = get_expanded_environ("PIPX_SHARED_LIBS")
-        self._fallback_homes = FALLBACK_PIPX_HOMES
-        self._fallback_home = next(iter([fallback for fallback in self._fallback_homes if fallback.exists()]), None)
-        self._home_exists = self._base_home is not None or any(fallback.exists() for fallback in self._fallback_homes)
+        self._fallback_home = next(iter([fallback for fallback in FALLBACK_PIPX_HOMES if fallback.exists()]), None)
+        self._home_exists = self._base_home is not None or any(fallback.exists() for fallback in FALLBACK_PIPX_HOMES)
 
     def make_global(self) -> None:
         self._base_home = get_expanded_environ("PIPX_GLOBAL_HOME")
@@ -113,7 +111,6 @@ class _PathContext:
         self._base_man = get_expanded_environ("PIPX_GLOBAL_MAN_DIR")
         self._default_man = DEFAULT_PIPX_GLOBAL_MAN_DIR
         self._base_shared_libs = None
-        self._fallback_homes = []
         self._fallback_home = None
         self._home_exists = self._base_home is not None
 
