@@ -2,7 +2,7 @@ import datetime
 import logging
 import time
 from pathlib import Path
-from typing import List, Dict
+from typing import Dict, List
 
 from pipx import paths
 from pipx.animate import animate
