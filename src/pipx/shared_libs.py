@@ -2,7 +2,7 @@ import datetime
 import logging
 import time
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Dict
 
 from pipx import paths
 from pipx.animate import animate
@@ -23,21 +23,39 @@ SHARED_LIBS_MAX_AGE_SEC = datetime.timedelta(days=30).total_seconds()
 
 class _SharedLibs:
     def __init__(self) -> None:
-        self.root = paths.ctx.shared_libs
-        self.bin_path, self.python_path, self.man_path = get_venv_paths(self.root)
-        self.pip_path = self.bin_path / ("pip" if not WINDOWS else "pip.exe")
-        # i.e. bin_path is ~/.local/share/pipx/shared/bin
-        # i.e. python_path is ~/.local/share/pipx/shared/python
-        self._site_packages: Optional[Path] = None
+        self._site_packages: Dict[Path, Path] = {}
         self.has_been_updated_this_run = False
         self.has_been_logged_this_run = False
 
     @property
-    def site_packages(self) -> Path:
-        if self._site_packages is None:
-            self._site_packages = get_site_packages(self.python_path)
+    def root(self) -> Path:
+        return paths.ctx.shared_libs
 
-        return self._site_packages
+    @property
+    def bin_path(self) -> Path:
+        bin_path, _, _ = get_venv_paths(self.root)
+        return bin_path
+
+    @property
+    def python_path(self) -> Path:
+        _, python_path, _ = get_venv_paths(self.root)
+        return python_path
+
+    @property
+    def man_path(self) -> Path:
+        _, _, man_path = get_venv_paths(self.root)
+        return man_path
+
+    @property
+    def pip_path(self) -> Path:
+        return self.bin_path / ("pip" if not WINDOWS else "pip.exe")
+
+    @property
+    def site_packages(self) -> Path:
+        if self.python_path not in self._site_packages:
+            self._site_packages[self.python_path] = get_site_packages(self.python_path)
+
+        return self._site_packages[self.python_path]
 
     def create(self, pip_args: List[str], verbose: bool = False) -> None:
         if not self.is_valid:
@@ -46,8 +64,6 @@ class _SharedLibs:
                     [DEFAULT_PYTHON, "-m", "venv", "--clear", self.root], run_dir=str(self.root)
                 )
             subprocess_post_check(create_process)
-            # Recompute these paths, as they might resolve differently now, see comment in get_venv_paths
-            self.bin_path, self.python_path, self.man_path = get_venv_paths(self.root)
 
             # ignore installed packages to ensure no unexpected patches from the OS vendor
             # are used
