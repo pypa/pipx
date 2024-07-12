@@ -907,8 +907,10 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
             variables and platform specific default values.
 
             Available variables:
-            PIPX_HOME, PIPX_BIN_DIR, PIPX_MAN_DIR, PIPX_SHARED_LIBS, PIPX_LOCAL_VENVS,
-            PIPX_LOG_DIR, PIPX_TRASH_DIR, PIPX_VENV_CACHEDIR, PIPX_DEFAULT_PYTHON, USE_EMOJI, PIPX_HOME_ALLOW_SPACE
+            PIPX_HOME, PIPX_GLOBAL_HOME, PIPX_BIN_DIR, PIPX_GLOBAL_BIN_DIR,
+            PIPX_MAN_DIR, PIPX_GLOBAL_MAN_DIR, PIPX_SHARED_LIBS, PIPX_LOCAL_VENVS,
+            PIPX_LOG_DIR, PIPX_TRASH_DIR, PIPX_VENV_CACHEDIR, PIPX_DEFAULT_PYTHON,
+            USE_EMOJI, PIPX_HOME_ALLOW_SPACE
             """
         ),
         parents=[shared_parser],
