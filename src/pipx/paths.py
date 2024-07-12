@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 from platformdirs import user_cache_path, user_data_path, user_log_path
 
@@ -10,20 +10,20 @@ from pipx.emojis import hazard, strtobool
 from pipx.util import pipx_wrap
 
 if LINUX:
-    DEFAULT_PIPX_HOME = user_data_path("pipx")
+    DEFAULT_PIPX_HOME = Path(user_data_path("pipx"))
     FALLBACK_PIPX_HOMES = [Path.home() / ".local/pipx"]
 elif WINDOWS:
     DEFAULT_PIPX_HOME = Path.home() / "pipx"
-    FALLBACK_PIPX_HOMES = [Path.home() / ".local/pipx", user_data_path("pipx")]
+    FALLBACK_PIPX_HOMES = [Path.home() / ".local/pipx", Path(user_data_path("pipx"))]
 else:
     DEFAULT_PIPX_HOME = Path.home() / ".local/pipx"
-    FALLBACK_PIPX_HOMES = [user_data_path("pipx")]
+    FALLBACK_PIPX_HOMES = [Path(user_data_path("pipx"))]
 
 DEFAULT_PIPX_BIN_DIR = Path.home() / ".local/bin"
 DEFAULT_PIPX_MAN_DIR = Path.home() / ".local/share/man"
-DEFAULT_PIPX_GLOBAL_HOME = "/opt/pipx"
-DEFAULT_PIPX_GLOBAL_BIN_DIR = "/usr/local/bin"
-DEFAULT_PIPX_GLOBAL_MAN_DIR = "/usr/local/share/man"
+DEFAULT_PIPX_GLOBAL_HOME = Path("/opt/pipx")
+DEFAULT_PIPX_GLOBAL_BIN_DIR = Path("/usr/local/bin")
+DEFAULT_PIPX_GLOBAL_MAN_DIR = Path("/usr/local/share/man")
 
 
 logger = logging.getLogger(__name__)
@@ -37,13 +37,13 @@ def get_expanded_environ(env_name: str) -> Optional[Path]:
 
 
 class _PathContext:
-    _base_home: Optional[Union[Path, str]]
-    _default_home: Union[Path, str]
-    _base_bin: Optional[Union[Path, str]]
-    _default_bin: Union[Path, str]
-    _base_man: Optional[Union[Path, str]]
-    _default_man: Union[Path, str]
-    _base_shared_libs: Optional[Union[Path, str]]
+    _base_home: Optional[Path]
+    _default_home: Path
+    _base_bin: Optional[Path]
+    _default_bin: Path
+    _base_man: Optional[Path]
+    _default_man: Path
+    _base_shared_libs: Optional[Path]
     _fallback_home: Optional[Path]
     _home_exists: bool
     log_file: Optional[Path] = None
@@ -56,7 +56,7 @@ class _PathContext:
     def logs(self) -> Path:
         if self._home_exists or not LINUX:
             return self.home / "logs"
-        return user_log_path("pipx")
+        return Path(user_log_path("pipx"))
 
     @property
     def trash(self) -> Path:
@@ -68,7 +68,7 @@ class _PathContext:
     def venv_cache(self) -> Path:
         if self._home_exists or not LINUX:
             return self.home / ".cache"
-        return user_cache_path("pipx")
+        return Path(user_cache_path("pipx"))
 
     @property
     def bin_dir(self) -> Path:
