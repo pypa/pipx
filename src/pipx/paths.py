@@ -43,6 +43,9 @@ class _PathContext:
     _default_bin: Path
     _base_man: Optional[Path]
     _default_man: Path
+    _default_log: Path
+    _default_cache: Path
+    _default_trash: Path
     _base_shared_libs: Optional[Path]
     _fallback_home: Optional[Path]
     _home_exists: bool
@@ -56,19 +59,19 @@ class _PathContext:
     def logs(self) -> Path:
         if self._home_exists or not LINUX:
             return self.home / "logs"
-        return Path(user_log_path("pipx"))
+        return self._default_log
 
     @property
     def trash(self) -> Path:
         if self._home_exists:
             return self.home / ".trash"
-        return self.home / "trash"
+        return self._default_trash
 
     @property
     def venv_cache(self) -> Path:
         if self._home_exists or not LINUX:
             return self.home / ".cache"
-        return Path(user_cache_path("pipx"))
+        return self._default_cache
 
     @property
     def bin_dir(self) -> Path:
@@ -100,6 +103,9 @@ class _PathContext:
         self._base_man = get_expanded_environ("PIPX_MAN_DIR")
         self._default_man = DEFAULT_PIPX_MAN_DIR
         self._base_shared_libs = get_expanded_environ("PIPX_SHARED_LIBS")
+        self._default_log = Path(user_log_path("pipx"))
+        self._default_cache = Path(user_cache_path("pipx"))
+        self._default_trash = self._default_home / "trash"
         self._fallback_home = next(iter([fallback for fallback in FALLBACK_PIPX_HOMES if fallback.exists()]), None)
         self._home_exists = self._base_home is not None or any(fallback.exists() for fallback in FALLBACK_PIPX_HOMES)
 
@@ -110,6 +116,9 @@ class _PathContext:
         self._default_bin = DEFAULT_PIPX_GLOBAL_BIN_DIR
         self._base_man = get_expanded_environ("PIPX_GLOBAL_MAN_DIR")
         self._default_man = DEFAULT_PIPX_GLOBAL_MAN_DIR
+        self._default_log = self._default_home / "logs"
+        self._default_cache = self._default_home / ".cache"
+        self._default_trash = self._default_home / "trash"
         self._base_shared_libs = None
         self._fallback_home = None
         self._home_exists = self._base_home is not None
