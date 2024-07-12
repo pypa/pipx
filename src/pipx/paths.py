@@ -38,8 +38,11 @@ def get_expanded_environ(env_name: str) -> Optional[Path]:
 
 class _PathContext:
     _base_home: Optional[Union[Path, str]] = get_expanded_environ("PIPX_HOME")
+    _default_home: Union[Path, str] = DEFAULT_PIPX_HOME
     _base_bin: Optional[Union[Path, str]] = get_expanded_environ("PIPX_BIN_DIR")
+    _default_bin: Union[Path, str] = DEFAULT_PIPX_BIN_DIR
     _base_man: Optional[Union[Path, str]] = get_expanded_environ("PIPX_MAN_DIR")
+    _default_man: Union[Path, str] = DEFAULT_PIPX_MAN_DIR
     _base_shared_libs: Optional[Union[Path, str]] = get_expanded_environ("PIPX_SHARED_LIBS")
     _fallback_homes: List[Path] = FALLBACK_PIPX_HOMES
     _fallback_home: Optional[Path] = next(iter([fallback for fallback in _fallback_homes if fallback.exists()]), None)
@@ -70,11 +73,11 @@ class _PathContext:
 
     @property
     def bin_dir(self) -> Path:
-        return Path(self._base_bin or DEFAULT_PIPX_BIN_DIR).resolve()
+        return Path(self._base_bin or self._default_bin).resolve()
 
     @property
     def man_dir(self) -> Path:
-        return Path(self._base_man or DEFAULT_PIPX_MAN_DIR).resolve()
+        return Path(self._base_man or self._default_man).resolve()
 
     @property
     def home(self) -> Path:
@@ -83,7 +86,7 @@ class _PathContext:
         elif self._fallback_home:
             home = self._fallback_home
         else:
-            home = Path(DEFAULT_PIPX_HOME)
+            home = Path(self._default_home)
         return home.resolve()
 
     @property
@@ -92,15 +95,27 @@ class _PathContext:
 
     def make_local(self) -> None:
         self._base_home = get_expanded_environ("PIPX_HOME")
+        self._default_home = DEFAULT_PIPX_HOME
         self._base_bin = get_expanded_environ("PIPX_BIN_DIR")
+        self._default_bin = DEFAULT_PIPX_BIN_DIR
         self._base_man = get_expanded_environ("PIPX_MAN_DIR")
+        self._default_man = DEFAULT_PIPX_MAN_DIR
+        self._base_shared_libs = get_expanded_environ("PIPX_SHARED_LIBS")
+        self._fallback_homes = FALLBACK_PIPX_HOMES
+        self._fallback_home = next(iter([fallback for fallback in self._fallback_homes if fallback.exists()]), None)
         self._home_exists = self._base_home is not None or any(fallback.exists() for fallback in self._fallback_homes)
 
     def make_global(self) -> None:
-        self._base_home = get_expanded_environ("PIPX_GLOBAL_HOME") or DEFAULT_PIPX_GLOBAL_HOME
-        self._base_bin = get_expanded_environ("PIPX_GLOBAL_BIN_DIR") or DEFAULT_PIPX_GLOBAL_BIN_DIR
-        self._base_man = get_expanded_environ("PIPX_GLOBAL_MAN_DIR") or DEFAULT_PIPX_GLOBAL_MAN_DIR
-        self._home_exists = self._base_home is not None or any(fallback.exists() for fallback in self._fallback_homes)
+        self._base_home = get_expanded_environ("PIPX_GLOBAL_HOME")
+        self._default_home = DEFAULT_PIPX_GLOBAL_HOME
+        self._base_bin = get_expanded_environ("PIPX_GLOBAL_BIN_DIR")
+        self._default_bin = DEFAULT_PIPX_GLOBAL_BIN_DIR
+        self._base_man = get_expanded_environ("PIPX_GLOBAL_MAN_DIR")
+        self._default_man = DEFAULT_PIPX_GLOBAL_MAN_DIR
+        self._base_shared_libs = None
+        self._fallback_homes = []
+        self._fallback_home = None
+        self._home_exists = self._base_home is not None
 
     @property
     def standalone_python_cachedir(self) -> Path:
