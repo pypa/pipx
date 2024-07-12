@@ -37,15 +37,15 @@ def get_expanded_environ(env_name: str) -> Optional[Path]:
 
 
 class _PathContext:
-    _base_home: Optional[Union[Path, str]] = get_expanded_environ("PIPX_HOME")
-    _default_home: Union[Path, str] = DEFAULT_PIPX_HOME
-    _base_bin: Optional[Union[Path, str]] = get_expanded_environ("PIPX_BIN_DIR")
-    _default_bin: Union[Path, str] = DEFAULT_PIPX_BIN_DIR
-    _base_man: Optional[Union[Path, str]] = get_expanded_environ("PIPX_MAN_DIR")
-    _default_man: Union[Path, str] = DEFAULT_PIPX_MAN_DIR
-    _base_shared_libs: Optional[Union[Path, str]] = get_expanded_environ("PIPX_SHARED_LIBS")
-    _fallback_home: Optional[Path] = next(iter([fallback for fallback in FALLBACK_PIPX_HOMES if fallback.exists()]), None)
-    _home_exists: bool = _base_home is not None or any(fallback.exists() for fallback in FALLBACK_PIPX_HOMES)
+    _base_home: Optional[Union[Path, str]]
+    _default_home: Union[Path, str]
+    _base_bin: Optional[Union[Path, str]]
+    _default_bin: Union[Path, str]
+    _base_man: Optional[Union[Path, str]]
+    _default_man: Union[Path, str]
+    _base_shared_libs: Optional[Union[Path, str]]
+    _fallback_home: Optional[Path]
+    _home_exists: bool
     log_file: Optional[Path] = None
 
     @property
@@ -151,4 +151,5 @@ class _PathContext:
 
 
 ctx = _PathContext()
+ctx.make_local()
 ctx.log_warnings()
