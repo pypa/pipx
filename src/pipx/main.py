@@ -85,8 +85,11 @@ PIPX_DESCRIPTION += pipx_wrap(
     """
     optional environment variables:
       PIPX_HOME              Overrides default pipx location. Virtual Environments will be installed to $PIPX_HOME/venvs.
+      PIPX_GLOBAL_HOME       Used instead of PIPX_HOME when the `--global` option is given.
       PIPX_BIN_DIR           Overrides location of app installations. Apps are symlinked or copied here.
+      PIPX_GLOBAL_BIN_DIR    Used instead of PIPX_BIN_DIR when the `--global` option is given.
       PIPX_MAN_DIR           Overrides location of manual pages installations. Manual pages are symlinked or copied here.
+      PIPX_GLOBAL_MAN_DIR    Used instead of PIPX_MAN_DIR when the `--global` option is given.
       PIPX_DEFAULT_PYTHON    Overrides default python used for commands.
       USE_EMOJI              Overrides emoji behavior. Default value varies based on platform.
       PIPX_HOME_ALLOW_SPACE  Overrides default warning on spaces in the home path
@@ -122,15 +125,24 @@ INSTALL_DESCRIPTION = textwrap.dedent(
 
     The PACKAGE_SPEC argument is passed directly to `pip install`.
 
-    The default virtual environment location is {paths.DEFAULT_PIPX_HOME}
-    and can be overridden by setting the environment variable `PIPX_HOME`
-    (Virtual Environments will be installed to `$PIPX_HOME/venvs`).
+    Virtual Environments will be installed to `$PIPX_HOME/venvs`.
+    The default pipx home location is {paths.DEFAULT_PIPX_HOME} and can
+    be overridden by setting the environment variable `PIPX_HOME`.
+    If the `--global` option is used, the default pipx home location
+    instead is {paths.DEFAULT_PIPX_GLOBAL_HOME} and can be overridden
+    by setting the environment variable `PIPX_GLOBAL_HOME`.
 
     The default app location is {paths.DEFAULT_PIPX_BIN_DIR} and can be
     overridden by setting the environment variable `PIPX_BIN_DIR`.
+    If the `--global` option is used, the default app location instead
+    is {paths.DEFAULT_PIPX_GLOBAL_BIN_DIR} and can be overridden by
+    setting the environment variable `PIPX_GLOBAL_BIN_DIR`.
 
     The default manual pages location is {paths.DEFAULT_PIPX_MAN_DIR} and
     can be overridden by setting the environment variable `PIPX_MAN_DIR`.
+    If the `--global` option is used, the default manual pages location
+    instead is {paths.DEFAULT_PIPX_GLOBAL_MAN_DIR} and can be overridden
+    by setting the environment variable `PIPX_GLOBAL_MAN_DIR`.
 
     The default python executable used to install a package is
     {DOC_DEFAULT_PYTHON} and can be overridden
