@@ -8,7 +8,7 @@ requires = [
 [project]
 name = "pipx"
 description = "Install and Run Python Applications in Isolated Environments"
-readme = "README.md"
+readme = "docs/README.md"
 keywords = [
   "cli",
   "install",
@@ -107,7 +107,7 @@ markers = [
 
 [tool.towncrier]
 directory = "changelog.d"
-filename = "CHANGELOG.md"
+filename = "docs/CHANGELOG.md"
 start_string = "<!-- towncrier release notes start -->\n"
 underlines = [
   "",
