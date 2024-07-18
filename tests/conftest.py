@@ -77,7 +77,7 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_HOME", home_dir)
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_BIN_DIR", bin_dir)
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_MAN_DIR", man_dir)
-    monkeypatch.setattr(paths, "OVERRIDE_PIPX_SHARED_LIBS", pipx_shared_dir) 
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_SHARED_LIBS", pipx_shared_dir)
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_HOME", global_home_dir)
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_BIN_DIR", global_bin_dir)
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_MAN_DIR", global_man_dir)
