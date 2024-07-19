@@ -11,7 +11,7 @@ class ConfigurationTest extends TestCase
     {
         $configuration = new Configuration();
 
-        $this->assertSame('https://cluster-api.cyberfusion.nl/api/v1/', $configuration->getUrl());
+        $this->assertSame('https://core-api.cyberfusion.io/api/v1/', $configuration->getUrl());
 
         $configuration->setUrl('foo://bar');
 

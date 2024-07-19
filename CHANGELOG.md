@@ -3,8 +3,14 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Please note this changelog affects 
-this package and not the cluster API. See the changelog of the [cluster API](https://cluster-api.cyberfusion.nl/redoc#section/Changelog) 
+this package and not the cluster API. See the changelog of the [cluster API](https://core-api.cyberfusion.io/redoc#section/Changelog) 
 for detailed information.
+
+## [1.113.2]
+
+### Changed
+
+- Update default production URL from `cluster-api.cyberfusion.nl` to `core-api.cyberfusion.io`.
 
 ## [1.113.1]
 
@@ -93,7 +99,7 @@ for detailed information.
 ### Changed
 
 - Change the minimum values of backup interval properties of the cluster.
-- Update to [API version 1.227.0](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.227-2024-02-10).
+- Update to [API version 1.227.0](https://core-api.cyberfusion.io/redoc#section/Changelog/1.227-2024-02-10).
 
 ### Fixed
 
@@ -124,7 +130,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.214.0](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.214-2023-11-29).
+- Update to [API version 1.214.0](https://core-api.cyberfusion.io/redoc#section/Changelog/1.214-2023-11-29).
 
 ## [1.104.2]
 
@@ -256,7 +262,7 @@ for detailed information.
 ### Changed
 
 - Clusters: Change `customer_id` validation.
-- Update to [API version 1.198.2](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.198.2-2023-09-20).
+- Update to [API version 1.198.2](https://core-api.cyberfusion.io/redoc#section/Changelog/1.198.2-2023-09-20).
 
 ### Removed
 
@@ -290,7 +296,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.187.1](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.187.1-2023-08-02).
+- Update to [API version 1.187.1](https://core-api.cyberfusion.io/redoc#section/Changelog/1.187.1-2023-08-02).
 
 ## [1.100.1]
 
@@ -312,7 +318,7 @@ for detailed information.
 
 - Allow underscores in the name of a custom config snippet instead of a dash.
 - Allow `null` as password for UNIX users to limit to SSH key login only. 
-- Update to [API version 1.185.3](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.185.3-2023-07-21).
+- Update to [API version 1.185.3](https://core-api.cyberfusion.io/redoc#section/Changelog/1.185.3-2023-07-21).
 
 ## [1.99.0]
 
@@ -324,7 +330,7 @@ for detailed information.
 ### Changed
 
 - Update mailaccount validation.
-- Update to [API version 1.183](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.183-2023-07-15).
+- Update to [API version 1.183](https://core-api.cyberfusion.io/redoc#section/Changelog/1.183-2023-07-15).
 
 ## [1.98.0]
 
@@ -524,7 +530,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.155](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.155-2022-11-17).
+- Update to [API version 1.155](https://core-api.cyberfusion.io/redoc#section/Changelog/1.155-2022-11-17).
 - Certificates: make certificate + CA chain + private key required and non-nullable.
 - Certificates: remove `isLetsEncrypt`.
 - Certificates: remove `statusMessage`.
@@ -657,7 +663,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.143](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.143-2022-10-19).
+- Update to [API version 1.143](https://core-api.cyberfusion.io/redoc#section/Changelog/1.143-2022-10-19).
 - Add max length to `CmsInstallation` (`database_user_password` + `admin_password`) and `CmsConfigurationConstant` (`value`)
 - Remove min length validation from strings.
 
@@ -778,28 +784,28 @@ for detailed information.
 
 - Use `DatabaseUserGrantPrivilegeName` enum for database user grant privilege names.
 - Make new `SELECT` database user grant privilege name available.
-- Update to [API version 1.127](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.127-2022-06-06).
+- Update to [API version 1.127](https://core-api.cyberfusion.io/redoc#section/Changelog/1.127-2022-06-06).
 
 ## [1.56.0]
 
 ### Changed
 
 - Update database and database user name regex.
-- Update to [API version 1.126.1](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.126.1-2022-06-02).
+- Update to [API version 1.126.1](https://core-api.cyberfusion.io/redoc#section/Changelog/1.126.1-2022-06-02).
 
 ## [1.55.0]
 
 ### Changed
 
 - Add support for Borg SSH key for clusters.
-- Update to [API version 1.125](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.125-2022-05-27).
+- Update to [API version 1.125](https://core-api.cyberfusion.io/redoc#section/Changelog/1.125-2022-05-27).
 
 ## [1.54.0]
 
 ### Changed
 
 - Change validation of `startup_file` of `PassengerApp` to end with `.js`.
-- Update to [API version 1.124.1](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.124.1-2022-05-21).
+- Update to [API version 1.124.1](https://core-api.cyberfusion.io/redoc#section/Changelog/1.124.1-2022-05-21).
 
 ## [1.53.0]
 
@@ -829,7 +835,7 @@ for detailed information.
 ### Changed
 
 - Fix capitalisation of Enum values of `PassengerAppTypeEnum` and `PassengerEnvironmentEnum`.
-- Update to [API version 1.119](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.119-2022-04-26).
+- Update to [API version 1.119](https://core-api.cyberfusion.io/redoc#section/Changelog/1.119-2022-04-26).
 
 ## [1.49.3]
 
@@ -857,7 +863,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.118.3](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.118-2022-04-20).
+- Update to [API version 1.118.3](https://core-api.cyberfusion.io/redoc#section/Changelog/1.118-2022-04-20).
 
 ## [1.48.1]
 
@@ -874,7 +880,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.117](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.117-2022-03-10).
+- Update to [API version 1.117](https://core-api.cyberfusion.io/redoc#section/Changelog/1.117-2022-03-10).
 - A commit will now return a task collection.
 
 ## [1.47.1]
@@ -891,7 +897,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.116](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.116-2022-03-06).
+- Update to [API version 1.116](https://core-api.cyberfusion.io/redoc#section/Changelog/1.116-2022-03-06).
 
 ### Fixed
 
@@ -907,7 +913,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.115](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.115-2022-03-04).
+- Update to [API version 1.115](https://core-api.cyberfusion.io/redoc#section/Changelog/1.115-2022-03-04).
 - Renamed `from_timestamp_date` parameter to `timestamp`. This does not affect the usage of the package.
 
 ## [1.45.0]
@@ -967,7 +973,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.106.2](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.106.2-2022-01-24).
+- Update to [API version 1.106.2](https://core-api.cyberfusion.io/redoc#section/Changelog/1.106.2-2022-01-24).
 - Update regex for mail account and mail alias local part
 
 ## [1.39.0]
@@ -981,7 +987,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.106](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.106-2022-01-21).
+- Update to [API version 1.106](https://core-api.cyberfusion.io/redoc#section/Changelog/1.106-2022-01-21).
 - Moved the sort and limit constants to their own enums.
 
 ## [1.38.2]
@@ -1005,7 +1011,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.105.0](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.105-2021-12-28).
+- Update to [API version 1.105.0](https://core-api.cyberfusion.io/redoc#section/Changelog/1.105-2021-12-28).
 
 ### Removed
 
@@ -1019,13 +1025,13 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.104.1](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.104.1-2021-12-20).
+- Update to [API version 1.104.1](https://core-api.cyberfusion.io/redoc#section/Changelog/1.104.1-2021-12-20).
 
 ## [1.36.0]
 
 ### Changed
 
-- Update to [API version 1.103](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.103-2021-12-16).
+- Update to [API version 1.103](https://core-api.cyberfusion.io/redoc#section/Changelog/1.103-2021-12-16).
 
 ### Fixed
 
@@ -1043,7 +1049,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.102](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.102-2021-12-15).
+- Update to [API version 1.102](https://core-api.cyberfusion.io/redoc#section/Changelog/1.102-2021-12-15).
 
 ## [1.34.0]
 
@@ -1054,7 +1060,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.101](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.101-2021-12-14).
+- Update to [API version 1.101](https://core-api.cyberfusion.io/redoc#section/Changelog/1.101-2021-12-14).
 - Issue templates to assign the correct user instead of the organisation. Also made the bug report a bit easier to use.
 
 ### Fixed
@@ -1076,7 +1082,7 @@ for detailed information.
 
 ## Changed
 
-- Update to [API version 1.97](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.97-2021-12-02).
+- Update to [API version 1.97](https://core-api.cyberfusion.io/redoc#section/Changelog/1.97-2021-12-02).
 - Always send the hashed password for the Database User but be able to set the hashed password with `setHashedPassword`
   or plain text password with `setPassword`. Thanks to @mbardelmeijer.
 - Setting the Database Engine of the Database User after setting the password will result in a `ModelException` as the
@@ -1128,7 +1134,7 @@ for detailed information.
   because the cluster API no longer returns the CMS object).
 - The FPM pool restart endpoint no longer returns the FPM pool object (as the cluster API no longer returns the FPM pool
   object).
-- Update to [API version 1.88](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.88-2021-11-09).
+- Update to [API version 1.88](https://core-api.cyberfusion.io/redoc#section/Changelog/1.88-2021-11-09).
 - The `ListFilter` can now be initialized for models which enables checks for available fields to filter or sort on.
 
 ### Fixed
@@ -1153,7 +1159,7 @@ for detailed information.
 
 - Add `disableAsync` to the `UnixUsers` endpoint. Thanks to @WilliamDEdwards.
 - Add `unit name` property to the FPM pool. Thanks to @WilliamDEdwards.
-- Add version based user agent, i.e. `cyberfusion-cluster-api-client/1.29`. Thanks to @WilliamDEdwards. 
+- Add version based user agent, i.e. `cyberfusion-core-api-client/1.29`. Thanks to @WilliamDEdwards. 
 
 ### Changed
 
@@ -1163,7 +1169,7 @@ for detailed information.
 - Add positive integer validation to `max_children`, `max_requests`, `process_idle_timeout` and `cpu_limit` of FPM 
   pools.
 - Add positive integer validation to `quota` of Mail accounts.
-- Update to [API version 1.77](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.77-2021-09-30)
+- Update to [API version 1.77](https://core-api.cyberfusion.io/redoc#section/Changelog/1.77-2021-09-30)
 
 ## [1.28.0]
 
@@ -1177,7 +1183,7 @@ for detailed information.
 
 - The `from_timestamp_date` parameter is now required for Borg Repository Usages, Database Usages, Mail Account Usages 
   and Unix User Usages.
-- Update to [API version 1.65](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.65-2021-09-02)
+- Update to [API version 1.65](https://core-api.cyberfusion.io/redoc#section/Changelog/1.65-2021-09-02)
 
 ## [1.26.0]
 
@@ -1227,7 +1233,7 @@ for detailed information.
 ### Changed
 
 - Change the email address to be optional for crons. 
-- Update to [API version 1.56](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.56-2021-07-13)
+- Update to [API version 1.56](https://core-api.cyberfusion.io/redoc#section/Changelog/1.56-2021-07-13)
 
 ## [1.23.1]
 
@@ -1240,7 +1246,7 @@ for detailed information.
 ### Changed
 
 - Requesting a Let's Encrypt certificate not longer requires a cluster deployment.
-- Update to [API version 1.48](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.48-2021-06-17)
+- Update to [API version 1.48](https://core-api.cyberfusion.io/redoc#section/Changelog/1.48-2021-06-17)
 
 ### Fixed
 
@@ -1256,7 +1262,7 @@ for detailed information.
 ### Changed
 
 - Change regex validation to allow capticals for the `table_name` of a database user grant.
-- Update to [API version 1.47](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.47-2021-06-04)
+- Update to [API version 1.47](https://core-api.cyberfusion.io/redoc#section/Changelog/1.47-2021-06-04)
 
 ## [1.21.2]
 
@@ -1323,7 +1329,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.35.1](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.35.1-2021-04-28)
+- Update to [API version 1.35.1](https://core-api.cyberfusion.io/redoc#section/Changelog/1.35.1-2021-04-28)
 
 ## [1.16.0]
 
@@ -1333,7 +1339,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.34](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.34-2021-04-23)
+- Update to [API version 1.34](https://core-api.cyberfusion.io/redoc#section/Changelog/1.34-2021-04-23)
 
 ### Removed
 
@@ -1366,13 +1372,13 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.32](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.32-2021-04-10)
+- Update to [API version 1.32](https://core-api.cyberfusion.io/redoc#section/Changelog/1.32-2021-04-10)
 
 ## [1.13.0]
 
 ### Changed
 
-- Update to [API version 1.29.1](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.29.1-2021-04-07)
+- Update to [API version 1.29.1](https://core-api.cyberfusion.io/redoc#section/Changelog/1.29.1-2021-04-07)
 
 ## [1.12.0]
 
@@ -1389,7 +1395,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.28](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.28-2021-03-29)
+- Update to [API version 1.28](https://core-api.cyberfusion.io/redoc#section/Changelog/1.28-2021-03-29)
 - Change to getters and setters for the properties to allow validation of the properties. To prevent breaking 
   implementations, property access is still available but the use of the getters and setters is recommended.
 
@@ -1403,7 +1409,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.22](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.22-2021-03-23)
+- Update to [API version 1.22](https://core-api.cyberfusion.io/redoc#section/Changelog/1.22-2021-03-23)
 
 ## [1.9.0]
 
@@ -1414,7 +1420,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.21](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.21-2021-03-18)
+- Update to [API version 1.21](https://core-api.cyberfusion.io/redoc#section/Changelog/1.21-2021-03-18)
 
 ## [1.8.1]
 
@@ -1432,17 +1438,17 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.19](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.19-2021-03-12)
+- Update to [API version 1.19](https://core-api.cyberfusion.io/redoc#section/Changelog/1.19-2021-03-12)
 
 ## [1.7.0]
 
 ### Added
 
-- Add commands endpoint which were added in [API version 1.16](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.16-2021-03-05).
+- Add commands endpoint which were added in [API version 1.16](https://core-api.cyberfusion.io/redoc#section/Changelog/1.16-2021-03-05).
 
 ### Changed
 
-- Update to [API version 1.17](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.17-2021-03-08)
+- Update to [API version 1.17](https://core-api.cyberfusion.io/redoc#section/Changelog/1.17-2021-03-08)
 
 ## [1.6.2]
 
@@ -1469,7 +1475,7 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.12](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.12-2021-02-23)
+- Update to [API version 1.12](https://core-api.cyberfusion.io/redoc#section/Changelog/1.12-2021-02-23)
 
 ### Removed
 
@@ -1495,13 +1501,13 @@ for detailed information.
 
 ### Changed
 
-- Update to [API version 1.9](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.9-2021-02-01).
+- Update to [API version 1.9](https://core-api.cyberfusion.io/redoc#section/Changelog/1.9-2021-02-01).
 
 ## [1.3.0]
 
 ### Changed
 
-- Update to [API version 1.7](https://cluster-api.cyberfusion.nl/redoc#section/Changelog/1.7-2021-01-27).
+- Update to [API version 1.7](https://core-api.cyberfusion.io/redoc#section/Changelog/1.7-2021-01-27).
 
 ## [1.2.0]
 

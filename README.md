@@ -1,6 +1,6 @@
 # Cyberfusion Cluster API client
 
-Client for the [Cyberfusion Cluster API](https://cluster-api.cyberfusion.nl/).
+Client for the [Cyberfusion Cluster API](https://core-api.cyberfusion.io/).
 
 This client was built for and tested on the **1.230.1** version of the API.
 
@@ -21,11 +21,11 @@ This client can be used in any PHP project and with any framework.
 
 Install the client with Composer:
 
-`composer require cyberfusion/cluster-api-client`
+`composer require cyberfusion/core-api-client`
 
 ## Usage
 
-Refer to the [API documentation](https://cluster-api.cyberfusion.nl/) for information about API requests.
+Refer to the [API documentation](https://core-api.cyberfusion.io/) for information about API requests.
 
 ### Getting started
 
