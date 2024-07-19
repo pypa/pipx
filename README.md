@@ -1,6 +1,6 @@
-# Cyberfusion Cluster API client
+# Cyberfusion Core API client
 
-Client for the [Cyberfusion Cluster API](https://core-api.cyberfusion.io/).
+Client for the [Cyberfusion Core API](https://core-api.cyberfusion.io/).
 
 This client was built for and tested on the **1.230.1** version of the API.
 

@@ -1,6 +1,6 @@
 {
     "name": "cyberfusion/cluster-api-client",
-    "description": "Client for Cyberfusion Cluster API",
+    "description": "Client for Cyberfusion Core API",
     "keywords": [
         "cyberfusion",
         "cluster",

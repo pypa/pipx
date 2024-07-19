@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Please note this changelog affects 
-this package and not the cluster API. See the changelog of the [cluster API](https://core-api.cyberfusion.io/redoc#section/Changelog) 
+this package and not the Core API. See the changelog of the [Core API](https://core-api.cyberfusion.io/redoc#section/Changelog) 
 for detailed information.
 
 ## [1.113.2]
@@ -148,7 +148,7 @@ for detailed information.
 
 ### Changed
 
-- Update to Cluster API version 1.208.
+- Update to Core API version 1.208.
 
 ## [1.103.9]
 
@@ -232,7 +232,7 @@ for detailed information.
 
 ### Added
 
-- Add missing endpoints to cluster API entry point.
+- Add missing endpoints to Core API entry point.
 
 ## [1.102.1]
 
@@ -1131,8 +1131,8 @@ for detailed information.
 ### Changed
 
 - Restored the ability to track cluster deployments when installing a CMS and still returns the CMS object (required 
-  because the cluster API no longer returns the CMS object).
-- The FPM pool restart endpoint no longer returns the FPM pool object (as the cluster API no longer returns the FPM pool
+  because the Core API no longer returns the CMS object).
+- The FPM pool restart endpoint no longer returns the FPM pool object (as the Core API no longer returns the FPM pool
   object).
 - Update to [API version 1.88](https://core-api.cyberfusion.io/redoc#section/Changelog/1.88-2021-11-09).
 - The `ListFilter` can now be initialized for models which enables checks for available fields to filter or sort on.
@@ -1529,4 +1529,4 @@ for detailed information.
 
 ### Added
 
-- Add the initial cluster API implementation.
+- Add the initial Core API implementation.
