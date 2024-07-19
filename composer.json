@@ -9,7 +9,7 @@
     "homepage": "https://github.com/CyberfusionIO/cyberfusion-cluster-api-client",
     "license": "MIT",
     "require": {
-        "php": "^8.0",
+        "php": "^8.1",
         "ext-json": "*",
         "guzzlehttp/guzzle": "^7.2",
         "illuminate/support": "^8.22 || ^9.0 || ^10.0 || ^11.0",
