@@ -1,4 +1,4 @@
-name: Cluster API
+name: Core API
 
 on: [ push, pull_request ]
 

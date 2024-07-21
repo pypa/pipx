@@ -2,13 +2,13 @@
 
 Contributions are **welcome** and you will be credited as a contributor.
 
-The goal of this package is to enable developers to easily use the Cluster API of Cyberfusion. To make sure this
+The goal of this package is to enable developers to easily use the Core API of Cyberfusion. To make sure this
 package is focused on that goal, there are some guidelines defined. Please read this contribution guide **before**
 creating an issue or pull request.
 
 ## We are all humans
 
-This project is an open-source package and targets the users of the Cyberfusion Cluster API. This package isn't
+This project is an open-source package and targets the users of the Cyberfusion Core API. This package isn't
 maintained by Cyberfusion, but is built and maintained in the maintainer's (and contributor's) spare time.
 
 Please be considerate towards everyone who's involved with the package, when raising issues or creating pull requests.
@@ -60,6 +60,6 @@ There are some requirements set by the maintainer, which are listed below.
 
 - Please apply the [PSR-12 Coding Standard](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-12-coding-style-guide.md).
 - Keep track of changes and document them in the [CHANGELOG.md](CHANGELOG.md).
-- Update the [readme.md](README.md) when the Cluster API version is updated.
+- Update the [readme.md](README.md) when the Core API version is updated.
 - Add tests when possible.
 - Please create one pull request per feature/bug.
