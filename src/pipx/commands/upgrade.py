@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Sequence
 from pipx import commands, paths
 from pipx.colors import bold, red
 from pipx.commands.common import expose_resources_globally
-from pipx.constants import EXIT_CODE_OK, ExitCode
+from pipx.constants import DEFAULT_BACKEND, DEFAULT_INSTALLER, EXIT_CODE_OK, ExitCode
 from pipx.emojis import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
 from pipx.util import PipxError, pipx_wrap
@@ -137,6 +137,9 @@ def _upgrade_venv(
                 include_dependencies=False,
                 preinstall_packages=None,
                 python_flag_passed=python_flag_passed,
+                # What to deal with this? Should we allow cli option?
+                backend=DEFAULT_BACKEND,
+                installer=DEFAULT_INSTALLER,
             )
             return 0
         else:

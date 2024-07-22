@@ -43,6 +43,12 @@ dependencies = [
   "tomli; python_version<'3.11'",
   "userpath!=1.9,>=1.6",
 ]
+optional-dependencies.uv = [
+  "uv>=0.2.27",
+]
+optional-dependencies.virtualenv = [
+  "virtualenv>=20.26.3",
+]
 urls."Bug Tracker" = "https://github.com/pypa/pipx/issues"
 urls.Documentation = "https://pipx.pypa.io"
 urls.Homepage = "https://pipx.pypa.io"

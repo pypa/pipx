@@ -36,6 +36,8 @@ class VenvMetadata(NamedTuple):
     man_paths_of_dependencies: Dict[str, List[Path]]
     package_version: str
     python_version: str
+    backend: str
+    installer: str
 
 
 def get_dist(package: str, distributions: Collection[metadata.Distribution]) -> Optional[metadata.Distribution]:
@@ -253,6 +255,8 @@ def inspect_venv(
     venv_bin_path: Path,
     venv_python_path: Path,
     venv_man_path: Path,
+    backend: str,
+    installer: str,
 ) -> VenvMetadata:
     app_paths_of_dependencies: Dict[str, List[Path]] = {}
     apps_of_dependencies: List[str] = []
@@ -316,4 +320,6 @@ def inspect_venv(
         man_paths_of_dependencies=man_paths_of_dependencies,
         package_version=root_dist.version,
         python_version=venv_python_version,
+        backend=backend,
+        installer=installer,
     )
