@@ -21,9 +21,12 @@ from packaging.utils import canonicalize_name
 
 from pipx import commands, constants, paths
 from pipx.animate import hide_cursor, show_cursor
+from pipx.backend import SUPPORTED_BACKEND, SUPPORTED_INSTALLER
 from pipx.colors import bold, green
 from pipx.commands.environment import ENVIRONMENT_VARIABLES
 from pipx.constants import (
+    DEFAULT_BACKEND,
+    DEFAULT_INSTALLER,
     EXIT_CODE_OK,
     EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND,
     MINIMUM_PYTHON_VERSION,
@@ -275,6 +278,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             args.pypackages,
             verbose,
             not args.no_cache,
+            args.backend,
+            args.installer,
         )
         # We should never reach here because run() is NoReturn.
         return ExitCode(1)
@@ -295,6 +300,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             preinstall_packages=args.preinstall,
             suffix=args.suffix,
             python_flag_passed=python_flag_passed,
+            backend=args.backend,
+            installer=args.installer,
         )
     elif args.command == "install-all":
         return commands.install_all(
@@ -396,6 +403,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             local_man_dir=paths.ctx.man_dir,
             python=args.python,
             verbose=verbose,
+            backend=args.backend,
+            installer=args.installer,
             python_flag_passed=python_flag_passed,
         )
     elif args.command == "reinstall-all":
@@ -405,6 +414,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             paths.ctx.man_dir,
             args.python,
             verbose,
+            args.backend,
+            args.installer,
             skip=skip_list,
             python_flag_passed=python_flag_passed,
         )
@@ -448,6 +459,13 @@ def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
 
 def add_include_dependencies(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--include-deps", help="Include apps of dependent packages", action="store_true")
+
+
+def add_backend_and_installer(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--backend", help="Virtual environment backend to use", choices=SUPPORTED_BACKEND, default=DEFAULT_BACKEND
+    )
+    parser.add_argument("--installer", help="Installer to use", choices=SUPPORTED_INSTALLER, default=DEFAULT_INSTALLER)
 
 
 def add_python_options(parser: argparse.ArgumentParser) -> None:
@@ -502,6 +520,7 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         ),
     )
     add_pip_venv_args(p)
+    add_backend_and_installer(p)
 
 
 def _add_install_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -849,6 +868,7 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
     p.add_argument("--spec", help=SPEC_HELP)
     add_python_options(p)
     add_pip_venv_args(p)
+    add_backend_and_installer(p)
     p.set_defaults(subparser=p)
 
     # modify usage text to show required app argument

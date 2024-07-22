@@ -54,7 +54,8 @@ class PipxMetadata:
     # V0.3 -> Add man pages fields
     # V0.4 -> Add source interpreter
     # V0.5 -> Add pinned
-    __METADATA_VERSION__: str = "0.5"
+    # V0.6 -> Add installer, backend
+    __METADATA_VERSION__: str = "0.6"
 
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
@@ -83,6 +84,8 @@ class PipxMetadata:
         self.source_interpreter: Optional[Path] = None
         self.venv_args: List[str] = []
         self.injected_packages: Dict[str, PackageInfo] = {}
+        self.backend: str = ""
+        self.installer: str = ""
 
         if read:
             self.read()
@@ -90,6 +93,8 @@ class PipxMetadata:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "main_package": asdict(self.main_package),
+            "backend": self.backend,
+            "installer": self.installer,
             "python_version": self.python_version,
             "source_interpreter": self.source_interpreter,
             "venv_args": self.venv_args,
@@ -100,6 +105,9 @@ class PipxMetadata:
     def _convert_legacy_metadata(self, metadata_dict: Dict[str, Any]) -> Dict[str, Any]:
         if metadata_dict["pipx_metadata_version"] in (self.__METADATA_VERSION__):
             pass
+        elif metadata_dict["pipx_metadata_version"] == "0.5":
+            metadata_dict["backend"] = "venv"
+            metadata_dict["installer"] = "pip"
         elif metadata_dict["pipx_metadata_version"] == "0.4":
             metadata_dict["pinned"] = False
         elif metadata_dict["pipx_metadata_version"] in ("0.2", "0.3"):
@@ -132,6 +140,8 @@ class PipxMetadata:
             f"{name}{data.get('suffix', '')}": PackageInfo(**data)
             for (name, data) in input_dict["injected_packages"].items()
         }
+        self.backend = input_dict["backend"]
+        self.installer = input_dict["installer"]
 
     def _validate_before_write(self) -> None:
         if (
