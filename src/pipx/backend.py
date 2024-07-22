@@ -1,8 +1,5 @@
-from pipx.constants import DEFAULT_BACKEND
-
 import logging
 import shutil
-from typing import Optional
 
 SUPPORTED_BACKEND = ("uv", "venv", "virtualenv")
 SUPPORTED_INSTALLER = ("uv", "pip")
