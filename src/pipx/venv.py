@@ -276,10 +276,7 @@ class Venv:
         # check syntax and clean up spec and pip_args
         (package_or_url, pip_args) = parse_specifier_for_install(package_or_url, pip_args)
 
-        logger.info(
-            "Installing %s",
-            package_descr := full_package_description(package_name, package_or_url),
-        )
+        logger.info("Installing %s", package_descr := full_package_description(package_name, package_or_url))
         with animate(f"installing {package_descr}", self.do_animation):
             # do not use -q with `pip install` so subprocess_post_check_pip_errors
             #   has more information to analyze in case of failure.
@@ -504,10 +501,7 @@ class Venv:
         return bool(list(Distribution.discover(name=package_name, path=[str(get_site_packages(self.python_path))])))
 
     def upgrade_package_no_metadata(self, package_name: str, pip_args: List[str]) -> None:
-        logger.info(
-            "Upgrading %s",
-            package_descr := full_package_description(package_name, package_name),
-        )
+        logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_name))
         with animate(f"upgrading {package_descr}", self.do_animation):
             if self.installer != "uv":
                 upgrade_process = self._run_pip(["--no-input", "install"] + pip_args + ["--upgrade", package_name])
@@ -525,10 +519,7 @@ class Venv:
         is_main_package: bool,
         suffix: str = "",
     ) -> None:
-        logger.info(
-            "Upgrading %s",
-            package_descr := full_package_description(package_name, package_or_url),
-        )
+        logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_or_url))
         with animate(f"upgrading {package_descr}", self.do_animation):
             if self.installer != "uv":
                 upgrade_process = self._run_pip(["--no-input", "install"] + pip_args + ["--upgrade", package_or_url])
