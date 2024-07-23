@@ -109,7 +109,7 @@ class Venv:
         if self._existing:
             self.backend = self.pipx_metadata.backend
             self.installer = self.pipx_metadata.installer
-        
+
         if not path_to_exec(self.backend):
             self.backend = "venv"
         if not path_to_exec(self.installer):
@@ -504,7 +504,9 @@ class Venv:
         # do not use -q with `pip install` so subprocess_post_check_pip_errors
         #   has more information to analyze in case of failure.
         if installer != "uv":
-            return self._run_pip(["--no-input", "install"] + (["--no-dependencies"] if no_deps else []) + cmd, quiet=quiet)
+            return self._run_pip(
+                ["--no-input", "install"] + (["--no-dependencies"] if no_deps else []) + cmd, quiet=quiet
+            )
         else:
             return self._run_uv(["pip", "install"] + (["--no-deps"] if no_deps else []) + cmd, quiet=quiet)
 
