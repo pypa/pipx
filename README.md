@@ -13,7 +13,7 @@ The client was created by @dvdheiden.
 
 ## Requirements
 
-This client requires PHP 8.0 or higher and uses Guzzle.
+This client requires PHP 8.1 or higher and uses Guzzle.
 
 ## Installation
 
