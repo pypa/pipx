@@ -21,7 +21,7 @@ from packaging.utils import canonicalize_name
 
 from pipx import commands, constants, paths
 from pipx.animate import hide_cursor, show_cursor
-from pipx.backend import SUPPORTED_VENV_BACKENDS, SUPPORTED_INSTALLERS
+from pipx.backend import SUPPORTED_INSTALLERS, SUPPORTED_VENV_BACKENDS
 from pipx.colors import bold, green
 from pipx.commands.environment import ENVIRONMENT_VARIABLES
 from pipx.constants import (
