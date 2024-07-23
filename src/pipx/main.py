@@ -751,6 +751,7 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
     )
     p.add_argument("package").completer = venv_completer
     add_python_options(p)
+    add_backend_and_installer(p)
 
 
 def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -772,6 +773,7 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
         parents=[shared_parser],
     )
     add_python_options(p)
+    add_backend_and_installer(p)
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
 
 
