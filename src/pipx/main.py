@@ -21,7 +21,7 @@ from packaging.utils import canonicalize_name
 
 from pipx import commands, constants, paths
 from pipx.animate import hide_cursor, show_cursor
-from pipx.backend import SUPPORTED_BACKEND, SUPPORTED_INSTALLER
+from pipx.backend import SUPPORTED_VENV_BACKENDS, SUPPORTED_INSTALLERS
 from pipx.colors import bold, green
 from pipx.commands.environment import ENVIRONMENT_VARIABLES
 from pipx.constants import (
@@ -463,9 +463,9 @@ def add_include_dependencies(parser: argparse.ArgumentParser) -> None:
 
 def add_backend_and_installer(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
-        "--backend", help="Virtual environment backend to use", choices=SUPPORTED_BACKEND, default=DEFAULT_BACKEND
+        "--backend", help="Virtual environment backend to use", choices=SUPPORTED_VENV_BACKENDS, default=DEFAULT_BACKEND
     )
-    parser.add_argument("--installer", help="Installer to use", choices=SUPPORTED_INSTALLER, default=DEFAULT_INSTALLER)
+    parser.add_argument("--installer", help="Installer to use", choices=SUPPORTED_INSTALLERS, default=DEFAULT_INSTALLER)
 
 
 def add_python_options(parser: argparse.ArgumentParser) -> None:

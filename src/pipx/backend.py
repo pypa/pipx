@@ -1,8 +1,8 @@
 import logging
 import shutil
 
-SUPPORTED_BACKEND = ("uv", "venv", "virtualenv")
-SUPPORTED_INSTALLER = ("uv", "pip")
+SUPPORTED_VENV_BACKENDS = ("uv", "venv", "virtualenv")
+SUPPORTED_INSTALLERS = ("uv", "pip")
 
 logger = logging.getLogger(__name__)
 
