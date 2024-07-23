@@ -140,8 +140,8 @@ class PipxMetadata:
             f"{name}{data.get('suffix', '')}": PackageInfo(**data)
             for (name, data) in input_dict["injected_packages"].items()
         }
-        self.backend = input_dict["backend"]
-        self.installer = input_dict["installer"]
+        self.backend = input_dict["backend"] if input_dict.get("backend") else "venv"
+        self.installer = input_dict["installer"] if input_dict.get("installer") else "pip"
 
     def _validate_before_write(self) -> None:
         if (

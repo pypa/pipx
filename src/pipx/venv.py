@@ -109,6 +109,11 @@ class Venv:
         if self._existing:
             self.backend = self.pipx_metadata.backend
             self.installer = self.pipx_metadata.installer
+        
+        if not path_to_exec(self.backend):
+            self.backend = "venv"
+        if not path_to_exec(self.installer):
+            self.installer = "pip"
 
     def check_upgrade_shared_libs(self, verbose: bool, pip_args: List[str], force_upgrade: bool = False):
         """
@@ -152,9 +157,9 @@ class Venv:
         if self._existing:
             pth_files = self.root.glob("**/" + PIPX_SHARED_PTH)
             return next(pth_files, None) is not None
-        # elif self.backend == "uv":
-        #     # No need to use shared lib for uv
-        #     return False
+        elif self.backend == "uv":
+            # No need to use shared lib for uv
+            return False
         else:
             # always use shared libs when creating a new venv with venv and virtualenv
             return True
@@ -175,6 +180,12 @@ class Venv:
         else:
             return self.pipx_metadata.main_package.package
 
+    def default_create_venv_cmd(self, override_shared: bool = False) -> List[str]:
+        cmd = [self.python, "-m", "venv"]
+        if not override_shared:
+            cmd.append("--without-pip")
+        return cmd
+
     def create_venv(self, venv_args: List[str], pip_args: List[str], override_shared: bool = False) -> None:
         """
         override_shared -- Override installing shared libraries to the pipx shared directory (default False)
@@ -182,9 +193,7 @@ class Venv:
         logger.info("Creating virtual environment")
         with animate(f"creating virtual environment using {self.backend}", self.do_animation):
             if self.backend == "venv":
-                cmd = [self.python, "-m", "venv"]
-                if not override_shared:
-                    cmd.append("--without-pip")
+                cmd = self.default_create_venv_cmd(override_shared=override_shared)
             elif self.backend == "uv":
                 cmd = [path_to_exec("uv"), "venv"]
             elif self.backend == "virtualenv":
@@ -193,9 +202,9 @@ class Venv:
                     cmd.append("--no-pip")
             venv_process = run_subprocess(cmd + venv_args + [str(self.root)], run_dir=str(self.root))
         subprocess_post_check(venv_process)
-        # if self.backend != "uv":
-        shared_libs.create(verbose=self.verbose, pip_args=pip_args)
-        if not override_shared:
+        if self.backend != "uv":
+            shared_libs.create(verbose=self.verbose, pip_args=pip_args)
+        if not override_shared and self.backend != "uv":
             pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
             # write path pointing to the shared libs site-packages directory
             # example pipx_pth location:
@@ -278,30 +287,13 @@ class Venv:
 
         logger.info("Installing %s", package_descr := full_package_description(package_name, package_or_url))
         with animate(f"installing {package_descr}", self.do_animation):
-            # do not use -q with `pip install` so subprocess_post_check_pip_errors
-            #   has more information to analyze in case of failure.
-            if self.installer != "uv":
-                cmd = [
-                    str(self.python_path),
-                    "-m",
-                    "pip",
-                    "--no-input",
-                    "install",
-                    *pip_args,
-                    package_or_url,
-                ]
-            else:
-                cmd = [
-                    path_to_exec("uv", installer=True),
-                    "pip",
-                    "install",
-                    package_or_url,
-                ]
             # no logging because any errors will be specially logged by
             #   subprocess_post_check_handle_pip_error()
-            pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False, run_dir=str(self.root))
-        subprocess_post_check_handle_pip_error(pip_process)
-        if pip_process.returncode:
+            install_process = self._run_installer(
+                self.installer, [*pip_args, package_or_url], quiet=True, log_stdout=False, log_stderr=False
+            )
+        subprocess_post_check_handle_pip_error(install_process)
+        if install_process.returncode:
             raise PipxError(f"Error installing {full_package_description(package_name, package_or_url)}.")
 
         if not self._existing:
@@ -334,51 +326,20 @@ class Venv:
         # pip resolve conflicts correctly.
         logger.info("Installing %s", package_descr := ", ".join(requirements))
         with animate(f"installing {package_descr}", self.do_animation):
-            # do not use -q with `pip install` so subprocess_post_check_pip_errors
-            #   has more information to analyze in case of failure.
-            if self.installer != "uv":
-                cmd = [
-                    str(self.python_path),
-                    "-m",
-                    "pip",
-                    "--no-input",
-                    "install",
-                    *pip_args,
-                    *requirements,
-                ]
-            else:
-                cmd = [
-                    path_to_exec(self.installer, installer=True),
-                    "pip",
-                    "install",
-                    *requirements,
-                ]
             # no logging because any errors will be specially logged by
             #   subprocess_post_check_handle_pip_error()
-            pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False, run_dir=str(self.root))
-        subprocess_post_check_handle_pip_error(pip_process)
-        if pip_process.returncode:
+            install_process = self._run_installer(
+                self.installer, [*pip_args, *requirements], quiet=True, log_stdout=False, log_stderr=False
+            )
+        subprocess_post_check_handle_pip_error(install_process)
+        if install_process.returncode:
             raise PipxError(f"Error installing {', '.join(requirements)}.")
 
     def install_package_no_deps(self, package_or_url: str, pip_args: List[str]) -> str:
         with animate(f"determining package name from {package_or_url!r}", self.do_animation):
             old_package_set = self.list_installed_packages()
-            if self.installer != "uv":
-                cmd = [
-                    "--no-input",
-                    "install",
-                    "--no-dependencies",
-                    *pip_args,
-                    package_or_url,
-                ]
-                install_process = self._run_pip(cmd)
-            else:
-                cmd = [
-                    "install",
-                    "--no-deps",
-                    package_or_url,
-                ]
-                install_process = self._run_uv(cmd)
+            # TODO: rename pip_args to installer_args? But we can keep pip_args as implicit one
+            install_process = self._run_installer(self.installer, [*pip_args, package_or_url], no_deps=True)
 
         subprocess_post_check(install_process, raise_error=False)
         if install_process.returncode:
@@ -503,10 +464,7 @@ class Venv:
     def upgrade_package_no_metadata(self, package_name: str, pip_args: List[str]) -> None:
         logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_name))
         with animate(f"upgrading {package_descr}", self.do_animation):
-            if self.installer != "uv":
-                upgrade_process = self._run_pip(["--no-input", "install"] + pip_args + ["--upgrade", package_name])
-            else:
-                upgrade_process = self._run_uv(["install", "--upgrade", package_name])
+            upgrade_process = self._run_installer(self.installer, [*pip_args, "--upgrade", package_name])
         subprocess_post_check(upgrade_process)
 
     def upgrade_package(
@@ -521,10 +479,7 @@ class Venv:
     ) -> None:
         logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_or_url))
         with animate(f"upgrading {package_descr}", self.do_animation):
-            if self.installer != "uv":
-                upgrade_process = self._run_pip(["--no-input", "install"] + pip_args + ["--upgrade", package_or_url])
-            else:
-                upgrade_process = self._run_uv(["pip", "install", "--upgrade", package_or_url])
+            upgrade_process = self._run_installer(self.installer, [*pip_args, "--upgrade", package_or_url])
         subprocess_post_check(upgrade_process)
 
         self.update_package_metadata(
@@ -537,17 +492,35 @@ class Venv:
             suffix=suffix,
         )
 
-    def _run_uv(self, cmd: List[str]) -> "CompletedProcess[str]":
-        cmd = [path_to_exec("uv")] + cmd
-        if not self.verbose:
+    def _run_installer(
+        self,
+        installer: str,
+        cmd: List[str],
+        quiet: bool = True,
+        no_deps: bool = False,
+        log_stdout: bool = True,
+        log_stderr: bool = True,
+    ) -> "CompletedProcess[str]":
+        # do not use -q with `pip install` so subprocess_post_check_pip_errors
+        #   has more information to analyze in case of failure.
+        if installer != "uv":
+            return self._run_pip(["--no-input", "install"] + (["--no-dependencies"] if no_deps else []) + cmd, quiet=quiet)
+        else:
+            return self._run_uv(["pip", "install"] + (["--no-deps"] if no_deps else []) + cmd, quiet=quiet)
+
+    def _run_uv(self, cmd: List[str], quiet: bool = True) -> "CompletedProcess[str]":
+        cmd = [path_to_exec("uv", installer=True)] + cmd + ["--python", str(self.python_path)]
+        if not self.verbose and quiet:
             cmd.append("-q")
         return run_subprocess(cmd, run_dir=str(self.root))
 
-    def _run_pip(self, cmd: List[str]) -> "CompletedProcess[str]":
+    def _run_pip(
+        self, cmd: List[str], quiet: bool = True, log_stdout: bool = True, log_stderr: bool = True
+    ) -> "CompletedProcess[str]":
         cmd = [str(self.python_path), "-m", "pip"] + cmd
-        if not self.verbose:
+        if not self.verbose and quiet:
             cmd.append("-q")
-        return run_subprocess(cmd, run_dir=str(self.root))
+        return run_subprocess(cmd, log_stdout=log_stdout, log_stderr=log_stderr, run_dir=str(self.root))
 
     def run_pip_get_exit_code(self, cmd: List[str]) -> ExitCode:
         cmd = [str(self.python_path), "-m", "pip"] + cmd
