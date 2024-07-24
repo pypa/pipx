@@ -325,27 +325,27 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str) -> None:
             print(f"    {relevant_saved[0]}", file=sys.stderr)
 
 
-def subprocess_post_check_handle_pip_error(
-    completed_process: "subprocess.CompletedProcess[str]",
+def subprocess_post_check_handle_installer_error(
+    installer: str, completed_process: "subprocess.CompletedProcess[str]",
 ) -> None:
     if completed_process.returncode:
         logger.info(f"{' '.join(completed_process.args)!r} failed")
         # Save STDOUT and STDERR to file in pipx/logs/
         if paths.ctx.log_file is None:
             raise PipxError("Pipx internal error: No log_file present.")
-        pip_error_file = paths.ctx.log_file.parent / (paths.ctx.log_file.stem + "_pip_errors.log")
-        with pip_error_file.open("a", encoding="utf-8") as pip_error_fh:
-            print("PIP STDOUT", file=pip_error_fh)
-            print("----------", file=pip_error_fh)
+        installer_error_file = paths.ctx.log_file.parent / (paths.ctx.log_file.stem + f"_{installer}_errors.log")
+        with installer_error_file.open("a", encoding="utf-8") as installer_error_fh:
+            print(f"{installer.upper()} STDOUT", file=installer_error_fh)
+            print("----------", file=installer_error_fh)
             if completed_process.stdout is not None:
-                print(completed_process.stdout, file=pip_error_fh, end="")
-            print("\nPIP STDERR", file=pip_error_fh)
-            print("----------", file=pip_error_fh)
+                print(completed_process.stdout, file=installer_error_fh, end="")
+            print(f"\n{installer.upper()} STDERR", file=installer_error_fh)
+            print("----------", file=installer_error_fh)
             if completed_process.stderr is not None:
-                print(completed_process.stderr, file=pip_error_fh, end="")
+                print(completed_process.stderr, file=installer_error_fh, end="")
 
-        logger.error(f"Fatal error from pip prevented installation. Full pip output in file:\n    {pip_error_file}")
-
+        logger.error(f"Fatal error from {installer} prevented installation. Full {installer} output in file:\n    {installer_error_file}")
+        # TODO: we need to check whether uv's output is similar to the one in pip, if yes, we can keep this function
         analyze_pip_output(completed_process.stdout, completed_process.stderr)
 
 
