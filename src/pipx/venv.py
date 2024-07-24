@@ -39,7 +39,7 @@ from pipx.util import (
     rmdir,
     run_subprocess,
     subprocess_post_check,
-    subprocess_post_check_handle_pip_error,
+    subprocess_post_check_handle_installer_error,
 )
 from pipx.venv_inspect import VenvMetadata, inspect_venv
 
@@ -288,11 +288,11 @@ class Venv:
         logger.info("Installing %s", package_descr := full_package_description(package_name, package_or_url))
         with animate(f"installing {package_descr}", self.do_animation):
             # no logging because any errors will be specially logged by
-            #   subprocess_post_check_handle_pip_error()
+            #   subprocess_post_check_handle_installer_error()
             install_process = self._run_installer(
                 [*pip_args, package_or_url], quiet=True, log_stdout=False, log_stderr=False
             )
-        subprocess_post_check_handle_pip_error(install_process)
+        subprocess_post_check_handle_installer_error(self.installer, install_process)
         if install_process.returncode:
             raise PipxError(f"Error installing {full_package_description(package_name, package_or_url)}.")
 
@@ -327,11 +327,11 @@ class Venv:
         logger.info("Installing %s", package_descr := ", ".join(requirements))
         with animate(f"installing {package_descr}", self.do_animation):
             # no logging because any errors will be specially logged by
-            #   subprocess_post_check_handle_pip_error()
+            #   subprocess_post_check_handle_installer_error()
             install_process = self._run_installer(
                 [*pip_args, *requirements], quiet=True, log_stdout=False, log_stderr=False
             )
-        subprocess_post_check_handle_pip_error(install_process)
+        subprocess_post_check_handle_installer_error(self.installer, install_process)
         if install_process.returncode:
             raise PipxError(f"Error installing {', '.join(requirements)}.")
 
@@ -502,12 +502,11 @@ class Venv:
     ) -> "CompletedProcess[str]":
         # do not use -q with `pip install` so subprocess_post_check_pip_errors
         #   has more information to analyze in case of failure.
-        if self.installer != "uv":
-            return self._run_pip(
-                ["--no-input", "install"] + (["--no-dependencies"] if no_deps else []) + cmd, quiet=quiet
-            )
+        install_cmd = ["install"] + (["--no-deps"] if no_deps else []) + cmd
+        if self.installer == "pip":
+            return self._run_pip(["--no-input"] + install_cmd, quiet=quiet)
         else:
-            return self._run_uv(["pip", "install"] + (["--no-deps"] if no_deps else []) + cmd, quiet=quiet)
+            return self._run_uv(["pip"]  + install_cmd, quiet=quiet)
 
     def _run_uv(self, cmd: List[str], quiet: bool = True) -> "CompletedProcess[str]":
         cmd = [path_to_exec("uv", installer=True)] + cmd + ["--python", str(self.python_path)]
