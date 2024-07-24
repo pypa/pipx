@@ -112,7 +112,7 @@ class Venv:
 
         if not path_to_exec(self.backend):
             self.backend = "venv"
-        if not path_to_exec(self.installer):
+        if not path_to_exec(self.installer, installer=True):
             self.installer = "pip"
 
     def check_upgrade_shared_libs(self, verbose: bool, pip_args: List[str], force_upgrade: bool = False):
@@ -290,7 +290,7 @@ class Venv:
             # no logging because any errors will be specially logged by
             #   subprocess_post_check_handle_pip_error()
             install_process = self._run_installer(
-                self.installer, [*pip_args, package_or_url], quiet=True, log_stdout=False, log_stderr=False
+                [*pip_args, package_or_url], quiet=True, log_stdout=False, log_stderr=False
             )
         subprocess_post_check_handle_pip_error(install_process)
         if install_process.returncode:
@@ -329,7 +329,7 @@ class Venv:
             # no logging because any errors will be specially logged by
             #   subprocess_post_check_handle_pip_error()
             install_process = self._run_installer(
-                self.installer, [*pip_args, *requirements], quiet=True, log_stdout=False, log_stderr=False
+                [*pip_args, *requirements], quiet=True, log_stdout=False, log_stderr=False
             )
         subprocess_post_check_handle_pip_error(install_process)
         if install_process.returncode:
@@ -339,7 +339,7 @@ class Venv:
         with animate(f"determining package name from {package_or_url!r}", self.do_animation):
             old_package_set = self.list_installed_packages()
             # TODO: rename pip_args to installer_args? But we can keep pip_args as implicit one
-            install_process = self._run_installer(self.installer, [*pip_args, package_or_url], no_deps=True)
+            install_process = self._run_installer([*pip_args, package_or_url], no_deps=True)
 
         subprocess_post_check(install_process, raise_error=False)
         if install_process.returncode:
@@ -464,7 +464,7 @@ class Venv:
     def upgrade_package_no_metadata(self, package_name: str, pip_args: List[str]) -> None:
         logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_name))
         with animate(f"upgrading {package_descr}", self.do_animation):
-            upgrade_process = self._run_installer(self.installer, [*pip_args, "--upgrade", package_name])
+            upgrade_process = self._run_installer([*pip_args, "--upgrade", package_name])
         subprocess_post_check(upgrade_process)
 
     def upgrade_package(
@@ -479,7 +479,7 @@ class Venv:
     ) -> None:
         logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_or_url))
         with animate(f"upgrading {package_descr}", self.do_animation):
-            upgrade_process = self._run_installer(self.installer, [*pip_args, "--upgrade", package_or_url])
+            upgrade_process = self._run_installer([*pip_args, "--upgrade", package_or_url])
         subprocess_post_check(upgrade_process)
 
         self.update_package_metadata(
@@ -494,7 +494,6 @@ class Venv:
 
     def _run_installer(
         self,
-        installer: str,
         cmd: List[str],
         quiet: bool = True,
         no_deps: bool = False,
@@ -503,7 +502,7 @@ class Venv:
     ) -> "CompletedProcess[str]":
         # do not use -q with `pip install` so subprocess_post_check_pip_errors
         #   has more information to analyze in case of failure.
-        if installer != "uv":
+        if self.installer != "uv":
             return self._run_pip(
                 ["--no-input", "install"] + (["--no-dependencies"] if no_deps else []) + cmd, quiet=quiet
             )
