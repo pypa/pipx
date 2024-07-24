@@ -326,7 +326,8 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str) -> None:
 
 
 def subprocess_post_check_handle_installer_error(
-    installer: str, completed_process: "subprocess.CompletedProcess[str]",
+    installer: str,
+    completed_process: "subprocess.CompletedProcess[str]",
 ) -> None:
     if completed_process.returncode:
         logger.info(f"{' '.join(completed_process.args)!r} failed")
@@ -344,7 +345,9 @@ def subprocess_post_check_handle_installer_error(
             if completed_process.stderr is not None:
                 print(completed_process.stderr, file=installer_error_fh, end="")
 
-        logger.error(f"Fatal error from {installer} prevented installation. Full {installer} output in file:\n    {installer_error_file}")
+        logger.error(
+            f"Fatal error from {installer} prevented installation. Full {installer} output in file:\n    {installer_error_file}"
+        )
         # TODO: we need to check whether uv's output is similar to the one in pip, if yes, we can keep this function
         analyze_pip_output(completed_process.stdout, completed_process.stderr)
 

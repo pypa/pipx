@@ -506,7 +506,7 @@ class Venv:
         if self.installer == "pip":
             return self._run_pip(["--no-input"] + install_cmd, quiet=quiet)
         else:
-            return self._run_uv(["pip"]  + install_cmd, quiet=quiet)
+            return self._run_uv(["pip"] + install_cmd, quiet=quiet)
 
     def _run_uv(self, cmd: List[str], quiet: bool = True) -> "CompletedProcess[str]":
         cmd = [path_to_exec("uv", installer=True)] + cmd + ["--python", str(self.python_path)]
