@@ -11,8 +11,11 @@ def environment(value: str) -> ExitCode:
     """Print a list of environment variables and paths used by pipx"""
     environment_variables = [
         "PIPX_HOME",
+        "PIPX_GLOBAL_HOME",
         "PIPX_BIN_DIR",
+        "PIPX_GLOBAL_BIN_DIR",
         "PIPX_MAN_DIR",
+        "PIPX_GLOBAL_MAN_DIR",
         "PIPX_SHARED_LIBS",
         "PIPX_DEFAULT_PYTHON",
         "PIPX_FETCH_MISSING_PYTHON",
