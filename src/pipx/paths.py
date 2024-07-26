@@ -106,7 +106,7 @@ class _PathContext:
     def make_local(self) -> None:
         self._base_home = OVERRIDE_PIPX_HOME or get_expanded_environ("PIPX_HOME")
         self._default_home = DEFAULT_PIPX_HOME
-        self._base_bin = OVERRIDE_PIPX_GLOBAL_BIN_DIR or get_expanded_environ("PIPX_BIN_DIR")
+        self._base_bin = OVERRIDE_PIPX_BIN_DIR or get_expanded_environ("PIPX_BIN_DIR")
         self._default_bin = DEFAULT_PIPX_BIN_DIR
         self._base_man = OVERRIDE_PIPX_MAN_DIR or get_expanded_environ("PIPX_MAN_DIR")
         self._default_man = DEFAULT_PIPX_MAN_DIR
