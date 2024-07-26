@@ -180,12 +180,6 @@ class Venv:
         else:
             return self.pipx_metadata.main_package.package
 
-    def default_create_venv_cmd(self, override_shared: bool = False) -> List[str]:
-        cmd = [self.python, "-m", "venv"]
-        if not override_shared:
-            cmd.append("--without-pip")
-        return cmd
-
     def create_venv(self, venv_args: List[str], pip_args: List[str], override_shared: bool = False) -> None:
         """
         override_shared -- Override installing shared libraries to the pipx shared directory (default False)
@@ -193,7 +187,9 @@ class Venv:
         logger.info("Creating virtual environment")
         with animate(f"creating virtual environment using {self.backend}", self.do_animation):
             if self.backend == "venv":
-                cmd = self.default_create_venv_cmd(override_shared=override_shared)
+                cmd = [self.python, "-m", "venv"]
+                if not override_shared:
+                    cmd.append("--without-pip")
             elif self.backend == "uv":
                 cmd = [path_to_exec("uv"), "venv"]
             elif self.backend == "virtualenv":
@@ -255,7 +251,7 @@ class Venv:
         try:
             logger.info("Uninstalling %s", package)
             with animate(f"uninstalling {package}", self.do_animation):
-                if self.installer != "uv":
+                if self.installer == "pip":
                     cmd = ["uninstall", "-y"] + [package]
                     self._run_pip(cmd)
                 else:
@@ -509,7 +505,10 @@ class Venv:
             return self._run_uv(["pip"] + install_cmd, quiet=quiet)
 
     def _run_uv(self, cmd: List[str], quiet: bool = True) -> "CompletedProcess[str]":
-        cmd = [path_to_exec("uv", installer=True)] + cmd + ["--python", str(self.python_path)]
+        if not (uv_path := path_to_exec("uv", installer=True)):
+            self._run_pip(cmd=cmd, quiet=quiet)
+        else:
+            cmd = [uv_path] + cmd + ["--python", str(self.python_path)]
         if not self.verbose and quiet:
             cmd.append("-q")
         return run_subprocess(cmd, run_dir=str(self.root))
