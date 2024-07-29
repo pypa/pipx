@@ -21,6 +21,9 @@ def test_cli(pipx_temp_env, monkeypatch, capsys):
     assert "PIPX_DEFAULT_PYTHON" in captured.out
     assert "USE_EMOJI" in captured.out
     assert "PIPX_HOME_ALLOW_SPACE" in captured.out
+    assert "PIPX_GLOBAL_HOME" in captured.out
+    assert "PIPX_GLOBAL_BIN_DIR" in captured.out
+    assert "PIPX_GLOBAL_MAN_DIR" in captured.out
     assert "Environment variables (set by user):" in captured.out
 
 
@@ -91,3 +94,6 @@ def test_cli_global(pipx_temp_env, monkeypatch, capsys):
     assert "PIPX_DEFAULT_PYTHON" in captured.out
     assert "USE_EMOJI" in captured.out
     assert "PIPX_DEFAULT_PYTHON" in captured.out
+    assert "PIPX_GLOBAL_HOME" in captured.out
+    assert "PIPX_GLOBAL_BIN_DIR" in captured.out
+    assert "PIPX_GLOBAL_MAN_DIR" in captured.out
