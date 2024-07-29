@@ -83,11 +83,11 @@ class _PathContext:
 
     @property
     def bin_dir(self) -> Path:
-        return Path(self._base_bin or self._default_bin).resolve()
+        return (self._base_bin or self._default_bin).resolve()
 
     @property
     def man_dir(self) -> Path:
-        return Path(self._base_man or self._default_man).resolve()
+        return (self._base_man or self._default_man).resolve()
 
     @property
     def home(self) -> Path:
@@ -96,12 +96,12 @@ class _PathContext:
         elif self._fallback_home:
             home = self._fallback_home
         else:
-            home = Path(self._default_home)
+            home = self._default_home
         return home.resolve()
 
     @property
     def shared_libs(self) -> Path:
-        return Path(self._base_shared_libs or self.home / "shared").resolve()
+        return (self._base_shared_libs or self.home / "shared").resolve()
 
     def make_local(self) -> None:
         self._base_home = OVERRIDE_PIPX_HOME or get_expanded_environ("PIPX_HOME")
