@@ -59,6 +59,9 @@ class _PathContext:
     _home_exists: bool
     log_file: Optional[Path] = None
 
+    def __init__(self):
+        self.make_local()
+
     @property
     def venvs(self) -> Path:
         return self.home / "venvs"
@@ -168,5 +171,4 @@ class _PathContext:
 
 
 ctx = _PathContext()
-ctx.make_local()
 ctx.log_warnings()
