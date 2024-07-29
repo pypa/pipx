@@ -81,6 +81,8 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_HOME", global_home_dir)
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_BIN_DIR", global_bin_dir)
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_MAN_DIR", global_man_dir)
+    # Refresh paths.ctx to commit the overrides
+    paths.ctx.make_local()
 
     # Reset internal state of shared_libs
     monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())
@@ -202,7 +204,6 @@ def pipx_temp_env(tmp_path, monkeypatch, pipx_session_shared_dir, request, utils
     seamless.
     """
     pipx_temp_env_helper(pipx_session_shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pipx_local_pypiserver)
-    paths.ctx.make_local()
     yield
     paths.ctx.make_local()
 
@@ -219,6 +220,5 @@ def pipx_ultra_temp_env(tmp_path, monkeypatch, request, utils_temp_dir, pipx_loc
     """
     shared_dir = Path(tmp_path) / "shareddir"
     pipx_temp_env_helper(shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pipx_local_pypiserver)
-    paths.ctx.make_local()
     yield
     paths.ctx.make_local()
