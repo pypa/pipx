@@ -73,15 +73,18 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_
     global_bin_dir = Path(tmp_path) / "global_otherdir" / "pipxbindir"
     global_man_dir = Path(tmp_path) / "global_otherdir" / "pipxmandir"
 
-    # Patch in test specific base paths
-    monkeypatch.setattr(paths.ctx, "_base_shared_libs", pipx_shared_dir)
-    monkeypatch.setattr(paths.ctx, "_base_home", home_dir)
-    monkeypatch.setattr(paths.ctx, "_base_bin", bin_dir)
-    monkeypatch.setattr(paths.ctx, "_base_man", man_dir)
-    # Patch the default global paths so developers don't contaminate their own systems
-    monkeypatch.setattr(paths, "DEFAULT_PIPX_GLOBAL_BIN_DIR", global_bin_dir)
-    monkeypatch.setattr(paths, "DEFAULT_PIPX_GLOBAL_HOME", global_home_dir)
-    monkeypatch.setattr(paths, "DEFAULT_PIPX_GLOBAL_MAN_DIR", global_man_dir)
+    # Patch in test specific paths
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_HOME", home_dir)
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_BIN_DIR", bin_dir)
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_MAN_DIR", man_dir)
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_SHARED_LIBS", pipx_shared_dir)
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_HOME", global_home_dir)
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_BIN_DIR", global_bin_dir)
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_MAN_DIR", global_man_dir)
+    # Refresh paths.ctx to commit the overrides
+    paths.ctx.make_local()
+
+    # Reset internal state of shared_libs
     monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())
     monkeypatch.setattr(venv, "shared_libs", shared_libs.shared_libs)
 
