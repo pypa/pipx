@@ -7,21 +7,23 @@ from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import PipxError
 
 
+ENVIRONMENT_VARIABLES = [
+    "PIPX_HOME",
+    "PIPX_GLOBAL_HOME",
+    "PIPX_BIN_DIR",
+    "PIPX_GLOBAL_BIN_DIR",
+    "PIPX_MAN_DIR",
+    "PIPX_GLOBAL_MAN_DIR",
+    "PIPX_SHARED_LIBS",
+    "PIPX_DEFAULT_PYTHON",
+    "PIPX_FETCH_MISSING_PYTHON",
+    "USE_EMOJI",
+    "PIPX_HOME_ALLOW_SPACE",
+]
+
+
 def environment(value: str) -> ExitCode:
     """Print a list of environment variables and paths used by pipx"""
-    environment_variables = [
-        "PIPX_HOME",
-        "PIPX_GLOBAL_HOME",
-        "PIPX_BIN_DIR",
-        "PIPX_GLOBAL_BIN_DIR",
-        "PIPX_MAN_DIR",
-        "PIPX_GLOBAL_MAN_DIR",
-        "PIPX_SHARED_LIBS",
-        "PIPX_DEFAULT_PYTHON",
-        "PIPX_FETCH_MISSING_PYTHON",
-        "USE_EMOJI",
-        "PIPX_HOME_ALLOW_SPACE",
-    ]
     derived_values = {
         "PIPX_HOME": paths.ctx.home,
         "PIPX_BIN_DIR": paths.ctx.bin_dir,
@@ -39,7 +41,7 @@ def environment(value: str) -> ExitCode:
     if value is None:
         print("Environment variables (set by user):")
         print("")
-        for env_variable in environment_variables:
+        for env_variable in ENVIRONMENT_VARIABLES:
             env_value = os.getenv(env_variable, "")
             print(f"{env_variable}={env_value}")
         print("")

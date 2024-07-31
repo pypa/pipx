@@ -3,6 +3,7 @@ from pathlib import Path
 
 from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths
+from pipx.commands.environment import ENVIRONMENT_VARIABLES
 from pipx.paths import get_expanded_environ
 
 
@@ -18,13 +19,8 @@ def test_cli(pipx_temp_env, monkeypatch, capsys):
     assert fnmatch.fnmatch(captured.out, "*PIPX_TRASH_DIR=*subdir/pipxhome/.trash*")
     assert fnmatch.fnmatch(captured.out, "*PIPX_VENV_CACHEDIR=*subdir/pipxhome/.cache*")
     # Checking just for the sake of completeness
-    assert "PIPX_DEFAULT_PYTHON" in captured.out
-    assert "USE_EMOJI" in captured.out
-    assert "PIPX_HOME_ALLOW_SPACE" in captured.out
-    assert "PIPX_GLOBAL_HOME" in captured.out
-    assert "PIPX_GLOBAL_BIN_DIR" in captured.out
-    assert "PIPX_GLOBAL_MAN_DIR" in captured.out
-    assert "Environment variables (set by user):" in captured.out
+    for env_var in ENVIRONMENT_VARIABLES:
+        assert env_var in captured.out
 
 
 def test_cli_with_args(monkeypatch, capsys):
@@ -91,9 +87,5 @@ def test_cli_global(pipx_temp_env, monkeypatch, capsys):
     assert fnmatch.fnmatch(captured.out, "*PIPX_TRASH_DIR=*global/pipxhome/.trash*")
     assert fnmatch.fnmatch(captured.out, "*PIPX_VENV_CACHEDIR=*global/pipxhome/.cache*")
     # Checking just for the sake of completeness
-    assert "PIPX_DEFAULT_PYTHON" in captured.out
-    assert "USE_EMOJI" in captured.out
-    assert "PIPX_DEFAULT_PYTHON" in captured.out
-    assert "PIPX_GLOBAL_HOME" in captured.out
-    assert "PIPX_GLOBAL_BIN_DIR" in captured.out
-    assert "PIPX_GLOBAL_MAN_DIR" in captured.out
+    for env_var in ENVIRONMENT_VARIABLES:
+        assert env_var in captured.out
