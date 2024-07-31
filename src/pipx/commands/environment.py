@@ -6,7 +6,6 @@ from pipx.emojis import EMOJI_SUPPORT
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import PipxError
 
-
 ENVIRONMENT_VARIABLES = [
     "PIPX_HOME",
     "PIPX_GLOBAL_HOME",

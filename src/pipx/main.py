@@ -922,7 +922,8 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
 
             Available variables:
             """
-        ) + textwrap.fill(", ".join(ENVIRONMENT_VARIABLES), break_long_words=False),
+        )
+        + textwrap.fill(", ".join(ENVIRONMENT_VARIABLES), break_long_words=False),
         parents=[shared_parser],
     )
     p.add_argument("--value", "-V", metavar="VARIABLE", help="Print the value of the variable.")
