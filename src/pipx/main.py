@@ -213,8 +213,7 @@ def package_is_path(package: str):
 
 def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.ArgumentParser]) -> ExitCode:  # noqa: C901
     verbose = args.verbose if "verbose" in args else False
-    if not constants.WINDOWS and args.is_global:
-        paths.ctx.make_global()
+
     pip_args = get_pip_args(vars(args))
     venv_args = get_venv_args(vars(args))
 
@@ -1098,6 +1097,9 @@ def setup(args: argparse.Namespace) -> None:
     if "version" in args and args.version:
         print_version()
         sys.exit(0)
+
+    if not constants.WINDOWS and args.is_global:
+        paths.ctx.make_global()
 
     verbose = args.verbose - args.quiet
 
