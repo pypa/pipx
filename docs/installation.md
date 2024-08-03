@@ -148,23 +148,27 @@ Example configuration for use of the code linter [yapf](https://github.com/googl
 
 The default binary location for pipx-installed apps is `~/.local/bin`. This can be overridden with the environment
 variable `PIPX_BIN_DIR`. The default manual page location for pipx-installed apps is `~/.local/share/man`. This can be
-overridden with the environment variable `PIPX_MAN_DIR`.
+overridden with the environment variable `PIPX_MAN_DIR`. If the `--global` option is used, the default locations are
+`/usr/local/bin` and `/usr/local/share/man` respectively and can be overridden with `PIPX_GLOBAL_BIN_DIR` and
+`PIPX_GLOBAL_MAN_DIR`.
 
 pipx's default virtual environment location is typically `~/.local/share/pipx` on Linux/Unix, `~/.local/pipx` on MacOS
 and `~\pipx` on Windows. For compatibility reasons, if `~/.local/pipx` on Linux, `%USERPROFILE%\AppData\Local\pipx` or
 `~\.local\pipx` on Windows or `~/Library/Application Support/pipx` on MacOS exists, it will be used as the default location instead.
-This can be overridden with the `PIPX_HOME` environment variable.
+This can be overridden with the `PIPX_HOME` environment variable. If the `--global` option is used, the default location is always
+`/opt/pipx` and can be overridden with `PIPX_GLOBAL_HOME`.
 
 In case one of these fallback locations exist, we recommend either manually moving the pipx files to the new default location
 (see the [Moving your pipx installation](installation.md#moving-your-pipx-installation) section of the docs), or setting the
 `PIPX_HOME` environment variable (discarding files existing in the fallback location).
 
-As an example, you can install global apps accessible by all users on your system with the following command (on MacOS,
+As an example, you can install global apps accessible by all users on your system with either of the following commands (on MacOS,
 Linux, and Windows WSL):
 
 ```
-sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin PIPX_MAN_DIR=/usr/local/share/man pipx install PACKAGE
-# Example: $ sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin PIPX_MAN_DIR=/usr/local/share/man pipx install cowsay
+sudo PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin PIPX_MAN_DIR=/usr/local/share/man pipx install <PACKAGE>
+# or shorter (with pipx>=1.5.0)
+sudo pipx install --global <PACKAGE>
 ```
 
 > [!NOTE]
