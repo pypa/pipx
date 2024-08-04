@@ -107,7 +107,7 @@ markers = [
   "all_packages: test install with maximum number of packages",
 ]
 testpaths = [ "tests" ]
-addopts = [ "--strict-config" ]
+addopts = [ "--strict-config", "--strict-markers" ]
 
 [tool.towncrier]
 directory = "changelog.d"
