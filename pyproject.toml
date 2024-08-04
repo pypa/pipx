@@ -105,6 +105,7 @@ minversion = "8"
 markers = [
   "all_packages: test install with maximum number of packages",
 ]
+testpaths = [ "tests" ]
 
 [tool.towncrier]
 directory = "changelog.d"
