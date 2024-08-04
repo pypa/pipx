@@ -16,7 +16,6 @@ keywords = [
   "Virtual Environment",
   "workflow",
 ]
-license = "MIT"
 authors = [
   { name = "Chad Smith", email = "chadsmith.software@gmail.com" },
 ]
