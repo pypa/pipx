@@ -14,7 +14,7 @@ repos:
   rev: v0.5.5
   hooks:
   - id: ruff
-    args: [ "--fix", "--unsafe-fixes", "--exit-non-zero-on-fix"]
+    args: [ "--fix", "--unsafe-fixes", "--show-fixes", "--exit-non-zero-on-fix"]
   - id: ruff-format
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v1.11.0
