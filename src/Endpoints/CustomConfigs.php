@@ -116,6 +116,7 @@ class CustomConfigs extends Endpoint
                     'server_software_name',
                     'contents',
                     'cluster_id',
+                    'id',
                 ])
             );
 
