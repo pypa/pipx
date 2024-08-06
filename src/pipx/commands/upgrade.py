@@ -108,6 +108,8 @@ def _upgrade_venv(
     venv_dir: Path,
     pip_args: List[str],
     verbose: bool,
+    backend: str,
+    installer: str,
     *,
     include_injected: bool,
     upgrading_all: bool,
@@ -137,9 +139,8 @@ def _upgrade_venv(
                 include_dependencies=False,
                 preinstall_packages=None,
                 python_flag_passed=python_flag_passed,
-                # What to deal with this? Should we allow cli option?
-                backend=DEFAULT_BACKEND,
-                installer=DEFAULT_INSTALLER,
+                backend=backend,
+                installer=installer,
             )
             return 0
         else:
@@ -155,6 +156,9 @@ def _upgrade_venv(
 
     if python and not install:
         logger.info("Ignoring --python as not combined with --install")
+    
+    if (backend or installer) and not install:
+        logger.info("Ignoring --backend or --installer as not combined with --install")
 
     venv = Venv(venv_dir, verbose=verbose)
     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
@@ -204,6 +208,8 @@ def upgrade(
     pip_args: List[str],
     venv_args: List[str],
     verbose: bool,
+    backend: str,
+    installer: str,
     *,
     include_injected: bool,
     force: bool,
@@ -217,6 +223,8 @@ def upgrade(
             venv_dir,
             pip_args,
             verbose,
+            backend,
+            installer,
             include_injected=include_injected,
             upgrading_all=False,
             force=force,
@@ -254,6 +262,8 @@ def upgrade_all(
                 venv_dir,
                 venv.pipx_metadata.main_package.pip_args,
                 verbose=verbose,
+                backend=venv.pipx_metadata.backend,
+                installer=venv.pipx_metadata.installer,
                 include_injected=include_injected,
                 upgrading_all=True,
                 force=force,
