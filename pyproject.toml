@@ -101,9 +101,13 @@ check-hidden = true
 ignore-regex = '\b(UE|path/doesnt/exist)\b'
 
 [tool.pytest.ini_options]
+minversion = "8"
+log_cli_level = "INFO"
 markers = [
   "all_packages: test install with maximum number of packages",
 ]
+testpaths = [ "tests" ]
+addopts = [ "-ra", "--strict-config", "--strict-markers" ]
 
 [tool.towncrier]
 directory = "changelog.d"
