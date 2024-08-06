@@ -157,8 +157,8 @@ class Venv:
         if self._existing:
             pth_files = self.root.glob("**/" + PIPX_SHARED_PTH)
             return next(pth_files, None) is not None
-        elif self.backend == "uv":
-            # No need to use shared lib for uv
+        elif self.backend == "uv" and self.installer == "uv":
+            # No need to use shared lib for uv if both backend and installer are uv
             return False
         else:
             # always use shared libs when creating a new venv with venv and virtualenv
@@ -191,16 +191,16 @@ class Venv:
                 if not override_shared:
                     cmd.append("--without-pip")
             elif self.backend == "uv":
-                cmd = [path_to_exec("uv"), "venv"]
+                cmd = [path_to_exec("uv"), "venv", "--python", self.python]
             elif self.backend == "virtualenv":
-                cmd = [path_to_exec("virtualenv")]
+                cmd = [path_to_exec("virtualenv"), "--python", self.python]
                 if not override_shared:
                     cmd.append("--no-pip")
             venv_process = run_subprocess(cmd + venv_args + [str(self.root)], run_dir=str(self.root))
         subprocess_post_check(venv_process)
-        if self.backend != "uv":
+        if self.backend != "uv" or self.installer != "uv":
             shared_libs.create(verbose=self.verbose, pip_args=pip_args)
-        if not override_shared and self.backend != "uv":
+        if not override_shared and (self.backend != "uv" or self.installer != "uv"):
             pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
             # write path pointing to the shared libs site-packages directory
             # example pipx_pth location:
@@ -505,10 +505,7 @@ class Venv:
             return self._run_uv(["pip"] + install_cmd, quiet=quiet)
 
     def _run_uv(self, cmd: List[str], quiet: bool = True) -> "CompletedProcess[str]":
-        if not (uv_path := path_to_exec("uv", installer=True)):
-            self._run_pip(cmd=cmd, quiet=quiet)
-        else:
-            cmd = [uv_path] + cmd + ["--python", str(self.python_path)]
+        cmd = [path_to_exec("uv", installer=True)] + cmd + ["--python", str(self.python_path)]
         if not self.verbose and quiet:
             cmd.append("-q")
         return run_subprocess(cmd, run_dir=str(self.root))

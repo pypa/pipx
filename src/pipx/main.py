@@ -331,6 +331,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             pip_args,
             venv_args,
             verbose,
+            args.backend,
+            args.installer,
             include_injected=args.include_injected,
             force=args.force,
             install=args.install,
@@ -666,6 +668,7 @@ def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argpa
         help="Install package spec if missing",
     )
     add_python_options(p)
+    add_backend_and_installer(p)
 
 
 def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
