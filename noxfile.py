@@ -17,7 +17,14 @@ DOC_DEPENDENCIES = [
     "markdown-gfm-admonition",
 ]
 MAN_DEPENDENCIES = ["argparse-manpage[setuptools]"]
-TEST_DEPENDENCIES = ["pytest", "pypiserver[passlib]", 'setuptools; python_version>="3.12"', "pytest-cov", "uv", "virtualenv"]
+TEST_DEPENDENCIES = [
+    "pytest",
+    "pypiserver[passlib]",
+    'setuptools; python_version>="3.12"',
+    "pytest-cov",
+    "uv",
+    "virtualenv",
+]
 # Packages whose dependencies need an intact system PATH to compile
 # pytest setup clears PATH.  So pre-build some wheels to the pip cache.
 PREBUILD_PACKAGES = {"all": ["jupyter==1.0.0"], "macos": [], "unix": [], "win": []}
