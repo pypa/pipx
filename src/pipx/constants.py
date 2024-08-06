@@ -9,6 +9,8 @@ TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 14
 MINIMUM_PYTHON_VERSION = "3.8"
 MAN_SECTIONS = ["man%d" % i for i in range(1, 10)]
 FETCH_MISSING_PYTHON = os.environ.get("PIPX_FETCH_MISSING_PYTHON", False)
+DEFAULT_BACKEND = os.environ.get("PIPX_DEFAULT_BACKEND", "venv")
+DEFAULT_INSTALLER = os.environ.get("PIPX_DEFAULT_INSTALLER", "pip")
 
 
 ExitCode = NewType("ExitCode", int)

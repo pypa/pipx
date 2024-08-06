@@ -181,7 +181,7 @@ def pipx_session_shared_dir(tmp_path_factory):
 @pytest.fixture(scope="session")
 def utils_temp_dir(tmp_path_factory):
     tmp_path = tmp_path_factory.mktemp("session_utilstempdir")
-    utils = ["git"]
+    utils = ["git", "uv", "virtualenv"]
     for util in utils:
         at_path = shutil.which(util)
         assert at_path is not None
