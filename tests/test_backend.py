@@ -2,6 +2,7 @@ import os
 
 from helpers import run_pipx_cli
 
+
 def test_custom_backend_venv(pipx_temp_env, capsys, caplog):
     assert not run_pipx_cli(["install", "--backend", "venv", "black"])
     captured = capsys.readouterr()
