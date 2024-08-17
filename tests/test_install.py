@@ -85,18 +85,7 @@ def test_install_tricky_packages(capsys, pipx_temp_env, caplog, package_name, pa
     install_packages(capsys, pipx_temp_env, caplog, [package_spec], [package_name])
 
 
-def test_install_three_packages_with_first_already_installed(capsys, pipx_temp_env, caplog):
-    run_pipx_cli(["install", "black"])
-    captured = capsys.readouterr()
-    assert "installed package black" in captured.out
-
-    run_pipx_cli(["install", "black", "isort"])
-    captured = capsys.readouterr()
-    assert "'black' already seems to be installed" in captured.out
-    assert "installed package isort" in captured.out
-
-
-def test_install_two_packages_with_first_two_already_installed(capsys, pipx_temp_env, caplog):
+def test_install_multiple_packages_when_some_already_installed(capsys, pipx_temp_env, caplog):
     run_pipx_cli(["install", "black", "pycowsay"])
     captured = capsys.readouterr()
     assert "installed package black" in captured.out
