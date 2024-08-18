@@ -6,6 +6,7 @@ from typing import Iterator, List, Optional
 from pipx import commands, paths
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.constants import (
+    EXIT_CODE_INSTALL_VENV_EXISTS,
     EXIT_CODE_OK,
     ExitCode,
 )
@@ -83,6 +84,8 @@ def install(
                         """
                     )
                 )
+                if len(package_specs) == 1:
+                    return EXIT_CODE_INSTALL_VENV_EXISTS
                 # Reset venv_dir to None ready to install the next package in the list
                 venv_dir = None
                 continue
