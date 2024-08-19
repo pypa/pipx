@@ -9,6 +9,26 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 <!-- towncrier release notes start -->
 
+# ## [1.7.0](https://github.com/pypa/pipx/tree/1.7.0) - 2024-08-19
+
+### Features
+
+- Add a `--prepend` option to the `pipx ensurepath` command to allow prepending `pipx`'s location to `PATH` rather than appending to it. This is useful when you want to prioritize `pipx`'s executables over other executables in your `PATH`. ([#1451](https://github.com/pypa/pipx/issues/1451))
+- List `PIPX_GLOBAL_[HOME|BIN_DIR|MAN_DIR]` in `pipx environment`. ([#1492](https://github.com/pypa/pipx/issues/1492))
+
+### Bugfixes
+
+- Introduce `PIPX_HOME_ALLOW_SPACE` environment variable, to silence the spaces in pipx home path warning ([#1320](https://github.com/pypa/pipx/issues/1320))
+- Fix passing constraints file path into `pipx install` operation via `pip` args ([#1389](https://github.com/pypa/pipx/issues/1389))
+- Add help messages for `pipx pin` and `pipx unpin` commands. ([#1438](https://github.com/pypa/pipx/issues/1438))
+- Stop `pipx install --global` from installing files in `~/.local`. ([#1475](https://github.com/pypa/pipx/issues/1475))
+- Fix installation abortion on multiple packages when one or more are already installed. ([#1509](https://github.com/pypa/pipx/issues/1509))
+
+### Improved Documentation
+
+- Move all documentation files to the `docs` directory. ([#1479](https://github.com/pypa/pipx/issues/1479))
+
+
 ## [1.6.0](https://github.com/pypa/pipx/tree/1.6.0) - 2024-06-01
 
 
