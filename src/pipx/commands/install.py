@@ -84,7 +84,11 @@ def install(
                         """
                     )
                 )
-                return EXIT_CODE_INSTALL_VENV_EXISTS
+                if len(package_specs) == 1:
+                    return EXIT_CODE_INSTALL_VENV_EXISTS
+                # Reset venv_dir to None ready to install the next package in the list
+                venv_dir = None
+                continue
 
         try:
             # Enable installing shared library `pip` with `pipx`
