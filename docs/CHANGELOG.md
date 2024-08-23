@@ -9,6 +9,13 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 <!-- towncrier release notes start -->
 
+## [1.7.1](https://github.com/pypa/pipx/tree/1.7.1) - 2024-08-23
+
+### Bugfixes
+
+- Use minimum supported Python to build zipapp in release action such that `tomli` is included in it. ([#1514](https://github.com/pypa/pipx/issues/1514))
+
+
 ## [1.7.0](https://github.com/pypa/pipx/tree/1.7.0) - 2024-08-22
 
 ### Features
