@@ -98,10 +98,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: "${{ needs.create-tag.outputs.release-tag }}"
-      - name: Set up Python ${{ env.default-python }}
+      - name: Set up Python ${{ env.minimum-supported-python }}
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.default-python }}
+          python-version: ${{ env.minimum-supported-python }}
           cache: "pip"
       - name: Install nox
         run: pip install nox
