@@ -21,12 +21,10 @@ from packaging.utils import canonicalize_name
 
 from pipx import commands, constants, paths
 from pipx.animate import hide_cursor, show_cursor
-from pipx.backend import SUPPORTED_INSTALLERS, SUPPORTED_VENV_BACKENDS
+from pipx.backend import DEFAULT_BACKEND, DEFAULT_INSTALLER, SUPPORTED_INSTALLERS, SUPPORTED_VENV_BACKENDS
 from pipx.colors import bold, green
 from pipx.commands.environment import ENVIRONMENT_VARIABLES
 from pipx.constants import (
-    DEFAULT_BACKEND,
-    DEFAULT_INSTALLER,
     EXIT_CODE_OK,
     EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND,
     MINIMUM_PYTHON_VERSION,

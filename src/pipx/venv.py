@@ -17,8 +17,8 @@ except ImportError:
 from packaging.utils import canonicalize_name
 
 from pipx.animate import animate
-from pipx.backend import path_to_exec
-from pipx.constants import DEFAULT_BACKEND, DEFAULT_INSTALLER, PIPX_SHARED_PTH, ExitCode
+from pipx.backend import DEFAULT_BACKEND, DEFAULT_INSTALLER, path_to_exec
+from pipx.constants import PIPX_SHARED_PTH, ExitCode
 from pipx.emojis import hazard
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.package_specifier import (

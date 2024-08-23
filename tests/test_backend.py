@@ -70,28 +70,12 @@ def test_custom_installer_pip_backend_uv(pipx_temp_env, capsys, caplog):
     assert "installed package" in captured.out
 
 
-def test_derive_installer_backend_from_env_variable(monkeypatch, pipx_temp_env, capsys, caplog):
-    monkeypatch.setenv("PIPX_DEFAULT_INSTALLER", "uv")
-    monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "virtualenv")
-    assert not run_pipx_cli(["install", "black"])
-    captured = capsys.readouterr()
-    assert "virtualenv" in caplog.text
-    assert "uv pip" in caplog.text
-    assert "installed package" in captured.out
-
-
 def test_fallback_to_default(monkeypatch, pipx_temp_env, capsys, caplog):
     monkeypatch.setenv("PATH", os.getenv("PATH_TEST"))
-    monkeypatch.setenv("PIPX_DEFAULT_INSTALLER", "uv")
-    monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "virtualenv")
-    assert not run_pipx_cli(["install", "black"])
+    assert not run_pipx_cli(["install", "black", "--backend", "virtualenv", "--installer", "uv"])
     captured = capsys.readouterr()
     assert "'uv' not found on PATH" in caplog.text
     assert "'virtualenv' not found on PATH" in caplog.text
     assert "-m venv" in caplog.text
     assert "-m pip" in caplog.text
     assert "installed package" in captured.out
-
-    monkeypatch.setenv("PIPX_DEFAULT_INSTALLER", "")
-    monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "")
-    monkeypatch.setenv("PATH", os.getenv("PATH"))

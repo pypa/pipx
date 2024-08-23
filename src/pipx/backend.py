@@ -1,6 +1,9 @@
 import logging
+import os
 import shutil
 
+DEFAULT_BACKEND = os.getenv("PIPX_DEFAULT_BACKEND", "venv")
+DEFAULT_INSTALLER = os.getenv("PIPX_DEFAULT_INSTALLER", "pip")
 SUPPORTED_VENV_BACKENDS = ("uv", "venv", "virtualenv")
 SUPPORTED_INSTALLERS = ("uv", "pip")
 
