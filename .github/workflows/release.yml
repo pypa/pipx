@@ -16,6 +16,7 @@ concurrency:
 
 env:
   default-python: "3.12"
+  minimum-supported-python: "3.8"
 
 jobs:
   create-tag:
