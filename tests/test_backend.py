@@ -1,6 +1,6 @@
 import os
 
-from helpers import run_pipx_cli, WIN
+from helpers import WIN, run_pipx_cli
 
 
 def test_custom_backend_venv(pipx_temp_env, capsys, caplog):
