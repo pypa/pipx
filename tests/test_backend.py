@@ -42,7 +42,7 @@ def test_custom_installer_backend_uv(pipx_temp_env, capsys, caplog):
     assert not run_pipx_cli(["install", "--installer", "uv", "--backend", "uv", "black"])
     captured = capsys.readouterr()
     assert f"{'uv.EXE' if WIN else 'uv'} venv" in caplog.text
-    assert "uv pip install" in caplog.text
+    assert f"{'uv.EXE' if WIN else 'uv'} pip install" in caplog.text
     assert "installed package" in captured.out
 
 
