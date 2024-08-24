@@ -119,6 +119,10 @@ title_format = "## [{version}](https://github.com/pypa/pipx/tree/{version}) - {p
 issue_format = "[#{issue}](https://github.com/pypa/pipx/issues/{issue})"
 package = "pipx"
 
+[tool.mypy]
+warn_unreachable = true
+enable_error_code = [ "ignore-without-code", "redundant-expr", "truthy-bool" ]
+
 [[tool.mypy.overrides]]
 module = [
   "pycowsay.*",

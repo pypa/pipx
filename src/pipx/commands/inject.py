@@ -32,7 +32,7 @@ def inject_dep(
 ) -> bool:
     logger.debug("Injecting package %s", package_spec)
 
-    if not venv_dir.exists() or not next(venv_dir.iterdir()):
+    if not venv_dir.exists() or next(venv_dir.iterdir(), None) is None:
         raise PipxError(
             f"""
             Can't inject {package_spec!r} into nonexistent Virtual Environment
