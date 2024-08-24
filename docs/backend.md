@@ -12,7 +12,7 @@ Starting from version 1.8.0, pipx supports different backends and installers.
 If you wish to use a different backend or installer, you can either:
 
 - Pass command line arguments (`--backend`, `--installer`)
-- Set envirionment variables (`PIPX_DEFAULT_BACKEND`, `PIPX_DEFAULT_INSTALLER`)
+- Set environment variables (`PIPX_DEFAULT_BACKEND`, `PIPX_DEFAULT_INSTALLER`)
 
 > [!NOTE]
 > Command line arguments always have higher precedence than environment variables.
