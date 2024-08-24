@@ -61,9 +61,6 @@ version.source = "vcs"
 
 [tool.ruff]
 line-length = 121
-src = [
-  "src",
-]
 lint.extend-select = [
   "A",
   "B",
