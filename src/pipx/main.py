@@ -277,7 +277,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             not args.no_cache,
         )
         # We should never reach here because run() is NoReturn.
-        return ExitCode(1)
+        return ExitCode(1)  # type: ignore[unreachable]
     elif args.command == "install":
         return commands.install(
             None,
@@ -409,7 +409,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             python_flag_passed=python_flag_passed,
         )
     elif args.command == "runpip":
-        if not venv_dir:
+        if not venv_dir:  # type: ignore[truthy-bool]
             raise PipxError("Developer error: venv_dir is not defined.")
         return commands.run_pip(package, venv_dir, args.pipargs, args.verbose)
     elif args.command == "ensurepath":
