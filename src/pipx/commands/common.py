@@ -9,6 +9,7 @@ from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
 from typing import Dict, List, Optional, Set, Tuple
+import filecmp
 
 import userpath  # type: ignore[import-not-found]
 from packaging.utils import canonicalize_name
@@ -108,6 +109,8 @@ def _copy_package_resource(dest_dir: Path, path: Path, suffix: str = "") -> None
     if not dest.parent.is_dir():
         mkdir(dest.parent)
     if dest.exists():
+        if filecmp.cmp(dest, src, shallow=False):
+            return
         logger.warning(f"{hazard}  Overwriting file {dest!s} with {src!s}")
         safe_unlink(dest)
     if src.exists():
