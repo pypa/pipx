@@ -1,3 +1,4 @@
+import filecmp
 import logging
 import os
 import shlex
@@ -9,7 +10,6 @@ from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
 from typing import Dict, List, Optional, Set, Tuple
-import filecmp
 
 import userpath  # type: ignore[import-not-found]
 from packaging.utils import canonicalize_name
