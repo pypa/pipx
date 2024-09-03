@@ -1,3 +1,4 @@
+import filecmp
 import logging
 import os
 import shlex
@@ -108,6 +109,8 @@ def _copy_package_resource(dest_dir: Path, path: Path, suffix: str = "") -> None
     if not dest.parent.is_dir():
         mkdir(dest.parent)
     if dest.exists():
+        if filecmp.cmp(dest, src, shallow=False):
+            return
         logger.warning(f"{hazard}  Overwriting file {dest!s} with {src!s}")
         safe_unlink(dest)
     if src.exists():
