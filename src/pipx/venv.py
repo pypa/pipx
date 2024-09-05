@@ -345,6 +345,16 @@ class Venv:
 
         return package_name
 
+    def install_packages_from_file(self, requirements_files: List[str], pip_args: List[str]) -> None:
+        msg = f"Preinstalling requirements from '{requirements_files}'"
+        logger.info(msg)
+        pip_cmd = ["--no-input", "install", "--no-deps"] + pip_args
+        for requirements_file in requirements_files:
+            pip_cmd += ["--requirement", requirements_file]
+        with animate(msg, self.do_animation):
+            pip_process = self._run_pip(pip_cmd)
+        subprocess_post_check(pip_process)
+
     def get_venv_metadata_for_package(self, package_name: str, package_extras: Set[str]) -> VenvMetadata:
         data_start = time.time()
         venv_metadata = inspect_venv(package_name, package_extras, self.bin_path, self.python_path, self.man_path)

@@ -395,6 +395,18 @@ def test_preinstall_specific_version(pipx_temp_env, caplog):
     assert "black==22.8.0" in caplog.text
 
 
+def test_preinstall_from_file(pipx_temp_env, tmp_path, caplog):
+    package = "black"
+    version = "22.8.0"
+    requirements_file_name = "requirements.txt"
+    requirements_file = tmp_path / requirements_file_name
+    requirements_file.write_text(f"{package}=={version}")
+    requirements_file.touch()
+    assert not run_pipx_cli(["install", "--preinstall-from-file", str(requirements_file), "nox"])
+    assert "nox" in caplog.text
+    assert str(requirements_file) in caplog.text
+
+
 @pytest.mark.xfail
 def test_do_not_wait_for_input(pipx_temp_env, pipx_session_shared_dir, monkeypatch):
     monkeypatch.setenv("PIP_INDEX_URL", "http://127.0.0.1:8080/simple")

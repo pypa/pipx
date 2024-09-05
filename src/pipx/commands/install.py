@@ -32,6 +32,7 @@ def install(
     reinstall: bool,
     include_dependencies: bool,
     preinstall_packages: Optional[List[str]],
+    preinstall_from_file: Optional[List[str]],
     suffix: str = "",
     python_flag_passed=False,
 ) -> ExitCode:
@@ -96,6 +97,8 @@ def install(
             venv.create_venv(venv_args, pip_args, override_shared)
             for dep in preinstall_packages or []:
                 venv.upgrade_package_no_metadata(dep, [])
+            if preinstall_from_file:
+                venv.install_packages_from_file(preinstall_from_file, pip_args)
             venv.install_package(
                 package_name=package_name,
                 package_or_url=package_spec,
@@ -213,6 +216,7 @@ def install_all(
                 reinstall=False,
                 include_dependencies=main_package.include_dependencies,
                 preinstall_packages=[],
+                preinstall_from_file=[],
                 suffix=main_package.suffix,
             )
 

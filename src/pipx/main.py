@@ -293,6 +293,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             reinstall=False,
             include_dependencies=args.include_deps,
             preinstall_packages=args.preinstall,
+            preinstall_from_file=args.preinstall_from_file,
             suffix=args.suffix,
             python_flag_passed=python_flag_passed,
         )
@@ -502,6 +503,14 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         ),
     )
     add_pip_venv_args(p)
+    p.add_argument(
+        "--preinstall-from-file",
+        action="append",
+        help=(
+            "Path to Requirements File Format file listing optional packages to be installed "
+            "into the Virtual Environment before installing the main package."
+        ),
+    )
 
 
 def _add_install_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:

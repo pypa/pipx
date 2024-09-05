@@ -136,6 +136,7 @@ def _upgrade_venv(
                 reinstall=False,
                 include_dependencies=False,
                 preinstall_packages=None,
+                preinstall_from_file=None,
                 python_flag_passed=python_flag_passed,
             )
             return 0
