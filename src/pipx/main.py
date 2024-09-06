@@ -507,8 +507,8 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         "--preinstall-from-file",
         action="append",
         help=(
-            "Path to Requirements File Format file listing optional packages to be installed "
-            "into the Virtual Environment before installing the main package."
+            "Absolute path to requirements file listing optional packages to be preinstalled into the "
+            "Virtual Environment before installing the main package. Use this flag multiple times for multiple files."
         ),
     )
 
