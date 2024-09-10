@@ -947,7 +947,7 @@ def _add_help(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
     p.add_argument(
         "subcommand",
         choices=commands.__all__,
-        nargs='?',
+        nargs="?",
         help="Print out help for the specified command, if provided, using pipx help COMMAND",
     )
 
@@ -1000,7 +1000,7 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
     subparsers = parser.add_subparsers(
         dest="command", description="Get help for commands with pipx COMMAND --help\n\t\t\t  or pipx help COMMAND"
     )
-    
+
     subparsers_with_subcommands = {}
     _add_install(subparsers, shared_parser)
     _add_install_all(subparsers, shared_parser)
