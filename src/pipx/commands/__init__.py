@@ -11,6 +11,7 @@ from pipx.commands.run_pip import run_pip
 from pipx.commands.uninject import uninject
 from pipx.commands.uninstall import uninstall, uninstall_all
 from pipx.commands.upgrade import upgrade, upgrade_all, upgrade_shared
+import pipx.commands.help
 
 __all__ = [
     "upgrade",
@@ -34,4 +35,5 @@ __all__ = [
     "pin",
     "unpin",
     "upgrade_interpreters",
+    "help",
 ]
