@@ -111,7 +111,7 @@ addopts = [ "-ra", "--strict-config", "--strict-markers" ]
 
 [tool.towncrier]
 directory = "changelog.d"
-filename = "docs/CHANGELOG.md"
+filename = "docs/changelog.md"
 start_string = "<!-- towncrier release notes start -->\n"
 underlines = [
   "",
