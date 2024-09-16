@@ -35,8 +35,8 @@ nav:
   - Comparison to Other Tools: "comparisons.md"
   - How pipx works: "how-pipx-works.md"
   - Programs to Try: "programs-to-try.md"
-  - Contributing: "CONTRIBUTING.md"
-  - Changelog: "CHANGELOG.md"
+  - Contributing: "contributing.md"
+  - Changelog: "changelog.md"
 
 markdown_extensions:
   - markdown_gfm_admonition  # GitHub's admonition (alert) syntax
