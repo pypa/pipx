@@ -424,9 +424,10 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     elif args.command == "environment":
         return commands.environment(value=args.value)
     elif args.command == "help":
-        if args.subcommand is not None:
-            sys.argv[1] = args.subcommand
-            sys.argv[2] = "--help"
+        if args.subcommands is not None:
+            for i in range(2, len(sys.argv)):
+                sys.argv[i - 1] = sys.argv[i]
+            sys.argv[len(sys.argv) - 1] = "--help"
             return cli()
         else:
             parser, _ = get_command_parser()
@@ -945,9 +946,8 @@ def _add_help(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
         parents=[shared_parser],
     )
     p.add_argument(
-        "subcommand",
-        choices=commands.__all__,
-        nargs="?",
+        "subcommands",
+        nargs="*",
         help="Print out help for the specified command, if provided, using pipx help COMMAND",
     )
 
@@ -998,7 +998,7 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
     parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore[attr-defined]
 
     subparsers = parser.add_subparsers(
-        dest="command", description="Get help for commands with pipx COMMAND --help\n\t\t\t  or pipx help COMMAND"
+        dest="command", description="Get help for commands with pipx COMMAND --help or pipx help COMMAND"
     )
 
     subparsers_with_subcommands = {}
