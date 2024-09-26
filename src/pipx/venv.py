@@ -195,7 +195,7 @@ class Venv:
             elif self.backend == "virtualenv":
                 cmd = [path_to_exec("virtualenv"), "--python", self.python]
                 if not override_shared:
-                    cmd.append("--no-pip")
+                    cmd.append("--without-pip")
             venv_process = run_subprocess(cmd + venv_args + [str(self.root)], run_dir=str(self.root))
         subprocess_post_check(venv_process)
         if self.backend != "uv" or self.installer != "uv":
