@@ -112,7 +112,7 @@ class Venv:
 
         if not path_to_exec(self.backend):
             self.backend = "venv"
-        if not path_to_exec(self.installer, installer=True):
+        if not path_to_exec(self.installer, is_installer=True):
             self.installer = "pip"
 
     def check_upgrade_shared_libs(self, verbose: bool, pip_args: List[str], force_upgrade: bool = False):
@@ -505,7 +505,7 @@ class Venv:
             return self._run_uv(["pip"] + install_cmd, quiet=quiet)
 
     def _run_uv(self, cmd: List[str], quiet: bool = True) -> "CompletedProcess[str]":
-        cmd = [path_to_exec("uv", installer=True)] + cmd + ["--python", str(self.python_path)]
+        cmd = [path_to_exec("uv", is_installer=True)] + cmd + ["--python", str(self.python_path)]
         if not self.verbose and quiet:
             cmd.append("-q")
         return run_subprocess(cmd, run_dir=str(self.root))
