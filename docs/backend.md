@@ -9,6 +9,9 @@ Starting from version 1.8.0, pipx supports different backends and installers.
 - `pip` (Default)
 - `uv` (via `uv pip`)
 
+> [!NOTE]
+> If `uv` or `virtualenv` is not present in PATH, you should install them with `pipx install uv` or `pipx install virtualenv` in advance.
+
 If you wish to use a different backend or installer, you can either:
 
 - Pass command line arguments (`--backend`, `--installer`)
