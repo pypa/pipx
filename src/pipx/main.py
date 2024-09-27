@@ -424,15 +424,10 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     elif args.command == "environment":
         return commands.environment(value=args.value)
     elif args.command == "help":
-        if args.subcommands is not None:
-            for i in range(2, len(sys.argv)):
-                sys.argv[i - 1] = sys.argv[i]
-            sys.argv[len(sys.argv) - 1] = "--help"
-            return cli()
-        else:
-            parser, _ = get_command_parser()
-            parser.print_help()
-            return ExitCode(0)
+        for i in range(2, len(sys.argv)):
+            sys.argv[i - 1] = sys.argv[i]
+        sys.argv[len(sys.argv) - 1] = "--help"
+        return cli()
     else:
         raise PipxError(f"Unknown command {args.command}")
 
