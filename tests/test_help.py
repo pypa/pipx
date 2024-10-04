@@ -20,8 +20,32 @@ def test_help(capsys):
 
 def test_help_with_subcommands(capsys):
     parser, _ = get_command_parser()
-    # The following line generates an attribute error from the linter, but executes normally
-    valid_commands = parser._subparsers._actions[4].choices.keys()  # First four actions contain None
+    # The list of valid pipx commands was generated using the following line
+    # valid_commands = parser._subparsers._actions[4].choices.keys()  # First four actions contain None
+    valid_commands = [
+        "install",
+        "install-all",
+        "uninject",
+        "inject",
+        "pin",
+        "unpin",
+        "upgrade",
+        "upgrade-all",
+        "upgrade-shared",
+        "uninstall",
+        "uninstall-all",
+        "reinstall",
+        "reinstall-all",
+        "list",
+        "interpreter",
+        "run",
+        "runpip",
+        "ensurepath",
+        "environment",
+        "help",
+        "completions",
+    ]
+
     for command in valid_commands:
         try:
             run_pipx_cli([command, "--help"])
