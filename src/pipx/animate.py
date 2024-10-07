@@ -101,7 +101,7 @@ def print_animation(
 def win_cursor(visible: bool) -> None:
     if sys.platform != "win32":  # hello mypy
         return
-    ci = _CursorInfo()
+    ci = _CursorInfo()  # type: ignore[unreachable]
     handle = ctypes.windll.kernel32.GetStdHandle(-11)
     ctypes.windll.kernel32.GetConsoleCursorInfo(handle, ctypes.byref(ci))
     ci.visible = visible

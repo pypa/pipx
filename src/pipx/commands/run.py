@@ -198,11 +198,11 @@ def run(
         # we can't parse this as a package
         package_name = app
 
-    content = None if spec is not None else maybe_script_content(app, is_path)
+    content = None if spec is not None else maybe_script_content(app, is_path)  # type: ignore[redundant-expr]
     if content is not None:
         run_script(content, app_args, python, pip_args, venv_args, verbose, use_cache)
     else:
-        package_or_url = spec if spec is not None else app
+        package_or_url = spec if spec is not None else app  # type: ignore[redundant-expr]
         run_package(
             package_name,
             package_or_url,
