@@ -34,4 +34,5 @@ __all__ = [
     "pin",
     "unpin",
     "upgrade_interpreters",
+    "help",
 ]
