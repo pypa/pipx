@@ -9,10 +9,10 @@ ansible==6.7.0
 awscli==1.18.168
 black==22.8.0
 black==22.10.0
-cloudtoken==2.1.0
+cloudtoken==2.1.19
 ipython==7.16.1
 isort==5.6.4
-jaraco-clipboard==2.0.1
+jaraco-clipboard==3.1.0
 zest-releaser==9.1.2
 jupyter==1.0.0
 kaggle==1.6.11
