@@ -74,7 +74,7 @@ sudo pipx ensurepath --global # optional to allow pipx actions with --global arg
 ```
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
-sudo pipx ensurepath --global # optional to allow pipx actions with --global argument
+sudo -u $(whoami) python3 -m pipx ensurepath --global # optional to allow pipx actions with --global argument
 ```
 
 Upgrade pipx with `python3 -m pip install --user --upgrade pipx`.
