@@ -134,6 +134,8 @@ def upgrade_interpreters(venv_container: VenvContainer, verbose: bool):
                         local_man_dir=paths.ctx.man_dir,
                         python=str(interpreter_python),
                         verbose=verbose,
+                        backend=venv.pipx_metadata.backend,
+                        installer=venv.pipx_metadata.installer,
                     )
                     upgraded.append((venv.name, interpreter_full_version, latest_micro_version))
 

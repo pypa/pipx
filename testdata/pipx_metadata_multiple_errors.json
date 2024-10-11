@@ -3,7 +3,9 @@
     "venvs": {
         "dotenv": {
             "metadata": {
+                "backend": "venv",
                 "injected_packages": {},
+                "installer": "pip",
                 "main_package": {
                     "app_paths": [
                     ],
@@ -32,7 +34,9 @@
         },
         "weblate": {
             "metadata": {
+                "backend": "venv",
                 "injected_packages": {},
+                "installer": "pip",
                 "main_package": {
                     "app_paths": [
                     ],
