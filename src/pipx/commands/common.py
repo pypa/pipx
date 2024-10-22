@@ -352,7 +352,7 @@ def _get_list_output(
     )
 
     if new_install and (exposed_binary_names or unavailable_binary_names):
-        output.append("  These apps are now globally available")
+        output.append("  These apps are now available")
     output.extend(f"    - {name}" for name in exposed_binary_names)
     output.extend(
         f"    - {red(name)} (symlink missing or pointing to unexpected location)" for name in unavailable_binary_names
