@@ -125,7 +125,7 @@ def uninject(
 ) -> ExitCode:
     """Returns pipx exit code"""
 
-    if not venv_dir.exists() or not next(venv_dir.iterdir()):
+    if not venv_dir.exists() or next(venv_dir.iterdir(), None) is None:
         raise PipxError(f"Virtual environment {venv_dir.name} does not exist.")
 
     venv = Venv(venv_dir, verbose=verbose)
