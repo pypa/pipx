@@ -13,13 +13,12 @@
         "ext-json": "*",
         "guzzlehttp/guzzle": "^7.2",
         "illuminate/support": "^8.22 || ^9.0 || ^10.0 || ^11.0",
-        "nesbot/carbon": "^2.43",
         "ramsey/uuid": "^3.9 || ^4.0",
         "vdhicts/http-query-builder": "^1.0"
     },
     "require-dev": {
         "phpstan/phpstan": "^1.2",
-        "phpunit/phpunit": "^9.6|^10.0",
+        "phpunit/phpunit": "^9.6 || 10.0",
         "rector/rector": "^1.0.0",
         "symplify/easy-coding-standard": "^12.0"
     },
