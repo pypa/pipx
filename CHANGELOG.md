@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the Core API. See the changelog of the [Core API](https://core-api.cyberfusion.io/redoc#section/Changelog) 
 for detailed information.
 
+## [1.115.0]
+
+### Removed
+
+- Drop Carbon as dependency as it is already present in illuminate/support, and it prevents issues when your project already uses Carbon v3.
+
 ## [1.114.2]
 
 ### Fixed
