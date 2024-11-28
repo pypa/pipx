@@ -92,7 +92,7 @@ PIPX_DESCRIPTION += pipx_wrap(
       PIPX_MAN_DIR           Overrides location of manual pages installations. Manual pages are symlinked or copied here.
       PIPX_GLOBAL_MAN_DIR    Used instead of PIPX_MAN_DIR when the `--global` option is given.
       PIPX_DEFAULT_PYTHON    Overrides default python used for commands.
-      USE_EMOJI              Overrides emoji behavior. Default value varies based on platform.
+      PIPX_USE_EMOJI         Overrides emoji behavior. Default value varies based on platform.
       PIPX_HOME_ALLOW_SPACE  Overrides default warning on spaces in the home path
     """,
     subsequent_indent=" " * 24,  # match the indent of argparse options

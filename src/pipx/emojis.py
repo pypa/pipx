@@ -20,7 +20,10 @@ def use_emojis() -> bool:
         platform_emoji_support = True
     except UnicodeEncodeError:
         platform_emoji_support = False
-    return strtobool(str(os.getenv("USE_EMOJI", platform_emoji_support)))
+    use_emoji = os.getenv("PIPX_USE_EMOJI")
+    if use_emoji is None:
+        use_emoji = str(os.getenv("USE_EMOJI", platform_emoji_support))
+    return strtobool(use_emoji)
 
 
 EMOJI_SUPPORT = use_emojis()
