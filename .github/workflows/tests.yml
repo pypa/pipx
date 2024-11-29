@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.12", "3.11", "3.10", "3.9", "3.8"]
+        python-version: ["3.13", "3.12", "3.11", "3.10", "3.9", "3.8"]
         include:
           - os: windows-latest
             python-version: "3.12"
@@ -37,6 +37,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
+          allow-prereleases: true
       - name: Persistent .pipx_tests/package_cache
         uses: actions/cache@v4
         with:
