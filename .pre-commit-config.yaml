@@ -7,17 +7,17 @@ repos:
   - id: trailing-whitespace
   - id: check-yaml
 - repo: https://github.com/tox-dev/pyproject-fmt
-  rev: "2.2.4"
+  rev: "v2.5.0"
   hooks:
     - id: pyproject-fmt
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.6.9
+  rev: v0.8.1
   hooks:
   - id: ruff
     args: [ "--fix", "--unsafe-fixes", "--show-fixes", "--exit-non-zero-on-fix"]
   - id: ruff-format
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.11.2
+  rev: v1.13.0
   hooks:
   - id: mypy
     args: ['--warn-unused-ignores', '--strict-equality','--no-implicit-optional', '--check-untyped-defs']
