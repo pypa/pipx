@@ -31,6 +31,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
 ]
 dynamic = [
   "version",
@@ -41,7 +42,7 @@ dependencies = [
   "packaging>=20",
   "platformdirs>=2.1",
   "tomli; python_version<'3.11'",
-  "userpath!=1.9,>=1.6",
+  "userpath>=1.6,!=1.9",
 ]
 urls."Bug Tracker" = "https://github.com/pypa/pipx/issues"
 urls.Documentation = "https://pipx.pypa.io"
