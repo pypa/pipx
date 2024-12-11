@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 this package and not the Core API. See the changelog of the [Core API](https://core-api.cyberfusion.io/redoc#section/Changelog) 
 for detailed information.
 
+## [1.116.0]
+
+### Added
+
+- CPU limits and memory limits to daemons.
+- Memory limits to FPM pools.
+
+Note: new `updatePartial` methods were added to update these attributes, as they can only be updated using the new PATCH endpoints
+in the Core API (not the now deprecated PUT endpoints, which the existing `update` methods used).
+
 ## [1.115.0]
 
 ### Removed

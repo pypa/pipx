@@ -69,6 +69,8 @@ class Daemons extends Endpoint
           'command',
           'nodes_ids',
           'unix_user_id',
+          'memory_limit',
+          'cpu_limit',
         ]);
 
         $request = (new Request())
@@ -80,6 +82,8 @@ class Daemons extends Endpoint
                 'command',
                 'unix_user_id',
                 'nodes_ids',
+                'memory_limit',
+                'cpu_limit',
               ])
           );
 
@@ -136,6 +140,40 @@ class Daemons extends Endpoint
 
         return $response->setData([
           'daemon' => $daemon,
+        ]);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function updatePartial(Daemon $daemon): Response
+    {
+        $this->validateRequired($daemon, 'update', [
+            'memory_limit',
+            'cpu_limit',
+        ]);
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_PATCH)
+            ->setUrl(sprintf('fpm-pools/%d', $daemon->getId()))
+            ->setBody(
+                $this->filterFields($daemon->toArray(), [
+                    'memory_limit',
+                    'cpu_limit',
+                ])
+            );
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $daemon = (new Daemon())->fromArray($response->getData());
+
+        return $response->setData([
+            'daemon' => $daemon,
         ]);
     }
 
