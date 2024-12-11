@@ -10,11 +10,11 @@ class Daemon extends ClusterModel
     private string $name;
     private string $command;
     private int $unixUserId;
-    private ?int $memoryLimit;
-    private ?int $cpuLimit;
+    private ?int $memoryLimit = null;
+    private ?int $cpuLimit = null;
     private array $nodesIds;
-    private ?int $id;
-    private int $clusterId;
+    private ?int $id = null;
+    private ?int $clusterId = null;
     private ?string $createdAt = null;
     private ?string $updatedAt = null;
 
