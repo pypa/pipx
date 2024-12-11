@@ -10,6 +10,8 @@ class Daemon extends ClusterModel
     private string $name;
     private string $command;
     private int $unixUserId;
+    private ?int $memoryLimit;
+    private ?int $cpuLimit;
     private array $nodesIds;
     private ?int $id;
     private int $clusterId;
@@ -58,6 +60,30 @@ class Daemon extends ClusterModel
     public function setUnixUserId(int $unixUserId): self
     {
         $this->unixUserId = $unixUserId;
+
+        return $this;
+    }
+
+    public function getCpuLimit(): ?int
+    {
+        return $this->cpuLimit;
+    }
+
+    public function setCpuLimit(?int $cpuLimit): self
+    {
+        $this->cpuLimit = $cpuLimit;
+
+        return $this;
+    }
+
+    public function getMemoryLimit(): ?int
+    {
+        return $this->memoryLimit;
+    }
+
+    public function setMemoryLimit(?int $memoryLimit): self
+    {
+        $this->memoryLimit = $memoryLimit;
 
         return $this;
     }
@@ -128,6 +154,8 @@ class Daemon extends ClusterModel
           ->setName(Arr::get($data, 'name'))
           ->setCommand(Arr::get($data, 'command'))
           ->setUnixUserId(Arr::get($data, 'unix_user_id'))
+          ->setMemoryLimit(Arr::get($data, 'memory_limit'))
+          ->setCpuLimit(Arr::get($data, 'cpu_limit'))
           ->setNodesIds(Arr::get($data, 'nodes_ids'))
           ->setId(Arr::get($data, 'id'))
           ->setClusterId(Arr::get($data, 'cluster_id'))
@@ -141,6 +169,8 @@ class Daemon extends ClusterModel
           'name' => $this->getName(),
           'command' => $this->getCommand(),
           'unix_user_id' => $this->getUnixUserId(),
+          'memory_limit' => $this->getMemoryLimit(),
+          'cpu_limit' => $this->getCpuLimit(),
           'nodes_ids' => $this->getNodesIds(),
           'id' => $this->getId(),
           'cluster_id' => $this->getClusterId(),

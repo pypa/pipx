@@ -85,6 +85,7 @@ class FpmPools extends Endpoint
                     'max_requests',
                     'process_idle_timeout',
                     'cpu_limit',
+                    'memory_limit',
                     'log_slow_requests_threshold',
                     'is_namespaced',
                 ])
@@ -134,6 +135,38 @@ class FpmPools extends Endpoint
                     'is_namespaced',
                     'id',
                     'cluster_id',
+                ])
+            );
+
+        $response = $this
+            ->client
+            ->request($request);
+        if (!$response->isSuccess()) {
+            return $response;
+        }
+
+        $fpmPool = (new FpmPool())->fromArray($response->getData());
+
+        return $response->setData([
+            'fpmPool' => $fpmPool,
+        ]);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function updatePartial(FpmPool $fpmPool): Response
+    {
+        $this->validateRequired($fpmPool, 'update', [
+            'memory_limit',
+        ]);
+
+        $request = (new Request())
+            ->setMethod(Request::METHOD_PATCH)
+            ->setUrl(sprintf('fpm-pools/%d', $fpmPool->getId()))
+            ->setBody(
+                $this->filterFields($fpmPool->toArray(), [
+                    'memory_limit',
                 ])
             );
 
