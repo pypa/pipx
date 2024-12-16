@@ -114,7 +114,7 @@ class _SharedLibs:
             return
 
         if pip_args is None:
-            pip_args = []
+            pip_args = []  # type: ignore[unreachable]
 
         logger.info(f"Upgrading shared libraries in {self.root}")
 
