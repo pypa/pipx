@@ -67,6 +67,7 @@ class HAProxyListens extends Endpoint
         $this->validateRequired($haProxyListen, 'create', [
             'name',
             'nodes_group',
+            'nodes_ids',
             'port',
             'socket_path',
             'destination_cluster_id',
@@ -80,6 +81,7 @@ class HAProxyListens extends Endpoint
                 $this->filterFields($haProxyListen->toArray(), [
                     'name',
                     'nodes_group',
+                    'nodes_ids',
                     'port',
                     'socket_path',
                     'destination_cluster_id',

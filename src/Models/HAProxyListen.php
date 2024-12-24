@@ -13,6 +13,8 @@ class HAProxyListen extends ClusterModel
 
     private string $nodesGroup;
 
+    private ?string $nodesIds = null;
+
     private ?int $port = null;
 
     private ?string $socketPath = null;
@@ -57,6 +59,18 @@ class HAProxyListen extends ClusterModel
             ->validate();
 
         $this->nodesGroup = $nodesGroup;
+
+        return $this;
+    }
+
+    public function getNodesIds(): ?array
+    {
+        return $this->nodesIds;
+    }
+
+    public function setNodesIds(?array $nodesIds): self
+    {
+        $this->nodesIds = $nodesIds;
 
         return $this;
     }
@@ -162,6 +176,7 @@ class HAProxyListen extends ClusterModel
         return $this
             ->setName(Arr::get($data, 'name'))
             ->setNodesGroup(Arr::get($data, 'nodes_group'))
+            ->setNodesIds(Arr::get($data, 'nodes_ids'))
             ->setPort(Arr::get($data, 'port'))
             ->setSocketPath(Arr::get($data, 'socket_path'))
             ->setDestinationClusterId(Arr::get($data, 'destination_cluster_id'))
@@ -176,6 +191,7 @@ class HAProxyListen extends ClusterModel
         return [
             'name' => $this->getName(),
             'nodes_group' => $this->getNodesGroup(),
+            'nodes_ids' => $this->getNodesIds(),
             'port' => $this->getPort(),
             'socket_path' => $this->getSocketPath(),
             'destination_cluster_id' => $this->getDestinationClusterId(),
