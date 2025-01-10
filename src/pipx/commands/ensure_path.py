@@ -51,7 +51,7 @@ def get_pipx_user_bin_path() -> Optional[Path]:
     return pipx_bin_path
 
 
-def ensure_path(location: Path, *, force: bool, prepend: bool = False) -> Tuple[bool, bool]:
+def ensure_path(location: Path, *, force: bool, prepend: bool = False, all_shells: bool = False) -> Tuple[bool, bool]:
     """Ensure location is in user's PATH or add it to PATH.
     If prepend is True, location will be prepended to PATH, else appended.
     Returns True if location was added to PATH
@@ -63,9 +63,9 @@ def ensure_path(location: Path, *, force: bool, prepend: bool = False) -> Tuple[
 
     if force or (not in_current_path and not need_shell_restart):
         if prepend:
-            path_added = userpath.prepend(location_str, "pipx")
+            path_added = userpath.prepend(location_str, "pipx", all_shells=all_shells)
         else:
-            path_added = userpath.append(location_str, "pipx")
+            path_added = userpath.append(location_str, "pipx", all_shells=all_shells)
         if not path_added:
             print(
                 pipx_wrap(
@@ -100,7 +100,7 @@ def ensure_path(location: Path, *, force: bool, prepend: bool = False) -> Tuple[
     return (path_added, need_shell_restart)
 
 
-def ensure_pipx_paths(force: bool, prepend: bool = False) -> ExitCode:
+def ensure_pipx_paths(force: bool, prepend: bool = False, all_shells: bool = False) -> ExitCode:
     """Returns pipx exit code."""
     bin_paths = {paths.ctx.bin_dir}
 
@@ -113,7 +113,9 @@ def ensure_pipx_paths(force: bool, prepend: bool = False) -> ExitCode:
     path_action_str = "prepended to" if prepend else "appended to"
 
     for bin_path in bin_paths:
-        (path_added_current, need_shell_restart_current) = ensure_path(bin_path, prepend=prepend, force=force)
+        (path_added_current, need_shell_restart_current) = ensure_path(
+            bin_path, prepend=prepend, force=force, all_shells=all_shells
+        )
         path_added |= path_added_current
         need_shell_restart |= need_shell_restart_current
 
