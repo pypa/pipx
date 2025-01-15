@@ -87,6 +87,9 @@ lint.ignore = [
   "PLW1508",
   "RUF005",
 ]
+lint.per-file-ignores."src/pipx/venv.py" = [
+  "A005",
+]
 lint.isort = { known-first-party = [
   "helpers",
   "package_info",
