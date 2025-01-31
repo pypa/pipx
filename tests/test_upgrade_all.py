@@ -10,6 +10,7 @@ def test_upgrade_all(pipx_temp_env, capsys):
 
 
 def test_upgrade_all_none(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["upgrade-all"])
     captured = capsys.readouterr()
     assert "No packages upgraded after running 'pipx upgrade-all'" in captured.out
