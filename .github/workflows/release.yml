@@ -34,12 +34,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Extract version to be released
         id: get-version
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
           else
-            TITLE="${{ github.event.pull_request.title }}"
-            echo "version=${TITLE/: [[:alnum:]]*}" >> "$GITHUB_OUTPUT"
+            echo "version=${PR_TITLE/: [[:alnum:]]*}" >> "$GITHUB_OUTPUT"
           fi
       - name: Bump version and push tag
         uses: mathieudutour/github-tag-action@v6.2
