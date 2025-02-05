@@ -31,6 +31,7 @@ nav:
   - Getting Started: "getting-started.md"
   - Docs: "docs.md"
   - Troubleshooting: "troubleshooting.md"
+  - Backend: "backend.md"
   - Examples: "examples.md"
   - Comparison to Other Tools: "comparisons.md"
   - How pipx works: "how-pipx-works.md"
