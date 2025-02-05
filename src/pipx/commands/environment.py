@@ -38,7 +38,7 @@ def environment(value: str) -> ExitCode:
         "PIPX_HOME_ALLOW_SPACE": str(paths.ctx.allow_spaces_in_home_path).lower(),
     }
     if value is None:
-        print("Environment variables (set by user):")
+        print("Environment variables (set by user):")  # type: ignore[unreachable]
         print("")
         for env_variable in ENVIRONMENT_VARIABLES:
             env_value = os.getenv(env_variable, "")
