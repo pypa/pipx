@@ -8,7 +8,7 @@ from pipx.emojis import use_emojis
 
 
 @pytest.mark.parametrize(
-    "USE_EMOJI, encoding, expected",
+    "PIPX_USE_EMOJI, encoding, expected",
     [
         # utf-8
         (None, "utf-8", True),
@@ -39,8 +39,8 @@ from pipx.emojis import use_emojis
         ("false", "cp1252", False),
     ],
 )
-def test_use_emojis(monkeypatch, USE_EMOJI, encoding, expected):
+def test_use_emojis(monkeypatch, PIPX_USE_EMOJI, encoding, expected):
     with mock.patch.object(sys, "stderr", TextIOWrapper(BytesIO(), encoding=encoding)):
-        if USE_EMOJI is not None:
-            monkeypatch.setenv("USE_EMOJI", USE_EMOJI)
+        if PIPX_USE_EMOJI is not None:
+            monkeypatch.setenv("PIPX_USE_EMOJI", PIPX_USE_EMOJI)
         assert use_emojis() is expected

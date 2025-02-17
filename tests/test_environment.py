@@ -33,7 +33,7 @@ def test_cli_with_args(monkeypatch, capsys):
     assert not run_pipx_cli(["environment", "--value", "PIPX_TRASH_DIR"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_VENV_CACHEDIR"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_DEFAULT_PYTHON"])
-    assert not run_pipx_cli(["environment", "--value", "USE_EMOJI"])
+    assert not run_pipx_cli(["environment", "--value", "PIPX_USE_EMOJI"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_HOME_ALLOW_SPACE"])
 
     assert run_pipx_cli(["environment", "--value", "SSS"])
