@@ -66,7 +66,7 @@ def test_delay_suppresses_output(capsys, monkeypatch):
 @pytest.mark.parametrize(
     "env_columns,expected_frame_message",
     [
-        (45, f"{TEST_STRING_40_CHAR:.{45-6}}..."),
+        (45, f"{TEST_STRING_40_CHAR:.{45 - 6}}..."),
         (46, f"{TEST_STRING_40_CHAR}"),
         (47, f"{TEST_STRING_40_CHAR}"),
     ],
@@ -87,7 +87,7 @@ def test_line_lengths_emoji(capsys, monkeypatch, env_columns, expected_frame_mes
 @pytest.mark.parametrize(
     "env_columns,expected_frame_message",
     [
-        (43, f"{TEST_STRING_40_CHAR:.{43-4}}"),
+        (43, f"{TEST_STRING_40_CHAR:.{43 - 4}}"),
         (44, f"{TEST_STRING_40_CHAR}"),
         (45, f"{TEST_STRING_40_CHAR}"),
     ],
