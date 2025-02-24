@@ -409,15 +409,15 @@ def test_passed_python_and_force_flag_warning(pipx_temp_env, capsys):
 
     assert not run_pipx_cli(["install", "black", "--force"])
     captured = capsys.readouterr()
-    assert (
-        "--python is ignored when --force is passed." not in captured.out
-    ), "Should only print warning if both flags present"
+    assert "--python is ignored when --force is passed." not in captured.out, (
+        "Should only print warning if both flags present"
+    )
 
     assert not run_pipx_cli(["install", "pycowsay", "--force"])
     captured = capsys.readouterr()
-    assert (
-        "--python is ignored when --force is passed." not in captured.out
-    ), "Should not print warning if package does not exist yet"
+    assert "--python is ignored when --force is passed." not in captured.out, (
+        "Should not print warning if package does not exist yet"
+    )
 
 
 @pytest.mark.parametrize(
