@@ -7,7 +7,7 @@ repos:
   - id: trailing-whitespace
   - id: check-yaml
 - repo: https://github.com/tox-dev/pyproject-fmt
-  rev: "2.2.4"
+  rev: "v2.5.0"
   hooks:
     - id: pyproject-fmt
 - repo: https://github.com/astral-sh/ruff-pre-commit
