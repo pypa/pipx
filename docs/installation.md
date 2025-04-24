@@ -322,7 +322,7 @@ Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$NEW_LOCATION"
 
 Move-Item -Path $home_dir -Destination "$NEW_LOCATION"
 
-$ENV:PIPX_HOME = $NEW_LOCATION 
+$ENV:PIPX_HOME = $NEW_LOCATION
 pipx ensurepath
 
 pipx reinstall-all
