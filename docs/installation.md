@@ -304,8 +304,12 @@ pipx reinstall-all
 
 Current default location: `~/pipx`
 
+#### Switch to $HOME or location without spaces
+If `$HOME` also contains a space then pick a different location without one, e.g. `C:\pipx`
+
 ```powershell
 $NEW_LOCATION = Join-Path "$HOME" 'pipx'
+# $NEW_LOCATION = "C:\pipx"
 $cache_dir = pipx environment --value PIPX_VENV_CACHEDIR
 $logs_dir = pipx environment --value PIPX_LOG_DIR
 $trash_dir = pipx environment --value PIPX_TRASH_DIR
@@ -317,9 +321,19 @@ Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$cache_dir", "$logs_d
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$NEW_LOCATION"
 
 Move-Item -Path $home_dir -Destination "$NEW_LOCATION"
+
+$ENV:PIPX_HOME = $NEW_LOCATION 
+pipx ensurepath
+
 pipx reinstall-all
 ```
 
 If you would prefer doing it in bash via git-bash/WSL, feel free to use
 the MacOS/Linux instructions, changing the `$NEW_LOCATION` to the Windows
 version.
+
+Add `PIPX_HOME` to the environment settings to make it persistent:
+
+* Press the `Windows` + `R` keys, type `sysdm.cpl` and press Enter.
+* Click on the `Advanced` tab and then `Environment Variables...`.
+* Add `PIPX_HOME` under User variables.
