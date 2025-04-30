@@ -78,6 +78,14 @@ def test_upgrade_specifier(pipx_temp_env, capsys):
     assert f"upgraded package {name} from {initial_version} to" in captured.out
 
 
+def test_upgrade_editable(pipx_temp_env, capsys, root):
+    empty_project_path_as_string = (root / "testdata" / "empty_project").as_posix()
+    assert not run_pipx_cli(["install", "--editable", empty_project_path_as_string, "--force"])
+    assert not run_pipx_cli(["upgrade", "--editable", "empty_project"])
+    captured = capsys.readouterr()
+    assert "empty-project is already at latest version" in captured.out
+
+
 def test_upgrade_include_injected(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
     assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])
