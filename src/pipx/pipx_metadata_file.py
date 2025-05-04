@@ -114,7 +114,7 @@ class PipxMetadata:
             raise PipxError(
                 f"""
                 {self.venv_dir.name}: Unknown metadata version
-                {metadata_dict['pipx_metadata_version']}. Perhaps it was
+                {metadata_dict["pipx_metadata_version"]}. Perhaps it was
                 installed with a later version of pipx.
                 """
             )
