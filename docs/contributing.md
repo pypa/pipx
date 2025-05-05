@@ -131,13 +131,13 @@ nox -s tests-3.12
 > You can run a specific unit test by passing arguments to pytest, the test runner pipx uses:
 >
 > ```
-> nox -s tests-3.8 -- -k EXPRESSION
+> nox -s tests-3.9 -- -k EXPRESSION
 > ```
 >
 > `EXPRESSION` can be a test name, such as
 >
 > ```
-> nox -s tests-3.8 -- -k test_uninstall
+> nox -s tests-3.9 -- -k test_uninstall
 > ```
 >
 > Coverage errors can usually be ignored when only running a subset of tests.
