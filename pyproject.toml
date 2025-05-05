@@ -79,11 +79,12 @@ lint.extend-select = [
   "RSE",
   "RUF012",
   "RUF100",
-  "TCH",
+  "TC",
   "W",
 ]
 lint.ignore = [
   "PERF203",
+  "PLW1508",
 ]
 lint.isort = { known-first-party = [
   "helpers",
