@@ -7,7 +7,7 @@ from typing import Generator, List
 from pipx.constants import WINDOWS
 from pipx.emojis import EMOJI_SUPPORT
 
-stderr_is_tty = sys.stderr.isatty()
+stderr_is_tty = sys.stderr.isatty() if sys.stderr else False
 
 CLEAR_LINE = "\033[K"
 EMOJI_ANIMATION_FRAMES = ["⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"]

@@ -6,7 +6,7 @@ try:
 except ImportError:  # Colorama is Windows only package
     colorama = None
 
-PRINT_COLOR = sys.stdout.isatty()
+PRINT_COLOR = sys.stdout.isatty() if sys.stdout is not None else False
 
 if PRINT_COLOR and colorama:
     colorama.init()
