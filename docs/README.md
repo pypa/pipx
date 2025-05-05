@@ -118,7 +118,7 @@ Upgrade pipx with `py -m pip install --user --upgrade pipx`.
 ### Using pipx without installing (via zipapp)
 
 You can also use pipx without installing it. The zipapp can be downloaded from
-[Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a Python 3.8+ interpreter:
+[Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a Python 3.9+ interpreter:
 
 ```
 python pipx.pyz ensurepath
