@@ -441,7 +441,7 @@ class Venv:
     def upgrade_package_no_metadata(self, package_name: str, pip_args: List[str]) -> None:
         logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_name))
         with animate(f"upgrading {package_descr}", self.do_animation):
-            pip_process = self._run_pip(["--no-input", "install"] + pip_args + ["--upgrade", package_name])
+            pip_process = self._run_pip(["--no-input", "install", "--upgrade"] + pip_args + [package_name])
         subprocess_post_check(pip_process)
 
     def upgrade_package(
@@ -456,7 +456,7 @@ class Venv:
     ) -> None:
         logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_or_url))
         with animate(f"upgrading {package_descr}", self.do_animation):
-            pip_process = self._run_pip(["--no-input", "install"] + pip_args + ["--upgrade", package_or_url])
+            pip_process = self._run_pip(["--no-input", "install", "--upgrade"] + pip_args + [package_or_url])
         subprocess_post_check(pip_process)
 
         self.update_package_metadata(
