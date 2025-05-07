@@ -40,7 +40,7 @@ MACHINE_SUFFIX: Dict[str, Dict[str, Any]] = {
             "musl": ["x86_64_v3-unknown-linux-musl-install_only.tar.gz"],
         },
     },
-    "Windows": {"AMD64": ["x86_64-pc-windows-msvc-shared-install_only.tar.gz"]},
+    "Windows": {"AMD64": ["x86_64-pc-windows-msvc-install_only.tar.gz"]},
 }
 
 GITHUB_API_URL = "https://api.github.com/repos/indygreg/python-build-standalone/releases/latest"
