@@ -154,6 +154,22 @@ class _PathContext:
                     subsequent_indent=" " * 4,
                 )
             )
+            logger.warning(
+                pipx_wrap(
+                    (
+                        f"{hazard} To see your PIPX_HOME dir: pipx environment --value PIPX_HOME"
+                    ),
+                    subsequent_indent=" " * 4,
+                )
+            )
+            logger.warning(
+                pipx_wrap(
+                    (
+                        f"{hazard} Most likely fix on macOS: mv ~/Library/Application\\ Support/pipx ~/.local/"
+                    ),
+                    subsequent_indent=" " * 4,
+                )
+            )
 
         fallback_home_exists = self._fallback_home is not None and self._fallback_home.exists()
         specific_home_exists = self.home != self._fallback_home
