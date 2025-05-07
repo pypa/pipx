@@ -235,6 +235,7 @@ You can also install from a git repository. Here, `black` is used as an example.
 
 ```
 pipx install git+https://github.com/psf/black.git
+pipx install git+ssh://git@github.com/psf/black # using ssh
 pipx install git+https://github.com/psf/black.git@branch  # branch of your choice
 pipx install git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022573a59cdb1  # git hash
 pipx install https://github.com/psf/black/archive/18.9b0.zip  # install a release
@@ -435,6 +436,7 @@ You can also run from a git repository. Here, `black` is used as an example.
 
 ```
 pipx run --spec git+https://github.com/psf/black.git black
+pipx run --spec git+ssh://git@github.com/psf/black black # using ssh
 pipx run --spec git+https://github.com/psf/black.git@branch black  # branch of your choice
 pipx run --spec git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022573a59cdb1 black  # git hash
 pipx run --spec https://github.com/psf/black/archive/18.9b0.zip black # install a release
