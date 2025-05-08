@@ -126,7 +126,7 @@ def test_upgrade_standalone_interpreter(pipx_temp_env, root, monkeypatch, capsys
         ]
     )
 
-    with open(root / "testdata" / "standalone_python_index_20240224.json") as f:
+    with open(root / "testdata" / "standalone_python_index_20250508.json") as f:
         new_index = json.load(f)
     monkeypatch.setattr(standalone_python, "get_or_update_index", lambda _: new_index)
 
