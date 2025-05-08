@@ -31,7 +31,7 @@ def mocked_github_api(monkeypatch, root):
     Fixture to replace the github index with a local copy,
     to prevent unit tests from exceeding github's API request limit.
     """
-    with open(root / "testdata" / "standalone_python_index_20240107.json") as f:
+    with open(root / "testdata" / "standalone_python_index_20250317.json") as f:
         index = json.load(f)
     monkeypatch.setattr(standalone_python, "get_or_update_index", lambda _: index)
 
