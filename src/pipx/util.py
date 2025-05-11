@@ -200,9 +200,6 @@ def run_subprocess(
                 if out:
                     stdout += out
                     if stream != None: stream.put_nowait(out)
-                if err:
-                    stderr += err
-                    if stream != None: stream.put_nowait(err)
                 if not out and not err:
                     break
         except subprocess.TimeoutExpired as exc:

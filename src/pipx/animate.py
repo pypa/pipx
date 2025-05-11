@@ -83,9 +83,9 @@ def print_animation(
     event.wait(delay)
     last_received_stream = ""
     while not event.wait(0):
-        if stream != None and not stream.empty():
-            last_received_stream = f": {stream.get_nowait().strip()}"
         for s in symbols:
+            if stream != None and not stream.empty():
+                last_received_stream = f": {stream.get_nowait().strip()}"
             if animate_at_beginning_of_line:
                 max_message_len = term_cols - len(f"{s} ... ")
                 cur_line = f"{s} {f"{message}{last_received_stream}":.{max_message_len}}"

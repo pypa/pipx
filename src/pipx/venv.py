@@ -256,6 +256,7 @@ class Venv:
                 "-m",
                 "pip",
                 "--no-input",
+                "--no-cache-dir",
                 "install",
                 *pip_args,
                 package_or_url,
