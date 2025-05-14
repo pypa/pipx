@@ -92,18 +92,18 @@ def find_python_interpreter(python_version: str, fetch_missing_python: bool = Fa
         if python_unix_command:
             return python_unix_command
 
-    if fetch_missing_python or FETCH_MISSING_PYTHON:
-        try:
-            return download_python_build_standalone(python_version)
-        except PipxError as e:
-            raise InterpreterResolutionError(source="the python-build-standalone project", version=python_version) from e
-
     try:
         py_executable = find_py_launcher_python(python_version)
         if py_executable:
             return py_executable
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        raise InterpreterResolutionError(source="py launcher", version=python_version) from e
+        if fetch_missing_python or FETCH_MISSING_PYTHON:
+            try:
+                return download_python_build_standalone(python_version)
+            except PipxError as e:
+                raise InterpreterResolutionError(source="the python-build-standalone project", version=python_version) from e
+        else:
+            raise InterpreterResolutionError(source="py launcher", version=python_version) from e
 
     raise InterpreterResolutionError(source="PATH", version=python_version)
 
