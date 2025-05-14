@@ -101,7 +101,9 @@ def find_python_interpreter(python_version: str, fetch_missing_python: bool = Fa
             try:
                 return download_python_build_standalone(python_version)
             except PipxError as e:
-                raise InterpreterResolutionError(source="the python-build-standalone project", version=python_version) from e
+                raise InterpreterResolutionError(
+                    source="the python-build-standalone project", version=python_version
+                ) from e
         else:
             raise InterpreterResolutionError(source="py launcher", version=python_version) from e
 
