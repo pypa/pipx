@@ -99,7 +99,7 @@ def find_python_interpreter(python_version: str, fetch_missing_python: bool = Fa
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         if not fetch_missing_python and not FETCH_MISSING_PYTHON:
             raise InterpreterResolutionError(source="py launcher", version=python_version) from e
-    
+
     if fetch_missing_python or FETCH_MISSING_PYTHON:
         try:
             return download_python_build_standalone(python_version)
