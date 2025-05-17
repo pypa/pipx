@@ -1171,7 +1171,7 @@ def cli() -> ExitCode:
     try:
         hide_cursor()
         parser, subparsers = get_command_parser()
-        argcomplete.autocomplete(parser)
+        argcomplete.autocomplete(parser, always_complete_options=False)
         parsed_pipx_args = parser.parse_args()
         setup(parsed_pipx_args)
         check_args(parsed_pipx_args)
