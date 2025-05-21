@@ -42,7 +42,7 @@ chardet==5.2.0
 charset_normalizer==3.3.2
 click==7.1.2
 click==8.1.7
-cloudtoken==2.1.0
+cloudtoken==0.1.84
 cmarkgfm==2024.1.14
 colorama==0.4.3
 colorama==0.4.6
