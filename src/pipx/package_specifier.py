@@ -9,8 +9,9 @@
 import logging
 import re
 import urllib.parse
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
@@ -24,7 +25,8 @@ logger = logging.getLogger(__name__)
 ARCHIVE_EXTENSIONS = (".whl", ".tar.gz", ".zip")
 
 
-class ParsedPackage(NamedTuple):
+@dataclass(frozen=True)
+class ParsedPackage:
     valid_pep508: Optional[Requirement]
     valid_url: Optional[str]
     valid_local_path: Optional[str]
@@ -161,7 +163,27 @@ def parse_specifier_for_install(package_spec: str, pip_args: List[str]) -> Tuple
         )
         pip_args.remove("--editable")
 
-    return (package_or_url, pip_args)
+    for index, option in enumerate(pip_args):
+        if not option.startswith(("-c", "--constraint")):
+            continue
+
+        if option in ("-c", "--constraint"):
+            argument_index = index + 1
+            if argument_index < len(pip_args):
+                constraints_file = pip_args[argument_index]
+                pip_args[argument_index] = str(Path(constraints_file).expanduser().resolve())
+
+        else:  # option == "--constraint=some_path"
+            option_list = option.split("=")
+
+            if len(option_list) == 2:
+                key, value = option_list
+                value_path = Path(value).expanduser().resolve()
+                pip_args[index] = f"{key}={value_path}"
+
+        break
+
+    return package_or_url, pip_args
 
 
 def parse_specifier_for_metadata(package_spec: str) -> str:
@@ -172,8 +194,7 @@ def parse_specifier_for_metadata(package_spec: str) -> str:
     * Convert local paths to absolute paths
     """
     parsed_package = _parse_specifier(package_spec)
-    package_or_url = _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=False)
-    return package_or_url
+    return _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=False)
 
 
 def parse_specifier_for_upgrade(package_spec: str) -> str:
@@ -185,8 +206,7 @@ def parse_specifier_for_upgrade(package_spec: str) -> str:
     * Convert local paths to absolute paths
     """
     parsed_package = _parse_specifier(package_spec)
-    package_or_url = _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=True)
-    return package_or_url
+    return _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=True)
 
 
 def get_extras(package_spec: str) -> Set[str]:

@@ -1,7 +1,8 @@
 import json
 import logging
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from pipx.emojis import hazard
 from pipx.util import PipxError, pipx_wrap
@@ -21,12 +22,13 @@ class JsonEncoderHandlesPath(json.JSONEncoder):
 
 
 def _json_decoder_object_hook(json_dict: Dict[str, Any]) -> Union[Dict[str, Any], Path]:
-    if json_dict.get("__type__", None) == "Path" and "__Path__" in json_dict:
+    if json_dict.get("__type__") == "Path" and "__Path__" in json_dict:
         return Path(json_dict["__Path__"])
     return json_dict
 
 
-class PackageInfo(NamedTuple):
+@dataclass(frozen=True)
+class PackageInfo:
     package: Optional[str]
     package_or_url: Optional[str]
     pip_args: List[str]
@@ -37,11 +39,12 @@ class PackageInfo(NamedTuple):
     apps_of_dependencies: List[str]
     app_paths_of_dependencies: Dict[str, List[Path]]
     package_version: str
-    man_pages: List[str] = []
-    man_paths: List[Path] = []
-    man_pages_of_dependencies: List[str] = []
-    man_paths_of_dependencies: Dict[str, List[Path]] = {}
+    man_pages: List[str] = field(default_factory=list)
+    man_paths: List[Path] = field(default_factory=list)
+    man_pages_of_dependencies: List[str] = field(default_factory=list)
+    man_paths_of_dependencies: Dict[str, List[Path]] = field(default_factory=dict)
     suffix: str = ""
+    pinned: bool = False
 
 
 class PipxMetadata:
@@ -50,7 +53,8 @@ class PipxMetadata:
     # V0.2 -> Improve handling of suffixes
     # V0.3 -> Add man pages fields
     # V0.4 -> Add source interpreter
-    __METADATA_VERSION__: str = "0.4"
+    # V0.5 -> Add pinned
+    __METADATA_VERSION__: str = "0.5"
 
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
@@ -85,17 +89,19 @@ class PipxMetadata:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "main_package": self.main_package._asdict(),
+            "main_package": asdict(self.main_package),
             "python_version": self.python_version,
             "source_interpreter": self.source_interpreter,
             "venv_args": self.venv_args,
-            "injected_packages": {name: data._asdict() for (name, data) in self.injected_packages.items()},
+            "injected_packages": {name: asdict(data) for (name, data) in self.injected_packages.items()},
             "pipx_metadata_version": self.__METADATA_VERSION__,
         }
 
     def _convert_legacy_metadata(self, metadata_dict: Dict[str, Any]) -> Dict[str, Any]:
         if metadata_dict["pipx_metadata_version"] in (self.__METADATA_VERSION__):
             pass
+        elif metadata_dict["pipx_metadata_version"] == "0.4":
+            metadata_dict["pinned"] = False
         elif metadata_dict["pipx_metadata_version"] in ("0.2", "0.3"):
             metadata_dict["source_interpreter"] = None
         elif metadata_dict["pipx_metadata_version"] == "0.1":
@@ -108,7 +114,7 @@ class PipxMetadata:
             raise PipxError(
                 f"""
                 {self.venv_dir.name}: Unknown metadata version
-                {metadata_dict['pipx_metadata_version']}. Perhaps it was
+                {metadata_dict["pipx_metadata_version"]}. Perhaps it was
                 installed with a later version of pipx.
                 """
             )

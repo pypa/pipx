@@ -1,0 +1,6 @@
+changelog:
+  exclude:
+    authors:
+      - dependabot
+      - pre-commit-ci
+      - github-actions

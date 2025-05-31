@@ -24,7 +24,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-import pytest  # type: ignore
+import pytest  # type: ignore[import-not-found]
 
 from helpers import run_pipx_cli
 from package_info import PKG
@@ -214,15 +214,13 @@ def format_report_table_row(package_data: PackageData) -> str:
     else:
         sys_install_time = ""
 
-    row_string = (
+    return (
         f"{package_data.package_spec:24}{package_data.overall_pf_str:12}"
         f"{package_data.clear_pip_pf_str:8}{package_data.clear_pipx_pf_str:8}"
         f"{clear_install_time:8}"
         f"{package_data.sys_pip_pf_str:8}{package_data.sys_pipx_pf_str:8}"
         f"{sys_install_time:8}"
     )
-
-    return row_string
 
 
 def format_report_table_footer(module_globals: ModuleGlobalsData) -> str:
@@ -272,7 +270,7 @@ def verify_installed_resources(
     resource_name_long = {"app": "apps", "man": "manual pages"}[resource_type]
     package_resources = PKG[package_name][resource_name].copy()
     if deps:
-        package_resources += PKG[package_name]["%s_of_dependencies" % resource_name]
+        package_resources += PKG[package_name][f"{resource_name}_of_dependencies"]
     if len(package_resources) == 0:
         return True
 
@@ -360,7 +358,7 @@ def print_error_report(
         print("\n\n", file=errors_fh)
         print("=" * 79, file=errors_fh)
         print(
-            f"{package_spec:24}{test_type:16}{module_globals.sys_platform:16}" f"{module_globals.py_version_display}",
+            f"{package_spec:24}{test_type:16}{module_globals.sys_platform:16}{module_globals.py_version_display}",
             file=errors_fh,
         )
         print("\nSTDOUT:", file=errors_fh)

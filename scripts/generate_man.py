@@ -5,7 +5,7 @@ import sys
 import textwrap
 from typing import cast
 
-from build_manpages.manpage import Manpage  # type: ignore
+from build_manpages.manpage import Manpage  # type: ignore[import-not-found]
 
 from pipx.main import get_command_parser
 
@@ -13,7 +13,7 @@ from pipx.main import get_command_parser
 def main():
     sys.argv[0] = "pipx"
     parser, _ = get_command_parser()
-    parser.man_short_description = cast(str, parser.description).splitlines()[1]  # type: ignore[attr-defined]
+    parser.man_short_description = cast("str", parser.description).splitlines()[1]  # type: ignore[attr-defined]
 
     manpage = Manpage(parser)
     body = str(manpage)

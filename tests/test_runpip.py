@@ -8,5 +8,5 @@ def test_runpip(pipx_temp_env, monkeypatch, capsys):
 
 @skip_if_windows
 def test_runpip_global(pipx_temp_env, monkeypatch, capsys):
-    assert not run_pipx_cli(["--global", "install", "pycowsay"])
-    assert not run_pipx_cli(["--global", "runpip", "pycowsay", "list"])
+    assert not run_pipx_cli(["install", "--global", "pycowsay"])
+    assert not run_pipx_cli(["runpip", "--global", "pycowsay", "list"])

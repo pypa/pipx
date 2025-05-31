@@ -1,7 +1,8 @@
 import sys
+from dataclasses import replace
 from pathlib import Path
 
-import pytest  # type: ignore
+import pytest  # type: ignore[import-not-found]
 
 from helpers import assert_package_metadata, create_package_info_ref, run_pipx_cli
 from package_info import PKG
@@ -68,9 +69,9 @@ def test_pipx_metadata_file_create(tmp_path):
 @pytest.mark.parametrize(
     "test_package",
     [
-        TEST_PACKAGE1._replace(include_apps=False),
-        TEST_PACKAGE1._replace(package=None),
-        TEST_PACKAGE1._replace(package_or_url=None),
+        replace(TEST_PACKAGE1, include_apps=False),
+        replace(TEST_PACKAGE1, package=None),
+        replace(TEST_PACKAGE1, package_or_url=None),
     ],
 )
 def test_pipx_metadata_file_validation(tmp_path, test_package):

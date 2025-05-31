@@ -14,10 +14,8 @@ else:
 
 
 def get_platform_list_path(package_list_dir_path: Path) -> Path:
-    platform_package_list_path = package_list_dir_path / f"{FULL_PLATFORM}-python{PYTHON_VERSION_STR}.txt"
-    return platform_package_list_path
+    return package_list_dir_path / f"{FULL_PLATFORM}-python{PYTHON_VERSION_STR}.txt"
 
 
 def get_platform_packages_dir_path(pipx_package_cache_path: Path) -> Path:
-    platform_packages_dir_path = pipx_package_cache_path / f"{PYTHON_VERSION_STR}"
-    return platform_packages_dir_path
+    return pipx_package_cache_path / f"{PYTHON_VERSION_STR}"

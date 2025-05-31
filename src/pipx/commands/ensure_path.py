@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from typing import Optional, Tuple
 
-import userpath  # type: ignore
+import userpath  # type: ignore[import-not-found]
 
 from pipx import paths
 from pipx.constants import EXIT_CODE_OK, ExitCode
@@ -51,8 +51,9 @@ def get_pipx_user_bin_path() -> Optional[Path]:
     return pipx_bin_path
 
 
-def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
+def ensure_path(location: Path, *, force: bool, prepend: bool = False, all_shells: bool = False) -> Tuple[bool, bool]:
     """Ensure location is in user's PATH or add it to PATH.
+    If prepend is True, location will be prepended to PATH, else appended.
     Returns True if location was added to PATH
     """
     location_str = str(location)
@@ -61,7 +62,10 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
     in_current_path = userpath.in_current_path(location_str)
 
     if force or (not in_current_path and not need_shell_restart):
-        path_added = userpath.append(location_str, "pipx")
+        if prepend:
+            path_added = userpath.prepend(location_str, "pipx", all_shells=all_shells)
+        else:
+            path_added = userpath.append(location_str, "pipx", all_shells=all_shells)
         if not path_added:
             print(
                 pipx_wrap(
@@ -84,7 +88,8 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
                 f"""
                 {location_str} has been been added to PATH, but you need to
                 open a new terminal or re-login for this PATH change to take
-                effect.
+                effect. Alternatively, you can source your shell's config file
+                with e.g. 'source ~/.bashrc'.
                 """,
                 subsequent_indent=" " * 4,
             )
@@ -95,7 +100,7 @@ def ensure_path(location: Path, *, force: bool) -> Tuple[bool, bool]:
     return (path_added, need_shell_restart)
 
 
-def ensure_pipx_paths(force: bool) -> ExitCode:
+def ensure_pipx_paths(force: bool, prepend: bool = False, all_shells: bool = False) -> ExitCode:
     """Returns pipx exit code."""
     bin_paths = {paths.ctx.bin_dir}
 
@@ -105,8 +110,12 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
 
     path_added = False
     need_shell_restart = False
+    path_action_str = "prepended to" if prepend else "appended to"
+
     for bin_path in bin_paths:
-        (path_added_current, need_shell_restart_current) = ensure_path(bin_path, force=force)
+        (path_added_current, need_shell_restart_current) = ensure_path(
+            bin_path, prepend=prepend, force=force, all_shells=all_shells
+        )
         path_added |= path_added_current
         need_shell_restart |= need_shell_restart_current
 
@@ -127,7 +136,7 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
         logger.warning(
             pipx_wrap(
                 f"""
-                {hazard}  All pipx binary directories have been added to PATH. If you
+                {hazard}  All pipx binary directories have been {path_action_str} PATH. If you
                 are sure you want to proceed, try again with the '--force'
                 flag.
                 """
@@ -140,7 +149,8 @@ def ensure_pipx_paths(force: bool) -> ExitCode:
             pipx_wrap(
                 """
                 You will need to open a new terminal or re-login for the PATH
-                changes to take effect.
+                changes to take effect. Alternatively, you can source your shell's
+                config file with e.g. 'source ~/.bashrc'.
                 """
             )
             + "\n"

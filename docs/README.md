@@ -61,6 +61,14 @@ pipx ensurepath
 sudo pipx ensurepath --global # optional to allow pipx actions with --global argument
 ```
 
+- Arch:
+
+```
+sudo pacman -S python-pipx
+pipx ensurepath
+sudo pipx ensurepath --global # optional to allow pipx actions with --global argument
+```
+
 - Using `pip` on other distributions:
 
 ```
@@ -110,7 +118,7 @@ Upgrade pipx with `py -m pip install --user --upgrade pipx`.
 ### Using pipx without installing (via zipapp)
 
 You can also use pipx without installing it. The zipapp can be downloaded from
-[Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a Python 3.7+ interpreter:
+[Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a Python 3.9+ interpreter:
 
 ```
 python pipx.pyz ensurepath
@@ -193,7 +201,7 @@ Example:
 
 ```
 >> pipx install pycowsay
-  installed package pycowsay 2.0.3, Python 3.7.3
+  installed package pycowsay 2.0.3, Python 3.10.3
   These apps are now globally available
     - pycowsay
 done! ✨ 🌟 ✨
@@ -202,7 +210,7 @@ done! ✨ 🌟 ✨
 >> pipx list
 venvs are in /home/user/.local/share/pipx/venvs
 apps are exposed on your $PATH at /home/user/.local/bin
-   package pycowsay 2.0.3, Python 3.7.3
+   package pycowsay 2.0.3, Python 3.10.3
     - pycowsay
 
 
@@ -244,6 +252,16 @@ If an application installed by pipx requires additional packages, you can add th
 
 ```
 pipx inject ipython matplotlib
+```
+
+You can inject multiple packages by specifying them all on the command line,
+or by listing them in a text file, with one package per line,
+or a combination. For example:
+
+```
+pipx inject ipython matplotlib pandas
+# or:
+pipx inject ipython -r useful-packages.txt
 ```
 
 ### Walkthrough: Running an Application in a Temporary Virtual Environment
@@ -476,8 +494,10 @@ pipx is maintained by a team of volunteers (in alphabetical order)
 
 - [Bernát Gábor](https://github.com/gaborbernat)
 - [Chad Smith](https://github.com/cs01) - co-lead maintainer
+- [Chrysle](https://github.com/chrysle)
 - [Jason Lam](https://github.com/dukecat0)
 - [Matthew Clapp](https://github.com/itsayellow) - co-lead maintainer
+- [Robert Offner](https://github.com/gitznik)
 - [Tzu-ping Chung](https://github.com/uranusjr)
 
 ## Contributing

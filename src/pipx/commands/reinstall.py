@@ -26,6 +26,7 @@ def reinstall(
     python: str,
     verbose: bool,
     force_reinstall_shared_libs: bool = False,
+    python_flag_passed: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
     if not venv_dir.exists():
@@ -74,6 +75,7 @@ def reinstall(
         include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
         preinstall_packages=[],
         suffix=venv.pipx_metadata.main_package.suffix,
+        python_flag_passed=python_flag_passed,
     )
 
     # now install injected packages
@@ -105,9 +107,11 @@ def reinstall_all(
     verbose: bool,
     *,
     skip: Sequence[str],
+    python_flag_passed: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
     failed: List[str] = []
+    reinstalled: List[str] = []
 
     # iterate on all packages and reinstall them
     # for the first one, we also trigger
@@ -117,21 +121,23 @@ def reinstall_all(
         if venv_dir.name in skip:
             continue
         try:
-            package_exit = reinstall(
+            reinstall(
                 venv_dir=venv_dir,
                 local_bin_dir=local_bin_dir,
                 local_man_dir=local_man_dir,
                 python=python,
                 verbose=verbose,
                 force_reinstall_shared_libs=first_reinstall,
+                python_flag_passed=python_flag_passed,
             )
         except PipxError as e:
             print(e, file=sys.stderr)
             failed.append(venv_dir.name)
         else:
             first_reinstall = False
-            if package_exit != 0:
-                failed.append(venv_dir.name)
+            reinstalled.append(venv_dir.name)
+    if len(reinstalled) == 0:
+        print(f"No packages reinstalled after running 'pipx reinstall-all' {sleep}")
     if len(failed) > 0:
         raise PipxError(f"The following package(s) failed to reinstall: {', '.join(failed)}")
     # Any failure to install will raise PipxError, otherwise success

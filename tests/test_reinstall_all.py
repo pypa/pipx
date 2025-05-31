@@ -1,6 +1,6 @@
 import sys
 
-import pytest  # type: ignore
+import pytest  # type: ignore[import-not-found]
 
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli
 from pipx import shared_libs
@@ -9,6 +9,12 @@ from pipx import shared_libs
 def test_reinstall_all(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["reinstall-all", "--python", sys.executable])
+
+
+def test_reinstall_all_none(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["reinstall-all"])
+    captured = capsys.readouterr()
+    assert "No packages reinstalled after running 'pipx reinstall-all'" in captured.out
 
 
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)

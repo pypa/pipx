@@ -3,9 +3,10 @@ import os
 import subprocess
 import sys
 import textwrap
+from pathlib import Path
 from unittest import mock
 
-import pytest  # type: ignore
+import pytest  # type: ignore[import-not-found]
 
 import pipx.main
 import pipx.util
@@ -38,7 +39,7 @@ def run_pipx_cli_exit(pipx_cmd_list, assert_exit=None):
     with pytest.raises(SystemExit) as sys_exit:
         run_pipx_cli(pipx_cmd_list)
     if assert_exit is not None:
-        assert sys_exit.type == SystemExit
+        assert sys_exit.type is SystemExit
         assert sys_exit.value.code == assert_exit
 
 
@@ -183,7 +184,7 @@ def test_run_without_requirements(caplog, pipx_temp_env, tmp_path):
         textwrap.dedent(
             f"""
                 from pathlib import Path
-                Path({repr(str(out))}).write_text({repr(test_str)})
+                Path({str(out)!r}).write_text({test_str!r})
             """
         ).strip()
     )
@@ -208,7 +209,7 @@ def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
                 import certifi
                 # Check the installed version
                 from pathlib import Path
-                Path({repr(str(out))}).write_text(requests.__version__)
+                Path({str(out)!r}).write_text(requests.__version__)
             """
         ).strip(),
         encoding="utf-8",
@@ -234,7 +235,7 @@ def test_run_with_requirements_old(caplog, pipx_temp_env, tmp_path):
                 import certifi
                 # Check the installed version
                 from pathlib import Path
-                Path({repr(str(out))}).write_text(requests.__version__)
+                Path({str(out)!r}).write_text(requests.__version__)
             """
         ).strip(),
         encoding="utf-8",
@@ -270,7 +271,7 @@ def test_run_with_args(caplog, pipx_temp_env, tmp_path):
             f"""
                 import sys
                 from pathlib import Path
-                Path({repr(str(out))}).write_text(str(int(sys.argv[1]) + 1))
+                Path({str(out)!r}).write_text(str(int(sys.argv[1]) + 1))
             """
         ).strip()
     )
@@ -291,7 +292,7 @@ def test_run_with_requirements_and_args(caplog, pipx_temp_env, tmp_path):
                 import packaging
                 import sys
                 from pathlib import Path
-                Path({repr(str(out))}).write_text(str(int(sys.argv[1]) + 1))
+                Path({str(out)!r}).write_text(str(int(sys.argv[1]) + 1))
             """
         ).strip()
     )
@@ -343,7 +344,7 @@ def test_run_script_by_absolute_name(caplog, pipx_temp_env, tmp_path):
         textwrap.dedent(
             f"""
                 from pathlib import Path
-                Path({repr(str(out))}).write_text({repr(test_str)})
+                Path({str(out)!r}).write_text({test_str!r})
             """
         ).strip()
     )
@@ -360,7 +361,7 @@ def test_run_script_by_relative_name(caplog, pipx_temp_env, monkeypatch, tmp_pat
         textwrap.dedent(
             f"""
                 from pathlib import Path
-                Path({repr(str(out))}).write_text({repr(test_str)})
+                Path({str(out)!r}).write_text({test_str!r})
             """
         ).strip()
     )
@@ -409,7 +410,7 @@ def test_run_with_windows_python_version(caplog, pipx_temp_env, tmp_path):
             f"""
                 import sys
                 from pathlib import Path
-                Path({repr(str(out))}).write_text(sys.version)
+                Path({str(out)!r}).write_text(sys.version)
             """
         ).strip()
     )
@@ -430,3 +431,15 @@ def test_run_shared_lib_as_app(pipx_temp_env, monkeypatch, capfd):
     run_pipx_cli_exit(["run", "pip", "--help"])
     captured = capfd.readouterr()
     assert "pip <command> [options]" in captured.out
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_local_path_entry_point(pipx_temp_env, caplog, root):
+    empty_project_path = (Path("testdata") / "empty_project").as_posix()
+    os.chdir(root)
+
+    caplog.set_level(logging.INFO)
+
+    run_pipx_cli_exit(["run", empty_project_path])
+
+    assert "Using discovered entry point for 'pipx run'" in caplog.text

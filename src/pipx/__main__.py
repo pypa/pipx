@@ -8,7 +8,7 @@ if not __package__:
     pipx_package_source_path = os.path.dirname(os.path.dirname(__file__))
     sys.path.insert(0, pipx_package_source_path)
 
-from pipx.main import cli  # noqa
+from pipx.main import cli
 
 if __name__ == "__main__":
     sys.exit(cli())

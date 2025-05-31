@@ -33,7 +33,7 @@ Example interaction: pipx installs packages to environments created with venv. `
 - pipx installs packages in virtual environments and exposes their entrypoints on your PATH
 
 Example interaction: Install a Python interpreter with pyenv, then install a package using pipx and that new
-interpreter: `pipx install black --python=python3.7` where python3.7 was installed on the system with pyenv
+interpreter: `pipx install black --python=python3.11` where python3.11 was installed on the system with pyenv
 
 ## pipx vs pipsi
 
@@ -125,7 +125,7 @@ Similarities:
 
 pae advantages:
 
-- Supports all versions of Python from 2.7 upward. pipx requires ≥3.8.
+- Supports all versions of Python from 2.7 upward. pipx requires ≥3.9.
 - Fewer dependencies. (See the detailed comparison for more information.)
 - Easier to have multiple versions of a single program and/or use different Python versions for a single program.
 - Somewhat more convenient for running arbitrary command-line programs in virtual environments, installing multiple packages in a single environment, and activating virtual environments.

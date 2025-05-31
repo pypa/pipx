@@ -11,7 +11,7 @@ from typing import Iterator
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
-import pytest  # type: ignore
+import pytest  # type: ignore[import-not-found]
 
 from helpers import WIN
 from pipx import commands, interpreter, paths, shared_libs, standalone_python, venv
@@ -31,9 +31,9 @@ def mocked_github_api(monkeypatch, root):
     Fixture to replace the github index with a local copy,
     to prevent unit tests from exceeding github's API request limit.
     """
-    with open(root / "testdata" / "standalone_python_index.json") as f:
+    with open(root / "testdata" / "standalone_python_index_20250317.json") as f:
         index = json.load(f)
-    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda: index)
+    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda _: index)
 
 
 def pytest_addoption(parser):
@@ -73,15 +73,18 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_
     global_bin_dir = Path(tmp_path) / "global_otherdir" / "pipxbindir"
     global_man_dir = Path(tmp_path) / "global_otherdir" / "pipxmandir"
 
-    # Patch in test specific base paths
-    monkeypatch.setattr(paths.ctx, "_base_shared_libs", pipx_shared_dir)
-    monkeypatch.setattr(paths.ctx, "_base_home", home_dir)
-    monkeypatch.setattr(paths.ctx, "_base_bin", bin_dir)
-    monkeypatch.setattr(paths.ctx, "_base_man", man_dir)
-    # Patch the default global paths so developers don't contaminate their own systems
-    monkeypatch.setattr(paths, "DEFAULT_PIPX_GLOBAL_BIN_DIR", global_bin_dir)
-    monkeypatch.setattr(paths, "DEFAULT_PIPX_GLOBAL_HOME", global_home_dir)
-    monkeypatch.setattr(paths, "DEFAULT_PIPX_GLOBAL_MAN_DIR", global_man_dir)
+    # Patch in test specific paths
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_HOME", home_dir)
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_BIN_DIR", bin_dir)
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_MAN_DIR", man_dir)
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_SHARED_LIBS", pipx_shared_dir)
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_HOME", global_home_dir)
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_BIN_DIR", global_bin_dir)
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_MAN_DIR", global_man_dir)
+    # Refresh paths.ctx to commit the overrides
+    paths.ctx.make_local()
+
+    # Reset internal state of shared_libs
     monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())
     monkeypatch.setattr(venv, "shared_libs", shared_libs.shared_libs)
 
@@ -136,7 +139,7 @@ def pipx_local_pypiserver(request, root: Path, tmp_path_factory) -> Iterator[str
     check_test_packages_process = subprocess.run(check_test_packages_cmd, check=False, cwd=root)
     if check_test_packages_process.returncode != 0:
         raise Exception(
-            f"Directory {str(pipx_cache_dir)} does not contain all "
+            f"Directory {pipx_cache_dir!s} does not contain all "
             "package distribution files necessary to run pipx tests. Please "
             "run the following command to populate it: "
             f"{' '.join(update_test_packages_cmd)}"

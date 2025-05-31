@@ -1,13 +1,10 @@
 import fnmatch
-import os
 from pathlib import Path
 
 from helpers import run_pipx_cli, skip_if_windows
-
-
-def load_dir_from_environ(dir_name: str, default: Path) -> Path:
-    env = os.environ.get(dir_name, default)
-    return Path(os.path.expanduser(env)).resolve()
+from pipx import paths
+from pipx.commands.environment import ENVIRONMENT_VARIABLES
+from pipx.paths import get_expanded_environ
 
 
 def test_cli(pipx_temp_env, monkeypatch, capsys):
@@ -22,9 +19,8 @@ def test_cli(pipx_temp_env, monkeypatch, capsys):
     assert fnmatch.fnmatch(captured.out, "*PIPX_TRASH_DIR=*subdir/pipxhome/.trash*")
     assert fnmatch.fnmatch(captured.out, "*PIPX_VENV_CACHEDIR=*subdir/pipxhome/.cache*")
     # Checking just for the sake of completeness
-    assert "PIPX_DEFAULT_PYTHON" in captured.out
-    assert "USE_EMOJI" in captured.out
-    assert "Environment variables (set by user):" in captured.out
+    for env_var in ENVIRONMENT_VARIABLES:
+        assert env_var in captured.out
 
 
 def test_cli_with_args(monkeypatch, capsys):
@@ -37,7 +33,8 @@ def test_cli_with_args(monkeypatch, capsys):
     assert not run_pipx_cli(["environment", "--value", "PIPX_TRASH_DIR"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_VENV_CACHEDIR"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_DEFAULT_PYTHON"])
-    assert not run_pipx_cli(["environment", "--value", "USE_EMOJI"])
+    assert not run_pipx_cli(["environment", "--value", "PIPX_USE_EMOJI"])
+    assert not run_pipx_cli(["environment", "--value", "PIPX_HOME_ALLOW_SPACE"])
 
     assert run_pipx_cli(["environment", "--value", "SSS"])
     captured = capsys.readouterr()
@@ -47,20 +44,39 @@ def test_cli_with_args(monkeypatch, capsys):
 def test_resolve_user_dir_in_env_paths(monkeypatch):
     monkeypatch.setenv("TEST_DIR", "~/test")
     home = Path.home()
-    env_dir = load_dir_from_environ("TEST_DIR", Path.home())
+    env_dir = get_expanded_environ("TEST_DIR")
     assert "~" not in str(env_dir)
     assert env_dir == home / "test"
+    env_dir = get_expanded_environ("THIS_SHOULD_NOT_EXIST")
+    assert env_dir is None
 
 
-def test_resolve_user_dir_in_env_paths_env_not_set(monkeypatch):
-    home = Path.home()
-    env_dir = load_dir_from_environ("TEST_DIR", Path.home())
-    assert env_dir == home
+def test_allow_space_in_pipx_home(
+    monkeypatch,
+    capsys,
+    tmp_path,
+):
+    home_dir = Path(tmp_path) / "path with space"
+    monkeypatch.setattr(paths.ctx, "_base_home", home_dir)
+    assert not run_pipx_cli(["environment", "--value", "PIPX_HOME_ALLOW_SPACE"])
+    paths.ctx.log_warnings()
+    captured = capsys.readouterr()
+    assert "Found a space" in captured.err
+    assert "false" in captured.out
+
+    monkeypatch.setenv("PIPX_HOME_ALLOW_SPACE", "1")
+    assert not run_pipx_cli(["environment", "--value", "PIPX_HOME_ALLOW_SPACE"])
+    paths.ctx.log_warnings()
+    captured = capsys.readouterr()
+    assert "Found a space" not in captured.err
+    assert "true" in captured.out
+
+    paths.ctx.make_local()
 
 
 @skip_if_windows
 def test_cli_global(pipx_temp_env, monkeypatch, capsys):
-    assert not run_pipx_cli(["--global", "environment"])
+    assert not run_pipx_cli(["environment", "--global"])
     captured = capsys.readouterr()
     assert fnmatch.fnmatch(captured.out, "*PIPX_HOME=*global/pipxhome*")
     assert fnmatch.fnmatch(captured.out, "*PIPX_BIN_DIR=*global_otherdir/pipxbindir*")
@@ -71,5 +87,5 @@ def test_cli_global(pipx_temp_env, monkeypatch, capsys):
     assert fnmatch.fnmatch(captured.out, "*PIPX_TRASH_DIR=*global/pipxhome/.trash*")
     assert fnmatch.fnmatch(captured.out, "*PIPX_VENV_CACHEDIR=*global/pipxhome/.cache*")
     # Checking just for the sake of completeness
-    assert "PIPX_DEFAULT_PYTHON" in captured.out
-    assert "USE_EMOJI" in captured.out
+    for env_var in ENVIRONMENT_VARIABLES:
+        assert env_var in captured.out

@@ -1,6 +1,6 @@
 import time
 
-import pytest  # type: ignore
+import pytest  # type: ignore[import-not-found]
 
 import pipx.animate
 from pipx.animate import (
@@ -45,8 +45,8 @@ def check_animate_output(
     print(f"chars_to_test: {chars_to_test}")
     for i in range(0, chars_to_test, 40):
         i_end = min(i + 40, chars_to_test)
-        print(f"expected_string[{i}:{i_end}]: {repr(expected_string[i:i_end])}")
-        print(f"captured.err[{i}:{i_end}]   : {repr(captured.err[i:i_end])}")
+        print(f"expected_string[{i}:{i_end}]: {expected_string[i:i_end]!r}")
+        print(f"captured.err[{i}:{i_end}]   : {captured.err[i:i_end]!r}")
 
     assert captured.err[:chars_to_test] == expected_string[:chars_to_test]
 
@@ -66,7 +66,7 @@ def test_delay_suppresses_output(capsys, monkeypatch):
 @pytest.mark.parametrize(
     "env_columns,expected_frame_message",
     [
-        (45, f"{TEST_STRING_40_CHAR:.{45-6}}..."),
+        (45, f"{TEST_STRING_40_CHAR:.{45 - 6}}..."),
         (46, f"{TEST_STRING_40_CHAR}"),
         (47, f"{TEST_STRING_40_CHAR}"),
     ],
@@ -87,7 +87,7 @@ def test_line_lengths_emoji(capsys, monkeypatch, env_columns, expected_frame_mes
 @pytest.mark.parametrize(
     "env_columns,expected_frame_message",
     [
-        (43, f"{TEST_STRING_40_CHAR:.{43-4}}"),
+        (43, f"{TEST_STRING_40_CHAR:.{43 - 4}}"),
         (44, f"{TEST_STRING_40_CHAR}"),
         (45, f"{TEST_STRING_40_CHAR}"),
     ],

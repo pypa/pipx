@@ -7,12 +7,12 @@ import string
 import subprocess
 import sys
 import textwrap
+from dataclasses import dataclass
 from pathlib import Path
 from typing import (
     Any,
     Dict,
     List,
-    NamedTuple,
     NoReturn,
     Optional,
     Pattern,
@@ -36,7 +36,8 @@ class PipxError(Exception):
             super().__init__(message)
 
 
-class RelevantSearch(NamedTuple):
+@dataclass(frozen=True)
+class RelevantSearch:
     pattern: Pattern[str]
     category: str
 
@@ -185,7 +186,7 @@ def run_subprocess(
         stdout=subprocess.PIPE if capture_stdout else None,
         stderr=subprocess.PIPE if capture_stderr else None,
         encoding="utf-8",
-        universal_newlines=True,
+        text=True,
         check=False,
         cwd=run_dir,
     )
@@ -333,7 +334,7 @@ def subprocess_post_check_handle_pip_error(
         if paths.ctx.log_file is None:
             raise PipxError("Pipx internal error: No log_file present.")
         pip_error_file = paths.ctx.log_file.parent / (paths.ctx.log_file.stem + "_pip_errors.log")
-        with pip_error_file.open("w", encoding="utf-8") as pip_error_fh:
+        with pip_error_file.open("a", encoding="utf-8") as pip_error_fh:
             print("PIP STDOUT", file=pip_error_fh)
             print("----------", file=pip_error_fh)
             if completed_process.stdout is not None:
@@ -343,7 +344,7 @@ def subprocess_post_check_handle_pip_error(
             if completed_process.stderr is not None:
                 print(completed_process.stderr, file=pip_error_fh, end="")
 
-        logger.error("Fatal error from pip prevented installation. Full pip output in file:\n" f"    {pip_error_file}")
+        logger.error(f"Fatal error from pip prevented installation. Full pip output in file:\n    {pip_error_file}")
 
         analyze_pip_output(completed_process.stdout, completed_process.stderr)
 
@@ -381,7 +382,7 @@ def exec_app(
                 stdout=None,
                 stderr=None,
                 encoding="utf-8",
-                universal_newlines=True,
+                text=True,
                 check=False,
             ).returncode
         )
@@ -424,9 +425,4 @@ def pipx_wrap(text: str, subsequent_indent: str = "", keep_newlines: bool = Fals
 
 
 def is_paths_relative(path: Path, parent: Path):
-    # Can be replaced with path.is_relative_to() if support for python3.8 is dropped
-    try:
-        path.resolve().relative_to(parent.resolve())
-        return True
-    except ValueError:
-        return False
+    return path.is_relative_to(parent)
