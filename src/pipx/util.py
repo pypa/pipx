@@ -196,13 +196,6 @@ def run_subprocess(
         cwd=run_dir,
     ) as process:
         try:
-            importlib.util.find_spec("msvcrt")
-        except ModuleNotFoundError:
-            _mswindows = False
-        else:
-            _mswindows = True
-
-        try:
             stdout, stderr = "", ""
             while True:
                 out = process.stdout.readline() if process.stdout is not None else None
@@ -211,14 +204,19 @@ def run_subprocess(
                     stdout += out
                     if stream is not None:
                         stream.put_nowait(out)
+                if err:
+                    stderr += err
                 if not out and not err:
                     break
-        except TimeoutExpired:
+        except TimeoutExpired as exc:
             process.kill()
-            if _mswindows:
-                process.communicate()
-            else:
+            try:
+                importlib.util.find_spec("msvcrt")
+            except ModuleNotFoundError:
                 process.wait()
+            else:
+                communication_result = process.communicate()
+                exc.stdout, exc.stderr = bytes(communication_result[0], "utf-8"), bytes(communication_result[1], "utf-8")
             raise
         except:
             process.kill()
@@ -227,6 +225,9 @@ def run_subprocess(
 
     if type(retcode) is int:
         completed_process = subprocess.CompletedProcess(process.args, retcode, stdout, stderr)
+    else:
+        completed_process = subprocess.CompletedProcess(process.args, 0, stdout, stderr)
+
 
     if capture_stdout and log_stdout:
         logger.debug(f"stdout: {completed_process.stdout}".rstrip())
