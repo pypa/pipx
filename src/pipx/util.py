@@ -11,7 +11,6 @@ import textwrap
 from dataclasses import dataclass
 from multiprocessing import Queue
 from pathlib import Path
-from subprocess import TimeoutExpired
 from typing import (
     Any,
     Dict,
@@ -208,11 +207,9 @@ def run_subprocess(
                     stderr += err
                 if not out and not err:
                     break
-        except TimeoutExpired as exc:
+        except subprocess.TimeoutExpired as exc:
             process.kill()
-            try:
-                importlib.util.find_spec("msvcrt")
-            except ModuleNotFoundError:
+            if importlib.util.find_spec("msvcrt") is None:
                 process.wait()
             else:
                 communication_result = process.communicate()
