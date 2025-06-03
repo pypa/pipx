@@ -228,7 +228,6 @@ def run_subprocess(
     else:
         completed_process = subprocess.CompletedProcess(process.args, 0, stdout, stderr)
 
-
     if capture_stdout and log_stdout:
         logger.debug(f"stdout: {completed_process.stdout}".rstrip())
     if capture_stderr and log_stderr:
