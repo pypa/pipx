@@ -83,9 +83,9 @@ def print_animation(
 ) -> None:
     (term_cols, _) = shutil.get_terminal_size(fallback=(9999, 24))
     event.wait(delay)
+    last_received_stream = ""
     while not event.wait(0):
         for s in symbols:
-            last_received_stream = ""
             if stream is not None and not stream.empty():
                 last_received_stream = f": {stream.get_nowait().strip()}"
             if animate_at_beginning_of_line:
