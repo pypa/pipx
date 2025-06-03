@@ -1,3 +1,4 @@
+import importlib
 import logging
 import os
 import random
@@ -10,6 +11,7 @@ import textwrap
 from dataclasses import dataclass
 from multiprocessing import Queue
 from pathlib import Path
+from subprocess import TimeoutExpired
 from typing import (
     Any,
     Dict,
@@ -166,7 +168,7 @@ def run_subprocess(
     log_stdout: bool = True,
     log_stderr: bool = True,
     run_dir: Optional[str] = None,
-    stream: Queue = None,
+    stream: Optional[Queue] = None,
 ) -> "subprocess.CompletedProcess[str]":
     """Run arbitrary command as subprocess, capturing stderr and stout"""
     env = dict(os.environ)
@@ -194,6 +196,13 @@ def run_subprocess(
         cwd=run_dir,
     ) as process:
         try:
+            importlib.util.find_spec("msvcrt")
+        except ModuleNotFoundError:
+            _mswindows = False
+        else:
+            _mswindows = True
+
+        try:
             stdout, stderr = "", ""
             while True:
                 out = process.stdout.readline() if process.stdout is not None else None
@@ -204,10 +213,10 @@ def run_subprocess(
                         stream.put_nowait(out)
                 if not out and not err:
                     break
-        except subprocess.TimeoutExpired as exc:
+        except TimeoutExpired:
             process.kill()
-            if process._mswindows:
-                exc.stdout, exc.stderr = process.communicate()
+            if _mswindows:
+                process.communicate()
             else:
                 process.wait()
             raise
@@ -216,7 +225,8 @@ def run_subprocess(
             raise
         retcode = process.poll()
 
-    completed_process = subprocess.CompletedProcess(process.args, retcode, stdout, stderr)
+    if type(retcode) is int:
+        completed_process = subprocess.CompletedProcess(process.args, retcode, stdout, stderr)
 
     if capture_stdout and log_stdout:
         logger.debug(f"stdout: {completed_process.stdout}".rstrip())

@@ -3,7 +3,7 @@ import sys
 from contextlib import contextmanager
 from multiprocessing import Queue
 from threading import Event, Thread
-from typing import Generator, List
+from typing import Generator, List, Optional
 
 from pipx.constants import WINDOWS
 from pipx.emojis import EMOJI_SUPPORT
@@ -31,7 +31,9 @@ def _env_supports_animation() -> bool:
 
 
 @contextmanager
-def animate(message: str, do_animation: bool, *, delay: float = 0, stream: Queue = None) -> Generator[None, None, None]:
+def animate(
+    message: str, do_animation: bool, *, delay: float = 0, stream: Optional[Queue] = None
+) -> Generator[None, None, None]:
     if not do_animation or not _env_supports_animation():
         # No animation, just a single print of message
         sys.stderr.write(f"{message}...\n")
