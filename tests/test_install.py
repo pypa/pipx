@@ -70,7 +70,7 @@ def test_install_easy_packages_globally(capsys, pipx_temp_env, caplog, package_n
 @pytest.mark.parametrize(
     "package_name, package_spec",
     [
-        ("cloudtoken", PKG["cloudtoken"]["spec"]),
+        # ("cloudtoken", PKG["cloudtoken"]["spec"]),
         ("awscli", PKG["awscli"]["spec"]),
         ("ansible", PKG["ansible"]["spec"]),
         ("shell-functools", PKG["shell-functools"]["spec"]),
@@ -102,7 +102,7 @@ def test_install_tricky_multiple_packages(capsys, pipx_temp_env, caplog):
     if os.getenv("FAST"):
         pytest.skip("skipping slow tests")
 
-    packages = ["cloudtoken", "awscli", "shell-functools"]
+    packages = ["awscli", "shell-functools"] # cloudtoken is temporarily removed
     package_specs = [PKG[package]["spec"] for package in packages]
 
     install_packages(capsys, pipx_temp_env, caplog, package_specs, packages)

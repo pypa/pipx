@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  default-python: "3.12"
+  default-python: "3.13"
   minimum-supported-python: "3.9"
 
 jobs:
@@ -23,12 +23,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.12", "3.11", "3.10", "3.9"]
+        python-version: ["3.13", "3.12", "3.11", "3.10", "3.9"]
         include:
           - os: windows-latest
-            python-version: "3.12"
+            python-version: "3.13"
           - os: macos-latest
-            python-version: "3.12"
+            python-version: "3.13"
 
     steps:
       - uses: actions/checkout@v4
