@@ -33,7 +33,7 @@ cffi==1.17.1
 chardet==5.2.0
 charset_normalizer==3.4.2
 click==8.2.1
-cmarkgfm==2024.1.14
+cmarkgfm==2024.11.20
 colorama==0.4.3
 colorama==0.4.6
 colorlog==6.9.0
