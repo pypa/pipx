@@ -161,6 +161,10 @@ def test_include_deps(pipx_temp_env, capsys):
         ("tox-ini-fmt", PKG["tox-ini-fmt"]["spec"]),
     ],
 )
+@pytest.mark.skipif(
+    sys.platform == "darwin" and package_name == "zest-releaser",
+    reason="Skipping zest-releaser due to missing Python 3.13 wheel for cmarkgfm on macOS"
+)
 def test_name_tricky_characters(caplog, capsys, pipx_temp_env, package_name, package_spec):
     install_packages(capsys, pipx_temp_env, caplog, [package_spec], [package_name])
 
