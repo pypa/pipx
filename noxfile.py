@@ -5,8 +5,8 @@ from pathlib import Path
 
 import nox
 
-PYTHON_ALL_VERSIONS = ["3.12", "3.11", "3.10", "3.9", "3.8"]
-PYTHON_DEFAULT_VERSION = "3.12"
+PYTHON_ALL_VERSIONS = ["3.13", "3.12", "3.11", "3.10", "3.9"]
+PYTHON_DEFAULT_VERSION = "3.13"
 DOC_DEPENDENCIES = [
     "jinja2",
     "mkdocs",

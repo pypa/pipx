@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  default-python: "3.12"
+  default-python: "3.13"
   minimum-supported-python: "3.9"
 
 jobs:

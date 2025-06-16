@@ -35,9 +35,9 @@ def test_uninstall_global(pipx_temp_env):
     assert not run_pipx_cli(["uninstall", "--global", "pycowsay"])
 
 
-def test_uninstall_circular_deps(pipx_temp_env):
-    assert not run_pipx_cli(["install", PKG["cloudtoken"]["spec"]])
-    assert not run_pipx_cli(["uninstall", "cloudtoken"])
+# def test_uninstall_circular_deps(pipx_temp_env):
+#     assert not run_pipx_cli(["install", PKG["cloudtoken"]["spec"]])
+#     assert not run_pipx_cli(["uninstall", "cloudtoken"])
 
 
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)

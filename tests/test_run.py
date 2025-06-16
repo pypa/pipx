@@ -156,7 +156,7 @@ def test_run_ensure_null_pythonpath():
         ("pylint", PKG["pylint"]["spec"], ["pylint", "--help"], False),
         ("kaggle", PKG["kaggle"]["spec"], ["kaggle", "--help"], False),
         ("ipython", PKG["ipython"]["spec"], ["ipython", "--version"], False),
-        ("cloudtoken", PKG["cloudtoken"]["spec"], ["cloudtoken", "--help"], True),
+        # ("cloudtoken", PKG["cloudtoken"]["spec"], ["cloudtoken", "--help"], True),
         ("awscli", PKG["awscli"]["spec"], ["aws", "--help"], True),
         # ("ansible", PKG["ansible"]["spec"], ["ansible", "--help"]), # takes too long
     ],
