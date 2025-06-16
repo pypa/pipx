@@ -33,7 +33,7 @@ cffi==1.17.1
 chardet==5.2.0
 charset_normalizer==3.4.2
 click==8.2.1
-cmarkgfm==2024.11.20
+cmarkgfm==2024.1.14
 colorama==0.4.3
 colorama==0.4.6
 colorlog==6.9.0
@@ -145,7 +145,7 @@ pyzmq==27.0.0
 qtconsole==5.6.1
 readme_renderer==44.0
 referencing==0.36.2
-requests==2.32.4
+requests==2.31.0
 requests_toolbelt==1.0.0
 resolvelib==0.8.1
 rfc3339_validator==0.1.4
