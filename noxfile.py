@@ -20,7 +20,7 @@ MAN_DEPENDENCIES = ["argparse-manpage[setuptools]"]
 TEST_DEPENDENCIES = ["pytest", "pypiserver[passlib]", 'setuptools; python_version>="3.12"', "pytest-cov"]
 # Packages whose dependencies need an intact system PATH to compile
 # pytest setup clears PATH.  So pre-build some wheels to the pip cache.
-PREBUILD_PACKAGES = {"all": ["jupyter==1.0.0"], "macos": ["cmarkgfm==2024.11.20"], "unix": [], "win": []}
+PREBUILD_PACKAGES = {"all": ["jupyter==1.0.0"], "macos": [], "unix": [], "win": []}
 PIPX_TESTS_CACHE_DIR = Path("./.pipx_tests/package_cache")
 PIPX_TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
 
