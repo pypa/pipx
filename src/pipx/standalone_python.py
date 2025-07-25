@@ -11,6 +11,7 @@ import urllib.error
 from functools import partial
 from pathlib import Path
 from typing import Any, Dict, List
+from urllib.parse import unquote
 from urllib.request import urlopen
 
 from pipx import constants, paths
@@ -111,8 +112,19 @@ def _unpack(full_version, download_link, archive: Path, download_dir: Path):
             checksum = hashlib.sha256(python_zip.read()).hexdigest()
 
         # Validate checksum
-        checksum_link = download_link + ".sha256"
-        expected_checksum = urlopen(checksum_link).read().decode().rstrip("\n")
+        checksum_link = "/".join(download_link.split('/')[:-1] + ["SHA256SUMS"])
+        expected_checksums = urlopen(checksum_link).read().decode().rstrip("\n")
+        release_file = unquote(download_link.split('/')[-1])
+        
+        match = re.findall(rf"(\S+)\s+{re.escape(release_file)}" , expected_checksums, re.MULTILINE)
+        
+        if match is None or len(match) != 1:
+            raise PipxError(
+                f"Unable to retrieve checksum from python-build-standalone for python {full_version}"
+            )
+        
+        expected_checksum = match[0]
+        
         if checksum != expected_checksum:
             raise PipxError(
                 f"Checksum mismatch for python {full_version} build. Expected {expected_checksum}, got {checksum}."
