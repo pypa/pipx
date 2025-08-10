@@ -193,29 +193,58 @@ def test_run_without_requirements(caplog, pipx_temp_env, tmp_path):
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
+@pytest.mark.parametrize(
+    "script_text, expected_output",
+    [
+        pytest.param(
+            """
+            # /// script
+            # dependencies = []
+            # ///
+            from pathlib import Path
+            Path({out!r}).write_text("explicit-empty")
+            """,
+            "explicit-empty",
+            id="explicit-empty-dependencies",
+        ),
+        pytest.param(
+            """
+            # /// script
+            # ///
+            from pathlib import Path
+            Path({out!r}).write_text("implicit-empty")
+            """,
+            "implicit-empty",
+            id="implicit-empty-dependencies",
+        ),
+        pytest.param(
+            """
+            # /// script
+            # dependencies = ["requests==2.31.0"]
+            # ///
+
+            # Check requests can be imported
+            import requests
+            # Check dependencies of requests can be imported
+            import certifi
+            # Check the installed version
+            from pathlib import Path
+            Path({out!r}).write_text(requests.__version__)
+            """,
+            "2.31.0",
+            id="non-empty-dependencies",
+        ),
+    ],
+)
+def test_run_with_requirements(script_text, expected_output, caplog, pipx_temp_env, tmp_path):
     script = tmp_path / "test.py"
     out = tmp_path / "output.txt"
     script.write_text(
-        textwrap.dedent(
-            f"""
-                # /// script
-                # dependencies = ["requests==2.31.0"]
-                # ///
-
-                # Check requests can be imported
-                import requests
-                # Check dependencies of requests can be imported
-                import certifi
-                # Check the installed version
-                from pathlib import Path
-                Path({str(out)!r}).write_text(requests.__version__)
-            """
-        ).strip(),
+        textwrap.dedent(script_text.format(out=str(out))).strip(),
         encoding="utf-8",
     )
     run_pipx_cli_exit(["run", script.as_uri()])
-    assert out.read_text() == "2.31.0"
+    assert out.read_text() == expected_output
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
