@@ -24,7 +24,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout ${{ github.ref }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Set up Python ${{ env.default-python }}
         uses: actions/setup-python@v5
         with:
