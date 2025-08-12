@@ -15,7 +15,7 @@ jobs:
         python-version: ["3.12", "3.11", "3.10", "3.9"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Get report artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           pattern: reports-raw-*
           merge-multiple: true
