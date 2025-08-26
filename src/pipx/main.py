@@ -26,9 +26,12 @@ from pipx.commands.environment import ENVIRONMENT_VARIABLES
 from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND,
+    FETCH_PYTHON,
     MINIMUM_PYTHON_VERSION,
     WINDOWS,
     ExitCode,
+    FetchPythonOptions,
+    _validate_fetch_python,
 )
 from pipx.emojis import hazard
 from pipx.interpreter import (
@@ -247,11 +250,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
 
     if "python" in args:
         python_flag_passed = bool(args.python)
-        fetch_missing_python = args.fetch_missing_python
         try:
-            interpreter = find_python_interpreter(
-                args.python or DEFAULT_PYTHON, fetch_missing_python=fetch_missing_python
-            )
+            interpreter = find_python_interpreter(args.python or DEFAULT_PYTHON, args.fetch_python)
             args.python = interpreter
         except InterpreterResolutionError as e:
             logger.debug("Failed to resolve interpreter:", exc_info=True)
@@ -459,12 +459,23 @@ def add_python_options(parser: argparse.ArgumentParser) -> None:
             f"or the full path to the executable. Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )
-    parser.add_argument(
-        "--fetch-missing-python",
-        action="store_true",
+    fetch_python_group = parser.add_mutually_exclusive_group()
+    fetch_python_group.add_argument(
+        "--fetch-python",
+        type=FetchPythonOptions,
+        choices=list(FetchPythonOptions),
+        default=FETCH_PYTHON,
         help=(
-            "Whether to fetch a standalone python build from GitHub if the specified python version is not found locally on the system."
+            f"Whether to fetch a standalone python build from GitHub. If set to {FetchPythonOptions.MISSING}, "
+            "only downloads if the specified python version is not found locally on the system."
+            "Defaults to value of the PIPX_FETCH_PYTHON environment variable."
         ),
+    )
+    fetch_python_group.add_argument(
+        "--fetch-missing-python",
+        action="store_const",
+        const=FetchPythonOptions.MISSING,
+        help="Deprecated: Alias for --fetch-python=missing",
     )
 
 
@@ -1170,6 +1181,7 @@ def cli() -> ExitCode:
     """Entry point from command line"""
     try:
         hide_cursor()
+        _validate_fetch_python()
         parser, subparsers = get_command_parser()
         argcomplete.autocomplete(parser)
         parsed_pipx_args = parser.parse_args()

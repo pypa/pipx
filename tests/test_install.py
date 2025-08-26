@@ -425,7 +425,7 @@ def test_passed_python_and_force_flag_warning(pipx_temp_env, capsys):
     ["3.0", "3.1"],
 )
 def test_install_fetch_missing_python_invalid(capsys, python_version):
-    assert run_pipx_cli(["install", "--python", python_version, "--fetch-missing-python", "pycowsay"])
+    assert run_pipx_cli(["install", "--python", python_version, "--fetch-python=missing", "pycowsay"])
     captured = capsys.readouterr()
     assert f"No executable for the provided Python version '{python_version}' found" in captured.out
 
