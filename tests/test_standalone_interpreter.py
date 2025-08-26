@@ -35,7 +35,7 @@ def test_list_used_standalone_interpreters(pipx_temp_env, monkeypatch, mocked_gi
     assert not run_pipx_cli(
         [
             "install",
-            "--fetch-missing-python",
+            "--fetch-python=missing",
             "--python",
             TARGET_PYTHON_VERSION,
             PKG["pycowsay"]["spec"],
@@ -56,7 +56,7 @@ def test_list_unused_standalone_interpreters(pipx_temp_env, monkeypatch, mocked_
     assert not run_pipx_cli(
         [
             "install",
-            "--fetch-missing-python",
+            "--fetch-python=missing",
             "--python",
             TARGET_PYTHON_VERSION,
             PKG["pycowsay"]["spec"],
@@ -79,7 +79,7 @@ def test_prune_unused_standalone_interpreters(pipx_temp_env, monkeypatch, mocked
     assert not run_pipx_cli(
         [
             "install",
-            "--fetch-missing-python",
+            "--fetch-python=missing",
             "--python",
             TARGET_PYTHON_VERSION,
             PKG["pycowsay"]["spec"],
@@ -119,7 +119,7 @@ def test_upgrade_standalone_interpreter(pipx_temp_env, root, monkeypatch, capsys
     assert not run_pipx_cli(
         [
             "install",
-            "--fetch-missing-python",
+            "--fetch-python=missing",
             "--python",
             TARGET_PYTHON_VERSION,
             PKG["pycowsay"]["spec"],

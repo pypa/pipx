@@ -1,14 +1,62 @@
+import enum
 import os
 import platform
+import sys
 import sysconfig
 from textwrap import dedent
 from typing import NewType
+
+
+# enum.StrEnum is Python 3.11+; pipx supports 3.10.
+class FetchPythonOptions(str, enum.Enum):
+    ALWAYS = "always"
+    MISSING = "missing"
+    NEVER = "never"
+
+    def __str__(self) -> str:
+        return self.value
+
 
 PIPX_SHARED_PTH = "pipx_shared.pth"
 TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 14
 MINIMUM_PYTHON_VERSION = "3.10"
 MAN_SECTIONS = [f"man{i}" for i in range(1, 10)]
-FETCH_MISSING_PYTHON = os.environ.get("PIPX_FETCH_MISSING_PYTHON", False)
+
+
+def _env_truthy(name: str) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return False
+    return raw.strip().lower() not in ("", "0", "false", "no", "off")
+
+
+FETCH_MISSING_PYTHON = _env_truthy("PIPX_FETCH_MISSING_PYTHON")
+
+_FETCH_PYTHON_VALID = True
+try:
+    FETCH_PYTHON = FetchPythonOptions(
+        os.environ.get("PIPX_FETCH_PYTHON") or (FetchPythonOptions.MISSING if FETCH_MISSING_PYTHON else FetchPythonOptions.NEVER)
+    )
+except ValueError:
+    FETCH_PYTHON = FetchPythonOptions.NEVER
+    _FETCH_PYTHON_VALID = False
+
+
+def validate_fetch_python() -> None:
+    from pipx.emojis import hazard
+    from pipx.util import PipxError
+
+    if not _FETCH_PYTHON_VALID:
+        valid = ", ".join(str(option) for option in FetchPythonOptions)
+        raise PipxError(f"PIPX_FETCH_PYTHON must be unset or one of: {valid}.")
+    if "PIPX_FETCH_MISSING_PYTHON" in os.environ:
+        if "PIPX_FETCH_PYTHON" in os.environ:
+            raise PipxError("Setting both PIPX_FETCH_MISSING_PYTHON and PIPX_FETCH_PYTHON is invalid.")
+        print(
+            f"{hazard} PIPX_FETCH_MISSING_PYTHON is deprecated; "
+            f'use PIPX_FETCH_PYTHON="{FetchPythonOptions.MISSING}" instead.',
+            file=sys.stderr,
+        )
 
 
 ExitCode = NewType("ExitCode", int)

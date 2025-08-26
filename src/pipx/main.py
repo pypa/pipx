@@ -28,9 +28,12 @@ from pipx.commands.environment import ENVIRONMENT_VALUE_CHOICES, ENVIRONMENT_VAR
 from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND,
+    FETCH_PYTHON,
     MINIMUM_PYTHON_VERSION,
     WINDOWS,
     ExitCode,
+    FetchPythonOptions,
+    validate_fetch_python,
 )
 from pipx.emojis import hazard
 from pipx.interpreter import (
@@ -246,9 +249,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
     if "python" in args:
         python_flag_passed = bool(args.python)
         try:
-            python = find_python_interpreter(
-                args.python or DEFAULT_PYTHON, fetch_missing_python=args.fetch_missing_python
-            )
+            python = find_python_interpreter(args.python or DEFAULT_PYTHON, fetch_python=args.fetch_python)
         except InterpreterResolutionError as e:
             logger.debug("Failed to resolve interpreter:", exc_info=True)
             print(pipx_wrap(f"{hazard} {e}", subsequent_indent=" " * 4))
@@ -302,6 +303,24 @@ def add_include_dependencies(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--include-deps", help="Include apps of dependent packages", action="store_true")
 
 
+class _DeprecatedFetchMissingPython(argparse.Action):
+    def __init__(self, option_strings: list[str], dest: str, **kwargs: Any) -> None:
+        super().__init__(option_strings, dest, nargs=0, **kwargs)
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: Any,
+        option_string: str | None = None,
+    ) -> None:
+        print(
+            f"{hazard} {option_string} is deprecated; use --fetch-python={FetchPythonOptions.MISSING} instead.",
+            file=sys.stderr,
+        )
+        setattr(namespace, self.dest, FetchPythonOptions.MISSING)
+
+
 def add_python_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--python",
@@ -311,12 +330,23 @@ def add_python_options(parser: argparse.ArgumentParser) -> None:
             f"or the full path to the executable. Requires Python {MINIMUM_PYTHON_VERSION} or above."
         ),
     )
-    parser.add_argument(
-        "--fetch-missing-python",
-        action="store_true",
+    fetch_python_group = parser.add_mutually_exclusive_group()
+    fetch_python_group.add_argument(
+        "--fetch-python",
+        type=FetchPythonOptions,
+        choices=list(FetchPythonOptions),
+        default=FETCH_PYTHON,
         help=(
-            "Whether to fetch a standalone python build from GitHub if the specified python version is not found locally on the system."
+            f"Whether to fetch a standalone python build from GitHub. If set to {FetchPythonOptions.MISSING}, "
+            "only downloads if the specified python version is not found locally on the system. "
+            "Defaults to value of the PIPX_FETCH_PYTHON environment variable."
         ),
+    )
+    fetch_python_group.add_argument(
+        "--fetch-missing-python",
+        dest="fetch_python",
+        action=_DeprecatedFetchMissingPython,
+        help="Deprecated: alias for --fetch-python=missing.",
     )
 
 
@@ -1275,6 +1305,7 @@ def cli() -> ExitCode:
         parser, _ = get_command_parser()
         argcomplete.autocomplete(parser, always_complete_options=False)
         parsed_pipx_args = parser.parse_args(normalize_help_command(sys.argv[1:]))
+        validate_fetch_python()
         setup(parsed_pipx_args)
         check_args(parsed_pipx_args)
         if not parsed_pipx_args.command:
