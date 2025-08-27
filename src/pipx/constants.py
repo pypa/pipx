@@ -6,10 +6,14 @@ from textwrap import dedent
 from typing import NewType
 
 
-class FetchPythonOptions(enum.StrEnum):
-    ALWAYS = enum.auto()
-    MISSING = enum.auto()
-    NEVER = enum.auto()
+# XXX: Python 3.11 StrEnum + enum.auto()
+class FetchPythonOptions(str, enum.Enum):
+    ALWAYS = "always"
+    MISSING = "missing"
+    NEVER = "never"
+
+    def __str__(self):
+        return self.value
 
 
 PIPX_SHARED_PTH = "pipx_shared.pth"
