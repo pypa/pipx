@@ -443,3 +443,24 @@ def test_run_local_path_entry_point(pipx_temp_env, caplog, root):
     run_pipx_cli_exit(["run", empty_project_path])
 
     assert "Using discovered entry point for 'pipx run'" in caplog.text
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with(capsys):
+    run_pipx_cli_exit(["run", "--with", "black", "pycowsay", "--help"])
+    captured = capsys.readouterr()
+    assert "injected package black into venv pycowsay" in captured.out
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_cache(capsys, caplog):
+    # Maybe there's a better way to remove the previous venv cache?
+    run_pipx_cli_exit(["run", "--no-cache", "pycowsay", "cowsay", "args"])
+    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"], assert_exit=0)
+
+    caplog.set_level(logging.DEBUG)
+    caplog.clear()
+    run_pipx_cli_exit(["run", "--verbose", "--with", "black", "pycowsay", "args"], assert_exit=0)
+    captured = capsys.readouterr()
+    assert "Reusing cached venv" in caplog.text
+    assert "injected package black into venv pycowsay" in captured.out

@@ -267,6 +267,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         commands.run(
             args.app_with_args[0],
             args.spec,
+            args.with_,
             args.path,
             args.app_with_args[1:],
             args.python,
@@ -844,6 +845,13 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
         "--pypackages",
         action="store_true",
         help="Require app to be run from local __pypackages__ directory",
+    )
+    p.add_argument(
+        "--with",
+        dest="with_",
+        action="append",
+        default=[],
+        help="Extra dependencies to add to the temporary environment",
     )
     p.add_argument("--spec", help=SPEC_HELP)
     add_python_options(p)
