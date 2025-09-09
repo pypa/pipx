@@ -310,7 +310,6 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     elif args.command == "inject":
         return commands.inject(
             venv_dir,
-            None,
             args.dependencies,
             args.requirements,
             pip_args,
