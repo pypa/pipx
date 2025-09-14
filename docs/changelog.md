@@ -9,6 +9,27 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 <!-- towncrier release notes start -->
 
+## [1.8.0](https://github.com/pypa/pipx/tree/1.8.0) - 2025-09-14
+
+### Features
+
+- Rename environmental variable `USE_EMOJI` to `PIPX_USE_EMOJI`. ([#1395](https://github.com/pypa/pipx/issues/1395))
+- Add `--all-shells` flag to `pipx ensurepath`. ([#1585](https://github.com/pypa/pipx/issues/1585))
+
+### Bugfixes
+
+- On Windows, no longer overwrite existing files on upgrade if source and destination are the same ([#683](https://github.com/pypa/pipx/issues/683))
+- Update the logic of finding python interpreter such that `--fetch-missing-python` works on Windows ([#1521](https://github.com/pypa/pipx/issues/1521))
+- Fix no message displayed when no packages are upgraded with `upgrade-all`. ([#1565](https://github.com/pypa/pipx/issues/1565))
+- Fix incorrect order of flags when using `pipx upgrade`. ([#1610](https://github.com/pypa/pipx/issues/1610))
+- Update the archive name of build of Python for Windows ([#1630](https://github.com/pypa/pipx/issues/1630))
+- Fix running a script with explicitly empty ``dependencies = []``. ([#1658](https://github.com/pypa/pipx/issues/1658))
+
+### Improved Documentation
+
+- Fix `/changelog/` and `/contributing/` docs URLs ([#1540](https://github.com/pypa/pipx/issues/1540))
+
+
 ## [1.7.1](https://github.com/pypa/pipx/tree/1.7.1) - 2024-08-23
 
 ### Bugfixes
