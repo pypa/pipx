@@ -112,7 +112,7 @@ def test_prune_unused_standalone_interpreters(pipx_temp_env, monkeypatch, mocked
 def test_upgrade_standalone_interpreter(pipx_temp_env, root, monkeypatch, capsys):
     monkeypatch.setattr(shutil, "which", mock_which)
 
-    with open(root / "testdata" / "standalone_python_index_20250317.json") as f:
+    with open(root / "testdata" / "standalone_python_index_20250818.json") as f:
         new_index = json.load(f)
     monkeypatch.setattr(standalone_python, "get_or_update_index", lambda _: new_index)
 
@@ -126,7 +126,7 @@ def test_upgrade_standalone_interpreter(pipx_temp_env, root, monkeypatch, capsys
         ]
     )
 
-    with open(root / "testdata" / "standalone_python_index_20250409.json") as f:
+    with open(root / "testdata" / "standalone_python_index_20250828.json") as f:
         new_index = json.load(f)
     monkeypatch.setattr(standalone_python, "get_or_update_index", lambda _: new_index)
 
