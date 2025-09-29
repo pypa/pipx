@@ -397,6 +397,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             python=args.python,
             verbose=verbose,
             python_flag_passed=python_flag_passed,
+            unpin=args.unpin,
         )
     elif args.command == "reinstall-all":
         return commands.reinstall_all(
@@ -731,6 +732,7 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
         parents=[shared_parser],
     )
     p.add_argument("package").completer = venv_completer
+    p.add_argument("--unpin", action="store_true", help="Unpin and reinstall the package if it is pinned.")
     add_python_options(p)
 
 

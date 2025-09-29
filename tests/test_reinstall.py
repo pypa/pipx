@@ -68,3 +68,15 @@ def test_reinstall_with_path(pipx_temp_env, capsys, tmp_path):
     captured = capsys.readouterr()
 
     assert "Expected the name of an installed package" in captured.err.replace("\n", " ")
+
+
+def test_reinstall_pinned_package(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "black"])
+    assert not run_pipx_cli(["pin", "black"])
+    assert run_pipx_cli(["reinstall", "black"])
+    captured = capsys.readouterr()
+    assert "Pass --unpin to unpin" in captured.err
+
+    assert not run_pipx_cli(["reinstall", "--unpin", "black"])
+    captured = capsys.readouterr()
+    assert "installed package black" in captured.out
