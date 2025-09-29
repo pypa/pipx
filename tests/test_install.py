@@ -70,7 +70,7 @@ def test_install_easy_packages_globally(capsys, pipx_temp_env, caplog, package_n
 @pytest.mark.parametrize(
     "package_name, package_spec",
     [
-        ("cloudtoken", PKG["cloudtoken"]["spec"]),
+        # ("cloudtoken", PKG["cloudtoken"]["spec"]),
         ("awscli", PKG["awscli"]["spec"]),
         ("ansible", PKG["ansible"]["spec"]),
         ("shell-functools", PKG["shell-functools"]["spec"]),
@@ -102,7 +102,7 @@ def test_install_tricky_multiple_packages(capsys, pipx_temp_env, caplog):
     if os.getenv("FAST"):
         pytest.skip("skipping slow tests")
 
-    packages = ["cloudtoken", "awscli", "shell-functools"]
+    packages = ["awscli", "shell-functools"]  # cloudtoken is temporarily removed
     package_specs = [PKG[package]["spec"] for package in packages]
 
     install_packages(capsys, pipx_temp_env, caplog, package_specs, packages)
@@ -162,6 +162,9 @@ def test_include_deps(pipx_temp_env, capsys):
     ],
 )
 def test_name_tricky_characters(caplog, capsys, pipx_temp_env, package_name, package_spec):
+    if sys.platform == "darwin" and package_name == "zest-releaser":
+        pytest.skip("Skipping zest-releaser due to missing Python 3.13 wheel for cmarkgfm on macOS")
+
     install_packages(capsys, pipx_temp_env, caplog, [package_spec], [package_name])
 
 

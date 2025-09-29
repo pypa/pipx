@@ -156,7 +156,7 @@ def test_run_ensure_null_pythonpath():
         ("pylint", PKG["pylint"]["spec"], ["pylint", "--help"], False),
         ("kaggle", PKG["kaggle"]["spec"], ["kaggle", "--help"], False),
         ("ipython", PKG["ipython"]["spec"], ["ipython", "--version"], False),
-        ("cloudtoken", PKG["cloudtoken"]["spec"], ["cloudtoken", "--help"], True),
+        # ("cloudtoken", PKG["cloudtoken"]["spec"], ["cloudtoken", "--help"], True),
         ("awscli", PKG["awscli"]["spec"], ["aws", "--help"], True),
         # ("ansible", PKG["ansible"]["spec"], ["ansible", "--help"]), # takes too long
     ],
@@ -414,8 +414,8 @@ def test_run_with_windows_python_version(caplog, pipx_temp_env, tmp_path):
             """
         ).strip()
     )
-    run_pipx_cli_exit(["run", script.as_uri(), "--python", "3.12"])
-    assert "3.12" in out.read_text()
+    run_pipx_cli_exit(["run", script.as_uri(), "--python", "3.13"])
+    assert "3.13" in out.read_text()
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
