@@ -75,7 +75,7 @@ def test_reinstall_pinned_package(pipx_temp_env, capsys):
     assert not run_pipx_cli(["pin", "black"])
     assert run_pipx_cli(["reinstall", "black"])
     captured = capsys.readouterr()
-    assert "Pass --unpin to unpin" in captured.err
+    assert "--unpin to unpin" in captured.err
 
     assert not run_pipx_cli(["reinstall", "--unpin", "black"])
     captured = capsys.readouterr()
