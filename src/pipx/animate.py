@@ -1,8 +1,9 @@
 import shutil
 import sys
 from contextlib import contextmanager
+from multiprocessing import Queue
 from threading import Event, Thread
-from typing import Generator, List
+from typing import Generator, List, Optional
 
 from pipx.constants import WINDOWS
 from pipx.emojis import EMOJI_SUPPORT
@@ -30,7 +31,9 @@ def _env_supports_animation() -> bool:
 
 
 @contextmanager
-def animate(message: str, do_animation: bool, *, delay: float = 0) -> Generator[None, None, None]:
+def animate(
+    message: str, do_animation: bool, *, delay: float = 0, stream: Optional[Queue] = None
+) -> Generator[None, None, None]:
     if not do_animation or not _env_supports_animation():
         # No animation, just a single print of message
         sys.stderr.write(f"{message}...\n")
@@ -55,6 +58,7 @@ def animate(message: str, do_animation: bool, *, delay: float = 0) -> Generator[
         "delay": delay,
         "period": period,
         "animate_at_beginning_of_line": animate_at_beginning_of_line,
+        "stream": stream,
     }
 
     t = Thread(target=print_animation, kwargs=thread_kwargs)
@@ -75,19 +79,23 @@ def print_animation(
     delay: float,
     period: float,
     animate_at_beginning_of_line: bool,
+    stream: Queue,
 ) -> None:
     (term_cols, _) = shutil.get_terminal_size(fallback=(9999, 24))
     event.wait(delay)
+    last_received_stream = ""
     while not event.wait(0):
         for s in symbols:
+            if stream is not None and not stream.empty():
+                last_received_stream = f": {stream.get_nowait().strip()}"
             if animate_at_beginning_of_line:
                 max_message_len = term_cols - len(f"{s} ... ")
-                cur_line = f"{s} {message:.{max_message_len}}"
+                cur_line = f"{s} {f'{message}{last_received_stream}':.{max_message_len}}"
                 if len(message) > max_message_len:
                     cur_line += "..."
             else:
                 max_message_len = term_cols - len("... ")
-                cur_line = f"{message:.{max_message_len}}{s}"
+                cur_line = f"{f'{message}{last_received_stream}':.{max_message_len}}{s}"
 
             clear_line()
             sys.stderr.write(cur_line)

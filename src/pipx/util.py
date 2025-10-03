@@ -1,3 +1,4 @@
+import importlib
 import logging
 import os
 import random
@@ -8,6 +9,7 @@ import subprocess
 import sys
 import textwrap
 from dataclasses import dataclass
+from multiprocessing import Queue
 from pathlib import Path
 from typing import (
     Any,
@@ -165,6 +167,7 @@ def run_subprocess(
     log_stdout: bool = True,
     log_stderr: bool = True,
     run_dir: Optional[str] = None,
+    stream: Optional[Queue] = None,
 ) -> "subprocess.CompletedProcess[str]":
     """Run arbitrary command as subprocess, capturing stderr and stout"""
     env = dict(os.environ)
@@ -180,16 +183,47 @@ def run_subprocess(
 
     # TODO: Switch to using `-P` / PYTHONSAFEPATH instead of running in
     # separate directory in Python 3.11
-    completed_process = subprocess.run(
+    #   Modified version of subprocess.run
+    #   This allows us to read stdout and stderr in real time
+    with subprocess.Popen(
         cmd_str_list,
         env=env,
         stdout=subprocess.PIPE if capture_stdout else None,
-        stderr=subprocess.PIPE if capture_stderr else None,
+        stderr=subprocess.PIPE if capture_stdout else None,
         encoding="utf-8",
         text=True,
-        check=False,
         cwd=run_dir,
-    )
+    ) as process:
+        try:
+            stdout, stderr = "", ""
+            while True:
+                out = process.stdout.readline() if process.stdout is not None else None
+                err = process.stderr.readline() if process.stderr is not None else None
+                if out:
+                    stdout += out
+                    if stream is not None:
+                        stream.put_nowait(out)
+                if err:
+                    stderr += err
+                if not out and not err:
+                    break
+        except subprocess.TimeoutExpired as exc:
+            process.kill()
+            if importlib.util.find_spec("msvcrt") is None:
+                process.wait()
+            else:
+                communication_result = process.communicate()
+                exc.stdout, exc.stderr = bytes(communication_result[0], "utf-8"), bytes(communication_result[1], "utf-8")
+            raise
+        except:
+            process.kill()
+            raise
+        retcode = process.poll()
+
+    if type(retcode) is int:
+        completed_process = subprocess.CompletedProcess(process.args, retcode, stdout, stderr)
+    else:
+        completed_process = subprocess.CompletedProcess(process.args, 0, stdout, stderr)
 
     if capture_stdout and log_stdout:
         logger.debug(f"stdout: {completed_process.stdout}".rstrip())
