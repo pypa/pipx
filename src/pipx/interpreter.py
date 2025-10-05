@@ -46,7 +46,7 @@ class InterpreterResolutionError(PipxError):
                     "but both the python command and the Python Launcher were not found on PATH."
                 )
         if source == "the python-build-standalone project":
-            message += "listed in https://github.com/indygreg/python-build-standalone/releases/latest."
+            message += "listed in https://github.com/astral-sh/python-build-standalone/releases/latest."
         super().__init__(message, wrap_message)
 
 
@@ -83,7 +83,9 @@ def find_unix_command_python(python_version: str) -> Optional[str]:
     return python_path
 
 
-def find_python_interpreter(python_version: str, fetch_missing_python: bool = False) -> str:
+def find_python_interpreter(
+    python_version: str, fetch_missing_python: bool = False
+) -> str:
     if Path(python_version).is_file() or shutil.which(python_version):
         return python_version
 
@@ -98,13 +100,17 @@ def find_python_interpreter(python_version: str, fetch_missing_python: bool = Fa
             return py_executable
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         if not fetch_missing_python and not FETCH_MISSING_PYTHON:
-            raise InterpreterResolutionError(source="py launcher", version=python_version) from e
+            raise InterpreterResolutionError(
+                source="py launcher", version=python_version
+            ) from e
 
     if fetch_missing_python or FETCH_MISSING_PYTHON:
         try:
             return download_python_build_standalone(python_version)
         except PipxError as e:
-            raise InterpreterResolutionError(source="the python-build-standalone project", version=python_version) from e
+            raise InterpreterResolutionError(
+                source="the python-build-standalone project", version=python_version
+            ) from e
 
     raise InterpreterResolutionError(source="PATH", version=python_version)
 
@@ -152,7 +158,9 @@ def _find_default_windows_python() -> str:
     # Special treatment to detect Windows Store stub.
     # https://twitter.com/zooba/status/1212454929379581952
 
-    proc = subprocess.run([python, "-V"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
+    proc = subprocess.run(
+        [python, "-V"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False
+    )
     if proc.returncode != 0:
         # Cover the 9009 return code pre-emptively.
         raise PipxError("No suitable Python found")

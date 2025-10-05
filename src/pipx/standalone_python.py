@@ -43,14 +43,16 @@ MACHINE_SUFFIX: dict[str, dict[str, Any]] = {
     "Windows": {"AMD64": ["x86_64-pc-windows-msvc-install_only.tar.gz"]},
 }
 
-GITHUB_API_URL = "https://api.github.com/repos/indygreg/python-build-standalone/releases/latest"
+GITHUB_API_URL = (
+    "https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest"
+)
 PYTHON_VERSION_REGEX = re.compile(r"cpython-(\d+\.\d+\.\d+)")
 
 
 def download_python_build_standalone(python_version: str, override: bool = False):
     """When all other python executable resolutions have failed,
     attempt to download and use an appropriate python build
-    from https://github.com/indygreg/python-build-standalone
+    from https://github.com/astral-sh/python-build-standalone
     and unpack it into the pipx shared directory."""
 
     # python_version can be a bare version number like "3.9" or a "binary name" like python3.10
@@ -58,7 +60,11 @@ def download_python_build_standalone(python_version: str, override: bool = False
     python_version = re.sub(r"[c]?python", "", python_version)
 
     install_dir = paths.ctx.standalone_python_cachedir / python_version
-    installed_python = install_dir / "python.exe" if constants.WINDOWS else install_dir / "bin" / "python3"
+    installed_python = (
+        install_dir / "python.exe"
+        if constants.WINDOWS
+        else install_dir / "bin" / "python3"
+    )
 
     if override:
         if install_dir.exists():
@@ -68,7 +74,9 @@ def download_python_build_standalone(python_version: str, override: bool = False
             return str(installed_python)
 
         if install_dir.exists():
-            logger.warning(f"A previous attempt to install python {python_version} failed. Retrying.")
+            logger.warning(
+                f"A previous attempt to install python {python_version} failed. Retrying."
+            )
             shutil.rmtree(install_dir)
 
     full_version, (download_link, digest) = resolve_python_version(python_version)
@@ -104,7 +112,13 @@ def _download(full_version: str, download_link: str, archive: Path):
             raise PipxError(f"Unable to download python {full_version} build.") from e
 
 
-def _unpack(full_version, download_link, archive: Path, download_dir: Path, expected_checksum: str):
+def _unpack(
+    full_version,
+    download_link,
+    archive: Path,
+    download_dir: Path,
+    expected_checksum: str,
+):
     with animate(f"Unpacking python {full_version} build", True):
         # Calculate checksum
         with open(archive, "rb") as python_zip:
@@ -148,9 +162,14 @@ def get_latest_python_releases() -> list[tuple[str, str]]:
 
     except urllib.error.URLError as e:
         # raise
-        raise PipxError(f"Unable to fetch python-build-standalone release data (from {GITHUB_API_URL}).") from e
+        raise PipxError(
+            f"Unable to fetch python-build-standalone release data (from {GITHUB_API_URL})."
+        ) from e
 
-    return [(asset["browser_download_url"], asset["digest"]) for asset in release_data["assets"]]
+    return [
+        (asset["browser_download_url"], asset["digest"])
+        for asset in release_data["assets"]
+    ]
 
 
 def list_pythons(use_cache: bool = True) -> dict[str, tuple[str, str]]:
@@ -204,4 +223,6 @@ def resolve_python_version(requested_version: str):
         if requested_release == standalone_release[: len(requested_release)]:
             return full_version, download_link
 
-    raise PipxError(f"Unable to acquire a standalone python build matching {requested_version}.")
+    raise PipxError(
+        f"Unable to acquire a standalone python build matching {requested_version}."
+    )
