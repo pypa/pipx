@@ -104,13 +104,7 @@ def _download(full_version: str, download_link: str, archive: Path):
             raise PipxError(f"Unable to download python {full_version} build.") from e
 
 
-def _unpack(
-    full_version,
-    download_link,
-    archive: Path,
-    download_dir: Path,
-    expected_checksum: str,
-):
+def _unpack(full_version, download_link, archive: Path, download_dir: Path, expected_checksum: str):
     with animate(f"Unpacking python {full_version} build", True):
         # Calculate checksum
         with open(archive, "rb") as python_zip:
