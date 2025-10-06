@@ -46,7 +46,7 @@ class InterpreterResolutionError(PipxError):
                     "but both the python command and the Python Launcher were not found on PATH."
                 )
         if source == "the python-build-standalone project":
-            message += "listed in https://github.com/indygreg/python-build-standalone/releases/latest."
+            message += "listed in https://github.com/astral-sh/python-build-standalone/releases/latest."
         super().__init__(message, wrap_message)
 
 
