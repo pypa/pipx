@@ -367,7 +367,7 @@ class Venv:
         venv_metadata = inspect_venv(
             package_name, package_extras, self.bin_path, self.python_path, self.man_path, self.backend, self.installer
         )
-        logger.info(f"get_venv_metadata_for_package: {1e3*(time.time()-data_start):.0f}ms")
+        logger.info(f"get_venv_metadata_for_package: {1e3 * (time.time() - data_start):.0f}ms")
         return venv_metadata
 
     def update_package_metadata(
