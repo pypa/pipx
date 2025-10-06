@@ -93,7 +93,7 @@ PIPX_DESCRIPTION += pipx_wrap(
       PIPX_MAN_DIR           Overrides location of manual pages installations. Manual pages are symlinked or copied here.
       PIPX_GLOBAL_MAN_DIR    Used instead of PIPX_MAN_DIR when the `--global` option is given.
       PIPX_DEFAULT_PYTHON    Overrides default python used for commands.
-      USE_EMOJI              Overrides emoji behavior. Default value varies based on platform.
+      PIPX_USE_EMOJI         Overrides emoji behavior. Default value varies based on platform.
       PIPX_HOME_ALLOW_SPACE  Overrides default warning on spaces in the home path
     """,
     subsequent_indent=" " * 24,  # match the indent of argparse options
@@ -164,7 +164,7 @@ class InstalledVenvsCompleter:
         self.packages = [str(p.name) for p in sorted(venv_container.iter_venv_dirs())]
 
     def use(self, prefix: str, **kwargs: Any) -> List[str]:
-        return [f"{prefix}{x[len(prefix):]}" for x in self.packages if x.startswith(canonicalize_name(prefix))]
+        return [f"{prefix}{x[len(prefix) :]}" for x in self.packages if x.startswith(canonicalize_name(prefix))]
 
 
 def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
@@ -425,7 +425,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         return commands.run_pip(package, venv_dir, args.pipargs, args.verbose)
     elif args.command == "ensurepath":
         try:
-            return commands.ensure_pipx_paths(prepend=args.prepend, force=args.force)
+            return commands.ensure_pipx_paths(prepend=args.prepend, force=args.force, all_shells=args.all_shells)
         except Exception as e:
             logger.debug("Uncaught Exception:", exc_info=True)
             raise PipxError(str(e), wrap_message=False) from None
@@ -929,6 +929,11 @@ def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argpa
             "PATH already contains paths to pipx and pipx-install apps."
         ),
     )
+    p.add_argument(
+        "--all-shells",
+        action="store_true",
+        help=("Add directories to PATH in all shells instead of just the current one."),
+    )
 
 
 def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -1068,7 +1073,7 @@ def setup_log_file() -> Path:
 
 
 def setup_logging(verbose: int) -> None:
-    pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
+    pipx_str = (sys.stdout and sys.stdout.isatty() and bold(green("pipx >"))) or "pipx >"
     paths.ctx.log_file = setup_log_file()
 
     # Determine logging level, a value between 0 and 50

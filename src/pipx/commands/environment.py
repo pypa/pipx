@@ -16,7 +16,7 @@ ENVIRONMENT_VARIABLES = [
     "PIPX_SHARED_LIBS",
     "PIPX_DEFAULT_PYTHON",
     "PIPX_FETCH_MISSING_PYTHON",
-    "USE_EMOJI",
+    "PIPX_USE_EMOJI",
     "PIPX_HOME_ALLOW_SPACE",
 ]
 
@@ -34,7 +34,7 @@ def environment(value: str) -> ExitCode:
         "PIPX_VENV_CACHEDIR": paths.ctx.venv_cache,
         "PIPX_STANDALONE_PYTHON_CACHEDIR": paths.ctx.standalone_python_cachedir,
         "PIPX_DEFAULT_PYTHON": DEFAULT_PYTHON,
-        "USE_EMOJI": str(EMOJI_SUPPORT).lower(),
+        "PIPX_USE_EMOJI": str(EMOJI_SUPPORT).lower(),
         "PIPX_HOME_ALLOW_SPACE": str(paths.ctx.allow_spaces_in_home_path).lower(),
     }
     if value is None:

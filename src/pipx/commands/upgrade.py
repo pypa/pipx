@@ -258,7 +258,7 @@ def upgrade_all(
         if venv_dir.name in skip or "--editable" in venv.pipx_metadata.main_package.pip_args:
             continue
         try:
-            _upgrade_venv(
+            versions_updated = _upgrade_venv(
                 venv_dir,
                 venv.pipx_metadata.main_package.pip_args,
                 verbose=verbose,
@@ -269,11 +269,11 @@ def upgrade_all(
                 force=force,
                 python_flag_passed=python_flag_passed,
             )
+            if versions_updated > 0:
+                upgraded.append(venv_dir.name)
         except PipxError as e:
             print(e, file=sys.stderr)
             failed.append(venv_dir.name)
-        else:
-            upgraded.append(venv_dir.name)
     if len(upgraded) == 0:
         print(f"No packages upgraded after running 'pipx upgrade-all' {sleep}")
     if len(failed) > 0:

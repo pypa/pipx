@@ -20,13 +20,12 @@ license = "MIT"
 authors = [
   { name = "Chad Smith", email = "chadsmith.software@gmail.com" },
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -80,11 +79,12 @@ lint.extend-select = [
   "RSE",
   "RUF012",
   "RUF100",
-  "TCH",
+  "TC",
   "W",
 ]
 lint.ignore = [
   "PERF203",
+  "PLW1508",
 ]
 lint.isort = { known-first-party = [
   "helpers",

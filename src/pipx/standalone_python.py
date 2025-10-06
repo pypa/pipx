@@ -10,7 +10,7 @@ import tempfile
 import urllib.error
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 from urllib.request import urlopen
 
 from pipx import constants, paths
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # Much of the code in this module is adapted with extreme gratitude from
 # https://github.com/tusharsadhwani/yen/blob/main/src/yen/github.py
 
-MACHINE_SUFFIX: Dict[str, Dict[str, Any]] = {
+MACHINE_SUFFIX: dict[str, dict[str, Any]] = {
     "Darwin": {
         "arm64": ["aarch64-apple-darwin-install_only.tar.gz"],
         "x86_64": ["x86_64-apple-darwin-install_only.tar.gz"],
@@ -40,17 +40,17 @@ MACHINE_SUFFIX: Dict[str, Dict[str, Any]] = {
             "musl": ["x86_64_v3-unknown-linux-musl-install_only.tar.gz"],
         },
     },
-    "Windows": {"AMD64": ["x86_64-pc-windows-msvc-shared-install_only.tar.gz"]},
+    "Windows": {"AMD64": ["x86_64-pc-windows-msvc-install_only.tar.gz"]},
 }
 
-GITHUB_API_URL = "https://api.github.com/repos/indygreg/python-build-standalone/releases/latest"
+GITHUB_API_URL = "https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest"
 PYTHON_VERSION_REGEX = re.compile(r"cpython-(\d+\.\d+\.\d+)")
 
 
 def download_python_build_standalone(python_version: str, override: bool = False):
     """When all other python executable resolutions have failed,
     attempt to download and use an appropriate python build
-    from https://github.com/indygreg/python-build-standalone
+    from https://github.com/astral-sh/python-build-standalone
     and unpack it into the pipx shared directory."""
 
     # python_version can be a bare version number like "3.9" or a "binary name" like python3.10
@@ -71,7 +71,7 @@ def download_python_build_standalone(python_version: str, override: bool = False
             logger.warning(f"A previous attempt to install python {python_version} failed. Retrying.")
             shutil.rmtree(install_dir)
 
-    full_version, download_link = resolve_python_version(python_version)
+    full_version, (download_link, digest) = resolve_python_version(python_version)
 
     with tempfile.TemporaryDirectory() as tempdir:
         archive = Path(tempdir) / f"python-{full_version}.tar.gz"
@@ -81,7 +81,7 @@ def download_python_build_standalone(python_version: str, override: bool = False
         _download(full_version, download_link, archive)
 
         # unpack the python build
-        _unpack(full_version, download_link, archive, download_dir)
+        _unpack(full_version, download_link, archive, download_dir, digest)
 
         # the python installation we want is nested in the tarball
         # under a directory named 'python'. We move it to the install
@@ -104,15 +104,13 @@ def _download(full_version: str, download_link: str, archive: Path):
             raise PipxError(f"Unable to download python {full_version} build.") from e
 
 
-def _unpack(full_version, download_link, archive: Path, download_dir: Path):
+def _unpack(full_version, download_link, archive: Path, download_dir: Path, expected_checksum: str):
     with animate(f"Unpacking python {full_version} build", True):
         # Calculate checksum
         with open(archive, "rb") as python_zip:
-            checksum = hashlib.sha256(python_zip.read()).hexdigest()
+            checksum = "sha256:" + hashlib.sha256(python_zip.read()).hexdigest()
 
         # Validate checksum
-        checksum_link = download_link + ".sha256"
-        expected_checksum = urlopen(checksum_link).read().decode().rstrip("\n")
         if checksum != expected_checksum:
             raise PipxError(
                 f"Checksum mismatch for python {full_version} build. Expected {expected_checksum}, got {checksum}."
@@ -142,7 +140,7 @@ def get_or_update_index(use_cache: bool = True):
     return index
 
 
-def get_latest_python_releases() -> List[str]:
+def get_latest_python_releases() -> list[tuple[str, str]]:
     """Returns the list of python download links from the latest github release."""
     try:
         with urlopen(GITHUB_API_URL) as response:
@@ -152,10 +150,10 @@ def get_latest_python_releases() -> List[str]:
         # raise
         raise PipxError(f"Unable to fetch python-build-standalone release data (from {GITHUB_API_URL}).") from e
 
-    return [asset["browser_download_url"] for asset in release_data["assets"]]
+    return [(asset["browser_download_url"], asset["digest"]) for asset in release_data["assets"]]
 
 
-def list_pythons(use_cache: bool = True) -> Dict[str, str]:
+def list_pythons(use_cache: bool = True) -> dict[str, tuple[str, str]]:
     """Returns available python versions for your machine and their download links."""
     system, machine = platform.system(), platform.machine()
     download_link_suffixes = MACHINE_SUFFIX[system][machine]
@@ -168,15 +166,15 @@ def list_pythons(use_cache: bool = True) -> Dict[str, str]:
     python_releases = get_or_update_index(use_cache)["releases"]
 
     available_python_links = [
-        link
+        (link, digest)
         # Suffixes are in order of preference.
         for download_link_suffix in download_link_suffixes
-        for link in python_releases
+        for link, digest in python_releases
         if link.endswith(download_link_suffix)
     ]
 
-    python_versions: dict[str, str] = {}
-    for link in available_python_links:
+    python_versions: dict[str, tuple[str, str]] = {}
+    for link, digest in available_python_links:
         match = PYTHON_VERSION_REGEX.search(link)
         assert match is not None
         python_version = match[1]
@@ -184,7 +182,7 @@ def list_pythons(use_cache: bool = True) -> Dict[str, str]:
         if python_version in python_versions:
             continue
 
-        python_versions[python_version] = link
+        python_versions[python_version] = link, digest
 
     return {
         version: python_versions[version]

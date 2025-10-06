@@ -5,8 +5,8 @@ from pathlib import Path
 
 import nox
 
-PYTHON_ALL_VERSIONS = ["3.12", "3.11", "3.10", "3.9", "3.8"]
-PYTHON_DEFAULT_VERSION = "3.12"
+PYTHON_ALL_VERSIONS = ["3.13", "3.12", "3.11", "3.10", "3.9"]
+PYTHON_DEFAULT_VERSION = "3.13"
 DOC_DEPENDENCIES = [
     "jinja2",
     "mkdocs",
@@ -25,6 +25,7 @@ TEST_DEPENDENCIES = [
     "uv",
     "virtualenv",
 ]
+TEST_DEPENDENCIES = ["pytest", "pypiserver[passlib]==2.3.2", 'setuptools; python_version>="3.12"', "pytest-cov"]
 # Packages whose dependencies need an intact system PATH to compile
 # pytest setup clears PATH.  So pre-build some wheels to the pip cache.
 PREBUILD_PACKAGES = {"all": ["jupyter==1.0.0"], "macos": [], "unix": [], "win": []}

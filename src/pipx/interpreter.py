@@ -46,7 +46,7 @@ class InterpreterResolutionError(PipxError):
                     "but both the python command and the Python Launcher were not found on PATH."
                 )
         if source == "the python-build-standalone project":
-            message += "listed in https://github.com/indygreg/python-build-standalone/releases/latest."
+            message += "listed in https://github.com/astral-sh/python-build-standalone/releases/latest."
         super().__init__(message, wrap_message)
 
 
@@ -97,7 +97,8 @@ def find_python_interpreter(python_version: str, fetch_missing_python: bool = Fa
         if py_executable:
             return py_executable
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        raise InterpreterResolutionError(source="py launcher", version=python_version) from e
+        if not fetch_missing_python and not FETCH_MISSING_PYTHON:
+            raise InterpreterResolutionError(source="py launcher", version=python_version) from e
 
     if fetch_missing_python or FETCH_MISSING_PYTHON:
         try:
