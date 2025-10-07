@@ -24,7 +24,7 @@ def test_auto_update_shared_libs(capsys, pipx_ultra_temp_env, mtime_minus_now, n
     assert shared_libs.shared_libs.needs_upgrade is needs_upgrade
 
 def test_disable_auto_upgrade_env_var(capsys, pipx_ultra_temp_env, monkeypatch):
-    """"""Test that PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE prevents automatic upgrades""""""
+    """Test that PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE prevents automatic upgrades."""
     # Set the environment variable
     monkeypatch.setenv("PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE", "1")
 
