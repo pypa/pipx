@@ -17,7 +17,7 @@ except ImportError:
 from packaging.utils import canonicalize_name
 
 from pipx.animate import animate
-from pipx.constants import PIPX_SHARED_PTH, ExitCode
+from pipx.constants import DISABLE_SHARED_LIBS_AUTO_UPGRADE, PIPX_SHARED_PTH, ExitCode
 from pipx.emojis import hazard
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.package_specifier import (
@@ -106,7 +106,7 @@ class Venv:
         """
         if self._existing and self.uses_shared_libs:
             if shared_libs.is_valid:
-                if force_upgrade or shared_libs.needs_upgrade:
+                if not DISABLE_SHARED_LIBS_AUTO_UPGRADE and (force_upgrade or shared_libs.needs_upgrade):
                     shared_libs.upgrade(verbose=verbose, pip_args=pip_args)
             else:
                 shared_libs.create(verbose=verbose, pip_args=pip_args)
