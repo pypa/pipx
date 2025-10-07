@@ -23,6 +23,7 @@ def test_auto_update_shared_libs(capsys, pipx_ultra_temp_env, mtime_minus_now, n
 
     assert shared_libs.shared_libs.needs_upgrade is needs_upgrade
 
+
 def test_disable_auto_upgrade_env_var(capsys, pipx_ultra_temp_env, monkeypatch):
     """Test that PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE prevents automatic upgrades."""
     # Set the environment variable
@@ -30,19 +31,23 @@ def test_disable_auto_upgrade_env_var(capsys, pipx_ultra_temp_env, monkeypatch):
 
     # Reimport to pick up the new environment variable value
     from importlib import reload
+
     import pipx.constants
+
     reload(pipx.constants)
 
     # Verify the constant is set
     from pipx.constants import DISABLE_SHARED_LIBS_AUTO_UPGRADE
+
     assert DISABLE_SHARED_LIBS_AUTO_UPGRADE == "1"
 
     # Install a package which normally triggers auto-upgrade
     from helpers import run_pipx_cli
+
     assert run_pipx_cli(["install", "pycowsay"]) == 0
 
     # Verify shared libs were NOT automatically upgraded during install
     # by checking the logs/output
-    captured = capsys.readouterr()
+    capsys.readouterr()
     # Note: The exact assertion may need adjustment based on actual output
     # The key is that we should NOT see upgrade messages when env var is set
