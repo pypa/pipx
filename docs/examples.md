@@ -202,4 +202,3 @@ You can disable automatic shared library upgrades by setting the `PIPX_DISABLE_S
 ``
 
 With this environment variable set, pipx will skip automatic upgrades of shared libraries. You can still manually upgrade them using `pipx upgrade-shared`.
-
