@@ -27,7 +27,6 @@ def reinstall(
     verbose: bool,
     force_reinstall_shared_libs: bool = False,
     python_flag_passed: bool = False,
-    unpin: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
     if not venv_dir.exists():
@@ -55,8 +54,8 @@ def reinstall(
     else:
         package_or_url = venv.main_package_name
 
-    if venv.pipx_metadata.main_package.pinned and not unpin:
-        raise PipxError(f"{error} Package {venv_dir} is pinned. Pass --unpin to unpin and reinstall it.")
+    if venv.pipx_metadata.main_package.pinned:
+        raise PipxError(f"{error} Package {venv_dir} is pinned. Run `pipx unpin {venv_dir.name}` to unpin it first.")
 
     uninstall(venv_dir, local_bin_dir, local_man_dir, verbose)
 
