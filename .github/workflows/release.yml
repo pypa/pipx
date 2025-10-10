@@ -31,7 +31,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Extract version to be released
         id: get-version
         env:
@@ -60,11 +60,11 @@ jobs:
       id-token: write
     steps:
       - name: Checkout ${{ needs.create-tag.outputs.release-tag }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: "${{ needs.create-tag.outputs.release-tag }}"
       - name: Set up Python ${{ env.default-python }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.default-python }}
           cache: "pip"
@@ -82,7 +82,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
@@ -97,11 +97,11 @@ jobs:
       contents: write
     steps:
       - name: Checkout ${{ needs.create-tag.outputs.release-tag }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: "${{ needs.create-tag.outputs.release-tag }}"
       - name: Set up Python ${{ env.minimum-supported-python }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.minimum-supported-python }}
           cache: "pip"
