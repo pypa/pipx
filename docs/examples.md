@@ -187,3 +187,51 @@ This example pins `pip` (temporarily, until the next automatic upgrade, if that 
 ```shell
 > pipx upgrade-shared --pip-args=pip==24.0
 ```
+
+## `pipx clean` examples
+
+The `clean` command helps you free up disk space by removing pipx data. You can selectively clean specific components or perform a complete cleanup.
+
+### Clean specific components
+
+Remove only the cache (temporary virtual environments from `pipx run`):
+
+```
+pipx clean --cache
+```
+
+Remove only log files:
+
+```
+pipx clean --logs
+```
+
+Empty the trash directory:
+
+```
+pipx clean --trash
+```
+
+Remove all installed packages and their virtual environments:
+
+```
+pipx clean --venvs
+```
+
+### Clean multiple components
+
+You can combine flags to clean multiple components at once:
+
+```
+pipx clean --cache --logs --trash
+```
+
+### Full cleanup
+
+Remove **all** pipx data (this will uninstall all packages and reset pipx to a fresh state):
+
+```
+pipx clean
+```
+
+> ⚠️ **Warning**: Running `pipx clean` without any flags will remove ALL pipx data, including all installed packages. This operation requires confirmation unless the `--force` flag is used.

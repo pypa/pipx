@@ -1,3 +1,4 @@
+from pipx.commands.clean_cmd import clean
 from pipx.commands.ensure_path import ensure_pipx_paths
 from pipx.commands.environment import environment
 from pipx.commands.inject import inject
@@ -13,6 +14,7 @@ from pipx.commands.uninstall import uninstall, uninstall_all
 from pipx.commands.upgrade import upgrade, upgrade_all, upgrade_shared
 
 __all__ = [
+    "clean",
     "ensure_pipx_paths",
     "environment",
     "inject",
