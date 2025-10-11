@@ -6,7 +6,7 @@ import textwrap
 from pathlib import Path
 from unittest import mock
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 import pipx.main
 import pipx.util

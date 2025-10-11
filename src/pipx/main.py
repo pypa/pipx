@@ -408,6 +408,15 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             skip=skip_list,
             python_flag_passed=python_flag_passed,
         )
+    elif args.command == "clean":
+        return commands.clean(
+            cache=args.cache,
+            logs=args.logs,
+            trash=args.trash,
+            venvs=args.venvs,
+            verbose=verbose,
+            force=args.force,
+        )
     elif args.command == "runpip":
         if not venv_dir:
             raise PipxError("Developer error: venv_dir is not defined.")
@@ -734,6 +743,53 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
     add_python_options(p)
 
 
+def _add_clean(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+    """Add the clean command to the parser."""
+    p = subparsers.add_parser(
+        "clean",
+        help="Completely reset pipx to first installation state",
+        description=textwrap.dedent(
+            """
+            Removes all installed packages, temporary virtual environments,
+            and cached data, effectively resetting pipx to its initial state.
+            The granularity of the cleanup can be controlled using the following options:
+            --venvs : Remove all installed packages and their virtual environments.
+            --logs  : Remove all pipx log files.
+            --trash : Empty the pipx trash directory.
+            --cache : Remove cached data and temporary virtual environments, leaving installed packages intact.
+            """
+        ),
+        parents=[shared_parser],
+    )
+    p.add_argument(
+        "--cache",
+        action="store_true",
+        help="Remove cached data and temporary virtual environments, leaving installed packages intact",
+    )
+    p.add_argument(
+        "--logs",
+        action="store_true",
+        help="Remove all pipx log files",
+    )
+    p.add_argument(
+        "--trash",
+        action="store_true",
+        help="Empty the pipx trash directory",
+    )
+    p.add_argument(
+        "--venvs",
+        action="store_true",
+        help="Remove all installed packages and their virtual environments",
+    )
+    p.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Skip confirmation prompts (use with caution!)",
+    )
+    p.set_defaults(subparser=p)
+
+
 def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "reinstall-all",
@@ -994,6 +1050,7 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
     _add_uninstall_all(subparsers, shared_parser)
     _add_reinstall(subparsers, completer_venvs.use, shared_parser)
     _add_reinstall_all(subparsers, shared_parser)
+    _add_clean(subparsers, shared_parser)
     _add_list(subparsers, shared_parser)
     subparsers_with_subcommands["interpreter"] = _add_interpreter(subparsers, shared_parser)
     _add_run(subparsers, shared_parser)

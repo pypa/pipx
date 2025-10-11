@@ -1,7 +1,7 @@
 import os
 import time
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 from pipx import shared_libs
 
