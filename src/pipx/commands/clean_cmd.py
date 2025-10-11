@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pipx.colors import bold, red
 from pipx.constants import (
@@ -18,6 +18,9 @@ from pipx.emojis import hazard, stars
 from pipx.paths import ctx
 from pipx.util import rmdir
 from pipx.venv import VenvContainer
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _cleanup_directory(
@@ -217,9 +220,9 @@ def clean(
         cleanup_operations.append(_venvs_cleanup)
 
     # Execute all operations and combine exit codes
-    exit_code = EXIT_CODE_OK
     for operation in cleanup_operations:
-        result = operation(verbose)
-        exit_code |= result
+        result: ExitCode = operation(verbose)
+        if result != EXIT_CODE_OK:
+            return result
 
-    return exit_code
+    return EXIT_CODE_OK

@@ -742,16 +742,14 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
     p.add_argument("package").completer = venv_completer
     add_python_options(p)
 
-def _add_clean(
-    subparsers: argparse._SubParsersAction, 
-    shared_parser: argparse.ArgumentParser
-) -> None:
+
+def _add_clean(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     """Add the clean command to the parser."""
     p = subparsers.add_parser(
         "clean",
         help="Completely reset pipx to first installation state",
         description=textwrap.dedent(
-            f"""
+            """
             Removes all installed packages, temporary virtual environments,
             and cached data, effectively resetting pipx to its initial state.
             The granularity of the cleanup can be controlled using the following options:
@@ -790,7 +788,6 @@ def _add_clean(
         help="Skip confirmation prompts (use with caution!)",
     )
     p.set_defaults(subparser=p)
-
 
 
 def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:

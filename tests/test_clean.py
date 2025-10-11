@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -22,7 +21,6 @@ from pipx.constants import (
     EXIT_CODE_FULL_CLEANUP_FAIL,
     EXIT_CODE_LOGS_CLEANUP_FAIL,
     EXIT_CODE_OK,
-    EXIT_CODE_TRASH_CLEANUP_FAIL,
     EXIT_CODE_VENVS_CLEANUP_FAIL,
 )
 from pipx.paths import ctx
@@ -406,7 +404,7 @@ class TestFullCleanup:
 
     def test_full_cleanup_success(self, pipx_temp_env, capsys):
         """Test full cleanup removes everything."""
-        venv_dir = ctx.venvs / "package1"
+        ctx.venvs / "package1"
         ctx.venv_cache.mkdir(parents=True, exist_ok=True)
         ctx.logs.mkdir(parents=True, exist_ok=True)
         (ctx.venv_cache / "cache_file").touch()
