@@ -54,6 +54,9 @@ def reinstall(
     else:
         package_or_url = venv.main_package_name
 
+    if venv.pipx_metadata.main_package.pinned:
+        raise PipxError(f"{error} Package {venv_dir} is pinned. Run `pipx unpin {venv_dir.name}` to unpin it first.")
+
     uninstall(venv_dir, local_bin_dir, local_man_dir, verbose)
 
     # in case legacy original dir name
