@@ -187,3 +187,18 @@ This example pins `pip` (temporarily, until the next automatic upgrade, if that 
 ```shell
 > pipx upgrade-shared --pip-args=pip==24.0
 ```
+### Disabling automatic shared library upgrades
+
+By default, pipx automatically upgrades shared libraries (like pip, setuptools, and wheel) when you install, inject, reinstall, run, or upgrade packages. This ensures that the shared libraries are kept up-to-date. However, in some cases (e.g., when you need to maintain compatibility with an older Python version), you may want to disable this automatic upgrade behavior.
+
+You can disable automatic shared library upgrades by setting the `PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE` environment variable:
+
+``shell
+> export PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE=1  # Linux/MacOS
+> # or
+> set PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE=1  # Windows (cmd)
+> # or
+> $env:PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE=1  # Windows (PowerShell)
+``
+
+With this environment variable set, pipx will skip automatic upgrades of shared libraries. You can still manually upgrade them using `pipx upgrade-shared`.
