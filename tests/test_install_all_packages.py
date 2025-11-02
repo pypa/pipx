@@ -24,7 +24,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 from helpers import run_pipx_cli
 from package_info import PKG
