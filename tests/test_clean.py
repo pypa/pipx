@@ -1,7 +1,5 @@
 """Unit tests for the clean command."""
 
-from unittest.mock import patch
-
 from helpers import (
     run_pipx_cli,
 )
@@ -17,7 +15,7 @@ def test_clean_full(pipx_temp_env):
     assert not paths.ctx.venvs.exists()
     assert not paths.ctx.logs.exists()
     assert not paths.ctx.venv_cache.exists()
-    
+
 
 def test_clean_logs(pipx_temp_env):
     assert not run_pipx_cli(["install", "pycowsay"])
@@ -29,6 +27,7 @@ def test_clean_logs(pipx_temp_env):
     assert not paths.ctx.logs.exists()
     assert paths.ctx.venv_cache.exists()
 
+
 def test_clean_venvs(pipx_temp_env):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert paths.ctx.venvs.exists()
@@ -39,6 +38,7 @@ def test_clean_venvs(pipx_temp_env):
     assert paths.ctx.logs.exists()
     assert paths.ctx.venv_cache.exists()
 
+
 def test_clean_cache(pipx_temp_env):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert paths.ctx.venvs.exists()
@@ -48,6 +48,7 @@ def test_clean_cache(pipx_temp_env):
     assert paths.ctx.venvs.exists()
     assert paths.ctx.logs.exists()
     assert not paths.ctx.venv_cache.exists()
+
 
 def test_clean_trash(pipx_temp_env):
     assert not run_pipx_cli(["install", "pycowsay"])
@@ -64,6 +65,7 @@ def test_clean_trash(pipx_temp_env):
     assert paths.ctx.logs.exists()
     assert paths.ctx.venv_cache.exists()
     assert not trash_path.exists()
+
 
 def test_all_clean_options(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])

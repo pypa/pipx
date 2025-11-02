@@ -163,7 +163,7 @@ def _venvs_cleanup(verbose: bool) -> ExitCode:
         for package_name, error in failed:
             print(f"  - {package_name}: {error}")
         return EXIT_CODE_VENVS_CLEANUP_FAIL
-    
+
     rmdir(ctx.venvs, safe_rm=True)
 
     print(f"{stars} All installed packages removed.")
