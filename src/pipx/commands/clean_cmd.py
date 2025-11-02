@@ -1,8 +1,6 @@
 """Clean command for pipx CLI."""
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 from pipx.colors import bold, red
 from pipx.constants import (
@@ -18,9 +16,6 @@ from pipx.emojis import hazard, stars
 from pipx.paths import ctx
 from pipx.util import rmdir
 from pipx.venv import VenvContainer
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 
 def _cleanup_directory(
