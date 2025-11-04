@@ -15,6 +15,7 @@ from pipx.commands.upgrade import upgrade, upgrade_all, upgrade_shared
 __all__ = [
     "ensure_pipx_paths",
     "environment",
+    "help",
     "inject",
     "install",
     "install_all",
@@ -33,6 +34,5 @@ __all__ = [
     "upgrade",
     "upgrade_all",
     "upgrade_interpreters",
-    "help",
     "upgrade_shared",
 ]
