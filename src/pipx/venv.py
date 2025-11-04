@@ -348,7 +348,7 @@ class Venv:
     def get_venv_metadata_for_package(self, package_name: str, package_extras: Set[str]) -> VenvMetadata:
         data_start = time.time()
         venv_metadata = inspect_venv(package_name, package_extras, self.bin_path, self.python_path, self.man_path)
-        logger.info(f"get_venv_metadata_for_package: {1e3*(time.time()-data_start):.0f}ms")
+        logger.info(f"get_venv_metadata_for_package: {1e3 * (time.time() - data_start):.0f}ms")
         return venv_metadata
 
     def update_package_metadata(
@@ -441,7 +441,7 @@ class Venv:
     def upgrade_package_no_metadata(self, package_name: str, pip_args: List[str]) -> None:
         logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_name))
         with animate(f"upgrading {package_descr}", self.do_animation):
-            pip_process = self._run_pip(["--no-input", "install"] + pip_args + ["--upgrade", package_name])
+            pip_process = self._run_pip(["--no-input", "install", "--upgrade"] + pip_args + [package_name])
         subprocess_post_check(pip_process)
 
     def upgrade_package(
@@ -456,7 +456,7 @@ class Venv:
     ) -> None:
         logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_or_url))
         with animate(f"upgrading {package_descr}", self.do_animation):
-            pip_process = self._run_pip(["--no-input", "install"] + pip_args + ["--upgrade", package_or_url])
+            pip_process = self._run_pip(["--no-input", "install", "--upgrade"] + pip_args + [package_or_url])
         subprocess_post_check(pip_process)
 
         self.update_package_metadata(

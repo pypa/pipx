@@ -40,7 +40,7 @@ PACKAGE_NAME_LIST = [
     "black",
     "cactus",
     "chert",
-    "cloudtoken",
+    # "cloudtoken",
     "coala",
     "cookiecutter",
     "cython",

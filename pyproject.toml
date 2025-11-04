@@ -20,17 +20,17 @@ license = "MIT"
 authors = [
   { name = "Chad Smith", email = "chadsmith.software@gmail.com" },
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
 ]
 dynamic = [
   "version",
@@ -41,7 +41,7 @@ dependencies = [
   "packaging>=20",
   "platformdirs>=2.1",
   "tomli; python_version<'3.11'",
-  "userpath!=1.9,>=1.6",
+  "userpath>=1.6,!=1.9",
 ]
 urls."Bug Tracker" = "https://github.com/pypa/pipx/issues"
 urls.Documentation = "https://pipx.pypa.io"
@@ -78,13 +78,17 @@ lint.extend-select = [
   "PLE",
   "PLW",
   "RSE",
-  "RUF012",
-  "RUF100",
-  "TCH",
+  "RUF",
+  "TC",
   "W",
 ]
 lint.ignore = [
   "PERF203",
+  "PLW1508",
+  "RUF005",
+]
+lint.per-file-ignores."src/pipx/venv.py" = [
+  "A005",
 ]
 lint.isort = { known-first-party = [
   "helpers",

@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  default-python: "3.12"
-  minimum-supported-python: "3.8"
+  default-python: "3.13"
+  minimum-supported-python: "3.9"
 
 jobs:
   create-tag:
@@ -73,7 +73,7 @@ jobs:
       - name: Build sdist and wheel
         run: nox --error-on-missing-interpreters --non-interactive --session build
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.12.4
+        uses: pypa/gh-action-pypi-publish@v1.13.0
 
   create-release:
     name: Create a release on GitHub's UI

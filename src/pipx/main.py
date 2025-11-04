@@ -163,7 +163,7 @@ class InstalledVenvsCompleter:
         self.packages = [str(p.name) for p in sorted(venv_container.iter_venv_dirs())]
 
     def use(self, prefix: str, **kwargs: Any) -> List[str]:
-        return [f"{prefix}{x[len(prefix):]}" for x in self.packages if x.startswith(canonicalize_name(prefix))]
+        return [f"{prefix}{x[len(prefix) :]}" for x in self.packages if x.startswith(canonicalize_name(prefix))]
 
 
 def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
@@ -1072,7 +1072,7 @@ def setup_log_file() -> Path:
 
 
 def setup_logging(verbose: int) -> None:
-    pipx_str = bold(green("pipx >")) if sys.stdout.isatty() else "pipx >"
+    pipx_str = (sys.stdout and sys.stdout.isatty() and bold(green("pipx >"))) or "pipx >"
     paths.ctx.log_file = setup_log_file()
 
     # Determine logging level, a value between 0 and 50
