@@ -106,7 +106,7 @@ ignore-regex = '\b(UE|path/doesnt/exist)\b'
 
 [tool.pytest.ini_options]
 minversion = "8"
-log_cli_level = "INFO"
+log_level = "INFO"
 markers = [
   "all_packages: test install with maximum number of packages",
 ]
