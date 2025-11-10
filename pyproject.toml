@@ -149,7 +149,7 @@ enable_error_code = [ "ignore-without-code", "redundant-expr", "truthy-bool" ]
 
 [tool.pytest]
 ini_options.minversion = "8"
-ini_options.log_cli_level = "INFO"
+ini_options.log_level = "INFO"
 ini_options.markers = [
   "all_packages: test install with maximum number of packages",
 ]
