@@ -29,6 +29,8 @@ def install(
     verbose: bool,
     *,
     force: bool,
+    upgrade: bool,
+    upgrade_strategy: Optional[str],
     reinstall: bool,
     include_dependencies: bool,
     preinstall_packages: Optional[List[str]],
@@ -60,7 +62,11 @@ def install(
 
         venv = Venv(venv_dir, python=python, verbose=verbose)
         venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
-        if exists:
+        if upgrade:
+            pip_args = ["--upgrade"] + pip_args
+            if upgrade_strategy is not None:
+                pip_args += ["--upgrade-strategy", upgrade_strategy]
+        elif exists:
             if not reinstall and force and python_flag_passed:
                 print(
                     pipx_wrap(
@@ -103,6 +109,8 @@ def install(
                 include_dependencies=include_dependencies,
                 include_apps=True,
                 is_main_package=True,
+                upgrade=upgrade,
+                upgrade_strategy=upgrade_strategy,
                 suffix=suffix,
             )
             run_post_install_actions(
@@ -213,6 +221,8 @@ def install_all(
                 reinstall=False,
                 include_dependencies=main_package.include_dependencies,
                 preinstall_packages=[],
+                upgrade=False,
+                upgrade_strategy=None,
                 suffix=main_package.suffix,
             )
 
@@ -228,6 +238,8 @@ def install_all(
                     include_apps=inject_package.include_apps,
                     include_dependencies=inject_package.include_dependencies,
                     force=force,
+                    upgrade=False,
+                    upgrade_strategy=None,
                     suffix=inject_package.suffix == main_package.suffix,
                 )
         except PipxError as e:
