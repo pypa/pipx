@@ -452,9 +452,12 @@ class Venv:
         include_dependencies: bool,
         include_apps: bool,
         is_main_package: bool,
+        upgrade_strategy: Optional[str],
         suffix: str = "",
     ) -> None:
         logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_or_url))
+        if upgrade_strategy is not None:
+            pip_args += ["--upgrade-strategy", upgrade_strategy]
         with animate(f"upgrading {package_descr}", self.do_animation):
             pip_process = self._run_pip(["--no-input", "install", "--upgrade"] + pip_args + [package_or_url])
         subprocess_post_check(pip_process)

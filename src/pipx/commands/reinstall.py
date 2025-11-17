@@ -95,6 +95,8 @@ def reinstall(
             verbose=verbose,
             include_apps=injected_package.include_apps,
             include_dependencies=injected_package.include_dependencies,
+            upgrade=False,
+            upgrade_strategy=None,
             force=True,
         )
 
