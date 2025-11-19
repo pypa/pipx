@@ -78,6 +78,8 @@ def uninject_dep(
 
     new_resource_paths = get_include_resource_paths(package_name, venv, local_bin_dir, local_man_dir)
 
+    deps_of_uninstalled: Set[str] = set()
+
     if not leave_deps:
         orig_not_required_packages = venv.list_installed_packages(not_required=True)
         logger.info(f"Original not required packages: {orig_not_required_packages}")
@@ -89,15 +91,36 @@ def uninject_dep(
         logger.info(f"New not required packages: {new_not_required_packages}")
 
         deps_of_uninstalled = new_not_required_packages - orig_not_required_packages
-        if len(deps_of_uninstalled) == 0:
-            pass
+        if deps_of_uninstalled:
+            logger.info(f"Dependencies of uninstalled package (candidates): {deps_of_uninstalled}")
+
+            protected_deps: Set[str] = set()
+
+            main_pkg_name = canonicalize_name(venv.pipx_metadata.main_package.package)
+            main_meta = venv.package_metadata.get(main_pkg_name)
+            if main_meta is not None:
+                protected_deps.update(getattr(main_meta, "depends", set()))
+
+            for injected_name in venv.pipx_metadata.injected_packages:
+                injected_name_canon = canonicalize_name(injected_name)
+                if injected_name_canon == package_name:
+                    continue
+                injected_meta = venv.package_metadata.get(injected_name_canon)
+                if injected_meta is None:
+                    continue
+                protected_deps.update(getattr(injected_meta, "depends", set()))
+
+            logger.info(f"Protected dependencies (still required in venv): {protected_deps}")
+
+            deps_to_uninstall = sorted(deps_of_uninstalled - protected_deps)
+            logger.info(f"Dependencies to uninstall after filtering: {deps_to_uninstall}")
+
+            for dep_package_name in deps_to_uninstall:
+                venv.uninstall_package(package=dep_package_name, was_injected=False)
+
+            deps_string = " and its dependencies" if deps_to_uninstall else ""
         else:
-            logger.info(f"Dependencies of uninstalled package: {deps_of_uninstalled}")
-
-        for dep_package_name in deps_of_uninstalled:
-            venv.uninstall_package(package=dep_package_name, was_injected=False)
-
-        deps_string = " and its dependencies"
+            deps_string = ""
     else:
         deps_string = ""
 

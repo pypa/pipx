@@ -39,3 +39,12 @@ def test_uninject_leave_deps(pipx_temp_env, capsys, caplog):
     captured = capsys.readouterr()
     assert "Uninjected package black from venv pycowsay" in captured.out
     assert "Dependencies of uninstalled package:" not in caplog.text
+
+def test_uninject_keeps_shared_dependencies(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["pylint"]["spec"]])
+    assert not run_pipx_cli(["uninject", "pycowsay", "black"])
+    assert not run_pipx_cli(["list", "--include-injected"])
+    captured = capsys.readouterr()
+    assert "pylint" in captured.out
