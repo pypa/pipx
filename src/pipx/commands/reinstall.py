@@ -25,6 +25,8 @@ def reinstall(
     local_man_dir: Path,
     python: str,
     verbose: bool,
+    backend: str,
+    installer: str,
     force_reinstall_shared_libs: bool = False,
     python_flag_passed: bool = False,
 ) -> ExitCode:
@@ -79,6 +81,8 @@ def reinstall(
         preinstall_packages=[],
         suffix=venv.pipx_metadata.main_package.suffix,
         python_flag_passed=python_flag_passed,
+        backend=backend,
+        installer=installer,
     )
 
     # now install injected packages
@@ -108,6 +112,8 @@ def reinstall_all(
     local_man_dir: Path,
     python: str,
     verbose: bool,
+    backend: str,
+    installer: str,
     *,
     skip: Sequence[str],
     python_flag_passed: bool = False,
@@ -130,6 +136,8 @@ def reinstall_all(
                 local_man_dir=local_man_dir,
                 python=python,
                 verbose=verbose,
+                backend=backend,
+                installer=installer,
                 force_reinstall_shared_libs=first_reinstall,
                 python_flag_passed=python_flag_passed,
             )

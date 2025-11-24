@@ -21,6 +21,7 @@ pipx install --index-url https://test.pypi.org/simple/ --pip-args='--extra-index
 pipx --global install pycowsay
 pipx install .
 pipx install path/to/some-project
+pipx install --backend uv --installer uv black
 ```
 
 ## `pipx run` examples
@@ -41,6 +42,7 @@ pipx run pycowsay --version  # prints pycowsay version
 pipx run --python pythonX pycowsay
 pipx run pycowsay==2.0 --version
 pipx run pycowsay[dev] --version
+pipx run --backend uv --installer uv pycowsay
 pipx run --spec git+https://github.com/psf/black.git black
 pipx run --spec git+https://github.com/psf/black.git@branch-name black
 pipx run --spec git+https://github.com/psf/black.git@git-hash black
