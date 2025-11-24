@@ -18,9 +18,9 @@ jobs:
           - os: windows-latest
             python-version: "3.13"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
@@ -30,7 +30,7 @@ jobs:
         run:
           nox --non-interactive --session create_test_package_list-${{ matrix.python-version }} -- ./new_tests_packages
       - name: Store reports as artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: lists-${{ matrix.os }}-${{ matrix.python-version }}
           path: ./new_tests_packages
