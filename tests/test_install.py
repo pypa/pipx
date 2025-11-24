@@ -427,7 +427,6 @@ def test_passed_python_and_force_flag_warning(pipx_temp_env, capsys):
     "python_version",
     ["3.0", "3.1"],
 )
-@pytest.mark.skip(reason="Test is flaky and behaves differently in CI/Codespaces")
 def test_install_fetch_missing_python_invalid(capsys, python_version):
     assert run_pipx_cli(["install", "--python", python_version, "--fetch-missing-python", "pycowsay"])
     captured = capsys.readouterr()
