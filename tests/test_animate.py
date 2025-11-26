@@ -1,5 +1,7 @@
 import time
+
 import pytest  # type: ignore[import-not-found]
+
 import pipx.animate
 from pipx.animate import (
     CLEAR_LINE,
@@ -26,7 +28,7 @@ def check_animate_output(
     Refactored to use polling instead of rigid sleeps.
     """
     expected_string = "".join(frame_strings)
-    
+
     # FIX: Calculate exact length required. Removed the "+ 1" that caused flakes.
     chars_to_test = len("".join(frame_strings[:frames_to_test]))
 
@@ -40,11 +42,11 @@ def check_animate_output(
         while time.time() - start_time < timeout:
             captured = capsys.readouterr()
             total_err += captured.err
-            
+
             # If we have enough data, stop waiting immediately
             if len(total_err) >= chars_to_test:
                 break
-            
+
             # Tiny sleep to avoid 100% CPU usage loop
             time.sleep(0.01)
 
@@ -55,10 +57,10 @@ def check_animate_output(
     print("check_animate_output() Test Debug Output:")
     if len(total_err) < chars_to_test:
         print("Not enough captured characters--Timed out waiting for output")
-    
+
     print(f"captured characters: {len(total_err)}")
     print(f"chars_to_test: {chars_to_test}")
-    
+
     for i in range(0, chars_to_test, 40):
         i_end = min(i + 40, chars_to_test)
         print(f"expected_string[{i}:{i_end}]: {expected_string[i:i_end]!r}")
@@ -131,7 +133,7 @@ def test_env_no_animate(capsys, monkeypatch, env_columns, stderr_is_tty):
     monkeypatch.setenv("COLUMNS", str(env_columns))
 
     expected_string = f"{TEST_STRING_40_CHAR}...\n"
-    
+
     # Replaced complex sleep math with a simple short wait.
     # We just need the context manager to run and exit to verify the static output.
     with pipx.animate.animate(TEST_STRING_40_CHAR, do_animation=True):
