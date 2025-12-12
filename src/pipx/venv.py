@@ -3,6 +3,7 @@ import logging
 import re
 import shutil
 import time
+from multiprocessing import Queue
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, Generator, List, NoReturn, Optional, Set
 
@@ -244,8 +245,10 @@ class Venv:
         # check syntax and clean up spec and pip_args
         (package_or_url, pip_args) = parse_specifier_for_install(package_or_url, pip_args)
 
+        pip_out_stream: Queue = Queue()
+
         logger.info("Installing %s", package_descr := full_package_description(package_name, package_or_url))
-        with animate(f"installing {package_descr}", self.do_animation):
+        with animate(f"installing {package_descr}", self.do_animation, stream=pip_out_stream):
             # do not use -q with `pip install` so subprocess_post_check_pip_errors
             #   has more information to analyze in case of failure.
             cmd = [
@@ -253,13 +256,16 @@ class Venv:
                 "-m",
                 "pip",
                 "--no-input",
+                "--no-cache-dir",
                 "install",
                 *pip_args,
                 package_or_url,
             ]
             # no logging because any errors will be specially logged by
             #   subprocess_post_check_handle_pip_error()
-            pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False, run_dir=str(self.root))
+            pip_process = run_subprocess(
+                cmd, log_stdout=False, log_stderr=False, run_dir=str(self.root), stream=pip_out_stream
+            )
         subprocess_post_check_handle_pip_error(pip_process)
         if pip_process.returncode:
             raise PipxError(f"Error installing {full_package_description(package_name, package_or_url)}.")
@@ -287,10 +293,12 @@ class Venv:
     def install_unmanaged_packages(self, requirements: List[str], pip_args: List[str]) -> None:
         """Install packages in the venv, but do not record them in the metadata."""
 
+        pip_out_stream: Queue = Queue()
+
         # Note: We want to install everything at once, as that lets
         # pip resolve conflicts correctly.
         logger.info("Installing %s", package_descr := ", ".join(requirements))
-        with animate(f"installing {package_descr}", self.do_animation):
+        with animate(f"installing {package_descr}", self.do_animation, stream=pip_out_stream):
             # do not use -q with `pip install` so subprocess_post_check_pip_errors
             #   has more information to analyze in case of failure.
             cmd = [
@@ -304,7 +312,9 @@ class Venv:
             ]
             # no logging because any errors will be specially logged by
             #   subprocess_post_check_handle_pip_error()
-            pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False, run_dir=str(self.root))
+            pip_process = run_subprocess(
+                cmd, log_stdout=False, log_stderr=False, run_dir=str(self.root), stream=pip_out_stream
+            )
         subprocess_post_check_handle_pip_error(pip_process)
         if pip_process.returncode:
             raise PipxError(f"Error installing {', '.join(requirements)}.")
