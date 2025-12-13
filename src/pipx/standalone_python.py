@@ -106,9 +106,14 @@ def _download(full_version: str, download_link: str, archive: Path):
 
 def _unpack(full_version, download_link, archive: Path, download_dir: Path, expected_checksum: str):
     with animate(f"Unpacking python {full_version} build", True):
-        # Calculate checksum
+        # Calculate checksum efficiently
+        sha256_hash = hashlib.sha256()
         with open(archive, "rb") as python_zip:
-            checksum = "sha256:" + hashlib.sha256(python_zip.read()).hexdigest()
+            # Read in chunks to avoid loading the whole file into memory
+            for chunk in iter(lambda: python_zip.read(32768), b""):
+                sha256_hash.update(chunk)
+
+        checksum = "sha256:" + sha256_hash.hexdigest()
 
         # Validate checksum
         if checksum != expected_checksum:
