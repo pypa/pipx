@@ -53,6 +53,15 @@ pipx ensurepath
 sudo pipx ensurepath --global # optional to allow pipx actions with --global argument
 ```
 
+- Debian GNU/Linux 12 or above
+
+```
+sudo apt update
+sudo apt install pipx
+pipx ensurepath
+sudo pipx ensurepath --global # optional to allow pipx actions with --global argument
+```
+
 - Fedora:
 
 ```
