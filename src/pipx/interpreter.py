@@ -154,7 +154,7 @@ def _find_default_windows_python() -> str:
 
     proc = subprocess.run([python, "-V"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
     if proc.returncode != 0:
-        # Cover the 9009 return code pre-emptively.
+        # Cover the 9009 return code preemptively.
         raise PipxError("No suitable Python found")
     if not proc.stdout.strip():
         # A real Python should print version, Windows Store stub won't.
