@@ -43,9 +43,9 @@ dependencies = [
   "tomli; python_version<'3.11'",
   "userpath>=1.6,!=1.9",
 ]
-urls."Bug Tracker" = "https://github.com/pypa/pipx/issues"
 urls.Documentation = "https://pipx.pypa.io"
 urls.Homepage = "https://pipx.pypa.io"
+urls."Issue Tracker" = "https://github.com/pypa/pipx/issues"
 urls."Release Notes" = "https://pipx.pypa.io/latest/changelog/"
 urls."Source Code" = "https://github.com/pypa/pipx"
 scripts.pipx = "pipx.main:cli"
