@@ -84,6 +84,7 @@ lint.extend-select = [
 ]
 lint.ignore = [
   "PERF203",
+  "PLC0415",
   "PLW1508",
   "RUF005",
 ]
