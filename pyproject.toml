@@ -87,6 +87,7 @@ lint.ignore = [
   "PLC0415",
   "PLW1508",
   "RUF005",
+  "RUF059",
 ]
 lint.per-file-ignores."src/pipx/venv.py" = [
   "A005",
