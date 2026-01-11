@@ -22,7 +22,7 @@ from packaging.utils import canonicalize_name
 from pipx import commands, constants, paths
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
-from pipx.commands.environment import ENVIRONMENT_VARIABLES
+from pipx.commands.environment import ENVIRONMENT_VALUE_CHOICES, ENVIRONMENT_VARIABLES
 from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND,
@@ -930,7 +930,13 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
         + textwrap.fill(", ".join(ENVIRONMENT_VARIABLES), break_long_words=False),
         parents=[shared_parser],
     )
-    p.add_argument("--value", "-V", metavar="VARIABLE", help="Print the value of the variable.")
+    p.add_argument(
+        "--value",
+        "-V",
+        choices=ENVIRONMENT_VALUE_CHOICES,
+        metavar="VARIABLE",
+        help="Print the value of the variable.",
+    )
 
 
 def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.ArgumentParser]]:
