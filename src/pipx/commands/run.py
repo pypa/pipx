@@ -99,7 +99,14 @@ def run_script(
             venv = Venv(venv_dir, python=python, verbose=verbose)
             venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
             venv.create_venv(venv_args, pip_args)
-            venv.install_unmanaged_packages(requirements, pip_args)
+            try:
+                venv.install_unmanaged_packages(requirements, pip_args)
+            except:
+                # Package installation failed, so mark the cache as expired.
+                # This ensures an attempt is made to re-install requirements
+                # when `pipx run` is next executed, rather than just failing.
+                (venv_dir / VENV_EXPIRED_FILENAME).touch()
+                raise
         python_path = venv.python_path
 
     if isinstance(content, Path):
