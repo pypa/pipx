@@ -1,6 +1,8 @@
 import fnmatch
 from pathlib import Path
 
+import pytest  # type: ignore[import-not-found]
+
 from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths
 from pipx.commands.environment import ENVIRONMENT_VARIABLES
@@ -36,9 +38,11 @@ def test_cli_with_args(monkeypatch, capsys):
     assert not run_pipx_cli(["environment", "--value", "PIPX_USE_EMOJI"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_HOME_ALLOW_SPACE"])
 
-    assert run_pipx_cli(["environment", "--value", "SSS"])
+    with pytest.raises(SystemExit) as excinfo:
+        run_pipx_cli(["environment", "--value", "SSS"])
+    assert excinfo.value.code == 2
     captured = capsys.readouterr()
-    assert "Variable not found." in captured.err
+    assert "invalid choice" in captured.err
 
 
 def test_resolve_user_dir_in_env_paths(monkeypatch):
