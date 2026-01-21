@@ -1,14 +1,52 @@
+import enum
 import os
 import platform
 import sysconfig
 from textwrap import dedent
 from typing import NewType
 
+
+# XXX: Python 3.11 StrEnum + enum.auto()
+class FetchPythonOptions(str, enum.Enum):
+    ALWAYS = "always"
+    MISSING = "missing"
+    NEVER = "never"
+
+    def __str__(self):
+        return self.value
+
+
 PIPX_SHARED_PTH = "pipx_shared.pth"
 TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 14
 MINIMUM_PYTHON_VERSION = "3.9"
 MAN_SECTIONS = [f"man{i}" for i in range(1, 10)]
 FETCH_MISSING_PYTHON = os.environ.get("PIPX_FETCH_MISSING_PYTHON", False)
+
+_FETCH_PYTHON_VALID = True
+try:
+    FETCH_PYTHON = FetchPythonOptions(
+        os.environ.get("PIPX_FETCH_PYTHON", "missing" if FETCH_MISSING_PYTHON else "never")
+    )
+except ValueError:
+    FETCH_PYTHON = FetchPythonOptions.NEVER
+    _FETCH_PYTHON_VALID = False
+
+
+def _validate_fetch_python():
+    from pipx.util import PipxError
+
+    if not _FETCH_PYTHON_VALID:
+        raise PipxError(f"PIPX_FETCH_PYTHON must be unset or one of {{{', '.join(map(str, FetchPythonOptions))}}}.")
+    if "PIPX_FETCH_MISSING_PYTHON" in os.environ:
+        from warnings import warn
+
+        warn(
+            "The PIPX_FETCH_MISSING_PYTHON environment variable is deprecated and an"
+            f'alias for PIPX_FETCH_PYTHON="{FetchPythonOptions.MISSING}".',
+            stacklevel=2,
+        )
+        if "PIPX_FETCH_PYTHON" in os.environ:
+            raise PipxError("Setting both FETCH_MISSING_PYTHON and FETCH_PYTHON is invalid.")
 
 
 ExitCode = NewType("ExitCode", int)

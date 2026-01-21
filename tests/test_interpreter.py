@@ -8,7 +8,7 @@ import pytest  # type: ignore[import-not-found]
 import pipx.interpreter
 import pipx.paths
 import pipx.standalone_python
-from pipx.constants import WINDOWS
+from pipx.constants import WINDOWS, FetchPythonOptions
 from pipx.interpreter import (
     InterpreterResolutionError,
     _find_default_windows_python,
@@ -190,7 +190,7 @@ def test_fetch_missing_python(monkeypatch, mocked_github_api):
     minor = sys.version_info.minor
     target_python = f"{major}.{minor}"
 
-    python_path = find_python_interpreter(target_python, fetch_missing_python=True)
+    python_path = find_python_interpreter(target_python, fetch_python=FetchPythonOptions.MISSING)
     assert python_path is not None
     assert target_python in python_path
     assert str(pipx.paths.ctx.standalone_python_cachedir) in python_path

@@ -8,7 +8,7 @@ from typing import Optional
 
 from packaging import version
 
-from pipx.constants import FETCH_MISSING_PYTHON, WINDOWS
+from pipx.constants import WINDOWS, FetchPythonOptions
 from pipx.standalone_python import download_python_build_standalone
 from pipx.util import PipxError
 
@@ -83,7 +83,17 @@ def find_unix_command_python(python_version: str) -> Optional[str]:
     return python_path
 
 
-def find_python_interpreter(python_version: str, fetch_missing_python: bool = False) -> str:
+def _fetch_standalone_interpreter(python_version: str):
+    try:
+        return download_python_build_standalone(python_version)
+    except PipxError as e:
+        raise InterpreterResolutionError(source="the python-build-standalone project", version=python_version) from e
+
+
+def find_python_interpreter(python_version: str, fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER) -> str:
+    if fetch_python == FetchPythonOptions.ALWAYS:
+        return _fetch_standalone_interpreter(python_version)
+
     if Path(python_version).is_file() or shutil.which(python_version):
         return python_version
 
@@ -97,14 +107,11 @@ def find_python_interpreter(python_version: str, fetch_missing_python: bool = Fa
         if py_executable:
             return py_executable
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        if not fetch_missing_python and not FETCH_MISSING_PYTHON:
+        if fetch_python != FetchPythonOptions.MISSING:
             raise InterpreterResolutionError(source="py launcher", version=python_version) from e
 
-    if fetch_missing_python or FETCH_MISSING_PYTHON:
-        try:
-            return download_python_build_standalone(python_version)
-        except PipxError as e:
-            raise InterpreterResolutionError(source="the python-build-standalone project", version=python_version) from e
+    if fetch_python == FetchPythonOptions.MISSING:
+        return _fetch_standalone_interpreter(python_version)
 
     raise InterpreterResolutionError(source="PATH", version=python_version)
 

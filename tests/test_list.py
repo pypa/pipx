@@ -170,7 +170,7 @@ def test_list_standalone_interpreter(pipx_temp_env, monkeypatch, mocked_github_a
     assert not run_pipx_cli(
         [
             "install",
-            "--fetch-missing-python",
+            "--fetch-python=missing",
             "--python",
             target_python,
             PKG["pycowsay"]["spec"],
