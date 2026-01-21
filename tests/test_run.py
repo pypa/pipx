@@ -477,3 +477,13 @@ def test_run_local_path_entry_point(pipx_temp_env, caplog, root):
     run_pipx_cli_exit(["run", empty_project_path])
 
     assert "Using discovered entry point for 'pipx run'" in caplog.text
+
+
+@mock.patch("pipx.commands.run.exec_app")
+def test_run_inspect(exec_app, tmp_path):
+    script = tmp_path / "test.py"
+    script.write_text("a = 1 + 1")
+
+    run_pipx_cli(["run", "--inspect", str(script)])
+
+    exec_app.assert_called_once_with([mock.ANY, "-i", script])
