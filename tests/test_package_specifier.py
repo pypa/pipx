@@ -39,12 +39,12 @@ def test_valid_pypi_name(package_spec_in, package_name_out):
         (
             "nox@https://github.com/ambv/black/archive/18.9b0.zip",
             "black",
-            "black@ https://github.com/ambv/black/archive/18.9b0.zip",
+            "black @ https://github.com/ambv/black/archive/18.9b0.zip",
         ),
         (
             "nox[extra]@https://github.com/ambv/black/archive/18.9b0.zip",
             "black",
-            "black[extra]@ https://github.com/ambv/black/archive/18.9b0.zip",
+            "black[extra] @ https://github.com/ambv/black/archive/18.9b0.zip",
         ),
     ],
 )
@@ -75,7 +75,7 @@ _ROOT = Path(__file__).parents[1]
         ),
         (
             "nox@git+https://github.com/cs01/nox.git@5ea70723e9e6",
-            "nox@ git+https://github.com/cs01/nox.git@5ea70723e9e6",
+            "nox @ git+https://github.com/cs01/nox.git@5ea70723e9e6",
             True,
         ),
         (
@@ -85,22 +85,22 @@ _ROOT = Path(__file__).parents[1]
         ),
         (
             "black@https://github.com/ambv/black/archive/18.9b0.zip",
-            "black@ https://github.com/ambv/black/archive/18.9b0.zip",
+            "black @ https://github.com/ambv/black/archive/18.9b0.zip",
             True,
         ),
         (
             "black @ https://github.com/ambv/black/archive/18.9b0.zip",
-            "black@ https://github.com/ambv/black/archive/18.9b0.zip",
+            "black @ https://github.com/ambv/black/archive/18.9b0.zip",
             True,
         ),
         (
             "black[extra] @ https://github.com/ambv/black/archive/18.9b0.zip",
-            "black[extra]@ https://github.com/ambv/black/archive/18.9b0.zip",
+            "black[extra] @ https://github.com/ambv/black/archive/18.9b0.zip",
             True,
         ),
         (
             'my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git ; python_version<"3.8"',
-            "my-project[cli]@ git+ssh://git@bitbucket.org/my-company/myproject.git",
+            "my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git",
             True,
         ),
         ("path/doesnt/exist", "non-existent-path", False),
@@ -143,7 +143,7 @@ def test_parse_specifier_for_metadata(package_spec_in, package_or_url_correct, v
         ),
         (
             "nox@git+https://github.com/cs01/nox.git@5ea70723e9e6",
-            "nox@ git+https://github.com/cs01/nox.git@5ea70723e9e6",
+            "nox @ git+https://github.com/cs01/nox.git@5ea70723e9e6",
             True,
         ),
         (
@@ -153,22 +153,22 @@ def test_parse_specifier_for_metadata(package_spec_in, package_or_url_correct, v
         ),
         (
             "black@https://github.com/ambv/black/archive/18.9b0.zip",
-            "black@ https://github.com/ambv/black/archive/18.9b0.zip",
+            "black @ https://github.com/ambv/black/archive/18.9b0.zip",
             True,
         ),
         (
             "black @ https://github.com/ambv/black/archive/18.9b0.zip",
-            "black@ https://github.com/ambv/black/archive/18.9b0.zip",
+            "black @ https://github.com/ambv/black/archive/18.9b0.zip",
             True,
         ),
         (
             "black[extra] @ https://github.com/ambv/black/archive/18.9b0.zip",
-            "black[extra]@ https://github.com/ambv/black/archive/18.9b0.zip",
+            "black[extra] @ https://github.com/ambv/black/archive/18.9b0.zip",
             True,
         ),
         (
             'my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git ; python_version<"3.8"',
-            "my-project[cli]@ git+ssh://git@bitbucket.org/my-company/myproject.git",
+            "my-project[cli] @ git+ssh://git@bitbucket.org/my-company/myproject.git",
             True,
         ),
         ("path/doesnt/exist", "non-existent-path", False),
