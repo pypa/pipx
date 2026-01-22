@@ -349,7 +349,7 @@ def test_run_with_failing_requirements(capfd, pipx_temp_env, tmp_path):
     captured = capfd.readouterr()
 
     assert return_code != 0
-    assert "Error installing will_fail@ git+https://0.0.0.0/will_fail.git." in captured.err
+    assert "Error installing will_fail @ git+https://0.0.0.0/will_fail.git." in captured.err
 
     # Attempt second invocation of `pipx run`.
     # If above failure was detected and the temporary venv marked for deletion,
@@ -360,7 +360,7 @@ def test_run_with_failing_requirements(capfd, pipx_temp_env, tmp_path):
 
     assert return_code != 0
     assert "ModuleNotFoundError: No module named 'will_fail'" not in captured.err
-    assert "Error installing will_fail@ git+https://0.0.0.0/will_fail.git." in captured.err
+    assert "Error installing will_fail @ git+https://0.0.0.0/will_fail.git." in captured.err
 
 
 def test_pip_args_forwarded_to_shared_libs(pipx_ultra_temp_env, capsys, caplog):
