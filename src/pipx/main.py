@@ -816,7 +816,7 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
             f"""
             Download the latest version of a package to a temporary virtual environment,
             then run an app from it. The environment will be cached
-            and re-used for up to {constants.TEMP_VENV_EXPIRATION_THRESHOLD_DAYS} days. This
+            and reused for up to {constants.TEMP_VENV_EXPIRATION_THRESHOLD_DAYS} days. This
             means subsequent calls to 'run' for the same package will be faster
             since they can reuse the cached Virtual Environment.
 
