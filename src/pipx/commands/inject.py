@@ -28,6 +28,8 @@ def inject_dep(
     include_apps: bool,
     include_dependencies: bool,
     force: bool,
+    upgrade: bool,
+    upgrade_strategy: Optional[str],
     suffix: bool = False,
 ) -> bool:
     logger.debug("Injecting package %s", package_spec)
@@ -64,7 +66,11 @@ def inject_dep(
             verbose=verbose,
         )
 
-    if not force and venv.has_package(package_name):
+    if upgrade:
+        pip_args = ["--upgrade"] + pip_args
+        if upgrade_strategy is not None:
+            pip_args += ["--upgrade-strategy", upgrade_strategy]
+    elif not force and venv.has_package(package_name):
         logger.info("Package %s has already been injected", package_name)
         print(
             pipx_wrap(
@@ -119,6 +125,8 @@ def inject(
     include_apps: bool,
     include_dependencies: bool,
     force: bool,
+    upgrade: bool,
+    upgrade_strategy: Optional[str],
     suffix: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
@@ -148,6 +156,8 @@ def inject(
             include_apps=include_apps,
             include_dependencies=include_dependencies,
             force=force,
+            upgrade=upgrade,
+            upgrade_strategy=upgrade_strategy,
             suffix=suffix,
         )
 

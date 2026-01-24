@@ -290,6 +290,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             venv_args,
             verbose,
             force=args.force,
+            upgrade=args.upgrade,
+            upgrade_strategy=args.upgrade_strategy,
             reinstall=False,
             include_dependencies=args.include_deps,
             preinstall_packages=args.preinstall,
@@ -318,6 +320,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             include_apps=args.include_apps,
             include_dependencies=args.include_deps,
             force=args.force,
+            upgrade=args.upgrade,
+            upgrade_strategy=args.upgrade_strategy,
             suffix=args.with_suffix,
         )
     elif args.command == "uninject":
@@ -340,6 +344,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             force=args.force,
             install=args.install,
             python_flag_passed=python_flag_passed,
+            upgrade_strategy=args.upgrade_strategy,
         )
     elif args.command == "upgrade-all":
         return commands.upgrade_all(
@@ -350,6 +355,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             force=args.force,
             pip_args=pip_args,
             python_flag_passed=python_flag_passed,
+            upgrade_strategy=args.upgrade_strategy,
         )
     elif args.command == "upgrade-shared":
         return commands.upgrade_shared(
@@ -501,6 +507,22 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
             "installing the main package. Use this flag multiple times if you want to preinstall multiple packages."
         ),
     )
+    p.add_argument(
+        "--upgrade",
+        action="store_true",
+        help="Upgrade packages if already installed with `pip install --upgrade`",
+    )
+    p.add_argument(
+        "--upgrade-strategy",
+        nargs=1,
+        choices=["eager", "only-if-needed"],
+        help=(
+            "Determines how dependency upgrading is handled. "
+            '"eager" upgrades all dependencies regardless of whether version requirements are satisfied by the main package. '
+            '"only-if-needed" upgrades dependencies only when they do not satisfy requirements. '
+            'Default "only-if-needed" if --upgrade is provided. Ignored if --upgrade is not specified.'
+        ),
+    )
     add_pip_venv_args(p)
 
 
@@ -568,6 +590,22 @@ def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
         "-f",
         action="store_true",
         help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
+    )
+    p.add_argument(
+        "--upgrade",
+        action="store_true",
+        help="Upgrade packages if already installed with `pip install --upgrade`",
+    )
+    p.add_argument(
+        "--upgrade-strategy",
+        nargs=1,
+        choices=["eager", "only-if-needed"],
+        help=(
+            "Determines how dependency upgrading is handled. "
+            '"eager" upgrades all dependencies regardless of whether version requirements are satisfied by the main package. '
+            '"only-if-needed" upgrades dependencies only when they do not satisfy requirements. '
+            'Default "only-if-needed" if --upgrade is provided. Ignored if --upgrade is not specified.'
+        ),
     )
     p.add_argument(
         "--with-suffix",
@@ -658,6 +696,17 @@ def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argpa
         action="store_true",
         help="Install package spec if missing",
     )
+    p.add_argument(
+        "--upgrade-strategy",
+        nargs=1,
+        choices=["eager", "only-if-needed"],
+        help=(
+            "Determines how dependency upgrading is handled. "
+            '"eager" upgrades all dependencies regardless of whether version requirements are satisfied by the main package. '
+            '"only-if-needed" upgrades dependencies only when they do not satisfy requirements. '
+            'Default "only-if-needed" if --upgrade is provided. Ignored if --upgrade is not specified.'
+        ),
+    )
     add_python_options(p)
 
 
@@ -679,6 +728,17 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argp
         "-f",
         action="store_true",
         help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
+    )
+    p.add_argument(
+        "--upgrade-strategy",
+        nargs=1,
+        choices=["eager", "only-if-needed"],
+        help=(
+            "Determines how dependency upgrading is handled. "
+            '"eager" upgrades all dependencies regardless of whether version requirements are satisfied by the main package. '
+            '"only-if-needed" upgrades dependencies only when they do not satisfy requirements. '
+            'Default "only-if-needed" if --upgrade is provided. Ignored if --upgrade is not specified.'
+        ),
     )
 
 
