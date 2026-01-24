@@ -110,7 +110,6 @@ def inject_dep(
 
 def inject(
     venv_dir: Path,
-    package_name: Optional[str],
     package_specs: Iterable[str],
     requirement_files: Iterable[str],
     pip_args: List[str],

@@ -220,7 +220,6 @@ def install_all(
             for inject_package in venv_metadata.injected_packages.values():
                 commands.inject(
                     venv_dir=venv_dir,
-                    package_name=None,
                     package_specs=[generate_package_spec(inject_package)],
                     requirement_files=[],
                     pip_args=pip_args,
