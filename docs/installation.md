@@ -113,6 +113,22 @@ terminal session and verify `pipx` does run.
 > It is not recommended to install `pipx` via `pipx`. If you'd like to do this anyway, take a look at the
 > [`pipx-in-pipx`](https://github.com/mattsb42-meta/pipx-in-pipx) project and read about the limitations there.
 
+
+### On FreeBSD:
+
+- Install via package manager
+
+```sh
+pkg install -y py311-pipx
+```
+
+- Install via pip
+
+```sh
+pip install --user pipx
+pipx ensurepath
+```
+
 ### Using pipx without installing (via zipapp)
 
 The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a
