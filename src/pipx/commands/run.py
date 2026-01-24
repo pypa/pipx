@@ -78,6 +78,8 @@ def run_script(
     venv_args: List[str],
     verbose: bool,
     use_cache: bool,
+    backend: str,
+    installer: str,
 ) -> NoReturn:
     requirements = _get_requirements_from_script(content)
     if not requirements:
@@ -96,7 +98,7 @@ def run_script(
         if venv_dir.exists():
             logger.info(f"Reusing cached venv {venv_dir}")
         else:
-            venv = Venv(venv_dir, python=python, verbose=verbose)
+            venv = Venv(venv_dir, python=python, verbose=verbose, backend=backend, installer=installer)
             venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
             venv.create_venv(venv_args, pip_args)
             try:
@@ -125,6 +127,8 @@ def run_package(
     pypackages: bool,
     verbose: bool,
     use_cache: bool,
+    backend: str,
+    installer: str,
 ) -> NoReturn:
     if which(app):
         logger.warning(
@@ -158,7 +162,7 @@ def run_package(
 
     venv_dir = _get_temporary_venv_path([package_or_url], python, pip_args, venv_args)
 
-    venv = Venv(venv_dir)
+    venv = Venv(venv_dir, backend=backend, installer=installer)
     bin_path = venv.bin_path / app_filename
     _prepare_venv_cache(venv, bin_path, use_cache)
 
@@ -178,6 +182,8 @@ def run_package(
             venv_args,
             use_cache,
             verbose,
+            backend,
+            installer,
         )
 
 
@@ -192,6 +198,8 @@ def run(
     pypackages: bool,
     verbose: bool,
     use_cache: bool,
+    backend: str,
+    installer: str,
 ) -> NoReturn:
     """Installs venv to temporary dir (or reuses cache), then runs app from
     package
@@ -207,7 +215,7 @@ def run(
 
     content = None if spec is not None else maybe_script_content(app, is_path)
     if content is not None:
-        run_script(content, app_args, python, pip_args, venv_args, verbose, use_cache)
+        run_script(content, app_args, python, pip_args, venv_args, verbose, use_cache, backend, installer)
     else:
         package_or_url = spec if spec is not None else app
         run_package(
@@ -220,6 +228,8 @@ def run(
             pypackages,
             verbose,
             use_cache,
+            backend,
+            installer,
         )
 
 
@@ -234,8 +244,10 @@ def _download_and_run(
     venv_args: List[str],
     use_cache: bool,
     verbose: bool,
+    backend: str,
+    installer: str,
 ) -> NoReturn:
-    venv = Venv(venv_dir, python=python, verbose=verbose)
+    venv = Venv(venv_dir, python=python, verbose=verbose, backend=backend, installer=installer)
     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
 
     if venv.pipx_metadata.main_package.package is not None:

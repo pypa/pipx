@@ -93,6 +93,12 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_
     if "PIPX_DEFAULT_PYTHON" in os.environ:
         monkeypatch.delenv("PIPX_DEFAULT_PYTHON")
 
+    if "PIPX_DEFAULT_BACKEND" in os.environ:
+        monkeypatch.delenv("PIPX_DEFAULT_BACKEND")
+
+    if "PIPX_DEFAULT_INSTALLER" in os.environ:
+        monkeypatch.delenv("PIPX_DEFAULT_INSTALLER")
+
     # macOS needs /usr/bin in PATH to compile certain packages, but
     #   applications in /usr/bin cause test_install.py tests to raise warnings
     #   which make tests fail (e.g. on Github ansible apps exist in /usr/bin)
@@ -181,7 +187,7 @@ def pipx_session_shared_dir(tmp_path_factory):
 @pytest.fixture(scope="session")
 def utils_temp_dir(tmp_path_factory):
     tmp_path = tmp_path_factory.mktemp("session_utilstempdir")
-    utils = ["git"]
+    utils = ["git", "uv", "virtualenv"]
     for util in utils:
         at_path = shutil.which(util)
         assert at_path is not None
