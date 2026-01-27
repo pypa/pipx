@@ -423,6 +423,11 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         return ExitCode(0)
     elif args.command == "environment":
         return commands.environment(value=args.value)
+    elif args.command == "help":
+        for i in range(2, len(sys.argv)):
+            sys.argv[i - 1] = sys.argv[i]
+        sys.argv[len(sys.argv) - 1] = "--help"
+        return cli()
     else:
         raise PipxError(f"Unknown command {args.command}")
 
@@ -939,6 +944,20 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
     )
 
 
+def _add_help(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+    p = subparsers.add_parser(
+        "help",
+        help="Print out help info for pipx or for a particular command (alias of --help).",
+        description="Print out help info for pipx or for a particular command (alias of --help).",
+        parents=[shared_parser],
+    )
+    p.add_argument(
+        "subcommands",
+        nargs="*",
+        help="Print out help for the specified command, if provided, using pipx help COMMAND",
+    )
+
+
 def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.ArgumentParser]]:
     venv_container = VenvContainer(paths.ctx.venvs)
 
@@ -984,7 +1003,9 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
     )
     parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore[attr-defined]
 
-    subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
+    subparsers = parser.add_subparsers(
+        dest="command", description="Get help for commands with pipx COMMAND --help or pipx help COMMAND"
+    )
 
     subparsers_with_subcommands = {}
     _add_install(subparsers, shared_parser)
@@ -1006,6 +1027,7 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
     _add_runpip(subparsers, completer_venvs.use, shared_parser)
     _add_ensurepath(subparsers, shared_parser)
     _add_environment(subparsers, shared_parser)
+    _add_help(subparsers, shared_parser)
 
     parser.add_argument("--version", action="store_true", help="Print version and exit")
     subparsers.add_parser(
