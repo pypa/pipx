@@ -399,10 +399,9 @@ class Venv:
         if cmd_run.returncode != 0:
             raise PipxError(
                 f"""
-                Failed to execute pip list - {cmd_run.args}. Process exited with return code
-                {cmd_run.returncode}.\n
-                stderr:\n
-                {"\t".join(cmd_run.stderr.split("\n"))}
+                Failed to execute {cmd_run.args}.
+                Process exited with return code {cmd_run.returncode}.
+                stderr: {cmd_run.stderr}
                 """
             )
 
