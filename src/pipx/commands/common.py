@@ -135,7 +135,7 @@ def _symlink_package_resource(
         logger.info(f"Force is true. Removing {symlink_path!s}.")
         try:
             symlink_path.unlink()
-        except FileNotFoundError:
+        except (FileNotFoundError, RuntimeError):
             pass
         except IsADirectoryError:
             rmdir(symlink_path)
@@ -307,7 +307,7 @@ def get_exposed_paths_for_package(
             if is_same_file:
                 symlinks.add(b)
 
-        except FileNotFoundError:
+        except (FileNotFoundError, RuntimeError):
             pass
     return symlinks
 
