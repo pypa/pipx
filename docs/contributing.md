@@ -199,7 +199,7 @@ Upon opening pull requests GitHub Actions will automatically trigger.
 
 ## Building Documentation
 
-`pipx` autogenerate API documentation, and also uses templates.
+`pipx` autogenerates API documentation, and also uses templates.
 
 When updating pipx docs, make sure you are modifying the `docs` directory.
 

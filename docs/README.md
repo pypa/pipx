@@ -249,7 +249,7 @@ pipx install "git+https://github.com/psf/black.git#egg=black[jupyter]"
 
 ### Inject a package
 
-If an application installed by pipx requires additional packages, you can add them with pipx inject. For example, if you have ```ipython``` installed and want to add the ```matplotlib``` package to it, you would use:
+If an application installed by pipx requires additional packages, you can add them with pipx inject. For example, if you have `ipython` installed and want to add the `matplotlib` package to it, you would use:
 
 ```
 pipx inject ipython matplotlib
@@ -352,8 +352,7 @@ usage: pipx run [-h] [--no-cache] [--pypackages] [--spec SPEC] [--verbose] [--py
 pipx run: error: ambiguous option: --py could match --pypackages, --python
 ```
 
-To prevent this put double dash `--` before APP. It will make pipx to forward the arguments to the right verbatim to the
-application:
+To prevent this, put double dash `--` before APP. It will make pipx forward the arguments to the application verbatim:
 
 ```
 > pipx run -- pycowsay --py
