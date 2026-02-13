@@ -94,6 +94,7 @@ PIPX_DESCRIPTION += pipx_wrap(
       PIPX_DEFAULT_PYTHON    Overrides default python used for commands.
       PIPX_USE_EMOJI         Overrides emoji behavior. Default value varies based on platform.
       PIPX_HOME_ALLOW_SPACE  Overrides default warning on spaces in the home path
+      MAX_PIPX_LOGS          Maximum number of pipx command log files to keep (default: 10).
     """,
     subsequent_indent=" " * 24,  # match the indent of argparse options
     keep_newlines=True,
@@ -1027,8 +1028,20 @@ def delete_oldest_logs(file_list: List[Path], keep_number: int) -> None:
                 pass
 
 
+def _get_max_logs() -> int:
+    default = 10
+    raw = os.getenv("MAX_PIPX_LOGS")
+    if raw is None:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
 def _setup_log_file(pipx_log_dir: Optional[Path] = None) -> Path:
-    max_logs = 10
+    max_logs = _get_max_logs()
     pipx_log_dir = pipx_log_dir or paths.ctx.logs
     # don't use utils.mkdir, to prevent emission of log message
     pipx_log_dir.mkdir(parents=True, exist_ok=True)
