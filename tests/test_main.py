@@ -1,6 +1,4 @@
-import os
 import sys
-from pathlib import Path
 from unittest import mock
 
 import pytest  # type: ignore[import-not-found]
@@ -46,8 +44,7 @@ def test_limit_verbosity():
 
 def test_max_pipx_logs_env_var(tmp_path, monkeypatch):
     """Test that MAX_PIPX_LOGS environment variable is respected."""
-    import tempfile
-    from pipx.main import _setup_log_file, delete_oldest_logs
+    from pipx.main import _setup_log_file
 
     log_dir = tmp_path / "logs"
 
