@@ -1,7 +1,7 @@
 import os
 import sys
 
-if not __package__:
+if not __spec__ or not __spec__.parent:
     # Running from source. Add pipx's source code to the system
     # path to allow direct invocation, such as:
     #   python src/pipx --help
