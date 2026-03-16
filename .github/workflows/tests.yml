@@ -80,7 +80,7 @@ jobs:
         run: nox --error-on-missing-interpreters --non-interactive --session zipapp
       - name: Test zipapp by installing black
         run: python ./pipx.pyz install black
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: pipx.pyz
           path: pipx.pyz
