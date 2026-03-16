@@ -272,6 +272,6 @@ def test_parse_specifier_for_install(
     root,
 ):
     monkeypatch.chdir(root)
-    [package_or_url_out, pip_args_out] = parse_specifier_for_install(package_spec_in, pip_args_in)
+    [_package_or_url_out, _pip_args_out] = parse_specifier_for_install(package_spec_in, pip_args_in)
     if warning_str is not None:
         assert warning_str in caplog.text
