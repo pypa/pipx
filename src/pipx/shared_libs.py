@@ -1,6 +1,7 @@
 import datetime
 import logging
 import time
+from configparser import ConfigParser
 from contextlib import suppress
 from pathlib import Path
 from typing import Dict, List
@@ -23,6 +24,42 @@ logger = logging.getLogger(__name__)
 
 
 SHARED_LIBS_MAX_AGE_SEC = datetime.timedelta(days=30).total_seconds()
+
+
+def _venv_python_is_valid(python_path: Path) -> bool:
+    """Check if a venv's Python is valid and its underlying interpreter exists.
+
+    On Windows, a venv's python.exe is a wrapper that uses pyvenv.cfg to find
+    the actual Python installation. If the original Python is uninstalled,
+    the wrapper exists but cannot execute. This function checks that the
+    underlying interpreter referenced in pyvenv.cfg still exists.
+    """
+    if not WINDOWS:
+        return True
+
+    pyvenv_cfg = python_path.parent.parent / "pyvenv.cfg"
+    if not pyvenv_cfg.is_file():
+        return True
+
+    try:
+        config = ConfigParser()
+        with open(pyvenv_cfg, "r", encoding="utf-8") as f:
+            # ConfigParser needs a section header, pyvenv.cfg doesn't have one
+            config.read_string("[DEFAULT]\n" + f.read())
+        home = config.get("DEFAULT", "home", fallback=None)
+        if home:
+            # The home path points to the directory containing the original python.exe
+            original_python = Path(home) / "python.exe"
+            if not original_python.is_file():
+                logger.info(
+                    f"Shared libs venv references a missing Python interpreter: {original_python}"
+                )
+                return False
+    except Exception:
+        # If we can't read pyvenv.cfg, assume the venv is valid
+        pass
+
+    return True
 
 
 class _SharedLibs:
@@ -78,6 +115,10 @@ class _SharedLibs:
     @property
     def is_valid(self) -> bool:
         if self.python_path.is_file():
+            # On Windows, check that the venv's underlying Python still exists
+            if not _venv_python_is_valid(self.python_path):
+                return False
+
             check_pip = "import importlib.util; print(importlib.util.find_spec('pip'))"
             out = run_subprocess(
                 [self.python_path, "-c", check_pip],
