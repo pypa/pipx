@@ -446,7 +446,7 @@ def test_run_script_by_file_descriptor(caplog, pipx_temp_env, monkeypatch, tmp_p
         textwrap.dedent(
             f"""
                 from pathlib import Path
-                Path({repr(str(out))}).write_text({repr(test_str)})
+                Path({str(out)!r}).write_text({test_str!r})
             """
         )
         .strip()
