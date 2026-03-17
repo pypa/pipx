@@ -1,10 +1,10 @@
 ## pipx vs pip
 
-- pip is a general Python package installer. It can be used to install libraries or cli applications with entrypoints.
-- pipx is a specialized package installer. It can only be used to install packages with cli entrypoints.
+- pip is a general Python package installer. It can be used to install libraries or CLI applications with entrypoints.
+- pipx is a specialized package installer. It can only be used to install packages with CLI entrypoints.
 - pipx and pip both install packages from PyPI (or locally)
 - pipx relies on pip (and venv)
-- pipx replaces a subset of pip's functionality; it lets you install cli applications but NOT libraries that you import
+- pipx replaces a subset of pip's functionality; it lets you install CLI applications but NOT libraries that you import
   in your code.
 - you can install pipx with pip
 
@@ -12,8 +12,8 @@ Example interaction: Install pipx with pip: `pip install --user pipx`
 
 ## pipx vs poetry and pipenv
 
-- pipx is used solely for application consumption: you install cli apps with it
-- pipenv and poetry are cli apps used to develop applications and libraries
+- pipx is used solely for application consumption: you install CLI apps with it
+- pipenv and poetry are CLI apps used to develop applications and libraries
 - all three tools wrap pip and virtual environments for more convenient workflows
 
 Example interaction: Install pipenv and poetry with pipx: `pipx install poetry` Run pipenv or poetry with pipx:

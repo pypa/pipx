@@ -188,11 +188,11 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps": _exe_if_win(["chert"]),
         "apps_of_dependencies": _exe_if_win(["ashes", "markdown_py"]) + ["ashes.py"],
     },
-    "cloudtoken": {
-        "spec": "cloudtoken==2.1.0",
-        "apps": ["awstoken", "cloudtoken", "cloudtoken.app", "cloudtoken_proxy.sh"],
-        "apps_of_dependencies": _exe_if_win(["flask", "keyring", "normalizer"]) + ["jp.py"],
-    },
+    # "cloudtoken": {
+    #     "spec": "cloudtoken==2.1.0",
+    #     "apps": ["awstoken", "cloudtoken", "cloudtoken.app", "cloudtoken_proxy.sh"],
+    #     "apps_of_dependencies": _exe_if_win(["flask", "keyring", "normalizer"]) + ["jp.py"],
+    # },
     "coala": {
         "spec": "coala==0.11.0",
         "apps": _exe_if_win(["coala", "coala-ci", "coala-delete-orig", "coala-format", "coala-json"]),
@@ -248,7 +248,7 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "chardetect",  # chardet EXE
                 "gen_protorpc",  # EXE
                 "html2text",  # html2text EXE
-                "markdown_py",  # Markdwon EXE
+                "markdown_py",  # Markdown EXE
                 "pybabel",  # babel EXE
                 "pygmentize",  # pygments EXE
                 "pyrsa-decrypt",  # rsa EXE
@@ -480,7 +480,7 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "pasteurize",  # future EXE
                 "nltk",  # EXE
                 "tqdm",  # tqdm EXE
-                "markdown_py",  # Markdwon EXE
+                "markdown_py",  # Markdown EXE
             ]
         ),
     },
@@ -497,7 +497,7 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "docutils",
                 "doit",  # EXE
                 "mako-render",  # mako EXE
-                "markdown_py",  # Markdwon EXE
+                "markdown_py",  # Markdown EXE
                 "natsort",  # EXE
                 "pybabel",  # babel EXE
                 "pygmentize",  # pygments EXE
@@ -648,7 +648,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps_of_dependencies": _exe_if_win(
             [
                 "docutils",
-                "markdown_py",  # Markdwon EXE
+                "markdown_py",  # Markdown EXE
                 "pygmentize",  # pygments EXE
                 "pylupdate6",  # EXE
                 "pyuic6",  # EXE

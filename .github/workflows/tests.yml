@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  default-python: "3.12"
+  default-python: "3.13"
   minimum-supported-python: "3.9"
 
 jobs:
@@ -23,22 +23,22 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.12", "3.11", "3.10", "3.9"]
+        python-version: ["3.13", "3.12", "3.11", "3.10", "3.9"]
         include:
           - os: windows-latest
-            python-version: "3.12"
+            python-version: "3.13"
           - os: macos-latest
-            python-version: "3.12"
+            python-version: "3.13"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
       - name: Persistent .pipx_tests/package_cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ github.workspace }}/.pipx_tests/package_cache/${{ matrix.python-version }}
           key: pipx-tests-package-cache-${{ runner.os }}-${{ matrix.python-version }}
@@ -50,9 +50,9 @@ jobs:
     name: Build man page
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python ${{ env.default-python }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.default-python }}
           cache: "pip"
@@ -68,9 +68,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout ${{ github.ref }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up Python ${{ env.minimum-supported-python }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.minimum-supported-python }}
           cache: "pip"
@@ -80,7 +80,7 @@ jobs:
         run: nox --error-on-missing-interpreters --non-interactive --session zipapp
       - name: Test zipapp by installing black
         run: python ./pipx.pyz install black
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: pipx.pyz
           path: pipx.pyz

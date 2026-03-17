@@ -187,3 +187,45 @@ This example pins `pip` (temporarily, until the next automatic upgrade, if that 
 ```shell
 > pipx upgrade-shared --pip-args=pip==24.0
 ```
+
+## `pipx pin` examples
+
+Pinning keeps an installation at its current version until you call `pipx unpin`.
+
+Pin the entire environment (main package plus anything injected):
+
+```shell
+> pipx install httpie
+> pipx pin httpie
+> pipx list --pinned
+httpie <current version>
+```
+
+Pin only injected packages so the main package can continue to receive upgrades:
+
+```shell
+> pipx inject poetry poetry-plugin-export poetry-plugin-app
+> pipx pin poetry --injected-only
+Pinned 2 packages in venv poetry
+  - poetry-plugin-export <current version>
+  - poetry-plugin-app <current version>
+```
+
+Skip selected injected packages when pinning:
+
+```shell
+> pipx inject pdm pdm-django pdm-pytorch
+> pipx pin pdm --skip pdm-django
+Pinned 1 packages in venv pdm
+  - pdm-pytorch <current version>
+```
+
+Unpin everything so upgrades resume:
+
+```shell
+> pipx unpin poetry
+Unpinned 2 packages in venv poetry
+  - poetry
+  - poetry-plugin-export
+  - poetry-plugin-app
+```

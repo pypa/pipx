@@ -8,12 +8,13 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 from shutil import which
-from typing import List, NoReturn, Optional, Union
+from typing import List, NoReturn, Optional, Tuple, Union
 
 from packaging.requirements import InvalidRequirement, Requirement
 
 from pipx import paths
 from pipx.commands.common import package_name_from_spec
+from pipx.commands.inject import inject_dep
 from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
 from pipx.emojis import hazard
 from pipx.util import (
@@ -43,8 +44,8 @@ Available executable scripts:
 
 
 def maybe_script_content(app: str, is_path: bool) -> Optional[Union[str, Path]]:
-    # If the app is a script, return its content.
-    # Return None if it should be treated as a package name.
+    """If the app is a script, return its content.
+    Return None if it should be treated as a package name."""
 
     # Look for a local file first.
     app_path = Path(app)
@@ -84,7 +85,7 @@ def run_script(
     use_cache: bool,
 ) -> NoReturn:
     requirements = _get_requirements_from_script(content)
-    if requirements is None:
+    if not requirements:
         python_path = Path(python)
     else:
         # Note that the environment name is based on the identified
@@ -103,7 +104,14 @@ def run_script(
             venv = Venv(venv_dir, python=python, verbose=verbose)
             venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
             venv.create_venv(venv_args, pip_args)
-            venv.install_unmanaged_packages(requirements, pip_args)
+            try:
+                venv.install_unmanaged_packages(requirements, pip_args)
+            except:
+                # Package installation failed, so mark the cache as expired.
+                # This ensures an attempt is made to re-install requirements
+                # when `pipx run` is next executed, rather than just failing.
+                (venv_dir / VENV_EXPIRED_FILENAME).touch()
+                raise
         python_path = venv.python_path
 
     if isinstance(content, Path):
@@ -115,6 +123,7 @@ def run_script(
 def run_package(
     app: str,
     package_or_url: str,
+    dependencies: List[str],
     app_args: List[str],
     python: str,
     pip_args: List[str],
@@ -161,15 +170,13 @@ def run_package(
 
     if venv.has_app(app, app_filename):
         logger.info(f"Reusing cached venv {venv_dir}")
-        venv.run_app(app, app_filename, app_args)
     else:
         logger.info(f"venv location is {venv_dir}")
-        _download_and_run(
+        venv, app, app_filename = _prepare_venv(
             Path(venv_dir),
             package_or_url,
             app,
             app_filename,
-            app_args,
             python,
             pip_args,
             venv_args,
@@ -177,10 +184,24 @@ def run_package(
             verbose,
         )
 
+    for dep in dependencies:
+        inject_dep(
+            venv_dir=venv_dir,
+            package_name=None,
+            package_spec=dep,
+            pip_args=pip_args,
+            verbose=verbose,
+            include_apps=False,
+            include_dependencies=False,
+            force=False,
+        )
+    venv.run_app(app, app_filename, app_args)
+
 
 def run(
     app: str,
     spec: str,
+    dependencies: List[str],
     is_path: bool,
     app_args: List[str],
     python: str,
@@ -210,6 +231,7 @@ def run(
         run_package(
             package_name,
             package_or_url,
+            dependencies,
             app_args,
             python,
             pip_args,
@@ -220,18 +242,17 @@ def run(
         )
 
 
-def _download_and_run(
+def _prepare_venv(
     venv_dir: Path,
     package_or_url: str,
     app: str,
     app_filename: str,
-    app_args: List[str],
     python: str,
     pip_args: List[str],
     venv_args: List[str],
     use_cache: bool,
     verbose: bool,
-) -> NoReturn:
+) -> Tuple[Venv, str, str]:
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
 
@@ -279,7 +300,7 @@ def _download_and_run(
         # Let future _remove_all_expired_venvs know to remove this
         (venv_dir / VENV_EXPIRED_FILENAME).touch()
 
-    venv.run_app(app, app_filename, app_args)
+    return venv, app, app_filename
 
 
 def _get_temporary_venv_path(requirements: List[str], python: str, pip_args: List[str], venv_args: List[str]) -> Path:

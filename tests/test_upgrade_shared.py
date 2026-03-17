@@ -8,7 +8,7 @@ from helpers import run_pipx_cli
 @pytest.fixture
 def shared_libs(pipx_ultra_temp_env):
     # local import to get the shared_libs object patched by fixtures
-    from pipx.shared_libs import shared_libs as _shared_libs
+    from pipx.shared_libs import shared_libs as _shared_libs  # noqa: PLC0415
 
     yield _shared_libs
 
