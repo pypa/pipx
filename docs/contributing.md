@@ -243,8 +243,9 @@ graph TD
     L --> M[Build Wheel & Sdist]:::build
     M --> N[Publish to PyPI]:::publish
     N --> O[Create GitHub Release]:::publish
-    O --> P[Build & Upload Zipapp]:::build
-    P --> Q[Release Complete]:::complete
+    O --> P[Build Zipapp]:::build
+    P --> Q[Upload Zipapp to Release]:::publish
+    Q --> R[Release Complete]:::complete
 
     classDef user fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000
     classDef decision fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
