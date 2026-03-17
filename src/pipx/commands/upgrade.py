@@ -10,6 +10,7 @@ from pipx.commands.common import expose_resources_globally
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojis import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
+from pipx.shared_libs import shared_libs
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv, VenvContainer
 
@@ -274,8 +275,6 @@ def upgrade_shared(
     pip_args: List[str],
 ) -> ExitCode:
     """Return pipx exit code."""
-    from pipx.shared_libs import shared_libs
-
     shared_libs.upgrade(verbose=verbose, pip_args=pip_args, raises=True)
 
     return EXIT_CODE_OK
