@@ -1,7 +1,8 @@
 import json
 import sys
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator, List, Optional
+from typing import Optional
 
 from pipx import commands, paths
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
@@ -19,19 +20,19 @@ from pipx.venv import Venv, VenvContainer
 
 def install(
     venv_dir: Optional[Path],
-    package_names: Optional[List[str]],
-    package_specs: List[str],
+    package_names: Optional[list[str]],
+    package_specs: list[str],
     local_bin_dir: Path,
     local_man_dir: Path,
     python: Optional[str],
-    pip_args: List[str],
-    venv_args: List[str],
+    pip_args: list[str],
+    venv_args: list[str],
     verbose: bool,
     *,
     force: bool,
     reinstall: bool,
     include_dependencies: bool,
-    preinstall_packages: Optional[List[str]],
+    preinstall_packages: Optional[list[str]],
     suffix: str = "",
     python_flag_passed=False,
 ) -> ExitCode:
@@ -183,16 +184,16 @@ def install_all(
     local_bin_dir: Path,
     local_man_dir: Path,
     python: Optional[str],
-    pip_args: List[str],
-    venv_args: List[str],
+    pip_args: list[str],
+    venv_args: list[str],
     verbose: bool,
     *,
     force: bool,
 ) -> ExitCode:
     """Return pipx exit code."""
     venv_container = VenvContainer(paths.ctx.venvs)
-    failed: List[str] = []
-    installed: List[str] = []
+    failed: list[str] = []
+    installed: list[str] = []
 
     for venv_metadata in extract_venv_metadata(spec_metadata_file):
         # Install the main package

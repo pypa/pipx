@@ -11,7 +11,7 @@ import re
 import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Set, Tuple
+from typing import Optional
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
@@ -32,7 +32,7 @@ class ParsedPackage:
     valid_local_path: Optional[str]
 
 
-def _split_path_extras(package_spec: str) -> Tuple[str, str]:
+def _split_path_extras(package_spec: str) -> tuple[str, str]:
     """Returns (path, extras_string)"""
     package_spec_extras_re = re.search(r"(.+)(\[.+\])", package_spec)
     if package_spec_extras_re:
@@ -41,7 +41,7 @@ def _split_path_extras(package_spec: str) -> Tuple[str, str]:
         return (package_spec, "")
 
 
-def _check_package_path(package_path: str) -> Tuple[Path, bool]:
+def _check_package_path(package_path: str) -> tuple[Path, bool]:
     pkg_path = Path(package_path)
     pkg_path_exists = pkg_path.exists()
 
@@ -140,7 +140,7 @@ def _parsed_package_to_package_or_url(parsed_package: ParsedPackage, remove_vers
     return package_or_url
 
 
-def parse_specifier_for_install(package_spec: str, pip_args: List[str]) -> Tuple[str, List[str]]:
+def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple[str, list[str]]:
     """Return package_or_url and pip_args suitable for pip install
 
     Specifically:
@@ -209,7 +209,7 @@ def parse_specifier_for_upgrade(package_spec: str) -> str:
     return _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=True)
 
 
-def get_extras(package_spec: str) -> Set[str]:
+def get_extras(package_spec: str) -> set[str]:
     parsed_package = _parse_specifier(package_spec)
     if parsed_package.valid_pep508 and parsed_package.valid_pep508.extras is not None:
         return parsed_package.valid_pep508.extras

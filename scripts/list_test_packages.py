@@ -6,12 +6,12 @@ import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any
 
 from test_packages_support import get_platform_list_path
 
 
-def process_command_line(argv: List[str]) -> argparse.Namespace:
+def process_command_line(argv: list[str]) -> argparse.Namespace:
     """Process command line invocation arguments and switches.
 
     Args:
@@ -43,8 +43,8 @@ def process_command_line(argv: List[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def parse_package_list(package_list_file: Path) -> List[Dict[str, Any]]:
-    output_list: List[Dict[str, Any]] = []
+def parse_package_list(package_list_file: Path) -> list[dict[str, Any]]:
+    output_list: list[dict[str, Any]] = []
     try:
         with package_list_file.open("r") as package_list_fh:
             for line in package_list_fh:
@@ -104,7 +104,7 @@ def create_test_packages_list(package_list_dir_path: Path, primary_package_list_
     return exit_code
 
 
-def download(test_package: Dict[str, str], verbose: bool) -> Set[str]:
+def download(test_package: dict[str, str], verbose: bool) -> set[str]:
     no_deps = test_package.get("no-deps", False)
     test_package_option_string = " (no-deps)" if no_deps else ""
     verbose_this_iteration = False
@@ -124,7 +124,7 @@ def download(test_package: Dict[str, str], verbose: bool) -> Set[str]:
         return {i.name for i in Path(download_dir).iterdir()}
 
 
-def main(argv: List[str]) -> int:
+def main(argv: list[str]) -> int:
     args = process_command_line(argv)
 
     return create_test_packages_list(Path(args.package_list_dir), Path(args.primary_package_list), args.verbose)

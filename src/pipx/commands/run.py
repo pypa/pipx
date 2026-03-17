@@ -8,7 +8,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 from shutil import which
-from typing import List, NoReturn, Optional, Tuple, Union
+from typing import NoReturn, Optional, Union
 
 from packaging.requirements import InvalidRequirement, Requirement
 
@@ -73,10 +73,10 @@ def maybe_script_content(app: str, is_path: bool) -> Optional[Union[str, Path]]:
 
 def run_script(
     content: Union[str, Path],
-    app_args: List[str],
+    app_args: list[str],
     python: str,
-    pip_args: List[str],
-    venv_args: List[str],
+    pip_args: list[str],
+    venv_args: list[str],
     verbose: bool,
     use_cache: bool,
 ) -> NoReturn:
@@ -119,11 +119,11 @@ def run_script(
 def run_package(
     app: str,
     package_or_url: str,
-    dependencies: List[str],
-    app_args: List[str],
+    dependencies: list[str],
+    app_args: list[str],
     python: str,
-    pip_args: List[str],
-    venv_args: List[str],
+    pip_args: list[str],
+    venv_args: list[str],
     pypackages: bool,
     verbose: bool,
     use_cache: bool,
@@ -197,12 +197,12 @@ def run_package(
 def run(
     app: str,
     spec: str,
-    dependencies: List[str],
+    dependencies: list[str],
     is_path: bool,
-    app_args: List[str],
+    app_args: list[str],
     python: str,
-    pip_args: List[str],
-    venv_args: List[str],
+    pip_args: list[str],
+    venv_args: list[str],
     pypackages: bool,
     verbose: bool,
     use_cache: bool,
@@ -244,11 +244,11 @@ def _prepare_venv(
     app: str,
     app_filename: str,
     python: str,
-    pip_args: List[str],
-    venv_args: List[str],
+    pip_args: list[str],
+    venv_args: list[str],
     use_cache: bool,
     verbose: bool,
-) -> Tuple[Venv, str, str]:
+) -> tuple[Venv, str, str]:
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
 
@@ -299,7 +299,7 @@ def _prepare_venv(
     return venv, app, app_filename
 
 
-def _get_temporary_venv_path(requirements: List[str], python: str, pip_args: List[str], venv_args: List[str]) -> Path:
+def _get_temporary_venv_path(requirements: list[str], python: str, pip_args: list[str], venv_args: list[str]) -> Path:
     """Computes deterministic path using hashing function on arguments relevant
     to virtual environment's end state. Arguments used should result in idempotent
     virtual environment. (i.e. args passed to app aren't relevant, but args
@@ -351,7 +351,7 @@ def _http_get_request(url: str) -> str:
 INLINE_SCRIPT_METADATA = re.compile(r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$")
 
 
-def _get_requirements_from_script(content: Union[str, Path]) -> Optional[List[str]]:
+def _get_requirements_from_script(content: Union[str, Path]) -> Optional[list[str]]:
     """
     Supports inline script metadata.
     """

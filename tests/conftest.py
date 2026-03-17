@@ -4,10 +4,10 @@ import shutil
 import socket
 import subprocess
 import sys
+from collections.abc import Iterator
 from contextlib import closing
 from http import HTTPStatus
 from pathlib import Path
-from typing import Iterator
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
