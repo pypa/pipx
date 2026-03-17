@@ -233,7 +233,6 @@ Once triggered, the pre-release workflow executes the `scripts/release.py` scrip
 The act of pushing a version tag (matching the pattern `*.*.*`) automatically triggers the main release workflow. This workflow builds the project distribution files, publishes the package to PyPI using trusted publishing, creates a GitHub release with auto-generated notes, and builds the zipapp using the minimum supported Python version before uploading it to the GitHub release assets.
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'actorBkg':'#e3f2fd','actorBorder':'#1976d2','actorTextColor':'#000','noteBkgColor':'#fff3e0','noteBorderColor':'#f57c00','noteTextColor':'#000','signalColor':'#7b1fa2','signalTextColor':'#000','labelBoxBkgColor':'#f3e5f5','labelBoxBorderColor':'#7b1fa2','activationBkgColor':'#c8e6c9','activationBorderColor':'#2e7d32'}}}%%
 sequenceDiagram
     actor M as Maintainer
     participant GH as GitHub Actions
