@@ -51,9 +51,7 @@ def _venv_python_is_valid(python_path: Path) -> bool:
             # The home path points to the directory containing the original python.exe
             original_python = Path(home) / "python.exe"
             if not original_python.is_file():
-                logger.info(
-                    f"Shared libs venv references a missing Python interpreter: {original_python}"
-                )
+                logger.info(f"Shared libs venv references a missing Python interpreter: {original_python}")
                 return False
     except Exception:
         # If we can't read pyvenv.cfg, assume the venv is valid
