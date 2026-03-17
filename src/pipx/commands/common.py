@@ -135,7 +135,7 @@ def _symlink_package_resource(
         logger.info(f"Force is true. Removing {symlink_path!s}.")
         try:
             symlink_path.unlink()
-        except FileNotFoundError:
+        except (FileNotFoundError, RuntimeError):
             pass
         except IsADirectoryError:
             rmdir(symlink_path)
@@ -307,7 +307,7 @@ def get_exposed_paths_for_package(
             if is_same_file:
                 symlinks.add(b)
 
-        except FileNotFoundError:
+        except (FileNotFoundError, RuntimeError):
             pass
     return symlinks
 
@@ -352,13 +352,13 @@ def _get_list_output(
     )
 
     if new_install and (exposed_binary_names or unavailable_binary_names):
-        output.append("  These apps are now globally available")
+        output.append("  These apps are now available")
     output.extend(f"    - {name}" for name in exposed_binary_names)
     output.extend(
         f"    - {red(name)} (symlink missing or pointing to unexpected location)" for name in unavailable_binary_names
     )
     if new_install and (exposed_man_pages or unavailable_man_pages):
-        output.append("  These manual pages are now globally available")
+        output.append("  These manual pages are now available")
     output.extend(f"    - {name}" for name in exposed_man_pages)
     output.extend(
         f"    - {red(name)} (symlink missing or pointing to unexpected location)" for name in unavailable_man_pages

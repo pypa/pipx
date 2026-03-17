@@ -22,7 +22,7 @@ from packaging.utils import canonicalize_name
 from pipx import commands, constants, paths
 from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
-from pipx.commands.environment import ENVIRONMENT_VARIABLES
+from pipx.commands.environment import ENVIRONMENT_VALUE_CHOICES, ENVIRONMENT_VARIABLES
 from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND,
@@ -183,6 +183,19 @@ def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
     return pip_args
 
 
+def get_runpip_args(pip_args: List[str]) -> List[str]:
+    if len(pip_args) != 1:
+        return pip_args
+
+    candidate = pip_args[0]
+    # Allow a single quoted string like "install black".
+    if not any(char.isspace() for char in candidate):
+        return pip_args
+
+    split_args = shlex.split(candidate, posix=not WINDOWS)
+    return split_args or pip_args
+
+
 def get_venv_args(parsed_args: Dict[str, str]) -> List[str]:
     venv_args: List[str] = []
     if parsed_args.get("system_site_packages"):
@@ -267,6 +280,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         commands.run(
             args.app_with_args[0],
             args.spec,
+            args.with_,
             args.path,
             args.app_with_args[1:],
             args.python,
@@ -310,7 +324,6 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     elif args.command == "inject":
         return commands.inject(
             venv_dir,
-            None,
             args.dependencies,
             args.requirements,
             pip_args,
@@ -411,7 +424,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     elif args.command == "runpip":
         if not venv_dir:
             raise PipxError("Developer error: venv_dir is not defined.")
-        return commands.run_pip(package, venv_dir, args.pipargs, args.verbose)
+        runpip_args = get_runpip_args(args.pipargs)
+        return commands.run_pip(package, venv_dir, runpip_args, args.verbose)
     elif args.command == "ensurepath":
         try:
             return commands.ensure_pipx_paths(prepend=args.prepend, force=args.force, all_shells=args.all_shells)
@@ -816,7 +830,7 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
             f"""
             Download the latest version of a package to a temporary virtual environment,
             then run an app from it. The environment will be cached
-            and re-used for up to {constants.TEMP_VENV_EXPIRATION_THRESHOLD_DAYS} days. This
+            and reused for up to {constants.TEMP_VENV_EXPIRATION_THRESHOLD_DAYS} days. This
             means subsequent calls to 'run' for the same package will be faster
             since they can reuse the cached Virtual Environment.
 
@@ -845,6 +859,13 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
         "--pypackages",
         action="store_true",
         help="Require app to be run from local __pypackages__ directory",
+    )
+    p.add_argument(
+        "--with",
+        dest="with_",
+        action="append",
+        default=[],
+        help="Extra dependencies to add to the temporary environment",
     )
     p.add_argument("--spec", help=SPEC_HELP)
     add_python_options(p)
@@ -930,7 +951,13 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
         + textwrap.fill(", ".join(ENVIRONMENT_VARIABLES), break_long_words=False),
         parents=[shared_parser],
     )
-    p.add_argument("--value", "-V", metavar="VARIABLE", help="Print the value of the variable.")
+    p.add_argument(
+        "--value",
+        "-V",
+        choices=ENVIRONMENT_VALUE_CHOICES,
+        metavar="VARIABLE",
+        help="Print the value of the variable.",
+    )
 
 
 def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.ArgumentParser]]:
@@ -1171,7 +1198,7 @@ def cli() -> ExitCode:
     try:
         hide_cursor()
         parser, subparsers = get_command_parser()
-        argcomplete.autocomplete(parser)
+        argcomplete.autocomplete(parser, always_complete_options=False)
         parsed_pipx_args = parser.parse_args()
         setup(parsed_pipx_args)
         check_args(parsed_pipx_args)
