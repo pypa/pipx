@@ -234,43 +234,25 @@ The act of pushing a version tag (matching the pattern `*.*.*`) automatically tr
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Initiated: Maintainer triggers<br/>Pre-release workflow
+    [*] --> Triggered: Run Pre-release workflow
 
-    Initiated --> VersionCalculation: Select bump type
-
-    state VersionCalculation {
-        [*] --> AutoMode: auto
-        [*] --> ExplicitMode: major/minor/patch
-
-        AutoMode --> CheckFragments: Analyze changelog.d/
-        CheckFragments --> MinorBump: Has feature/removal
-        CheckFragments --> PatchBump: Only bugfix/doc/misc
-
-        MinorBump --> [*]
-        PatchBump --> [*]
-        ExplicitMode --> [*]
+    state Triggered {
+        [*] --> Auto: auto (analyzes fragments)
+        [*] --> Explicit: major/minor/patch
+        Auto --> [*]: minor if feature/removal<br/>patch otherwise
+        Explicit --> [*]
     }
 
-    VersionCalculation --> ChangelogGeneration: Version determined
+    Triggered --> Release: Calculate version,<br/>generate changelog,<br/>commit & tag
 
-    ChangelogGeneration --> CommitCreation: Towncrier builds<br/>changelog from fragments
-
-    CommitCreation --> TagCreation: Create release commit<br/>with changelog
-
-    TagCreation --> Pushed: Create & push<br/>version tag
-
-    Pushed --> ReleaseTriggered: Tag push event
-
-    state ReleaseTriggered {
-        [*] --> Building
-        Building --> Publishing: Build wheel & sdist
-        Publishing --> GitHubRelease: Publish to PyPI
-        GitHubRelease --> ZipappBuild: Create GitHub release
-        ZipappBuild --> ZipappUpload: Build zipapp
-        ZipappUpload --> [*]: Upload to release
+    state Release {
+        [*] --> Build: Tag pushed
+        Build --> Publish: wheel/sdist
+        Publish --> Complete: PyPI + GitHub + zipapp
+        Complete --> [*]
     }
 
-    ReleaseTriggered --> [*]: Release complete ✨
+    Release --> [*]: ✨
 ```
 
 ### Version Calculation Examples
