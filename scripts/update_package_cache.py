@@ -5,13 +5,12 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import List
 
 from list_test_packages import create_test_packages_list
 from test_packages_support import get_platform_list_path, get_platform_packages_dir_path
 
 
-def process_command_line(argv: List[str]) -> argparse.Namespace:
+def process_command_line(argv: list[str]) -> argparse.Namespace:
     """Process command line invocation arguments and switches.
 
     Args:
@@ -175,7 +174,7 @@ def download(package_spec: str, packages_dir_path: Path) -> int:
     return 1
 
 
-def main(argv: List[str]) -> int:
+def main(argv: list[str]) -> int:
     args = process_command_line(argv)
     return update_test_packages_cache(Path(args.package_list_dir), Path(args.pipx_package_cache_dir), args.check_only)
 

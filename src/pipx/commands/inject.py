@@ -2,8 +2,9 @@ import logging
 import os
 import re
 import sys
+from collections.abc import Generator, Iterable
 from pathlib import Path
-from typing import Generator, Iterable, List, Optional, Union
+from typing import Optional, Union
 
 from pipx import paths
 from pipx.colors import bold
@@ -22,7 +23,7 @@ def inject_dep(
     venv_dir: Path,
     package_name: Optional[str],
     package_spec: str,
-    pip_args: List[str],
+    pip_args: list[str],
     *,
     verbose: bool,
     include_apps: bool,
@@ -112,7 +113,7 @@ def inject(
     venv_dir: Path,
     package_specs: Iterable[str],
     requirement_files: Iterable[str],
-    pip_args: List[str],
+    pip_args: list[str],
     *,
     verbose: bool,
     include_apps: bool,

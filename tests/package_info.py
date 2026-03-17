@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 WIN = sys.platform.startswith("win")
 
@@ -11,7 +11,7 @@ def _exe_if_win(apps):
 
 # Versions of all packages possibly used in our tests
 # Only apply _exe_if_win to entry_points, NOT scripts
-PKG: Dict[str, Dict[str, Any]] = {
+PKG: dict[str, dict[str, Any]] = {
     "ansible": {
         "spec": "ansible==6.7.0",
         "apps": [

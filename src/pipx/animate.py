@@ -1,8 +1,8 @@
 import shutil
 import sys
+from collections.abc import Generator
 from contextlib import contextmanager
 from threading import Event, Thread
-from typing import Generator, List
 
 from pipx.constants import WINDOWS
 from pipx.emojis import EMOJI_SUPPORT
@@ -71,7 +71,7 @@ def print_animation(
     *,
     message: str,
     event: Event,
-    symbols: List[str],
+    symbols: list[str],
     delay: float,
     period: float,
     animate_at_beginning_of_line: bool,

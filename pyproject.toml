@@ -81,6 +81,7 @@ lint.extend-select = [
   "RSE",
   "RUF",
   "TC",
+  "UP",
   "W",
 ]
 lint.ignore = [

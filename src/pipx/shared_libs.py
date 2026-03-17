@@ -4,7 +4,6 @@ import time
 from configparser import ConfigParser
 from contextlib import suppress
 from pathlib import Path
-from typing import Dict, List
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
@@ -43,7 +42,7 @@ def _venv_python_is_valid(python_path: Path) -> bool:
 
     try:
         config = ConfigParser()
-        with open(pyvenv_cfg, "r", encoding="utf-8") as f:
+        with open(pyvenv_cfg, encoding="utf-8") as f:
             # ConfigParser needs a section header, pyvenv.cfg doesn't have one
             config.read_string("[DEFAULT]\n" + f.read())
         home = config.get("DEFAULT", "home", fallback=None)
@@ -62,7 +61,7 @@ def _venv_python_is_valid(python_path: Path) -> bool:
 
 class _SharedLibs:
     def __init__(self) -> None:
-        self._site_packages: Dict[Path, Path] = {}
+        self._site_packages: dict[Path, Path] = {}
         self.has_been_updated_this_run = False
         self.has_been_logged_this_run = False
 
@@ -96,7 +95,7 @@ class _SharedLibs:
 
         return self._site_packages[self.python_path]
 
-    def create(self, pip_args: List[str], verbose: bool = False) -> None:
+    def create(self, pip_args: list[str], verbose: bool = False) -> None:
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
                 create_process = run_subprocess(
@@ -146,7 +145,7 @@ class _SharedLibs:
             self.has_been_logged_this_run = True
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
-    def upgrade(self, *, pip_args: List[str], verbose: bool = False, raises: bool = False) -> None:
+    def upgrade(self, *, pip_args: list[str], verbose: bool = False, raises: bool = False) -> None:
         if not self.is_valid:
             self.create(verbose=verbose, pip_args=pip_args)
             return
