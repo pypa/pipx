@@ -222,40 +222,6 @@ nox -s watch_docs
 
 The release process for pipx is designed to be simple and fully automated with a single button press. The workflow automatically determines the next version based on changelog fragments, generates the changelog, creates the release commit, and publishes to PyPI.
 
-### Release Process Overview
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#e1f5ff','primaryTextColor':'#000','primaryBorderColor':'#0288d1','lineColor':'#0288d1','secondaryColor':'#fff3e0','tertiaryColor':'#f1f8e9','fontSize':'14px'}}}%%
-graph TD
-    A[Maintainer: Run Pre-release Workflow]:::user --> B{Select Version Bump}:::decision
-    B -->|auto| C[Analyze Changelog Fragments]:::process
-    B -->|major/minor/patch| D[Calculate Version]:::process
-    C --> E[Determine Version Type]:::decision
-    E -->|Has feature/removal| F[Minor Bump]:::process
-    E -->|Only bugfix/doc/misc| G[Patch Bump]:::process
-    F --> H[Generate Changelog with Towncrier]:::process
-    G --> H
-    D --> H
-    H --> I[Create Release Commit]:::process
-    I --> J[Create Git Tag]:::process
-    J --> K[Push to main]:::process
-    K --> L[Tag Push Triggers Release Workflow]:::trigger
-    L --> M[Build Wheel & Sdist]:::build
-    M --> N[Publish to PyPI]:::publish
-    N --> O[Create GitHub Release]:::publish
-    O --> P[Build Zipapp]:::build
-    P --> Q[Upload Zipapp to Release]:::publish
-    Q --> R[Release Complete]:::complete
-
-    classDef user fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000
-    classDef decision fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
-    classDef process fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    classDef trigger fill:#fce4ec,stroke:#c2185b,stroke-width:3px,color:#000
-    classDef build fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#000
-    classDef publish fill:#fff9c4,stroke:#f9a825,stroke-width:2px,color:#000
-    classDef complete fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px,color:#000
-```
-
 ### Initiating a Release
 
 Navigate to the **Actions** tab in the GitHub repository and select the **Pre-release** workflow. Click **Run workflow** and choose the appropriate version bump strategy. The `auto` option intelligently determines whether a minor or patch bump is needed by examining the types of changelog fragments present. If new features or removals exist, it performs a minor version bump; otherwise, it increments the patch version. Alternatively, you can explicitly select `major`, `minor`, or `patch` to control the version increment directly.
@@ -265,6 +231,61 @@ Navigate to the **Actions** tab in the GitHub repository and select the **Pre-re
 Once triggered, the pre-release workflow executes the `scripts/release.py` script which collects all changelog fragments from the `changelog.d/` directory and uses towncrier to generate the updated changelog. It then creates a release commit with the message "Release {version}" and tags it with the version number. After running pre-commit hooks to ensure formatting, both the commit and tag are pushed to the main branch.
 
 The act of pushing a version tag (matching the pattern `*.*.*`) automatically triggers the main release workflow. This workflow builds the project distribution files, publishes the package to PyPI using trusted publishing, creates a GitHub release with auto-generated notes, and builds the zipapp using the minimum supported Python version before uploading it to the GitHub release assets.
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'actorBkg':'#e3f2fd','actorBorder':'#1976d2','actorTextColor':'#000','noteBkgColor':'#fff3e0','noteBorderColor':'#f57c00','noteTextColor':'#000','signalColor':'#7b1fa2','signalTextColor':'#000','labelBoxBkgColor':'#f3e5f5','labelBoxBorderColor':'#7b1fa2','activationBkgColor':'#c8e6c9','activationBorderColor':'#2e7d32'}}}%%
+sequenceDiagram
+    actor M as Maintainer
+    participant GH as GitHub Actions
+    participant S as Release Script
+    participant G as Git Repository
+    participant T as Towncrier
+    participant RW as Release Workflow
+    participant P as PyPI
+
+    M->>+GH: Trigger Pre-release Workflow
+    Note over M,GH: Select: auto/major/minor/patch
+
+    GH->>+S: Execute scripts/release.py
+
+    alt auto mode
+        S->>S: Analyze changelog.d/ fragments
+        alt has feature/removal
+            Note over S: Minor version bump
+        else only bugfix/doc/misc
+            Note over S: Patch version bump
+        end
+    else explicit mode
+        Note over S: Use selected bump type
+    end
+
+    S->>+T: Build changelog
+    T->>T: Collect fragments from changelog.d/
+    T-->>-S: Generated changelog
+
+    S->>S: Run pre-commit hooks
+    S->>+G: Create release commit
+    S->>G: Create version tag
+    G-->>-S: Commit & tag created
+
+    S->>G: Push commit and tag to main
+    deactivate S
+
+    Note over G,RW: Tag push triggers release
+
+    G->>+RW: Tag event: *.*.*
+    RW->>RW: Build wheel & sdist
+    RW->>+P: Publish to PyPI
+    P-->>-RW: Published
+
+    RW->>G: Create GitHub Release
+    RW->>RW: Build zipapp (min Python)
+    RW->>G: Upload zipapp to release
+    deactivate RW
+    deactivate GH
+
+    Note over M,P: Release complete ✨
+```
 
 ### Version Calculation Examples
 
