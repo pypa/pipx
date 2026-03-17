@@ -30,7 +30,7 @@ repos:
     - "tomli; python_version < '3.11'"
 # Configuration for codespell is in pyproject.toml
 - repo: https://github.com/codespell-project/codespell
-  rev: v2.4.1
+  rev: v2.4.2
   hooks:
   - id: codespell
     additional_dependencies:
