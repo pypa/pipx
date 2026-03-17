@@ -274,7 +274,7 @@ def upgrade_shared(
     pip_args: List[str],
 ) -> ExitCode:
     """Return pipx exit code."""
-    from pipx.shared_libs import shared_libs
+    from pipx.shared_libs import shared_libs  # noqa: PLC0415
 
     shared_libs.upgrade(verbose=verbose, pip_args=pip_args, raises=True)
 

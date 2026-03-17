@@ -8,7 +8,7 @@ from typing import Generator, List, Optional
 from pipx.constants import WINDOWS
 from pipx.emojis import EMOJI_SUPPORT
 
-stderr_is_tty = sys.stderr.isatty()
+stderr_is_tty = bool(sys.stderr and sys.stderr.isatty())
 
 CLEAR_LINE = "\033[K"
 EMOJI_ANIMATION_FRAMES = ["⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"]

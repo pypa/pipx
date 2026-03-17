@@ -86,7 +86,7 @@ def ensure_path(location: Path, *, force: bool, prepend: bool = False, all_shell
         print(
             pipx_wrap(
                 f"""
-                {location_str} has been been added to PATH, but you need to
+                {location_str} has been added to PATH, but you need to
                 open a new terminal or re-login for this PATH change to take
                 effect. Alternatively, you can source your shell's config file
                 with e.g. 'source ~/.bashrc'.

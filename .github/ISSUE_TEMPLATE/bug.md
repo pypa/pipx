@@ -1,23 +1,24 @@
 ---
-name: Bug
-about: Report a bug or unexpected behavior.
+name: Bug report
+about: Create a report to help us improve
+title: ""
+labels: bug
+assignees: ""
 ---
 
-<!--
-Thank you for filing a bug! Please feel free to answer as much or as little of this template as you can.
+**Issue**
 
-Please check pipx's Troubleshooting page to see if any of those solutions help solve your issue:
-https://pipx.pypa.io/stable/troubleshooting/
--->
+Describe what's the expected behavior and what you're observing.
 
-**Describe the bug**
+**Environment**
 
-<!-- Please be as detailed as possible! -->
+Provide at least:
 
-**How to reproduce**
+- OS:
+- Shell:
+- Python version and path:
+- `pipx --version` output:
 
-<!-- If possible, include output of `pipx --verbose ...` -->
+**Output of the failing command**
 
-**Expected behavior**
-
-<!-- What should have happened? -->
+Make sure to run the command with `--verbose`:

@@ -3,11 +3,11 @@
 python 3.9+ is required to install pipx. pipx can run binaries from packages with Python 3.3+. Don't have Python 3.9 or
 later? See [Python 3 Installation & Setup Guide](https://realpython.com/installing-python/).
 
-You also need to have `pip` installed on your machine for `python3`. Installing it varies from system to system. Consult
+You also need to have `pip` installed on your machine for `python3`. The installation process varies from system to system. Consult
 [pip's installation instructions](https://pip.pypa.io/en/stable/installing/). Installing on Linux works best with a
 [Linux Package Manager](https://packaging.python.org/guides/installing-using-linux-tools/#installing-pip-setuptools-wheel-with-linux-package-managers).
 
-pipx works on macOS, linux, and Windows.
+pipx works on macOS, Linux, and Windows.
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/pipx.svg?columns=3&exclude_unsupported=1)](https://repology.org/metapackage/pipx/versions)
 
@@ -152,9 +152,9 @@ overridden with the environment variable `PIPX_MAN_DIR`. If the `--global` optio
 `/usr/local/bin` and `/usr/local/share/man` respectively and can be overridden with `PIPX_GLOBAL_BIN_DIR` and
 `PIPX_GLOBAL_MAN_DIR`.
 
-pipx's default virtual environment location is typically `~/.local/share/pipx` on Linux/Unix, `~/.local/pipx` on MacOS
+pipx's default virtual environment location is typically `~/.local/share/pipx` on Linux/Unix, `~/.local/pipx` on macOS
 and `~\pipx` on Windows. For compatibility reasons, if `~/.local/pipx` on Linux, `%USERPROFILE%\AppData\Local\pipx` or
-`~\.local\pipx` on Windows or `~/Library/Application Support/pipx` on MacOS exists, it will be used as the default location instead.
+`~\.local\pipx` on Windows or `~/Library/Application Support/pipx` on macOS exists, it will be used as the default location instead.
 This can be overridden with the `PIPX_HOME` environment variable. If the `--global` option is used, the default location is always
 `/opt/pipx` and can be overridden with `PIPX_GLOBAL_HOME`.
 
@@ -187,7 +187,7 @@ sudo pipx install --global <PACKAGE>
 > `user_data_dir()`, `user_cache_dir()` and `user_log_dir()` resolve to appropriate platform-specific user data, cache and log directories.
 > See the [platformdirs documentation](https://platformdirs.readthedocs.io/en/latest/api.html#platforms) for details.
 >
-> This was reverted in 1.5.0 for Windows and MacOS. We heavily recommend not using these locations on Windows and MacOS anymore, due to
+> This was reverted in 1.5.0 for Windows and macOS. We heavily recommend not using these locations on Windows and macOS anymore, due to
 > multiple incompatibilities discovered with these locations, documented [here](troubleshooting.md#why-are-spaces-in-the-pipx_home-path-bad).
 
 ### Customising your installation

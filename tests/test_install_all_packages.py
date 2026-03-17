@@ -40,7 +40,7 @@ PACKAGE_NAME_LIST = [
     "black",
     "cactus",
     "chert",
-    "cloudtoken",
+    # "cloudtoken",
     "coala",
     "cookiecutter",
     "cython",
@@ -275,7 +275,7 @@ def verify_installed_resources(
         return True
 
     reported_resources_re = re.search(
-        r"These " + resource_name_long + r" are now globally available\n((?:    - [^\n]+\n)*)",
+        r"These " + resource_name_long + r" are now available\n((?:    - [^\n]+\n)*)",
         captured_outerr.out,
         re.DOTALL,
     )

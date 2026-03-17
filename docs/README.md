@@ -13,8 +13,8 @@
 </p>
 
 <p align="center">
-<a href="https://github.com/pypa/pipx/actions">
-<img src="https://github.com/pypa/pipx/workflows/tests/badge.svg?branch=main" alt="image" /></a> <a href="https://badge.fury.io/py/pipx"><img src="https://badge.fury.io/py/pipx.svg" alt="PyPI version"></a> <a href="https://badge.fury.io/py/pipx"><img src="https://static.pepy.tech/badge/pipx"></a>
+<a href="https://github.com/pypa/pipx/actions/workflows/tests.yml">
+<img src="https://github.com/pypa/pipx/actions/workflows/tests.yml/badge.svg?event=push&branch=main" alt="image" /></a> <a href="https://badge.fury.io/py/pipx"><img src="https://badge.fury.io/py/pipx.svg" alt="PyPI version"></a> <a href="https://badge.fury.io/py/pipx"><img src="https://static.pepy.tech/badge/pipx"></a>
 
 </p>
 
@@ -235,6 +235,7 @@ You can also install from a git repository. Here, `black` is used as an example.
 
 ```
 pipx install git+https://github.com/psf/black.git
+pipx install git+ssh://git@github.com/psf/black # using ssh
 pipx install git+https://github.com/psf/black.git@branch  # branch of your choice
 pipx install git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022573a59cdb1  # git hash
 pipx install https://github.com/psf/black/archive/18.9b0.zip  # install a release
@@ -248,7 +249,7 @@ pipx install "git+https://github.com/psf/black.git#egg=black[jupyter]"
 
 ### Inject a package
 
-If an application installed by pipx requires additional packages, you can add them with pipx inject. For example, if you have ```ipython``` installed and want to add the ```matplotlib``` package to it, you would use:
+If an application installed by pipx requires additional packages, you can add them with pipx inject. For example, if you have `ipython` installed and want to add the `matplotlib` package to it, you would use:
 
 ```
 pipx inject ipython matplotlib
@@ -263,6 +264,18 @@ pipx inject ipython matplotlib pandas
 # or:
 pipx inject ipython -r useful-packages.txt
 ```
+
+### Pin installed packages
+
+Use `pipx pin` when you need to hold an installation at its current version. Pinned packages are skipped by `pipx upgrade`, `pipx upgrade-all`, and `pipx reinstall`, so the environment keeps its existing app and dependency versions until you unpin it.
+
+- `pipx pin PACKAGE` pins the main package and any injected packages in that virtual environment.
+- `pipx pin PACKAGE --injected-only` leaves the main package upgradable but pins every injected package instead.
+- `pipx pin PACKAGE --skip PKG_A PKG_B` pins injected packages except the ones you list (the flag implies `--injected-only`).
+- `pipx unpin PACKAGE` re-enables upgrades for the package and anything that was pinned with it.
+- `pipx list --pinned` shows every pinned environment; add `--include-injected` to see pinned injected packages.
+
+pipx tracks the main package and any injected packages. It does not record individual transitive dependencies, so there is no way to pin a single dependency in isolation. Pinning the main package protects its dependency set because pipx skips running `pip install --upgrade` for that environment.
 
 ### Walkthrough: Running an Application in a Temporary Virtual Environment
 
@@ -339,8 +352,7 @@ usage: pipx run [-h] [--no-cache] [--pypackages] [--spec SPEC] [--verbose] [--py
 pipx run: error: ambiguous option: --py could match --pypackages, --python
 ```
 
-To prevent this put double dash `--` before APP. It will make pipx to forward the arguments to the right verbatim to the
-application:
+To prevent this, put double dash `--` before APP. It will make pipx forward the arguments to the application verbatim:
 
 ```
 > pipx run -- pycowsay --py
@@ -435,6 +447,7 @@ You can also run from a git repository. Here, `black` is used as an example.
 
 ```
 pipx run --spec git+https://github.com/psf/black.git black
+pipx run --spec git+ssh://git@github.com/psf/black black # using ssh
 pipx run --spec git+https://github.com/psf/black.git@branch black  # branch of your choice
 pipx run --spec git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022573a59cdb1 black  # git hash
 pipx run --spec https://github.com/psf/black/archive/18.9b0.zip black # install a release

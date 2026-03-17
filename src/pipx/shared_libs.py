@@ -1,8 +1,12 @@
 import datetime
 import logging
 import time
+from contextlib import suppress
 from pathlib import Path
 from typing import Dict, List
+
+from packaging.requirements import InvalidRequirement, Requirement
+from packaging.specifiers import SpecifierSet
 
 from pipx import paths
 from pipx.animate import animate
@@ -122,6 +126,17 @@ class _SharedLibs:
         _pip_args = [arg for arg in pip_args if arg not in ignored_args]
         if not verbose:
             _pip_args.append("-q")
+
+        user_pip_req = None
+        for arg in _pip_args:
+            with suppress(InvalidRequirement):
+                if (req := Requirement(arg)).name == "pip":
+                    user_pip_req = req
+                    break
+
+        add_default = not user_pip_req or not (user_pip_req.specifier & SpecifierSet(">=23.1"))
+        install_args = [*_pip_args, "pip >= 23.1"] if add_default else _pip_args
+
         try:
             with animate("upgrading shared libraries", not verbose):
                 upgrade_process = run_subprocess(
@@ -132,9 +147,8 @@ class _SharedLibs:
                         "--no-input",
                         "--disable-pip-version-check",
                         "install",
-                        *_pip_args,
                         "--upgrade",
-                        "pip >= 23.1",
+                        *install_args,
                     ]
                 )
             subprocess_post_check(upgrade_process)
