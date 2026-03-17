@@ -183,6 +183,19 @@ def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
     return pip_args
 
 
+def get_runpip_args(pip_args: List[str]) -> List[str]:
+    if len(pip_args) != 1:
+        return pip_args
+
+    candidate = pip_args[0]
+    # Allow a single quoted string like "install black".
+    if not any(char.isspace() for char in candidate):
+        return pip_args
+
+    split_args = shlex.split(candidate, posix=not WINDOWS)
+    return split_args or pip_args
+
+
 def get_venv_args(parsed_args: Dict[str, str]) -> List[str]:
     venv_args: List[str] = []
     if parsed_args.get("system_site_packages"):
@@ -411,7 +424,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     elif args.command == "runpip":
         if not venv_dir:
             raise PipxError("Developer error: venv_dir is not defined.")
-        return commands.run_pip(package, venv_dir, args.pipargs, args.verbose)
+        runpip_args = get_runpip_args(args.pipargs)
+        return commands.run_pip(package, venv_dir, runpip_args, args.verbose)
     elif args.command == "ensurepath":
         try:
             return commands.ensure_pipx_paths(prepend=args.prepend, force=args.force, all_shells=args.all_shells)
