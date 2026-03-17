@@ -4,7 +4,3 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
-    groups:
-      actions:
-        patterns:
-          - "*"
