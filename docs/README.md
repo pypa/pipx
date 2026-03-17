@@ -13,8 +13,8 @@
 </p>
 
 <p align="center">
-<a href="https://github.com/pypa/pipx/actions">
-<img src="https://github.com/pypa/pipx/workflows/tests/badge.svg?branch=main" alt="image" /></a> <a href="https://badge.fury.io/py/pipx"><img src="https://badge.fury.io/py/pipx.svg" alt="PyPI version"></a> <a href="https://badge.fury.io/py/pipx"><img src="https://static.pepy.tech/badge/pipx"></a>
+<a href="https://github.com/pypa/pipx/actions/workflows/tests.yml">
+<img src="https://github.com/pypa/pipx/actions/workflows/tests.yml/badge.svg?event=push&branch=main" alt="image" /></a> <a href="https://badge.fury.io/py/pipx"><img src="https://badge.fury.io/py/pipx.svg" alt="PyPI version"></a> <a href="https://badge.fury.io/py/pipx"><img src="https://static.pepy.tech/badge/pipx"></a>
 
 </p>
 
