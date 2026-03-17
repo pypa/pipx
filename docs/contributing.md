@@ -220,15 +220,51 @@ nox -s watch_docs
 
 ## Releasing New `pipx` Versions
 
-To release a new version, manually run the `bump-changelog` action under the *"Actions"* tab, passing it the version to be released. This will create a pull request updating the changelog for the upcoming version, with the `release-version` label. Merging this PR will automatically trigger the release workflows.
+The release process for pipx is designed to be simple and fully automated with a single button press. The workflow automatically determines the next version based on changelog fragments, generates the changelog, creates the release commit, and publishes to PyPI.
 
-Attaching this label to any pull request of which the title follows the format `<Version>: Description` and merging it will trigger the release workflows as well.
+### Release Process Overview
 
-The release workflow consists of publishing:
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#e1f5ff','primaryTextColor':'#000','primaryBorderColor':'#0288d1','lineColor':'#0288d1','secondaryColor':'#fff3e0','tertiaryColor':'#f1f8e9','fontSize':'14px'}}}%%
+graph TD
+    A[Maintainer: Run Pre-release Workflow]:::user --> B{Select Version Bump}:::decision
+    B -->|auto| C[Analyze Changelog Fragments]:::process
+    B -->|major/minor/patch| D[Calculate Version]:::process
+    C --> E[Determine Version Type]:::decision
+    E -->|Has feature/removal| F[Minor Bump]:::process
+    E -->|Only bugfix/doc/misc| G[Patch Bump]:::process
+    F --> H[Generate Changelog with Towncrier]:::process
+    G --> H
+    D --> H
+    H --> I[Create Release Commit]:::process
+    I --> J[Create Git Tag]:::process
+    J --> K[Push to main]:::process
+    K --> L[Tag Push Triggers Release Workflow]:::trigger
+    L --> M[Build Wheel & Sdist]:::build
+    M --> N[Publish to PyPI]:::publish
+    N --> O[Create GitHub Release]:::publish
+    O --> P[Build & Upload Zipapp]:::build
+    P --> Q[Release Complete]:::complete
 
-- the pipx version to PyPI,
-- the documentation to ReadTheDocs,
-- a GitHub release,
-- the `zipapp` to the GitHub release created.
+    classDef user fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000
+    classDef decision fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    classDef process fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    classDef trigger fill:#fce4ec,stroke:#c2185b,stroke-width:3px,color:#000
+    classDef build fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#000
+    classDef publish fill:#fff9c4,stroke:#f9a825,stroke-width:2px,color:#000
+    classDef complete fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px,color:#000
+```
 
-No need for any other pre or post publish steps.
+### Initiating a Release
+
+Navigate to the **Actions** tab in the GitHub repository and select the **Pre-release** workflow. Click **Run workflow** and choose the appropriate version bump strategy. The `auto` option intelligently determines whether a minor or patch bump is needed by examining the types of changelog fragments present. If new features or removals exist, it performs a minor version bump; otherwise, it increments the patch version. Alternatively, you can explicitly select `major`, `minor`, or `patch` to control the version increment directly.
+
+### What Happens During Release
+
+Once triggered, the pre-release workflow executes the `scripts/release.py` script which collects all changelog fragments from the `changelog.d/` directory and uses towncrier to generate the updated changelog. It then creates a release commit with the message "Release {version}" and tags it with the version number. After running pre-commit hooks to ensure formatting, both the commit and tag are pushed to the main branch.
+
+The act of pushing a version tag (matching the pattern `*.*.*`) automatically triggers the main release workflow. This workflow builds the project distribution files, publishes the package to PyPI using trusted publishing, creates a GitHub release with auto-generated notes, and builds the zipapp using the minimum supported Python version before uploading it to the GitHub release assets.
+
+### Version Calculation Examples
+
+Starting from version `1.8.0`, the version bump types produce the following results: `auto` with feature fragments becomes `1.9.0`, while `auto` with only bugfixes becomes `1.8.1`. Selecting `major` explicitly jumps to `2.0.0`, `minor` moves to `1.9.0`, and `patch` increments to `1.8.1`. This automation eliminates the need for manual version management and ensures consistency across releases.
