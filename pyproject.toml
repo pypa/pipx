@@ -44,11 +44,11 @@ dependencies = [
   "tomli; python_version<'3.11'",
   "userpath>=1.6,!=1.9",
 ]
-urls.Documentation = "https://pipx.pypa.io"
-urls.Homepage = "https://pipx.pypa.io"
 urls."Issue Tracker" = "https://github.com/pypa/pipx/issues"
 urls."Release Notes" = "https://pipx.pypa.io/latest/changelog/"
 urls."Source Code" = "https://github.com/pypa/pipx"
+urls.Documentation = "https://pipx.pypa.io"
+urls.Homepage = "https://pipx.pypa.io"
 scripts.pipx = "pipx.main:cli"
 
 [tool.hatch]
