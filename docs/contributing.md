@@ -232,29 +232,6 @@ Once triggered, the pre-release workflow executes the `scripts/release.py` scrip
 
 The act of pushing a version tag (matching the pattern `*.*.*`) automatically triggers the main release workflow. This workflow builds the project distribution files, publishes the package to PyPI using trusted publishing, creates a GitHub release with auto-generated notes, and builds the zipapp using the minimum supported Python version before uploading it to the GitHub release assets.
 
-```mermaid
-stateDiagram-v2
-    [*] --> Triggered: Run Pre-release workflow
-
-    state Triggered {
-        [*] --> Auto: auto (analyzes fragments)
-        [*] --> Explicit: major/minor/patch
-        Auto --> [*]: minor if feature/removal<br/>patch otherwise
-        Explicit --> [*]
-    }
-
-    Triggered --> Release: Calculate version,<br/>generate changelog,<br/>commit & tag
-
-    state Release {
-        [*] --> Build: Tag pushed
-        Build --> Publish: wheel/sdist
-        Publish --> Complete: PyPI + GitHub + zipapp
-        Complete --> [*]
-    }
-
-    Release --> [*]: ✨
-```
-
 ### Version Calculation Examples
 
 Starting from version `1.8.0`, the version bump types produce the following results: `auto` with feature fragments becomes `1.9.0`, while `auto` with only bugfixes becomes `1.8.1`. Selecting `major` explicitly jumps to `2.0.0`, `minor` moves to `1.9.0`, and `patch` increments to `1.8.1`. This automation eliminates the need for manual version management and ensures consistency across releases.
