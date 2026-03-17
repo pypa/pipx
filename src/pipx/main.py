@@ -1021,7 +1021,7 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
         description="Print instructions on enabling shell completions for pipx",
         parents=[shared_parser],
     )
-    return parser, subparsers_with_subcommands
+    return parser, subparsers.choices
 
 
 def delete_oldest_logs(file_list: List[Path], keep_number: int) -> None:
@@ -1185,7 +1185,32 @@ def cli() -> ExitCode:
         hide_cursor()
         parser, subparsers = get_command_parser()
         argcomplete.autocomplete(parser)
-        parsed_pipx_args = parser.parse_args()
+
+        # Check for "inject" command to handle intermixed arguments (Python < 3.12)
+        # We need a peek to identify the command without consuming its arguments greedily.
+        peek_parser = argparse.ArgumentParser(add_help=False)
+        peek_parser.add_argument("--quiet", "-q", action="count", default=0)
+        peek_parser.add_argument("--verbose", "-v", action="count", default=0)
+        if not constants.WINDOWS:
+            peek_parser.add_argument("--global", action="store_true", dest="is_global")
+        peek_parser.add_argument("--version", action="store_true")
+
+        sp = peek_parser.add_subparsers(dest="command")
+        for command_name in subparsers.keys():
+            sp.add_parser(command_name, add_help=False)
+
+        known_args, remainder = peek_parser.parse_known_args()
+
+        if known_args.command == "inject" and remainder:
+            # Re-parse using intermixed_args for the inject subparser
+            subparser = subparsers["inject"]
+            parsed_pipx_args = subparser.parse_intermixed_args(remainder)
+            for key, value in vars(known_args).items():
+                if value is not None or not hasattr(parsed_pipx_args, key):
+                    setattr(parsed_pipx_args, key, value)
+        else:
+            parsed_pipx_args = parser.parse_args()
+
         setup(parsed_pipx_args)
         check_args(parsed_pipx_args)
         if not parsed_pipx_args.command:
