@@ -1,16 +1,24 @@
 ---
 name: Feature request
-about: Suggest an idea or new feature for this project
+about: Suggest an enhancement for this project
+title: ""
+labels: enhancement
+assignees: ""
 ---
 
-**How would this feature be useful?**
+**What's the problem this feature will solve?**
 
-<!-- Describe any use cases this solves or frustrations it alleviates.   -->
+<!-- What are you trying to do, that you are unable to achieve with pipx as it currently stands? -->
 
 **Describe the solution you'd like**
 
-<!-- If you have an idea of how to do this, write it here! -->
+<!-- Clear and concise description of what you want to happen. -->
+<!-- Provide examples of real world use cases that this would enable and how it solves the problem described above. -->
 
-**Describe alternatives you've considered**
+**Alternative Solutions**
 
-<!-- If there's some workaround or alternative solutions, let us know. -->
+<!-- Have you tried to workaround the problem using pipx or other tools? Or a different approach to solving this issue? -->
+
+**Additional context**
+
+<!-- Add any other context, links, etc. about the feature here. -->
