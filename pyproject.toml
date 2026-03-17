@@ -31,6 +31,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
 ]
 dynamic = [
   "version",
@@ -43,11 +44,11 @@ dependencies = [
   "tomli; python_version<'3.11'",
   "userpath>=1.6,!=1.9",
 ]
-urls.Documentation = "https://pipx.pypa.io"
-urls.Homepage = "https://pipx.pypa.io"
 urls."Issue Tracker" = "https://github.com/pypa/pipx/issues"
 urls."Release Notes" = "https://pipx.pypa.io/latest/changelog/"
 urls."Source Code" = "https://github.com/pypa/pipx"
+urls.Documentation = "https://pipx.pypa.io"
+urls.Homepage = "https://pipx.pypa.io"
 scripts.pipx = "pipx.main:cli"
 
 [tool.hatch]
@@ -99,19 +100,24 @@ lint.mccabe.max-complexity = 15
 
 [tool.codespell]
 # Ref: https://github.com/codespell-project/codespell#using-a-config-file
-skip = '.git,*.pdf,*.svg,.nox,testdata,.mypy_cache'
+skip = ".git,*.pdf,*.svg,.nox,testdata,.mypy_cache"
 check-hidden = true
 # case sensitive etc
-ignore-regex = '\b(UE|path/doesnt/exist)\b'
+ignore-regex = "\\b(UE|path/doesnt/exist)\\b"
 
-[tool.pytest.ini_options]
-minversion = "8"
-log_cli_level = "INFO"
-markers = [
+[tool.mypy]
+overrides = [ { module = [
+  "pycowsay.*",
+], ignore_missing_imports = true } ]
+
+[tool.pytest]
+ini_options.minversion = "8"
+ini_options.log_cli_level = "INFO"
+ini_options.markers = [
   "all_packages: test install with maximum number of packages",
 ]
-testpaths = [ "tests" ]
-addopts = [ "-ra", "--strict-config", "--strict-markers" ]
+ini_options.testpaths = [ "tests" ]
+ini_options.addopts = [ "-ra", "--strict-config", "--strict-markers" ]
 
 [tool.towncrier]
 directory = "changelog.d"
@@ -125,9 +131,3 @@ underlines = [
 title_format = "## [{version}](https://github.com/pypa/pipx/tree/{version}) - {project_date}"
 issue_format = "[#{issue}](https://github.com/pypa/pipx/issues/{issue})"
 package = "pipx"
-
-[[tool.mypy.overrides]]
-module = [
-  "pycowsay.*",
-]
-ignore_missing_imports = true
