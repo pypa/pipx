@@ -629,7 +629,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps_of_dependencies": _exe_if_win(["pygmentize"]),  # pygments EXE
     },
     "pycowsay": {
-        "spec": "pycowsay==0.0.0.2",
+        "spec": "pycowsay",
         "apps": _exe_if_win(["pycowsay"]),
         "apps_of_dependencies": [],
         "man_pages": [str(Path("man6") / "pycowsay.6")],
