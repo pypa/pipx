@@ -233,57 +233,44 @@ Once triggered, the pre-release workflow executes the `scripts/release.py` scrip
 The act of pushing a version tag (matching the pattern `*.*.*`) automatically triggers the main release workflow. This workflow builds the project distribution files, publishes the package to PyPI using trusted publishing, creates a GitHub release with auto-generated notes, and builds the zipapp using the minimum supported Python version before uploading it to the GitHub release assets.
 
 ```mermaid
-sequenceDiagram
-    actor M as Maintainer
-    participant GH as GitHub Actions
-    participant S as Release Script
-    participant G as Git Repository
-    participant T as Towncrier
-    participant RW as Release Workflow
-    participant P as PyPI
+stateDiagram-v2
+    [*] --> Initiated: Maintainer triggers<br/>Pre-release workflow
 
-    M->>+GH: Trigger Pre-release Workflow
-    Note over M,GH: Select: auto/major/minor/patch
+    Initiated --> VersionCalculation: Select bump type
 
-    GH->>+S: Execute scripts/release.py
+    state VersionCalculation {
+        [*] --> AutoMode: auto
+        [*] --> ExplicitMode: major/minor/patch
 
-    alt auto mode
-        S->>S: Analyze changelog.d/ fragments
-        alt has feature/removal
-            Note over S: Minor version bump
-        else only bugfix/doc/misc
-            Note over S: Patch version bump
-        end
-    else explicit mode
-        Note over S: Use selected bump type
-    end
+        AutoMode --> CheckFragments: Analyze changelog.d/
+        CheckFragments --> MinorBump: Has feature/removal
+        CheckFragments --> PatchBump: Only bugfix/doc/misc
 
-    S->>+T: Build changelog
-    T->>T: Collect fragments from changelog.d/
-    T-->>-S: Generated changelog
+        MinorBump --> [*]
+        PatchBump --> [*]
+        ExplicitMode --> [*]
+    }
 
-    S->>S: Run pre-commit hooks
-    S->>+G: Create release commit
-    S->>G: Create version tag
-    G-->>-S: Commit & tag created
+    VersionCalculation --> ChangelogGeneration: Version determined
 
-    S->>G: Push commit and tag to main
-    deactivate S
+    ChangelogGeneration --> CommitCreation: Towncrier builds<br/>changelog from fragments
 
-    Note over G,RW: Tag push triggers release
+    CommitCreation --> TagCreation: Create release commit<br/>with changelog
 
-    G->>+RW: Tag event: *.*.*
-    RW->>RW: Build wheel & sdist
-    RW->>+P: Publish to PyPI
-    P-->>-RW: Published
+    TagCreation --> Pushed: Create & push<br/>version tag
 
-    RW->>G: Create GitHub Release
-    RW->>RW: Build zipapp (min Python)
-    RW->>G: Upload zipapp to release
-    deactivate RW
-    deactivate GH
+    Pushed --> ReleaseTriggered: Tag push event
 
-    Note over M,P: Release complete ✨
+    state ReleaseTriggered {
+        [*] --> Building
+        Building --> Publishing: Build wheel & sdist
+        Publishing --> GitHubRelease: Publish to PyPI
+        GitHubRelease --> ZipappBuild: Create GitHub release
+        ZipappBuild --> ZipappUpload: Build zipapp
+        ZipappUpload --> [*]: Upload to release
+    }
+
+    ReleaseTriggered --> [*]: Release complete ✨
 ```
 
 ### Version Calculation Examples
