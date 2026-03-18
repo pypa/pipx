@@ -1,6 +1,6 @@
 import logging
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 from pipx.colors import bold
 from pipx.constants import ExitCode
