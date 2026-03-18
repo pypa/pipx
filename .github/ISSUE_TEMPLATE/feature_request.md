@@ -1,9 +1,9 @@
 ---
 name: Feature request
 about: Suggest an enhancement for this project
-title: ""
+title: ''
 labels: enhancement
-assignees: ""
+assignees: ''
 ---
 
 **What's the problem this feature will solve?**
@@ -13,6 +13,7 @@ assignees: ""
 **Describe the solution you'd like**
 
 <!-- Clear and concise description of what you want to happen. -->
+
 <!-- Provide examples of real world use cases that this would enable and how it solves the problem described above. -->
 
 **Alternative Solutions**

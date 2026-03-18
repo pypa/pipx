@@ -4,5 +4,5 @@ build:
   tools:
     python: "3.13"
   commands:
-  - pip install "tox>=4.45" tox-uv
-  - tox run -e docs
+    - pip install "tox>=4.45" tox-uv
+    - tox run -e docs

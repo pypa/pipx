@@ -1,5 +1,4 @@
 name: 🧪 tests
-
 on:
   workflow_dispatch:
   push:
@@ -8,11 +7,9 @@ on:
   pull_request:
   schedule:
     - cron: "0 8 * * *"
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   test:
     name: 🧪 test ${{ matrix.py }} - ${{ matrix.os }}
@@ -28,7 +25,6 @@ jobs:
             py: "3.13"
           - os: macos-15
             py: "3.13"
-
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v6
@@ -56,7 +52,6 @@ jobs:
         timeout-minutes: 30
         env:
           PYTEST_ADDOPTS: "-vv --durations=20"
-
   man:
     name: 📖 Build man page
     runs-on: ubuntu-24.04
@@ -71,7 +66,6 @@ jobs:
         run: tox run -e man
       - name: Show man page
         run: man -l pipx.1
-
   zipapp:
     name: 📦 Build zipapp
     runs-on: ubuntu-24.04
