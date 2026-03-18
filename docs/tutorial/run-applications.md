@@ -110,3 +110,7 @@ pipx run --spec pymodbus[repl] pymodbus.console
 pipx run --spec pymodbus[repl] pymodbus.server
 pipx run --spec pymodbus[repl] pymodbus.simulator
 ```
+
+Package authors can avoid this `--spec` requirement by declaring a
+[`pipx.run` entry point](../explanation/making-packages-compatible.md#the-pipxrun-entry-point-group) in their package
+metadata.
