@@ -178,3 +178,18 @@ Use pip's `egg` syntax when installing extras:
 ```
 pipx install "git+https://github.com/psf/black.git#egg=black[jupyter]"
 ```
+
+### Installing from a pull request
+
+To test a package from an open pull request, find the fork owner and branch name on the PR page, then build the git URL.
+For example, PR #794 from user `contributor` on branch `fix-something`:
+
+```
+pipx install git+https://github.com/contributor/pipx.git@fix-something
+```
+
+If the PR branch has been merged, use the merge commit hash instead:
+
+```
+pipx install git+https://github.com/pypa/pipx.git@abc123def
+```
