@@ -21,21 +21,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-24.04]
         py: ["3.13", "3.12", "3.11", "3.10", "3.9"]
         include:
-          - os: windows-latest
+          - os: windows-2025
             py: "3.13"
-          - os: macos-latest
+          - os: macos-15
             py: "3.13"
 
     steps:
-      - name: 🚀 Install uv
-        uses: astral-sh/setup-uv@v7
       - name: 📥 Checkout code
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+      - name: 🚀 Install uv
+        uses: astral-sh/setup-uv@v7
       - name: 🐍 Setup Python ${{ matrix.py }}
         uses: actions/setup-python@v6
         with:
@@ -49,6 +49,8 @@ jobs:
           key: pipx-tests-package-cache-${{ runner.os }}-${{ matrix.py }}
       - name: 🏗️ Setup test suite
         run: tox run -vv --notest --skip-missing-interpreters false -e ${{ matrix.py }}
+      - name: 📦 Seed package cache
+        run: tox exec -e ${{ matrix.py }} -- python scripts/update_package_cache.py testdata/tests_packages .pipx_tests/package_cache/
       - name: 🏃 Run test suite
         run: tox run --skip-pkg-install -e ${{ matrix.py }}
         timeout-minutes: 30
@@ -57,12 +59,12 @@ jobs:
 
   man:
     name: 📖 Build man page
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - name: 🚀 Install uv
-        uses: astral-sh/setup-uv@v7
       - name: 📥 Checkout code
         uses: actions/checkout@v6
+      - name: 🚀 Install uv
+        uses: astral-sh/setup-uv@v7
       - name: 📦 Install tox
         run: uv tool install --python-preference only-managed --python 3.13 "tox>=4.45" --with tox-uv
       - name: 📖 Build man page
@@ -72,7 +74,7 @@ jobs:
 
   zipapp:
     name: 📦 Build zipapp
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v6

@@ -52,7 +52,7 @@ commands = [["pre-commit", "run", "--all-files"]]
 description = "build documentation"
 dependency_groups = ["docs"]
 commands = [
-  ["mkdocs", "build", "--strict"],
+  ["mkdocs", "build", "--strict", "--site-dir", "{env:READTHEDOCS_OUTPUT:site}{/}html"],
 ]
 
 [env.man]

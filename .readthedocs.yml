@@ -4,5 +4,5 @@ build:
   tools:
     python: "3.13"
   commands:
-  - pip install nox
-  - nox --session build_docs -- "${READTHEDOCS_OUTPUT}"/html
+  - pip install "tox>=4.45" tox-uv
+  - tox run -e docs
