@@ -63,9 +63,6 @@ version.source = "vcs"
 
 [tool.ruff]
 line-length = 121
-src = [
-  "src",
-]
 lint.extend-select = [
   "A",
   "B",
@@ -110,6 +107,8 @@ ignore-regex = "\\b(UE|path/doesnt/exist)\\b"
 overrides = [ { module = [
   "pycowsay.*",
 ], ignore_missing_imports = true } ]
+warn_unreachable = true
+enable_error_code = [ "ignore-without-code", "redundant-expr", "truthy-bool" ]
 
 [tool.pytest]
 ini_options.minversion = "8"
