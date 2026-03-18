@@ -65,6 +65,33 @@ flowchart LR
     style FUNC fill:#c78c20,color:#fff
 ```
 
+### The `pipx.run` entry point group
+
+When a user runs `pipx run PACKAGE`, pipx looks for a console script matching the package name. If the package name and
+script name differ, the user has to write `pipx run --spec PACKAGE SCRIPT`, which is less convenient.
+
+Package authors can declare a `pipx.run` entry point group to tell pipx which function to invoke for `pipx run`. This
+entry point takes priority over console scripts when present.
+
+=== "pyproject.toml"
+
+    ```toml
+    [project.entry-points."pipx.run"]
+    my-package = "my_package.cli:main"
+    ```
+
+=== "setup.cfg"
+
+    ```ini
+    [options.entry_points]
+    pipx.run =
+        my-package = my_package.cli:main
+    ```
+
+With this declaration, `pipx run my-package` invokes `my_package.cli:main` even if no console script named `my-package`
+exists. The [build](https://github.com/pypa/build) package uses this pattern so that `pipx run build` works even though
+build's console script is named `pyproject-build`.
+
 ### Manual pages
 
 If you wish to provide documentation via `man` pages on UNIX-like systems then these can be added as data files:
