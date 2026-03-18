@@ -80,6 +80,18 @@ found in `$XDG_STATE_HOME/pipx/logs` or user's log path if the former is not wri
 
 For most users this location is `~/.local/state/pipx/logs`, where `~` is your home directory.
 
+## `sudo pipx` not found
+
+If you installed pipx with `pip install --user`, the binary lives in your user directory (e.g. `~/.local/bin/pipx`).
+Root's `PATH` does not include that directory, so `sudo pipx` fails with "command not found". Use the full path instead:
+
+```
+sudo ~/.local/bin/pipx ensurepath --global
+```
+
+To avoid this, install pipx through your distribution's package manager (`apt install pipx`, `dnf install pipx`) or
+install it system-wide with `sudo pip install pipx` (without `--user`).
+
 ## Debian, Ubuntu issues
 
 If you have issues using pipx on Debian, Ubuntu, or other Debian-based linux distributions, make sure you have the
