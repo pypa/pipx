@@ -4,7 +4,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from multiprocessing import Queue
 from threading import Event, Thread
-from typing import List, Optional
+from typing import Optional
 
 from pipx.constants import WINDOWS
 from pipx.emojis import EMOJI_SUPPORT
