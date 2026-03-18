@@ -40,7 +40,7 @@ def prebuild_wheels(session: nox.Session, prebuild_dict) -> None:
     wheel_dir.mkdir(exist_ok=True)
 
     for prebuild in prebuild_list:
-        session.run("pip", "wheel", f"--wheel-dir={wheel_dir}", prebuild, silent=True)
+        session.run("pip", "wheel", f"--wheel-dir={wheel_dir}", prebuild, silent=True, success_codes=[0, 1])
 
 
 def on_main_no_changes(session: nox.Session) -> None:

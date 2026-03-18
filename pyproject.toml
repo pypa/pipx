@@ -98,6 +98,38 @@ lint.isort = { known-first-party = [
 ] }
 lint.mccabe.max-complexity = 15
 
+[dependency-groups]
+test = [
+  "pytest>=8",
+  "pytest-cov>=4",
+  "pytest-mock>=3.11.1",
+  "pytest-xdist>=3.5",
+  "pypiserver[passlib,cache]>=2.3.2",
+  "setuptools>=68; python_version>='3.12'",
+  "watchdog>=4",
+]
+lint = [
+  "pre-commit>=3",
+]
+docs = [
+  "jinja2",
+  "mkdocs",
+  "mkdocs-material",
+  "mkdocs-gen-files",
+  "mkdocs-macros-plugin",
+  "towncrier>=23.6",
+  "markdown-gfm-admonition",
+]
+man = [
+  "argparse-manpage[setuptools]",
+]
+dev = [
+  {include-group = "test"},
+  {include-group = "docs"},
+  {include-group = "lint"},
+  {include-group = "man"},
+]
+
 [tool.codespell]
 # Ref: https://github.com/codespell-project/codespell#using-a-config-file
 skip = ".git,*.pdf,*.svg,.nox,testdata,.mypy_cache"
