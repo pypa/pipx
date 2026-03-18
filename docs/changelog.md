@@ -9,6 +9,25 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 <!-- towncrier release notes start -->
 
+## [1.10.0](https://github.com/pypa/pipx/tree/1.10.0) - 2026-03-18
+
+### Features
+
+- Add `--with` flag to `pipx run` to allow injecting dependencies ([#1607](https://github.com/pypa/pipx/issues/1607))
+- add more specific directions in the logs towards a resolution if you have a space in the PIX_HOME path ([#1634](https://github.com/pypa/pipx/issues/1634))
+
+### Bugfixes
+
+- Fixed upgrade command failing when package name includes extras (e.g., `pipx upgrade "coverage[toml]"`). ([#925](https://github.com/pypa/pipx/issues/925))
+- Fix run command with bash substitution (e.g. `pipx run <(pbpaste)`) ([#1293](https://github.com/pypa/pipx/issues/1293))
+- Allow `pipx runpip` to split single string arguments. ([#1520](https://github.com/pypa/pipx/issues/1520))
+- Fix handling of shared libraries when the original Python interpreter is removed on Windows by detecting stale venv references and recreating the shared libraries with the current Python. ([#1723](https://github.com/pypa/pipx/issues/1723))
+
+### Misc
+
+- [#1638](https://github.com/pypa/pipx/issues/1638), [#1731](https://github.com/pypa/pipx/issues/1731)
+
+
 ## [1.9.0](https://github.com/pypa/pipx/tree/1.9.0) - 2026-03-17
 
 ### Features
