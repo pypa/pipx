@@ -1,6 +1,5 @@
 site_name: pipx
 site_description: execute binaries from Python packages in isolated environments
-
 theme:
   name: "material"
   palette:
@@ -9,13 +8,18 @@ theme:
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
-
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
-
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.indexes
+    - toc.integrate
+    - content.tabs.link
+    - content.code.copy
 repo_name: pypa/pipx
 repo_url: https://github.com/pypa/pipx
 edit_uri: edit/main/docs/
@@ -23,28 +27,48 @@ extra:
   analytics:
     provider: 'google'
     property: 'UA-90243909-2'
-
-
 nav:
-  - Home: "README.md"
-  - Installation: "installation.md"
-  - Getting Started: "getting-started.md"
-  - Docs: "docs.md"
-  - Troubleshooting: "troubleshooting.md"
-  - Examples: "examples.md"
-  - Comparison to Other Tools: "comparisons.md"
-  - How pipx works: "how-pipx-works.md"
-  - Programs to Try: "programs-to-try.md"
+  - Home: "index.md"
+  - Tutorials:
+      - tutorial/index.md
+      - Getting Started: "tutorial/getting-started.md"
+      - Install Applications: "tutorial/install-applications.md"
+      - Run Applications: "tutorial/run-applications.md"
+  - How-to Guides:
+      - how-to/index.md
+      - Install pipx: "how-to/install-pipx.md"
+      - Upgrade pipx: "how-to/upgrade-pipx.md"
+      - Inject Packages: "how-to/inject-packages.md"
+      - Pin Packages: "how-to/pin-packages.md"
+      - Run Scripts: "how-to/run-scripts.md"
+      - Use with pre-commit: "how-to/use-with-pre-commit.md"
+      - Configure Paths: "how-to/configure-paths.md"
+      - Move Installation: "how-to/move-installation.md"
+      - Shell Completions: "how-to/shell-completions.md"
+      - Troubleshoot: "how-to/troubleshoot.md"
+  - Reference:
+      - reference/index.md
+      - CLI Reference: "reference/cli.md"
+      - Examples: "reference/examples.md"
+      - Programs to Try: "reference/programs-to-try.md"
+      - Environment Variables: "reference/environment-variables.md"
+  - Explanation:
+      - explanation/index.md
+      - How pipx Works: "explanation/how-pipx-works.md"
+      - Comparisons: "explanation/comparisons.md"
+      - Making Packages Compatible: "explanation/making-packages-compatible.md"
   - Contributing: "contributing.md"
   - Changelog: "changelog.md"
-
 markdown_extensions:
-  - markdown_gfm_admonition  # GitHub's admonition (alert) syntax
+  - markdown_gfm_admonition # GitHub's admonition (alert) syntax
   - footnotes
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
-
 plugins:
   - search:
       lang: en
@@ -52,3 +76,5 @@ plugins:
       scripts:
         - scripts/gen_doc_pages.py
   - macros
+exclude_docs: |
+  README.md

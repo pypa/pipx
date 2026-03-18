@@ -47,6 +47,6 @@ params = {
 
 env = Environment(loader=FileSystemLoader(Path(__file__).parent / "templates"))
 
-with mkdocs_gen_files.open("docs.md", "wt") as file_handler:
+with mkdocs_gen_files.open("reference/cli.md", "wt") as file_handler:
     file_handler.write(env.get_template("docs.md").render(**params))
     file_handler.write("\n")

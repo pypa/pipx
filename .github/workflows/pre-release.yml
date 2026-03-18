@@ -12,10 +12,8 @@ on:
           - minor
           - patch
         default: auto
-
 env:
   default-python: "3.13"
-
 jobs:
   pre-release:
     runs-on: ubuntu-latest

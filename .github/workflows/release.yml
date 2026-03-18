@@ -1,17 +1,13 @@
 name: Release
-
 on:
   push:
     tags:
       - "*.*.*"
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 env:
   default-python: "3.14"
-
 jobs:
   pypi-publish:
     name: Publish pipx to PyPI
@@ -37,7 +33,6 @@ jobs:
           python -m build
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@v1.13.0
-
   create-release:
     name: Create a release on GitHub's UI
     needs: pypi-publish
@@ -51,7 +46,6 @@ jobs:
         with:
           generate_release_notes: true
           tag_name: "${{ github.ref_name }}"
-
   upload-zipapp:
     name: Upload zipapp to GitHub Release
     needs: create-release

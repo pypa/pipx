@@ -70,7 +70,7 @@ test = [
 docs = [
   "jinja2",
   "markdown-gfm-admonition",
-  "mkdocs",
+  "mkdocs<2",
   "mkdocs-gen-files",
   "mkdocs-macros-plugin",
   "mkdocs-material",

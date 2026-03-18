@@ -1,38 +1,56 @@
 repos:
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v6.0.0
-  hooks:
-  - id: end-of-file-fixer
-  - id: check-added-large-files
-  - id: trailing-whitespace
-  - id: check-yaml
-- repo: https://github.com/tox-dev/pyproject-fmt
-  rev: v2.19.0
-  hooks:
-    - id: pyproject-fmt
-- repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.15.6
-  hooks:
-  - id: ruff-check
-    args: [ "--fix", "--unsafe-fixes", "--show-fixes", "--exit-non-zero-on-fix"]
-  - id: ruff-format
-- repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.19.1
-  hooks:
-  - id: mypy
-    args: ['--warn-unused-ignores', '--strict-equality','--no-implicit-optional', '--check-untyped-defs']
-    exclude: 'testdata/test_package_specifier/local_extras/setup.py'
-    additional_dependencies:
-    - "mkdocs-gen-files"
-    - "nox"
-    - "packaging>=20"
-    - "platformdirs>=2.1"
-    - "tomli; python_version < '3.11'"
-# Configuration for codespell is in pyproject.toml
-- repo: https://github.com/codespell-project/codespell
-  rev: v2.4.2
-  hooks:
-  - id: codespell
-    additional_dependencies:
-    - tomli
-    exclude: ^testdata
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: check-added-large-files
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+      - id: check-case-conflict
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.21.0
+    hooks:
+      - id: yamlfmt
+  - repo: https://github.com/hukkin/mdformat
+    rev: 0.7.22
+    hooks:
+      - id: mdformat
+        args: ["--wrap", "120"]
+        additional_dependencies:
+          - mdformat-mkdocs
+          - mdformat-gfm
+          - mdformat-gfm-alerts
+          - mdformat-footnote
+          - mdformat-config
+          - mdformat-front-matters
+        exclude: ^(docs/changelog\.md|testdata)
+  - repo: https://github.com/tox-dev/pyproject-fmt
+    rev: v2.20.0
+    hooks:
+      - id: pyproject-fmt
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.6
+    hooks:
+      - id: ruff-check
+        args: ["--fix", "--unsafe-fixes", "--show-fixes", "--exit-non-zero-on-fix"]
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.1
+    hooks:
+      - id: mypy
+        args: ['--warn-unused-ignores', '--strict-equality', '--no-implicit-optional', '--check-untyped-defs']
+        exclude: 'testdata/test_package_specifier/local_extras/setup.py'
+        additional_dependencies:
+          - "mkdocs-gen-files"
+          - "nox"
+          - "packaging>=20"
+          - "platformdirs>=2.1"
+          - "tomli; python_version < '3.11'"
+  # Configuration for codespell is in pyproject.toml
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.2
+    hooks:
+      - id: codespell
+        additional_dependencies:
+          - tomli
+        exclude: ^testdata
