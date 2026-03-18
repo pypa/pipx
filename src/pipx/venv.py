@@ -396,6 +396,11 @@ class Venv:
         cmd_run = run_subprocess(
             [str(self.python_path), "-m", "pip", "list", "--format=json"] + (["--not-required"] if not_required else [])
         )
+        if cmd_run.returncode != 0:
+            raise PipxError(
+                f"pip list failed with exit code {cmd_run.returncode}. "
+                "This may indicate a misconfigured Python environment or a broken pip installation."
+            )
         pip_list = json.loads(cmd_run.stdout.strip())
         return {x["name"] for x in pip_list}
 
