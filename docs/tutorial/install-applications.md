@@ -8,7 +8,8 @@ pipx install PACKAGE
 
 pipx creates a virtual environment, installs the package, and adds its entry points to a location on your `PATH`.
 `pipx install pycowsay` makes the `pycowsay` command available system-wide while sandboxing pycowsay in its own virtual
-environment. No `sudo` required.
+environment. No `sudo` required. To install for all users on the system, pass `--global` after the subcommand (see
+[Configure Paths](../how-to/configure-paths.md#-global-argument)).
 
 ```
 >> pipx install pycowsay
