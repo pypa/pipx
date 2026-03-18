@@ -138,7 +138,7 @@ def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_p
     if check_only:
         return 0 if len(packages_dir_missing) == 0 else 1
     else:
-        with ThreadPoolExecutor(max_workers=12) as pool:
+        with ThreadPoolExecutor(max_workers=4) as pool:
             futures = {pool.submit(download, pkg, packages_dir_path) for pkg in packages_dir_missing}
             for future in as_completed(futures):
                 exit_code = future.result() or exit_code
@@ -153,6 +153,8 @@ def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_p
 def download(package_spec: str, packages_dir_path: Path) -> int:
     pip_download_process = subprocess.run(
         [
+            sys.executable,
+            "-m",
             "pip",
             "download",
             "--no-deps",
