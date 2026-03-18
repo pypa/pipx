@@ -155,6 +155,22 @@ def test_uninstall_proper_dep_behavior(pipx_temp_env, metadata_version):
         assert isort_app_path.exists()
 
 
+def test_uninstall_rejects_existing_directory_name(pipx_temp_env, tmp_path, monkeypatch):
+    local_dir = tmp_path / "myproject"
+    local_dir.mkdir()
+    (local_dir / "pyproject.toml").write_text(
+        '[project]\nname = "myproject"\nversion = "0.1.0"\n[project.scripts]\nmycmd = "myproject:main"\n'
+    )
+    (local_dir / "myproject.py").write_text("def main(): pass")
+
+    assert not run_pipx_cli(["install", "--editable", str(local_dir)])
+
+    monkeypatch.chdir(tmp_path)
+    result = run_pipx_cli(["uninstall", "myproject"])
+    assert result != 0, "uninstall should reject directory name when cwd contains that directory"
+    assert local_dir.exists(), "source directory should not be deleted"
+
+
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
 def test_uninstall_proper_dep_behavior_missing_interpreter(pipx_temp_env, metadata_version):
     # isort is a dependency of pylint.  Make sure that uninstalling pylint
