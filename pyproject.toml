@@ -51,6 +51,38 @@ urls.Documentation = "https://pipx.pypa.io"
 urls.Homepage = "https://pipx.pypa.io"
 scripts.pipx = "pipx.main:cli"
 
+[dependency-groups]
+dev = [
+  { include-group = "docs" },
+  { include-group = "lint" },
+  { include-group = "man" },
+  { include-group = "test" },
+]
+test = [
+  "pypiserver[cache,passlib]>=2.3.2",
+  "pytest>=8",
+  "pytest-cov>=4",
+  "pytest-mock>=3.11.1",
+  "pytest-xdist>=3.5",
+  "setuptools>=68; python_version>='3.12'",
+  "watchdog>=4",
+]
+docs = [
+  "jinja2",
+  "markdown-gfm-admonition",
+  "mkdocs",
+  "mkdocs-gen-files",
+  "mkdocs-macros-plugin",
+  "mkdocs-material",
+  "towncrier>=23.6",
+]
+lint = [
+  "pre-commit>=3",
+]
+man = [
+  "argparse-manpage[setuptools]",
+]
+
 [tool.hatch]
 build.hooks.vcs.version-file = "src/pipx/version.py"
 build.targets.sdist.include = [
@@ -97,38 +129,6 @@ lint.isort = { known-first-party = [
   "pipx",
 ] }
 lint.mccabe.max-complexity = 15
-
-[dependency-groups]
-test = [
-  "pytest>=8",
-  "pytest-cov>=4",
-  "pytest-mock>=3.11.1",
-  "pytest-xdist>=3.5",
-  "pypiserver[passlib,cache]>=2.3.2",
-  "setuptools>=68; python_version>='3.12'",
-  "watchdog>=4",
-]
-lint = [
-  "pre-commit>=3",
-]
-docs = [
-  "jinja2",
-  "mkdocs",
-  "mkdocs-material",
-  "mkdocs-gen-files",
-  "mkdocs-macros-plugin",
-  "towncrier>=23.6",
-  "markdown-gfm-admonition",
-]
-man = [
-  "argparse-manpage[setuptools]",
-]
-dev = [
-  {include-group = "test"},
-  {include-group = "docs"},
-  {include-group = "lint"},
-  {include-group = "man"},
-]
 
 [tool.codespell]
 # Ref: https://github.com/codespell-project/codespell#using-a-config-file
