@@ -63,3 +63,26 @@ Note that the `--global` argument is not supported on Windows.
 The `--prepend` argument can be passed to the `pipx ensurepath` command to prepend the `pipx` bin directory to the
 user's PATH environment variable instead of appending to it. This can be useful if you want to prioritise
 `pipx`-installed binaries over system-installed binaries of the same name.
+
+### Configuring pip for pipx
+
+pipx uses pip internally for all package installs, including its own shared libraries (pip, setuptools). To point pip at
+a private index or pass custom options, set `PIP_*` environment variables. pipx forwards them to every pip invocation.
+
+For example, to use a private package index:
+
+```
+export PIP_INDEX_URL=https://my-private-index.example.com/simple/
+export PIP_TRUSTED_HOST=my-private-index.example.com
+pipx install my-private-package
+```
+
+These variables also apply when pipx upgrades its shared libraries (`pipx upgrade-shared`). You can set them permanently
+in your shell profile or in pip's own config file (`pip.conf` / `pip.ini`). See the
+[pip configuration documentation](https://pip.pypa.io/en/stable/topics/configuration/) for details.
+
+Per-command pip options can be passed with `--pip-args`:
+
+```
+pipx install my-package --pip-args='--no-cache-dir --trusted-host=my-host'
+```
