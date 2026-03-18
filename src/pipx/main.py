@@ -36,6 +36,7 @@ from pipx.interpreter import (
     InterpreterResolutionError,
     find_python_interpreter,
 )
+from pipx.package_specifier import valid_pypi_name
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import VenvContainer
 from pipx.version import version as __version__
@@ -242,14 +243,16 @@ def run_pipx_command(args: argparse.Namespace, subparsers: dict[str, argparse.Ar
                 if "#egg=" not in args.spec:
                     args.spec = args.spec + f"#egg={package}"
 
-        venv_dir = venv_container.get_venv_dir(package)
+        venv_dir = venv_container.get_venv_dir(valid_pypi_name(package) or package)
         logger.info(f"Virtual Environment location is {venv_dir}")
 
     if "packages" in args:
         for package in args.packages:
             package_is_url(package)
             package_is_path(package)
-        venv_dirs = {package: venv_container.get_venv_dir(package) for package in args.packages}
+        venv_dirs = {
+            package: venv_container.get_venv_dir(valid_pypi_name(package) or package) for package in args.packages
+        }
         venv_dirs_msg = "\n".join(f"- {key} : {value}" for key, value in venv_dirs.items())
         logger.info(f"Virtual Environment locations are:\n{venv_dirs_msg}")
 
