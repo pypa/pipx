@@ -1,4 +1,5 @@
 import time
+from timeit import default_timer
 
 import pytest  # type: ignore[import-not-found]
 
@@ -35,11 +36,11 @@ def check_animate_output(
     total_err = ""
     # Generous timeout for slow CI environments (e.g. Windows/Mac runners)
     timeout = 5.0
-    start_time = time.time()
+    start_time = default_timer()
 
     with pipx.animate.animate(test_string, do_animation=True):
         # POLLING LOOP: Keep reading until we get the expected data
-        while time.time() - start_time < timeout:
+        while default_timer() - start_time < timeout:
             captured = capsys.readouterr()
             total_err += captured.err
 
