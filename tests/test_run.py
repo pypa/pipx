@@ -329,6 +329,40 @@ def test_run_with_requirements_and_args(caplog, pipx_temp_env, tmp_path):
     assert out.read_text() == "2"
 
 
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_failing_requirements(capfd, pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    script.write_text(
+        textwrap.dedent(
+            """
+                # /// script
+                # dependencies = ["will_fail @ git+https://0.0.0.0/will_fail.git"]
+                # ///
+                import will_fail
+            """
+        ).strip()
+    )
+
+    # Attempt first invocation of `pipx run`.
+    # This should fail as the `will_fail` package will not be able to be installed.
+    return_code = run_pipx_cli(["run", str(script)])
+    captured = capfd.readouterr()
+
+    assert return_code != 0
+    assert "Error installing will_fail @ git+https://0.0.0.0/will_fail.git." in captured.err
+
+    # Attempt second invocation of `pipx run`.
+    # If above failure was detected and the temporary venv marked for deletion,
+    # then this should fail in the same manner.
+    # If the above failure was not detected, then a ModuleNotFoundError will be raised.
+    return_code = run_pipx_cli(["run", str(script)])
+    captured = capfd.readouterr()
+
+    assert return_code != 0
+    assert "ModuleNotFoundError: No module named 'will_fail'" not in captured.err
+    assert "Error installing will_fail @ git+https://0.0.0.0/will_fail.git." in captured.err
+
+
 def test_pip_args_forwarded_to_shared_libs(pipx_ultra_temp_env, capsys, caplog):
     # strategy:
     # 1. start from an empty env to ensure the next command would trigger a shared lib update
@@ -443,3 +477,24 @@ def test_run_local_path_entry_point(pipx_temp_env, caplog, root):
     run_pipx_cli_exit(["run", empty_project_path])
 
     assert "Using discovered entry point for 'pipx run'" in caplog.text
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with(capsys):
+    run_pipx_cli_exit(["run", "--with", "black", "pycowsay", "--help"])
+    captured = capsys.readouterr()
+    assert "injected package black into venv pycowsay" in captured.out
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_cache(capsys, caplog):
+    # Maybe there's a better way to remove the previous venv cache?
+    run_pipx_cli_exit(["run", "--no-cache", "pycowsay", "cowsay", "args"])
+    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"], assert_exit=0)
+
+    caplog.set_level(logging.DEBUG)
+    caplog.clear()
+    run_pipx_cli_exit(["run", "--verbose", "--with", "black", "pycowsay", "args"], assert_exit=0)
+    captured = capsys.readouterr()
+    assert "Reusing cached venv" in caplog.text
+    assert "injected package black into venv pycowsay" in captured.out

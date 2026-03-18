@@ -1,8 +1,8 @@
 import shutil
 import sys
+from collections.abc import Generator
 from contextlib import contextmanager
 from threading import Event, Thread
-from typing import Generator, List
 
 from pipx.constants import WINDOWS
 from pipx.emojis import EMOJI_SUPPORT
@@ -71,7 +71,7 @@ def print_animation(
     *,
     message: str,
     event: Event,
-    symbols: List[str],
+    symbols: list[str],
     delay: float,
     period: float,
     animate_at_beginning_of_line: bool,
@@ -101,7 +101,7 @@ def print_animation(
 def win_cursor(visible: bool) -> None:
     if sys.platform != "win32":  # hello mypy
         return
-    ci = _CursorInfo()
+    ci = _CursorInfo()  # type: ignore[unreachable]
     handle = ctypes.windll.kernel32.GetStdHandle(-11)
     ctypes.windll.kernel32.GetConsoleCursorInfo(handle, ctypes.byref(ci))
     ci.visible = visible

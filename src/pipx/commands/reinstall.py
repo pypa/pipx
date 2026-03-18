@@ -1,6 +1,6 @@
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Sequence
 
 from packaging.utils import canonicalize_name
 
@@ -115,8 +115,8 @@ def reinstall_all(
     python_flag_passed: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
-    failed: List[str] = []
-    reinstalled: List[str] = []
+    failed: list[str] = []
+    reinstalled: list[str] = []
 
     # iterate on all packages and reinstall them
     # for the first one, we also trigger

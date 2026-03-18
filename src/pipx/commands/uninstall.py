@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from shutil import which
-from typing import TYPE_CHECKING, List, Optional, Set
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -32,7 +32,7 @@ def _venv_metadata_to_package_info(
     venv_metadata: VenvMetadata,
     package_name: str,
     package_or_url: str = "",
-    pip_args: Optional[List[str]] = None,
+    pip_args: Optional[list[str]] = None,
     include_apps: bool = True,
     include_dependencies: bool = False,
     suffix: str = "",
@@ -61,7 +61,7 @@ def _venv_metadata_to_package_info(
 
 def _get_package_bin_dir_app_paths(
     venv: Venv, package_info: PackageInfo, venv_bin_path: Path, local_bin_dir: Path
-) -> Set[Path]:
+) -> set[Path]:
     suffix = package_info.suffix
     apps = []
     if package_info.include_apps:
@@ -71,7 +71,7 @@ def _get_package_bin_dir_app_paths(
     return get_exposed_paths_for_package(venv_bin_path, local_bin_dir, [add_suffix(app, suffix) for app in apps])
 
 
-def _get_package_man_paths(venv: Venv, package_info: PackageInfo, venv_man_path: Path, local_man_dir: Path) -> Set[Path]:
+def _get_package_man_paths(venv: Venv, package_info: PackageInfo, venv_man_path: Path, local_man_dir: Path) -> set[Path]:
     man_pages = []
     if package_info.include_apps:
         man_pages += package_info.man_pages
@@ -82,10 +82,10 @@ def _get_package_man_paths(venv: Venv, package_info: PackageInfo, venv_man_path:
 
 def _get_venv_resource_paths(
     resource_type: str, venv: Venv, venv_resource_path: Path, local_resource_dir: Path
-) -> Set[Path]:
+) -> set[Path]:
     resource_paths = set()
     assert resource_type in ("app", "man"), "invalid resource type"
-    get_package_resource_paths: Callable[[Venv, PackageInfo, Path, Path], Set[Path]]
+    get_package_resource_paths: Callable[[Venv, PackageInfo, Path, Path], set[Path]]
     get_package_resource_paths = {
         "app": _get_package_bin_dir_app_paths,
         "man": _get_package_man_paths,

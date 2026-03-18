@@ -9,6 +9,19 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 <!-- towncrier release notes start -->
 
+## [1.9.0](https://github.com/pypa/pipx/tree/1.9.0) - 2026-03-17
+
+### Features
+
+- Add completion choices for `pipx environment --value`. ([#1498](https://github.com/pypa/pipx/issues/1498))
+
+### Bugfixes
+
+- Ignore recursive symlink loops in PIPX_BIN_DIR. ([#1592](https://github.com/pypa/pipx/issues/1592))
+- `pipx reinstall`: An exception will now be raised if package is pinned. ([#1611](https://github.com/pypa/pipx/issues/1611))
+- Stop `pipx run` from leaving bad temporary venvs when first installation was unsuccessful. ([#1709](https://github.com/pypa/pipx/issues/1709))
+
+
 ## [1.8.0](https://github.com/pypa/pipx/tree/1.8.0) - 2025-09-30
 
 ### Features
