@@ -51,6 +51,38 @@ urls.Documentation = "https://pipx.pypa.io"
 urls.Homepage = "https://pipx.pypa.io"
 scripts.pipx = "pipx.main:cli"
 
+[dependency-groups]
+dev = [
+  { include-group = "docs" },
+  { include-group = "lint" },
+  { include-group = "man" },
+  { include-group = "test" },
+]
+test = [
+  "pypiserver[cache,passlib]>=2.3.2",
+  "pytest>=8",
+  "pytest-cov>=4",
+  "pytest-mock>=3.11.1",
+  "pytest-xdist>=3.5",
+  "setuptools>=68; python_version>='3.12'",
+  "watchdog>=4",
+]
+docs = [
+  "jinja2",
+  "markdown-gfm-admonition",
+  "mkdocs",
+  "mkdocs-gen-files",
+  "mkdocs-macros-plugin",
+  "mkdocs-material",
+  "towncrier>=23.6",
+]
+lint = [
+  "pre-commit>=3",
+]
+man = [
+  "argparse-manpage[setuptools]",
+]
+
 [tool.hatch]
 build.hooks.vcs.version-file = "src/pipx/version.py"
 build.targets.sdist.include = [
@@ -63,9 +95,6 @@ version.source = "vcs"
 
 [tool.ruff]
 line-length = 121
-src = [
-  "src",
-]
 lint.extend-select = [
   "A",
   "B",
@@ -75,12 +104,14 @@ lint.extend-select = [
   "ISC",
   "PERF",
   "PGH",
+  "PIE",
   "PLC",
   "PLE",
   "PLW",
   "RSE",
   "RUF",
   "TC",
+  "UP",
   "W",
 ]
 lint.ignore = [
@@ -109,6 +140,8 @@ ignore-regex = "\\b(UE|path/doesnt/exist)\\b"
 overrides = [ { module = [
   "pycowsay.*",
 ], ignore_missing_imports = true } ]
+warn_unreachable = true
+enable_error_code = [ "ignore-without-code", "redundant-expr", "truthy-bool" ]
 
 [tool.pytest]
 ini_options.minversion = "8"

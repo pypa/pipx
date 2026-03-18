@@ -13,7 +13,7 @@ import textwrap
 import time
 import urllib.parse
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Optional
 
 import argcomplete
 import platformdirs
@@ -42,7 +42,7 @@ from pipx.version import version as __version__
 
 logger = logging.getLogger(__name__)
 
-VenvCompleter = Callable[[str], List[str]]
+VenvCompleter = Callable[[str], list[str]]
 
 
 def print_version() -> None:
@@ -153,7 +153,7 @@ INSTALL_DESCRIPTION = textwrap.dedent(
 
 
 class LineWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
-    def _split_lines(self, text: str, width: int) -> List[str]:
+    def _split_lines(self, text: str, width: int) -> list[str]:
         text = self._whitespace_matcher.sub(" ", text).strip()
         return textwrap.wrap(text, width)
 
@@ -162,12 +162,12 @@ class InstalledVenvsCompleter:
     def __init__(self, venv_container: VenvContainer) -> None:
         self.packages = [str(p.name) for p in sorted(venv_container.iter_venv_dirs())]
 
-    def use(self, prefix: str, **kwargs: Any) -> List[str]:
+    def use(self, prefix: str, **kwargs: Any) -> list[str]:
         return [f"{prefix}{x[len(prefix) :]}" for x in self.packages if x.startswith(canonicalize_name(prefix))]
 
 
-def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
-    pip_args: List[str] = []
+def get_pip_args(parsed_args: dict[str, str]) -> list[str]:
+    pip_args: list[str] = []
     if parsed_args.get("index_url"):
         pip_args += ["--index-url", parsed_args["index_url"]]
 
@@ -183,7 +183,7 @@ def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
     return pip_args
 
 
-def get_runpip_args(pip_args: List[str]) -> List[str]:
+def get_runpip_args(pip_args: list[str]) -> list[str]:
     if len(pip_args) != 1:
         return pip_args
 
@@ -196,8 +196,8 @@ def get_runpip_args(pip_args: List[str]) -> List[str]:
     return split_args or pip_args
 
 
-def get_venv_args(parsed_args: Dict[str, str]) -> List[str]:
-    venv_args: List[str] = []
+def get_venv_args(parsed_args: dict[str, str]) -> list[str]:
+    venv_args: list[str] = []
     if parsed_args.get("system_site_packages"):
         venv_args += ["--system-site-packages"]
     return venv_args
@@ -224,7 +224,7 @@ def package_is_path(package: str):
         )
 
 
-def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.ArgumentParser]) -> ExitCode:  # noqa: C901
+def run_pipx_command(args: argparse.Namespace, subparsers: dict[str, argparse.ArgumentParser]) -> ExitCode:  # noqa: C901
     verbose = args.verbose if "verbose" in args else False
 
     pip_args = get_pip_args(vars(args))
@@ -291,7 +291,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             not args.no_cache,
         )
         # We should never reach here because run() is NoReturn.
-        return ExitCode(1)
+        return ExitCode(1)  # type: ignore[unreachable]
     elif args.command == "install":
         return commands.install(
             None,
@@ -422,7 +422,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             python_flag_passed=python_flag_passed,
         )
     elif args.command == "runpip":
-        if not venv_dir:
+        if not venv_dir:  # type: ignore[truthy-bool]
             raise PipxError("Developer error: venv_dir is not defined.")
         runpip_args = get_runpip_args(args.pipargs)
         return commands.run_pip(package, venv_dir, runpip_args, args.verbose)
@@ -960,7 +960,7 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
     )
 
 
-def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.ArgumentParser]]:
+def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.ArgumentParser]]:
     venv_container = VenvContainer(paths.ctx.venvs)
 
     completer_venvs = InstalledVenvsCompleter(venv_container)
@@ -1038,7 +1038,7 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
     return parser, subparsers_with_subcommands
 
 
-def delete_oldest_logs(file_list: List[Path], keep_number: int) -> None:
+def delete_oldest_logs(file_list: list[Path], keep_number: int) -> None:
     file_list = sorted(file_list)
     if len(file_list) > keep_number:
         for existing_file in file_list[:-keep_number]:
@@ -1198,7 +1198,7 @@ def cli() -> ExitCode:
     try:
         hide_cursor()
         parser, subparsers = get_command_parser()
-        argcomplete.autocomplete(parser)
+        argcomplete.autocomplete(parser, always_complete_options=False)
         parsed_pipx_args = parser.parse_args()
         setup(parsed_pipx_args)
         check_args(parsed_pipx_args)
