@@ -1,3 +1,21 @@
+## Wrong package version installed
+
+pipx creates venvs using your default Python interpreter. pip resolves the latest package version compatible with that
+interpreter. If a package drops support for your Python version, pip installs an older release without warning.
+
+Check which Python pipx uses with `pipx environment --value PIPX_DEFAULT_PYTHON`. To install with a different Python,
+pass `--python`:
+
+```
+pipx install my-package --python python3.12
+```
+
+If the desired Python version is not installed, add `--fetch-missing-python` and pipx downloads a standalone build:
+
+```
+pipx install my-package --python 3.13 --fetch-missing-python
+```
+
 ## `reinstall-all` fixes most issues
 
 The following command should fix many problems you may encounter as a pipx user:
