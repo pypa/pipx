@@ -77,6 +77,12 @@ sudo pipx ensurepath --prepend
 
 For more details, refer to [Customising your installation](configure-paths.md).
 
+> [!NOTE]
+> If you installed pipx with `pip install --user`, the `pipx` binary lives in your user directory (e.g.
+> `~/.local/bin/pipx`). Running `sudo pipx` will fail because root's `PATH` does not include your user bin directory.
+> Use the full path instead: `sudo ~/.local/bin/pipx ensurepath --global`. Alternatively, install pipx system-wide with
+> `sudo pip install pipx` (without `--user`) or use your distribution's package manager.
+
 ### On Windows:
 
 - Install via [Scoop](https://scoop.sh/):
