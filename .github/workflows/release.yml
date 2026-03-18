@@ -10,8 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  default-python: "3.13"
-  minimum-supported-python: "3.9"
+  default-python: "3.14"
 
 jobs:
   pypi-publish:
@@ -64,10 +63,10 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: "${{ github.ref_name }}"
-      - name: Set up Python ${{ env.minimum-supported-python }}
+      - name: Set up Python ${{ env.default-python }}
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ env.minimum-supported-python }}
+          python-version: ${{ env.default-python }}
           cache: "pip"
       - name: Install tox
         run: pip install tox
