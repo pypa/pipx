@@ -62,8 +62,8 @@ python3 -m pipx ensurepath
 ```
 
 > [!NOTE]
-> Distributions that adopt [PEP 668](https://peps.python.org/pep-0668/) (Ubuntu 23.04+, Debian 12+, Fedora 38+) mark
-> the system Python as externally managed. Running `pip install --user` on these systems fails with an
+> Distributions that adopt [PEP 668](https://peps.python.org/pep-0668/) (Ubuntu 23.04+, Debian 12+, Fedora 38+) mark the
+> system Python as externally managed. Running `pip install --user` on these systems fails with an
 > `externally-managed-environment` error. Use your distribution's package manager (`apt install pipx`,
 > `dnf install pipx`) instead. If no distro package exists, install pipx inside its own virtual environment:
 >
