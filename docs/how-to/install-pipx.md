@@ -133,10 +133,6 @@ you did not get the warning):
 This will add both the above mentioned path and the `%USERPROFILE%\.local\bin` folder to your search path. Restart your
 terminal session and verify `pipx` does run.
 
-> [!WARNING]
-> It is not recommended to install `pipx` via `pipx`. If you'd like to do this anyway, take a look at the
-> [`pipx-in-pipx`](https://github.com/mattsb42-meta/pipx-in-pipx) project and read about the limitations there.
-
 ### On FreeBSD:
 
 - Install via package manager
@@ -160,6 +156,22 @@ Python 3.9+ interpreter:
 ```
 python pipx.pyz ensurepath
 ```
+
+### Self-managed pipx
+
+You can use pipx to manage its own installation. This keeps pipx up to date through `pipx upgrade pipx` and avoids
+relying on distro packages that may ship older versions. Bootstrap it with a temporary virtual environment:
+
+```
+python3 -m venv /tmp/bootstrap
+/tmp/bootstrap/bin/pip install pipx
+/tmp/bootstrap/bin/pipx install pipx
+rm -rf /tmp/bootstrap
+pipx ensurepath
+```
+
+After this, `pipx upgrade pipx` upgrades pipx like any other pipx-managed application. On Windows, pipx cannot delete
+its own running executable, so it moves locked files to a trash directory and cleans them up on the next run.
 
 ## Installing packages from source control
 
