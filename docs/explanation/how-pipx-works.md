@@ -7,8 +7,9 @@ virtual environment at `~/.local/share/pipx/shared/` that contains the packaging
 to its latest version. It then creates an isolated virtual environment at `~/.local/share/pipx/venvs/PACKAGE` that uses
 the shared pip via a [.pth file](https://docs.python.org/3/library/site.html) and installs the desired package into it.
 
-Once the package is installed, pipx exposes its binaries by symlinking them into `~/.local/bin` (for example,
-`~/.local/bin/black` -> `~/.local/share/pipx/venvs/black/bin/black`). It also symlinks any manual pages into
+Once the package is installed, pipx exposes its console scripts and GUI scripts by symlinking them into `~/.local/bin`
+(for example, `~/.local/bin/black` -> `~/.local/share/pipx/venvs/black/bin/black`). It also symlinks any manual pages
+into
 `~/.local/share/man/man[1-9]`. As long as `~/.local/bin/` is on your `PATH`, the new commands are available globally,
 and on systems with `man` support the pages are accessible too.
 
