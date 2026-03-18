@@ -6,8 +6,9 @@ If you are a developer and want to be able to run
 pipx install MY_PACKAGE
 ```
 
-make sure you include `scripts` and, optionally for Windows GUI applications `gui-scripts`, sections under your main
-table[^1] in `pyproject.toml` or their legacy equivalents for `setup.cfg` and `setup.py`.
+make sure you include `scripts` in your main table[^1] in `pyproject.toml` or its legacy equivalents for `setup.cfg` and
+`setup.py`. pipx also exposes `gui-scripts` entry points, which are useful for GUI applications on Windows (they launch
+without opening a console window).
 
 === "pyproject.toml"
 
