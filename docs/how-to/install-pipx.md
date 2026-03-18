@@ -23,17 +23,22 @@ pipx ensurepath
 
 #### Additional (optional) commands
 
-To allow pipx actions in global scope.
+To allow pipx actions in global scope (requires pipx 1.5.0+):
 
 ```
 sudo pipx ensurepath --global
 ```
 
-To prepend the pipx bin directory to PATH instead of appending it.
+To prepend the pipx bin directory to PATH instead of appending it (requires pipx 1.7.0+):
 
 ```
 sudo pipx ensurepath --prepend
 ```
+
+> [!NOTE]
+> Some distributions ship older pipx versions (e.g. Ubuntu 24.04 ships v1.4.3). If `--global` or `--prepend` fails with
+> "unrecognized arguments", upgrade pipx first: `pip install --user --upgrade pipx`, or install a newer version from a
+> different source.
 
 For more details, refer to [Customising your installation](configure-paths.md).
 
@@ -63,13 +68,13 @@ python3 -m pipx ensurepath
 
 #### Additional (optional) commands
 
-To allow pipx actions in global scope.
+To allow pipx actions in global scope (requires pipx 1.5.0+):
 
 ```
 sudo pipx ensurepath --global
 ```
 
-To prepend the pipx bin directory to PATH instead of appending it.
+To prepend the pipx bin directory to PATH instead of appending it (requires pipx 1.7.0+):
 
 ```
 sudo pipx ensurepath --prepend
