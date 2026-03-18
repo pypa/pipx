@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 WIN = sys.platform.startswith("win")
 
@@ -11,7 +11,7 @@ def _exe_if_win(apps):
 
 # Versions of all packages possibly used in our tests
 # Only apply _exe_if_win to entry_points, NOT scripts
-PKG: Dict[str, Dict[str, Any]] = {
+PKG: dict[str, dict[str, Any]] = {
     "ansible": {
         "spec": "ansible==6.7.0",
         "apps": [
@@ -248,7 +248,7 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "chardetect",  # chardet EXE
                 "gen_protorpc",  # EXE
                 "html2text",  # html2text EXE
-                "markdown_py",  # Markdwon EXE
+                "markdown_py",  # Markdown EXE
                 "pybabel",  # babel EXE
                 "pygmentize",  # pygments EXE
                 "pyrsa-decrypt",  # rsa EXE
@@ -480,7 +480,7 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "pasteurize",  # future EXE
                 "nltk",  # EXE
                 "tqdm",  # tqdm EXE
-                "markdown_py",  # Markdwon EXE
+                "markdown_py",  # Markdown EXE
             ]
         ),
     },
@@ -497,7 +497,7 @@ PKG: Dict[str, Dict[str, Any]] = {
                 "docutils",
                 "doit",  # EXE
                 "mako-render",  # mako EXE
-                "markdown_py",  # Markdwon EXE
+                "markdown_py",  # Markdown EXE
                 "natsort",  # EXE
                 "pybabel",  # babel EXE
                 "pygmentize",  # pygments EXE
@@ -648,7 +648,7 @@ PKG: Dict[str, Dict[str, Any]] = {
         "apps_of_dependencies": _exe_if_win(
             [
                 "docutils",
-                "markdown_py",  # Markdwon EXE
+                "markdown_py",  # Markdown EXE
                 "pygmentize",  # pygments EXE
                 "pylupdate6",  # EXE
                 "pyuic6",  # EXE
