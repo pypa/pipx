@@ -49,14 +49,23 @@ sudo pipx install --global <PACKAGE>
 
 #### `--global` argument
 
-pipx also comes with a `--global` argument which helps to execute actions in global scope which exposes the app to all
-system users. By default the global binary location is set to `/usr/local/bin` and can be overridden with the
-environment variable `PIPX_GLOBAL_BIN_DIR`. Default global manual page location is `/usr/local/share/man`. This can be
-overridden with environment variable `PIPX_GLOBAL_MAN_DIR`. Finally, default global virtual environment location is
-`/opt/pipx`, can be overridden with environment variable `PIPX_GLOBAL_HOME`. Make sure to run
-`sudo pipx ensurepath --global` if you intend to use this feature.
+The `--global` flag installs applications into a system-wide location accessible to all users. It must be placed
+**after** the subcommand, not before it:
 
-Note that the `--global` argument is not supported on Windows.
+```
+# correct
+sudo pipx install --global pycowsay
+sudo pipx list --global
+
+# wrong (--global is silently ignored when placed before the subcommand)
+sudo pipx --global install pycowsay
+```
+
+Default global paths are `/usr/local/bin` for binaries, `/usr/local/share/man` for man pages, and `/opt/pipx` for
+virtual environments. Override them with `PIPX_GLOBAL_BIN_DIR`, `PIPX_GLOBAL_MAN_DIR`, and `PIPX_GLOBAL_HOME`. Run
+`sudo pipx ensurepath --global` to add the global binary directory to the system `PATH`.
+
+The `--global` flag is not supported on Windows.
 
 #### `--prepend` argument
 
