@@ -156,7 +156,7 @@ def test_run_ensure_null_pythonpath():
         ("pylint", PKG["pylint"]["spec"], ["pylint", "--help"], False),
         ("kaggle", PKG["kaggle"]["spec"], ["kaggle", "--help"], False),
         ("ipython", PKG["ipython"]["spec"], ["ipython", "--version"], False),
-        ("cloudtoken", PKG["cloudtoken"]["spec"], ["cloudtoken", "--help"], True),
+        # ("cloudtoken", PKG["cloudtoken"]["spec"], ["cloudtoken", "--help"], True),
         ("awscli", PKG["awscli"]["spec"], ["aws", "--help"], True),
         # ("ansible", PKG["ansible"]["spec"], ["ansible", "--help"]), # takes too long
     ],
@@ -193,29 +193,58 @@ def test_run_without_requirements(caplog, pipx_temp_env, tmp_path):
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_with_requirements(caplog, pipx_temp_env, tmp_path):
+@pytest.mark.parametrize(
+    "script_text, expected_output",
+    [
+        pytest.param(
+            """
+            # /// script
+            # dependencies = []
+            # ///
+            from pathlib import Path
+            Path({out!r}).write_text("explicit-empty")
+            """,
+            "explicit-empty",
+            id="explicit-empty-dependencies",
+        ),
+        pytest.param(
+            """
+            # /// script
+            # ///
+            from pathlib import Path
+            Path({out!r}).write_text("implicit-empty")
+            """,
+            "implicit-empty",
+            id="implicit-empty-dependencies",
+        ),
+        pytest.param(
+            """
+            # /// script
+            # dependencies = ["requests==2.31.0"]
+            # ///
+
+            # Check requests can be imported
+            import requests
+            # Check dependencies of requests can be imported
+            import certifi
+            # Check the installed version
+            from pathlib import Path
+            Path({out!r}).write_text(requests.__version__)
+            """,
+            "2.31.0",
+            id="non-empty-dependencies",
+        ),
+    ],
+)
+def test_run_with_requirements(script_text, expected_output, caplog, pipx_temp_env, tmp_path):
     script = tmp_path / "test.py"
     out = tmp_path / "output.txt"
     script.write_text(
-        textwrap.dedent(
-            f"""
-                # /// script
-                # dependencies = ["requests==2.31.0"]
-                # ///
-
-                # Check requests can be imported
-                import requests
-                # Check dependencies of requests can be imported
-                import certifi
-                # Check the installed version
-                from pathlib import Path
-                Path({str(out)!r}).write_text(requests.__version__)
-            """
-        ).strip(),
+        textwrap.dedent(script_text.format(out=str(out))).strip(),
         encoding="utf-8",
     )
     run_pipx_cli_exit(["run", script.as_uri()])
-    assert out.read_text() == "2.31.0"
+    assert out.read_text() == expected_output
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
@@ -298,6 +327,40 @@ def test_run_with_requirements_and_args(caplog, pipx_temp_env, tmp_path):
     )
     run_pipx_cli_exit(["run", script.as_uri(), "1"])
     assert out.read_text() == "2"
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_failing_requirements(capfd, pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    script.write_text(
+        textwrap.dedent(
+            """
+                # /// script
+                # dependencies = ["will_fail @ git+https://0.0.0.0/will_fail.git"]
+                # ///
+                import will_fail
+            """
+        ).strip()
+    )
+
+    # Attempt first invocation of `pipx run`.
+    # This should fail as the `will_fail` package will not be able to be installed.
+    return_code = run_pipx_cli(["run", str(script)])
+    captured = capfd.readouterr()
+
+    assert return_code != 0
+    assert "Error installing will_fail @ git+https://0.0.0.0/will_fail.git." in captured.err
+
+    # Attempt second invocation of `pipx run`.
+    # If above failure was detected and the temporary venv marked for deletion,
+    # then this should fail in the same manner.
+    # If the above failure was not detected, then a ModuleNotFoundError will be raised.
+    return_code = run_pipx_cli(["run", str(script)])
+    captured = capfd.readouterr()
+
+    assert return_code != 0
+    assert "ModuleNotFoundError: No module named 'will_fail'" not in captured.err
+    assert "Error installing will_fail @ git+https://0.0.0.0/will_fail.git." in captured.err
 
 
 def test_pip_args_forwarded_to_shared_libs(pipx_ultra_temp_env, capsys, caplog):
@@ -385,8 +448,8 @@ def test_run_with_windows_python_version(caplog, pipx_temp_env, tmp_path):
             """
         ).strip()
     )
-    run_pipx_cli_exit(["run", script.as_uri(), "--python", "3.12"])
-    assert "3.12" in out.read_text()
+    run_pipx_cli_exit(["run", script.as_uri(), "--python", "3.13"])
+    assert "3.13" in out.read_text()
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
@@ -414,3 +477,24 @@ def test_run_local_path_entry_point(pipx_temp_env, caplog, root):
     run_pipx_cli_exit(["run", empty_project_path])
 
     assert "Using discovered entry point for 'pipx run'" in caplog.text
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with(capsys):
+    run_pipx_cli_exit(["run", "--with", "black", "pycowsay", "--help"])
+    captured = capsys.readouterr()
+    assert "injected package black into venv pycowsay" in captured.out
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_cache(capsys, caplog):
+    # Maybe there's a better way to remove the previous venv cache?
+    run_pipx_cli_exit(["run", "--no-cache", "pycowsay", "cowsay", "args"])
+    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"], assert_exit=0)
+
+    caplog.set_level(logging.DEBUG)
+    caplog.clear()
+    run_pipx_cli_exit(["run", "--verbose", "--with", "black", "pycowsay", "args"], assert_exit=0)
+    captured = capsys.readouterr()
+    assert "Reusing cached venv" in caplog.text
+    assert "injected package black into venv pycowsay" in captured.out

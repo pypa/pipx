@@ -1,7 +1,6 @@
 import logging
 import subprocess
 from pathlib import Path
-from typing import List
 
 from packaging import version
 
@@ -14,11 +13,11 @@ from pipx.venv import Venv, VenvContainer
 logger = logging.getLogger(__name__)
 
 
-def get_installed_standalone_interpreters() -> List[Path]:
+def get_installed_standalone_interpreters() -> list[Path]:
     return [python_dir for python_dir in paths.ctx.standalone_python_cachedir.iterdir() if python_dir.is_dir()]
 
 
-def get_venvs_using_standalone_interpreter(venv_container: VenvContainer) -> List[Venv]:
+def get_venvs_using_standalone_interpreter(venv_container: VenvContainer) -> list[Venv]:
     venvs: list[Venv] = []
     for venv_dir in venv_container.iter_venv_dirs():
         venv = Venv(venv_dir)
@@ -27,7 +26,7 @@ def get_venvs_using_standalone_interpreter(venv_container: VenvContainer) -> Lis
     return venvs
 
 
-def get_interpreter_users(interpreter: Path, venvs: List[Venv]) -> List[PipxMetadata]:
+def get_interpreter_users(interpreter: Path, venvs: list[Venv]) -> list[PipxMetadata]:
     return [
         venv.pipx_metadata
         for venv in venvs
@@ -77,7 +76,7 @@ def prune_interpreters(
 
 
 def get_latest_micro_version(
-    current_version: version.Version, latest_python_versions: List[version.Version]
+    current_version: version.Version, latest_python_versions: list[version.Version]
 ) -> version.Version:
     for latest_python_version in latest_python_versions:
         if current_version.major == latest_python_version.major and current_version.minor == latest_python_version.minor:

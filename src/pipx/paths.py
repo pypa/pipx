@@ -107,13 +107,13 @@ class _PathContext:
         return (self._base_shared_libs or self.home / "shared").resolve()
 
     def make_local(self) -> None:
-        self._base_home = OVERRIDE_PIPX_HOME or get_expanded_environ("PIPX_HOME")
+        self._base_home = OVERRIDE_PIPX_HOME or get_expanded_environ("PIPX_HOME")  # type: ignore[redundant-expr]
         self._default_home = DEFAULT_PIPX_HOME
-        self._base_bin = OVERRIDE_PIPX_BIN_DIR or get_expanded_environ("PIPX_BIN_DIR")
+        self._base_bin = OVERRIDE_PIPX_BIN_DIR or get_expanded_environ("PIPX_BIN_DIR")  # type: ignore[redundant-expr]
         self._default_bin = DEFAULT_PIPX_BIN_DIR
-        self._base_man = OVERRIDE_PIPX_MAN_DIR or get_expanded_environ("PIPX_MAN_DIR")
+        self._base_man = OVERRIDE_PIPX_MAN_DIR or get_expanded_environ("PIPX_MAN_DIR")  # type: ignore[redundant-expr]
         self._default_man = DEFAULT_PIPX_MAN_DIR
-        self._base_shared_libs = OVERRIDE_PIPX_SHARED_LIBS or get_expanded_environ("PIPX_SHARED_LIBS")
+        self._base_shared_libs = OVERRIDE_PIPX_SHARED_LIBS or get_expanded_environ("PIPX_SHARED_LIBS")  # type: ignore[redundant-expr]
         self._default_log = Path(user_log_path("pipx"))
         self._default_cache = Path(user_cache_path("pipx"))
         self._default_trash = self._default_home / "trash"
@@ -121,11 +121,11 @@ class _PathContext:
         self._home_exists = self._base_home is not None or any(fallback.exists() for fallback in FALLBACK_PIPX_HOMES)
 
     def make_global(self) -> None:
-        self._base_home = OVERRIDE_PIPX_GLOBAL_HOME or get_expanded_environ("PIPX_GLOBAL_HOME")
+        self._base_home = OVERRIDE_PIPX_GLOBAL_HOME or get_expanded_environ("PIPX_GLOBAL_HOME")  # type: ignore[redundant-expr]
         self._default_home = DEFAULT_PIPX_GLOBAL_HOME
-        self._base_bin = OVERRIDE_PIPX_GLOBAL_BIN_DIR or get_expanded_environ("PIPX_GLOBAL_BIN_DIR")
+        self._base_bin = OVERRIDE_PIPX_GLOBAL_BIN_DIR or get_expanded_environ("PIPX_GLOBAL_BIN_DIR")  # type: ignore[redundant-expr]
         self._default_bin = DEFAULT_PIPX_GLOBAL_BIN_DIR
-        self._base_man = OVERRIDE_PIPX_GLOBAL_MAN_DIR or get_expanded_environ("PIPX_GLOBAL_MAN_DIR")
+        self._base_man = OVERRIDE_PIPX_GLOBAL_MAN_DIR or get_expanded_environ("PIPX_GLOBAL_MAN_DIR")  # type: ignore[redundant-expr]
         self._default_man = DEFAULT_PIPX_GLOBAL_MAN_DIR
         self._default_log = self._default_home / "logs"
         self._default_cache = self._default_home / ".cache"

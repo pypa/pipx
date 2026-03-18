@@ -4,10 +4,10 @@ import shutil
 import socket
 import subprocess
 import sys
+from collections.abc import Iterator
 from contextlib import closing
 from http import HTTPStatus
 from pathlib import Path
-from typing import Iterator
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
@@ -31,7 +31,7 @@ def mocked_github_api(monkeypatch, root):
     Fixture to replace the github index with a local copy,
     to prevent unit tests from exceeding github's API request limit.
     """
-    with open(root / "testdata" / "standalone_python_index_20250317.json") as f:
+    with open(root / "testdata" / "standalone_python_index_20250818.json") as f:
         index = json.load(f)
     monkeypatch.setattr(standalone_python, "get_or_update_index", lambda _: index)
 
@@ -138,12 +138,7 @@ def pipx_local_pypiserver(request, root: Path, tmp_path_factory) -> Iterator[str
     ]
     check_test_packages_process = subprocess.run(check_test_packages_cmd, check=False, cwd=root)
     if check_test_packages_process.returncode != 0:
-        raise Exception(
-            f"Directory {pipx_cache_dir!s} does not contain all "
-            "package distribution files necessary to run pipx tests. Please "
-            "run the following command to populate it: "
-            f"{' '.join(update_test_packages_cmd)}"
-        )
+        subprocess.run(update_test_packages_cmd, check=True, cwd=root)
 
     def find_free_port():
         with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
@@ -157,7 +152,20 @@ def pipx_local_pypiserver(request, root: Path, tmp_path_factory) -> Iterator[str
     os.environ["NO_PROXY"] = "127.0.0.1"
     cache = str(pipx_cache_dir / f"{sys.version_info[0]}.{sys.version_info[1]}")
     server = str(Path(sys.executable).parent / "pypi-server")
-    cmd = [server, "run", "--verbose", "--disable-fallback", "--host", "127.0.0.1", "--port", str(port), cache]
+    cmd = [
+        server,
+        "run",
+        "--verbose",
+        "--disable-fallback",
+        "--backend",
+        "cached-dir",
+        "--cache-control=3600",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        str(port),
+        cache,
+    ]
     cmd += ["--log-file", str(server_log)]
     pypiserver_process = subprocess.Popen(cmd, cwd=root)
     url = f"http://127.0.0.1:{port}/simple/"
