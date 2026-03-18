@@ -1,0 +1,44 @@
+name: Pre-release
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - auto
+          - major
+          - minor
+          - patch
+        default: auto
+
+env:
+  default-python: "3.13"
+
+jobs:
+  pre-release:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_RELEASE_TOKEN }}
+      - name: Set up Python ${{ env.default-python }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.default-python }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install GitPython packaging towncrier pre-commit
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Generate changelog, commit, tag, and push
+        run: python scripts/release.py --version "${{ inputs.bump }}"

@@ -20,6 +20,14 @@ ENVIRONMENT_VARIABLES = [
     "PIPX_USE_EMOJI",
     "PIPX_HOME_ALLOW_SPACE",
 ]
+DERIVED_ENVIRONMENT_VARIABLES = [
+    "PIPX_LOCAL_VENVS",
+    "PIPX_LOG_DIR",
+    "PIPX_TRASH_DIR",
+    "PIPX_VENV_CACHEDIR",
+    "PIPX_STANDALONE_PYTHON_CACHEDIR",
+]
+ENVIRONMENT_VALUE_CHOICES = ENVIRONMENT_VARIABLES + DERIVED_ENVIRONMENT_VARIABLES
 
 
 def environment(value: str) -> ExitCode:
@@ -39,7 +47,7 @@ def environment(value: str) -> ExitCode:
         "PIPX_HOME_ALLOW_SPACE": str(paths.ctx.allow_spaces_in_home_path).lower(),
     }
     if value is None:
-        print("Environment variables (set by user):")
+        print("Environment variables (set by user):")  # type: ignore[unreachable]
         print("")
         for env_variable in ENVIRONMENT_VARIABLES:
             env_value = os.getenv(env_variable, "")

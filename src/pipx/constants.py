@@ -19,7 +19,7 @@ class FetchPythonOptions(str, enum.Enum):
 PIPX_SHARED_PTH = "pipx_shared.pth"
 TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 14
 MINIMUM_PYTHON_VERSION = "3.9"
-MAN_SECTIONS = ["man%d" % i for i in range(1, 10)]
+MAN_SECTIONS = [f"man{i}" for i in range(1, 10)]
 FETCH_MISSING_PYTHON = os.environ.get("PIPX_FETCH_MISSING_PYTHON", False)
 
 _FETCH_PYTHON_VALID = True

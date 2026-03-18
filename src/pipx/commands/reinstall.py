@@ -1,6 +1,6 @@
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Sequence
 
 from packaging.utils import canonicalize_name
 
@@ -53,6 +53,9 @@ def reinstall(
         package_or_url = venv.pipx_metadata.main_package.package_or_url
     else:
         package_or_url = venv.main_package_name
+
+    if venv.pipx_metadata.main_package.pinned:
+        raise PipxError(f"{error} Package {venv_dir} is pinned. Run `pipx unpin {venv_dir.name}` to unpin it first.")
 
     uninstall(venv_dir, local_bin_dir, local_man_dir, verbose)
 
@@ -110,8 +113,8 @@ def reinstall_all(
     python_flag_passed: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
-    failed: List[str] = []
-    reinstalled: List[str] = []
+    failed: list[str] = []
+    reinstalled: list[str] = []
 
     # iterate on all packages and reinstall them
     # for the first one, we also trigger

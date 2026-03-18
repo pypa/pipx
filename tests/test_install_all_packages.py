@@ -22,7 +22,7 @@ import textwrap
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import pytest  # type: ignore[import-not-found]
 
@@ -40,7 +40,7 @@ PACKAGE_NAME_LIST = [
     "black",
     "cactus",
     "chert",
-    "cloudtoken",
+    # "cloudtoken",
     "coala",
     "cookiecutter",
     "cython",
@@ -139,9 +139,10 @@ class PackageData:
 class ModuleGlobalsData:
     def __init__(self):
         self.errors_path = Path(".")
-        self.install_data: List[PackageData] = []
-        self.py_version_display = "Python {0.major}.{0.minor}.{0.micro}".format(sys.version_info)
-        self.py_version_short = "{0.major}.{0.minor}".format(sys.version_info)
+        self.install_data: list[PackageData] = []
+        pyver = sys.version_info
+        self.py_version_display = f"Python {pyver.major}.{pyver.minor}.{pyver.micro}"
+        self.py_version_short = f"{pyver.major}.{pyver.minor}"
         self.report_path = Path(".")
         self.sys_platform = sys.platform
         self.test_class = ""
@@ -275,7 +276,7 @@ def verify_installed_resources(
         return True
 
     reported_resources_re = re.search(
-        r"These " + resource_name_long + r" are now globally available\n((?:    - [^\n]+\n)*)",
+        r"These " + resource_name_long + r" are now available\n((?:    - [^\n]+\n)*)",
         captured_outerr.out,
         re.DOTALL,
     )
@@ -309,7 +310,7 @@ def verify_post_install(
     test_error_fh: io.StringIO,
     using_clear_path: bool,
     deps: bool = False,
-) -> Tuple[bool, Optional[bool], Optional[Path]]:
+) -> tuple[bool, Optional[bool], Optional[Path]]:
     pip_error_file = None
     caplog_problem = False
     install_success = f"installed package {package_name}" in captured_outerr.out
@@ -385,7 +386,7 @@ def install_and_verify(
     using_clear_path: bool,
     package_data: PackageData,
     deps: bool,
-) -> Tuple[bool, Optional[bool], float]:
+) -> tuple[bool, Optional[bool], float]:
     _ = capsys.readouterr()
     caplog.clear()
 

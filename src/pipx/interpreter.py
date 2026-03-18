@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def has_venv() -> bool:
     try:
-        import venv  # noqa: F401
+        import venv  # noqa: F401, PLC0415
     except ImportError:
         return False
     return True
@@ -46,7 +46,7 @@ class InterpreterResolutionError(PipxError):
                     "but both the python command and the Python Launcher were not found on PATH."
                 )
         if source == "the python-build-standalone project":
-            message += "listed in https://github.com/indygreg/python-build-standalone/releases/latest."
+            message += "listed in https://github.com/astral-sh/python-build-standalone/releases/latest."
         super().__init__(message, wrap_message)
 
 
@@ -161,7 +161,7 @@ def _find_default_windows_python() -> str:
 
     proc = subprocess.run([python, "-V"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
     if proc.returncode != 0:
-        # Cover the 9009 return code pre-emptively.
+        # Cover the 9009 return code preemptively.
         raise PipxError("No suitable Python found")
     if not proc.stdout.strip():
         # A real Python should print version, Windows Store stub won't.

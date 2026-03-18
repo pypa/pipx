@@ -130,3 +130,18 @@ def test_upgrade_absolute_path(pipx_temp_env, capsys, root):
     assert run_pipx_cli(["upgrade", "--verbose", str((root / "testdata" / "empty_project").resolve())])
     captured = capsys.readouterr()
     assert "Package cannot be a URL" not in captured.err
+
+
+def test_upgrade_with_extras(pipx_temp_env, capsys):
+    """Test that upgrading a package with extras in the name works correctly.
+
+    Regression test for https://github.com/pypa/pipx/issues/925
+    """
+    assert not run_pipx_cli(["install", "pycowsay"])
+    captured = capsys.readouterr()
+    assert "installed package pycowsay" in captured.out
+
+    assert not run_pipx_cli(["upgrade", "pycowsay[test_extra]"])
+    captured = capsys.readouterr()
+    assert "pycowsay is already at latest version" in captured.out
+    assert "Package is not installed" not in captured.err
