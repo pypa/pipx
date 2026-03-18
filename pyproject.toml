@@ -82,6 +82,9 @@ lint = [
 man = [
   "argparse-manpage[setuptools]",
 ]
+zipapp = [
+  "shiv>=1.0.6",
+]
 
 [tool.hatch]
 build.hooks.vcs.version-file = "src/pipx/version.py"

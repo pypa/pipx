@@ -61,3 +61,13 @@ dependency_groups = ["man"]
 commands = [
   ["python", "scripts/generate_man.py"],
 ]
+
+[env.zipapp]
+description = "build zipapp via shiv"
+skip_install = true
+dependency_groups = ["zipapp"]
+allowlist_externals = ["{tox_root}{/}pipx.pyz"]
+commands = [
+  ["shiv", "-c", "pipx", "-o", "{tox_root}{/}pipx.pyz", "."],
+  ["{tox_root}{/}pipx.pyz", "--version"],
+]

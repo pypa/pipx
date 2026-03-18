@@ -32,10 +32,10 @@ jobs:
         with:
           python-version: ${{ env.default-python }}
           cache: "pip"
-      - name: Install nox
-        run: pip install nox
       - name: Build sdist and wheel
-        run: nox --error-on-missing-interpreters --non-interactive --session build
+        run: |
+          pip install build
+          python -m build
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@v1.13.0
 
@@ -69,10 +69,10 @@ jobs:
         with:
           python-version: ${{ env.minimum-supported-python }}
           cache: "pip"
-      - name: Install nox
-        run: pip install nox
+      - name: Install tox
+        run: pip install tox
       - name: Build zipapp
-        run: nox --error-on-missing-interpreters --non-interactive --session zipapp
+        run: tox run -e zipapp
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
