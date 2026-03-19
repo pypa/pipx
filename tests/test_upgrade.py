@@ -1,6 +1,12 @@
 import pytest  # type: ignore[import-not-found]
 
-from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, skip_if_windows
+from helpers import (
+    PIPX_METADATA_LEGACY_VERSIONS,
+    mock_legacy_venv,
+    remove_venv_interpreter,
+    run_pipx_cli,
+    skip_if_windows,
+)
 from package_info import PKG
 
 
@@ -76,6 +82,17 @@ def test_upgrade_specifier(pipx_temp_env, capsys):
     assert not run_pipx_cli(["upgrade", f"{name}"])
     captured = capsys.readouterr()
     assert f"upgraded package {name} from {initial_version} to" in captured.out
+
+
+def test_upgrade_missing_interpreter(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "pycowsay"])
+    remove_venv_interpreter("pycowsay")
+
+    result = run_pipx_cli(["upgrade", "pycowsay"])
+    assert result != 0, "upgrade should fail when Python interpreter is missing"
+    captured = capsys.readouterr()
+    assert "invalid python interpreter" in captured.err
+    assert "pipx reinstall-all" in captured.err
 
 
 def test_upgrade_editable(pipx_temp_env, capsys, root):
