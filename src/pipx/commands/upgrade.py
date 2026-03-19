@@ -157,6 +157,14 @@ def _upgrade_venv(
     venv = Venv(venv_dir, verbose=verbose)
     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
 
+    if not venv.python_path.is_file():
+        raise PipxError(
+            f"Not upgrading {red(bold(venv_dir.name))}. It has an invalid python interpreter {venv.python_path}.\n"
+            f"This usually happens after a system Python upgrade.\n"
+            f"To fix, execute: pipx reinstall-all",
+            wrap_message=False,
+        )
+
     if not venv.package_metadata:
         raise PipxError(
             f"Not upgrading {red(bold(venv_dir.name))}. It has missing internal pipx metadata.\n"
