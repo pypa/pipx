@@ -489,3 +489,12 @@ def test_install_python_command_version_micro_mismatch(pipx_temp_env, monkeypatc
     assert not run_pipx_cli(["install", "--python", python_version, "--verbose", "pycowsay"])
     captured = capsys.readouterr()
     assert f"It may not match the specified version {python_version} at the micro/patch level" in captured.err
+
+
+@skip_if_windows
+def test_global_flag_before_subcommand_rejected(pipx_temp_env, capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        run_pipx_cli(["--global", "install", "pycowsay"])
+    assert exc_info.value.code == 2, "argparse error should exit with code 2"
+    captured = capsys.readouterr()
+    assert "unrecognized arguments: --global" in captured.err

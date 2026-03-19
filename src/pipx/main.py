@@ -1004,9 +1004,30 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
         prog=prog_name(),
         formatter_class=LineWrapRawTextHelpFormatter,
         description=PIPX_DESCRIPTION,
-        parents=[shared_parser],
     )
     parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore[attr-defined]
+
+    parser.add_argument(
+        "--quiet",
+        "-q",
+        action="count",
+        default=0,
+        help=(
+            "Give less output. May be used multiple times corresponding to the"
+            " ERROR and CRITICAL logging levels. The count maxes out at 2."
+        ),
+    )
+
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="count",
+        default=0,
+        help=(
+            "Give more output. May be used multiple times corresponding to the"
+            " INFO, DEBUG and NOTSET logging levels. The count maxes out at 3."
+        ),
+    )
 
     subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
 
