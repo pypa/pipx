@@ -463,9 +463,11 @@ def run_post_install_actions(
             expose_resources_globally("man", local_man_dir, man_paths, force=force)
 
     package_summary, _ = get_venv_summary(venv_dir, package_name=package_name, new_install=True)
-    print(package_summary)
-    warn_if_not_on_path(local_bin_dir)
-    print(f"done! {stars}", file=sys.stderr)
+    pipx_logger = logging.getLogger("pipx")
+    if not pipx_logger.handlers or pipx_logger.handlers[0].level <= logging.WARNING:
+        print(package_summary)
+        warn_if_not_on_path(local_bin_dir)
+        print(f"done! {stars}", file=sys.stderr)
 
 
 def warn_if_not_on_path(local_bin_dir: Path) -> None:

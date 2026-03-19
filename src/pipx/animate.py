@@ -1,3 +1,4 @@
+import logging
 import shutil
 import sys
 from collections.abc import Generator
@@ -6,6 +7,8 @@ from threading import Event, Thread
 
 from pipx.constants import WINDOWS
 from pipx.emojis import EMOJI_SUPPORT
+
+logger = logging.getLogger(__name__)
 
 stderr_is_tty = bool(sys.stderr and sys.stderr.isatty())
 
@@ -31,8 +34,13 @@ def _env_supports_animation() -> bool:
 
 @contextmanager
 def animate(message: str, do_animation: bool, *, delay: float = 0) -> Generator[None, None, None]:
+    pipx_logger = logging.getLogger("pipx")
+    handler_level = pipx_logger.handlers[0].level if pipx_logger.handlers else 0
+    if pipx_logger.handlers and handler_level > logging.WARNING:
+        yield
+        return
+
     if not do_animation or not _env_supports_animation():
-        # No animation, just a single print of message
         sys.stderr.write(f"{message}...\n")
         yield
         return
