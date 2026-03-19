@@ -1,6 +1,12 @@
 import pytest  # type: ignore[import-not-found]
 
-from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, skip_if_windows
+from helpers import (
+    PIPX_METADATA_LEGACY_VERSIONS,
+    mock_legacy_venv,
+    remove_venv_interpreter,
+    run_pipx_cli,
+    skip_if_windows,
+)
 from package_info import PKG
 
 
@@ -78,6 +84,17 @@ def test_upgrade_specifier(pipx_temp_env, capsys):
     assert f"upgraded package {name} from {initial_version} to" in captured.out
 
 
+def test_upgrade_missing_interpreter(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "pycowsay"])
+    remove_venv_interpreter("pycowsay")
+
+    result = run_pipx_cli(["upgrade", "pycowsay"])
+    assert result != 0, "upgrade should fail when Python interpreter is missing"
+    captured = capsys.readouterr()
+    assert "invalid python interpreter" in captured.err
+    assert "pipx reinstall-all" in captured.err
+
+
 def test_upgrade_editable(pipx_temp_env, capsys, root):
     empty_project_path_as_string = (root / "testdata" / "empty_project").as_posix()
     assert not run_pipx_cli(["install", "--editable", empty_project_path_as_string, "--force"])
@@ -130,3 +147,18 @@ def test_upgrade_absolute_path(pipx_temp_env, capsys, root):
     assert run_pipx_cli(["upgrade", "--verbose", str((root / "testdata" / "empty_project").resolve())])
     captured = capsys.readouterr()
     assert "Package cannot be a URL" not in captured.err
+
+
+def test_upgrade_with_extras(pipx_temp_env, capsys):
+    """Test that upgrading a package with extras in the name works correctly.
+
+    Regression test for https://github.com/pypa/pipx/issues/925
+    """
+    assert not run_pipx_cli(["install", "pycowsay"])
+    captured = capsys.readouterr()
+    assert "installed package pycowsay" in captured.out
+
+    assert not run_pipx_cli(["upgrade", "pycowsay[test_extra]"])
+    captured = capsys.readouterr()
+    assert "pycowsay is already at latest version" in captured.out
+    assert "Package is not installed" not in captured.err

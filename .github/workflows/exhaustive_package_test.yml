@@ -13,7 +13,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.12", "3.11", "3.10", "3.9"]
-
     steps:
       - uses: actions/checkout@v6
       - name: Set up Python ${{ matrix.python-version }}
@@ -27,19 +26,17 @@ jobs:
         continue-on-error: true
         run: nox --non-interactive --session test_all_packages-${{ matrix.python-version }}
       - name: Store reports as artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: reports-raw-${{ matrix.os }}-${{ matrix.python-version }}
           path: reports
-
   report_all_packages:
     name: Collate test reports
     needs: test_all_packages
     runs-on: ubuntu-latest
-
     steps:
       - name: Get report artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: reports-raw-*
           merge-multiple: true
@@ -58,7 +55,7 @@ jobs:
           cat all_packages_deps_errors_* > all_deps_errors_lf.txt
           tr -d '\r' < all_deps_errors_lf.txt > reports/all_deps_errors.txt
       - name: Store collated and raw reports as artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: reports-final
           path: reports

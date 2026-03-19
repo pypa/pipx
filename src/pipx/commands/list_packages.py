@@ -1,8 +1,9 @@
 import json
 import logging
 import sys
+from collections.abc import Collection
 from pathlib import Path
-from typing import Any, Collection, Dict, Tuple
+from typing import Any
 
 from pipx import paths
 from pipx.colors import bold
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 PIPX_SPEC_VERSION = "0.1"
 
 
-def get_venv_metadata_summary(venv_dir: Path) -> Tuple[PipxMetadata, VenvProblems, str]:
+def get_venv_metadata_summary(venv_dir: Path) -> tuple[PipxMetadata, VenvProblems, str]:
     venv = Venv(venv_dir)
 
     (venv_problems, warning_message) = venv_health_check(venv)
@@ -62,7 +63,7 @@ def list_text(venv_dirs: Collection[Path], include_injected: bool, venv_root_dir
 
 def list_json(venv_dirs: Collection[Path]) -> VenvProblems:
     warning_messages = []
-    spec_metadata: Dict[str, Any] = {
+    spec_metadata: dict[str, Any] = {
         "pipx_spec_version": PIPX_SPEC_VERSION,
         "venvs": {},
     }

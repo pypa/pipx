@@ -1,57 +1,16 @@
 name: Release
-
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version to release"
-        required: true
-        type: string
-  pull_request_target:
-    types:
-      - closed
+  push:
+    tags:
+      - "*.*.*"
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 env:
-  default-python: "3.13"
-  minimum-supported-python: "3.9"
-
+  default-python: "3.14"
 jobs:
-  create-tag:
-    name: Create the Git tag
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event.pull_request.merged == true
-      && contains(github.event.pull_request.labels.*.name, 'release-version')
-    runs-on: ubuntu-latest
-    outputs:
-      release-tag: ${{ steps.get-version.outputs.version }}
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v6
-      - name: Extract version to be released
-        id: get-version
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "version=${PR_TITLE/: [[:alnum:]]*}" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Bump version and push tag
-        uses: mathieudutour/github-tag-action@v6.2
-        with:
-          custom_tag: "${{ steps.get-version.outputs.version }}"
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          tag_prefix: ""
-
   pypi-publish:
     name: Publish pipx to PyPI
-    needs: create-tag
     runs-on: ubuntu-latest
     environment:
       name: release
@@ -59,25 +18,24 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - name: Checkout ${{ needs.create-tag.outputs.release-tag }}
+      - name: Checkout ${{ github.ref_name }}
         uses: actions/checkout@v6
         with:
-          ref: "${{ needs.create-tag.outputs.release-tag }}"
+          ref: "${{ github.ref_name }}"
       - name: Set up Python ${{ env.default-python }}
         uses: actions/setup-python@v6
         with:
           python-version: ${{ env.default-python }}
           cache: "pip"
-      - name: Install nox
-        run: pip install nox
       - name: Build sdist and wheel
-        run: nox --error-on-missing-interpreters --non-interactive --session build
+        run: |
+          pip install build
+          python -m build
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@v1.13.0
-
   create-release:
     name: Create a release on GitHub's UI
-    needs: [pypi-publish, create-tag]
+    needs: pypi-publish
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -87,30 +45,29 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          tag_name: "${{ needs.create-tag.outputs.release-tag }}"
-
+          tag_name: "${{ github.ref_name }}"
   upload-zipapp:
     name: Upload zipapp to GitHub Release
-    needs: [create-release, create-tag]
+    needs: create-release
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Checkout ${{ needs.create-tag.outputs.release-tag }}
+      - name: Checkout ${{ github.ref_name }}
         uses: actions/checkout@v6
         with:
-          ref: "${{ needs.create-tag.outputs.release-tag }}"
-      - name: Set up Python ${{ env.minimum-supported-python }}
+          ref: "${{ github.ref_name }}"
+      - name: Set up Python ${{ env.default-python }}
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ env.minimum-supported-python }}
+          python-version: ${{ env.default-python }}
           cache: "pip"
-      - name: Install nox
-        run: pip install nox
+      - name: Install tox
+        run: pip install tox
       - name: Build zipapp
-        run: nox --error-on-missing-interpreters --non-interactive --session zipapp
+        run: tox run -e zipapp
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
           files: pipx.pyz
-          tag_name: "${{ needs.create-tag.outputs.release-tag }}"
+          tag_name: "${{ github.ref_name }}"

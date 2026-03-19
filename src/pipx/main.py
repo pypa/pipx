@@ -13,7 +13,7 @@ import textwrap
 import time
 import urllib.parse
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Optional
 
 import argcomplete
 import platformdirs
@@ -36,13 +36,14 @@ from pipx.interpreter import (
     InterpreterResolutionError,
     find_python_interpreter,
 )
+from pipx.package_specifier import valid_pypi_name
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import VenvContainer
 from pipx.version import version as __version__
 
 logger = logging.getLogger(__name__)
 
-VenvCompleter = Callable[[str], List[str]]
+VenvCompleter = Callable[[str], list[str]]
 
 
 def print_version() -> None:
@@ -153,7 +154,7 @@ INSTALL_DESCRIPTION = textwrap.dedent(
 
 
 class LineWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
-    def _split_lines(self, text: str, width: int) -> List[str]:
+    def _split_lines(self, text: str, width: int) -> list[str]:
         text = self._whitespace_matcher.sub(" ", text).strip()
         return textwrap.wrap(text, width)
 
@@ -162,12 +163,12 @@ class InstalledVenvsCompleter:
     def __init__(self, venv_container: VenvContainer) -> None:
         self.packages = [str(p.name) for p in sorted(venv_container.iter_venv_dirs())]
 
-    def use(self, prefix: str, **kwargs: Any) -> List[str]:
+    def use(self, prefix: str, **kwargs: Any) -> list[str]:
         return [f"{prefix}{x[len(prefix) :]}" for x in self.packages if x.startswith(canonicalize_name(prefix))]
 
 
-def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
-    pip_args: List[str] = []
+def get_pip_args(parsed_args: dict[str, str]) -> list[str]:
+    pip_args: list[str] = []
     if parsed_args.get("index_url"):
         pip_args += ["--index-url", parsed_args["index_url"]]
 
@@ -183,8 +184,21 @@ def get_pip_args(parsed_args: Dict[str, str]) -> List[str]:
     return pip_args
 
 
-def get_venv_args(parsed_args: Dict[str, str]) -> List[str]:
-    venv_args: List[str] = []
+def get_runpip_args(pip_args: list[str]) -> list[str]:
+    if len(pip_args) != 1:
+        return pip_args
+
+    candidate = pip_args[0]
+    # Allow a single quoted string like "install black".
+    if not any(char.isspace() for char in candidate):
+        return pip_args
+
+    split_args = shlex.split(candidate, posix=not WINDOWS)
+    return split_args or pip_args
+
+
+def get_venv_args(parsed_args: dict[str, str]) -> list[str]:
+    venv_args: list[str] = []
     if parsed_args.get("system_site_packages"):
         venv_args += ["--system-site-packages"]
     return venv_args
@@ -200,7 +214,7 @@ def package_is_url(package: str, raise_error: bool = True) -> bool:
 
 
 def package_is_path(package: str):
-    if os.path.sep in package:
+    if os.path.sep in package or Path(package).exists():
         raise PipxError(
             pipx_wrap(
                 f"""
@@ -211,7 +225,7 @@ def package_is_path(package: str):
         )
 
 
-def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.ArgumentParser]) -> ExitCode:  # noqa: C901
+def run_pipx_command(args: argparse.Namespace, subparsers: dict[str, argparse.ArgumentParser]) -> ExitCode:  # noqa: C901
     verbose = args.verbose if "verbose" in args else False
 
     pip_args = get_pip_args(vars(args))
@@ -229,14 +243,16 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
                 if "#egg=" not in args.spec:
                     args.spec = args.spec + f"#egg={package}"
 
-        venv_dir = venv_container.get_venv_dir(package)
+        venv_dir = venv_container.get_venv_dir(valid_pypi_name(package) or package)
         logger.info(f"Virtual Environment location is {venv_dir}")
 
     if "packages" in args:
         for package in args.packages:
             package_is_url(package)
             package_is_path(package)
-        venv_dirs = {package: venv_container.get_venv_dir(package) for package in args.packages}
+        venv_dirs = {
+            package: venv_container.get_venv_dir(valid_pypi_name(package) or package) for package in args.packages
+        }
         venv_dirs_msg = "\n".join(f"- {key} : {value}" for key, value in venv_dirs.items())
         logger.info(f"Virtual Environment locations are:\n{venv_dirs_msg}")
 
@@ -267,6 +283,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
         commands.run(
             args.app_with_args[0],
             args.spec,
+            args.with_,
             args.path,
             args.app_with_args[1:],
             args.python,
@@ -277,7 +294,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             not args.no_cache,
         )
         # We should never reach here because run() is NoReturn.
-        return ExitCode(1)
+        return ExitCode(1)  # type: ignore[unreachable]
     elif args.command == "install":
         return commands.install(
             None,
@@ -310,7 +327,6 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
     elif args.command == "inject":
         return commands.inject(
             venv_dir,
-            None,
             args.dependencies,
             args.requirements,
             pip_args,
@@ -409,9 +425,10 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             python_flag_passed=python_flag_passed,
         )
     elif args.command == "runpip":
-        if not venv_dir:
+        if not venv_dir:  # type: ignore[truthy-bool]
             raise PipxError("Developer error: venv_dir is not defined.")
-        return commands.run_pip(package, venv_dir, args.pipargs, args.verbose)
+        runpip_args = get_runpip_args(args.pipargs)
+        return commands.run_pip(package, venv_dir, runpip_args, args.verbose)
     elif args.command == "ensurepath":
         try:
             return commands.ensure_pipx_paths(prepend=args.prepend, force=args.force, all_shells=args.all_shells)
@@ -846,6 +863,13 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
         action="store_true",
         help="Require app to be run from local __pypackages__ directory",
     )
+    p.add_argument(
+        "--with",
+        dest="with_",
+        action="append",
+        default=[],
+        help="Extra dependencies to add to the temporary environment",
+    )
     p.add_argument("--spec", help=SPEC_HELP)
     add_python_options(p)
     add_pip_venv_args(p)
@@ -939,7 +963,7 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
     )
 
 
-def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.ArgumentParser]]:
+def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.ArgumentParser]]:
     venv_container = VenvContainer(paths.ctx.venvs)
 
     completer_venvs = InstalledVenvsCompleter(venv_container)
@@ -980,9 +1004,30 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
         prog=prog_name(),
         formatter_class=LineWrapRawTextHelpFormatter,
         description=PIPX_DESCRIPTION,
-        parents=[shared_parser],
     )
     parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore[attr-defined]
+
+    parser.add_argument(
+        "--quiet",
+        "-q",
+        action="count",
+        default=0,
+        help=(
+            "Give less output. May be used multiple times corresponding to the"
+            " ERROR and CRITICAL logging levels. The count maxes out at 2."
+        ),
+    )
+
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="count",
+        default=0,
+        help=(
+            "Give more output. May be used multiple times corresponding to the"
+            " INFO, DEBUG and NOTSET logging levels. The count maxes out at 3."
+        ),
+    )
 
     subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
 
@@ -1017,7 +1062,7 @@ def get_command_parser() -> Tuple[argparse.ArgumentParser, Dict[str, argparse.Ar
     return parser, subparsers_with_subcommands
 
 
-def delete_oldest_logs(file_list: List[Path], keep_number: int) -> None:
+def delete_oldest_logs(file_list: list[Path], keep_number: int) -> None:
     file_list = sorted(file_list)
     if len(file_list) > keep_number:
         for existing_file in file_list[:-keep_number]:
@@ -1177,7 +1222,7 @@ def cli() -> ExitCode:
     try:
         hide_cursor()
         parser, subparsers = get_command_parser()
-        argcomplete.autocomplete(parser)
+        argcomplete.autocomplete(parser, always_complete_options=False)
         parsed_pipx_args = parser.parse_args()
         setup(parsed_pipx_args)
         check_args(parsed_pipx_args)

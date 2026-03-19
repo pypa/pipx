@@ -8,12 +8,13 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 from shutil import which
-from typing import List, NoReturn, Optional, Union
+from typing import NoReturn, Optional, Union
 
 from packaging.requirements import InvalidRequirement, Requirement
 
 from pipx import paths
 from pipx.commands.common import package_name_from_spec
+from pipx.commands.inject import inject_dep
 from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
 from pipx.emojis import hazard
 from pipx.util import (
@@ -43,14 +44,18 @@ Available executable scripts:
 
 
 def maybe_script_content(app: str, is_path: bool) -> Optional[Union[str, Path]]:
-    # If the app is a script, return its content.
-    # Return None if it should be treated as a package name.
+    """If the app is a script, return its content.
+    Return None if it should be treated as a package name."""
 
     # Look for a local file first.
     app_path = Path(app)
     if app_path.is_file():
         return app_path
-    elif is_path:
+    # In case it's a named pipe, read it out to pass to the interpreter
+    if app_path.is_fifo():
+        return app_path.read_text(encoding="utf-8")
+
+    if is_path:
         raise PipxError(f"The specified path {app} does not exist")
 
     # Check for a URL
@@ -72,10 +77,10 @@ def maybe_script_content(app: str, is_path: bool) -> Optional[Union[str, Path]]:
 
 def run_script(
     content: Union[str, Path],
-    app_args: List[str],
+    app_args: list[str],
     python: str,
-    pip_args: List[str],
-    venv_args: List[str],
+    pip_args: list[str],
+    venv_args: list[str],
     verbose: bool,
     use_cache: bool,
 ) -> NoReturn:
@@ -118,10 +123,11 @@ def run_script(
 def run_package(
     app: str,
     package_or_url: str,
-    app_args: List[str],
+    dependencies: list[str],
+    app_args: list[str],
     python: str,
-    pip_args: List[str],
-    venv_args: List[str],
+    pip_args: list[str],
+    venv_args: list[str],
     pypackages: bool,
     verbose: bool,
     use_cache: bool,
@@ -164,15 +170,13 @@ def run_package(
 
     if venv.has_app(app, app_filename):
         logger.info(f"Reusing cached venv {venv_dir}")
-        venv.run_app(app, app_filename, app_args)
     else:
         logger.info(f"venv location is {venv_dir}")
-        _download_and_run(
+        venv, app, app_filename = _prepare_venv(
             Path(venv_dir),
             package_or_url,
             app,
             app_filename,
-            app_args,
             python,
             pip_args,
             venv_args,
@@ -180,15 +184,29 @@ def run_package(
             verbose,
         )
 
+    for dep in dependencies:
+        inject_dep(
+            venv_dir=venv_dir,
+            package_name=None,
+            package_spec=dep,
+            pip_args=pip_args,
+            verbose=verbose,
+            include_apps=False,
+            include_dependencies=False,
+            force=False,
+        )
+    venv.run_app(app, app_filename, app_args)
+
 
 def run(
     app: str,
     spec: str,
+    dependencies: list[str],
     is_path: bool,
-    app_args: List[str],
+    app_args: list[str],
     python: str,
-    pip_args: List[str],
-    venv_args: List[str],
+    pip_args: list[str],
+    venv_args: list[str],
     pypackages: bool,
     verbose: bool,
     use_cache: bool,
@@ -205,14 +223,15 @@ def run(
         # we can't parse this as a package
         package_name = app
 
-    content = None if spec is not None else maybe_script_content(app, is_path)
+    content = None if spec is not None else maybe_script_content(app, is_path)  # type: ignore[redundant-expr]
     if content is not None:
         run_script(content, app_args, python, pip_args, venv_args, verbose, use_cache)
     else:
-        package_or_url = spec if spec is not None else app
+        package_or_url = spec if spec is not None else app  # type: ignore[redundant-expr]
         run_package(
             package_name,
             package_or_url,
+            dependencies,
             app_args,
             python,
             pip_args,
@@ -223,18 +242,17 @@ def run(
         )
 
 
-def _download_and_run(
+def _prepare_venv(
     venv_dir: Path,
     package_or_url: str,
     app: str,
     app_filename: str,
-    app_args: List[str],
     python: str,
-    pip_args: List[str],
-    venv_args: List[str],
+    pip_args: list[str],
+    venv_args: list[str],
     use_cache: bool,
     verbose: bool,
-) -> NoReturn:
+) -> tuple[Venv, str, str]:
     venv = Venv(venv_dir, python=python, verbose=verbose)
     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
 
@@ -282,10 +300,10 @@ def _download_and_run(
         # Let future _remove_all_expired_venvs know to remove this
         (venv_dir / VENV_EXPIRED_FILENAME).touch()
 
-    venv.run_app(app, app_filename, app_args)
+    return venv, app, app_filename
 
 
-def _get_temporary_venv_path(requirements: List[str], python: str, pip_args: List[str], venv_args: List[str]) -> Path:
+def _get_temporary_venv_path(requirements: list[str], python: str, pip_args: list[str], venv_args: list[str]) -> Path:
     """Computes deterministic path using hashing function on arguments relevant
     to virtual environment's end state. Arguments used should result in idempotent
     virtual environment. (i.e. args passed to app aren't relevant, but args
@@ -337,7 +355,7 @@ def _http_get_request(url: str) -> str:
 INLINE_SCRIPT_METADATA = re.compile(r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$")
 
 
-def _get_requirements_from_script(content: Union[str, Path]) -> Optional[List[str]]:
+def _get_requirements_from_script(content: Union[str, Path]) -> Optional[list[str]]:
     """
     Supports inline script metadata.
     """

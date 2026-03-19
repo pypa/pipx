@@ -434,6 +434,35 @@ def test_run_script_by_relative_name(caplog, pipx_temp_env, monkeypatch, tmp_pat
     assert out.read_text() == test_str
 
 
+@mock.patch("os.execvpe", new=execvpe_mock)
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="uses file descriptor")
+def test_run_script_by_file_descriptor(caplog, pipx_temp_env, monkeypatch, tmp_path):
+    read_fd, write_fd = os.pipe()
+    out = tmp_path / "output.txt"
+    test_str = "Hello, world!"
+
+    os.write(
+        write_fd,
+        textwrap.dedent(
+            f"""
+                from pathlib import Path
+                Path({str(out)!r}).write_text({test_str!r})
+            """
+        )
+        .strip()
+        .encode("utf-8"),
+    )
+    os.close(write_fd)
+
+    with monkeypatch.context() as m:
+        m.chdir(tmp_path)
+        try:
+            run_pipx_cli_exit(["run", f"/dev/fd/{read_fd}"])
+        finally:
+            os.close(read_fd)
+    assert out.read_text() == test_str
+
+
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="uses windows version format")
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_windows_python_version(caplog, pipx_temp_env, tmp_path):
@@ -477,3 +506,24 @@ def test_run_local_path_entry_point(pipx_temp_env, caplog, root):
     run_pipx_cli_exit(["run", empty_project_path])
 
     assert "Using discovered entry point for 'pipx run'" in caplog.text
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with(capsys):
+    run_pipx_cli_exit(["run", "--with", "black", "pycowsay", "--help"])
+    captured = capsys.readouterr()
+    assert "injected package black into venv pycowsay" in captured.out
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_cache(capsys, caplog):
+    # Maybe there's a better way to remove the previous venv cache?
+    run_pipx_cli_exit(["run", "--no-cache", "pycowsay", "cowsay", "args"])
+    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"], assert_exit=0)
+
+    caplog.set_level(logging.DEBUG)
+    caplog.clear()
+    run_pipx_cli_exit(["run", "--verbose", "--with", "black", "pycowsay", "args"], assert_exit=0)
+    captured = capsys.readouterr()
+    assert "Reusing cached venv" in caplog.text
+    assert "injected package black into venv pycowsay" in captured.out

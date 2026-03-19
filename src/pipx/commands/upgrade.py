@@ -1,8 +1,9 @@
 import logging
 import os
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import Optional
 
 from pipx import commands, paths
 from pipx.colors import bold, red
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 def _upgrade_package(
     venv: Venv,
     package_name: str,
-    pip_args: List[str],
+    pip_args: list[str],
     is_main_package: bool,
     force: bool,
     upgrading_all: bool,
@@ -106,14 +107,14 @@ def _upgrade_package(
 
 def _upgrade_venv(
     venv_dir: Path,
-    pip_args: List[str],
+    pip_args: list[str],
     verbose: bool,
     *,
     include_injected: bool,
     upgrading_all: bool,
     force: bool,
     install: bool = False,
-    venv_args: Optional[List[str]] = None,
+    venv_args: Optional[list[str]] = None,
     python: Optional[str] = None,
     python_flag_passed: bool = False,
 ) -> int:
@@ -156,6 +157,14 @@ def _upgrade_venv(
     venv = Venv(venv_dir, verbose=verbose)
     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
 
+    if not venv.python_path.is_file():
+        raise PipxError(
+            f"Not upgrading {red(bold(venv_dir.name))}. It has an invalid python interpreter {venv.python_path}.\n"
+            f"This usually happens after a system Python upgrade.\n"
+            f"To fix, execute: pipx reinstall-all",
+            wrap_message=False,
+        )
+
     if not venv.package_metadata:
         raise PipxError(
             f"Not upgrading {red(bold(venv_dir.name))}. It has missing internal pipx metadata.\n"
@@ -196,10 +205,10 @@ def _upgrade_venv(
 
 
 def upgrade(
-    venv_dirs: Dict[str, Path],
+    venv_dirs: dict[str, Path],
     python: Optional[str],
-    pip_args: List[str],
-    venv_args: List[str],
+    pip_args: list[str],
+    venv_args: list[str],
     verbose: bool,
     *,
     include_injected: bool,
@@ -231,15 +240,15 @@ def upgrade_all(
     venv_container: VenvContainer,
     verbose: bool,
     *,
-    pip_args: List[str],
+    pip_args: list[str],
     include_injected: bool,
     skip: Sequence[str],
     force: bool,
     python_flag_passed: bool = False,
 ) -> ExitCode:
     """Return pipx exit code."""
-    failed: List[str] = []
-    upgraded: List[str] = []
+    failed: list[str] = []
+    upgraded: list[str] = []
 
     for venv_dir in venv_container.iter_venv_dirs():
         venv = Venv(venv_dir, verbose=verbose)
@@ -271,10 +280,10 @@ def upgrade_all(
 
 def upgrade_shared(
     verbose: bool,
-    pip_args: List[str],
+    pip_args: list[str],
 ) -> ExitCode:
     """Return pipx exit code."""
-    from pipx.shared_libs import shared_libs
+    from pipx.shared_libs import shared_libs  # noqa: PLC0415
 
     shared_libs.upgrade(verbose=verbose, pip_args=pip_args, raises=True)
 
