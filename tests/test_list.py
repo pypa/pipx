@@ -276,5 +276,4 @@ def test_list_installed_packages_error(pipx_temp_env, monkeypatch, tmp_path):
 
     expected = f"Failed to execute {called_with}. Process exited with return code 1. stderr: unit test stderr"
 
-
     assert actual == expected
