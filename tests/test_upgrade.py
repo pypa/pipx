@@ -8,6 +8,8 @@ from helpers import (
     skip_if_windows,
 )
 from package_info import PKG
+from pipx import paths
+from pipx.pipx_metadata_file import PipxMetadata
 
 
 def test_upgrade(pipx_temp_env, capsys):
@@ -162,3 +164,44 @@ def test_upgrade_with_extras(pipx_temp_env, capsys):
     captured = capsys.readouterr()
     assert "pycowsay is already at latest version" in captured.out
     assert "Package is not installed" not in captured.err
+
+
+@pytest.mark.parametrize(
+    ("upgrade_args", "expected_args", "unexpected_args"),
+    [
+        pytest.param([], ["--no-cache-dir"], [], id="preserves_stored"),
+        pytest.param(["--pip-args=--no-deps"], ["--no-deps"], ["--no-cache-dir"], id="cli_overrides_stored"),
+    ],
+)
+def test_upgrade_pip_args(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    upgrade_args: list[str],
+    expected_args: list[str],
+    unexpected_args: list[str],
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay", "--pip-args=--no-cache-dir"])
+
+    assert not run_pipx_cli(["upgrade", "pycowsay", *upgrade_args])
+
+    pipx_venvs_dir = paths.ctx.home / "venvs"
+    metadata = PipxMetadata(pipx_venvs_dir / "pycowsay")
+    for arg in expected_args:
+        assert arg in metadata.main_package.pip_args
+    for arg in unexpected_args:
+        assert arg not in metadata.main_package.pip_args
+
+
+def test_upgrade_injected_preserves_stored_pip_args(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
+    assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"], "--pip-args=--no-cache-dir"])
+
+    pipx_venvs_dir = paths.ctx.home / "venvs"
+    metadata = PipxMetadata(pipx_venvs_dir / "pylint")
+    assert "--no-cache-dir" in metadata.injected_packages["black"].pip_args
+
+    assert not run_pipx_cli(["upgrade", "--include-injected", "pylint"])
+    capsys.readouterr()
+
+    metadata = PipxMetadata(pipx_venvs_dir / "pylint")
+    assert "--no-cache-dir" in metadata.injected_packages["black"].pip_args
