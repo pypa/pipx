@@ -9,6 +9,17 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 <!-- towncrier release notes start -->
 
+## [1.10.1](https://github.com/pypa/pipx/tree/1.10.1) - 2026-03-20
+
+### Bugfixes
+
+- Use stored pip_args from install metadata when running `pipx upgrade` without explicit `--pip-args` ([#1441](https://github.com/pypa/pipx/issues/1441))
+- Fix `--global` flag being silently ignored when placed before the subcommand ([#1443](https://github.com/pypa/pipx/issues/1443))
+- Respect `--quiet` flag in `install` and suppress animations and success messages ([#1508](https://github.com/pypa/pipx/issues/1508))
+- Catch missing Python interpreter in `upgrade` and show helpful error instead of crashing ([#1602](https://github.com/pypa/pipx/issues/1602))
+- Prevent data loss by rejecting relative paths in `uninstall`, `reinstall`, and other package-name arguments ([#1718](https://github.com/pypa/pipx/issues/1718))
+
+
 ## [1.10.0](https://github.com/pypa/pipx/tree/1.10.0) - 2026-03-18
 
 ### Features
