@@ -23,6 +23,7 @@ def _upgrade_package(
     pip_args: list[str],
     is_main_package: bool,
     force: bool,
+    upgrade_strategy: Optional[str],
     upgrading_all: bool,
 ) -> int:
     """Returns 1 if package version changed, 0 if same version"""
@@ -50,6 +51,7 @@ def _upgrade_package(
         include_dependencies=package_metadata.include_dependencies,
         include_apps=package_metadata.include_apps,
         is_main_package=is_main_package,
+        upgrade_strategy=upgrade_strategy,
         suffix=package_metadata.suffix,
     )
 
@@ -112,6 +114,7 @@ def _upgrade_venv(
     *,
     include_injected: bool,
     upgrading_all: bool,
+    upgrade_strategy: Optional[str],
     force: bool,
     install: bool = False,
     venv_args: Optional[list[str]] = None,
@@ -188,6 +191,7 @@ def _upgrade_venv(
         is_main_package=True,
         force=force,
         upgrading_all=upgrading_all,
+        upgrade_strategy=upgrade_strategy,
     )
 
     if include_injected:
@@ -202,6 +206,7 @@ def _upgrade_venv(
                 is_main_package=False,
                 force=force,
                 upgrading_all=upgrading_all,
+                upgrade_strategy=upgrade_strategy,
             )
 
     return versions_updated
@@ -217,6 +222,7 @@ def upgrade(
     include_injected: bool,
     force: bool,
     install: bool,
+    upgrade_strategy: Optional[str],
     python_flag_passed: bool = False,
 ) -> ExitCode:
     """Return pipx exit code."""
@@ -230,6 +236,7 @@ def upgrade(
             upgrading_all=False,
             force=force,
             install=install,
+            upgrade_strategy=upgrade_strategy,
             venv_args=venv_args,
             python=python,
             python_flag_passed=python_flag_passed,
@@ -248,6 +255,7 @@ def upgrade_all(
     skip: Sequence[str],
     force: bool,
     python_flag_passed: bool = False,
+    upgrade_strategy: Optional[str],
 ) -> ExitCode:
     """Return pipx exit code."""
     failed: list[str] = []
@@ -265,6 +273,7 @@ def upgrade_all(
                 verbose=verbose,
                 include_injected=include_injected,
                 upgrading_all=True,
+                upgrade_strategy=upgrade_strategy,
                 force=force,
                 python_flag_passed=python_flag_passed,
             )

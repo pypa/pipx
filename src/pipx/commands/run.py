@@ -270,6 +270,8 @@ def _prepare_venv(
         pip_args=pip_args,
         include_dependencies=False,
         include_apps=True,
+        upgrade=False,
+        upgrade_strategy=None,
         is_main_package=True,
     )
 
