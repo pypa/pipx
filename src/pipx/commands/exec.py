@@ -5,7 +5,7 @@ from pipx.util import PipxError
 from pipx.venv import Venv
 
 
-def exec(package: str, app: str, app_args: list[str], venv_dir: Path, verbose: bool) -> ExitCode:
+def exec_(package: str, app: str, app_args: list[str], venv_dir: Path, verbose: bool) -> ExitCode:
     """Execute an app from an existing pipx-managed virtual environment."""
     venv = Venv(venv_dir, verbose=verbose)
     if not venv.python_path.exists():

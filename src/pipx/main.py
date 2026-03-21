@@ -425,7 +425,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: dict[str, argparse.Ar
             python_flag_passed=python_flag_passed,
         )
     elif args.command == "exec":
-        return commands.exec(package, args.app, args.app_args, venv_dir, args.verbose)
+        return commands.exec_(package, args.app, args.app_args, venv_dir, args.verbose)
     elif args.command == "runpip":
         if not venv_dir:  # type: ignore[truthy-bool]
             raise PipxError("Developer error: venv_dir is not defined.")
