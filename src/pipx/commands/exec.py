@@ -1,11 +1,12 @@
 from pathlib import Path
+from typing import NoReturn
 
-from pipx.constants import EXIT_CODE_OK, WINDOWS, ExitCode
+from pipx.constants import WINDOWS
 from pipx.util import PipxError
 from pipx.venv import Venv
 
 
-def exec_(package: str, app: str, app_args: list[str], venv_dir: Path, verbose: bool) -> ExitCode:
+def exec_(package: str, app: str, app_args: list[str], venv_dir: Path, verbose: bool) -> NoReturn:
     """Execute an app from an existing pipx-managed virtual environment."""
     venv = Venv(venv_dir, verbose=verbose)
     if not venv.python_path.exists():
@@ -20,5 +21,3 @@ def exec_(package: str, app: str, app_args: list[str], venv_dir: Path, verbose: 
         raise PipxError(f"App '{app}' not found in pipx package '{package}'.")
 
     venv.run_app(app, app_filename, app_args)
-
-    return EXIT_CODE_OK
