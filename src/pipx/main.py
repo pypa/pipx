@@ -697,6 +697,7 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argp
         action="store_true",
         help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
+    add_pip_venv_args(p)
 
 
 def _add_upgrade_shared(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
