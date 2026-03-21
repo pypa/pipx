@@ -263,6 +263,10 @@ def test_list_installed_packages_error(pipx_temp_env, monkeypatch, tmp_path):
     # we don't want to actually spawn a subprocess, we just want to test the
     # error handling for a failed pip list command
     monkeypatch.setattr(venv, "run_subprocess", mockreturn)
+
+    # don't reformat the error message, so we can compare it to a known string
+    monkeypatch.setattr(venv, "PipxError", lambda m: PipxError(m, wrap_message=False))
+
     fake_venv = venv.Venv(tmp_path / "fake_venv")
 
     with pytest.raises(PipxError) as excinfo:
@@ -270,10 +274,11 @@ def test_list_installed_packages_error(pipx_temp_env, monkeypatch, tmp_path):
 
     assert len(excinfo.value.args) == 1
 
-    # the pipx error wrapper inserts newlines into the output, so we need to
-    # stratgeically replace those newlines for an easier comparison
-    actual = excinfo.value.args[0].replace(",\n", ", ").replace(".\n", ". ").replace("\n", "")
-
-    expected = f"Failed to execute {called_with}. Process exited with return code 1. stderr: unit test stderr"
+    actual = excinfo.value.args[0]
+    expected = (
+        f"Failed to execute {called_with}.\n"
+        "Process exited with return code 1.\n"
+        "stderr: unit test stderr"
+    )
 
     assert actual == expected
