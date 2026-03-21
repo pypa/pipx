@@ -245,29 +245,14 @@ def test_list_pinned_packages_include_injected(pipx_temp_env, monkeypatch, capsy
     assert "black 22.8.0 (injected in venv pylint)" in captured.out
 
 
-def test_list_installed_packages_error(pipx_temp_env, monkeypatch, tmp_path):
-    called_with = None
+def test_list_installed_packages_error(monkeypatch, tmp_path, fake_process):
+    fake_venv = venv.Venv(tmp_path / "fake_venv")
+    pip_list_args = [str(fake_venv.python_path), "-m", "pip", "list", "--format=json"]
 
-    def mockreturn(args):
-        nonlocal called_with
-        called_with = args
-
-        class MockPopen:
-            def __init__(self, args):
-                self.args = args
-                self.returncode = 1
-                self.stderr = "unit test stderr"
-
-        return MockPopen(args)
-
-    # we don't want to actually spawn a subprocess, we just want to test the
-    # error handling for a failed pip list command
-    monkeypatch.setattr(venv, "run_subprocess", mockreturn)
+    fake_process.register(pip_list_args, returncode=1, stderr="unit test stderr")
 
     # don't reformat the error message, so we can compare it to a known string
     monkeypatch.setattr(venv, "PipxError", lambda m: PipxError(m, wrap_message=False))
-
-    fake_venv = venv.Venv(tmp_path / "fake_venv")
 
     with pytest.raises(PipxError) as excinfo:
         fake_venv.list_installed_packages()
@@ -275,6 +260,6 @@ def test_list_installed_packages_error(pipx_temp_env, monkeypatch, tmp_path):
     assert len(excinfo.value.args) == 1
 
     actual = excinfo.value.args[0]
-    expected = f"Failed to execute {called_with}.\nProcess exited with return code 1.\nstderr: unit test stderr"
+    expected = f"Failed to execute {pip_list_args}.\nProcess exited with return code 1.\nstderr: unit test stderr"
 
     assert actual == expected
