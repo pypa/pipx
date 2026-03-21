@@ -169,17 +169,13 @@ def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple
 
         if option in ("-c", "--constraint"):
             argument_index = index + 1
-            if argument_index < len(pip_args):
-                constraints_file = pip_args[argument_index]
-                pip_args[argument_index] = str(Path(constraints_file).expanduser().resolve())
+            if argument_index < len(pip_args) and not urllib.parse.urlsplit(pip_args[argument_index]).scheme:
+                pip_args[argument_index] = str(Path(pip_args[argument_index]).expanduser().resolve())
 
-        else:  # option == "--constraint=some_path"
-            option_list = option.split("=")
-
-            if len(option_list) == 2:
-                key, value = option_list
-                value_path = Path(value).expanduser().resolve()
-                pip_args[index] = f"{key}={value_path}"
+        elif (option_list := option.split("=", maxsplit=1)) and len(option_list) == 2:
+            key, value = option_list
+            if not urllib.parse.urlsplit(value).scheme:
+                pip_args[index] = f"{key}={Path(value).expanduser().resolve()}"
 
         break
 
