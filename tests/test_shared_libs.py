@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 from pipx import shared_libs
 from pipx.constants import WINDOWS

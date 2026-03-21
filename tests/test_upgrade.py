@@ -1,4 +1,4 @@
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 from helpers import (
     PIPX_METADATA_LEGACY_VERSIONS,

@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from unittest import mock
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 from helpers import app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
 from package_info import PKG
@@ -264,9 +264,8 @@ def test_pip_args_forwarded_to_package_name_determination(pipx_temp_env, capsys)
     assert "Cannot determine package name from spec" in captured.err
 
 
+@pytest.mark.skipif(not sys.platform.startswith("win"), reason="Windows only")
 def test_pip_args_with_windows_path(pipx_temp_env, capsys):
-    if not sys.platform.startswith("win"):
-        pytest.skip("Test pip arguments with Windows path on Windows only.")
 
     assert run_pipx_cli(
         [

@@ -151,6 +151,7 @@ def _fix_subprocess_env(env: dict[str, str]) -> dict[str, str]:
     env["PYTHONLEGACYWINDOWSSTDIO"] = "utf-8"
     # Make sure we install package to venv, not userbase dir
     env["PIP_USER"] = "0"
+    env.setdefault("PIP_KEYRING_PROVIDER", "subprocess")
     return env
 
 

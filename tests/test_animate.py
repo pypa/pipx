@@ -1,7 +1,7 @@
 import time
 from timeit import default_timer
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 import pipx.animate
 from pipx.animate import (
