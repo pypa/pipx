@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Optional
 from unittest import mock
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 from packaging.utils import canonicalize_name
 
 from package_info import PKG

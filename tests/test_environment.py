@@ -1,7 +1,7 @@
 import fnmatch
 from pathlib import Path
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths

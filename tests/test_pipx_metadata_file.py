@@ -2,7 +2,7 @@ import sys
 from dataclasses import replace
 from pathlib import Path
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 from helpers import assert_package_metadata, create_package_info_ref, run_pipx_cli
 from package_info import PKG
