@@ -63,6 +63,7 @@ test = [
   "pytest>=8",
   "pytest-cov>=4",
   "pytest-mock>=3.11.1",
+  "pytest-subprocess>=1.5.4",
   "pytest-xdist>=3.5",
   "setuptools>=68; python_version>='3.12'",
   "watchdog>=4",
