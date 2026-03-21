@@ -261,7 +261,7 @@ def upgrade_all(
         try:
             versions_updated = _upgrade_venv(
                 venv_dir,
-                venv.pipx_metadata.main_package.pip_args,
+                pip_args,
                 verbose=verbose,
                 include_injected=include_injected,
                 upgrading_all=True,
