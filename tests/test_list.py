@@ -275,10 +275,6 @@ def test_list_installed_packages_error(pipx_temp_env, monkeypatch, tmp_path):
     assert len(excinfo.value.args) == 1
 
     actual = excinfo.value.args[0]
-    expected = (
-        f"Failed to execute {called_with}.\n"
-        "Process exited with return code 1.\n"
-        "stderr: unit test stderr"
-    )
+    expected = f"Failed to execute {called_with}.\nProcess exited with return code 1.\nstderr: unit test stderr"
 
     assert actual == expected
