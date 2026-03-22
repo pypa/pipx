@@ -1,5 +1,6 @@
 from pipx.commands.ensure_path import ensure_pipx_paths
 from pipx.commands.environment import environment
+from pipx.commands.exec import exec_
 from pipx.commands.inject import inject
 from pipx.commands.install import install, install_all
 from pipx.commands.interpreter import list_interpreters, prune_interpreters, upgrade_interpreters
@@ -15,6 +16,7 @@ from pipx.commands.upgrade import upgrade, upgrade_all, upgrade_shared
 __all__ = [
     "ensure_pipx_paths",
     "environment",
+    "exec_",
     "inject",
     "install",
     "install_all",

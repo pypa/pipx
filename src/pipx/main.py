@@ -424,6 +424,8 @@ def run_pipx_command(args: argparse.Namespace, subparsers: dict[str, argparse.Ar
             skip=skip_list,
             python_flag_passed=python_flag_passed,
         )
+    elif args.command == "exec":
+        return commands.exec_(package, args.app, args.app_args, venv_dir, args.verbose)
     elif args.command == "runpip":
         if not venv_dir:  # type: ignore[truthy-bool]
             raise PipxError("Developer error: venv_dir is not defined.")
@@ -882,6 +884,26 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
     p.usage = re.sub(r"\.\.\.", "app ...", p.usage)
 
 
+def _add_exec(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
+    p = subparsers.add_parser(
+        "exec",
+        help="Execute an app in an existing pipx-managed virtual environment",
+        description="Execute an app in an existing pipx-managed virtual environment",
+        parents=[shared_parser],
+    )
+    p.add_argument(
+        "package",
+        help="Name of the existing pipx-managed virtual environment to execute from",
+    ).completer = venv_completer
+    p.add_argument("app", help="Name of the application to execute")
+    p.add_argument(
+        "app_args",
+        nargs=argparse.REMAINDER,
+        default=[],
+        help="Arguments to pass to the application",
+    )
+
+
 def _add_runpip(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "runpip",
@@ -1049,6 +1071,7 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
     _add_list(subparsers, shared_parser)
     subparsers_with_subcommands["interpreter"] = _add_interpreter(subparsers, shared_parser)
     _add_run(subparsers, shared_parser)
+    _add_exec(subparsers, completer_venvs.use, shared_parser)
     _add_runpip(subparsers, completer_venvs.use, shared_parser)
     _add_ensurepath(subparsers, shared_parser)
     _add_environment(subparsers, shared_parser)
