@@ -1,9 +1,11 @@
 import site
+import sys
 from pathlib import Path
 
 
 def test_pth_file_readable_with_non_ascii_path(tmp_path: Path) -> None:
-    non_ascii_path = tmp_path / "用户" / "pipx" / "shared" / "site-packages"
+    non_ascii_name = "àéîöü" if sys.platform == "win32" else "用户"
+    non_ascii_path = tmp_path / non_ascii_name / "pipx" / "shared" / "site-packages"
     non_ascii_path.mkdir(parents=True)
 
     pth_file = tmp_path / "pipx_shared.pth"
