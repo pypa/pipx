@@ -1071,7 +1071,7 @@ def delete_oldest_logs(file_list: list[Path], keep_number: int) -> None:
 
 
 def _setup_log_file(pipx_log_dir: Optional[Path] = None) -> Path:
-    max_logs = int(os.getenv("MAX_PIPX_LOGS", 10))
+    max_logs = int(os.getenv("PIPX_MAX_LOGS", 10))
     pipx_log_dir = pipx_log_dir or paths.ctx.logs
     # don't use utils.mkdir, to prevent emission of log message
     pipx_log_dir.mkdir(parents=True, exist_ok=True)
