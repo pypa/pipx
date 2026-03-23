@@ -504,10 +504,7 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
     p.add_argument(
         "--suffix",
         default="",
-        help=(
-            "Optional suffix for virtual environment and executable names. "
-            "NOTE: The suffix feature is experimental and subject to change."
-        ),
+        help="Optional suffix for virtual environment and executable names.",
     )
     add_python_options(p)
     p.add_argument(
