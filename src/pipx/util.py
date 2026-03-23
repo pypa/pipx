@@ -149,8 +149,9 @@ def _fix_subprocess_env(env: dict[str, str]) -> dict[str, str]:
     # Make sure that Python writes output in UTF-8
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONLEGACYWINDOWSSTDIO"] = "utf-8"
-    # Make sure we install package to venv, not userbase dir
+    # Make sure we install packages to venv, not to userbase or a custom target dir
     env["PIP_USER"] = "0"
+    env.pop("PIP_TARGET", None)
     env.setdefault("PIP_KEYRING_PROVIDER", "subprocess")
     return env
 
