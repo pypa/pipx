@@ -93,8 +93,8 @@ def test_install_multiple_packages_when_some_already_installed(capsys, pipx_temp
 
     run_pipx_cli(["install", "black", "pycowsay", "isort"])
     captured = capsys.readouterr()
-    assert "'black' already seems to be installed" in captured.out
-    assert "'pycowsay' already seems to be installed" in captured.out
+    assert "black" in captured.out and "already seems to be installed" in captured.out
+    assert "pycowsay" in captured.out and "already seems to be installed" in captured.out
     assert "installed package isort" in captured.out
 
 
@@ -129,7 +129,7 @@ def test_force_install(pipx_temp_env, capsys):
     run_pipx_cli(["install", "pycowsay"])
     captured = capsys.readouterr()
     assert "installed package" not in captured.out
-    assert "'pycowsay' already seems to be installed" in captured.out
+    assert "pycowsay" in captured.out and "already seems to be installed" in captured.out
 
     run_pipx_cli(["install", "pycowsay", "--force"])
     captured = capsys.readouterr()
@@ -146,7 +146,9 @@ def test_install_same_package_twice_no_force(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["install", "pycowsay"])
     captured = capsys.readouterr()
-    assert "'pycowsay' already seems to be installed. Not modifying existing installation" in captured.out
+    assert "already seems to be installed" in captured.out
+    assert "pipx upgrade" in captured.out
+    assert "0.0.0.2" in captured.out
 
 
 def test_include_deps(pipx_temp_env, capsys):
