@@ -163,8 +163,10 @@ def _get_remaining_dependencies(venv: Venv, excluded_package: str) -> set[str]:
     distributions = tuple(metadata.distributions(path=venv_sys_path))
 
     remaining_deps: set[str] = set()
-    remaining_packages = [venv.pipx_metadata.main_package.package] + [
-        name for name in venv.pipx_metadata.injected_packages if name != excluded_package
+    remaining_packages: list[str] = [
+        name
+        for name in [venv.pipx_metadata.main_package.package] + list(venv.pipx_metadata.injected_packages)
+        if name is not None and name != excluded_package
     ]
     for pkg_name in remaining_packages:
         remaining_deps |= _collect_transitive_deps(pkg_name, distributions, venv_env)
