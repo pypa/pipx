@@ -2,6 +2,7 @@ import logging
 import os
 from importlib import metadata
 from pathlib import Path
+from typing import Optional
 
 from packaging.utils import canonicalize_name
 
@@ -175,7 +176,7 @@ def _collect_transitive_deps(
     package_name: str,
     distributions: tuple[metadata.Distribution, ...],
     env: dict[str, str],
-    visited: set[str] | None = None,
+    visited: Optional[set[str]] = None,
 ) -> set[str]:
     if visited is None:
         visited = set()
