@@ -199,3 +199,33 @@ def test_fetch_missing_python(monkeypatch, mocked_github_api):
     else:
         assert python_path.endswith("python3")
     subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)
+
+
+def test_py_launcher_stale_path_returns_none(monkeypatch):
+    """Test that find_py_launcher_python returns None when py launcher returns a non-existent path.
+
+    This can happen when Python is uninstalled but registry entries remain,
+    causing the py launcher to return stale paths.
+    """
+    from pipx.interpreter import find_py_launcher_python
+
+    def which(name):
+        if name == "py":
+            return "py"
+        return None
+
+    class MockCompletedProcess:
+        def __init__(self, stdout):
+            self.stdout = stdout
+
+    # Simulate py launcher returning a non-existent path
+    non_existent_path = "/nonexistent/path/to/python.exe"
+    monkeypatch.setattr(shutil, "which", which)
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda *args, **kwargs: MockCompletedProcess(non_existent_path),
+    )
+
+    result = find_py_launcher_python("3.14")
+    assert result is None

@@ -121,7 +121,9 @@ def find_python_interpreter(python_version: str, fetch_missing_python: bool = Fa
 
 def find_py_launcher_python(python_version: Optional[str] = None) -> Optional[str]:
     py = shutil.which("py")
-    if py and python_version:
+    if not py:
+        return None
+    if python_version:
         python_semver = python_version
         if python_version.startswith("python"):
             logger.warning(
@@ -134,6 +136,11 @@ def find_py_launcher_python(python_version: Optional[str] = None) -> Optional[st
             text=True,
             check=True,
         ).stdout.strip()
+        # Verify the path returned by py launcher actually exists
+        # (it may return stale registry entries for uninstalled Python versions)
+        if not Path(py).is_file():
+            logger.info(f"py launcher returned non-existent path: {py}")
+            return None
     return py
 
 
