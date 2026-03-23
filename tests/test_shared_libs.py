@@ -1,4 +1,6 @@
+import json
 import os
+import subprocess
 import time
 from pathlib import Path
 from unittest.mock import patch
@@ -65,6 +67,19 @@ def test_venv_python_is_valid_existing_interpreter(tmp_path: Path) -> None:
     pyvenv_cfg.write_text(f"home = {original_python_dir}\nversion = 3.12.0\n")
 
     assert shared_libs._venv_python_is_valid(python_exe) is True
+
+
+def test_shared_libs_excludes_setuptools(pipx_ultra_temp_env: None) -> None:
+    shared_libs.shared_libs.create(verbose=True, pip_args=[])
+    result = subprocess.run(
+        [str(shared_libs.shared_libs.python_path), "-m", "pip", "list", "--format=json"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    installed = {pkg["name"].lower() for pkg in json.loads(result.stdout)}
+    assert "pip" in installed
+    assert "setuptools" not in installed
 
 
 def test_venv_python_is_valid_non_windows() -> None:
