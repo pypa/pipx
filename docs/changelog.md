@@ -9,6 +9,24 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 <!-- towncrier release notes start -->
 
+## [1.11.0](https://github.com/pypa/pipx/tree/1.11.0) - 2026-03-23
+
+### Features
+
+- Add `PIPX_MAX_LOGS` environment variable to configure the maximum number of log files to keep. ([#1570](https://github.com/pypa/pipx/issues/1570))
+
+### Bugfixes
+
+- Allow `--pip-args` to be passed to `upgrade-all`. ([#1503](https://github.com/pypa/pipx/issues/1503))
+- Fix `--pip-args='-c <url>'` breaking when constraint target is a URL instead of a local path. ([#1582](https://github.com/pypa/pipx/issues/1582))
+- Enable keyring authentication for private package indexes by setting `PIP_KEYRING_PROVIDER=subprocess` ([#1603](https://github.com/pypa/pipx/issues/1603))
+- Added error handling for `pip list` command failures ([#1698](https://github.com/pypa/pipx/issues/1698))
+
+### Improved Documentation
+
+- Remove outdated "experimental" note from `--suffix` help text. ([#1621](https://github.com/pypa/pipx/issues/1621))
+
+
 ## [1.10.1](https://github.com/pypa/pipx/tree/1.10.1) - 2026-03-20
 
 ### Bugfixes
