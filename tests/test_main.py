@@ -40,3 +40,29 @@ def test_prog_name(monkeypatch, argv, executable, expected):
 def test_limit_verbosity():
     assert not run_pipx_cli(["list", "-qqq"])
     assert not run_pipx_cli(["list", "-vvvv"])
+
+
+def test_setup_log_file_max_logs_reads_env_var(monkeypatch, tmp_path):
+    monkeypatch.setenv("MAX_PIPX_LOGS", "42")
+    keep_numbers = []
+
+    def fake_delete_oldest_logs(file_list, keep_number):
+        keep_numbers.append(keep_number)
+
+    monkeypatch.setattr(main, "delete_oldest_logs", fake_delete_oldest_logs)
+    main._setup_log_file(pipx_log_dir=tmp_path)
+
+    assert keep_numbers == [42, 42]
+
+
+def test_setup_log_file_max_logs_invalid_value_falls_back(monkeypatch, tmp_path):
+    monkeypatch.setenv("MAX_PIPX_LOGS", "not-an-int")
+    keep_numbers = []
+
+    def fake_delete_oldest_logs(file_list, keep_number):
+        keep_numbers.append(keep_number)
+
+    monkeypatch.setattr(main, "delete_oldest_logs", fake_delete_oldest_logs)
+    main._setup_log_file(pipx_log_dir=tmp_path)
+
+    assert keep_numbers == [10, 10]
