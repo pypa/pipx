@@ -186,7 +186,8 @@ In pipx version 1.5, we introduced the warning you're seeing, as multiple incomp
 path were discovered. You may see this for the following reasons:
 
 1. From pipx version 1.3 to 1.5, we were by default using a path with a space on it on macOS. This unfortunately means
-   that all users who installed pipx in this time frame and were using the default behavior are seeing this warning now.
+    that all users who installed pipx in this time frame and were using the default behavior are seeing this warning
+    now.
 1. You set your `PIPX_HOME` to a path with spaces in it explicitly or because your `$HOME` path contains a space.
 
 ### Why are spaces in the `PIPX_HOME` path bad
