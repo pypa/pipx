@@ -146,13 +146,20 @@ def get_include_resource_paths(package_name: str, venv: Venv, local_bin_dir: Pat
             local_man_dir / man_section,
         )
 
+    pkg_metadata = venv.package_metadata[package_name]
+    all_apps = set(pkg_metadata.apps)
+    all_man_pages = set(pkg_metadata.man_pages)
+    if pkg_metadata.include_dependencies:
+        all_apps.update(pkg_metadata.apps_of_dependencies)
+        all_man_pages.update(pkg_metadata.man_pages_of_dependencies)
+
     need_to_remove = set()
     for bin_dir_app_path in bin_dir_app_paths:
-        if bin_dir_app_path.name in venv.package_metadata[package_name].apps:
+        if bin_dir_app_path.name in all_apps:
             need_to_remove.add(bin_dir_app_path)
     for man_path in man_paths:
         path = Path(man_path.parent.name) / man_path.name
-        if str(path) in venv.package_metadata[package_name].man_pages:
+        if str(path) in all_man_pages:
             need_to_remove.add(path)
 
     return need_to_remove
