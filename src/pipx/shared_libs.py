@@ -109,6 +109,15 @@ class _SharedLibs:
             pip_args.append("--force-reinstall")
             self.upgrade(pip_args=pip_args, verbose=verbose, raises=True)
 
+            # Remove setuptools from shared libs to prevent it from leaking into
+            # app venvs via the .pth file. On Python < 3.12, venv bundles setuptools
+            # via ensurepip, but a 3.10 setuptools breaks when imported under 3.12+
+            # because distutils was removed from the stdlib.
+            run_subprocess(
+                [self.python_path, "-m", "pip", "--no-input", "uninstall", "-y", "setuptools"],
+                capture_stderr=False,
+            )
+
     @property
     def is_valid(self) -> bool:
         if self.python_path.is_file():
