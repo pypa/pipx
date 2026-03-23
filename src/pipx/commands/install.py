@@ -76,12 +76,15 @@ def install(
                 print(f"Installing to existing venv {venv.name!r}")
                 pip_args = ["--force-reinstall"] + pip_args
             else:
+                installed_version = venv.pipx_metadata.main_package.package_version
+                version_info = f" ({installed_version})" if installed_version else ""
                 print(
                     pipx_wrap(
                         f"""
-                        {venv.name!r} already seems to be installed. Not modifying
-                        existing installation in '{venv_dir}'. Pass '--force'
-                        to force installation.
+                        {venv.name!r}{version_info} already seems to be installed. Not
+                        modifying existing installation in '{venv_dir}'.
+                        Pass '--force' to force installation, or use
+                        'pipx upgrade {venv.name}' to upgrade.
                         """
                     )
                 )
