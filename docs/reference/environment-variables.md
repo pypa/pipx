@@ -15,6 +15,7 @@ pipx reads the following environment variables. All are optional.
 | `PIPX_FETCH_MISSING_PYTHON` | Fetch missing Python versions when `--python` is used.       | _(unset)_                                                                  |
 | `PIPX_HOME_ALLOW_SPACE`     | Set to `true` to suppress the "space in PIPX_HOME" warning.  | _(unset)_                                                                  |
 | `PIPX_USE_EMOJI`            | Set to `0` to disable emoji output.                          | `1`                                                                        |
+| `PIPX_MAX_LOGS`             | Maximum number of log files to keep in the logs directory.   | `10`                                                                       |
 
 ### Notes
 

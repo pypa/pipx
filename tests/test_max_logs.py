@@ -1,4 +1,4 @@
-"""Tests for MAX_PIPX_LOGS environment variable functionality."""
+"""Tests for PIPX_MAX_LOGS environment variable functionality."""
 
 from pipx.main import _setup_log_file, delete_oldest_logs
 
@@ -35,8 +35,8 @@ def test_delete_oldest_logs_keeps_all_when_under_limit(tmp_path):
 
 
 def test_max_logs_defaults_to_10(tmp_path, monkeypatch):
-    """Test that max_logs defaults to 10 when MAX_PIPX_LOGS is not set."""
-    monkeypatch.delenv("MAX_PIPX_LOGS", raising=False)
+    """Test that max_logs defaults to 10 when PIPX_MAX_LOGS is not set."""
+    monkeypatch.delenv("PIPX_MAX_LOGS", raising=False)
 
     # Create 15 log files
     for i in range(15):
@@ -51,8 +51,8 @@ def test_max_logs_defaults_to_10(tmp_path, monkeypatch):
 
 
 def test_max_logs_respects_env_var(tmp_path, monkeypatch):
-    """Test that max_logs respects the MAX_PIPX_LOGS environment variable."""
-    monkeypatch.setenv("MAX_PIPX_LOGS", "5")
+    """Test that max_logs respects the PIPX_MAX_LOGS environment variable."""
+    monkeypatch.setenv("PIPX_MAX_LOGS", "5")
 
     # Create 15 log files
     for i in range(15):
@@ -67,8 +67,8 @@ def test_max_logs_respects_env_var(tmp_path, monkeypatch):
 
 
 def test_max_logs_with_large_value(tmp_path, monkeypatch):
-    """Test that a large MAX_PIPX_LOGS value keeps all logs."""
-    monkeypatch.setenv("MAX_PIPX_LOGS", "100")
+    """Test that a large PIPX_MAX_LOGS value keeps all logs."""
+    monkeypatch.setenv("PIPX_MAX_LOGS", "100")
 
     # Create 5 log files
     for i in range(5):
