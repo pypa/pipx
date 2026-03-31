@@ -9,6 +9,19 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 <!-- towncrier release notes start -->
 
+## [1.11.1](https://github.com/pypa/pipx/tree/1.11.1) - 2026-03-31
+
+### Bugfixes
+
+- Ignore `PIP_TARGET` environment variable to prevent pip from installing outside the venv. ([#735](https://github.com/pypa/pipx/issues/735))
+- Fix `pipx install` failing on Windows when the username contains non-Latin characters (e.g. cyrillic, Chinese). ([#780](https://github.com/pypa/pipx/issues/780))
+- Show installed version and suggest `upgrade` when `install` detects an existing installation. ([#795](https://github.com/pypa/pipx/issues/795))
+- `--verbose` and `--quiet` flags before the subcommand are no longer silently ignored. ([#1282](https://github.com/pypa/pipx/issues/1282))
+- Remove dependency app symlinks when uninjecting a package that was injected with `--include-deps`. ([#1364](https://github.com/pypa/pipx/issues/1364))
+- Remove `setuptools` from shared libs to prevent version conflicts when app venvs use a different Python. ([#1539](https://github.com/pypa/pipx/issues/1539))
+- Prevent `uninject` from removing dependencies still needed by other packages in the venv. ([#1672](https://github.com/pypa/pipx/issues/1672))
+
+
 ## [1.11.0](https://github.com/pypa/pipx/tree/1.11.0) - 2026-03-23
 
 ### Features
