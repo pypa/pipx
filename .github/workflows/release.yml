@@ -32,7 +32,7 @@ jobs:
           pip install build
           python -m build
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.13.0
+        uses: pypa/gh-action-pypi-publish@v1.14.0
   create-release:
     name: Create a release on GitHub's UI
     needs: pypi-publish
