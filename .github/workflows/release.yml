@@ -42,7 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           tag_name: "${{ github.ref_name }}"
@@ -67,7 +67,7 @@ jobs:
       - name: Build zipapp
         run: tox run -e zipapp
       - name: Upload to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: pipx.pyz
           tag_name: "${{ github.ref_name }}"
