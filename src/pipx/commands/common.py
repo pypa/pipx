@@ -9,7 +9,6 @@ import time
 from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
-from typing import Optional
 
 import userpath  # type: ignore[import-not-found]
 from packaging.utils import canonicalize_name
@@ -179,7 +178,7 @@ def _symlink_package_resource(
         )
 
 
-def venv_health_check(venv: Venv, package_name: Optional[str] = None) -> tuple[VenvProblems, str]:
+def venv_health_check(venv: Venv, package_name: str | None = None) -> tuple[VenvProblems, str]:
     venv_dir = venv.root
     python_path = venv.python_path.resolve()
 
@@ -212,7 +211,7 @@ def venv_health_check(venv: Venv, package_name: Optional[str] = None) -> tuple[V
 def get_venv_summary(
     venv_dir: Path,
     *,
-    package_name: Optional[str] = None,
+    package_name: str | None = None,
     new_install: bool = False,
     include_injected: bool = False,
 ) -> tuple[str, VenvProblems]:
@@ -280,7 +279,7 @@ def get_venv_summary(
 def get_exposed_paths_for_package(
     venv_resource_path: Path,
     local_resource_dir: Path,
-    package_resource_names: Optional[list[str]] = None,
+    package_resource_names: list[str] | None = None,
 ) -> set[Path]:
     # package_binary_names is used only if local_bin_path cannot use symlinks.
     # It is necessary for non-symlink systems to return valid app_paths.
@@ -315,7 +314,7 @@ def get_exposed_paths_for_package(
 def get_exposed_man_paths_for_package(
     venv_man_path: Path,
     local_man_dir: Path,
-    package_man_pages: Optional[list[str]] = None,
+    package_man_pages: list[str] | None = None,
 ) -> set[Path]:
     man_section = venv_man_path.name
     prefix = man_section + os.sep
@@ -336,7 +335,7 @@ def _get_list_output(
     unavailable_binary_names: list[str],
     exposed_man_pages: list[str],
     unavailable_man_pages: list[str],
-    injected_packages: Optional[dict[str, PackageInfo]] = None,
+    injected_packages: dict[str, PackageInfo] | None = None,
     suffix: str = "",
 ) -> str:
     output = []

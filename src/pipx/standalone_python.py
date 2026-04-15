@@ -53,7 +53,7 @@ def download_python_build_standalone(python_version: str, override: bool = False
     from https://github.com/astral-sh/python-build-standalone
     and unpack it into the pipx shared directory."""
 
-    # python_version can be a bare version number like "3.9" or a "binary name" like python3.10
+    # python_version can be a bare version number like "3.10" or a "binary name" like python3.10
     # we'll convert it to a bare version number
     python_version = re.sub(r"[c]?python", "", python_version)
 

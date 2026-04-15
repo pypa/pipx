@@ -2,7 +2,6 @@ import json
 import sys
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Optional
 
 from pipx import commands, paths
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
@@ -19,12 +18,12 @@ from pipx.venv import Venv, VenvContainer
 
 
 def install(
-    venv_dir: Optional[Path],
-    package_names: Optional[list[str]],
+    venv_dir: Path | None,
+    package_names: list[str] | None,
     package_specs: list[str],
     local_bin_dir: Path,
     local_man_dir: Path,
-    python: Optional[str],
+    python: str | None,
     pip_args: list[str],
     venv_args: list[str],
     verbose: bool,
@@ -32,7 +31,7 @@ def install(
     force: bool,
     reinstall: bool,
     include_dependencies: bool,
-    preinstall_packages: Optional[list[str]],
+    preinstall_packages: list[str] | None,
     suffix: str = "",
     python_flag_passed=False,
 ) -> ExitCode:
@@ -49,7 +48,7 @@ def install(
             for package_spec in package_specs
         ]
 
-    for package_name, package_spec in zip(package_names, package_specs):
+    for package_name, package_spec in zip(package_names, package_specs, strict=False):
         if venv_dir is None:
             venv_container = VenvContainer(paths.ctx.venvs)
             venv_dir = venv_container.get_venv_dir(f"{package_name}{suffix}")
@@ -164,8 +163,8 @@ def generate_package_spec(package_info: PackageInfo) -> str:
 
 
 def get_python_interpreter(
-    source_interpreter: Optional[Path],
-) -> Optional[str]:
+    source_interpreter: Path | None,
+) -> str | None:
     """Get appropriate python interpreter."""
     if source_interpreter is not None and source_interpreter.is_file():
         return str(source_interpreter)
@@ -186,7 +185,7 @@ def install_all(
     spec_metadata_file: Path,
     local_bin_dir: Path,
     local_man_dir: Path,
-    python: Optional[str],
+    python: str | None,
     pip_args: list[str],
     venv_args: list[str],
     verbose: bool,

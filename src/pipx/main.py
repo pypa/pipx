@@ -12,8 +12,9 @@ import sys
 import textwrap
 import time
 import urllib.parse
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 import argcomplete
 import platformdirs
@@ -1048,7 +1049,7 @@ def delete_oldest_logs(file_list: list[Path], keep_number: int) -> None:
                 pass
 
 
-def _setup_log_file(pipx_log_dir: Optional[Path] = None) -> Path:
+def _setup_log_file(pipx_log_dir: Path | None = None) -> Path:
     max_logs = int(os.getenv("PIPX_MAX_LOGS", 10))
     pipx_log_dir = pipx_log_dir or paths.ctx.logs
     # don't use utils.mkdir, to prevent emission of log message

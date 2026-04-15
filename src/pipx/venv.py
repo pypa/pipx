@@ -1,11 +1,10 @@
 import json
 import logging
-import re
 import shutil
 import time
 from collections.abc import Generator
 from pathlib import Path
-from typing import TYPE_CHECKING, NoReturn, Optional
+from typing import TYPE_CHECKING, NoReturn
 
 if TYPE_CHECKING:
     from subprocess import CompletedProcess
@@ -44,15 +43,6 @@ from pipx.util import (
 from pipx.venv_inspect import VenvMetadata, inspect_venv
 
 logger = logging.getLogger(__name__)
-
-_entry_point_value_pattern = re.compile(
-    r"""
-    ^(?P<module>[\w.]+)\s*
-    (:\s*(?P<attr>[\w.]+))?\s*
-    (?P<extras>\[.*\])?\s*$
-    """,
-    re.VERBOSE,
-)
 
 
 class VenvContainer:
@@ -407,7 +397,7 @@ class Venv:
         pip_list = json.loads(cmd_run.stdout.strip())
         return {x["name"] for x in pip_list}
 
-    def _find_entry_point(self, app: str) -> Optional[EntryPoint]:
+    def _find_entry_point(self, app: str) -> EntryPoint | None:
         if not self.python_path.exists():
             return None
         dists = Distribution.discover(name=self.main_package_name, path=[str(get_site_packages(self.python_path))])
@@ -430,12 +420,8 @@ class Venv:
             exec_app([str(self.bin_path / filename)] + app_args)
 
         # Evaluate and execute the entry point.
-        # TODO: After dropping support for Python < 3.9, use
-        # "entry_point.module" and "entry_point.attr" instead.
-        match = _entry_point_value_pattern.match(entry_point.value)
-        assert match is not None, "invalid entry point"
         logger.info("Using discovered entry point for 'pipx run'")
-        module, attr = match.group("module", "attr")
+        module, attr = entry_point.module, entry_point.attr
         code = f"import sys, {module}\nsys.argv[0] = {entry_point.name!r}\nsys.exit({module}.{attr}())\n"
         exec_app([str(self.python_path), "-c", code] + app_args)
 

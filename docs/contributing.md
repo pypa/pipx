@@ -139,7 +139,6 @@ default environments:
 3.12     -> run tests with 3.12
 3.11     -> run tests with 3.11
 3.10     -> run tests with 3.10
-3.9      -> run tests with 3.9
 lint     -> run pre-commit on the codebase
 docs     -> build documentation
 man      -> build man page
@@ -162,13 +161,13 @@ tox run -e 3.12
 > You can run a specific unit test by passing arguments to pytest, the test runner pipx uses:
 >
 > ```
-> tox run -e 3.9 -- -k EXPRESSION
+> tox run -e 3.10 -- -k EXPRESSION
 > ```
 >
 > `EXPRESSION` can be a test name, such as
 >
 > ```
-> tox run -e 3.9 -- -k test_uninstall
+> tox run -e 3.10 -- -k test_uninstall
 > ```
 >
 > Coverage errors can usually be ignored when only running a subset of tests.
