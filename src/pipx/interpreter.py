@@ -170,10 +170,10 @@ def _get_sys_executable() -> str:
 
 
 def _get_absolute_python_interpreter(env_python: str) -> str:
-    which_python = shutil.which(env_python)
-    if not which_python:
-        raise PipxError(f"Default python interpreter '{env_python}' is invalid.")
-    return which_python
+    try:
+        return find_python_interpreter(env_python)
+    except InterpreterResolutionError as err:
+        raise PipxError(f"Default python interpreter '{env_python}' is invalid.") from err
 
 
 env_default_python = os.environ.get("PIPX_DEFAULT_PYTHON")
@@ -181,4 +181,8 @@ env_default_python = os.environ.get("PIPX_DEFAULT_PYTHON")
 if not env_default_python:
     DEFAULT_PYTHON = _get_sys_executable()
 else:
-    DEFAULT_PYTHON = _get_absolute_python_interpreter(env_default_python)
+    try:
+        DEFAULT_PYTHON = find_python_interpreter(env_default_python)
+    except InterpreterResolutionError:
+        # Store the raw spec; find_python_interpreter will surface a proper error at command time
+        DEFAULT_PYTHON = env_default_python

@@ -11,8 +11,9 @@ from packaging.specifiers import SpecifierSet
 from pipx import paths
 from pipx.animate import animate
 from pipx.constants import WINDOWS
-from pipx.interpreter import DEFAULT_PYTHON
+from pipx.interpreter import DEFAULT_PYTHON, InterpreterResolutionError, find_python_interpreter
 from pipx.util import (
+    PipxError,
     get_site_packages,
     get_venv_paths,
     run_subprocess,
@@ -97,10 +98,12 @@ class _SharedLibs:
 
     def create(self, pip_args: list[str], verbose: bool = False) -> None:
         if not self.is_valid:
+            try:
+                python = find_python_interpreter(DEFAULT_PYTHON)
+            except InterpreterResolutionError as e:
+                raise PipxError(str(e)) from e
             with animate("creating shared libraries", not verbose):
-                create_process = run_subprocess(
-                    [DEFAULT_PYTHON, "-m", "venv", "--clear", self.root], run_dir=str(self.root)
-                )
+                create_process = run_subprocess([python, "-m", "venv", "--clear", self.root], run_dir=str(self.root))
             subprocess_post_check(create_process)
 
             # ignore installed packages to ensure no unexpected patches from the OS vendor

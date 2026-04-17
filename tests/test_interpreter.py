@@ -1,3 +1,4 @@
+import importlib
 import shutil
 import subprocess
 import sys
@@ -151,6 +152,29 @@ def test_bad_env_python(monkeypatch):
 def test_good_env_python(monkeypatch, capsys):
     good_exec = _get_absolute_python_interpreter(sys.executable)
     assert good_exec == sys.executable
+
+
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="version-style lookup uses unix command naming")
+def test_env_python_by_version(monkeypatch):
+    major = sys.version_info.major
+    minor = sys.version_info.minor
+    result = _get_absolute_python_interpreter(f"{major}.{minor}")
+    assert result is not None
+    assert str(major) in result
+
+
+def test_default_python_env_var_version_not_found(monkeypatch):
+    """PIPX_DEFAULT_PYTHON with a version not on PATH stores raw spec rather than crashing at import."""
+    monkeypatch.setenv("PIPX_DEFAULT_PYTHON", "1.1")
+    reloaded = importlib.reload(pipx.interpreter)
+    assert reloaded.DEFAULT_PYTHON == "1.1"
+
+
+def test_default_python_env_var_full_path(monkeypatch):
+    """PIPX_DEFAULT_PYTHON with a full path resolves correctly."""
+    monkeypatch.setenv("PIPX_DEFAULT_PYTHON", sys.executable)
+    reloaded = importlib.reload(pipx.interpreter)
+    assert reloaded.DEFAULT_PYTHON == sys.executable
 
 
 def test_find_python_interpreter_by_path(monkeypatch):
