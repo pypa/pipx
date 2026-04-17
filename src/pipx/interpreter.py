@@ -47,6 +47,12 @@ class InterpreterResolutionError(PipxError):
                 )
         if source == "the python-build-standalone project":
             message += "listed in https://github.com/astral-sh/python-build-standalone/releases/latest."
+        if source == "PIPX_DEFAULT_PYTHON":
+            message += (
+                "on your PATH or the file path is valid. "
+                "Try setting it to an executable name (e.g. python3.10) "
+                "or a full path (e.g. /usr/bin/python3.10)."
+            )
         super().__init__(message, wrap_message)
 
 
@@ -169,11 +175,14 @@ def _get_sys_executable() -> str:
         return str(Path(sys.executable).resolve())
 
 
-def _get_absolute_python_interpreter(env_python: str) -> str:
-    which_python = shutil.which(env_python)
-    if not which_python:
-        raise PipxError(f"Default python interpreter '{env_python}' is invalid.")
-    return which_python
+def _resolve_python(python: str) -> str:
+    if (path := Path(python)).is_file():
+        return str(path.resolve())
+    if found := shutil.which(python):
+        return found
+    if not WINDOWS and (found := find_unix_command_python(python)):
+        return found
+    raise InterpreterResolutionError(source="PIPX_DEFAULT_PYTHON", version=python)
 
 
 env_default_python = os.environ.get("PIPX_DEFAULT_PYTHON")
@@ -181,4 +190,4 @@ env_default_python = os.environ.get("PIPX_DEFAULT_PYTHON")
 if not env_default_python:
     DEFAULT_PYTHON = _get_sys_executable()
 else:
-    DEFAULT_PYTHON = _get_absolute_python_interpreter(env_default_python)
+    DEFAULT_PYTHON = _resolve_python(env_default_python)
