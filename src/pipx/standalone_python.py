@@ -155,10 +155,7 @@ def get_latest_python_releases() -> list[tuple[str, str]]:
         # raise
         raise PipxError(f"Unable to fetch python-build-standalone release data (from {GITHUB_API_URL}).") from e
 
-    return [
-        (asset["browser_download_url"], asset["digest"].partition(":")[2])
-        for asset in release_data["assets"]
-    ]
+    return [(asset["browser_download_url"], asset["digest"].partition(":")[2]) for asset in release_data["assets"]]
 
 
 def list_pythons(use_cache: bool = True) -> dict[str, tuple[str, str]]:

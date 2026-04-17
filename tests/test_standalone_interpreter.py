@@ -147,18 +147,20 @@ def test_get_latest_python_releases_extracts_hash_only(monkeypatch):
     mock_response = Mock()
     mock_response.__enter__ = Mock(return_value=mock_response)
     mock_response.__exit__ = Mock(return_value=False)
-    mock_response.read.return_value = json.dumps({
-        "assets": [
-            {
-                "browser_download_url": "https://example.com/cpython-3.12.0-linux-x86_64-gnu.tar.zst",
-                "digest": "sha256:a1b2c3d4e5f6abc1234567890abcdef1234567890abcdef1234567890abcdef1234"
-            },
-            {
-                "browser_download_url": "https://example.com/cpython-3.11.0-linux-x86_64-gnu.tar.zst",
-                "digest": "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
-            }
-        ]
-    }).encode()
+    mock_response.read.return_value = json.dumps(
+        {
+            "assets": [
+                {
+                    "browser_download_url": "https://example.com/cpython-3.12.0-linux-x86_64-gnu.tar.zst",
+                    "digest": "sha256:a1b2c3d4e5f6abc1234567890abcdef1234567890abcdef1234567890abcdef1234",
+                },
+                {
+                    "browser_download_url": "https://example.com/cpython-3.11.0-linux-x86_64-gnu.tar.zst",
+                    "digest": "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+                },
+            ]
+        }
+    ).encode()
 
     def mock_urlopen(url):
         return mock_response
