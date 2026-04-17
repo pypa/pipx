@@ -137,3 +137,39 @@ def test_upgrade_standalone_interpreter_nothing_to_upgrade(pipx_temp_env, capsys
     assert not run_pipx_cli(["interpreter", "upgrade"])
     captured = capsys.readouterr()
     assert "Nothing to upgrade" in captured.out
+
+
+def test_get_latest_python_releases_extracts_hash_only(monkeypatch):
+    """Test that get_latest_python_releases extracts just the hash from sha256:prefix format."""
+    import urllib.request
+    from unittest.mock import Mock
+
+    mock_response = Mock()
+    mock_response.__enter__ = Mock(return_value=mock_response)
+    mock_response.__exit__ = Mock(return_value=False)
+    mock_response.read.return_value = json.dumps({
+        "assets": [
+            {
+                "browser_download_url": "https://example.com/cpython-3.12.0-linux-x86_64-gnu.tar.zst",
+                "digest": "sha256:a1b2c3d4e5f6abc1234567890abcdef1234567890abcdef1234567890abcdef1234"
+            },
+            {
+                "browser_download_url": "https://example.com/cpython-3.11.0-linux-x86_64-gnu.tar.zst",
+                "digest": "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+            }
+        ]
+    }).encode()
+
+    def mock_urlopen(url):
+        return mock_response
+
+    monkeypatch.setattr(urllib.request, "urlopen", mock_urlopen)
+
+    releases = standalone_python.get_latest_python_releases()
+
+    assert len(releases) == 2
+    # Verify that the sha256: prefix is stripped
+    assert releases[0][1] == "a1b2c3d4e5f6abc1234567890abcdef1234567890abcdef1234567890abcdef1234"
+    assert releases[1][1] == "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+    # Verify URLs are preserved
+    assert releases[0][0] == "https://example.com/cpython-3.12.0-linux-x86_64-gnu.tar.zst"
