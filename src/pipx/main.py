@@ -214,7 +214,12 @@ def package_is_url(package: str, raise_error: bool = True) -> bool:
 
 
 def package_is_path(package: str):
-    if os.path.sep in package or Path(package).exists():
+    if (
+        package in {".", ".."}
+        or os.path.sep in package
+        or (os.path.altsep is not None and os.path.altsep in package)
+        or bool(os.path.splitdrive(package)[0])
+    ):
         raise PipxError(
             pipx_wrap(
                 f"""

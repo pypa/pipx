@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -56,6 +57,25 @@ def test_reinstall_specifier(pipx_temp_env, capsys):
     assert "installed package pylint 3.0.4" in captured.out
 
 
+@pytest.mark.parametrize("package", [".", ".."])
+def test_reinstall_with_explicit_relative_path(pipx_temp_env, capsys, package):
+    assert run_pipx_cli(["reinstall", package])
+    captured = capsys.readouterr()
+
+    assert "Expected the name of an installed package" in captured.err.replace("\n", " ")
+
+
+def test_reinstall_with_explicit_nested_relative_path(pipx_temp_env, capsys, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    path = Path("some") / "path"
+    path.parent.mkdir()
+
+    assert run_pipx_cli(["reinstall", str(path)])
+    captured = capsys.readouterr()
+
+    assert "Expected the name of an installed package" in captured.err.replace("\n", " ")
+
+
 def test_reinstall_with_path(pipx_temp_env, capsys, tmp_path):
     path = tmp_path / "some" / "path"
 
@@ -68,6 +88,18 @@ def test_reinstall_with_path(pipx_temp_env, capsys, tmp_path):
     captured = capsys.readouterr()
 
     assert "Expected the name of an installed package" in captured.err.replace("\n", " ")
+
+
+def test_reinstall_package_name_when_same_named_cwd_path_exists(pipx_temp_env, capsys, tmp_path, monkeypatch):
+    assert not run_pipx_cli(["install", "pycowsay"])
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "pycowsay").mkdir()
+
+    assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+
+    captured = capsys.readouterr()
+    assert "installed package pycowsay" in captured.out
 
 
 def test_reinstall_pinned_package(pipx_temp_env, capsys):
