@@ -40,3 +40,12 @@ def test_prog_name(monkeypatch, argv, executable, expected):
 def test_limit_verbosity():
     assert not run_pipx_cli(["list", "-qqq"])
     assert not run_pipx_cli(["list", "-vvvv"])
+
+
+def test_package_is_path_ignores_existing_directory(tmp_path, monkeypatch):
+    # Regression for #1778: a directory in CWD with the same name as a
+    # package should not be treated as a path.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "commit-check").mkdir()
+    # Should not raise even though a directory of that name exists in CWD.
+    main.package_is_path("commit-check")
