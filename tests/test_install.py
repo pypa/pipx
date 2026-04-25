@@ -14,6 +14,32 @@ from pipx import paths, shared_libs
 TEST_DATA_PATH = "./testdata/test_package_specifier"
 
 
+def create_local_project_with_man_page(project_dir: Path) -> None:
+    (project_dir / "src" / "demo_man").mkdir(parents=True)
+    (project_dir / "man" / "man1").mkdir(parents=True)
+    (project_dir / "src" / "demo_man" / "__init__.py").write_text("__version__ = '0.1'\n")
+    (project_dir / "src" / "demo_man" / "cli.py").write_text("def main():\n    print('demo-man')\n")
+    (project_dir / "man" / "man1" / "demo-man.1").write_text(
+        ".TH demo-man 1\n.SH NAME\ndemo-man \\- demo editable install test\n"
+    )
+    (project_dir / "pyproject.toml").write_text(
+        "[build-system]\n"
+        "requires = ['setuptools>=69', 'wheel']\n"
+        "build-backend = 'setuptools.build_meta'\n\n"
+        "[project]\n"
+        "name = 'demo-man'\n"
+        "version = '0.1'\n\n"
+        "[project.scripts]\n"
+        "demo-man = 'demo_man.cli:main'\n\n"
+        "[tool.setuptools]\n"
+        "package-dir = {'' = 'src'}\n\n"
+        "[tool.setuptools.packages.find]\n"
+        "where = ['src']\n\n"
+        "[tool.setuptools.data-files]\n"
+        '"share/man/man1" = ["man/man1/demo-man.1"]\n'
+    )
+
+
 def test_help_text(monkeypatch, capsys):
     mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
     with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
@@ -338,6 +364,18 @@ def test_man_page_install(pipx_temp_env, capsys):
     captured = capsys.readouterr()
     assert f"- {Path('man6/pycowsay.6')}" in captured.out
     assert (paths.ctx.man_dir / "man6" / "pycowsay.6").exists()
+
+
+@skip_if_windows
+def test_man_page_install_editable_local_package(pipx_temp_env, tmp_path, capsys):
+    project_dir = tmp_path / "editable-man-package"
+    create_local_project_with_man_page(project_dir)
+
+    assert not run_pipx_cli(["install", "--editable", str(project_dir)])
+    captured = capsys.readouterr()
+
+    assert f"- {Path('man1/demo-man.1')}" in captured.out
+    assert (paths.ctx.man_dir / "man1" / "demo-man.1").exists()
 
 
 def test_install_pip_failure(pipx_temp_env, capsys):

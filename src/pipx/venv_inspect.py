@@ -3,7 +3,9 @@ import logging
 import textwrap
 from collections.abc import Collection
 from pathlib import Path
+from shutil import copy2
 from typing import NamedTuple, Optional
+from urllib.parse import unquote, urlparse
 
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
@@ -130,6 +132,45 @@ def get_resources(dist: metadata.Distribution, bin_path: Path, man_path: Path) -
     app_names = app_names_ep | app_names_df | app_names_if
     man_names = man_names_df | man_names_if
     return sorted(app_names), sorted(man_names)
+
+
+def _get_editable_project_path(dist: metadata.Distribution) -> Optional[Path]:
+    direct_url_text = dist.read_text("direct_url.json")
+    if not direct_url_text:
+        return None
+
+    try:
+        direct_url = json.loads(direct_url_text)
+    except json.JSONDecodeError:
+        return None
+
+    if not direct_url.get("dir_info", {}).get("editable"):
+        return None
+
+    parsed_url = urlparse(direct_url.get("url", ""))
+    if parsed_url.scheme != "file":
+        return None
+
+    return Path(unquote(parsed_url.path))
+
+
+def _copy_editable_man_pages(dist: metadata.Distribution, venv_man_path: Path) -> list[str]:
+    project_path = _get_editable_project_path(dist)
+    if project_path is None or not project_path.exists():
+        return []
+
+    man_pages = set()
+    for section in MAN_SECTIONS:
+        for source_path in project_path.rglob(f"{section}/*"):
+            if not source_path.is_file() or source_path.parent.name != section:
+                continue
+
+            target_path = venv_man_path / section / source_path.name
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            copy2(source_path, target_path)
+            man_pages.add(str(Path(section) / source_path.name))
+
+    return sorted(man_pages)
 
 
 def _dfs_package_resources(
@@ -292,6 +333,8 @@ def inspect_venv(
     )
 
     apps, man_pages = get_resources(root_dist, venv_bin_path, venv_man_path)
+    if not man_pages:
+        man_pages = _copy_editable_man_pages(root_dist, venv_man_path)
     app_paths = [venv_bin_path / app for app in apps]
     man_paths = [venv_man_path / man_page for man_page in man_pages]
     if WINDOWS:
