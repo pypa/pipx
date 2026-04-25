@@ -226,6 +226,10 @@ def package_is_path(package: str):
         )
 
 
+def _dispatch_placeholder(args: argparse.Namespace, ctx: Any) -> ExitCode:
+    raise PipxError("Dispatch placeholder reached - refactor incomplete (issue #1794).")
+
+
 def run_pipx_command(args: argparse.Namespace, subparsers: dict[str, argparse.ArgumentParser]) -> ExitCode:  # noqa: C901
     verbose = args.verbose if "verbose" in args else False
 
@@ -517,6 +521,7 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         ),
     )
     add_pip_venv_args(p)
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def _add_install_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -536,6 +541,7 @@ def _add_install_all(subparsers: argparse._SubParsersAction, shared_parser: argp
     )
     add_python_options(p)
     add_pip_venv_args(p)
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
@@ -589,6 +595,7 @@ def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
         action="store_true",
         help="Add the suffix (if given) of the Virtual Environment to the packages to inject",
     )
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def _add_uninject(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser):
@@ -612,6 +619,7 @@ def _add_uninject(subparsers, venv_completer: VenvCompleter, shared_parser: argp
         action="store_true",
         help="Only uninstall the main injected package but leave its dependencies installed.",
     )
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
@@ -636,6 +644,7 @@ def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.
         default=[],
         help="Skip these packages. Implies `--injected-only`.",
     )
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def _add_unpin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
@@ -646,6 +655,7 @@ def _add_unpin(subparsers, venv_completer: VenvCompleter, shared_parser: argpars
         parents=[shared_parser],
     )
     p.add_argument("package", help="Installed package to unpin")
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
@@ -674,6 +684,7 @@ def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argpa
         help="Install package spec if missing",
     )
     add_python_options(p)
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -696,6 +707,7 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argp
         help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
     add_pip_venv_args(p)
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def _add_upgrade_shared(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -709,6 +721,7 @@ def _add_upgrade_shared(subparsers: argparse._SubParsersAction, shared_parser: a
         "--pip-args",
         help="Arbitrary pip arguments to pass directly to pip install/upgrade commands",
     )
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def _add_uninstall(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
@@ -719,15 +732,17 @@ def _add_uninstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
         parents=[shared_parser],
     )
     p.add_argument("package").completer = venv_completer
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def _add_uninstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
-    subparsers.add_parser(
+    p = subparsers.add_parser(
         "uninstall-all",
         help="Uninstall all packages",
         description="Uninstall all pipx-managed packages",
         parents=[shared_parser],
     )
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
@@ -748,6 +763,7 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
     )
     p.add_argument("package").completer = venv_completer
     add_python_options(p)
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -770,6 +786,7 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
     )
     add_python_options(p)
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -793,6 +810,7 @@ def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
         help="List pinned packages only. Pass --include-injected at the same time to list injected packages that were pinned.",
     )
     g.add_argument("--skip-maintenance", action="store_true", help="(deprecated) No-op")
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def _add_interpreter(
@@ -809,13 +827,17 @@ def _add_interpreter(
         description="Get help for commands with pipx interpreter COMMAND --help",
         dest="interpreter_command",
     )
-    s.add_parser("list", help="List available interpreters", description="List available interpreters")
-    s.add_parser("prune", help="Prune unused interpreters", description="Prune unused interpreters")
-    s.add_parser(
+    list_p = s.add_parser("list", help="List available interpreters", description="List available interpreters")
+    prune_p = s.add_parser("prune", help="Prune unused interpreters", description="Prune unused interpreters")
+    upgrade_p = s.add_parser(
         "upgrade",
         help="Upgrade installed interpreters to the latest available micro/patch version",
         description="Upgrade installed interpreters to the latest available micro/patch version",
     )
+    list_p.set_defaults(func=_dispatch_placeholder)
+    prune_p.set_defaults(func=_dispatch_placeholder)
+    upgrade_p.set_defaults(func=_dispatch_placeholder)
+    p.set_defaults(func=_dispatch_placeholder)
     return p
 
 
@@ -872,7 +894,7 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
     p.add_argument("--spec", help=SPEC_HELP)
     add_python_options(p)
     add_pip_venv_args(p)
-    p.set_defaults(subparser=p)
+    p.set_defaults(subparser=p, func=_dispatch_placeholder)
 
     # modify usage text to show required app argument
     p.usage = re.sub(r"^usage: ", "", p.format_usage())
@@ -897,6 +919,7 @@ def _add_runpip(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
         default=[],
         help="Arguments to forward to pip command",
     )
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -934,6 +957,7 @@ def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argpa
         action="store_true",
         help=("Add directories to PATH in all shells instead of just the current one."),
     )
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -960,6 +984,7 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
         metavar="VARIABLE",
         help="Print the value of the variable.",
     )
+    p.set_defaults(func=_dispatch_placeholder)
 
 
 def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.ArgumentParser]]:
@@ -1030,12 +1055,13 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
     _add_environment(subparsers, shared_parser)
 
     parser.add_argument("--version", action="store_true", help="Print version and exit")
-    subparsers.add_parser(
+    completions_p = subparsers.add_parser(
         "completions",
         help="Print instructions on enabling shell completions for pipx",
         description="Print instructions on enabling shell completions for pipx",
         parents=[shared_parser],
     )
+    completions_p.set_defaults(func=_dispatch_placeholder)
     return parser, subparsers_with_subcommands
 
 
