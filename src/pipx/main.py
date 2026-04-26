@@ -310,6 +310,20 @@ def _cmd_reinstall(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     )
 
 
+def _cmd_inject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    return commands.inject(
+        ctx.venv_dir,
+        args.dependencies,
+        args.requirements,
+        ctx.pip_args,
+        verbose=ctx.verbose,
+        include_apps=args.include_apps,
+        include_dependencies=args.include_deps,
+        force=args.force,
+        suffix=args.with_suffix,
+    )
+
+
 def _dispatch_placeholder(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     raise PipxError("Dispatch placeholder reached - refactor incomplete (issue #1794).")
 
@@ -679,7 +693,7 @@ def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
         action="store_true",
         help="Add the suffix (if given) of the Virtual Environment to the packages to inject",
     )
-    p.set_defaults(func=_dispatch_placeholder)
+    p.set_defaults(func=_cmd_inject)
 
 
 def _add_uninject(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser):
