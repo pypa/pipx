@@ -324,6 +324,17 @@ def _cmd_inject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     )
 
 
+def _cmd_uninject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    return commands.uninject(
+        ctx.venv_dir,
+        args.dependencies,
+        local_bin_dir=paths.ctx.bin_dir,
+        local_man_dir=paths.ctx.man_dir,
+        leave_deps=args.leave_deps,
+        verbose=ctx.verbose,
+    )
+
+
 def _dispatch_placeholder(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     raise PipxError("Dispatch placeholder reached - refactor incomplete (issue #1794).")
 
@@ -717,7 +728,7 @@ def _add_uninject(subparsers, venv_completer: VenvCompleter, shared_parser: argp
         action="store_true",
         help="Only uninstall the main injected package but leave its dependencies installed.",
     )
-    p.set_defaults(func=_dispatch_placeholder)
+    p.set_defaults(func=_cmd_uninject)
 
 
 def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
