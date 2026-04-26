@@ -335,6 +335,16 @@ def _cmd_uninject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     )
 
 
+def _cmd_list(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    return commands.list_packages(
+        ctx.venv_container,
+        args.include_injected,
+        args.json,
+        args.short,
+        args.pinned,
+    )
+
+
 def _dispatch_placeholder(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     raise PipxError("Dispatch placeholder reached - refactor incomplete (issue #1794).")
 
@@ -919,7 +929,7 @@ def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
         help="List pinned packages only. Pass --include-injected at the same time to list injected packages that were pinned.",
     )
     g.add_argument("--skip-maintenance", action="store_true", help="(deprecated) No-op")
-    p.set_defaults(func=_dispatch_placeholder)
+    p.set_defaults(func=_cmd_list)
 
 
 def _add_interpreter(
