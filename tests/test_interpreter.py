@@ -149,6 +149,7 @@ def test_resolve_python_absolute_path() -> None:
     assert Path(result).resolve() == Path(sys.executable).resolve()
 
 
+@pytest.mark.skipif(WINDOWS, reason="pythonX.Y is not typically on PATH on Windows")
 def test_resolve_python_executable_name() -> None:
     major = sys.version_info.major
     minor = sys.version_info.minor
