@@ -215,7 +215,7 @@ def package_is_url(package: str, raise_error: bool = True) -> bool:
 
 
 def package_is_path(package: str):
-    if os.path.sep in package or Path(package).exists():
+    if os.path.sep in package:
         raise PipxError(
             pipx_wrap(
                 f"""
