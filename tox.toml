@@ -1,0 +1,82 @@
+requires = ["tox>=4.45"]
+
+env_list = [
+  "3.13",
+  "3.12",
+  "3.11",
+  "3.10",
+  "lint",
+  "docs",
+  "man",
+]
+
+skip_missing_interpreters = true
+
+[env_run_base]
+description = "run tests with {env_name}"
+package = "wheel"
+dependency_groups = ["test"]
+set_env.COVERAGE_FILE = "{work_dir}{/}.coverage.{env_name}"
+commands = [
+  [
+    "pytest",
+    {replace = "posargs", default = [
+      "--cov=pipx",
+      "--cov-report=term-missing:skip-covered",
+      "--cov-report=xml:{work_dir}{/}coverage.{env_name}.xml",
+      "-n", "auto",
+      "--dist", "loadfile",
+      "tests",
+    ], extend = true},
+  ],
+]
+uv_seed = true
+
+[env.dev]
+description = "generate a DEV environment"
+package = "editable"
+dependency_groups = ["dev"]
+commands = [
+  ["uv", "pip", "tree"],
+  ["python", "-c", "import sys; print(sys.executable)"],
+]
+
+[env.lint]
+description = "run pre-commit on the codebase"
+skip_install = true
+dependency_groups = ["lint"]
+commands = [["pre-commit", "run", "--all-files"]]
+
+[env.docs]
+description = "build documentation"
+dependency_groups = ["docs"]
+set_env.NO_MKDOCS_2_WARNING = "true"
+commands = [
+  ["mkdocs", "build", "--strict", "--site-dir", "{env:READTHEDOCS_OUTPUT:site}{/}html"],
+  ["python", "-c", "print('docs built to: file://{tox_root}{/}{env:READTHEDOCS_OUTPUT:site}{/}html{/}index.html')"],
+]
+
+[env.docs-live]
+description = "serve documentation with live reload"
+dependency_groups = ["docs"]
+set_env.NO_MKDOCS_2_WARNING = "true"
+commands = [
+  ["mkdocs", "serve", "--dirty", "--open"],
+]
+
+[env.man]
+description = "build man page"
+dependency_groups = ["man"]
+commands = [
+  ["python", "scripts/generate_man.py"],
+]
+
+[env.zipapp]
+description = "build zipapp via shiv"
+skip_install = true
+dependency_groups = ["zipapp"]
+allowlist_externals = ["{tox_root}{/}pipx.pyz"]
+commands = [
+  ["shiv", "-c", "pipx", "-o", "{tox_root}{/}pipx.pyz", "."],
+  ["{tox_root}{/}pipx.pyz", "--version"],
+]

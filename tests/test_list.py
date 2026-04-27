@@ -5,7 +5,7 @@ import shutil
 import sys
 import time
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 from helpers import (
     PIPX_METADATA_LEGACY_VERSIONS,
@@ -18,8 +18,9 @@ from helpers import (
     skip_if_windows,
 )
 from package_info import PKG
-from pipx import constants, paths, shared_libs
+from pipx import constants, paths, shared_libs, venv
 from pipx.pipx_metadata_file import PackageInfo, _json_decoder_object_hook
+from pipx.util import PipxError
 
 
 def test_cli(pipx_temp_env, monkeypatch, capsys):
@@ -119,18 +120,16 @@ def test_list_json(pipx_temp_env, capsys):
         "pylint",
         "pylint",
         pipx_venvs_dir,
-        **{
-            "app_paths_of_dependencies": {
-                "dill": [
-                    pipx_venvs_dir / "pylint" / venv_bin_dir / "get_gprof",
-                    pipx_venvs_dir / "pylint" / venv_bin_dir / "get_objgraph",
-                    pipx_venvs_dir / "pylint" / venv_bin_dir / "undill",
-                ],
-                "isort": [
-                    pipx_venvs_dir / "pylint" / venv_bin_dir / app_name("isort"),
-                    pipx_venvs_dir / "pylint" / venv_bin_dir / app_name("isort-identify-imports"),
-                ],
-            }
+        app_paths_of_dependencies={
+            "dill": [
+                pipx_venvs_dir / "pylint" / venv_bin_dir / "get_gprof",
+                pipx_venvs_dir / "pylint" / venv_bin_dir / "get_objgraph",
+                pipx_venvs_dir / "pylint" / venv_bin_dir / "undill",
+            ],
+            "isort": [
+                pipx_venvs_dir / "pylint" / venv_bin_dir / app_name("isort"),
+                pipx_venvs_dir / "pylint" / venv_bin_dir / app_name("isort-identify-imports"),
+            ],
         },
     )
     assert_package_metadata(
@@ -244,3 +243,23 @@ def test_list_pinned_packages_include_injected(pipx_temp_env, monkeypatch, capsy
     assert "nox 2023.4.22" in captured.out
     assert "pylint 3.0.4" in captured.out
     assert "black 22.8.0 (injected in venv pylint)" in captured.out
+
+
+def test_list_installed_packages_error(monkeypatch, tmp_path, fake_process):
+    fake_venv = venv.Venv(tmp_path / "fake_venv")
+    pip_list_args = [str(fake_venv.python_path), "-m", "pip", "list", "--format=json"]
+
+    fake_process.register(pip_list_args, returncode=1, stderr="unit test stderr")
+
+    # don't reformat the error message, so we can compare it to a known string
+    monkeypatch.setattr(venv, "PipxError", lambda m: PipxError(m, wrap_message=False))
+
+    with pytest.raises(PipxError) as excinfo:
+        fake_venv.list_installed_packages()
+
+    assert len(excinfo.value.args) == 1
+
+    actual = excinfo.value.args[0]
+    expected = f"Failed to execute {pip_list_args}.\nProcess exited with return code 1.\nstderr: unit test stderr"
+
+    assert actual == expected

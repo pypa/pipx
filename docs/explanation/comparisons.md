@@ -5,7 +5,7 @@
 - pipx and pip both install packages from PyPI (or locally)
 - pipx relies on pip (and venv)
 - pipx replaces a subset of pip's functionality; it lets you install CLI applications but NOT libraries that you import
-  in your code.
+    in your code.
 - you can install pipx with pip
 
 Example interaction: Install pipx with pip: `pip install --user pipx`
@@ -41,12 +41,12 @@ interpreter: `pipx install black --python=python3.11` where python3.11 was insta
 - pipx is under active development. pipsi is no longer maintained.
 - pipx always makes sure you're using the latest version of pip
 - pipx has the ability to run an app in one line, leaving your system unchanged after it finishes (`pipx run APP`) where
-  pipsi does not
+    pipsi does not
 - pipx has the ability to recursively install binaries from dependent packages
 - pipx adds more useful information to its output
 - pipx has more CLI options such as upgrade-all, reinstall-all, uninstall-all
 - pipx is more modern. It uses Python 3.6+, and the `venv` package in the Python3 standard library instead of the python
-  2 package `virtualenv`.
+    2 package `virtualenv`.
 - pipx works with Python homebrew installations while pipsi does not (at least on my machine)
 - pipx defaults to less verbose output
 - pipx allows you to see each command it runs by passing the --verbose flag
@@ -68,14 +68,14 @@ pipx run https://raw.githubusercontent.com/pypa/pipx/main/scripts/migrate_pipsi_
 
 - Both brew and pipx install cli tools
 - They install them from different sources. brew uses a curated repository specifically for brew, and pipx generally
-  uses PyPI.
+    uses PyPI.
 
 Example interaction: brew can be used to install pipx, but they generally don't interact much.
 
 ## pipx vs npx
 
 - Both can run cli tools (npx will search for them in node_modules, and if not found run in a temporary environment.
-  `pipx run` will search in `__pypackages__` and if not found run in a temporary environment)
+    `pipx run` will search in `__pypackages__` and if not found run in a temporary environment)
 - npx works with JavaScript and pipx works with Python
 - Both tools attempt to make running executables written in a dynamic language (JS/Python) as easy as possible
 - pipx can also install tools globally; npx cannot
@@ -102,10 +102,10 @@ Example interaction: None.
 virtualenvs with their dependencies installed.
 
 - Both [fades](https://github.com/PyAr/fades#how-to-mark-the-dependencies-to-be-installed) and
-  [pipx run](examples.md#pipx-run-examples) allow specifying a script's dependencies in specially formatted comments,
-  but the exact syntax differs. (pipx's syntax is standardized by a
-  [provisional specification](https://packaging.python.org/en/latest/specifications/inline-script-metadata/),
-  fades's syntax is not standardized.)
+    [pipx run](../reference/examples.md#pipx-run-examples) allow specifying a script's dependencies in specially
+    formatted comments, but the exact syntax differs. (pipx's syntax is standardized by a
+    [provisional specification](https://packaging.python.org/en/latest/specifications/inline-script-metadata/), fades's
+    syntax is not standardized.)
 - Both tools automatically set up reusable virtualenvs containing the necessary dependencies.
 - Both can download Python scripts/packages to execute from remote resources.
 - fades can only run individual script files while pipx can also run packages.
@@ -114,9 +114,12 @@ Example interaction: None.
 
 ## pipx vs pae/pactivate
 
-_pae_ is a Bash command-line function distributed with [pactivate](https://github.com/cynic-net/pactivate) that uses pactivate to create non-ephemeral environments focused on general use, rather than just running command-line applications.
+_pae_ is a Bash command-line function distributed with [pactivate](https://github.com/cynic-net/pactivate) that uses
+pactivate to create non-ephemeral environments focused on general use, rather than just running command-line
+applications.
 
-There is [a very detailed comparison here](https://github.com/cynic-net/pactivate/blob/main/doc/vs-pipx.md), but to briefly summarize:
+There is [a very detailed comparison here](https://github.com/cynic-net/pactivate/blob/main/doc/vs-pipx.md), but to
+briefly summarize:
 
 Similarities:
 
@@ -125,10 +128,11 @@ Similarities:
 
 pae advantages:
 
-- Supports all versions of Python from 2.7 upward. pipx requires ≥3.9.
+- Supports all versions of Python from 2.7 upward. pipx requires ≥3.10.
 - Fewer dependencies. (See the detailed comparison for more information.)
 - Easier to have multiple versions of a single program and/or use different Python versions for a single program.
-- Somewhat more convenient for running arbitrary command-line programs in virtual environments, installing multiple packages in a single environment, and activating virtual environments.
+- Somewhat more convenient for running arbitrary command-line programs in virtual environments, installing multiple
+    packages in a single environment, and activating virtual environments.
 - Integrates well with source code repos using [pactivate](https://github.com/cynic-net/pactivate).
 
 pae disadvantages:

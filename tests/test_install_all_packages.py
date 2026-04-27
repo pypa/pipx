@@ -22,9 +22,8 @@ import textwrap
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional, Tuple
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 from helpers import run_pipx_cli
 from package_info import PKG
@@ -101,13 +100,13 @@ class PackageData:
     def __init__(self):
         self.package_name: str = ""
         self.package_spec: str = ""
-        self.clear_elapsed_time: Optional[float] = None
-        self.clear_pip_pass: Optional[bool] = None
-        self.clear_pipx_pass: Optional[bool] = None
-        self.sys_elapsed_time: Optional[float] = None
-        self.sys_pip_pass: Optional[bool] = None
-        self.sys_pipx_pass: Optional[bool] = None
-        self.overall_pass: Optional[bool] = None
+        self.clear_elapsed_time: float | None = None
+        self.clear_pip_pass: bool | None = None
+        self.clear_pipx_pass: bool | None = None
+        self.sys_elapsed_time: float | None = None
+        self.sys_pip_pass: bool | None = None
+        self.sys_pipx_pass: bool | None = None
+        self.overall_pass: bool | None = None
 
     @property
     def clear_pip_pf_str(self) -> str:
@@ -139,9 +138,10 @@ class PackageData:
 class ModuleGlobalsData:
     def __init__(self):
         self.errors_path = Path(".")
-        self.install_data: List[PackageData] = []
-        self.py_version_display = "Python {0.major}.{0.minor}.{0.micro}".format(sys.version_info)
-        self.py_version_short = "{0.major}.{0.minor}".format(sys.version_info)
+        self.install_data: list[PackageData] = []
+        pyver = sys.version_info
+        self.py_version_display = f"Python {pyver.major}.{pyver.minor}.{pyver.micro}"
+        self.py_version_short = f"{pyver.major}.{pyver.minor}"
         self.report_path = Path(".")
         self.sys_platform = sys.platform
         self.test_class = ""
@@ -309,7 +309,7 @@ def verify_post_install(
     test_error_fh: io.StringIO,
     using_clear_path: bool,
     deps: bool = False,
-) -> Tuple[bool, Optional[bool], Optional[Path]]:
+) -> tuple[bool, bool | None, Path | None]:
     pip_error_file = None
     caplog_problem = False
     install_success = f"installed package {package_name}" in captured_outerr.out
@@ -337,7 +337,7 @@ def verify_post_install(
         man_success = True
 
     pip_pass = not ((pipx_exit_code != 0) and f"Error installing {package_name}" in captured_outerr.err)
-    pipx_pass: Optional[bool]
+    pipx_pass: bool | None
     if pip_pass:
         pipx_pass = install_success and not caplog_problem and app_success and man_success
     else:
@@ -352,7 +352,7 @@ def print_error_report(
     test_error_fh: io.StringIO,
     package_spec: str,
     test_type: str,
-    pip_error_file: Optional[Path],
+    pip_error_file: Path | None,
 ) -> None:
     with module_globals.errors_path.open("a", encoding="utf-8") as errors_fh:
         print("\n\n", file=errors_fh)
@@ -385,7 +385,7 @@ def install_and_verify(
     using_clear_path: bool,
     package_data: PackageData,
     deps: bool,
-) -> Tuple[bool, Optional[bool], float]:
+) -> tuple[bool, bool | None, float]:
     _ = capsys.readouterr()
     caplog.clear()
 

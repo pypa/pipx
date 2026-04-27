@@ -1,11 +1,14 @@
+import logging
 import shutil
 import sys
+from collections.abc import Generator
 from contextlib import contextmanager
 from threading import Event, Thread
-from typing import Generator, List
 
 from pipx.constants import WINDOWS
 from pipx.emojis import EMOJI_SUPPORT
+
+logger = logging.getLogger(__name__)
 
 stderr_is_tty = bool(sys.stderr and sys.stderr.isatty())
 
@@ -31,8 +34,13 @@ def _env_supports_animation() -> bool:
 
 @contextmanager
 def animate(message: str, do_animation: bool, *, delay: float = 0) -> Generator[None, None, None]:
+    pipx_logger = logging.getLogger("pipx")
+    handler_level = pipx_logger.handlers[0].level if pipx_logger.handlers else 0
+    if pipx_logger.handlers and handler_level > logging.WARNING:
+        yield
+        return
+
     if not do_animation or not _env_supports_animation():
-        # No animation, just a single print of message
         sys.stderr.write(f"{message}...\n")
         yield
         return
@@ -71,7 +79,7 @@ def print_animation(
     *,
     message: str,
     event: Event,
-    symbols: List[str],
+    symbols: list[str],
     delay: float,
     period: float,
     animate_at_beginning_of_line: bool,
@@ -101,7 +109,7 @@ def print_animation(
 def win_cursor(visible: bool) -> None:
     if sys.platform != "win32":  # hello mypy
         return
-    ci = _CursorInfo()
+    ci = _CursorInfo()  # type: ignore[unreachable]
     handle = ctypes.windll.kernel32.GetStdHandle(-11)
     ctypes.windll.kernel32.GetConsoleCursorInfo(handle, ctypes.byref(ci))
     ci.visible = visible

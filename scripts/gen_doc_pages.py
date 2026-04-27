@@ -2,13 +2,12 @@ import os
 import sys
 from pathlib import Path
 from subprocess import check_output
-from typing import Optional
 
 import mkdocs_gen_files
 from jinja2 import Environment, FileSystemLoader
 
 
-def get_help(cmd: Optional[str]) -> str:
+def get_help(cmd: str | None) -> str:
     base = ["pipx"]
     args = base + ([cmd] if cmd else []) + ["--help"]
     env_patch = os.environ.copy()
@@ -47,6 +46,6 @@ params = {
 
 env = Environment(loader=FileSystemLoader(Path(__file__).parent / "templates"))
 
-with mkdocs_gen_files.open("docs.md", "wt") as file_handler:
+with mkdocs_gen_files.open("reference/cli.md", "wt") as file_handler:
     file_handler.write(env.get_template("docs.md").render(**params))
     file_handler.write("\n")

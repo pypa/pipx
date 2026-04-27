@@ -1,9 +1,9 @@
 import datetime
 import logging
 import time
+from configparser import ConfigParser
 from contextlib import suppress
 from pathlib import Path
-from typing import Dict, List
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
@@ -25,9 +25,43 @@ logger = logging.getLogger(__name__)
 SHARED_LIBS_MAX_AGE_SEC = datetime.timedelta(days=30).total_seconds()
 
 
+def _venv_python_is_valid(python_path: Path) -> bool:
+    """Check if a venv's Python is valid and its underlying interpreter exists.
+
+    On Windows, a venv's python.exe is a wrapper that uses pyvenv.cfg to find
+    the actual Python installation. If the original Python is uninstalled,
+    the wrapper exists but cannot execute. This function checks that the
+    underlying interpreter referenced in pyvenv.cfg still exists.
+    """
+    if not WINDOWS:
+        return True
+
+    pyvenv_cfg = python_path.parent.parent / "pyvenv.cfg"
+    if not pyvenv_cfg.is_file():
+        return True
+
+    try:
+        config = ConfigParser()
+        with open(pyvenv_cfg, encoding="utf-8") as f:
+            # ConfigParser needs a section header, pyvenv.cfg doesn't have one
+            config.read_string("[DEFAULT]\n" + f.read())
+        home = config.get("DEFAULT", "home", fallback=None)
+        if home:
+            # The home path points to the directory containing the original python.exe
+            original_python = Path(home) / "python.exe"
+            if not original_python.is_file():
+                logger.info(f"Shared libs venv references a missing Python interpreter: {original_python}")
+                return False
+    except Exception:
+        # If we can't read pyvenv.cfg, assume the venv is valid
+        pass
+
+    return True
+
+
 class _SharedLibs:
     def __init__(self) -> None:
-        self._site_packages: Dict[Path, Path] = {}
+        self._site_packages: dict[Path, Path] = {}
         self.has_been_updated_this_run = False
         self.has_been_logged_this_run = False
 
@@ -61,7 +95,7 @@ class _SharedLibs:
 
         return self._site_packages[self.python_path]
 
-    def create(self, pip_args: List[str], verbose: bool = False) -> None:
+    def create(self, pip_args: list[str], verbose: bool = False) -> None:
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
                 create_process = run_subprocess(
@@ -75,9 +109,22 @@ class _SharedLibs:
             pip_args.append("--force-reinstall")
             self.upgrade(pip_args=pip_args, verbose=verbose, raises=True)
 
+            # Remove setuptools from shared libs to prevent it from leaking into
+            # app venvs via the .pth file. On Python < 3.12, venv bundles setuptools
+            # via ensurepip, but a 3.10 setuptools breaks when imported under 3.12+
+            # because distutils was removed from the stdlib.
+            run_subprocess(
+                [self.python_path, "-m", "pip", "--no-input", "uninstall", "-y", "setuptools"],
+                capture_stderr=False,
+            )
+
     @property
     def is_valid(self) -> bool:
         if self.python_path.is_file():
+            # On Windows, check that the venv's underlying Python still exists
+            if not _venv_python_is_valid(self.python_path):
+                return False
+
             check_pip = "import importlib.util; print(importlib.util.find_spec('pip'))"
             out = run_subprocess(
                 [self.python_path, "-c", check_pip],
@@ -107,7 +154,7 @@ class _SharedLibs:
             self.has_been_logged_this_run = True
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
-    def upgrade(self, *, pip_args: List[str], verbose: bool = False, raises: bool = False) -> None:
+    def upgrade(self, *, pip_args: list[str], verbose: bool = False, raises: bool = False) -> None:
         if not self.is_valid:
             self.create(verbose=verbose, pip_args=pip_args)
             return
@@ -118,7 +165,7 @@ class _SharedLibs:
             return
 
         if pip_args is None:
-            pip_args = []
+            pip_args = []  # type: ignore[unreachable]
 
         logger.info(f"Upgrading shared libraries in {self.root}")
 

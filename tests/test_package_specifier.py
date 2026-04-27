@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 from pipx.package_specifier import (
     fix_package_name,
@@ -275,3 +275,36 @@ def test_parse_specifier_for_install(
     parse_specifier_for_install(package_spec_in, pip_args_in)
     if warning_str is not None:
         assert warning_str in caplog.text
+
+
+@pytest.mark.parametrize(
+    "pip_args_in,pip_args_expected",
+    [
+        (
+            ["-c", "https://example.com/constraints.txt"],
+            ["-c", "https://example.com/constraints.txt"],
+        ),
+        (
+            ["--constraint", "https://example.com/constraints.txt"],
+            ["--constraint", "https://example.com/constraints.txt"],
+        ),
+        (
+            ["--constraint=https://example.com/constraints.txt"],
+            ["--constraint=https://example.com/constraints.txt"],
+        ),
+        (
+            ["-c", "constraints.txt"],
+            ["-c", str(Path("constraints.txt").resolve())],
+        ),
+        (
+            ["--constraint=constraints.txt"],
+            [f"--constraint={Path('constraints.txt').resolve()}"],
+        ),
+    ],
+)
+def test_parse_specifier_for_install_constraint_args(
+    pip_args_in: list[str],
+    pip_args_expected: list[str],
+) -> None:
+    _, pip_args_out = parse_specifier_for_install("pipx", pip_args_in)
+    assert pip_args_out == pip_args_expected

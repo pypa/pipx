@@ -2,7 +2,6 @@ import logging
 import site
 import sys
 from pathlib import Path
-from typing import Optional, Tuple
 
 import userpath  # type: ignore[import-not-found]
 
@@ -14,7 +13,7 @@ from pipx.util import pipx_wrap
 logger = logging.getLogger(__name__)
 
 
-def get_pipx_user_bin_path() -> Optional[Path]:
+def get_pipx_user_bin_path() -> Path | None:
     """Returns None if pipx is not installed using `pip --user`
     Otherwise returns parent dir of pipx binary
     """
@@ -51,7 +50,7 @@ def get_pipx_user_bin_path() -> Optional[Path]:
     return pipx_bin_path
 
 
-def ensure_path(location: Path, *, force: bool, prepend: bool = False, all_shells: bool = False) -> Tuple[bool, bool]:
+def ensure_path(location: Path, *, force: bool, prepend: bool = False, all_shells: bool = False) -> tuple[bool, bool]:
     """Ensure location is in user's PATH or add it to PATH.
     If prepend is True, location will be prepended to PATH, else appended.
     Returns True if location was added to PATH

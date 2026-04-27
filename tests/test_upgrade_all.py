@@ -1,4 +1,4 @@
-import pytest  # type: ignore[import-not-found]
+import pytest
 
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli
 
@@ -14,6 +14,11 @@ def test_upgrade_all_none(pipx_temp_env, capsys):
     assert not run_pipx_cli(["upgrade-all"])
     captured = capsys.readouterr()
     assert "No packages upgraded after running 'pipx upgrade-all'" in captured.out
+
+
+def test_upgrade_all_with_pip_args(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["upgrade-all", "--pip-args=--no-cache-dir"])
 
 
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)

@@ -2,7 +2,7 @@ import json
 import logging
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from pipx.emojis import hazard
 from pipx.util import PipxError, pipx_wrap
@@ -21,7 +21,7 @@ class JsonEncoderHandlesPath(json.JSONEncoder):
         return super().default(obj)
 
 
-def _json_decoder_object_hook(json_dict: Dict[str, Any]) -> Union[Dict[str, Any], Path]:
+def _json_decoder_object_hook(json_dict: dict[str, Any]) -> dict[str, Any] | Path:
     if json_dict.get("__type__") == "Path" and "__Path__" in json_dict:
         return Path(json_dict["__Path__"])
     return json_dict
@@ -29,20 +29,20 @@ def _json_decoder_object_hook(json_dict: Dict[str, Any]) -> Union[Dict[str, Any]
 
 @dataclass(frozen=True)
 class PackageInfo:
-    package: Optional[str]
-    package_or_url: Optional[str]
-    pip_args: List[str]
+    package: str | None
+    package_or_url: str | None
+    pip_args: list[str]
     include_dependencies: bool
     include_apps: bool
-    apps: List[str]
-    app_paths: List[Path]
-    apps_of_dependencies: List[str]
-    app_paths_of_dependencies: Dict[str, List[Path]]
+    apps: list[str]
+    app_paths: list[Path]
+    apps_of_dependencies: list[str]
+    app_paths_of_dependencies: dict[str, list[Path]]
     package_version: str
-    man_pages: List[str] = field(default_factory=list)
-    man_paths: List[Path] = field(default_factory=list)
-    man_pages_of_dependencies: List[str] = field(default_factory=list)
-    man_paths_of_dependencies: Dict[str, List[Path]] = field(default_factory=dict)
+    man_pages: list[str] = field(default_factory=list)
+    man_paths: list[Path] = field(default_factory=list)
+    man_pages_of_dependencies: list[str] = field(default_factory=list)
+    man_paths_of_dependencies: dict[str, list[Path]] = field(default_factory=dict)
     suffix: str = ""
     pinned: bool = False
 
@@ -79,15 +79,15 @@ class PipxMetadata:
             man_paths_of_dependencies={},
             package_version="",
         )
-        self.python_version: Optional[str] = None
-        self.source_interpreter: Optional[Path] = None
-        self.venv_args: List[str] = []
-        self.injected_packages: Dict[str, PackageInfo] = {}
+        self.python_version: str | None = None
+        self.source_interpreter: Path | None = None
+        self.venv_args: list[str] = []
+        self.injected_packages: dict[str, PackageInfo] = {}
 
         if read:
             self.read()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "main_package": asdict(self.main_package),
             "python_version": self.python_version,
@@ -97,7 +97,7 @@ class PipxMetadata:
             "pipx_metadata_version": self.__METADATA_VERSION__,
         }
 
-    def _convert_legacy_metadata(self, metadata_dict: Dict[str, Any]) -> Dict[str, Any]:
+    def _convert_legacy_metadata(self, metadata_dict: dict[str, Any]) -> dict[str, Any]:
         if metadata_dict["pipx_metadata_version"] in (self.__METADATA_VERSION__):
             pass
         elif metadata_dict["pipx_metadata_version"] == "0.4":
@@ -120,7 +120,7 @@ class PipxMetadata:
             )
         return metadata_dict
 
-    def from_dict(self, input_dict: Dict[str, Any]) -> None:
+    def from_dict(self, input_dict: dict[str, Any]) -> None:
         input_dict = self._convert_legacy_metadata(input_dict)
         self.main_package = PackageInfo(**input_dict["main_package"])
         self.python_version = input_dict["python_version"]

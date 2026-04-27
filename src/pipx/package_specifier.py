@@ -11,7 +11,6 @@ import re
 import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Set, Tuple
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
@@ -27,12 +26,12 @@ ARCHIVE_EXTENSIONS = (".whl", ".tar.gz", ".zip")
 
 @dataclass(frozen=True)
 class ParsedPackage:
-    valid_pep508: Optional[Requirement]
-    valid_url: Optional[str]
-    valid_local_path: Optional[str]
+    valid_pep508: Requirement | None
+    valid_url: str | None
+    valid_local_path: str | None
 
 
-def _split_path_extras(package_spec: str) -> Tuple[str, str]:
+def _split_path_extras(package_spec: str) -> tuple[str, str]:
     """Returns (path, extras_string)"""
     package_spec_extras_re = re.search(r"(.+)(\[.+\])", package_spec)
     if package_spec_extras_re:
@@ -41,7 +40,7 @@ def _split_path_extras(package_spec: str) -> Tuple[str, str]:
         return (package_spec, "")
 
 
-def _check_package_path(package_path: str) -> Tuple[Path, bool]:
+def _check_package_path(package_path: str) -> tuple[Path, bool]:
     pkg_path = Path(package_path)
     pkg_path_exists = pkg_path.exists()
 
@@ -140,7 +139,7 @@ def _parsed_package_to_package_or_url(parsed_package: ParsedPackage, remove_vers
     return package_or_url
 
 
-def parse_specifier_for_install(package_spec: str, pip_args: List[str]) -> Tuple[str, List[str]]:
+def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple[str, list[str]]:
     """Return package_or_url and pip_args suitable for pip install
 
     Specifically:
@@ -169,17 +168,13 @@ def parse_specifier_for_install(package_spec: str, pip_args: List[str]) -> Tuple
 
         if option in ("-c", "--constraint"):
             argument_index = index + 1
-            if argument_index < len(pip_args):
-                constraints_file = pip_args[argument_index]
-                pip_args[argument_index] = str(Path(constraints_file).expanduser().resolve())
+            if argument_index < len(pip_args) and not urllib.parse.urlsplit(pip_args[argument_index]).scheme:
+                pip_args[argument_index] = str(Path(pip_args[argument_index]).expanduser().resolve())
 
-        else:  # option == "--constraint=some_path"
-            option_list = option.split("=")
-
-            if len(option_list) == 2:
-                key, value = option_list
-                value_path = Path(value).expanduser().resolve()
-                pip_args[index] = f"{key}={value_path}"
+        elif (option_list := option.split("=", maxsplit=1)) and len(option_list) == 2:
+            key, value = option_list
+            if not urllib.parse.urlsplit(value).scheme:
+                pip_args[index] = f"{key}={Path(value).expanduser().resolve()}"
 
         break
 
@@ -209,7 +204,7 @@ def parse_specifier_for_upgrade(package_spec: str) -> str:
     return _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=True)
 
 
-def get_extras(package_spec: str) -> Set[str]:
+def get_extras(package_spec: str) -> set[str]:
     parsed_package = _parse_specifier(package_spec)
     if parsed_package.valid_pep508 and parsed_package.valid_pep508.extras is not None:
         return parsed_package.valid_pep508.extras
@@ -220,7 +215,7 @@ def get_extras(package_spec: str) -> Set[str]:
     return set()
 
 
-def valid_pypi_name(package_spec: str) -> Optional[str]:
+def valid_pypi_name(package_spec: str) -> str | None:
     try:
         package_req = Requirement(package_spec)
     except InvalidRequirement:

@@ -2,8 +2,8 @@ import logging
 import os
 import re
 import sys
+from collections.abc import Generator, Iterable
 from pathlib import Path
-from typing import Generator, Iterable, List, Optional, Union
 
 from pipx import paths
 from pipx.colors import bold
@@ -20,9 +20,9 @@ COMMENT_RE = re.compile(r"(^|\s+)#.*$")
 
 def inject_dep(
     venv_dir: Path,
-    package_name: Optional[str],
+    package_name: str | None,
     package_spec: str,
-    pip_args: List[str],
+    pip_args: list[str],
     *,
     verbose: bool,
     include_apps: bool,
@@ -32,7 +32,7 @@ def inject_dep(
 ) -> bool:
     logger.debug("Injecting package %s", package_spec)
 
-    if not venv_dir.exists() or not next(venv_dir.iterdir()):
+    if not venv_dir.exists() or next(venv_dir.iterdir(), None) is None:
         raise PipxError(
             f"""
             Can't inject {package_spec!r} into nonexistent Virtual Environment
@@ -110,10 +110,9 @@ def inject_dep(
 
 def inject(
     venv_dir: Path,
-    package_name: Optional[str],
     package_specs: Iterable[str],
     requirement_files: Iterable[str],
-    pip_args: List[str],
+    pip_args: list[str],
     *,
     verbose: bool,
     include_apps: bool,
@@ -155,7 +154,7 @@ def inject(
     return EXIT_CODE_OK if all_success else EXIT_CODE_INJECT_ERROR
 
 
-def parse_requirements(filename: Union[str, os.PathLike]) -> Generator[str, None, None]:
+def parse_requirements(filename: str | os.PathLike) -> Generator[str, None, None]:
     """
     Extract package specifications from requirements file.
 

@@ -4,10 +4,10 @@ import re
 import sys
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 from unittest import mock
 
-import pytest  # type: ignore[import-not-found]
+import pytest
 from packaging.utils import canonicalize_name
 
 from package_info import PKG
@@ -17,7 +17,7 @@ WIN = sys.platform.startswith("win")
 
 PIPX_METADATA_LEGACY_VERSIONS = [None, "0.1", "0.2", "0.3"]
 
-MOCK_PIPXMETADATA_0_1: Dict[str, Any] = {
+MOCK_PIPXMETADATA_0_1: dict[str, Any] = {
     "main_package": None,
     "python_version": None,
     "venv_args": [],
@@ -25,7 +25,7 @@ MOCK_PIPXMETADATA_0_1: Dict[str, Any] = {
     "pipx_metadata_version": "0.1",
 }
 
-MOCK_PIPXMETADATA_0_2: Dict[str, Any] = {
+MOCK_PIPXMETADATA_0_2: dict[str, Any] = {
     "main_package": None,
     "python_version": None,
     "venv_args": [],
@@ -33,7 +33,7 @@ MOCK_PIPXMETADATA_0_2: Dict[str, Any] = {
     "pipx_metadata_version": "0.2",
 }
 
-MOCK_PIPXMETADATA_0_3: Dict[str, Any] = {
+MOCK_PIPXMETADATA_0_3: dict[str, Any] = {
     "main_package": None,
     "python_version": None,
     "venv_args": [],
@@ -45,7 +45,7 @@ MOCK_PIPXMETADATA_0_3: Dict[str, Any] = {
     "man_paths_of_dependencies": {},
 }
 
-MOCK_PACKAGE_INFO_0_1: Dict[str, Any] = {
+MOCK_PACKAGE_INFO_0_1: dict[str, Any] = {
     "package": None,
     "package_or_url": None,
     "pip_args": [],
@@ -58,7 +58,7 @@ MOCK_PACKAGE_INFO_0_1: Dict[str, Any] = {
     "package_version": "",
 }
 
-MOCK_PACKAGE_INFO_0_2: Dict[str, Any] = {
+MOCK_PACKAGE_INFO_0_2: dict[str, Any] = {
     "package": None,
     "package_or_url": None,
     "pip_args": [],
@@ -77,7 +77,7 @@ def app_name(app: str) -> str:
     return f"{app}.exe" if WIN else app
 
 
-def run_pipx_cli(pipx_args: List[str]) -> int:
+def run_pipx_cli(pipx_args: list[str]) -> int:
     with mock.patch.object(sys, "argv", ["pipx"] + pipx_args):
         return main.cli()
 
@@ -92,7 +92,7 @@ def unwrap_log_text(log_text: str):
     return re.sub(r"\n\s+", " ", log_text)
 
 
-def _mock_legacy_package_info(modern_package_info: Dict[str, Any], metadata_version: str) -> Dict[str, Any]:
+def _mock_legacy_package_info(modern_package_info: dict[str, Any], metadata_version: str) -> dict[str, Any]:
     if metadata_version in ["0.2", "0.3"]:
         mock_package_info_template = MOCK_PACKAGE_INFO_0_2
     elif metadata_version == "0.1":
@@ -107,7 +107,7 @@ def _mock_legacy_package_info(modern_package_info: Dict[str, Any], metadata_vers
     return mock_package_info
 
 
-def mock_legacy_venv(venv_name: str, metadata_version: Optional[str] = None) -> None:
+def mock_legacy_venv(venv_name: str, metadata_version: str | None = None) -> None:
     """Convert a venv installed with the most recent pipx to look like
     one with a previous metadata version.
     metadata_version=None refers to no metadata file (pipx pre-0.15.0.0)

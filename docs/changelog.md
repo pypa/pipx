@@ -9,6 +9,67 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 <!-- towncrier release notes start -->
 
+## [1.11.1](https://github.com/pypa/pipx/tree/1.11.1) - 2026-03-31
+
+### Bugfixes
+
+- Ignore `PIP_TARGET` environment variable to prevent pip from installing outside the venv. ([#735](https://github.com/pypa/pipx/issues/735))
+- Fix `pipx install` failing on Windows when the username contains non-Latin characters (e.g. cyrillic, Chinese). ([#780](https://github.com/pypa/pipx/issues/780))
+- Show installed version and suggest `upgrade` when `install` detects an existing installation. ([#795](https://github.com/pypa/pipx/issues/795))
+- `--verbose` and `--quiet` flags before the subcommand are no longer silently ignored. ([#1282](https://github.com/pypa/pipx/issues/1282))
+- Remove dependency app symlinks when uninjecting a package that was injected with `--include-deps`. ([#1364](https://github.com/pypa/pipx/issues/1364))
+- Remove `setuptools` from shared libs to prevent version conflicts when app venvs use a different Python. ([#1539](https://github.com/pypa/pipx/issues/1539))
+- Prevent `uninject` from removing dependencies still needed by other packages in the venv. ([#1672](https://github.com/pypa/pipx/issues/1672))
+
+
+## [1.11.0](https://github.com/pypa/pipx/tree/1.11.0) - 2026-03-23
+
+### Features
+
+- Add `PIPX_MAX_LOGS` environment variable to configure the maximum number of log files to keep. ([#1570](https://github.com/pypa/pipx/issues/1570))
+
+### Bugfixes
+
+- Allow `--pip-args` to be passed to `upgrade-all`. ([#1503](https://github.com/pypa/pipx/issues/1503))
+- Fix `--pip-args='-c <url>'` breaking when constraint target is a URL instead of a local path. ([#1582](https://github.com/pypa/pipx/issues/1582))
+- Enable keyring authentication for private package indexes by setting `PIP_KEYRING_PROVIDER=subprocess` ([#1603](https://github.com/pypa/pipx/issues/1603))
+- Added error handling for `pip list` command failures ([#1698](https://github.com/pypa/pipx/issues/1698))
+
+### Improved Documentation
+
+- Remove outdated "experimental" note from `--suffix` help text. ([#1621](https://github.com/pypa/pipx/issues/1621))
+
+
+## [1.10.1](https://github.com/pypa/pipx/tree/1.10.1) - 2026-03-20
+
+### Bugfixes
+
+- Use stored pip_args from install metadata when running `pipx upgrade` without explicit `--pip-args` ([#1441](https://github.com/pypa/pipx/issues/1441))
+- Fix `--global` flag being silently ignored when placed before the subcommand ([#1443](https://github.com/pypa/pipx/issues/1443))
+- Respect `--quiet` flag in `install` and suppress animations and success messages ([#1508](https://github.com/pypa/pipx/issues/1508))
+- Catch missing Python interpreter in `upgrade` and show helpful error instead of crashing ([#1602](https://github.com/pypa/pipx/issues/1602))
+- Prevent data loss by rejecting relative paths in `uninstall`, `reinstall`, and other package-name arguments ([#1718](https://github.com/pypa/pipx/issues/1718))
+
+
+## [1.10.0](https://github.com/pypa/pipx/tree/1.10.0) - 2026-03-18
+
+### Features
+
+- Add `--with` flag to `pipx run` to allow injecting dependencies ([#1607](https://github.com/pypa/pipx/issues/1607))
+- add more specific directions in the logs towards a resolution if you have a space in the PIX_HOME path ([#1634](https://github.com/pypa/pipx/issues/1634))
+
+### Bugfixes
+
+- Fixed upgrade command failing when package name includes extras (e.g., `pipx upgrade "coverage[toml]"`). ([#925](https://github.com/pypa/pipx/issues/925))
+- Fix run command with bash substitution (e.g. `pipx run <(pbpaste)`) ([#1293](https://github.com/pypa/pipx/issues/1293))
+- Allow `pipx runpip` to split single string arguments. ([#1520](https://github.com/pypa/pipx/issues/1520))
+- Fix handling of shared libraries when the original Python interpreter is removed on Windows by detecting stale venv references and recreating the shared libraries with the current Python. ([#1723](https://github.com/pypa/pipx/issues/1723))
+
+### Misc
+
+- [#1638](https://github.com/pypa/pipx/issues/1638), [#1731](https://github.com/pypa/pipx/issues/1731)
+
+
 ## [1.9.0](https://github.com/pypa/pipx/tree/1.9.0) - 2026-03-17
 
 ### Features

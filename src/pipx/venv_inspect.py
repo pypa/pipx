@@ -1,8 +1,9 @@
 import json
 import logging
 import textwrap
+from collections.abc import Collection
 from pathlib import Path
-from typing import Collection, Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import NamedTuple
 
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
@@ -20,25 +21,25 @@ logger = logging.getLogger(__name__)
 
 class VenvInspectInformation(NamedTuple):
     distributions: Collection[metadata.Distribution]
-    env: Dict[str, str]
+    env: dict[str, str]
     bin_path: Path
     man_path: Path
 
 
 class VenvMetadata(NamedTuple):
-    apps: List[str]
-    app_paths: List[Path]
-    apps_of_dependencies: List[str]
-    app_paths_of_dependencies: Dict[str, List[Path]]
-    man_pages: List[str]
-    man_paths: List[Path]
-    man_pages_of_dependencies: List[str]
-    man_paths_of_dependencies: Dict[str, List[Path]]
+    apps: list[str]
+    app_paths: list[Path]
+    apps_of_dependencies: list[str]
+    app_paths_of_dependencies: dict[str, list[Path]]
+    man_pages: list[str]
+    man_paths: list[Path]
+    man_pages_of_dependencies: list[str]
+    man_paths_of_dependencies: dict[str, list[Path]]
     package_version: str
     python_version: str
 
 
-def get_dist(package: str, distributions: Collection[metadata.Distribution]) -> Optional[metadata.Distribution]:
+def get_dist(package: str, distributions: Collection[metadata.Distribution]) -> metadata.Distribution | None:
     """Find matching distribution in the canonicalized sense."""
     for dist in distributions:
         if canonicalize_name(dist.metadata["name"]) == canonicalize_name(package):
@@ -46,7 +47,7 @@ def get_dist(package: str, distributions: Collection[metadata.Distribution]) -> 
     return None
 
 
-def get_package_dependencies(dist: metadata.Distribution, extras: Set[str], env: Dict[str, str]) -> List[Requirement]:
+def get_package_dependencies(dist: metadata.Distribution, extras: set[str], env: dict[str, str]) -> list[Requirement]:
     eval_env = env.copy()
     # Add an empty extra to enable evaluation of non-extra markers
     if not extras:
@@ -120,7 +121,7 @@ def get_resources_from_inst_files(dist: metadata.Distribution, bin_path: Path, m
     return app_names, man_names
 
 
-def get_resources(dist: metadata.Distribution, bin_path: Path, man_path: Path) -> Tuple[List[str], List[str]]:
+def get_resources(dist: metadata.Distribution, bin_path: Path, man_path: Path) -> tuple[list[str], list[str]]:
     app_names = set()
     man_names = set()
     app_names_ep = get_apps_from_entry_points(dist, bin_path)
@@ -135,10 +136,10 @@ def _dfs_package_resources(
     dist: metadata.Distribution,
     package_req: Requirement,
     venv_inspect_info: VenvInspectInformation,
-    app_paths_of_dependencies: Dict[str, List[Path]],
-    man_paths_of_dependencies: Dict[str, List[Path]],
-    dep_visited: Optional[Dict[str, bool]] = None,
-) -> Tuple[Dict[str, List[Path]], Dict[str, List[Path]]]:
+    app_paths_of_dependencies: dict[str, list[Path]],
+    man_paths_of_dependencies: dict[str, list[Path]],
+    dep_visited: dict[str, bool] | None = None,
+) -> tuple[dict[str, list[Path]], dict[str, list[Path]]]:
     if dep_visited is None:
         # Initialize: we have already visited root
         dep_visited = {canonicalize_name(package_req.name): True}
@@ -171,7 +172,7 @@ def _dfs_package_resources(
     return app_paths_of_dependencies, man_paths_of_dependencies
 
 
-def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
+def _windows_extra_app_paths(app_paths: list[Path]) -> list[Path]:
     # In Windows, editable package have additional files starting with the
     #   same name that are required to be in the same dir to run the app
     # Add "*-script.py", "*.exe.manifest" only to app_paths to make
@@ -187,7 +188,7 @@ def _windows_extra_app_paths(app_paths: List[Path]) -> List[Path]:
     return app_paths_output
 
 
-def fetch_info_in_venv(venv_python_path: Path) -> Tuple[List[str], Dict[str, str], str]:
+def fetch_info_in_venv(venv_python_path: Path) -> tuple[list[str], dict[str, str], str]:
     command_str = textwrap.dedent(
         """
         import json
@@ -249,15 +250,15 @@ def fetch_info_in_venv(venv_python_path: Path) -> Tuple[List[str], Dict[str, str
 
 def inspect_venv(
     root_package_name: str,
-    root_package_extras: Set[str],
+    root_package_extras: set[str],
     venv_bin_path: Path,
     venv_python_path: Path,
     venv_man_path: Path,
 ) -> VenvMetadata:
-    app_paths_of_dependencies: Dict[str, List[Path]] = {}
-    apps_of_dependencies: List[str] = []
-    man_paths_of_dependencies: Dict[str, List[Path]] = {}
-    man_pages_of_dependencies: List[str] = []
+    app_paths_of_dependencies: dict[str, list[Path]] = {}
+    apps_of_dependencies: list[str] = []
+    man_paths_of_dependencies: dict[str, list[Path]] = {}
+    man_pages_of_dependencies: list[str] = []
 
     root_req = Requirement(root_package_name)
     root_req.extras = root_package_extras

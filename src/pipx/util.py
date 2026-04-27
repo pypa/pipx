@@ -7,18 +7,13 @@ import string
 import subprocess
 import sys
 import textwrap
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from re import Pattern
 from typing import (
     Any,
-    Dict,
-    List,
     NoReturn,
-    Optional,
-    Pattern,
-    Sequence,
-    Tuple,
-    Union,
 )
 
 from pipx import paths
@@ -100,7 +95,7 @@ def get_pypackage_bin_path(binary_name: str) -> Path:
     )
 
 
-def run_pypackage_bin(bin_path: Path, args: List[str]) -> NoReturn:
+def run_pypackage_bin(bin_path: Path, args: list[str]) -> NoReturn:
     exec_app(
         [str(bin_path.resolve())] + args,
         extra_python_paths=[".", str(bin_path.parent.parent)],
@@ -109,7 +104,7 @@ def run_pypackage_bin(bin_path: Path, args: List[str]) -> NoReturn:
 
 if WINDOWS:
 
-    def get_venv_paths(root: Path) -> Tuple[Path, Path, Path]:
+    def get_venv_paths(root: Path) -> tuple[Path, Path, Path]:
         # Make sure to use the real root path. This matters especially on Windows when using the packaged app
         # (Microsoft Store) version of Python, which uses path redirection for sandboxing.
         # See https://github.com/pypa/pipx/issues/1164
@@ -121,7 +116,7 @@ if WINDOWS:
 
 else:
 
-    def get_venv_paths(root: Path) -> Tuple[Path, Path, Path]:
+    def get_venv_paths(root: Path) -> tuple[Path, Path, Path]:
         bin_path = root / "bin"
         python_path = bin_path / "python"
         man_path = root / "share" / "man"
@@ -138,7 +133,7 @@ def get_site_packages(python: Path) -> Path:
     return path
 
 
-def _fix_subprocess_env(env: Dict[str, str]) -> Dict[str, str]:
+def _fix_subprocess_env(env: dict[str, str]) -> dict[str, str]:
     # Remove PYTHONPATH because some platforms (macOS with Homebrew) add pipx
     #   directories to it, and can make it appear to venvs as though pipx
     #   dependencies are in the venv path (#233)
@@ -152,19 +147,21 @@ def _fix_subprocess_env(env: Dict[str, str]) -> Dict[str, str]:
     # Make sure that Python writes output in UTF-8
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONLEGACYWINDOWSSTDIO"] = "utf-8"
-    # Make sure we install package to venv, not userbase dir
+    # Make sure we install packages to venv, not to userbase or a custom target dir
     env["PIP_USER"] = "0"
+    env.pop("PIP_TARGET", None)
+    env.setdefault("PIP_KEYRING_PROVIDER", "subprocess")
     return env
 
 
 def run_subprocess(
-    cmd: Sequence[Union[str, Path]],
+    cmd: Sequence[str | Path],
     capture_stdout: bool = True,
     capture_stderr: bool = True,
-    log_cmd_str: Optional[str] = None,
+    log_cmd_str: str | None = None,
     log_stdout: bool = True,
     log_stderr: bool = True,
-    run_dir: Optional[str] = None,
+    run_dir: str | None = None,
 ) -> "subprocess.CompletedProcess[str]":
     """Run arbitrary command as subprocess, capturing stderr and stout"""
     env = dict(os.environ)
@@ -212,7 +209,7 @@ def subprocess_post_check(completed_process: "subprocess.CompletedProcess[str]",
             logger.info(f"{' '.join(completed_process.args)!r} failed")
 
 
-def dedup_ordered(input_list: List[Tuple[str, Any]]) -> List[Tuple[str, Any]]:
+def dedup_ordered(input_list: list[tuple[str, Any]]) -> list[tuple[str, Any]]:
     output_list = []
     seen = set()
     for x in input_list:
@@ -249,8 +246,8 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str) -> None:
     """
     max_relevant_errors = 10
 
-    failed_build_stdout: List[str] = []
-    last_collecting_dep: Optional[str] = None
+    failed_build_stdout: list[str] = []
+    last_collecting_dep: str | None = None
     # for any useful information in stdout, `pip install` must be run without
     #   the -q option
     for line in pip_stdout.split("\n"):
@@ -350,9 +347,9 @@ def subprocess_post_check_handle_pip_error(
 
 
 def exec_app(
-    cmd: Sequence[Union[str, Path]],
-    env: Optional[Dict[str, str]] = None,
-    extra_python_paths: Optional[List[str]] = None,
+    cmd: Sequence[str | Path],
+    env: dict[str, str] | None = None,
+    extra_python_paths: list[str] | None = None,
 ) -> NoReturn:
     """Run command, do not return
 

@@ -9,7 +9,6 @@ import time
 from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
-from typing import Dict, List, Optional, Set, Tuple
 
 import userpath  # type: ignore[import-not-found]
 from packaging.utils import canonicalize_name
@@ -54,7 +53,7 @@ class VenvProblems:
 def expose_resources_globally(
     resource_type: str,
     local_resource_dir: Path,
-    paths: List[Path],
+    paths: list[Path],
     *,
     force: bool,
     suffix: str = "",
@@ -79,7 +78,7 @@ def expose_resources_globally(
             )
 
 
-_can_symlink_cache: Dict[Path, bool] = {}
+_can_symlink_cache: dict[Path, bool] = {}
 
 
 def can_symlink(local_resource_dir: Path) -> bool:
@@ -179,7 +178,7 @@ def _symlink_package_resource(
         )
 
 
-def venv_health_check(venv: Venv, package_name: Optional[str] = None) -> Tuple[VenvProblems, str]:
+def venv_health_check(venv: Venv, package_name: str | None = None) -> tuple[VenvProblems, str]:
     venv_dir = venv.root
     python_path = venv.python_path.resolve()
 
@@ -212,10 +211,10 @@ def venv_health_check(venv: Venv, package_name: Optional[str] = None) -> Tuple[V
 def get_venv_summary(
     venv_dir: Path,
     *,
-    package_name: Optional[str] = None,
+    package_name: str | None = None,
     new_install: bool = False,
     include_injected: bool = False,
-) -> Tuple[str, VenvProblems]:
+) -> tuple[str, VenvProblems]:
     venv = Venv(venv_dir)
 
     if package_name is None:
@@ -280,8 +279,8 @@ def get_venv_summary(
 def get_exposed_paths_for_package(
     venv_resource_path: Path,
     local_resource_dir: Path,
-    package_resource_names: Optional[List[str]] = None,
-) -> Set[Path]:
+    package_resource_names: list[str] | None = None,
+) -> set[Path]:
     # package_binary_names is used only if local_bin_path cannot use symlinks.
     # It is necessary for non-symlink systems to return valid app_paths.
     if package_resource_names is None:
@@ -315,18 +314,14 @@ def get_exposed_paths_for_package(
 def get_exposed_man_paths_for_package(
     venv_man_path: Path,
     local_man_dir: Path,
-    package_man_pages: Optional[List[str]] = None,
-) -> Set[Path]:
+    package_man_pages: list[str] | None = None,
+) -> set[Path]:
     man_section = venv_man_path.name
     prefix = man_section + os.sep
     return get_exposed_paths_for_package(
         venv_man_path,
         local_man_dir,
-        [
-            (name[len(prefix) :] if name.startswith(prefix) else name)
-            for name in package_man_pages or []
-            if name.startswith(prefix)
-        ],
+        [name.removeprefix(prefix) for name in package_man_pages or [] if name.startswith(prefix)],
     )
 
 
@@ -336,11 +331,11 @@ def _get_list_output(
     package_version: str,
     package_name: str,
     new_install: bool,
-    exposed_binary_names: List[str],
-    unavailable_binary_names: List[str],
-    exposed_man_pages: List[str],
-    unavailable_man_pages: List[str],
-    injected_packages: Optional[Dict[str, PackageInfo]] = None,
+    exposed_binary_names: list[str],
+    unavailable_binary_names: list[str],
+    exposed_man_pages: list[str],
+    unavailable_man_pages: list[str],
+    injected_packages: dict[str, PackageInfo] | None = None,
     suffix: str = "",
 ) -> str:
     output = []
@@ -369,7 +364,7 @@ def _get_list_output(
     return "\n".join(output)
 
 
-def package_name_from_spec(package_spec: str, python: str, *, pip_args: List[str], verbose: bool) -> str:
+def package_name_from_spec(package_spec: str, python: str, *, pip_args: list[str], verbose: bool) -> str:
     start_time = time.time()
 
     # shortcut if valid PyPI name
@@ -467,9 +462,11 @@ def run_post_install_actions(
             expose_resources_globally("man", local_man_dir, man_paths, force=force)
 
     package_summary, _ = get_venv_summary(venv_dir, package_name=package_name, new_install=True)
-    print(package_summary)
-    warn_if_not_on_path(local_bin_dir)
-    print(f"done! {stars}", file=sys.stderr)
+    pipx_logger = logging.getLogger("pipx")
+    if not pipx_logger.handlers or pipx_logger.handlers[0].level <= logging.WARNING:
+        print(package_summary)
+        warn_if_not_on_path(local_bin_dir)
+        print(f"done! {stars}", file=sys.stderr)
 
 
 def warn_if_not_on_path(local_bin_dir: Path) -> None:
