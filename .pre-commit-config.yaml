@@ -29,13 +29,13 @@ repos:
     hooks:
       - id: pyproject-fmt
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.11
+    rev: v0.15.12
     hooks:
       - id: ruff-check
         args: ["--fix", "--unsafe-fixes", "--show-fixes", "--exit-non-zero-on-fix"]
       - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.20.1
+    rev: v1.20.2
     hooks:
       - id: mypy
         args: ['--warn-unused-ignores', '--strict-equality', '--no-implicit-optional', '--check-untyped-defs']
