@@ -149,11 +149,14 @@ def test_resolve_python_absolute_path() -> None:
     assert Path(result).resolve() == Path(sys.executable).resolve()
 
 
-@pytest.mark.skipif(WINDOWS, reason="pythonX.Y is not typically on PATH on Windows")
 def test_resolve_python_executable_name() -> None:
-    major = sys.version_info.major
-    minor = sys.version_info.minor
-    name = f"python{major}.{minor}"
+    candidates = [
+        f"python{sys.version_info.major}.{sys.version_info.minor}",
+        f"python{sys.version_info.major}",
+        "python",
+    ]
+    name = next((c for c in candidates if shutil.which(c)), None)
+    assert name is not None, "no python executable on PATH"
     result = _resolve_python(name)
     assert Path(result).is_absolute()
     assert Path(result).is_file()
