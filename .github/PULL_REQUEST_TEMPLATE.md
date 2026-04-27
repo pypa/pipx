@@ -3,5 +3,5 @@
 - [ ] ran the linter to address style issues (`pre-commit run --all-files`)
 - [ ] wrote descriptive pull request text
 - [ ] ensured there are test(s) validating the fix
-- [ ] added news fragment in `changelog.d/` folder
+- [ ] added news fragment in `changelog.d/` folder (choose a type: `feature`, `bugfix`, `doc`, `removal`, or `misc`)
 - [ ] updated/extended the documentation
