@@ -175,8 +175,13 @@ def run_subprocess(
     # windows cannot take Path objects, only strings
     cmd_str_list = [str(c) for c in cmd]
 
-    # TODO: Switch to using `-P` / PYTHONSAFEPATH instead of running in
-    # separate directory in Python 3.11
+    # Set PYTHONSAFEPATH to prevent adding CWD to sys.path in subprocess Python commands
+    # This prevents local files from shadowing standard library modules (security issue #1575)
+    # Supported in Python 3.11+; for earlier versions, the environment variable is ignored
+    # but those versions are less commonly used and the risk is lower
+    if len(cmd_str_list) > 0 and "python" in Path(cmd_str_list[0]).name.lower():
+        env.setdefault("PYTHONSAFEPATH", "1")
+
     completed_process = subprocess.run(
         cmd_str_list,
         env=env,
