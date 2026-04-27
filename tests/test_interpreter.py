@@ -1,6 +1,7 @@
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -12,7 +13,7 @@ from pipx.constants import WINDOWS
 from pipx.interpreter import (
     InterpreterResolutionError,
     _find_default_windows_python,
-    _get_absolute_python_interpreter,
+    _resolve_python,
     find_python_interpreter,
 )
 from pipx.util import PipxError
@@ -143,14 +144,48 @@ def test_windows_python_no_venv_store_python(monkeypatch):
     assert _find_default_windows_python() == "WindowsApps"
 
 
-def test_bad_env_python(monkeypatch):
-    with pytest.raises(PipxError):
-        _get_absolute_python_interpreter("bad_python")
+def test_resolve_python_absolute_path() -> None:
+    result = _resolve_python(sys.executable)
+    assert Path(result).resolve() == Path(sys.executable).resolve()
 
 
-def test_good_env_python(monkeypatch, capsys):
-    good_exec = _get_absolute_python_interpreter(sys.executable)
-    assert good_exec == sys.executable
+def test_resolve_python_executable_name() -> None:
+    candidates = [
+        f"python{sys.version_info.major}.{sys.version_info.minor}",
+        f"python{sys.version_info.major}",
+        "python",
+    ]
+    name = next((c for c in candidates if shutil.which(c)), None)
+    assert name is not None, "no python executable on PATH"
+    result = _resolve_python(name)
+    assert Path(result).is_absolute()
+    assert Path(result).is_file()
+
+
+@pytest.mark.skipif(WINDOWS, reason="Unix command resolution")
+def test_resolve_python_bare_version() -> None:
+    major = sys.version_info.major
+    minor = sys.version_info.minor
+    result = _resolve_python(f"{major}.{minor}")
+    assert Path(result).is_absolute()
+    assert Path(result).is_file()
+
+
+def test_resolve_python_relative_path_resolves_to_absolute(tmp_path: Path) -> None:
+    fake_python = tmp_path / "mypython"
+    fake_python.touch(mode=0o755)
+    result = _resolve_python(str(fake_python))
+    assert Path(result).is_absolute()
+
+
+def test_resolve_python_invalid_raises() -> None:
+    with pytest.raises(InterpreterResolutionError, match="PIPX_DEFAULT_PYTHON"):
+        _resolve_python("no_such_python_99.99")
+
+
+def test_resolve_python_invalid_version_raises() -> None:
+    with pytest.raises(InterpreterResolutionError, match="PIPX_DEFAULT_PYTHON"):
+        _resolve_python("99.99")
 
 
 def test_find_python_interpreter_by_path(monkeypatch):
