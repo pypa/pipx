@@ -4,7 +4,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 from packaging import version
 
@@ -50,7 +49,7 @@ class InterpreterResolutionError(PipxError):
         super().__init__(message, wrap_message)
 
 
-def find_unix_command_python(python_version: str) -> Optional[str]:
+def find_unix_command_python(python_version: str) -> str | None:
     try:
         parsed_python_version = version.parse(python_version)
     except version.InvalidVersion:
@@ -119,7 +118,7 @@ def find_python_interpreter(python_version: str, fetch_missing_python: bool = Fa
 # so we try to locate the system Python and use that instead.
 
 
-def find_py_launcher_python(python_version: Optional[str] = None) -> Optional[str]:
+def find_py_launcher_python(python_version: str | None = None) -> str | None:
     py = shutil.which("py")
     if py and python_version:
         python_semver = python_version

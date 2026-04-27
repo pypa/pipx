@@ -128,7 +128,7 @@ Similarities:
 
 pae advantages:
 
-- Supports all versions of Python from 2.7 upward. pipx requires ≥3.9.
+- Supports all versions of Python from 2.7 upward. pipx requires ≥3.10.
 - Fewer dependencies. (See the detailed comparison for more information.)
 - Easier to have multiple versions of a single program and/or use different Python versions for a single program.
 - Somewhat more convenient for running arbitrary command-line programs in virtual environments, installing multiple

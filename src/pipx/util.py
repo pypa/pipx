@@ -14,8 +14,6 @@ from re import Pattern
 from typing import (
     Any,
     NoReturn,
-    Optional,
-    Union,
 )
 
 from pipx import paths
@@ -157,13 +155,13 @@ def _fix_subprocess_env(env: dict[str, str]) -> dict[str, str]:
 
 
 def run_subprocess(
-    cmd: Sequence[Union[str, Path]],
+    cmd: Sequence[str | Path],
     capture_stdout: bool = True,
     capture_stderr: bool = True,
-    log_cmd_str: Optional[str] = None,
+    log_cmd_str: str | None = None,
     log_stdout: bool = True,
     log_stderr: bool = True,
-    run_dir: Optional[str] = None,
+    run_dir: str | None = None,
 ) -> "subprocess.CompletedProcess[str]":
     """Run arbitrary command as subprocess, capturing stderr and stout"""
     env = dict(os.environ)
@@ -249,7 +247,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str) -> None:
     max_relevant_errors = 10
 
     failed_build_stdout: list[str] = []
-    last_collecting_dep: Optional[str] = None
+    last_collecting_dep: str | None = None
     # for any useful information in stdout, `pip install` must be run without
     #   the -q option
     for line in pip_stdout.split("\n"):
@@ -349,9 +347,9 @@ def subprocess_post_check_handle_pip_error(
 
 
 def exec_app(
-    cmd: Sequence[Union[str, Path]],
-    env: Optional[dict[str, str]] = None,
-    extra_python_paths: Optional[list[str]] = None,
+    cmd: Sequence[str | Path],
+    env: dict[str, str] | None = None,
+    extra_python_paths: list[str] | None = None,
 ) -> NoReturn:
     """Run command, do not return
 

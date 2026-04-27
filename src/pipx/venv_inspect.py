@@ -3,7 +3,7 @@ import logging
 import textwrap
 from collections.abc import Collection
 from pathlib import Path
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
@@ -39,7 +39,7 @@ class VenvMetadata(NamedTuple):
     python_version: str
 
 
-def get_dist(package: str, distributions: Collection[metadata.Distribution]) -> Optional[metadata.Distribution]:
+def get_dist(package: str, distributions: Collection[metadata.Distribution]) -> metadata.Distribution | None:
     """Find matching distribution in the canonicalized sense."""
     for dist in distributions:
         if canonicalize_name(dist.metadata["name"]) == canonicalize_name(package):
@@ -138,7 +138,7 @@ def _dfs_package_resources(
     venv_inspect_info: VenvInspectInformation,
     app_paths_of_dependencies: dict[str, list[Path]],
     man_paths_of_dependencies: dict[str, list[Path]],
-    dep_visited: Optional[dict[str, bool]] = None,
+    dep_visited: dict[str, bool] | None = None,
 ) -> tuple[dict[str, list[Path]], dict[str, list[Path]]]:
     if dep_visited is None:
         # Initialize: we have already visited root

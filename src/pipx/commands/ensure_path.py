@@ -2,7 +2,6 @@ import logging
 import site
 import sys
 from pathlib import Path
-from typing import Optional
 
 import userpath  # type: ignore[import-not-found]
 
@@ -14,7 +13,7 @@ from pipx.util import pipx_wrap
 logger = logging.getLogger(__name__)
 
 
-def get_pipx_user_bin_path() -> Optional[Path]:
+def get_pipx_user_bin_path() -> Path | None:
     """Returns None if pipx is not installed using `pip --user`
     Otherwise returns parent dir of pipx binary
     """

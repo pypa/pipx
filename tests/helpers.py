@@ -4,7 +4,7 @@ import re
 import sys
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -107,7 +107,7 @@ def _mock_legacy_package_info(modern_package_info: dict[str, Any], metadata_vers
     return mock_package_info
 
 
-def mock_legacy_venv(venv_name: str, metadata_version: Optional[str] = None) -> None:
+def mock_legacy_venv(venv_name: str, metadata_version: str | None = None) -> None:
     """Convert a venv installed with the most recent pipx to look like
     one with a previous metadata version.
     metadata_version=None refers to no metadata file (pipx pre-0.15.0.0)

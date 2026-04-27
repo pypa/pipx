@@ -11,7 +11,6 @@ import re
 import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
@@ -27,9 +26,9 @@ ARCHIVE_EXTENSIONS = (".whl", ".tar.gz", ".zip")
 
 @dataclass(frozen=True)
 class ParsedPackage:
-    valid_pep508: Optional[Requirement]
-    valid_url: Optional[str]
-    valid_local_path: Optional[str]
+    valid_pep508: Requirement | None
+    valid_url: str | None
+    valid_local_path: str | None
 
 
 def _split_path_extras(package_spec: str) -> tuple[str, str]:
@@ -216,7 +215,7 @@ def get_extras(package_spec: str) -> set[str]:
     return set()
 
 
-def valid_pypi_name(package_spec: str) -> Optional[str]:
+def valid_pypi_name(package_spec: str) -> str | None:
     try:
         package_req = Requirement(package_spec)
     except InvalidRequirement:

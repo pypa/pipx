@@ -8,7 +8,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 from shutil import which
-from typing import NoReturn, Optional, Union
+from typing import NoReturn
 
 from packaging.requirements import InvalidRequirement, Requirement
 
@@ -43,7 +43,7 @@ Available executable scripts:
     {app_lines}"""
 
 
-def maybe_script_content(app: str, is_path: bool) -> Optional[Union[str, Path]]:
+def maybe_script_content(app: str, is_path: bool) -> str | Path | None:
     """If the app is a script, return its content.
     Return None if it should be treated as a package name."""
 
@@ -76,7 +76,7 @@ def maybe_script_content(app: str, is_path: bool) -> Optional[Union[str, Path]]:
 
 
 def run_script(
-    content: Union[str, Path],
+    content: str | Path,
     app_args: list[str],
     python: str,
     pip_args: list[str],
@@ -326,7 +326,7 @@ def _is_temporary_venv_expired(venv_dir: Path) -> bool:
     return age > expiration_threshold_sec or (venv_dir / VENV_EXPIRED_FILENAME).exists()
 
 
-def _prepare_venv_cache(venv: Venv, bin_path: Optional[Path], use_cache: bool) -> None:
+def _prepare_venv_cache(venv: Venv, bin_path: Path | None, use_cache: bool) -> None:
     venv_dir = venv.root
     if not use_cache and (bin_path is None or bin_path.exists()):
         logger.info(f"Removing cached venv {venv_dir!s}")
@@ -355,7 +355,7 @@ def _http_get_request(url: str) -> str:
 INLINE_SCRIPT_METADATA = re.compile(r"(?m)^# /// (?P<type>[a-zA-Z0-9-]+)$\s(?P<content>(^#(| .*)$\s)+)^# ///$")
 
 
-def _get_requirements_from_script(content: Union[str, Path]) -> Optional[list[str]]:
+def _get_requirements_from_script(content: str | Path) -> list[str] | None:
     """
     Supports inline script metadata.
     """

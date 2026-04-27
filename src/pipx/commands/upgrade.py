@@ -3,7 +3,6 @@ import os
 import sys
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional
 
 from pipx import commands, paths
 from pipx.colors import bold, red
@@ -114,8 +113,8 @@ def _upgrade_venv(
     upgrading_all: bool,
     force: bool,
     install: bool = False,
-    venv_args: Optional[list[str]] = None,
-    python: Optional[str] = None,
+    venv_args: list[str] | None = None,
+    python: str | None = None,
     python_flag_passed: bool = False,
 ) -> int:
     """Return number of packages with changed versions."""
@@ -209,7 +208,7 @@ def _upgrade_venv(
 
 def upgrade(
     venv_dirs: dict[str, Path],
-    python: Optional[str],
+    python: str | None,
     pip_args: list[str],
     venv_args: list[str],
     verbose: bool,
