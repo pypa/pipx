@@ -12,8 +12,9 @@ import sys
 import textwrap
 import time
 import urllib.parse
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 import argcomplete
 import platformdirs
@@ -1005,28 +1006,6 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
     )
     parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore[attr-defined]
 
-    parser.add_argument(
-        "--quiet",
-        "-q",
-        action="count",
-        default=0,
-        help=(
-            "Give less output. May be used multiple times corresponding to the"
-            " ERROR and CRITICAL logging levels. The count maxes out at 2."
-        ),
-    )
-
-    parser.add_argument(
-        "--verbose",
-        "-v",
-        action="count",
-        default=0,
-        help=(
-            "Give more output. May be used multiple times corresponding to the"
-            " INFO, DEBUG and NOTSET logging levels. The count maxes out at 3."
-        ),
-    )
-
     subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
 
     subparsers_with_subcommands = {}
@@ -1070,7 +1049,7 @@ def delete_oldest_logs(file_list: list[Path], keep_number: int) -> None:
                 pass
 
 
-def _setup_log_file(pipx_log_dir: Optional[Path] = None) -> Path:
+def _setup_log_file(pipx_log_dir: Path | None = None) -> Path:
     max_logs = int(os.getenv("PIPX_MAX_LOGS", 10))
     pipx_log_dir = pipx_log_dir or paths.ctx.logs
     # don't use utils.mkdir, to prevent emission of log message
@@ -1152,10 +1131,10 @@ def setup(args: argparse.Namespace) -> None:
         print_version()
         sys.exit(0)
 
-    if not constants.WINDOWS and args.is_global:
+    if not constants.WINDOWS and getattr(args, "is_global", False):
         paths.ctx.make_global()
 
-    verbose = args.verbose - args.quiet
+    verbose = getattr(args, "verbose", 0) - getattr(args, "quiet", 0)
 
     setup_logging(verbose)
 

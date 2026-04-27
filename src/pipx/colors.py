@@ -1,5 +1,5 @@
 import sys
-from typing import Callable
+from collections.abc import Callable
 
 try:
     import colorama  # type: ignore[import-untyped]

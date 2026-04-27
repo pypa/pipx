@@ -4,7 +4,6 @@ import re
 import sys
 from collections.abc import Generator, Iterable
 from pathlib import Path
-from typing import Optional, Union
 
 from pipx import paths
 from pipx.colors import bold
@@ -21,7 +20,7 @@ COMMENT_RE = re.compile(r"(^|\s+)#.*$")
 
 def inject_dep(
     venv_dir: Path,
-    package_name: Optional[str],
+    package_name: str | None,
     package_spec: str,
     pip_args: list[str],
     *,
@@ -155,7 +154,7 @@ def inject(
     return EXIT_CODE_OK if all_success else EXIT_CODE_INJECT_ERROR
 
 
-def parse_requirements(filename: Union[str, os.PathLike]) -> Generator[str, None, None]:
+def parse_requirements(filename: str | os.PathLike) -> Generator[str, None, None]:
     """
     Extract package specifications from requirements file.
 

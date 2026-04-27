@@ -1,7 +1,6 @@
 import logging
 import os
 from pathlib import Path
-from typing import Optional
 
 from platformdirs import user_cache_path, user_data_path, user_log_path
 
@@ -37,7 +36,7 @@ OVERRIDE_PIPX_GLOBAL_MAN_DIR = None
 logger = logging.getLogger(__name__)
 
 
-def get_expanded_environ(env_name: str) -> Optional[Path]:
+def get_expanded_environ(env_name: str) -> Path | None:
     val = os.environ.get(env_name)
     if val is not None:
         return Path(val).expanduser().resolve()
@@ -45,19 +44,19 @@ def get_expanded_environ(env_name: str) -> Optional[Path]:
 
 
 class _PathContext:
-    _base_home: Optional[Path]
+    _base_home: Path | None
     _default_home: Path
-    _base_bin: Optional[Path]
+    _base_bin: Path | None
     _default_bin: Path
-    _base_man: Optional[Path]
+    _base_man: Path | None
     _default_man: Path
     _default_log: Path
     _default_cache: Path
     _default_trash: Path
-    _base_shared_libs: Optional[Path]
-    _fallback_home: Optional[Path]
+    _base_shared_libs: Path | None
+    _fallback_home: Path | None
     _home_exists: bool
-    log_file: Optional[Path] = None
+    log_file: Path | None = None
 
     def __init__(self):
         self.make_local()

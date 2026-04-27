@@ -2,7 +2,7 @@ import json
 import logging
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from pipx.emojis import hazard
 from pipx.util import PipxError, pipx_wrap
@@ -21,7 +21,7 @@ class JsonEncoderHandlesPath(json.JSONEncoder):
         return super().default(obj)
 
 
-def _json_decoder_object_hook(json_dict: dict[str, Any]) -> Union[dict[str, Any], Path]:
+def _json_decoder_object_hook(json_dict: dict[str, Any]) -> dict[str, Any] | Path:
     if json_dict.get("__type__") == "Path" and "__Path__" in json_dict:
         return Path(json_dict["__Path__"])
     return json_dict
@@ -29,8 +29,8 @@ def _json_decoder_object_hook(json_dict: dict[str, Any]) -> Union[dict[str, Any]
 
 @dataclass(frozen=True)
 class PackageInfo:
-    package: Optional[str]
-    package_or_url: Optional[str]
+    package: str | None
+    package_or_url: str | None
     pip_args: list[str]
     include_dependencies: bool
     include_apps: bool
@@ -79,8 +79,8 @@ class PipxMetadata:
             man_paths_of_dependencies={},
             package_version="",
         )
-        self.python_version: Optional[str] = None
-        self.source_interpreter: Optional[Path] = None
+        self.python_version: str | None = None
+        self.source_interpreter: Path | None = None
         self.venv_args: list[str] = []
         self.injected_packages: dict[str, PackageInfo] = {}
 

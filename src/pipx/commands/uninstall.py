@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from shutil import which
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -32,7 +32,7 @@ def _venv_metadata_to_package_info(
     venv_metadata: VenvMetadata,
     package_name: str,
     package_or_url: str = "",
-    pip_args: Optional[list[str]] = None,
+    pip_args: list[str] | None = None,
     include_apps: bool = True,
     include_dependencies: bool = False,
     suffix: str = "",
