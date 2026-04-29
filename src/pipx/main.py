@@ -348,6 +348,33 @@ def _cmd_list(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
 def _cmd_pin(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     return commands.pin(ctx.venv_dir, ctx.verbose, ctx.skip_list, args.injected_only)
 
+def _cmd_uninstall(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    return commands.uninstall(
+        args.name,
+        args.pip_args,
+        ctx.verbose,
+    )
+
+
+def _cmd_uninstall_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    return commands.uninstall_all(
+        ctx.venv_dir,
+        ctx.verbose,
+    )
+
+
+def _cmd_reinstall_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    return commands.reinstall_all(
+        ctx.venv_dirs,
+        ctx.verbose,
+    )
+
+
+def _cmd_environment(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    return commands.environment(
+        ctx.verbose,
+    )
+
 
 def _cmd_unpin(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     return commands.unpin(ctx.venv_dir, ctx.verbose)
@@ -926,7 +953,7 @@ def _add_uninstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
         parents=[shared_parser],
     )
     p.add_argument("package").completer = venv_completer
-    p.set_defaults(func=_dispatch_placeholder)
+    p.set_defaults(func=_cmd_uninstall)
 
 
 def _add_uninstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -936,7 +963,7 @@ def _add_uninstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
         description="Uninstall all pipx-managed packages",
         parents=[shared_parser],
     )
-    p.set_defaults(func=_dispatch_placeholder)
+    p.set_defaults(func=_cmd_uninstall_all)
 
 
 def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
@@ -980,7 +1007,7 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
     )
     add_python_options(p)
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
-    p.set_defaults(func=_dispatch_placeholder)
+    p.set_defaults(func=_cmd_reinstall_all)
 
 
 def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -1178,7 +1205,7 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
         metavar="VARIABLE",
         help="Print the value of the variable.",
     )
-    p.set_defaults(func=_dispatch_placeholder)
+    p.set_defaults(func=_cmd_environment)
 
 
 def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.ArgumentParser]]:
