@@ -353,6 +353,73 @@ def _cmd_unpin(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     return commands.unpin(ctx.venv_dir, ctx.verbose)
 
 
+def _cmd_install(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    return commands.install(
+        None,
+        None,
+        args.package_spec,
+        paths.ctx.bin_dir,
+        paths.ctx.man_dir,
+        args.python,
+        ctx.pip_args,
+        ctx.venv_args,
+        ctx.verbose,
+        force=args.force,
+        reinstall=False,
+        include_dependencies=args.include_deps,
+        preinstall_packages=args.preinstall,
+        suffix=args.suffix,
+        python_flag_passed=ctx.python_flag_passed,
+    )
+
+
+def _cmd_install_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    return commands.install_all(
+        args.spec_metadata_file,
+        paths.ctx.bin_dir,
+        paths.ctx.man_dir,
+        args.python,
+        ctx.pip_args,
+        ctx.venv_args,
+        ctx.verbose,
+        force=args.force,
+    )
+
+
+def _cmd_upgrade(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    assert ctx.venv_dirs is not None
+    return commands.upgrade(
+        ctx.venv_dirs,
+        args.python,
+        ctx.pip_args,
+        ctx.venv_args,
+        ctx.verbose,
+        include_injected=args.include_injected,
+        force=args.force,
+        install=args.install,
+        python_flag_passed=ctx.python_flag_passed,
+    )
+
+
+def _cmd_upgrade_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    return commands.upgrade_all(
+        ctx.venv_container,
+        ctx.verbose,
+        include_injected=args.include_injected,
+        skip=ctx.skip_list or [],
+        force=args.force,
+        pip_args=ctx.pip_args,
+        python_flag_passed=ctx.python_flag_passed,
+    )
+
+
+def _cmd_upgrade_shared(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    return commands.upgrade_shared(
+        ctx.verbose,
+        ctx.pip_args,
+    )
+
+
 def _dispatch_placeholder(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     raise PipxError("Dispatch placeholder reached - refactor incomplete (issue #1794).")
 
@@ -648,7 +715,7 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         ),
     )
     add_pip_venv_args(p)
-    p.set_defaults(func=_dispatch_placeholder)
+    p.set_defaults(func=_cmd_install)
 
 
 def _add_install_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -668,7 +735,7 @@ def _add_install_all(subparsers: argparse._SubParsersAction, shared_parser: argp
     )
     add_python_options(p)
     add_pip_venv_args(p)
-    p.set_defaults(func=_dispatch_placeholder)
+    p.set_defaults(func=_cmd_install_all)
 
 
 def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
@@ -811,7 +878,7 @@ def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argpa
         help="Install package spec if missing",
     )
     add_python_options(p)
-    p.set_defaults(func=_dispatch_placeholder)
+    p.set_defaults(func=_cmd_upgrade)
 
 
 def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -834,7 +901,7 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argp
         help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
     add_pip_venv_args(p)
-    p.set_defaults(func=_dispatch_placeholder)
+    p.set_defaults(func=_cmd_upgrade_all)
 
 
 def _add_upgrade_shared(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -848,7 +915,7 @@ def _add_upgrade_shared(subparsers: argparse._SubParsersAction, shared_parser: a
         "--pip-args",
         help="Arbitrary pip arguments to pass directly to pip install/upgrade commands",
     )
-    p.set_defaults(func=_dispatch_placeholder)
+    p.set_defaults(func=_cmd_upgrade_shared)
 
 
 def _add_uninstall(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
