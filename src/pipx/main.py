@@ -311,6 +311,8 @@ def _cmd_reinstall(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
 
 
 def _cmd_inject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    if not ctx.venv_dir:
+        raise PipxError("Developer error: venv_dir is not defined.")
     return commands.inject(
         ctx.venv_dir,
         args.dependencies,
@@ -325,6 +327,8 @@ def _cmd_inject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
 
 
 def _cmd_uninject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    if not ctx.venv_dir:
+        raise PipxError("Developer error: venv_dir is not defined.")
     return commands.uninject(
         ctx.venv_dir,
         args.dependencies,
@@ -346,37 +350,49 @@ def _cmd_list(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
 
 
 def _cmd_pin(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    if not ctx.venv_dir:
+        raise PipxError("Developer error: venv_dir is not defined.")
+    if ctx.skip_list is None:
+        raise PipxError("Developer error: skip_list is not defined.")
     return commands.pin(ctx.venv_dir, ctx.verbose, ctx.skip_list, args.injected_only)
 
+
 def _cmd_uninstall(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    return commands.uninstall(
-        args.name,
-        args.pip_args,
-        ctx.verbose,
-    )
+    if not ctx.venv_dir:
+        raise PipxError("Developer error: venv_dir is not defined.")
+    return commands.uninstall(ctx.venv_dir, paths.ctx.bin_dir, paths.ctx.man_dir, ctx.verbose)
 
 
 def _cmd_uninstall_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     return commands.uninstall_all(
-        ctx.venv_dir,
+        ctx.venv_container,
+        paths.ctx.bin_dir,
+        paths.ctx.man_dir,
         ctx.verbose,
     )
 
 
 def _cmd_reinstall_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    if ctx.skip_list is None:
+        raise PipxError("Developer error: skip_list is not defined.")
     return commands.reinstall_all(
-        ctx.venv_dirs,
+        ctx.venv_container,
+        paths.ctx.bin_dir,
+        paths.ctx.man_dir,
+        args.python,
         ctx.verbose,
+        skip=ctx.skip_list,
+        python_flag_passed=ctx.python_flag_passed,
     )
 
 
 def _cmd_environment(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    return commands.environment(
-        ctx.verbose,
-    )
+    return commands.environment(value=args.value)
 
 
 def _cmd_unpin(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    if not ctx.venv_dir:
+        raise PipxError("Developer error: venv_dir is not defined.")
     return commands.unpin(ctx.venv_dir, ctx.verbose)
 
 
