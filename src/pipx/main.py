@@ -463,11 +463,7 @@ def _cmd_upgrade_shared(args: argparse.Namespace, ctx: DispatchContext) -> ExitC
     )
 
 
-def _dispatch_placeholder(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    raise PipxError("Dispatch placeholder reached - refactor incomplete (issue #1794).")
-
-
-def run_pipx_command(args: argparse.Namespace, subparsers: dict[str, argparse.ArgumentParser]) -> ExitCode:  # noqa: C901
+def run_pipx_command(args: argparse.Namespace) -> ExitCode:
     verbose = args.verbose if "verbose" in args else False
 
     pip_args = get_pip_args(vars(args))
@@ -521,169 +517,17 @@ def run_pipx_command(args: argparse.Namespace, subparsers: dict[str, argparse.Ar
             )
             return EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND
 
-    if args.command == "run":
-        commands.run(
-            args.app_with_args[0],
-            args.spec,
-            args.with_,
-            args.path,
-            args.app_with_args[1:],
-            args.python,
-            pip_args,
-            venv_args,
-            args.pypackages,
-            verbose,
-            not args.no_cache,
-        )
-        # We should never reach here because run() is NoReturn.
-        return ExitCode(1)  # type: ignore[unreachable]
-    elif args.command == "install":
-        return commands.install(
-            None,
-            None,
-            args.package_spec,
-            paths.ctx.bin_dir,
-            paths.ctx.man_dir,
-            args.python,
-            pip_args,
-            venv_args,
-            verbose,
-            force=args.force,
-            reinstall=False,
-            include_dependencies=args.include_deps,
-            preinstall_packages=args.preinstall,
-            suffix=args.suffix,
-            python_flag_passed=python_flag_passed,
-        )
-    elif args.command == "install-all":
-        return commands.install_all(
-            args.spec_metadata_file,
-            paths.ctx.bin_dir,
-            paths.ctx.man_dir,
-            args.python,
-            pip_args,
-            venv_args,
-            verbose,
-            force=args.force,
-        )
-    elif args.command == "inject":
-        return commands.inject(
-            venv_dir,
-            args.dependencies,
-            args.requirements,
-            pip_args,
-            verbose=verbose,
-            include_apps=args.include_apps,
-            include_dependencies=args.include_deps,
-            force=args.force,
-            suffix=args.with_suffix,
-        )
-    elif args.command == "uninject":
-        return commands.uninject(
-            venv_dir,
-            args.dependencies,
-            local_bin_dir=paths.ctx.bin_dir,
-            local_man_dir=paths.ctx.man_dir,
-            leave_deps=args.leave_deps,
-            verbose=verbose,
-        )
-    elif args.command == "upgrade":
-        return commands.upgrade(
-            venv_dirs,
-            args.python,
-            pip_args,
-            venv_args,
-            verbose,
-            include_injected=args.include_injected,
-            force=args.force,
-            install=args.install,
-            python_flag_passed=python_flag_passed,
-        )
-    elif args.command == "upgrade-all":
-        return commands.upgrade_all(
-            venv_container,
-            verbose,
-            include_injected=args.include_injected,
-            skip=skip_list,
-            force=args.force,
-            pip_args=pip_args,
-            python_flag_passed=python_flag_passed,
-        )
-    elif args.command == "upgrade-shared":
-        return commands.upgrade_shared(
-            verbose,
-            pip_args,
-        )
-    elif args.command == "list":
-        return commands.list_packages(
-            venv_container,
-            args.include_injected,
-            args.json,
-            args.short,
-            args.pinned,
-        )
-    elif args.command == "interpreter":
-        if args.interpreter_command == "list":
-            return commands.list_interpreters(venv_container)
-        elif args.interpreter_command == "prune":
-            return commands.prune_interpreters(venv_container)
-        elif args.interpreter_command == "upgrade":
-            return commands.upgrade_interpreters(venv_container, verbose)
-        elif args.interpreter_command is None:
-            subparsers["interpreter"].print_help()
-            return EXIT_CODE_OK
-        else:
-            raise PipxError(f"Unknown interpreter command {args.interpreter_command}")
-    elif args.command == "pin":
-        return commands.pin(venv_dir, verbose, skip_list, args.injected_only)
-    elif args.command == "unpin":
-        return commands.unpin(venv_dir, verbose)
-    elif args.command == "uninstall":
-        return commands.uninstall(venv_dir, paths.ctx.bin_dir, paths.ctx.man_dir, verbose)
-    elif args.command == "uninstall-all":
-        return commands.uninstall_all(
-            venv_container,
-            paths.ctx.bin_dir,
-            paths.ctx.man_dir,
-            verbose,
-        )
-    elif args.command == "reinstall":
-        return commands.reinstall(
-            venv_dir=venv_dir,
-            local_bin_dir=paths.ctx.bin_dir,
-            local_man_dir=paths.ctx.man_dir,
-            python=args.python,
-            verbose=verbose,
-            python_flag_passed=python_flag_passed,
-        )
-    elif args.command == "reinstall-all":
-        return commands.reinstall_all(
-            venv_container,
-            paths.ctx.bin_dir,
-            paths.ctx.man_dir,
-            args.python,
-            verbose,
-            skip=skip_list,
-            python_flag_passed=python_flag_passed,
-        )
-    elif args.command == "runpip":
-        if not venv_dir:  # type: ignore[truthy-bool]
-            raise PipxError("Developer error: venv_dir is not defined.")
-        runpip_args = get_runpip_args(args.pipargs)
-        return commands.run_pip(package, venv_dir, runpip_args, args.verbose)
-    elif args.command == "ensurepath":
-        try:
-            return commands.ensure_pipx_paths(prepend=args.prepend, force=args.force, all_shells=args.all_shells)
-        except Exception as e:
-            logger.debug("Uncaught Exception:", exc_info=True)
-            raise PipxError(str(e), wrap_message=False) from None
-    elif args.command == "completions":
-        print(constants.completion_instructions)
-        return ExitCode(0)
-    elif args.command == "environment":
-        return commands.environment(value=args.value)
-    else:
-        raise PipxError(f"Unknown command {args.command}")
+    ctx = DispatchContext(
+        verbose=verbose,
+        pip_args=pip_args,
+        venv_args=venv_args,
+        venv_container=venv_container,
+        venv_dir=locals().get("venv_dir"),
+        venv_dirs=locals().get("venv_dirs"),
+        skip_list=locals().get("skip_list"),
+        python_flag_passed=python_flag_passed,
+    )
+    return args.func(args, ctx)
 
 
 def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
@@ -1461,7 +1305,7 @@ def cli() -> ExitCode:
     """Entry point from command line"""
     try:
         hide_cursor()
-        parser, subparsers = get_command_parser()
+        parser, _ = get_command_parser()
         argcomplete.autocomplete(parser, always_complete_options=False)
         parsed_pipx_args = parser.parse_args()
         setup(parsed_pipx_args)
@@ -1469,7 +1313,7 @@ def cli() -> ExitCode:
         if not parsed_pipx_args.command:
             parser.print_help()
             return ExitCode(1)
-        return run_pipx_command(parsed_pipx_args, subparsers)
+        return run_pipx_command(parsed_pipx_args)
     except PipxError as e:
         print(str(e), file=sys.stderr)
         logger.debug(f"PipxError: {e}", exc_info=True)
