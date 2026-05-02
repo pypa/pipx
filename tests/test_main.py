@@ -15,6 +15,24 @@ def test_help_text(monkeypatch, capsys):
     assert "usage: pipx" in captured.out
 
 
+def test_help_command_text(monkeypatch, capsys):
+    mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
+    with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
+        assert not run_pipx_cli(["help"])
+    captured = capsys.readouterr()
+    mock_exit.assert_called_with(0)
+    assert "usage: pipx" in captured.out
+
+
+def test_help_command_for_subcommand(monkeypatch, capsys):
+    mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
+    with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
+        assert not run_pipx_cli(["help", "install"])
+    captured = capsys.readouterr()
+    mock_exit.assert_called_with(0)
+    assert "usage: pipx install" in captured.out
+
+
 def test_version(monkeypatch, capsys):
     mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
     with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):

@@ -1,0 +1,1 @@
+Add ``pipx help`` and ``pipx help <command>`` aliases for existing help output.

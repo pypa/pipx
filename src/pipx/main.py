@@ -1036,6 +1036,12 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
         description="Print instructions on enabling shell completions for pipx",
         parents=[shared_parser],
     )
+    subparsers.add_parser(
+        "help",
+        help="Show help for pipx or a command",
+        description="Show help for pipx or a command",
+        parents=[shared_parser],
+    )
     return parser, subparsers_with_subcommands
 
 
@@ -1194,13 +1200,21 @@ def check_args(parsed_pipx_args: argparse.Namespace) -> None:
             parsed_pipx_args.subparser.error("the following arguments are required: app")
 
 
+def normalize_help_command(args: list[str]) -> list[str]:
+    if args and args[0] == "help":
+        if len(args) == 1:
+            return ["--help"]
+        return args[1:] + ["--help"]
+    return args
+
+
 def cli() -> ExitCode:
     """Entry point from command line"""
     try:
         hide_cursor()
         parser, subparsers = get_command_parser()
         argcomplete.autocomplete(parser, always_complete_options=False)
-        parsed_pipx_args = parser.parse_args()
+        parsed_pipx_args = parser.parse_args(normalize_help_command(sys.argv[1:]))
         setup(parsed_pipx_args)
         check_args(parsed_pipx_args)
         if not parsed_pipx_args.command:
