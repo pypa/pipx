@@ -1,1 +1,1 @@
-Replace if/elif command dispatch in ``main.py`` with ``argparse`` ``set_defaults(func=...)``.
+Replace if/elif command dispatch in main.py with argparse set_defaults.
