@@ -1,3 +1,4 @@
+import argparse
 import sys
 from unittest import mock
 
@@ -40,6 +41,16 @@ def test_prog_name(monkeypatch, argv, executable, expected):
 def test_limit_verbosity():
     assert not run_pipx_cli(["list", "-qqq"])
     assert not run_pipx_cli(["list", "-vvvv"])
+
+
+def test_all_subcommands_have_func_registered():
+    parser, _ = main.get_command_parser()
+    subparsers_action = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
+    for name, subparser in subparsers_action.choices.items():
+        assert callable(subparser._defaults.get("func")), f"{name!r} missing callable func default"
+        for nested in (a for a in subparser._actions if isinstance(a, argparse._SubParsersAction)):
+            for sub_name, sub_parser in nested.choices.items():
+                assert callable(sub_parser._defaults.get("func")), f"{sub_name!r} missing callable func default"
 
 
 def test_package_is_path_ignores_existing_directory(tmp_path, monkeypatch):
