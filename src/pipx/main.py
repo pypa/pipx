@@ -269,12 +269,12 @@ def _cmd_interpreter_upgrade(args: argparse.Namespace, ctx: DispatchContext) -> 
     return commands.upgrade_interpreters(ctx.venv_container, ctx.verbose)
 
 
-def _make_interpreter_help(interpreter_subparser: argparse.ArgumentParser) -> Callable[..., ExitCode]:
-    def _help(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-        interpreter_subparser.print_help()
+def _make_print_help(target_parser: argparse.ArgumentParser) -> Callable[..., ExitCode]:
+    def _print_help(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+        target_parser.print_help()
         return EXIT_CODE_OK
 
-    return _help
+    return _print_help
 
 
 def _cmd_runpip(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
@@ -918,7 +918,7 @@ def _add_interpreter(
     list_p.set_defaults(func=_cmd_interpreter_list)
     prune_p.set_defaults(func=_cmd_interpreter_prune)
     upgrade_p.set_defaults(func=_cmd_interpreter_upgrade)
-    p.set_defaults(func=_make_interpreter_help(p))
+    p.set_defaults(func=_make_print_help(p))
     return p
 
 
@@ -1143,6 +1143,13 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
         parents=[shared_parser],
     )
     completions_p.set_defaults(func=_cmd_completions)
+    help_p = subparsers.add_parser(
+        "help",
+        help="Show help for pipx or a command",
+        description="Show help for pipx or a command",
+        parents=[shared_parser],
+    )
+    help_p.set_defaults(func=_make_print_help(parser))
     return parser, subparsers_with_subcommands
 
 
@@ -1301,13 +1308,21 @@ def check_args(parsed_pipx_args: argparse.Namespace) -> None:
             parsed_pipx_args.subparser.error("the following arguments are required: app")
 
 
+def normalize_help_command(args: list[str]) -> list[str]:
+    if args and args[0] == "help":
+        if len(args) == 1:
+            return ["--help"]
+        return args[1:] + ["--help"]
+    return args
+
+
 def cli() -> ExitCode:
     """Entry point from command line"""
     try:
         hide_cursor()
         parser, _ = get_command_parser()
         argcomplete.autocomplete(parser, always_complete_options=False)
-        parsed_pipx_args = parser.parse_args()
+        parsed_pipx_args = parser.parse_args(normalize_help_command(sys.argv[1:]))
         setup(parsed_pipx_args)
         check_args(parsed_pipx_args)
         if not parsed_pipx_args.command:

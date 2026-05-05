@@ -22,13 +22,13 @@ def test_upgrade_all_with_pip_args(pipx_temp_env, capsys):
 
 
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
-def test_upgrade_all_legacy_venv(pipx_temp_env, capsys, caplog, metadata_version):
+def test_upgrade_all_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert run_pipx_cli(["upgrade", "pycowsay"])
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
     if metadata_version is None:
         capsys.readouterr()
         assert run_pipx_cli(["upgrade-all"])
-        assert "The following package(s) failed to upgrade: pycowsay" in caplog.text
+        assert "The following package(s) failed to upgrade: pycowsay" in capsys.readouterr().err
     else:
         assert not run_pipx_cli(["upgrade-all"])
