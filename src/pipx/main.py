@@ -13,9 +13,8 @@ import textwrap
 import time
 import urllib.parse
 from collections.abc import Callable
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 import argcomplete
 import platformdirs
@@ -227,19 +226,20 @@ def package_is_path(package: str):
         )
 
 
-@dataclass
-class DispatchContext:
-    verbose: bool
-    pip_args: list[str]
-    venv_args: list[str]
-    venv_container: VenvContainer
-    venv_dir: Path | None
-    venv_dirs: dict[str, Path] | None
-    skip_list: list[str] | None
-    python_flag_passed: bool
+def _venv_dir(args: argparse.Namespace) -> Path:
+    venv_dir = args.venv_container.get_venv_dir(valid_pypi_name(args.package) or args.package)
+    logger.info(f"Virtual Environment location is {venv_dir}")
+    return venv_dir
 
 
-def _cmd_run(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _venv_dirs(args: argparse.Namespace) -> dict[str, Path]:
+    venv_dirs = {pkg: args.venv_container.get_venv_dir(valid_pypi_name(pkg) or pkg) for pkg in args.packages}
+    venv_dirs_msg = "\n".join(f"- {key} : {value}" for key, value in venv_dirs.items())
+    logger.info(f"Virtual Environment locations are:\n{venv_dirs_msg}")
+    return venv_dirs
+
+
+def _cmd_run(args: argparse.Namespace) -> NoReturn:
     commands.run(
         args.app_with_args[0],
         args.spec,
@@ -247,44 +247,40 @@ def _cmd_run(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
         args.path,
         args.app_with_args[1:],
         args.python,
-        ctx.pip_args,
-        ctx.venv_args,
+        args.pip_args,
+        args.venv_args,
         args.pypackages,
-        ctx.verbose,
+        args.verbose,
         not args.no_cache,
     )
-    # We should never reach here because run() is NoReturn.
-    return ExitCode(1)  # type: ignore[unreachable]
 
 
-def _cmd_interpreter_list(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    return commands.list_interpreters(ctx.venv_container)
+def _cmd_interpreter_list(args: argparse.Namespace) -> ExitCode:
+    return commands.list_interpreters(args.venv_container)
 
 
-def _cmd_interpreter_prune(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    return commands.prune_interpreters(ctx.venv_container)
+def _cmd_interpreter_prune(args: argparse.Namespace) -> ExitCode:
+    return commands.prune_interpreters(args.venv_container)
 
 
-def _cmd_interpreter_upgrade(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    return commands.upgrade_interpreters(ctx.venv_container, ctx.verbose)
+def _cmd_interpreter_upgrade(args: argparse.Namespace) -> ExitCode:
+    return commands.upgrade_interpreters(args.venv_container, args.verbose)
 
 
-def _make_print_help(target_parser: argparse.ArgumentParser) -> Callable[..., ExitCode]:
-    def _print_help(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _make_print_help(target_parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], ExitCode]:
+    def _print_help(args: argparse.Namespace) -> ExitCode:
         target_parser.print_help()
         return EXIT_CODE_OK
 
     return _print_help
 
 
-def _cmd_runpip(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    if not ctx.venv_dir:
-        raise PipxError("Developer error: venv_dir is not defined.")
+def _cmd_runpip(args: argparse.Namespace) -> ExitCode:
     runpip_args = get_runpip_args(args.pipargs)
-    return commands.run_pip(args.package, ctx.venv_dir, runpip_args, args.verbose)
+    return commands.run_pip(args.package, _venv_dir(args), runpip_args, args.verbose)
 
 
-def _cmd_ensurepath(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_ensurepath(args: argparse.Namespace) -> ExitCode:
     try:
         return commands.ensure_pipx_paths(prepend=args.prepend, force=args.force, all_shells=args.all_shells)
     except Exception as e:
@@ -292,33 +288,29 @@ def _cmd_ensurepath(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
         raise PipxError(str(e), wrap_message=False) from None
 
 
-def _cmd_completions(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_completions(args: argparse.Namespace) -> ExitCode:
     print(constants.completion_instructions)
     return ExitCode(0)
 
 
-def _cmd_reinstall(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    if not ctx.venv_dir:
-        raise PipxError("Developer error: venv_dir is not defined.")
+def _cmd_reinstall(args: argparse.Namespace) -> ExitCode:
     return commands.reinstall(
-        venv_dir=ctx.venv_dir,
+        venv_dir=_venv_dir(args),
         local_bin_dir=paths.ctx.bin_dir,
         local_man_dir=paths.ctx.man_dir,
         python=args.python,
-        verbose=ctx.verbose,
-        python_flag_passed=ctx.python_flag_passed,
+        verbose=args.verbose,
+        python_flag_passed=args.python_flag_passed,
     )
 
 
-def _cmd_inject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    if not ctx.venv_dir:
-        raise PipxError("Developer error: venv_dir is not defined.")
+def _cmd_inject(args: argparse.Namespace) -> ExitCode:
     return commands.inject(
-        ctx.venv_dir,
+        _venv_dir(args),
         args.dependencies,
         args.requirements,
-        ctx.pip_args,
-        verbose=ctx.verbose,
+        args.pip_args,
+        verbose=args.verbose,
         include_apps=args.include_apps,
         include_dependencies=args.include_deps,
         force=args.force,
@@ -326,22 +318,20 @@ def _cmd_inject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     )
 
 
-def _cmd_uninject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    if not ctx.venv_dir:
-        raise PipxError("Developer error: venv_dir is not defined.")
+def _cmd_uninject(args: argparse.Namespace) -> ExitCode:
     return commands.uninject(
-        ctx.venv_dir,
+        _venv_dir(args),
         args.dependencies,
         local_bin_dir=paths.ctx.bin_dir,
         local_man_dir=paths.ctx.man_dir,
         leave_deps=args.leave_deps,
-        verbose=ctx.verbose,
+        verbose=args.verbose,
     )
 
 
-def _cmd_list(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_list(args: argparse.Namespace) -> ExitCode:
     return commands.list_packages(
-        ctx.venv_container,
+        args.venv_container,
         args.include_injected,
         args.json,
         args.short,
@@ -349,54 +339,44 @@ def _cmd_list(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     )
 
 
-def _cmd_pin(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    if not ctx.venv_dir:
-        raise PipxError("Developer error: venv_dir is not defined.")
-    if ctx.skip_list is None:
-        raise PipxError("Developer error: skip_list is not defined.")
-    return commands.pin(ctx.venv_dir, ctx.verbose, ctx.skip_list, args.injected_only)
+def _cmd_pin(args: argparse.Namespace) -> ExitCode:
+    return commands.pin(_venv_dir(args), args.verbose, args.skip_list, args.injected_only)
 
 
-def _cmd_uninstall(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    if not ctx.venv_dir:
-        raise PipxError("Developer error: venv_dir is not defined.")
-    return commands.uninstall(ctx.venv_dir, paths.ctx.bin_dir, paths.ctx.man_dir, ctx.verbose)
+def _cmd_uninstall(args: argparse.Namespace) -> ExitCode:
+    return commands.uninstall(_venv_dir(args), paths.ctx.bin_dir, paths.ctx.man_dir, args.verbose)
 
 
-def _cmd_uninstall_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_uninstall_all(args: argparse.Namespace) -> ExitCode:
     return commands.uninstall_all(
-        ctx.venv_container,
+        args.venv_container,
         paths.ctx.bin_dir,
         paths.ctx.man_dir,
-        ctx.verbose,
+        args.verbose,
     )
 
 
-def _cmd_reinstall_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    if ctx.skip_list is None:
-        raise PipxError("Developer error: skip_list is not defined.")
+def _cmd_reinstall_all(args: argparse.Namespace) -> ExitCode:
     return commands.reinstall_all(
-        ctx.venv_container,
+        args.venv_container,
         paths.ctx.bin_dir,
         paths.ctx.man_dir,
         args.python,
-        ctx.verbose,
-        skip=ctx.skip_list,
-        python_flag_passed=ctx.python_flag_passed,
+        args.verbose,
+        skip=args.skip_list,
+        python_flag_passed=args.python_flag_passed,
     )
 
 
-def _cmd_environment(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_environment(args: argparse.Namespace) -> ExitCode:
     return commands.environment(value=args.value)
 
 
-def _cmd_unpin(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    if not ctx.venv_dir:
-        raise PipxError("Developer error: venv_dir is not defined.")
-    return commands.unpin(ctx.venv_dir, ctx.verbose)
+def _cmd_unpin(args: argparse.Namespace) -> ExitCode:
+    return commands.unpin(_venv_dir(args), args.verbose)
 
 
-def _cmd_install(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_install(args: argparse.Namespace) -> ExitCode:
     return commands.install(
         None,
         None,
@@ -404,130 +384,96 @@ def _cmd_install(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
         paths.ctx.bin_dir,
         paths.ctx.man_dir,
         args.python,
-        ctx.pip_args,
-        ctx.venv_args,
-        ctx.verbose,
+        args.pip_args,
+        args.venv_args,
+        args.verbose,
         force=args.force,
         reinstall=False,
         include_dependencies=args.include_deps,
         preinstall_packages=args.preinstall,
         suffix=args.suffix,
-        python_flag_passed=ctx.python_flag_passed,
+        python_flag_passed=args.python_flag_passed,
     )
 
 
-def _cmd_install_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_install_all(args: argparse.Namespace) -> ExitCode:
     return commands.install_all(
         args.spec_metadata_file,
         paths.ctx.bin_dir,
         paths.ctx.man_dir,
         args.python,
-        ctx.pip_args,
-        ctx.venv_args,
-        ctx.verbose,
+        args.pip_args,
+        args.venv_args,
+        args.verbose,
         force=args.force,
     )
 
 
-def _cmd_upgrade(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    assert ctx.venv_dirs is not None
+def _cmd_upgrade(args: argparse.Namespace) -> ExitCode:
     return commands.upgrade(
-        ctx.venv_dirs,
+        _venv_dirs(args),
         args.python,
-        ctx.pip_args,
-        ctx.venv_args,
-        ctx.verbose,
+        args.pip_args,
+        args.venv_args,
+        args.verbose,
         include_injected=args.include_injected,
         force=args.force,
         install=args.install,
-        python_flag_passed=ctx.python_flag_passed,
+        python_flag_passed=args.python_flag_passed,
     )
 
 
-def _cmd_upgrade_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_upgrade_all(args: argparse.Namespace) -> ExitCode:
     return commands.upgrade_all(
-        ctx.venv_container,
-        ctx.verbose,
+        args.venv_container,
+        args.verbose,
         include_injected=args.include_injected,
-        skip=ctx.skip_list or [],
+        skip=args.skip_list,
         force=args.force,
-        pip_args=ctx.pip_args,
-        python_flag_passed=ctx.python_flag_passed,
+        pip_args=args.pip_args,
+        python_flag_passed=args.python_flag_passed,
     )
 
 
-def _cmd_upgrade_shared(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_upgrade_shared(args: argparse.Namespace) -> ExitCode:
     return commands.upgrade_shared(
-        ctx.verbose,
-        ctx.pip_args,
+        args.verbose,
+        args.pip_args,
     )
 
 
 def run_pipx_command(args: argparse.Namespace) -> ExitCode:
-    verbose = args.verbose if "verbose" in args else False
-
-    pip_args = get_pip_args(vars(args))
-    venv_args = get_venv_args(vars(args))
-
-    venv_container = VenvContainer(paths.ctx.venvs)
+    args.verbose = args.verbose if "verbose" in args else False
+    args.pip_args = get_pip_args(vars(args))
+    args.venv_args = get_venv_args(vars(args))
+    args.venv_container = VenvContainer(paths.ctx.venvs)
+    args.skip_list = [canonicalize_name(x) for x in args.skip] if "skip" in args else []
+    args.python_flag_passed = False
 
     if "package" in args:
-        package = args.package
-        package_is_url(package)
-        package_is_path(package)
-
+        package_is_url(args.package)
+        package_is_path(args.package)
         if "spec" in args and args.spec is not None:
-            if package_is_url(args.spec, raise_error=False):
-                if "#egg=" not in args.spec:
-                    args.spec = args.spec + f"#egg={package}"
-
-        venv_dir = venv_container.get_venv_dir(valid_pypi_name(package) or package)
-        logger.info(f"Virtual Environment location is {venv_dir}")
+            if package_is_url(args.spec, raise_error=False) and "#egg=" not in args.spec:
+                args.spec = args.spec + f"#egg={args.package}"
 
     if "packages" in args:
         for package in args.packages:
             package_is_url(package)
             package_is_path(package)
-        venv_dirs = {
-            package: venv_container.get_venv_dir(valid_pypi_name(package) or package) for package in args.packages
-        }
-        venv_dirs_msg = "\n".join(f"- {key} : {value}" for key, value in venv_dirs.items())
-        logger.info(f"Virtual Environment locations are:\n{venv_dirs_msg}")
-
-    if "skip" in args:
-        skip_list = [canonicalize_name(x) for x in args.skip]
-
-    python_flag_passed = False
 
     if "python" in args:
-        python_flag_passed = bool(args.python)
-        fetch_missing_python = args.fetch_missing_python
+        args.python_flag_passed = bool(args.python)
         try:
-            interpreter = find_python_interpreter(
-                args.python or DEFAULT_PYTHON, fetch_missing_python=fetch_missing_python
+            args.python = find_python_interpreter(
+                args.python or DEFAULT_PYTHON, fetch_missing_python=args.fetch_missing_python
             )
-            args.python = interpreter
         except InterpreterResolutionError as e:
             logger.debug("Failed to resolve interpreter:", exc_info=True)
-            print(
-                pipx_wrap(
-                    f"{hazard} {e}",
-                    subsequent_indent=" " * 4,
-                )
-            )
+            print(pipx_wrap(f"{hazard} {e}", subsequent_indent=" " * 4))
             return EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND
 
-    ctx = DispatchContext(
-        verbose=verbose,
-        pip_args=pip_args,
-        venv_args=venv_args,
-        venv_container=venv_container,
-        venv_dir=locals().get("venv_dir"),
-        venv_dirs=locals().get("venv_dirs"),
-        skip_list=locals().get("skip_list"),
-        python_flag_passed=python_flag_passed,
-    )
-    return args.func(args, ctx)
+    return args.func(args)
 
 
 def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
