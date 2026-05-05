@@ -5,6 +5,7 @@ pipx install pycowsay
 pipx install --python python3.10 pycowsay
 pipx install --python 3.12 pycowsay
 pipx install --fetch-python=missing --python 3.12 pycowsay
+pipx install --fetch-python=always --python 3.13 pycowsay
 pipx install git+https://github.com/psf/black
 pipx install git+https://github.com/psf/black.git@branch-name
 pipx install git+https://github.com/psf/black.git@git-hash

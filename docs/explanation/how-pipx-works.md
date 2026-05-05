@@ -85,3 +85,24 @@ flowchart TD
 ```
 
 You can do all of this yourself. pipx automates it. Pass `--verbose` to see every command and argument pipx runs.
+
+### Resolving the Python interpreter
+
+When you pass `--python <version>`, pipx walks a fixed search order:
+
+1. Treat the argument as a literal path; use it when the file exists.
+1. Call `shutil.which(<arg>)` to find a matching command on `PATH`.
+1. On non-Windows, try `python<MAJOR.MINOR>` derived from the version string.
+1. If `py` is available (Windows), ask the launcher for that version.
+
+Only after every step fails does pipx consider downloading a build from
+[python-build-standalone](https://github.com/astral-sh/python-build-standalone). The `--fetch-python` flag (or
+`PIPX_FETCH_PYTHON`) decides when that download is allowed:
+
+- `never` (the default) keeps pipx local: the search above must succeed or pipx errors out.
+- `missing` falls back to a download when every step above fails.
+- `always` skips the search and uses a fresh standalone build for the requested version.
+
+Use `always` when the system Python is patched in ways that break installed applications. Some distros strip optional
+modules (`tkinter`, `lzma`), change the site-packages layout, or backport behaviour changes; a found system Python is
+worse than no Python at all. Otherwise, use `missing` so pipx reuses what the system already provides.

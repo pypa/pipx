@@ -97,6 +97,11 @@ def _fetch_standalone_interpreter(python_version: str) -> str:
 
 def find_python_interpreter(python_version: str, fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER) -> str:
     if fetch_python == FetchPythonOptions.ALWAYS:
+        if os.sep in python_version or "/" in python_version or Path(python_version).is_file():
+            raise PipxError(
+                f"--fetch-python={FetchPythonOptions.ALWAYS} requires a Python version "
+                f"(e.g. '3.13'), got '{python_version}'."
+            )
         return _fetch_standalone_interpreter(python_version)
 
     if Path(python_version).is_file() or shutil.which(python_version):

@@ -1,7 +1,6 @@
 import enum
 import os
 import platform
-import sys
 import sysconfig
 from textwrap import dedent
 from typing import NewType
@@ -23,40 +22,21 @@ MINIMUM_PYTHON_VERSION = "3.10"
 MAN_SECTIONS = [f"man{i}" for i in range(1, 10)]
 
 
-def _env_truthy(name: str) -> bool:
-    raw = os.environ.get(name)
-    if raw is None:
-        return False
-    return raw.strip().lower() not in ("", "0", "false", "no", "off")
+_FETCH_MISSING_PYTHON_RAW = os.environ.get("PIPX_FETCH_MISSING_PYTHON")
+_FETCH_PYTHON_RAW = os.environ.get("PIPX_FETCH_PYTHON")
+_FALSY = ("", "0", "false", "f", "no", "n", "off")
 
 
-FETCH_MISSING_PYTHON = _env_truthy("PIPX_FETCH_MISSING_PYTHON")
-
-_FETCH_PYTHON_VALID = True
-try:
-    FETCH_PYTHON = FetchPythonOptions(
-        os.environ.get("PIPX_FETCH_PYTHON") or (FetchPythonOptions.MISSING if FETCH_MISSING_PYTHON else FetchPythonOptions.NEVER)
-    )
-except ValueError:
-    FETCH_PYTHON = FetchPythonOptions.NEVER
-    _FETCH_PYTHON_VALID = False
+def _compute_fetch_python(missing_raw: str | None, python_raw: str | None) -> tuple[FetchPythonOptions, bool]:
+    fetch_missing = missing_raw is not None and missing_raw.strip().lower() not in _FALSY
+    raw = python_raw or (FetchPythonOptions.MISSING.value if fetch_missing else FetchPythonOptions.NEVER.value)
+    try:
+        return FetchPythonOptions(raw), False
+    except ValueError:
+        return FetchPythonOptions.NEVER, True
 
 
-def validate_fetch_python() -> None:
-    from pipx.emojis import hazard
-    from pipx.util import PipxError
-
-    if not _FETCH_PYTHON_VALID:
-        valid = ", ".join(str(option) for option in FetchPythonOptions)
-        raise PipxError(f"PIPX_FETCH_PYTHON must be unset or one of: {valid}.")
-    if "PIPX_FETCH_MISSING_PYTHON" in os.environ:
-        if "PIPX_FETCH_PYTHON" in os.environ:
-            raise PipxError("Setting both PIPX_FETCH_MISSING_PYTHON and PIPX_FETCH_PYTHON is invalid.")
-        print(
-            f"{hazard} PIPX_FETCH_MISSING_PYTHON is deprecated; "
-            f'use PIPX_FETCH_PYTHON="{FetchPythonOptions.MISSING}" instead.',
-            file=sys.stderr,
-        )
+_FETCH_PYTHON, _FETCH_PYTHON_INVALID = _compute_fetch_python(_FETCH_MISSING_PYTHON_RAW, _FETCH_PYTHON_RAW)
 
 
 ExitCode = NewType("ExitCode", int)

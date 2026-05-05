@@ -7,6 +7,7 @@ Recipes for common pipx tasks. Each guide covers a specific goal and assumes you
 - [Inject Packages](inject-packages.md) — add extra packages into an existing pipx environment.
 - [Pin Packages](pin-packages.md) — hold a package at its current version.
 - [Run Scripts](run-scripts.md) — run specific versions, from URLs, or from source control.
+- [Standalone Python](standalone-python.md) — install with a downloaded Python build instead of the system one.
 - [Use with pre-commit](use-with-pre-commit.md) — integrate pipx with pre-commit hooks.
 - [Configure Paths](configure-paths.md) — customise `PIPX_HOME`, `PIPX_BIN_DIR`, and global installs.
 - [Move Installation](move-installation.md) — relocate your pipx directory.

@@ -26,14 +26,16 @@ from pipx.animate import hide_cursor, show_cursor
 from pipx.colors import bold, green
 from pipx.commands.environment import ENVIRONMENT_VALUE_CHOICES, ENVIRONMENT_VARIABLES
 from pipx.constants import (
+    _FETCH_MISSING_PYTHON_RAW,
+    _FETCH_PYTHON,
+    _FETCH_PYTHON_INVALID,
+    _FETCH_PYTHON_RAW,
     EXIT_CODE_OK,
     EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND,
-    FETCH_PYTHON,
     MINIMUM_PYTHON_VERSION,
     WINDOWS,
     ExitCode,
     FetchPythonOptions,
-    validate_fetch_python,
 )
 from pipx.emojis import hazard
 from pipx.interpreter import (
@@ -230,6 +232,20 @@ def package_is_path(package: str):
         )
 
 
+def _validate_fetch_python() -> None:
+    if _FETCH_PYTHON_INVALID:
+        valid = ", ".join(str(option) for option in FetchPythonOptions)
+        raise PipxError(f"PIPX_FETCH_PYTHON must be unset or one of: {valid}.")
+    if _FETCH_MISSING_PYTHON_RAW is not None:
+        if _FETCH_PYTHON_RAW is not None:
+            raise PipxError("Setting both PIPX_FETCH_MISSING_PYTHON and PIPX_FETCH_PYTHON is invalid.")
+        print(
+            f"{hazard} PIPX_FETCH_MISSING_PYTHON is deprecated; "
+            f'use PIPX_FETCH_PYTHON="{FetchPythonOptions.MISSING}" instead.',
+            file=sys.stderr,
+        )
+
+
 def run_pipx_command(args: argparse.Namespace) -> ExitCode:
     if "package" in args:
         package_is_url(args.package)
@@ -314,10 +330,11 @@ class _DeprecatedFetchMissingPython(argparse.Action):
         values: Any,
         option_string: str | None = None,
     ) -> None:
-        print(
-            f"{hazard} {option_string} is deprecated; use --fetch-python={FetchPythonOptions.MISSING} instead.",
-            file=sys.stderr,
-        )
+        if not {"--help", "-h"}.intersection(sys.argv):
+            print(
+                f"{hazard} {option_string} is deprecated; use --fetch-python={FetchPythonOptions.MISSING} instead.",
+                file=sys.stderr,
+            )
         setattr(namespace, self.dest, FetchPythonOptions.MISSING)
 
 
@@ -335,11 +352,13 @@ def add_python_options(parser: argparse.ArgumentParser) -> None:
         "--fetch-python",
         type=FetchPythonOptions,
         choices=list(FetchPythonOptions),
-        default=FETCH_PYTHON,
+        default=_FETCH_PYTHON,
         help=(
-            f"Whether to fetch a standalone python build from GitHub. If set to {FetchPythonOptions.MISSING}, "
-            "only downloads if the specified python version is not found locally on the system. "
-            "Defaults to value of the PIPX_FETCH_PYTHON environment variable."
+            f"When to fetch a standalone Python build from python-build-standalone. "
+            f"'{FetchPythonOptions.ALWAYS}' always downloads (ignores any system Python); "
+            f"'{FetchPythonOptions.MISSING}' downloads only when the requested version is not found locally; "
+            f"'{FetchPythonOptions.NEVER}' never downloads. "
+            "Defaults to PIPX_FETCH_PYTHON, or 'never'."
         ),
     )
     fetch_python_group.add_argument(
@@ -1305,7 +1324,7 @@ def cli() -> ExitCode:
         parser, _ = get_command_parser()
         argcomplete.autocomplete(parser, always_complete_options=False)
         parsed_pipx_args = parser.parse_args(normalize_help_command(sys.argv[1:]))
-        validate_fetch_python()
+        _validate_fetch_python()
         setup(parsed_pipx_args)
         check_args(parsed_pipx_args)
         if not parsed_pipx_args.command:

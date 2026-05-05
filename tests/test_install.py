@@ -425,13 +425,18 @@ def test_passed_python_and_force_flag_warning(pipx_temp_env, capsys):
 
 
 @pytest.mark.parametrize(
-    "python_version",
-    ["3.0", "3.1"],
+    ("python_version", "fetch_flag", "expect_deprecation"),
+    [
+        pytest.param("3.0", "--fetch-python=missing", False, id="3.0-fetch-python-missing"),
+        pytest.param("3.1", "--fetch-python=missing", False, id="3.1-fetch-python-missing"),
+        pytest.param("3.0", "--fetch-missing-python", True, id="3.0-deprecated-flag"),
+    ],
 )
-def test_install_fetch_missing_python_invalid(capsys, python_version):
-    assert run_pipx_cli(["install", "--python", python_version, "--fetch-python=missing", "pycowsay"])
+def test_install_fetch_missing_python_invalid(capsys, python_version, fetch_flag, expect_deprecation):
+    assert run_pipx_cli(["install", "--python", python_version, fetch_flag, "pycowsay"])
     captured = capsys.readouterr()
     assert f"No executable for the provided Python version '{python_version}' found" in captured.out
+    assert ("--fetch-missing-python is deprecated" in captured.err) is expect_deprecation
 
 
 def test_install_run_in_separate_directory(caplog, capsys, pipx_temp_env, monkeypatch, tmp_path):

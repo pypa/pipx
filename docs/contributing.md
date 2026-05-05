@@ -92,8 +92,8 @@ venv managed by `shared_libs.py`.
 `pipx_metadata_file.py` serializes install options (spec, pip args, injected packages) to JSON inside each venv so that
 `upgrade` and `reinstall` can reproduce the original install.
 
-`interpreter.py` and `standalone_python.py` handle Python version resolution. When `--fetch-missing-python` is passed,
-pipx downloads a standalone build from
+`interpreter.py` and `standalone_python.py` handle Python version resolution. When `--fetch-python` is `missing` or
+`always`, pipx downloads a standalone build from
 [python-build-standalone](https://github.com/astral-sh/python-build-standalone/releases) and caches it locally. The
 `pipx interpreter` subcommands (list, prune, upgrade) manage these cached interpreters.
 

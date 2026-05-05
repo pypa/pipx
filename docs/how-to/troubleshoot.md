@@ -10,11 +10,15 @@ pass `--python`:
 pipx install my-package --python python3.12
 ```
 
-If the desired Python version is not installed, add `--fetch-missing-python` and pipx downloads a standalone build:
+If you don't have the desired Python version installed, pass `--fetch-python=missing` and pipx downloads a standalone
+build:
 
 ```
-pipx install my-package --python 3.13 --fetch-missing-python
+pipx install my-package --python 3.13 --fetch-python=missing
 ```
+
+Pass `--fetch-python=always` to download a standalone build even when the system already has the requested Python.
+Useful when a distro ships a patched interpreter you'd rather avoid.
 
 ## `reinstall-all` fixes most issues
 

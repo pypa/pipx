@@ -215,7 +215,14 @@ def test_find_python_interpreter_missing_on_path_raises(monkeypatch):
         assert "on your PATH" in str(e)
 
 
-def test_fetch_missing_python(monkeypatch, mocked_github_api):
+@pytest.mark.parametrize(
+    "fetch_python",
+    [
+        pytest.param(FetchPythonOptions.MISSING, id="missing"),
+        pytest.param(FetchPythonOptions.ALWAYS, id="always"),
+    ],
+)
+def test_fetch_missing_python(monkeypatch, mocked_github_api, fetch_python):
     def which(name):
         return None
 
@@ -225,7 +232,7 @@ def test_fetch_missing_python(monkeypatch, mocked_github_api):
     minor = sys.version_info.minor
     target_python = f"{major}.{minor}"
 
-    python_path = find_python_interpreter(target_python, fetch_python=FetchPythonOptions.MISSING)
+    python_path = find_python_interpreter(target_python, fetch_python=fetch_python)
     assert python_path is not None
     assert target_python in python_path
     assert str(pipx.paths.ctx.standalone_python_cachedir) in python_path
@@ -234,3 +241,38 @@ def test_fetch_missing_python(monkeypatch, mocked_github_api):
     else:
         assert python_path.endswith("python3")
     subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)
+
+
+def test_fetch_python_always_invalid_version_raises(monkeypatch):
+    with pytest.raises(InterpreterResolutionError, match="python-build-standalone"):
+        find_python_interpreter("3.0", fetch_python=FetchPythonOptions.ALWAYS)
+
+
+@pytest.mark.parametrize(
+    "python_version",
+    [
+        pytest.param("/usr/bin/python3.13", id="absolute-path"),
+        pytest.param("relative/python3.13", id="relative-path"),
+        pytest.param(__file__, id="existing-file"),
+    ],
+)
+def test_fetch_python_always_rejects_paths(python_version):
+    with pytest.raises(PipxError, match="requires a Python version"):
+        find_python_interpreter(python_version, fetch_python=FetchPythonOptions.ALWAYS)
+
+
+def test_find_python_interpreter_py_launcher_failure_without_fetch_raises(monkeypatch):
+    monkeypatch.setattr(shutil, "which", lambda name: None)
+
+    def raise_called_process(*args, **kwargs):
+        raise subprocess.CalledProcessError(1, ["py"])
+
+    monkeypatch.setattr(pipx.interpreter, "find_py_launcher_python", raise_called_process)
+    with pytest.raises(InterpreterResolutionError, match="py launcher"):
+        find_python_interpreter("3.13", fetch_python=FetchPythonOptions.NEVER)
+
+
+def test_find_python_interpreter_py_launcher_success(monkeypatch):
+    monkeypatch.setattr(shutil, "which", lambda name: None)
+    monkeypatch.setattr(pipx.interpreter, "find_py_launcher_python", lambda v: f"/fake/python{v}")
+    assert find_python_interpreter("3.13", fetch_python=FetchPythonOptions.NEVER) == "/fake/python3.13"

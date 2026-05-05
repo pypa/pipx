@@ -5,7 +5,7 @@ from unittest import mock
 import pytest
 
 from helpers import run_pipx_cli
-from pipx import main
+from pipx import constants, main
 
 
 def test_help_text(monkeypatch, capsys):
@@ -78,3 +78,58 @@ def test_package_is_path_ignores_existing_directory(tmp_path, monkeypatch):
     (tmp_path / "commit-check").mkdir()
     # Should not raise even though a directory of that name exists in CWD.
     main.package_is_path("commit-check")
+
+
+@pytest.mark.parametrize(
+    ("missing_raw", "python_raw", "expected_option", "expected_invalid"),
+    [
+        pytest.param(None, None, constants.FetchPythonOptions.NEVER, False, id="unset"),
+        pytest.param("1", None, constants.FetchPythonOptions.MISSING, False, id="legacy-truthy"),
+        pytest.param("0", None, constants.FetchPythonOptions.NEVER, False, id="legacy-falsy"),
+        pytest.param(" False ", None, constants.FetchPythonOptions.NEVER, False, id="legacy-whitespace-falsy"),
+        pytest.param("n", None, constants.FetchPythonOptions.NEVER, False, id="legacy-falsy-n"),
+        pytest.param(None, "always", constants.FetchPythonOptions.ALWAYS, False, id="explicit-always"),
+        pytest.param(None, "garbage", constants.FetchPythonOptions.NEVER, True, id="invalid-value"),
+    ],
+)
+def test_compute_fetch_python(missing_raw, python_raw, expected_option, expected_invalid):
+    option, invalid = constants._compute_fetch_python(missing_raw, python_raw)
+    assert option is expected_option
+    assert invalid is expected_invalid
+
+
+@pytest.mark.parametrize(
+    ("invalid", "fetch_python_raw", "missing_raw", "expected"),
+    [
+        pytest.param(True, "garbage", None, "PIPX_FETCH_PYTHON must be unset", id="invalid-value"),
+        pytest.param(False, "missing", "1", "Setting both", id="both-env-vars"),
+    ],
+)
+def test_validate_fetch_python_raises(monkeypatch, invalid, fetch_python_raw, missing_raw, expected):
+    monkeypatch.setattr(main, "_FETCH_PYTHON_INVALID", invalid)
+    monkeypatch.setattr(main, "_FETCH_PYTHON_RAW", fetch_python_raw)
+    monkeypatch.setattr(main, "_FETCH_MISSING_PYTHON_RAW", missing_raw)
+    with pytest.raises(main.PipxError, match=expected):
+        main._validate_fetch_python()
+
+
+def test_validate_fetch_python_deprecated_env_warning(monkeypatch, capsys):
+    monkeypatch.setattr(main, "_FETCH_PYTHON_INVALID", False)
+    monkeypatch.setattr(main, "_FETCH_PYTHON_RAW", None)
+    monkeypatch.setattr(main, "_FETCH_MISSING_PYTHON_RAW", "1")
+    main._validate_fetch_python()
+    assert "PIPX_FETCH_MISSING_PYTHON is deprecated" in capsys.readouterr().err
+
+
+def test_validate_fetch_python_passes_when_unset(monkeypatch):
+    monkeypatch.setattr(main, "_FETCH_PYTHON_INVALID", False)
+    monkeypatch.setattr(main, "_FETCH_PYTHON_RAW", None)
+    monkeypatch.setattr(main, "_FETCH_MISSING_PYTHON_RAW", None)
+    main._validate_fetch_python()
+
+
+def test_deprecated_fetch_missing_python_silent_under_help(capsys):
+    mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
+    with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
+        run_pipx_cli(["install", "--fetch-missing-python", "--help"])
+    assert "--fetch-missing-python is deprecated" not in capsys.readouterr().err

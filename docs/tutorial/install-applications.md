@@ -40,3 +40,16 @@ apps are exposed on your $PATH at /home/user/.local/bin
                 ||     ||
 
 ```
+
+### Picking a Python interpreter
+
+Pass `--python` to install with a specific Python version. When that Python isn't on your `PATH`, pipx can download a
+[python-build-standalone](https://github.com/astral-sh/python-build-standalone) build for you:
+
+```
+pipx install --python 3.13 --fetch-python=missing pycowsay
+```
+
+Pass `--fetch-python=always` to use a fresh standalone build instead of any system Python. Reach for it when a distro
+patched the system Python in ways you can't tolerate. See the [Standalone Python](../how-to/standalone-python.md) how-to
+for more options.
