@@ -241,7 +241,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
         if package_is_url(spec, raise_error=False) and "#egg=" not in spec:
             spec = spec + f"#egg={args.package}"
 
-    python: str | None = None
+    python = DEFAULT_PYTHON
     python_flag_passed = False
     if "python" in args:
         python_flag_passed = bool(args.python)
@@ -255,7 +255,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
             return EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND
 
     ctx = DispatchContext(
-        verbose=args.verbose if "verbose" in args else 0,
+        verbose=bool(args.verbose) if "verbose" in args else False,
         pip_args=get_pip_args(vars(args)),
         venv_args=get_venv_args(vars(args)),
         venv_container=VenvContainer(paths.ctx.venvs),
@@ -269,12 +269,12 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
 
 @dataclass(frozen=True)
 class DispatchContext:
-    verbose: int
+    verbose: bool
     pip_args: list[str]
     venv_args: list[str]
     venv_container: VenvContainer
     skip_list: list[str]
-    python: str | None
+    python: str
     python_flag_passed: bool
     spec: str | None
 
