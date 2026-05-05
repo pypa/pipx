@@ -226,222 +226,6 @@ def package_is_path(package: str):
         )
 
 
-def _venv_dir(args: argparse.Namespace) -> Path:
-    venv_dir = args.venv_container.get_venv_dir(valid_pypi_name(args.package) or args.package)
-    logger.info(f"Virtual Environment location is {venv_dir}")
-    return venv_dir
-
-
-def _venv_dirs(args: argparse.Namespace) -> dict[str, Path]:
-    venv_dirs = {pkg: args.venv_container.get_venv_dir(valid_pypi_name(pkg) or pkg) for pkg in args.packages}
-    venv_dirs_msg = "\n".join(f"- {key} : {value}" for key, value in venv_dirs.items())
-    logger.info(f"Virtual Environment locations are:\n{venv_dirs_msg}")
-    return venv_dirs
-
-
-def _cmd_run(args: argparse.Namespace) -> NoReturn:
-    commands.run(
-        args.app_with_args[0],
-        args.spec,
-        args.with_,
-        args.path,
-        args.app_with_args[1:],
-        args.python,
-        args.pip_args,
-        args.venv_args,
-        args.pypackages,
-        args.verbose,
-        not args.no_cache,
-    )
-
-
-def _cmd_interpreter_list(args: argparse.Namespace) -> ExitCode:
-    return commands.list_interpreters(args.venv_container)
-
-
-def _cmd_interpreter_prune(args: argparse.Namespace) -> ExitCode:
-    return commands.prune_interpreters(args.venv_container)
-
-
-def _cmd_interpreter_upgrade(args: argparse.Namespace) -> ExitCode:
-    return commands.upgrade_interpreters(args.venv_container, args.verbose)
-
-
-def _make_print_help(target_parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], ExitCode]:
-    def _print_help(args: argparse.Namespace) -> ExitCode:
-        target_parser.print_help()
-        return EXIT_CODE_OK
-
-    return _print_help
-
-
-def _cmd_runpip(args: argparse.Namespace) -> ExitCode:
-    runpip_args = get_runpip_args(args.pipargs)
-    return commands.run_pip(args.package, _venv_dir(args), runpip_args, args.verbose)
-
-
-def _cmd_ensurepath(args: argparse.Namespace) -> ExitCode:
-    try:
-        return commands.ensure_pipx_paths(prepend=args.prepend, force=args.force, all_shells=args.all_shells)
-    except Exception as e:
-        logger.debug("Uncaught Exception:", exc_info=True)
-        raise PipxError(str(e), wrap_message=False) from None
-
-
-def _cmd_completions(args: argparse.Namespace) -> ExitCode:
-    print(constants.completion_instructions)
-    return ExitCode(0)
-
-
-def _cmd_reinstall(args: argparse.Namespace) -> ExitCode:
-    return commands.reinstall(
-        venv_dir=_venv_dir(args),
-        local_bin_dir=paths.ctx.bin_dir,
-        local_man_dir=paths.ctx.man_dir,
-        python=args.python,
-        verbose=args.verbose,
-        python_flag_passed=args.python_flag_passed,
-    )
-
-
-def _cmd_inject(args: argparse.Namespace) -> ExitCode:
-    return commands.inject(
-        _venv_dir(args),
-        args.dependencies,
-        args.requirements,
-        args.pip_args,
-        verbose=args.verbose,
-        include_apps=args.include_apps,
-        include_dependencies=args.include_deps,
-        force=args.force,
-        suffix=args.with_suffix,
-    )
-
-
-def _cmd_uninject(args: argparse.Namespace) -> ExitCode:
-    return commands.uninject(
-        _venv_dir(args),
-        args.dependencies,
-        local_bin_dir=paths.ctx.bin_dir,
-        local_man_dir=paths.ctx.man_dir,
-        leave_deps=args.leave_deps,
-        verbose=args.verbose,
-    )
-
-
-def _cmd_list(args: argparse.Namespace) -> ExitCode:
-    return commands.list_packages(
-        args.venv_container,
-        args.include_injected,
-        args.json,
-        args.short,
-        args.pinned,
-    )
-
-
-def _cmd_pin(args: argparse.Namespace) -> ExitCode:
-    return commands.pin(_venv_dir(args), args.verbose, args.skip_list, args.injected_only)
-
-
-def _cmd_uninstall(args: argparse.Namespace) -> ExitCode:
-    return commands.uninstall(_venv_dir(args), paths.ctx.bin_dir, paths.ctx.man_dir, args.verbose)
-
-
-def _cmd_uninstall_all(args: argparse.Namespace) -> ExitCode:
-    return commands.uninstall_all(
-        args.venv_container,
-        paths.ctx.bin_dir,
-        paths.ctx.man_dir,
-        args.verbose,
-    )
-
-
-def _cmd_reinstall_all(args: argparse.Namespace) -> ExitCode:
-    return commands.reinstall_all(
-        args.venv_container,
-        paths.ctx.bin_dir,
-        paths.ctx.man_dir,
-        args.python,
-        args.verbose,
-        skip=args.skip_list,
-        python_flag_passed=args.python_flag_passed,
-    )
-
-
-def _cmd_environment(args: argparse.Namespace) -> ExitCode:
-    return commands.environment(value=args.value)
-
-
-def _cmd_unpin(args: argparse.Namespace) -> ExitCode:
-    return commands.unpin(_venv_dir(args), args.verbose)
-
-
-def _cmd_install(args: argparse.Namespace) -> ExitCode:
-    return commands.install(
-        None,
-        None,
-        args.package_spec,
-        paths.ctx.bin_dir,
-        paths.ctx.man_dir,
-        args.python,
-        args.pip_args,
-        args.venv_args,
-        args.verbose,
-        force=args.force,
-        reinstall=False,
-        include_dependencies=args.include_deps,
-        preinstall_packages=args.preinstall,
-        suffix=args.suffix,
-        python_flag_passed=args.python_flag_passed,
-    )
-
-
-def _cmd_install_all(args: argparse.Namespace) -> ExitCode:
-    return commands.install_all(
-        args.spec_metadata_file,
-        paths.ctx.bin_dir,
-        paths.ctx.man_dir,
-        args.python,
-        args.pip_args,
-        args.venv_args,
-        args.verbose,
-        force=args.force,
-    )
-
-
-def _cmd_upgrade(args: argparse.Namespace) -> ExitCode:
-    return commands.upgrade(
-        _venv_dirs(args),
-        args.python,
-        args.pip_args,
-        args.venv_args,
-        args.verbose,
-        include_injected=args.include_injected,
-        force=args.force,
-        install=args.install,
-        python_flag_passed=args.python_flag_passed,
-    )
-
-
-def _cmd_upgrade_all(args: argparse.Namespace) -> ExitCode:
-    return commands.upgrade_all(
-        args.venv_container,
-        args.verbose,
-        include_injected=args.include_injected,
-        skip=args.skip_list,
-        force=args.force,
-        pip_args=args.pip_args,
-        python_flag_passed=args.python_flag_passed,
-    )
-
-
-def _cmd_upgrade_shared(args: argparse.Namespace) -> ExitCode:
-    return commands.upgrade_shared(
-        args.verbose,
-        args.pip_args,
-    )
-
-
 def run_pipx_command(args: argparse.Namespace) -> ExitCode:
     args.verbose = args.verbose if "verbose" in args else False
     args.pip_args = get_pip_args(vars(args))
@@ -551,6 +335,26 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
     p.set_defaults(func=_cmd_install)
 
 
+def _cmd_install(args: argparse.Namespace) -> ExitCode:
+    return commands.install(
+        None,
+        None,
+        args.package_spec,
+        paths.ctx.bin_dir,
+        paths.ctx.man_dir,
+        args.python,
+        args.pip_args,
+        args.venv_args,
+        args.verbose,
+        force=args.force,
+        reinstall=False,
+        include_dependencies=args.include_deps,
+        preinstall_packages=args.preinstall,
+        suffix=args.suffix,
+        python_flag_passed=args.python_flag_passed,
+    )
+
+
 def _add_install_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "install-all",
@@ -569,6 +373,19 @@ def _add_install_all(subparsers: argparse._SubParsersAction, shared_parser: argp
     add_python_options(p)
     add_pip_venv_args(p)
     p.set_defaults(func=_cmd_install_all)
+
+
+def _cmd_install_all(args: argparse.Namespace) -> ExitCode:
+    return commands.install_all(
+        args.spec_metadata_file,
+        paths.ctx.bin_dir,
+        paths.ctx.man_dir,
+        args.python,
+        args.pip_args,
+        args.venv_args,
+        args.verbose,
+        force=args.force,
+    )
 
 
 def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
@@ -625,6 +442,20 @@ def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
     p.set_defaults(func=_cmd_inject)
 
 
+def _cmd_inject(args: argparse.Namespace) -> ExitCode:
+    return commands.inject(
+        _venv_dir(args),
+        args.dependencies,
+        args.requirements,
+        args.pip_args,
+        verbose=args.verbose,
+        include_apps=args.include_apps,
+        include_dependencies=args.include_deps,
+        force=args.force,
+        suffix=args.with_suffix,
+    )
+
+
 def _add_uninject(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser):
     p = subparsers.add_parser(
         "uninject",
@@ -647,6 +478,17 @@ def _add_uninject(subparsers, venv_completer: VenvCompleter, shared_parser: argp
         help="Only uninstall the main injected package but leave its dependencies installed.",
     )
     p.set_defaults(func=_cmd_uninject)
+
+
+def _cmd_uninject(args: argparse.Namespace) -> ExitCode:
+    return commands.uninject(
+        _venv_dir(args),
+        args.dependencies,
+        local_bin_dir=paths.ctx.bin_dir,
+        local_man_dir=paths.ctx.man_dir,
+        leave_deps=args.leave_deps,
+        verbose=args.verbose,
+    )
 
 
 def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
@@ -674,6 +516,10 @@ def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.
     p.set_defaults(func=_cmd_pin)
 
 
+def _cmd_pin(args: argparse.Namespace) -> ExitCode:
+    return commands.pin(_venv_dir(args), args.verbose, args.skip_list, args.injected_only)
+
+
 def _add_unpin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "unpin",
@@ -683,6 +529,10 @@ def _add_unpin(subparsers, venv_completer: VenvCompleter, shared_parser: argpars
     )
     p.add_argument("package", help="Installed package to unpin")
     p.set_defaults(func=_cmd_unpin)
+
+
+def _cmd_unpin(args: argparse.Namespace) -> ExitCode:
+    return commands.unpin(_venv_dir(args), args.verbose)
 
 
 def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
@@ -714,6 +564,20 @@ def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argpa
     p.set_defaults(func=_cmd_upgrade)
 
 
+def _cmd_upgrade(args: argparse.Namespace) -> ExitCode:
+    return commands.upgrade(
+        _venv_dirs(args),
+        args.python,
+        args.pip_args,
+        args.venv_args,
+        args.verbose,
+        include_injected=args.include_injected,
+        force=args.force,
+        install=args.install,
+        python_flag_passed=args.python_flag_passed,
+    )
+
+
 def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "upgrade-all",
@@ -737,6 +601,18 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argp
     p.set_defaults(func=_cmd_upgrade_all)
 
 
+def _cmd_upgrade_all(args: argparse.Namespace) -> ExitCode:
+    return commands.upgrade_all(
+        args.venv_container,
+        args.verbose,
+        include_injected=args.include_injected,
+        skip=args.skip_list,
+        force=args.force,
+        pip_args=args.pip_args,
+        python_flag_passed=args.python_flag_passed,
+    )
+
+
 def _add_upgrade_shared(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "upgrade-shared",
@@ -751,6 +627,10 @@ def _add_upgrade_shared(subparsers: argparse._SubParsersAction, shared_parser: a
     p.set_defaults(func=_cmd_upgrade_shared)
 
 
+def _cmd_upgrade_shared(args: argparse.Namespace) -> ExitCode:
+    return commands.upgrade_shared(args.verbose, args.pip_args)
+
+
 def _add_uninstall(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "uninstall",
@@ -762,6 +642,10 @@ def _add_uninstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
     p.set_defaults(func=_cmd_uninstall)
 
 
+def _cmd_uninstall(args: argparse.Namespace) -> ExitCode:
+    return commands.uninstall(_venv_dir(args), paths.ctx.bin_dir, paths.ctx.man_dir, args.verbose)
+
+
 def _add_uninstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "uninstall-all",
@@ -770,6 +654,10 @@ def _add_uninstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
         parents=[shared_parser],
     )
     p.set_defaults(func=_cmd_uninstall_all)
+
+
+def _cmd_uninstall_all(args: argparse.Namespace) -> ExitCode:
+    return commands.uninstall_all(args.venv_container, paths.ctx.bin_dir, paths.ctx.man_dir, args.verbose)
 
 
 def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
@@ -791,6 +679,17 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
     p.add_argument("package").completer = venv_completer
     add_python_options(p)
     p.set_defaults(func=_cmd_reinstall)
+
+
+def _cmd_reinstall(args: argparse.Namespace) -> ExitCode:
+    return commands.reinstall(
+        venv_dir=_venv_dir(args),
+        local_bin_dir=paths.ctx.bin_dir,
+        local_man_dir=paths.ctx.man_dir,
+        python=args.python,
+        verbose=args.verbose,
+        python_flag_passed=args.python_flag_passed,
+    )
 
 
 def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -816,6 +715,18 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
     p.set_defaults(func=_cmd_reinstall_all)
 
 
+def _cmd_reinstall_all(args: argparse.Namespace) -> ExitCode:
+    return commands.reinstall_all(
+        args.venv_container,
+        paths.ctx.bin_dir,
+        paths.ctx.man_dir,
+        args.python,
+        args.verbose,
+        skip=args.skip_list,
+        python_flag_passed=args.python_flag_passed,
+    )
+
+
 def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "list",
@@ -838,6 +749,10 @@ def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
     )
     g.add_argument("--skip-maintenance", action="store_true", help="(deprecated) No-op")
     p.set_defaults(func=_cmd_list)
+
+
+def _cmd_list(args: argparse.Namespace) -> ExitCode:
+    return commands.list_packages(args.venv_container, args.include_injected, args.json, args.short, args.pinned)
 
 
 def _add_interpreter(
@@ -866,6 +781,18 @@ def _add_interpreter(
     upgrade_p.set_defaults(func=_cmd_interpreter_upgrade)
     p.set_defaults(func=_make_print_help(p))
     return p
+
+
+def _cmd_interpreter_list(args: argparse.Namespace) -> ExitCode:
+    return commands.list_interpreters(args.venv_container)
+
+
+def _cmd_interpreter_prune(args: argparse.Namespace) -> ExitCode:
+    return commands.prune_interpreters(args.venv_container)
+
+
+def _cmd_interpreter_upgrade(args: argparse.Namespace) -> ExitCode:
+    return commands.upgrade_interpreters(args.venv_container, args.verbose)
 
 
 def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -929,6 +856,22 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
     p.usage = re.sub(r"\.\.\.", "app ...", p.usage)
 
 
+def _cmd_run(args: argparse.Namespace) -> NoReturn:
+    commands.run(
+        args.app_with_args[0],
+        args.spec,
+        args.with_,
+        args.path,
+        args.app_with_args[1:],
+        args.python,
+        args.pip_args,
+        args.venv_args,
+        args.pypackages,
+        args.verbose,
+        not args.no_cache,
+    )
+
+
 def _add_runpip(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "runpip",
@@ -947,6 +890,10 @@ def _add_runpip(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
         help="Arguments to forward to pip command",
     )
     p.set_defaults(func=_cmd_runpip)
+
+
+def _cmd_runpip(args: argparse.Namespace) -> ExitCode:
+    return commands.run_pip(args.package, _venv_dir(args), get_runpip_args(args.pipargs), args.verbose)
 
 
 def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -987,6 +934,14 @@ def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argpa
     p.set_defaults(func=_cmd_ensurepath)
 
 
+def _cmd_ensurepath(args: argparse.Namespace) -> ExitCode:
+    try:
+        return commands.ensure_pipx_paths(prepend=args.prepend, force=args.force, all_shells=args.all_shells)
+    except Exception as e:
+        logger.debug("Uncaught Exception:", exc_info=True)
+        raise PipxError(str(e), wrap_message=False) from None
+
+
 def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "environment",
@@ -1012,6 +967,31 @@ def _add_environment(subparsers: argparse._SubParsersAction, shared_parser: argp
         help="Print the value of the variable.",
     )
     p.set_defaults(func=_cmd_environment)
+
+
+def _cmd_environment(args: argparse.Namespace) -> ExitCode:
+    return commands.environment(value=args.value)
+
+
+def _venv_dir(args: argparse.Namespace) -> Path:
+    venv_dir = args.venv_container.get_venv_dir(valid_pypi_name(args.package) or args.package)
+    logger.info(f"Virtual Environment location is {venv_dir}")
+    return venv_dir
+
+
+def _venv_dirs(args: argparse.Namespace) -> dict[str, Path]:
+    venv_dirs = {pkg: args.venv_container.get_venv_dir(valid_pypi_name(pkg) or pkg) for pkg in args.packages}
+    venv_dirs_msg = "\n".join(f"- {key} : {value}" for key, value in venv_dirs.items())
+    logger.info(f"Virtual Environment locations are:\n{venv_dirs_msg}")
+    return venv_dirs
+
+
+def _make_print_help(target_parser: argparse.ArgumentParser) -> Callable[[argparse.Namespace], ExitCode]:
+    def _print_help(args: argparse.Namespace) -> ExitCode:
+        target_parser.print_help()
+        return EXIT_CODE_OK
+
+    return _print_help
 
 
 def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.ArgumentParser]]:
@@ -1097,6 +1077,11 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
     )
     help_p.set_defaults(func=_make_print_help(parser))
     return parser, subparsers_with_subcommands
+
+
+def _cmd_completions(args: argparse.Namespace) -> ExitCode:
+    print(constants.completion_instructions)
+    return ExitCode(0)
 
 
 def delete_oldest_logs(file_list: list[Path], keep_number: int) -> None:
