@@ -1,6 +1,7 @@
 import os
 
 from pipx import paths
+from pipx.backends import env_default_backend, find_uv_binary, resolve_backend_name
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojis import EMOJI_SUPPORT
 from pipx.interpreter import DEFAULT_PYTHON
@@ -15,6 +16,7 @@ ENVIRONMENT_VARIABLES = [
     "PIPX_GLOBAL_MAN_DIR",
     "PIPX_SHARED_LIBS",
     "PIPX_DEFAULT_PYTHON",
+    "PIPX_DEFAULT_BACKEND",
     "PIPX_FETCH_MISSING_PYTHON",
     "PIPX_FETCH_PYTHON",
     "PIPX_USE_EMOJI",
@@ -26,12 +28,18 @@ DERIVED_ENVIRONMENT_VARIABLES = [
     "PIPX_TRASH_DIR",
     "PIPX_VENV_CACHEDIR",
     "PIPX_STANDALONE_PYTHON_CACHEDIR",
+    "PIPX_RESOLVED_BACKEND",
+    "PIPX_BACKEND_SOURCE",
+    "PIPX_UV_BINARY",
+    "UV_CACHE_DIR",
 ]
 ENVIRONMENT_VALUE_CHOICES = ENVIRONMENT_VARIABLES + DERIVED_ENVIRONMENT_VARIABLES
 
 
 def environment(value: str) -> ExitCode:
     """Print a list of environment variables and paths used by pipx"""
+    resolved_backend, backend_source = resolve_backend_name(env_value=env_default_backend())
+    uv_binary, _uv_source = find_uv_binary()
     derived_values = {
         "PIPX_HOME": paths.ctx.home,
         "PIPX_BIN_DIR": paths.ctx.bin_dir,
@@ -43,6 +51,10 @@ def environment(value: str) -> ExitCode:
         "PIPX_VENV_CACHEDIR": paths.ctx.venv_cache,
         "PIPX_STANDALONE_PYTHON_CACHEDIR": paths.ctx.standalone_python_cachedir,
         "PIPX_DEFAULT_PYTHON": DEFAULT_PYTHON,
+        "PIPX_RESOLVED_BACKEND": resolved_backend,
+        "PIPX_BACKEND_SOURCE": backend_source,
+        "PIPX_UV_BINARY": str(uv_binary) if uv_binary else "",
+        "UV_CACHE_DIR": os.environ.get("UV_CACHE_DIR", ""),
         "PIPX_USE_EMOJI": str(EMOJI_SUPPORT).lower(),
         "PIPX_HOME_ALLOW_SPACE": str(paths.ctx.allow_spaces_in_home_path).lower(),
     }

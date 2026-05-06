@@ -1,3 +1,4 @@
+import importlib
 import json
 import os
 import shutil
@@ -15,6 +16,16 @@ import pytest
 
 from helpers import WIN
 from pipx import commands, interpreter, paths, shared_libs, standalone_python, venv
+from pipx.backends import get_backend
+from pipx.backends import pip as _pip_backend_module
+from pipx.backends import uv as _uv_backend_module
+from pipx.backends.uv import find_uv_binary
+from pipx.venv import reset_backend_override_warnings
+
+# ``pipx.commands.__init__`` re-exports ``upgrade`` (the function), which
+# shadows the submodule on the package. ``import_module`` returns the module
+# regardless.
+_upgrade_module = importlib.import_module("pipx.commands.upgrade")
 
 PIPX_TESTS_DIR = Path(".pipx_tests")
 PIPX_TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
@@ -23,6 +34,24 @@ PIPX_TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
 @pytest.fixture(scope="session")
 def root() -> Path:
     return Path(__file__).parents[1]
+
+
+@pytest.fixture(autouse=True)
+def _backend_test_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pin every test to pip with empty backend caches.
+
+    Without the env pin, unit tests that build a ``Venv`` outside the
+    ``pipx_temp_env`` fixture would auto-detect uv from CI's PATH and fork a
+    real ``uv --version`` probe. Cache resets stop the previous test's
+    monkeypatched ``shutil.which`` from poisoning this one.
+
+    Uv-backend tests opt back in with ``--backend uv``.
+    """
+    monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "pip")
+    find_uv_binary.cache_clear()
+    _uv_backend_module._check_uv_version.cache_clear()
+    get_backend.cache_clear()
+    reset_backend_override_warnings()
 
 
 @pytest.fixture()
@@ -84,14 +113,20 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_
     # Refresh paths.ctx to commit the overrides
     paths.ctx.make_local()
 
-    # Reset internal state of shared_libs
+    # Each consumer holds its own ``shared_libs`` reference (via
+    # ``from pipx.shared_libs import shared_libs``); patch every importer.
     monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())
     monkeypatch.setattr(venv, "shared_libs", shared_libs.shared_libs)
+    monkeypatch.setattr(_pip_backend_module, "shared_libs", shared_libs.shared_libs)
+    monkeypatch.setattr(_upgrade_module, "shared_libs", shared_libs.shared_libs)
 
     monkeypatch.setattr(interpreter, "DEFAULT_PYTHON", sys.executable)
 
     if "PIPX_DEFAULT_PYTHON" in os.environ:
         monkeypatch.delenv("PIPX_DEFAULT_PYTHON")
+    # CI runners ship uv on PATH; pin every legacy test to pip so the auto-
+    # detect doesn't silently flip them. Uv-backend tests opt in with --backend uv.
+    monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "pip")
 
     # macOS needs /usr/bin in PATH to compile certain packages, but
     #   applications in /usr/bin cause test_install.py tests to raise warnings
@@ -111,6 +146,9 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_
         #   Using localhost on Windows creates enormous slowdowns
         #   (for some reason--perhaps IPV6/IPV4 tries, timeouts?)
         monkeypatch.setenv("PIP_INDEX_URL", pypi)
+        # uv ignores PIP_INDEX_URL; without UV_INDEX_URL the uv-backend tests
+        # would hit real PyPI on CI.
+        monkeypatch.setenv("UV_INDEX_URL", pypi)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -189,10 +227,20 @@ def pipx_session_shared_dir(tmp_path_factory):
 @pytest.fixture(scope="session")
 def utils_temp_dir(tmp_path_factory):
     tmp_path = tmp_path_factory.mktemp("session_utilstempdir")
-    utils = ["git"]
-    for util in utils:
+    required = ["git"]
+    optional = ["uv"]  # exposed only when present so the uv-backend smoke test can find it
+    for util in required:
         at_path = shutil.which(util)
         assert at_path is not None
+        util_path = Path(at_path)
+        try:
+            (tmp_path / util_path.name).symlink_to(util_path)
+        except FileExistsError:
+            pass
+    for util in optional:
+        at_path = shutil.which(util)
+        if at_path is None:
+            continue
         util_path = Path(at_path)
         try:
             (tmp_path / util_path.name).symlink_to(util_path)

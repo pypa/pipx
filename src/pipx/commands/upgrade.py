@@ -3,6 +3,7 @@ import os
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Final
 
 from pipx import commands, paths
 from pipx.colors import bold, red
@@ -10,10 +11,11 @@ from pipx.commands.common import expose_resources_globally
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojis import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
+from pipx.shared_libs import shared_libs
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv, VenvContainer
 
-logger = logging.getLogger(__name__)
+_LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def _upgrade_package(
@@ -31,12 +33,12 @@ def _upgrade_package(
         raise PipxError(f"Internal Error: package {package_name} has corrupt pipx metadata.")
     elif package_metadata.pinned:
         if package_metadata.package != venv.main_package_name:
-            logger.warning(
+            _LOGGER.warning(
                 f"Not upgrading pinned package {package_metadata.package} in venv {venv.name}. "
                 f"Run `pipx unpin {venv.name}` to unpin it."
             )
         else:
-            logger.warning(f"Not upgrading pinned package {venv.name}. Run `pipx unpin {venv.name}` to unpin it.")
+            _LOGGER.warning(f"Not upgrading pinned package {venv.name}. Run `pipx unpin {venv.name}` to unpin it.")
         return 0
 
     package_or_url = parse_specifier_for_upgrade(package_metadata.package_or_url)
@@ -116,8 +118,16 @@ def _upgrade_venv(
     venv_args: list[str] | None = None,
     python: str | None = None,
     python_flag_passed: bool = False,
+    backend: str | None = None,
+    env_backend: str | None = None,
+    venv: Venv | None = None,
+    shared_libs_already_checked: bool = False,
 ) -> int:
-    """Return number of packages with changed versions."""
+    """Return number of packages whose versions changed.
+
+    ``upgrade-all`` passes ``venv`` and ``shared_libs_already_checked=True``
+    after its own pre-checks to avoid re-running them per venv.
+    """
     if not venv_dir.is_dir():
         if install:
             if venv_args is None:
@@ -137,6 +147,8 @@ def _upgrade_venv(
                 include_dependencies=False,
                 preinstall_packages=None,
                 python_flag_passed=python_flag_passed,
+                backend=backend,
+                env_backend=env_backend,
             )
             return 0
         else:
@@ -148,15 +160,17 @@ def _upgrade_venv(
             )
 
     if venv_args and not install:
-        logger.info("Ignoring " + ", ".join(venv_args) + " as not combined with --install")
+        _LOGGER.info(f"Ignoring {', '.join(venv_args)} as not combined with --install")
 
     if python and not install:
-        logger.info("Ignoring --python as not combined with --install")
+        _LOGGER.info("Ignoring --python as not combined with --install")
 
-    venv = Venv(venv_dir, verbose=verbose)
+    if venv is None:
+        venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
     if not pip_args:
         pip_args = venv.pipx_metadata.main_package.pip_args
-    venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
+    if not shared_libs_already_checked:
+        venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
 
     if not venv.python_path.is_file():
         raise PipxError(
@@ -217,6 +231,8 @@ def upgrade(
     force: bool,
     install: bool,
     python_flag_passed: bool = False,
+    backend: str | None = None,
+    env_backend: str | None = None,
 ) -> ExitCode:
     """Return pipx exit code."""
 
@@ -232,6 +248,8 @@ def upgrade(
             venv_args=venv_args,
             python=python,
             python_flag_passed=python_flag_passed,
+            backend=backend,
+            env_backend=env_backend,
         )
 
     # Any error in upgrade will raise PipxError (e.g. from venv.upgrade_package())
@@ -247,16 +265,22 @@ def upgrade_all(
     skip: Sequence[str],
     force: bool,
     python_flag_passed: bool = False,
+    backend: str | None = None,
+    env_backend: str | None = None,
 ) -> ExitCode:
     """Return pipx exit code."""
     failed: list[str] = []
     upgraded: list[str] = []
 
     for venv_dir in venv_container.iter_venv_dirs():
-        venv = Venv(venv_dir, verbose=verbose)
-        venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
-        if venv_dir.name in skip or "--editable" in venv.pipx_metadata.main_package.pip_args:
+        # Cheap skip-list check first so we don't pay metadata read +
+        # cross-backend warning + shared-libs health check on excluded venvs.
+        if venv_dir.name in skip:
             continue
+        venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
+        if "--editable" in venv.pipx_metadata.main_package.pip_args:
+            continue
+        venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
         try:
             versions_updated = _upgrade_venv(
                 venv_dir,
@@ -266,6 +290,10 @@ def upgrade_all(
                 upgrading_all=True,
                 force=force,
                 python_flag_passed=python_flag_passed,
+                backend=backend,
+                env_backend=env_backend,
+                venv=venv,
+                shared_libs_already_checked=True,
             )
             if versions_updated > 0:
                 upgraded.append(venv_dir.name)
@@ -284,9 +312,14 @@ def upgrade_shared(
     verbose: bool,
     pip_args: list[str],
 ) -> ExitCode:
-    """Return pipx exit code."""
-    from pipx.shared_libs import shared_libs  # noqa: PLC0415
-
+    # Always refreshes: the next pip-backed install needs a fresh shared-libs
+    # venv even when all currently-installed venvs are uv-backed.
     shared_libs.upgrade(verbose=verbose, pip_args=pip_args, raises=True)
-
     return EXIT_CODE_OK
+
+
+__all__ = [
+    "upgrade",
+    "upgrade_all",
+    "upgrade_shared",
+]

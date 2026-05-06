@@ -3,7 +3,10 @@ import sys
 from collections.abc import Iterator
 from pathlib import Path
 
+from packaging.utils import canonicalize_name
+
 from pipx import commands, paths
+from pipx.backends import PIP
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.constants import (
     EXIT_CODE_INSTALL_VENV_EXISTS,
@@ -12,7 +15,7 @@ from pipx.constants import (
 )
 from pipx.emojis import sleep
 from pipx.interpreter import DEFAULT_PYTHON
-from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, _json_decoder_object_hook
+from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, load_spec_file
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv, VenvContainer
 
@@ -33,7 +36,9 @@ def install(
     include_dependencies: bool,
     preinstall_packages: list[str] | None,
     suffix: str = "",
-    python_flag_passed=False,
+    python_flag_passed: bool = False,
+    backend: str | None = None,
+    env_backend: str | None = None,
 ) -> ExitCode:
     """Returns pipx exit code."""
     # package_spec is anything pip-installable, including package_name, vcs spec,
@@ -44,7 +49,14 @@ def install(
     package_names = package_names or []
     if len(package_names) != len(package_specs):
         package_names = [
-            package_name_from_spec(package_spec, python, pip_args=pip_args, verbose=verbose)
+            package_name_from_spec(
+                package_spec,
+                python,
+                pip_args=pip_args,
+                verbose=verbose,
+                backend=backend,
+                env_backend=env_backend,
+            )
             for package_spec in package_specs
         ]
 
@@ -58,7 +70,21 @@ def install(
         except StopIteration:
             exists = False
 
-        venv = Venv(venv_dir, python=python, verbose=verbose)
+        # ``pipx install pip`` always uses pip (uv venvs ship no pip). Override
+        # only the implicit env path; ``--backend uv`` still falls through to
+        # ``assert_not_pip_under_uv`` so an explicit conflict fails loudly.
+        install_backend, install_env_backend = backend, env_backend
+        if canonicalize_name(package_name) == "pip":
+            install_backend = backend or PIP
+            install_env_backend = None
+
+        venv = Venv(
+            venv_dir,
+            python=python,
+            verbose=verbose,
+            backend=install_backend,
+            env_backend=install_env_backend,
+        )
         venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
         if exists:
             if not reinstall and force and python_flag_passed:
@@ -94,11 +120,10 @@ def install(
                 continue
 
         try:
-            # Enable installing shared library `pip` with `pipx`
-            override_shared = package_name == "pip"
+            override_shared = canonicalize_name(package_name) == "pip"
             venv.create_venv(venv_args, pip_args, override_shared)
-            for dep in preinstall_packages or []:
-                venv.upgrade_package_no_metadata(dep, [])
+            for dependency in preinstall_packages or []:
+                venv.upgrade_package_no_metadata(dependency, [])
             venv.install_package(
                 package_name=package_name,
                 package_or_url=package_spec,
@@ -130,26 +155,22 @@ def install(
 
 
 def extract_venv_metadata(spec_metadata_file: Path) -> Iterator[PipxMetadata]:
-    """Extract venv metadata from spec metadata file."""
-    with open(spec_metadata_file) as spec_metadata_fh:
-        try:
-            spec_metadata_dict = json.load(spec_metadata_fh, object_hook=_json_decoder_object_hook)
-        except json.decoder.JSONDecodeError as exc:
-            raise PipxError("The spec metadata file is an invalid JSON file.") from exc
+    try:
+        spec = load_spec_file(spec_metadata_file)
+    except json.decoder.JSONDecodeError as exc:
+        raise PipxError("The spec metadata file is an invalid JSON file.") from exc
 
-        if not ("venvs" in spec_metadata_dict and len(spec_metadata_dict["venvs"])):
-            raise PipxError("No packages found in the spec metadata file.")
+    venvs_metadata_dict = spec.get("venvs")
+    if not venvs_metadata_dict:
+        raise PipxError("No packages found in the spec metadata file.")
+    if not isinstance(venvs_metadata_dict, dict):
+        raise PipxError("The spec metadata file is invalid.")
 
-        venvs_metadata_dict = spec_metadata_dict["venvs"]
-
-        if not isinstance(venvs_metadata_dict, dict):
-            raise PipxError("The spec metadata file is invalid.")
-
-        for package_path_name in venvs_metadata_dict:
-            venv_dir = paths.ctx.venvs.joinpath(package_path_name)
-            venv_metadata = PipxMetadata(venv_dir, read=False)
-            venv_metadata.from_dict(venvs_metadata_dict[package_path_name]["metadata"])
-            yield venv_metadata
+    for package_path_name, entry in venvs_metadata_dict.items():
+        venv_dir = paths.ctx.venvs.joinpath(package_path_name)
+        venv_metadata = PipxMetadata(venv_dir, read=False)
+        venv_metadata.from_dict(entry["metadata"])
+        yield venv_metadata
 
 
 def generate_package_spec(package_info: PackageInfo) -> str:
@@ -191,6 +212,8 @@ def install_all(
     verbose: bool,
     *,
     force: bool,
+    backend: str | None = None,
+    env_backend: str | None = None,
 ) -> ExitCode:
     """Return pipx exit code."""
     venv_container = VenvContainer(paths.ctx.venvs)
@@ -217,6 +240,8 @@ def install_all(
                 include_dependencies=main_package.include_dependencies,
                 preinstall_packages=[],
                 suffix=main_package.suffix,
+                backend=backend or venv_metadata.backend,
+                env_backend=env_backend,
             )
 
             # Install the injected packages
@@ -243,3 +268,12 @@ def install_all(
         raise PipxError(f"The following package(s) failed to install: {', '.join(failed)}")
     # Any failure to install will raise PipxError, otherwise success
     return EXIT_CODE_OK
+
+
+__all__ = [
+    "extract_venv_metadata",
+    "generate_package_spec",
+    "get_python_interpreter",
+    "install",
+    "install_all",
+]

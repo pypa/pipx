@@ -11,6 +11,7 @@ pipx reads the following environment variables. All are optional.
 | `PIPX_GLOBAL_BIN_DIR`       | Binary directory for global installs.                                     | `/usr/local/bin`                                                           |
 | `PIPX_GLOBAL_MAN_DIR`       | Man page directory for global installs.                                   | `/usr/local/share/man`                                                     |
 | `PIPX_DEFAULT_PYTHON`       | Python interpreter to use when `--python` is not passed.                  | `python3` (or `py` on Windows)                                             |
+| `PIPX_DEFAULT_BACKEND`      | Backend for new venvs: `pip` or `uv`.                                     | `uv` when uv is available, else `pip`                                      |
 | `PIPX_SHARED_LIBS`          | Override the shared libraries directory.                                  | `PIPX_HOME/shared`                                                         |
 | `PIPX_FETCH_PYTHON`         | When to fetch a standalone Python build: `always`, `missing`, or `never`. | `never`                                                                    |
 | `PIPX_FETCH_MISSING_PYTHON` | Deprecated, alias for `PIPX_FETCH_PYTHON=missing`.                        | _(unset)_                                                                  |

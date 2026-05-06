@@ -27,6 +27,8 @@ def reinstall(
     verbose: bool,
     force_reinstall_shared_libs: bool = False,
     python_flag_passed: bool = False,
+    backend: str | None = None,
+    env_backend: str | None = None,
 ) -> ExitCode:
     """Returns pipx exit code."""
     if not venv_dir.exists():
@@ -44,7 +46,7 @@ def reinstall(
         )
         return EXIT_CODE_REINSTALL_INVALID_PYTHON
 
-    venv = Venv(venv_dir, verbose=verbose)
+    venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
     venv.check_upgrade_shared_libs(
         pip_args=venv.pipx_metadata.main_package.pip_args, verbose=verbose, force_upgrade=force_reinstall_shared_libs
     )
@@ -79,6 +81,8 @@ def reinstall(
         preinstall_packages=[],
         suffix=venv.pipx_metadata.main_package.suffix,
         python_flag_passed=python_flag_passed,
+        backend=backend or venv.pipx_metadata.backend,
+        env_backend=env_backend,
     )
 
     # now install injected packages
@@ -96,6 +100,8 @@ def reinstall(
             include_apps=injected_package.include_apps,
             include_dependencies=injected_package.include_dependencies,
             force=True,
+            backend=backend or venv.pipx_metadata.backend,
+            env_backend=env_backend,
         )
 
     # Any failure to install will raise PipxError, otherwise success
@@ -111,6 +117,8 @@ def reinstall_all(
     *,
     skip: Sequence[str],
     python_flag_passed: bool = False,
+    backend: str | None = None,
+    env_backend: str | None = None,
 ) -> ExitCode:
     """Returns pipx exit code."""
     failed: list[str] = []
@@ -132,6 +140,8 @@ def reinstall_all(
                 verbose=verbose,
                 force_reinstall_shared_libs=first_reinstall,
                 python_flag_passed=python_flag_passed,
+                backend=backend,
+                env_backend=env_backend,
             )
         except PipxError as e:
             print(e, file=sys.stderr)
@@ -145,3 +155,9 @@ def reinstall_all(
         raise PipxError(f"The following package(s) failed to reinstall: {', '.join(failed)}")
     # Any failure to install will raise PipxError, otherwise success
     return EXIT_CODE_OK
+
+
+__all__ = [
+    "reinstall",
+    "reinstall_all",
+]

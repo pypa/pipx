@@ -2,15 +2,64 @@ import json
 import logging
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Final, TypedDict
 
+from pipx.backends._base import KNOWN_BACKENDS
 from pipx.emojis import hazard
 from pipx.util import PipxError, pipx_wrap
 
-logger = logging.getLogger(__name__)
+_LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 PIPX_INFO_FILENAME = "pipx_metadata.json"
+
+
+class _RawPackageInfo(TypedDict, total=False):
+    """JSON-on-disk shape for :class:`PackageInfo`.
+
+    ``total=False`` because the legacy-metadata migration runs against dumps
+    from older pipx versions that lacked some keys.
+    """
+
+    package: str | None
+    package_or_url: str | None
+    pip_args: list[str]
+    include_dependencies: bool
+    include_apps: bool
+    apps: list[str]
+    app_paths: list[Path]
+    apps_of_dependencies: list[str]
+    app_paths_of_dependencies: dict[str, list[Path]]
+    package_version: str
+    man_pages: list[str]
+    man_paths: list[Path]
+    man_pages_of_dependencies: list[str]
+    man_paths_of_dependencies: dict[str, list[Path]]
+    suffix: str
+    pinned: bool
+
+
+class _RawMetadata(TypedDict, total=False):
+    """JSON-on-disk shape for ``pipx_metadata.json``."""
+
+    main_package: _RawPackageInfo
+    python_version: str | None
+    source_interpreter: Path | None
+    venv_args: list[str]
+    injected_packages: dict[str, _RawPackageInfo]
+    backend: str
+    pipx_metadata_version: str
+    pinned: bool
+
+
+class _RawSpecVenvEntry(TypedDict):
+    metadata: _RawMetadata
+
+
+class _RawSpecFile(TypedDict, total=False):
+    # Wire format produced by ``pipx list --json`` and consumed by ``install-all``.
+    venvs: dict[str, _RawSpecVenvEntry]
+    pipx_spec_version: str
 
 
 class JsonEncoderHandlesPath(json.JSONEncoder):
@@ -54,15 +103,13 @@ class PipxMetadata:
     # V0.3 -> Add man pages fields
     # V0.4 -> Add source interpreter
     # V0.5 -> Add pinned
-    __METADATA_VERSION__: str = "0.5"
+    # V0.6 -> Add backend (pip|uv)
+    __METADATA_VERSION__: str = "0.6"
 
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
-        # We init this instance with reasonable fallback defaults for all
-        #   members, EXCEPT for those we cannot know:
-        #       self.main_package.package=None
-        #       self.main_package.package_or_url=None
-        #       self.python_version=None
+        # Reasonable defaults for everything except the fields the caller
+        # populates from the install spec (package, package_or_url, python_version).
         self.main_package = PackageInfo(
             package=None,
             package_or_url=None,
@@ -83,55 +130,78 @@ class PipxMetadata:
         self.source_interpreter: Path | None = None
         self.venv_args: list[str] = []
         self.injected_packages: dict[str, PackageInfo] = {}
+        self.backend: str = "pip"
+        # ``None`` until ``read()`` succeeds; lets callers tell a fresh
+        # instance from one with authoritative on-disk values.
+        self.read_metadata_version: str | None = None
 
         if read:
             self.read()
 
     def to_dict(self) -> dict[str, Any]:
+        # Plain dict over _RawMetadata: asdict() returns dict[str, Any] and
+        # consumers serialise straight to JSON.
         return {
             "main_package": asdict(self.main_package),
             "python_version": self.python_version,
             "source_interpreter": self.source_interpreter,
             "venv_args": self.venv_args,
             "injected_packages": {name: asdict(data) for (name, data) in self.injected_packages.items()},
+            "backend": self.backend,
             "pipx_metadata_version": self.__METADATA_VERSION__,
         }
 
-    def _convert_legacy_metadata(self, metadata_dict: dict[str, Any]) -> dict[str, Any]:
-        if metadata_dict["pipx_metadata_version"] in (self.__METADATA_VERSION__):
+    def _convert_legacy_metadata(self, metadata_dict: _RawMetadata) -> _RawMetadata:
+        version = metadata_dict["pipx_metadata_version"]
+        if version in (self.__METADATA_VERSION__, "0.5"):
             pass
-        elif metadata_dict["pipx_metadata_version"] == "0.4":
+        elif version == "0.4":
             metadata_dict["pinned"] = False
-        elif metadata_dict["pipx_metadata_version"] in ("0.2", "0.3"):
+        elif version in ("0.2", "0.3"):
             metadata_dict["source_interpreter"] = None
-        elif metadata_dict["pipx_metadata_version"] == "0.1":
+        elif version == "0.1":
             main_package_data = metadata_dict["main_package"]
-            if main_package_data["package"] != self.venv_dir.name:
+            package_name = main_package_data["package"]
+            if package_name is not None and package_name != self.venv_dir.name:
                 # handle older suffixed packages gracefully
-                main_package_data["suffix"] = self.venv_dir.name.replace(main_package_data["package"], "")
+                main_package_data["suffix"] = self.venv_dir.name.replace(package_name, "")
             metadata_dict["source_interpreter"] = None
         else:
             raise PipxError(
                 f"""
-                {self.venv_dir.name}: Unknown metadata version
-                {metadata_dict["pipx_metadata_version"]}. Perhaps it was
-                installed with a later version of pipx.
+                {self.venv_dir.name}: Unknown metadata version {version}.
+                Perhaps it was installed with a later version of pipx.
                 """
             )
+        # ``backend`` is absent from any pre-0.6 dump; default once here.
+        metadata_dict.setdefault("backend", "pip")
         return metadata_dict
 
-    def from_dict(self, input_dict: dict[str, Any]) -> None:
+    def from_dict(self, input_dict: _RawMetadata) -> None:
         input_dict = self._convert_legacy_metadata(input_dict)
         self.main_package = PackageInfo(**input_dict["main_package"])
-        self.python_version = input_dict["python_version"]
-        self.source_interpreter = (
-            Path(input_dict["source_interpreter"]) if input_dict.get("source_interpreter") else None
-        )
-        self.venv_args = input_dict["venv_args"]
+        self.python_version = input_dict.get("python_version")
+        source_interpreter_raw = input_dict.get("source_interpreter")
+        self.source_interpreter = Path(source_interpreter_raw) if source_interpreter_raw else None
+        self.venv_args = input_dict.get("venv_args", [])
         self.injected_packages = {
             f"{name}{data.get('suffix', '')}": PackageInfo(**data)
-            for (name, data) in input_dict["injected_packages"].items()
+            for (name, data) in input_dict.get("injected_packages", {}).items()
         }
+        # Permissive: an unknown ``backend`` (manual edit, post-downgrade
+        # dump from a newer pipx) falls back to pip with a warning so
+        # ``pipx list`` / ``pipx uninstall`` keep working. Strict validation
+        # still fires on write via :func:`pipx.backends.resolve_backend_name`.
+        recorded_backend = input_dict.get("backend") or "pip"
+        if recorded_backend not in KNOWN_BACKENDS:
+            _LOGGER.warning(
+                "%s: ignoring unknown recorded backend %r; treating as 'pip'.",
+                self.venv_dir.name,
+                recorded_backend,
+            )
+            recorded_backend = "pip"
+        self.backend = recorded_backend
+        self.read_metadata_version = input_dict.get("pipx_metadata_version")
 
     def _validate_before_write(self) -> None:
         if (
@@ -139,7 +209,7 @@ class PipxMetadata:
             or self.main_package.package_or_url is None
             or not self.main_package.include_apps
         ):
-            logger.debug(f"PipxMetadata corrupt:\n{self.to_dict()}")
+            _LOGGER.debug(f"PipxMetadata corrupt:\n{self.to_dict()}")
             raise PipxError("Internal Error: PipxMetadata is corrupt, cannot write.")
 
     def write(self) -> None:
@@ -154,7 +224,7 @@ class PipxMetadata:
                     cls=JsonEncoderHandlesPath,
                 )
         except OSError:
-            logger.warning(
+            _LOGGER.warning(
                 pipx_wrap(
                     f"""
                     {hazard}  Unable to write {PIPX_INFO_FILENAME} to
@@ -169,10 +239,11 @@ class PipxMetadata:
     def read(self, verbose: bool = False) -> None:
         try:
             with open(self.venv_dir / PIPX_INFO_FILENAME, "rb") as pipx_metadata_fh:
-                self.from_dict(json.load(pipx_metadata_fh, object_hook=_json_decoder_object_hook))
+                payload: _RawMetadata = json.load(pipx_metadata_fh, object_hook=_json_decoder_object_hook)
+                self.from_dict(payload)
         except OSError:  # Reset self if problem reading
             if verbose:
-                logger.warning(
+                _LOGGER.warning(
                     pipx_wrap(
                         f"""
                         {hazard}  Unable to read {PIPX_INFO_FILENAME} in
@@ -184,3 +255,19 @@ class PipxMetadata:
                     )
                 )
             return
+
+
+def load_spec_file(path: Path) -> "_RawSpecFile":
+    # Round-trips Path values through :class:`JsonEncoderHandlesPath`'s hook.
+    with open(path, encoding="utf-8") as handle:
+        payload: _RawSpecFile = json.load(handle, object_hook=_json_decoder_object_hook)
+    return payload
+
+
+__all__ = [
+    "PIPX_INFO_FILENAME",
+    "JsonEncoderHandlesPath",
+    "PackageInfo",
+    "PipxMetadata",
+    "load_spec_file",
+]

@@ -1,10 +1,9 @@
-import json
 import logging
 import shutil
 import time
 from collections.abc import Generator
 from pathlib import Path
-from typing import TYPE_CHECKING, NoReturn
+from typing import TYPE_CHECKING, Final, NoReturn
 
 if TYPE_CHECKING:
     from subprocess import CompletedProcess
@@ -17,6 +16,7 @@ except ImportError:
 from packaging.utils import canonicalize_name
 
 from pipx.animate import animate
+from pipx.backends import Backend, assert_not_pip_under_uv, env_default_backend, get_backend, resolve_backend_name
 from pipx.constants import PIPX_SHARED_PTH, ExitCode
 from pipx.emojis import hazard
 from pipx.interpreter import DEFAULT_PYTHON
@@ -38,11 +38,59 @@ from pipx.util import (
     rmdir,
     run_subprocess,
     subprocess_post_check,
-    subprocess_post_check_handle_pip_error,
 )
 from pipx.venv_inspect import VenvMetadata, inspect_venv
 
-logger = logging.getLogger(__name__)
+_LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+
+# Keyed on full path so global vs user-local venvs with the same name don't
+# collide; deduped per-session because ``upgrade-all --backend uv`` against
+# many pip-backed venvs would otherwise repeat the multi-line warning per venv.
+_BACKEND_OVERRIDE_WARNED: Final[set[str]] = set()
+
+
+def reset_backend_override_warnings() -> None:
+    # Test-only: production callers never reset this.
+    _BACKEND_OVERRIDE_WARNED.clear()
+
+
+def _resolve_backend_for_venv(
+    *,
+    root: Path,
+    existing: bool,
+    metadata_backend: str | None,
+    cli_backend: str | None,
+    env_backend: str | None,
+) -> tuple[str, str]:
+    """Apply cli > metadata > env > auto precedence, warning on conflict.
+
+    Pulled out of ``Venv.__init__`` so the precedence rule is unit-testable
+    without instantiating a real venv.
+    """
+    # Existing venvs lock to their recorded backend: ``uv pip install`` against
+    # a pip-backed venv leaves it in an inconsistent state. ``pipx reinstall
+    # NAME --backend X`` is the supported flip.
+    if existing and cli_backend is not None and cli_backend != metadata_backend:
+        warning_key = str(root)
+        if warning_key not in _BACKEND_OVERRIDE_WARNED:
+            _BACKEND_OVERRIDE_WARNED.add(warning_key)
+            _LOGGER.warning(
+                pipx_wrap(
+                    f"""
+                    {hazard}  Ignoring --backend={cli_backend} for existing venv {root.name!r}
+                    (recorded backend is {metadata_backend!r}). Run
+                    `pipx reinstall {root.name} --backend {cli_backend}` to flip the venv.
+                    """,
+                    subsequent_indent=" " * 4,
+                )
+            )
+        cli_backend = None
+    # Direct ``Venv(...)`` callers (including unit tests) won't have threaded
+    # ``env_backend`` through; honor ``PIPX_DEFAULT_BACKEND`` so auto-detect
+    # doesn't fire when the operator already opted in via env.
+    if env_backend is None:
+        env_backend = env_default_backend()
+    return resolve_backend_name(cli_value=cli_backend, env_value=env_backend, metadata_value=metadata_backend)
 
 
 class VenvContainer:
@@ -74,7 +122,15 @@ class VenvContainer:
 class Venv:
     """Abstraction for a virtual environment with various useful methods for pipx"""
 
-    def __init__(self, path: Path, *, verbose: bool = False, python: str = DEFAULT_PYTHON) -> None:
+    def __init__(
+        self,
+        path: Path,
+        *,
+        verbose: bool = False,
+        python: str = DEFAULT_PYTHON,
+        backend: str | None = None,
+        env_backend: str | None = None,
+    ) -> None:
         self.root = path
         self.python = python
         self.bin_path, self.python_path, self.man_path = get_venv_paths(self.root)
@@ -85,6 +141,29 @@ class Venv:
             self._existing = self.root.exists() and bool(next(self.root.iterdir()))
         except StopIteration:
             self._existing = False
+        self._backend_name, self._backend_source = _resolve_backend_for_venv(
+            root=self.root,
+            existing=self._existing,
+            metadata_backend=self.pipx_metadata.backend if self._existing else None,
+            cli_backend=backend,
+            env_backend=env_backend,
+        )
+        self._backend: Backend | None = None
+        self._uses_shared_libs_cache: bool | None = None
+
+    @property
+    def backend(self) -> Backend:
+        if self._backend is None:
+            self._backend = get_backend(self._backend_name)
+        return self._backend
+
+    @property
+    def backend_name(self) -> str:
+        return self._backend_name
+
+    @property
+    def backend_source(self) -> str:
+        return self._backend_source
 
     def check_upgrade_shared_libs(self, verbose: bool, pip_args: list[str], force_upgrade: bool = False):
         """
@@ -125,12 +204,20 @@ class Venv:
 
     @property
     def uses_shared_libs(self) -> bool:
-        if self._existing:
-            pth_files = self.root.glob("**/" + PIPX_SHARED_PTH)
-            return next(pth_files, None) is not None
+        if not self._existing:
+            return self.backend.needs_shared_libs()
+        if self._uses_shared_libs_cache is not None:
+            return self._uses_shared_libs_cache
+        # Metadata 0.6+ records ``backend`` authoritatively; older recordings
+        # (or missing file) fall back to the .pth probe so legacy venvs still
+        # report correctly.
+        recorded_version = self.pipx_metadata.read_metadata_version
+        if recorded_version is not None and recorded_version >= "0.6":
+            answer = self.pipx_metadata.backend == "pip"
         else:
-            # always use shared libs when creating a new venv
-            return True
+            answer = next(self.root.glob(f"**/{PIPX_SHARED_PTH}"), None) is not None
+        self._uses_shared_libs_cache = answer
+        return answer
 
     @property
     def package_metadata(self) -> dict[str, PackageInfo]:
@@ -152,29 +239,23 @@ class Venv:
         """
         override_shared -- Override installing shared libraries to the pipx shared directory (default False)
         """
-        logger.info("Creating virtual environment")
-        with animate("creating virtual environment", self.do_animation):
-            cmd = [self.python, "-m", "venv"]
-            if not override_shared:
-                cmd.append("--without-pip")
-            venv_process = run_subprocess(cmd + venv_args + [str(self.root)], run_dir=str(self.root))
-        subprocess_post_check(venv_process)
-
-        shared_libs.create(verbose=self.verbose, pip_args=pip_args)
-        if not override_shared:
-            pipx_pth = get_site_packages(self.python_path) / PIPX_SHARED_PTH
-            # write path pointing to the shared libs site-packages directory
-            # example pipx_pth location:
-            #   ~/.local/share/pipx/venvs/black/lib/python3.8/site-packages/pipx_shared.pth
-            # example shared_libs.site_packages location:
-            #   ~/.local/share/pipx/shared/lib/python3.6/site-packages
-            #
-            # https://docs.python.org/3/library/site.html
-            # A path configuration file is a file whose name has the form 'name.pth'.
-            # its contents are additional items (one per line) to be added to sys.path
-            pipx_pth.write_text(f"{shared_libs.site_packages}\n")
+        _LOGGER.info("Creating virtual environment")
+        if override_shared:
+            assert_not_pip_under_uv("pip", self._backend_name)
+        self.backend.create_venv(
+            self.root,
+            python=self.python,
+            venv_args=venv_args,
+            pip_args=pip_args,
+            include_pip=override_shared,
+            verbose=self.verbose,
+        )
 
         self.pipx_metadata.venv_args = venv_args
+        # Persist the chosen backend on disk only when actually creating the venv.
+        # Runtime overrides on existing venvs (e.g. `--backend uv pipx upgrade ...`)
+        # must not silently flip the recorded backend.
+        self.pipx_metadata.backend = self._backend_name
         self.pipx_metadata.python_version = self.get_python_version()
         source_interpreter = shutil.which(self.python)
         if source_interpreter:
@@ -187,7 +268,7 @@ class Venv:
         if self.safe_to_remove():
             rmdir(self.root)
         else:
-            logger.warning(
+            _LOGGER.warning(
                 pipx_wrap(
                     f"""
                     {hazard}  Not removing existing venv {self.root} because it
@@ -200,19 +281,26 @@ class Venv:
     def upgrade_packaging_libraries(self, pip_args: list[str]) -> None:
         if self.uses_shared_libs:
             shared_libs.upgrade(pip_args=pip_args, verbose=self.verbose)
-        else:
-            # TODO: setuptools and wheel? Original code didn't bother
-            # but shared libs code does.
-            self.upgrade_package_no_metadata("pip", pip_args)
+            return
+        # Short-circuit before instantiating UvBackend so ``upgrade-all`` over
+        # uv venvs still works after uv has been uninstalled (the no-op upgrade
+        # would have happened anyway).
+        if self._backend_name == "uv":
+            return
+        self.backend.upgrade_packaging_libraries(self.python_path, pip_args, verbose=self.verbose)
 
     def uninstall_package(self, package: str, was_injected: bool = False):
         try:
-            logger.info("Uninstalling %s", package)
+            _LOGGER.info("Uninstalling %s", package)
             with animate(f"uninstalling {package}", self.do_animation):
-                cmd = ["uninstall", "-y"] + [package]
-                self._run_pip(cmd)
+                self.backend.uninstall(
+                    venv_root=self.root,
+                    venv_python=self.python_path,
+                    package=package,
+                    verbose=self.verbose,
+                )
         except PipxError as e:
-            logger.info(e)
+            _LOGGER.info(e)
             raise PipxError(f"Error uninstalling {package}.") from None
 
         if was_injected:
@@ -235,24 +323,16 @@ class Venv:
         # check syntax and clean up spec and pip_args
         (package_or_url, pip_args) = parse_specifier_for_install(package_or_url, pip_args)
 
-        logger.info("Installing %s", package_descr := full_package_description(package_name, package_or_url))
+        _LOGGER.info("Installing %s", package_descr := full_package_description(package_name, package_or_url))
         with animate(f"installing {package_descr}", self.do_animation):
-            # do not use -q with `pip install` so subprocess_post_check_pip_errors
-            #   has more information to analyze in case of failure.
-            cmd = [
-                str(self.python_path),
-                "-m",
-                "pip",
-                "--no-input",
-                "install",
-                *pip_args,
-                package_or_url,
-            ]
-            # no logging because any errors will be specially logged by
-            #   subprocess_post_check_handle_pip_error()
-            pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False, run_dir=str(self.root))
-        subprocess_post_check_handle_pip_error(pip_process)
-        if pip_process.returncode:
+            process = self.backend.install(
+                venv_root=self.root,
+                venv_python=self.python_path,
+                requirements=[package_or_url],
+                pip_args=pip_args,
+                verbose=self.verbose,
+            )
+        if process.returncode:
             raise PipxError(f"Error installing {full_package_description(package_name, package_or_url)}.")
 
         self.update_package_metadata(
@@ -277,42 +357,31 @@ class Venv:
 
     def install_unmanaged_packages(self, requirements: list[str], pip_args: list[str]) -> None:
         """Install packages in the venv, but do not record them in the metadata."""
-
-        # Note: We want to install everything at once, as that lets
-        # pip resolve conflicts correctly.
-        logger.info("Installing %s", package_descr := ", ".join(requirements))
+        _LOGGER.info("Installing %s", package_descr := ", ".join(requirements))
         with animate(f"installing {package_descr}", self.do_animation):
-            # do not use -q with `pip install` so subprocess_post_check_pip_errors
-            #   has more information to analyze in case of failure.
-            cmd = [
-                str(self.python_path),
-                "-m",
-                "pip",
-                "--no-input",
-                "install",
-                *pip_args,
-                *requirements,
-            ]
-            # no logging because any errors will be specially logged by
-            #   subprocess_post_check_handle_pip_error()
-            pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False, run_dir=str(self.root))
-        subprocess_post_check_handle_pip_error(pip_process)
-        if pip_process.returncode:
+            process = self.backend.install(
+                venv_root=self.root,
+                venv_python=self.python_path,
+                requirements=list(requirements),
+                pip_args=pip_args,
+                verbose=self.verbose,
+            )
+        if process.returncode:
             raise PipxError(f"Error installing {', '.join(requirements)}.")
 
     def install_package_no_deps(self, package_or_url: str, pip_args: list[str]) -> str:
         with animate(f"determining package name from {package_or_url!r}", self.do_animation):
             old_package_set = self.list_installed_packages()
-            cmd = [
-                "--no-input",
-                "install",
-                "--no-dependencies",
-                *pip_args,
-                package_or_url,
-            ]
-            pip_process = self._run_pip(cmd)
-        subprocess_post_check(pip_process, raise_error=False)
-        if pip_process.returncode:
+            process = self.backend.install(
+                venv_root=self.root,
+                venv_python=self.python_path,
+                requirements=[package_or_url],
+                pip_args=pip_args,
+                no_deps=True,
+                log_pip_errors=False,
+                verbose=self.verbose,
+            )
+        if process.returncode:
             raise PipxError(
                 f"""
                 Cannot determine package name from spec {package_or_url!r}.
@@ -323,10 +392,10 @@ class Venv:
         installed_packages = self.list_installed_packages() - old_package_set
         if len(installed_packages) == 1:
             package_name = installed_packages.pop()
-            logger.info(f"Determined package name: {package_name}")
+            _LOGGER.info(f"Determined package name: {package_name}")
         else:
-            logger.info(f"old_package_set = {old_package_set}")
-            logger.info(f"install_packages = {installed_packages}")
+            _LOGGER.info(f"old_package_set = {old_package_set}")
+            _LOGGER.info(f"install_packages = {installed_packages}")
             raise PipxError(
                 f"""
                 Cannot determine package name from spec {package_or_url!r}.
@@ -339,7 +408,7 @@ class Venv:
     def get_venv_metadata_for_package(self, package_name: str, package_extras: set[str]) -> VenvMetadata:
         data_start = time.time()
         venv_metadata = inspect_venv(package_name, package_extras, self.bin_path, self.python_path, self.man_path)
-        logger.info(f"get_venv_metadata_for_package: {1e3 * (time.time() - data_start):.0f}ms")
+        _LOGGER.info(f"get_venv_metadata_for_package: {1e3 * (time.time() - data_start):.0f}ms")
         return venv_metadata
 
     def update_package_metadata(
@@ -382,20 +451,12 @@ class Venv:
     def get_python_version(self) -> str:
         return run_subprocess([str(self.python_path), "--version"]).stdout.strip()
 
-    def list_installed_packages(self, not_required=False) -> set[str]:
-        cmd_run = run_subprocess(
-            [str(self.python_path), "-m", "pip", "list", "--format=json"] + (["--not-required"] if not_required else [])
+    def list_installed_packages(self, not_required: bool = False) -> set[str]:
+        return self.backend.list_installed(
+            venv_root=self.root,
+            venv_python=self.python_path,
+            not_required=not_required,
         )
-
-        if cmd_run.returncode != 0:
-            raise PipxError(
-                f"Failed to execute {cmd_run.args}.\n"
-                f"Process exited with return code {cmd_run.returncode}.\n"
-                f"stderr: {cmd_run.stderr}"
-            )
-
-        pip_list = json.loads(cmd_run.stdout.strip())
-        return {x["name"] for x in pip_list}
 
     def _find_entry_point(self, app: str) -> EntryPoint | None:
         if not self.python_path.exists():
@@ -420,7 +481,7 @@ class Venv:
             exec_app([str(self.bin_path / filename)] + app_args)
 
         # Evaluate and execute the entry point.
-        logger.info("Using discovered entry point for 'pipx run'")
+        _LOGGER.info("Using discovered entry point for 'pipx run'")
         module, attr = entry_point.module, entry_point.attr
         code = f"import sys, {module}\nsys.argv[0] = {entry_point.name!r}\nsys.exit({module}.{attr}())\n"
         exec_app([str(self.python_path), "-c", code] + app_args)
@@ -434,10 +495,18 @@ class Venv:
         return bool(list(Distribution.discover(name=package_name, path=[str(get_site_packages(self.python_path))])))
 
     def upgrade_package_no_metadata(self, package_name: str, pip_args: list[str]) -> None:
-        logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_name))
+        _LOGGER.info("Upgrading %s", package_descr := full_package_description(package_name, package_name))
         with animate(f"upgrading {package_descr}", self.do_animation):
-            pip_process = self._run_pip(["--no-input", "install", "--upgrade"] + pip_args + [package_name])
-        subprocess_post_check(pip_process)
+            process = self.backend.install(
+                venv_root=self.root,
+                venv_python=self.python_path,
+                requirements=[package_name],
+                pip_args=pip_args,
+                upgrade=True,
+                log_pip_errors=False,
+                verbose=self.verbose,
+            )
+        subprocess_post_check(process)
 
     def upgrade_package(
         self,
@@ -449,10 +518,18 @@ class Venv:
         is_main_package: bool,
         suffix: str = "",
     ) -> None:
-        logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_or_url))
+        _LOGGER.info("Upgrading %s", package_descr := full_package_description(package_name, package_or_url))
         with animate(f"upgrading {package_descr}", self.do_animation):
-            pip_process = self._run_pip(["--no-input", "install", "--upgrade"] + pip_args + [package_or_url])
-        subprocess_post_check(pip_process)
+            process = self.backend.install(
+                venv_root=self.root,
+                venv_python=self.python_path,
+                requirements=[package_or_url],
+                pip_args=pip_args,
+                upgrade=True,
+                log_pip_errors=False,
+                verbose=self.verbose,
+            )
+        subprocess_post_check(process)
 
         self.update_package_metadata(
             package_name=package_name,
@@ -465,17 +542,30 @@ class Venv:
         )
 
     def _run_pip(self, cmd: list[str]) -> "CompletedProcess[str]":
-        cmd = [str(self.python_path), "-m", "pip"] + cmd
-        if not self.verbose:
-            cmd.append("-q")
-        return run_subprocess(cmd, run_dir=str(self.root))
+        return self.backend.run_raw_pip(
+            venv_root=self.root,
+            venv_python=self.python_path,
+            args=cmd,
+            verbose=self.verbose,
+        )
 
     def run_pip_get_exit_code(self, cmd: list[str]) -> ExitCode:
-        cmd = [str(self.python_path), "-m", "pip"] + cmd
-        if not self.verbose:
-            cmd.append("-q")
-        returncode = run_subprocess(cmd, capture_stdout=False, capture_stderr=False).returncode
-        if returncode:
-            cmd_str = " ".join(str(c) for c in cmd)
-            logger.error(f"{cmd_str!r} failed")
-        return ExitCode(returncode)
+        process = self.backend.run_raw_pip(
+            venv_root=self.root,
+            venv_python=self.python_path,
+            args=cmd,
+            capture_stdout=False,
+            capture_stderr=False,
+            verbose=self.verbose,
+        )
+        if process.returncode:
+            cmd_str = " ".join(str(c) for c in process.args)
+            _LOGGER.error(f"{cmd_str!r} failed")
+        return ExitCode(process.returncode)
+
+
+__all__ = [
+    "Venv",
+    "VenvContainer",
+    "reset_backend_override_warnings",
+]

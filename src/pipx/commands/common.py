@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
+from typing import Final
 
 import userpath  # type: ignore[import-not-found]
 from packaging.utils import canonicalize_name
@@ -22,7 +23,7 @@ from pipx.pipx_metadata_file import PackageInfo
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir, safe_unlink
 from pipx.venv import Venv
 
-logger = logging.getLogger(__name__)
+_LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 class VenvProblems:
@@ -110,7 +111,7 @@ def _copy_package_resource(dest_dir: Path, path: Path, suffix: str = "") -> None
     if dest.exists():
         if filecmp.cmp(dest, src, shallow=False):
             return
-        logger.warning(f"{hazard}  Overwriting file {dest!s} with {src!s}")
+        _LOGGER.warning(f"{hazard}  Overwriting file {dest!s} with {src!s}")
         safe_unlink(dest)
     if src.exists():
         shutil.copy(src, dest)
@@ -131,7 +132,7 @@ def _symlink_package_resource(
         mkdir(symlink_path.parent)
 
     if force:
-        logger.info(f"Force is true. Removing {symlink_path!s}.")
+        _LOGGER.info(f"Force is true. Removing {symlink_path!s}.")
         try:
             symlink_path.unlink()
         except (FileNotFoundError, RuntimeError):
@@ -143,9 +144,9 @@ def _symlink_package_resource(
     is_symlink = symlink_path.is_symlink()
     if exists:
         if symlink_path.samefile(path):
-            logger.info(f"Same path {symlink_path!s} and {path!s}")
+            _LOGGER.info(f"Same path {symlink_path!s} and {path!s}")
         else:
-            logger.warning(
+            _LOGGER.warning(
                 pipx_wrap(
                     f"""
                     {hazard}  File exists at {symlink_path!s} and points
@@ -157,7 +158,7 @@ def _symlink_package_resource(
             )
         return
     if is_symlink and not exists:
-        logger.info(f"Removing existing symlink {symlink_path!s} since it pointed non-existent location")
+        _LOGGER.info(f"Removing existing symlink {symlink_path!s} since it pointed non-existent location")
         symlink_path.unlink()
 
     if executable:
@@ -167,7 +168,7 @@ def _symlink_package_resource(
     symlink_path.symlink_to(path)
 
     if executable and existing_executable_on_path:
-        logger.warning(
+        _LOGGER.warning(
             pipx_wrap(
                 f"""
                 {hazard}  Note: {name_suffixed} was already on your
@@ -364,7 +365,15 @@ def _get_list_output(
     return "\n".join(output)
 
 
-def package_name_from_spec(package_spec: str, python: str, *, pip_args: list[str], verbose: bool) -> str:
+def package_name_from_spec(
+    package_spec: str,
+    python: str,
+    *,
+    pip_args: list[str],
+    verbose: bool,
+    backend: str | None = None,
+    env_backend: str | None = None,
+) -> str:
     start_time = time.time()
 
     # shortcut if valid PyPI name
@@ -373,19 +382,19 @@ def package_name_from_spec(package_spec: str, python: str, *, pip_args: list[str
         # NOTE: if pypi name and installed package name differ, this means pipx
         #       will use the pypi name
         package_name = pypi_name
-        logger.info(f"Determined package name: {package_name}")
-        logger.info(f"Package name determined in {time.time() - start_time:.1f}s")
+        _LOGGER.info(f"Determined package name: {package_name}")
+        _LOGGER.info(f"Package name determined in {time.time() - start_time:.1f}s")
         return package_name
 
     # check syntax and clean up spec and pip_args
     (package_spec, pip_args) = parse_specifier_for_install(package_spec, pip_args)
 
     with tempfile.TemporaryDirectory() as temp_venv_dir:
-        venv = Venv(Path(temp_venv_dir), python=python, verbose=verbose)
+        venv = Venv(Path(temp_venv_dir), python=python, verbose=verbose, backend=backend, env_backend=env_backend)
         venv.create_venv(venv_args=[], pip_args=[])
         package_name = venv.install_package_no_deps(package_or_url=package_spec, pip_args=pip_args)
 
-    logger.info(f"Package name determined in {time.time() - start_time:.1f}s")
+    _LOGGER.info(f"Package name determined in {time.time() - start_time:.1f}s")
     return package_name
 
 
@@ -471,7 +480,7 @@ def run_post_install_actions(
 
 def warn_if_not_on_path(local_bin_dir: Path) -> None:
     if not userpath.in_current_path(str(local_bin_dir)):
-        logger.warning(
+        _LOGGER.warning(
             pipx_wrap(
                 f"""
                 {hazard}  Note: '{local_bin_dir}' is not on your PATH
@@ -490,3 +499,17 @@ def add_suffix(name: str, suffix: str) -> str:
 
     app = Path(name)
     return f"{app.stem}{suffix}{app.suffix}"
+
+
+__all__ = [
+    "VenvProblems",
+    "add_suffix",
+    "can_symlink",
+    "expose_resources_globally",
+    "get_exposed_man_paths_for_package",
+    "get_exposed_paths_for_package",
+    "get_venv_summary",
+    "package_name_from_spec",
+    "run_post_install_actions",
+    "venv_health_check",
+]

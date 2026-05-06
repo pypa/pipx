@@ -13,6 +13,7 @@ from pathlib import Path
 from re import Pattern
 from typing import (
     Any,
+    Final,
     NoReturn,
 )
 
@@ -20,7 +21,7 @@ from pipx import paths
 from pipx.animate import show_cursor
 from pipx.constants import MINGW, WINDOWS
 
-logger = logging.getLogger(__name__)
+_LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 class PipxError(Exception):
@@ -48,7 +49,7 @@ def rmdir(path: Path, safe_rm: bool = True) -> None:
     if not path.is_dir():
         return
 
-    logger.info(f"removing directory {path}")
+    _LOGGER.info(f"removing directory {path}")
     # Windows doesn't let us delete or overwrite files that are being run
     # But it does let us rename/move it. To get around this issue, we can move
     # the file to a temporary folder (to be deleted at a later time)
@@ -58,17 +59,17 @@ def rmdir(path: Path, safe_rm: bool = True) -> None:
     # move it to be deleted later if it still exists
     if path.is_dir():
         if safe_rm:
-            logger.warning(f"Failed to delete {path}. Will move it to a temp folder to delete later.")
+            _LOGGER.warning(f"Failed to delete {path}. Will move it to a temp folder to delete later.")
 
             path.rename(_get_trash_file(path))
         else:
-            logger.warning(f"Failed to delete {path}. You may need to delete it manually.")
+            _LOGGER.warning(f"Failed to delete {path}. You may need to delete it manually.")
 
 
 def mkdir(path: Path) -> None:
     if path.is_dir():
         return
-    logger.info(f"creating directory {path}")
+    _LOGGER.info(f"creating directory {path}")
     path.mkdir(parents=True, exist_ok=True)
 
 
@@ -162,14 +163,23 @@ def run_subprocess(
     log_stdout: bool = True,
     log_stderr: bool = True,
     run_dir: str | None = None,
+    env_overrides: dict[str, str | None] | None = None,
 ) -> "subprocess.CompletedProcess[str]":
-    """Run arbitrary command as subprocess, capturing stderr and stout"""
+    """Run a command as a subprocess, capturing stderr and stdout.
+
+    ``env_overrides`` keys map to a string (set/replace) or ``None`` (delete).
+    """
     env = dict(os.environ)
     env = _fix_subprocess_env(env)
+    for key, value in (env_overrides or {}).items():
+        if value is None:
+            env.pop(key, None)
+        else:
+            env[key] = value
 
     if log_cmd_str is None:
         log_cmd_str = " ".join(str(c) for c in cmd)
-    logger.info(f"running {log_cmd_str}")
+    _LOGGER.info(f"running {log_cmd_str}")
     if run_dir:
         os.makedirs(run_dir, exist_ok=True)
     # windows cannot take Path objects, only strings
@@ -194,10 +204,10 @@ def run_subprocess(
     )
 
     if capture_stdout and log_stdout:
-        logger.debug(f"stdout: {completed_process.stdout}".rstrip())
+        _LOGGER.debug(f"stdout: {completed_process.stdout}".rstrip())
     if capture_stderr and log_stderr:
-        logger.debug(f"stderr: {completed_process.stderr}".rstrip())
-    logger.debug(f"returncode: {completed_process.returncode}")
+        _LOGGER.debug(f"stderr: {completed_process.stderr}".rstrip())
+    _LOGGER.debug(f"returncode: {completed_process.returncode}")
 
     return completed_process
 
@@ -211,7 +221,7 @@ def subprocess_post_check(completed_process: "subprocess.CompletedProcess[str]",
         if raise_error:
             raise PipxError(f"{' '.join([str(x) for x in completed_process.args])!r} failed")
         else:
-            logger.info(f"{' '.join(completed_process.args)!r} failed")
+            _LOGGER.info(f"{' '.join(completed_process.args)!r} failed")
 
 
 def dedup_ordered(input_list: list[tuple[str, Any]]) -> list[tuple[str, Any]]:
@@ -302,15 +312,15 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str) -> None:
         failed_to_build_str = "\n    ".join(failed_build_stdout)
         plural_str = "s" if len(failed_build_stdout) > 1 else ""
         print("", file=sys.stderr)
-        logger.error(f"pip failed to build package{plural_str}:\n    {failed_to_build_str}")
+        _LOGGER.error(f"pip failed to build package{plural_str}:\n    {failed_to_build_str}")
     elif failed_build_stderr:
         failed_to_build_str = "\n    ".join(failed_build_stderr)
         plural_str = "s" if len(failed_build_stderr) > 1 else ""
         print("", file=sys.stderr)
-        logger.error(f"pip seemed to fail to build package{plural_str}:\n    {failed_to_build_str}")
+        _LOGGER.error(f"pip seemed to fail to build package{plural_str}:\n    {failed_to_build_str}")
     elif last_collecting_dep is not None:
         print("", file=sys.stderr)
-        logger.error(f"pip seemed to fail to build package:\n    {last_collecting_dep}")
+        _LOGGER.error(f"pip seemed to fail to build package:\n    {last_collecting_dep}")
 
     relevants_saved = dedup_ordered(relevants_saved)
 
@@ -329,25 +339,35 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str) -> None:
 
 def subprocess_post_check_handle_pip_error(
     completed_process: "subprocess.CompletedProcess[str]",
+    tool_name: str = "pip",
 ) -> None:
-    if completed_process.returncode:
-        logger.info(f"{' '.join(completed_process.args)!r} failed")
-        # Save STDOUT and STDERR to file in pipx/logs/
-        if paths.ctx.log_file is None:
-            raise PipxError("Pipx internal error: No log_file present.")
-        pip_error_file = paths.ctx.log_file.parent / (paths.ctx.log_file.stem + "_pip_errors.log")
-        with pip_error_file.open("a", encoding="utf-8") as pip_error_fh:
-            print("PIP STDOUT", file=pip_error_fh)
-            print("----------", file=pip_error_fh)
-            if completed_process.stdout is not None:
-                print(completed_process.stdout, file=pip_error_fh, end="")
-            print("\nPIP STDERR", file=pip_error_fh)
-            print("----------", file=pip_error_fh)
-            if completed_process.stderr is not None:
-                print(completed_process.stderr, file=pip_error_fh, end="")
+    """Persist subprocess output; run pip-specific heuristics for the pip path.
 
-        logger.error(f"Fatal error from pip prevented installation. Full pip output in file:\n    {pip_error_file}")
+    ``tool_name="pip"`` keeps the historical wording that log-scrapers /
+    tests built around. uv writes a uv-labelled log and skips the pip output
+    analyser, whose regexes don't match uv's error format.
+    """
+    if not completed_process.returncode:
+        return
+    _LOGGER.info(f"{' '.join(completed_process.args)!r} failed")
+    if paths.ctx.log_file is None:
+        raise PipxError("Pipx internal error: No log_file present.")
+    error_file = paths.ctx.log_file.parent / f"{paths.ctx.log_file.stem}_{tool_name}_errors.log"
+    upper_label = tool_name.upper()
+    with error_file.open("a", encoding="utf-8") as error_fh:
+        print(f"{upper_label} STDOUT", file=error_fh)
+        print("----------", file=error_fh)
+        if completed_process.stdout is not None:
+            print(completed_process.stdout, file=error_fh, end="")
+        print(f"\n{upper_label} STDERR", file=error_fh)
+        print("----------", file=error_fh)
+        if completed_process.stderr is not None:
+            print(completed_process.stderr, file=error_fh, end="")
 
+    _LOGGER.error(
+        f"Fatal error from {tool_name} prevented installation. Full {tool_name} output in file:\n    {error_file}"
+    )
+    if tool_name == "pip":
         analyze_pip_output(completed_process.stdout, completed_process.stderr)
 
 
@@ -374,7 +394,7 @@ def exec_app(
     # make sure we show cursor again before handing over control
     show_cursor()
 
-    logger.info("exec_app: " + " ".join([str(c) for c in cmd]))
+    _LOGGER.info(f"exec_app: {' '.join(str(c) for c in cmd)}")
 
     if WINDOWS:
         sys.exit(
@@ -428,3 +448,25 @@ def pipx_wrap(text: str, subsequent_indent: str = "", keep_newlines: bool = Fals
 
 def is_paths_relative(path: Path, parent: Path):
     return path.is_relative_to(parent)
+
+
+__all__ = [
+    "PipxError",
+    "RelevantSearch",
+    "analyze_pip_output",
+    "dedup_ordered",
+    "exec_app",
+    "full_package_description",
+    "get_pypackage_bin_path",
+    "get_site_packages",
+    "get_venv_paths",
+    "is_paths_relative",
+    "mkdir",
+    "pipx_wrap",
+    "rmdir",
+    "run_pypackage_bin",
+    "run_subprocess",
+    "safe_unlink",
+    "subprocess_post_check",
+    "subprocess_post_check_handle_pip_error",
+]

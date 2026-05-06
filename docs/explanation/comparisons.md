@@ -10,6 +10,101 @@
 
 Example interaction: Install pipx with pip: `pip install --user pipx`
 
+## pipx vs uv tool
+
+Both [`uv tool`](https://docs.astral.sh/uv/concepts/tools/) and pipx install a Python tool into its own virtual
+environment and expose the tool's console scripts on `PATH`. Both have a one-shot run mode (`uvx` and `pipx run`). `uvx`
+is `uv tool run`. They differ in where state lives, which extra commands they ship, and how they handle managed Python.
+
+pipx keeps the same CLI across pip and uv backends; `pipx install pipx[uv]` opts you into uv-speed venv creation without
+changing any commands. `uv tool` ships a smaller per-tool surface, then reuses the rest of `uv` for free: managed
+Python, content-addressed cache, lockfiles, PEP 723 script handling.
+
+### Where state lives
+
+|                        | pipx                                           | uv tool                                    |
+| ---------------------- | ---------------------------------------------- | ------------------------------------------ |
+| Per-tool venvs         | `$PIPX_HOME/venvs/<name>` (`PIPX_HOME`)        | `$UV_TOOL_DIR/<name>` (`UV_TOOL_DIR`)      |
+| Exposed binaries       | `$PIPX_BIN_DIR` (default `~/.local/bin`)       | `$UV_TOOL_BIN_DIR` (default same)          |
+| Man pages              | `$PIPX_MAN_DIR` (default `~/.local/share/man`) | _not exposed_                              |
+| Shared pip/setup/wheel | `$PIPX_HOME/shared` (pip-backend only)         | _none; uv venvs ship without pip_          |
+| Ephemeral run cache    | `$PIPX_HOME/.cache` (TTL 14 days)              | `$UV_CACHE_DIR` (no TTL; `uv cache prune`) |
+| Standalone Python      | `$PIPX_HOME/py` (`PIPX_FETCH_PYTHON`)          | `$UV_PYTHON_INSTALL_DIR`                   |
+| System-wide install    | `--global`, `PIPX_GLOBAL_*`                    | _not supported_                            |
+
+`PIPX_BIN_DIR` and `UV_TOOL_BIN_DIR` both default to `~/.local/bin` on Unix, so installing the same tool with both
+managers writes the same filename. Each manager refuses to overwrite a binary the other one wrote without `--force`. Use
+`pipx install --suffix=...` to keep two copies side-by-side; uv has no equivalent.
+
+### Subcommand mapping
+
+| Task                           | pipx                                              | uv tool                                                             |
+| ------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------- |
+| Install from PyPI              | `pipx install ruff`                               | `uv tool install ruff` (or `uvx ruff` for one-off)                  |
+| Install from a git URL         | `pipx install 'git+https://…'`                    | `uv tool install 'git+https://…'`                                   |
+| Install editable from path     | `pipx install -e ./mypkg`                         | `uv tool install -e ./mypkg`                                        |
+| One-off run (no install)       | `pipx run black .`                                | `uvx black .`                                                       |
+| One-off run with extra dep     | _no clean equivalent_                             | `uvx --with mkdocs-material mkdocs`                                 |
+| Pinned-version one-off         | `pipx run --spec 'ruff==0.6.0' ruff check`        | `uvx ruff@0.6.0 check`                                              |
+| Add a dep to existing tool     | `pipx inject mkdocs mkdocs-material`              | `uv tool install mkdocs --with mkdocs-material` (rebuilds)          |
+| Remove an injected dep         | `pipx uninject mkdocs mkdocs-material`            | _rebuild without `--with`_                                          |
+| Upgrade one                    | `pipx upgrade ruff`                               | `uv tool upgrade ruff`                                              |
+| Upgrade all                    | `pipx upgrade-all`                                | `uv tool upgrade --all`                                             |
+| List installed                 | `pipx list`                                       | `uv tool list` (`--show-with`, `--outdated`, …)                     |
+| Reinstall (e.g. after Py bump) | `pipx reinstall ruff` / `reinstall-all`           | `uv tool upgrade --reinstall ruff` / `--all -p 3.13`                |
+| Run pip inside a venv          | `pipx runpip <tool> -- pip ...`                   | _not supported (no pip in uv venvs)_                                |
+| PATH setup                     | `pipx ensurepath`                                 | `uv tool update-shell`                                              |
+| Show resolved env              | `pipx environment`                                | `uv tool dir`, `uv tool dir --bin`, `uv cache dir`, `uv python dir` |
+| PEP 723 inline script          | `pipx run script.py` (with uv backend → `uv run`) | `uv run --script script.py`                                         |
+
+### Only in pipx
+
+- `pipx inject` / `uninject` add or remove a package in place. `uv tool install --with` reaches the same end state by
+    rebuilding the venv.
+- `pipx runpip <venv> -- ...` runs pip inside a tool's venv. uv venvs have no pip.
+- `--include-deps` exposes entry points from every dependency. uv requires you to enumerate dep packages with
+    `--with-executables-from`.
+- `--suffix` keeps two copies of the same tool side-by-side.
+- `--global` and the `PIPX_GLOBAL_*` variables drive a system-wide install.
+- Manual pages get symlinked under `$PIPX_MAN_DIR`.
+- `pipx install-all <spec.json>` rebuilds every venv from a `pipx list --json` snapshot for cross-machine migration.
+- `[project.entry-points."pipx.run"]` declares pipx-specific runtime extras in the package metadata.
+- `pipx environment` prints every variable and its resolved value in one place.
+
+### Only in uv tool
+
+- `uv tool list --outdated` queries newer versions without upgrading.
+- `uv tool list` toggles columns via `--show-with`, `--show-paths`, `--show-version-specifiers`, `--show-extras`,
+    `--show-python`.
+- `uvx --with-editable PATH` adds editable extras for a one-off run.
+- `uv tool upgrade --all -p 3.13` re-pins every tool to a different Python in one shot.
+- `uv python install/list/find/pin/upgrade/uninstall` integrates managed Python; uv auto-fetches when the requested
+    Python isn't installed.
+- `--exclude-newer`, `--torch-backend`, and `--isolated` add reproducibility knobs that pipx forwards but doesn't add on
+    its own.
+- The content-addressed cache spans `uv pip`, `uv tool`, `uv run`, and `uv venv`. Wheels downloaded once get reused
+    everywhere.
+
+### Gotchas
+
+- `uvx` reuses cached envs across invocations until you prune the cache (`uv cache clean`), pin a new version
+    (`uvx black@latest`), or pass `--refresh`. `pipx run` also caches, but the temp venv expires after 14 days idle.
+- `uvx` prefers a persistent install when one exists. After `uv tool install ruff`, plain `uvx ruff` reuses that env
+    instead of building an ephemeral one. Pass `--isolated` to bypass.
+- `uv tool` ignores project-local `.python-version` files. `uv run` honors them; tool envs do not. pipx never reads
+    them; pass `--python` or set `PIPX_DEFAULT_PYTHON`.
+- `uv python upgrade` only bumps patch versions. To move a tool from 3.12 to 3.13 run `uv tool upgrade --all -p 3.13`.
+    pipx's equivalent is `reinstall-all --python python3.13`.
+- `uv run --script` needs a real on-disk path. When `pipx run script.py` content arrives via URL or named pipe, the uv
+    backend falls back to building a venv.
+
+### Picking one
+
+Pipx wins when you need its tool-specific extras: `inject`/`uninject`, `--global`, `--suffix`, manual pages, or
+`pipx install-all` for migration. Install `pipx[uv]` to keep that surface and pick up uv-speed venv creation. Reach for
+`uv tool` when you already drive uv for managed Python or `uv run --script` and want one binary for everything. Running
+both is fine; the only collision point is the shared bin dir, and both sides refuse to overwrite without `--force`.
+
 ## pipx vs poetry and pipenv
 
 - pipx is used solely for application consumption: you install CLI apps with it

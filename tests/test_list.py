@@ -251,15 +251,11 @@ def test_list_installed_packages_error(monkeypatch, tmp_path, fake_process):
 
     fake_process.register(pip_list_args, returncode=1, stderr="unit test stderr")
 
-    # don't reformat the error message, so we can compare it to a known string
-    monkeypatch.setattr(venv, "PipxError", lambda m: PipxError(m, wrap_message=False))
-
     with pytest.raises(PipxError) as excinfo:
         fake_venv.list_installed_packages()
 
-    assert len(excinfo.value.args) == 1
-
-    actual = excinfo.value.args[0]
-    expected = f"Failed to execute {pip_list_args}.\nProcess exited with return code 1.\nstderr: unit test stderr"
-
-    assert actual == expected
+    # Collapse the wrapping pipx_wrap applies on render so we can assert on substrings.
+    rendered = " ".join(str(excinfo.value).split())
+    assert "Failed to execute" in rendered
+    assert "Process exited with return code 1" in rendered
+    assert "unit test stderr" in rendered

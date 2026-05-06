@@ -41,6 +41,7 @@ nav:
       - Inject Packages: "how-to/inject-packages.md"
       - Pin Packages: "how-to/pin-packages.md"
       - Run Scripts: "how-to/run-scripts.md"
+      - Use the uv Backend: "how-to/use-uv-backend.md"
       - Use with pre-commit: "how-to/use-with-pre-commit.md"
       - Configure Paths: "how-to/configure-paths.md"
       - Move Installation: "how-to/move-installation.md"

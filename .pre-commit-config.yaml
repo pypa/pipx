@@ -46,6 +46,7 @@ repos:
           - "packaging>=20"
           - "platformdirs>=2.1"
           - "pytest"
+          - "pytest-mock"
           - "tomli; python_version < '3.11'"
   # Configuration for codespell is in pyproject.toml
   - repo: https://github.com/codespell-project/codespell
