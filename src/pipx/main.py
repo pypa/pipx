@@ -102,6 +102,8 @@ PIPX_DESCRIPTION += pipx_wrap(
       PIPX_GLOBAL_MAN_DIR    Used instead of PIPX_MAN_DIR when the `--global` option is given.
       PIPX_DEFAULT_PYTHON    Overrides default python used for commands.
       PIPX_DEFAULT_BACKEND   Overrides which backend (`pip` or `uv`) is used for new venvs.
+      PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE
+                            Skips automatic shared library upgrades.
       PIPX_USE_EMOJI         Overrides emoji behavior. Default value varies based on platform.
       PIPX_HOME_ALLOW_SPACE  Overrides default warning on spaces in the home path
     """,

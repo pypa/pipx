@@ -90,6 +90,9 @@ These variables also apply when pipx upgrades its shared libraries (`pipx upgrad
 in your shell profile or in pip's own config file (`pip.conf` / `pip.ini`). See the
 [pip configuration documentation](https://pip.pypa.io/en/stable/topics/configuration/) for details.
 
+Set `PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE=1` to skip automatic shared library upgrades during commands such as
+`pipx install` and `pipx upgrade`. The explicit `pipx upgrade-shared` command still upgrades the shared libraries.
+
 Per-command pip options can be passed with `--pip-args`:
 
 ```
