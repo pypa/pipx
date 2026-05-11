@@ -8,7 +8,8 @@ from unittest.mock import patch
 import pytest
 
 from pipx import shared_libs
-from pipx.constants import WINDOWS
+from pipx.constants import PIPX_SHARED_PTH, WINDOWS
+from pipx.venv import Venv
 
 
 @pytest.mark.parametrize(
@@ -87,3 +88,47 @@ def test_venv_python_is_valid_non_windows() -> None:
     with patch.object(shared_libs, "WINDOWS", False):
         # Should return True regardless of the path
         assert shared_libs._venv_python_is_valid(Path("/fake/path/python")) is True
+
+
+@pytest.mark.parametrize(
+    ("env_value", "force_upgrade", "expected_calls"),
+    [
+        ("1", False, 0),
+        ("1", True, 1),
+        ("0", False, 1),
+    ],
+)
+def test_disable_shared_libs_auto_upgrade(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    env_value: str,
+    force_upgrade: bool,
+    expected_calls: int,
+) -> None:
+    venv_path = tmp_path / "venv"
+    site_packages = venv_path / "lib" / "python" / "site-packages"
+    site_packages.mkdir(parents=True)
+    (site_packages / PIPX_SHARED_PTH).write_text("")
+    venv = Venv(venv_path)
+
+    upgrade_calls = []
+    monkeypatch.setenv(shared_libs.DISABLE_SHARED_LIBS_AUTO_UPGRADE, env_value)
+    monkeypatch.setattr(
+        type(shared_libs.shared_libs),
+        "is_valid",
+        property(lambda self: True),
+    )
+    monkeypatch.setattr(
+        type(shared_libs.shared_libs),
+        "needs_upgrade",
+        property(lambda self: True),
+    )
+    monkeypatch.setattr(
+        shared_libs.shared_libs,
+        "upgrade",
+        lambda **kwargs: upgrade_calls.append(kwargs),
+    )
+
+    venv.check_upgrade_shared_libs(verbose=True, pip_args=[], force_upgrade=force_upgrade)
+
+    assert len(upgrade_calls) == expected_calls

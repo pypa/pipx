@@ -5,6 +5,10 @@ from pipx.backends import env_default_backend, find_uv_binary, resolve_backend_n
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojis import EMOJI_SUPPORT
 from pipx.interpreter import DEFAULT_PYTHON
+from pipx.shared_libs import (
+    DISABLE_SHARED_LIBS_AUTO_UPGRADE,
+    shared_libs_auto_upgrade_disabled,
+)
 from pipx.util import PipxError
 
 ENVIRONMENT_VARIABLES = [
@@ -19,6 +23,7 @@ ENVIRONMENT_VARIABLES = [
     "PIPX_DEFAULT_BACKEND",
     "PIPX_FETCH_MISSING_PYTHON",
     "PIPX_FETCH_PYTHON",
+    DISABLE_SHARED_LIBS_AUTO_UPGRADE,
     "PIPX_USE_EMOJI",
     "PIPX_HOME_ALLOW_SPACE",
 ]
@@ -55,6 +60,7 @@ def environment(value: str) -> ExitCode:
         "PIPX_BACKEND_SOURCE": backend_source,
         "PIPX_UV_BINARY": str(uv_binary) if uv_binary else "",
         "UV_CACHE_DIR": os.environ.get("UV_CACHE_DIR", ""),
+        DISABLE_SHARED_LIBS_AUTO_UPGRADE: str(shared_libs_auto_upgrade_disabled()).lower(),
         "PIPX_USE_EMOJI": str(EMOJI_SUPPORT).lower(),
         "PIPX_HOME_ALLOW_SPACE": str(paths.ctx.allow_spaces_in_home_path).lower(),
     }

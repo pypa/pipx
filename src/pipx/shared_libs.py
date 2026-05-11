@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 import time
 from configparser import ConfigParser
 from contextlib import suppress
@@ -11,6 +12,7 @@ from packaging.specifiers import SpecifierSet
 from pipx import paths
 from pipx.animate import animate
 from pipx.constants import WINDOWS
+from pipx.emojis import strtobool
 from pipx.interpreter import DEFAULT_PYTHON
 from pipx.util import (
     get_site_packages,
@@ -23,6 +25,11 @@ logger = logging.getLogger(__name__)
 
 
 SHARED_LIBS_MAX_AGE_SEC = datetime.timedelta(days=30).total_seconds()
+DISABLE_SHARED_LIBS_AUTO_UPGRADE = "PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE"
+
+
+def shared_libs_auto_upgrade_disabled() -> bool:
+    return strtobool(os.getenv(DISABLE_SHARED_LIBS_AUTO_UPGRADE, "0"))
 
 
 def _venv_python_is_valid(python_path: Path) -> bool:

@@ -27,7 +27,11 @@ from pipx.package_specifier import (
     parse_specifier_for_metadata,
 )
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
-from pipx.shared_libs import shared_libs
+from pipx.shared_libs import (
+    DISABLE_SHARED_LIBS_AUTO_UPGRADE,
+    shared_libs,
+    shared_libs_auto_upgrade_disabled,
+)
 from pipx.util import (
     PipxError,
     exec_app,
@@ -176,7 +180,11 @@ class Venv:
         """
         if self._existing and self.uses_shared_libs:
             if shared_libs.is_valid:
-                if force_upgrade or shared_libs.needs_upgrade:
+                if force_upgrade:
+                    shared_libs.upgrade(verbose=verbose, pip_args=pip_args)
+                elif shared_libs_auto_upgrade_disabled():
+                    _LOGGER.info(f"Skipping shared libs auto-upgrade because {DISABLE_SHARED_LIBS_AUTO_UPGRADE} is set.")
+                elif shared_libs.needs_upgrade:
                     shared_libs.upgrade(verbose=verbose, pip_args=pip_args)
             else:
                 shared_libs.create(verbose=verbose, pip_args=pip_args)
