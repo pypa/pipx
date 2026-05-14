@@ -1,0 +1,24 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools",
+]
+
+[project]
+name = "empty-project"
+version = "0.1.0"
+description = "Empty Python Project"
+authors = [
+  { name = "My Name", email = "me@example.com" },
+]
+requires-python = ">=3.10"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
+scripts.empty-project = "empty_project.main:cli"
+entry-points."pipx.run".empty-project = "empty_project.main:cli"

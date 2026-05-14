@@ -1,0 +1,92 @@
+name: 🧪 tests
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+  pull_request:
+  schedule:
+    - cron: "0 8 * * *"
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  test:
+    name: 🧪 test ${{ matrix.py }} - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04]
+        py: ["3.13", "3.12", "3.11", "3.10"]
+        include:
+          - os: windows-2025
+            py: "3.13"
+          - os: macos-15
+            py: "3.13"
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: 🚀 Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+      - name: 🐍 Setup Python ${{ matrix.py }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.py }}
+      - name: 📦 Install tox
+        run: uv tool install --python-preference only-managed --python 3.13 "tox>=4.45" --with tox-uv
+      - name: Persistent .pipx_tests/package_cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ github.workspace }}/.pipx_tests/package_cache/${{ matrix.py }}
+          key: pipx-tests-package-cache-${{ runner.os }}-${{ matrix.py }}
+      - name: 🏗️ Setup test suite
+        run: tox run -vv --notest --skip-missing-interpreters false -e ${{ matrix.py }}
+      - name: 📦 Seed package cache
+        run: tox exec -e ${{ matrix.py }} -- python scripts/update_package_cache.py testdata/tests_packages .pipx_tests/package_cache/
+      - name: 🏃 Run test suite
+        run: tox run --skip-pkg-install -e ${{ matrix.py }}
+        timeout-minutes: 30
+        env:
+          PYTEST_ADDOPTS: "-vv --durations=20"
+  man:
+    name: 📖 Build man page
+    runs-on: ubuntu-24.04
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v6
+      - name: 🚀 Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+      - name: 📦 Install tox
+        run: uv tool install --python-preference only-managed --python 3.13 "tox>=4.45" --with tox-uv
+      - name: 📖 Build man page
+        run: tox run -e man
+      - name: Show man page
+        run: man -l pipx.1
+  zipapp:
+    name: 📦 Build zipapp
+    runs-on: ubuntu-24.04
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v6
+      - name: 🐍 Setup Python 3.10
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+      - name: 📦 Build zipapp
+        run: |
+          pip install shiv
+          shiv -c pipx -o ./pipx.pyz .
+          ./pipx.pyz --version
+      - name: Test zipapp by installing black
+        run: python ./pipx.pyz install black
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pipx.pyz
+          path: pipx.pyz
+          retention-days: 3

@@ -1,0 +1,172 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = [
+  "hatch-vcs>=0.4",
+  "hatchling>=1.27",
+]
+
+[project]
+name = "pipx"
+description = "Install and Run Python Applications in Isolated Environments"
+readme = "docs/README.md"
+keywords = [
+  "cli",
+  "install",
+  "pip",
+  "Virtual Environment",
+  "workflow",
+]
+license = "MIT"
+license-files = [ "LICENSE" ]
+authors = [
+  { name = "Chad Smith", email = "chadsmith.software@gmail.com" },
+]
+requires-python = ">=3.10"
+classifiers = [
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
+dynamic = [
+  "version",
+]
+dependencies = [
+  "argcomplete>=1.9.4",
+  "colorama>=0.4.4; sys_platform=='win32'",
+  "packaging>=20",
+  "platformdirs>=2.1",
+  "tomli; python_version<'3.11'",
+  "userpath>=1.6,!=1.9",
+]
+optional-dependencies.uv = [
+  "uv>=0.4",
+]
+urls."Issue Tracker" = "https://github.com/pypa/pipx/issues"
+urls."Release Notes" = "https://pipx.pypa.io/latest/changelog/"
+urls."Source Code" = "https://github.com/pypa/pipx"
+urls.Documentation = "https://pipx.pypa.io"
+urls.Homepage = "https://pipx.pypa.io"
+scripts.pipx = "pipx.main:cli"
+
+[dependency-groups]
+dev = [
+  { include-group = "docs" },
+  { include-group = "lint" },
+  { include-group = "man" },
+  { include-group = "test" },
+]
+test = [
+  "pypiserver[cache,passlib]>=2.3.2",
+  "pytest>=8",
+  "pytest-cov>=4",
+  "pytest-mock>=3.11.1",
+  "pytest-subprocess>=1.5.4",
+  "pytest-xdist>=3.5",
+  "setuptools>=68; python_version>='3.12'",
+  "watchdog>=4",
+]
+docs = [
+  "jinja2",
+  "markdown-gfm-admonition",
+  "mkdocs<2",
+  "mkdocs-gen-files",
+  "mkdocs-macros-plugin",
+  "mkdocs-material",
+  "towncrier>=23.6",
+]
+lint = [
+  "pre-commit>=3",
+]
+man = [
+  "argparse-manpage[setuptools]",
+]
+zipapp = [
+  "shiv>=1.0.6",
+]
+
+[tool.hatch]
+build.hooks.vcs.version-file = "src/pipx/version.py"
+build.targets.sdist.include = [
+  "/src",
+  "/logo.png",
+  "/pipx_demo.gif",
+  "/*.md",
+]
+version.source = "vcs"
+
+[tool.ruff]
+line-length = 121
+lint.extend-select = [
+  "A",
+  "B",
+  "C4",
+  "C9",
+  "I",
+  "ISC",
+  "PERF",
+  "PGH",
+  "PIE",
+  "PLC",
+  "PLE",
+  "PLW",
+  "RSE",
+  "RUF",
+  "TC",
+  "UP",
+  "W",
+]
+lint.ignore = [
+  "PERF203",
+  "PLW1508",
+  "RUF005",
+]
+lint.per-file-ignores."src/pipx/venv.py" = [
+  "A005",
+]
+lint.isort = { known-first-party = [
+  "helpers",
+  "package_info",
+  "pipx",
+] }
+lint.mccabe.max-complexity = 15
+
+[tool.codespell]
+# Ref: https://github.com/codespell-project/codespell#using-a-config-file
+skip = ".git,*.pdf,*.svg,.nox,testdata,.mypy_cache"
+check-hidden = true
+# case sensitive etc
+ignore-regex = "\\b(UE|path/doesnt/exist)\\b"
+
+[tool.mypy]
+overrides = [ { module = [
+  "pycowsay.*",
+], ignore_missing_imports = true } ]
+warn_unreachable = true
+enable_error_code = [ "ignore-without-code", "redundant-expr", "truthy-bool" ]
+
+[tool.pytest]
+ini_options.minversion = "8"
+ini_options.log_level = "INFO"
+ini_options.markers = [
+  "all_packages: test install with maximum number of packages",
+]
+ini_options.testpaths = [ "tests" ]
+ini_options.addopts = [ "-ra", "--strict-config", "--strict-markers" ]
+
+[tool.towncrier]
+directory = "changelog.d"
+filename = "docs/changelog.md"
+start_string = "<!-- towncrier release notes start -->\n"
+underlines = [
+  "",
+  "",
+  "",
+]
+title_format = "## [{version}](https://github.com/pypa/pipx/tree/{version}) - {project_date}"
+issue_format = "[#{issue}](https://github.com/pypa/pipx/issues/{issue})"
+package = "pipx"

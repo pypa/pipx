@@ -1,0 +1,73 @@
+name: Release
+on:
+  push:
+    tags:
+      - "*.*.*"
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  default-python: "3.14"
+jobs:
+  pypi-publish:
+    name: Publish pipx to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/p/pipx
+    permissions:
+      id-token: write
+    steps:
+      - name: Checkout ${{ github.ref_name }}
+        uses: actions/checkout@v6
+        with:
+          ref: "${{ github.ref_name }}"
+      - name: Set up Python ${{ env.default-python }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.default-python }}
+          cache: "pip"
+      - name: Build sdist and wheel
+        run: |
+          pip install build
+          python -m build
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.14.0
+  create-release:
+    name: Create a release on GitHub's UI
+    needs: pypi-publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Create release
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+          tag_name: "${{ github.ref_name }}"
+  upload-zipapp:
+    name: Upload zipapp to GitHub Release
+    needs: create-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout ${{ github.ref_name }}
+        uses: actions/checkout@v6
+        with:
+          ref: "${{ github.ref_name }}"
+      - name: Set up Python ${{ env.default-python }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.default-python }}
+          cache: "pip"
+      - name: Install tox
+        run: pip install tox
+      - name: Build zipapp
+        run: tox run -e zipapp
+      - name: Upload to release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: pipx.pyz
+          tag_name: "${{ github.ref_name }}"

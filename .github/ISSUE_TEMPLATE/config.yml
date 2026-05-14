@@ -1,0 +1,13 @@
+# Ref: https://help.github.com/en/github/building-a-strong-community/configuring-issue-templates-for-your-repository#configuring-the-template-chooser
+blank_issues_enabled: true # default
+contact_links:
+  - name: "💬 pypa/pipx @ Discord"
+    url: https://discord.gg/pypa
+    about: Chat with the devs
+  - name: 🤷💻🤦 Discourse
+    url: https://discuss.python.org/c/packaging
+    about: |
+      Please ask typical Q&A here: general ideas for Python packaging, questions about structuring projects and so on
+  - name: 📝 PSF Code of Conduct
+    url: https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md
+    about: ❤ Be nice to other members of the community. ☮ Behave.
