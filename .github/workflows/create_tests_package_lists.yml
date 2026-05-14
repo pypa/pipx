@@ -4,6 +4,10 @@ on:
 concurrency:
   group: create-tests-package-lists-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   create_package_lists:
     name: Create package lists

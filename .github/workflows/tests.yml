@@ -10,6 +10,10 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   test:
     name: 🧪 test ${{ matrix.py }} - ${{ matrix.os }}
