@@ -4,6 +4,10 @@ on:
 concurrency:
   group: exhaustive-package-test-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   test_all_packages:
     name: Exhaustive Package Test
