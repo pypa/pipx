@@ -10,7 +10,7 @@ def fail(msg):
 
 def main():
     fail(
-        "This installation method has been deprecated. "
+        "This installation method has been obsoleted. "
         "See https://github.com/pypa/pipx for current installation "
         "instructions."
     )
