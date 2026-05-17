@@ -125,15 +125,33 @@ def _unpack(full_version, download_link, archive: Path, download_dir: Path, expe
             tar.extractall(download_dir)
 
 
+def _is_valid_python_index(index: Any) -> bool:
+    if not isinstance(index, dict):
+        return False
+
+    fetched = index.get("fetched")
+    releases = index.get("releases")
+    if not isinstance(fetched, int | float) or not isinstance(releases, list):
+        return False
+
+    return all(
+        isinstance(release, (list, tuple)) and len(release) == 2 and all(isinstance(value, str) for value in release)
+        for release in releases
+    )
+
+
 def get_or_update_index(use_cache: bool = True):
     """Get or update the index of available python builds from
     the python-build-standalone repository."""
     index_file = paths.ctx.standalone_python_cachedir / "index.json"
     if use_cache and index_file.exists():
         index = json.loads(index_file.read_text())
-        # update index after 30 days
-        fetched = datetime.datetime.fromtimestamp(index["fetched"])
-        if datetime.datetime.now() - fetched > datetime.timedelta(days=30):
+        # Refresh legacy URL-only indexes, and update current indexes after 30 days.
+        if _is_valid_python_index(index):
+            fetched = datetime.datetime.fromtimestamp(index["fetched"])
+            if datetime.datetime.now() - fetched > datetime.timedelta(days=30):
+                index = {}
+        else:
             index = {}
     else:
         index = {}
