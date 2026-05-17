@@ -95,6 +95,27 @@ set PIP_
 
 Reference: [pip Environment Variables](https://pip.pypa.io/en/stable/user_guide/#environment-variables)
 
+## Clear `runpip` cache warnings
+
+`pipx runpip` runs the `pip` installed in a pipx-managed virtual environment. Warnings such as
+`WARNING: Cache entry deserialization failed, entry ignored` come from that `pip` process and its own HTTP cache, not
+from pipx's virtual environment cache.
+
+To clear the cache used by a pipx-managed package, run:
+
+```
+pipx runpip <package> cache purge
+```
+
+To inspect the cache directory first, add `--verbose` so pipx does not quiet `pip`'s output:
+
+```
+pipx runpip --verbose <package> cache dir
+```
+
+Clearing `$PIPX_HOME/.cache` or the cache for a different Python interpreter will not clear cache entries used by
+`pipx runpip <package>`.
+
 ## `pipx` log files
 
 pipx records a verbose log file for every `pipx` command invocation. The logs for the last 10 `pipx` commands can be
