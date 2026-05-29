@@ -60,6 +60,8 @@ def expose_resources_globally(
     suffix: str = "",
 ) -> None:
     for path in paths:
+        if resource_type == "app":
+            _add_ignore_environment_to_python_shebang(path)
         src = path.resolve()
         if resource_type == "man":
             dest_dir = local_resource_dir / src.parent.name
@@ -100,6 +102,28 @@ def can_symlink(local_resource_dir: Path) -> bool:
                 _can_symlink_cache[local_resource_dir] = False
 
     return _can_symlink_cache[local_resource_dir]
+
+
+def _add_ignore_environment_to_python_shebang(path: Path) -> None:
+    if WINDOWS or not path.is_file():
+        return
+
+    try:
+        data = path.read_bytes()
+    except OSError:
+        return
+
+    first_line, separator, rest = data.partition(b"\n")
+    if not first_line.startswith(b"#!"):
+        return
+
+    interpreter = first_line[2:]
+    if interpreter.endswith(b" -E"):
+        return
+    if b"python" not in interpreter.lower() or b" " in interpreter or b"\t" in interpreter:
+        return
+
+    path.write_bytes(first_line + b" -E" + separator + rest)
 
 
 def _copy_package_resource(dest_dir: Path, path: Path, suffix: str = "") -> None:
