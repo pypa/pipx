@@ -1,0 +1,1 @@
+Update the error message in get-pipx.py; it is obsoleted, not deprecated.
