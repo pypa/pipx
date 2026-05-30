@@ -9,6 +9,23 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 <!-- towncrier release notes start -->
 
+## [1.13.0](https://github.com/pypa/pipx/tree/1.13.0) - 2026-05-30
+
+### Features
+
+- Add `PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE` to skip automatic shared library upgrades. ([#1650](https://github.com/pypa/pipx/issues/1650))
+- Update the error message in get-pipx.py; it is obsoleted, not deprecated. ([#1813](https://github.com/pypa/pipx/issues/1813))
+
+### Bugfixes
+
+- Install app scripts with shebangs that ignore `PYTHONPATH`. ([#1584](https://github.com/pypa/pipx/issues/1584))
+- Refresh cached standalone Python indexes written by older pipx versions before using `--fetch-missing-python`. ([#1774](https://github.com/pypa/pipx/issues/1774))
+
+### Improved Documentation
+
+- Document how to clear cache warnings from `runpip`. ([#1802](https://github.com/pypa/pipx/issues/1802))
+
+
 ## [1.12.0](https://github.com/pypa/pipx/tree/1.12.0) - 2026-05-06
 
 ### Features
