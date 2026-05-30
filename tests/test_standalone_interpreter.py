@@ -1,3 +1,4 @@
+import datetime
 import json
 import shutil
 import sys
@@ -19,6 +20,31 @@ def mock_which(name):
     if name == TARGET_PYTHON_VERSION:
         return None
     return original_which(name)
+
+
+def test_legacy_standalone_python_index_is_refreshed(pipx_temp_env, monkeypatch):
+    legacy_link = (
+        "https://github.com/astral-sh/python-build-standalone/releases/download/"
+        "20250818/cpython-3.13.7%2B20250818-x86_64-unknown-linux-gnu-install_only.tar.gz"
+    )
+    digest = "sha256:" + "0" * 64
+    current_releases = [(legacy_link, digest)]
+    cache_dir = standalone_python.paths.ctx.standalone_python_cachedir
+    index_file = cache_dir / "index.json"
+    cache_dir.mkdir(parents=True)
+    index_file.write_text(
+        json.dumps(
+            {
+                "fetched": datetime.datetime.now().timestamp(),
+                "releases": [legacy_link],
+            }
+        )
+    )
+
+    monkeypatch.setattr(standalone_python, "get_latest_python_releases", lambda: current_releases)
+
+    assert standalone_python.get_or_update_index()["releases"] == current_releases
+    assert json.loads(index_file.read_text())["releases"] == [[legacy_link, digest]]
 
 
 def test_list_no_standalone_interpreters(pipx_temp_env, monkeypatch, capsys):
