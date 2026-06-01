@@ -71,6 +71,23 @@ def test_all_subcommands_have_func_registered():
                 assert callable(sub_parser._defaults.get("func")), f"{sub_name!r} missing callable func default"
 
 
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["inject", "ansible-core", "--force", "ansible"],
+        ["inject", "ansible-core", "ansible", "--force"],
+    ],
+)
+def test_inject_accepts_force_before_or_after_dependency(argv):
+    parser, _ = main.get_command_parser()
+
+    args = main.parse_pipx_args(parser, argv)
+
+    assert args.package == "ansible-core"
+    assert args.dependencies == ["ansible"]
+    assert args.force is True
+
+
 def test_package_is_path_ignores_existing_directory(tmp_path, monkeypatch):
     # Regression for #1778: a directory in CWD with the same name as a
     # package should not be treated as a path.

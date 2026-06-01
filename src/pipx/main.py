@@ -1395,13 +1395,27 @@ def normalize_help_command(args: list[str]) -> list[str]:
     return args
 
 
+def _get_subparser(parser: argparse.ArgumentParser, command: str) -> argparse.ArgumentParser:
+    subparsers_action = next(action for action in parser._actions if isinstance(action, argparse._SubParsersAction))
+    return subparsers_action.choices[command]
+
+
+def parse_pipx_args(parser: argparse.ArgumentParser, args: list[str]) -> argparse.Namespace:
+    args = normalize_help_command(args)
+    if args and args[0] == "inject":
+        parsed_args = _get_subparser(parser, "inject").parse_intermixed_args(args[1:])
+        parsed_args.command = "inject"
+        return parsed_args
+    return parser.parse_args(args)
+
+
 def cli() -> ExitCode:
     """Entry point from command line"""
     try:
         hide_cursor()
         parser, _ = get_command_parser()
         argcomplete.autocomplete(parser, always_complete_options=False)
-        parsed_pipx_args = parser.parse_args(normalize_help_command(sys.argv[1:]))
+        parsed_pipx_args = parse_pipx_args(parser, sys.argv[1:])
         _validate_fetch_python()
         setup(parsed_pipx_args)
         check_args(parsed_pipx_args)
