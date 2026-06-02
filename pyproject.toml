@@ -90,14 +90,14 @@ zipapp = [
 ]
 
 [tool.hatch]
+version.source = "vcs"
 build.hooks.vcs.version-file = "src/pipx/version.py"
 build.targets.sdist.include = [
-  "/src",
+  "/*.md",
   "/logo.png",
   "/pipx_demo.gif",
-  "/*.md",
+  "/src",
 ]
-version.source = "vcs"
 
 [tool.ruff]
 line-length = 121
@@ -136,37 +136,37 @@ lint.isort = { known-first-party = [
 lint.mccabe.max-complexity = 15
 
 [tool.codespell]
+# case sensitive etc
+ignore-regex = "\\b(UE|path/doesnt/exist)\\b"
 # Ref: https://github.com/codespell-project/codespell#using-a-config-file
 skip = ".git,*.pdf,*.svg,.nox,testdata,.mypy_cache"
 check-hidden = true
-# case sensitive etc
-ignore-regex = "\\b(UE|path/doesnt/exist)\\b"
 
 [tool.mypy]
+warn_unreachable = true
+enable_error_code = [ "ignore-without-code", "redundant-expr", "truthy-bool" ]
 overrides = [ { module = [
   "pycowsay.*",
 ], ignore_missing_imports = true } ]
-warn_unreachable = true
-enable_error_code = [ "ignore-without-code", "redundant-expr", "truthy-bool" ]
 
 [tool.pytest]
 ini_options.minversion = "8"
-ini_options.log_level = "INFO"
+ini_options.testpaths = [ "tests" ]
+ini_options.addopts = [ "-ra", "--strict-config", "--strict-markers" ]
 ini_options.markers = [
   "all_packages: test install with maximum number of packages",
 ]
-ini_options.testpaths = [ "tests" ]
-ini_options.addopts = [ "-ra", "--strict-config", "--strict-markers" ]
+ini_options.log_level = "INFO"
 
 [tool.towncrier]
+package = "pipx"
 directory = "changelog.d"
 filename = "docs/changelog.md"
 start_string = "<!-- towncrier release notes start -->\n"
+title_format = "## [{version}](https://github.com/pypa/pipx/tree/{version}) - {project_date}"
+issue_format = "[#{issue}](https://github.com/pypa/pipx/issues/{issue})"
 underlines = [
   "",
   "",
   "",
 ]
-title_format = "## [{version}](https://github.com/pypa/pipx/tree/{version}) - {project_date}"
-issue_format = "[#{issue}](https://github.com/pypa/pipx/issues/{issue})"
-package = "pipx"
