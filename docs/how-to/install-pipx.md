@@ -166,8 +166,8 @@ relying on distro packages that may ship older versions. Bootstrap it with a tem
 python3 -m venv /tmp/bootstrap
 /tmp/bootstrap/bin/pip install pipx
 /tmp/bootstrap/bin/pipx install pipx
+/tmp/bootstrap/bin/pipx ensurepath
 rm -rf /tmp/bootstrap
-pipx ensurepath
 ```
 
 After this, `pipx upgrade pipx` upgrades pipx like any other pipx-managed application. On Windows, pipx cannot delete
