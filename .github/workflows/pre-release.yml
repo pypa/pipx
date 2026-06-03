@@ -26,6 +26,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_RELEASE_TOKEN }}
+          persist-credentials: false
       - name: Set up Python ${{ env.default-python }}
         uses: actions/setup-python@v6
         with:
