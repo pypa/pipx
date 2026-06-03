@@ -16,14 +16,14 @@ jobs:
       contents: read
     steps:
       - name: Checkout ${{ github.ref_name }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           ref: "${{ github.ref_name }}"
+          persist-credentials: false
       - name: Set up Python ${{ env.default-python }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: ${{ env.default-python }}
-          cache: "pip"
       - name: Build sdist and wheel
         run: |
           pip install build
@@ -49,7 +49,7 @@ jobs:
           name: dist
           path: dist/
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.14.0
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
   create-release:
     name: Create a release on GitHub's UI
     needs: pypi-publish
@@ -57,12 +57,15 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
-      - name: Create release
-        uses: softprops/action-gh-release@v3
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
-          generate_release_notes: true
-          tag_name: "${{ github.ref_name }}"
+          persist-credentials: false
+      - name: Create release
+        run: |
+          gh release create --repo pypa/pipx "${RELEASE_TAG}" --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
   upload-zipapp:
     name: Upload zipapp to GitHub Release
     needs: create-release
@@ -71,20 +74,21 @@ jobs:
       contents: write
     steps:
       - name: Checkout ${{ github.ref_name }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           ref: "${{ github.ref_name }}"
+          persist-credentials: false
       - name: Set up Python ${{ env.default-python }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: ${{ env.default-python }}
-          cache: "pip"
       - name: Install tox
         run: pip install tox
       - name: Build zipapp
         run: tox run -e zipapp
       - name: Upload to release
-        uses: softprops/action-gh-release@v3
-        with:
-          files: pipx.pyz
-          tag_name: "${{ github.ref_name }}"
+        run: |
+          gh release upload --repo pypa/pipx "${RELEASE_TAG}" pipx.pyz
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
