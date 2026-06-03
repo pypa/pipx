@@ -44,10 +44,11 @@ jobs:
         with:
           persist-credentials: false
       - name: Create release
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
-        with:
-          generate_release_notes: true
-          tag_name: "${{ github.ref_name }}"
+        run: |
+          gh release create --repo pypa/pipx "${RELEASE_TAG}" --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
   upload-zipapp:
     name: Upload zipapp to GitHub Release
     needs: create-release
@@ -69,7 +70,8 @@ jobs:
       - name: Build zipapp
         run: tox run -e zipapp
       - name: Upload to release
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
-        with:
-          files: pipx.pyz
-          tag_name: "${{ github.ref_name }}"
+        run: |
+          gh release upload --repo pypa/pipx "${RELEASE_TAG}" pipx.pyz
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
