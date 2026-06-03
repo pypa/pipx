@@ -179,8 +179,9 @@ def run_package(
     backend: str | None = None,
     env_backend: str | None = None,
     resolved_backend: str | None = None,
+    no_path_check: bool = False,
 ) -> NoReturn:
-    if which(app):
+    if not no_path_check and which(app):
         _LOGGER.warning(
             pipx_wrap(
                 f"""
@@ -263,6 +264,7 @@ def run(
     verbose: bool,
     use_cache: bool,
     *,
+    no_path_check: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
 ) -> NoReturn:
@@ -310,6 +312,7 @@ def run(
             venv_args=venv_args,
             use_cache=use_cache,
             verbose=verbose,
+            no_path_check=no_path_check,
         )
     else:
         package_or_url = spec if spec is not None else app
@@ -327,6 +330,7 @@ def run(
             backend=backend,
             env_backend=env_backend,
             resolved_backend=resolved_backend,
+            no_path_check=no_path_check,
         )
 
 

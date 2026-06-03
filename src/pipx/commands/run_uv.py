@@ -50,9 +50,10 @@ def run_via_uv_tool_run(
     venv_args: list[str],
     use_cache: bool,
     verbose: bool,
+    no_path_check: bool = False,
 ) -> NoReturn:
     _reject_venv_args(venv_args)
-    if existing_app_path := which(app):
+    if not no_path_check and (existing_app_path := which(app)):
         _LOGGER.warning(
             pipx_wrap(
                 f"""
