@@ -9,14 +9,11 @@ concurrency:
 env:
   default-python: "3.14"
 jobs:
-  pypi-publish:
-    name: Publish pipx to PyPI
+  build-package:
+    name: Build pipx package
     runs-on: ubuntu-latest
-    environment:
-      name: release
-      url: https://pypi.org/p/pipx
     permissions:
-      id-token: write
+      contents: read
     steps:
       - name: Checkout ${{ github.ref_name }}
         uses: actions/checkout@v6
@@ -31,6 +28,26 @@ jobs:
         run: |
           pip install build
           python -m build
+      - name: Upload distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+  pypi-publish:
+    name: Publish pipx to PyPI
+    needs: build-package
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/p/pipx
+    permissions:
+      id-token: write
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@v1.14.0
   create-release:
