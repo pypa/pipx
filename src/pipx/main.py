@@ -969,6 +969,11 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
         help="Do not reuse cached virtual environment if it exists",
     )
     p.add_argument(
+        "--no-path-check",
+        action="store_true",
+        help="Do not check whether the app is already on PATH",
+    )
+    p.add_argument(
         "app_with_args",
         metavar="app ...",
         nargs=argparse.REMAINDER,
@@ -1013,6 +1018,7 @@ def _cmd_run(args: argparse.Namespace, ctx: DispatchContext) -> NoReturn:
         args.pypackages,
         ctx.verbose,
         not args.no_cache,
+        no_path_check=args.no_path_check,
         backend=ctx.backend,
         env_backend=ctx.env_backend,
     )
