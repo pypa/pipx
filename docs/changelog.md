@@ -9,6 +9,22 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 <!-- towncrier release notes start -->
 
+## [1.14.0](https://github.com/pypa/pipx/tree/1.14.0) - 2026-06-04
+
+### Features
+
+- Add `--no-path-check` to `pipx run` to skip the warning when the app is already on `PATH`. Useful for shim scripts that
+  wrap `pipx run <app>` under the same name as the app. ([#1824](https://github.com/pypa/pipx/issues/1824))
+
+### Bugfixes
+
+- Add regression coverage for `pipx inject` accepting `--force` before or after injected dependencies. ([#1444](https://github.com/pypa/pipx/issues/1444))
+
+### Improved Documentation
+
+- Use the bootstrap pipx executable when adding PATH in self-managed installs. ([#1481](https://github.com/pypa/pipx/issues/1481))
+
+
 ## [1.13.0](https://github.com/pypa/pipx/tree/1.13.0) - 2026-05-30
 
 ### Features
