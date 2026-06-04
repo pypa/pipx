@@ -1,21 +1,71 @@
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+from tempfile import mkdtemp
 
 from packaging.utils import canonicalize_name
 
+from pipx.commands.common import add_suffix
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
-from pipx.commands.uninstall import uninstall
+from pipx.commands.uninstall import _get_venv_resource_paths
 from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_REINSTALL_INVALID_PYTHON,
     EXIT_CODE_REINSTALL_VENV_NONEXISTENT,
+    MAN_SECTIONS,
     ExitCode,
 )
-from pipx.emojis import error, sleep
-from pipx.util import PipxError
+from pipx.emojis import error, sleep, stars
+from pipx.util import PipxError, rmdir, safe_unlink
 from pipx.venv import Venv, VenvContainer
+
+
+def _create_reinstall_backup(venv_dir: Path) -> Path:
+    backup_dir = Path(mkdtemp(prefix=f".{venv_dir.name}-", suffix="-pipx-reinstall", dir=venv_dir.parent))
+    backup_dir.rmdir()
+    venv_dir.rename(backup_dir)
+    return backup_dir
+
+
+def _restore_reinstall_backup(venv_dir: Path, restore_venv_dir: Path, backup_dir: Path) -> None:
+    rmdir(venv_dir)
+    backup_dir.rename(restore_venv_dir)
+
+
+def _get_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
+    resource_paths = _get_venv_resource_paths("app", venv, venv.bin_path, local_bin_dir)
+    for man_section in MAN_SECTIONS:
+        resource_paths |= _get_venv_resource_paths("man", venv, venv.man_path / man_section, local_man_dir / man_section)
+    return resource_paths
+
+
+def _get_expected_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
+    resource_paths: set[Path] = set()
+    for package_info in venv.package_metadata.values():
+        if package_info.include_apps:
+            for app_path in package_info.app_paths:
+                resource_paths.add(local_bin_dir / add_suffix(app_path.name, package_info.suffix))
+            for man_path in package_info.man_paths:
+                resource_paths.add(local_man_dir / man_path.parent.name / man_path.name)
+        if package_info.include_dependencies:
+            for app_paths in package_info.app_paths_of_dependencies.values():
+                for app_path in app_paths:
+                    resource_paths.add(local_bin_dir / add_suffix(app_path.name, package_info.suffix))
+            for man_paths in package_info.man_paths_of_dependencies.values():
+                for man_path in man_paths:
+                    resource_paths.add(local_man_dir / man_path.parent.name / man_path.name)
+    return resource_paths
+
+
+def _remove_stale_reinstall_resources(resource_paths: set[Path]) -> None:
+    for path in sorted(resource_paths):
+        try:
+            safe_unlink(path)
+            if path.is_symlink():
+                path.unlink()
+        except FileNotFoundError:
+            pass
 
 
 def reinstall(
@@ -59,50 +109,65 @@ def reinstall(
     if venv.pipx_metadata.main_package.pinned:
         raise PipxError(f"{error} Package {venv_dir} is pinned. Run `pipx unpin {venv_dir.name}` to unpin it first.")
 
-    uninstall(venv_dir, local_bin_dir, local_man_dir, verbose)
+    old_resource_paths = _get_reinstall_resource_paths(venv, local_bin_dir, local_man_dir)
+    original_venv_dir = venv_dir
+    reinstall_backup_dir = _create_reinstall_backup(venv_dir)
+    print(f"uninstalled {venv.name}! {stars}")
 
     # in case legacy original dir name
     venv_dir = venv_dir.with_name(canonicalize_name(venv_dir.name))
 
-    # install main package first
-    install(
-        venv_dir,
-        [venv.main_package_name],
-        [package_or_url],
-        local_bin_dir,
-        local_man_dir,
-        python,
-        venv.pipx_metadata.main_package.pip_args,
-        venv.pipx_metadata.venv_args,
-        verbose,
-        force=True,
-        reinstall=True,
-        include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
-        preinstall_packages=[],
-        suffix=venv.pipx_metadata.main_package.suffix,
-        python_flag_passed=python_flag_passed,
-        backend=backend or venv.pipx_metadata.backend,
-        env_backend=env_backend,
-    )
-
-    # now install injected packages
-    for injected_name, injected_package in venv.pipx_metadata.injected_packages.items():
-        if injected_package.package_or_url is None:
-            # This should never happen, but package_or_url is type
-            #   Optional[str] so mypy thinks it could be None
-            raise PipxError(f"Internal Error injecting package {injected_package} into {venv.name}")
-        inject_dep(
+    try:
+        # install main package first
+        install(
             venv_dir,
-            injected_name,
-            injected_package.package_or_url,
-            injected_package.pip_args,
-            verbose=verbose,
-            include_apps=injected_package.include_apps,
-            include_dependencies=injected_package.include_dependencies,
+            [venv.main_package_name],
+            [package_or_url],
+            local_bin_dir,
+            local_man_dir,
+            python,
+            venv.pipx_metadata.main_package.pip_args,
+            venv.pipx_metadata.venv_args,
+            verbose,
             force=True,
+            reinstall=True,
+            include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
+            preinstall_packages=[],
+            suffix=venv.pipx_metadata.main_package.suffix,
+            python_flag_passed=python_flag_passed,
             backend=backend or venv.pipx_metadata.backend,
             env_backend=env_backend,
         )
+
+        # now install injected packages
+        for injected_name, injected_package in venv.pipx_metadata.injected_packages.items():
+            if injected_package.package_or_url is None:
+                # This should never happen, but package_or_url is type
+                #   Optional[str] so mypy thinks it could be None
+                raise PipxError(f"Internal Error injecting package {injected_package} into {venv.name}")
+            inject_dep(
+                venv_dir,
+                injected_name,
+                injected_package.package_or_url,
+                injected_package.pip_args,
+                verbose=verbose,
+                include_apps=injected_package.include_apps,
+                include_dependencies=injected_package.include_dependencies,
+                force=True,
+                backend=backend or venv.pipx_metadata.backend,
+                env_backend=env_backend,
+            )
+
+        new_resource_paths = _get_expected_reinstall_resource_paths(
+            Venv(venv_dir, verbose=verbose), local_bin_dir, local_man_dir
+        )
+        _remove_stale_reinstall_resources(old_resource_paths - new_resource_paths)
+    except (Exception, KeyboardInterrupt):
+        _restore_reinstall_backup(venv_dir, original_venv_dir, reinstall_backup_dir)
+        print(f"{error} Reinstall failed; restored {venv.name}.", file=sys.stderr)
+        raise
+    else:
+        rmdir(reinstall_backup_dir)
 
     # Any failure to install will raise PipxError, otherwise success
     return EXIT_CODE_OK
