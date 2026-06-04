@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from subprocess import call, check_call
+from urllib.parse import urlsplit, urlunsplit
 
 from git import Commit, Remote, Repo, TagReference  # type: ignore[import-not-found]
 from packaging.version import Version
@@ -24,11 +26,23 @@ def main(version_str: str, *, push: bool) -> None:
     release_commit = release_changelog(repo, version)
     tag = tag_release_commit(release_commit, repo, version)
     if push:
+        # The checkout uses persist-credentials: false, so no token lives in the git config;
+        # authenticate the push via GH_RELEASE_TOKEN embedded into the remote URL.
+        push_target = authenticated_url(remote)
         print("Pushing release commit")
-        repo.git.push(remote.name, "HEAD:main")
+        repo.git.push(push_target, "HEAD:main")
         print("Pushing release tag")
-        repo.git.push(remote.name, tag)
+        repo.git.push(push_target, str(tag))
     print("All done! ✨ 🍰 ✨")
+
+
+def authenticated_url(remote: Remote) -> str:
+    if (token := os.environ.get("GH_RELEASE_TOKEN")) is None:
+        return remote.name
+    split = urlsplit(next(iter(remote.urls)))
+    if split.scheme != "https":
+        return remote.name
+    return urlunsplit(split._replace(netloc=f"x-access-token:{token}@{split.hostname}"))
 
 
 def resolve_version(version_str: str, repo: Repo) -> Version:

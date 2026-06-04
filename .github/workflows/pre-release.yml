@@ -41,3 +41,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Generate changelog, commit, tag, and push
         run: python scripts/release.py --version "${{ inputs.bump }}"
+        env:
+          GH_RELEASE_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
