@@ -6,7 +6,6 @@ import shutil
 import string
 import subprocess
 import sys
-import textwrap
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,6 +19,7 @@ from typing import (
 from pipx import paths
 from pipx.animate import show_cursor
 from pipx.constants import MINGW, WINDOWS
+from pipx.wrap import pipx_wrap
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -417,33 +417,6 @@ def full_package_description(package_name: str, package_spec: str) -> str:
         return package_name
     else:
         return f"{package_name} from spec {package_spec!r}"
-
-
-def pipx_wrap(text: str, subsequent_indent: str = "", keep_newlines: bool = False) -> str:
-    """Dedent, strip, wrap to shell width. Don't break on hyphens, only spaces"""
-    minimum_width = 40
-    width = max(shutil.get_terminal_size((80, 40)).columns, minimum_width) - 2
-
-    text = textwrap.dedent(text).strip()
-    if keep_newlines:
-        return "\n".join(
-            [
-                textwrap.fill(
-                    line,
-                    width=width,
-                    subsequent_indent=subsequent_indent,
-                    break_on_hyphens=False,
-                )
-                for line in text.splitlines()
-            ]
-        )
-    else:
-        return textwrap.fill(
-            text,
-            width=width,
-            subsequent_indent=subsequent_indent,
-            break_on_hyphens=False,
-        )
 
 
 def is_paths_relative(path: Path, parent: Path):

@@ -6,7 +6,7 @@ from platformdirs import user_cache_path, user_data_path, user_log_path
 
 from pipx.constants import LINUX, WINDOWS
 from pipx.emojis import hazard, strtobool
-from pipx.util import pipx_wrap
+from pipx.wrap import pipx_wrap
 
 if LINUX:
     DEFAULT_PIPX_HOME = Path(user_data_path("pipx"))
