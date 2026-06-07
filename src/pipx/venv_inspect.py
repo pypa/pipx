@@ -1,9 +1,14 @@
+import ast
+import configparser
 import json
 import logging
+import shutil
 import textwrap
-from collections.abc import Collection
-from pathlib import Path
+from collections.abc import Collection, Iterator
+from pathlib import Path, PurePosixPath
 from typing import NamedTuple
+from urllib.parse import urlparse
+from urllib.request import url2pathname
 
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
@@ -12,6 +17,11 @@ try:
     from importlib import metadata
 except ImportError:
     import importlib_metadata as metadata  # type: ignore[import-not-found,no-redef]
+
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib  # type: ignore[import-not-found,no-redef]
 
 from pipx.constants import MAN_SECTIONS, WINDOWS
 from pipx.util import PipxError, run_subprocess
@@ -128,8 +138,147 @@ def get_resources(dist: metadata.Distribution, bin_path: Path, man_path: Path) -
     app_names_df, man_names_df = get_resources_from_dist_files(dist, bin_path, man_path)
     app_names_if, man_names_if = get_resources_from_inst_files(dist, bin_path, man_path)
     app_names = app_names_ep | app_names_df | app_names_if
-    man_names = man_names_df | man_names_if
+    man_names = man_names_df | man_names_if | _get_man_pages_from_editable_project(dist, man_path)
     return sorted(app_names), sorted(man_names)
+
+
+def _get_man_pages_from_editable_project(dist: metadata.Distribution, man_path: Path) -> set[str]:
+    project_root = _get_editable_project_root(dist)
+    if project_root is None:
+        return set()
+
+    man_names = set()
+    for target_dir, source_paths in _iter_editable_project_data_files(project_root):
+        man_section = _get_man_section_from_data_files_target(target_dir)
+        if man_section is None:
+            continue
+        for source_path in source_paths:
+            source = Path(source_path)
+            if not source.is_absolute():
+                source = project_root / source
+            if not source.is_file():
+                continue
+            dest = man_path / man_section / source.name
+            try:
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, dest)
+            except OSError as exc:
+                logger.warning("Unable to copy editable man page %s to %s: %s", source, dest, exc)
+                continue
+            man_names.add(str(Path(man_section) / source.name))
+
+    return man_names
+
+
+def _get_editable_project_root(dist: metadata.Distribution) -> Path | None:
+    direct_url = dist.read_text("direct_url.json")
+    if not direct_url:
+        return None
+    try:
+        data = json.loads(direct_url)
+    except json.JSONDecodeError:
+        return None
+
+    dir_info = data.get("dir_info", {})
+    if not isinstance(dir_info, dict) or not dir_info.get("editable"):
+        return None
+
+    url = data.get("url")
+    if not isinstance(url, str):
+        return None
+    parsed_url = urlparse(url)
+    if parsed_url.scheme != "file":
+        return None
+
+    url_path = f"//{parsed_url.netloc}{parsed_url.path}" if parsed_url.netloc else parsed_url.path
+    return Path(url2pathname(url_path))
+
+
+def _iter_editable_project_data_files(project_root: Path) -> Iterator[tuple[str, list[str]]]:
+    yield from _iter_pyproject_data_files(project_root)
+    yield from _iter_setup_cfg_data_files(project_root)
+    yield from _iter_setup_py_data_files(project_root)
+
+
+def _iter_pyproject_data_files(project_root: Path) -> Iterator[tuple[str, list[str]]]:
+    pyproject = project_root / "pyproject.toml"
+    try:
+        with pyproject.open("rb") as file:
+            pyproject_data = tomllib.load(file)
+    except (OSError, tomllib.TOMLDecodeError):
+        return
+
+    data_files = pyproject_data.get("tool", {}).get("setuptools", {}).get("data-files", {})
+    yield from _iter_normalized_data_files(data_files)
+
+
+def _iter_setup_cfg_data_files(project_root: Path) -> Iterator[tuple[str, list[str]]]:
+    setup_cfg = project_root / "setup.cfg"
+    config = configparser.ConfigParser(interpolation=None)
+    try:
+        config.read(setup_cfg)
+    except configparser.Error:
+        return
+    if not config.has_section("options.data_files"):
+        return
+
+    yield from _iter_normalized_data_files(dict(config.items("options.data_files")))
+
+
+def _iter_setup_py_data_files(project_root: Path) -> Iterator[tuple[str, list[str]]]:
+    setup_py = project_root / "setup.py"
+    try:
+        tree = ast.parse(setup_py.read_text(encoding="utf-8"))
+    except (OSError, SyntaxError, UnicodeDecodeError):
+        return
+
+    for node in ast.walk(tree):
+        if not _is_setup_call(node):
+            continue
+        for keyword in node.keywords:
+            if keyword.arg != "data_files":
+                continue
+            try:
+                data_files = ast.literal_eval(keyword.value)
+            except (ValueError, SyntaxError):
+                return
+            yield from _iter_normalized_data_files(data_files)
+            return
+
+
+def _is_setup_call(node: ast.AST) -> bool:
+    if not isinstance(node, ast.Call):
+        return False
+    return (isinstance(node.func, ast.Name) and node.func.id == "setup") or (
+        isinstance(node.func, ast.Attribute) and node.func.attr == "setup"
+    )
+
+
+def _iter_normalized_data_files(data_files) -> Iterator[tuple[str, list[str]]]:
+    if isinstance(data_files, dict):
+        items = data_files.items()
+    elif isinstance(data_files, (list, tuple)):
+        items = data_files
+    else:
+        return
+
+    for item in items:
+        if not isinstance(item, (list, tuple)) or len(item) != 2:
+            continue
+        target_dir, source_paths = item
+        if not isinstance(target_dir, str):
+            continue
+        if isinstance(source_paths, str):
+            yield target_dir, [line.strip() for line in source_paths.splitlines() if line.strip()]
+        elif isinstance(source_paths, (list, tuple)) and all(isinstance(path, str) for path in source_paths):
+            yield target_dir, list(source_paths)
+
+
+def _get_man_section_from_data_files_target(target_dir: str) -> str | None:
+    parts = PurePosixPath(target_dir.replace("\\", "/")).parts
+    if len(parts) < 2 or parts[-2] != "man" or parts[-1] not in MAN_SECTIONS:
+        return None
+    return parts[-1]
 
 
 def _dfs_package_resources(

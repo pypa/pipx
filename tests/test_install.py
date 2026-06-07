@@ -338,6 +338,21 @@ def test_man_page_install(pipx_temp_env, capsys):
     assert (paths.ctx.man_dir / "man6" / "pycowsay.6").exists()
 
 
+def test_editable_install_links_man_pages(pipx_temp_env, capsys, root):
+    package = (root / TEST_DATA_PATH / "local_manpage").as_posix()
+
+    assert not run_pipx_cli(["install", "--editable", package])
+    captured = capsys.readouterr()
+
+    assert f"- {app_name('local-manpage')}\n" in captured.out
+    assert f"- {Path('man1/local-manpage.1')}" in captured.out
+    assert (paths.ctx.venvs / "local-manpage" / "share" / "man" / "man1" / "local-manpage.1").exists()
+    assert (paths.ctx.man_dir / "man1" / "local-manpage.1").exists()
+
+    assert not run_pipx_cli(["uninstall", "local-manpage"])
+    assert not (paths.ctx.man_dir / "man1" / "local-manpage.1").exists()
+
+
 def test_install_pip_failure(pipx_temp_env, capsys):
     assert run_pipx_cli(["install", "weblate==4.3.1", "--verbose"])
     captured = capsys.readouterr()
