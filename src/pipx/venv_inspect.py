@@ -4,7 +4,7 @@ import json
 import logging
 import shutil
 import textwrap
-from collections.abc import Collection, Iterator
+from collections.abc import Collection, Iterable, Iterator
 from pathlib import Path, PurePosixPath
 from typing import NamedTuple
 from urllib.parse import urlparse
@@ -233,7 +233,7 @@ def _iter_setup_py_data_files(project_root: Path) -> Iterator[tuple[str, list[st
         return
 
     for node in ast.walk(tree):
-        if not _is_setup_call(node):
+        if not isinstance(node, ast.Call) or not _is_setup_call(node):
             continue
         for keyword in node.keywords:
             if keyword.arg != "data_files":
@@ -246,15 +246,14 @@ def _iter_setup_py_data_files(project_root: Path) -> Iterator[tuple[str, list[st
             return
 
 
-def _is_setup_call(node: ast.AST) -> bool:
-    if not isinstance(node, ast.Call):
-        return False
+def _is_setup_call(node: ast.Call) -> bool:
     return (isinstance(node.func, ast.Name) and node.func.id == "setup") or (
         isinstance(node.func, ast.Attribute) and node.func.attr == "setup"
     )
 
 
-def _iter_normalized_data_files(data_files) -> Iterator[tuple[str, list[str]]]:
+def _iter_normalized_data_files(data_files: object) -> Iterator[tuple[str, list[str]]]:
+    items: Iterable[object]
     if isinstance(data_files, dict):
         items = data_files.items()
     elif isinstance(data_files, (list, tuple)):
