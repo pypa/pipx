@@ -97,6 +97,7 @@ def inject_dep(
         package_name=package_name,
         package_or_url=package_spec,
         pip_args=pip_args,
+        install_only_pip_args=["--force-reinstall"] if force else None,
         include_dependencies=include_dependencies,
         include_apps=include_apps,
         is_main_package=False,
