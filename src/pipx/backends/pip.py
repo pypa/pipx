@@ -95,8 +95,6 @@ class PipBackend(Backend):
         )
         if log_pip_errors:
             subprocess_post_check_handle_pip_error(process)
-        else:
-            subprocess_post_check(process, raise_error=False)
         return process
 
     def uninstall(

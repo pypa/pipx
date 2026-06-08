@@ -390,10 +390,13 @@ class Venv:
                 verbose=self.verbose,
             )
         if process.returncode:
+            error_output = (process.stderr or process.stdout or "").strip()
+            if error_output:
+                raise PipxError(error_output, wrap_message=False)
             raise PipxError(
                 f"""
-                Cannot determine package name from spec {package_or_url!r}.
-                Check package spec for errors.
+                Error determining package name from spec {package_or_url!r}.
+                See installer output for details.
                 """
             )
 
