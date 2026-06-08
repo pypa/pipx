@@ -51,6 +51,30 @@ def test_pin_injected_packages_only(capsys, pipx_temp_env, caplog):
     assert "Not upgrading pinned package pylint in venv pycowsay" in caplog.text
 
 
+def test_pin_injected_packages_only_when_main_package_pinned(capsys, pipx_temp_env, caplog):
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["pin", "pycowsay"])
+    assert not run_pipx_cli(["inject", "pycowsay", "black", PKG["pylint"]["spec"]])
+
+    _ = capsys.readouterr()
+    caplog.clear()
+
+    assert not run_pipx_cli(["pin", "pycowsay", "--injected-only"])
+
+    captured = capsys.readouterr()
+
+    assert "Pinned 2 packages in venv pycowsay" in captured.out
+    assert "black" in captured.out
+    assert "pylint" in captured.out
+    assert "Package pycowsay already pinned" not in caplog.text
+
+    assert not run_pipx_cli(["upgrade", "pycowsay", "--include-injected"])
+
+    assert "Not upgrading pinned package pycowsay" in caplog.text
+    assert "Not upgrading pinned package black in venv pycowsay" in caplog.text
+    assert "Not upgrading pinned package pylint in venv pycowsay" in caplog.text
+
+
 def test_pin_injected_packages_with_skip(capsys, pipx_temp_env):
     assert not run_pipx_cli(["install", "black"])
     assert not run_pipx_cli(["inject", "black", PKG["pylint"]["spec"], PKG["isort"]["spec"]])
