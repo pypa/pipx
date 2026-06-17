@@ -9,6 +9,19 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 <!-- towncrier release notes start -->
 
+## [1.14.1](https://github.com/pypa/pipx/tree/1.14.1) - 2026-06-17
+
+### Bugfixes
+
+- Restore the original package if `pipx reinstall-all` is interrupted during reinstall. ([#966](https://github.com/pypa/pipx/issues/966))
+- Allow importing `pipx.util` before `pipx.paths`. ([#1333](https://github.com/pypa/pipx/issues/1333))
+- Ensure `pipx inject --force` reinstalls injected packages without persisting the force-reinstall option in package
+  metadata. ([#1545](https://github.com/pypa/pipx/issues/1545))
+- Preserve installer errors when package-name detection fails during local package installs. ([#1567](https://github.com/pypa/pipx/issues/1567))
+- Expose manual pages for editable local package installs. ([#1793](https://github.com/pypa/pipx/issues/1793))
+- Fixed `pipx pin <app> --injected-only` so it can pin injected packages when the main app is already pinned. ([#1835](https://github.com/pypa/pipx/issues/1835))
+
+
 ## [1.14.0](https://github.com/pypa/pipx/tree/1.14.0) - 2026-06-04
 
 ### Features
