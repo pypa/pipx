@@ -6,6 +6,8 @@ import pytest
 
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, skip_if_windows
 from package_info import PKG
+from pipx import paths
+from pipx.pipx_metadata_file import PipxMetadata
 
 
 # Note that this also checks that packages used in other tests can be injected individually
@@ -113,3 +115,25 @@ def test_inject_with_req_file(pipx_temp_env, capsys, caplog, tmp_path, with_pack
     captured = capsys.readouterr()
     injected = re.findall(r"injected package (.+?) into venv pycowsay", captured.out)
     assert set(injected) == {pkg for pkg, _ in packages}
+
+
+def test_force_inject_reinstalls_without_storing_force(pipx_temp_env, caplog):
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--pip-args=--no-cache-dir"])
+
+    caplog.clear()
+    assert not run_pipx_cli(
+        [
+            "inject",
+            "pycowsay",
+            PKG["black"]["spec"],
+            "--force",
+            "--verbose",
+            "--pip-args=--no-cache-dir",
+        ]
+    )
+
+    assert "--force-reinstall" in caplog.text
+
+    metadata = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    assert metadata.injected_packages["black"].pip_args == ["--no-cache-dir"]
