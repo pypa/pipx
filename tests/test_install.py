@@ -10,6 +10,8 @@ import pytest
 from helpers import app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
 from package_info import PKG
 from pipx import paths, shared_libs
+from pipx.util import PipxError
+from pipx.venv import Venv
 
 TEST_DATA_PATH = "./testdata/test_package_specifier"
 
@@ -263,7 +265,33 @@ def test_pip_args_forwarded_to_package_name_determination(pipx_temp_env, capsys)
         ]
     )
     captured = capsys.readouterr()
-    assert "Cannot determine package name from spec" in captured.err
+    assert "--asdf" in captured.err
+    assert "Cannot determine package name from spec" not in captured.err
+
+
+def test_package_name_determination_preserves_install_error(monkeypatch):
+    class FailingBackend:
+        def install(self, **kwargs):
+            return subprocess.CompletedProcess(
+                ["pip", "install", "requires-newer-python"],
+                1,
+                stdout="",
+                stderr="ERROR: Package 'requires-newer-python' requires a different Python\n",
+            )
+
+    def no_installed_packages():
+        return set()
+
+    venv = Venv(Path("requires-newer-python-venv"))
+    monkeypatch.setattr(venv, "_backend", FailingBackend())
+    monkeypatch.setattr(venv, "list_installed_packages", no_installed_packages)
+
+    with pytest.raises(PipxError) as excinfo:
+        venv.install_package_no_deps("requires-newer-python", [])
+
+    error = str(excinfo.value)
+    assert "requires a different Python" in error
+    assert "Cannot determine package name from spec" not in error
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Windows only")
