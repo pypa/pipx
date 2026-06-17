@@ -38,9 +38,7 @@ def pin(
     except KeyError as e:
         raise PipxError(f"Package {venv.name} is not installed") from e
 
-    if main_package_metadata.pinned:
-        logger.warning(f"Package {main_package_metadata.package} already pinned {sleep}")
-    elif injected_only or skip:
+    if injected_only or skip:
         pinned_packages_count = 0
         pinned_packages_list = []
         for package_name in venv.package_metadata:
@@ -58,6 +56,8 @@ def pin(
             print(bold(f"Pinned {pinned_packages_count} packages in venv {venv.name}"))
             for package in pinned_packages_list:
                 print("  -", package)
+    elif main_package_metadata.pinned:
+        logger.warning(f"Package {main_package_metadata.package} already pinned {sleep}")
     else:
         for package_name in venv.package_metadata:
             if package_name == venv.main_package_name:
