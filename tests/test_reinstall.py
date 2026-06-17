@@ -1,8 +1,11 @@
 import sys
+from dataclasses import replace
 
 import pytest
 
-from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, skip_if_windows
+from helpers import PIPX_METADATA_LEGACY_VERSIONS, app_name, mock_legacy_venv, run_pipx_cli, skip_if_windows
+from pipx import paths, util
+from pipx.pipx_metadata_file import PipxMetadata
 
 
 def test_reinstall(pipx_temp_env, capsys):
@@ -54,6 +57,34 @@ def test_reinstall_specifier(pipx_temp_env, capsys):
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pylint"])
     captured = capsys.readouterr()
     assert "installed package pylint 3.0.4" in captured.out
+
+
+@skip_if_windows
+def test_reinstall_removes_stale_apps_after_success(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+
+    venv_dir = paths.ctx.venvs / "pycowsay"
+    stale_app_name = app_name("removed-cowsay")
+    stale_app_path = util.get_venv_paths(venv_dir)[0] / stale_app_name
+    stale_app_path.write_text("#!/bin/sh\n")
+    stale_app_path.chmod(0o755)
+
+    stale_exposed_path = paths.ctx.bin_dir / stale_app_name
+    stale_exposed_path.symlink_to(stale_app_path)
+
+    metadata = PipxMetadata(venv_dir)
+    metadata.main_package = replace(
+        metadata.main_package,
+        apps=[*metadata.main_package.apps, stale_app_name],
+        app_paths=[*metadata.main_package.app_paths, stale_app_path],
+    )
+    metadata.write()
+
+    assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+
+    assert not stale_exposed_path.exists()
+    assert not stale_exposed_path.is_symlink()
 
 
 def test_reinstall_with_path(pipx_temp_env, capsys, tmp_path):

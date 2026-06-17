@@ -1,9 +1,10 @@
+import importlib
 import sys
 
 import pytest
 
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli
-from pipx import shared_libs
+from pipx import paths, shared_libs
 
 
 def test_reinstall_all(pipx_temp_env, capsys):
@@ -49,3 +50,30 @@ def test_reinstall_all_triggers_shared_libs_upgrade(pipx_temp_env, caplog, capsy
 
     assert not run_pipx_cli(["reinstall-all"])
     assert "Upgrading shared libraries in" in caplog.text
+
+
+def test_reinstall_all_restores_package_after_keyboard_interrupt(pipx_temp_env, monkeypatch, capsys):
+    reinstall_module = importlib.import_module("pipx.commands.reinstall")
+
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+
+    venv_dir = paths.ctx.venvs / "pycowsay"
+    metadata_before = (venv_dir / "pipx_metadata.json").read_text()
+
+    def interrupting_install(replacement_venv_dir, *args, **kwargs):
+        assert not venv_dir.exists()
+        replacement_venv_dir.mkdir()
+        (replacement_venv_dir / "partial-install").write_text("new")
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(reinstall_module, "install", interrupting_install)
+
+    assert run_pipx_cli(["reinstall-all", "--python", sys.executable])
+    captured = capsys.readouterr()
+
+    assert "Reinstall failed; restored pycowsay." in captured.err
+    assert venv_dir.exists()
+    assert (venv_dir / "pipx_metadata.json").read_text() == metadata_before
+    assert not (venv_dir / "partial-install").exists()
+    assert not any(path.name.endswith("-pipx-reinstall") for path in paths.ctx.venvs.iterdir())
