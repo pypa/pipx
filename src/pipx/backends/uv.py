@@ -141,6 +141,10 @@ class UvBackend(Backend):
         if not_required:
             cmd.append("--not-required")
         process = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=_UV_ENV_OVERRIDES)
+        stderr = process.stderr or ""
+        if process.returncode != 0 and not_required and "--not-required" in stderr and "unexpected argument" in stderr:
+            _LOGGER.info("uv pip list does not support --not-required yet; skipping dependency cleanup")
+            return set()
         if process.returncode != 0:
             raise PipxError(
                 f"Failed to execute {process.args}.\n"

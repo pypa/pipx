@@ -1,3 +1,8 @@
+import shutil
+import sys
+
+import pytest
+
 from helpers import run_pipx_cli, skip_if_windows
 from package_info import PKG
 
@@ -61,3 +66,12 @@ def test_uninject_preserves_shared_deps(pipx_temp_env, capsys):
     captured = capsys.readouterr()
     assert "pylint" in captured.out
     assert "black" not in captured.out
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH; skipping uv integration smoke")
+def test_uninject_with_uv_backend(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "pycowsay", "--backend", "uv", "--python", sys.executable])
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
+    assert not run_pipx_cli(["uninject", "pycowsay", "black"])
+    captured = capsys.readouterr()
+    assert "Uninjected package black" in captured.out
