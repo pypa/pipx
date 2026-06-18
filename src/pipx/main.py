@@ -1083,12 +1083,19 @@ def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argpa
         action="store_true",
         help=("Add directories to PATH in all shells instead of just the current one."),
     )
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=("Report what would be added to PATH without modifying PATH or any shell configuration file."),
+    )
     p.set_defaults(func=_cmd_ensurepath)
 
 
 def _cmd_ensurepath(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     try:
-        return commands.ensure_pipx_paths(prepend=args.prepend, force=args.force, all_shells=args.all_shells)
+        return commands.ensure_pipx_paths(
+            prepend=args.prepend, force=args.force, all_shells=args.all_shells, dry_run=args.dry_run
+        )
     except Exception as e:
         logger.debug("Uncaught Exception:", exc_info=True)
         raise PipxError(str(e), wrap_message=False) from None

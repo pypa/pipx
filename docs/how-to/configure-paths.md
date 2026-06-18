@@ -73,6 +73,12 @@ The `--prepend` argument can be passed to the `pipx ensurepath` command to prepe
 user's PATH environment variable instead of appending to it. This can be useful if you want to prioritise
 `pipx`-installed binaries over system-installed binaries of the same name.
 
+#### `--dry-run` argument
+
+The `--dry-run` argument can be passed to the `pipx ensurepath` command to report which directories would be added to
+your PATH without modifying PATH or any shell configuration file. This lets you preview the changes before running
+`pipx ensurepath` for real.
+
 ### Configuring pip for pipx
 
 pipx uses pip internally for all package installs, including its own shared libraries (pip, setuptools). To point pip at
