@@ -1,0 +1,1 @@
+Fix `pipx uninject` for uv-backed environments by avoiding uv's unsupported `pip list --not-required` option.
