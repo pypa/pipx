@@ -50,9 +50,13 @@ def get_pipx_user_bin_path() -> Path | None:
     return pipx_bin_path
 
 
-def ensure_path(location: Path, *, force: bool, prepend: bool = False, all_shells: bool = False) -> tuple[bool, bool]:
+def ensure_path(
+    location: Path, *, force: bool, prepend: bool = False, all_shells: bool = False, dry_run: bool = False
+) -> tuple[bool, bool]:
     """Ensure location is in user's PATH or add it to PATH.
     If prepend is True, location will be prepended to PATH, else appended.
+    If dry_run is True, report what would change without modifying PATH or
+    any shell configuration file.
     Returns True if location was added to PATH
     """
     location_str = str(location)
@@ -61,6 +65,15 @@ def ensure_path(location: Path, *, force: bool, prepend: bool = False, all_shell
     in_current_path = userpath.in_current_path(location_str)
 
     if force or (not in_current_path and not need_shell_restart):
+        if dry_run:
+            action = "prepend" if prepend else "append"
+            print(
+                pipx_wrap(
+                    f"Would {action} {location_str} to the PATH environment variable.",
+                    subsequent_indent=" " * 4,
+                )
+            )
+            return (False, False)
         if prepend:
             path_added = userpath.prepend(location_str, "pipx", all_shells=all_shells)
         else:
@@ -99,7 +112,7 @@ def ensure_path(location: Path, *, force: bool, prepend: bool = False, all_shell
     return (path_added, need_shell_restart)
 
 
-def ensure_pipx_paths(force: bool, prepend: bool = False, all_shells: bool = False) -> ExitCode:
+def ensure_pipx_paths(force: bool, prepend: bool = False, all_shells: bool = False, dry_run: bool = False) -> ExitCode:
     """Returns pipx exit code."""
     bin_paths = {paths.ctx.bin_dir}
 
@@ -113,12 +126,16 @@ def ensure_pipx_paths(force: bool, prepend: bool = False, all_shells: bool = Fal
 
     for bin_path in bin_paths:
         (path_added_current, need_shell_restart_current) = ensure_path(
-            bin_path, prepend=prepend, force=force, all_shells=all_shells
+            bin_path, prepend=prepend, force=force, all_shells=all_shells, dry_run=dry_run
         )
         path_added |= path_added_current
         need_shell_restart |= need_shell_restart_current
 
     print()
+
+    if dry_run:
+        print(pipx_wrap("This was a dry run; no changes were made to your PATH or shell configuration files."))
+        return EXIT_CODE_OK
 
     if path_added:
         print(
