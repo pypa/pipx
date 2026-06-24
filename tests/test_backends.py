@@ -21,6 +21,7 @@ from pipx.commands.run_uv import translate_pip_args_for_uv
 from pipx.main import _validate_backend_available
 from pipx.util import PipxError
 from pipx.venv import Venv, reset_backend_override_warnings
+from pipx.venv_inspect import list_not_required_packages
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -65,10 +66,13 @@ class _CurrentMetadata(_LegacyMetadata):
     backend: str
 
 
-def _write_dist_info(site_packages: Path, name: str, requires: list[str] | None = None) -> None:
+def _write_dist_info(
+    site_packages: Path, name: str, requires: list[str] | None = None, provides_extra: list[str] | None = None
+) -> None:
     dist_info = site_packages / f"{name}-1.0.dist-info"
     dist_info.mkdir()
     metadata = [f"Name: {name}", "Version: 1.0"]
+    metadata += [f"Provides-Extra: {extra}" for extra in provides_extra or []]
     metadata += [f"Requires-Dist: {requirement}" for requirement in requires or []]
     (dist_info / "METADATA").write_text("\n".join(metadata), encoding="utf-8")
 
@@ -260,7 +264,7 @@ def test_uv_list_installed_not_required_uses_distribution_metadata(
 
     monkeypatch.setattr("pipx.backends.uv.run_subprocess", fail_run_subprocess)
     monkeypatch.setattr(
-        "pipx.backends.uv.fetch_info_in_venv",
+        "pipx.venv_inspect.fetch_info_in_venv",
         lambda venv_python: ([str(site_packages)], {}, "Python 3.13.0"),
         raising=False,
     )
@@ -273,6 +277,25 @@ def test_uv_list_installed_not_required_uses_distribution_metadata(
         venv_python=tmp_path / "bin" / "python",
         not_required=True,
     ) == {"root-package", "top-package"}
+
+
+def test_list_not_required_packages_treats_extra_dependencies_as_required(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # ``child-package`` is required only via ``top-package``'s ``extra == "cli"`` dependency; it must
+    # still be reported as required (not removable) while top-package stays installed.
+    site_packages = tmp_path / "site-packages"
+    site_packages.mkdir()
+    _write_dist_info(site_packages, "top-package", ['child-package>=1; extra == "cli"'], provides_extra=["cli"])
+    _write_dist_info(site_packages, "child-package")
+
+    monkeypatch.setattr(
+        "pipx.venv_inspect.fetch_info_in_venv",
+        lambda venv_python: ([str(site_packages)], {}, "Python 3.13.0"),
+        raising=False,
+    )
+
+    assert list_not_required_packages(tmp_path / "bin" / "python") == {"top-package"}
 
 
 def test_metadata_round_trip_includes_backend(tmp_path: Path) -> None:

@@ -6,11 +6,9 @@ import re
 import shutil
 import subprocess
 from functools import cache
-from importlib import metadata
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
-from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion, Version
 
 from pipx.animate import animate
@@ -21,7 +19,7 @@ from pipx.util import (
     subprocess_post_check,
     subprocess_post_check_handle_pip_error,
 )
-from pipx.venv_inspect import fetch_info_in_venv, get_package_dependencies
+from pipx.venv_inspect import list_not_required_packages
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -140,7 +138,7 @@ class UvBackend(Backend):
         not_required: bool = False,
     ) -> set[str]:
         if not_required:
-            return _list_not_required_from_metadata(venv_python)
+            return list_not_required_packages(venv_python)
 
         cmd = self._uv_pip_command("list", venv_python, verbose=False)
         cmd += ["--format", "json"]
@@ -183,20 +181,6 @@ class UvBackend(Backend):
         cmd: list[str | Path] = [self._binary, "pip", subcommand, "--python", str(venv_python)]
         cmd.append("--verbose" if verbose else "--quiet")
         return cmd
-
-
-def _list_not_required_from_metadata(venv_python: Path) -> set[str]:
-    venv_sys_path, venv_env, _ = fetch_info_in_venv(venv_python)
-    distributions = tuple(metadata.distributions(path=venv_sys_path))
-    installed_packages = {
-        str(canonicalize_name(name)) for dist in distributions if (name := dist.metadata.get("Name")) is not None
-    }
-    required_packages = {
-        str(canonicalize_name(requirement.name))
-        for dist in distributions
-        for requirement in get_package_dependencies(dist, set(), venv_env)
-    }
-    return installed_packages - required_packages
 
 
 def resolve_uv_binary() -> Path:
