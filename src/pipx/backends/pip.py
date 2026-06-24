@@ -16,6 +16,7 @@ from pipx.util import (
     subprocess_post_check,
     subprocess_post_check_handle_pip_error,
 )
+from pipx.venv_inspect import list_not_required_packages
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -120,9 +121,9 @@ class PipBackend(Backend):
         not_required: bool = False,
     ) -> set[str]:
         del venv_root
-        cmd = [str(venv_python), "-m", "pip", "list", "--format=json"]
         if not_required:
-            cmd.append("--not-required")
+            return list_not_required_packages(venv_python)
+        cmd = [str(venv_python), "-m", "pip", "list", "--format=json"]
         process = run_subprocess(cmd)
         if process.returncode != 0:
             raise PipxError(

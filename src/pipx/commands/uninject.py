@@ -19,7 +19,7 @@ from pipx.constants import (
 from pipx.emojis import stars
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv
-from pipx.venv_inspect import fetch_info_in_venv, get_dist, get_package_dependencies
+from pipx.venv_inspect import fetch_info_in_venv, get_dist, get_required_dependency_names
 
 logger = logging.getLogger(__name__)
 
@@ -193,6 +193,6 @@ def _collect_transitive_deps(
         return visited
     visited.add(canonical)
     if dist := get_dist(package_name, distributions):
-        for dep_req in get_package_dependencies(dist, set(), env):
-            _collect_transitive_deps(dep_req.name, distributions, env, visited)
+        for dep_name in get_required_dependency_names(dist, env):
+            _collect_transitive_deps(dep_name, distributions, env, visited)
     return visited

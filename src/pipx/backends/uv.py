@@ -19,6 +19,7 @@ from pipx.util import (
     subprocess_post_check,
     subprocess_post_check_handle_pip_error,
 )
+from pipx.venv_inspect import list_not_required_packages
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -136,10 +137,11 @@ class UvBackend(Backend):
         venv_python: Path,
         not_required: bool = False,
     ) -> set[str]:
+        if not_required:
+            return list_not_required_packages(venv_python)
+
         cmd = self._uv_pip_command("list", venv_python, verbose=False)
         cmd += ["--format", "json"]
-        if not_required:
-            cmd.append("--not-required")
         process = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=_UV_ENV_OVERRIDES)
         if process.returncode != 0:
             raise PipxError(

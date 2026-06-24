@@ -1,0 +1,1 @@
+Fix `pipx uninject` for uv-backed environments, where uv lacks pip's `list --not-required` option. Both backends now derive the not-required set from installed distribution metadata, so they behave identically, and a dependency pulled in only by another package's extra is kept instead of being treated as removable.

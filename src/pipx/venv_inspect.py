@@ -76,6 +76,34 @@ def get_package_dependencies(dist: metadata.Distribution, extras: set[str], env:
     return dependencies
 
 
+def get_required_dependency_names(dist: metadata.Distribution, env: dict[str, str]) -> set[str]:
+    """Canonical names ``dist`` depends on, including dependencies behind its declared extras.
+
+    Considering every declared extra is deliberately conservative: a dependency that is only pulled
+    in by an extra is still treated as required, so it is never reported as removable while the
+    package declaring it stays installed.
+    """
+    extras = set(dist.metadata.get_all("Provides-Extra") or [])
+    return {canonicalize_name(req.name) for req in get_package_dependencies(dist, extras, env)}
+
+
+def list_not_required_packages(venv_python: Path) -> set[str]:
+    """Canonical names of installed packages that no other installed package requires.
+
+    Mirrors ``pip list --not-required`` from installed distribution metadata so every backend
+    (including uv, which lacks the flag) computes the same result.
+    """
+    venv_sys_path, venv_env, _ = fetch_info_in_venv(venv_python)
+    distributions = tuple(metadata.distributions(path=venv_sys_path))
+    installed: set[str] = set()
+    required: set[str] = set()
+    for dist in distributions:
+        if (name := dist.metadata["Name"]) is not None:
+            installed.add(canonicalize_name(name))
+        required |= get_required_dependency_names(dist, venv_env)
+    return installed - required
+
+
 def get_apps_from_entry_points(dist: metadata.Distribution, bin_path: Path):
     app_names = set()
     sections = {"console_scripts", "gui_scripts"}
