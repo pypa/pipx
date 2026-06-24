@@ -9,6 +9,18 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for keeping t
 
 <!-- towncrier release notes start -->
 
+## [1.15.0](https://github.com/pypa/pipx/tree/1.15.0) - 2026-06-24
+
+### Features
+
+- Add a `--dry-run` flag to `pipx ensurepath` that reports which directories would be added to `PATH` without modifying
+  `PATH` or any shell configuration file. ([#1014](https://github.com/pypa/pipx/issues/1014))
+
+### Bugfixes
+
+- Fix `pipx uninject` for uv-backed environments, where uv lacks pip's `list --not-required` option. Both backends now derive the not-required set from installed distribution metadata, so they behave identically, and a dependency pulled in only by another package's extra is kept instead of being treated as removable. ([#1841](https://github.com/pypa/pipx/issues/1841))
+
+
 ## [1.14.1](https://github.com/pypa/pipx/tree/1.14.1) - 2026-06-17
 
 ### Bugfixes
