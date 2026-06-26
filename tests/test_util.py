@@ -1,10 +1,38 @@
 from __future__ import annotations
 
+import logging
 import sys
+from typing import TYPE_CHECKING
 
 import pytest
 
-from pipx.util import run_subprocess
+from pipx.util import rmdir, run_subprocess
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+
+def test_rmdir_without_safe_rm_is_non_fatal_for_locked_files(
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    trash_dir = tmp_path / "trash"
+    trash_dir.mkdir()
+    (trash_dir / "locked.dll").write_text("locked")
+
+    def fake_rmtree(path: Path, ignore_errors: bool = False) -> None:
+        assert path == trash_dir
+        if not ignore_errors:
+            raise PermissionError("locked file")
+
+    monkeypatch.setattr("pipx.util.shutil.rmtree", fake_rmtree)
+
+    with caplog.at_level(logging.WARNING, logger="pipx.util"):
+        rmdir(trash_dir, safe_rm=False)
+
+    assert trash_dir.is_dir()
+    assert f"Failed to delete {trash_dir}. You may need to delete it manually." in caplog.text
 
 
 @pytest.mark.parametrize(
