@@ -67,3 +67,10 @@ print(data["info"]["version"])
 
 pipx creates a cached virtual environment keyed to the script's dependency list. Changing the dependencies creates a
 fresh environment.
+
+Extra packages passed with `--with` are installed into that same script environment, so you can combine inline metadata
+with one-off additions:
+
+```
+pipx run --with rich test.py pipx
+```

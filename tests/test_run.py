@@ -347,6 +347,27 @@ def test_run_with_requirements_and_args(caplog, pipx_temp_env, tmp_path):
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_requirements_and_with_dependencies(caplog, pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    out = tmp_path / "output.txt"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+                # /// script
+                # dependencies = ["packaging"]
+                # ///
+                import packaging
+                import requests
+                from pathlib import Path
+                Path({str(out)!r}).write_text(requests.__version__)
+            """
+        ).strip()
+    )
+    run_pipx_cli_exit(["run", "--with", "requests==2.31.0", script.as_uri()])
+    assert out.read_text() == "2.31.0"
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_failing_requirements(capfd, pipx_temp_env, tmp_path):
     script = tmp_path / "test.py"
     script.write_text(

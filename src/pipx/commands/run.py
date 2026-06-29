@@ -92,6 +92,7 @@ def run_script(
     dependencies: list[str] | None = None,
 ) -> NoReturn:
     requirements = _get_requirements_from_script(content)
+    all_requirements = list(dict.fromkeys([*(requirements or []), *(dependencies or [])]))
 
     if dependencies and not requirements:
         # Plain scripts have nowhere to record extra requirements; the pip path
@@ -139,7 +140,7 @@ def run_script(
         # managed. The requirements are normalised (in
         # _get_requirements_from_script), so that irrelevant differences in
         # whitespace, and similar, don't prevent environment sharing.
-        venv_dir = _get_temporary_venv_path(requirements, python, pip_args, venv_args, resolved_backend or "pip")
+        venv_dir = _get_temporary_venv_path(all_requirements, python, pip_args, venv_args, resolved_backend or "pip")
         venv = Venv(venv_dir, backend=backend, env_backend=env_backend)
         _prepare_venv_cache(venv, None, use_cache)
         if venv_dir.exists():
@@ -149,7 +150,7 @@ def run_script(
             venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
             venv.create_venv(venv_args, pip_args)
             try:
-                venv.install_unmanaged_packages(requirements, pip_args)
+                venv.install_unmanaged_packages(all_requirements, pip_args)
             except:
                 # Package installation failed, so mark the cache as expired.
                 # This ensures an attempt is made to re-install requirements
