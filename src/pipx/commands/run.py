@@ -93,14 +93,16 @@ def run_script(
 ) -> NoReturn:
     requirements = _get_requirements_from_script(content)
 
-    if dependencies and not requirements:
-        # Plain scripts have nowhere to record extra requirements; the pip path
-        # silently dropped ``--with`` here, but a clear error is better.
-        raise PipxError(
-            "--with packages can only be applied to scripts with PEP 723 inline metadata "
-            "(`# /// script` block). Add the dependencies to the script's metadata or run "
-            "via `pipx run --spec`."
-        )
+    if dependencies:
+        if requirements is None:
+            # Plain scripts have nowhere to record extra requirements; the pip path
+            # silently dropped ``--with`` here, but a clear error is better.
+            raise PipxError(
+                "--with packages can only be applied to scripts with PEP 723 inline metadata "
+                "(`# /// script` block). Add the dependencies to the script's metadata or run "
+                "via `pipx run --spec`."
+            )
+        requirements = [*requirements, *dependencies]
 
     if resolved_backend == UV and requirements is not None:
         if script_source is not None:
