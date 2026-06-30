@@ -1,5 +1,11 @@
 from helpers import run_pipx_cli, skip_if_windows
 from package_info import PKG
+from pipx import paths
+
+
+def file_or_symlink(filepath):
+    # True for a regular file or a symlink (broken or not), False otherwise.
+    return filepath.exists() or filepath.is_symlink()
 
 
 def test_uninject_simple(pipx_temp_env, capsys):
@@ -30,6 +36,19 @@ def test_uninject_with_include_apps(pipx_temp_env, capsys, caplog):
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--include-deps", "--include-apps"])
     assert not run_pipx_cli(["uninject", "pycowsay", "black", "--verbose"])
     assert "removed file" in caplog.text
+
+
+def test_uninject_man_page(pipx_temp_env):
+    # Regression: uninject must remove the injected package's man page symlinks,
+    # not only its app symlinks. pycowsay ships man6/pycowsay.6.
+    man_page_paths = [paths.ctx.man_dir / man_page for man_page in PKG["pycowsay"]["man_pages"]]
+    assert not run_pipx_cli(["install", PKG["black"]["spec"]])
+    assert not run_pipx_cli(["inject", "black", "pycowsay", "--include-apps"])
+    for man_page_path in man_page_paths:
+        assert man_page_path.exists()
+    assert not run_pipx_cli(["uninject", "black", "pycowsay"])
+    for man_page_path in man_page_paths:
+        assert not file_or_symlink(man_page_path)
 
 
 def test_uninject_removes_dependency_app_symlinks(pipx_temp_env, capsys, caplog):
