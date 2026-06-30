@@ -265,6 +265,38 @@ def test_run_with_requirements(script_text, expected_output, caplog, pipx_temp_e
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_requirements_and_cli_with_pip_backend(pipx_temp_env, tmp_path):
+    script = tmp_path / "test.py"
+    out = tmp_path / "output.txt"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+            # /// script
+            # dependencies = ["requests==2.31.0"]
+            # ///
+
+            import black
+            import requests
+            from pathlib import Path
+
+            Path({str(out)!r}).write_text(f"requests={{requests.__version__}}, package={{black.__name__}}")
+            """
+        ).strip(),
+        encoding="utf-8",
+    )
+
+    run_pipx_cli_exit(
+        ["run", "--backend", "pip", "--with", PKG["black"]["spec"], script.as_uri()],
+        assert_exit=0,
+    )
+    assert out.read_text() == "requests=2.31.0, package=black"
+
+    out.unlink()
+    run_pipx_cli_exit(["run", "--backend", "pip", script.as_uri()], assert_exit=1)
+    assert not out.exists()
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_requirements_old(caplog, pipx_temp_env, tmp_path):
     script = tmp_path / "test.py"
     out = tmp_path / "output.txt"
