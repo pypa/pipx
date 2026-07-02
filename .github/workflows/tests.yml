@@ -36,13 +36,13 @@ jobs:
       - name: 🚀 Install uv
         uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
       - name: 🐍 Setup Python ${{ matrix.py }}
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: ${{ matrix.py }}
       - name: 📦 Install tox
         run: uv tool install --python-preference only-managed --python 3.13 "tox>=4.45" --with tox-uv
       - name: Persistent .pipx_tests/package_cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ github.workspace }}/.pipx_tests/package_cache/${{ matrix.py }}
           key: pipx-tests-package-cache-${{ runner.os }}-${{ matrix.py }}
@@ -80,7 +80,7 @@ jobs:
         with:
           persist-credentials: false
       - name: 🐍 Setup Python 3.10
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.10"
       - name: 📦 Build zipapp
