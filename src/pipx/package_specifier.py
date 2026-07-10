@@ -11,6 +11,7 @@ import re
 import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Final
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
@@ -22,6 +23,7 @@ from pipx.util import PipxError, pipx_wrap
 logger = logging.getLogger(__name__)
 
 ARCHIVE_EXTENSIONS = (".whl", ".tar.gz", ".zip")
+_LOCAL_VCS_SCHEMES: Final[frozenset[str]] = frozenset({"git+file", "hg+file"})
 
 
 @dataclass(frozen=True)
@@ -78,7 +80,9 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
     # If this looks like a URL, treat it as such.
     if not valid_pep508:
         parsed_url = urllib.parse.urlsplit(package_spec)
-        if parsed_url.scheme and parsed_url.netloc:
+        if parsed_url.scheme and (
+            parsed_url.netloc or (parsed_url.scheme in _LOCAL_VCS_SCHEMES and parsed_url.path.startswith("/"))
+        ):
             valid_url = package_spec
 
     # Treat the input as a local path if it does not look like a PEP 508
