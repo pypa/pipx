@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 ARCHIVE_EXTENSIONS = (".whl", ".tar.gz", ".zip")
 _LOCAL_VCS_SCHEMES: Final[frozenset[str]] = frozenset({"git+file", "hg+file"})
+_PIP_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "--constraint", "-f", "--find-links"})
 
 
 @dataclass(frozen=True)
@@ -167,20 +168,18 @@ def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple
         pip_args.remove("--editable")
 
     for index, option in enumerate(pip_args):
-        if not option.startswith(("-c", "--constraint")):
+        option_name, separator, value = option.partition("=")
+        if option_name not in _PIP_PATH_OPTIONS:
             continue
 
-        if option in ("-c", "--constraint"):
-            argument_index = index + 1
-            if argument_index < len(pip_args) and not urllib.parse.urlsplit(pip_args[argument_index]).scheme:
-                pip_args[argument_index] = str(Path(pip_args[argument_index]).expanduser().resolve())
-
-        elif (option_list := option.split("=", maxsplit=1)) and len(option_list) == 2:
-            key, value = option_list
+        if separator:
             if not urllib.parse.urlsplit(value).scheme:
-                pip_args[index] = f"{key}={Path(value).expanduser().resolve()}"
+                pip_args[index] = f"{option_name}={Path(value).expanduser().resolve()}"
+            continue
 
-        break
+        argument_index = index + 1
+        if argument_index < len(pip_args) and not urllib.parse.urlsplit(pip_args[argument_index]).scheme:
+            pip_args[argument_index] = str(Path(pip_args[argument_index]).expanduser().resolve())
 
     return package_or_url, pip_args
 

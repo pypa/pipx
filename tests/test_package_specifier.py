@@ -320,3 +320,36 @@ def test_parse_specifier_for_install_constraint_args(
 )
 def test_parse_specifier_for_install_accepts_local_vcs_url(package_spec: str) -> None:
     assert parse_specifier_for_install(package_spec, []) == (package_spec, [])
+
+
+@pytest.mark.parametrize(
+    "pip_args_in,pip_args_expected",
+    [
+        (
+            ["-f", "https://example.com/wheels"],
+            ["-f", "https://example.com/wheels"],
+        ),
+        (
+            ["--find-links", "https://example.com/wheels"],
+            ["--find-links", "https://example.com/wheels"],
+        ),
+        (
+            ["--find-links=https://example.com/wheels"],
+            ["--find-links=https://example.com/wheels"],
+        ),
+        (
+            ["-f", "wheels"],
+            ["-f", str(Path("wheels").resolve())],
+        ),
+        (
+            ["--find-links=wheels"],
+            [f"--find-links={Path('wheels').resolve()}"],
+        ),
+    ],
+)
+def test_parse_specifier_for_install_find_links_args(
+    pip_args_in: list[str],
+    pip_args_expected: list[str],
+) -> None:
+    _, pip_args_out = parse_specifier_for_install("pipx", pip_args_in)
+    assert pip_args_out == pip_args_expected
