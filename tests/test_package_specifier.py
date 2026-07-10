@@ -308,3 +308,15 @@ def test_parse_specifier_for_install_constraint_args(
 ) -> None:
     _, pip_args_out = parse_specifier_for_install("pipx", pip_args_in)
     assert pip_args_out == pip_args_expected
+
+
+@pytest.mark.parametrize(
+    "package_spec",
+    [
+        "git+file:///tmp/project@main",
+        "hg+file:///tmp/project@default",
+    ],
+    ids=["git", "mercurial"],
+)
+def test_parse_specifier_for_install_accepts_local_vcs_url(package_spec: str) -> None:
+    assert parse_specifier_for_install(package_spec, []) == (package_spec, [])
