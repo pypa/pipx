@@ -46,6 +46,30 @@ def test_cli_with_args(monkeypatch, capsys):
     assert "invalid choice" in captured.err
 
 
+@pytest.mark.parametrize(
+    ("variable", "value"),
+    [
+        ("PIPX_GLOBAL_HOME", "global-home"),
+        ("PIPX_GLOBAL_BIN_DIR", "global-bin"),
+        ("PIPX_GLOBAL_MAN_DIR", "global-man"),
+        ("PIPX_DEFAULT_BACKEND", "pip"),
+        ("PIPX_FETCH_MISSING_PYTHON", "1"),
+        ("PIPX_FETCH_PYTHON", "missing"),
+    ],
+)
+def test_cli_with_user_environment_value(
+    pipx_temp_env: None,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    variable: str,
+    value: str,
+) -> None:
+    monkeypatch.setenv(variable, value)
+
+    assert not run_pipx_cli(["environment", "--value", variable])
+    assert capsys.readouterr().out == f"{value}\n"
+
+
 def test_resolve_user_dir_in_env_paths(monkeypatch):
     monkeypatch.setenv("TEST_DIR", "~/test")
     home = Path.home()
