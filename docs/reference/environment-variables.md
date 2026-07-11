@@ -25,6 +25,9 @@ pipx reads the following environment variables. All are optional.
 `PIPX_HOME` has platform-specific fallback logic. If a legacy directory (e.g. `~/.local/pipx` on Linux) already exists,
 pipx uses it instead of the new default. See [Configure Paths](../how-to/configure-paths.md) for details.
 
+On Unix, a pipx installation that manages itself recovers `PIPX_HOME`, `PIPX_BIN_DIR`, and `PIPX_DEFAULT_PYTHON` from
+its virtual environment when those variables are unset. This keeps the managed installation usable in later shells.
+
 Standard `PIP_*` environment variables (e.g. `PIP_INDEX_URL`) are forwarded to pip when pipx invokes it. See
 [Troubleshooting](../how-to/troubleshoot.md#check-for-pip_-environment-variables) if unexpected pip behaviour occurs.
 
