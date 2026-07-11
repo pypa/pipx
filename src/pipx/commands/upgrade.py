@@ -167,10 +167,9 @@ def _upgrade_venv(
 
     if venv is None:
         venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
-    if not pip_args:
-        pip_args = venv.pipx_metadata.main_package.pip_args
+    main_pip_args = pip_args or venv.pipx_metadata.main_package.pip_args
     if not shared_libs_already_checked:
-        venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
+        venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=verbose)
 
     if not venv.python_path.is_file():
         raise PipxError(
@@ -188,8 +187,7 @@ def _upgrade_venv(
             wrap_message=False,
         )
 
-    # Upgrade shared libraries (pip, setuptools and wheel)
-    venv.upgrade_packaging_libraries(pip_args)
+    venv.upgrade_packaging_libraries(main_pip_args)
 
     versions_updated = 0
 
@@ -197,7 +195,7 @@ def _upgrade_venv(
     versions_updated += _upgrade_package(
         venv,
         package_name,
-        pip_args,
+        main_pip_args,
         is_main_package=True,
         force=force,
         upgrading_all=upgrading_all,

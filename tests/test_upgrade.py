@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from helpers import (
@@ -192,16 +194,14 @@ def test_upgrade_pip_args(
         assert arg not in metadata.main_package.pip_args
 
 
-def test_upgrade_injected_preserves_stored_pip_args(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
-    assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"], "--pip-args=--no-cache-dir"])
+def test_upgrade_injected_uses_stored_pip_args(pipx_temp_env: None, root: Path) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--pip-args=--no-cache-dir"])
+    assert not run_pipx_cli(["inject", "pycowsay", str(root / "testdata" / "empty_project"), "--pip-args=--no-compile"])
 
-    pipx_venvs_dir = paths.ctx.home / "venvs"
-    metadata = PipxMetadata(pipx_venvs_dir / "pylint")
-    assert "--no-cache-dir" in metadata.injected_packages["black"].pip_args
+    assert not run_pipx_cli(["upgrade", "--include-injected", "pycowsay"])
 
-    assert not run_pipx_cli(["upgrade", "--include-injected", "pylint"])
-    capsys.readouterr()
-
-    metadata = PipxMetadata(pipx_venvs_dir / "pylint")
-    assert "--no-cache-dir" in metadata.injected_packages["black"].pip_args
+    metadata = PipxMetadata(paths.ctx.home / "venvs" / "pycowsay")
+    assert (metadata.main_package.pip_args, metadata.injected_packages["empty-project"].pip_args) == (
+        ["--no-cache-dir"],
+        ["--no-compile"],
+    )
