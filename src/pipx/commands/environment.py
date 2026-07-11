@@ -41,7 +41,7 @@ DERIVED_ENVIRONMENT_VARIABLES = [
 ENVIRONMENT_VALUE_CHOICES = ENVIRONMENT_VARIABLES + DERIVED_ENVIRONMENT_VARIABLES
 
 
-def environment(value: str) -> ExitCode:
+def environment(value: str | None) -> ExitCode:
     """Print a list of environment variables and paths used by pipx"""
     resolved_backend, backend_source = resolve_backend_name(env_value=env_default_backend())
     uv_binary, _uv_source = find_uv_binary()
@@ -65,7 +65,7 @@ def environment(value: str) -> ExitCode:
         "PIPX_HOME_ALLOW_SPACE": str(paths.ctx.allow_spaces_in_home_path).lower(),
     }
     if value is None:
-        print("Environment variables (set by user):")  # type: ignore[unreachable]
+        print("Environment variables (set by user):")
         print("")
         for env_variable in ENVIRONMENT_VARIABLES:
             env_value = os.getenv(env_variable, "")
@@ -77,7 +77,16 @@ def environment(value: str) -> ExitCode:
             print(f"{env_variable}={derived_value}")
     elif value in derived_values:
         print(derived_values[value])
+    elif value in ENVIRONMENT_VARIABLES:
+        print(os.getenv(value, ""))
     else:
         raise PipxError("Variable not found.")
 
     return EXIT_CODE_OK
+
+
+__all__ = [
+    "ENVIRONMENT_VALUE_CHOICES",
+    "ENVIRONMENT_VARIABLES",
+    "environment",
+]
