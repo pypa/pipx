@@ -1,6 +1,3 @@
-"""``pipx run`` delegation under the uv backend, kept out of ``run.py`` so the
-flag-translation surface doesn't bury the pip flow."""
-
 from __future__ import annotations
 
 import logging
@@ -35,34 +32,6 @@ _UV_TRANSLATABLE_BOOL_FLAGS: Final[dict[str, str]] = {
     "--upgrade": "--upgrade",
     "-U": "--upgrade",
 }
-
-
-def _next_pip_arg(flag: str, iterator: Iterator[str]) -> str:
-    try:
-        return next(iterator)
-    except StopIteration as exc:
-        raise PipxError(f"Missing value for {flag!r} in --pip-args.") from exc
-
-
-def _translate_format_control(flag: str, value: str) -> list[str]:
-    all_flag, package_flag = _UV_FORMAT_CONTROL_FLAG_MAP[flag]
-    if value == ":all:":
-        return [all_flag]
-    if value == ":none:":
-        return []
-    if not all(packages := value.split(",")):
-        raise PipxError(f"Invalid value for {flag!r} in --pip-args: {value!r}.")
-    return [item for package in packages for item in (package_flag, package)]
-
-
-def _reject_venv_args(venv_args: list[str]) -> None:
-    # uv builds its own venv internally; silently dropping ``--venv-args``
-    # (e.g. ``--system-site-packages``) would diverge from the pip path.
-    if venv_args:
-        raise PipxError(
-            f"--venv-args ({' '.join(venv_args)}) is not supported by `pipx run --backend uv`.\n"
-            "Use `pipx run --backend pip` if those flags are required, or drop them."
-        )
 
 
 def run_via_uv_tool_run(
@@ -134,13 +103,7 @@ def run_script_via_uv_run(
 
 
 def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
-    """Translate ``pip_args`` for ``uv tool run`` / ``uv run --script``.
-
-    Strict on this boundary because ``uv tool run`` exposes a smaller flag
-    surface than ``uv pip install``; the install path stays permissive (it
-    forwards everything to uv) since over-rejecting valid uv pip flags would
-    be more painful than the asymmetry.
-    """
+    """Convert pip arguments, raising PipxError for options uv run cannot represent."""
     translated: list[str] = []
     iterator = iter(pip_args)
     for arg in iterator:
@@ -171,6 +134,33 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
             "Use `--backend pip` if you need pip-only flags."
         )
     return translated
+
+
+def _reject_venv_args(venv_args: list[str]) -> None:
+    # uv creates the venv, so accepting these options would ignore the requested behavior.
+    if venv_args:
+        raise PipxError(
+            f"--venv-args ({' '.join(venv_args)}) is not supported by `pipx run --backend uv`.\n"
+            "Use `pipx run --backend pip` if those flags are required, or drop them."
+        )
+
+
+def _translate_format_control(flag: str, value: str) -> list[str]:
+    all_flag, package_flag = _UV_FORMAT_CONTROL_FLAG_MAP[flag]
+    if value == ":all:":
+        return [all_flag]
+    if value == ":none:":
+        return []
+    if not all(packages := value.split(",")):
+        raise PipxError(f"Invalid value for {flag!r} in --pip-args: {value!r}.")
+    return [item for package in packages for item in (package_flag, package)]
+
+
+def _next_pip_arg(flag: str, iterator: Iterator[str]) -> str:
+    try:
+        return next(iterator)
+    except StopIteration as exc:
+        raise PipxError(f"Missing value for {flag!r} in --pip-args.") from exc
 
 
 __all__ = [
