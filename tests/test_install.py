@@ -3,6 +3,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest import mock
 
 import pytest
@@ -13,6 +14,9 @@ from pipx import paths, shared_libs
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.util import PipxError
 from pipx.venv import Venv
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 TEST_DATA_PATH = "./testdata/test_package_specifier"
 
@@ -160,6 +164,24 @@ def test_install_same_package_twice_no_force(pipx_temp_env, capsys):
     assert "already seems to be installed" in captured.out
     assert "pipx upgrade" in captured.out
     assert "0.0.0.2" in captured.out
+
+
+def test_install_existing_package_skips_shared_lib_maintenance(pipx_temp_env: None, mocker: "MockerFixture") -> None:
+    assert run_pipx_cli(["install", PKG["pycowsay"]["spec"]]) == 0
+    mocker.patch.object(shared_libs.shared_libs, "has_been_updated_this_run", False)
+    mocker.patch(
+        "pipx.shared_libs.time.time",
+        return_value=shared_libs.shared_libs.pip_path.stat().st_mtime + shared_libs.SHARED_LIBS_MAX_AGE_SEC + 1,
+    )
+    run_subprocess = mocker.patch(
+        "pipx.shared_libs.run_subprocess",
+        autospec=True,
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="ModuleSpec", stderr=""),
+    )
+
+    run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+
+    run_subprocess.assert_not_called()
 
 
 def test_include_deps(pipx_temp_env, capsys):
