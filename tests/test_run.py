@@ -1,3 +1,4 @@
+import datetime
 import importlib
 import logging
 import os
@@ -99,6 +100,34 @@ def test_cachedir_tag(pipx_ultra_temp_env, monkeypatch, capsys, caplog):
     # Verify the tag file starts with the required signature.
     with tag_path.open("r") as tag_file:
         assert tag_file.read().startswith("Signature: 8a477f597d28d172789f06886806bc55")
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_cache_sweep_ignores_tag(
+    pipx_ultra_temp_env: None,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
+    tag_path = paths.ctx.venv_cache / "CACHEDIR.TAG"
+    expired_venv = paths.ctx.venv_cache / "expired"
+    expired_venv.mkdir()
+
+    class FutureDateTime(datetime.datetime):
+        @classmethod
+        def now(cls, tz: datetime.tzinfo | None = None) -> "FutureDateTime":
+            return cls.fromtimestamp((super().now(tz) + datetime.timedelta(days=15)).timestamp(), tz)
+
+    monkeypatch.setattr(datetime, "datetime", FutureDateTime)
+    caplog.set_level(logging.INFO)
+    caplog.clear()
+
+    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
+
+    assert not expired_venv.exists()
+    assert tag_path.exists()
+    assert f"Removing expired venv {tag_path}" not in caplog.text
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)

@@ -274,12 +274,10 @@ def run(
     package
     """
 
-    # For any package, we need to just use the name
     try:
         package_name = Requirement(app).name
     except InvalidRequirement:
-        # Raw URLs to scripts are supported, too, so continue if
-        # we can't parse this as a package
+        # Raw script URLs are not valid package requirements.
         package_name = app
 
     # ``resolved_backend`` only decides ROUTING (uv tool run vs Venv); cli/env
@@ -440,7 +438,7 @@ def _prepare_venv_cache(venv: Venv, bin_path: Path | None, use_cache: bool) -> N
 
 def _remove_all_expired_venvs() -> None:
     for venv_dir in Path(paths.ctx.venv_cache).iterdir():
-        if _is_temporary_venv_expired(venv_dir):
+        if venv_dir.is_dir() and _is_temporary_venv_expired(venv_dir):
             _LOGGER.info(f"Removing expired venv {venv_dir!s}")
             rmdir(venv_dir)
 
