@@ -6,6 +6,7 @@ from platformdirs import user_cache_path, user_data_path, user_log_path
 
 from pipx.constants import LINUX, WINDOWS
 from pipx.emojis import hazard, strtobool
+from pipx.self_install import get_environment_value
 from pipx.wrap import pipx_wrap
 
 if LINUX:
@@ -37,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_expanded_environ(env_name: str) -> Path | None:
-    val = os.environ.get(env_name)
+    val = get_environment_value(env_name)
     if val is not None:
         return Path(val).expanduser().resolve()
     return val

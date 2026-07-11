@@ -8,6 +8,7 @@ from pathlib import Path
 from packaging import version
 
 from pipx.constants import WINDOWS, FetchPythonOptions
+from pipx.self_install import get_environment_value
 from pipx.standalone_python import download_python_build_standalone
 from pipx.util import PipxError
 
@@ -196,7 +197,7 @@ def _resolve_python(python: str) -> str:
     raise InterpreterResolutionError(source="PIPX_DEFAULT_PYTHON", version=python)
 
 
-env_default_python = os.environ.get("PIPX_DEFAULT_PYTHON")
+env_default_python = get_environment_value("PIPX_DEFAULT_PYTHON")
 
 if not env_default_python:
     DEFAULT_PYTHON = _get_sys_executable()
