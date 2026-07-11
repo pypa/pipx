@@ -10,19 +10,19 @@ import tempfile
 import urllib.error
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 from urllib.request import urlopen
 
 from pipx import constants, paths
 from pipx.animate import animate
 from pipx.util import PipxError
 
-logger = logging.getLogger(__name__)
+_LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 # Much of the code in this module is adapted with extreme gratitude from
 # https://github.com/tusharsadhwani/yen/blob/main/src/yen/github.py
 
-MACHINE_SUFFIX: dict[str, dict[str, Any]] = {
+MACHINE_SUFFIX: Final[dict[str, dict[str, Any]]] = {
     "Darwin": {
         "arm64": ["aarch64-apple-darwin-install_only.tar.gz"],
         "x86_64": ["x86_64-apple-darwin-install_only.tar.gz"],
@@ -43,8 +43,8 @@ MACHINE_SUFFIX: dict[str, dict[str, Any]] = {
     "Windows": {"AMD64": ["x86_64-pc-windows-msvc-install_only.tar.gz"]},
 }
 
-GITHUB_API_URL = "https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest"
-PYTHON_VERSION_REGEX = re.compile(r"cpython-(\d+\.\d+\.\d+)")
+GITHUB_API_URL: Final[str] = "https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest"
+PYTHON_VERSION_REGEX: Final[re.Pattern[str]] = re.compile(r"cpython-(\d+\.\d+\.\d+)")
 
 
 def download_python_build_standalone(python_version: str, override: bool = False):
@@ -68,7 +68,7 @@ def download_python_build_standalone(python_version: str, override: bool = False
             return str(installed_python)
 
         if install_dir.exists():
-            logger.warning(f"A previous attempt to install python {python_version} failed. Retrying.")
+            _LOGGER.warning(f"A previous attempt to install python {python_version} failed. Retrying.")
             shutil.rmtree(install_dir)
 
     full_version, (download_link, digest) = resolve_python_version(python_version)
@@ -179,12 +179,21 @@ def get_latest_python_releases() -> list[tuple[str, str]]:
 def list_pythons(use_cache: bool = True) -> dict[str, tuple[str, str]]:
     """Returns available python versions for your machine and their download links."""
     system, machine = platform.system(), platform.machine()
-    download_link_suffixes = MACHINE_SUFFIX[system][machine]
+    try:
+        download_link_suffixes = MACHINE_SUFFIX[system][machine]
+    except KeyError as error:
+        raise PipxError(f"No standalone Python builds are available for {system} on {machine}.") from error
+
     # linux suffixes are nested under glibc or musl builds
     if system == "Linux":
         # fallback to musl if libc version is not found
         libc_version = platform.libc_ver()[0] or "musl"
-        download_link_suffixes = download_link_suffixes[libc_version]
+        try:
+            download_link_suffixes = download_link_suffixes[libc_version]
+        except KeyError as error:
+            raise PipxError(
+                f"No standalone Python builds are available for {system} on {machine} with {libc_version}."
+            ) from error
 
     python_releases = get_or_update_index(use_cache)["releases"]
 
@@ -228,3 +237,12 @@ def resolve_python_version(requested_version: str):
             return full_version, download_link
 
     raise PipxError(f"Unable to acquire a standalone python build matching {requested_version}.")
+
+
+__all__ = [
+    "download_python_build_standalone",
+    "get_latest_python_releases",
+    "get_or_update_index",
+    "list_pythons",
+    "resolve_python_version",
+]
