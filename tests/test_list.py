@@ -78,6 +78,22 @@ def test_list_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
         assert "package pycowsay 0.0.0.2," in captured.out
 
 
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        "{",
+        "{}",
+        '{"pipx_metadata_version":"0.6","main_package":{"unexpected":true}}',
+    ],
+    ids=["invalid-json", "missing-version", "unexpected-package-field"],
+)
+def test_list_corrupt_metadata_does_not_crash(pipx_temp_env: None, metadata: str) -> None:
+    venv_dir = paths.ctx.venvs / "broken"
+    venv_dir.mkdir(parents=True)
+    (venv_dir / "pipx_metadata.json").write_text(metadata, encoding="utf-8")
+    assert run_pipx_cli(["list"]) == constants.EXIT_CODE_LIST_PROBLEM
+
+
 @pytest.mark.parametrize("metadata_version", ["0.1"])
 def test_list_suffix_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
     suffix = "_x"
