@@ -45,6 +45,7 @@ MACHINE_SUFFIX: Final[dict[str, dict[str, Any]]] = {
 
 GITHUB_API_URL: Final[str] = "https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest"
 PYTHON_VERSION_REGEX: Final[re.Pattern[str]] = re.compile(r"cpython-(\d+\.\d+\.\d+)")
+_URL_OPEN_TIMEOUT: Final[float] = 30
 
 
 def download_python_build_standalone(python_version: str, override: bool = False):
@@ -97,7 +98,7 @@ def _download(full_version: str, download_link: str, archive: Path):
         try:
             # python standalone builds are typically ~32MB in size. to avoid
             # ballooning memory usage, we read the file in chunks
-            with urlopen(download_link) as response, open(archive, "wb") as file_handle:
+            with urlopen(download_link, timeout=_URL_OPEN_TIMEOUT) as response, open(archive, "wb") as file_handle:
                 for data in iter(partial(response.read, 32768), b""):
                     file_handle.write(data)
         except urllib.error.URLError as e:
@@ -172,7 +173,7 @@ def get_or_update_index(use_cache: bool = True):
 def get_latest_python_releases() -> list[tuple[str, str]]:
     """Returns the list of python download links from the latest github release."""
     try:
-        with urlopen(GITHUB_API_URL) as response:
+        with urlopen(GITHUB_API_URL, timeout=_URL_OPEN_TIMEOUT) as response:
             release_data = json.load(response)
 
     except urllib.error.URLError as e:
