@@ -3,12 +3,8 @@ import logging
 import os
 import time
 from configparser import ConfigParser
-from contextlib import suppress
 from pathlib import Path
 from typing import Final
-
-from packaging.requirements import InvalidRequirement, Requirement
-from packaging.specifiers import SpecifierSet
 
 from pipx import paths
 from pipx.animate import animate
@@ -171,19 +167,6 @@ class _SharedLibs:
         if not verbose:
             filtered_pip_args.append("-q")
 
-        user_pip_requirement = None
-        for arg in filtered_pip_args:
-            with suppress(InvalidRequirement):
-                if (requirement := Requirement(arg)).name == "pip":
-                    user_pip_requirement = requirement
-                    break
-
-        install_args = (
-            [*filtered_pip_args, "pip >= 23.1"]
-            if not user_pip_requirement or not (user_pip_requirement.specifier & SpecifierSet(">=23.1"))
-            else filtered_pip_args
-        )
-
         try:
             with animate("upgrading shared libraries", not verbose):
                 upgrade_process = run_subprocess(
@@ -195,7 +178,8 @@ class _SharedLibs:
                         "--disable-pip-version-check",
                         "install",
                         "--upgrade",
-                        *install_args,
+                        *filtered_pip_args,
+                        "pip >= 23.1",
                     ]
                 )
             subprocess_post_check(upgrade_process)
