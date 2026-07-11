@@ -151,6 +151,7 @@ class Venv:
             env_backend=env_backend,
         )
         self._backend: Backend | None = None
+        self._site_packages: Path | None = None
         self._uses_shared_libs_cache: bool | None = None
 
     @property
@@ -256,6 +257,7 @@ class Venv:
             include_pip=override_shared,
             verbose=self.verbose,
         )
+        self._site_packages = None
 
         self.pipx_metadata.venv_args = venv_args
         # Persist the chosen backend on disk only when actually creating the venv.
@@ -469,10 +471,16 @@ class Venv:
             not_required=not_required,
         )
 
+    @property
+    def site_packages(self) -> Path:
+        if self._site_packages is None:
+            self._site_packages = get_site_packages(self.python_path)
+        return self._site_packages
+
     def _find_entry_point(self, app: str) -> EntryPoint | None:
         if not self.python_path.exists():
             return None
-        dists = Distribution.discover(name=self.main_package_name, path=[str(get_site_packages(self.python_path))])
+        dists = Distribution.discover(name=self.main_package_name, path=[str(self.site_packages)])
         for dist in dists:
             for ep in dist.entry_points:
                 if ep.group == "pipx.run":
@@ -503,7 +511,7 @@ class Venv:
         return (self.bin_path / filename).is_file()
 
     def has_package(self, package_name: str) -> bool:
-        return bool(list(Distribution.discover(name=package_name, path=[str(get_site_packages(self.python_path))])))
+        return bool(list(Distribution.discover(name=package_name, path=[str(self.site_packages)])))
 
     def upgrade_package_no_metadata(self, package_name: str, pip_args: list[str]) -> None:
         _LOGGER.info("Upgrading %s", package_descr := full_package_description(package_name, package_name))
