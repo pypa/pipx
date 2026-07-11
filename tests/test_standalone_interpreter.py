@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tarfile
 import warnings
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -18,7 +19,7 @@ from helpers import (
     run_pipx_cli,
 )
 from package_info import PKG
-from pipx import standalone_python
+from pipx import constants, paths, pipx_metadata_file, standalone_python
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -283,6 +284,49 @@ def test_upgrade_standalone_interpreter(pipx_temp_env, root, monkeypatch, capsys
     monkeypatch.setattr(standalone_python, "get_or_update_index", lambda _: new_index)
 
     assert not run_pipx_cli(["interpreter", "upgrade"])
+
+
+@pytest.mark.parametrize("windows", [False, True], ids=["posix", "windows"])
+def test_upgrade_standalone_interpreters_reads_each_venv_once(
+    pipx_temp_env: None,
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    windows: bool,
+) -> None:
+    monkeypatch.setattr(constants, "WINDOWS", windows)
+    for python_version in ("3.11", "3.12"):
+        interpreter_dir = paths.ctx.standalone_python_cachedir / python_version
+        interpreter_python = interpreter_dir / "python.exe" if windows else interpreter_dir / "bin" / "python3"
+        interpreter_python.parent.mkdir(parents=True)
+        interpreter_python.touch()
+
+        venv_dir = paths.ctx.venvs / f"demo-{python_version}"
+        venv_dir.mkdir(parents=True)
+        metadata = pipx_metadata_file.PipxMetadata(venv_dir, read=False)
+        metadata.main_package = replace(
+            metadata.main_package,
+            package=venv_dir.name,
+            package_or_url=venv_dir.name,
+        )
+        metadata.source_interpreter = interpreter_python
+        metadata.write()
+
+    def read_version(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        python_path = Path(command[0])
+        python_version = python_path.parent.name if windows else python_path.parent.parent.name
+        return subprocess.CompletedProcess(command, 0, stdout=f"Python {python_version}.0\n")
+
+    mocker.patch.object(standalone_python, "list_pythons", return_value=["3.11.1", "3.12.1"])
+    mocker.patch("pipx.commands.interpreter.subprocess.run", side_effect=read_version)
+    download = mocker.patch.object(standalone_python, "download_python_build_standalone")
+    reinstall = mocker.patch("pipx.commands.interpreter.commands.reinstall", autospec=True)
+    metadata_read = mocker.spy(pipx_metadata_file.PipxMetadata, "read")
+
+    assert not run_pipx_cli(["interpreter", "upgrade"])
+
+    assert download.call_count == 2
+    assert reinstall.call_count == 2
+    assert metadata_read.call_count == 2
 
 
 def test_upgrade_standalone_interpreter_nothing_to_upgrade(pipx_temp_env, capsys, mocked_github_api):

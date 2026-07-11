@@ -97,6 +97,7 @@ def upgrade_interpreters(venv_container: VenvContainer, verbose: bool) -> consta
             _LOGGER.info(f"Invalid version found in latest pythons: {latest_python_version}. Skipping.")
 
     upgraded = []
+    venvs: list[Venv] | None = None
 
     for interpreter_dir in paths.ctx.standalone_python_cachedir.iterdir():
         if not interpreter_dir.is_dir():
@@ -120,8 +121,9 @@ def upgrade_interpreters(venv_container: VenvContainer, verbose: bool) -> consta
                 override=True,
             )
 
-            for venv_dir in venv_container.iter_venv_dirs():
-                venv = Venv(venv_dir)
+            if venvs is None:
+                venvs = get_venvs_using_standalone_interpreter(venv_container)
+            for venv in venvs:
                 if venv.pipx_metadata.source_interpreter is not None and is_paths_relative(
                     venv.pipx_metadata.source_interpreter, interpreter_dir
                 ):
@@ -129,7 +131,7 @@ def upgrade_interpreters(venv_container: VenvContainer, verbose: bool) -> consta
                         f"Upgrade the interpreter of {venv.name} from {interpreter_full_version} to {latest_micro_version}"
                     )
                     commands.reinstall(
-                        venv_dir=venv_dir,
+                        venv_dir=venv.root,
                         local_bin_dir=paths.ctx.bin_dir,
                         local_man_dir=paths.ctx.man_dir,
                         python=str(interpreter_python),
