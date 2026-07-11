@@ -39,9 +39,7 @@ logger = logging.getLogger(__name__)
 
 def get_expanded_environ(env_name: str) -> Path | None:
     val = get_environment_value(env_name)
-    if val is not None:
-        return Path(val).expanduser().resolve()
-    return val
+    return Path(val).expanduser().resolve() if val else None
 
 
 class _PathContext:
@@ -184,3 +182,22 @@ class _PathContext:
 
 ctx = _PathContext()
 ctx.log_warnings()
+
+
+__all__ = [
+    "DEFAULT_PIPX_BIN_DIR",
+    "DEFAULT_PIPX_GLOBAL_BIN_DIR",
+    "DEFAULT_PIPX_GLOBAL_HOME",
+    "DEFAULT_PIPX_GLOBAL_MAN_DIR",
+    "DEFAULT_PIPX_HOME",
+    "DEFAULT_PIPX_MAN_DIR",
+    "OVERRIDE_PIPX_BIN_DIR",
+    "OVERRIDE_PIPX_GLOBAL_BIN_DIR",
+    "OVERRIDE_PIPX_GLOBAL_HOME",
+    "OVERRIDE_PIPX_GLOBAL_MAN_DIR",
+    "OVERRIDE_PIPX_HOME",
+    "OVERRIDE_PIPX_MAN_DIR",
+    "OVERRIDE_PIPX_SHARED_LIBS",
+    "ctx",
+    "get_expanded_environ",
+]

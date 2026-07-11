@@ -80,6 +80,24 @@ def test_resolve_user_dir_in_env_paths(monkeypatch):
     assert env_dir is None
 
 
+@pytest.mark.parametrize(
+    "env_name",
+    [
+        "PIPX_HOME",
+        "PIPX_GLOBAL_HOME",
+        "PIPX_BIN_DIR",
+        "PIPX_GLOBAL_BIN_DIR",
+        "PIPX_MAN_DIR",
+        "PIPX_GLOBAL_MAN_DIR",
+        "PIPX_SHARED_LIBS",
+    ],
+)
+def test_resolve_empty_env_paths(monkeypatch: pytest.MonkeyPatch, env_name: str) -> None:
+    monkeypatch.setenv(env_name, "")
+
+    assert get_expanded_environ(env_name) is None
+
+
 def test_allow_space_in_pipx_home(
     monkeypatch,
     capsys,
