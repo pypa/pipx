@@ -6,6 +6,7 @@ from pathlib import Path
 from packaging.utils import canonicalize_name
 
 from pipx.colors import bold
+from pipx.commands.common import add_suffix
 from pipx.commands.uninstall import (
     _get_package_bin_dir_app_paths,
     _get_package_man_paths,
@@ -146,10 +147,10 @@ def get_include_resource_paths(package_name: str, venv: Venv, local_bin_dir: Pat
         )
 
     pkg_metadata = venv.package_metadata[package_name]
-    all_apps = set(pkg_metadata.apps)
+    all_apps = {add_suffix(app, pkg_metadata.suffix) for app in pkg_metadata.apps}
     all_man_pages = set(pkg_metadata.man_pages)
     if pkg_metadata.include_dependencies:
-        all_apps.update(pkg_metadata.apps_of_dependencies)
+        all_apps.update(add_suffix(app, pkg_metadata.suffix) for app in pkg_metadata.apps_of_dependencies)
         all_man_pages.update(pkg_metadata.man_pages_of_dependencies)
 
     need_to_remove = set()
@@ -196,3 +197,8 @@ def _collect_transitive_deps(
         for dep_name in get_required_dependency_names(dist, env):
             _collect_transitive_deps(dep_name, distributions, env, visited)
     return visited
+
+
+__all__ = [
+    "uninject",
+]
