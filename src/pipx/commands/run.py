@@ -188,12 +188,12 @@ def run_package(
     resolved_backend: str | None = None,
     no_path_check: bool = False,
 ) -> NoReturn:
-    if not no_path_check and which(app):
+    if not no_path_check and (app_path := which(app)):
         _LOGGER.warning(
             pipx_wrap(
                 f"""
                 {hazard}  {app} is already on your PATH and installed at
-                {which(app)}. Downloading and running anyway.
+                {app_path}. Downloading and running anyway.
                 """,
                 subsequent_indent=" " * 4,
             )
