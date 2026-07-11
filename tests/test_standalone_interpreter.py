@@ -1,13 +1,22 @@
+from __future__ import annotations
+
 import datetime
 import json
 import shutil
+import subprocess
 import sys
+from typing import TYPE_CHECKING
+
+import pytest
 
 from helpers import (
     run_pipx_cli,
 )
 from package_info import PKG
 from pipx import standalone_python
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 MAJOR_PYTHON_VERSION = sys.version_info.major
 MINOR_PYTHON_VERSION = sys.version_info.minor
@@ -163,3 +172,31 @@ def test_upgrade_standalone_interpreter_nothing_to_upgrade(pipx_temp_env, capsys
     assert not run_pipx_cli(["interpreter", "upgrade"])
     captured = capsys.readouterr()
     assert "Nothing to upgrade" in captured.out
+
+
+@pytest.mark.parametrize(
+    "corrupt_error",
+    [
+        pytest.param(FileNotFoundError("missing interpreter"), id="missing-executable"),
+        pytest.param(subprocess.CalledProcessError(1, ["python", "--version"]), id="nonzero-exit"),
+    ],
+)
+def test_upgrade_standalone_interpreter_skips_corrupt(
+    pipx_temp_env: None,
+    mocker: MockerFixture,
+    corrupt_error: OSError | subprocess.CalledProcessError,
+) -> None:
+    for name in ("corrupt", "valid"):
+        (standalone_python.paths.ctx.standalone_python_cachedir / name).mkdir(parents=True)
+
+    def read_version(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        if "corrupt" in command[0]:
+            raise corrupt_error
+        return subprocess.CompletedProcess(command, 0, stdout="Python 3.12.0\n")
+
+    mocker.patch.object(standalone_python, "list_pythons", return_value=["not-a-version", "3.12.1"])
+    mocker.patch("pipx.commands.interpreter.subprocess.run", side_effect=read_version)
+    download = mocker.patch.object(standalone_python, "download_python_build_standalone")
+
+    assert not run_pipx_cli(["interpreter", "upgrade"])
+    download.assert_called_once_with("3.12", override=True)
