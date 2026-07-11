@@ -102,6 +102,47 @@ def test_download_standalone_python_supports_early_python_310(
     assert Path(python_path).is_file()
 
 
+def test_get_latest_python_releases_sets_request_timeout(mocker: MockerFixture) -> None:
+    urlopen = mocker.patch.object(
+        standalone_python,
+        "urlopen",
+        return_value=io.StringIO(json.dumps({"assets": []})),
+    )
+
+    assert standalone_python.get_latest_python_releases() == []
+    urlopen.assert_called_once_with(standalone_python.GITHUB_API_URL, timeout=30)
+
+
+def test_download_standalone_python_sets_request_timeout(
+    pipx_temp_env: None,
+    mocker: MockerFixture,
+) -> None:
+    archive = io.BytesIO()
+    with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
+        for name in ("python/bin/python3", "python/python.exe"):
+            python_tar.addfile(tarfile.TarInfo(name), io.BytesIO())
+    archive_bytes = archive.getvalue()
+    link = "https://example.invalid/cpython-3.99.0-aarch64-apple-darwin-install_only.tar.gz"
+    cache_dir = standalone_python.paths.ctx.standalone_python_cachedir
+    cache_dir.mkdir(parents=True)
+    (cache_dir / "index.json").write_text(
+        json.dumps(
+            {
+                "fetched": datetime.datetime.now().timestamp(),
+                "releases": [[link, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
+            }
+        )
+    )
+    mocker.patch.object(standalone_python.platform, "system", return_value="Darwin")
+    mocker.patch.object(standalone_python.platform, "machine", return_value="arm64")
+    urlopen = mocker.patch.object(standalone_python, "urlopen", return_value=io.BytesIO(archive_bytes))
+
+    python_path = standalone_python.download_python_build_standalone("3.99")
+
+    assert Path(python_path).is_file()
+    urlopen.assert_called_once_with(link, timeout=30)
+
+
 def test_download_standalone_python_rejects_unsafe_archive(
     pipx_temp_env: None,
     mocker: MockerFixture,
