@@ -1,16 +1,20 @@
 import logging
+import shlex
 import site
 import sys
 from pathlib import Path
+from typing import Final
 
 import userpath  # type: ignore[import-not-found]
 
 from pipx import paths
-from pipx.constants import EXIT_CODE_OK, ExitCode
+from pipx.constants import EXIT_CODE_OK, MACOS, ExitCode
 from pipx.emojis import hazard, stars
 from pipx.util import pipx_wrap
 
 logger = logging.getLogger(__name__)
+
+_GLOBAL_PATH_FILE: Final[Path] = Path("/etc/paths.d/pipx" if MACOS else "/etc/profile.d/pipx.sh")
 
 
 def get_pipx_user_bin_path() -> Path | None:
@@ -112,8 +116,59 @@ def ensure_path(
     return (path_added, need_shell_restart)
 
 
-def ensure_pipx_paths(force: bool, prepend: bool = False, all_shells: bool = False, dry_run: bool = False) -> ExitCode:
+def _ensure_global_path(location: Path, *, force: bool, prepend: bool, dry_run: bool) -> bool:
+    config_file = _GLOBAL_PATH_FILE
+    if MACOS:
+        contents = f"{location}\n"
+    else:
+        quoted_location = shlex.quote(str(location))
+        assignment = f'export PATH={quoted_location}:"$PATH"' if prepend else f'export PATH="$PATH":{quoted_location}'
+        contents = f'case ":$PATH:" in *:{quoted_location}:*) ;; *) {assignment} ;; esac\n'
+
+    if not force and config_file.exists() and config_file.read_text(encoding="utf-8") == contents:
+        print(pipx_wrap(f"{location} is already in the system PATH configuration.", subsequent_indent=" " * 4))
+        return False
+
+    if dry_run:
+        print(
+            pipx_wrap(
+                f"Would write {location} to the system PATH configuration at {config_file}.",
+                subsequent_indent=" " * 4,
+            )
+        )
+        return False
+
+    config_file.write_text(contents, encoding="utf-8")
+    config_file.chmod(0o644)
+    print(
+        pipx_wrap(
+            f"Success! Added {location} to the system PATH configuration at {config_file}.",
+            subsequent_indent=" " * 4,
+        )
+    )
+    return True
+
+
+def ensure_pipx_paths(
+    force: bool,
+    prepend: bool = False,
+    all_shells: bool = False,
+    dry_run: bool = False,
+    is_global: bool = False,
+) -> ExitCode:
     """Returns pipx exit code."""
+    if is_global:
+        path_added = _ensure_global_path(paths.ctx.bin_dir, force=force, prepend=prepend, dry_run=dry_run)
+        print()
+
+        if dry_run:
+            print(pipx_wrap("This was a dry run; no changes were made to the system PATH configuration."))
+        elif path_added:
+            print(pipx_wrap("Users must open a new terminal or re-login for the PATH change to take effect.") + "\n")
+
+        print(f"Otherwise pipx is ready to go! {stars}")
+        return EXIT_CODE_OK
+
     bin_paths = {paths.ctx.bin_dir}
 
     pipx_user_bin_path = get_pipx_user_bin_path()
