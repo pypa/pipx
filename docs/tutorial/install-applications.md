@@ -41,6 +41,18 @@ apps are exposed on your $PATH at /home/user/.local/bin
 
 ```
 
+### Keeping an installation within a version range
+
+Use `--upgrade` when you want an installed app to match a package spec:
+
+```
+pipx install --upgrade "black>=22,<23"
+```
+
+pipx installs the app when it is missing, upgrades or downgrades it when the installed version is outside the requested
+range, and does not contact the package index when the installed version already satisfies the spec. Add
+`--upgrade-strategy eager` to also upgrade dependencies when the app itself needs to change.
+
 ### Picking a Python interpreter
 
 Pass `--python` to install with a specific Python version. When that Python isn't on your `PATH`, pipx can download a

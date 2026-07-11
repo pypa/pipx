@@ -166,6 +166,45 @@ def test_install_same_package_twice_no_force(pipx_temp_env, capsys):
     assert "0.0.0.2" in captured.out
 
 
+def test_install_upgrade_installs_missing_package(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", "--upgrade", PKG["black"]["spec"]])
+    captured = capsys.readouterr()
+    assert "installed package black 22.8.0" in captured.out
+
+
+def test_install_upgrade_reconciles_package_spec(pipx_temp_env, capsys):
+    assert not run_pipx_cli(["install", PKG["black"]["spec"]])
+
+    assert not run_pipx_cli(["install", "--upgrade", "--upgrade-strategy=eager", "black==22.10.0"])
+    captured = capsys.readouterr()
+    assert "upgraded package black from 22.8.0 to 22.10.0" in captured.out
+    metadata = PipxMetadata(paths.ctx.venvs / "black").main_package
+    assert metadata.package_version == "22.10.0"
+    assert metadata.pip_args == []
+
+    assert not run_pipx_cli(["install", "--upgrade", "black<22.9"])
+    captured = capsys.readouterr()
+    assert "upgraded package black from 22.10.0 to 22.8.0" in captured.out
+    assert PipxMetadata(paths.ctx.venvs / "black").main_package.package_version == "22.8.0"
+
+
+def test_install_upgrade_satisfied_spec_is_offline(pipx_temp_env, capsys, mocker: "MockerFixture"):
+    assert not run_pipx_cli(["install", PKG["black"]["spec"]])
+    check_shared = mocker.patch.object(Venv, "check_upgrade_shared_libs", autospec=True)
+    upgrade_package = mocker.patch.object(Venv, "upgrade_package", autospec=True)
+
+    assert not run_pipx_cli(["install", "--upgrade", "black>=22,<23"])
+    captured = capsys.readouterr()
+    assert "black 22.8.0 already satisfies black>=22,<23" in captured.out
+    check_shared.assert_not_called()
+    upgrade_package.assert_not_called()
+
+
+def test_install_upgrade_strategy_requires_upgrade(pipx_temp_env, capsys):
+    assert run_pipx_cli(["install", "--upgrade-strategy=eager", PKG["black"]["spec"]])
+    assert "--upgrade-strategy requires --upgrade" in capsys.readouterr().err
+
+
 def test_install_existing_package_skips_shared_lib_maintenance(pipx_temp_env: None, mocker: "MockerFixture") -> None:
     assert run_pipx_cli(["install", PKG["pycowsay"]["spec"]]) == 0
     mocker.patch.object(shared_libs.shared_libs, "has_been_updated_this_run", False)

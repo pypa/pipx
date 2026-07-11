@@ -536,6 +536,7 @@ class Venv:
         include_apps: bool,
         is_main_package: bool,
         suffix: str = "",
+        upgrade_only_pip_args: list[str] | None = None,
     ) -> None:
         _LOGGER.info("Upgrading %s", package_descr := full_package_description(package_name, package_or_url))
         with animate(f"upgrading {package_descr}", self.do_animation):
@@ -543,7 +544,7 @@ class Venv:
                 venv_root=self.root,
                 venv_python=self.python_path,
                 requirements=[package_or_url],
-                pip_args=pip_args,
+                pip_args=[*(upgrade_only_pip_args or []), *pip_args],
                 upgrade=True,
                 log_pip_errors=False,
                 verbose=self.verbose,
