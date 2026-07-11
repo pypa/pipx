@@ -52,10 +52,7 @@ def _check_package_path(package_path: str) -> tuple[Path, bool]:
 
 def _parse_specifier(package_spec: str) -> ParsedPackage:
     """Parse package_spec as would be given to pipx"""
-    # If package_spec is valid pypi name, pip will always treat it as a
-    #       pypi package, not checking for local path.
-    #       We replicate pypi precedence here (only non-valid-pypi names
-    #       initiate check for local path, e.g. './package-name')
+    # Match pip's PyPI precedence by checking local paths only for names that PyPI rejects.
     valid_pep508 = None
     valid_url = None
     valid_local_path = None
@@ -86,8 +83,6 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
         ):
             valid_url = package_spec
 
-    # Treat the input as a local path if it does not look like a PEP 508
-    # specifier nor a URL. In this case we want to split out the extra part.
     if not valid_pep508 and not valid_url:
         (package_path_str, package_extras_str) = _split_path_extras(package_spec)
         (package_path, package_path_exists) = _check_package_path(package_path_str)
@@ -152,6 +147,7 @@ def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple
     * Ensure --editable is removed for any package_spec not a local path
     * Convert local paths to absolute paths
     """
+    pip_args = pip_args.copy()
     parsed_package = _parse_specifier(package_spec)
     package_or_url = _parsed_package_to_package_or_url(parsed_package, remove_version_specifiers=False)
     if "--editable" in pip_args and not parsed_package.valid_local_path:
@@ -258,3 +254,13 @@ def fix_package_name(package_or_url: str, package_name: str) -> str:
     package_req.name = package_name
 
     return str(package_req)
+
+
+__all__ = [
+    "fix_package_name",
+    "get_extras",
+    "parse_specifier_for_install",
+    "parse_specifier_for_metadata",
+    "parse_specifier_for_upgrade",
+    "valid_pypi_name",
+]
