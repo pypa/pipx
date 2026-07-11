@@ -5,6 +5,7 @@ import time
 from configparser import ConfigParser
 from contextlib import suppress
 from pathlib import Path
+from typing import Final
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
@@ -24,8 +25,8 @@ from pipx.util import (
 logger = logging.getLogger(__name__)
 
 
-SHARED_LIBS_MAX_AGE_SEC = datetime.timedelta(days=30).total_seconds()
-DISABLE_SHARED_LIBS_AUTO_UPGRADE = "PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE"
+SHARED_LIBS_MAX_AGE_SEC: Final[float] = datetime.timedelta(days=30).total_seconds()
+DISABLE_SHARED_LIBS_AUTO_UPGRADE: Final[str] = "PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE"
 
 
 def shared_libs_auto_upgrade_disabled() -> bool:
@@ -110,16 +111,11 @@ class _SharedLibs:
                 )
             subprocess_post_check(create_process)
 
-            # ignore installed packages to ensure no unexpected patches from the OS vendor
-            # are used
-            pip_args = pip_args or []
-            pip_args.append("--force-reinstall")
-            self.upgrade(pip_args=pip_args, verbose=verbose, raises=True)
+            # Reinstall pip so OS-vendor patches cannot enter the shared environment.
+            self.upgrade(pip_args=[*pip_args, "--force-reinstall"], verbose=verbose, raises=True)
 
-            # Remove setuptools from shared libs to prevent it from leaking into
-            # app venvs via the .pth file. On Python < 3.12, venv bundles setuptools
-            # via ensurepip, but a 3.10 setuptools breaks when imported under 3.12+
-            # because distutils was removed from the stdlib.
+            # Remove setuptools before the .pth file exposes shared libraries to apps. Python <3.12 venvs bundle a
+            # copy that fails under 3.12+ because the standard library no longer includes distutils.
             run_subprocess(
                 [self.python_path, "-m", "pip", "--no-input", "uninstall", "-y", "setuptools"],
                 capture_stderr=False,
@@ -140,8 +136,7 @@ class _SharedLibs:
             ).stdout.strip()
 
             return self.pip_path.is_file() and out != "None"
-        else:
-            return False
+        return False
 
     @property
     def needs_upgrade(self) -> bool:
@@ -166,30 +161,28 @@ class _SharedLibs:
             self.create(verbose=verbose, pip_args=pip_args)
             return
 
-        # Don't try to upgrade multiple times per run
         if self.has_been_updated_this_run:
             logger.info(f"Already upgraded libraries in {self.root}")
             return
 
-        if pip_args is None:
-            pip_args = []  # type: ignore[unreachable]
-
         logger.info(f"Upgrading shared libraries in {self.root}")
 
-        ignored_args = ["--editable"]
-        _pip_args = [arg for arg in pip_args if arg not in ignored_args]
+        filtered_pip_args = [arg for arg in pip_args if arg != "--editable"]
         if not verbose:
-            _pip_args.append("-q")
+            filtered_pip_args.append("-q")
 
-        user_pip_req = None
-        for arg in _pip_args:
+        user_pip_requirement = None
+        for arg in filtered_pip_args:
             with suppress(InvalidRequirement):
-                if (req := Requirement(arg)).name == "pip":
-                    user_pip_req = req
+                if (requirement := Requirement(arg)).name == "pip":
+                    user_pip_requirement = requirement
                     break
 
-        add_default = not user_pip_req or not (user_pip_req.specifier & SpecifierSet(">=23.1"))
-        install_args = [*_pip_args, "pip >= 23.1"] if add_default else _pip_args
+        install_args = (
+            [*filtered_pip_args, "pip >= 23.1"]
+            if not user_pip_requirement or not (user_pip_requirement.specifier & SpecifierSet(">=23.1"))
+            else filtered_pip_args
+        )
 
         try:
             with animate("upgrading shared libraries", not verbose):
@@ -217,3 +210,11 @@ class _SharedLibs:
 
 
 shared_libs = _SharedLibs()
+
+
+__all__ = [
+    "DISABLE_SHARED_LIBS_AUTO_UPGRADE",
+    "SHARED_LIBS_MAX_AGE_SEC",
+    "shared_libs",
+    "shared_libs_auto_upgrade_disabled",
+]
