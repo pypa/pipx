@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from pytest_mock import MockerFixture
 
 from pipx import shared_libs
 from pipx.constants import PIPX_SHARED_PTH, WINDOWS
@@ -87,6 +88,27 @@ def test_shared_libs_create_preserves_pip_args(pipx_ultra_temp_env: None) -> Non
     pip_args = ["--disable-pip-version-check"]
     shared_libs.shared_libs.create(pip_args=pip_args)
     assert (pip_args, shared_libs.shared_libs.is_valid) == (["--disable-pip-version-check"], True)
+
+
+def test_shared_libs_upgrade_enforces_pip_floor(
+    pipx_ultra_temp_env: None,
+    mocker: MockerFixture,
+) -> None:
+    shared_libs.shared_libs.create(verbose=True, pip_args=[])
+    shared_libs.shared_libs.has_been_updated_this_run = False
+    run_subprocess = mocker.patch(
+        "pipx.shared_libs.run_subprocess",
+        side_effect=[
+            subprocess.CompletedProcess(args=[], returncode=0, stdout="ModuleSpec", stderr=""),
+            subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+        ],
+    )
+
+    shared_libs.shared_libs.upgrade(pip_args=["pip==20"], verbose=True, raises=True)
+
+    install_command = run_subprocess.call_args_list[1].args[0]
+    assert "pip==20" in install_command
+    assert "pip >= 23.1" in install_command
 
 
 def test_venv_python_is_valid_non_windows() -> None:
