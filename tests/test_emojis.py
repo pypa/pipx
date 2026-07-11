@@ -1,14 +1,49 @@
+import subprocess
 import sys
 from io import BytesIO, TextIOWrapper
-from unittest import mock
 
 import pytest
+from pytest_mock import MockerFixture
 
 from pipx.emojis import use_emojis
 
 
 @pytest.mark.parametrize(
-    "PIPX_USE_EMOJI, encoding, expected",
+    "stderr_expression",
+    [
+        pytest.param("None", id="missing-stream"),
+        pytest.param("io.StringIO()", id="missing-encoding"),
+    ],
+)
+def test_import_without_stderr_encoding(stderr_expression: str) -> None:
+    process = subprocess.run(
+        [sys.executable, "-c", f"import io, sys; sys.stderr = {stderr_expression}; import pipx.emojis"],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+    assert process.returncode == 0, process.stderr
+
+
+def test_use_emojis_without_stderr(monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture) -> None:
+    mocker.patch.object(sys, "stderr", None)
+    monkeypatch.delenv("PIPX_USE_EMOJI", raising=False)
+    monkeypatch.delenv("USE_EMOJI", raising=False)
+
+    assert use_emojis() is False
+
+
+def test_use_emojis_legacy_override_without_stderr(monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture) -> None:
+    mocker.patch.object(sys, "stderr", None)
+    monkeypatch.delenv("PIPX_USE_EMOJI", raising=False)
+    monkeypatch.setenv("USE_EMOJI", "1")
+
+    assert use_emojis() is True
+
+
+@pytest.mark.parametrize(
+    ("env_value", "encoding", "expected"),
     [
         # utf-8
         (None, "utf-8", True),
@@ -39,8 +74,18 @@ from pipx.emojis import use_emojis
         ("false", "cp1252", False),
     ],
 )
-def test_use_emojis(monkeypatch, PIPX_USE_EMOJI, encoding, expected):
-    with mock.patch.object(sys, "stderr", TextIOWrapper(BytesIO(), encoding=encoding)):
-        if PIPX_USE_EMOJI is not None:
-            monkeypatch.setenv("PIPX_USE_EMOJI", PIPX_USE_EMOJI)
-        assert use_emojis() is expected
+def test_use_emojis(
+    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
+    env_value: str | None,
+    encoding: str,
+    expected: bool,
+) -> None:
+    mocker.patch.object(sys, "stderr", TextIOWrapper(BytesIO(), encoding=encoding))
+    monkeypatch.delenv("USE_EMOJI", raising=False)
+    if env_value is None:
+        monkeypatch.delenv("PIPX_USE_EMOJI", raising=False)
+    else:
+        monkeypatch.setenv("PIPX_USE_EMOJI", env_value)
+
+    assert use_emojis() is expected

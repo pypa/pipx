@@ -3,27 +3,21 @@ import sys
 
 
 def strtobool(val: str) -> bool:
-    val = val.lower()
-    if val in ("y", "yes", "t", "true", "on", "1"):
-        return True
-    elif val in ("n", "no", "f", "false", "off", "0"):
-        return False
-    else:
-        return False
+    return val.lower() in ("y", "yes", "t", "true", "on", "1")
 
 
 def use_emojis() -> bool:
-    # All emojis that pipx might possibly use
-    emoji_test_str = "✨🌟⚠️😴⣷⣯⣟⡿⢿⣻⣽⣾"
+    if (use_emoji := os.getenv("PIPX_USE_EMOJI")) is not None:
+        return strtobool(use_emoji)
+    if (use_emoji := os.getenv("USE_EMOJI")) is not None:
+        return strtobool(use_emoji)
+    if (encoding := getattr(sys.stderr, "encoding", None)) is None:
+        return False
     try:
-        emoji_test_str.encode(sys.stderr.encoding)
-        platform_emoji_support = True
+        "✨🌟⚠️😴⣷⣯⣟⡿⢿⣻⣽⣾".encode(encoding)
     except UnicodeEncodeError:
-        platform_emoji_support = False
-    use_emoji = os.getenv("PIPX_USE_EMOJI")
-    if use_emoji is None:
-        use_emoji = str(os.getenv("USE_EMOJI", platform_emoji_support))
-    return strtobool(use_emoji)
+        return False
+    return True
 
 
 EMOJI_SUPPORT = use_emojis()
@@ -38,3 +32,14 @@ else:
     hazard = ""
     error = ""
     sleep = ""
+
+
+__all__ = [
+    "EMOJI_SUPPORT",
+    "error",
+    "hazard",
+    "sleep",
+    "stars",
+    "strtobool",
+    "use_emojis",
+]
