@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import datetime
+import hashlib
+import io
 import json
 import shutil
 import subprocess
 import sys
+import tarfile
+import warnings
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -54,6 +59,48 @@ def test_legacy_standalone_python_index_is_refreshed(pipx_temp_env, monkeypatch)
 
     assert standalone_python.get_or_update_index()["releases"] == current_releases
     assert json.loads(index_file.read_text())["releases"] == [[legacy_link, digest]]
+
+
+def test_download_standalone_python_sets_tar_filter(
+    pipx_temp_env: None,
+    mocked_github_api: None,
+) -> None:
+    with warnings.catch_warnings(record=True) as caught_warnings:
+        warnings.simplefilter("always")
+        python_path = standalone_python.download_python_build_standalone(TARGET_PYTHON_VERSION)
+
+    assert Path(python_path).is_file()
+    assert not [warning for warning in caught_warnings if "filter extracted tar archives" in str(warning.message)]
+
+
+def test_download_standalone_python_rejects_unsafe_archive(
+    pipx_temp_env: None,
+    mocker: MockerFixture,
+) -> None:
+    archive = io.BytesIO()
+    with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
+        for name, content in (("python/bin/python3", b""), ("../outside", b"unsafe")):
+            member = tarfile.TarInfo(name)
+            member.size = len(content)
+            python_tar.addfile(member, io.BytesIO(content))
+    archive_bytes = archive.getvalue()
+    link = "https://example.invalid/cpython-3.99.0-aarch64-apple-darwin-install_only.tar.gz"
+    cache_dir = standalone_python.paths.ctx.standalone_python_cachedir
+    cache_dir.mkdir(parents=True)
+    (cache_dir / "index.json").write_text(
+        json.dumps(
+            {
+                "fetched": datetime.datetime.now().timestamp(),
+                "releases": [[link, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
+            }
+        )
+    )
+    mocker.patch.object(standalone_python.platform, "system", return_value="Darwin")
+    mocker.patch.object(standalone_python.platform, "machine", return_value="arm64")
+    mocker.patch.object(standalone_python, "urlopen", return_value=io.BytesIO(archive_bytes))
+
+    with pytest.raises(standalone_python.PipxError, match="Unable to unpack"):
+        standalone_python.download_python_build_standalone("3.99")
 
 
 def test_list_no_standalone_interpreters(pipx_temp_env, monkeypatch, capsys):
