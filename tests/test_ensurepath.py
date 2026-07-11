@@ -1,6 +1,7 @@
 import os
 import stat
 from pathlib import Path
+from typing import Final
 
 import pytest
 from pytest_mock import MockerFixture
@@ -8,6 +9,8 @@ from pytest_mock import MockerFixture
 from helpers import run_pipx_cli
 from pipx.commands import ensure_path as ensure_path_module
 from pipx.constants import EXIT_CODE_OK, WINDOWS
+
+_SKIP_GLOBAL_ON_WINDOWS: Final = pytest.mark.skipif(WINDOWS, reason="System-wide ensurepath is unavailable on Windows")
 
 
 class FakeUserpath:
@@ -99,6 +102,7 @@ def test_ensure_pipx_paths_dry_run_footer(mock_userpath: FakeUserpath, capsys: p
         pytest.param(True, False, "/opt/pipx/bin\n", id="macos"),
     ],
 )
+@_SKIP_GLOBAL_ON_WINDOWS
 def test_ensure_pipx_paths_global_updates_system_profile(
     mocker: MockerFixture, tmp_path: Path, macos: bool, prepend: bool, expected: str
 ) -> None:
@@ -114,6 +118,7 @@ def test_ensure_pipx_paths_global_updates_system_profile(
     assert config_file.read_text() == expected
 
 
+@_SKIP_GLOBAL_ON_WINDOWS
 def test_ensure_pipx_paths_global_skips_userpath(mocker: MockerFixture, tmp_path: Path) -> None:
     config_file = tmp_path / "pipx.sh"
     mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
@@ -124,6 +129,7 @@ def test_ensure_pipx_paths_global_skips_userpath(mocker: MockerFixture, tmp_path
     append.assert_not_called()
 
 
+@_SKIP_GLOBAL_ON_WINDOWS
 def test_ensure_pipx_paths_global_dry_run_does_not_write(
     mocker: MockerFixture, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -136,6 +142,7 @@ def test_ensure_pipx_paths_global_dry_run_does_not_write(
     assert "no changes were made to the system PATH" in capsys.readouterr().out
 
 
+@_SKIP_GLOBAL_ON_WINDOWS
 def test_ensure_pipx_paths_global_configuration_is_world_readable(mocker: MockerFixture, tmp_path: Path) -> None:
     config_file = tmp_path / "pipx"
     mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
@@ -148,6 +155,7 @@ def test_ensure_pipx_paths_global_configuration_is_world_readable(mocker: Mocker
     assert stat.S_IMODE(config_file.stat().st_mode) == 0o644
 
 
+@_SKIP_GLOBAL_ON_WINDOWS
 def test_ensure_pipx_paths_global_reports_existing_configuration(
     mocker: MockerFixture, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -162,7 +170,7 @@ def test_ensure_pipx_paths_global_reports_existing_configuration(
     assert "already in the system PATH" in capsys.readouterr().out
 
 
-@pytest.mark.skipif(WINDOWS, reason="The --global option is unavailable on Windows")
+@_SKIP_GLOBAL_ON_WINDOWS
 def test_ensurepath_cli_global_writes_system_configuration(
     mocker: MockerFixture, tmp_path: Path, pipx_temp_env: None
 ) -> None:
