@@ -40,7 +40,7 @@ class RelevantSearch:
 
 def _get_trash_file(path: Path) -> Path:
     if not paths.ctx.trash.is_dir():
-        paths.ctx.trash.mkdir()
+        paths.ctx.trash.mkdir(exist_ok=True)
     prefix = "".join(random.choices(string.ascii_lowercase, k=8))
     return paths.ctx.trash / f"{prefix}.{path.name}"
 
@@ -63,7 +63,10 @@ def rmdir(path: Path, safe_rm: bool = True) -> None:
         if safe_rm:
             _LOGGER.warning(f"Failed to delete {path}. Will move it to a temp folder to delete later.")
 
-            path.rename(_get_trash_file(path))
+            try:
+                path.rename(_get_trash_file(path))
+            except OSError as error:
+                _LOGGER.warning("Failed to move %s to the trash; remove it by hand (%s).", path, error)
         else:
             _LOGGER.warning(f"Failed to delete {path}. You may need to delete it manually.")
 

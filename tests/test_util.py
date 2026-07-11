@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import logging
 import sys
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
-from pipx.util import rmdir, run_subprocess
+from pipx import paths
+from pipx.util import rmdir, run_subprocess, safe_unlink
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from pytest_mock import MockerFixture
 
 
 def test_rmdir_without_safe_rm_is_non_fatal_for_locked_files(
@@ -33,6 +35,49 @@ def test_rmdir_without_safe_rm_is_non_fatal_for_locked_files(
 
     assert trash_dir.is_dir()
     assert f"Failed to delete {trash_dir}. You may need to delete it manually." in caplog.text
+
+
+def test_rmdir_with_safe_rm_is_non_fatal_when_move_fails(
+    caplog: pytest.LogCaptureFixture,
+    mocker: MockerFixture,
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "locked"
+    path.mkdir()
+    mocker.patch("pipx.util.shutil.rmtree")
+    mocker.patch.object(Path, "rename", side_effect=PermissionError("locked directory"))
+    mocker.patch.object(type(paths.ctx), "trash", mocker.PropertyMock(return_value=tmp_path / "trash"))
+
+    with caplog.at_level(logging.WARNING, logger="pipx.util"):
+        rmdir(path)
+
+    assert path.is_dir()
+    assert f"Failed to move {path} to the trash" in caplog.text
+
+
+def test_safe_unlink_handles_existing_trash_directory(mocker: MockerFixture, tmp_path: Path) -> None:
+    file = tmp_path / "locked"
+    file.write_text("content")
+    trash_dir = tmp_path / "trash"
+    trash_dir.mkdir()
+    is_dir = Path.is_dir
+    stale = True
+
+    def stale_is_dir(path: Path) -> bool:
+        nonlocal stale
+        if path == trash_dir and stale:
+            stale = False
+            return False
+        return is_dir(path)
+
+    mocker.patch.object(type(paths.ctx), "trash", mocker.PropertyMock(return_value=trash_dir))
+    mocker.patch.object(Path, "is_dir", stale_is_dir)
+    mocker.patch.object(Path, "unlink", side_effect=PermissionError("locked file"))
+
+    safe_unlink(file)
+
+    assert not file.exists()
+    assert [path.read_text() for path in trash_dir.iterdir()] == ["content"]
 
 
 @pytest.mark.parametrize(
