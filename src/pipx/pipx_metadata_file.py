@@ -63,11 +63,10 @@ class _RawSpecFile(TypedDict, total=False):
 
 
 class JsonEncoderHandlesPath(json.JSONEncoder):
-    def default(self, obj: Any) -> Any:
-        # only handles what json.JSONEncoder doesn't understand by default
-        if isinstance(obj, Path):
-            return {"__type__": "Path", "__Path__": str(obj)}
-        return super().default(obj)
+    def default(self, o: Any) -> Any:
+        if isinstance(o, Path):
+            return {"__type__": "Path", "__Path__": str(o)}
+        return super().default(o)
 
 
 def _json_decoder_object_hook(json_dict: dict[str, Any]) -> dict[str, Any] | Path:
@@ -241,7 +240,7 @@ class PipxMetadata:
             with open(self.venv_dir / PIPX_INFO_FILENAME, "rb") as pipx_metadata_fh:
                 payload: _RawMetadata = json.load(pipx_metadata_fh, object_hook=_json_decoder_object_hook)
                 self.from_dict(payload)
-        except OSError:  # Reset self if problem reading
+        except (AttributeError, KeyError, OSError, PipxError, TypeError, ValueError):
             if verbose:
                 _LOGGER.warning(
                     pipx_wrap(
