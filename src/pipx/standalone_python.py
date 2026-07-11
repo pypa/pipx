@@ -123,7 +123,10 @@ def _unpack(full_version, download_link, archive: Path, download_dir: Path, expe
 
         try:
             with tarfile.open(archive, mode="r:gz") as tar:
-                tar.extractall(download_dir, filter="data")
+                if hasattr(tarfile, "data_filter"):
+                    tar.extractall(download_dir, filter="data")
+                else:
+                    tar.extractall(download_dir)
         except tarfile.TarError as error:
             raise PipxError(f"Unable to unpack python {full_version} build.") from error
 
