@@ -23,7 +23,7 @@ pipx ensurepath
 
 #### Additional (optional) commands
 
-To allow pipx actions in global scope (requires pipx 1.5.0+):
+To add the global app directory to the system PATH (requires pipx 1.5.0+):
 
 ```
 sudo pipx ensurepath --global
@@ -81,7 +81,7 @@ python3 -m pipx ensurepath
 
 #### Additional (optional) commands
 
-To allow pipx actions in global scope (requires pipx 1.5.0+):
+To add the global app directory to the system PATH (requires pipx 1.5.0+):
 
 ```
 sudo pipx ensurepath --global

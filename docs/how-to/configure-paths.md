@@ -63,7 +63,8 @@ sudo pipx --global install pycowsay
 
 Default global paths are `/usr/local/bin` for binaries, `/usr/local/share/man` for man pages, and `/opt/pipx` for
 virtual environments. Override them with `PIPX_GLOBAL_BIN_DIR`, `PIPX_GLOBAL_MAN_DIR`, and `PIPX_GLOBAL_HOME`. Run
-`sudo pipx ensurepath --global` to add the global binary directory to the system `PATH`.
+`sudo pipx ensurepath --global` to add the global binary directory to the system `PATH`. On Linux, this writes
+`/etc/profile.d/pipx.sh`. On macOS, it writes `/etc/paths.d/pipx`.
 
 The `--global` flag is not supported on Windows.
 

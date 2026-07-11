@@ -1056,8 +1056,8 @@ def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argpa
             "Ensure directory where pipx stores apps is in your "
             "PATH environment variable. Also if pipx was installed via "
             "`pip install --user`, ensure pipx itself is in your PATH. "
-            "Note that running this may modify "
-            "your shell's configuration file(s) such as '~/.bashrc'."
+            "This command may modify your shell configuration, such as '~/.bashrc', "
+            "or the system PATH configuration when used with `--global`."
         ),
         parents=[shared_parser],
     )
@@ -1094,7 +1094,11 @@ def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argpa
 def _cmd_ensurepath(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     try:
         return commands.ensure_pipx_paths(
-            prepend=args.prepend, force=args.force, all_shells=args.all_shells, dry_run=args.dry_run
+            prepend=args.prepend,
+            force=args.force,
+            all_shells=args.all_shells,
+            dry_run=args.dry_run,
+            is_global=getattr(args, "is_global", False),
         )
     except Exception as e:
         logger.debug("Uncaught Exception:", exc_info=True)
