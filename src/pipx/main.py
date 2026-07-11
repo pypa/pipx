@@ -15,7 +15,7 @@ import urllib.parse
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, NoReturn
+from typing import Any, NoReturn, cast
 
 import argcomplete
 import platformdirs
@@ -175,7 +175,8 @@ class InstalledVenvsCompleter:
         self.packages = [str(p.name) for p in sorted(venv_container.iter_venv_dirs())]
 
     def use(self, prefix: str, **kwargs: Any) -> list[str]:
-        return [f"{prefix}{x[len(prefix) :]}" for x in self.packages if x.startswith(canonicalize_name(prefix))]
+        canonical_prefix = canonicalize_name(prefix)
+        return [f"{prefix}{x[len(canonical_prefix) :]}" for x in self.packages if x.startswith(canonical_prefix)]
 
 
 def get_pip_args(parsed_args: dict[str, str]) -> list[str]:
@@ -1201,7 +1202,7 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
         formatter_class=LineWrapRawTextHelpFormatter,
         description=PIPX_DESCRIPTION,
     )
-    parser.man_short_description = PIPX_DESCRIPTION.splitlines()[1]  # type: ignore[attr-defined]
+    vars(parser)["man_short_description"] = PIPX_DESCRIPTION.splitlines()[1]
 
     subparsers = parser.add_subparsers(dest="command", description="Get help for commands with pipx COMMAND --help")
 
@@ -1288,7 +1289,7 @@ def setup_log_file() -> Path:
 
 
 def setup_logging(verbose: int) -> None:
-    pipx_str = (sys.stdout and sys.stdout.isatty() and bold(green("pipx >"))) or "pipx >"
+    pipx_str = bold(green("pipx >")) if sys.stdout and sys.stdout.isatty() else "pipx >"
     paths.ctx.log_file = setup_log_file()
 
     # Determine logging level, a value between 0 and 50
@@ -1394,12 +1395,10 @@ def setup(args: argparse.Namespace) -> None:
 
 def check_args(parsed_pipx_args: argparse.Namespace) -> None:
     if parsed_pipx_args.command == "run":
-        # we manually discard a first -- because using nargs=argparse.REMAINDER
-        #   will not do it automatically
+        # argparse.REMAINDER preserves the separator; discard it before app invocation.
         if parsed_pipx_args.app_with_args and parsed_pipx_args.app_with_args[0] == "--":
             parsed_pipx_args.app_with_args.pop(0)
-        # since we would like app to be required but not in a separate argparse
-        #   add_argument, we implement our own missing required arg error
+        # The app shares argparse.REMAINDER, so enforce its required status after parsing.
         if not parsed_pipx_args.app_with_args:
             parsed_pipx_args.subparser.error("the following arguments are required: app")
 
@@ -1414,7 +1413,7 @@ def normalize_help_command(args: list[str]) -> list[str]:
 
 def _get_subparser(parser: argparse.ArgumentParser, command: str) -> argparse.ArgumentParser:
     subparsers_action = next(action for action in parser._actions if isinstance(action, argparse._SubParsersAction))
-    return subparsers_action.choices[command]
+    return cast("argparse.ArgumentParser", subparsers_action.choices[command])
 
 
 def parse_pipx_args(parser: argparse.ArgumentParser, args: list[str]) -> argparse.Namespace:
@@ -1456,3 +1455,8 @@ def cli() -> ExitCode:
 
 if __name__ == "__main__":
     sys.exit(cli())
+
+
+__all__ = [
+    "cli",
+]
