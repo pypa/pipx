@@ -4,7 +4,7 @@ import json
 import logging
 import shutil
 import textwrap
-from collections.abc import Collection, Iterable, Iterator
+from collections.abc import Iterable, Iterator, Mapping
 from pathlib import Path, PurePosixPath
 from typing import NamedTuple
 from urllib.parse import urlparse
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 class VenvInspectInformation(NamedTuple):
-    distributions: Collection[metadata.Distribution]
+    distributions: Mapping[str, metadata.Distribution]
     env: dict[str, str]
     bin_path: Path
     man_path: Path
@@ -49,12 +49,13 @@ class VenvMetadata(NamedTuple):
     python_version: str
 
 
-def get_dist(package: str, distributions: Collection[metadata.Distribution]) -> metadata.Distribution | None:
-    """Find matching distribution in the canonicalized sense."""
-    for dist in distributions:
-        if canonicalize_name(dist.metadata["name"]) == canonicalize_name(package):
-            return dist
-    return None
+def get_distributions_by_name(paths: list[str]) -> dict[str, metadata.Distribution]:
+    metadata.MetadataPathFinder().invalidate_caches()
+    return {
+        canonicalize_name(name): dist
+        for dist in metadata.distributions(path=paths)
+        if (name := dist.metadata.get("Name")) is not None
+    }
 
 
 def get_package_dependencies(dist: metadata.Distribution, extras: set[str], env: dict[str, str]) -> list[Requirement]:
@@ -327,7 +328,7 @@ def _dfs_package_resources(
             # avoid infinite recursion, avoid duplicates in info
             continue
 
-        dep_dist = get_dist(dep_req.name, venv_inspect_info.distributions)
+        dep_dist = venv_inspect_info.distributions.get(dep_name)
         if dep_dist is None:
             raise PipxError(f"Pipx Internal Error: cannot find package {dep_req.name!r} metadata.")
         app_names, man_names = get_resources(dep_dist, venv_inspect_info.bin_path, venv_inspect_info.man_path)
@@ -441,13 +442,7 @@ def inspect_venv(
 
     (venv_sys_path, venv_env, venv_python_version) = fetch_info_in_venv(venv_python_path)
 
-    # Collect the generator created from metadata.distributions()
-    # (see `itertools.chain.from_iterable`) into a tuple because we
-    # need to iterate over it multiple times in `_dfs_package_apps`.
-
-    # Tuple is chosen over a list because the program only iterate over
-    # the distributions and never modify it.
-    distributions = tuple(metadata.distributions(path=venv_sys_path))
+    distributions = get_distributions_by_name(venv_sys_path)
 
     venv_inspect_info = VenvInspectInformation(
         bin_path=venv_bin_path,
@@ -456,7 +451,7 @@ def inspect_venv(
         distributions=distributions,
     )
 
-    root_dist = get_dist(root_req.name, venv_inspect_info.distributions)
+    root_dist = venv_inspect_info.distributions.get(canonicalize_name(root_req.name))
     if root_dist is None:
         raise PipxError(f"Pipx Internal Error: cannot find package {root_req.name!r} metadata.")
     app_paths_of_dependencies, man_paths_of_dependencies = _dfs_package_resources(
@@ -494,3 +489,13 @@ def inspect_venv(
         package_version=root_dist.version,
         python_version=venv_python_version,
     )
+
+
+__all__ = [
+    "VenvMetadata",
+    "fetch_info_in_venv",
+    "get_distributions_by_name",
+    "get_required_dependency_names",
+    "inspect_venv",
+    "list_not_required_packages",
+]
