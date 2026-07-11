@@ -15,7 +15,7 @@ import urllib.parse
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, NoReturn, cast
+from typing import Any, Final, NoReturn, cast
 
 import argcomplete
 import platformdirs
@@ -172,11 +172,16 @@ class LineWrapRawTextHelpFormatter(argparse.RawDescriptionHelpFormatter):
 
 class InstalledVenvsCompleter:
     def __init__(self, venv_container: VenvContainer) -> None:
-        self.packages = [str(p.name) for p in sorted(venv_container.iter_venv_dirs())]
+        self._venv_container: Final[VenvContainer] = venv_container
+        self._packages: list[str] | None = None
 
     def use(self, prefix: str, **kwargs: Any) -> list[str]:
+        if self._packages is None:
+            self._packages = [path.name for path in sorted(self._venv_container.iter_venv_dirs())]
         canonical_prefix = canonicalize_name(prefix)
-        return [f"{prefix}{x[len(canonical_prefix) :]}" for x in self.packages if x.startswith(canonical_prefix)]
+        return [
+            f"{prefix}{name[len(canonical_prefix) :]}" for name in self._packages if name.startswith(canonical_prefix)
+        ]
 
 
 def get_pip_args(parsed_args: dict[str, str]) -> list[str]:
