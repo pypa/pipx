@@ -99,7 +99,6 @@ def install(
                 )
             if force:
                 print(f"Installing to existing venv {venv.name!r}")
-                pip_args = ["--force-reinstall"] + pip_args
             else:
                 installed_version = venv.pipx_metadata.main_package.package_version
                 version_info = f" ({installed_version})" if installed_version else ""
@@ -128,6 +127,7 @@ def install(
                 package_name=package_name,
                 package_or_url=package_spec,
                 pip_args=pip_args,
+                install_only_pip_args=["--force-reinstall"] if force and exists else None,
                 include_dependencies=include_dependencies,
                 include_apps=True,
                 is_main_package=True,

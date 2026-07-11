@@ -10,6 +10,7 @@ import pytest
 from helpers import app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
 from package_info import PKG
 from pipx import paths, shared_libs
+from pipx.pipx_metadata_file import PipxMetadata
 from pipx.util import PipxError
 from pipx.venv import Venv
 
@@ -136,6 +137,13 @@ def test_force_install(pipx_temp_env, capsys):
     run_pipx_cli(["install", "pycowsay", "--force"])
     captured = capsys.readouterr()
     assert "Installing to existing venv" in captured.out
+
+
+def test_force_install_does_not_record_internal_pip_args(pipx_temp_env: None) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--force"])
+    metadata = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    assert metadata.main_package.pip_args == []
 
 
 def test_install_no_packages_found(pipx_temp_env, capsys):
