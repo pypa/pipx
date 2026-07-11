@@ -1,10 +1,11 @@
-from helpers import run_pipx_cli, skip_if_windows
+from pathlib import Path
+
+from helpers import app_name, run_pipx_cli, skip_if_windows
 from package_info import PKG
 from pipx import paths
 
 
-def file_or_symlink(filepath):
-    # True for a regular file or a symlink (broken or not), False otherwise.
+def file_or_symlink(filepath: Path) -> bool:
     return filepath.exists() or filepath.is_symlink()
 
 
@@ -36,6 +37,24 @@ def test_uninject_with_include_apps(pipx_temp_env, capsys, caplog):
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--include-deps", "--include-apps"])
     assert not run_pipx_cli(["uninject", "pycowsay", "black", "--verbose"])
     assert "removed file" in caplog.text
+
+
+def test_uninject_with_suffix_removes_apps(pipx_temp_env: None, root: Path) -> None:
+    suffix = "@1"
+    assert not run_pipx_cli(["install", str(root / "testdata/empty_project"), f"--suffix={suffix}"])
+    assert not run_pipx_cli(
+        [
+            "inject",
+            f"empty-project{suffix}",
+            f"{root / 'testdata/test_package_specifier/local_extras'}[cow]",
+            "--include-deps",
+            "--with-suffix",
+        ]
+    )
+    app_paths = {paths.ctx.bin_dir / app_name(f"{app}{suffix}") for app in ("pycowsay", "repeatme")}
+    assert all(file_or_symlink(path) for path in app_paths)
+    assert not run_pipx_cli(["uninject", f"empty-project{suffix}", f"repeatme{suffix}"])
+    assert not any(file_or_symlink(path) for path in app_paths)
 
 
 def test_uninject_man_page(pipx_temp_env):
