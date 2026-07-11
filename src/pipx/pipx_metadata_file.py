@@ -1,7 +1,9 @@
 import json
 import logging
+from contextlib import suppress
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Any, Final, TypedDict
 
 from pipx.backends._base import KNOWN_BACKENDS
@@ -213,8 +215,17 @@ class PipxMetadata:
 
     def write(self) -> None:
         self._validate_before_write()
+        temporary_path: Path | None = None
         try:
-            with open(self.venv_dir / PIPX_INFO_FILENAME, "w", encoding="utf-8") as pipx_metadata_fh:
+            with NamedTemporaryFile(
+                "w",
+                encoding="utf-8",
+                dir=self.venv_dir,
+                prefix=f".{PIPX_INFO_FILENAME}.",
+                suffix=".tmp",
+                delete=False,
+            ) as pipx_metadata_fh:
+                temporary_path = Path(pipx_metadata_fh.name)
                 json.dump(
                     self.to_dict(),
                     pipx_metadata_fh,
@@ -222,6 +233,7 @@ class PipxMetadata:
                     sort_keys=True,
                     cls=JsonEncoderHandlesPath,
                 )
+            temporary_path.replace(self.venv_dir / PIPX_INFO_FILENAME)
         except OSError:
             _LOGGER.warning(
                 pipx_wrap(
@@ -234,6 +246,10 @@ class PipxMetadata:
                     subsequent_indent=" " * 4,
                 )
             )
+        finally:
+            if temporary_path is not None:
+                with suppress(OSError):
+                    temporary_path.unlink()
 
     def read(self, verbose: bool = False) -> None:
         try:
