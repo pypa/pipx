@@ -3,7 +3,9 @@ import os
 import shutil
 import subprocess
 import sys
+from functools import cache
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from packaging import version
 
@@ -13,6 +15,9 @@ from pipx.standalone_python import download_python_build_standalone
 from pipx.util import PipxError
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    DEFAULT_PYTHON: str
 
 
 def has_venv() -> bool:
@@ -197,9 +202,30 @@ def _resolve_python(python: str) -> str:
     raise InterpreterResolutionError(source="PIPX_DEFAULT_PYTHON", version=python)
 
 
-env_default_python = get_environment_value("PIPX_DEFAULT_PYTHON")
+def get_default_python_spec() -> str:
+    return get_environment_value("PIPX_DEFAULT_PYTHON") or sys.executable
 
-if not env_default_python:
-    DEFAULT_PYTHON = _get_sys_executable()
-else:
-    DEFAULT_PYTHON = _resolve_python(env_default_python)
+
+@cache
+def get_default_python() -> str:
+    if (python := get_environment_value("PIPX_DEFAULT_PYTHON")) is None:
+        return _get_sys_executable()
+    return _resolve_python(python)
+
+
+def __getattr__(name: str) -> object:
+    if name == "DEFAULT_PYTHON":
+        return get_default_python()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+__all__ = [
+    "DEFAULT_PYTHON",
+    "InterpreterResolutionError",
+    "find_py_launcher_python",
+    "find_python_interpreter",
+    "find_unix_command_python",
+    "get_default_python",
+    "get_default_python_spec",
+    "has_venv",
+]

@@ -4,7 +4,7 @@ from pipx import paths
 from pipx.backends import env_default_backend, find_uv_binary, resolve_backend_name
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojis import EMOJI_SUPPORT
-from pipx.interpreter import DEFAULT_PYTHON
+from pipx.interpreter import get_default_python
 from pipx.shared_libs import (
     DISABLE_SHARED_LIBS_AUTO_UPGRADE,
     shared_libs_auto_upgrade_disabled,
@@ -55,7 +55,7 @@ def environment(value: str | None) -> ExitCode:
         "PIPX_TRASH_DIR": paths.ctx.trash,
         "PIPX_VENV_CACHEDIR": paths.ctx.venv_cache,
         "PIPX_STANDALONE_PYTHON_CACHEDIR": paths.ctx.standalone_python_cachedir,
-        "PIPX_DEFAULT_PYTHON": DEFAULT_PYTHON,
+        "PIPX_DEFAULT_PYTHON": get_default_python(),
         "PIPX_RESOLVED_BACKEND": resolved_backend,
         "PIPX_BACKEND_SOURCE": backend_source,
         "PIPX_UV_BINARY": str(uv_binary) if uv_binary else "",

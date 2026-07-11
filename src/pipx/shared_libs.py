@@ -10,7 +10,7 @@ from pipx import paths
 from pipx.animate import animate
 from pipx.constants import WINDOWS
 from pipx.emojis import strtobool
-from pipx.interpreter import DEFAULT_PYTHON
+from pipx.interpreter import get_default_python
 from pipx.util import (
     get_site_packages,
     get_venv_paths,
@@ -104,7 +104,7 @@ class _SharedLibs:
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
                 create_process = run_subprocess(
-                    [DEFAULT_PYTHON, "-m", "venv", "--clear", self.root], run_dir=str(self.root)
+                    [get_default_python(), "-m", "venv", "--clear", self.root], run_dir=str(self.root)
                 )
             subprocess_post_check(create_process)
             self._is_valid = None

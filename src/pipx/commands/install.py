@@ -14,7 +14,7 @@ from pipx.constants import (
     ExitCode,
 )
 from pipx.emojis import sleep
-from pipx.interpreter import DEFAULT_PYTHON
+from pipx.interpreter import get_default_python
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, load_spec_file
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv, VenvContainer
@@ -44,7 +44,7 @@ def install(
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
 
-    python = python or DEFAULT_PYTHON
+    python = python or get_default_python()
 
     package_names = package_names or []
     if len(package_names) != len(package_specs):

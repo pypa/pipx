@@ -16,7 +16,7 @@ from pipx.animate import animate
 from pipx.backends import Backend, assert_not_pip_under_uv, env_default_backend, get_backend, resolve_backend_name
 from pipx.constants import PIPX_SHARED_PTH, ExitCode
 from pipx.emojis import hazard
-from pipx.interpreter import DEFAULT_PYTHON
+from pipx.interpreter import get_default_python
 from pipx.package_specifier import (
     fix_package_name,
     get_extras,
@@ -129,12 +129,12 @@ class Venv:
         path: Path,
         *,
         verbose: bool = False,
-        python: str = DEFAULT_PYTHON,
+        python: str | None = None,
         backend: str | None = None,
         env_backend: str | None = None,
     ) -> None:
         self.root = path
-        self.python = python
+        self.python = python or get_default_python()
         self.bin_path, self.python_path, self.man_path = get_venv_paths(self.root)
         self.pipx_metadata = PipxMetadata(venv_dir=path)
         self.verbose = verbose

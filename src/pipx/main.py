@@ -40,9 +40,10 @@ from pipx.constants import (
 )
 from pipx.emojis import hazard
 from pipx.interpreter import (
-    DEFAULT_PYTHON,
     InterpreterResolutionError,
     find_python_interpreter,
+    get_default_python,
+    get_default_python_spec,
 )
 from pipx.package_specifier import valid_pypi_name
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
@@ -111,7 +112,7 @@ PIPX_DESCRIPTION += pipx_wrap(
     keep_newlines=True,
 )
 
-DOC_DEFAULT_PYTHON = os.getenv("PIPX__DOC_DEFAULT_PYTHON", DEFAULT_PYTHON)
+DOC_DEFAULT_PYTHON = os.getenv("PIPX__DOC_DEFAULT_PYTHON", get_default_python_spec())
 
 INSTALL_DESCRIPTION = textwrap.dedent(
     f"""
@@ -269,12 +270,12 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
         if package_is_url(spec, raise_error=False) and "#egg=" not in spec:
             spec = f"{spec}#egg={args.package}"
 
-    python = DEFAULT_PYTHON
+    python = get_default_python()
     python_flag_passed = False
     if "python" in args:
         python_flag_passed = bool(args.python)
         try:
-            python = find_python_interpreter(args.python or DEFAULT_PYTHON, fetch_python=args.fetch_python)
+            python = find_python_interpreter(args.python or get_default_python(), fetch_python=args.fetch_python)
         except InterpreterResolutionError as e:
             logger.debug("Failed to resolve interpreter:", exc_info=True)
             print(pipx_wrap(f"{hazard} {e}", subsequent_indent=" " * 4))
@@ -1353,7 +1354,7 @@ def setup(args: argparse.Namespace) -> None:
     logger.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
     logger.debug(f"{' '.join(sys.argv)}")
     logger.info(f"pipx version is {__version__}")
-    logger.info(f"Default python interpreter is '{DEFAULT_PYTHON}'")
+    logger.info(f"Default python interpreter is '{get_default_python()}'")
 
     mkdir(paths.ctx.venvs)
     mkdir(paths.ctx.bin_dir)

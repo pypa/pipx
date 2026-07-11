@@ -120,10 +120,9 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_
     monkeypatch.setattr(_pip_backend_module, "shared_libs", shared_libs.shared_libs)
     monkeypatch.setattr(_upgrade_module, "shared_libs", shared_libs.shared_libs)
 
-    monkeypatch.setattr(interpreter, "DEFAULT_PYTHON", sys.executable)
-
     if "PIPX_DEFAULT_PYTHON" in os.environ:
         monkeypatch.delenv("PIPX_DEFAULT_PYTHON")
+    interpreter.get_default_python.cache_clear()
     # CI runners ship uv on PATH; pin every legacy test to pip so the auto-
     # detect doesn't silently flip them. Uv-backend tests opt in with --backend uv.
     monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "pip")
