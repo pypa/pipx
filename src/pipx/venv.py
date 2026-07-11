@@ -2,18 +2,15 @@ import logging
 import shutil
 import time
 from collections.abc import Generator
+from importlib.metadata import Distribution, EntryPoint
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NoReturn
 
 if TYPE_CHECKING:
     from subprocess import CompletedProcess
 
-try:
-    from importlib.metadata import Distribution, EntryPoint
-except ImportError:
-    from importlib_metadata import Distribution, EntryPoint  # type: ignore[import-not-found,no-redef]
-
 from packaging.utils import canonicalize_name
+from packaging.version import Version
 
 from pipx.animate import animate
 from pipx.backends import Backend, assert_not_pip_under_uv, env_default_backend, get_backend, resolve_backend_name
@@ -46,6 +43,7 @@ from pipx.util import (
 from pipx.venv_inspect import VenvMetadata, inspect_venv
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+_BACKEND_METADATA_VERSION: Final[Version] = Version("0.6")
 
 # Keyed on full path so global vs user-local venvs with the same name don't
 # collide; deduped per-session because ``upgrade-all --backend uv`` against
@@ -220,7 +218,7 @@ class Venv:
         # (or missing file) fall back to the .pth probe so legacy venvs still
         # report correctly.
         recorded_version = self.pipx_metadata.read_metadata_version
-        if recorded_version is not None and recorded_version >= "0.6":
+        if recorded_version is not None and Version(recorded_version) >= _BACKEND_METADATA_VERSION:
             answer = self.pipx_metadata.backend == "pip"
         else:
             answer = next(self.root.glob(f"**/{PIPX_SHARED_PTH}"), None) is not None
