@@ -338,6 +338,21 @@ def test_pip_args_with_constraint_relative_path(constraint_flag, pipx_temp_env, 
     assert subprocess_package_version_output != package_version
 
 
+def test_pip_args_with_attached_constraint_records_absolute_path(
+    pipx_temp_env: None,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    constraint_file = tmp_path / "constraints.txt"
+    constraint_file.write_text("pycowsay==0.0.0.2")
+    monkeypatch.chdir(tmp_path)
+
+    assert (
+        run_pipx_cli(["install", "--pip-args=-cconstraints.txt", PKG["pycowsay"]["spec"]]),
+        PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.pip_args[:1],
+    ) == (0, [f"-c{constraint_file}"])
+
+
 @pytest.mark.parametrize("constraint_flag", ["-c ", "--constraint ", "--constraint="])
 def test_pip_args_with_wrong_constraint_fail(constraint_flag, pipx_ultra_temp_env, tmp_path, capsys):
     constraint_file_name = "constraints.txt"
