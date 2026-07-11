@@ -1,5 +1,6 @@
 import logging
 import os
+from functools import cached_property
 from pathlib import Path
 from typing import Final
 
@@ -83,15 +84,15 @@ class _PathContext:
             return self.home / ".cache"
         return self._default_cache
 
-    @property
+    @cached_property
     def bin_dir(self) -> Path:
         return (self._base_bin or self._default_bin).resolve()
 
-    @property
+    @cached_property
     def man_dir(self) -> Path:
         return (self._base_man or self._default_man).resolve()
 
-    @property
+    @cached_property
     def home(self) -> Path:
         if self._base_home:
             home = self._base_home
@@ -101,9 +102,13 @@ class _PathContext:
             home = self._default_home
         return home.resolve()
 
-    @property
+    @cached_property
     def shared_libs(self) -> Path:
         return (self._base_shared_libs or self.home / "shared").resolve()
+
+    def _clear_cached_paths(self) -> None:
+        for attribute in ("bin_dir", "home", "man_dir", "shared_libs"):
+            self.__dict__.pop(attribute, None)
 
     def make_local(self) -> None:
         self._base_home = OVERRIDE_PIPX_HOME or get_expanded_environ("PIPX_HOME")  # type: ignore[redundant-expr]
@@ -118,6 +123,7 @@ class _PathContext:
         self._default_trash = self._default_home / "trash"
         self._fallback_home = next((fallback for fallback in FALLBACK_PIPX_HOMES if fallback.exists()), None)
         self._home_exists = self._base_home is not None or any(fallback.exists() for fallback in FALLBACK_PIPX_HOMES)
+        self._clear_cached_paths()
 
     def make_global(self) -> None:
         self._base_home = OVERRIDE_PIPX_GLOBAL_HOME or get_expanded_environ("PIPX_GLOBAL_HOME")  # type: ignore[redundant-expr]
@@ -132,6 +138,7 @@ class _PathContext:
         self._base_shared_libs = None
         self._fallback_home = None
         self._home_exists = self._base_home is not None
+        self._clear_cached_paths()
 
     @property
     def standalone_python_cachedir(self) -> Path:
