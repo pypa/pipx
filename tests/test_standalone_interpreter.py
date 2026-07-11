@@ -21,6 +21,8 @@ from package_info import PKG
 from pipx import standalone_python
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from pytest_mock import MockerFixture
 
 MAJOR_PYTHON_VERSION = sys.version_info.major
@@ -71,6 +73,33 @@ def test_download_standalone_python_sets_tar_filter(
 
     assert Path(python_path).is_file()
     assert not [warning for warning in caught_warnings if "filter extracted tar archives" in str(warning.message)]
+
+
+def test_download_standalone_python_supports_early_python_310(
+    pipx_temp_env: None,
+    mocked_github_api: None,
+    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
+) -> None:
+    original_extractall = tarfile.TarFile.extractall
+
+    def legacy_extractall(
+        archive: tarfile.TarFile,
+        path: str | Path = ".",
+        members: Iterable[tarfile.TarInfo] | None = None,
+        *,
+        numeric_owner: bool = False,
+    ) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            original_extractall(archive, path, members, numeric_owner=numeric_owner)
+
+    monkeypatch.delattr(tarfile, "data_filter")
+    mocker.patch.object(tarfile.TarFile, "extractall", legacy_extractall)
+
+    python_path = standalone_python.download_python_build_standalone(TARGET_PYTHON_VERSION)
+
+    assert Path(python_path).is_file()
 
 
 def test_download_standalone_python_rejects_unsafe_archive(
