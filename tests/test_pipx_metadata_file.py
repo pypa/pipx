@@ -4,11 +4,12 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from pytest_mock import MockerFixture
 
 from helpers import assert_package_metadata, create_package_info_ref, run_pipx_cli
 from package_info import PKG
-from pipx import paths
-from pipx.pipx_metadata_file import JsonEncoderHandlesPath, PackageInfo, PipxMetadata
+from pipx import paths, pipx_metadata_file
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, JsonEncoderHandlesPath, PackageInfo, PipxMetadata
 from pipx.util import PipxError
 
 TEST_PACKAGE1 = PackageInfo(
@@ -93,6 +94,29 @@ def test_pipx_metadata_file_validation(tmp_path, test_package):
 
     with pytest.raises(PipxError):
         pipx_metadata.write()
+
+
+def test_write_preserves_existing_metadata_after_os_error(
+    tmp_path: Path,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    venv_dir = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata_path = venv_dir / PIPX_INFO_FILENAME
+    previous_metadata = '{"existing": true}'
+    metadata_path.write_text(previous_metadata, encoding="utf-8")
+    metadata = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    mocker.patch.object(pipx_metadata_file.json, "dump", side_effect=OSError("disk full"))
+
+    metadata.write()
+
+    assert (
+        metadata_path.read_text(encoding="utf-8"),
+        sorted(path.name for path in venv_dir.iterdir()),
+        f"Unable to write {PIPX_INFO_FILENAME}" in caplog.text,
+    ) == (previous_metadata, [PIPX_INFO_FILENAME], True)
 
 
 def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
