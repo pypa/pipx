@@ -1,12 +1,42 @@
 import fnmatch
+import importlib
 from pathlib import Path
 
 import pytest
+from pytest_mock import MockerFixture
 
 from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths
 from pipx.commands.environment import ENVIRONMENT_VARIABLES
 from pipx.paths import get_expanded_environ
+
+
+def test_cli_value_skips_unrelated_discovery(
+    pipx_temp_env: None,
+    mocker: MockerFixture,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    environment_module = importlib.import_module("pipx.commands.environment")
+    resolve_backend_name = mocker.patch.object(
+        environment_module,
+        "resolve_backend_name",
+        autospec=True,
+        return_value=("pip", "auto-pip"),
+    )
+    find_uv_binary = mocker.patch.object(
+        environment_module,
+        "find_uv_binary",
+        autospec=True,
+        return_value=(None, "missing"),
+    )
+    get_default_python = mocker.patch.object(environment_module, "get_default_python", autospec=True)
+
+    assert not run_pipx_cli(["environment", "--value", "PIPX_HOME"])
+
+    assert capsys.readouterr().out.strip() == str(paths.ctx.home)
+    resolve_backend_name.assert_not_called()
+    find_uv_binary.assert_not_called()
+    get_default_python.assert_not_called()
 
 
 def test_cli(pipx_temp_env, monkeypatch, capsys):

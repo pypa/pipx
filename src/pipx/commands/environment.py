@@ -1,4 +1,7 @@
 import os
+from collections.abc import Callable
+from functools import cache
+from typing import Final
 
 from pipx import paths
 from pipx.backends import env_default_backend, find_uv_binary, resolve_backend_name
@@ -11,7 +14,7 @@ from pipx.shared_libs import (
 )
 from pipx.util import PipxError
 
-ENVIRONMENT_VARIABLES = [
+ENVIRONMENT_VARIABLES: Final = [
     "PIPX_HOME",
     "PIPX_GLOBAL_HOME",
     "PIPX_BIN_DIR",
@@ -27,7 +30,7 @@ ENVIRONMENT_VARIABLES = [
     "PIPX_USE_EMOJI",
     "PIPX_HOME_ALLOW_SPACE",
 ]
-DERIVED_ENVIRONMENT_VARIABLES = [
+DERIVED_ENVIRONMENT_VARIABLES: Final = [
     "PIPX_LOCAL_VENVS",
     "PIPX_LOG_DIR",
     "PIPX_TRASH_DIR",
@@ -38,32 +41,38 @@ DERIVED_ENVIRONMENT_VARIABLES = [
     "PIPX_UV_BINARY",
     "UV_CACHE_DIR",
 ]
-ENVIRONMENT_VALUE_CHOICES = ENVIRONMENT_VARIABLES + DERIVED_ENVIRONMENT_VARIABLES
+ENVIRONMENT_VALUE_CHOICES: Final = ENVIRONMENT_VARIABLES + DERIVED_ENVIRONMENT_VARIABLES
+
+
+def _get_derived_values() -> dict[str, Callable[[], object]]:
+    @cache
+    def resolve_backend() -> tuple[str, str]:
+        return resolve_backend_name(env_value=env_default_backend())
+
+    return {
+        "PIPX_HOME": lambda: paths.ctx.home,
+        "PIPX_BIN_DIR": lambda: paths.ctx.bin_dir,
+        "PIPX_MAN_DIR": lambda: paths.ctx.man_dir,
+        "PIPX_SHARED_LIBS": lambda: paths.ctx.shared_libs,
+        "PIPX_LOCAL_VENVS": lambda: paths.ctx.venvs,
+        "PIPX_LOG_DIR": lambda: paths.ctx.logs,
+        "PIPX_TRASH_DIR": lambda: paths.ctx.trash,
+        "PIPX_VENV_CACHEDIR": lambda: paths.ctx.venv_cache,
+        "PIPX_STANDALONE_PYTHON_CACHEDIR": lambda: paths.ctx.standalone_python_cachedir,
+        "PIPX_DEFAULT_PYTHON": get_default_python,
+        "PIPX_RESOLVED_BACKEND": lambda: resolve_backend()[0],
+        "PIPX_BACKEND_SOURCE": lambda: resolve_backend()[1],
+        "PIPX_UV_BINARY": lambda: str(binary) if (binary := find_uv_binary()[0]) else "",
+        "UV_CACHE_DIR": lambda: os.environ.get("UV_CACHE_DIR", ""),
+        DISABLE_SHARED_LIBS_AUTO_UPGRADE: lambda: str(shared_libs_auto_upgrade_disabled()).lower(),
+        "PIPX_USE_EMOJI": lambda: str(EMOJI_SUPPORT).lower(),
+        "PIPX_HOME_ALLOW_SPACE": lambda: str(paths.ctx.allow_spaces_in_home_path).lower(),
+    }
 
 
 def environment(value: str | None) -> ExitCode:
     """Print a list of environment variables and paths used by pipx"""
-    resolved_backend, backend_source = resolve_backend_name(env_value=env_default_backend())
-    uv_binary, _uv_source = find_uv_binary()
-    derived_values = {
-        "PIPX_HOME": paths.ctx.home,
-        "PIPX_BIN_DIR": paths.ctx.bin_dir,
-        "PIPX_MAN_DIR": paths.ctx.man_dir,
-        "PIPX_SHARED_LIBS": paths.ctx.shared_libs,
-        "PIPX_LOCAL_VENVS": paths.ctx.venvs,
-        "PIPX_LOG_DIR": paths.ctx.logs,
-        "PIPX_TRASH_DIR": paths.ctx.trash,
-        "PIPX_VENV_CACHEDIR": paths.ctx.venv_cache,
-        "PIPX_STANDALONE_PYTHON_CACHEDIR": paths.ctx.standalone_python_cachedir,
-        "PIPX_DEFAULT_PYTHON": get_default_python(),
-        "PIPX_RESOLVED_BACKEND": resolved_backend,
-        "PIPX_BACKEND_SOURCE": backend_source,
-        "PIPX_UV_BINARY": str(uv_binary) if uv_binary else "",
-        "UV_CACHE_DIR": os.environ.get("UV_CACHE_DIR", ""),
-        DISABLE_SHARED_LIBS_AUTO_UPGRADE: str(shared_libs_auto_upgrade_disabled()).lower(),
-        "PIPX_USE_EMOJI": str(EMOJI_SUPPORT).lower(),
-        "PIPX_HOME_ALLOW_SPACE": str(paths.ctx.allow_spaces_in_home_path).lower(),
-    }
+    derived_values = _get_derived_values()
     if value is None:
         print("Environment variables (set by user):")
         print("")
@@ -73,10 +82,10 @@ def environment(value: str | None) -> ExitCode:
         print("")
         print("Derived values (computed by pipx):")
         print("")
-        for env_variable, derived_value in derived_values.items():
-            print(f"{env_variable}={derived_value}")
-    elif value in derived_values:
-        print(derived_values[value])
+        for env_variable, resolve_derived_value in derived_values.items():
+            print(f"{env_variable}={resolve_derived_value()}")
+    elif (get_derived_value := derived_values.get(value)) is not None:
+        print(get_derived_value())
     elif value in ENVIRONMENT_VARIABLES:
         print(os.getenv(value, ""))
     else:
