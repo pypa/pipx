@@ -140,10 +140,11 @@ def test_force_install(pipx_temp_env, capsys):
 
 
 def test_force_install_does_not_record_internal_pip_args(pipx_temp_env: None) -> None:
-    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
-    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--force"])
-    metadata = PipxMetadata(paths.ctx.venvs / "pycowsay")
-    assert metadata.main_package.pip_args == []
+    assert run_pipx_cli(["install", PKG["pycowsay"]["spec"]]) == 0
+    assert (
+        run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--force"]),
+        PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.pip_args,
+    ) == (0, [])
 
 
 def test_install_no_packages_found(pipx_temp_env, capsys):
