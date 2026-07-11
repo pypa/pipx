@@ -285,6 +285,10 @@ def test_parse_specifier_for_install(
             ["-c", "https://example.com/constraints.txt"],
         ),
         (
+            ["-chttps://example.com/constraints.txt"],
+            ["-chttps://example.com/constraints.txt"],
+        ),
+        (
             ["--constraint", "https://example.com/constraints.txt"],
             ["--constraint", "https://example.com/constraints.txt"],
         ),
@@ -297,9 +301,22 @@ def test_parse_specifier_for_install(
             ["-c", str(Path("constraints.txt").resolve())],
         ),
         (
+            ["-cconstraints.txt"],
+            [f"-c{Path('constraints.txt').resolve()}"],
+        ),
+        (
             ["--constraint=constraints.txt"],
             [f"--constraint={Path('constraints.txt').resolve()}"],
         ),
+    ],
+    ids=[
+        "short-separated-url",
+        "short-attached-url",
+        "long-separated-url",
+        "long-equals-url",
+        "short-separated-path",
+        "short-attached-path",
+        "long-equals-path",
     ],
 )
 def test_parse_specifier_for_install_constraint_args(
@@ -330,6 +347,10 @@ def test_parse_specifier_for_install_accepts_local_vcs_url(package_spec: str) ->
             ["-f", "https://example.com/wheels"],
         ),
         (
+            ["-fhttps://example.com/wheels"],
+            ["-fhttps://example.com/wheels"],
+        ),
+        (
             ["--find-links", "https://example.com/wheels"],
             ["--find-links", "https://example.com/wheels"],
         ),
@@ -342,9 +363,22 @@ def test_parse_specifier_for_install_accepts_local_vcs_url(package_spec: str) ->
             ["-f", str(Path("wheels").resolve())],
         ),
         (
+            ["-fwheels"],
+            [f"-f{Path('wheels').resolve()}"],
+        ),
+        (
             ["--find-links=wheels"],
             [f"--find-links={Path('wheels').resolve()}"],
         ),
+    ],
+    ids=[
+        "short-separated-url",
+        "short-attached-url",
+        "long-separated-url",
+        "long-equals-url",
+        "short-separated-path",
+        "short-attached-path",
+        "long-equals-path",
     ],
 )
 def test_parse_specifier_for_install_find_links_args(
