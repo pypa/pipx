@@ -59,6 +59,15 @@ def _venv_metadata_to_package_info(
     )
 
 
+def _get_venv_package_infos(venv: Venv) -> tuple[PackageInfo, ...] | None:
+    if venv.pipx_metadata.main_package.package is not None:
+        return tuple(venv.package_metadata.values())
+    if not venv.python_path.is_file():
+        return None
+    venv_metadata = venv.get_venv_metadata_for_package(venv.root.name, set())
+    return (_venv_metadata_to_package_info(venv_metadata, venv.root.name),)
+
+
 def _get_package_bin_dir_app_paths(
     venv: Venv, package_info: PackageInfo, venv_bin_path: Path, local_bin_dir: Path
 ) -> set[Path]:
@@ -81,7 +90,11 @@ def _get_package_man_paths(venv: Venv, package_info: PackageInfo, venv_man_path:
 
 
 def _get_venv_resource_paths(
-    resource_type: str, venv: Venv, venv_resource_path: Path, local_resource_dir: Path
+    resource_type: str,
+    venv: Venv,
+    venv_resource_path: Path,
+    local_resource_dir: Path,
+    package_infos: tuple[PackageInfo, ...] | None,
 ) -> set[Path]:
     resource_paths = set()
     assert resource_type in ("app", "man"), "invalid resource type"
@@ -91,20 +104,9 @@ def _get_venv_resource_paths(
         "man": _get_package_man_paths,
     }[resource_type]
 
-    if venv.pipx_metadata.main_package.package is not None:
-        # Valid metadata for venv
-        for package_info in venv.package_metadata.values():
+    if package_infos is not None:
+        for package_info in package_infos:
             resource_paths |= get_package_resource_paths(venv, package_info, venv_resource_path, local_resource_dir)
-    elif venv.python_path.is_file():
-        # No metadata from pipx_metadata.json, but valid python interpreter.
-        # In pre-metadata-pipx venv.root.name is name of main package
-        # In pre-metadata-pipx there is no suffix
-        # We make the conservative assumptions: no injected packages,
-        # not include_dependencies.  Other PackageInfo fields are irrelevant
-        # here.
-        venv_metadata = venv.get_venv_metadata_for_package(venv.root.name, set())
-        main_package_info = _venv_metadata_to_package_info(venv_metadata, venv.root.name)
-        resource_paths = get_package_resource_paths(venv, main_package_info, venv_resource_path, local_resource_dir)
     else:
         # No metadata and no valid python interpreter.
         # We'll take our best guess on what to uninstall here based on symlink
@@ -135,11 +137,14 @@ def uninstall(venv_dir: Path, local_bin_dir: Path, local_man_dir: Path, verbose:
         return EXIT_CODE_UNINSTALL_VENV_NONEXISTENT
 
     venv = Venv(venv_dir, verbose=verbose)
+    package_infos = _get_venv_package_infos(venv)
 
-    bin_dir_app_paths = _get_venv_resource_paths("app", venv, venv.bin_path, local_bin_dir)
+    bin_dir_app_paths = _get_venv_resource_paths("app", venv, venv.bin_path, local_bin_dir, package_infos)
     man_dir_paths = set()
     for man_section in MAN_SECTIONS:
-        man_dir_paths |= _get_venv_resource_paths("man", venv, venv.man_path / man_section, local_man_dir / man_section)
+        man_dir_paths |= _get_venv_resource_paths(
+            "man", venv, venv.man_path / man_section, local_man_dir / man_section, package_infos
+        )
 
     for path in bin_dir_app_paths | man_dir_paths:
         try:
@@ -167,3 +172,13 @@ def uninstall_all(
         all_success &= return_val == 0
 
     return EXIT_CODE_OK if all_success else EXIT_CODE_UNINSTALL_ERROR
+
+
+__all__ = [
+    "_get_package_bin_dir_app_paths",
+    "_get_package_man_paths",
+    "_get_venv_package_infos",
+    "_get_venv_resource_paths",
+    "uninstall",
+    "uninstall_all",
+]
