@@ -19,7 +19,7 @@ from helpers import (
 )
 from package_info import PKG
 from pipx import constants, paths, shared_libs, venv
-from pipx.pipx_metadata_file import PackageInfo, _json_decoder_object_hook
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, _json_decoder_object_hook
 from pipx.util import PipxError
 
 
@@ -81,16 +81,18 @@ def test_list_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
 @pytest.mark.parametrize(
     "metadata",
     [
-        "{",
-        "{}",
-        '{"pipx_metadata_version":"0.6","main_package":{"unexpected":true}}',
+        pytest.param("{", id="invalid-json"),
+        pytest.param("{}", id="missing-version"),
+        pytest.param(
+            '{"pipx_metadata_version":"0.6","main_package":{"unexpected":true}}',
+            id="unexpected-package-field",
+        ),
     ],
-    ids=["invalid-json", "missing-version", "unexpected-package-field"],
 )
-def test_list_corrupt_metadata_does_not_crash(pipx_temp_env: None, metadata: str) -> None:
+def test_list_returns_problem_for_corrupt_metadata(pipx_temp_env: None, metadata: str) -> None:
     venv_dir = paths.ctx.venvs / "broken"
     venv_dir.mkdir(parents=True)
-    (venv_dir / "pipx_metadata.json").write_text(metadata, encoding="utf-8")
+    (venv_dir / PIPX_INFO_FILENAME).write_text(metadata, encoding="utf-8")
     assert run_pipx_cli(["list"]) == constants.EXIT_CODE_LIST_PROBLEM
 
 
@@ -217,8 +219,6 @@ def test_list_does_not_trigger_maintenance(pipx_temp_env, caplog):
     assert not shared_libs.shared_libs.has_been_updated_this_run
     assert shared_libs.shared_libs.needs_upgrade
 
-    # same test with --skip-maintenance, which is a no-op
-    # we expect the same result, along with a warning
     os.utime(
         shared_libs.shared_libs.pip_path,
         (access_time, -shared_libs.SHARED_LIBS_MAX_AGE_SEC - 5 * 60 + now),

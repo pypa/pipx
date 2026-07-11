@@ -1,3 +1,4 @@
+import json
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -7,7 +8,7 @@ import pytest
 from helpers import assert_package_metadata, create_package_info_ref, run_pipx_cli
 from package_info import PKG
 from pipx import paths
-from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+from pipx.pipx_metadata_file import JsonEncoderHandlesPath, PackageInfo, PipxMetadata
 from pipx.util import PipxError
 
 TEST_PACKAGE1 = PackageInfo(
@@ -40,6 +41,11 @@ TEST_PACKAGE2 = PackageInfo(
     man_paths_of_dependencies={"dep2": [Path("man1/dep2.1")]},
     package_version="6.7.8",
 )
+
+
+def test_json_encoder_rejects_unsupported_value() -> None:
+    with pytest.raises(TypeError, match=r"complex.*not JSON serializable"):
+        json.dumps(1j, cls=JsonEncoderHandlesPath)
 
 
 def test_pipx_metadata_file_create(tmp_path):
