@@ -85,7 +85,6 @@ def install(
             backend=install_backend,
             env_backend=install_env_backend,
         )
-        venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
         if exists:
             if not reinstall and force and python_flag_passed:
                 print(
@@ -118,6 +117,7 @@ def install(
                 venv_dir = None
                 continue
 
+        venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
         try:
             override_shared = canonicalize_name(package_name) == "pip"
             venv.create_venv(venv_args, pip_args, override_shared)
