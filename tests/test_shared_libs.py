@@ -90,6 +90,20 @@ def test_shared_libs_create_preserves_pip_args(pipx_ultra_temp_env: None) -> Non
     assert (pip_args, shared_libs.shared_libs.is_valid) == (["--disable-pip-version-check"], True)
 
 
+def test_shared_libs_validity_check_is_cached(pipx_ultra_temp_env: None, mocker: MockerFixture) -> None:
+    shared_libs.shared_libs.python_path.parent.mkdir(parents=True)
+    shared_libs.shared_libs.python_path.touch()
+    shared_libs.shared_libs.pip_path.touch()
+    run_subprocess = mocker.patch(
+        "pipx.shared_libs.run_subprocess",
+        autospec=True,
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="ModuleSpec", stderr=""),
+    )
+
+    assert (shared_libs.shared_libs.is_valid, shared_libs.shared_libs.is_valid) == (True, True)
+    run_subprocess.assert_called_once()
+
+
 def test_shared_libs_upgrade_enforces_pip_floor(
     pipx_ultra_temp_env: None,
     mocker: MockerFixture,
@@ -98,15 +112,13 @@ def test_shared_libs_upgrade_enforces_pip_floor(
     shared_libs.shared_libs.has_been_updated_this_run = False
     run_subprocess = mocker.patch(
         "pipx.shared_libs.run_subprocess",
-        side_effect=[
-            subprocess.CompletedProcess(args=[], returncode=0, stdout="ModuleSpec", stderr=""),
-            subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
-        ],
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
     )
 
     shared_libs.shared_libs.upgrade(pip_args=["pip==20"], verbose=True, raises=True)
 
-    install_command = run_subprocess.call_args_list[1].args[0]
+    install_command = run_subprocess.call_args.args[0]
+    run_subprocess.assert_called_once()
     assert "pip==20" in install_command
     assert "pip >= 23.1" in install_command
 

@@ -66,6 +66,7 @@ def _venv_python_is_valid(python_path: Path) -> bool:
 class _SharedLibs:
     def __init__(self) -> None:
         self._site_packages: dict[Path, Path] = {}
+        self._is_valid: bool | None = None
         self.has_been_updated_this_run = False
         self.has_been_logged_this_run = False
 
@@ -106,6 +107,7 @@ class _SharedLibs:
                     [DEFAULT_PYTHON, "-m", "venv", "--clear", self.root], run_dir=str(self.root)
                 )
             subprocess_post_check(create_process)
+            self._is_valid = None
 
             # Reinstall pip so OS-vendor patches cannot enter the shared environment.
             self.upgrade(pip_args=[*pip_args, "--force-reinstall"], verbose=verbose, raises=True)
@@ -119,20 +121,20 @@ class _SharedLibs:
 
     @property
     def is_valid(self) -> bool:
-        if self.python_path.is_file():
-            # On Windows, check that the venv's underlying Python still exists
-            if not _venv_python_is_valid(self.python_path):
-                return False
+        if self._is_valid is None:
+            self._is_valid = (
+                self.python_path.is_file()
+                and _venv_python_is_valid(self.python_path)
+                and self.pip_path.is_file()
+                and run_subprocess(
+                    [self.python_path, "-c", "import importlib.util; print(importlib.util.find_spec('pip'))"],
+                    capture_stderr=False,
+                    log_cmd_str="<checking pip's availability>",
+                ).stdout.strip()
+                != "None"
+            )
 
-            check_pip = "import importlib.util; print(importlib.util.find_spec('pip'))"
-            out = run_subprocess(
-                [self.python_path, "-c", check_pip],
-                capture_stderr=False,
-                log_cmd_str="<checking pip's availability>",
-            ).stdout.strip()
-
-            return self.pip_path.is_file() and out != "None"
-        return False
+        return self._is_valid
 
     @property
     def needs_upgrade(self) -> bool:
