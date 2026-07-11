@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 import sys
@@ -20,6 +21,35 @@ from pipx.interpreter import (
 from pipx.util import PipxError
 
 original_which = shutil.which
+
+
+def test_import_defers_default_python_resolution() -> None:
+    result = subprocess.run(
+        [sys.executable, "-c", "import pipx.interpreter; print('imported')"],
+        env={**os.environ, "PIPX_DEFAULT_PYTHON": "missing-pipx-python"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert (result.returncode, result.stdout.strip()) == (0, "imported")
+
+
+def test_default_python_compatibility_attribute() -> None:
+    pipx.interpreter.get_default_python.cache_clear()
+    try:
+        assert pipx.interpreter.DEFAULT_PYTHON == pipx.interpreter.get_default_python()
+    finally:
+        pipx.interpreter.get_default_python.cache_clear()
+
+
+def test_get_default_python_resolves_configured_value(monkeypatch: pytest.MonkeyPatch) -> None:
+    pipx.interpreter.get_default_python.cache_clear()
+    monkeypatch.setenv("PIPX_DEFAULT_PYTHON", sys.executable)
+    try:
+        assert pipx.interpreter.get_default_python() == str(Path(sys.executable).resolve())
+    finally:
+        pipx.interpreter.get_default_python.cache_clear()
 
 
 @pytest.mark.skipif(not sys.platform.startswith("win"), reason="Looks for Python.exe")
