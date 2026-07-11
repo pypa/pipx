@@ -18,6 +18,7 @@ from pipx.backends import (
 )
 from pipx.backends.uv import UvBackend
 from pipx.commands.run_uv import translate_pip_args_for_uv
+from pipx.constants import PIPX_SHARED_PTH
 from pipx.main import _validate_backend_available
 from pipx.util import PipxError
 from pipx.venv import Venv, reset_backend_override_warnings
@@ -353,6 +354,18 @@ def test_metadata_round_trip_includes_backend(tmp_path: Path) -> None:
 
     reread = pipx_metadata_file.PipxMetadata(venv_dir)
     assert reread.backend == "uv"
+
+
+def test_metadata_version_order_for_shared_libs(tmp_path: Path) -> None:
+    venv_dir = tmp_path / "venv"
+    site_packages = venv_dir / "lib/python/site-packages"
+    site_packages.mkdir(parents=True)
+    (site_packages / PIPX_SHARED_PTH).touch()
+    venv = Venv(venv_dir)
+    venv.pipx_metadata.read_metadata_version = "0.10"
+    venv.pipx_metadata.backend = UV
+
+    assert venv.uses_shared_libs is False
 
 
 def test_legacy_metadata_defaults_to_pip(tmp_path: Path) -> None:
