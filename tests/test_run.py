@@ -65,18 +65,18 @@ def test_cache(pipx_temp_env, monkeypatch, capsys, caplog):
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
-def test_no_path_check(pipx_temp_env, monkeypatch, capsys, caplog):
-    def fake_which(_app):
-        return "/fake/bin/pycowsay"
-
+def test_no_path_check(pipx_temp_env: None, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+    which = mock.Mock(return_value="/fake/bin/pycowsay")
     for module_name in ("pipx.commands.run", "pipx.commands.run_uv"):
-        monkeypatch.setattr(importlib.import_module(module_name), "which", fake_which)
+        monkeypatch.setattr(importlib.import_module(module_name), "which", which)
 
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
+    which.assert_called_once_with("pycowsay")
     assert "is already on your PATH" in caplog.text
 
     caplog.clear()
     run_pipx_cli_exit(["run", "--no-path-check", "pycowsay", "cowsay", "args"])
+    which.assert_called_once_with("pycowsay")
     assert "is already on your PATH" not in caplog.text
 
 
