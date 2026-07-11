@@ -37,6 +37,7 @@ else:
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 _VENV_EXPIRED_FILENAME: Final[str] = "pipx_expired_venv"
+_VCS_SCHEMES: Final[frozenset[str]] = frozenset({"bzr", "git", "hg", "svn"})
 
 _APP_NOT_FOUND_ERROR_MESSAGE: Final[str] = """\
 '{app}' executable script not found in package '{package_name}'.
@@ -61,11 +62,14 @@ def maybe_script_content(app: str, is_path: bool) -> str | Path | None:
 
     # Check for a URL
     if urllib.parse.urlparse(app).scheme:
+        if _is_vcs_url(app):
+            return None
         if not app.endswith(".py"):
             raise PipxError(
                 """
                 pipx will only execute apps from the internet directly if they
-                end with '.py'. To run from an SVN, try pipx --spec URL BINARY
+                end with '.py'. To run a package from another URL, use
+                'pipx run --spec URL BINARY'.
                 """
             )
         _LOGGER.info("Detected url. Downloading and executing as a Python file.")
@@ -178,6 +182,7 @@ def run_package(
     verbose: bool,
     use_cache: bool,
     *,
+    infer_app_name: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
     resolved_backend: str | None = None,
@@ -216,6 +221,9 @@ def run_package(
     venv_dir = _get_temporary_venv_path([package_or_url], python, pip_args, venv_args, resolved_backend or "pip")
 
     venv = Venv(venv_dir, backend=backend, env_backend=env_backend)
+    if infer_app_name and venv.pipx_metadata.main_package.package is not None:
+        app = venv.pipx_metadata.main_package.package
+        app_filename = f"{app}.exe" if WINDOWS else app
     bin_path = venv.bin_path / app_filename
     _prepare_venv_cache(venv, bin_path, use_cache)
 
@@ -233,6 +241,7 @@ def run_package(
             venv_args,
             use_cache,
             verbose,
+            infer_app_name=infer_app_name,
             backend=backend,
             env_backend=env_backend,
         )
@@ -301,6 +310,7 @@ def run(
             script_source=Path(app) if isinstance(content, Path) else None,
             dependencies=dependencies,
         )
+
     elif use_uvx:
         run_via_uv_tool_run(
             app=app,
@@ -327,6 +337,7 @@ def run(
             pypackages,
             verbose,
             use_cache,
+            infer_app_name=spec is None and _is_vcs_url(app),
             backend=backend,
             env_backend=env_backend,
             resolved_backend=resolved_backend,
@@ -345,6 +356,7 @@ def _prepare_venv(
     use_cache: bool,
     verbose: bool,
     *,
+    infer_app_name: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
 ) -> tuple[Venv, str, str]:
@@ -355,6 +367,10 @@ def _prepare_venv(
         package_name = venv.pipx_metadata.main_package.package
     else:
         package_name = package_name_from_spec(package_or_url, python, pip_args=pip_args, verbose=verbose)
+
+    if infer_app_name:
+        app = package_name
+        app_filename = f"{app}.exe" if WINDOWS else app
 
     override_shared = package_name == "pip"
 
@@ -396,6 +412,12 @@ def _prepare_venv(
         (venv_dir / _VENV_EXPIRED_FILENAME).touch()
 
     return venv, app, app_filename
+
+
+def _is_vcs_url(value: str) -> bool:
+    scheme = urllib.parse.urlparse(value).scheme
+    vcs, separator, _ = scheme.partition("+")
+    return bool(separator) and vcs in _VCS_SCHEMES
 
 
 def _get_temporary_venv_path(

@@ -22,13 +22,18 @@ pipx run --with requests --with rich my-script.py
 
 ## Running from source control
 
-`pipx run` accepts git URLs through `--spec`. Using `black` as an example:
+`pipx run` accepts source-control URLs directly. Using `black` as an example:
 
 ```
-pipx run --spec git+https://github.com/psf/black.git black
-pipx run --spec git+ssh://git@github.com/psf/black black
-pipx run --spec git+https://github.com/psf/black.git@branch black
-pipx run --spec git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022573a59cdb1 black
+pipx run git+https://github.com/psf/black.git
+pipx run git+ssh://git@github.com/psf/black
+pipx run git+https://github.com/psf/black.git@branch
+pipx run git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022573a59cdb1
+```
+
+Use `--spec` when the executable name differs from the package name or when installing from an archive URL:
+
+```
 pipx run --spec https://github.com/psf/black/archive/18.9b0.zip black
 ```
 

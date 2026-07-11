@@ -2,6 +2,7 @@ import datetime
 import importlib
 import logging
 import os
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -584,6 +585,38 @@ def test_run_local_path_entry_point(pipx_temp_env, caplog, root):
     run_pipx_cli_exit(["run", empty_project_path])
 
     assert "Using discovered entry point for 'pipx run'" in caplog.text
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_vcs_url_infers_app_name(pipx_temp_env, root, tmp_path, caplog):
+    project = tmp_path / "empty-project-vcs"
+    shutil.copytree(root / "testdata" / "empty_project", project)
+    pyproject = project / "pyproject.toml"
+    pyproject.write_text(pyproject.read_text().replace("empty_project.main:cli", "empty_project.main:main"))
+    subprocess.run(["git", "init", "--quiet"], cwd=project, check=True)
+    subprocess.run(["git", "add", "."], cwd=project, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=pipx tests",
+            "-c",
+            "user.email=pipx@example.invalid",
+            "commit",
+            "--quiet",
+            "-m",
+            "test fixture",
+        ],
+        cwd=project,
+        check=True,
+    )
+
+    command = ["run", "--backend", "pip", f"git+{project.as_uri()}"]
+    run_pipx_cli_exit(command, assert_exit=0)
+    run_pipx_cli_exit(command, assert_exit=0)
+
+    assert caplog.text.count("Determined package name: empty-project") == 1
+    assert "Reusing cached venv" in caplog.text
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
