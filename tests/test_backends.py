@@ -247,18 +247,22 @@ def test_translate_pip_args_for_uv(pip_args: list[str], expected: list[str]) -> 
 
 
 @pytest.mark.parametrize(
-    "pip_args",
+    ("pip_args", "match"),
     [
-        pytest.param(["--editable"], id="editable"),
-        pytest.param(["-e"], id="editable-short"),
-        pytest.param(["--no-build-isolation"], id="unknown-flag"),
-        pytest.param(["--no-deps"], id="no-deps"),
-        pytest.param(["--no-binary="], id="empty-no-binary"),
-        pytest.param(["--index-url"], id="missing-value"),
+        pytest.param(["--editable"], "is not supported", id="editable"),
+        pytest.param(["-e"], "is not supported", id="editable-short"),
+        pytest.param(
+            ["--no-build-isolation"],
+            "contains '--no-build-isolation', which has no",
+            id="unknown-flag",
+        ),
+        pytest.param(["--no-deps"], "contains '--no-deps', which has no", id="no-deps"),
+        pytest.param(["--no-binary="], "Invalid value", id="empty-no-binary"),
+        pytest.param(["--index-url"], "Missing value", id="missing-value"),
     ],
 )
-def test_translate_pip_args_for_uv_errors(pip_args: list[str]) -> None:
-    with pytest.raises(PipxError):
+def test_translate_pip_args_for_uv_errors(pip_args: list[str], match: str) -> None:
+    with pytest.raises(PipxError, match=match):
         translate_pip_args_for_uv(pip_args)
 
 
