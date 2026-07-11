@@ -121,8 +121,11 @@ def _unpack(full_version, download_link, archive: Path, download_dir: Path, expe
                 f"Checksum mismatch for python {full_version} build. Expected {expected_checksum}, got {checksum}."
             )
 
-        with tarfile.open(archive, mode="r:gz") as tar:
-            tar.extractall(download_dir)
+        try:
+            with tarfile.open(archive, mode="r:gz") as tar:
+                tar.extractall(download_dir, filter="data")
+        except tarfile.TarError as error:
+            raise PipxError(f"Unable to unpack python {full_version} build.") from error
 
 
 def _is_valid_python_index(index: Any) -> bool:
@@ -228,3 +231,12 @@ def resolve_python_version(requested_version: str):
             return full_version, download_link
 
     raise PipxError(f"Unable to acquire a standalone python build matching {requested_version}.")
+
+
+__all__ = [
+    "download_python_build_standalone",
+    "get_latest_python_releases",
+    "get_or_update_index",
+    "list_pythons",
+    "resolve_python_version",
+]
