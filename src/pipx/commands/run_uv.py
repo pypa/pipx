@@ -12,21 +12,47 @@ from pipx.emojis import hazard
 from pipx.util import PipxError, exec_app, pipx_wrap
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from pathlib import Path
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
-# Pip flags translatable to ``uv tool run`` / ``uv run``; anything else errors.
-_UV_TRANSLATABLE_VALUE_FLAGS: Final[frozenset[str]] = frozenset(
-    {"--index-url", "-i", "--extra-index-url", "--find-links", "-f", "--no-binary", "--only-binary", "--trusted-host"}
-)
+_UV_VALUE_FLAG_MAP: Final[dict[str, str]] = {
+    "--index-url": "--index-url",
+    "-i": "-i",
+    "--extra-index-url": "--extra-index-url",
+    "--find-links": "--find-links",
+    "-f": "-f",
+    "--trusted-host": "--allow-insecure-host",
+}
+_UV_FORMAT_CONTROL_FLAG_MAP: Final[dict[str, tuple[str, str]]] = {
+    "--no-binary": ("--no-binary", "--no-binary-package"),
+    "--only-binary": ("--no-build", "--no-build-package"),
+}
 _UV_TRANSLATABLE_BOOL_FLAGS: Final[dict[str, str]] = {
     "--pre": "--prerelease=allow",
-    "--no-deps": "--no-deps",
     "--no-cache-dir": "--no-cache",
     "--upgrade": "--upgrade",
     "-U": "--upgrade",
 }
+
+
+def _next_pip_arg(flag: str, iterator: Iterator[str]) -> str:
+    try:
+        return next(iterator)
+    except StopIteration as exc:
+        raise PipxError(f"Missing value for {flag!r} in --pip-args.") from exc
+
+
+def _translate_format_control(flag: str, value: str) -> list[str]:
+    all_flag, package_flag = _UV_FORMAT_CONTROL_FLAG_MAP[flag]
+    if value == ":all:":
+        return [all_flag]
+    if value == ":none:":
+        return []
+    if not all(packages := value.split(",")):
+        raise PipxError(f"Invalid value for {flag!r} in --pip-args: {value!r}.")
+    return [item for package in packages for item in (package_flag, package)]
 
 
 def _reject_venv_args(venv_args: list[str]) -> None:
@@ -128,16 +154,17 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
         if (translated_bool := _UV_TRANSLATABLE_BOOL_FLAGS.get(arg)) is not None:
             translated.append(translated_bool)
             continue
-        if arg in _UV_TRANSLATABLE_VALUE_FLAGS:
-            try:
-                value = next(iterator)
-            except StopIteration as exc:
-                raise PipxError(f"Missing value for {arg!r} in --pip-args.") from exc
-            translated.extend([arg, value])
+        flag, separator, attached_value = arg.partition("=")
+        if flag in _UV_FORMAT_CONTROL_FLAG_MAP:
+            translated.extend(
+                _translate_format_control(flag, attached_value if separator else _next_pip_arg(flag, iterator))
+            )
             continue
-        # Bool flags must not accept ``=value`` (caught ``--pre=foo`` slipping through).
-        if "=" in arg and arg.split("=", 1)[0] in _UV_TRANSLATABLE_VALUE_FLAGS:
-            translated.append(arg)
+        if (translated_flag := _UV_VALUE_FLAG_MAP.get(flag)) is not None:
+            if separator:
+                translated.append(f"{translated_flag}={attached_value}")
+            else:
+                translated.extend([translated_flag, _next_pip_arg(flag, iterator)])
             continue
         raise PipxError(
             f"--pip-args contains {arg!r}, which has no `uv tool run` equivalent.\n"

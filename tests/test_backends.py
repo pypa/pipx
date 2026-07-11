@@ -217,6 +217,29 @@ def test_find_uv_binary_is_cached(mocker: MockerFixture) -> None:
         ),
         pytest.param(["--pre"], ["--prerelease=allow"], id="pre-to-prerelease"),
         pytest.param(["--index-url=https://example.com"], ["--index-url=https://example.com"], id="equals-form"),
+        pytest.param(["--no-binary", ":all:"], ["--no-binary"], id="no-binary-all"),
+        pytest.param(
+            ["--no-binary", "one,two"],
+            ["--no-binary-package", "one", "--no-binary-package", "two"],
+            id="no-binary-packages",
+        ),
+        pytest.param(["--no-binary=:none:"], [], id="no-binary-none"),
+        pytest.param(["--only-binary", ":all:"], ["--no-build"], id="only-binary-all"),
+        pytest.param(
+            ["--only-binary=one,two"],
+            ["--no-build-package", "one", "--no-build-package", "two"],
+            id="only-binary-packages",
+        ),
+        pytest.param(
+            ["--trusted-host", "packages.example"],
+            ["--allow-insecure-host", "packages.example"],
+            id="trusted-host",
+        ),
+        pytest.param(
+            ["--trusted-host=packages.example"],
+            ["--allow-insecure-host=packages.example"],
+            id="trusted-host-equals",
+        ),
     ],
 )
 def test_translate_pip_args_for_uv(pip_args: list[str], expected: list[str]) -> None:
@@ -229,6 +252,8 @@ def test_translate_pip_args_for_uv(pip_args: list[str], expected: list[str]) -> 
         pytest.param(["--editable"], id="editable"),
         pytest.param(["-e"], id="editable-short"),
         pytest.param(["--no-build-isolation"], id="unknown-flag"),
+        pytest.param(["--no-deps"], id="no-deps"),
+        pytest.param(["--no-binary="], id="empty-no-binary"),
         pytest.param(["--index-url"], id="missing-value"),
     ],
 )
