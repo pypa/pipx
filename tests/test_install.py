@@ -433,6 +433,14 @@ def test_force_install_changes_editable(pipx_temp_env, root, capsys):
     assert "Installing to existing venv 'empty-project'" in captured.out
 
 
+def test_install_multiple_packages_preserves_editable_for_local_package(pipx_temp_env: None, root: Path) -> None:
+    local_package = (root / "testdata" / "empty_project").as_posix()
+    assert (
+        run_pipx_cli(["install", PKG["pycowsay"]["spec"], local_package, "--editable"]),
+        PipxMetadata(paths.ctx.venvs / "empty-project").main_package.pip_args,
+    ) == (0, ["--editable"])
+
+
 def test_preinstall(pipx_temp_env, caplog):
     assert not run_pipx_cli(["install", "--preinstall", "black", "nox"])
     assert "black" in caplog.text
