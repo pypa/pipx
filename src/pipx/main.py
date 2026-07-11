@@ -1348,6 +1348,7 @@ def setup(args: argparse.Namespace) -> None:
     verbose = getattr(args, "verbose", 0) - getattr(args, "quiet", 0)
 
     setup_logging(verbose)
+    paths.ctx.log_warnings()
 
     logger.debug(f"{time.strftime('%Y-%m-%d %H:%M:%S')}")
     logger.debug(f"{' '.join(sys.argv)}")
