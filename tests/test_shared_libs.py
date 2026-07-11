@@ -83,6 +83,12 @@ def test_shared_libs_excludes_setuptools(pipx_ultra_temp_env: None) -> None:
     assert "setuptools" not in installed
 
 
+def test_shared_libs_create_preserves_pip_args(pipx_ultra_temp_env: None) -> None:
+    pip_args = ["--disable-pip-version-check"]
+    shared_libs.shared_libs.create(pip_args=pip_args)
+    assert (pip_args, shared_libs.shared_libs.is_valid) == (["--disable-pip-version-check"], True)
+
+
 def test_venv_python_is_valid_non_windows() -> None:
     """Test that _venv_python_is_valid always returns True on non-Windows platforms."""
     with patch.object(shared_libs, "WINDOWS", False):
