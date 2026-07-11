@@ -1,3 +1,7 @@
+from pathlib import Path
+
+import pytest
+
 from helpers import run_pipx_cli
 from package_info import PKG
 
@@ -51,3 +55,20 @@ def test_unpin_injected_packages(capsys, pipx_temp_env):
 
     captured = capsys.readouterr()
     assert "Unpinned 3 packages in venv black" in captured.out
+
+
+def test_unpin_reports_only_changed_packages(
+    pipx_temp_env: None,
+    root: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["inject", "pycowsay", str(root / "testdata/empty_project")])
+    assert not run_pipx_cli(["pin", "pycowsay", "--injected-only"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["unpin", "pycowsay"])
+    output = capsys.readouterr().out
+    assert "Unpinned 1 packages in venv pycowsay" in output
+    assert "  - empty-project" in output
+    assert "  - pycowsay" not in output
