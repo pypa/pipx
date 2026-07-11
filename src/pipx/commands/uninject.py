@@ -20,7 +20,7 @@ from pipx.constants import (
 from pipx.emojis import stars
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv
-from pipx.venv_inspect import fetch_info_in_venv, get_dist, get_required_dependency_names
+from pipx.venv_inspect import fetch_info_in_venv, get_distributions_by_name, get_required_dependency_names
 
 logger = logging.getLogger(__name__)
 
@@ -167,7 +167,7 @@ def get_include_resource_paths(package_name: str, venv: Venv, local_bin_dir: Pat
 
 def _get_remaining_dependencies(venv: Venv, excluded_package: str) -> set[str]:
     venv_sys_path, venv_env, _ = fetch_info_in_venv(venv.python_path)
-    distributions = tuple(metadata.distributions(path=venv_sys_path))
+    distributions = get_distributions_by_name(venv_sys_path)
 
     remaining_deps: set[str] = set()
     remaining_packages: list[str] = [
@@ -183,7 +183,7 @@ def _get_remaining_dependencies(venv: Venv, excluded_package: str) -> set[str]:
 
 def _collect_transitive_deps(
     package_name: str,
-    distributions: tuple[metadata.Distribution, ...],
+    distributions: dict[str, metadata.Distribution],
     env: dict[str, str],
     visited: set[str] | None = None,
 ) -> set[str]:
@@ -193,7 +193,7 @@ def _collect_transitive_deps(
     if canonical in visited:
         return visited
     visited.add(canonical)
-    if dist := get_dist(package_name, distributions):
+    if dist := distributions.get(canonical):
         for dep_name in get_required_dependency_names(dist, env):
             _collect_transitive_deps(dep_name, distributions, env, visited)
     return visited
