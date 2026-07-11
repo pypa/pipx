@@ -8,7 +8,7 @@ from packaging.utils import canonicalize_name
 from pipx.commands.common import add_suffix
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
-from pipx.commands.uninstall import _get_venv_resource_paths
+from pipx.commands.uninstall import _get_venv_package_infos, _get_venv_resource_paths
 from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_REINSTALL_INVALID_PYTHON,
@@ -34,9 +34,12 @@ def _restore_reinstall_backup(venv_dir: Path, restore_venv_dir: Path, backup_dir
 
 
 def _get_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
-    resource_paths = _get_venv_resource_paths("app", venv, venv.bin_path, local_bin_dir)
+    package_infos = _get_venv_package_infos(venv)
+    resource_paths = _get_venv_resource_paths("app", venv, venv.bin_path, local_bin_dir, package_infos)
     for man_section in MAN_SECTIONS:
-        resource_paths |= _get_venv_resource_paths("man", venv, venv.man_path / man_section, local_man_dir / man_section)
+        resource_paths |= _get_venv_resource_paths(
+            "man", venv, venv.man_path / man_section, local_man_dir / man_section, package_infos
+        )
     return resource_paths
 
 

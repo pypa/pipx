@@ -1,6 +1,7 @@
 import sys
 
 import pytest
+from pytest_mock import MockerFixture
 
 from helpers import (
     PIPX_METADATA_LEGACY_VERSIONS,
@@ -11,7 +12,7 @@ from helpers import (
     skip_if_windows,
 )
 from package_info import PKG
-from pipx import paths
+from pipx import paths, venv_inspect
 
 
 def file_or_symlink(filepath):
@@ -51,6 +52,19 @@ def test_uninstall_legacy_venv(pipx_temp_env, metadata_version):
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
     assert not run_pipx_cli(["uninstall", "pycowsay"])
     assert not file_or_symlink(executable_path)
+
+
+def test_uninstall_legacy_venv_inspects_once(pipx_temp_env: None, mocker: MockerFixture) -> None:
+    assert run_pipx_cli(["install", "pycowsay"]) == 0
+    executable_path = paths.ctx.bin_dir / app_name("pycowsay")
+    assert executable_path.exists()
+    mock_legacy_venv("pycowsay")
+    run_subprocess = mocker.spy(venv_inspect, "run_subprocess")
+
+    assert run_pipx_cli(["uninstall", "pycowsay"]) == 0
+
+    assert not file_or_symlink(executable_path)
+    assert run_subprocess.call_count == 1
 
 
 def test_uninstall_suffix(pipx_temp_env):

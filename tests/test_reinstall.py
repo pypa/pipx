@@ -2,9 +2,10 @@ import sys
 from dataclasses import replace
 
 import pytest
+from pytest_mock import MockerFixture
 
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, app_name, mock_legacy_venv, run_pipx_cli, skip_if_windows
-from pipx import paths, util
+from pipx import paths, util, venv_inspect
 from pipx.pipx_metadata_file import PipxMetadata
 
 
@@ -30,6 +31,18 @@ def test_reinstall_legacy_venv(pipx_temp_env, capsys, metadata_version):
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+
+
+def test_reinstall_legacy_venv_inspects_once_for_resources(pipx_temp_env: None, mocker: MockerFixture) -> None:
+    assert run_pipx_cli(["install", "pycowsay"]) == 0
+    executable_path = paths.ctx.bin_dir / app_name("pycowsay")
+    mock_legacy_venv("pycowsay")
+    run_subprocess = mocker.spy(venv_inspect, "run_subprocess")
+
+    assert run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"]) == 0
+
+    assert executable_path.exists()
+    assert run_subprocess.call_count == 2
 
 
 def test_reinstall_suffix(pipx_temp_env, capsys):
