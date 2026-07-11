@@ -1,23 +1,22 @@
 import logging
 import shutil
 import sys
-from collections.abc import Generator
+from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from threading import Event, Thread
+from typing import Final
 
 from pipx.constants import WINDOWS
 from pipx.emojis import EMOJI_SUPPORT
 
-logger = logging.getLogger(__name__)
+STDERR_IS_TTY: Final[bool] = bool(sys.stderr and sys.stderr.isatty())
 
-stderr_is_tty = bool(sys.stderr and sys.stderr.isatty())
-
-CLEAR_LINE = "\033[K"
-EMOJI_ANIMATION_FRAMES = ["⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"]
-NONEMOJI_ANIMATION_FRAMES = ["", ".", "..", "..."]
-EMOJI_FRAME_PERIOD = 0.1
-NONEMOJI_FRAME_PERIOD = 1
-MINIMUM_COLS_ALLOW_ANIMATION = 16
+CLEAR_LINE: Final[str] = "\033[K"
+EMOJI_ANIMATION_FRAMES: Final[tuple[str, ...]] = ("⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾")
+NONEMOJI_ANIMATION_FRAMES: Final[tuple[str, ...]] = ("", ".", "..", "...")
+EMOJI_FRAME_PERIOD: Final[float] = 0.1
+NONEMOJI_FRAME_PERIOD: Final[float] = 1
+MINIMUM_COLS_ALLOW_ANIMATION: Final[int] = 16
 
 
 if WINDOWS:
@@ -29,7 +28,7 @@ if WINDOWS:
 
 def _env_supports_animation() -> bool:
     (term_cols, _) = shutil.get_terminal_size(fallback=(0, 0))
-    return stderr_is_tty and term_cols > MINIMUM_COLS_ALLOW_ANIMATION
+    return STDERR_IS_TTY and term_cols > MINIMUM_COLS_ALLOW_ANIMATION
 
 
 @contextmanager
@@ -56,22 +55,24 @@ def animate(message: str, do_animation: bool, *, delay: float = 0) -> Generator[
         symbols = NONEMOJI_ANIMATION_FRAMES
         period = NONEMOJI_FRAME_PERIOD
 
-    thread_kwargs = {
-        "message": message,
-        "event": event,
-        "symbols": symbols,
-        "delay": delay,
-        "period": period,
-        "animate_at_beginning_of_line": animate_at_beginning_of_line,
-    }
-
-    t = Thread(target=print_animation, kwargs=thread_kwargs)
-    t.start()
+    thread = Thread(
+        target=print_animation,
+        kwargs={
+            "message": message,
+            "event": event,
+            "symbols": symbols,
+            "delay": delay,
+            "period": period,
+            "animate_at_beginning_of_line": animate_at_beginning_of_line,
+        },
+    )
+    thread.start()
 
     try:
         yield
     finally:
         event.set()
+        thread.join()
         clear_line()
 
 
@@ -79,7 +80,7 @@ def print_animation(
     *,
     message: str,
     event: Event,
-    symbols: list[str],
+    symbols: Sequence[str],
     delay: float,
     period: float,
     animate_at_beginning_of_line: bool,
@@ -87,18 +88,18 @@ def print_animation(
     (term_cols, _) = shutil.get_terminal_size(fallback=(9999, 24))
     event.wait(delay)
     while not event.wait(0):
-        for s in symbols:
+        for symbol in symbols:
             if animate_at_beginning_of_line:
-                max_message_len = term_cols - len(f"{s} ... ")
-                cur_line = f"{s} {message:.{max_message_len}}"
+                max_message_len = term_cols - len(f"{symbol} ... ")
+                current_line = f"{symbol} {message:.{max_message_len}}"
                 if len(message) > max_message_len:
-                    cur_line += "..."
+                    current_line += "..."
             else:
                 max_message_len = term_cols - len("... ")
-                cur_line = f"{message:.{max_message_len}}{s}"
+                current_line = f"{message:.{max_message_len}}{symbol}"
 
             clear_line()
-            sys.stderr.write(cur_line)
+            sys.stderr.write(current_line)
             sys.stderr.flush()
             if event.wait(period):
                 break
@@ -117,7 +118,7 @@ def win_cursor(visible: bool) -> None:
 
 
 def hide_cursor() -> None:
-    if stderr_is_tty:
+    if STDERR_IS_TTY:
         if WINDOWS:
             win_cursor(visible=False)
         else:
@@ -126,7 +127,7 @@ def hide_cursor() -> None:
 
 
 def show_cursor() -> None:
-    if stderr_is_tty:
+    if STDERR_IS_TTY:
         if WINDOWS:
             win_cursor(visible=True)
         else:
@@ -135,6 +136,17 @@ def show_cursor() -> None:
 
 
 def clear_line() -> None:
-    """Clears current line and positions cursor at start of line"""
     sys.stderr.write(f"\r{CLEAR_LINE}")
     sys.stdout.write(f"\r{CLEAR_LINE}")
+
+
+__all__ = [
+    "CLEAR_LINE",
+    "EMOJI_ANIMATION_FRAMES",
+    "EMOJI_FRAME_PERIOD",
+    "NONEMOJI_ANIMATION_FRAMES",
+    "NONEMOJI_FRAME_PERIOD",
+    "animate",
+    "hide_cursor",
+    "show_cursor",
+]
