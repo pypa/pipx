@@ -11,7 +11,7 @@ from pipx.util import PipxError, pipx_wrap
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
-PIPX_INFO_FILENAME = "pipx_metadata.json"
+PIPX_INFO_FILENAME: Final[str] = "pipx_metadata.json"
 
 
 class _RawPackageInfo(TypedDict, total=False):
