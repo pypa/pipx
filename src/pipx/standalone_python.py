@@ -40,7 +40,10 @@ MACHINE_SUFFIX: Final[dict[str, dict[str, Any]]] = {
             "musl": ["x86_64_v3-unknown-linux-musl-install_only.tar.gz"],
         },
     },
-    "Windows": {"AMD64": ["x86_64-pc-windows-msvc-install_only.tar.gz"]},
+    "Windows": {
+        "AMD64": ["x86_64-pc-windows-msvc-install_only.tar.gz"],
+        "ARM64": ["aarch64-pc-windows-msvc-install_only.tar.gz"],
+    },
 }
 
 GITHUB_API_URL: Final[str] = "https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest"
