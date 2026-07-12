@@ -97,6 +97,14 @@ def test_package_is_path_ignores_existing_directory(tmp_path, monkeypatch):
     main.package_is_path("commit-check")
 
 
+def test_package_is_path_rejects_forward_slash(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert run_pipx_cli(["uninstall", "namespace/package"])
+    assert "'namespace/package' looks like a path" in capsys.readouterr().err
+
+
 @pytest.mark.parametrize(
     ("missing_raw", "python_raw", "expected_option", "expected_invalid"),
     [
