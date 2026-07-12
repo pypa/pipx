@@ -1,11 +1,21 @@
 import argparse
+import os
+import re
+import shutil
+import subprocess
 import sys
+from pathlib import Path
+from typing import Final
 from unittest import mock
 
 import pytest
+from docutils.core import publish_string
 
 from helpers import run_pipx_cli
 from pipx import constants, main
+
+_ROOT: Final = Path(__file__).parents[1]
+_MANPAGE_RST: Final = _ROOT / "docs" / "man" / "pipx.1.rst"
 
 
 def test_help_text(monkeypatch, capsys):
@@ -69,6 +79,53 @@ def test_all_subcommands_have_func_registered():
         for nested in (a for a in subparser._actions if isinstance(a, argparse._SubParsersAction)):
             for sub_name, sub_parser in nested.choices.items():
                 assert callable(sub_parser._defaults.get("func")), f"{sub_name!r} missing callable func default"
+
+
+def test_manpage_matches_parser(tmp_path: Path) -> None:
+    generated = tmp_path / "pipx.1.rst"
+    subprocess.run([sys.executable, str(_ROOT / "scripts" / "generate_man.py"), str(generated)], check=True)
+    assert _MANPAGE_RST.read_bytes() == generated.read_bytes()
+
+
+def test_manpage_sections(manpage_troff: bytes) -> None:
+    assert re.findall(r"^\.SH (.+)$", manpage_troff.decode(), re.MULTILINE) == [
+        "Name",
+        "SYNOPSIS",
+        "DESCRIPTION",
+        "COMMANDS",
+        "GLOBAL OPTIONS",
+        "ENVIRONMENT VARIABLES",
+        "SEE ALSO",
+        "AUTHORS",
+    ]
+
+
+def test_manpage_header(manpage_troff: bytes) -> None:
+    assert re.search(r'^\.TH "pipx" "1" .* "User Commands"$', manpage_troff.decode(), re.MULTILINE)
+
+
+@pytest.mark.skipif(shutil.which("man") is None, reason="man is not installed")
+def test_manpage_renders(manpage_troff: bytes, tmp_path: Path) -> None:
+    manpage = tmp_path / "pipx.1"
+    manpage.write_bytes(manpage_troff)
+    result = subprocess.run(
+        ["man", str(manpage)],
+        capture_output=True,
+        text=True,
+        env=os.environ | {"COLUMNS": "200", "MANPAGER": "cat", "PAGER": "cat"},
+        check=False,
+        timeout=5,
+    )
+    rendered = re.sub(r".\x08", "", result.stdout)
+    assert (result.returncode, "pipx" in rendered.lower(), "SYNOPSIS" in rendered) == (0, True, True)
+
+
+@pytest.fixture
+def manpage_troff() -> bytes:
+    source = "\n".join(
+        line for line in _MANPAGE_RST.read_text(encoding="utf-8").splitlines() if line.strip() != ":orphan:"
+    )
+    return publish_string(source, writer="manpage", settings_overrides={"report_level": 5})
 
 
 @pytest.mark.parametrize(

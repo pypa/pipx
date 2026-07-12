@@ -1,6 +1,7 @@
 [build-system]
 build-backend = "hatchling.build"
 requires = [
+  "docutils>=0.21",
   "hatch-vcs>=0.4",
   "hatchling>=1.27",
 ]
@@ -62,6 +63,7 @@ dev = [
   { include-group = "test" },
 ]
 test = [
+  "docutils>=0.21",
   "pypiserver[cache,passlib]>=2.3.2",
   "pytest>=8",
   "pytest-cov>=4",
@@ -84,7 +86,7 @@ lint = [
   "pre-commit>=3",
 ]
 man = [
-  "argparse-manpage[setuptools]",
+  "docutils>=0.21",
 ]
 zipapp = [
   "shiv>=1.0.6",
@@ -92,9 +94,13 @@ zipapp = [
 
 [tool.hatch]
 version.source = "vcs"
+build.hooks.custom = {}
 build.hooks.vcs.version-file = "src/pipx/version.py"
+build.targets.wheel.shared-data = { "build/man" = "share/man/man1" }
 build.targets.sdist.include = [
   "/*.md",
+  "/docs/man",
+  "/hatch_build.py",
   "/logo.png",
   "/pipx_demo.gif",
   "/src",

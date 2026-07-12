@@ -66,9 +66,18 @@ commands = [
 
 [env.man]
 description = "build man page"
+package = "editable"
 dependency_groups = ["man"]
+allowlist_externals = ["uv"]
 commands = [
-  ["python", "scripts/generate_man.py"],
+  ["python", "scripts/generate_man.py", "{tox_root}{/}docs{/}man{/}pipx.1.rst"],
+  ["uv", "build", "--out-dir", "{env_tmp_dir}{/}dist"],
+  [
+    "python",
+    "scripts/check_distribution_manpage.py",
+    "{env_tmp_dir}{/}dist",
+    "{tox_root}{/}docs{/}man{/}pipx.1.rst",
+  ],
 ]
 
 [env.zipapp]

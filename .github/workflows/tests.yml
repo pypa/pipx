@@ -70,7 +70,7 @@ jobs:
       - name: 📖 Build man page
         run: tox run -e man
       - name: Show man page
-        run: man -l pipx.1
+        run: man -l build/man/pipx.1
   zipapp:
     name: 📦 Build zipapp
     runs-on: ubuntu-24.04
