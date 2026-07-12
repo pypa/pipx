@@ -8,10 +8,31 @@ from typing import TYPE_CHECKING
 import pytest
 
 from pipx import paths
-from pipx.util import rmdir, run_subprocess, safe_unlink
+from pipx.util import exec_app, rmdir, run_subprocess, safe_unlink
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
+
+
+@pytest.mark.parametrize("windows", [pytest.param(False, id="posix"), pytest.param(True, id="windows")])
+def test_exec_app_preserves_stream_encoding(
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    windows: bool,
+) -> None:
+    monkeypatch.setattr("pipx.util.WINDOWS", windows)
+    env = {"PYTHONIOENCODING": "cp850", "PYTHONLEGACYWINDOWSSTDIO": "cp850"}
+    if windows:
+        boundary = mocker.patch("pipx.util.subprocess.run", autospec=True, side_effect=RuntimeError)
+    else:
+        boundary = mocker.patch("pipx.util.os.execvpe", autospec=True, side_effect=RuntimeError)
+
+    with pytest.raises(RuntimeError):
+        exec_app(["python"], env)
+
+    child_env = boundary.call_args.kwargs["env"] if windows else boundary.call_args.args[2]
+    assert child_env["PYTHONIOENCODING"] == "cp850"
+    assert child_env["PYTHONLEGACYWINDOWSSTDIO"] == "cp850"
 
 
 def test_rmdir_without_safe_rm_is_non_fatal_for_locked_files(

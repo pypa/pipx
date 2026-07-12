@@ -239,7 +239,6 @@ def test_run_without_requirements(caplog, pipx_temp_env, tmp_path):
     assert out.read_text() == test_str
 
 
-@pytest.mark.skipif(sys.platform != "win32", reason="requires Windows code pages")
 @pytest.mark.parametrize(
     ("encoding", "script_text"),
     [
@@ -251,7 +250,7 @@ def test_run_without_requirements(caplog, pipx_temp_env, tmp_path):
         ),
     ],
 )
-def test_run_preserves_windows_console_encoding(tmp_path: Path, encoding: str, script_text: str) -> None:
+def test_run_preserves_console_encoding(tmp_path: Path, encoding: str, script_text: str) -> None:
     script = tmp_path / "console_output.py"
     script.write_text(script_text, encoding="utf-8")
     env = os.environ | {
