@@ -235,8 +235,8 @@ def package_is_url(package: str, raise_error: bool = True) -> bool:
     return False
 
 
-def package_is_path(package: str):
-    if os.path.sep in package:
+def package_is_path(package: str) -> None:
+    if any(separator in package for separator in (os.path.sep, os.path.altsep) if separator):
         raise PipxError(
             pipx_wrap(
                 f"""
