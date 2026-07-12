@@ -1,4 +1,7 @@
+import importlib
+import json
 import sys
+from typing import cast
 
 import pytest
 from pytest_mock import MockerFixture
@@ -28,6 +31,111 @@ def file_or_symlink(filepath):
 def test_uninstall(pipx_temp_env):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["uninstall", "pycowsay"])
+
+
+def test_uninstall_json(
+    uninstall_command: tuple[str, list[str]],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    command, arguments = uninstall_command
+
+    assert not run_pipx_cli([command, *arguments, "--json"])
+
+    captured = capsys.readouterr()
+    assert (json.loads(captured.out), captured.err) == (
+        {
+            "command": command,
+            "data": {
+                "failures": [],
+                "packages": [
+                    {
+                        "environment": "pycowsay",
+                        "location": str(paths.ctx.venvs / "pycowsay"),
+                        "package": "pycowsay",
+                        "version": "0.0.0.2",
+                    }
+                ],
+            },
+            "pipx_result_version": "0.1",
+            "status": "success",
+        },
+        "",
+    )
+
+
+def test_uninstall_quiet(
+    uninstall_command: tuple[str, list[str]],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    command, arguments = uninstall_command
+
+    assert not run_pipx_cli([command, *arguments, "--quiet"])
+
+    captured = capsys.readouterr()
+    assert (captured.out, captured.err) == ("", "")
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(("uninstall", ["pycowsay"]), id="one"),
+        pytest.param(("uninstall-all", []), id="all"),
+    ]
+)
+def uninstall_command(
+    request: pytest.FixtureRequest,
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+) -> tuple[str, list[str]]:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+    return cast("tuple[str, list[str]]", request.param)
+
+
+def test_uninstall_json_reports_missing(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch.object(
+        importlib.import_module("pipx.commands.uninstall"),
+        "which",
+        autospec=True,
+        return_value="/usr/bin/missing",
+    )
+    assert run_pipx_cli(["uninstall", "missing", "--json"])
+
+    captured = capsys.readouterr()
+    assert (json.loads(captured.out), captured.err) == (
+        {
+            "command": "uninstall",
+            "data": {
+                "failures": [{"environment": "missing", "error": "Nothing to uninstall for missing."}],
+                "packages": [],
+            },
+            "pipx_result_version": "0.1",
+            "status": "error",
+        },
+        "",
+    )
+
+
+def test_uninstall_ignores_disappearing_resources(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+    safe_unlink = mocker.patch.object(
+        importlib.import_module("pipx.commands.uninstall"),
+        "safe_unlink",
+        autospec=True,
+        side_effect=FileNotFoundError,
+    )
+
+    result = run_pipx_cli(["uninstall", "pycowsay"])
+
+    assert (result, (paths.ctx.venvs / "pycowsay").exists(), safe_unlink.call_count > 0) == (0, False, True)
 
 
 @skip_if_windows

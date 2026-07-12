@@ -133,13 +133,10 @@ def uninject_dep(
 
 
 def get_include_resource_paths(package_name: str, venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
-    bin_dir_app_paths = _get_package_bin_dir_app_paths(
-        venv, venv.package_metadata[package_name], venv.bin_path, local_bin_dir
-    )
+    bin_dir_app_paths = _get_package_bin_dir_app_paths(venv.package_metadata[package_name], venv.bin_path, local_bin_dir)
     man_paths = set()
     for man_section in MAN_SECTIONS:
         man_paths |= _get_package_man_paths(
-            venv,
             venv.package_metadata[package_name],
             venv.man_path / man_section,
             local_man_dir / man_section,

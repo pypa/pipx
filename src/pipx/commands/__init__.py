@@ -9,11 +9,12 @@ from pipx.commands.reinstall import reinstall, reinstall_all
 from pipx.commands.run import run
 from pipx.commands.run_pip import run_pip
 from pipx.commands.uninject import uninject
-from pipx.commands.uninstall import uninstall, uninstall_all
+from pipx.commands.uninstall import UninstallData, uninstall, uninstall_all
 from pipx.commands.upgrade import upgrade, upgrade_all, upgrade_shared
 
 __all__ = [
     "PinData",
+    "UninstallData",
     "ensure_pipx_paths",
     "environment",
     "inject",
