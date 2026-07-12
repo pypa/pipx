@@ -16,6 +16,7 @@ from typing import Final
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
+from packaging.version import InvalidVersion
 
 from pipx.emojis import hazard
 from pipx.util import PipxError, pipx_wrap
@@ -237,6 +238,26 @@ def valid_pypi_name(package_spec: str) -> str | None:
     return canonicalize_name(package_req.name)
 
 
+def package_spec_satisfied(
+    package_spec: str,
+    package_name: str,
+    installed_version: str,
+    installed_spec: str,
+) -> bool:
+    """Return whether an installed package satisfies a named requirement."""
+    try:
+        requirement = Requirement(package_spec)
+        installed_requirement = Requirement(installed_spec)
+        return (
+            requirement.url is None
+            and canonicalize_name(requirement.name) == canonicalize_name(package_name)
+            and requirement.extras.issubset(installed_requirement.extras)
+            and requirement.specifier.contains(installed_version)
+        )
+    except (InvalidRequirement, InvalidVersion):
+        return False
+
+
 def fix_package_name(package_or_url: str, package_name: str) -> str:
     try:
         package_req = Requirement(package_or_url)
@@ -266,6 +287,7 @@ def fix_package_name(package_or_url: str, package_name: str) -> str:
 __all__ = [
     "fix_package_name",
     "get_extras",
+    "package_spec_satisfied",
     "parse_specifier_for_install",
     "parse_specifier_for_metadata",
     "parse_specifier_for_upgrade",

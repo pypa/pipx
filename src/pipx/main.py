@@ -447,6 +447,17 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
     p.add_argument(
+        "--upgrade",
+        "-U",
+        action="store_true",
+        help="Upgrade or downgrade an existing package when its version does not satisfy the supplied spec",
+    )
+    p.add_argument(
+        "--upgrade-strategy",
+        choices=["only-if-needed", "eager"],
+        help="How dependency upgrades are handled when --upgrade changes an existing package",
+    )
+    p.add_argument(
         "--suffix",
         default="",
         help="Optional suffix for virtual environment and executable names.",
@@ -477,6 +488,7 @@ def _cmd_install(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
         ctx.venv_args,
         ctx.verbose,
         force=args.force,
+        upgrade=args.upgrade,
         reinstall=False,
         include_dependencies=args.include_deps,
         preinstall_packages=args.preinstall,
@@ -484,6 +496,7 @@ def _cmd_install(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
         python_flag_passed=ctx.python_flag_passed,
         backend=ctx.backend,
         env_backend=ctx.env_backend,
+        upgrade_strategy=args.upgrade_strategy,
     )
 
 

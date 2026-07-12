@@ -4,6 +4,7 @@ import pytest
 
 from pipx.package_specifier import (
     fix_package_name,
+    package_spec_satisfied,
     parse_specifier_for_install,
     parse_specifier_for_metadata,
     parse_specifier_for_upgrade,
@@ -26,6 +27,22 @@ TEST_DATA_PATH = "./testdata/test_package_specifier"
 )
 def test_valid_pypi_name(package_spec_in, package_name_out):
     assert valid_pypi_name(package_spec_in) == package_name_out
+
+
+@pytest.mark.parametrize(
+    "package_spec,installed_spec,expected",
+    [
+        ("black>=22,<23", "black==22.8.0", True),
+        ("black<22", "black==22.8.0", False),
+        ("Black", "black==22.8.0", True),
+        ("black[colorama]", "black==22.8.0", False),
+        ("black[colorama]", "black[colorama]==22.8.0", True),
+        ("black @ https://example.com/black.whl", "black==22.8.0", False),
+        ("https://example.com/black.whl", "black==22.8.0", False),
+    ],
+)
+def test_package_spec_satisfied(package_spec, installed_spec, expected):
+    assert package_spec_satisfied(package_spec, "black", "22.8.0", installed_spec) is expected
 
 
 @pytest.mark.parametrize(

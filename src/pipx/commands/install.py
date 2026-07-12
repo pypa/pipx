@@ -7,7 +7,7 @@ from packaging.utils import canonicalize_name
 
 from pipx import commands, paths
 from pipx.backends import PIP
-from pipx.commands.common import package_name_from_spec, run_post_install_actions
+from pipx.commands.common import expose_resources_globally, package_name_from_spec, run_post_install_actions
 from pipx.constants import (
     EXIT_CODE_INSTALL_VENV_EXISTS,
     EXIT_CODE_OK,
@@ -15,9 +15,78 @@ from pipx.constants import (
 )
 from pipx.emojis import sleep
 from pipx.interpreter import get_default_python
+from pipx.package_specifier import package_spec_satisfied
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, load_spec_file
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv, VenvContainer
+
+
+def _upgrade_existing_venv(
+    venv: Venv,
+    package_name: str,
+    package_spec: str,
+    local_bin_dir: Path,
+    local_man_dir: Path,
+    pip_args: list[str],
+    verbose: bool,
+    upgrade_strategy: str | None,
+) -> None:
+    package_metadata = venv.pipx_metadata.main_package
+    installed_version = package_metadata.package_version
+    if package_spec_satisfied(
+        package_spec,
+        package_name,
+        installed_version,
+        package_metadata.package_or_url or package_name,
+    ):
+        print(f"{package_name} {installed_version} already satisfies {package_spec}")
+        return
+    if package_metadata.pinned:
+        print(f"Not upgrading pinned package {venv.name}. Run `pipx unpin {venv.name}` to unpin it.")
+        return
+
+    main_pip_args = pip_args or package_metadata.pip_args
+    venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=verbose)
+    venv.upgrade_packaging_libraries(main_pip_args)
+    venv.upgrade_package(
+        package_name,
+        package_spec,
+        main_pip_args,
+        include_dependencies=package_metadata.include_dependencies,
+        include_apps=package_metadata.include_apps,
+        is_main_package=True,
+        suffix=package_metadata.suffix,
+        upgrade_only_pip_args=([f"--upgrade-strategy={upgrade_strategy}"] if upgrade_strategy is not None else None),
+    )
+    package_metadata = venv.pipx_metadata.main_package
+    if package_metadata.include_apps:
+        expose_resources_globally(
+            "app",
+            local_bin_dir,
+            package_metadata.app_paths,
+            force=False,
+            suffix=package_metadata.suffix,
+        )
+        expose_resources_globally("man", local_man_dir, package_metadata.man_paths, force=False)
+    if package_metadata.include_dependencies:
+        for app_paths in package_metadata.app_paths_of_dependencies.values():
+            expose_resources_globally(
+                "app",
+                local_bin_dir,
+                app_paths,
+                force=False,
+                suffix=package_metadata.suffix,
+            )
+        for man_paths in package_metadata.man_paths_of_dependencies.values():
+            expose_resources_globally("man", local_man_dir, man_paths, force=False)
+    print(
+        pipx_wrap(
+            f"""
+            upgraded package {venv.name} from {installed_version} to
+            {package_metadata.package_version} (location: {venv.root!s})
+            """
+        )
+    )
 
 
 def install(
@@ -39,10 +108,15 @@ def install(
     python_flag_passed: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
+    upgrade: bool = False,
+    upgrade_strategy: str | None = None,
 ) -> ExitCode:
     """Returns pipx exit code."""
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
+
+    if upgrade_strategy is not None and not upgrade:
+        raise PipxError("--upgrade-strategy requires --upgrade")
 
     python = python or get_default_python()
 
@@ -98,6 +172,21 @@ def install(
                 )
             if force:
                 print(f"Installing to existing venv {venv.name!r}")
+            elif upgrade:
+                _upgrade_existing_venv(
+                    venv,
+                    package_name,
+                    package_spec,
+                    local_bin_dir,
+                    local_man_dir,
+                    pip_args,
+                    verbose,
+                    upgrade_strategy,
+                )
+                if len(package_specs) == 1:
+                    return EXIT_CODE_OK
+                venv_dir = None
+                continue
             else:
                 installed_version = venv.pipx_metadata.main_package.package_version
                 version_info = f" ({installed_version})" if installed_version else ""
