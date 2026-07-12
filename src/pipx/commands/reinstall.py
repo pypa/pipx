@@ -35,10 +35,10 @@ def _restore_reinstall_backup(venv_dir: Path, restore_venv_dir: Path, backup_dir
 
 def _get_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
     package_infos = _get_venv_package_infos(venv)
-    resource_paths = _get_venv_resource_paths("app", venv, venv.bin_path, local_bin_dir, package_infos)
+    resource_paths = _get_venv_resource_paths("app", venv.bin_path, local_bin_dir, package_infos)
     for man_section in MAN_SECTIONS:
         resource_paths |= _get_venv_resource_paths(
-            "man", venv, venv.man_path / man_section, local_man_dir / man_section, package_infos
+            "man", venv.man_path / man_section, local_man_dir / man_section, package_infos
         )
     return resource_paths
 

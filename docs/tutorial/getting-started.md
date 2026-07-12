@@ -54,6 +54,8 @@ pipx uninstall pycowsay
 
 pipx deletes the isolated environment and removes the command from your `PATH`.
 
+Pass `--json` to read the removal result in a script, or `--quiet` to omit the confirmation.
+
 ### Next steps
 
 Continue with the [install applications](install-applications.md) and [run applications](run-applications.md) tutorials

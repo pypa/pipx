@@ -814,10 +814,11 @@ def _add_uninstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
         parents=[shared_parser],
     )
     p.add_argument("package").completer = venv_completer
+    p.add_argument("--json", action="store_true", help="Output a machine-readable result.")
     p.set_defaults(func=_cmd_uninstall)
 
 
-def _cmd_uninstall(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_uninstall(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.UninstallData]:
     return commands.uninstall(_venv_dir(args, ctx), paths.ctx.bin_dir, paths.ctx.man_dir, ctx.verbose)
 
 
@@ -828,10 +829,11 @@ def _add_uninstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
         description="Uninstall all pipx-managed packages",
         parents=[shared_parser],
     )
+    p.add_argument("--json", action="store_true", help="Output a machine-readable result.")
     p.set_defaults(func=_cmd_uninstall_all)
 
 
-def _cmd_uninstall_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_uninstall_all(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.UninstallData]:
     return commands.uninstall_all(ctx.venv_container, paths.ctx.bin_dir, paths.ctx.man_dir, ctx.verbose)
 
 
