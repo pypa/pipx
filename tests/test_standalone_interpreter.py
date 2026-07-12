@@ -174,6 +174,16 @@ def test_download_standalone_python_rejects_unsafe_archive(
         standalone_python.download_python_build_standalone("3.99")
 
 
+def test_list_pythons_windows_arm64(
+    mocked_github_api: None,
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch.object(standalone_python.platform, "system", return_value="Windows")
+    mocker.patch.object(standalone_python.platform, "machine", return_value="ARM64")
+
+    assert standalone_python.list_pythons()["3.13.7"][0].endswith("aarch64-pc-windows-msvc-install_only.tar.gz")
+
+
 def test_list_no_standalone_interpreters(pipx_temp_env, monkeypatch, capsys):
     assert not run_pipx_cli(["interpreter", "list"])
 
