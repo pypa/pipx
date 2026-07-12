@@ -6,6 +6,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Final
 
+from filelock import BaseFileLock
+
 from pipx import commands, paths
 from pipx.colors import bold, red
 from pipx.commands.common import expose_resources_globally
@@ -182,6 +184,7 @@ def _upgrade_venv(
     env_backend: str | None = None,
     venv: Venv | None = None,
     shared_libs_already_checked: bool = False,
+    venv_lock: BaseFileLock | None = None,
 ) -> tuple[PackageUpgradeResult, ...]:
     """Return package upgrade results.
 
@@ -209,6 +212,7 @@ def _upgrade_venv(
                 python_flag_passed=python_flag_passed,
                 backend=backend,
                 env_backend=env_backend,
+                venv_lock=venv_lock,
             )
             return ()
         else:
@@ -297,21 +301,23 @@ def upgrade(
     results: list[PackageUpgradeResult] = []
 
     for venv_dir in venv_dirs.values():
-        results.extend(
-            _upgrade_venv(
-                venv_dir,
-                pip_args,
-                verbose,
-                include_injected=include_injected,
-                force=force,
-                install=install,
-                venv_args=venv_args,
-                python=python,
-                python_flag_passed=python_flag_passed,
-                backend=backend,
-                env_backend=env_backend,
+        with VenvContainer(venv_dir.parent).venv_lock(venv_dir) as venv_lock:
+            results.extend(
+                _upgrade_venv(
+                    venv_dir,
+                    pip_args,
+                    verbose,
+                    include_injected=include_injected,
+                    force=force,
+                    install=install,
+                    venv_args=venv_args,
+                    python=python,
+                    python_flag_passed=python_flag_passed,
+                    backend=backend,
+                    env_backend=env_backend,
+                    venv_lock=venv_lock,
+                )
             )
-        )
 
     package_results = tuple(results)
     return OperationResult(
@@ -346,30 +352,32 @@ def upgrade_all(
         if venv_dir.name in skip:
             skipped.append(SkippedUpgrade(venv_dir.name, "requested"))
             continue
-        venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
-        if "--editable" in venv.pipx_metadata.main_package.pip_args:
-            skipped.append(SkippedUpgrade(venv_dir.name, "editable"))
-            continue
-        venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
-        try:
-            package_results = _upgrade_venv(
-                venv_dir,
-                pip_args,
-                verbose=verbose,
-                include_injected=include_injected,
-                force=force,
-                python_flag_passed=python_flag_passed,
-                backend=backend,
-                env_backend=env_backend,
-                venv=venv,
-                shared_libs_already_checked=True,
-            )
-            results.extend(package_results)
-            for result in package_results:
-                messages.extend(_package_messages(result, upgrading_all=True))
-        except PipxError as e:
-            failures.append(FailedUpgrade(venv_dir.name, str(e)))
-            messages.append(OutputMessage(str(e), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+        with venv_container.venv_lock(venv_dir) as venv_lock:
+            venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
+            if "--editable" in venv.pipx_metadata.main_package.pip_args:
+                skipped.append(SkippedUpgrade(venv_dir.name, "editable"))
+                continue
+            venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
+            try:
+                package_results = _upgrade_venv(
+                    venv_dir,
+                    pip_args,
+                    verbose=verbose,
+                    include_injected=include_injected,
+                    force=force,
+                    python_flag_passed=python_flag_passed,
+                    backend=backend,
+                    env_backend=env_backend,
+                    venv=venv,
+                    shared_libs_already_checked=True,
+                    venv_lock=venv_lock,
+                )
+                results.extend(package_results)
+                for result in package_results:
+                    messages.extend(_package_messages(result, upgrading_all=True))
+            except PipxError as e:
+                failures.append(FailedUpgrade(venv_dir.name, str(e)))
+                messages.append(OutputMessage(str(e), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
     if not any(result.status is UpgradeStatus.UPGRADED for result in results):
         messages.append(OutputMessage(f"No packages upgraded after running 'pipx upgrade-all' {sleep}"))
     if failures:

@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from tempfile import mkdtemp
 
+from filelock import BaseFileLock
 from packaging.utils import canonicalize_name
 
 from pipx.commands.common import add_suffix
@@ -82,6 +83,7 @@ def reinstall(
     python_flag_passed: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
+    venv_lock: BaseFileLock | None = None,
 ) -> ExitCode:
     """Returns pipx exit code."""
     if not venv_dir.exists():
@@ -140,6 +142,7 @@ def reinstall(
             python_flag_passed=python_flag_passed,
             backend=backend or venv.pipx_metadata.backend,
             env_backend=env_backend,
+            venv_lock=venv_lock,
         )
 
         # now install injected packages
@@ -200,17 +203,19 @@ def reinstall_all(
         if venv_dir.name in skip:
             continue
         try:
-            reinstall(
-                venv_dir=venv_dir,
-                local_bin_dir=local_bin_dir,
-                local_man_dir=local_man_dir,
-                python=python,
-                verbose=verbose,
-                force_reinstall_shared_libs=first_reinstall,
-                python_flag_passed=python_flag_passed,
-                backend=backend,
-                env_backend=env_backend,
-            )
+            with venv_container.venv_lock(venv_dir) as venv_lock:
+                reinstall(
+                    venv_dir=venv_dir,
+                    local_bin_dir=local_bin_dir,
+                    local_man_dir=local_man_dir,
+                    python=python,
+                    verbose=verbose,
+                    force_reinstall_shared_libs=first_reinstall,
+                    python_flag_passed=python_flag_passed,
+                    backend=backend,
+                    env_backend=env_backend,
+                    venv_lock=venv_lock,
+                )
         except PipxError as e:
             print(e, file=sys.stderr)
             failed.append(venv_dir.name)

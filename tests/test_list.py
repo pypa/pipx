@@ -2,8 +2,11 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import time
+from pathlib import Path
+from typing import Final
 
 import pytest
 
@@ -21,6 +24,8 @@ from package_info import PKG
 from pipx import constants, paths, shared_libs, venv
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, _json_decoder_object_hook
 from pipx.util import PipxError
+
+_COMMAND_TIMEOUT: Final[int] = 30
 
 
 def test_cli(pipx_temp_env, monkeypatch, capsys):
@@ -174,6 +179,69 @@ def test_list_short(pipx_temp_env, monkeypatch, capsys):
     assert "pylint 3.0.4" in captured.out
 
 
+def test_list_waits_for_install(pipx_temp_env: None, tmp_path: Path) -> None:
+    package_dir = _create_package(tmp_path, "slow-app", "from time import sleep\nsleep(1)\n")
+    install = _start_install(package_dir)
+    try:
+        _wait_for_path(paths.ctx.venvs / "slow-app", install)
+        listed = subprocess.run(
+            [sys.executable, "-m", "pipx", "list", "--short"],
+            env=_subprocess_env(),
+            capture_output=True,
+            text=True,
+            timeout=_COMMAND_TIMEOUT,
+            check=False,
+        )
+        install_stdout, install_stderr = install.communicate(timeout=_COMMAND_TIMEOUT)
+    finally:
+        _stop_process(install)
+
+    assert (install.returncode, listed.returncode, listed.stdout.strip()) == (0, 0, "slow-app 1"), (
+        install_stdout,
+        install_stderr,
+        listed.stdout,
+        listed.stderr,
+    )
+
+
+def test_install_does_not_wait_for_other_environment(pipx_temp_env: None, tmp_path: Path) -> None:
+    entered = tmp_path / "entered"
+    release = tmp_path / "release"
+    pause = (
+        "from pathlib import Path\n"
+        "from time import sleep\n"
+        f"Path({str(entered)!r}).touch()\n"
+        f"while not Path({str(release)!r}).exists():\n    sleep(0.01)\n"
+    )
+    blocked_install = _start_install(_create_package(tmp_path, "blocked-app", pause))
+    try:
+        _wait_for_path(entered, blocked_install)
+        installed = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pipx",
+                "install",
+                str(_create_package(tmp_path, "other-app")),
+                "--skip-maintenance",
+            ],
+            env=_subprocess_env(),
+            capture_output=True,
+            text=True,
+            timeout=_COMMAND_TIMEOUT,
+            check=False,
+        )
+        blocked_returncode = blocked_install.poll()
+    finally:
+        release.touch()
+        _stop_process(blocked_install, terminate=False)
+
+    assert (installed.returncode, blocked_returncode, (paths.ctx.venvs / "other-app").is_dir()) == (0, None, True), (
+        installed.stdout,
+        installed.stderr,
+    )
+
+
 def test_list_standalone_interpreter(pipx_temp_env, monkeypatch, mocked_github_api, capsys):
     def which(name):
         return None
@@ -275,3 +343,52 @@ def test_list_installed_packages_error(monkeypatch, tmp_path, fake_process):
     assert "Failed to execute" in rendered
     assert "Process exited with return code 1" in rendered
     assert "unit test stderr" in rendered
+
+
+def _create_package(tmp_path: Path, name: str, setup_prefix: str = "") -> Path:
+    package_dir = tmp_path / name
+    package_dir.mkdir()
+    module = name.replace("-", "_")
+    (package_dir / "setup.py").write_text(
+        f"{setup_prefix}from setuptools import setup\n"
+        f"setup(name={name!r}, version='1', py_modules=[{module!r}], "
+        f"entry_points={{'console_scripts': [{f'{name}={module}:main'!r}]}})\n",
+        encoding="utf-8",
+    )
+    (package_dir / f"{module}.py").write_text(f"def main() -> None:\n    print({name!r})\n", encoding="utf-8")
+    return package_dir
+
+
+def _start_install(package_dir: Path) -> subprocess.Popen[str]:
+    return subprocess.Popen(
+        [sys.executable, "-m", "pipx", "install", str(package_dir), "--skip-maintenance"],
+        env=_subprocess_env(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+
+def _subprocess_env() -> dict[str, str]:
+    return os.environ | {
+        "PIPX_BIN_DIR": str(paths.ctx.bin_dir),
+        "PIPX_HOME": str(paths.ctx.home),
+        "PIPX_MAN_DIR": str(paths.ctx.man_dir),
+        "PIPX_SHARED_LIBS": str(paths.ctx.shared_libs),
+    }
+
+
+def _wait_for_path(path: Path, process: subprocess.Popen[str]) -> None:
+    deadline = time.monotonic() + _COMMAND_TIMEOUT
+    while not path.exists():
+        if process.poll() is not None:
+            pytest.fail(f"install exited before creating {path}: {process.communicate()!r}")
+        if time.monotonic() >= deadline:
+            pytest.fail(f"install did not create {path} within {_COMMAND_TIMEOUT} seconds")
+        time.sleep(0.01)
+
+
+def _stop_process(process: subprocess.Popen[str], *, terminate: bool = True) -> None:
+    if process.poll() is None and terminate:
+        process.terminate()
+    process.communicate(timeout=_COMMAND_TIMEOUT)

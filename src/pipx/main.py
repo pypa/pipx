@@ -599,19 +599,21 @@ def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
 
 
 def _cmd_inject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    return commands.inject(
-        _venv_dir(args, ctx),
-        args.dependencies,
-        args.requirements,
-        ctx.pip_args,
-        verbose=ctx.verbose,
-        include_apps=args.include_apps,
-        include_dependencies=args.include_deps,
-        force=args.force,
-        suffix=args.with_suffix,
-        backend=ctx.backend,
-        env_backend=ctx.env_backend,
-    )
+    venv_dir = _venv_dir(args, ctx)
+    with ctx.venv_container.venv_lock(venv_dir):
+        return commands.inject(
+            venv_dir,
+            args.dependencies,
+            args.requirements,
+            ctx.pip_args,
+            verbose=ctx.verbose,
+            include_apps=args.include_apps,
+            include_dependencies=args.include_deps,
+            force=args.force,
+            suffix=args.with_suffix,
+            backend=ctx.backend,
+            env_backend=ctx.env_backend,
+        )
 
 
 def _add_uninject(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser):
@@ -639,14 +641,16 @@ def _add_uninject(subparsers, venv_completer: VenvCompleter, shared_parser: argp
 
 
 def _cmd_uninject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    return commands.uninject(
-        _venv_dir(args, ctx),
-        args.dependencies,
-        local_bin_dir=paths.ctx.bin_dir,
-        local_man_dir=paths.ctx.man_dir,
-        leave_deps=args.leave_deps,
-        verbose=ctx.verbose,
-    )
+    venv_dir = _venv_dir(args, ctx)
+    with ctx.venv_container.venv_lock(venv_dir):
+        return commands.uninject(
+            venv_dir,
+            args.dependencies,
+            local_bin_dir=paths.ctx.bin_dir,
+            local_man_dir=paths.ctx.man_dir,
+            leave_deps=args.leave_deps,
+            verbose=ctx.verbose,
+        )
 
 
 def _add_pin(
@@ -680,7 +684,9 @@ def _add_pin(
 
 
 def _cmd_pin(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.PinData]:
-    return commands.pin(_venv_dir(args, ctx), ctx.verbose, ctx.skip_list, args.injected_only)
+    venv_dir = _venv_dir(args, ctx)
+    with ctx.venv_container.venv_lock(venv_dir):
+        return commands.pin(venv_dir, ctx.verbose, ctx.skip_list, args.injected_only)
 
 
 def _add_unpin(
@@ -700,7 +706,9 @@ def _add_unpin(
 
 
 def _cmd_unpin(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.PinData]:
-    return commands.unpin(_venv_dir(args, ctx), ctx.verbose)
+    venv_dir = _venv_dir(args, ctx)
+    with ctx.venv_container.venv_lock(venv_dir):
+        return commands.unpin(venv_dir, ctx.verbose)
 
 
 def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
@@ -819,7 +827,9 @@ def _add_uninstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
 
 
 def _cmd_uninstall(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.UninstallData]:
-    return commands.uninstall(_venv_dir(args, ctx), paths.ctx.bin_dir, paths.ctx.man_dir, ctx.verbose)
+    venv_dir = _venv_dir(args, ctx)
+    with ctx.venv_container.venv_lock(venv_dir):
+        return commands.uninstall(venv_dir, paths.ctx.bin_dir, paths.ctx.man_dir, ctx.verbose)
 
 
 def _add_uninstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -860,16 +870,19 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
 
 
 def _cmd_reinstall(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    return commands.reinstall(
-        venv_dir=_venv_dir(args, ctx),
-        local_bin_dir=paths.ctx.bin_dir,
-        local_man_dir=paths.ctx.man_dir,
-        python=ctx.python,
-        verbose=ctx.verbose,
-        python_flag_passed=ctx.python_flag_passed,
-        backend=ctx.backend,
-        env_backend=ctx.env_backend,
-    )
+    venv_dir = _venv_dir(args, ctx)
+    with ctx.venv_container.venv_lock(venv_dir) as venv_lock:
+        return commands.reinstall(
+            venv_dir=venv_dir,
+            local_bin_dir=paths.ctx.bin_dir,
+            local_man_dir=paths.ctx.man_dir,
+            python=ctx.python,
+            verbose=ctx.verbose,
+            python_flag_passed=ctx.python_flag_passed,
+            backend=ctx.backend,
+            env_backend=ctx.env_backend,
+            venv_lock=venv_lock,
+        )
 
 
 def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
@@ -1084,7 +1097,9 @@ def _add_runpip(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
 
 
 def _cmd_runpip(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
-    return commands.run_pip(args.package, _venv_dir(args, ctx), get_runpip_args(args.pipargs), ctx.verbose)
+    venv_dir = _venv_dir(args, ctx)
+    with ctx.venv_container.venv_lock(venv_dir):
+        return commands.run_pip(args.package, venv_dir, get_runpip_args(args.pipargs), ctx.verbose)
 
 
 def _add_ensurepath(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
