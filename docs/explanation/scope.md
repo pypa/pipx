@@ -32,9 +32,13 @@ may package pipx for their users, but each ecosystem owns its build, release, up
 ## Configuration and state
 
 Ordinary pipx commands must not search the current directory or its parents for configuration. If pipx gains declarative
-state, the caller must supply a path, for example to a future `pipx apply tools.toml` command. The design must keep
-desired state separate from a lock containing resolved versions and limit the manifest schema to application state
-instead of accepting arbitrary command defaults.
+state, the caller must supply a path, for example to a future `pipx apply tools.toml` command. The manifest must contain
+desired application state and reject arbitrary command defaults.
+
+Resolved dependency state must use the PyPA
+[`pylock.toml` specification](https://packaging.python.org/en/latest/specifications/pylock-toml/). The standard permits
+`pylock.toml` and named files such as `pylock.black.toml` when a manifest needs more than one lock. pipx must not use
+`requirements.txt` as a state or lock format.
 
 Top-level pipx options describe policy that pip and uv can both honor. A control supported by one backend stays in the
 arguments for that backend until both backends can provide the same contract.
