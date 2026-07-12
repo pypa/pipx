@@ -317,11 +317,8 @@ def get_exposed_paths_for_package(
     symlinks = set()
     for b in local_resource_dir.iterdir():
         try:
-            # sometimes symlinks can resolve to a file of a different name
-            # (in the case of ansible for example) so checking the resolved paths
-            # is not a reliable way to determine if the symlink exists.
-            # We always use the stricter check on non-Windows systems. On
-            # Windows, we use a less strict check if we don't have a symlink.
+            # Some apps expose symlinks whose names differ from their targets, so resolved paths cannot identify them.
+            # Windows setups without symlink support fall back to package resource names.
             is_same_file = False
             if can_symlink(local_resource_dir) and b.is_symlink():
                 is_same_file = b.resolve().parent.samefile(venv_resource_path)
@@ -443,14 +440,19 @@ def run_post_install_actions(
         package_name = display_name
 
     if not package_metadata.apps:
+        library_name = package_metadata.package or package_name
+        library_guidance = (
+            "`pipx install` requires an application entry point. "
+            f"Add this package to an existing environment with `pipx inject <environment> {library_name}`. "
+            f"For a new application environment, place `--preinstall {library_name}` before the application spec."
+        )
         if not package_metadata.apps_of_dependencies:
             if venv.safe_to_remove():
                 venv.remove_venv()
             raise PipxError(
                 f"""
                 No apps associated with package {display_name} or its
-                dependencies. If you are attempting to install a library, pipx
-                should not be used. Consider using pip or a similar tool instead.
+                dependencies. {library_guidance}
                 """
             )
         if package_metadata.apps_of_dependencies and not include_dependencies:
@@ -467,9 +469,7 @@ def run_post_install_actions(
                 f"""
                 No apps associated with package {display_name}. Try again
                 with '--include-deps' to include apps of dependent packages,
-                which are listed above. If you are attempting to install a
-                library, pipx should not be used. Consider using pip or a
-                similar tool instead.
+                which are listed above. {library_guidance}
                 """
             )
 

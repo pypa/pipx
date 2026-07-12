@@ -152,10 +152,37 @@ def test_force_install_does_not_record_internal_pip_args(pipx_temp_env: None) ->
     ) == (0, [])
 
 
-def test_install_no_packages_found(pipx_temp_env, capsys):
-    run_pipx_cli(["install", PKG["pygdbmi"]["spec"]])
-    captured = capsys.readouterr()
-    assert "No apps associated with package pygdbmi" in captured.err
+@pytest.mark.parametrize(
+    ("package_name", "display_name", "install_args", "has_dependency_apps"),
+    [
+        pytest.param(
+            "pygdbmi",
+            "pygdbmi_test",
+            [PKG["pygdbmi"]["spec"], "--suffix=_test"],
+            False,
+            id="library-with-suffix",
+        ),
+        pytest.param("jupyter", "jupyter", [PKG["jupyter"]["spec"]], True, id="dependency-apps"),
+    ],
+)
+def test_install_no_apps_guidance(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    package_name: str,
+    display_name: str,
+    install_args: list[str],
+    has_dependency_apps: bool,
+) -> None:
+    return_code = run_pipx_cli(["install", *install_args])
+
+    error = capsys.readouterr().err
+    assert (
+        return_code,
+        f"No apps associated with package {display_name}" in error,
+        f"pipx inject <environment> {package_name}" in error,
+        f"--preinstall {package_name}" in error,
+        "Try again with '--include-deps'" in error,
+    ) == (1, True, True, True, has_dependency_apps)
 
 
 def test_install_same_package_twice_no_force(pipx_temp_env, capsys):
@@ -224,8 +251,7 @@ def test_install_existing_package_skips_shared_lib_maintenance(pipx_temp_env: No
     run_subprocess.assert_not_called()
 
 
-def test_include_deps(pipx_temp_env, capsys):
-    assert run_pipx_cli(["install", PKG["jupyter"]["spec"]]) == 1
+def test_include_deps(pipx_temp_env: None) -> None:
     assert not run_pipx_cli(["install", PKG["jupyter"]["spec"], "--include-deps"])
 
 
