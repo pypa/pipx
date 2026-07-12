@@ -83,7 +83,7 @@ def safe_unlink(file: Path) -> None:
     # But it does let us rename/move it. To get around this issue, we can move
     # the file to a temporary folder (to be deleted at a later time)
 
-    if not file.is_file():
+    if not file.is_file() and not file.is_symlink():
         return
     try:
         file.unlink()

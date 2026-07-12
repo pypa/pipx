@@ -1,5 +1,4 @@
 import logging
-import os
 from importlib import metadata
 from pathlib import Path
 
@@ -18,7 +17,7 @@ from pipx.constants import (
     ExitCode,
 )
 from pipx.emojis import stars
-from pipx.util import PipxError, pipx_wrap
+from pipx.util import PipxError, pipx_wrap, safe_unlink
 from pipx.venv import Venv
 from pipx.venv_inspect import fetch_info_in_venv, get_distributions_by_name, get_required_dependency_names
 
@@ -123,7 +122,7 @@ def uninject_dep(
     if need_app_uninstall:
         for path in new_resource_paths:
             try:
-                os.unlink(path)
+                safe_unlink(path)
             except FileNotFoundError:
                 logger.info(f"tried to remove but couldn't find {path}")
             else:
