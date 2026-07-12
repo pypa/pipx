@@ -82,6 +82,10 @@ def reinstall(
     python_flag_passed: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
+    package_spec: str | None = None,
+    pip_args: list[str] | None = None,
+    venv_args: list[str] | None = None,
+    include_dependencies: bool | None = None,
 ) -> ExitCode:
     """Returns pipx exit code."""
     if not venv_dir.exists():
@@ -104,10 +108,13 @@ def reinstall(
         pip_args=venv.pipx_metadata.main_package.pip_args, verbose=verbose, force_upgrade=force_reinstall_shared_libs
     )
 
-    if venv.pipx_metadata.main_package.package_or_url is not None:
-        package_or_url = venv.pipx_metadata.main_package.package_or_url
-    else:
-        package_or_url = venv.main_package_name
+    package_metadata = venv.pipx_metadata.main_package
+    package_or_url = package_spec or package_metadata.package_or_url or venv.main_package_name
+    install_pip_args = package_metadata.pip_args if pip_args is None else pip_args
+    install_venv_args = venv.pipx_metadata.venv_args if venv_args is None else venv_args
+    install_include_dependencies = (
+        package_metadata.include_dependencies if include_dependencies is None else include_dependencies
+    )
 
     if venv.pipx_metadata.main_package.pinned:
         raise PipxError(f"{error} Package {venv_dir} is pinned. Run `pipx unpin {venv_dir.name}` to unpin it first.")
@@ -129,12 +136,12 @@ def reinstall(
             local_bin_dir,
             local_man_dir,
             python,
-            venv.pipx_metadata.main_package.pip_args,
-            venv.pipx_metadata.venv_args,
+            install_pip_args,
+            install_venv_args,
             verbose,
             force=True,
             reinstall=True,
-            include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
+            include_dependencies=install_include_dependencies,
             preinstall_packages=[],
             suffix=venv.pipx_metadata.main_package.suffix,
             python_flag_passed=python_flag_passed,

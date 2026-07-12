@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import shutil
@@ -12,6 +13,7 @@ import pytest
 from helpers import app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
 from package_info import PKG
 from pipx import paths, shared_libs
+from pipx.interpreter import get_default_python
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.util import PipxError
 from pipx.venv import Venv
@@ -204,6 +206,129 @@ def test_install_upgrade_satisfied_spec_is_offline(pipx_temp_env, capsys, mocker
 def test_install_upgrade_strategy_requires_upgrade(pipx_temp_env, capsys):
     assert run_pipx_cli(["install", "--upgrade-strategy=eager", PKG["black"]["spec"]])
     assert "--upgrade-strategy requires --upgrade" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "python_args",
+    [
+        pytest.param([], id="default"),
+        pytest.param(["--python", sys.executable], id="explicit"),
+    ],
+)
+def test_install_exact_reinstalls_interpreter_drift(
+    installed_pycowsay: None,
+    tmp_path: Path,
+    python_args: list[str],
+) -> None:
+    metadata = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    metadata.source_interpreter = tmp_path / "old-python"
+    metadata.write()
+
+    assert not run_pipx_cli(["install", "--exact", *python_args, PKG["pycowsay"]["spec"]])
+
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").source_interpreter == Path(
+        sys.executable if python_args else get_default_python()
+    )
+
+
+def test_install_exact_noop(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+
+    return_code = run_pipx_cli(["install", "--exact", PKG["pycowsay"]["spec"]])
+
+    captured = capsys.readouterr()
+    assert (
+        return_code,
+        "pycowsay 0.0.0.2 satisfies pycowsay==0.0.0.2" in captured.out,
+        "uninstalled" in captured.out,
+        PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.package_or_url,
+    ) == (0, True, False, PKG["pycowsay"]["spec"])
+
+
+def test_install_exact_installs_missing_package(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "--exact", "--upgrade-strategy", "eager", PKG["pycowsay"]["spec"]])
+
+    assert "installed package pycowsay 0.0.0.2" in capsys.readouterr().out
+
+
+def test_install_exact_reinstalls_venv_args(installed_pycowsay: None) -> None:
+    assert not run_pipx_cli(["install", "--exact", "--system-site-packages", PKG["pycowsay"]["spec"]])
+
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").venv_args == ["--system-site-packages"]
+
+
+def test_install_exact_reinstalls_dependency_exposure(installed_pycowsay: None) -> None:
+    assert not run_pipx_cli(["install", "--exact", "--include-deps", PKG["pycowsay"]["spec"]])
+
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.include_dependencies
+
+
+def test_install_exact_clears_pip_args(pipx_temp_env: None) -> None:
+    assert not run_pipx_cli(["install", "--pip-args=--no-cache-dir", PKG["pycowsay"]["spec"]])
+
+    assert not run_pipx_cli(["install", "--exact", PKG["pycowsay"]["spec"]])
+
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.pip_args == []
+
+
+def test_install_exact_upgrades_mutable_spec(pipx_temp_env: None) -> None:
+    assert not run_pipx_cli(["install", PKG["black"]["spec"]])
+
+    assert not run_pipx_cli(["install", "--exact", "black"])
+
+    assert PipxMetadata(paths.ctx.venvs / "black").main_package.package_version != "22.8.0"
+
+
+def test_install_exact_restores_failed_reinstall(
+    installed_pycowsay: None,
+    tmp_path: Path,
+) -> None:
+    metadata = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    metadata.source_interpreter = tmp_path / "old-python"
+    metadata.write()
+
+    return_code = run_pipx_cli(["install", "--exact", "--python", sys.executable, "pycowsay==999"])
+
+    restored = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    assert (return_code, restored.main_package.package_version, (paths.ctx.bin_dir / app_name("pycowsay")).exists()) == (
+        1,
+        "0.0.0.2",
+        True,
+    )
+
+
+def test_install_exact_rejects_pinned_change(installed_pycowsay: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["pin", "pycowsay"])
+
+    return_code = run_pipx_cli(["install", "--exact", "pycowsay"])
+
+    assert (return_code, "pipx cannot reconcile pinned package pycowsay" in capsys.readouterr().err) == (1, True)
+
+
+def test_install_exact_rejects_unrecorded_preinstall(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    return_code = run_pipx_cli(["install", "--exact", "--preinstall", "packaging", PKG["pycowsay"]["spec"]])
+
+    assert (return_code, "does not support --preinstall" in capsys.readouterr().err) == (1, True)
+
+
+def test_install_exact_rejects_missing_main_package(
+    installed_pycowsay: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    metadata_path = paths.ctx.venvs / "pycowsay" / "pipx_metadata.json"
+    metadata = json.loads(metadata_path.read_text())
+    metadata["main_package"]["package"] = None
+    metadata_path.write_text(json.dumps(metadata))
+
+    return_code = run_pipx_cli(["install", "--exact", PKG["pycowsay"]["spec"]])
+
+    assert (return_code, "pycowsay has no main package in its metadata" in capsys.readouterr().err) == (1, True)
+
+
+@pytest.fixture
+def installed_pycowsay(pipx_temp_env: None) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
 
 
 def test_install_existing_package_skips_shared_lib_maintenance(pipx_temp_env: None, mocker: "MockerFixture") -> None:

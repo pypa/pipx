@@ -453,11 +453,17 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         action="store_true",
         help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
-    p.add_argument(
+    reconcile_mode = p.add_mutually_exclusive_group()
+    reconcile_mode.add_argument(
         "--upgrade",
         "-U",
         action="store_true",
         help="Upgrade or downgrade an existing package when its version does not satisfy the supplied spec",
+    )
+    reconcile_mode.add_argument(
+        "--exact",
+        action="store_true",
+        help="Reconcile a package and environment with CLI options and pipx defaults",
     )
     p.add_argument(
         "--upgrade-strategy",
@@ -484,6 +490,25 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
 
 
 def _cmd_install(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    if args.upgrade_strategy is not None and not (args.upgrade or args.exact):
+        raise PipxError("--upgrade-strategy requires --upgrade or --exact")
+    if args.exact:
+        return commands.reconcile_install(
+            args.package_spec,
+            paths.ctx.bin_dir,
+            paths.ctx.man_dir,
+            ctx.python,
+            ctx.pip_args,
+            ctx.venv_args,
+            ctx.verbose,
+            force=args.force,
+            include_dependencies=args.include_deps,
+            preinstall_packages=args.preinstall,
+            suffix=args.suffix,
+            backend=ctx.backend,
+            env_backend=ctx.env_backend,
+            upgrade_strategy=args.upgrade_strategy,
+        )
     return commands.install(
         None,
         None,

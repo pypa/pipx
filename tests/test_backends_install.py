@@ -7,6 +7,7 @@ import pytest
 
 from helpers import run_pipx_cli
 from pipx import paths
+from pipx.pipx_metadata_file import PipxMetadata
 
 
 def test_install_pip_with_uv_backend_errors(capsys: pytest.CaptureFixture[str]) -> None:
@@ -36,3 +37,12 @@ def test_uv_backend_install_uninstall_smoke(pipx_temp_env, capsys: pytest.Captur
     uninstall_rc = run_pipx_cli(["uninstall", "pycowsay"])
     assert uninstall_rc == 0
     assert not metadata_file.exists()
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH; skipping uv integration smoke")
+def test_install_exact_reinstalls_backend_drift(pipx_temp_env: None) -> None:
+    assert not run_pipx_cli(["install", "pycowsay", "--backend", "pip", "--python", sys.executable])
+
+    assert not run_pipx_cli(["install", "--exact", "pycowsay", "--backend", "uv", "--python", sys.executable])
+
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").backend == "uv"

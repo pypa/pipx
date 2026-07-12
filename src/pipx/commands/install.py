@@ -30,10 +30,11 @@ def _upgrade_existing_venv(
     pip_args: list[str],
     verbose: bool,
     upgrade_strategy: str | None,
+    always_upgrade: bool,
 ) -> None:
     package_metadata = venv.pipx_metadata.main_package
     installed_version = package_metadata.package_version
-    if package_spec_satisfied(
+    if not always_upgrade and package_spec_satisfied(
         package_spec,
         package_name,
         installed_version,
@@ -110,6 +111,7 @@ def install(
     env_backend: str | None = None,
     upgrade: bool = False,
     upgrade_strategy: str | None = None,
+    always_upgrade: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
     # package_spec is anything pip-installable, including package_name, vcs spec,
@@ -182,6 +184,7 @@ def install(
                     pip_args,
                     verbose,
                     upgrade_strategy,
+                    always_upgrade,
                 )
                 if len(package_specs) == 1:
                     return EXIT_CODE_OK

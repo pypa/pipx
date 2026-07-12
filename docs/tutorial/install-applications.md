@@ -53,6 +53,22 @@ pipx installs the app when it is missing, upgrades or downgrades it when the ins
 range, and does not contact the package index when the installed version already satisfies the spec. Add
 `--upgrade-strategy eager` to also upgrade dependencies when the app itself needs to change.
 
+### Reconciling an installation for automation
+
+Use `--exact` when a script owns both the package request and its environment settings:
+
+```
+pipx install --exact --python /usr/local/bin/python3.12 "black==25.1.0"
+```
+
+pipx installs a missing package, checks mutable package specs for upgrades, and rebuilds the environment when settings
+differ from the request. If a rebuild fails, pipx restores the previous environment. Install options describe the
+desired state. Omitted options use defaults from the current pipx configuration and discard values an earlier install
+recorded. pipx retains injected packages as separate state.
+
+`--exact` does not accept `--preinstall` because pipx does not record preinstalled packages and cannot compare their
+requested state.
+
 ### Picking a Python interpreter
 
 Pass `--python` to install with a specific Python version. When that Python isn't on your `PATH`, pipx can download a

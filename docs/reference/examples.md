@@ -8,6 +8,7 @@ pipx install --fetch-python=missing --python 3.12 pycowsay
 pipx install --fetch-python=always --python 3.13 pycowsay
 pipx install --upgrade 'black>=22,<23'
 pipx install --upgrade --upgrade-strategy eager 'black>=22,<23'
+pipx install --exact --python /usr/local/bin/python3.12 'black==25.1.0'
 pipx install git+https://github.com/psf/black
 pipx install git+https://github.com/psf/black.git@branch-name
 pipx install git+https://github.com/psf/black.git@git-hash
