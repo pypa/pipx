@@ -139,7 +139,7 @@ def get_site_packages(python: Path) -> Path:
     return path
 
 
-def _fix_subprocess_env(env: dict[str, str]) -> dict[str, str]:
+def _fix_subprocess_env(env: dict[str, str], *, force_utf8: bool = True) -> dict[str, str]:
     # Remove PYTHONPATH because some platforms (macOS with Homebrew) add pipx
     #   directories to it, and can make it appear to venvs as though pipx
     #   dependencies are in the venv path (#233)
@@ -150,9 +150,9 @@ def _fix_subprocess_env(env: dict[str, str]) -> dict[str, str]:
         env.pop(env_to_remove, None)
 
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
-    # Make sure that Python writes output in UTF-8
-    env["PYTHONIOENCODING"] = "utf-8"
-    env["PYTHONLEGACYWINDOWSSTDIO"] = "utf-8"
+    if force_utf8:
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTHONLEGACYWINDOWSSTDIO"] = "utf-8"
     # Make sure we install packages to venv, not to userbase or a custom target dir
     env["PIP_USER"] = "0"
     env.pop("PIP_TARGET", None)
@@ -389,7 +389,7 @@ def exec_app(
 
     if env is None:
         env = dict(os.environ)
-    env = _fix_subprocess_env(env)
+    env = _fix_subprocess_env(env, force_utf8=False)
 
     if extra_python_paths is not None:
         env["PYTHONPATH"] = os.path.pathsep.join(
@@ -402,17 +402,7 @@ def exec_app(
     _LOGGER.info(f"exec_app: {' '.join(str(c) for c in cmd)}")
 
     if WINDOWS:
-        sys.exit(
-            subprocess.run(
-                cmd,
-                env=env,
-                stdout=None,
-                stderr=None,
-                encoding="utf-8",
-                text=True,
-                check=False,
-            ).returncode
-        )
+        sys.exit(subprocess.run(cmd, env=env, check=False).returncode)
     else:
         os.execvpe(str(cmd[0]), [str(x) for x in cmd], env)
 

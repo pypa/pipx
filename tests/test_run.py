@@ -239,6 +239,42 @@ def test_run_without_requirements(caplog, pipx_temp_env, tmp_path):
     assert out.read_text() == test_str
 
 
+@pytest.mark.parametrize(
+    ("encoding", "script_text"),
+    [
+        pytest.param("cp850", 'print("äöü")', id="cp850-text"),
+        pytest.param(
+            "cp437",
+            'import sys; print("┏━┓" if sys.stdout.encoding == "utf-8" else "+-+")',
+            id="cp437-terminal-fallback",
+        ),
+    ],
+)
+def test_run_preserves_console_encoding(tmp_path: Path, encoding: str, script_text: str) -> None:
+    script = tmp_path / "console_output.py"
+    script.write_text(script_text, encoding="utf-8")
+    env = os.environ | {
+        "PIPX_DEFAULT_BACKEND": "pip",
+        "PIPX_HOME": str(tmp_path / "pipx"),
+        "PYTHONIOENCODING": encoding,
+    }
+
+    direct_output = subprocess.run(
+        [sys.executable, script],
+        env=env,
+        stdout=subprocess.PIPE,
+        check=True,
+    ).stdout
+    pipx_output = subprocess.run(
+        [sys.executable, "-m", "pipx", "run", script],
+        env=env,
+        stdout=subprocess.PIPE,
+        check=True,
+    ).stdout
+
+    assert pipx_output == direct_output
+
+
 @mock.patch("os.execvpe", new=execvpe_mock)
 @pytest.mark.parametrize(
     "script_text, expected_output",
