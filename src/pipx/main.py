@@ -649,7 +649,11 @@ def _cmd_uninject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     )
 
 
-def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
+def _add_pin(
+    subparsers: argparse._SubParsersAction,
+    venv_completer: VenvCompleter,
+    shared_parser: argparse.ArgumentParser,
+) -> None:
     p = subparsers.add_parser(
         "pin",
         help="Pin the specified package to prevent it from being upgraded",
@@ -671,14 +675,19 @@ def _add_pin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.
         default=[],
         help="Skip these packages. Implies `--injected-only`.",
     )
+    p.add_argument("--json", action="store_true", help="Output a machine-readable result.")
     p.set_defaults(func=_cmd_pin)
 
 
-def _cmd_pin(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_pin(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.PinData]:
     return commands.pin(_venv_dir(args, ctx), ctx.verbose, ctx.skip_list, args.injected_only)
 
 
-def _add_unpin(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
+def _add_unpin(
+    subparsers: argparse._SubParsersAction,
+    venv_completer: VenvCompleter,
+    shared_parser: argparse.ArgumentParser,
+) -> None:
     p = subparsers.add_parser(
         "unpin",
         help="Unpin the specified package",
@@ -686,10 +695,11 @@ def _add_unpin(subparsers, venv_completer: VenvCompleter, shared_parser: argpars
         parents=[shared_parser],
     )
     p.add_argument("package", help="Installed package to unpin")
+    p.add_argument("--json", action="store_true", help="Output a machine-readable result.")
     p.set_defaults(func=_cmd_unpin)
 
 
-def _cmd_unpin(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_unpin(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.PinData]:
     return commands.unpin(_venv_dir(args, ctx), ctx.verbose)
 
 
