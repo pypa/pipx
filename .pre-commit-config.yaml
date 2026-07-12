@@ -41,9 +41,12 @@ repos:
         args: ['--warn-unused-ignores', '--strict-equality', '--no-implicit-optional', '--check-untyped-defs']
         exclude: 'testdata/test_package_specifier/(local_extras|local_manpage)/setup.py'
         additional_dependencies:
+          - "docutils>=0.21"
+          - "hatchling>=1.27"
           - "mkdocs-gen-files"
           - "nox"
           - "packaging>=20"
+          - "types-docutils>=0.21"
           - "platformdirs>=2.1"
           - "pytest"
           - "pytest-mock"
