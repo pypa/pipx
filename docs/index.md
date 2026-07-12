@@ -22,7 +22,7 @@ system clean.
 - **[Tutorials](tutorial/index.md)** — install your first application and run commands in temporary environments.
 - **[How-to Guides](how-to/index.md)** — recipes for installing pipx, injecting packages, configuring paths, and more.
 - **[Reference](reference/index.md)** — CLI flags, examples, environment variables, and programs to try.
-- **[Explanation](explanation/index.md)** — how pipx works under the hood and how it compares to other tools.
+- **[Explanation](explanation/index.md)** — how pipx works, what it manages, and how it compares to other tools.
 
 ```mermaid
 flowchart LR
