@@ -26,6 +26,7 @@ from pipx.animate import hide_cursor, show_cursor
 from pipx.backends import KNOWN_BACKENDS, UV, env_default_backend, get_backend, resolve_backend_name
 from pipx.colors import bold, green
 from pipx.commands.environment import ENVIRONMENT_VALUE_CHOICES, ENVIRONMENT_VARIABLES
+from pipx.commands.upgrade import UpgradeData
 from pipx.constants import (
     _FETCH_MISSING_PYTHON_RAW,
     _FETCH_PYTHON,
@@ -46,6 +47,7 @@ from pipx.interpreter import (
     get_default_python_spec,
 )
 from pipx.package_specifier import valid_pypi_name
+from pipx.result import OperationResult, render_result
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import VenvContainer
 from pipx.version import version as __version__
@@ -302,7 +304,10 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
         backend=cli_backend,
         env_backend=env_backend,
     )
-    return args.func(args, ctx)
+    result = args.func(args, ctx)
+    if isinstance(result, OperationResult):
+        return render_result(result, json_output=getattr(args, "json", False), quiet=getattr(args, "quiet", 0))
+    return result
 
 
 def _validate_backend_available(cli_backend: str | None, env_backend: str | None) -> None:
@@ -716,7 +721,7 @@ def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argpa
     p.set_defaults(func=_cmd_upgrade)
 
 
-def _cmd_upgrade(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_upgrade(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[UpgradeData]:
     return commands.upgrade(
         _venv_dirs(args, ctx),
         ctx.python,
@@ -753,10 +758,11 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argp
     )
     add_pip_venv_args(p)
     add_backend_arg(p)
+    p.add_argument("--json", action="store_true", help="Output a machine-readable result.")
     p.set_defaults(func=_cmd_upgrade_all)
 
 
-def _cmd_upgrade_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_upgrade_all(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[UpgradeData]:
     return commands.upgrade_all(
         ctx.venv_container,
         ctx.verbose,
@@ -1364,7 +1370,7 @@ def setup(args: argparse.Namespace) -> None:
     if not constants.WINDOWS and getattr(args, "is_global", False):
         paths.ctx.make_global()
 
-    verbose = getattr(args, "verbose", 0) - getattr(args, "quiet", 0)
+    verbose = -2 if getattr(args, "json", False) else getattr(args, "verbose", 0) - getattr(args, "quiet", 0)
 
     setup_logging(verbose)
     paths.ctx.log_warnings()
