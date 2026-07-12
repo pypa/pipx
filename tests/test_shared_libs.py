@@ -93,6 +93,16 @@ def test_shared_libs_create_preserves_pip_args(pipx_ultra_temp_env: None) -> Non
     assert (pip_args, shared_libs.shared_libs.is_valid) == (["--disable-pip-version-check"], True)
 
 
+def test_shared_libs_create_without_index_when_auto_upgrade_disabled(
+    pipx_ultra_temp_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(shared_libs.DISABLE_SHARED_LIBS_AUTO_UPGRADE, "1")
+
+    shared_libs.shared_libs.create(pip_args=["--no-index"])
+
+    assert shared_libs.shared_libs.is_valid
+
+
 def test_shared_libs_validity_check_is_cached(pipx_ultra_temp_env: None, mocker: MockerFixture) -> None:
     shared_libs.shared_libs.python_path.parent.mkdir(parents=True)
     shared_libs.shared_libs.python_path.touch()

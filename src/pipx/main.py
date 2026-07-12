@@ -48,6 +48,7 @@ from pipx.interpreter import (
 )
 from pipx.package_specifier import valid_pypi_name
 from pipx.result import OperationResult, render_result
+from pipx.shared_libs import skip_shared_libs_maintenance
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import VenvContainer
 from pipx.version import version as __version__
@@ -304,10 +305,11 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
         backend=cli_backend,
         env_backend=env_backend,
     )
-    result = args.func(args, ctx)
-    if isinstance(result, OperationResult):
-        return render_result(result, json_output=getattr(args, "json", False), quiet=getattr(args, "quiet", 0))
-    return result
+    with skip_shared_libs_maintenance(getattr(args, "skip_maintenance", False)):
+        result = args.func(args, ctx)
+        if isinstance(result, OperationResult):
+            return render_result(result, json_output=getattr(args, "json", False), quiet=getattr(args, "quiet", 0))
+        return result
 
 
 def _validate_backend_available(cli_backend: str | None, env_backend: str | None) -> None:
@@ -916,7 +918,6 @@ def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
         action="store_true",
         help="List pinned packages only. Pass --include-injected at the same time to list injected packages that were pinned.",
     )
-    g.add_argument("--skip-maintenance", action="store_true", help="(deprecated) No-op")
     p.set_defaults(func=_cmd_list)
 
 
@@ -1212,6 +1213,12 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
             "Give more output. May be used multiple times corresponding to the"
             " INFO, DEBUG and NOTSET logging levels. The count maxes out at 3."
         ),
+    )
+
+    shared_parser.add_argument(
+        "--skip-maintenance",
+        action="store_true",
+        help="Do not upgrade shared libraries; use bundled pip when creating them.",
     )
 
     if not constants.WINDOWS:

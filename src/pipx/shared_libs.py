@@ -2,7 +2,10 @@ import datetime
 import logging
 import os
 import time
+from collections.abc import Generator
 from configparser import ConfigParser
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Final
 
@@ -25,10 +28,20 @@ logger = logging.getLogger(__name__)
 
 SHARED_LIBS_MAX_AGE_SEC: Final[float] = datetime.timedelta(days=30).total_seconds()
 DISABLE_SHARED_LIBS_AUTO_UPGRADE: Final[str] = "PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE"
+_SKIP_MAINTENANCE: Final[ContextVar[bool]] = ContextVar("skip_maintenance", default=False)
 
 
 def shared_libs_auto_upgrade_disabled() -> bool:
-    return strtobool(os.getenv(DISABLE_SHARED_LIBS_AUTO_UPGRADE, "0"))
+    return _SKIP_MAINTENANCE.get() or strtobool(os.getenv(DISABLE_SHARED_LIBS_AUTO_UPGRADE, "0"))
+
+
+@contextmanager
+def skip_shared_libs_maintenance(enabled: bool) -> Generator[None, None, None]:
+    token = _SKIP_MAINTENANCE.set(enabled)
+    try:
+        yield
+    finally:
+        _SKIP_MAINTENANCE.reset(token)
 
 
 def _venv_python_is_valid(python_path: Path) -> bool:
@@ -102,15 +115,15 @@ class _SharedLibs:
 
         return self._site_packages[self.python_path]
 
-    def create(self, pip_args: list[str], verbose: bool = False) -> None:
+    def create(self, pip_args: list[str], verbose: bool = False, *, reinstall_pip: bool | None = None) -> None:
         with self._maintenance_lock():
-            self._create(pip_args, verbose)
+            self._create(pip_args, verbose, reinstall_pip)
 
     def _maintenance_lock(self) -> BaseFileLock:
         self.root.parent.mkdir(parents=True, exist_ok=True)
         return FileLock(self.root.with_name(f".{self.root.name}.lock"))
 
-    def _create(self, pip_args: list[str], verbose: bool) -> None:
+    def _create(self, pip_args: list[str], verbose: bool, reinstall_pip: bool | None = None) -> None:
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
                 create_process = run_subprocess(
@@ -119,8 +132,12 @@ class _SharedLibs:
             subprocess_post_check(create_process)
             self._is_valid = None
 
-            # Reinstall pip so OS-vendor patches cannot enter the shared environment.
-            self._upgrade(pip_args=[*pip_args, "--force-reinstall"], verbose=verbose, raises=True)
+            should_reinstall_pip = not shared_libs_auto_upgrade_disabled() if reinstall_pip is None else reinstall_pip
+            if should_reinstall_pip:
+                # Reinstall pip so OS-vendor patches cannot enter the shared environment.
+                self._upgrade(pip_args=[*pip_args, "--force-reinstall"], verbose=verbose, raises=True)
+            else:
+                logger.info("Skipping the shared pip reinstall because maintenance is disabled")
 
             # Remove setuptools before the .pth file exposes shared libraries to apps. Python <3.12 venvs bundle a
             # copy that fails under 3.12+ because the standard library no longer includes distutils.
@@ -170,7 +187,7 @@ class _SharedLibs:
 
     def _upgrade(self, *, pip_args: list[str], verbose: bool, raises: bool) -> None:
         if not self.is_valid:
-            self._create(verbose=verbose, pip_args=pip_args)
+            self._create(verbose=verbose, pip_args=pip_args, reinstall_pip=True)
             return
 
         if self.has_been_updated_this_run:
@@ -217,4 +234,5 @@ __all__ = [
     "SHARED_LIBS_MAX_AGE_SEC",
     "shared_libs",
     "shared_libs_auto_upgrade_disabled",
+    "skip_shared_libs_maintenance",
 ]

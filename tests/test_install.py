@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -647,3 +648,28 @@ def test_install_quiet_flag(pipx_temp_env, capsys):
     assert "These apps are now" not in captured.out
     assert "done!" not in captured.out
     assert "done!" not in captured.err
+
+
+def test_install_skip_maintenance_without_index(
+    pipx_ultra_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    root: Path,
+    tmp_path: Path,
+) -> None:
+    wheelhouse = tmp_path / "wheelhouse"
+    wheelhouse.mkdir()
+    wheel = shutil.copy2(
+        next(
+            (root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}").glob(
+                "pycowsay-*.whl"
+            )
+        ),
+        wheelhouse,
+    )
+
+    assert not run_pipx_cli(
+        ["install", "--skip-maintenance", str(wheel), f"--pip-args=--no-index --find-links={wheelhouse}"]
+    )
+
+    assert "installed package pycowsay" in capsys.readouterr().out
+    assert not shared_libs.shared_libs_auto_upgrade_disabled()
