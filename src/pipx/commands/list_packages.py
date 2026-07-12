@@ -1,7 +1,7 @@
 import json
 import logging
 import sys
-from collections.abc import Collection, Iterable, Iterator
+from collections.abc import Collection, Iterable
 from pathlib import Path
 from typing import Any
 
@@ -119,16 +119,16 @@ def list_packages(
         print(f"nothing has been installed with pipx {sleep}", file=sys.stderr)
 
     if json_format:
-        all_venv_problems = list_json(_locked_venv_dirs(venv_container, venv_dirs))
+        all_venv_problems = list_json(venv_container.iter_locked_venv_dirs(venv_dirs))
     elif short_format:
-        all_venv_problems = list_short(_locked_venv_dirs(venv_container, venv_dirs))
+        all_venv_problems = list_short(venv_container.iter_locked_venv_dirs(venv_dirs))
     elif pinned_only:
-        all_venv_problems = list_pinned(_locked_venv_dirs(venv_container, venv_dirs), include_injected)
+        all_venv_problems = list_pinned(venv_container.iter_locked_venv_dirs(venv_dirs), include_injected)
     else:
         if not venv_dirs:
             return EXIT_CODE_OK
         all_venv_problems = list_text(
-            _locked_venv_dirs(venv_container, venv_dirs), include_injected, str(venv_container)
+            venv_container.iter_locked_venv_dirs(venv_dirs), include_injected, str(venv_container)
         )
 
     if all_venv_problems.bad_venv_name:
@@ -158,13 +158,6 @@ def list_packages(
         return EXIT_CODE_LIST_PROBLEM
 
     return EXIT_CODE_OK
-
-
-def _locked_venv_dirs(venv_container: VenvContainer, venv_dirs: Collection[Path]) -> Iterator[Path]:
-    for venv_dir in venv_dirs:
-        with venv_container.venv_lock(venv_dir):
-            if venv_dir.is_dir():
-                yield venv_dir
 
 
 __all__ = [

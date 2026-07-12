@@ -1,7 +1,7 @@
 import logging
 import shutil
 import time
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
 from importlib.metadata import Distribution, EntryPoint
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NoReturn
@@ -15,7 +15,14 @@ from packaging.utils import canonicalize_name
 from packaging.version import Version
 
 from pipx.animate import animate
-from pipx.backends import Backend, assert_not_pip_under_uv, env_default_backend, get_backend, resolve_backend_name
+from pipx.backends import (
+    Backend,
+    OutdatedPackage,
+    assert_not_pip_under_uv,
+    env_default_backend,
+    get_backend,
+    resolve_backend_name,
+)
 from pipx.constants import PIPX_SHARED_PTH, ExitCode
 from pipx.emojis import hazard
 from pipx.interpreter import get_default_python
@@ -121,6 +128,12 @@ class VenvContainer:
     def get_venv_dir(self, package_name: str) -> Path:
         """Return the expected venv path for given `package_name`."""
         return self._root.joinpath(canonicalize_name(package_name))
+
+    def iter_locked_venv_dirs(self, venv_dirs: Iterable[Path]) -> Generator[Path, None, None]:
+        for venv_dir in venv_dirs:
+            with self.venv_lock(venv_dir):
+                if venv_dir.is_dir():
+                    yield venv_dir
 
     def venv_lock(self, venv_dir: Path) -> BaseFileLock:
         self._root.mkdir(parents=True, exist_ok=True)
@@ -475,6 +488,13 @@ class Venv:
             venv_root=self.root,
             venv_python=self.python_path,
             not_required=not_required,
+        )
+
+    def list_outdated_packages(self, index_args: list[str]) -> tuple[OutdatedPackage, ...]:
+        return self.backend.list_outdated(
+            venv_root=self.root,
+            venv_python=self.python_path,
+            index_args=index_args,
         )
 
     @property

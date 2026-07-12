@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import json
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Final
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Final, TypedDict, cast
+
+from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -62,6 +66,15 @@ class Backend(ABC):
     ) -> set[str]: ...
 
     @abstractmethod
+    def list_outdated(
+        self,
+        *,
+        venv_root: Path,
+        venv_python: Path,
+        index_args: list[str],
+    ) -> tuple[OutdatedPackage, ...]: ...
+
+    @abstractmethod
     def run_raw_pip(
         self,
         *,
@@ -86,9 +99,43 @@ class Backend(ABC):
     ) -> None: ...
 
 
+def outdated_packages_from_process(process: CompletedProcess[str]) -> tuple[OutdatedPackage, ...]:
+    if process.returncode:
+        raise PipxError(
+            f"Package backend exited with code {process.returncode}.\nstderr: {process.stderr}",
+            wrap_message=False,
+        )
+    return _parse_outdated_packages(process.stdout)
+
+
+def _parse_outdated_packages(output: str) -> tuple[OutdatedPackage, ...]:
+    try:
+        return tuple(
+            OutdatedPackage(entry["name"], entry["version"], entry["latest_version"])
+            for entry in cast("list[_OutdatedEntry]", json.loads(output))
+        )
+    except (json.JSONDecodeError, KeyError, TypeError) as error:
+        raise PipxError("Package backend returned invalid JSON for an outdated query.", wrap_message=False) from error
+
+
+@dataclass(frozen=True)
+class OutdatedPackage:
+    name: str
+    version: str
+    latest_version: str
+
+
+class _OutdatedEntry(TypedDict):
+    name: str
+    version: str
+    latest_version: str
+
+
 __all__ = [
     "KNOWN_BACKENDS",
     "PIP",
     "UV",
     "Backend",
+    "OutdatedPackage",
+    "outdated_packages_from_process",
 ]

@@ -5,7 +5,7 @@ import logging
 from typing import TYPE_CHECKING, Final
 
 from pipx.animate import animate
-from pipx.backends._base import PIP, Backend
+from pipx.backends._base import PIP, Backend, OutdatedPackage, outdated_packages_from_process
 from pipx.constants import PIPX_SHARED_PTH
 from pipx.shared_libs import shared_libs
 from pipx.util import (
@@ -132,6 +132,19 @@ class PipBackend(Backend):
                 f"stderr: {process.stderr}"
             )
         return {entry["name"] for entry in json.loads(process.stdout.strip())}
+
+    def list_outdated(
+        self,
+        *,
+        venv_root: Path,
+        venv_python: Path,
+        index_args: list[str],
+    ) -> tuple[OutdatedPackage, ...]:
+        process = run_subprocess(
+            [str(venv_python), "-m", "pip", "list", "--outdated", "--format=json", *index_args],
+            run_dir=str(venv_root),
+        )
+        return outdated_packages_from_process(process)
 
     def run_raw_pip(
         self,

@@ -50,7 +50,7 @@ managers writes the same filename. Each manager refuses to overwrite a binary th
 | Remove an injected dep       | `pipx uninject mkdocs mkdocs-material`            | _rebuild without `--with`_                                          |
 | Upgrade one                  | `pipx upgrade ruff`                               | `uv tool upgrade ruff`                                              |
 | Upgrade all                  | `pipx upgrade-all`                                | `uv tool upgrade --all`                                             |
-| List installed               | `pipx list`                                       | `uv tool list` (`--show-with`, `--outdated`, …)                     |
+| List installed or outdated   | `pipx list` (`--outdated`, `--json`)              | `uv tool list` (`--show-with`, `--outdated`, …)                     |
 | Diagnose broken environments | `pipx health`                                     | _no equivalent_                                                     |
 | Repair broken environments   | `pipx repair ruff` / `repair`                     | `uv tool install ruff` / _no bulk equivalent_                       |
 | Reinstall any environment    | `pipx reinstall ruff` / `reinstall-all`           | `uv tool upgrade --reinstall ruff` / `--all`                        |
@@ -75,7 +75,6 @@ managers writes the same filename. Each manager refuses to overwrite a binary th
 
 ### Only in uv tool
 
-- `uv tool list --outdated` queries newer versions without upgrading.
 - `uv tool list` toggles columns via `--show-with`, `--show-paths`, `--show-version-specifiers`, `--show-extras`,
     `--show-python`.
 - `uvx --with-editable PATH` adds editable extras for a one-off run.

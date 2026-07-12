@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING, TypedDict
 
@@ -11,11 +12,13 @@ from pipx.backends import (
     KNOWN_BACKENDS,
     PIP,
     UV,
+    OutdatedPackage,
     assert_not_pip_under_uv,
     env_default_backend,
     find_uv_binary,
     resolve_backend_name,
 )
+from pipx.backends.pip import PipBackend
 from pipx.backends.uv import UvBackend
 from pipx.commands.run_uv import translate_pip_args_for_uv
 from pipx.constants import PIPX_SHARED_PTH
@@ -307,6 +310,64 @@ def test_uv_list_installed_not_required_uses_distribution_metadata(
         venv_python=tmp_path / "bin" / "python",
         not_required=True,
     ) == {"root-package", "top-package"}
+
+
+@pytest.mark.parametrize("backend_name", [pytest.param(PIP, id="pip"), pytest.param(UV, id="uv")])
+def test_backend_list_outdated_forwards_index_settings(backend_name: str, tmp_path: Path, mocker: MockerFixture) -> None:
+    backend: PipBackend | UvBackend
+    if backend_name == PIP:
+        backend = PipBackend()
+        expected_command: list[str | Path] = [
+            str(tmp_path / "bin" / "python"),
+            "-m",
+            "pip",
+            "list",
+            "--outdated",
+            "--format=json",
+            "--index-url",
+            "https://index.example/simple",
+        ]
+    else:
+        mocker.patch("pipx.backends.uv.shutil.which", autospec=True, return_value=str(tmp_path / "uv"))
+        mocker.patch(
+            "pipx.backends.uv.subprocess.run",
+            autospec=True,
+            return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="uv 0.10.0", stderr=""),
+        )
+        backend = UvBackend()
+        expected_command = [
+            tmp_path / "uv",
+            "pip",
+            "list",
+            "--python",
+            str(tmp_path / "bin" / "python"),
+            "--quiet",
+            "--outdated",
+            "--format=json",
+            "--index-url",
+            "https://index.example/simple",
+        ]
+    run_subprocess = mocker.patch(
+        f"pipx.backends.{'pip' if backend_name == PIP else 'uv'}.run_subprocess",
+        autospec=True,
+        return_value=subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout='[{"name":"demo","version":"1","latest_version":"2"}]',
+            stderr="",
+        ),
+    )
+
+    result = backend.list_outdated(
+        venv_root=tmp_path,
+        venv_python=tmp_path / "bin" / "python",
+        index_args=["--index-url", "https://index.example/simple"],
+    )
+
+    assert (result, run_subprocess.call_args.args[0]) == (
+        (OutdatedPackage(name="demo", version="1", latest_version="2"),),
+        expected_command,
+    )
 
 
 def test_list_not_required_packages_treats_extra_dependencies_as_required(

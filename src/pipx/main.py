@@ -992,6 +992,7 @@ def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
         action="store_true",
         help="Show packages injected into the main app's environment",
     )
+    p.add_argument("--outdated", action="store_true", help="List packages with an available upgrade.")
     g = p.add_mutually_exclusive_group()
     g.add_argument("--json", action="store_true", help="Output rich data in json format.")
     g.add_argument("--short", action="store_true", help="List packages only.")
@@ -1003,7 +1004,11 @@ def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
     p.set_defaults(func=_cmd_list)
 
 
-def _cmd_list(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_list(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode | OperationResult[commands.OutdatedData]:
+    if args.outdated:
+        if args.short or args.pinned:
+            raise PipxError("--outdated cannot be combined with --short or --pinned.")
+        return commands.list_outdated(ctx.venv_container, include_injected=args.include_injected)
     return commands.list_packages(ctx.venv_container, args.include_injected, args.json, args.short, args.pinned)
 
 
