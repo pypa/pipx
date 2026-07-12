@@ -2,7 +2,10 @@ import json
 import os
 import subprocess
 import time
+from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Event
 from unittest.mock import patch
 
 import pytest
@@ -121,6 +124,38 @@ def test_shared_libs_upgrade_enforces_pip_floor(
     run_subprocess.assert_called_once()
     assert "pip==20" in install_command
     assert "pip >= 23.1" in install_command
+
+
+def test_shared_libs_upgrade_serializes_concurrent_calls(
+    pipx_ultra_temp_env: None,
+    mocker: MockerFixture,
+) -> None:
+    shared_libs.shared_libs.create(verbose=True, pip_args=[])
+    shared_libs.shared_libs.has_been_updated_this_run = False
+    first_started = Event()
+    release_first = Event()
+    second_started = Event()
+
+    def run_upgrade(_command: Sequence[str | Path]) -> subprocess.CompletedProcess[str]:
+        if first_started.is_set():
+            second_started.set()
+        else:
+            first_started.set()
+            if not release_first.wait(5):
+                raise TimeoutError("concurrent shared library test did not release the first upgrade")
+        return subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
+
+    mocker.patch("pipx.shared_libs.run_subprocess", autospec=True, side_effect=run_upgrade)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first_upgrade = executor.submit(shared_libs.shared_libs.upgrade, pip_args=[], verbose=True, raises=True)
+        assert first_started.wait(5)
+        second_upgrade = executor.submit(shared_libs.shared_libs.upgrade, pip_args=[], verbose=True, raises=True)
+        try:
+            assert not second_started.wait(0.5)
+        finally:
+            release_first.set()
+        first_upgrade.result(timeout=5)
+        second_upgrade.result(timeout=5)
 
 
 def test_venv_python_is_valid_non_windows() -> None:

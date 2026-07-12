@@ -6,6 +6,8 @@ from configparser import ConfigParser
 from pathlib import Path
 from typing import Final
 
+from filelock import BaseFileLock, FileLock
+
 from pipx import paths
 from pipx.animate import animate
 from pipx.constants import WINDOWS
@@ -101,6 +103,14 @@ class _SharedLibs:
         return self._site_packages[self.python_path]
 
     def create(self, pip_args: list[str], verbose: bool = False) -> None:
+        with self._maintenance_lock():
+            self._create(pip_args, verbose)
+
+    def _maintenance_lock(self) -> BaseFileLock:
+        self.root.parent.mkdir(parents=True, exist_ok=True)
+        return FileLock(self.root.with_name(f".{self.root.name}.lock"))
+
+    def _create(self, pip_args: list[str], verbose: bool) -> None:
         if not self.is_valid:
             with animate("creating shared libraries", not verbose):
                 create_process = run_subprocess(
@@ -110,7 +120,7 @@ class _SharedLibs:
             self._is_valid = None
 
             # Reinstall pip so OS-vendor patches cannot enter the shared environment.
-            self.upgrade(pip_args=[*pip_args, "--force-reinstall"], verbose=verbose, raises=True)
+            self._upgrade(pip_args=[*pip_args, "--force-reinstall"], verbose=verbose, raises=True)
 
             # Remove setuptools before the .pth file exposes shared libraries to apps. Python <3.12 venvs bundle a
             # copy that fails under 3.12+ because the standard library no longer includes distutils.
@@ -155,8 +165,12 @@ class _SharedLibs:
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
     def upgrade(self, *, pip_args: list[str], verbose: bool = False, raises: bool = False) -> None:
+        with self._maintenance_lock():
+            self._upgrade(pip_args=pip_args, verbose=verbose, raises=raises)
+
+    def _upgrade(self, *, pip_args: list[str], verbose: bool, raises: bool) -> None:
         if not self.is_valid:
-            self.create(verbose=verbose, pip_args=pip_args)
+            self._create(verbose=verbose, pip_args=pip_args)
             return
 
         if self.has_been_updated_this_run:
