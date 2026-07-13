@@ -555,6 +555,48 @@ def _cmd_install_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode
     )
 
 
+def _add_lock(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+    parser = subparsers.add_parser(
+        "lock",
+        help="Resolve a tool manifest with nab",
+        description="Resolve each locked tool in an explicit manifest into a separate PEP 751 lock file.",
+        parents=[shared_parser],
+    )
+    parser.add_argument("manifest", type=Path, help="Path to the tool manifest.")
+    parser.set_defaults(func=_cmd_lock)
+
+
+def _cmd_lock(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    return commands.lock_manifest(args.manifest)
+
+
+def _add_sync(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+    parser = subparsers.add_parser(
+        "sync",
+        help="Apply a tool manifest",
+        description="Install, upgrade, or downgrade the tools declared in an explicit manifest.",
+        parents=[shared_parser],
+    )
+    parser.add_argument("manifest", type=Path, help="Path to the tool manifest.")
+    parser.add_argument("--prune", action="store_true", help="Uninstall environments absent from the manifest.")
+    add_backend_arg(parser)
+    parser.set_defaults(func=_cmd_sync)
+
+
+def _cmd_sync(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    return commands.sync_manifest(
+        args.manifest,
+        ctx.venv_container,
+        paths.ctx.bin_dir,
+        paths.ctx.man_dir,
+        ctx.python,
+        ctx.verbose,
+        prune=args.prune,
+        backend=ctx.backend,
+        env_backend=ctx.env_backend,
+    )
+
+
 def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "inject",
@@ -1386,6 +1428,8 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
     subparsers_with_subcommands = {}
     _add_install(subparsers, shared_parser)
     _add_install_all(subparsers, shared_parser)
+    _add_lock(subparsers, shared_parser)
+    _add_sync(subparsers, shared_parser)
     _add_uninject(subparsers, completer_venvs.use, shared_parser)
     _add_inject(subparsers, completer_venvs.use, shared_parser)
     _add_expose(subparsers, completer_venvs.use, shared_parser)

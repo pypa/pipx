@@ -14,10 +14,10 @@ install and run Python applications in isolated environments
 SYNOPSIS
 --------
 
-**pipx** [*global-options*] [**install** | **install-all** | **uninject** | **inject** | **expose** | **unexpose** |
-**pin** | **unpin** | **upgrade** | **upgrade-all** | **upgrade-shared** | **uninstall** | **uninstall-all** |
-**reinstall** | **reinstall-all** | **health** | **repair** | **list** | **interpreter** | **run** | **runpip** |
-**ensurepath** | **environment** | **completions** | **help**] [*command-options*]
+**pipx** [*global-options*] [**install** | **install-all** | **lock** | **sync** | **uninject** | **inject** |
+**expose** | **unexpose** | **pin** | **unpin** | **upgrade** | **upgrade-all** | **upgrade-shared** | **uninstall** |
+**uninstall-all** | **reinstall** | **reinstall-all** | **health** | **repair** | **list** | **interpreter** | **run** |
+**runpip** | **ensurepath** | **environment** | **completions** | **help**] [*command-options*]
 
 DESCRIPTION
 -----------
@@ -33,6 +33,12 @@ COMMANDS
 
 **install-all**
     Install all packages
+
+**lock**
+    Resolve a tool manifest with nab
+
+**sync**
+    Apply a tool manifest
 
 **uninject**
     Uninstall injected packages from an existing Virtual Environment
