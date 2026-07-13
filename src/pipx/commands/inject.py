@@ -48,8 +48,6 @@ def inject_dep(
         )
 
     venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
-    venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
-
     if not venv.package_metadata:
         raise PipxError(
             f"""
@@ -59,6 +57,12 @@ def inject_dep(
             uninstall and install {venv.name!r}, or reinstall-all to fix.
             """
         )
+    if (lock_file := venv.pipx_metadata.main_package.lock_file) is not None:
+        raise PipxError(
+            f"Cannot inject into locked environment {venv.name}. "
+            f"Update {lock_file} and run `pipx reinstall {venv.name}`."
+        )
+    venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
 
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.

@@ -1,5 +1,7 @@
 import sys
+from collections.abc import Callable
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 from pytest_mock import MockerFixture
@@ -12,6 +14,33 @@ from pipx.pipx_metadata_file import PipxMetadata
 def test_reinstall(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+
+
+def test_reinstall_pylock_restores_source_after_build_failure(
+    pipx_temp_env: None,
+    make_pylock: Callable[[str, str], Path],
+    make_project_with_dependency: Callable[[str], Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    project = make_project_with_dependency("pycowsay==0.0.0.2")
+    lock_file = make_pylock("pycowsay", "0.0.0.2")
+    assert not run_pipx_cli(["install", "--lock", str(lock_file), str(project)])
+    capsys.readouterr()
+    pyproject = project / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text(encoding="utf-8").replace("setuptools.build_meta", "missing"),
+        encoding="utf-8",
+    )
+
+    assert run_pipx_cli(["reinstall", "empty-project"])
+
+    metadata = PipxMetadata(paths.ctx.venvs / "empty-project").main_package
+    assert (
+        "Reinstall failed; restored empty-project" in capsys.readouterr().err,
+        metadata.package_version,
+        metadata.lock_file,
+        (paths.ctx.bin_dir / app_name("empty-project")).exists(),
+    ) == (True, "0.1.0", lock_file.resolve(), True)
 
 
 @skip_if_windows

@@ -483,6 +483,11 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         action="append",
         help="Require this application entry point after installation. Repeat to require multiple entry points.",
     )
+    p.add_argument(
+        "--lock",
+        type=Path,
+        help="Install the environment from an explicit pylock.toml file.",
+    )
     add_pip_venv_args(p)
     add_backend_arg(p)
     p.set_defaults(func=_cmd_install)
@@ -505,6 +510,7 @@ def _cmd_install(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
         include_dependencies=args.include_deps,
         preinstall_packages=args.preinstall,
         expected_apps=args.app or (),
+        lock_file=args.lock,
         suffix=args.suffix,
         python_flag_passed=ctx.python_flag_passed,
         backend=ctx.backend,

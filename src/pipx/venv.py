@@ -29,8 +29,10 @@ from pipx.interpreter import get_default_python
 from pipx.package_specifier import (
     fix_package_name,
     get_extras,
+    package_spec_satisfied,
     parse_specifier_for_install,
     parse_specifier_for_metadata,
+    valid_pypi_name,
 )
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 from pipx.shared_libs import (
@@ -345,6 +347,7 @@ class Venv:
         suffix: str = "",
         install_only_pip_args: list[str] | None = None,
         expected_apps: Sequence[str] | None = None,
+        lock_file: Path | None = None,
     ) -> None:
         # package_name in package specifier can mismatch URL due to user error
         package_or_url = fix_package_name(package_or_url, package_name)
@@ -353,17 +356,20 @@ class Venv:
         (package_or_url, pip_args) = parse_specifier_for_install(package_or_url, pip_args)
         install_pip_args = [*(install_only_pip_args or []), *pip_args]
 
-        _LOGGER.info("Installing %s", package_descr := full_package_description(package_name, package_or_url))
-        with animate(f"installing {package_descr}", self.do_animation):
-            process = self.backend.install(
-                venv_root=self.root,
-                venv_python=self.python_path,
-                requirements=[package_or_url],
-                pip_args=install_pip_args,
-                verbose=self.verbose,
-            )
-        if process.returncode:
-            raise PipxError(f"Error installing {full_package_description(package_name, package_or_url)}.")
+        if lock_file is None:
+            _LOGGER.info("Installing %s", package_descr := full_package_description(package_name, package_or_url))
+            with animate(f"installing {package_descr}", self.do_animation):
+                process = self.backend.install(
+                    venv_root=self.root,
+                    venv_python=self.python_path,
+                    requirements=[package_or_url],
+                    pip_args=install_pip_args,
+                    verbose=self.verbose,
+                )
+            if process.returncode:
+                raise PipxError(f"Error installing {full_package_description(package_name, package_or_url)}.")
+        else:
+            self._install_locked_package(package_name, package_or_url, lock_file, install_pip_args)
 
         self.update_package_metadata(
             package_name=package_name,
@@ -374,6 +380,7 @@ class Venv:
             is_main_package=is_main_package,
             suffix=suffix,
             expected_apps=expected_apps,
+            lock_file=lock_file,
         )
 
         # Verify package installed ok
@@ -385,6 +392,60 @@ class Venv:
                 f"be installed with pip.",
                 wrap_message=False,
             )
+
+    def _install_locked_package(
+        self,
+        package_name: str,
+        package_or_url: str,
+        lock_file: Path,
+        pip_args: list[str],
+    ) -> None:
+        _LOGGER.info("Installing packages from %s", lock_file)
+        with animate(f"installing packages from {lock_file.name}", self.do_animation):
+            process = self.backend.install_lock(
+                venv_root=self.root,
+                venv_python=self.python_path,
+                lock_file=lock_file,
+                pip_args=[argument for argument in pip_args if argument != "--editable"],
+                verbose=self.verbose,
+            )
+        if process.returncode:
+            raise PipxError(f"Error installing packages from {lock_file}.")
+
+        if valid_pypi_name(package_or_url) is None:
+            with animate(f"installing {full_package_description(package_name, package_or_url)}", self.do_animation):
+                process = self.backend.install(
+                    venv_root=self.root,
+                    venv_python=self.python_path,
+                    requirements=[package_or_url],
+                    pip_args=pip_args,
+                    no_deps=True,
+                    verbose=self.verbose,
+                )
+            if process.returncode:
+                raise PipxError(f"Error installing {full_package_description(package_name, package_or_url)}.")
+        elif (
+            distribution := next(
+                iter(Distribution.discover(name=package_name, path=[str(self.site_packages)])),
+                None,
+            )
+        ) is None:
+            raise PipxError(f"Lock file {lock_file} does not contain {package_name}.")
+        elif not package_spec_satisfied(package_or_url, package_name, distribution.version, package_or_url):
+            raise PipxError(
+                f"Lock file {lock_file} provides {package_name} {distribution.version}, "
+                f"which does not satisfy {package_or_url}."
+            )
+
+        process = self.backend.run_raw_pip(
+            venv_root=self.root,
+            venv_python=self.python_path,
+            args=["check"],
+            verbose=self.verbose,
+        )
+        if process.returncode:
+            error = (process.stdout or process.stderr or "dependency check failed").strip()
+            raise PipxError(f"Lock file {lock_file} does not satisfy {package_name}: {error}", wrap_message=False)
 
     def install_unmanaged_packages(self, requirements: list[str], pip_args: list[str]) -> None:
         """Install packages in the venv, but do not record them in the metadata."""
@@ -456,12 +517,15 @@ class Venv:
         suffix: str = "",
         pinned: bool = False,
         expected_apps: Sequence[str] | None = None,
+        lock_file: Path | None = None,
     ) -> None:
         venv_package_metadata = self.get_venv_metadata_for_package(package_name, get_extras(package_or_url))
         if expected_apps is None:
             expected_apps = (
                 self.package_metadata[package_name].expected_apps if package_name in self.package_metadata else ()
             )
+        if lock_file is None:
+            lock_file = self.package_metadata[package_name].lock_file if package_name in self.package_metadata else None
         package_info = PackageInfo(
             package=package_name,
             package_or_url=parse_specifier_for_metadata(package_or_url),
@@ -478,6 +542,7 @@ class Venv:
             man_paths_of_dependencies=venv_package_metadata.man_paths_of_dependencies,
             package_version=venv_package_metadata.package_version,
             expected_apps=list(dict.fromkeys(expected_apps)),
+            lock_file=lock_file,
             suffix=suffix,
             pinned=pinned,
         )

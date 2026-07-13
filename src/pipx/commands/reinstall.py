@@ -141,6 +141,7 @@ def reinstall(
             include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
             preinstall_packages=[],
             expected_apps=venv.pipx_metadata.main_package.expected_apps,
+            lock_file=venv.pipx_metadata.main_package.lock_file,
             suffix=venv.pipx_metadata.main_package.suffix,
             python_flag_passed=python_flag_passed,
             backend=backend or venv.pipx_metadata.backend,

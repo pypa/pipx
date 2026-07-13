@@ -7,13 +7,13 @@ exposes their entry points on `PATH`.
 
 - Persistent application environments for `pipx install` and disposable environments for `pipx run`.
 - User installations by default and system installations when the caller passes `--global`.
-- Application dependencies inside a managed environment. `inject` and `--preinstall` extend an application environment;
-    they do not create standalone library environments.
+- Application dependencies inside a managed environment. For unlocked environments, `inject` and `--preinstall` extend
+    an application environment; they do not create standalone library environments.
 - Entry points from the main package, or from dependencies when the caller passes `--include-deps`.
 
-An install fails when neither the package nor its selected dependencies expose an application. pipx removes the new
-environment and reports the missing entry point. A future option may let the caller name the expected application so
-pipx can validate that entry point and apply the same rollback.
+An install fails when neither the package nor its selected dependencies expose an application. The caller can pass
+`--app NAME` to require an exact entry point. pipx removes a new environment or restores an existing one when the check
+fails.
 
 ## Boundaries
 
@@ -35,10 +35,10 @@ Ordinary pipx commands must not search the current directory or its parents for 
 state, the caller must supply a path, for example to a future `pipx apply tools.toml` command. The manifest must contain
 desired application state and reject arbitrary command defaults.
 
-Resolved dependency state must use the PyPA
+Resolved dependency state uses the PyPA
 [`pylock.toml` specification](https://packaging.python.org/en/latest/specifications/pylock-toml/). The standard permits
-`pylock.toml` and named files such as `pylock.black.toml` when a manifest needs more than one lock. pipx must not use
-`requirements.txt` as a state or lock format.
+`pylock.toml` and named files such as `pylock.black.toml` when a manifest needs more than one lock.
+`pipx install --lock` accepts an explicit path. pipx does not use `requirements.txt` as a state or lock format.
 
 Top-level pipx options describe policy that pip and uv can both honor. A control supported by one backend stays in the
 arguments for that backend until both backends can provide the same contract.

@@ -1,4 +1,5 @@
 import json
+import re
 import sys
 from collections.abc import Iterator, Sequence
 from dataclasses import replace
@@ -12,6 +13,7 @@ from pipx import commands, paths
 from pipx.backends import PIP
 from pipx.commands.common import (
     expose_package_resources,
+    locked_package_message,
     package_name_from_spec,
     run_post_install_actions,
     validate_expected_apps,
@@ -26,8 +28,10 @@ from pipx.emojis import sleep
 from pipx.interpreter import get_default_python
 from pipx.package_specifier import package_spec_satisfied
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, load_spec_file
-from pipx.util import PipxError, pipx_wrap
+from pipx.util import PipxError, pipx_wrap, rmdir
 from pipx.venv import Venv, VenvContainer
+
+_PYLOCK_NAME_RE: Final[re.Pattern[str]] = re.compile(r"pylock(?:\.[^.]+)?\.toml")
 
 
 def install(
@@ -46,6 +50,7 @@ def install(
     include_dependencies: bool,
     preinstall_packages: list[str] | None,
     expected_apps: Sequence[str] = (),
+    lock_file: Path | None = None,
     suffix: str = "",
     python_flag_passed: bool = False,
     backend: str | None = None,
@@ -59,7 +64,14 @@ def install(
     # package_spec is anything pip-installable, including package_name, vcs spec,
     #   zip file, or tar.gz file.
 
-    _validate_install_options(package_specs, expected_apps, upgrade=upgrade, upgrade_strategy=upgrade_strategy)
+    lock_file = _validate_install_options(
+        package_specs,
+        expected_apps,
+        preinstall_packages,
+        lock_file,
+        upgrade=upgrade,
+        upgrade_strategy=upgrade_strategy,
+    )
 
     python = python or get_default_python()
 
@@ -104,6 +116,8 @@ def install(
                 env_backend=install_env_backend,
             )
             required_apps = tuple(dict.fromkeys(expected_apps or venv.pipx_metadata.main_package.expected_apps))
+            required_lock = lock_file or venv.pipx_metadata.main_package.lock_file
+            required_exposure = venv.pipx_metadata.exposure_enabled if exposure_enabled is None else exposure_enabled
             if exists:
                 if not reinstall and force and python_flag_passed:
                     print(
@@ -151,14 +165,24 @@ def install(
                     venv_dir = None
                     continue
 
-            with preserve_venv(venv_dir, enabled=exists and bool(required_apps)):
+            with preserve_venv(
+                venv_dir,
+                enabled=exists and (bool(required_apps) or required_lock is not None),
+            ):
                 venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
                 try:
+                    if exists and required_lock is not None:
+                        recorded_backend = venv.pipx_metadata.backend
+                        rmdir(venv_dir)
+                        venv = Venv(
+                            venv_dir,
+                            python=python,
+                            verbose=verbose,
+                            backend=install_backend or recorded_backend,
+                        )
                     override_shared = canonicalize_name(package_name) == "pip"
                     venv.create_venv(venv_args, pip_args, override_shared)
-                    venv.pipx_metadata.exposure_enabled = (
-                        venv.pipx_metadata.exposure_enabled if exposure_enabled is None else exposure_enabled
-                    )
+                    venv.pipx_metadata.exposure_enabled = required_exposure
                     for dependency in preinstall_packages or []:
                         venv.upgrade_package_no_metadata(dependency, [])
                     venv.install_package(
@@ -171,6 +195,7 @@ def install(
                         is_main_package=True,
                         suffix=suffix,
                         expected_apps=required_apps,
+                        lock_file=required_lock,
                     )
                     validate_expected_apps(venv, package_name, required_apps)
                     run_post_install_actions(
@@ -194,14 +219,30 @@ def install(
 def _validate_install_options(
     package_specs: Sequence[str],
     expected_apps: Sequence[str],
+    preinstall_packages: Sequence[str] | None,
+    lock_file: Path | None,
     *,
     upgrade: bool,
     upgrade_strategy: str | None,
-) -> None:
+) -> Path | None:
     if upgrade_strategy is not None and not upgrade:
         raise PipxError("--upgrade-strategy requires --upgrade")
     if expected_apps and len(package_specs) != 1:
         raise PipxError("--app accepts one package spec")
+    if lock_file is None:
+        return None
+    if len(package_specs) != 1:
+        raise PipxError("--lock accepts one package spec")
+    if preinstall_packages:
+        raise PipxError("--lock cannot be combined with --preinstall")
+    if upgrade:
+        raise PipxError("--lock cannot be combined with --upgrade; use --force to apply a new lock")
+    lock_file = lock_file.expanduser().resolve()
+    if not _PYLOCK_NAME_RE.fullmatch(lock_file.name):
+        raise PipxError("Lock files must be named pylock.toml or pylock.<name>.toml")
+    if not lock_file.is_file():
+        raise PipxError(f"Lock file does not exist: {lock_file}")
+    return lock_file
 
 
 def _upgrade_existing_venv(
@@ -217,6 +258,11 @@ def _upgrade_existing_venv(
 ) -> None:
     package_metadata = venv.pipx_metadata.main_package
     installed_version: Final[str] = package_metadata.package_version
+    if package_metadata.lock_file is not None:
+        validate_expected_apps(venv, package_name, expected_apps)
+        _record_expected_apps(venv, expected_apps)
+        print(locked_package_message(venv.name))
+        return
     if package_spec_satisfied(
         package_spec,
         package_name,
@@ -307,6 +353,7 @@ def install_all(
                     include_dependencies=main_package.include_dependencies,
                     preinstall_packages=[],
                     expected_apps=main_package.expected_apps,
+                    lock_file=main_package.lock_file,
                     suffix=main_package.suffix,
                     backend=backend or venv_metadata.backend,
                     env_backend=env_backend,

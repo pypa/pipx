@@ -106,6 +106,19 @@ def test_pipx_metadata_file_defaults_expected_apps_from_version_0_7(tmp_path: Pa
     assert PipxMetadata(venv_dir).main_package.expected_apps == []
 
 
+def test_pipx_metadata_file_defaults_lock_file_from_version_0_8(tmp_path: Path) -> None:
+    venv_dir = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    payload = metadata.to_dict()
+    payload["pipx_metadata_version"] = "0.8"
+    payload["main_package"].pop("lock_file")
+    (venv_dir / PIPX_INFO_FILENAME).write_text(json.dumps(payload, cls=JsonEncoderHandlesPath))
+
+    assert PipxMetadata(venv_dir).main_package.lock_file is None
+
+
 @pytest.mark.parametrize(
     "test_package",
     [

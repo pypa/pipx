@@ -10,7 +10,7 @@ from filelock import BaseFileLock
 
 from pipx import commands, paths
 from pipx.colors import bold, red
-from pipx.commands.common import expose_package_resources, validate_expected_apps
+from pipx.commands.common import expose_package_resources, locked_package_message, validate_expected_apps
 from pipx.commands.transaction import preserve_venv
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojis import sleep
@@ -24,6 +24,7 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 class UpgradeStatus(str, Enum):
+    LOCKED = "locked"
     PINNED = "pinned"
     UNCHANGED = "unchanged"
     UPGRADED = "upgraded"
@@ -115,6 +116,8 @@ def _upgrade_package(
 
 
 def _package_messages(result: PackageUpgradeResult, *, upgrading_all: bool) -> tuple[OutputMessage, ...]:
+    if result.status is UpgradeStatus.LOCKED:
+        return (OutputMessage(locked_package_message(result.environment)),)
     if result.status is UpgradeStatus.PINNED:
         subject = (
             f"package {result.package} in venv {result.environment}"
@@ -232,6 +235,20 @@ def _upgrade_venv(
             f"It was likely installed using a pipx version before 0.15.0.0.\n"
             f"Please uninstall and install this package to fix.",
             wrap_message=False,
+        )
+
+    main_package = venv.pipx_metadata.main_package
+    if main_package.lock_file is not None:
+        return (
+            PackageUpgradeResult(
+                environment=venv.name,
+                package=venv.name,
+                previous_version=main_package.package_version,
+                version=main_package.package_version,
+                status=UpgradeStatus.LOCKED,
+                injected=False,
+                location=str(venv.root),
+            ),
         )
 
     with preserve_venv(
