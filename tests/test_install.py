@@ -254,7 +254,7 @@ def test_install_rejects_incomplete_pylock(
 @pytest.mark.parametrize(
     ("package_spec", "environment", "expected_error"),
     [
-        pytest.param("pycowsay==999", "pycowsay", "does not satisfy pycowsay==999", id="version"),
+        pytest.param("pycowsay==999", "pycowsay", r"does\s+not\s+satisfy\s+pycowsay==999", id="version"),
         pytest.param("black", "black", r"does\s+not\s+contain\s+black", id="package"),
     ],
 )
