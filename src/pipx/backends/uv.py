@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Final
 from packaging.version import InvalidVersion, Version
 
 from pipx.animate import animate
-from pipx.backends._base import UV, Backend
+from pipx.backends._base import UV, Backend, OutdatedPackage, outdated_packages_from_process
 from pipx.util import (
     PipxError,
     run_subprocess,
@@ -150,6 +150,18 @@ class UvBackend(Backend):
                 f"stderr: {process.stderr}"
             )
         return {entry["name"] for entry in json.loads(process.stdout.strip())}
+
+    def list_outdated(
+        self,
+        *,
+        venv_root: Path,
+        venv_python: Path,
+        index_args: list[str],
+    ) -> tuple[OutdatedPackage, ...]:
+        cmd = self._uv_pip_command("list", venv_python, verbose=False)
+        cmd += ["--outdated", "--format=json", *index_args]
+        process = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=_UV_ENV_OVERRIDES)
+        return outdated_packages_from_process(process)
 
     def run_raw_pip(
         self,

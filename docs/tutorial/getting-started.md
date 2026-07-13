@@ -36,6 +36,15 @@ pipx run pycowsay moooo!
 
 ### Upgrade an installed application
 
+Check available upgrades without changing an environment:
+
+```
+pipx list --outdated
+```
+
+The output shows each package's installed and available versions. Pass `--json` to read the same information in a
+script.
+
 ```
 pipx upgrade pycowsay
 ```

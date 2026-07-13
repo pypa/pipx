@@ -27,6 +27,9 @@ ARCHIVE_EXTENSIONS = (".whl", ".tar.gz", ".zip")
 _LOCAL_VCS_SCHEMES: Final[frozenset[str]] = frozenset({"git+file", "hg+file"})
 _PIP_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "--constraint", "-f", "--find-links"})
 _PIP_ATTACHED_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "-f"})
+_PIP_INDEX_VALUE_OPTIONS: Final[frozenset[str]] = frozenset(
+    {"-f", "-i", "--extra-index-url", "--find-links", "--index-url", "--trusted-host"}
+)
 
 
 @dataclass(frozen=True)
@@ -258,6 +261,21 @@ def package_spec_satisfied(
         return False
 
 
+def extract_index_options(pip_args: list[str]) -> list[str]:
+    index_args: list[str] = []
+    iterator = iter(pip_args)
+    for argument in iterator:
+        if argument == "--no-index":
+            index_args.append(argument)
+            continue
+        option, separator = argument.partition("=")[:2]
+        if option in _PIP_INDEX_VALUE_OPTIONS:
+            index_args.extend([argument] if separator else [argument, next(iterator)])
+        elif len(argument) > 2 and argument[:2] in {"-f", "-i"}:
+            index_args.append(argument)
+    return index_args
+
+
 def fix_package_name(package_or_url: str, package_name: str) -> str:
     try:
         package_req = Requirement(package_or_url)
@@ -285,6 +303,7 @@ def fix_package_name(package_or_url: str, package_name: str) -> str:
 
 
 __all__ = [
+    "extract_index_options",
     "fix_package_name",
     "get_extras",
     "package_spec_satisfied",

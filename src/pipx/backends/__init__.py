@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from functools import cache
 
-from pipx.backends._base import KNOWN_BACKENDS, PIP, UV, Backend
+from pipx.backends._base import KNOWN_BACKENDS, PIP, UV, Backend, OutdatedPackage
 from pipx.backends.pip import PipBackend
 from pipx.backends.uv import UvBackend, find_uv_binary
 from pipx.util import PipxError
@@ -69,6 +69,7 @@ __all__ = [
     "PIP",
     "UV",
     "Backend",
+    "OutdatedPackage",
     "assert_not_pip_under_uv",
     "env_default_backend",
     "find_uv_binary",

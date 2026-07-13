@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from pipx.package_specifier import (
+    extract_index_options,
     fix_package_name,
     package_spec_satisfied,
     parse_specifier_for_install,
@@ -13,6 +14,30 @@ from pipx.package_specifier import (
 from pipx.util import PipxError
 
 TEST_DATA_PATH = "./testdata/test_package_specifier"
+
+
+@pytest.mark.parametrize(
+    ("pip_args", "expected"),
+    [
+        pytest.param(
+            ["--no-cache-dir", "--index-url", "https://index.example/simple", "--pre"],
+            ["--index-url", "https://index.example/simple"],
+            id="separate-value",
+        ),
+        pytest.param(
+            ["-ihttps://index.example/simple", "-f", "https://files.example", "--no-index"],
+            ["-ihttps://index.example/simple", "-f", "https://files.example", "--no-index"],
+            id="short-options",
+        ),
+        pytest.param(
+            ["--extra-index-url=https://extra.example/simple", "--trusted-host", "extra.example"],
+            ["--extra-index-url=https://extra.example/simple", "--trusted-host", "extra.example"],
+            id="attached-value",
+        ),
+    ],
+)
+def test_extract_index_options(pip_args: list[str], expected: list[str]) -> None:
+    assert extract_index_options(pip_args) == expected
 
 
 @pytest.mark.parametrize(
