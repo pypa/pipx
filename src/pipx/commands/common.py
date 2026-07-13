@@ -278,30 +278,37 @@ def get_venv_summary(
     if venv_problems.any_():
         return (warning_message, venv_problems)
 
-    package_metadata = venv.package_metadata[package_name]
+    package_metadata: Final[PackageInfo] = venv.package_metadata[package_name]
     exposed_binary_names: list[str] = []
     exposed_man_pages: list[str] = []
     unavailable_binary_names: list[str] = []
     unavailable_man_pages: list[str] = []
     if venv.pipx_metadata.exposure_enabled:
-        apps = [
-            *package_metadata.apps,
-            *(package_metadata.apps_of_dependencies if package_metadata.include_dependencies else []),
-        ]
-        man_pages = [
-            *package_metadata.man_pages,
-            *(package_metadata.man_pages_of_dependencies if package_metadata.include_dependencies else []),
-        ]
+        resource_packages: Final[tuple[PackageInfo, ...]] = (
+            (package_metadata,)
+            if new_install
+            else tuple(metadata for metadata in venv.package_metadata.values() if metadata.include_apps)
+        )
         exposed_app_paths = get_exposed_paths_for_package(
             venv.bin_path,
             paths.ctx.bin_dir,
-            [add_suffix(app, package_metadata.suffix) for app in apps],
+            [
+                add_suffix(app, metadata.suffix)
+                for metadata in resource_packages
+                for app in metadata.apps + (metadata.apps_of_dependencies if metadata.include_dependencies else [])
+            ],
         )
         exposed_binary_names = sorted(path.name for path in exposed_app_paths)
         unavailable_binary_names = sorted(
             {add_suffix(name, package_metadata.suffix) for name in package_metadata.apps} - set(exposed_binary_names)
         )
         exposed_man_paths = set()
+        man_pages: Final[list[str]] = [
+            man_page
+            for metadata in resource_packages
+            for man_page in metadata.man_pages
+            + (metadata.man_pages_of_dependencies if metadata.include_dependencies else [])
+        ]
         for man_section in MAN_SECTIONS:
             exposed_man_paths |= get_exposed_man_paths_for_package(
                 venv.man_path / man_section,
