@@ -38,24 +38,26 @@ managers writes the same filename. Each manager refuses to overwrite a binary th
 
 ### Subcommand mapping
 
-| Task                           | pipx                                              | uv tool                                                             |
-| ------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------- |
-| Install from PyPI              | `pipx install ruff`                               | `uv tool install ruff` (or `uvx ruff` for one-off)                  |
-| Install from a git URL         | `pipx install 'git+https://…'`                    | `uv tool install 'git+https://…'`                                   |
-| Install editable from path     | `pipx install -e ./mypkg`                         | `uv tool install -e ./mypkg`                                        |
-| One-off run (no install)       | `pipx run black .`                                | `uvx black .`                                                       |
-| One-off run with extra dep     | _no clean equivalent_                             | `uvx --with mkdocs-material mkdocs`                                 |
-| Pinned-version one-off         | `pipx run --spec 'ruff==0.6.0' ruff check`        | `uvx ruff@0.6.0 check`                                              |
-| Add a dep to existing tool     | `pipx inject mkdocs mkdocs-material`              | `uv tool install mkdocs --with mkdocs-material` (rebuilds)          |
-| Remove an injected dep         | `pipx uninject mkdocs mkdocs-material`            | _rebuild without `--with`_                                          |
-| Upgrade one                    | `pipx upgrade ruff`                               | `uv tool upgrade ruff`                                              |
-| Upgrade all                    | `pipx upgrade-all`                                | `uv tool upgrade --all`                                             |
-| List installed                 | `pipx list`                                       | `uv tool list` (`--show-with`, `--outdated`, …)                     |
-| Reinstall (e.g. after Py bump) | `pipx reinstall ruff` / `reinstall-all`           | `uv tool upgrade --reinstall ruff` / `--all -p 3.13`                |
-| Run pip inside a venv          | `pipx runpip <tool> -- pip ...`                   | _not supported (no pip in uv venvs)_                                |
-| PATH setup                     | `pipx ensurepath`                                 | `uv tool update-shell`                                              |
-| Show resolved env              | `pipx environment`                                | `uv tool dir`, `uv tool dir --bin`, `uv cache dir`, `uv python dir` |
-| PEP 723 inline script          | `pipx run script.py` (with uv backend → `uv run`) | `uv run --script script.py`                                         |
+| Task                         | pipx                                              | uv tool                                                             |
+| ---------------------------- | ------------------------------------------------- | ------------------------------------------------------------------- |
+| Install from PyPI            | `pipx install ruff`                               | `uv tool install ruff` (or `uvx ruff` for one-off)                  |
+| Install from a git URL       | `pipx install 'git+https://…'`                    | `uv tool install 'git+https://…'`                                   |
+| Install editable from path   | `pipx install -e ./mypkg`                         | `uv tool install -e ./mypkg`                                        |
+| One-off run (no install)     | `pipx run black .`                                | `uvx black .`                                                       |
+| One-off run with extra dep   | _no clean equivalent_                             | `uvx --with mkdocs-material mkdocs`                                 |
+| Pinned-version one-off       | `pipx run --spec 'ruff==0.6.0' ruff check`        | `uvx ruff@0.6.0 check`                                              |
+| Add a dep to existing tool   | `pipx inject mkdocs mkdocs-material`              | `uv tool install mkdocs --with mkdocs-material` (rebuilds)          |
+| Remove an injected dep       | `pipx uninject mkdocs mkdocs-material`            | _rebuild without `--with`_                                          |
+| Upgrade one                  | `pipx upgrade ruff`                               | `uv tool upgrade ruff`                                              |
+| Upgrade all                  | `pipx upgrade-all`                                | `uv tool upgrade --all`                                             |
+| List installed               | `pipx list`                                       | `uv tool list` (`--show-with`, `--outdated`, …)                     |
+| Diagnose broken environments | `pipx health`                                     | _no equivalent_                                                     |
+| Repair broken environments   | `pipx repair ruff` / `repair`                     | `uv tool install ruff` / _no bulk equivalent_                       |
+| Reinstall any environment    | `pipx reinstall ruff` / `reinstall-all`           | `uv tool upgrade --reinstall ruff` / `--all`                        |
+| Run pip inside a venv        | `pipx runpip <tool> -- pip ...`                   | _not supported (no pip in uv venvs)_                                |
+| PATH setup                   | `pipx ensurepath`                                 | `uv tool update-shell`                                              |
+| Show resolved env            | `pipx environment`                                | `uv tool dir`, `uv tool dir --bin`, `uv cache dir`, `uv python dir` |
+| PEP 723 inline script        | `pipx run script.py` (with uv backend → `uv run`) | `uv run --script script.py`                                         |
 
 ### Only in pipx
 

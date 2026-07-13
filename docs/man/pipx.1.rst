@@ -16,8 +16,8 @@ SYNOPSIS
 
 **pipx** [*global-options*] [**install** | **install-all** | **uninject** | **inject** | **pin** | **unpin** |
 **upgrade** | **upgrade-all** | **upgrade-shared** | **uninstall** | **uninstall-all** | **reinstall** | **reinstall-
-all** | **list** | **interpreter** | **run** | **runpip** | **ensurepath** | **environment** | **completions** |
-**help**] [*command-options*]
+all** | **health** | **repair** | **list** | **interpreter** | **run** | **runpip** | **ensurepath** | **environment** |
+**completions** | **help**] [*command-options*]
 
 DESCRIPTION
 -----------
@@ -66,6 +66,12 @@ COMMANDS
 
 **reinstall-all**
     Reinstall all packages
+
+**health**
+    Check installed package environments
+
+**repair**
+    Repair broken package environments
 
 **list**
     List installed packages

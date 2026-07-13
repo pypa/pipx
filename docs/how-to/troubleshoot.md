@@ -20,22 +20,35 @@ pipx install my-package --python 3.13 --fetch-python=missing
 Pass `--fetch-python=always` to download a standalone build even when the system already has the requested Python.
 Useful when a distro ships a patched interpreter you'd rather avoid.
 
-## `reinstall-all` fixes most issues
+## Diagnose and repair broken environments
 
-The following command should fix many problems you may encounter as a pipx user:
+Check each managed environment without changing it:
 
 ```
-pipx reinstall-all
+pipx health
 ```
 
-This is a good fix for the following problems:
+The command exits with status 1 when an environment cannot run its Python interpreter. Pass package names to check a
+subset, or pass `--json` to read the result from a script.
 
-- System python was upgraded and the python used with a pipx-installed package is no longer available
-- pipx upgrade causes issues with old pipx-installed packages
+Repair failed environments with the default Python:
 
-pipx has been upgraded a lot over the years. If you are a long-standing pipx user (thanks, by the way!) then you may
-have old pipx-installed packages that have internal data that is different than what pipx currently expects. By
-executing `pipx reinstall-all`, pipx will re-write its internal data and this should fix many issues you may encounter.
+```
+pipx repair
+```
+
+Pass package names to limit the repair. Use `--python` when the rebuilt environments need another interpreter:
+
+```
+pipx repair --python python3.13
+```
+
+`pipx repair` uses the same recorded metadata as `pipx reinstall`. It leaves healthy environments unchanged.
+
+`pipx repair` refuses a pinned package because its recorded source may resolve to another release. Run
+`pipx unpin PACKAGE` before repairing it.
+
+Use `pipx reinstall-all` to rebuild healthy environments, such as installations with metadata from an old pipx release.
 
 **Note:** If your pipx-installed package was installed using a pipx version before 0.15.0.0 and you want to specify
 particular options, then you may want to uninstall and install it manually:
@@ -45,14 +58,13 @@ pipx uninstall <mypackage>
 pipx install <mypackage>
 ```
 
-## Diagnosing problems using `list`
+## Inspect package details with `list`
 
 ```
 pipx list
 ```
 
-will not only list all of your pipx-installed packages, but can also diagnose some problems with them, as well as
-suggest solutions.
+The command prints package versions, applications, and environment paths.
 
 ## Specifying pipx options
 
