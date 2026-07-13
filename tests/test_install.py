@@ -3,6 +3,7 @@ import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 from unittest import mock
@@ -190,6 +191,213 @@ def test_install_records_expected_app(pipx_temp_env: None) -> None:
     assert not run_pipx_cli(["install", "--app", "pycowsay", PKG["pycowsay"]["spec"]])
 
     assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.expected_apps == ["pycowsay"]
+
+
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+def test_install_from_pylock(
+    pipx_temp_env: None,
+    make_pylock: Callable[[str, str], Path],
+    backend: str,
+) -> None:
+    if backend == "uv" and shutil.which("uv") is None:
+        pytest.skip("uv is not installed")
+    lock_file = make_pylock("pycowsay", "0.0.0.2")
+
+    assert not run_pipx_cli(["install", "--backend", backend, "--lock", str(lock_file), "pycowsay>=0"])
+
+    metadata = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
+    assert (
+        metadata.package_version,
+        metadata.lock_file,
+        (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
+    ) == ("0.0.0.2", lock_file.resolve(), True)
+
+
+@pytest.mark.parametrize("editable", [pytest.param(False, id="wheel"), pytest.param(True, id="editable")])
+def test_install_source_from_pylock(
+    pipx_temp_env: None,
+    make_pylock: Callable[[str, str], Path],
+    make_project_with_dependency: Callable[[str], Path],
+    editable: bool,
+) -> None:
+    project = make_project_with_dependency("pycowsay==0.0.0.2")
+    lock_file = make_pylock("pycowsay", "0.0.0.2")
+
+    assert not run_pipx_cli(["install", *(["--editable"] if editable else []), "--lock", str(lock_file), str(project)])
+
+    metadata = PipxMetadata(paths.ctx.venvs / "empty-project").main_package
+    assert (metadata.package_version, metadata.lock_file, metadata.apps, metadata.pip_args) == (
+        "0.1.0",
+        lock_file.resolve(),
+        [app_name("empty-project")],
+        ["--editable"] if editable else [],
+    )
+
+
+def test_install_rejects_incomplete_pylock(
+    pipx_temp_env: None,
+    make_pylock: Callable[[str, str], Path],
+    make_project_with_dependency: Callable[[str], Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    project = make_project_with_dependency("black==22.8.0")
+    lock_file = make_pylock("pycowsay", "0.0.0.2")
+
+    assert run_pipx_cli(["install", "--lock", str(lock_file), str(project)])
+
+    assert (
+        "does not satisfy empty-project" in capsys.readouterr().err,
+        (paths.ctx.venvs / "empty-project").exists(),
+    ) == (True, False)
+
+
+@pytest.mark.parametrize(
+    ("package_spec", "environment", "expected_error"),
+    [
+        pytest.param("pycowsay==999", "pycowsay", r"does\s+not\s+satisfy\s+pycowsay==999", id="version"),
+        pytest.param("black", "black", r"does\s+not\s+contain\s+black", id="package"),
+    ],
+)
+def test_install_rejects_target_outside_pylock(
+    pipx_temp_env: None,
+    make_pylock: Callable[[str, str], Path],
+    capsys: pytest.CaptureFixture[str],
+    package_spec: str,
+    environment: str,
+    expected_error: str,
+) -> None:
+    lock_file = make_pylock("pycowsay", "0.0.0.2")
+
+    assert run_pipx_cli(["install", "--lock", str(lock_file), package_spec])
+
+    error = unwrap_log_text(capsys.readouterr().err)
+    assert (
+        re.search(expected_error, error) is not None,
+        (paths.ctx.venvs / environment).exists(),
+    ) == (True, False)
+
+
+def test_install_rejects_invalid_pylock(
+    pipx_temp_env: None,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    lock_file = tmp_path / "pylock.toml"
+    lock_file.write_text("invalid = true\n", encoding="utf-8")
+
+    assert run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
+
+    assert (
+        "Error installing packages from" in unwrap_log_text(capsys.readouterr().err),
+        (paths.ctx.venvs / "pycowsay").exists(),
+    ) == (True, False)
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        pytest.param(["install", "--force", "pycowsay"], id="force"),
+        pytest.param(["reinstall", "pycowsay"], id="reinstall"),
+    ],
+)
+def test_install_reapplies_recorded_pylock(
+    pipx_temp_env: None,
+    make_pylock: Callable[[str, str], Path],
+    command: list[str],
+) -> None:
+    lock_file = make_pylock("pycowsay", "0.0.0.2")
+    assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
+    marker = paths.ctx.venvs / "pycowsay" / "marker"
+    marker.touch()
+
+    assert not run_pipx_cli(command)
+
+    metadata = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
+    assert (marker.exists(), metadata.package_version, metadata.lock_file) == (
+        False,
+        "0.0.0.2",
+        lock_file.resolve(),
+    )
+
+
+def test_install_restores_environment_after_pylock_mismatch(
+    pipx_temp_env: None,
+    make_pylock: Callable[[str, str], Path],
+) -> None:
+    lock_file = make_pylock("pycowsay", "0.0.0.2")
+    assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
+    marker = paths.ctx.venvs / "pycowsay" / "marker"
+    marker.touch()
+
+    assert run_pipx_cli(["install", "--force", "--lock", str(lock_file), "pycowsay==999"])
+
+    metadata = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
+    assert (marker.exists(), metadata.package_version, metadata.lock_file) == (
+        True,
+        "0.0.0.2",
+        lock_file.resolve(),
+    )
+
+
+def test_install_upgrade_skips_pylock(
+    pipx_temp_env: None,
+    make_pylock: Callable[[str, str], Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    lock_file = make_pylock("pycowsay", "0.0.0.2")
+    assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["install", "--upgrade", "pycowsay==999"])
+
+    metadata = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
+    assert (
+        "Not upgrading locked package pycowsay. Update its lock file and run `pipx reinstall pycowsay`."
+        in unwrap_log_text(capsys.readouterr().out),
+        metadata.package_version,
+        metadata.lock_file,
+    ) == (True, "0.0.0.2", lock_file.resolve())
+
+
+@pytest.mark.parametrize(
+    ("package_args", "lock_name", "lock_exists", "expected_error"),
+    [
+        pytest.param(["pycowsay", "black"], "pylock.test.toml", True, "--lock accepts one package spec", id="packages"),
+        pytest.param(
+            ["--preinstall", "black", "pycowsay"],
+            "pylock.test.toml",
+            True,
+            "--lock cannot be combined with --preinstall",
+            id="preinstall",
+        ),
+        pytest.param(
+            ["--upgrade", "pycowsay"],
+            "pylock.test.toml",
+            True,
+            "--lock cannot be combined with --upgrade",
+            id="upgrade",
+        ),
+        pytest.param(["pycowsay"], "lock.toml", True, "Lock files must be named", id="name"),
+        pytest.param(["pycowsay"], "pylock.missing.toml", False, "Lock file does not exist", id="missing"),
+    ],
+)
+def test_install_rejects_invalid_pylock_options(
+    pipx_temp_env: None,
+    make_pylock: Callable[[str, str], Path],
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    package_args: list[str],
+    lock_name: str,
+    lock_exists: bool,
+    expected_error: str,
+) -> None:
+    lock_file = tmp_path / lock_name
+    if lock_exists:
+        make_pylock("pycowsay", "0.0.0.2").rename(lock_file)
+
+    assert run_pipx_cli(["install", "--lock", str(lock_file), *package_args])
+
+    assert expected_error in unwrap_log_text(capsys.readouterr().err)
 
 
 @pytest.mark.parametrize(

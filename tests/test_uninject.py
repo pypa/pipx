@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -64,14 +65,21 @@ def test_uninject_running_app(pipx_temp_env: None) -> None:
         process.wait(timeout=10)
 
 
-def test_uninject_with_suffix_removes_apps(pipx_temp_env: None, root: Path) -> None:
+def test_uninject_with_suffix_removes_apps(pipx_temp_env: None, root: Path, tmp_path: Path) -> None:
     suffix = "@1"
-    assert not run_pipx_cli(["install", str(root / "testdata/empty_project"), f"--suffix={suffix}"])
+    ignore_generated = shutil.ignore_patterns("build", "*.egg-info")
+    project = shutil.copytree(root / "testdata/empty_project", tmp_path / "empty_project", ignore=ignore_generated)
+    assert not run_pipx_cli(["install", str(project), f"--suffix={suffix}"])
+    injected_project = shutil.copytree(
+        root / "testdata/test_package_specifier/local_extras",
+        tmp_path / "local_extras",
+        ignore=ignore_generated,
+    )
     assert not run_pipx_cli(
         [
             "inject",
             f"empty-project{suffix}",
-            f"{root / 'testdata/test_package_specifier/local_extras'}[cow]",
+            f"{injected_project}[cow]",
             "--include-deps",
             "--with-suffix",
         ]

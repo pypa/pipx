@@ -576,6 +576,10 @@ def add_suffix(name: str, suffix: str) -> str:
     return f"{app.stem}{suffix}{app.suffix}"
 
 
+def locked_package_message(package_name: str) -> str:
+    return f"Not upgrading locked package {package_name}. Update its lock file and run `pipx reinstall {package_name}`."
+
+
 __all__ = [
     "VenvProblems",
     "add_suffix",
@@ -585,6 +589,7 @@ __all__ = [
     "get_exposed_man_paths_for_package",
     "get_exposed_paths_for_package",
     "get_venv_summary",
+    "locked_package_message",
     "package_name_from_spec",
     "run_post_install_actions",
     "validate_expected_apps",

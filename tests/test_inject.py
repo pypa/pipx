@@ -1,6 +1,8 @@
 import logging
 import re
 import textwrap
+from collections.abc import Callable
+from pathlib import Path
 
 import pytest
 
@@ -8,6 +10,24 @@ from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cl
 from package_info import PKG
 from pipx import paths
 from pipx.pipx_metadata_file import PipxMetadata
+
+
+def test_inject_rejects_pylock(
+    pipx_temp_env: None,
+    make_pylock: Callable[[str, str], Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    lock_file = make_pylock("pycowsay", "0.0.0.2")
+    assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
+    capsys.readouterr()
+
+    assert run_pipx_cli(["inject", "pycowsay", "black"])
+
+    error = " ".join(capsys.readouterr().err.split())
+    assert (
+        "Cannot inject into locked environment pycowsay" in error and "`pipx reinstall pycowsay`" in error,
+        PipxMetadata(paths.ctx.venvs / "pycowsay").injected_packages,
+    ) == (True, {})
 
 
 # Note that this also checks that packages used in other tests can be injected individually

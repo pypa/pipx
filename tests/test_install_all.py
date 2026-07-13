@@ -1,4 +1,5 @@
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -7,8 +8,14 @@ from helpers import run_pipx_cli
 from pipx import paths
 
 
-def test_install_all(pipx_temp_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["install", "--app", "pycowsay", "pycowsay"])
+def test_install_all(
+    pipx_temp_env: None,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    make_pylock: Callable[[str, str], Path],
+) -> None:
+    lock_file = make_pylock("pycowsay", "0.0.0.2")
+    assert not run_pipx_cli(["install", "--app", "pycowsay", "--lock", str(lock_file), "pycowsay"])
     assert not run_pipx_cli(["install", "black"])
     assert not run_pipx_cli(["inject", "black", "pycowsay"])
     capsys.readouterr()
@@ -27,10 +34,12 @@ def test_install_all(pipx_temp_env: None, tmp_path: Path, capsys: pytest.Capture
         sorted(installed),
         sorted(installed["black"]["metadata"]["injected_packages"]),
         installed["pycowsay"]["metadata"]["main_package"]["expected_apps"],
+        installed["pycowsay"]["metadata"]["main_package"]["lock_file"],
     ) == (
         ["black", "pycowsay"],
         ["pycowsay"],
         ["pycowsay"],
+        {"__Path__": str(lock_file.resolve()), "__type__": "Path"},
     )
 
 

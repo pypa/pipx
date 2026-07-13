@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -8,6 +9,7 @@ from helpers import (
     remove_venv_interpreter,
     run_pipx_cli,
     skip_if_windows,
+    unwrap_log_text,
 )
 from package_info import PKG
 from pipx import paths
@@ -26,6 +28,34 @@ def test_upgrade(pipx_temp_env, capsys):
     assert not run_pipx_cli(["upgrade", "pycowsay"])
     captured = capsys.readouterr()
     assert "pycowsay is already at latest version" in captured.out
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        pytest.param(["upgrade", "pycowsay"], id="one"),
+        pytest.param(["upgrade-all"], id="all"),
+    ],
+)
+def test_upgrade_skips_pylock(
+    pipx_temp_env: None,
+    make_pylock: Callable[[str, str], Path],
+    capsys: pytest.CaptureFixture[str],
+    command: list[str],
+) -> None:
+    lock_file = make_pylock("pycowsay", "0.0.0.2")
+    assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(command)
+
+    metadata = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
+    assert (
+        "Not upgrading locked package pycowsay. Update its lock file and run `pipx reinstall pycowsay`."
+        in unwrap_log_text(capsys.readouterr().out),
+        metadata.package_version,
+        metadata.lock_file,
+    ) == (True, "0.0.0.2", lock_file.resolve())
 
 
 @skip_if_windows

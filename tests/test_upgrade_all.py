@@ -1,4 +1,5 @@
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -59,6 +60,30 @@ def test_upgrade_all_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str
         "pipx_result_version": "0.1",
         "status": "success",
     }
+
+
+def test_upgrade_all_pylock_json(
+    pipx_temp_env: None,
+    make_pylock: Callable[[str, str], Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    lock_file = make_pylock("pycowsay", "0.0.0.2")
+    assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["upgrade-all", "--json"])
+
+    assert json.loads(capsys.readouterr().out)["data"]["packages"] == [
+        {
+            "environment": "pycowsay",
+            "injected": False,
+            "location": str(paths.ctx.venvs / "pycowsay"),
+            "package": "pycowsay",
+            "previous_version": "0.0.0.2",
+            "status": "locked",
+            "version": "0.0.0.2",
+        }
+    ]
 
 
 def test_upgrade_all_json_failure(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:

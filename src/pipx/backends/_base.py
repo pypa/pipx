@@ -46,6 +46,23 @@ class Backend(ABC):
         verbose: bool = False,
     ) -> CompletedProcess[str]: ...
 
+    def install_lock(
+        self,
+        *,
+        venv_root: Path,
+        venv_python: Path,
+        lock_file: Path,
+        pip_args: list[str],
+        verbose: bool = False,
+    ) -> CompletedProcess[str]:
+        return self.install(
+            venv_root=venv_root,
+            venv_python=venv_python,
+            requirements=["--requirement", str(lock_file)],
+            pip_args=pip_args,
+            verbose=verbose,
+        )
+
     @abstractmethod
     def uninstall(
         self,

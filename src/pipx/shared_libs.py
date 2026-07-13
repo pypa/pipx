@@ -212,7 +212,7 @@ class _SharedLibs:
                         "install",
                         "--upgrade",
                         *filtered_pip_args,
-                        "pip >= 23.1",
+                        "pip >= 26.1",
                     ]
                 )
             subprocess_post_check(upgrade_process)

@@ -71,6 +71,28 @@ entry point, pipx restores the existing environment.
 Use one package spec with `--app`. Repeat the option to require more than one entry point. Dependency entry points
 qualify when you also pass `--include-deps`.
 
+### Installing from a lock file
+
+Use a [PEP 751 lock file](https://packaging.python.org/en/latest/specifications/pylock-toml/) when a resolver must
+choose the application versions and artifacts. Pass the path; pipx does not search the current directory for a lock.
+
+```
+uvx nab lock pyproject.toml
+pipx install --lock pylock.toml .
+```
+
+[nab](https://pypi.org/project/nab/) resolves the dependencies in `pyproject.toml` and writes `pylock.toml`. pipx runs
+the selected backend against the lock. A named package must appear in the lock. For a local project or direct URL, pipx
+installs the target without resolving its dependencies. pipx checks the environment before it exposes the application.
+
+pipx records the absolute lock path. `--force` and `reinstall` reuse it; `install-all` imports it. pipx skips the
+environment during `upgrade` and `upgrade-all`; update the lock and run `pipx reinstall PACKAGE` to apply it. pipx
+rejects `inject` because the added package would fall outside the lock.
+
+`--lock` accepts one package spec. Do not combine it with `--preinstall` or `--upgrade`. Pass `--force --lock` to
+replace an installed environment with a new lock. The pip backend requires pip 26.1 or newer; the uv backend requires uv
+0.6.15 or newer.
+
 ### Keeping an installation within a version range
 
 Use `--upgrade` when you want an installed app to match a package spec:

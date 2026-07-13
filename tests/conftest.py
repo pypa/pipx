@@ -1,3 +1,4 @@
+import hashlib
 import importlib
 import json
 import os
@@ -5,7 +6,7 @@ import shutil
 import socket
 import subprocess
 import sys
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import closing
 from http import HTTPStatus
 from pathlib import Path
@@ -34,6 +35,55 @@ PIPX_TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
 @pytest.fixture(scope="session")
 def root() -> Path:
     return Path(__file__).parents[1]
+
+
+@pytest.fixture
+def make_pylock(root: Path, tmp_path: Path) -> Callable[[str, str], Path]:
+    def create(package: str, version: str) -> Path:
+        wheel = next(
+            (root / PIPX_TESTS_DIR / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}").glob(
+                f"{package}-{version}-*.whl"
+            )
+        )
+        lock_file = tmp_path / "pylock.test.toml"
+        lock_file.write_text(
+            f'''lock-version = "1.0"
+created-by = "pipx tests"
+
+[[packages]]
+name = "{package}"
+version = "{version}"
+
+[[packages.wheels]]
+name = "{wheel.name}"
+url = "{wheel.as_uri()}"
+
+[packages.wheels.hashes]
+sha256 = "{hashlib.sha256(wheel.read_bytes()).hexdigest()}"
+''',
+            encoding="utf-8",
+        )
+        return lock_file
+
+    return create
+
+
+@pytest.fixture
+def make_project_with_dependency(root: Path, tmp_path: Path) -> Callable[[str], Path]:
+    def create(dependency: str) -> Path:
+        project = tmp_path / "locked-project"
+        shutil.copytree(root / "testdata/empty_project", project)
+        pyproject = project / "pyproject.toml"
+        pyproject.write_text(
+            pyproject.read_text(encoding="utf-8").replace(
+                'requires-python = ">=3.10"\n',
+                f'dependencies = ["{dependency}"]\nrequires-python = ">=3.10"\n',
+            ),
+            encoding="utf-8",
+        )
+        return project
+
+    return create
 
 
 @pytest.fixture(autouse=True)

@@ -36,7 +36,7 @@ except ImportError:
     _uv_bin_from_extra = None
 _FIND_UV_BIN_FROM_EXTRA: Final[Callable[[], str] | None] = _uv_bin_from_extra
 del _uv_bin_from_extra
-_MIN_UV_VERSION: Final[Version] = Version("0.4.0")
+_MIN_UV_VERSION: Final[Version] = Version("0.6.15")
 _VERSION_RE: Final[re.Pattern[str]] = re.compile(
     r"""
     uv \s+        # the literal "uv " prefix from `uv --version`
