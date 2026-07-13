@@ -1,7 +1,7 @@
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
-from typing import Literal
+from typing import Final, Literal
 
 import pytest
 from pytest_mock import MockerFixture
@@ -9,7 +9,7 @@ from pytest_mock import MockerFixture
 from helpers import app_name, run_pipx_cli
 from pipx import paths
 from pipx.commands import manifest as manifest_module
-from pipx.pipx_metadata_file import PipxMetadata
+from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 
 
 @pytest.fixture
@@ -59,6 +59,24 @@ def test_sync_manifest_installs_declared_tool(
         metadata.main_package.expected_apps,
         (paths.ctx.bin_dir / app_name("pycowsay-managed")).is_file(),
     ) == ("pycowsay==0.0.0.2", "-managed", ["pycowsay"], True)
+
+
+def test_sync_manifest_selects_dependency_apps(
+    pipx_temp_env: None,
+    write_manifest: Callable[[str], Path],
+    local_extras_project: Path,
+) -> None:
+    package: Final[str] = f"repeatme[tools] @ {local_extras_project.as_uri()}"
+    manifest: Final[Path] = write_manifest(_manifest(package, "repeatme", 'include-apps-from = ["PyCowsay"]\n'))
+
+    assert not run_pipx_cli(["sync", str(manifest)])
+
+    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "repeatme").main_package
+    assert (
+        metadata.include_apps_from,
+        (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
+        (paths.ctx.bin_dir / app_name("black")).exists(),
+    ) == (["pycowsay"], True, False)
 
 
 def test_sync_manifest_prunes_undeclared_tool(
@@ -260,6 +278,30 @@ def test_sync_manifest_clears_app_and_lock_state(
             _manifest("black", "black", 'include-dependencies = "yes"\n'),
             "include-dependencies must be a boolean",
             id="include-dependencies",
+        ),
+        pytest.param(
+            _manifest("black", "black", 'include-apps-from = "pycowsay"\n'),
+            "include-apps-from must be non-empty strings",
+            id="include-apps-from-type",
+        ),
+        pytest.param(
+            _manifest("black", "black", 'include-apps-from = [""]\n'),
+            "include-apps-from must be non-empty strings",
+            id="include-apps-from-empty",
+        ),
+        pytest.param(
+            _manifest("black", "black", 'include-apps-from = ["PyCowsay", "pycowsay"]\n'),
+            "include-apps-from must be unique",
+            id="include-apps-from-duplicate",
+        ),
+        pytest.param(
+            _manifest(
+                "black",
+                "black",
+                'include-dependencies = true\ninclude-apps-from = ["pycowsay"]\n',
+            ),
+            "cannot combine include-dependencies",
+            id="include-apps-from-all",
         ),
         pytest.param(
             _manifest("black", "black", 'expose = "yes"\n'),

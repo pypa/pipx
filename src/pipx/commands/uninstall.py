@@ -198,21 +198,15 @@ def _get_venv_resource_paths(
 
 
 def _get_package_bin_dir_app_paths(package_info: PackageInfo, venv_bin_path: Path, local_bin_dir: Path) -> set[Path]:
-    apps = (package_info.apps if package_info.include_apps else []) + (
-        package_info.apps_of_dependencies if package_info.include_dependencies else []
-    )
     return get_exposed_paths_for_package(
         venv_bin_path,
         local_bin_dir,
-        [add_suffix(app, package_info.suffix) for app in apps],
+        [add_suffix(app, package_info.suffix) for app in package_info.apps_to_expose],
     )
 
 
 def _get_package_man_paths(package_info: PackageInfo, venv_man_path: Path, local_man_dir: Path) -> set[Path]:
-    man_pages = (package_info.man_pages if package_info.include_apps else []) + (
-        package_info.man_pages_of_dependencies if package_info.include_dependencies else []
-    )
-    return get_exposed_man_paths_for_package(venv_man_path, local_man_dir, man_pages)
+    return get_exposed_man_paths_for_package(venv_man_path, local_man_dir, package_info.man_pages_to_expose)
 
 
 __all__ = [

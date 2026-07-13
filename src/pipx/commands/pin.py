@@ -120,6 +120,7 @@ def _update_pin_info(venv: Venv, package_name: str, *, is_main_package: bool, pi
         package_or_url=str(package.package_or_url),
         pip_args=package.pip_args,
         include_dependencies=package.include_dependencies,
+        include_apps_from=package.include_apps_from,
         include_apps=package.include_apps,
         is_main_package=is_main_package,
         suffix=package.suffix,

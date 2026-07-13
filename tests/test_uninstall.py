@@ -1,7 +1,8 @@
 import importlib
 import json
 import sys
-from typing import cast
+from pathlib import Path
+from typing import Final, cast
 
 import pytest
 from pytest_mock import MockerFixture
@@ -193,6 +194,21 @@ def test_uninstall_man_page(pipx_temp_env):
     assert man_page_path.exists()
     assert not run_pipx_cli(["uninstall", "pycowsay"])
     assert not file_or_symlink(man_page_path)
+
+
+def test_uninstall_removes_selected_dependency_resources(pipx_temp_env: None, local_extras_project: Path) -> None:
+    package: Final[str] = f"{local_extras_project}[tools]"
+    assert not run_pipx_cli(["install", package, "--include-apps-from", "pycowsay"])
+    exposed_paths: Final[tuple[Path, ...]] = (
+        paths.ctx.bin_dir / app_name("repeatme"),
+        paths.ctx.bin_dir / app_name("pycowsay"),
+        paths.ctx.man_dir / "man6" / "pycowsay.6",
+    )
+    assert all(file_or_symlink(path) for path in exposed_paths)
+
+    assert not run_pipx_cli(["uninstall", "repeatme"])
+
+    assert not any(file_or_symlink(path) for path in exposed_paths)
 
 
 def test_uninstall_injected(pipx_temp_env):

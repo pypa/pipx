@@ -13,6 +13,7 @@ from pipx import commands, paths
 from pipx.backends import PIP
 from pipx.commands.common import (
     expose_package_resources,
+    get_expected_venv_resource_paths,
     locked_package_message,
     package_name_from_spec,
     run_post_install_actions,
@@ -48,6 +49,7 @@ def install(
     force: bool,
     reinstall: bool,
     include_dependencies: bool,
+    include_apps_from: Sequence[str],
     preinstall_packages: list[str] | None,
     expected_apps: Sequence[str] = (),
     lock_file: Path | None = None,
@@ -175,9 +177,11 @@ def install(
                     venv_dir = None
                     continue
 
+            previous_resource_paths: set[Path] = get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir)
             with preserve_venv(
                 venv_dir,
-                enabled=exists and (preserve_existing or bool(required_apps) or required_lock is not None),
+                enabled=exists
+                and (preserve_existing or bool(required_apps or include_apps_from) or required_lock is not None),
             ):
                 venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
                 try:
@@ -202,6 +206,7 @@ def install(
                         pip_args=pip_args,
                         install_only_pip_args=["--force-reinstall"] if force and exists else None,
                         include_dependencies=include_dependencies,
+                        include_apps_from=include_apps_from,
                         include_apps=True,
                         is_main_package=True,
                         suffix=suffix,
@@ -215,8 +220,8 @@ def install(
                         local_bin_dir,
                         local_man_dir,
                         venv_dir,
-                        include_dependencies,
                         force=force,
+                        previous_resource_paths=previous_resource_paths,
                     )
                 except (Exception, KeyboardInterrupt):
                     print()
@@ -299,6 +304,7 @@ def _upgrade_existing_venv(
             package_spec,
             main_pip_args,
             include_dependencies=package_metadata.include_dependencies,
+            include_apps_from=package_metadata.include_apps_from,
             include_apps=package_metadata.include_apps,
             is_main_package=True,
             suffix=package_metadata.suffix,
@@ -362,6 +368,7 @@ def install_all(
                     force=force,
                     reinstall=False,
                     include_dependencies=main_package.include_dependencies,
+                    include_apps_from=main_package.include_apps_from,
                     preinstall_packages=[],
                     expected_apps=main_package.expected_apps,
                     lock_file=main_package.lock_file,
@@ -382,6 +389,7 @@ def install_all(
                         verbose=verbose,
                         include_apps=inject_package.include_apps,
                         include_dependencies=inject_package.include_dependencies,
+                        include_apps_from=inject_package.include_apps_from,
                         force=force,
                         suffix=inject_package.suffix == main_package.suffix,
                     )

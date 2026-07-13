@@ -68,6 +68,7 @@ def sync_manifest(
                     force=existed,
                     reinstall=False,
                     include_dependencies=tool.include_dependencies,
+                    include_apps_from=tool.include_apps_from,
                     preinstall_packages=None,
                     expected_apps=tool.apps,
                     lock_file=tool.lock_file,
@@ -198,6 +199,9 @@ def _parse_tool(
         raise PipxError(f"Manifest tool {environment} must match package {package_name} and suffix {suffix!r}.")
     if not isinstance(include_dependencies := data.get("include-dependencies", False), bool):
         raise PipxError(f"Manifest tool {environment} include-dependencies must be a boolean.")
+    include_apps_from: Final[tuple[str, ...]] = _parse_include_apps_from(environment, data)
+    if include_dependencies and include_apps_from:
+        raise PipxError(f"Manifest tool {environment} cannot combine include-dependencies with include-apps-from.")
     if not isinstance(expose_resources := data.get("expose", True), bool):
         raise PipxError(f"Manifest tool {environment} expose must be a boolean.")
 
@@ -208,6 +212,7 @@ def _parse_tool(
         suffix=suffix,
         apps=_parse_apps(environment, data),
         include_dependencies=include_dependencies,
+        include_apps_from=include_apps_from,
         expose=expose_resources,
         lock_file=_parse_lock_file(environment, data, manifest_dir, require_locks=require_locks),
     )
@@ -221,6 +226,17 @@ def _parse_package(environment: str, package: str) -> str:
     if requirement.marker is not None:
         raise PipxError(f"Manifest tool {environment} cannot use an environment marker.")
     return canonicalize_name(requirement.name)
+
+
+def _parse_include_apps_from(environment: str, data: dict[str, _TomlValue]) -> tuple[str, ...]:
+    if not isinstance(packages := data.get("include-apps-from", []), list) or any(
+        not isinstance(package, str) or not package for package in packages
+    ):
+        raise PipxError(f"Manifest tool {environment} include-apps-from must be non-empty strings.")
+    included: Final[tuple[str, ...]] = tuple(canonicalize_name(package) for package in cast("list[str]", packages))
+    if len(included) != len(set(included)):
+        raise PipxError(f"Manifest tool {environment} include-apps-from must be unique.")
+    return included
 
 
 def _parse_apps(environment: str, data: dict[str, _TomlValue]) -> tuple[str, ...]:
@@ -337,6 +353,7 @@ class _ManifestTool:
     suffix: str
     apps: tuple[str, ...]
     include_dependencies: bool
+    include_apps_from: tuple[str, ...]
     expose: bool
     lock_file: Path | None
 
@@ -349,7 +366,9 @@ _ROOT_KEYS: Final[frozenset[str]] = frozenset({"project", "dependency-groups", "
 _PROJECT_KEYS: Final[frozenset[str]] = frozenset({"name", "version", "dependencies", "requires-python"})
 _TOOL_TABLE_KEYS: Final[frozenset[str]] = frozenset({"pipx", "nab"})
 _PIPX_KEYS: Final[frozenset[str]] = frozenset({"version", "tools"})
-_TOOL_KEYS: Final[frozenset[str]] = frozenset({"suffix", "apps", "include-dependencies", "expose", "lock"})
+_TOOL_KEYS: Final[frozenset[str]] = frozenset(
+    {"suffix", "apps", "include-dependencies", "include-apps-from", "expose", "lock"}
+)
 
 
 __all__ = [

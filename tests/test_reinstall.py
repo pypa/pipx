@@ -2,13 +2,14 @@ import sys
 from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
+from typing import Final
 
 import pytest
 from pytest_mock import MockerFixture
 
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, app_name, mock_legacy_venv, run_pipx_cli, skip_if_windows
 from pipx import paths, util, venv_inspect
-from pipx.pipx_metadata_file import PipxMetadata
+from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 
 
 def test_reinstall(pipx_temp_env, capsys):
@@ -99,6 +100,20 @@ def test_reinstall_specifier(pipx_temp_env, capsys):
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pylint"])
     captured = capsys.readouterr()
     assert "installed package pylint 3.0.4" in captured.out
+
+
+def test_reinstall_preserves_included_dependency(pipx_temp_env: None, local_extras_project: Path) -> None:
+    package: Final[str] = f"{local_extras_project}[tools]"
+    assert not run_pipx_cli(["install", package, "--include-apps-from", "pycowsay"])
+
+    assert not run_pipx_cli(["reinstall", "--python", sys.executable, "repeatme"])
+
+    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "repeatme").main_package
+    assert (
+        metadata.include_apps_from,
+        (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
+        (paths.ctx.bin_dir / app_name("black")).exists(),
+    ) == (["pycowsay"], True, False)
 
 
 @skip_if_windows

@@ -9,7 +9,7 @@ exposes their entry points on `PATH`.
 - User installations by default and system installations when the caller passes `--global`.
 - Application dependencies inside a managed environment. For unlocked environments, `inject` and `--preinstall` extend
     an application environment; they do not create standalone library environments.
-- Entry points from the main package, or from dependencies when the caller passes `--include-deps`.
+- Entry points from the main package and dependencies named with `--include-apps-from` or `--include-deps`.
 
 An install fails when neither the package nor its selected dependencies expose an application. The caller can pass
 `--app NAME` to require an exact entry point. pipx removes a new environment or restores an existing one when the check

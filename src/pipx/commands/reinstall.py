@@ -49,18 +49,10 @@ def _get_expected_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, loca
     if not venv.pipx_metadata.exposure_enabled:
         return resource_paths
     for package_info in venv.package_metadata.values():
-        if package_info.include_apps:
-            for app_path in package_info.app_paths:
-                resource_paths.add(local_bin_dir / add_suffix(app_path.name, package_info.suffix))
-            for man_path in package_info.man_paths:
-                resource_paths.add(local_man_dir / man_path.parent.name / man_path.name)
-        if package_info.include_dependencies:
-            for app_paths in package_info.app_paths_of_dependencies.values():
-                for app_path in app_paths:
-                    resource_paths.add(local_bin_dir / add_suffix(app_path.name, package_info.suffix))
-            for man_paths in package_info.man_paths_of_dependencies.values():
-                for man_path in man_paths:
-                    resource_paths.add(local_man_dir / man_path.parent.name / man_path.name)
+        for app_path in package_info.app_paths_to_expose:
+            resource_paths.add(local_bin_dir / add_suffix(app_path.name, package_info.suffix))
+        for man_path in package_info.man_paths_to_expose:
+            resource_paths.add(local_man_dir / man_path.parent.name / man_path.name)
     return resource_paths
 
 
@@ -139,6 +131,7 @@ def reinstall(
             force=True,
             reinstall=True,
             include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
+            include_apps_from=venv.pipx_metadata.main_package.include_apps_from,
             preinstall_packages=[],
             expected_apps=venv.pipx_metadata.main_package.expected_apps,
             lock_file=venv.pipx_metadata.main_package.lock_file,
@@ -164,6 +157,7 @@ def reinstall(
                 verbose=verbose,
                 include_apps=injected_package.include_apps,
                 include_dependencies=injected_package.include_dependencies,
+                include_apps_from=injected_package.include_apps_from,
                 force=True,
                 backend=backend or venv.pipx_metadata.backend,
                 env_backend=env_backend,
