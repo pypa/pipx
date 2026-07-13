@@ -6,6 +6,7 @@ import shutil
 import sys
 import tempfile
 import time
+from collections.abc import Sequence
 from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
@@ -525,6 +526,26 @@ def run_post_install_actions(
         print(f"done! {stars}", file=sys.stderr)
 
 
+def validate_expected_apps(venv: Venv, package_name: str, expected_apps: Sequence[str]) -> None:
+    if not expected_apps:
+        return
+
+    package: Final[PackageInfo] = venv.package_metadata[package_name]
+    available_apps: Final[list[str]] = sorted(
+        {
+            app[:-4] if WINDOWS and app.lower().endswith(".exe") else app
+            for app in [*package.apps, *(package.apps_of_dependencies if package.include_dependencies else ())]
+        }
+    )
+    missing_apps: Final[list[str]] = sorted(set(expected_apps) - set(available_apps))
+    if missing_apps:
+        raise PipxError(
+            f"Package {package_name} does not provide expected {'app' if len(missing_apps) == 1 else 'apps'} "
+            f"{', '.join(missing_apps)}. "
+            f"Available apps: {', '.join(available_apps) or 'none'}."
+        )
+
+
 def warn_if_not_on_path(local_bin_dir: Path) -> None:
     if not userpath.in_current_path(str(local_bin_dir)):
         _LOGGER.warning(
@@ -559,5 +580,6 @@ __all__ = [
     "get_venv_summary",
     "package_name_from_spec",
     "run_post_install_actions",
+    "validate_expected_apps",
     "venv_health_check",
 ]

@@ -56,6 +56,21 @@ operations keep it hidden. Injected apps stay hidden too. Use `expose` to restor
 pipx expose ansible
 ```
 
+### Requiring an application entry point
+
+Pass `--app` when automation depends on a specific command.
+
+```
+pipx install --app http httpie
+```
+
+pipx checks the exact entry-point name before exposing files. If the package lacks the entry point, installation fails
+and pipx removes the new environment. pipx records the name; if a later force install, upgrade, or reinstall drops the
+entry point, pipx restores the existing environment.
+
+Use one package spec with `--app`. Repeat the option to require more than one entry point. Dependency entry points
+qualify when you also pass `--include-deps`.
+
 ### Keeping an installation within a version range
 
 Use `--upgrade` when you want an installed app to match a package spec:

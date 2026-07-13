@@ -26,6 +26,7 @@ TEST_PACKAGE1 = PackageInfo(
     man_pages_of_dependencies=[str(Path("man1/dep1.1"))],
     man_paths_of_dependencies={"dep1": [Path("man1/dep1.1")]},
     package_version="0.1.2",
+    expected_apps=["testapp"],
 )
 TEST_PACKAGE2 = PackageInfo(
     package="inj_package",
@@ -90,6 +91,19 @@ def test_pipx_metadata_file_defaults_exposure_for_version_0_6(tmp_path: Path) ->
     )
 
     assert PipxMetadata(venv_dir).exposure_enabled is True
+
+
+def test_pipx_metadata_file_defaults_expected_apps_from_version_0_7(tmp_path: Path) -> None:
+    venv_dir = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    payload = metadata.to_dict()
+    payload["pipx_metadata_version"] = "0.7"
+    payload["main_package"].pop("expected_apps")
+    (venv_dir / PIPX_INFO_FILENAME).write_text(json.dumps(payload, cls=JsonEncoderHandlesPath))
+
+    assert PipxMetadata(venv_dir).main_package.expected_apps == []
 
 
 @pytest.mark.parametrize(

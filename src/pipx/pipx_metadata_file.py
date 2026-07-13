@@ -33,6 +33,7 @@ class _RawPackageInfo(TypedDict, total=False):
     apps_of_dependencies: list[str]
     app_paths_of_dependencies: dict[str, list[Path]]
     package_version: str
+    expected_apps: list[str]
     man_pages: list[str]
     man_paths: list[Path]
     man_pages_of_dependencies: list[str]
@@ -90,6 +91,7 @@ class PackageInfo:
     apps_of_dependencies: list[str]
     app_paths_of_dependencies: dict[str, list[Path]]
     package_version: str
+    expected_apps: list[str] = field(default_factory=list)
     man_pages: list[str] = field(default_factory=list)
     man_paths: list[Path] = field(default_factory=list)
     man_pages_of_dependencies: list[str] = field(default_factory=list)
@@ -106,7 +108,7 @@ class PipxMetadata:
     # V0.4 -> Add source interpreter
     # V0.5 -> Add pinned
     # V0.6 -> Add backend (pip|uv)
-    __METADATA_VERSION__: str = "0.7"
+    __METADATA_VERSION__: Final[str] = "0.8"
 
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
@@ -122,6 +124,7 @@ class PipxMetadata:
             app_paths=[],
             apps_of_dependencies=[],
             app_paths_of_dependencies={},
+            expected_apps=[],
             man_pages=[],
             man_paths=[],
             man_pages_of_dependencies=[],
@@ -157,7 +160,7 @@ class PipxMetadata:
 
     def _convert_legacy_metadata(self, metadata_dict: _RawMetadata) -> _RawMetadata:
         version = metadata_dict["pipx_metadata_version"]
-        if version in (self.__METADATA_VERSION__, "0.6", "0.5"):
+        if version in (self.__METADATA_VERSION__, "0.7", "0.6", "0.5"):
             pass
         elif version == "0.4":
             metadata_dict["pinned"] = False

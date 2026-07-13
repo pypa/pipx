@@ -4,7 +4,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 from unittest import mock
 
 import pytest
@@ -184,6 +184,198 @@ def test_install_no_apps_guidance(
         f"--preinstall {package_name}" in error,
         "Try again with '--include-deps'" in error,
     ) == (1, True, True, True, has_dependency_apps)
+
+
+def test_install_records_expected_app(pipx_temp_env: None) -> None:
+    assert not run_pipx_cli(["install", "--app", "pycowsay", PKG["pycowsay"]["spec"]])
+
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.expected_apps == ["pycowsay"]
+
+
+@pytest.mark.parametrize(
+    ("app_args", "expected_error"),
+    [
+        pytest.param(["--app", "missing"], "expected app missing", id="one"),
+        pytest.param(
+            ["--app", "missing", "--app", "absent"],
+            "expected apps absent, missing",
+            id="multiple",
+        ),
+    ],
+)
+def test_install_missing_expected_app_rolls_back(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    app_args: list[str],
+    expected_error: str,
+) -> None:
+    return_code = run_pipx_cli(["install", *app_args, PKG["pycowsay"]["spec"]])
+
+    captured = capsys.readouterr()
+    error = " ".join(captured.err.split())
+    assert (
+        return_code,
+        f"Package pycowsay does not provide {expected_error}. Available apps: pycowsay." in error,
+        (paths.ctx.venvs / "pycowsay").exists(),
+        (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
+    ) == (1, True, False, False)
+
+
+@pytest.mark.parametrize(
+    ("package_spec", "pin"),
+    [
+        pytest.param("pycowsay>=0", False, id="satisfied"),
+        pytest.param("pycowsay==999", True, id="pinned"),
+    ],
+)
+def test_install_upgrade_records_expected_app_without_package_change(
+    pipx_temp_env: None,
+    package_spec: str,
+    pin: bool,
+) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    if pin:
+        assert not run_pipx_cli(["pin", "pycowsay"])
+
+    assert not run_pipx_cli(["install", "--upgrade", "--app", "pycowsay", package_spec])
+
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.expected_apps == ["pycowsay"]
+
+
+def test_install_accepts_expected_dependency_app(pipx_temp_env: None, root: Path) -> None:
+    package = f"{root / TEST_DATA_PATH / 'local_extras'}[cow]"
+
+    assert not run_pipx_cli(["install", "--include-deps", "--app", "pycowsay", package])
+
+    assert PipxMetadata(paths.ctx.venvs / "repeatme").main_package.expected_apps == ["pycowsay"]
+
+
+def test_install_upgrade_reexposes_expected_dependency_resources(
+    pipx_temp_env: None,
+    root: Path,
+    tmp_path: Path,
+) -> None:
+    dependency: Final[Path] = root / TEST_DATA_PATH / "local_manpage"
+    project: Final[Path] = tmp_path / "expected-dependency-app"
+    shutil.copytree(root / "testdata/empty_project", project)
+    pyproject: Final[Path] = project / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text(encoding="utf-8").replace(
+            'requires-python = ">=3.10"\n',
+            f'dependencies = [\n  "local-manpage @ {dependency.as_uri()}",\n]\nrequires-python = ">=3.10"\n',
+        ),
+        encoding="utf-8",
+    )
+    assert not run_pipx_cli(["install", "--include-deps", "--app", "local-manpage", str(project)])
+    app_path: Final[Path] = paths.ctx.bin_dir / app_name("local-manpage")
+    man_path: Final[Path] = paths.ctx.man_dir / "man1/local-manpage.1"
+    app_path.unlink()
+    man_path.unlink()
+    pyproject.write_text(
+        pyproject.read_text(encoding="utf-8").replace('version = "0.1.0"', 'version = "0.2.0"'),
+        encoding="utf-8",
+    )
+
+    assert not run_pipx_cli(["install", "--upgrade", str(project)])
+
+    assert (app_path.exists(), man_path.exists()) == (True, True)
+
+
+def test_install_expected_app_rejects_multiple_specs(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert run_pipx_cli(["install", "--app", "pycowsay", "pycowsay", PKG["black"]["spec"]])
+
+    assert (
+        "--app accepts one package spec" in capsys.readouterr().err,
+        (paths.ctx.venvs / "pycowsay").exists(),
+        (paths.ctx.venvs / "black").exists(),
+    ) == (True, False, False)
+
+
+def test_install_force_preserves_expected_app(pipx_temp_env: None) -> None:
+    assert not run_pipx_cli(["install", "--app", "pycowsay", PKG["pycowsay"]["spec"]])
+
+    assert not run_pipx_cli(["install", "--force", PKG["pycowsay"]["spec"]])
+
+    assert (
+        PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.expected_apps,
+        tuple(paths.ctx.venvs.glob(".pycowsay-*-pipx-backup")),
+    ) == (["pycowsay"], ())
+
+
+def test_install_backup_failure_preserves_existing_environment(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    mocker: "MockerFixture",
+) -> None:
+    assert not run_pipx_cli(["install", "--app", "pycowsay", PKG["pycowsay"]["spec"]])
+    mocker.patch("pipx.commands.transaction.copytree", autospec=True, side_effect=OSError("disk full"))
+
+    assert run_pipx_cli(["install", "--force", PKG["pycowsay"]["spec"]])
+
+    assert (
+        "pipx could not back up environment pycowsay: disk full" in capsys.readouterr().err,
+        PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.expected_apps,
+        (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
+    ) == (True, ["pycowsay"], True)
+
+
+@pytest.mark.parametrize(
+    "reconciliation",
+    [
+        pytest.param("force", id="install-force"),
+        pytest.param("install-upgrade", id="install-upgrade"),
+        pytest.param("upgrade", id="upgrade"),
+        pytest.param("reinstall", id="reinstall"),
+    ],
+)
+def test_install_missing_recorded_app_restores_existing_environment(
+    missing_expected_app_project: Path,
+    capsys: pytest.CaptureFixture[str],
+    reconciliation: str,
+) -> None:
+    commands = {
+        "force": ["install", "--force", str(missing_expected_app_project)],
+        "install-upgrade": ["install", "--upgrade", str(missing_expected_app_project)],
+        "upgrade": ["upgrade", "empty-project"],
+        "reinstall": ["reinstall", "empty-project"],
+    }
+    assert run_pipx_cli(commands[reconciliation])
+
+    captured = capsys.readouterr()
+    metadata = PipxMetadata(paths.ctx.venvs / "empty-project").main_package
+    error = " ".join(captured.err.split())
+    assert (
+        "Package empty-project does not provide expected app empty-project. Available apps: none." in error,
+        metadata.package_version,
+        metadata.expected_apps,
+        metadata.apps,
+        (paths.ctx.bin_dir / app_name("empty-project")).exists(),
+    ) == (True, "0.1.0", ["empty-project"], [app_name("empty-project")], True)
+
+
+@pytest.fixture
+def missing_expected_app_project(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    root: Path,
+    tmp_path: Path,
+) -> Path:
+    project = tmp_path / "expected-app-project"
+    shutil.copytree(root / "testdata/empty_project", project)
+    assert not run_pipx_cli(["install", "--app", "empty-project", str(project)])
+    capsys.readouterr()
+
+    pyproject = project / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text()
+        .replace('version = "0.1.0"', 'version = "0.2.0"')
+        .replace('scripts.empty-project = "empty_project.main:cli"\n', "")
+        .replace('entry-points."pipx.run".empty-project = "empty_project.main:cli"\n', "")
+    )
+    return project
 
 
 def test_install_same_package_twice_no_force(pipx_temp_env, capsys):
