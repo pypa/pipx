@@ -3,6 +3,7 @@ import sys
 from collections.abc import Iterator
 from pathlib import Path
 
+from filelock import BaseFileLock
 from packaging.utils import canonicalize_name
 
 from pipx import commands, paths
@@ -110,6 +111,7 @@ def install(
     env_backend: str | None = None,
     upgrade: bool = False,
     upgrade_strategy: str | None = None,
+    venv_lock: BaseFileLock | None = None,
 ) -> ExitCode:
     """Returns pipx exit code."""
     # package_spec is anything pip-installable, including package_name, vcs spec,
@@ -134,109 +136,108 @@ def install(
             for package_spec in package_specs
         ]
 
+    venv_container = VenvContainer(venv_dir.parent if venv_dir is not None else paths.ctx.venvs)
     for package_name, package_spec in zip(package_names, package_specs, strict=False):
         if venv_dir is None:
-            venv_container = VenvContainer(paths.ctx.venvs)
             venv_dir = venv_container.get_venv_dir(f"{package_name}{suffix}")
 
-        try:
-            exists = venv_dir.exists() and bool(next(venv_dir.iterdir()))
-        except StopIteration:
-            exists = False
+        with venv_lock or venv_container.venv_lock(venv_dir):
+            try:
+                exists = venv_dir.exists() and bool(next(venv_dir.iterdir()))
+            except StopIteration:
+                exists = False
 
-        # ``pipx install pip`` always uses pip (uv venvs ship no pip). Override
-        # only the implicit env path; ``--backend uv`` still falls through to
-        # ``assert_not_pip_under_uv`` so an explicit conflict fails loudly.
-        install_backend, install_env_backend = backend, env_backend
-        if canonicalize_name(package_name) == "pip":
-            install_backend = backend or PIP
-            install_env_backend = None
+            # ``pipx install pip`` always uses pip (uv venvs ship no pip). Override
+            # only the implicit env path; ``--backend uv`` still falls through to
+            # ``assert_not_pip_under_uv`` so an explicit conflict fails loudly.
+            install_backend, install_env_backend = backend, env_backend
+            if canonicalize_name(package_name) == "pip":
+                install_backend = backend or PIP
+                install_env_backend = None
 
-        venv = Venv(
-            venv_dir,
-            python=python,
-            verbose=verbose,
-            backend=install_backend,
-            env_backend=install_env_backend,
-        )
-        if exists:
-            if not reinstall and force and python_flag_passed:
-                print(
-                    pipx_wrap(
-                        f"""
-                        --python is ignored when --force is passed.
-                        If you want to reinstall {package_name} with {python},
-                        run `pipx reinstall {package_spec} --python {python}` instead.
-                        """
+            venv = Venv(
+                venv_dir,
+                python=python,
+                verbose=verbose,
+                backend=install_backend,
+                env_backend=install_env_backend,
+            )
+            if exists:
+                if not reinstall and force and python_flag_passed:
+                    print(
+                        pipx_wrap(
+                            f"""
+                            --python is ignored when --force is passed.
+                            If you want to reinstall {package_name} with {python},
+                            run `pipx reinstall {package_spec} --python {python}` instead.
+                            """
+                        )
                     )
+                if force:
+                    print(f"Installing to existing venv {venv.name!r}")
+                elif upgrade:
+                    _upgrade_existing_venv(
+                        venv,
+                        package_name,
+                        package_spec,
+                        local_bin_dir,
+                        local_man_dir,
+                        pip_args,
+                        verbose,
+                        upgrade_strategy,
+                    )
+                    if len(package_specs) == 1:
+                        return EXIT_CODE_OK
+                    venv_dir = None
+                    continue
+                else:
+                    installed_version = venv.pipx_metadata.main_package.package_version
+                    version_info = f" ({installed_version})" if installed_version else ""
+                    print(
+                        pipx_wrap(
+                            f"""
+                            {venv.name!r}{version_info} already seems to be installed. Not
+                            modifying existing installation in '{venv_dir}'.
+                            Pass '--force' to force installation, or use
+                            'pipx upgrade {venv.name}' to upgrade.
+                            """
+                        )
+                    )
+                    if len(package_specs) == 1:
+                        return EXIT_CODE_INSTALL_VENV_EXISTS
+                    venv_dir = None
+                    continue
+
+            venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
+            try:
+                override_shared = canonicalize_name(package_name) == "pip"
+                venv.create_venv(venv_args, pip_args, override_shared)
+                for dependency in preinstall_packages or []:
+                    venv.upgrade_package_no_metadata(dependency, [])
+                venv.install_package(
+                    package_name=package_name,
+                    package_or_url=package_spec,
+                    pip_args=pip_args,
+                    install_only_pip_args=["--force-reinstall"] if force and exists else None,
+                    include_dependencies=include_dependencies,
+                    include_apps=True,
+                    is_main_package=True,
+                    suffix=suffix,
                 )
-            if force:
-                print(f"Installing to existing venv {venv.name!r}")
-            elif upgrade:
-                _upgrade_existing_venv(
+                run_post_install_actions(
                     venv,
                     package_name,
-                    package_spec,
                     local_bin_dir,
                     local_man_dir,
-                    pip_args,
-                    verbose,
-                    upgrade_strategy,
+                    venv_dir,
+                    include_dependencies,
+                    force=force,
                 )
-                if len(package_specs) == 1:
-                    return EXIT_CODE_OK
-                venv_dir = None
-                continue
-            else:
-                installed_version = venv.pipx_metadata.main_package.package_version
-                version_info = f" ({installed_version})" if installed_version else ""
-                print(
-                    pipx_wrap(
-                        f"""
-                        {venv.name!r}{version_info} already seems to be installed. Not
-                        modifying existing installation in '{venv_dir}'.
-                        Pass '--force' to force installation, or use
-                        'pipx upgrade {venv.name}' to upgrade.
-                        """
-                    )
-                )
-                if len(package_specs) == 1:
-                    return EXIT_CODE_INSTALL_VENV_EXISTS
-                # Reset venv_dir to None ready to install the next package in the list
-                venv_dir = None
-                continue
+            except (Exception, KeyboardInterrupt):
+                print()
+                venv.remove_venv()
+                raise
 
-        venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
-        try:
-            override_shared = canonicalize_name(package_name) == "pip"
-            venv.create_venv(venv_args, pip_args, override_shared)
-            for dependency in preinstall_packages or []:
-                venv.upgrade_package_no_metadata(dependency, [])
-            venv.install_package(
-                package_name=package_name,
-                package_or_url=package_spec,
-                pip_args=pip_args,
-                install_only_pip_args=["--force-reinstall"] if force and exists else None,
-                include_dependencies=include_dependencies,
-                include_apps=True,
-                is_main_package=True,
-                suffix=suffix,
-            )
-            run_post_install_actions(
-                venv,
-                package_name,
-                local_bin_dir,
-                local_man_dir,
-                venv_dir,
-                include_dependencies,
-                force=force,
-            )
-        except (Exception, KeyboardInterrupt):
-            print()
-            venv.remove_venv()
-            raise
-
-        # Reset venv_dir to None ready to install the next package in the list
         venv_dir = None
 
     # Any failure to install will raise PipxError, otherwise success
@@ -310,42 +311,41 @@ def install_all(
     installed: list[str] = []
 
     for venv_metadata in extract_venv_metadata(spec_metadata_file):
-        # Install the main package
         main_package = venv_metadata.main_package
         venv_dir = venv_container.get_venv_dir(f"{main_package.package}{main_package.suffix}")
         try:
-            install(
-                venv_dir,
-                None,
-                [generate_package_spec(main_package)],
-                local_bin_dir,
-                local_man_dir,
-                python or get_python_interpreter(venv_metadata.source_interpreter),
-                pip_args,
-                venv_args,
-                verbose,
-                force=force,
-                reinstall=False,
-                include_dependencies=main_package.include_dependencies,
-                preinstall_packages=[],
-                suffix=main_package.suffix,
-                backend=backend or venv_metadata.backend,
-                env_backend=env_backend,
-            )
-
-            # Install the injected packages
-            for inject_package in venv_metadata.injected_packages.values():
-                commands.inject(
-                    venv_dir=venv_dir,
-                    package_specs=[generate_package_spec(inject_package)],
-                    requirement_files=[],
-                    pip_args=pip_args,
-                    verbose=verbose,
-                    include_apps=inject_package.include_apps,
-                    include_dependencies=inject_package.include_dependencies,
+            with venv_container.venv_lock(venv_dir) as venv_lock:
+                install(
+                    venv_dir,
+                    None,
+                    [generate_package_spec(main_package)],
+                    local_bin_dir,
+                    local_man_dir,
+                    python or get_python_interpreter(venv_metadata.source_interpreter),
+                    pip_args,
+                    venv_args,
+                    verbose,
                     force=force,
-                    suffix=inject_package.suffix == main_package.suffix,
+                    reinstall=False,
+                    include_dependencies=main_package.include_dependencies,
+                    preinstall_packages=[],
+                    suffix=main_package.suffix,
+                    backend=backend or venv_metadata.backend,
+                    env_backend=env_backend,
+                    venv_lock=venv_lock,
                 )
+                for inject_package in venv_metadata.injected_packages.values():
+                    commands.inject(
+                        venv_dir=venv_dir,
+                        package_specs=[generate_package_spec(inject_package)],
+                        requirement_files=[],
+                        pip_args=pip_args,
+                        verbose=verbose,
+                        include_apps=inject_package.include_apps,
+                        include_dependencies=inject_package.include_dependencies,
+                        force=force,
+                        suffix=inject_package.suffix == main_package.suffix,
+                    )
         except PipxError as e:
             print(e, file=sys.stderr)
             failed.append(venv_dir.name)

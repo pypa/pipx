@@ -1,26 +1,32 @@
+import json
 from pathlib import Path
+
+import pytest
 
 from helpers import run_pipx_cli
 from pipx import paths
 
 
-def test_install_all(pipx_temp_env, tmp_path, capsys):
+def test_install_all(pipx_temp_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["install", "black"])
-    _ = capsys.readouterr()
+    assert not run_pipx_cli(["inject", "black", "pycowsay"])
+    capsys.readouterr()
 
     assert not run_pipx_cli(["list", "--json"])
-    captured = capsys.readouterr()
+    pipx_list_path = tmp_path / "pipx_list.json"
+    pipx_list_path.write_text(capsys.readouterr().out, encoding="utf-8")
 
-    pipx_list_path = Path(tmp_path) / "pipx_list.json"
-    with open(pipx_list_path, "w") as pipx_list_fh:
-        pipx_list_fh.write(captured.out)
-
+    assert not run_pipx_cli(["uninstall-all"])
     assert not run_pipx_cli(["install-all", str(pipx_list_path)])
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--json"])
 
-    captured = capsys.readouterr()
-    assert "black" in captured.out
-    assert "pycowsay" in captured.out
+    installed = json.loads(capsys.readouterr().out)["venvs"]
+    assert (sorted(installed), sorted(installed["black"]["metadata"]["injected_packages"])) == (
+        ["black", "pycowsay"],
+        ["pycowsay"],
+    )
 
 
 def test_install_all_multiple_errors(pipx_temp_env, root, capsys):

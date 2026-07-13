@@ -1,7 +1,7 @@
 import json
 import logging
 import sys
-from collections.abc import Collection
+from collections.abc import Collection, Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -28,7 +28,7 @@ def get_venv_metadata_summary(venv_dir: Path) -> tuple[PipxMetadata, VenvProblem
     return (venv.pipx_metadata, venv_problems, "")
 
 
-def list_short(venv_dirs: Collection[Path]) -> VenvProblems:
+def list_short(venv_dirs: Iterable[Path]) -> VenvProblems:
     all_venv_problems = VenvProblems()
     for venv_dir in venv_dirs:
         venv_metadata, venv_problems, warning_str = get_venv_metadata_summary(venv_dir)
@@ -44,7 +44,7 @@ def list_short(venv_dirs: Collection[Path]) -> VenvProblems:
     return all_venv_problems
 
 
-def list_text(venv_dirs: Collection[Path], include_injected: bool, venv_root_dir: str) -> VenvProblems:
+def list_text(venv_dirs: Iterable[Path], include_injected: bool, venv_root_dir: str) -> VenvProblems:
     print(f"venvs are in {bold(venv_root_dir)}")
     print(f"apps are exposed on your $PATH at {bold(str(paths.ctx.bin_dir))}")
     print(f"manual pages are exposed at {bold(str(paths.ctx.man_dir))}")
@@ -61,7 +61,7 @@ def list_text(venv_dirs: Collection[Path], include_injected: bool, venv_root_dir
     return all_venv_problems
 
 
-def list_json(venv_dirs: Collection[Path]) -> VenvProblems:
+def list_json(venv_dirs: Iterable[Path]) -> VenvProblems:
     warning_messages = []
     spec_metadata: dict[str, Any] = {
         "pipx_spec_version": PIPX_SPEC_VERSION,
@@ -85,7 +85,7 @@ def list_json(venv_dirs: Collection[Path]) -> VenvProblems:
     return all_venv_problems
 
 
-def list_pinned(venv_dirs: Collection[Path], include_injected: bool) -> VenvProblems:
+def list_pinned(venv_dirs: Iterable[Path], include_injected: bool) -> VenvProblems:
     all_venv_problems = VenvProblems()
     for venv_dir in venv_dirs:
         venv_metadata, venv_problems, warning_str = get_venv_metadata_summary(venv_dir)
@@ -119,15 +119,17 @@ def list_packages(
         print(f"nothing has been installed with pipx {sleep}", file=sys.stderr)
 
     if json_format:
-        all_venv_problems = list_json(venv_dirs)
+        all_venv_problems = list_json(_locked_venv_dirs(venv_container, venv_dirs))
     elif short_format:
-        all_venv_problems = list_short(venv_dirs)
+        all_venv_problems = list_short(_locked_venv_dirs(venv_container, venv_dirs))
     elif pinned_only:
-        all_venv_problems = list_pinned(venv_dirs, include_injected)
+        all_venv_problems = list_pinned(_locked_venv_dirs(venv_container, venv_dirs), include_injected)
     else:
         if not venv_dirs:
             return EXIT_CODE_OK
-        all_venv_problems = list_text(venv_dirs, include_injected, str(venv_container))
+        all_venv_problems = list_text(
+            _locked_venv_dirs(venv_container, venv_dirs), include_injected, str(venv_container)
+        )
 
     if all_venv_problems.bad_venv_name:
         logger.warning(
@@ -156,3 +158,15 @@ def list_packages(
         return EXIT_CODE_LIST_PROBLEM
 
     return EXIT_CODE_OK
+
+
+def _locked_venv_dirs(venv_container: VenvContainer, venv_dirs: Collection[Path]) -> Iterator[Path]:
+    for venv_dir in venv_dirs:
+        with venv_container.venv_lock(venv_dir):
+            if venv_dir.is_dir():
+                yield venv_dir
+
+
+__all__ = [
+    "list_packages",
+]

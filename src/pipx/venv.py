@@ -6,6 +6,8 @@ from importlib.metadata import Distribution, EntryPoint
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NoReturn
 
+from filelock import BaseFileLock, FileLock
+
 if TYPE_CHECKING:
     from subprocess import CompletedProcess
 
@@ -119,6 +121,10 @@ class VenvContainer:
     def get_venv_dir(self, package_name: str) -> Path:
         """Return the expected venv path for given `package_name`."""
         return self._root.joinpath(canonicalize_name(package_name))
+
+    def venv_lock(self, venv_dir: Path) -> BaseFileLock:
+        self._root.mkdir(parents=True, exist_ok=True)
+        return FileLock(self._root / f".{canonicalize_name(venv_dir.name)}.lock")
 
 
 class Venv:

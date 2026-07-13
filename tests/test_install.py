@@ -12,6 +12,7 @@ import pytest
 from helpers import app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
 from package_info import PKG
 from pipx import paths, shared_libs
+from pipx.constants import EXIT_CODE_OK
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.util import PipxError
 from pipx.venv import Venv
@@ -214,6 +215,27 @@ def test_install_upgrade_reconciles_package_spec(pipx_temp_env, capsys):
     captured = capsys.readouterr()
     assert "upgraded package black from 22.10.0 to 22.8.0" in captured.out
     assert PipxMetadata(paths.ctx.venvs / "black").main_package.package_version == "22.8.0"
+
+
+def test_install_upgrade_multiple_existing(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    package_specs = [PKG["black"]["spec"], PKG["pycowsay"]["spec"]]
+    assert run_pipx_cli(["install", *package_specs]) == EXIT_CODE_OK
+    capsys.readouterr()
+
+    assert run_pipx_cli(["install", "--upgrade", *package_specs]) == EXIT_CODE_OK
+    output = capsys.readouterr().out
+    assert ("black 22.8.0 already satisfies" in output, "pycowsay 0.0.0.2 already satisfies" in output) == (
+        True,
+        True,
+    )
+
+
+def test_install_reuses_empty_environment_dir(pipx_temp_env: None) -> None:
+    (paths.ctx.venvs / "pycowsay").mkdir(parents=True)
+    assert (
+        run_pipx_cli(["install", PKG["pycowsay"]["spec"]]),
+        PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.package,
+    ) == (EXIT_CODE_OK, "pycowsay")
 
 
 def test_install_upgrade_satisfied_spec_is_offline(pipx_temp_env, capsys, mocker: "MockerFixture"):

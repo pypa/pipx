@@ -21,9 +21,10 @@ def get_installed_standalone_interpreters() -> list[Path]:
 def get_venvs_using_standalone_interpreter(venv_container: VenvContainer) -> list[Venv]:
     venvs: list[Venv] = []
     for venv_dir in venv_container.iter_venv_dirs():
-        venv = Venv(venv_dir)
-        if venv.pipx_metadata.source_interpreter:
-            venvs.append(venv)
+        with venv_container.venv_lock(venv_dir):
+            venv = Venv(venv_dir)
+            if venv.pipx_metadata.source_interpreter:
+                venvs.append(venv)
     return venvs
 
 
@@ -127,17 +128,20 @@ def upgrade_interpreters(venv_container: VenvContainer, verbose: bool) -> consta
                 if venv.pipx_metadata.source_interpreter is not None and is_paths_relative(
                     venv.pipx_metadata.source_interpreter, interpreter_dir
                 ):
-                    print(
-                        f"Upgrade the interpreter of {venv.name} from {interpreter_full_version} to {latest_micro_version}"
-                    )
-                    commands.reinstall(
-                        venv_dir=venv.root,
-                        local_bin_dir=paths.ctx.bin_dir,
-                        local_man_dir=paths.ctx.man_dir,
-                        python=str(interpreter_python),
-                        verbose=verbose,
-                    )
-                    upgraded.append((venv.name, interpreter_full_version, latest_micro_version))
+                    with venv_container.venv_lock(venv.root) as venv_lock:
+                        print(
+                            f"Upgrade the interpreter of {venv.name} from "
+                            f"{interpreter_full_version} to {latest_micro_version}"
+                        )
+                        commands.reinstall(
+                            venv_dir=venv.root,
+                            local_bin_dir=paths.ctx.bin_dir,
+                            local_man_dir=paths.ctx.man_dir,
+                            python=str(interpreter_python),
+                            verbose=verbose,
+                            venv_lock=venv_lock,
+                        )
+                        upgraded.append((venv.name, interpreter_full_version, latest_micro_version))
 
     if upgraded:
         print("Successfully upgraded the interpreter(s):")

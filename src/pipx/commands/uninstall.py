@@ -42,7 +42,8 @@ def uninstall_all(
     messages: list[OutputMessage] = []
     packages: list[_UninstalledPackage] = []
     for venv_dir in venv_container.iter_venv_dirs():
-        result = uninstall(venv_dir, local_bin_dir, local_man_dir, verbose)
+        with venv_container.venv_lock(venv_dir):
+            result = uninstall(venv_dir, local_bin_dir, local_man_dir, verbose)
         failures.extend(result.data.failures)
         messages.extend(result.messages)
         packages.extend(result.data.packages)
