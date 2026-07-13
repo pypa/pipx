@@ -1,7 +1,8 @@
+import json
 import sys
 from collections.abc import Callable
 from pathlib import Path
-from typing import Final
+from typing import Final, cast
 
 import pytest
 
@@ -16,7 +17,7 @@ from helpers import (
 )
 from package_info import PKG
 from pipx import paths
-from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
 
 
 def test_upgrade(pipx_temp_env, capsys):
@@ -130,6 +131,37 @@ def test_upgrade_missing_interpreter(pipx_temp_env, capsys):
     captured = capsys.readouterr()
     assert "invalid python interpreter" in captured.err
     assert "pipx reinstall-all" in captured.err
+
+
+def test_upgrade_reports_corrupt_package(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    metadata_path: Final[Path] = paths.ctx.venvs / "pycowsay" / PIPX_INFO_FILENAME
+    metadata: Final[dict[str, dict[str, str | None]]] = cast(
+        "dict[str, dict[str, str | None]]",
+        json.loads(metadata_path.read_text(encoding="utf-8")),
+    )
+    metadata["main_package"]["package_or_url"] = None
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+    capsys.readouterr()
+
+    assert run_pipx_cli(["upgrade", "pycowsay"])
+
+    assert "package pycowsay has corrupt pipx metadata" in capsys.readouterr().err
+
+
+def test_upgrade_ignores_venv_args_without_install(
+    pipx_temp_env: None,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    caplog.clear()
+
+    assert not run_pipx_cli(["upgrade", "pycowsay", "--system-site-packages"])
+
+    assert "Ignoring --system-site-packages as not combined with --install" in caplog.text
 
 
 def test_upgrade_editable(pipx_temp_env, capsys, root):
@@ -266,15 +298,7 @@ def test_upgrade_cooldown(
         root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
     )
     pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
-    assert not run_pipx_cli(
-        [
-            "install",
-            "--cooldown",
-            "7",
-            pip_args,
-            PKG["pycowsay"]["spec"],
-        ]
-    )
+    assert not run_pipx_cli(["install", "--cooldown", "7", pip_args, PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["inject", "--cooldown", "5", pip_args, "pycowsay", str(empty_project)])
     caplog.clear()
 

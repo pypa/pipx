@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
+from contextlib import nullcontext
 from dataclasses import replace
 from typing import TYPE_CHECKING, Final, Literal, TypeAlias, cast
 
@@ -12,10 +14,14 @@ from pipx import paths
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PipxMetadata
 
 if TYPE_CHECKING:
+    from contextlib import AbstractContextManager
     from pathlib import Path
     from unittest.mock import MagicMock
 
+    from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
+
+    from pipx.venv import VenvContainer
 
 _JsonValue: TypeAlias = None | bool | int | float | str | list["_JsonValue"] | dict[str, "_JsonValue"]
 _OUTDATED_JSON: Final[str] = (
@@ -43,6 +49,28 @@ def test_list_outdated_backend(
 
     captured = capsys.readouterr()
     assert (captured.out, captured.err) == ("pipx found no available upgrades.\n", "")
+
+
+def test_list_outdated_skips_removed_environment(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+
+    def remove_environment(_: VenvContainer, venv_dir: Path) -> AbstractContextManager[None]:
+        shutil.rmtree(venv_dir)
+        return nullcontext()
+
+    lock: Final[MagicMock] = mocker.patch(
+        "pipx.venv.VenvContainer.venv_lock", autospec=True, side_effect=remove_environment
+    )
+
+    assert not run_pipx_cli(["list", "--outdated"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (captured.out, captured.err, lock.call_count) == ("pipx found no index packages to check.\n", "", 1)
 
 
 @pytest.mark.parametrize(
