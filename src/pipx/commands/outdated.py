@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from functools import partial
+from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
@@ -12,51 +14,179 @@ from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Collection, Sequence
+    from pathlib import Path
+
     from pipx.pipx_metadata_file import PackageInfo
 
+_MAX_OUTDATED_WORKERS: Final[int] = 8
 
-def list_outdated(venv_container: VenvContainer, *, include_injected: bool) -> OperationResult[OutdatedData]:
-    packages_checked = 0
-    failures: list[_FailedEnvironment] = []
-    messages: list[OutputMessage] = []
-    outdated_packages: list[_OutdatedPackage] = []
-    skipped: list[_SkippedPackage] = []
-    for venv_dir in venv_container.iter_locked_venv_dirs(venv_container.iter_venv_dirs()):
-        venv = Venv(venv_dir)
-        if not venv.package_metadata:
-            error = "Missing internal pipx metadata."
-            failures.append(_FailedEnvironment(venv.name, error))
-            messages.append(OutputMessage(f"{venv.name}: {error}", stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+
+def list_outdated(
+    venv_container: VenvContainer,
+    *,
+    include_injected: bool,
+) -> OperationResult[OutdatedData]:
+    data: Final[OutdatedData] = inspect_outdated(venv_container, include_injected=include_injected)
+    messages: Final[list[OutputMessage]] = [
+        OutputMessage(
+            f"{failure.environment}: {failure.error}",
+            stream=OutputStream.STDERR,
+            level=OutputLevel.ERROR,
+        )
+        for failure in data.failures
+    ]
+    messages.extend(_package_message(package) for package in data.packages)
+    if not data.packages and not data.failures:
+        messages.append(
+            OutputMessage(
+                "pipx found no available upgrades."
+                if data.packages_checked
+                else "pipx found no index packages to check."
+            )
+        )
+    return OperationResult(
+        command="list",
+        data=data,
+        messages=tuple(messages),
+        exit_code=ExitCode(1 if data.failures else 0),
+    )
+
+
+def inspect_outdated(
+    venv_container: VenvContainer,
+    *,
+    include_injected: bool,
+    upgradable_only: bool = False,
+    pip_args: Sequence[str] = (),
+    skip: Collection[str] = (),
+    backend: str | None = None,
+    env_backend: str | None = None,
+) -> OutdatedData:
+    venv_dirs: Final[tuple[Path, ...]] = tuple(
+        sorted(venv_dir for venv_dir in venv_container.iter_venv_dirs() if venv_dir.name not in skip)
+    )
+    checks: Final[tuple[_EnvironmentOutdated, ...]] = _list_environments_outdated(
+        venv_container,
+        venv_dirs,
+        include_injected=include_injected,
+        upgradable_only=upgradable_only,
+        pip_args=pip_args,
+        backend=backend,
+        env_backend=env_backend,
+    )
+    packages: Final[tuple[_OutdatedPackage, ...]] = tuple(
+        sorted(
+            (package for check in checks for package in check.packages),
+            key=lambda package: (package.environment, package.package),
+        )
+    )
+    failures: Final[tuple[_FailedEnvironment, ...]] = tuple(
+        sorted(
+            (failure for check in checks for failure in check.failures),
+            key=lambda failure: (failure.environment, failure.error),
+        )
+    )
+    skipped: Final[tuple[_SkippedPackage, ...]] = tuple(
+        sorted(
+            (package for check in checks for package in check.skipped),
+            key=lambda package: (package.environment, package.package),
+        )
+    )
+    return OutdatedData(
+        packages_checked=sum(check.packages_checked for check in checks),
+        packages=packages,
+        skipped=skipped,
+        failures=failures,
+    )
+
+
+def _list_environments_outdated(
+    venv_container: VenvContainer,
+    venv_dirs: tuple[Path, ...],
+    *,
+    include_injected: bool,
+    upgradable_only: bool,
+    pip_args: Sequence[str],
+    backend: str | None,
+    env_backend: str | None,
+) -> tuple[_EnvironmentOutdated, ...]:
+    if not venv_dirs:
+        return ()
+    check: Final[Callable[[Path], _EnvironmentOutdated]] = partial(
+        _list_environment_outdated,
+        venv_container,
+        include_injected=include_injected,
+        upgradable_only=upgradable_only,
+        pip_args=pip_args,
+        backend=backend,
+        env_backend=env_backend,
+    )
+    if len(venv_dirs) == 1:
+        return (check(venv_dirs[0]),)
+    with ThreadPoolExecutor(max_workers=min(_MAX_OUTDATED_WORKERS, len(venv_dirs))) as executor:
+        return tuple(executor.map(check, venv_dirs))
+
+
+def _list_environment_outdated(
+    venv_container: VenvContainer,
+    venv_dir: Path,
+    *,
+    include_injected: bool,
+    upgradable_only: bool,
+    pip_args: Sequence[str],
+    backend: str | None,
+    env_backend: str | None,
+) -> _EnvironmentOutdated:
+    with venv_container.venv_lock(venv_dir):
+        if not venv_dir.is_dir():
+            return _EnvironmentOutdated()
+        return _list_venv_outdated(
+            Venv(venv_dir, backend=backend, env_backend=env_backend),
+            include_injected=include_injected,
+            upgradable_only=upgradable_only,
+            pip_args=pip_args,
+        )
+
+
+def _list_venv_outdated(
+    venv: Venv,
+    *,
+    include_injected: bool,
+    upgradable_only: bool,
+    pip_args: Sequence[str],
+) -> _EnvironmentOutdated:
+    if not venv.package_metadata:
+        return _EnvironmentOutdated(failures=(_FailedEnvironment(venv.name, "Missing internal pipx metadata."),))
+    if upgradable_only and venv.pipx_metadata.main_package.lock_file is not None:
+        return _EnvironmentOutdated()
+
+    failures: Final[list[_FailedEnvironment]] = []
+    packages: Final[list[_OutdatedPackage]] = []
+    packages_by_index: Final[dict[tuple[str, ...], dict[str, PackageInfo]]] = {}
+    skipped: Final[list[_SkippedPackage]] = []
+    for package_name, package_info in venv.package_metadata.items():
+        if package_name != venv.main_package_name and not include_injected:
             continue
-        packages_by_index: dict[tuple[str, ...], dict[str, PackageInfo]] = {}
-        for package_name, package_info in venv.package_metadata.items():
-            if package_name != venv.main_package_name and not include_injected:
-                continue
-            display_name = f"{package_name}{package_info.suffix}"
-            if package_info.package_or_url is None:
-                error = f"Package {display_name} has corrupt pipx metadata."
-                failures.append(_FailedEnvironment(venv.name, error))
-                messages.append(
-                    OutputMessage(f"{venv.name}: {error}", stream=OutputStream.STDERR, level=OutputLevel.ERROR)
-                )
-                continue
-            if "--editable" in package_info.pip_args:
-                skipped.append(_SkippedPackage(venv.name, display_name, "editable"))
-                continue
-            if valid_pypi_name(package_info.package_or_url) is None:
-                skipped.append(_SkippedPackage(venv.name, display_name, "non-index"))
-                continue
-            packages_by_index.setdefault(tuple(extract_index_options(package_info.pip_args)), {})[
+        display_name: str = f"{package_name}{package_info.suffix}"
+        if package_info.package_or_url is None:
+            failures.append(_FailedEnvironment(venv.name, f"Package {display_name} has corrupt pipx metadata."))
+        elif upgradable_only and package_info.pinned:
+            continue
+        elif "--editable" in package_info.pip_args:
+            skipped.append(_SkippedPackage(venv.name, display_name, "editable"))
+        elif valid_pypi_name(package_info.package_or_url) is None:
+            skipped.append(_SkippedPackage(venv.name, display_name, "non-index"))
+        else:
+            packages_by_index.setdefault(tuple(extract_index_options(list(pip_args) or package_info.pip_args)), {})[
                 canonicalize_name(package_name)
             ] = package_info
 
-        for index_args, package_infos in packages_by_index.items():
-            packages_checked += len(package_infos)
-            try:
-                for package in venv.list_outdated_packages(list(index_args)):
-                    if (managed_package := package_infos.get(canonicalize_name(package.name))) is None:
-                        continue
-                    outdated_packages.append(
+    for index_args, package_infos in packages_by_index.items():
+        try:
+            for package in venv.list_outdated_packages(list(index_args)):
+                if (managed_package := package_infos.get(canonicalize_name(package.name))) is not None:
+                    packages.append(
                         _OutdatedPackage(
                             environment=venv.name,
                             package=f"{managed_package.package}{managed_package.suffix}",
@@ -66,35 +196,20 @@ def list_outdated(venv_container: VenvContainer, *, include_injected: bool) -> O
                             pinned=managed_package.pinned,
                         )
                     )
-            except PipxError as error:
-                failures.append(_FailedEnvironment(venv.name, str(error)))
-                messages.append(
-                    OutputMessage(f"{venv.name}: {error}", stream=OutputStream.STDERR, level=OutputLevel.ERROR)
-                )
-
-    packages = tuple(sorted(outdated_packages, key=lambda package: (package.environment, package.package)))
-    messages.extend(_package_message(package) for package in packages)
-    if not packages and not failures:
-        messages.append(
-            OutputMessage(
-                "pipx found no available upgrades." if packages_checked else "pipx found no index packages to check."
-            )
-        )
-    return OperationResult(
-        command="list",
-        data=OutdatedData(
-            packages_checked=packages_checked,
-            packages=packages,
-            skipped=tuple(sorted(skipped, key=lambda package: (package.environment, package.package))),
-            failures=tuple(sorted(failures, key=lambda failure: (failure.environment, failure.error))),
-        ),
-        messages=tuple(messages),
-        exit_code=ExitCode(1 if failures else 0),
+        except PipxError as error:
+            failures.append(_FailedEnvironment(venv.name, str(error)))
+    return _EnvironmentOutdated(
+        sum(len(package_infos) for package_infos in packages_by_index.values()),
+        tuple(packages),
+        tuple(skipped),
+        tuple(failures),
     )
 
 
 def _package_message(package: _OutdatedPackage) -> OutputMessage:
-    subject = f"{package.package} (injected in {package.environment})" if package.injected else package.package
+    subject: Final[str] = (
+        f"{package.package} (injected in {package.environment})" if package.injected else package.package
+    )
     return OutputMessage(
         f"{subject}{' [pinned]' if package.pinned else ''}: {package.version} -> {package.latest_version}"
     )
@@ -124,6 +239,14 @@ class _FailedEnvironment:
 
 
 @dataclass(frozen=True)
+class _EnvironmentOutdated:
+    packages_checked: int = 0
+    packages: tuple[_OutdatedPackage, ...] = ()
+    skipped: tuple[_SkippedPackage, ...] = ()
+    failures: tuple[_FailedEnvironment, ...] = ()
+
+
+@dataclass(frozen=True)
 class OutdatedData(OperationData):
     packages_checked: int
     packages: tuple[_OutdatedPackage, ...]
@@ -133,5 +256,6 @@ class OutdatedData(OperationData):
 
 __all__ = [
     "OutdatedData",
+    "inspect_outdated",
     "list_outdated",
 ]
