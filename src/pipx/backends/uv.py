@@ -80,7 +80,7 @@ class UvBackend(Backend):
                 "The uv backend cannot create a virtual environment with pip preinstalled.\n"
                 "Reinstall the package with `--backend pip` (or unset PIPX_DEFAULT_BACKEND)."
             )
-        cmd: list[str | Path] = [self._binary, "venv", "--python", python, *venv_args]
+        cmd: list[str | Path] = [self._binary, "venv", "--python", python, "--allow-existing", *venv_args]
         cmd.append("--verbose" if verbose else "--quiet")
         cmd.append(str(root))
         with animate("creating virtual environment", not verbose):
