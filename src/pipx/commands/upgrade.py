@@ -10,7 +10,8 @@ from filelock import BaseFileLock
 
 from pipx import commands, paths
 from pipx.colors import bold, red
-from pipx.commands.common import expose_package_resources
+from pipx.commands.common import expose_package_resources, validate_expected_apps
+from pipx.commands.transaction import preserve_venv
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojis import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
@@ -94,6 +95,7 @@ def _upgrade_package(
     )
 
     package_metadata = venv.package_metadata[package_name]
+    validate_expected_apps(venv, package_name, package_metadata.expected_apps)
 
     display_name = f"{package_metadata.package}{package_metadata.suffix}"
     new_version = package_metadata.package_version
@@ -232,31 +234,41 @@ def _upgrade_venv(
             wrap_message=False,
         )
 
+    with preserve_venv(
+        venv_dir,
+        enabled=any(package.expected_apps for package in venv.package_metadata.values()),
+    ):
+        return _upgrade_packages(venv, main_pip_args, pip_args, include_injected=include_injected, force=force)
+
+
+def _upgrade_packages(
+    venv: Venv,
+    main_pip_args: list[str],
+    pip_args: list[str],
+    *,
+    include_injected: bool,
+    force: bool,
+) -> tuple[PackageUpgradeResult, ...]:
     venv.upgrade_packaging_libraries(main_pip_args)
-
-    results: list[PackageUpgradeResult] = []
-
-    package_name = venv.main_package_name
-    results.append(
+    results: Final[list[PackageUpgradeResult]] = [
         _upgrade_package(
             venv,
-            package_name,
+            venv.main_package_name,
             main_pip_args,
             is_main_package=True,
             force=force,
         )
-    )
+    ]
 
     if include_injected:
         for package_name in venv.package_metadata:
             if package_name == venv.main_package_name:
                 continue
-            injected_pip_args = pip_args or venv.package_metadata[package_name].pip_args
             results.append(
                 _upgrade_package(
                     venv,
                     package_name,
-                    injected_pip_args,
+                    pip_args or venv.package_metadata[package_name].pip_args,
                     is_main_package=False,
                     force=force,
                 )

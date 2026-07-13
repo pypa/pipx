@@ -140,6 +140,7 @@ def reinstall(
             reinstall=True,
             include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
             preinstall_packages=[],
+            expected_apps=venv.pipx_metadata.main_package.expected_apps,
             suffix=venv.pipx_metadata.main_package.suffix,
             python_flag_passed=python_flag_passed,
             backend=backend or venv.pipx_metadata.backend,

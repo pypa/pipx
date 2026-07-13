@@ -1,7 +1,7 @@
 import logging
 import shutil
 import time
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Sequence
 from importlib.metadata import Distribution, EntryPoint
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NoReturn
@@ -344,6 +344,7 @@ class Venv:
         is_main_package: bool,
         suffix: str = "",
         install_only_pip_args: list[str] | None = None,
+        expected_apps: Sequence[str] | None = None,
     ) -> None:
         # package_name in package specifier can mismatch URL due to user error
         package_or_url = fix_package_name(package_or_url, package_name)
@@ -372,6 +373,7 @@ class Venv:
             include_apps=include_apps,
             is_main_package=is_main_package,
             suffix=suffix,
+            expected_apps=expected_apps,
         )
 
         # Verify package installed ok
@@ -453,8 +455,13 @@ class Venv:
         is_main_package: bool,
         suffix: str = "",
         pinned: bool = False,
+        expected_apps: Sequence[str] | None = None,
     ) -> None:
         venv_package_metadata = self.get_venv_metadata_for_package(package_name, get_extras(package_or_url))
+        if expected_apps is None:
+            expected_apps = (
+                self.package_metadata[package_name].expected_apps if package_name in self.package_metadata else ()
+            )
         package_info = PackageInfo(
             package=package_name,
             package_or_url=parse_specifier_for_metadata(package_or_url),
@@ -470,6 +477,7 @@ class Venv:
             man_pages_of_dependencies=venv_package_metadata.man_pages_of_dependencies,
             man_paths_of_dependencies=venv_package_metadata.man_paths_of_dependencies,
             package_version=venv_package_metadata.package_version,
+            expected_apps=list(dict.fromkeys(expected_apps)),
             suffix=suffix,
             pinned=pinned,
         )
@@ -563,6 +571,7 @@ class Venv:
         is_main_package: bool,
         suffix: str = "",
         upgrade_only_pip_args: list[str] | None = None,
+        expected_apps: Sequence[str] | None = None,
     ) -> None:
         _LOGGER.info("Upgrading %s", package_descr := full_package_description(package_name, package_or_url))
         with animate(f"upgrading {package_descr}", self.do_animation):
@@ -585,6 +594,7 @@ class Venv:
             include_apps=include_apps,
             is_main_package=is_main_package,
             suffix=suffix,
+            expected_apps=expected_apps,
         )
 
     def _run_pip(self, cmd: list[str]) -> "CompletedProcess[str]":

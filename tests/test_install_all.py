@@ -8,7 +8,7 @@ from pipx import paths
 
 
 def test_install_all(pipx_temp_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["install", "--app", "pycowsay", "pycowsay"])
     assert not run_pipx_cli(["install", "black"])
     assert not run_pipx_cli(["inject", "black", "pycowsay"])
     capsys.readouterr()
@@ -23,8 +23,13 @@ def test_install_all(pipx_temp_env: None, tmp_path: Path, capsys: pytest.Capture
     assert not run_pipx_cli(["list", "--json"])
 
     installed = json.loads(capsys.readouterr().out)["venvs"]
-    assert (sorted(installed), sorted(installed["black"]["metadata"]["injected_packages"])) == (
+    assert (
+        sorted(installed),
+        sorted(installed["black"]["metadata"]["injected_packages"]),
+        installed["pycowsay"]["metadata"]["main_package"]["expected_apps"],
+    ) == (
         ["black", "pycowsay"],
+        ["pycowsay"],
         ["pycowsay"],
     )
 
