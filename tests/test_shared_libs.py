@@ -133,7 +133,7 @@ def test_shared_libs_upgrade_enforces_pip_floor(
     install_command = run_subprocess.call_args.args[0]
     run_subprocess.assert_called_once()
     assert "pip==20" in install_command
-    assert "pip >= 23.1" in install_command
+    assert "pip >= 26.1" in install_command
 
 
 def test_shared_libs_upgrade_serializes_concurrent_calls(
