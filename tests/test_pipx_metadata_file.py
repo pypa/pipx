@@ -2,6 +2,7 @@ import json
 import sys
 from dataclasses import replace
 from pathlib import Path
+from typing import Final
 
 import pytest
 from pytest_mock import MockerFixture
@@ -132,6 +133,20 @@ def test_pipx_metadata_file_defaults_environment_from_version_0_8(tmp_path: Path
     (venv_dir / PIPX_INFO_FILENAME).write_text(json.dumps(payload, cls=JsonEncoderHandlesPath))
 
     assert PipxMetadata(venv_dir).environment is None
+
+
+def test_pipx_metadata_file_defaults_included_apps_from_version_0_9(tmp_path: Path) -> None:
+    venv_dir: Final[Path] = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    (venv_dir / PIPX_INFO_FILENAME).write_text(
+        json.dumps(metadata.to_dict(), cls=JsonEncoderHandlesPath)
+        .replace('"pipx_metadata_version": "0.10"', '"pipx_metadata_version": "0.9"')
+        .replace('"include_apps_from": [], ', "")
+    )
+
+    assert PipxMetadata(venv_dir).main_package.include_apps_from == []
 
 
 @pytest.mark.parametrize(

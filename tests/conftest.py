@@ -10,6 +10,7 @@ from collections.abc import Callable, Iterator
 from contextlib import closing
 from http import HTTPStatus
 from pathlib import Path
+from typing import Final
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
@@ -84,6 +85,20 @@ def make_project_with_dependency(root: Path, tmp_path: Path) -> Callable[[str], 
         return project
 
     return create
+
+
+@pytest.fixture()
+def local_extras_project(root: Path, tmp_path: Path) -> Path:
+    project: Final[Path] = tmp_path / "local_extras"
+    shutil.copytree(root / "testdata/test_package_specifier/local_extras", project)
+    return project
+
+
+@pytest.fixture()
+def empty_project(root: Path, tmp_path: Path) -> Path:
+    project: Final[Path] = tmp_path / "empty_project"
+    shutil.copytree(root / "testdata/empty_project", project)
+    return project
 
 
 @pytest.fixture(autouse=True)

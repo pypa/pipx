@@ -143,11 +143,8 @@ def get_include_resource_paths(package_name: str, venv: Venv, local_bin_dir: Pat
         )
 
     pkg_metadata = venv.package_metadata[package_name]
-    all_apps = {add_suffix(app, pkg_metadata.suffix) for app in pkg_metadata.apps}
-    all_man_pages = set(pkg_metadata.man_pages)
-    if pkg_metadata.include_dependencies:
-        all_apps.update(add_suffix(app, pkg_metadata.suffix) for app in pkg_metadata.apps_of_dependencies)
-        all_man_pages.update(pkg_metadata.man_pages_of_dependencies)
+    all_apps = {add_suffix(app, pkg_metadata.suffix) for app in pkg_metadata.apps_to_expose}
+    all_man_pages = set(pkg_metadata.man_pages_to_expose)
 
     need_to_remove = set()
     for bin_dir_app_path in bin_dir_app_paths:

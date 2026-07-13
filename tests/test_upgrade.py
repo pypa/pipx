@@ -1,10 +1,12 @@
 from collections.abc import Callable
 from pathlib import Path
+from typing import Final
 
 import pytest
 
 from helpers import (
     PIPX_METADATA_LEGACY_VERSIONS,
+    app_name,
     mock_legacy_venv,
     remove_venv_interpreter,
     run_pipx_cli,
@@ -13,7 +15,7 @@ from helpers import (
 )
 from package_info import PKG
 from pipx import paths
-from pipx.pipx_metadata_file import PipxMetadata
+from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 
 
 def test_upgrade(pipx_temp_env, capsys):
@@ -196,6 +198,20 @@ def test_upgrade_with_extras(pipx_temp_env, capsys):
     captured = capsys.readouterr()
     assert "pycowsay is already at latest version" in captured.out
     assert "Package is not installed" not in captured.err
+
+
+def test_upgrade_preserves_included_dependency(pipx_temp_env: None, local_extras_project: Path) -> None:
+    package: Final[str] = f"{local_extras_project}[tools]"
+    assert not run_pipx_cli(["install", package, "--include-apps-from", "pycowsay"])
+
+    assert not run_pipx_cli(["upgrade", "repeatme"])
+
+    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "repeatme").main_package
+    assert (
+        metadata.include_apps_from,
+        (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
+        (paths.ctx.bin_dir / app_name("black")).exists(),
+    ) == (["pycowsay"], True, False)
 
 
 @pytest.mark.parametrize(

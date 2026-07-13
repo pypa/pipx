@@ -383,8 +383,20 @@ def add_backend_arg(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def add_include_dependencies(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--include-deps", help="Include apps of dependent packages", action="store_true")
+def _add_dependency_app_options(parser: argparse.ArgumentParser) -> None:
+    group: Final[argparse._MutuallyExclusiveGroup] = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--include-deps",
+        help="Include apps and manual pages from all dependencies",
+        action="store_true",
+    )
+    group.add_argument(
+        "--include-apps-from",
+        action="append",
+        default=[],
+        metavar="PACKAGE",
+        help="Include apps and manual pages from this dependency. Repeat for multiple dependencies",
+    )
 
 
 class _DeprecatedFetchMissingPython(argparse.Action):
@@ -446,7 +458,7 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         parents=[shared_parser],
     )
     p.add_argument("package_spec", help="package name(s) or pip installation spec(s)", nargs="+")
-    add_include_dependencies(p)
+    _add_dependency_app_options(p)
     p.add_argument(
         "--force",
         "-f",
@@ -508,6 +520,7 @@ def _cmd_install(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
         upgrade=args.upgrade,
         reinstall=False,
         include_dependencies=args.include_deps,
+        include_apps_from=args.include_apps_from,
         preinstall_packages=args.preinstall,
         expected_apps=args.app or (),
         lock_file=args.lock,
@@ -631,11 +644,7 @@ def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
         action="store_true",
         help="Add apps from the injected packages onto your PATH and expose their manual pages",
     )
-    p.add_argument(
-        "--include-deps",
-        help="Include apps of dependent packages. Implies --include-apps",
-        action="store_true",
-    )
+    _add_dependency_app_options(p)
     add_pip_venv_args(p)
     p.add_argument(
         "--force",
@@ -663,6 +672,7 @@ def _cmd_inject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
             verbose=ctx.verbose,
             include_apps=args.include_apps,
             include_dependencies=args.include_deps,
+            include_apps_from=args.include_apps_from,
             force=args.force,
             suffix=args.with_suffix,
             backend=ctx.backend,

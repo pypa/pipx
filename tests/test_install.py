@@ -14,7 +14,7 @@ from helpers import app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
 from package_info import PKG
 from pipx import paths, shared_libs
 from pipx.constants import EXIT_CODE_OK
-from pipx.pipx_metadata_file import PipxMetadata
+from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 from pipx.util import PipxError
 from pipx.venv import Venv
 
@@ -183,7 +183,7 @@ def test_install_no_apps_guidance(
         f"No apps associated with package {display_name}" in error,
         f"pipx inject <environment> {package_name}" in error,
         f"--preinstall {package_name}" in error,
-        "Try again with '--include-deps'" in error,
+        "--include-apps-from PACKAGE" in error,
     ) == (1, True, True, True, has_dependency_apps)
 
 
@@ -675,6 +675,62 @@ def test_install_existing_package_skips_shared_lib_maintenance(pipx_temp_env: No
 
 def test_include_deps(pipx_temp_env: None) -> None:
     assert not run_pipx_cli(["install", PKG["jupyter"]["spec"], "--include-deps"])
+
+
+def test_install_include_apps_from_dependency(
+    pipx_temp_env: None,
+    local_extras_project: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    package: Final[str] = f"{local_extras_project}[tools]"
+
+    assert not run_pipx_cli(["install", package, "--include-apps-from", "PyCowsay"])
+
+    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "repeatme").main_package
+    assert (
+        metadata.include_apps_from,
+        (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
+        (paths.ctx.bin_dir / app_name("black")).exists(),
+        (paths.ctx.man_dir / "man6" / "pycowsay.6").exists(),
+    ) == (["pycowsay"], True, False, True)
+    capsys.readouterr()
+    assert not run_pipx_cli(["list"])
+    output: Final[str] = capsys.readouterr().out
+    assert (f"    - {app_name('pycowsay')}" in output, f"    - {app_name('black')}" in output) == (True, False)
+
+
+def test_install_force_replaces_included_dependency_resources(
+    pipx_temp_env: None,
+    local_extras_project: Path,
+) -> None:
+    package: Final[str] = f"{local_extras_project}[tools]"
+    assert not run_pipx_cli(["install", package, "--include-apps-from", "pycowsay"])
+
+    assert not run_pipx_cli(["install", "--force", package, "--include-apps-from", "black"])
+
+    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "repeatme").main_package
+    assert (
+        metadata.include_apps_from,
+        (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
+        (paths.ctx.man_dir / "man6" / "pycowsay.6").exists(),
+        (paths.ctx.bin_dir / app_name("black")).exists(),
+    ) == (["black"], False, False, True)
+
+
+def test_install_include_apps_from_missing_dependency_rolls_back(
+    pipx_temp_env: None,
+    local_extras_project: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    package: Final[str] = f"{local_extras_project}[cow]"
+
+    assert run_pipx_cli(["install", package, "--include-apps-from", "black"])
+
+    error: Final[str] = " ".join(capsys.readouterr().err.split())
+    assert (
+        "Cannot expose apps from black for package repeatme. Dependencies with apps or manual pages: pycowsay." in error
+    )
+    assert not (paths.ctx.venvs / "repeatme").exists()
 
 
 @pytest.mark.parametrize(

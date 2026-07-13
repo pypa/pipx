@@ -35,6 +35,7 @@ class _RawPackageInfo(TypedDict, total=False):
     package_version: str
     expected_apps: list[str]
     lock_file: Path | None
+    include_apps_from: list[str]
     man_pages: list[str]
     man_paths: list[Path]
     man_pages_of_dependencies: list[str]
@@ -95,12 +96,61 @@ class PackageInfo:
     package_version: str
     expected_apps: list[str] = field(default_factory=list)
     lock_file: Path | None = None
+    include_apps_from: list[str] = field(default_factory=list)
     man_pages: list[str] = field(default_factory=list)
     man_paths: list[Path] = field(default_factory=list)
     man_pages_of_dependencies: list[str] = field(default_factory=list)
     man_paths_of_dependencies: dict[str, list[Path]] = field(default_factory=dict)
     suffix: str = ""
     pinned: bool = False
+
+    @property
+    def app_paths_to_expose(self) -> list[Path]:
+        return [*(self.app_paths if self.include_apps else ()), *self._included_dependency_app_paths]
+
+    @property
+    def apps_to_expose(self) -> list[str]:
+        return [*(self.apps if self.include_apps else ()), *self.included_dependency_apps]
+
+    @property
+    def man_paths_to_expose(self) -> list[Path]:
+        return [*(self.man_paths if self.include_apps else ()), *self._included_dependency_man_paths]
+
+    @property
+    def man_pages_to_expose(self) -> list[str]:
+        return [*(self.man_pages if self.include_apps else ()), *self._included_dependency_man_pages]
+
+    @property
+    def included_dependency_apps(self) -> list[str]:
+        included_names: Final[set[str]] = {path.name for path in self._included_dependency_app_paths}
+        return [app for app in self.apps_of_dependencies if app in included_names]
+
+    @property
+    def _included_dependency_app_paths(self) -> list[Path]:
+        included_packages: Final[set[str]] = set(self.include_apps_from)
+        return [
+            path
+            for package, paths in self.app_paths_of_dependencies.items()
+            if self.include_dependencies or package in included_packages
+            for path in paths
+        ]
+
+    @property
+    def _included_dependency_man_pages(self) -> list[str]:
+        included_names: Final[set[str]] = {
+            str(Path(path.parent.name) / path.name) for path in self._included_dependency_man_paths
+        }
+        return [page for page in self.man_pages_of_dependencies if page in included_names]
+
+    @property
+    def _included_dependency_man_paths(self) -> list[Path]:
+        included_packages: Final[set[str]] = set(self.include_apps_from)
+        return [
+            path
+            for package, paths in self.man_paths_of_dependencies.items()
+            if self.include_dependencies or package in included_packages
+            for path in paths
+        ]
 
 
 class PipxMetadata:
@@ -111,7 +161,7 @@ class PipxMetadata:
     # V0.4 -> Add source interpreter
     # V0.5 -> Add pinned
     # V0.6 -> Add backend (pip|uv)
-    __METADATA_VERSION__: Final[str] = "0.9"
+    __METADATA_VERSION__: Final[str] = "0.10"
 
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
@@ -129,6 +179,7 @@ class PipxMetadata:
             app_paths_of_dependencies={},
             expected_apps=[],
             lock_file=None,
+            include_apps_from=[],
             man_pages=[],
             man_paths=[],
             man_pages_of_dependencies=[],
@@ -166,7 +217,7 @@ class PipxMetadata:
 
     def _convert_legacy_metadata(self, metadata_dict: _RawMetadata) -> _RawMetadata:
         version = metadata_dict["pipx_metadata_version"]
-        if version in (self.__METADATA_VERSION__, "0.8", "0.7", "0.6", "0.5"):
+        if version in (self.__METADATA_VERSION__, "0.9", "0.8", "0.7", "0.6", "0.5"):
             pass
         elif version == "0.4":
             metadata_dict["pinned"] = False

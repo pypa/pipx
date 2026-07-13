@@ -342,6 +342,7 @@ class Venv:
         package_or_url: str,
         pip_args: list[str],
         include_dependencies: bool,
+        include_apps_from: Sequence[str],
         include_apps: bool,
         is_main_package: bool,
         suffix: str = "",
@@ -377,6 +378,7 @@ class Venv:
             package_or_url=package_or_url,
             pip_args=pip_args,
             include_dependencies=include_dependencies,
+            include_apps_from=include_apps_from,
             include_apps=include_apps,
             is_main_package=is_main_package,
             suffix=suffix,
@@ -514,6 +516,7 @@ class Venv:
         package_or_url: str,
         pip_args: list[str],
         include_dependencies: bool,
+        include_apps_from: Sequence[str],
         include_apps: bool,
         is_main_package: bool,
         suffix: str = "",
@@ -528,12 +531,27 @@ class Venv:
             )
         if lock_file is None:
             lock_file = self.package_metadata[package_name].lock_file if package_name in self.package_metadata else None
+        included_dependencies: Final[list[str]] = list(
+            dict.fromkeys(canonicalize_name(name) for name in include_apps_from)
+        )
+        available_dependencies: Final[set[str]] = (
+            venv_package_metadata.app_paths_of_dependencies.keys()
+            | venv_package_metadata.man_paths_of_dependencies.keys()
+        )
+        missing_dependencies: Final[list[str]] = sorted(set(included_dependencies) - available_dependencies)
+        if missing_dependencies:
+            raise PipxError(
+                f"Cannot expose apps from {', '.join(missing_dependencies)} for package {package_name}. "
+                "Dependencies with apps or manual pages: "
+                f"{', '.join(sorted(available_dependencies)) or 'none'}."
+            )
         package_info = PackageInfo(
             package=package_name,
             package_or_url=parse_specifier_for_metadata(package_or_url),
             pip_args=pip_args,
             include_apps=include_apps,
             include_dependencies=include_dependencies,
+            include_apps_from=included_dependencies,
             apps=venv_package_metadata.apps,
             app_paths=venv_package_metadata.app_paths,
             apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
@@ -634,6 +652,7 @@ class Venv:
         package_or_url: str,
         pip_args: list[str],
         include_dependencies: bool,
+        include_apps_from: Sequence[str],
         include_apps: bool,
         is_main_package: bool,
         suffix: str = "",
@@ -658,6 +677,7 @@ class Venv:
             package_or_url=package_or_url,
             pip_args=pip_args,
             include_dependencies=include_dependencies,
+            include_apps_from=include_apps_from,
             include_apps=include_apps,
             is_main_package=is_main_package,
             suffix=suffix,

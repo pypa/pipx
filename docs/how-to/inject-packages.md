@@ -1,13 +1,13 @@
 ## Inject a package
 
-`pipx inject` adds extra packages into an existing pipx-managed virtual environment. If you have `ipython` installed and
-want `matplotlib` available inside it:
+`pipx inject` adds extra packages into an existing pipx-managed virtual environment. The following command adds
+`matplotlib` to an `ipython` environment.
 
 ```
 pipx inject ipython matplotlib
 ```
 
-Inject multiple packages at once, from a requirements file, or both:
+You can inject multiple packages at once, from a requirements file, or both.
 
 ```
 pipx inject ipython matplotlib pandas
@@ -17,13 +17,18 @@ pipx inject ipython extra-pkg -r more-packages.txt
 
 ### Expose injected apps
 
-By default, injected packages do not add their entry points to your `PATH`. Use `--include-apps` to expose them:
+By default, injected packages do not add their entry points to your `PATH`. Use `--include-apps` to expose them.
 
 ```
 pipx inject ipython black --include-apps
 ```
 
-`--include-deps` exposes entry points from the injected package's dependencies too (implies `--include-apps`).
+`--include-deps` exposes apps and manual pages from every dependency. Use `--include-apps-from PACKAGE` to expose only
+one dependency, and repeat it to select more. Both options imply `--include-apps`.
+
+```
+pipx inject robotframework-keyta robotframework-browser-batteries --include-apps-from robotframework-browser
+```
 
 ### Other flags
 

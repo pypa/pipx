@@ -2,7 +2,7 @@ import logging
 import os
 import re
 import sys
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Sequence
 from pathlib import Path
 from typing import Final
 
@@ -11,7 +11,12 @@ from packaging.utils import canonicalize_name
 from pipx import paths
 from pipx.backends import assert_not_pip_under_uv
 from pipx.colors import bold
-from pipx.commands.common import package_name_from_spec, run_post_install_actions
+from pipx.commands.common import (
+    get_expected_venv_resource_paths,
+    package_name_from_spec,
+    run_post_install_actions,
+)
+from pipx.commands.transaction import preserve_venv
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK, ExitCode
 from pipx.emojis import hazard, stars
 from pipx.package_specifier import get_extras
@@ -32,6 +37,7 @@ def inject_dep(
     verbose: bool,
     include_apps: bool,
     include_dependencies: bool,
+    include_apps_from: Sequence[str],
     force: bool,
     suffix: bool = False,
     backend: str | None = None,
@@ -100,6 +106,7 @@ def inject_dep(
         main_package = venv.pipx_metadata.main_package
         pip_args = pip_args or main_package.pip_args
         include_dependencies = main_package.include_dependencies
+        include_apps_from = main_package.include_apps_from
         include_apps = main_package.include_apps
         venv_suffix = main_package.suffix
         pinned = main_package.pinned
@@ -107,27 +114,32 @@ def inject_dep(
         venv_suffix = venv.package_metadata[venv.main_package_name].suffix
     else:
         venv_suffix = ""
-    venv.install_package(
-        package_name=package_name,
-        package_or_url=package_spec,
-        pip_args=pip_args,
-        install_only_pip_args=["--force-reinstall"] if force else None,
-        include_dependencies=include_dependencies,
-        include_apps=include_apps,
-        is_main_package=is_main_package,
-        suffix=venv_suffix,
-        pinned=pinned,
+    previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(
+        venv, paths.ctx.bin_dir, paths.ctx.man_dir
     )
-    if include_apps:
-        run_post_install_actions(
-            venv,
-            package_name,
-            paths.ctx.bin_dir,
-            paths.ctx.man_dir,
-            venv_dir,
-            include_dependencies,
-            force=force,
+    with preserve_venv(venv_dir, enabled=bool(include_apps_from)):
+        venv.install_package(
+            package_name=package_name,
+            package_or_url=package_spec,
+            pip_args=pip_args,
+            install_only_pip_args=["--force-reinstall"] if force else None,
+            include_dependencies=include_dependencies,
+            include_apps_from=include_apps_from,
+            include_apps=include_apps,
+            is_main_package=is_main_package,
+            suffix=venv_suffix,
+            pinned=pinned,
         )
+        if include_apps:
+            run_post_install_actions(
+                venv,
+                package_name,
+                paths.ctx.bin_dir,
+                paths.ctx.man_dir,
+                venv_dir,
+                force=force,
+                previous_resource_paths=previous_resource_paths,
+            )
 
     if is_main_package:
         print(f"  updated package {bold(package_name)} in venv {bold(venv.name)}")
@@ -148,6 +160,7 @@ def inject(
     verbose: bool,
     include_apps: bool,
     include_dependencies: bool,
+    include_apps_from: Sequence[str],
     force: bool,
     suffix: bool = False,
     backend: str | None = None,
@@ -167,7 +180,7 @@ def inject(
     _LOGGER.info("Injecting packages: %r", packages)
 
     # Inject packages
-    if not include_apps and include_dependencies:
+    if not include_apps and (include_dependencies or include_apps_from):
         include_apps = True
     all_success = True
     for dependency in packages:
@@ -179,6 +192,7 @@ def inject(
             verbose=verbose,
             include_apps=include_apps,
             include_dependencies=include_dependencies,
+            include_apps_from=include_apps_from,
             force=force,
             suffix=suffix,
             backend=backend,

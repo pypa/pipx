@@ -1,6 +1,7 @@
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Final
 
 import pytest
 
@@ -111,6 +112,26 @@ def test_uninject_removes_dependency_app_symlinks(pipx_temp_env, capsys, caplog)
     assert not run_pipx_cli(["uninject", "pycowsay", "pylint", "--verbose"])
     assert "removed file" in caplog.text
     assert "isort" in caplog.text
+
+
+def test_uninject_removes_selected_dependency_resources(
+    pipx_temp_env: None,
+    local_extras_project: Path,
+    empty_project: Path,
+) -> None:
+    package: Final[str] = f"{local_extras_project}[tools]"
+    assert not run_pipx_cli(["install", str(empty_project)])
+    assert not run_pipx_cli(["inject", "empty-project", package, "--include-apps-from", "pycowsay"])
+    exposed_paths: Final[tuple[Path, ...]] = (
+        paths.ctx.bin_dir / app_name("repeatme"),
+        paths.ctx.bin_dir / app_name("pycowsay"),
+        paths.ctx.man_dir / "man6" / "pycowsay.6",
+    )
+    assert all(file_or_symlink(path) for path in exposed_paths)
+
+    assert not run_pipx_cli(["uninject", "empty-project", "repeatme"])
+
+    assert not any(file_or_symlink(path) for path in exposed_paths)
 
 
 def test_uninject_leave_deps(pipx_temp_env, capsys, caplog):

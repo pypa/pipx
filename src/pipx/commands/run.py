@@ -255,6 +255,7 @@ def run_package(
             verbose=verbose,
             include_apps=False,
             include_dependencies=False,
+            include_apps_from=(),
             force=False,
             backend=backend,
             env_backend=env_backend,
@@ -380,6 +381,7 @@ def _prepare_venv(
         package_or_url=package_or_url,
         pip_args=pip_args,
         include_dependencies=False,
+        include_apps_from=(),
         include_apps=True,
         is_main_package=True,
     )

@@ -89,26 +89,18 @@ def expose_package_resources(
     *,
     force: bool,
 ) -> None:
-    if package_metadata.include_apps:
+    app_paths: Final[list[Path]] = package_metadata.app_paths_to_expose
+    if app_paths:
         expose_resources_globally(
             "app",
             local_bin_dir,
-            package_metadata.app_paths,
+            app_paths,
             force=force,
             suffix=package_metadata.suffix,
         )
-        expose_resources_globally("man", local_man_dir, package_metadata.man_paths, force=force)
-    if package_metadata.include_dependencies:
-        for app_paths in package_metadata.app_paths_of_dependencies.values():
-            expose_resources_globally(
-                "app",
-                local_bin_dir,
-                app_paths,
-                force=force,
-                suffix=package_metadata.suffix,
-            )
-        for man_paths in package_metadata.man_paths_of_dependencies.values():
-            expose_resources_globally("man", local_man_dir, man_paths, force=force)
+    man_paths: Final[list[Path]] = package_metadata.man_paths_to_expose
+    if man_paths:
+        expose_resources_globally("man", local_man_dir, man_paths, force=force)
 
 
 _can_symlink_cache: dict[Path, bool] = {}
@@ -293,11 +285,7 @@ def get_venv_summary(
         exposed_app_paths = get_exposed_paths_for_package(
             venv.bin_path,
             paths.ctx.bin_dir,
-            [
-                add_suffix(app, metadata.suffix)
-                for metadata in resource_packages
-                for app in metadata.apps + (metadata.apps_of_dependencies if metadata.include_dependencies else [])
-            ],
+            [add_suffix(app, metadata.suffix) for metadata in resource_packages for app in metadata.apps_to_expose],
         )
         exposed_binary_names = sorted(path.name for path in exposed_app_paths)
         unavailable_binary_names = sorted(
@@ -305,10 +293,7 @@ def get_venv_summary(
         )
         exposed_man_paths = set()
         man_pages: Final[list[str]] = [
-            man_page
-            for metadata in resource_packages
-            for man_page in metadata.man_pages
-            + (metadata.man_pages_of_dependencies if metadata.include_dependencies else [])
+            man_page for metadata in resource_packages for man_page in metadata.man_pages_to_expose
         ]
         for man_section in MAN_SECTIONS:
             exposed_man_paths |= get_exposed_man_paths_for_package(
@@ -474,9 +459,9 @@ def run_post_install_actions(
     local_bin_dir: Path,
     local_man_dir: Path,
     venv_dir: Path,
-    include_dependencies: bool,
     *,
     force: bool,
+    previous_resource_paths: set[Path],
 ) -> None:
     package_metadata = venv.package_metadata[package_name]
 
@@ -504,7 +489,7 @@ def run_post_install_actions(
                 dependencies. {library_guidance}
                 """
             )
-        if package_metadata.apps_of_dependencies and not include_dependencies:
+        if package_metadata.apps_of_dependencies and not package_metadata.included_dependency_apps:
             for (
                 dep,
                 dependent_apps,
@@ -516,14 +501,16 @@ def run_post_install_actions(
                 venv.remove_venv()
             raise PipxError(
                 f"""
-                No apps associated with package {display_name}. Try again
-                with '--include-deps' to include apps of dependent packages,
-                which are listed above. {library_guidance}
+                No apps associated with package {display_name}. Use
+                '--include-apps-from PACKAGE' to select one of the dependencies
+                listed above, or '--include-deps' to include all of them.
+                {library_guidance}
                 """
             )
 
     if venv.pipx_metadata.exposure_enabled:
         expose_package_resources(package_metadata, local_bin_dir, local_man_dir, force=force)
+        _remove_stale_venv_resources(previous_resource_paths, venv, local_bin_dir, local_man_dir)
 
     package_summary, _ = get_venv_summary(venv_dir, package_name=package_name, new_install=True)
     pipx_logger = logging.getLogger("pipx")
@@ -533,16 +520,38 @@ def run_post_install_actions(
         print(f"done! {stars}", file=sys.stderr)
 
 
+def _remove_stale_venv_resources(
+    previous_resource_paths: set[Path],
+    venv: Venv,
+    local_bin_dir: Path,
+    local_man_dir: Path,
+) -> None:
+    current_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir)
+    for path in sorted(previous_resource_paths - current_resource_paths):
+        safe_unlink(path)
+
+
+def get_expected_venv_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
+    if not venv.pipx_metadata.exposure_enabled:
+        return set()
+    return {
+        local_bin_dir / add_suffix(path.name, package.suffix)
+        for package in venv.package_metadata.values()
+        for path in package.app_paths_to_expose
+    } | {
+        local_man_dir / path.parent.name / path.name
+        for package in venv.package_metadata.values()
+        for path in package.man_paths_to_expose
+    }
+
+
 def validate_expected_apps(venv: Venv, package_name: str, expected_apps: Sequence[str]) -> None:
     if not expected_apps:
         return
 
     package: Final[PackageInfo] = venv.package_metadata[package_name]
     available_apps: Final[list[str]] = sorted(
-        {
-            app[:-4] if WINDOWS and app.lower().endswith(".exe") else app
-            for app in [*package.apps, *(package.apps_of_dependencies if package.include_dependencies else ())]
-        }
+        {app[:-4] if WINDOWS and app.lower().endswith(".exe") else app for app in package.apps_to_expose}
     )
     missing_apps: Final[list[str]] = sorted(set(expected_apps) - set(available_apps))
     if missing_apps:
@@ -586,6 +595,7 @@ __all__ = [
     "can_symlink",
     "expose_package_resources",
     "expose_resources_globally",
+    "get_expected_venv_resource_paths",
     "get_exposed_man_paths_for_package",
     "get_exposed_paths_for_package",
     "get_venv_summary",
