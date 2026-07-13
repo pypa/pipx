@@ -81,6 +81,35 @@ def expose_resources_globally(
             )
 
 
+def expose_package_resources(
+    package_metadata: PackageInfo,
+    local_bin_dir: Path,
+    local_man_dir: Path,
+    *,
+    force: bool,
+) -> None:
+    if package_metadata.include_apps:
+        expose_resources_globally(
+            "app",
+            local_bin_dir,
+            package_metadata.app_paths,
+            force=force,
+            suffix=package_metadata.suffix,
+        )
+        expose_resources_globally("man", local_man_dir, package_metadata.man_paths, force=force)
+    if package_metadata.include_dependencies:
+        for app_paths in package_metadata.app_paths_of_dependencies.values():
+            expose_resources_globally(
+                "app",
+                local_bin_dir,
+                app_paths,
+                force=force,
+                suffix=package_metadata.suffix,
+            )
+        for man_paths in package_metadata.man_paths_of_dependencies.values():
+            expose_resources_globally("man", local_man_dir, man_paths, force=force)
+
+
 _can_symlink_cache: dict[Path, bool] = {}
 
 
@@ -250,30 +279,37 @@ def get_venv_summary(
         return (warning_message, venv_problems)
 
     package_metadata = venv.package_metadata[package_name]
-    apps = package_metadata.apps
-    man_pages = package_metadata.man_pages
-    if package_metadata.include_dependencies:
-        apps += package_metadata.apps_of_dependencies
-        man_pages += package_metadata.man_pages_of_dependencies
-
-    exposed_app_paths = get_exposed_paths_for_package(
-        venv.bin_path,
-        paths.ctx.bin_dir,
-        [add_suffix(app, package_metadata.suffix) for app in apps],
-    )
-    exposed_binary_names = sorted(p.name for p in exposed_app_paths)
-    unavailable_binary_names = sorted(
-        {add_suffix(name, package_metadata.suffix) for name in package_metadata.apps} - set(exposed_binary_names)
-    )
-    exposed_man_paths = set()
-    for man_section in MAN_SECTIONS:
-        exposed_man_paths |= get_exposed_man_paths_for_package(
-            venv.man_path / man_section,
-            paths.ctx.man_dir / man_section,
-            man_pages,
+    exposed_binary_names: list[str] = []
+    exposed_man_pages: list[str] = []
+    unavailable_binary_names: list[str] = []
+    unavailable_man_pages: list[str] = []
+    if venv.pipx_metadata.exposure_enabled:
+        apps = [
+            *package_metadata.apps,
+            *(package_metadata.apps_of_dependencies if package_metadata.include_dependencies else []),
+        ]
+        man_pages = [
+            *package_metadata.man_pages,
+            *(package_metadata.man_pages_of_dependencies if package_metadata.include_dependencies else []),
+        ]
+        exposed_app_paths = get_exposed_paths_for_package(
+            venv.bin_path,
+            paths.ctx.bin_dir,
+            [add_suffix(app, package_metadata.suffix) for app in apps],
         )
-    exposed_man_pages = sorted(str(Path(p.parent.name) / p.name) for p in exposed_man_paths)
-    unavailable_man_pages = sorted(set(package_metadata.man_pages) - set(exposed_man_pages))
+        exposed_binary_names = sorted(path.name for path in exposed_app_paths)
+        unavailable_binary_names = sorted(
+            {add_suffix(name, package_metadata.suffix) for name in package_metadata.apps} - set(exposed_binary_names)
+        )
+        exposed_man_paths = set()
+        for man_section in MAN_SECTIONS:
+            exposed_man_paths |= get_exposed_man_paths_for_package(
+                venv.man_path / man_section,
+                paths.ctx.man_dir / man_section,
+                man_pages,
+            )
+        exposed_man_pages = sorted(str(Path(path.parent.name) / path.name) for path in exposed_man_paths)
+        unavailable_man_pages = sorted(set(package_metadata.man_pages) - set(exposed_man_pages))
     # The following is to satisfy mypy that python_version is str and not
     #   Optional[str]
     python_version = venv.pipx_metadata.python_version if venv.pipx_metadata.python_version is not None else ""
@@ -296,6 +332,7 @@ def get_venv_summary(
             unavailable_man_pages,
             venv.pipx_metadata.injected_packages if include_injected else None,
             suffix=package_metadata.suffix,
+            exposure_enabled=venv.pipx_metadata.exposure_enabled,
         ),
         venv_problems,
     )
@@ -359,6 +396,8 @@ def _get_list_output(
     unavailable_man_pages: list[str],
     injected_packages: dict[str, PackageInfo] | None = None,
     suffix: str = "",
+    *,
+    exposure_enabled: bool,
 ) -> str:
     output = []
     suffix = f" ({bold(shlex.quote(package_name + suffix))})" if suffix else ""
@@ -368,6 +407,8 @@ def _get_list_output(
         + (" (standalone)" if python_is_standalone else "")
     )
 
+    if not exposure_enabled:
+        output.append("    apps and manual pages are not exposed")
     if new_install and (exposed_binary_names or unavailable_binary_names):
         output.append("  These apps are now available")
     output.extend(f"    - {name}" for name in exposed_binary_names)
@@ -473,26 +514,8 @@ def run_post_install_actions(
                 """
             )
 
-    expose_resources_globally(
-        "app",
-        local_bin_dir,
-        package_metadata.app_paths,
-        force=force,
-        suffix=package_metadata.suffix,
-    )
-    expose_resources_globally("man", local_man_dir, package_metadata.man_paths, force=force)
-
-    if include_dependencies:
-        for app_paths in package_metadata.app_paths_of_dependencies.values():
-            expose_resources_globally(
-                "app",
-                local_bin_dir,
-                app_paths,
-                force=force,
-                suffix=package_metadata.suffix,
-            )
-        for man_paths in package_metadata.man_paths_of_dependencies.values():
-            expose_resources_globally("man", local_man_dir, man_paths, force=force)
+    if venv.pipx_metadata.exposure_enabled:
+        expose_package_resources(package_metadata, local_bin_dir, local_man_dir, force=force)
 
     package_summary, _ = get_venv_summary(venv_dir, package_name=package_name, new_install=True)
     pipx_logger = logging.getLogger("pipx")
@@ -529,6 +552,7 @@ __all__ = [
     "VenvProblems",
     "add_suffix",
     "can_symlink",
+    "expose_package_resources",
     "expose_resources_globally",
     "get_exposed_man_paths_for_package",
     "get_exposed_paths_for_package",

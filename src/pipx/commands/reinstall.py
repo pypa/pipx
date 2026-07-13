@@ -46,6 +46,8 @@ def _get_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir
 
 def _get_expected_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
     resource_paths: set[Path] = set()
+    if not venv.pipx_metadata.exposure_enabled:
+        return resource_paths
     for package_info in venv.package_metadata.values():
         if package_info.include_apps:
             for app_path in package_info.app_paths:
@@ -142,6 +144,7 @@ def reinstall(
             python_flag_passed=python_flag_passed,
             backend=backend or venv.pipx_metadata.backend,
             env_backend=env_backend,
+            exposure_enabled=venv.pipx_metadata.exposure_enabled,
             venv_lock=venv_lock,
         )
 

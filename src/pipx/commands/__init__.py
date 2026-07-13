@@ -1,5 +1,6 @@
 from pipx.commands.ensure_path import ensure_pipx_paths
 from pipx.commands.environment import environment
+from pipx.commands.expose import ExposureData, expose, unexpose
 from pipx.commands.health import HealthData, RepairData, health, repair
 from pipx.commands.inject import inject
 from pipx.commands.install import install, install_all
@@ -14,12 +15,14 @@ from pipx.commands.uninstall import UninstallData, uninstall, uninstall_all
 from pipx.commands.upgrade import upgrade, upgrade_all, upgrade_shared
 
 __all__ = [
+    "ExposureData",
     "HealthData",
     "PinData",
     "RepairData",
     "UninstallData",
     "ensure_pipx_paths",
     "environment",
+    "expose",
     "health",
     "inject",
     "install",
@@ -33,6 +36,7 @@ __all__ = [
     "repair",
     "run",
     "run_pip",
+    "unexpose",
     "uninject",
     "uninstall",
     "uninstall_all",

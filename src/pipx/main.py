@@ -653,6 +653,50 @@ def _cmd_uninject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
         )
 
 
+def _add_expose(
+    subparsers: argparse._SubParsersAction,
+    venv_completer: VenvCompleter,
+    shared_parser: argparse.ArgumentParser,
+) -> None:
+    parser = subparsers.add_parser(
+        "expose",
+        help="Restore resources from a hidden environment",
+        description="Relink each recorded app and manual page without rebuilding its environment.",
+        parents=[shared_parser],
+    )
+    parser.add_argument("package", help="Installed package to expose").completer = venv_completer
+    parser.add_argument("--json", action="store_true", help="Output a machine-readable result.")
+    parser.set_defaults(func=_cmd_expose)
+
+
+def _cmd_expose(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.ExposureData]:
+    venv_dir = _venv_dir(args, ctx)
+    with ctx.venv_container.venv_lock(venv_dir):
+        return commands.expose(venv_dir, paths.ctx.bin_dir, paths.ctx.man_dir, ctx.verbose)
+
+
+def _add_unexpose(
+    subparsers: argparse._SubParsersAction,
+    venv_completer: VenvCompleter,
+    shared_parser: argparse.ArgumentParser,
+) -> None:
+    parser = subparsers.add_parser(
+        "unexpose",
+        help="Hide resources without removing an environment",
+        description="Remove global links or copies while retaining the managed environment.",
+        parents=[shared_parser],
+    )
+    parser.add_argument("package", help="Installed package to hide").completer = venv_completer
+    parser.add_argument("--json", action="store_true", help="Output a machine-readable result.")
+    parser.set_defaults(func=_cmd_unexpose)
+
+
+def _cmd_unexpose(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.ExposureData]:
+    venv_dir = _venv_dir(args, ctx)
+    with ctx.venv_container.venv_lock(venv_dir):
+        return commands.unexpose(venv_dir, paths.ctx.bin_dir, paths.ctx.man_dir, ctx.verbose)
+
+
 def _add_pin(
     subparsers: argparse._SubParsersAction,
     venv_completer: VenvCompleter,
@@ -1327,6 +1371,8 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
     _add_install_all(subparsers, shared_parser)
     _add_uninject(subparsers, completer_venvs.use, shared_parser)
     _add_inject(subparsers, completer_venvs.use, shared_parser)
+    _add_expose(subparsers, completer_venvs.use, shared_parser)
+    _add_unexpose(subparsers, completer_venvs.use, shared_parser)
     _add_pin(subparsers, completer_venvs.use, shared_parser)
     _add_unpin(subparsers, completer_venvs.use, shared_parser)
     _add_upgrade(subparsers, completer_venvs.use, shared_parser)

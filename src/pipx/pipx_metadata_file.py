@@ -50,6 +50,7 @@ class _RawMetadata(TypedDict, total=False):
     venv_args: list[str]
     injected_packages: dict[str, _RawPackageInfo]
     backend: str
+    exposure_enabled: bool
     pipx_metadata_version: str
     pinned: bool
 
@@ -105,7 +106,7 @@ class PipxMetadata:
     # V0.4 -> Add source interpreter
     # V0.5 -> Add pinned
     # V0.6 -> Add backend (pip|uv)
-    __METADATA_VERSION__: str = "0.6"
+    __METADATA_VERSION__: str = "0.7"
 
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
@@ -132,6 +133,7 @@ class PipxMetadata:
         self.venv_args: list[str] = []
         self.injected_packages: dict[str, PackageInfo] = {}
         self.backend: str = "pip"
+        self.exposure_enabled: bool = True
         # ``None`` until ``read()`` succeeds; lets callers tell a fresh
         # instance from one with authoritative on-disk values.
         self.read_metadata_version: str | None = None
@@ -149,12 +151,13 @@ class PipxMetadata:
             "venv_args": self.venv_args,
             "injected_packages": {name: asdict(data) for (name, data) in self.injected_packages.items()},
             "backend": self.backend,
+            "exposure_enabled": self.exposure_enabled,
             "pipx_metadata_version": self.__METADATA_VERSION__,
         }
 
     def _convert_legacy_metadata(self, metadata_dict: _RawMetadata) -> _RawMetadata:
         version = metadata_dict["pipx_metadata_version"]
-        if version in (self.__METADATA_VERSION__, "0.5"):
+        if version in (self.__METADATA_VERSION__, "0.6", "0.5"):
             pass
         elif version == "0.4":
             metadata_dict["pinned"] = False
@@ -176,6 +179,7 @@ class PipxMetadata:
             )
         # ``backend`` is absent from any pre-0.6 dump; default once here.
         metadata_dict.setdefault("backend", "pip")
+        metadata_dict.setdefault("exposure_enabled", True)
         return metadata_dict
 
     def from_dict(self, input_dict: _RawMetadata) -> None:
@@ -202,6 +206,7 @@ class PipxMetadata:
             )
             recorded_backend = "pip"
         self.backend = recorded_backend
+        self.exposure_enabled = input_dict["exposure_enabled"]
         self.read_metadata_version = input_dict.get("pipx_metadata_version")
 
     def _validate_before_write(self) -> None:
