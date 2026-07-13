@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Final
 
 import pytest
+from pytest_mock import MockerFixture
 
 from helpers import (
     PIPX_METADATA_LEGACY_VERSIONS,
@@ -22,6 +23,7 @@ from helpers import (
 )
 from package_info import PKG
 from pipx import constants, paths, shared_libs, venv
+from pipx.commands import common
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, _json_decoder_object_hook
 from pipx.util import PipxError
 
@@ -177,6 +179,21 @@ def test_list_short(pipx_temp_env, monkeypatch, capsys):
 
     assert "pycowsay 0.0.0.2" in captured.out
     assert "pylint 3.0.4" in captured.out
+
+
+def test_list_injected_apps_without_symlinks(
+    pipx_temp_env: None,
+    mocker: MockerFixture,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["pylint"]["spec"], "--include-apps"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list", "--include-injected"])
+
+    assert f"    - {PKG['pylint']['apps'][0]}" in capsys.readouterr().out.splitlines()
 
 
 def test_list_waits_for_install(pipx_temp_env: None, tmp_path: Path) -> None:
