@@ -4,7 +4,7 @@ import logging
 from shutil import which
 from typing import TYPE_CHECKING, Final, NoReturn
 
-from pipx.backends.uv import resolve_uv_binary
+from pipx.backends.uv import UvBackend, resolve_uv_binary
 from pipx.emojis import hazard
 from pipx.util import PipxError, exec_app, pipx_wrap
 
@@ -46,6 +46,7 @@ def run_via_uv_tool_run(
     use_cache: bool,
     verbose: bool,
     no_path_check: bool = False,
+    cooldown_days: int | None = None,
 ) -> NoReturn:
     _reject_venv_args(venv_args)
     if not no_path_check and (existing_app_path := which(app)):
@@ -71,6 +72,7 @@ def run_via_uv_tool_run(
     if verbose:
         cmd.append("--verbose")
     cmd += translate_pip_args_for_uv(pip_args)
+    cmd += UvBackend.cooldown_args(cooldown_days)
     cmd.append(app)
     cmd += app_args
     exec_app(cmd)
@@ -86,6 +88,7 @@ def run_script_via_uv_run(
     use_cache: bool,
     verbose: bool,
     dependencies: list[str] | None = None,
+    cooldown_days: int | None = None,
 ) -> NoReturn:
     _reject_venv_args(venv_args)
     cmd: list[str] = [str(resolve_uv_binary()), "run", "--script"]
@@ -98,6 +101,7 @@ def run_script_via_uv_run(
     for dependency in dependencies or []:
         cmd += ["--with", dependency]
     cmd += translate_pip_args_for_uv(pip_args)
+    cmd += UvBackend.cooldown_args(cooldown_days)
     cmd += [str(script_path), *app_args]
     exec_app(cmd)
 

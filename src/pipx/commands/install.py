@@ -60,6 +60,7 @@ def install(
     exposure_enabled: bool | None = None,
     upgrade: bool = False,
     upgrade_strategy: str | None = None,
+    cooldown_days: int | None = None,
     venv_lock: BaseFileLock | None = None,
     preserve_existing: bool = False,
     replace_expected_apps: bool = False,
@@ -74,6 +75,7 @@ def install(
         expected_apps,
         preinstall_packages,
         lock_file,
+        cooldown_days,
         upgrade=upgrade,
         upgrade_strategy=upgrade_strategy,
     )
@@ -90,6 +92,7 @@ def install(
                 verbose=verbose,
                 backend=backend,
                 env_backend=env_backend,
+                cooldown_days=cooldown_days,
             )
             for package_spec in package_specs
         ]
@@ -129,6 +132,12 @@ def install(
             )
             recorded_lock = venv.pipx_metadata.main_package.lock_file
             required_lock = lock_file if replace_lock else lock_file or recorded_lock
+            required_cooldown = _resolve_cooldown(
+                required_lock,
+                cooldown_days,
+                venv.pipx_metadata.main_package.cooldown_days,
+                modifies_existing=exists and force,
+            )
             required_exposure = venv.pipx_metadata.exposure_enabled if exposure_enabled is None else exposure_enabled
             if exists:
                 if not reinstall and force and python_flag_passed:
@@ -154,6 +163,7 @@ def install(
                         verbose,
                         upgrade_strategy,
                         required_apps,
+                        required_cooldown,
                     )
                     if len(package_specs) == 1:
                         return EXIT_CODE_OK
@@ -199,7 +209,7 @@ def install(
                     venv.pipx_metadata.exposure_enabled = required_exposure
                     venv.pipx_metadata.environment = venv.root.name
                     for dependency in preinstall_packages or []:
-                        venv.upgrade_package_no_metadata(dependency, [])
+                        venv.upgrade_package_no_metadata(dependency, pip_args, cooldown_days=required_cooldown)
                     venv.install_package(
                         package_name=package_name,
                         package_or_url=package_spec,
@@ -212,6 +222,7 @@ def install(
                         suffix=suffix,
                         expected_apps=required_apps,
                         lock_file=required_lock,
+                        cooldown_days=required_cooldown,
                     )
                     validate_expected_apps(venv, package_name, required_apps)
                     run_post_install_actions(
@@ -237,6 +248,7 @@ def _validate_install_options(
     expected_apps: Sequence[str],
     preinstall_packages: Sequence[str] | None,
     lock_file: Path | None,
+    cooldown_days: int | None,
     *,
     upgrade: bool,
     upgrade_strategy: str | None,
@@ -253,12 +265,28 @@ def _validate_install_options(
         raise PipxError("--lock cannot be combined with --preinstall")
     if upgrade:
         raise PipxError("--lock cannot be combined with --upgrade; use --force to apply a new lock")
+    if cooldown_days is not None:
+        raise PipxError("--lock cannot be combined with --cooldown")
     lock_file = lock_file.expanduser().resolve()
     if not _PYLOCK_NAME_RE.fullmatch(lock_file.name):
         raise PipxError("Lock files must be named pylock.toml or pylock.<name>.toml")
     if not lock_file.is_file():
         raise PipxError(f"Lock file does not exist: {lock_file}")
     return lock_file
+
+
+def _resolve_cooldown(
+    lock_file: Path | None,
+    requested: int | None,
+    stored: int | None,
+    *,
+    modifies_existing: bool,
+) -> int | None:
+    if modifies_existing and lock_file is not None and requested is not None:
+        raise PipxError("--cooldown cannot modify a locked environment")
+    if lock_file is not None:
+        return None
+    return requested if requested is not None else stored
 
 
 def _upgrade_existing_venv(
@@ -271,6 +299,7 @@ def _upgrade_existing_venv(
     verbose: bool,
     upgrade_strategy: str | None,
     expected_apps: Sequence[str],
+    cooldown_days: int | None,
 ) -> None:
     package_metadata = venv.pipx_metadata.main_package
     installed_version: Final[str] = package_metadata.package_version
@@ -310,6 +339,7 @@ def _upgrade_existing_venv(
             suffix=package_metadata.suffix,
             upgrade_only_pip_args=([f"--upgrade-strategy={upgrade_strategy}"] if upgrade_strategy is not None else None),
             expected_apps=expected_apps,
+            cooldown_days=cooldown_days,
         )
         validate_expected_apps(venv, package_name, expected_apps)
         package_metadata = venv.pipx_metadata.main_package
@@ -345,6 +375,7 @@ def install_all(
     force: bool,
     backend: str | None = None,
     env_backend: str | None = None,
+    cooldown_days: int | None = None,
 ) -> ExitCode:
     venv_container: Final[VenvContainer] = VenvContainer(paths.ctx.venvs)
     failed: Final[list[str]] = []
@@ -355,6 +386,12 @@ def install_all(
         venv_dir = venv_container.get_venv_dir(f"{main_package.package}{main_package.suffix}")
         try:
             with venv_container.venv_lock(venv_dir) as venv_lock:
+                package_cooldown = _resolve_cooldown(
+                    main_package.lock_file,
+                    cooldown_days,
+                    main_package.cooldown_days,
+                    modifies_existing=False,
+                )
                 install(
                     venv_dir,
                     None,
@@ -379,6 +416,7 @@ def install_all(
                     replace_expected_apps=True,
                     replace_lock=True,
                     venv_lock=venv_lock,
+                    cooldown_days=package_cooldown,
                 )
                 for inject_package in venv_metadata.injected_packages.values():
                     commands.inject(
@@ -392,6 +430,7 @@ def install_all(
                         include_apps_from=inject_package.include_apps_from,
                         force=force,
                         suffix=inject_package.suffix == main_package.suffix,
+                        cooldown_days=(cooldown_days if cooldown_days is not None else inject_package.cooldown_days),
                     )
         except PipxError as error:
             print(error, file=sys.stderr)

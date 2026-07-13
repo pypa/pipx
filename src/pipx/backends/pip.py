@@ -98,6 +98,10 @@ class PipBackend(Backend):
             subprocess_post_check_handle_pip_error(process)
         return process
 
+    @staticmethod
+    def cooldown_args(cooldown_days: int | None) -> list[str]:
+        return [] if not cooldown_days else ["--uploaded-prior-to", f"P{cooldown_days}D"]
+
     def uninstall(
         self,
         *,

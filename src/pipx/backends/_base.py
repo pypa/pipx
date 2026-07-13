@@ -63,6 +63,10 @@ class Backend(ABC):
             verbose=verbose,
         )
 
+    @staticmethod
+    @abstractmethod
+    def cooldown_args(cooldown_days: int | None) -> list[str]: ...
+
     @abstractmethod
     def uninstall(
         self,

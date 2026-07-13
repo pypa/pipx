@@ -42,7 +42,7 @@ uses nab to resolve each locked tool in isolation. `pipx install --lock` accepts
 use `requirements.txt` as a state or lock format.
 
 pipx exposes top-level policy when pip and uv honor the same contract. Backend arguments carry controls specific to pip
-or uv.
+or uv. `--cooldown DAYS` maps one pipx release-age policy to both backends.
 
 Application launchers start the installed application without downloading packages or changing its environment. Health
 checks and repairs belong in commands that the user invokes for those purposes.

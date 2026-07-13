@@ -49,6 +49,7 @@ pipx environment --value PIPX_RESOLVED_BACKEND  # see what pipx will use right n
     silently dropping them.
 - `pipx run` execs `uv tool run`; the cache lives in uv's cache directory. Pass `--no-cache` to skip it.
 - `pipx run script.py` execs `uv run --script script.py` for PEP 723 inline scripts.
+- `--cooldown DAYS` maps to uv's `--exclude-newer P{DAYS}D`. Relative cooldowns require uv 0.9.17 or newer.
 
 ## Limitations
 

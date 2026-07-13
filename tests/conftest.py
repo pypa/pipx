@@ -31,6 +31,7 @@ _upgrade_module = importlib.import_module("pipx.commands.upgrade")
 
 PIPX_TESTS_DIR = Path(".pipx_tests")
 PIPX_TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
+_IGNORE_PROJECT_OUTPUT: Final[Callable[[str, list[str]], set[str]]] = shutil.ignore_patterns("build", "*.egg-info")
 
 
 @pytest.fixture(scope="session")
@@ -73,7 +74,7 @@ sha256 = "{hashlib.sha256(wheel.read_bytes()).hexdigest()}"
 def make_project_with_dependency(root: Path, tmp_path: Path) -> Callable[[str], Path]:
     def create(dependency: str) -> Path:
         project = tmp_path / "locked-project"
-        shutil.copytree(root / "testdata/empty_project", project)
+        shutil.copytree(root / "testdata/empty_project", project, ignore=_IGNORE_PROJECT_OUTPUT)
         pyproject = project / "pyproject.toml"
         pyproject.write_text(
             pyproject.read_text(encoding="utf-8").replace(
@@ -90,14 +91,14 @@ def make_project_with_dependency(root: Path, tmp_path: Path) -> Callable[[str], 
 @pytest.fixture()
 def local_extras_project(root: Path, tmp_path: Path) -> Path:
     project: Final[Path] = tmp_path / "local_extras"
-    shutil.copytree(root / "testdata/test_package_specifier/local_extras", project)
+    shutil.copytree(root / "testdata/test_package_specifier/local_extras", project, ignore=_IGNORE_PROJECT_OUTPUT)
     return project
 
 
 @pytest.fixture()
 def empty_project(root: Path, tmp_path: Path) -> Path:
     project: Final[Path] = tmp_path / "empty_project"
-    shutil.copytree(root / "testdata/empty_project", project)
+    shutil.copytree(root / "testdata/empty_project", project, ignore=_IGNORE_PROJECT_OUTPUT)
     return project
 
 

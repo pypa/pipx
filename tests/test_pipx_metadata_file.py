@@ -142,11 +142,25 @@ def test_pipx_metadata_file_defaults_included_apps_from_version_0_9(tmp_path: Pa
     metadata.main_package = TEST_PACKAGE1
     (venv_dir / PIPX_INFO_FILENAME).write_text(
         json.dumps(metadata.to_dict(), cls=JsonEncoderHandlesPath)
-        .replace('"pipx_metadata_version": "0.10"', '"pipx_metadata_version": "0.9"')
+        .replace('"pipx_metadata_version": "0.11"', '"pipx_metadata_version": "0.9"')
         .replace('"include_apps_from": [], ', "")
     )
 
     assert PipxMetadata(venv_dir).main_package.include_apps_from == []
+
+
+def test_pipx_metadata_file_defaults_cooldown_from_version_0_10(tmp_path: Path) -> None:
+    venv_dir: Final[Path] = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    (venv_dir / PIPX_INFO_FILENAME).write_text(
+        json.dumps(metadata.to_dict(), cls=JsonEncoderHandlesPath)
+        .replace('"pipx_metadata_version": "0.11"', '"pipx_metadata_version": "0.10"')
+        .replace('"cooldown_days": null, ', "")
+    )
+
+    assert PipxMetadata(venv_dir).main_package.cooldown_days is None
 
 
 @pytest.mark.parametrize(

@@ -135,6 +135,7 @@ def reinstall(
             preinstall_packages=[],
             expected_apps=venv.pipx_metadata.main_package.expected_apps,
             lock_file=venv.pipx_metadata.main_package.lock_file,
+            cooldown_days=venv.pipx_metadata.main_package.cooldown_days,
             suffix=venv.pipx_metadata.main_package.suffix,
             python_flag_passed=python_flag_passed,
             backend=backend or venv.pipx_metadata.backend,
@@ -161,6 +162,7 @@ def reinstall(
                 force=True,
                 backend=backend or venv.pipx_metadata.backend,
                 env_backend=env_backend,
+                cooldown_days=injected_package.cooldown_days,
             )
 
         new_resource_paths = _get_expected_reinstall_resource_paths(

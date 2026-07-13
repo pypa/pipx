@@ -1,45 +1,69 @@
 import json
+import sys
 from collections.abc import Callable
 from pathlib import Path
+from typing import Final
 
 import pytest
 
 from helpers import run_pipx_cli
+from package_info import PKG
 from pipx import paths
+from pipx.pipx_metadata_file import PipxMetadata
 
 
+@pytest.mark.parametrize(
+    ("install_all_args", "expected_cooldown"),
+    [
+        pytest.param([], 7, id="stored"),
+        pytest.param(["--cooldown", "0"], 0, id="override"),
+    ],
+)
 def test_install_all(
     pipx_temp_env: None,
+    root: Path,
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
     make_pylock: Callable[[str, str], Path],
+    install_all_args: list[str],
+    expected_cooldown: int,
 ) -> None:
-    lock_file = make_pylock("pycowsay", "0.0.0.2")
+    find_links: Final[Path] = (
+        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
+    )
+    pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
+    lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
     assert not run_pipx_cli(["install", "--app", "pycowsay", "--lock", str(lock_file), "pycowsay"])
-    assert not run_pipx_cli(["install", "black"])
-    assert not run_pipx_cli(["inject", "black", "pycowsay"])
+    assert not run_pipx_cli(["install", "--cooldown", "7", pip_args, PKG["black"]["spec"]])
+    assert not run_pipx_cli(["inject", "black", pip_args, "pycowsay"])
     capsys.readouterr()
 
     assert not run_pipx_cli(["list", "--json"])
-    pipx_list_path = tmp_path / "pipx_list.json"
+    pipx_list_path: Final[Path] = tmp_path / "pipx_list.json"
     pipx_list_path.write_text(capsys.readouterr().out, encoding="utf-8")
 
     assert not run_pipx_cli(["uninstall-all"])
-    assert not run_pipx_cli(["install-all", str(pipx_list_path)])
+    assert not run_pipx_cli(["install-all", *install_all_args, pip_args, str(pipx_list_path)])
     capsys.readouterr()
     assert not run_pipx_cli(["list", "--json"])
 
-    installed = json.loads(capsys.readouterr().out)["venvs"]
+    installed_names: Final[list[str]] = sorted(json.loads(capsys.readouterr().out)["venvs"])
+    black_metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "black")
+    pycowsay_metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
     assert (
-        sorted(installed),
-        sorted(installed["black"]["metadata"]["injected_packages"]),
-        installed["pycowsay"]["metadata"]["main_package"]["expected_apps"],
-        installed["pycowsay"]["metadata"]["main_package"]["lock_file"],
+        installed_names,
+        sorted(black_metadata.injected_packages),
+        pycowsay_metadata.main_package.expected_apps,
+        pycowsay_metadata.main_package.lock_file,
+        black_metadata.main_package.cooldown_days,
+        black_metadata.injected_packages["pycowsay"].cooldown_days,
     ) == (
         ["black", "pycowsay"],
         ["pycowsay"],
         ["pycowsay"],
-        {"__Path__": str(lock_file.resolve()), "__type__": "Path"},
+        lock_file.resolve(),
+        expected_cooldown,
+        expected_cooldown,
     )
 
 

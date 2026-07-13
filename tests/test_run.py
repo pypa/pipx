@@ -7,6 +7,7 @@ import subprocess
 import sys
 import textwrap
 from pathlib import Path
+from typing import Final
 from unittest import mock
 
 import pytest
@@ -74,6 +75,36 @@ def test_run_does_not_mark_cache_as_installation(pipx_temp_env: None, mocker: Mo
 
     venv_dir = next(path for path in paths.ctx.venv_cache.iterdir() if path.is_dir())
     assert PipxMetadata(venv_dir).environment is None
+
+
+def test_run_cooldown_separates_cache(
+    pipx_temp_env: None,
+    root: Path,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+    find_links: Final[Path] = (
+        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
+    )
+    pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
+
+    run_pipx_cli_exit(
+        ["run", "--backend", "pip", "--cooldown", "7", pip_args, PKG["pycowsay"]["spec"], "hello"],
+        assert_exit=0,
+    )
+    cached_venvs: Final[set[Path]] = {path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()}
+    caplog.clear()
+
+    run_pipx_cli_exit(
+        ["run", "--backend", "pip", "--cooldown", "0", pip_args, PKG["pycowsay"]["spec"], "hello"],
+        assert_exit=0,
+    )
+
+    assert (
+        len({path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()}),
+        "--uploaded-prior-to" in caplog.text,
+    ) == (len(cached_venvs) + 1, False)
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
@@ -373,6 +404,49 @@ def test_run_with_requirements_and_cli_with_pip_backend(pipx_temp_env, tmp_path)
     assert not out.exists()
 
 
+def test_run_script_cooldown(
+    pipx_temp_env: None,
+    root: Path,
+    tmp_path: Path,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+    output: Final[Path] = tmp_path / "output.txt"
+    script: Final[Path] = tmp_path / "test.py"
+    script.write_text(
+        textwrap.dedent(
+            f"""
+            # /// script
+            # dependencies = ["pycowsay==0.0.0.2"]
+            # ///
+
+            from pathlib import Path
+            Path({str(output)!r}).write_text("done")
+            """
+        ).strip(),
+        encoding="utf-8",
+    )
+    find_links: Final[Path] = (
+        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
+    )
+
+    run_pipx_cli_exit(
+        [
+            "run",
+            "--backend",
+            "pip",
+            "--cooldown",
+            "7",
+            f"--pip-args=--no-index --find-links={find_links}",
+            script.as_uri(),
+        ],
+        assert_exit=0,
+    )
+
+    assert (output.read_text(encoding="utf-8"), "--uploaded-prior-to P7D" in caplog.text) == ("done", True)
+
+
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_requirements_old(caplog, pipx_temp_env, tmp_path):
     script = tmp_path / "test.py"
@@ -623,13 +697,16 @@ def test_run_shared_lib_as_app(pipx_temp_env, monkeypatch, capfd):
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_local_path_entry_point(pipx_temp_env, caplog, root):
-    empty_project_path = (Path("testdata") / "empty_project").as_posix()
-    os.chdir(root)
-
+def test_run_local_path_entry_point(
+    pipx_temp_env: None,
+    caplog: pytest.LogCaptureFixture,
+    empty_project: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.chdir(empty_project.parent)
     caplog.set_level(logging.INFO)
 
-    run_pipx_cli_exit(["run", empty_project_path])
+    run_pipx_cli_exit(["run", f".{os.sep}{empty_project.name}"])
 
     assert "Using discovered entry point for 'pipx run'" in caplog.text
 
@@ -671,6 +748,41 @@ def test_run_with(capsys):
     run_pipx_cli_exit(["run", "--with", "black", "pycowsay", "--help"])
     captured = capsys.readouterr()
     assert "injected package black into venv pycowsay" in captured.out
+
+
+def test_run_with_cooldown(
+    pipx_temp_env: None,
+    root: Path,
+    empty_project: Path,
+    mocker: MockerFixture,
+    capsys: pytest.CaptureFixture[str],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+    find_links: Final[Path] = (
+        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
+    )
+
+    run_pipx_cli_exit(
+        [
+            "run",
+            "--backend",
+            "pip",
+            "--cooldown",
+            "7",
+            "--with",
+            str(empty_project),
+            f"--pip-args=--no-index --find-links={find_links}",
+            PKG["pycowsay"]["spec"],
+            "hello",
+        ],
+        assert_exit=0,
+    )
+
+    assert (
+        "injected package empty-project into venv" in capsys.readouterr().out,
+        "--uploaded-prior-to P7D" in caplog.text,
+    ) == (True, True)
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)

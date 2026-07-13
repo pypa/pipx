@@ -74,6 +74,7 @@ managers writes the same filename. Each manager refuses to overwrite a binary th
 - `pipx install-all <spec.json>` rebuilds every venv from a `pipx list --json` snapshot for cross-machine migration.
 - `[project.entry-points."pipx.run"]` declares pipx-specific runtime extras in the package metadata.
 - `pipx environment` prints every variable and its resolved value in one place.
+- `--cooldown DAYS` provides the same release-age policy through pip and uv.
 
 ### Only in uv tool
 
@@ -83,8 +84,7 @@ managers writes the same filename. Each manager refuses to overwrite a binary th
 - `uv tool upgrade --all -p 3.13` re-pins every tool to a different Python in one shot.
 - `uv python install/list/find/pin/upgrade/uninstall` integrates managed Python; uv auto-fetches when the requested
     Python isn't installed.
-- `--exclude-newer`, `--torch-backend`, and `--isolated` add reproducibility knobs that pipx forwards but doesn't add on
-    its own.
+- `--torch-backend` and `--isolated` add controls that pipx does not expose.
 - The content-addressed cache spans `uv pip`, `uv tool`, `uv run`, and `uv venv`. Wheels downloaded once get reused
     everywhere.
 

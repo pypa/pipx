@@ -54,6 +54,7 @@ pipx can consume arguments meant for the application:
 
 usage: pipx run [-h] [--no-cache] [--pypackages] [--spec SPEC] [--verbose] [--python PYTHON]
                 [--system-site-packages] [--index-url INDEX_URL] [--editable] [--pip-args PIP_ARGS]
+                [--cooldown DAYS]
                 app ...
 pipx run: error: ambiguous option: --py could match --pypackages, --python
 ```

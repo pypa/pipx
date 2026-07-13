@@ -205,6 +205,16 @@ def get_pip_args(parsed_args: dict[str, str]) -> list[str]:
     return pip_args
 
 
+def _non_negative_int(value: str) -> int:
+    try:
+        result: Final[int] = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("--cooldown must be a non-negative integer") from exc
+    if result < 0:
+        raise argparse.ArgumentTypeError("--cooldown must be a non-negative integer")
+    return result
+
+
 def get_runpip_args(pip_args: list[str]) -> list[str]:
     if len(pip_args) != 1:
         return pip_args
@@ -304,6 +314,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
         spec=spec,
         backend=cli_backend,
         env_backend=env_backend,
+        cooldown_days=getattr(args, "cooldown", None),
     )
     with skip_shared_libs_maintenance(getattr(args, "skip_maintenance", False)):
         result = args.func(args, ctx)
@@ -337,6 +348,7 @@ class DispatchContext:
     spec: str | None
     backend: str | None = None
     env_backend: str | None = None
+    cooldown_days: int | None = None
 
     @property
     def effective_backend(self) -> str | None:
@@ -366,6 +378,12 @@ def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
             "Under the uv backend a small subset is translated (--index-url, --extra-index-url, "
             "--find-links, --pre); other flags raise an error so behaviour stays explicit."
         ),
+    )
+    parser.add_argument(
+        "--cooldown",
+        type=_non_negative_int,
+        metavar="DAYS",
+        help="Ignore index artifacts uploaded fewer than DAYS days ago.",
     )
 
 
@@ -529,6 +547,7 @@ def _cmd_install(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
         backend=ctx.backend,
         env_backend=ctx.env_backend,
         upgrade_strategy=args.upgrade_strategy,
+        cooldown_days=ctx.cooldown_days,
     )
 
 
@@ -565,6 +584,7 @@ def _cmd_install_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode
         force=args.force,
         backend=ctx.backend,
         env_backend=ctx.env_backend,
+        cooldown_days=ctx.cooldown_days,
     )
 
 
@@ -677,6 +697,7 @@ def _cmd_inject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
             suffix=args.with_suffix,
             backend=ctx.backend,
             env_backend=ctx.env_backend,
+            cooldown_days=ctx.cooldown_days,
         )
 
 
@@ -862,6 +883,7 @@ def _cmd_upgrade(args: argparse.Namespace, ctx: DispatchContext) -> OperationRes
         python_flag_passed=ctx.python_flag_passed,
         backend=ctx.backend,
         env_backend=ctx.env_backend,
+        cooldown_days=ctx.cooldown_days,
     )
 
 
@@ -901,6 +923,7 @@ def _cmd_upgrade_all(args: argparse.Namespace, ctx: DispatchContext) -> Operatio
         python_flag_passed=ctx.python_flag_passed,
         backend=ctx.backend,
         env_backend=ctx.env_backend,
+        cooldown_days=ctx.cooldown_days,
     )
 
 
@@ -1243,6 +1266,7 @@ def _cmd_run(args: argparse.Namespace, ctx: DispatchContext) -> NoReturn:
         no_path_check=args.no_path_check,
         backend=ctx.backend,
         env_backend=ctx.env_backend,
+        cooldown_days=ctx.cooldown_days,
     )
 
 
