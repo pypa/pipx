@@ -31,17 +31,18 @@ may package pipx for their users, but each ecosystem owns its build, release, up
 
 ## Configuration and state
 
-Ordinary pipx commands must not search the current directory or its parents for configuration. If pipx gains declarative
-state, the caller must supply a path, for example to a future `pipx apply tools.toml` command. The manifest must contain
-desired application state and reject arbitrary command defaults.
+Ordinary pipx commands do not search the current directory or its parents for configuration. `pipx sync PATH` applies
+the desired application state from the manifest at `PATH`; pipx does not infer that path. The manifest accepts tool
+state instead of arbitrary command defaults.
 
-Resolved dependency state uses the PyPA
-[`pylock.toml` specification](https://packaging.python.org/en/latest/specifications/pylock-toml/). The standard permits
-`pylock.toml` and named files such as `pylock.black.toml` when a manifest needs more than one lock.
-`pipx install --lock` accepts an explicit path. pipx does not use `requirements.txt` as a state or lock format.
+pipx records resolved dependencies with the PyPA
+[`pylock.toml` specification](https://packaging.python.org/en/latest/specifications/pylock-toml/). PEP 751 defines
+`pylock.toml` and named files such as `pylock.black.toml` when a manifest needs more than one lock. `pipx lock PATH`
+uses nab to resolve each locked tool in isolation. `pipx install --lock` accepts one explicit lock path. pipx does not
+use `requirements.txt` as a state or lock format.
 
-Top-level pipx options describe policy that pip and uv can both honor. A control supported by one backend stays in the
-arguments for that backend until both backends can provide the same contract.
+pipx exposes top-level policy when pip and uv honor the same contract. Backend arguments carry controls specific to pip
+or uv.
 
 Application launchers start the installed application without downloading packages or changing its environment. Health
 checks and repairs belong in commands that the user invokes for those purposes.

@@ -59,6 +59,9 @@ def install(
     upgrade: bool = False,
     upgrade_strategy: str | None = None,
     venv_lock: BaseFileLock | None = None,
+    preserve_existing: bool = False,
+    replace_expected_apps: bool = False,
+    replace_lock: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
     # package_spec is anything pip-installable, including package_name, vcs spec,
@@ -115,8 +118,15 @@ def install(
                 backend=install_backend,
                 env_backend=install_env_backend,
             )
-            required_apps = tuple(dict.fromkeys(expected_apps or venv.pipx_metadata.main_package.expected_apps))
-            required_lock = lock_file or venv.pipx_metadata.main_package.lock_file
+            required_apps = tuple(
+                dict.fromkeys(
+                    expected_apps
+                    if replace_expected_apps
+                    else expected_apps or venv.pipx_metadata.main_package.expected_apps
+                )
+            )
+            recorded_lock = venv.pipx_metadata.main_package.lock_file
+            required_lock = lock_file if replace_lock else lock_file or recorded_lock
             required_exposure = venv.pipx_metadata.exposure_enabled if exposure_enabled is None else exposure_enabled
             if exists:
                 if not reinstall and force and python_flag_passed:
@@ -167,11 +177,11 @@ def install(
 
             with preserve_venv(
                 venv_dir,
-                enabled=exists and (bool(required_apps) or required_lock is not None),
+                enabled=exists and (preserve_existing or bool(required_apps) or required_lock is not None),
             ):
                 venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
                 try:
-                    if exists and required_lock is not None:
+                    if exists and (required_lock is not None or (replace_lock and recorded_lock is not None)):
                         recorded_backend = venv.pipx_metadata.backend
                         rmdir(venv_dir)
                         venv = Venv(
@@ -359,6 +369,8 @@ def install_all(
                     backend=backend or venv_metadata.backend,
                     env_backend=env_backend,
                     exposure_enabled=venv_metadata.exposure_enabled,
+                    replace_expected_apps=True,
+                    replace_lock=True,
                     venv_lock=venv_lock,
                 )
                 for inject_package in venv_metadata.injected_packages.values():

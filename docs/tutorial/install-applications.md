@@ -93,6 +93,70 @@ rejects `inject` because the added package would fall outside the lock.
 replace an installed environment with a new lock. The pip backend requires pip 26.1 or newer; the uv backend requires uv
 0.6.15 or newer.
 
+### Applying a tool manifest
+
+Use an explicit manifest to manage a set of pipx tools:
+
+```toml
+[project]
+name = "pipx-tools"
+version = "1"
+dependencies = []
+requires-python = ">=3.10"
+
+[dependency-groups]
+black = ["black>=25,<26"]
+httpie = ["httpie"]
+
+[tool.pipx]
+version = "1.0"
+
+[tool.pipx.tools.black]
+apps = ["black"]
+lock = "pylock.black.toml"
+
+[tool.pipx.tools.httpie]
+apps = ["http", "https"]
+```
+
+Each dependency group contains one package requirement and names its pipx environment. Keep `project.dependencies` empty
+so each group resolves independently. Add a matching `tool.pipx.tools` table only when the tool needs policy beyond its
+package requirement.
+
+Use the normalized package name plus its suffix as the environment name:
+
+```toml
+[dependency-groups]
+black-24 = ["black==24.10.0"]
+
+[tool.pipx.tools.black-24]
+suffix = "-24"
+apps = ["black"]
+```
+
+Package requirements use PEP 508 syntax without environment markers. A tool table may set `suffix`, `apps`,
+`include-dependencies`, `expose`, or `lock`. Relative lock paths start from the manifest directory. Put nab settings in
+`tool.nab`.
+
+Install [nab](https://pypi.org/project/nab/), generate the declared locks, and apply the manifest:
+
+```console
+pipx install nab
+pipx lock ./pipx.toml
+pipx sync ./pipx.toml
+```
+
+`pipx lock` passes the manifest to nab once per locked dependency group. Existing locks seed their replacements, and
+pipx replaces the declared files only after every resolution succeeds. Entries without `lock` remain unlocked.
+
+`pipx sync` installs, upgrades, or downgrades each declared tool. The backend resolves unlocked package specs on each
+run; pipx installs locked entries from the artifacts in their named PEP 751 files. pipx restores an existing environment
+and its exposed resources when a tool fails to install or lacks a required app.
+
+Pass `--prune` to uninstall environments absent from the manifest. Without it, sync leaves other pipx environments
+alone. Pass `--global` or `--backend` after `sync` to select the pipx store or installation backend. pipx reads only the
+manifest path supplied on the command line.
+
 ### Keeping an installation within a version range
 
 Use `--upgrade` when you want an installed app to match a package spec:
