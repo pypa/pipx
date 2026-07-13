@@ -10,12 +10,14 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+from pytest_mock import MockerFixture
 
 import pipx.main
 import pipx.util
 from helpers import run_pipx_cli
 from package_info import PKG
 from pipx import paths, shared_libs
+from pipx.pipx_metadata_file import PipxMetadata
 
 
 def test_help_text(pipx_temp_env, monkeypatch, capsys):
@@ -63,6 +65,15 @@ def test_cache(pipx_temp_env, monkeypatch, capsys, caplog):
 
     run_pipx_cli_exit(["run", "--no-cache", "pycowsay", "cowsay", "args"])
     assert "Removing cached venv" in caplog.text
+
+
+def test_run_does_not_mark_cache_as_installation(pipx_temp_env: None, mocker: MockerFixture) -> None:
+    mocker.patch("os.execvpe", new=execvpe_mock)
+
+    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
+
+    venv_dir = next(path for path in paths.ctx.venv_cache.iterdir() if path.is_dir())
+    assert PipxMetadata(venv_dir).environment is None
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)

@@ -46,6 +46,7 @@ class _RawPackageInfo(TypedDict, total=False):
 class _RawMetadata(TypedDict, total=False):
     """JSON-on-disk shape for ``pipx_metadata.json``."""
 
+    environment: str | None
     main_package: _RawPackageInfo
     python_version: str | None
     source_interpreter: Path | None
@@ -134,6 +135,7 @@ class PipxMetadata:
             man_paths_of_dependencies={},
             package_version="",
         )
+        self.environment: str | None = None
         self.python_version: str | None = None
         self.source_interpreter: Path | None = None
         self.venv_args: list[str] = []
@@ -151,6 +153,7 @@ class PipxMetadata:
         # Plain dict over _RawMetadata: asdict() returns dict[str, Any] and
         # consumers serialise straight to JSON.
         return {
+            "environment": self.environment,
             "main_package": asdict(self.main_package),
             "python_version": self.python_version,
             "source_interpreter": self.source_interpreter,
@@ -190,6 +193,7 @@ class PipxMetadata:
 
     def from_dict(self, input_dict: _RawMetadata) -> None:
         input_dict = self._convert_legacy_metadata(input_dict)
+        self.environment = input_dict.get("environment")
         self.main_package = PackageInfo(**input_dict["main_package"])
         self.python_version = input_dict.get("python_version")
         source_interpreter_raw = input_dict.get("source_interpreter")

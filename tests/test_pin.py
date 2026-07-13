@@ -1,10 +1,12 @@
 import json
+from pathlib import Path
 
 import pytest
 
 from helpers import run_pipx_cli
 from package_info import PKG
 from pipx import paths
+from pipx.pipx_metadata_file import PipxMetadata
 
 
 def test_pin(pipx_temp_env: None, caplog: pytest.LogCaptureFixture) -> None:
@@ -13,6 +15,16 @@ def test_pin(pipx_temp_env: None, caplog: pytest.LogCaptureFixture) -> None:
     assert not run_pipx_cli(["upgrade", "pycowsay"])
 
     assert "Not upgrading pinned package pycowsay" in caplog.text
+
+
+def test_pin_survives_main_package_extra_injection(pipx_temp_env: None, root: Path) -> None:
+    package = root / "testdata/test_package_specifier/local_extras"
+    assert not run_pipx_cli(["install", str(package)])
+    assert not run_pipx_cli(["pin", "repeatme"])
+
+    assert not run_pipx_cli(["inject", "repeatme", f"{package}[cow]"])
+
+    assert PipxMetadata(paths.ctx.venvs / "repeatme").main_package.pinned
 
 
 def test_pin_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
