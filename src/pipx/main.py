@@ -923,6 +923,63 @@ def _cmd_reinstall_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCo
     )
 
 
+def _add_health(
+    subparsers: argparse._SubParsersAction,
+    venv_completer: VenvCompleter,
+    shared_parser: argparse.ArgumentParser,
+) -> None:
+    parser = subparsers.add_parser(
+        "health",
+        help="Check installed package environments",
+        description="Check whether installed package environments can run their Python interpreter.",
+        parents=[shared_parser],
+    )
+    parser.add_argument("packages", nargs="*", help="Installed packages to check").completer = venv_completer
+    parser.add_argument("--json", action="store_true", help="Output a machine-readable result.")
+    parser.set_defaults(func=_cmd_health)
+
+
+def _cmd_health(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.HealthData]:
+    return commands.health(ctx.venv_container, _selected_venv_dirs(args, ctx))
+
+
+def _add_repair(
+    subparsers: argparse._SubParsersAction,
+    venv_completer: VenvCompleter,
+    shared_parser: argparse.ArgumentParser,
+) -> None:
+    parser = subparsers.add_parser(
+        "repair",
+        help="Repair broken package environments",
+        description="Reinstall packages whose environments cannot run their Python interpreter.",
+        parents=[shared_parser],
+    )
+    parser.add_argument("packages", nargs="*", help="Installed packages to repair").completer = venv_completer
+    add_python_options(parser)
+    add_backend_arg(parser)
+    parser.set_defaults(func=_cmd_repair)
+
+
+def _cmd_repair(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.RepairData]:
+    return commands.repair(
+        ctx.venv_container,
+        _selected_venv_dirs(args, ctx),
+        paths.ctx.bin_dir,
+        paths.ctx.man_dir,
+        ctx.python,
+        ctx.verbose,
+        python_flag_passed=ctx.python_flag_passed,
+        backend=ctx.backend,
+        env_backend=ctx.env_backend,
+    )
+
+
+def _selected_venv_dirs(args: argparse.Namespace, ctx: DispatchContext) -> tuple[Path, ...]:
+    if args.packages:
+        return tuple(_venv_dirs(args, ctx).values())
+    return tuple(sorted(ctx.venv_container.iter_venv_dirs()))
+
+
 def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "list",
@@ -1279,6 +1336,8 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
     _add_uninstall_all(subparsers, shared_parser)
     _add_reinstall(subparsers, completer_venvs.use, shared_parser)
     _add_reinstall_all(subparsers, shared_parser)
+    _add_health(subparsers, completer_venvs.use, shared_parser)
+    _add_repair(subparsers, completer_venvs.use, shared_parser)
     _add_list(subparsers, shared_parser)
     subparsers_with_subcommands["interpreter"] = _add_interpreter(subparsers, shared_parser)
     _add_run(subparsers, shared_parser)
