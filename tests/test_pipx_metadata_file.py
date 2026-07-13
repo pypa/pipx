@@ -57,6 +57,7 @@ def test_pipx_metadata_file_create(tmp_path: Path) -> None:
 
     pipx_metadata = PipxMetadata(venv_dir)
     pipx_metadata.main_package = TEST_PACKAGE1
+    pipx_metadata.environment = "test-package"
     pipx_metadata.python_version = "3.4.5"
     pipx_metadata.source_interpreter = Path(sys.executable)
     pipx_metadata.venv_args = ["--system-site-packages"]
@@ -68,6 +69,7 @@ def test_pipx_metadata_file_create(tmp_path: Path) -> None:
 
     for attribute in [
         "venv_dir",
+        "environment",
         "main_package",
         "python_version",
         "venv_args",
@@ -117,6 +119,19 @@ def test_pipx_metadata_file_defaults_lock_file_from_version_0_8(tmp_path: Path) 
     (venv_dir / PIPX_INFO_FILENAME).write_text(json.dumps(payload, cls=JsonEncoderHandlesPath))
 
     assert PipxMetadata(venv_dir).main_package.lock_file is None
+
+
+def test_pipx_metadata_file_defaults_environment_from_version_0_8(tmp_path: Path) -> None:
+    venv_dir = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    payload = metadata.to_dict()
+    payload["pipx_metadata_version"] = "0.8"
+    payload.pop("environment")
+    (venv_dir / PIPX_INFO_FILENAME).write_text(json.dumps(payload, cls=JsonEncoderHandlesPath))
+
+    assert PipxMetadata(venv_dir).environment is None
 
 
 @pytest.mark.parametrize(

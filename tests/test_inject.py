@@ -1,12 +1,15 @@
 import logging
 import re
+import shutil
+import subprocess
 import textwrap
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from packaging.utils import canonicalize_name
 
-from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, skip_if_windows
+from helpers import PIPX_METADATA_LEGACY_VERSIONS, app_name, mock_legacy_venv, run_pipx_cli, skip_if_windows
 from package_info import PKG
 from pipx import paths
 from pipx.pipx_metadata_file import PipxMetadata
@@ -53,6 +56,49 @@ def test_inject_single_package(pipx_temp_env, capsys, caplog, pkg_spec):
     injected = re.findall(r"injected package (.+?) into venv pycowsay", captured.out)
     pkg_name = pkg_spec.split("=", 1)[0].replace(".", "-")  # assuming spec is always of the form <name>==<version>
     assert set(injected) == {pkg_name}
+
+
+@pytest.mark.parametrize(
+    ("backend", "suffix"),
+    [
+        pytest.param("pip", "", id="pip"),
+        pytest.param(
+            "uv",
+            "_x",
+            id="uv",
+            marks=pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH"),
+        ),
+    ],
+)
+def test_inject_main_package_extra(
+    pipx_temp_env: None,
+    root: Path,
+    capsys: pytest.CaptureFixture[str],
+    backend: str,
+    suffix: str,
+) -> None:
+    package = root / "testdata/test_package_specifier/local_extras"
+    assert not run_pipx_cli(["install", str(package), "--backend", backend, f"--suffix={suffix}"])
+    venv_dir = paths.ctx.venvs / canonicalize_name(f"repeatme{suffix}")
+    environment = PipxMetadata(venv_dir).environment
+    assert environment is not None
+    assert not run_pipx_cli(["inject", environment, f"{package}[cow]", "--backend", backend])
+    assert not run_pipx_cli(["reinstall", environment])
+
+    output = subprocess.run(
+        [paths.ctx.bin_dir / app_name(f"repeatme{suffix}"), "hello"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--include-injected"])
+    list_output = capsys.readouterr().out
+    assert (
+        "In cow, you said:" in output,
+        "injected in venv" in list_output,
+        environment,
+    ) == (True, False, venv_dir.name)
 
 
 @skip_if_windows

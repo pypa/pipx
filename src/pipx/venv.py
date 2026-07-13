@@ -348,6 +348,7 @@ class Venv:
         install_only_pip_args: list[str] | None = None,
         expected_apps: Sequence[str] | None = None,
         lock_file: Path | None = None,
+        pinned: bool = False,
     ) -> None:
         # package_name in package specifier can mismatch URL due to user error
         package_or_url = fix_package_name(package_or_url, package_name)
@@ -381,6 +382,7 @@ class Venv:
             suffix=suffix,
             expected_apps=expected_apps,
             lock_file=lock_file,
+            pinned=pinned,
         )
 
         # Verify package installed ok

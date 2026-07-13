@@ -183,6 +183,7 @@ def install(
                     override_shared = canonicalize_name(package_name) == "pip"
                     venv.create_venv(venv_args, pip_args, override_shared)
                     venv.pipx_metadata.exposure_enabled = required_exposure
+                    venv.pipx_metadata.environment = venv.root.name
                     for dependency in preinstall_packages or []:
                         venv.upgrade_package_no_metadata(dependency, [])
                     venv.install_package(

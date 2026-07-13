@@ -14,6 +14,7 @@ from pipx.colors import bold
 from pipx.commands.common import package_name_from_spec, run_post_install_actions
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK, ExitCode
 from pipx.emojis import hazard, stars
+from pipx.package_specifier import get_extras
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv
 
@@ -80,12 +81,13 @@ def inject_dep(
     # ``pipx run`` but breaks anyone reaching for the venv's missing pip.
     assert_not_pip_under_uv(canonicalize_name(package_name), venv.backend_name)
 
-    if not force and venv.has_package(package_name):
-        _LOGGER.info("Package %s has already been injected", package_name)
+    is_main_package = canonicalize_name(package_name) == canonicalize_name(venv.main_package_name)
+    if not force and venv.has_package(package_name) and (not is_main_package or not get_extras(package_spec)):
+        _LOGGER.info("Package %s is already installed", package_name)
         print(
             pipx_wrap(
                 f"""
-                {hazard} {package_name} already seems to be injected in {venv.name!r}.
+                {hazard} {package_name} already seems to be installed in {venv.name!r}.
                 Not modifying existing installation in '{venv_dir}'.
                 Pass '--force' to force installation.
                 """
@@ -93,7 +95,15 @@ def inject_dep(
         )
         return True
 
-    if suffix:
+    pinned = False
+    if is_main_package:
+        main_package = venv.pipx_metadata.main_package
+        pip_args = pip_args or main_package.pip_args
+        include_dependencies = main_package.include_dependencies
+        include_apps = main_package.include_apps
+        venv_suffix = main_package.suffix
+        pinned = main_package.pinned
+    elif suffix:
         venv_suffix = venv.package_metadata[venv.main_package_name].suffix
     else:
         venv_suffix = ""
@@ -104,8 +114,9 @@ def inject_dep(
         install_only_pip_args=["--force-reinstall"] if force else None,
         include_dependencies=include_dependencies,
         include_apps=include_apps,
-        is_main_package=False,
+        is_main_package=is_main_package,
         suffix=venv_suffix,
+        pinned=pinned,
     )
     if include_apps:
         run_post_install_actions(
@@ -118,7 +129,10 @@ def inject_dep(
             force=force,
         )
 
-    print(f"  injected package {bold(package_name)} into venv {bold(venv.name)}")
+    if is_main_package:
+        print(f"  updated package {bold(package_name)} in venv {bold(venv.name)}")
+    else:
+        print(f"  injected package {bold(package_name)} into venv {bold(venv.name)}")
     print(f"done! {stars}", file=sys.stderr)
 
     # Any failure to install will raise PipxError, otherwise success
