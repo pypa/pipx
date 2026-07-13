@@ -36,3 +36,10 @@ def test_uv_backend_install_uninstall_smoke(pipx_temp_env, capsys: pytest.Captur
     uninstall_rc = run_pipx_cli(["uninstall", "pycowsay"])
     assert uninstall_rc == 0
     assert not metadata_file.exists()
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH; skipping uv integration smoke")
+def test_uv_backend_force_install_existing(pipx_temp_env: None) -> None:
+    command = ["install", "pycowsay", "--backend", "uv"]
+    assert run_pipx_cli(command) == 0
+    assert run_pipx_cli([*command, "--force"]) == 0
