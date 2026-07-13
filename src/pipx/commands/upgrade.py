@@ -10,7 +10,7 @@ from filelock import BaseFileLock
 
 from pipx import commands, paths
 from pipx.colors import bold, red
-from pipx.commands.common import expose_resources_globally
+from pipx.commands.common import expose_package_resources
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.emojis import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
@@ -98,27 +98,8 @@ def _upgrade_package(
     display_name = f"{package_metadata.package}{package_metadata.suffix}"
     new_version = package_metadata.package_version
 
-    if package_metadata.include_apps:
-        expose_resources_globally(
-            "app",
-            paths.ctx.bin_dir,
-            package_metadata.app_paths,
-            force=force,
-            suffix=package_metadata.suffix,
-        )
-        expose_resources_globally("man", paths.ctx.man_dir, package_metadata.man_paths, force=force)
-
-    if package_metadata.include_dependencies:
-        for app_paths in package_metadata.app_paths_of_dependencies.values():
-            expose_resources_globally(
-                "app",
-                paths.ctx.bin_dir,
-                app_paths,
-                force=force,
-                suffix=package_metadata.suffix,
-            )
-        for man_paths in package_metadata.man_paths_of_dependencies.values():
-            expose_resources_globally("man", paths.ctx.man_dir, man_paths, force=force)
+    if venv.pipx_metadata.exposure_enabled:
+        expose_package_resources(package_metadata, paths.ctx.bin_dir, paths.ctx.man_dir, force=force)
 
     return PackageUpgradeResult(
         environment=venv.name,

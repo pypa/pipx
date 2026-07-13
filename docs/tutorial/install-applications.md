@@ -41,6 +41,21 @@ apps are exposed on your $PATH at /home/user/.local/bin
 
 ```
 
+### Hiding an application
+
+Use `unexpose` when another command with the same name should take precedence without removing the pipx environment.
+
+```
+pipx unexpose ansible
+```
+
+pipx removes the apps and manual pages recorded for the environment from its global directories. Upgrade and reinstall
+operations keep it hidden. Injected apps stay hidden too. Use `expose` to restore the recorded resources.
+
+```
+pipx expose ansible
+```
+
 ### Keeping an installation within a version range
 
 Use `--upgrade` when you want an installed app to match a package spec:

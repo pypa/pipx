@@ -14,10 +14,10 @@ install and run Python applications in isolated environments
 SYNOPSIS
 --------
 
-**pipx** [*global-options*] [**install** | **install-all** | **uninject** | **inject** | **pin** | **unpin** |
-**upgrade** | **upgrade-all** | **upgrade-shared** | **uninstall** | **uninstall-all** | **reinstall** | **reinstall-
-all** | **health** | **repair** | **list** | **interpreter** | **run** | **runpip** | **ensurepath** | **environment** |
-**completions** | **help**] [*command-options*]
+**pipx** [*global-options*] [**install** | **install-all** | **uninject** | **inject** | **expose** | **unexpose** |
+**pin** | **unpin** | **upgrade** | **upgrade-all** | **upgrade-shared** | **uninstall** | **uninstall-all** |
+**reinstall** | **reinstall-all** | **health** | **repair** | **list** | **interpreter** | **run** | **runpip** |
+**ensurepath** | **environment** | **completions** | **help**] [*command-options*]
 
 DESCRIPTION
 -----------
@@ -39,6 +39,12 @@ COMMANDS
 
 **inject**
     Install packages into an existing Virtual Environment
+
+**expose**
+    Restore resources from a hidden environment
+
+**unexpose**
+    Hide resources without removing an environment
 
 **pin**
     Pin the specified package to prevent it from being upgraded

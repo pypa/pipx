@@ -8,7 +8,7 @@ from packaging.utils import canonicalize_name
 
 from pipx import commands, paths
 from pipx.backends import PIP
-from pipx.commands.common import expose_resources_globally, package_name_from_spec, run_post_install_actions
+from pipx.commands.common import expose_package_resources, package_name_from_spec, run_post_install_actions
 from pipx.constants import (
     EXIT_CODE_INSTALL_VENV_EXISTS,
     EXIT_CODE_OK,
@@ -60,26 +60,8 @@ def _upgrade_existing_venv(
         upgrade_only_pip_args=([f"--upgrade-strategy={upgrade_strategy}"] if upgrade_strategy is not None else None),
     )
     package_metadata = venv.pipx_metadata.main_package
-    if package_metadata.include_apps:
-        expose_resources_globally(
-            "app",
-            local_bin_dir,
-            package_metadata.app_paths,
-            force=False,
-            suffix=package_metadata.suffix,
-        )
-        expose_resources_globally("man", local_man_dir, package_metadata.man_paths, force=False)
-    if package_metadata.include_dependencies:
-        for app_paths in package_metadata.app_paths_of_dependencies.values():
-            expose_resources_globally(
-                "app",
-                local_bin_dir,
-                app_paths,
-                force=False,
-                suffix=package_metadata.suffix,
-            )
-        for man_paths in package_metadata.man_paths_of_dependencies.values():
-            expose_resources_globally("man", local_man_dir, man_paths, force=False)
+    if venv.pipx_metadata.exposure_enabled:
+        expose_package_resources(package_metadata, local_bin_dir, local_man_dir, force=False)
     print(
         pipx_wrap(
             f"""
@@ -109,6 +91,7 @@ def install(
     python_flag_passed: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
+    exposure_enabled: bool | None = None,
     upgrade: bool = False,
     upgrade_strategy: str | None = None,
     venv_lock: BaseFileLock | None = None,
@@ -212,6 +195,9 @@ def install(
             try:
                 override_shared = canonicalize_name(package_name) == "pip"
                 venv.create_venv(venv_args, pip_args, override_shared)
+                venv.pipx_metadata.exposure_enabled = (
+                    venv.pipx_metadata.exposure_enabled if exposure_enabled is None else exposure_enabled
+                )
                 for dependency in preinstall_packages or []:
                     venv.upgrade_package_no_metadata(dependency, [])
                 venv.install_package(
@@ -332,6 +318,7 @@ def install_all(
                     suffix=main_package.suffix,
                     backend=backend or venv_metadata.backend,
                     env_backend=env_backend,
+                    exposure_enabled=venv_metadata.exposure_enabled,
                     venv_lock=venv_lock,
                 )
                 for inject_package in venv_metadata.injected_packages.values():

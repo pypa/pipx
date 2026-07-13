@@ -49,7 +49,8 @@ def test_json_encoder_rejects_unsupported_value() -> None:
         json.dumps(1j, cls=JsonEncoderHandlesPath)
 
 
-def test_pipx_metadata_file_create(tmp_path):
+def test_pipx_metadata_file_create(tmp_path: Path) -> None:
+    assert TEST_PACKAGE1.package is not None
     venv_dir = tmp_path / TEST_PACKAGE1.package
     venv_dir.mkdir()
 
@@ -59,6 +60,7 @@ def test_pipx_metadata_file_create(tmp_path):
     pipx_metadata.source_interpreter = Path(sys.executable)
     pipx_metadata.venv_args = ["--system-site-packages"]
     pipx_metadata.injected_packages = {"injected": TEST_PACKAGE2}
+    pipx_metadata.exposure_enabled = False
     pipx_metadata.write()
 
     pipx_metadata2 = PipxMetadata(venv_dir)
@@ -69,8 +71,25 @@ def test_pipx_metadata_file_create(tmp_path):
         "python_version",
         "venv_args",
         "injected_packages",
+        "exposure_enabled",
     ]:
         assert getattr(pipx_metadata, attribute) == getattr(pipx_metadata2, attribute)
+
+
+def test_pipx_metadata_file_defaults_exposure_for_version_0_6(tmp_path: Path) -> None:
+    venv_dir = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    payload = metadata.to_dict()
+    payload["pipx_metadata_version"] = "0.6"
+    payload.pop("exposure_enabled")
+    (venv_dir / PIPX_INFO_FILENAME).write_text(
+        json.dumps(payload, cls=JsonEncoderHandlesPath),
+        encoding="utf-8",
+    )
+
+    assert PipxMetadata(venv_dir).exposure_enabled is True
 
 
 @pytest.mark.parametrize(
