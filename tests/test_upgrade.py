@@ -1,3 +1,4 @@
+import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import Final
@@ -238,6 +239,53 @@ def test_upgrade_pip_args(
         assert arg in metadata.main_package.pip_args
     for arg in unexpected_args:
         assert arg not in metadata.main_package.pip_args
+
+
+@pytest.mark.parametrize(
+    ("command", "expected_options", "expected_cooldowns"),
+    [
+        pytest.param(["upgrade", "--include-injected", "pycowsay"], (True, True), (7, 5), id="stored"),
+        pytest.param(
+            ["upgrade-all", "--include-injected", "--cooldown", "0"],
+            (False, False),
+            (0, 0),
+            id="override-all",
+        ),
+    ],
+)
+def test_upgrade_cooldown(
+    pipx_temp_env: None,
+    root: Path,
+    empty_project: Path,
+    caplog: pytest.LogCaptureFixture,
+    command: list[str],
+    expected_options: tuple[bool, bool],
+    expected_cooldowns: tuple[int, int],
+) -> None:
+    find_links: Final[Path] = (
+        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
+    )
+    pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
+    assert not run_pipx_cli(
+        [
+            "install",
+            "--cooldown",
+            "7",
+            pip_args,
+            PKG["pycowsay"]["spec"],
+        ]
+    )
+    assert not run_pipx_cli(["inject", "--cooldown", "5", pip_args, "pycowsay", str(empty_project)])
+    caplog.clear()
+
+    assert not run_pipx_cli(command)
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    assert (
+        "--uploaded-prior-to P7D" in caplog.text,
+        "--uploaded-prior-to P5D" in caplog.text,
+        (metadata.main_package.cooldown_days, metadata.injected_packages["empty-project"].cooldown_days),
+    ) == (*expected_options, expected_cooldowns)
 
 
 def test_upgrade_injected_uses_stored_pip_args(pipx_temp_env: None, root: Path) -> None:

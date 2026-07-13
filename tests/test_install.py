@@ -9,17 +9,19 @@ from typing import TYPE_CHECKING, Final
 from unittest import mock
 
 import pytest
+from pytest_mock import MockerFixture
 
 from helpers import app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
 from package_info import PKG
 from pipx import paths, shared_libs
+from pipx.backends import Backend
 from pipx.constants import EXIT_CODE_OK
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 from pipx.util import PipxError
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
-    from pytest_mock import MockerFixture
+    from unittest.mock import MagicMock
 
 TEST_DATA_PATH = "./testdata/test_package_specifier"
 
@@ -201,16 +203,60 @@ def test_install_from_pylock(
 ) -> None:
     if backend == "uv" and shutil.which("uv") is None:
         pytest.skip("uv is not installed")
-    lock_file = make_pylock("pycowsay", "0.0.0.2")
+    lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
 
     assert not run_pipx_cli(["install", "--backend", backend, "--lock", str(lock_file), "pycowsay>=0"])
 
-    metadata = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
     assert (
         metadata.package_version,
         metadata.lock_file,
         (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
     ) == ("0.0.0.2", lock_file.resolve(), True)
+
+
+@pytest.mark.parametrize(
+    ("backend", "backend_option"),
+    [
+        pytest.param("pip", "--uploaded-prior-to P7D", id="pip"),
+        pytest.param("uv", "--exclude-newer P7D", id="uv"),
+    ],
+)
+def test_install_cooldown(
+    pipx_temp_env: None,
+    root: Path,
+    caplog: pytest.LogCaptureFixture,
+    backend: str,
+    backend_option: str,
+) -> None:
+    if backend == "uv" and shutil.which("uv") is None:
+        pytest.skip("uv is not installed")
+    find_links: Final[Path] = (
+        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
+    )
+
+    assert not run_pipx_cli(
+        [
+            "install",
+            "--backend",
+            backend,
+            "--cooldown",
+            "7",
+            f"--pip-args=--no-index --find-links={find_links}",
+            PKG["pycowsay"]["spec"],
+        ]
+    )
+
+    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
+    assert (backend_option in caplog.text, metadata.cooldown_days) == (True, 7)
+
+
+@pytest.mark.parametrize("value", [pytest.param("-1", id="negative"), pytest.param("invalid", id="not-an-integer")])
+def test_install_rejects_invalid_cooldown(value: str, capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit, match="2"):
+        run_pipx_cli(["install", "--cooldown", value, "pycowsay"])
+
+    assert "--cooldown must be a non-negative integer" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("editable", [pytest.param(False, id="wheel"), pytest.param(True, id="editable")])
@@ -221,7 +267,7 @@ def test_install_source_from_pylock(
     editable: bool,
 ) -> None:
     project = make_project_with_dependency("pycowsay==0.0.0.2")
-    lock_file = make_pylock("pycowsay", "0.0.0.2")
+    lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
 
     assert not run_pipx_cli(["install", *(["--editable"] if editable else []), "--lock", str(lock_file), str(project)])
 
@@ -312,7 +358,7 @@ def test_install_reapplies_recorded_pylock(
 
     assert not run_pipx_cli(command)
 
-    metadata = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
+    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
     assert (marker.exists(), metadata.package_version, metadata.lock_file) == (
         False,
         "0.0.0.2",
@@ -359,6 +405,25 @@ def test_install_upgrade_skips_pylock(
     ) == (True, "0.0.0.2", lock_file.resolve())
 
 
+def test_install_rejects_cooldown_for_recorded_pylock(
+    pipx_temp_env: None,
+    make_pylock: Callable[[str, str], Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
+    assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
+    capsys.readouterr()
+
+    assert run_pipx_cli(["install", "--force", "--cooldown", "7", "pycowsay"])
+
+    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
+    assert (
+        "--cooldown cannot modify a locked environment" in unwrap_log_text(capsys.readouterr().err),
+        metadata.package_version,
+        metadata.lock_file,
+    ) == (True, "0.0.0.2", lock_file.resolve())
+
+
 @pytest.mark.parametrize(
     ("package_args", "lock_name", "lock_exists", "expected_error"),
     [
@@ -376,6 +441,13 @@ def test_install_upgrade_skips_pylock(
             True,
             "--lock cannot be combined with --upgrade",
             id="upgrade",
+        ),
+        pytest.param(
+            ["--cooldown", "7", "pycowsay"],
+            "pylock.test.toml",
+            True,
+            "--lock cannot be combined with --cooldown",
+            id="cooldown",
         ),
         pytest.param(["pycowsay"], "lock.toml", True, "Lock files must be named", id="name"),
         pytest.param(["pycowsay"], "pylock.missing.toml", False, "Lock file does not exist", id="missing"),
@@ -844,27 +916,23 @@ def test_pip_args_forwarded_to_package_name_determination(pipx_temp_env, capsys)
     assert "Cannot determine package name from spec" not in captured.err
 
 
-def test_package_name_determination_preserves_install_error(monkeypatch):
-    class FailingBackend:
-        def install(self, **kwargs):
-            return subprocess.CompletedProcess(
-                ["pip", "install", "requires-newer-python"],
-                1,
-                stdout="",
-                stderr="ERROR: Package 'requires-newer-python' requires a different Python\n",
-            )
-
-    def no_installed_packages():
-        return set()
-
-    venv = Venv(Path("requires-newer-python-venv"))
-    monkeypatch.setattr(venv, "_backend", FailingBackend())
-    monkeypatch.setattr(venv, "list_installed_packages", no_installed_packages)
+def test_package_name_determination_preserves_install_error(mocker: MockerFixture) -> None:
+    venv: Final[Venv] = Venv(Path("requires-newer-python-venv"))
+    backend: Final[MagicMock] = mocker.create_autospec(Backend, instance=True)
+    backend.cooldown_args.return_value = []
+    backend.install.return_value = subprocess.CompletedProcess(
+        ["pip", "install", "requires-newer-python"],
+        1,
+        stdout="",
+        stderr="ERROR: Package 'requires-newer-python' requires a different Python\n",
+    )
+    mocker.patch.object(venv, "_backend", backend)
+    mocker.patch.object(venv, "list_installed_packages", return_value=set())
 
     with pytest.raises(PipxError) as excinfo:
         venv.install_package_no_deps("requires-newer-python", [])
 
-    error = str(excinfo.value)
+    error: Final[str] = str(excinfo.value)
     assert "requires a different Python" in error
     assert "Cannot determine package name from spec" not in error
 
@@ -1025,6 +1093,33 @@ def test_install_multiple_packages_preserves_editable_for_local_package(pipx_tem
 def test_preinstall(pipx_temp_env, caplog):
     assert not run_pipx_cli(["install", "--preinstall", "black", "nox"])
     assert "black" in caplog.text
+
+
+def test_preinstall_cooldown(
+    pipx_temp_env: None,
+    root: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    find_links: Final[Path] = (
+        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
+    )
+
+    assert not run_pipx_cli(
+        [
+            "install",
+            "--preinstall",
+            PKG["black"]["spec"],
+            "--cooldown",
+            "7",
+            f"--pip-args=--no-index --find-links={find_links}",
+            PKG["nox"]["spec"],
+        ]
+    )
+
+    assert (
+        caplog.text.count("--uploaded-prior-to P7D"),
+        PipxMetadata(paths.ctx.venvs / "nox").main_package.cooldown_days,
+    ) == (2, 7)
 
 
 def test_preinstall_multiple(pipx_temp_env, caplog):

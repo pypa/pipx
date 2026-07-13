@@ -66,6 +66,7 @@ def _upgrade_package(
     pip_args: list[str],
     is_main_package: bool,
     force: bool,
+    cooldown_days: int | None,
 ) -> PackageUpgradeResult:
     package_metadata = venv.package_metadata[package_name]
 
@@ -94,6 +95,7 @@ def _upgrade_package(
         include_apps=package_metadata.include_apps,
         is_main_package=is_main_package,
         suffix=package_metadata.suffix,
+        cooldown_days=cooldown_days if cooldown_days is not None else package_metadata.cooldown_days,
     )
 
     package_metadata = venv.package_metadata[package_name]
@@ -172,6 +174,7 @@ def _upgrade_venv(
     venv: Venv | None = None,
     shared_libs_already_checked: bool = False,
     venv_lock: BaseFileLock | None = None,
+    cooldown_days: int | None = None,
 ) -> tuple[PackageUpgradeResult, ...]:
     """Return package upgrade results.
 
@@ -201,6 +204,7 @@ def _upgrade_venv(
                 backend=backend,
                 env_backend=env_backend,
                 venv_lock=venv_lock,
+                cooldown_days=cooldown_days,
             )
             return ()
         else:
@@ -257,7 +261,14 @@ def _upgrade_venv(
         venv_dir,
         enabled=any(package.expected_apps for package in venv.package_metadata.values()),
     ):
-        return _upgrade_packages(venv, main_pip_args, pip_args, include_injected=include_injected, force=force)
+        return _upgrade_packages(
+            venv,
+            main_pip_args,
+            pip_args,
+            include_injected=include_injected,
+            force=force,
+            cooldown_days=cooldown_days,
+        )
 
 
 def _upgrade_packages(
@@ -267,6 +278,7 @@ def _upgrade_packages(
     *,
     include_injected: bool,
     force: bool,
+    cooldown_days: int | None,
 ) -> tuple[PackageUpgradeResult, ...]:
     venv.upgrade_packaging_libraries(main_pip_args)
     results: Final[list[PackageUpgradeResult]] = [
@@ -276,6 +288,7 @@ def _upgrade_packages(
             main_pip_args,
             is_main_package=True,
             force=force,
+            cooldown_days=cooldown_days,
         )
     ]
 
@@ -290,6 +303,7 @@ def _upgrade_packages(
                     pip_args or venv.package_metadata[package_name].pip_args,
                     is_main_package=False,
                     force=force,
+                    cooldown_days=cooldown_days,
                 )
             )
 
@@ -309,6 +323,7 @@ def upgrade(
     python_flag_passed: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
+    cooldown_days: int | None = None,
 ) -> OperationResult[UpgradeData]:
     results: list[PackageUpgradeResult] = []
 
@@ -328,6 +343,7 @@ def upgrade(
                     backend=backend,
                     env_backend=env_backend,
                     venv_lock=venv_lock,
+                    cooldown_days=cooldown_days,
                 )
             )
 
@@ -352,6 +368,7 @@ def upgrade_all(
     python_flag_passed: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
+    cooldown_days: int | None = None,
 ) -> OperationResult[UpgradeData]:
     failures: list[FailedUpgrade] = []
     messages: list[OutputMessage] = []
@@ -383,6 +400,7 @@ def upgrade_all(
                     venv=venv,
                     shared_libs_already_checked=True,
                     venv_lock=venv_lock,
+                    cooldown_days=cooldown_days,
                 )
                 results.extend(package_results)
                 for result in package_results:

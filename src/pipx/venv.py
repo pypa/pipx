@@ -350,13 +350,16 @@ class Venv:
         expected_apps: Sequence[str] | None = None,
         lock_file: Path | None = None,
         pinned: bool = False,
+        cooldown_days: int | None = None,
     ) -> None:
         # package_name in package specifier can mismatch URL due to user error
         package_or_url = fix_package_name(package_or_url, package_name)
 
         # check syntax and clean up spec and pip_args
         (package_or_url, pip_args) = parse_specifier_for_install(package_or_url, pip_args)
-        install_pip_args = [*(install_only_pip_args or []), *pip_args]
+        install_pip_args: Final[list[str]] = self._with_cooldown(
+            [*(install_only_pip_args or []), *pip_args], cooldown_days
+        )
 
         if lock_file is None:
             _LOGGER.info("Installing %s", package_descr := full_package_description(package_name, package_or_url))
@@ -385,6 +388,7 @@ class Venv:
             expected_apps=expected_apps,
             lock_file=lock_file,
             pinned=pinned,
+            cooldown_days=cooldown_days,
         )
 
         # Verify package installed ok
@@ -451,7 +455,12 @@ class Venv:
             error = (process.stdout or process.stderr or "dependency check failed").strip()
             raise PipxError(f"Lock file {lock_file} does not satisfy {package_name}: {error}", wrap_message=False)
 
-    def install_unmanaged_packages(self, requirements: list[str], pip_args: list[str]) -> None:
+    def install_unmanaged_packages(
+        self,
+        requirements: list[str],
+        pip_args: list[str],
+        cooldown_days: int | None = None,
+    ) -> None:
         """Install packages in the venv, but do not record them in the metadata."""
         _LOGGER.info("Installing %s", package_descr := ", ".join(requirements))
         with animate(f"installing {package_descr}", self.do_animation):
@@ -459,20 +468,25 @@ class Venv:
                 venv_root=self.root,
                 venv_python=self.python_path,
                 requirements=list(requirements),
-                pip_args=pip_args,
+                pip_args=self._with_cooldown(pip_args, cooldown_days),
                 verbose=self.verbose,
             )
         if process.returncode:
             raise PipxError(f"Error installing {', '.join(requirements)}.")
 
-    def install_package_no_deps(self, package_or_url: str, pip_args: list[str]) -> str:
+    def install_package_no_deps(
+        self,
+        package_or_url: str,
+        pip_args: list[str],
+        cooldown_days: int | None = None,
+    ) -> str:
         with animate(f"determining package name from {package_or_url!r}", self.do_animation):
             old_package_set = self.list_installed_packages()
             process = self.backend.install(
                 venv_root=self.root,
                 venv_python=self.python_path,
                 requirements=[package_or_url],
-                pip_args=pip_args,
+                pip_args=self._with_cooldown(pip_args, cooldown_days),
                 no_deps=True,
                 log_pip_errors=False,
                 verbose=self.verbose,
@@ -523,6 +537,7 @@ class Venv:
         pinned: bool = False,
         expected_apps: Sequence[str] | None = None,
         lock_file: Path | None = None,
+        cooldown_days: int | None = None,
     ) -> None:
         venv_package_metadata = self.get_venv_metadata_for_package(package_name, get_extras(package_or_url))
         if expected_apps is None:
@@ -545,6 +560,10 @@ class Venv:
                 "Dependencies with apps or manual pages: "
                 f"{', '.join(sorted(available_dependencies)) or 'none'}."
             )
+        if cooldown_days is None:
+            cooldown_days = (
+                self.package_metadata[package_name].cooldown_days if package_name in self.package_metadata else None
+            )
         package_info = PackageInfo(
             package=package_name,
             package_or_url=parse_specifier_for_metadata(package_or_url),
@@ -563,6 +582,7 @@ class Venv:
             package_version=venv_package_metadata.package_version,
             expected_apps=list(dict.fromkeys(expected_apps)),
             lock_file=lock_file,
+            cooldown_days=cooldown_days,
             suffix=suffix,
             pinned=pinned,
         )
@@ -632,14 +652,19 @@ class Venv:
     def has_package(self, package_name: str) -> bool:
         return bool(list(Distribution.discover(name=package_name, path=[str(self.site_packages)])))
 
-    def upgrade_package_no_metadata(self, package_name: str, pip_args: list[str]) -> None:
+    def upgrade_package_no_metadata(
+        self,
+        package_name: str,
+        pip_args: list[str],
+        cooldown_days: int | None = None,
+    ) -> None:
         _LOGGER.info("Upgrading %s", package_descr := full_package_description(package_name, package_name))
         with animate(f"upgrading {package_descr}", self.do_animation):
             process = self.backend.install(
                 venv_root=self.root,
                 venv_python=self.python_path,
                 requirements=[package_name],
-                pip_args=pip_args,
+                pip_args=self._with_cooldown(pip_args, cooldown_days),
                 upgrade=True,
                 log_pip_errors=False,
                 verbose=self.verbose,
@@ -658,6 +683,7 @@ class Venv:
         suffix: str = "",
         upgrade_only_pip_args: list[str] | None = None,
         expected_apps: Sequence[str] | None = None,
+        cooldown_days: int | None = None,
     ) -> None:
         _LOGGER.info("Upgrading %s", package_descr := full_package_description(package_name, package_or_url))
         with animate(f"upgrading {package_descr}", self.do_animation):
@@ -665,7 +691,7 @@ class Venv:
                 venv_root=self.root,
                 venv_python=self.python_path,
                 requirements=[package_or_url],
-                pip_args=[*(upgrade_only_pip_args or []), *pip_args],
+                pip_args=self._with_cooldown([*(upgrade_only_pip_args or []), *pip_args], cooldown_days),
                 upgrade=True,
                 log_pip_errors=False,
                 verbose=self.verbose,
@@ -682,7 +708,11 @@ class Venv:
             is_main_package=is_main_package,
             suffix=suffix,
             expected_apps=expected_apps,
+            cooldown_days=cooldown_days,
         )
+
+    def _with_cooldown(self, pip_args: list[str], cooldown_days: int | None) -> list[str]:
+        return [*pip_args, *self.backend.cooldown_args(cooldown_days)]
 
     def _run_pip(self, cmd: list[str]) -> "CompletedProcess[str]":
         return self.backend.run_raw_pip(

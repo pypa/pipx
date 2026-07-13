@@ -94,6 +94,7 @@ def run_script(
     resolved_backend: str | None = None,
     script_source: Path | None = None,
     dependencies: list[str] | None = None,
+    cooldown_days: int | None = None,
 ) -> NoReturn:
     requirements = _get_requirements_from_script(content)
 
@@ -119,6 +120,7 @@ def run_script(
                 use_cache=use_cache,
                 verbose=verbose,
                 dependencies=dependencies,
+                cooldown_days=cooldown_days,
             )
         # URL / named-pipe content has no on-disk path for ``uv run --script``;
         # warn so users on ``--backend uv`` notice they lose uv's cache and
@@ -145,7 +147,14 @@ def run_script(
         # managed. The requirements are normalised (in
         # _get_requirements_from_script), so that irrelevant differences in
         # whitespace, and similar, don't prevent environment sharing.
-        venv_dir = _get_temporary_venv_path(requirements, python, pip_args, venv_args, resolved_backend or "pip")
+        venv_dir = _get_temporary_venv_path(
+            requirements,
+            python,
+            pip_args,
+            venv_args,
+            resolved_backend or "pip",
+            cooldown_days,
+        )
         venv = Venv(venv_dir, backend=backend, env_backend=env_backend)
         _prepare_venv_cache(venv, None, use_cache)
         if venv_dir.exists():
@@ -155,8 +164,8 @@ def run_script(
             venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
             venv.create_venv(venv_args, pip_args)
             try:
-                venv.install_unmanaged_packages(requirements, pip_args)
-            except:
+                venv.install_unmanaged_packages(requirements, pip_args, cooldown_days=cooldown_days)
+            except (OSError, PipxError, KeyboardInterrupt):
                 # Package installation failed, so mark the cache as expired.
                 # This ensures an attempt is made to re-install requirements
                 # when `pipx run` is next executed, rather than just failing.
@@ -187,6 +196,7 @@ def run_package(
     env_backend: str | None = None,
     resolved_backend: str | None = None,
     no_path_check: bool = False,
+    cooldown_days: int | None = None,
 ) -> NoReturn:
     if not no_path_check and (app_path := which(app)):
         _LOGGER.warning(
@@ -218,7 +228,14 @@ def run_package(
             """
         )
 
-    venv_dir = _get_temporary_venv_path([package_or_url], python, pip_args, venv_args, resolved_backend or "pip")
+    venv_dir = _get_temporary_venv_path(
+        [package_or_url],
+        python,
+        pip_args,
+        venv_args,
+        resolved_backend or "pip",
+        cooldown_days,
+    )
 
     venv = Venv(venv_dir, backend=backend, env_backend=env_backend)
     if infer_app_name and venv.pipx_metadata.main_package.package is not None:
@@ -244,6 +261,7 @@ def run_package(
             infer_app_name=infer_app_name,
             backend=backend,
             env_backend=env_backend,
+            cooldown_days=cooldown_days,
         )
 
     for dependency in dependencies:
@@ -259,6 +277,7 @@ def run_package(
             force=False,
             backend=backend,
             env_backend=env_backend,
+            cooldown_days=cooldown_days,
         )
     venv.run_app(app, app_filename, app_args)
 
@@ -279,6 +298,7 @@ def run(
     no_path_check: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
+    cooldown_days: int | None = None,
 ) -> NoReturn:
     """Installs venv to temporary dir (or reuses cache), then runs app from
     package
@@ -310,6 +330,7 @@ def run(
             resolved_backend=resolved_backend,
             script_source=Path(app) if isinstance(content, Path) else None,
             dependencies=dependencies,
+            cooldown_days=cooldown_days,
         )
 
     elif use_uvx:
@@ -324,6 +345,7 @@ def run(
             use_cache=use_cache,
             verbose=verbose,
             no_path_check=no_path_check,
+            cooldown_days=cooldown_days,
         )
     else:
         package_or_url = spec if spec is not None else app
@@ -343,6 +365,7 @@ def run(
             env_backend=env_backend,
             resolved_backend=resolved_backend,
             no_path_check=no_path_check,
+            cooldown_days=cooldown_days,
         )
 
 
@@ -360,6 +383,7 @@ def _prepare_venv(
     infer_app_name: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
+    cooldown_days: int | None = None,
 ) -> tuple[Venv, str, str]:
     venv = Venv(venv_dir, python=python, verbose=verbose, backend=backend, env_backend=env_backend)
     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
@@ -367,7 +391,13 @@ def _prepare_venv(
     if venv.pipx_metadata.main_package.package is not None:
         package_name = venv.pipx_metadata.main_package.package
     else:
-        package_name = package_name_from_spec(package_or_url, python, pip_args=pip_args, verbose=verbose)
+        package_name = package_name_from_spec(
+            package_or_url,
+            python,
+            pip_args=pip_args,
+            verbose=verbose,
+            cooldown_days=cooldown_days,
+        )
 
     if infer_app_name:
         app = package_name
@@ -384,6 +414,7 @@ def _prepare_venv(
         include_apps_from=(),
         include_apps=True,
         is_main_package=True,
+        cooldown_days=cooldown_days,
     )
 
     if not venv.has_app(app, app_filename):
@@ -428,6 +459,7 @@ def _get_temporary_venv_path(
     pip_args: list[str],
     venv_args: list[str],
     backend: str,
+    cooldown_days: int | None,
 ) -> Path:
     """Hash venv-affecting inputs to a deterministic cache path.
 
@@ -440,6 +472,7 @@ def _get_temporary_venv_path(
     digest.update("".join(pip_args).encode())
     digest.update("".join(venv_args).encode())
     digest.update(backend.encode())
+    digest.update(f"{cooldown_days=}".encode())
     venv_folder_name = digest.hexdigest()[:15]  # 15 chosen arbitrarily
     return Path(paths.ctx.venv_cache) / venv_folder_name
 

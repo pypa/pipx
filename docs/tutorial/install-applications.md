@@ -103,7 +103,27 @@ rejects `inject` because the added package would fall outside the lock.
 
 `--lock` accepts one package spec. Do not combine it with `--preinstall` or `--upgrade`. Pass `--force --lock` to
 replace an installed environment with a new lock. The pip backend requires pip 26.1 or newer; the uv backend requires uv
-0.6.15 or newer.
+0.9.17 or newer.
+
+### Delaying new releases
+
+Use a cooldown when you want time to review a release before installing it:
+
+```
+pipx install --cooldown 7 PACKAGE
+```
+
+`--cooldown DAYS` excludes remote-index artifacts uploaded within that many days. pipx stores the value for each
+installed or injected package; upgrades and rebuilds reuse it. A command-line value overrides the stored value. Pass
+`--cooldown 0` to clear the restriction. An `install-all` override does not alter a locked environment.
+
+`pipx run --cooldown DAYS` applies the same policy to temporary environments and keeps caches for different cooldowns
+separate. The pip backend uses `--uploaded-prior-to`; the uv backend uses `--exclude-newer`. Relative cooldowns require
+pip 26.1 or uv 0.9.17. The package index must publish artifact upload times. The cooldown does not apply to local paths,
+VCS URLs, or `--find-links` artifacts.
+
+A cooldown delays security releases. Use vulnerability scanning and pass `--cooldown 0` to install an urgent fix without
+delay.
 
 ### Applying a tool manifest
 

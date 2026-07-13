@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 from pathlib import Path
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Final, TypedDict
 
 import pytest
 
@@ -203,6 +203,19 @@ def test_find_uv_binary_is_cached(mocker: MockerFixture) -> None:
     assert which_mock.call_count == 1
 
 
+def test_uv_backend_rejects_pre_cooldown_version(mocker: MockerFixture) -> None:
+    binary: Final[Path] = Path("/usr/local/bin/uv")
+    mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))
+    mocker.patch(
+        "pipx.backends.uv.subprocess.run",
+        return_value=subprocess.CompletedProcess([str(binary), "--version"], 0, stdout="uv 0.9.16", stderr=""),
+    )
+
+    with pytest.raises(PipxError, match=r"uv>=0\.9\.17"):
+        UvBackend()
+
+
 @pytest.mark.parametrize(
     ("pip_args", "expected"),
     [
@@ -328,7 +341,11 @@ def test_backend_list_outdated_forwards_index_settings(backend_name: str, tmp_pa
             "https://index.example/simple",
         ]
     else:
-        mocker.patch("pipx.backends.uv.shutil.which", autospec=True, return_value=str(tmp_path / "uv"))
+        mocker.patch(
+            "pipx.backends.uv.find_uv_binary",
+            autospec=True,
+            return_value=(tmp_path / "uv", "path"),
+        )
         mocker.patch(
             "pipx.backends.uv.subprocess.run",
             autospec=True,
@@ -368,6 +385,24 @@ def test_backend_list_outdated_forwards_index_settings(backend_name: str, tmp_pa
         (OutdatedPackage(name="demo", version="1", latest_version="2"),),
         expected_command,
     )
+
+
+@pytest.mark.parametrize(
+    ("backend_type", "expected"),
+    [
+        pytest.param(PipBackend, "--uploaded-prior-to", id="pip"),
+        pytest.param(UvBackend, "--exclude-newer", id="uv"),
+    ],
+)
+def test_backend_cooldown_args(
+    backend_type: type[PipBackend] | type[UvBackend],
+    expected: str,
+) -> None:
+    assert (
+        backend_type.cooldown_args(None),
+        backend_type.cooldown_args(0),
+        backend_type.cooldown_args(7),
+    ) == ([], [], [expected, "P7D"])
 
 
 def test_list_not_required_packages_treats_extra_dependencies_as_required(

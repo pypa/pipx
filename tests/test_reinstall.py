@@ -17,6 +17,31 @@ def test_reinstall(pipx_temp_env, capsys):
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
 
+def test_reinstall_preserves_cooldowns(
+    pipx_temp_env: None,
+    root: Path,
+    empty_project: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    find_links: Final[Path] = (
+        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
+    )
+    pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
+    assert not run_pipx_cli(["install", "--cooldown", "7", pip_args, "pycowsay"])
+    assert not run_pipx_cli(["inject", "--cooldown", "5", pip_args, "pycowsay", str(empty_project)])
+    caplog.clear()
+
+    assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    assert (
+        "--uploaded-prior-to P7D" in caplog.text,
+        "--uploaded-prior-to P5D" in caplog.text,
+        metadata.main_package.cooldown_days,
+        metadata.injected_packages["empty-project"].cooldown_days,
+    ) == (True, True, 7, 5)
+
+
 def test_reinstall_pylock_restores_source_after_build_failure(
     pipx_temp_env: None,
     make_pylock: Callable[[str, str], Path],

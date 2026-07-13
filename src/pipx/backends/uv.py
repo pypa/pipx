@@ -6,8 +6,9 @@ import re
 import shutil
 import subprocess
 from functools import cache
+from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, cast
 
 from packaging.version import InvalidVersion, Version
 
@@ -28,15 +29,15 @@ if TYPE_CHECKING:
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
-# Imported into a temporary, then assigned through Final and deleted so mypy
-# sees one Final binding (it rejects redefinition across try/except branches).
-try:
-    from uv import find_uv_bin as _uv_bin_from_extra  # type: ignore[import-not-found]
-except ImportError:
-    _uv_bin_from_extra = None
-_FIND_UV_BIN_FROM_EXTRA: Final[Callable[[], str] | None] = _uv_bin_from_extra
-del _uv_bin_from_extra
-_MIN_UV_VERSION: Final[Version] = Version("0.6.15")
+def _load_uv_bin_finder() -> Callable[[], str] | None:
+    try:
+        return cast("Callable[[], str]", import_module("uv").find_uv_bin)
+    except (AttributeError, ImportError):
+        return None
+
+
+_FIND_UV_BIN_FROM_EXTRA: Final[Callable[[], str] | None] = _load_uv_bin_finder()
+_MIN_UV_VERSION: Final[Version] = Version("0.9.17")
 _VERSION_RE: Final[re.Pattern[str]] = re.compile(
     r"""
     uv \s+        # the literal "uv " prefix from `uv --version`
@@ -115,6 +116,10 @@ class UvBackend(Backend):
         if log_pip_errors:
             subprocess_post_check_handle_pip_error(process, tool_name="uv")
         return process
+
+    @staticmethod
+    def cooldown_args(cooldown_days: int | None) -> list[str]:
+        return [] if not cooldown_days else ["--exclude-newer", f"P{cooldown_days}D"]
 
     def uninstall(
         self,

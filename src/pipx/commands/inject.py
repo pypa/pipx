@@ -42,6 +42,7 @@ def inject_dep(
     suffix: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
+    cooldown_days: int | None = None,
 ) -> bool:
     _LOGGER.debug("Injecting package %s", package_spec)
 
@@ -69,6 +70,8 @@ def inject_dep(
             f"Cannot inject into locked environment {venv.name}. "
             f"Update {lock_file} and run `pipx reinstall {venv.name}`."
         )
+    if cooldown_days is None:
+        cooldown_days = venv.pipx_metadata.main_package.cooldown_days
     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
 
     # package_spec is anything pip-installable, including package_name, vcs spec,
@@ -81,6 +84,7 @@ def inject_dep(
             verbose=verbose,
             backend=venv.backend_name,
             env_backend=env_backend,
+            cooldown_days=cooldown_days,
         )
 
     # Mirrors the install-side guard: dropping pip into a uv venv works for
@@ -129,6 +133,7 @@ def inject_dep(
             is_main_package=is_main_package,
             suffix=venv_suffix,
             pinned=pinned,
+            cooldown_days=cooldown_days,
         )
         if include_apps:
             run_post_install_actions(
@@ -165,6 +170,7 @@ def inject(
     suffix: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
+    cooldown_days: int | None = None,
 ) -> ExitCode:
     """Returns pipx exit code."""
     # Combined collection of package specifications
@@ -197,6 +203,7 @@ def inject(
             suffix=suffix,
             backend=backend,
             env_backend=env_backend,
+            cooldown_days=cooldown_days,
         )
 
     # Any failure to install will raise PipxError, otherwise success

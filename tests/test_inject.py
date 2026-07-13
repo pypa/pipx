@@ -2,6 +2,7 @@ import logging
 import re
 import shutil
 import subprocess
+import sys
 import textwrap
 from collections.abc import Callable
 from pathlib import Path
@@ -277,3 +278,25 @@ def test_force_inject_reinstalls_without_storing_force(pipx_temp_env, caplog):
 
     metadata = PipxMetadata(paths.ctx.venvs / "pycowsay")
     assert metadata.injected_packages["black"].pip_args == ["--no-cache-dir"]
+
+
+def test_inject_inherits_cooldown(
+    pipx_temp_env: None,
+    root: Path,
+    empty_project: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    find_links: Final[Path] = (
+        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
+    )
+    pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
+    assert not run_pipx_cli(["install", "--cooldown", "7", pip_args, PKG["pycowsay"]["spec"]])
+    caplog.clear()
+
+    assert not run_pipx_cli(["inject", "pycowsay", pip_args, str(empty_project)])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    assert (
+        "--uploaded-prior-to P7D" in caplog.text,
+        metadata.injected_packages["empty-project"].cooldown_days,
+    ) == (True, 7)
