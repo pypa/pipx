@@ -53,7 +53,7 @@ managers writes the same filename. Each manager refuses to overwrite a binary th
 | Remove an injected dep       | `pipx uninject mkdocs mkdocs-material`            | _rebuild without `--with`_                                          |
 | Upgrade one                  | `pipx upgrade ruff`                               | `uv tool upgrade ruff`                                              |
 | Upgrade all                  | `pipx upgrade-all`                                | `uv tool upgrade --all`                                             |
-| List installed or outdated   | `pipx list` (`--outdated`, `--json`)              | `uv tool list` (`--show-with`, `--outdated`, …)                     |
+| List installed or outdated   | `pipx list` (`--outdated`, `--output json`)       | `uv tool list` (`--show-with`, `--outdated`, …)                     |
 | Diagnose broken environments | `pipx health`                                     | _no equivalent_                                                     |
 | Repair broken environments   | `pipx repair ruff` / `repair`                     | `uv tool install ruff` / _no bulk equivalent_                       |
 | Reinstall any environment    | `pipx reinstall ruff` / `reinstall-all`           | `uv tool upgrade --reinstall ruff` / `--all`                        |
@@ -74,7 +74,8 @@ managers writes the same filename. Each manager refuses to overwrite a binary th
 - Manual pages get symlinked under `$PIPX_MAN_DIR`.
 - `pipx sync <manifest>` applies an explicit desired set; `pipx lock <manifest>` writes one PEP 751 lock per selected
     tool.
-- `pipx install-all <spec.json>` rebuilds every venv from a `pipx list --json` snapshot for cross-machine migration.
+- `pipx install-all <spec.json>` rebuilds every venv from a `pipx list --output json` snapshot for cross-machine
+    migration.
 - `[project.entry-points."pipx.run"]` declares pipx-specific runtime extras in the package metadata.
 - `pipx environment` prints every variable and its resolved value in one place.
 - `--cooldown DAYS` provides the same release-age policy through pip and uv.

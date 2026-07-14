@@ -81,6 +81,33 @@ def test_all_subcommands_have_func_registered():
                 assert callable(sub_parser._defaults.get("func")), f"{sub_name!r} missing callable func default"
 
 
+@pytest.mark.parametrize(
+    "argv",
+    [
+        pytest.param(["install", "pycowsay"], id="install"),
+        pytest.param(["inject", "pycowsay", "black"], id="inject"),
+        pytest.param(["uninject", "pycowsay", "black"], id="uninject"),
+        pytest.param(["expose", "pycowsay"], id="expose"),
+        pytest.param(["unexpose", "pycowsay"], id="unexpose"),
+        pytest.param(["pin", "pycowsay"], id="pin"),
+        pytest.param(["unpin", "pycowsay"], id="unpin"),
+        pytest.param(["upgrade", "pycowsay"], id="upgrade"),
+        pytest.param(["upgrade-all"], id="upgrade-all"),
+        pytest.param(["uninstall", "pycowsay"], id="uninstall"),
+        pytest.param(["uninstall-all"], id="uninstall-all"),
+        pytest.param(["health"], id="health"),
+        pytest.param(["repair"], id="repair"),
+        pytest.param(["list"], id="list"),
+    ],
+)
+def test_operation_commands_accept_output_format(argv: list[str]) -> None:
+    parser: Final[argparse.ArgumentParser] = main.get_command_parser()[0]
+
+    args: Final[argparse.Namespace] = main.parse_pipx_args(parser, [*argv, "--output", "json"])
+
+    assert args.output == "json"
+
+
 def test_manpage_matches_parser(tmp_path: Path) -> None:
     generated = tmp_path / "pipx.1.rst"
     subprocess.run([sys.executable, str(_ROOT / "scripts" / "generate_man.py"), str(generated)], check=True)

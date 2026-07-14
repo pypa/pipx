@@ -42,7 +42,7 @@ Check available upgrades without changing an environment:
 pipx list --outdated
 ```
 
-The output shows each package's installed and available versions. Pass `--json` to read the same information in a
+The output shows each package's installed and available versions. Pass `--output json` to read the same information in a
 script.
 
 ```
@@ -63,7 +63,13 @@ pipx uninstall pycowsay
 
 pipx deletes the isolated environment and removes the command from your `PATH`.
 
-Pass `--json` to read the removal result in a script, or `--quiet` to omit the confirmation.
+Pass `--output json` to read the removal result in a script, or `--quiet` to omit the confirmation.
+
+### Use pipx from scripts
+
+`install`, `inject`, `uninject`, `expose`, `unexpose`, `pin`, `unpin`, `upgrade`, `upgrade-all`, `uninstall`,
+`uninstall-all`, `health`, `repair`, and `list` accept `--output json`. Commands backed by the result envelope include a
+`pipx_result_version`; `list` retains its environment snapshot. Existing `--json` flags remain aliases.
 
 ### Next steps
 

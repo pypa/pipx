@@ -29,7 +29,7 @@ pipx health
 ```
 
 The command exits with status 1 when an environment cannot run its Python interpreter. Pass package names to check a
-subset, or pass `--json` to read the result from a script.
+subset, or pass `--output json` to read the result from a script.
 
 Repair failed environments with the default Python:
 

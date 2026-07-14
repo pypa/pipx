@@ -40,7 +40,7 @@ def test_uninstall_json(
 ) -> None:
     command, arguments = uninstall_command
 
-    assert not run_pipx_cli([command, *arguments, "--json"])
+    assert not run_pipx_cli([command, *arguments, "--output", "json"])
 
     captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
