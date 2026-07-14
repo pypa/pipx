@@ -91,9 +91,9 @@ def test_install_all_reports_injected_failure(
     capsys.readouterr()
     assert not run_pipx_cli(["list", "--json"])
     spec_file: Final[Path] = tmp_path / "pipx.json"
-    missing: Final[Path] = tmp_path / "missing"
+    missing_spec: Final[str] = (tmp_path / "missing").as_posix()
     spec_file.write_text(
-        capsys.readouterr().out.replace('"package_or_url": "pycowsay"', f'"package_or_url": "{missing}"'),
+        capsys.readouterr().out.replace('"package_or_url": "pycowsay"', f'"package_or_url": "{missing_spec}"'),
         encoding="utf-8",
     )
     assert not run_pipx_cli(["uninstall-all"])
@@ -102,5 +102,5 @@ def test_install_all_reports_injected_failure(
     result: Final[int] = run_pipx_cli(["install-all", str(spec_file)])
 
     error: Final[str] = " ".join(capsys.readouterr().err.split())
-    expected_error: Final[str] = " ".join(pipx_wrap(f"Unable to parse package spec: {missing}").split())
+    expected_error: Final[str] = " ".join(pipx_wrap(f"Unable to parse package spec: {missing_spec}").split())
     assert (result, expected_error in error) == (1, True)
