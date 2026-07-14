@@ -90,6 +90,23 @@ def make_project_with_dependency(root: Path, tmp_path: Path) -> Callable[[str], 
     return create
 
 
+@pytest.fixture
+def inline_script(tmp_path: Path) -> Path:
+    script: Final[Path] = tmp_path / "hello.py"
+    script.write_text(
+        """# /// script
+# dependencies = ["pycowsay"]
+# requires-python = ">=3.10"
+# ///
+import pycowsay
+
+print("installed")
+""",
+        encoding="utf-8",
+    )
+    return script
+
+
 @pytest.fixture()
 def local_extras_project(root: Path, tmp_path: Path) -> Path:
     project: Final[Path] = tmp_path / "local_extras"

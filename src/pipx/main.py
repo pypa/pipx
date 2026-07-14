@@ -125,8 +125,8 @@ DOC_DEFAULT_PYTHON = os.getenv("PIPX__DOC_DEFAULT_PYTHON", get_default_python_sp
 INSTALL_DESCRIPTION = textwrap.dedent(
     f"""
     The install command is the preferred way to globally install apps
-    from python packages on your system. It creates an isolated virtual
-    environment for the package, then ensures the package's apps are
+    from Python packages and PEP 723 scripts. It creates an isolated virtual
+    environment for the source, then ensures its apps are
     accessible on your $PATH. The package's manual pages installed in
     share/man/man[1-9] can be viewed with man on an operating system where
     it is available and the path in the environment variable `PIPX_MAN_DIR`
@@ -142,10 +142,12 @@ INSTALL_DESCRIPTION = textwrap.dedent(
     pipx install --python PYTHON PACKAGE_SPEC
     pipx install VCS_URL
     pipx install ./LOCAL_PATH
+    pipx install ./SCRIPT.py
     pipx install ZIP_FILE
     pipx install TAR_GZ_FILE
 
-    The PACKAGE_SPEC argument is passed directly to `pip install`.
+    Package specs are passed to the selected backend. PEP 723 scripts are
+    installed with their declared dependencies.
 
     Virtual Environments will be installed to `$PIPX_HOME/venvs`.
     The default pipx home location is {paths.DEFAULT_PIPX_HOME} and can
@@ -502,7 +504,7 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         description=INSTALL_DESCRIPTION,
         parents=[shared_parser],
     )
-    p.add_argument("package_spec", help="package name(s) or pip installation spec(s)", nargs="+")
+    p.add_argument("package_spec", help="package name(s), PEP 723 script(s), or installation spec(s)", nargs="+")
     _add_dependency_app_options(p)
     p.add_argument(
         "--force",
