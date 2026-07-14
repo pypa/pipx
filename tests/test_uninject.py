@@ -1,14 +1,194 @@
+from __future__ import annotations
+
+import json
 import shutil
 import subprocess
-from pathlib import Path
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import app_name, run_pipx_cli, skip_if_windows
+from helpers import app_name, mock_legacy_venv, run_pipx_cli, skip_if_windows
 from package_info import PKG
 from pipx import paths
 from pipx.constants import WINDOWS
+from pipx.util import pipx_wrap
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from _pytest.capture import CaptureResult
+
+
+def test_uninject_json(installed_pycowsay: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["uninject", "--output", "json", "pycowsay", "black"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (json.loads(captured.out), captured.err) == (
+        {
+            "command": "uninject",
+            "data": {
+                "failures": [],
+                "packages": [
+                    {
+                        "environment": "pycowsay",
+                        "location": str(paths.ctx.venvs / "pycowsay"),
+                        "package": "black",
+                        "status": "uninjected",
+                        "version": "22.8.0",
+                    }
+                ],
+                "skipped": [],
+            },
+            "pipx_result_version": "0.1",
+            "status": "success",
+        },
+        "",
+    )
+
+
+def test_uninject_json_reports_unknown_package(
+    installed_pycowsay: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert run_pipx_cli(["uninject", "--output", "json", "pycowsay", "missing"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (json.loads(captured.out), captured.err) == (
+        {
+            "command": "uninject",
+            "data": {
+                "failures": [
+                    {
+                        "environment": "pycowsay",
+                        "error": "missing is not in the pycowsay venv. Skipping.",
+                        "package": "missing",
+                    }
+                ],
+                "packages": [],
+                "skipped": [],
+            },
+            "pipx_result_version": "0.1",
+            "status": "error",
+        },
+        "",
+    )
+
+
+def test_uninject_json_reports_missing_environment(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert run_pipx_cli(["uninject", "--output", "json", "missing", "black"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (json.loads(captured.out), captured.err) == (
+        {
+            "command": "uninject",
+            "data": {
+                "failures": [
+                    {
+                        "environment": "missing",
+                        "error": "Virtual environment missing does not exist.",
+                        "package": None,
+                    }
+                ],
+                "packages": [],
+                "skipped": [],
+            },
+            "pipx_result_version": "0.1",
+            "status": "error",
+        },
+        "",
+    )
+
+
+def test_uninject_json_reports_missing_metadata(
+    installed_pycowsay: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    mock_legacy_venv("pycowsay")
+
+    assert run_pipx_cli(["uninject", "--output", "json", "pycowsay", "black"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (json.loads(captured.out), captured.err) == (
+        {
+            "command": "uninject",
+            "data": {
+                "failures": [
+                    {
+                        "environment": "pycowsay",
+                        "error": pipx_wrap(
+                            """
+                            Can't uninject from Virtual Environment 'pycowsay'.
+                            'pycowsay' has missing internal pipx metadata.
+                            It was likely installed using a pipx version before 0.15.0.0.
+                            Please uninstall and install 'pycowsay' manually to fix.
+                            """
+                        ),
+                        "package": None,
+                    }
+                ],
+                "packages": [],
+                "skipped": [],
+            },
+            "pipx_result_version": "0.1",
+            "status": "error",
+        },
+        "",
+    )
+
+
+def test_uninject_json_reports_main_package(
+    installed_pycowsay: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert run_pipx_cli(["uninject", "--output", "json", "pycowsay", "pycowsay"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (json.loads(captured.out), captured.err) == (
+        {
+            "command": "uninject",
+            "data": {
+                "failures": [
+                    {
+                        "environment": "pycowsay",
+                        "error": pipx_wrap(
+                            """
+                            pycowsay is the main package of pycowsay
+                            venv. Use `pipx uninstall pycowsay` to uninstall instead of uninject.
+                            """,
+                            subsequent_indent=" " * 4,
+                        ),
+                        "package": "pycowsay",
+                    }
+                ],
+                "packages": [],
+                "skipped": [],
+            },
+            "pipx_result_version": "0.1",
+            "status": "error",
+        },
+        "",
+    )
+
+
+def test_uninject_quiet(installed_pycowsay: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["inject", "pycowsay", "black"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["uninject", "-qq", "pycowsay", "black"])
+
+    assert "Uninjected package" not in capsys.readouterr().out
+
+
+@pytest.fixture
+def installed_pycowsay(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
 
 
 def file_or_symlink(filepath: Path) -> bool:

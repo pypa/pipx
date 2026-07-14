@@ -1,12 +1,13 @@
+from __future__ import annotations
+
+import json
 import logging
 import re
 import shutil
 import subprocess
 import sys
 import textwrap
-from collections.abc import Callable
-from pathlib import Path
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 import pytest
 from packaging.utils import canonicalize_name
@@ -15,6 +16,186 @@ from helpers import PIPX_METADATA_LEGACY_VERSIONS, app_name, mock_legacy_venv, r
 from package_info import PKG
 from pipx import paths
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
+    from _pytest.capture import CaptureResult
+
+
+def test_inject_json(installed_pycowsay: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["inject", "--output", "json", "pycowsay", PKG["black"]["spec"]])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (json.loads(captured.out), captured.err) == (
+        {
+            "command": "inject",
+            "data": {
+                "failures": [],
+                "packages": [
+                    {
+                        "environment": "pycowsay",
+                        "location": str(paths.ctx.venvs / "pycowsay"),
+                        "package": "black",
+                        "status": "injected",
+                        "version": "22.8.0",
+                    }
+                ],
+                "skipped": [],
+            },
+            "pipx_result_version": "0.1",
+            "status": "success",
+        },
+        "",
+    )
+
+
+def test_inject_json_reports_locked_environment(
+    pipx_temp_env: None,
+    make_pylock: Callable[[str, str], Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
+    assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
+    capsys.readouterr()
+
+    assert run_pipx_cli(["inject", "--output", "json", "pycowsay", "black"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (json.loads(captured.out), captured.err) == (
+        {
+            "command": "inject",
+            "data": {
+                "failures": [
+                    {
+                        "environment": "pycowsay",
+                        "error": f"Cannot inject into locked environment pycowsay. Update {lock_file} and run `pipx reinstall pycowsay`.",
+                        "package": "black",
+                    }
+                ],
+                "packages": [],
+                "skipped": [],
+            },
+            "pipx_result_version": "0.1",
+            "status": "error",
+        },
+        "",
+    )
+
+
+def test_inject_json_reports_already_installed(
+    installed_pycowsay: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["inject", "--output", "json", "pycowsay", PKG["black"]["spec"]])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (json.loads(captured.out), captured.err) == (
+        {
+            "command": "inject",
+            "data": {
+                "failures": [],
+                "packages": [],
+                "skipped": [
+                    {
+                        "environment": "pycowsay",
+                        "package": "black",
+                        "reason": "already-installed",
+                    }
+                ],
+            },
+            "pipx_result_version": "0.1",
+            "status": "success",
+        },
+        "",
+    )
+
+
+def test_inject_json_reports_partial_failure(
+    installed_pycowsay: None,
+    empty_project: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    missing_project: Final[Path] = tmp_path / "missing-project"
+    assert run_pipx_cli(["inject", "--output", "json", "pycowsay", str(empty_project), str(missing_project)])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (
+        captured.err,
+        json.loads(captured.out),
+    ) == (
+        "",
+        {
+            "command": "inject",
+            "data": {
+                "failures": [
+                    {
+                        "environment": "pycowsay",
+                        "error": f"Unable to parse package spec: {missing_project}",
+                        "package": str(missing_project),
+                    }
+                ],
+                "packages": [
+                    {
+                        "environment": "pycowsay",
+                        "location": str(paths.ctx.venvs / "pycowsay"),
+                        "package": "empty-project",
+                        "status": "injected",
+                        "version": "0.1.0",
+                    }
+                ],
+                "skipped": [],
+            },
+            "pipx_result_version": "0.1",
+            "status": "error",
+        },
+    )
+
+
+def test_inject_json_reports_no_packages(
+    installed_pycowsay: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert run_pipx_cli(["inject", "--output", "json", "pycowsay"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (json.loads(captured.out), captured.err) == (
+        {
+            "command": "inject",
+            "data": {
+                "failures": [
+                    {
+                        "environment": "pycowsay",
+                        "error": "No packages have been specified.",
+                        "package": None,
+                    }
+                ],
+                "packages": [],
+                "skipped": [],
+            },
+            "pipx_result_version": "0.1",
+            "status": "error",
+        },
+        "",
+    )
+
+
+def test_inject_quiet(installed_pycowsay: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["inject", "-qq", "pycowsay", "black"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert "injected package" not in captured.out and "done!" not in captured.err
+
+
+@pytest.fixture
+def installed_pycowsay(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
 
 
 def test_inject_rejects_pylock(
