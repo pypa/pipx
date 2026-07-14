@@ -86,28 +86,38 @@ def install(
     skipped: Final[list[_SkippedInstall]] = []
     failures: Final[list[_FailedInstall]] = []
     try:
-        lock_file, python, package_names = _prepare_install(
-            package_names,
+        lock_file, python = _prepare_install(
             package_specs,
             python,
-            pip_args,
-            verbose,
             lock_file,
             expected_apps,
             preinstall_packages,
             cooldown_days=cooldown_days,
             upgrade=upgrade,
             upgrade_strategy=upgrade_strategy,
-            backend=backend,
-            env_backend=env_backend,
         )
     except PipxError as error:
         return _finish_install(_failed_install_result(package_specs[0], error), emit_output=emit_output)
+
+    package_names, resolution_failure = _resolve_package_names(
+        package_names,
+        package_specs,
+        python,
+        pip_args,
+        verbose,
+        backend=backend,
+        env_backend=env_backend,
+        cooldown_days=cooldown_days,
+    )
+    if resolution_failure is not None:
+        package_spec, resolution_error = resolution_failure
+        return _finish_install(_failed_install_result(package_spec, resolution_error), emit_output=emit_output)
 
     venv_container: Final[VenvContainer] = VenvContainer(venv_dir.parent if venv_dir is not None else paths.ctx.venvs)
     for package_name, package_spec in zip(package_names, package_specs, strict=False):
         if venv_dir is None:
             venv_dir = venv_container.get_venv_dir(f"{package_name}{suffix}")
+        environment = venv_dir.name
 
         with venv_lock or venv_container.venv_lock(venv_dir):
             try:
@@ -123,55 +133,57 @@ def install(
                 install_backend = backend or PIP
                 install_env_backend = None
 
-            venv = Venv(
-                venv_dir,
-                python=python,
-                verbose=verbose,
-                backend=install_backend,
-                env_backend=install_env_backend,
-            )
-            required_apps = tuple(
-                dict.fromkeys(
-                    expected_apps
-                    if replace_expected_apps
-                    else expected_apps or venv.pipx_metadata.main_package.expected_apps
+            try:
+                venv = Venv(
+                    venv_dir,
+                    python=python,
+                    verbose=verbose,
+                    backend=install_backend,
+                    env_backend=install_env_backend,
                 )
-            )
-            recorded_lock = venv.pipx_metadata.main_package.lock_file
-            required_lock = lock_file if replace_lock else lock_file or recorded_lock
-            required_cooldown = _resolve_cooldown(
-                required_lock,
-                cooldown_days,
-                venv.pipx_metadata.main_package.cooldown_days,
-                modifies_existing=exists and force,
-            )
-            required_exposure = venv.pipx_metadata.exposure_enabled if exposure_enabled is None else exposure_enabled
-            if exists:
-                existing = _handle_existing_install(
-                    venv,
-                    package_name,
-                    package_spec,
-                    local_bin_dir,
-                    local_man_dir,
-                    python,
-                    pip_args,
-                    verbose,
-                    force=force,
-                    reinstall=reinstall,
-                    upgrade=upgrade,
-                    python_flag_passed=python_flag_passed,
-                    upgrade_strategy=upgrade_strategy,
-                    expected_apps=required_apps,
-                    cooldown_days=required_cooldown,
+                required_apps = tuple(
+                    dict.fromkeys(
+                        expected_apps
+                        if replace_expected_apps
+                        else expected_apps or venv.pipx_metadata.main_package.expected_apps
+                    )
                 )
-                messages.extend(existing.messages)
-                packages.extend(existing.packages)
-                skipped.extend(existing.skipped)
-                if not existing.continue_install:
-                    if len(package_specs) == 1:
-                        break
-                    venv_dir = None
-                    continue
+                recorded_lock = venv.pipx_metadata.main_package.lock_file
+                required_lock = lock_file if replace_lock else lock_file or recorded_lock
+                required_cooldown = _resolve_cooldown(
+                    required_lock,
+                    cooldown_days,
+                    venv.pipx_metadata.main_package.cooldown_days,
+                    modifies_existing=exists and force,
+                )
+                required_exposure = venv.pipx_metadata.exposure_enabled if exposure_enabled is None else exposure_enabled
+                if exists:
+                    existing = _handle_existing_install(
+                        venv,
+                        package_name,
+                        package_spec,
+                        local_bin_dir,
+                        local_man_dir,
+                        python,
+                        pip_args,
+                        verbose,
+                        force=force,
+                        reinstall=reinstall,
+                        upgrade=upgrade,
+                        python_flag_passed=python_flag_passed,
+                        upgrade_strategy=upgrade_strategy,
+                        expected_apps=required_apps,
+                        cooldown_days=required_cooldown,
+                    )
+                    messages.extend(existing.messages)
+                    packages.extend(existing.packages)
+                    skipped.extend(existing.skipped)
+                    if not existing.continue_install:
+                        venv_dir = None
+                        continue
+            except PipxError as error:
+                _record_install_failure(failures, messages, environment, error)
+                break
 
             previous_resource_paths: set[Path] = get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir)
             preserve_existing_venv = exists and (
@@ -226,8 +238,7 @@ def install(
                     venv.remove_venv()
                 if not isinstance(error, PipxError):
                     raise
-                failures.append(_FailedInstall(venv.name, str(error)))
-                messages.append(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+                _record_install_failure(failures, messages, venv.name, error)
                 break
             packages.append(_installed_package(venv, package_name))
         venv_dir = None
@@ -244,11 +255,8 @@ def install(
 
 
 def _prepare_install(
-    package_names: list[str] | None,
     package_specs: list[str],
     python: str | None,
-    pip_args: list[str],
-    verbose: bool,
     lock_file: Path | None,
     expected_apps: Sequence[str],
     preinstall_packages: Sequence[str] | None,
@@ -256,9 +264,7 @@ def _prepare_install(
     cooldown_days: int | None,
     upgrade: bool,
     upgrade_strategy: str | None,
-    backend: str | None,
-    env_backend: str | None,
-) -> tuple[Path | None, str, list[str]]:
+) -> tuple[Path | None, str]:
     lock_file = _validate_install_options(
         package_specs,
         expected_apps,
@@ -268,22 +274,40 @@ def _prepare_install(
         upgrade=upgrade,
         upgrade_strategy=upgrade_strategy,
     )
-    python = python or get_default_python()
-    package_names = package_names or []
-    if len(package_names) != len(package_specs):
-        package_names = [
-            package_name_from_spec(
-                package_spec,
-                python,
-                pip_args=pip_args,
-                verbose=verbose,
-                backend=backend,
-                env_backend=env_backend,
-                cooldown_days=cooldown_days,
+    return lock_file, python or get_default_python()
+
+
+def _resolve_package_names(
+    package_names: list[str] | None,
+    package_specs: list[str],
+    python: str,
+    pip_args: list[str],
+    verbose: bool,
+    *,
+    backend: str | None,
+    env_backend: str | None,
+    cooldown_days: int | None,
+) -> tuple[list[str], tuple[str, PipxError] | None]:
+    if package_names is not None and len(package_names) == len(package_specs):
+        return package_names, None
+
+    resolved: Final[list[str]] = []
+    for package_spec in package_specs:
+        try:
+            resolved.append(
+                package_name_from_spec(
+                    package_spec,
+                    python,
+                    pip_args=pip_args,
+                    verbose=verbose,
+                    backend=backend,
+                    env_backend=env_backend,
+                    cooldown_days=cooldown_days,
+                )
             )
-            for package_spec in package_specs
-        ]
-    return lock_file, python, package_names
+        except PipxError as error:
+            return resolved, (package_spec, error)
+    return resolved, None
 
 
 def _validate_install_options(
@@ -326,6 +350,16 @@ def _failed_install_result(environment: str, error: PipxError) -> OperationResul
         messages=(OutputMessage(message, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
         exit_code=ExitCode(1),
     )
+
+
+def _record_install_failure(
+    failures: list[_FailedInstall],
+    messages: list[OutputMessage],
+    environment: str,
+    error: PipxError,
+) -> None:
+    failures.append(_FailedInstall(environment, str(error)))
+    messages.append(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
 
 
 def _finish_install(result: OperationResult[InstallData], *, emit_output: bool) -> OperationResult[InstallData]:
@@ -424,7 +458,8 @@ def _handle_existing_install(
                 modifying existing installation in '{venv.root}'.
                 Pass '--force' to force installation, or use
                 'pipx upgrade {venv.name}' to upgrade.
-                """
+                """,
+                keep_newlines=True,
             )
         )
     )
