@@ -16,6 +16,7 @@ from pipx.commands.common import (
     can_symlink,
     get_exposed_man_paths_for_package,
     get_exposed_paths_for_package,
+    group_resource_paths,
 )
 from pipx.constants import (
     EXIT_CODE_OK,
@@ -201,12 +202,14 @@ def _get_package_bin_dir_app_paths(package_info: PackageInfo, venv_bin_path: Pat
     return get_exposed_paths_for_package(
         venv_bin_path,
         local_bin_dir,
-        [add_suffix(app, package_info.suffix) for app in package_info.apps_to_expose],
+        group_resource_paths(
+            (add_suffix(path.name, package_info.suffix), path) for path in package_info.app_paths_to_expose
+        ),
     )
 
 
 def _get_package_man_paths(package_info: PackageInfo, venv_man_path: Path, local_man_dir: Path) -> set[Path]:
-    return get_exposed_man_paths_for_package(venv_man_path, local_man_dir, package_info.man_pages_to_expose)
+    return get_exposed_man_paths_for_package(venv_man_path, local_man_dir, package_info.man_paths_to_expose)
 
 
 __all__ = [

@@ -812,6 +812,17 @@ def test_install_force_replaces_included_dependency_resources(
     ) == (["black"], False, False, True)
 
 
+def test_install_preserves_colliding_dependency_resource(
+    copied_dependency_resource: tuple[Path, bytes],
+    local_extras_project: Path,
+) -> None:
+    exposed_app: Final[Path] = copied_dependency_resource[0]
+    first_contents: Final[bytes] = copied_dependency_resource[1]
+    assert not run_pipx_cli(["install", f"{local_extras_project}[cow]", "--include-deps"])
+
+    assert exposed_app.read_bytes() == first_contents
+
+
 def test_install_include_apps_from_missing_dependency_rolls_back(
     pipx_temp_env: None,
     local_extras_project: Path,
