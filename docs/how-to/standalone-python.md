@@ -5,6 +5,22 @@ pipx can install applications under a Python interpreter downloaded from
 this when the system Python is missing the version you asked for, or when the distro patched its Python in ways that
 break the application.
 
+### When a package rules out your default Python
+
+A package declares the interpreters it runs on through `requires-python`. When your default Python fails that
+declaration, pipx looks through the interpreters on your system, picks the newest one the package accepts, and builds
+the environment there. It reports the interpreter it settled on, and you need no `--python` for this.
+
+Nothing on the system may satisfy the package. pipx then names the constraint and stops, unless `--fetch-python=missing`
+lets it download an interpreter that fits:
+
+```
+pipx install --fetch-python=missing mytool
+```
+
+Naming `--python` yourself keeps the last word: pipx uses the interpreter you named, and it says so rather than
+overriding you when the package rejects it.
+
 ### Choosing when to download
 
 Set `--fetch-python` (or `PIPX_FETCH_PYTHON`) to one of three values:

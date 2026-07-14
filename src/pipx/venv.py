@@ -11,6 +11,7 @@ from filelock import BaseFileLock, FileLock
 if TYPE_CHECKING:
     from subprocess import CompletedProcess
 
+from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
 from packaging.version import Version
 
@@ -35,6 +36,7 @@ from pipx.package_specifier import (
     valid_pypi_name,
 )
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+from pipx.requires_python import IncompatiblePythonError, rejected_constraint, unsatisfied_constraint
 from pipx.script import installable_script
 from pipx.shared_libs import (
     DISABLE_SHARED_LIBS_AUTO_UPGRADE,
@@ -55,6 +57,12 @@ from pipx.util import (
 from pipx.venv_inspect import VenvMetadata, inspect_venv
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+_REQUIRES_PYTHON_SCRIPT: Final[str] = (
+    "import sys;"
+    "from importlib.metadata import distribution;"
+    "print(distribution(sys.argv[1]).metadata['Requires-Python'] or '');"
+    "print('.'.join(str(part) for part in sys.version_info[:3]))"
+)
 _BACKEND_METADATA_VERSION: Final[Version] = Version("0.6")
 
 # Keyed on full path so global vs user-local venvs with the same name don't
@@ -266,6 +274,22 @@ class Venv:
         else:
             return self.pipx_metadata.main_package.package
 
+    def unsupported_python(self, package_name: str) -> SpecifierSet | None:
+        """The constraint an installed package declares when this venv's interpreter fails it.
+
+        uv installs a package onto an interpreter its Requires-Python rules out, so pipx reads the metadata rather
+        than trust the backend to refuse.
+        """
+        process = run_subprocess(
+            [self.python_path, "-c", _REQUIRES_PYTHON_SCRIPT, package_name],
+            capture_stderr=False,
+            log_stdout=False,
+        )
+        if process.returncode:
+            return None
+        requires_python, _, python_version = process.stdout.strip().partition("\n")
+        return unsatisfied_constraint(requires_python, python_version)
+
     def create_venv(self, venv_args: list[str], pip_args: list[str], override_shared: bool = False) -> None:
         """
         override_shared -- Override installing shared libraries to the pipx shared directory (default False)
@@ -377,6 +401,10 @@ class Venv:
                         progress=self.show_progress,
                     )
                 if process.returncode:
+                    # pip refuses the interpreter and installs nothing, so its complaint is the only place the
+                    # constraint appears; uv installs regardless, which the caller catches from the metadata instead
+                    if constraint := rejected_constraint(process.stderr or ""):
+                        raise IncompatiblePythonError(constraint)
                     raise PipxError(f"Error installing {full_package_description(package_name, package_or_url)}.")
             else:
                 self._install_locked_package(package_name, install_spec, lock_file, install_pip_args)
@@ -502,6 +530,8 @@ class Venv:
             )
         if process.returncode:
             error_output = (process.stderr or process.stdout or "").strip()
+            if constraint := rejected_constraint(error_output):
+                raise IncompatiblePythonError(constraint)
             if error_output:
                 raise PipxError(error_output, wrap_message=False)
             raise PipxError(

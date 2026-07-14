@@ -320,6 +320,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
     _validate_backend_available(cli_backend, env_backend)
 
     ctx = DispatchContext(
+        fetch_python=args.fetch_python if "fetch_python" in args else FetchPythonOptions.NEVER,
         verbose=bool(args.verbose) if "verbose" in args else False,
         pip_args=get_pip_args(vars(args)),
         venv_args=get_venv_args(vars(args)),
@@ -369,6 +370,7 @@ class DispatchContext:
     backend: str | None = None
     env_backend: str | None = None
     cooldown_days: int | None = None
+    fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER
 
     @property
     def effective_backend(self) -> str | None:
@@ -583,6 +585,7 @@ def _cmd_install(args: argparse.Namespace, ctx: DispatchContext) -> OperationRes
         lock_file=args.lock,
         suffix=args.suffix,
         python_flag_passed=ctx.python_flag_passed,
+        fetch_python=ctx.fetch_python,
         backend=ctx.backend,
         env_backend=ctx.env_backend,
         upgrade_strategy=args.upgrade_strategy,

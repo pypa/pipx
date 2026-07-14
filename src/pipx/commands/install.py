@@ -22,11 +22,13 @@ from pipx.commands.transaction import preserve_venv
 from pipx.constants import (
     EXIT_CODE_OK,
     ExitCode,
+    FetchPythonOptions,
 )
 from pipx.emojis import sleep
 from pipx.interpreter import get_default_python
 from pipx.package_specifier import package_spec_satisfied
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, load_spec_file
+from pipx.requires_python import IncompatiblePythonError, interpreter_for
 from pipx.result import (
     OperationData,
     OperationResult,
@@ -46,6 +48,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from filelock import BaseFileLock
+    from packaging.specifiers import SpecifierSet
 
 _PYLOCK_NAME_RE: Final[re.Pattern[str]] = re.compile(r"pylock(?:\.[^.]+)?\.toml")
 
@@ -78,6 +81,7 @@ def install(
     cooldown_days: int | None = None,
     venv_lock: BaseFileLock | None = None,
     preserve_existing: bool = False,
+    fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER,
     replace_expected_apps: bool = False,
     replace_lock: bool = False,
     emit_output: bool = True,
@@ -100,7 +104,7 @@ def install(
     except PipxError as error:
         return _finish_install(_failed_install_result(package_specs[0], error), emit_output=emit_output)
 
-    package_names, resolution_failure = _resolve_package_names(
+    package_names, resolution_failure, python = _resolve_package_names(
         package_names,
         package_specs,
         python,
@@ -110,6 +114,9 @@ def install(
         backend=backend,
         env_backend=env_backend,
         cooldown_days=cooldown_days,
+        fetch_python=fetch_python,
+        python_flag_passed=python_flag_passed,
+        messages=messages,
     )
     if resolution_failure is not None:
         package_spec, resolution_error = resolution_failure
@@ -203,25 +210,32 @@ def install(
                             verbose=verbose,
                             backend=install_backend or recorded_backend,
                         )
-                    override_shared = canonicalize_name(package_name) == "pip"
-                    venv.create_venv(venv_args, pip_args, override_shared)
-                    venv.pipx_metadata.exposure_enabled = required_exposure
-                    venv.pipx_metadata.environment = venv.root.name
-                    for dependency in preinstall_packages or []:
-                        venv.upgrade_package_no_metadata(dependency, pip_args, cooldown_days=required_cooldown)
-                    venv.install_package(
-                        package_name=package_name,
-                        package_or_url=package_spec,
+                    build = _EnvironmentBuild(
+                        venv_args=venv_args,
                         pip_args=pip_args,
-                        install_only_pip_args=["--force-reinstall"] if force and exists else None,
+                        override_shared=canonicalize_name(package_name) == "pip",
+                        exposure_enabled=required_exposure,
+                        preinstall_packages=preinstall_packages,
+                        package_name=package_name,
+                        package_spec=package_spec,
+                        force_reinstall=force and exists,
                         include_dependencies=include_dependencies,
                         include_apps_from=include_apps_from,
-                        include_apps=True,
-                        is_main_package=True,
                         suffix=suffix,
                         expected_apps=required_apps,
                         lock_file=required_lock,
                         cooldown_days=required_cooldown,
+                    )
+                    venv = _install_on_supported_python(
+                        venv,
+                        build,
+                        venv_dir=venv_dir,
+                        fetch_python=fetch_python,
+                        python_flag_passed=python_flag_passed,
+                        verbose=verbose,
+                        backend=install_backend,
+                        env_backend=env_backend,
+                        messages=messages,
                     )
                     validate_expected_apps(venv, package_name, required_apps)
                     messages.extend(
@@ -290,9 +304,12 @@ def _resolve_package_names(
     backend: str | None,
     env_backend: str | None,
     cooldown_days: int | None,
-) -> tuple[list[str], tuple[str, PipxError] | None]:
+    fetch_python: FetchPythonOptions,
+    python_flag_passed: bool,
+    messages: list[OutputMessage],
+) -> tuple[list[str], tuple[str, PipxError] | None, str]:
     if package_names is not None and len(package_names) == len(package_specs):
-        return package_names, None
+        return package_names, None, python
 
     resolved: Final[list[str]] = []
     for package_spec in package_specs:
@@ -300,8 +317,8 @@ def _resolve_package_names(
             if (script_name := script_name_from_spec(package_spec, expected_apps)) is not None:
                 resolved.append(script_name)
                 continue
-            resolved.append(
-                package_name_from_spec(
+            try:
+                name = package_name_from_spec(
                     package_spec,
                     python,
                     pip_args=pip_args,
@@ -310,10 +327,27 @@ def _resolve_package_names(
                     env_backend=env_backend,
                     cooldown_days=cooldown_days,
                 )
-            )
+            except IncompatiblePythonError as error:
+                # reading the name off a local project already runs an install, so the constraint surfaces here first
+                python = _supported_python(
+                    error.constraint,
+                    fetch_python=fetch_python,
+                    python_flag_passed=python_flag_passed,
+                    messages=messages,
+                )
+                name = package_name_from_spec(
+                    package_spec,
+                    python,
+                    pip_args=pip_args,
+                    verbose=verbose,
+                    backend=backend,
+                    env_backend=env_backend,
+                    cooldown_days=cooldown_days,
+                )
+            resolved.append(name)
         except PipxError as error:
-            return resolved, (package_spec, error)
-    return resolved, None
+            return resolved, (package_spec, error), python
+    return resolved, None, python
 
 
 def _validate_install_options(
@@ -727,6 +761,120 @@ class InstallData(OperationData):
     packages: tuple[_InstalledPackage, ...]
     skipped: tuple[_SkippedInstall, ...]
     failures: tuple[_FailedInstall, ...]
+
+
+@dataclass(frozen=True)
+class _EnvironmentBuild:
+    """Everything needed to fill a venv, so pipx can do it twice when the first interpreter turns out unsupported."""
+
+    venv_args: list[str]
+    pip_args: list[str]
+    override_shared: bool
+    exposure_enabled: bool
+    preinstall_packages: list[str] | None
+    package_name: str
+    package_spec: str
+    force_reinstall: bool
+    include_dependencies: bool
+    include_apps_from: Sequence[str]
+    suffix: str
+    expected_apps: tuple[str, ...]
+    lock_file: Path | None
+    cooldown_days: int | None
+
+    def run(self, venv: Venv) -> None:
+        venv.create_venv(self.venv_args, self.pip_args, self.override_shared)
+        venv.pipx_metadata.exposure_enabled = self.exposure_enabled
+        venv.pipx_metadata.environment = venv.root.name
+        for dependency in self.preinstall_packages or []:
+            venv.upgrade_package_no_metadata(dependency, self.pip_args, cooldown_days=self.cooldown_days)
+        venv.install_package(
+            package_name=self.package_name,
+            package_or_url=self.package_spec,
+            pip_args=self.pip_args,
+            install_only_pip_args=["--force-reinstall"] if self.force_reinstall else None,
+            include_dependencies=self.include_dependencies,
+            include_apps_from=self.include_apps_from,
+            include_apps=True,
+            is_main_package=True,
+            suffix=self.suffix,
+            expected_apps=self.expected_apps,
+            lock_file=self.lock_file,
+            cooldown_days=self.cooldown_days,
+        )
+
+
+def _install_on_supported_python(
+    venv: Venv,
+    build: _EnvironmentBuild,
+    *,
+    venv_dir: Path,
+    fetch_python: FetchPythonOptions,
+    python_flag_passed: bool,
+    verbose: bool,
+    backend: str | None,
+    env_backend: str | None,
+    messages: list[OutputMessage],
+) -> Venv:
+    try:
+        build.run(venv)
+        # pip refuses an interpreter the package rules out, while uv installs onto it, so ask the metadata as well
+        constraint = venv.unsupported_python(build.package_name)
+    except IncompatiblePythonError as error:
+        constraint = error.constraint
+    if constraint is None:
+        return venv
+
+    venv = _rebuild_on_supported_python(
+        venv_dir=venv_dir,
+        constraint=constraint,
+        fetch_python=fetch_python,
+        python_flag_passed=python_flag_passed,
+        verbose=verbose,
+        backend=backend,
+        env_backend=env_backend,
+        messages=messages,
+    )
+    build.run(venv)
+    return venv
+
+
+def _supported_python(
+    constraint: SpecifierSet,
+    *,
+    fetch_python: FetchPythonOptions,
+    python_flag_passed: bool,
+    messages: list[OutputMessage],
+) -> str:
+    if python_flag_passed:
+        raise PipxError(
+            f"The Python you named does not satisfy {str(constraint)!r}, which this package requires. "
+            f"Name one that does, or leave --python out and let pipx choose."
+        )
+    interpreter: Final[str] = interpreter_for(constraint, fetch_python)
+    messages.append(OutputMessage(f"This package needs Python {constraint}, so pipx used {interpreter}."))
+    return interpreter
+
+
+def _rebuild_on_supported_python(
+    *,
+    venv_dir: Path,
+    constraint: SpecifierSet,
+    fetch_python: FetchPythonOptions,
+    python_flag_passed: bool,
+    verbose: bool,
+    backend: str | None,
+    env_backend: str | None,
+    messages: list[OutputMessage],
+) -> Venv:
+    interpreter: Final[str] = _supported_python(
+        constraint,
+        fetch_python=fetch_python,
+        python_flag_passed=python_flag_passed,
+        messages=messages,
+    )
+    rmdir(venv_dir)
+    return Venv(venv_dir, python=interpreter, verbose=verbose, backend=backend, env_backend=env_backend)
 
 
 __all__ = [
