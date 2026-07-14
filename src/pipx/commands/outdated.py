@@ -24,10 +24,15 @@ _MAX_OUTDATED_WORKERS: Final[int] = 8
 
 def list_outdated(
     venv_container: VenvContainer,
+    venv_dirs: Collection[Path],
     *,
     include_injected: bool,
 ) -> OperationResult[OutdatedData]:
-    data: Final[OutdatedData] = inspect_outdated(venv_container, include_injected=include_injected)
+    data: Final[OutdatedData] = inspect_outdated(
+        venv_container,
+        include_injected=include_injected,
+        venv_dirs=venv_dirs,
+    )
     messages: Final[list[OutputMessage]] = [
         OutputMessage(
             f"{failure.environment}: {failure.error}",
@@ -62,13 +67,18 @@ def inspect_outdated(
     skip: Collection[str] = (),
     backend: str | None = None,
     env_backend: str | None = None,
+    venv_dirs: Collection[Path] | None = None,
 ) -> OutdatedData:
-    venv_dirs: Final[tuple[Path, ...]] = tuple(
-        sorted(venv_dir for venv_dir in venv_container.iter_venv_dirs() if venv_dir.name not in skip)
+    selected_venv_dirs: Final[tuple[Path, ...]] = tuple(
+        sorted(
+            venv_dir
+            for venv_dir in (venv_container.iter_venv_dirs() if venv_dirs is None else venv_dirs)
+            if venv_dir.name not in skip
+        )
     )
     checks: Final[tuple[_EnvironmentOutdated, ...]] = _list_environments_outdated(
         venv_container,
-        venv_dirs,
+        selected_venv_dirs,
         include_injected=include_injected,
         upgradable_only=upgradable_only,
         pip_args=pip_args,

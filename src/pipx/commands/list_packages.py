@@ -108,13 +108,13 @@ def list_pinned(venv_dirs: Iterable[Path], include_injected: bool) -> VenvProble
 
 def list_packages(
     venv_container: VenvContainer,
+    venv_dirs: Collection[Path],
     include_injected: bool,
     json_format: bool,
     short_format: bool,
     pinned_only: bool,
 ) -> ExitCode:
     """Returns pipx exit code."""
-    venv_dirs: Collection[Path] = sorted(venv_container.iter_venv_dirs())
     if not venv_dirs:
         print(f"nothing has been installed with pipx {sleep}", file=sys.stderr)
 

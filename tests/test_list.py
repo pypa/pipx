@@ -192,6 +192,78 @@ def test_list_json_rejects_human_filter(
     assert "--output json cannot be combined with --short or --pinned" in capsys.readouterr().err
 
 
+def test_list_selected_package_text(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list", "pycowsay"])
+
+    captured = capsys.readouterr()
+    assert ("package pycowsay 0.0.0.2," in captured.out, "package pylint" in captured.out) == (True, False)
+
+
+def test_list_selected_packages_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list", "pycowsay", "pylint", "--json"])
+
+    assert sorted(json.loads(capsys.readouterr().out)["venvs"]) == ["pycowsay", "pylint"]
+
+
+@pytest.mark.parametrize(
+    "packages",
+    [
+        pytest.param(["pylint"], id="single"),
+        pytest.param(["pylint", "pylint"], id="repeated"),
+        pytest.param(["pylint", "PyLint"], id="mixed-case"),
+        pytest.param(["pylint", "pylint==3.0.4"], id="with-specifier"),
+    ],
+)
+def test_list_selected_package_short(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    packages: list[str],
+) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list", *packages, "--short"])
+
+    assert capsys.readouterr().out == "pylint 3.0.4\n"
+
+
+def test_list_selected_package_with_suffix(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--suffix=@1"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list", "pycowsay@1", "--short"])
+
+    assert capsys.readouterr().out == "pycowsay 0.0.0.2\n"
+
+
+def test_list_selected_package_pinned(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
+    assert not run_pipx_cli(["pin", "pylint"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list", "pylint", "--pinned"])
+
+    assert capsys.readouterr().out == "pylint 3.0.4\n"
+
+
+def test_list_rejects_missing_selected_package(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert run_pipx_cli(["list", "missing"])
+    assert capsys.readouterr().err.endswith("venv for 'missing' was not found. Was 'missing' installed with pipx?\n")
+
+
 def test_list_injected_apps_without_symlinks(
     pipx_temp_env: None,
     mocker: MockerFixture,

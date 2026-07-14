@@ -1150,11 +1150,16 @@ def _cmd_repair(args: argparse.Namespace, ctx: DispatchContext) -> OperationResu
 
 def _selected_venv_dirs(args: argparse.Namespace, ctx: DispatchContext) -> tuple[Path, ...]:
     if args.packages:
-        return tuple(_venv_dirs(args, ctx).values())
+        # spellings such as "black" and "Black" resolve to one venv, so drop the repeats
+        return tuple(dict.fromkeys(_venv_dirs(args, ctx).values()))
     return tuple(sorted(ctx.venv_container.iter_venv_dirs()))
 
 
-def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+def _add_list(
+    subparsers: argparse._SubParsersAction,
+    venv_completer: VenvCompleter,
+    shared_parser: argparse.ArgumentParser,
+) -> None:
     p = subparsers.add_parser(
         "list",
         help="List installed packages",
@@ -1175,24 +1180,36 @@ def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
         help="List pinned packages only. Pass --include-injected at the same time to list injected packages that were pinned.",
     )
     _add_output_option(p, legacy_json=True)
+    p.add_argument("packages", nargs="*", help="Installed packages to list").completer = venv_completer
     p.set_defaults(func=_cmd_list)
 
 
 def _cmd_list(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode | OperationResult[commands.OutdatedData]:
+    venv_dirs: Final[tuple[Path, ...]] = _installed_venv_dirs(args, ctx)
     if args.outdated:
         if args.short or args.pinned:
             raise PipxError("--outdated cannot be combined with --short or --pinned.")
-        return commands.list_outdated(ctx.venv_container, include_injected=args.include_injected)
+        return commands.list_outdated(ctx.venv_container, venv_dirs, include_injected=args.include_injected)
     output: Final[OutputFormat] = _output_format(args)
     if output is OutputFormat.JSON and (args.short or args.pinned):
         raise PipxError("--output json cannot be combined with --short or --pinned.")
     return commands.list_packages(
         ctx.venv_container,
+        venv_dirs,
         args.include_injected,
         output is OutputFormat.JSON,
         args.short,
         args.pinned,
     )
+
+
+def _installed_venv_dirs(args: argparse.Namespace, ctx: DispatchContext) -> tuple[Path, ...]:
+    venv_dirs: Final[tuple[Path, ...]] = _selected_venv_dirs(args, ctx)
+    for venv_dir in venv_dirs:
+        if not venv_dir.is_dir():
+            name = venv_dir.name
+            raise PipxError(f"venv for {name!r} was not found. Was {name!r} installed with pipx?")
+    return venv_dirs
 
 
 def _add_interpreter(
@@ -1614,7 +1631,7 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
     _add_reinstall_all(subparsers, shared_parser)
     _add_health(subparsers, completer_venvs.use, shared_parser)
     _add_repair(subparsers, completer_venvs.use, shared_parser)
-    _add_list(subparsers, shared_parser)
+    _add_list(subparsers, completer_venvs.use, shared_parser)
     subparsers_with_subcommands["interpreter"] = _add_interpreter(subparsers, shared_parser)
     subparsers_with_subcommands["cache"] = _add_cache(subparsers, shared_parser)
     _add_run(subparsers, shared_parser)
