@@ -1,3 +1,4 @@
+import subprocess
 import sys
 from collections.abc import Callable
 from dataclasses import replace
@@ -15,6 +16,24 @@ from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 def test_reinstall(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+
+
+def test_reinstall_inline_script(pipx_temp_env: None, inline_script: Path) -> None:
+    assert not run_pipx_cli(["install", str(inline_script)])
+    inline_script.write_text(
+        inline_script.read_text(encoding="utf-8").replace("installed", "reinstalled"),
+        encoding="utf-8",
+    )
+
+    assert not run_pipx_cli(["reinstall", "--python", sys.executable, "hello"])
+
+    process: Final[subprocess.CompletedProcess[str]] = subprocess.run(
+        [paths.ctx.bin_dir / app_name("hello")],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert process.stdout == "reinstalled\n"
 
 
 def test_reinstall_preserves_cooldowns(

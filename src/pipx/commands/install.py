@@ -37,6 +37,7 @@ from pipx.result import (
     render_messages,
     render_result,
 )
+from pipx.script import script_name_from_spec
 from pipx.util import PipxError, pipx_wrap, rmdir
 from pipx.venv import Venv, VenvContainer
 
@@ -105,6 +106,7 @@ def install(
         python,
         pip_args,
         verbose,
+        tuple(expected_apps),
         backend=backend,
         env_backend=env_backend,
         cooldown_days=cooldown_days,
@@ -283,6 +285,7 @@ def _resolve_package_names(
     python: str,
     pip_args: list[str],
     verbose: bool,
+    expected_apps: tuple[str, ...],
     *,
     backend: str | None,
     env_backend: str | None,
@@ -294,6 +297,9 @@ def _resolve_package_names(
     resolved: Final[list[str]] = []
     for package_spec in package_specs:
         try:
+            if (script_name := script_name_from_spec(package_spec, expected_apps)) is not None:
+                resolved.append(script_name)
+                continue
             resolved.append(
                 package_name_from_spec(
                     package_spec,

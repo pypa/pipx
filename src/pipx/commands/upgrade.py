@@ -383,6 +383,7 @@ def _upgrade_package(
         include_apps=package_metadata.include_apps,
         is_main_package=is_main_package,
         suffix=package_metadata.suffix,
+        expected_apps=package_metadata.expected_apps,
         cooldown_days=cooldown_days if cooldown_days is not None else package_metadata.cooldown_days,
     )
 

@@ -97,8 +97,8 @@ venv managed by `shared_libs.py`.
 [python-build-standalone](https://github.com/astral-sh/python-build-standalone/releases) and caches it locally. The
 `pipx interpreter` subcommands (list, prune, upgrade) manage these cached interpreters.
 
-`commands/run.py` includes PEP 723 inline script metadata parsing. When you run a `.py` file, pipx scans for a
-`# /// script` block, extracts TOML-declared dependencies, and installs them into a cached temporary venv.
+`script.py` parses PEP 723 inline metadata. `run` installs the declared dependencies in a cached temporary venv.
+`install` sends both backends the same generated wheel and records the source path or URL.
 
 ## Running pipx For Development
 

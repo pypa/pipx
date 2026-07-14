@@ -35,6 +35,7 @@ from pipx.package_specifier import (
     valid_pypi_name,
 )
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+from pipx.script import installable_script
 from pipx.shared_libs import (
     DISABLE_SHARED_LIBS_AUTO_UPGRADE,
     shared_libs,
@@ -361,20 +362,21 @@ class Venv:
             [*(install_only_pip_args or []), *pip_args], cooldown_days
         )
 
-        if lock_file is None:
-            _LOGGER.info("Installing %s", package_descr := full_package_description(package_name, package_or_url))
-            with animate(f"installing {package_descr}", self.do_animation):
-                process = self.backend.install(
-                    venv_root=self.root,
-                    venv_python=self.python_path,
-                    requirements=[package_or_url],
-                    pip_args=install_pip_args,
-                    verbose=self.verbose,
-                )
-            if process.returncode:
-                raise PipxError(f"Error installing {full_package_description(package_name, package_or_url)}.")
-        else:
-            self._install_locked_package(package_name, package_or_url, lock_file, install_pip_args)
+        with installable_script(package_name, package_or_url, tuple(expected_apps or ())) as install_spec:
+            if lock_file is None:
+                _LOGGER.info("Installing %s", package_descr := full_package_description(package_name, package_or_url))
+                with animate(f"installing {package_descr}", self.do_animation):
+                    process = self.backend.install(
+                        venv_root=self.root,
+                        venv_python=self.python_path,
+                        requirements=[install_spec],
+                        pip_args=install_pip_args,
+                        verbose=self.verbose,
+                    )
+                if process.returncode:
+                    raise PipxError(f"Error installing {full_package_description(package_name, package_or_url)}.")
+            else:
+                self._install_locked_package(package_name, install_spec, lock_file, install_pip_args)
 
         self.update_package_metadata(
             package_name=package_name,
@@ -698,16 +700,17 @@ class Venv:
         cooldown_days: int | None = None,
     ) -> None:
         _LOGGER.info("Upgrading %s", package_descr := full_package_description(package_name, package_or_url))
-        with animate(f"upgrading {package_descr}", self.do_animation):
-            process = self.backend.install(
-                venv_root=self.root,
-                venv_python=self.python_path,
-                requirements=[package_or_url],
-                pip_args=self._with_cooldown([*(upgrade_only_pip_args or []), *pip_args], cooldown_days),
-                upgrade=True,
-                log_pip_errors=False,
-                verbose=self.verbose,
-            )
+        with installable_script(package_name, package_or_url, tuple(expected_apps or ())) as install_spec:
+            with animate(f"upgrading {package_descr}", self.do_animation):
+                process = self.backend.install(
+                    venv_root=self.root,
+                    venv_python=self.python_path,
+                    requirements=[install_spec],
+                    pip_args=self._with_cooldown([*(upgrade_only_pip_args or []), *pip_args], cooldown_days),
+                    upgrade=True,
+                    log_pip_errors=False,
+                    verbose=self.verbose,
+                )
         subprocess_post_check(process)
 
         self.update_package_metadata(

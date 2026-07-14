@@ -23,6 +23,8 @@ pipx install --pip-args='--index-url=<private-repo-host>:<private-repo-port> --t
 pipx install --index-url https://test.pypi.org/simple/ --pip-args='--extra-index-url https://pypi.org/simple/' some-package
 pipx install --global pycowsay
 pipx install --lock pylock.toml .
+pipx install ./script.py
+pipx install --app command https://example.com/script.py
 pipx install .
 pipx install path/to/some-project
 ```

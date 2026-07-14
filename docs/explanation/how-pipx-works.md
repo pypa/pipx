@@ -12,6 +12,10 @@ Once the package is installed, pipx exposes its console scripts and GUI scripts 
 into `~/.local/share/man/man[1-9]`. As long as `~/.local/bin/` is on your `PATH`, the new commands are available
 globally, and on systems with `man` support the pages are accessible too.
 
+For a `.py` source with PEP 723 metadata, pipx builds a temporary wheel containing the script and its declared
+dependencies. Both the pip and uv backends install it into a normal managed environment. pipx then discards the wheel
+and records the original file path or URL so reinstall and upgrade can rebuild it.
+
 Adding the `--global` flag to any `pipx` command executes the action in global scope, exposing the app to all system
 users. See the [configuration reference](../how-to/configure-paths.md#-global-argument) for details. Note that this is
 not available on Windows.

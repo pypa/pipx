@@ -1095,6 +1095,100 @@ def test_install_local_archive(pipx_temp_env, monkeypatch, capsys, root):
     assert f"- {app_name('repeatme')}\n" in captured.out
 
 
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+def test_install_inline_script(pipx_temp_env: None, inline_script: Path, backend: str) -> None:
+    if backend == "uv" and shutil.which("uv") is None:
+        pytest.skip("uv is not installed")
+    assert not run_pipx_cli(["install", "--backend", backend, str(inline_script)])
+
+    app: Final[Path] = paths.ctx.bin_dir / app_name("hello")
+    process: Final[subprocess.CompletedProcess[str]] = subprocess.run(
+        [app],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert (process.stdout, run_pipx_cli(["uninstall", "hello"]), app.exists()) == ("installed\n", 0, False)
+
+
+def test_install_inline_script_app_override(pipx_temp_env: None, inline_script: Path) -> None:
+    assert not run_pipx_cli(["install", "--app", "greet", str(inline_script)])
+
+    assert (paths.ctx.bin_dir / app_name("greet")).is_file()
+
+
+def test_install_inline_script_url(pipx_temp_env: None, inline_script: Path, mocker: MockerFixture) -> None:
+    response: Final[MagicMock] = mocker.MagicMock()
+    response.read.return_value = inline_script.read_bytes()
+    response.headers.get_content_charset.return_value = "utf-8"
+    response.__enter__.return_value = response
+    mocker.patch("pipx.script.urllib.request.urlopen", autospec=True, return_value=response)
+
+    assert not run_pipx_cli(["install", "https://example.invalid/hello.py"])
+
+    assert (paths.ctx.bin_dir / app_name("hello")).is_file()
+
+
+def test_install_inline_script_url_error(
+    pipx_temp_env: None,
+    mocker: MockerFixture,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    mocker.patch("pipx.script.urllib.request.urlopen", autospec=True, side_effect=OSError("unavailable"))
+
+    assert run_pipx_cli(["install", "--output", "json", "https://example.invalid/hello.py"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    failure: Final[str] = json.loads(captured.out)["data"]["failures"][0]["error"]
+    assert ("Unable to read script" in " ".join(failure.split()), (paths.ctx.venvs / "hello").exists()) == (
+        True,
+        False,
+    )
+
+
+def test_install_inline_script_rolls_back_without_metadata(
+    pipx_temp_env: None,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    script: Final[Path] = tmp_path / "plain.py"
+    script.write_text("print('hello')\n", encoding="utf-8")
+
+    assert run_pipx_cli(["install", "--output", "json", str(script)])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    failure: Final[str] = json.loads(captured.out)["data"]["failures"][0]["error"]
+    assert ("has no PEP 723" in " ".join(failure.split()), (paths.ctx.venvs / "plain").exists()) == (True, False)
+
+
+def test_install_inline_script_rolls_back_obsolete_metadata(
+    pipx_temp_env: None,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    script: Final[Path] = tmp_path / "obsolete.py"
+    script.write_text("# /// pyproject\n# dependencies = []\n# ///\n", encoding="utf-8")
+
+    assert run_pipx_cli(["install", "--output", "json", str(script)])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    failure: Final[str] = json.loads(captured.out)["data"]["failures"][0]["error"]
+    assert ("obsolete" in failure, (paths.ctx.venvs / "obsolete").exists()) == (True, False)
+
+
+def test_install_inline_script_from_pylock(
+    pipx_temp_env: None,
+    inline_script: Path,
+    make_pylock: Callable[[str, str], Path],
+) -> None:
+    lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
+
+    assert not run_pipx_cli(["install", "--lock", str(lock_file), str(inline_script)])
+
+    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "hello").main_package
+    assert (metadata.lock_file, (paths.ctx.bin_dir / app_name("hello")).is_file()) == (lock_file.resolve(), True)
+
+
 def test_force_install_changes(pipx_temp_env, capsys):
     assert not run_pipx_cli(["install", "https://github.com/wntrblm/nox/archive/2022.1.7.zip"])
     captured = capsys.readouterr()

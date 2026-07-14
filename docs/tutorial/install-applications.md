@@ -97,6 +97,30 @@ entry point, pipx restores the existing environment.
 Use one package spec with `--app`. Repeat the option to require more than one entry point. `--include-apps-from` can
 select dependency entry points; `--include-deps` selects all dependency entry points.
 
+### Installing a PEP 723 script
+
+Install a local script with
+[PEP 723 inline metadata](https://packaging.python.org/en/latest/specifications/inline-script-metadata/) when it should
+remain available instead of using a temporary `pipx run` environment:
+
+```
+pipx install ./hello.py
+```
+
+pipx uses the filename without `.py` as the application and environment name. Pass `--app` to choose another name:
+
+```
+pipx install --app greet ./hello.py
+```
+
+The script must contain a `# /// script` metadata block. pipx installs its declared dependencies and exposes the script
+through the same metadata and environment lifecycle as a package. `list`, `uninstall`, `inject`, `reinstall`, and
+`upgrade` therefore work without script-specific commands. Reinstall and upgrade read the source again.
+
+HTTP and HTTPS script URLs work too. Treat a mutable URL like any other unpinned source. To make dependency artifacts
+reproducible, pass an explicit `pylock.toml` with `--lock`; pipx installs the locked environment before installing the
+script without dependency resolution.
+
 ### Installing from a lock file
 
 Use a [PEP 751 lock file](https://packaging.python.org/en/latest/specifications/pylock-toml/) when a resolver must

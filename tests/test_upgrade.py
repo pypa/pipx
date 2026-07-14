@@ -1,4 +1,5 @@
 import json
+import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -32,6 +33,24 @@ def test_upgrade(pipx_temp_env, capsys):
     assert not run_pipx_cli(["upgrade", "pycowsay"])
     captured = capsys.readouterr()
     assert "pycowsay is already at latest version" in captured.out
+
+
+def test_upgrade_inline_script(pipx_temp_env: None, inline_script: Path) -> None:
+    assert not run_pipx_cli(["install", "--app", "greet", str(inline_script)])
+    inline_script.write_text(
+        inline_script.read_text(encoding="utf-8").replace("installed", "upgraded"),
+        encoding="utf-8",
+    )
+
+    assert not run_pipx_cli(["upgrade", "greet"])
+
+    process: Final[subprocess.CompletedProcess[str]] = subprocess.run(
+        [paths.ctx.bin_dir / app_name("greet")],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert process.stdout == "upgraded\n"
 
 
 @pytest.mark.parametrize(
