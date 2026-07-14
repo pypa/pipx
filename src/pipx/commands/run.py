@@ -13,6 +13,7 @@ from shutil import which
 from typing import Final, NoReturn
 
 from packaging.requirements import InvalidRequirement, Requirement
+from packaging.utils import canonicalize_name
 
 from pipx import paths
 from pipx.backends import UV, resolve_backend_name
@@ -291,6 +292,14 @@ def run_package(
         venv.run_app(app, app_filename, app_args)
 
 
+def _package_name_from_app(app: str, *, inferred: bool) -> str:
+    try:
+        package_name = Requirement(app).name
+    except InvalidRequirement:
+        return app
+    return canonicalize_name(package_name) if inferred else package_name
+
+
 def run(
     app: str,
     spec: str | None,
@@ -314,11 +323,7 @@ def run(
     package
     """
 
-    try:
-        package_name = Requirement(app).name
-    except InvalidRequirement:
-        # Raw script URLs are not valid package requirements.
-        package_name = app
+    package_name: Final[str] = _package_name_from_app(app, inferred=spec is None)
 
     # ``resolved_backend`` only decides ROUTING (uv tool run vs Venv); cli/env
     # stay separate when we hand off so the Venv's source-attribution stays right.
@@ -346,7 +351,7 @@ def run(
 
     elif use_uvx:
         run_via_uv_tool_run(
-            app=app,
+            app=package_name if spec is None else app,
             package_or_url=spec if spec is not None else app,
             dependencies=dependencies,
             app_args=app_args,

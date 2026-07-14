@@ -57,6 +57,27 @@ def test_simple_run(pipx_temp_env, monkeypatch, capsys, package_name):
     assert "Download the latest version of a package" not in captured.out
 
 
+@pytest.mark.parametrize("backend", ["pip", "uv"])
+def test_run_normalizes_inferred_package_name(
+    pipx_temp_env: None,
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    backend: str,
+) -> None:
+    mocker.patch("os.execvpe", new=execvpe_mock)
+    monkeypatch.setenv("PATH", f"{os.environ['PATH']}{os.pathsep}{os.defpath}")
+
+    run_pipx_cli_exit(["run", "--backend", backend, "bLaCk", "--version"], assert_exit=0)
+
+
+def test_run_preserves_explicit_app_name(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert run_pipx_cli(["run", "--spec", "black", "bLaCk"]) == 1
+    assert "'bLaCk' executable script not found in package 'black'." in capsys.readouterr().err
+
+
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_cache(pipx_temp_env, monkeypatch, capsys, caplog):
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
