@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import sys
+from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 import pytest
 
@@ -11,6 +12,9 @@ from pipx import paths
 from pipx.util import exec_app, rmdir, run_subprocess, safe_unlink
 
 if TYPE_CHECKING:
+    import subprocess
+
+    from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
 
 
@@ -126,3 +130,73 @@ def test_subprocess_pythonsafepath_set_for_python_commands() -> None:
     )
 
     assert result.stdout == "1"
+
+
+def test_subprocess_streams_and_captures_output(capsys: pytest.CaptureFixture[str]) -> None:
+    result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
+        [
+            sys.executable,
+            "-c",
+            "import sys; sys.stdout.buffer.write('stdøut 1\\rstdøut 2\\r'.encode()); sys.stdout.flush(); "
+            "sys.stderr.buffer.write('stdërr 1\\rstdërr 2\\r\\n'.encode()); sys.stderr.flush()",
+        ],
+        stream_output=True,
+    )
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (captured.out, captured.err, result.stdout, result.stderr) == (
+        "stdøut 1\rstdøut 2\r",
+        "stdërr 1\rstdërr 2\n",
+        "stdøut 1\rstdøut 2\r",
+        "stdërr 1\rstdërr 2\n",
+    )
+
+
+def test_subprocess_stream_normalizes_split_crlf(mocker: MockerFixture) -> None:
+    destination: Final[StringIO] = StringIO()
+    mocker.patch("pipx.util.sys.stdout", destination)
+    read_size: Final[int] = 8 * 1024
+    result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
+        [
+            sys.executable,
+            "-c",
+            f"import os, sys; os.write(sys.stdout.fileno(), b'x' * {read_size - 1} + b'\\r\\n')",
+        ],
+        capture_stderr=False,
+        stream_output=True,
+    )
+    expected: Final[str] = "x" * (read_size - 1) + "\n"
+
+    assert (destination.getvalue(), result.stdout) == (expected, expected)
+
+
+@pytest.mark.parametrize(
+    "statement",
+    [
+        pytest.param("print('stdout')", id="stdout"),
+        pytest.param("print('stderr', file=sys.stderr)", id="stderr"),
+    ],
+)
+def test_subprocess_stream_does_not_log_capture(
+    caplog: pytest.LogCaptureFixture,
+    statement: str,
+) -> None:
+    with caplog.at_level(logging.DEBUG, logger="pipx.util"):
+        run_subprocess(
+            [sys.executable, "-c", f"import sys; {statement}"],
+            stream_output=True,
+        )
+
+    assert [record.getMessage() for record in caplog.records if record.levelno == logging.DEBUG] == ["returncode: 0"]
+
+
+def test_subprocess_stream_drains_before_output_error(mocker: MockerFixture) -> None:
+    destination: Final[TextIOWrapper] = TextIOWrapper(BytesIO(), encoding="ascii")
+    mocker.patch("pipx.util.sys.stdout", destination)
+
+    with pytest.raises(UnicodeEncodeError):
+        run_subprocess(
+            [sys.executable, "-c", "print('ø' * 100_000)"],
+            capture_stderr=False,
+            stream_output=True,
+        )

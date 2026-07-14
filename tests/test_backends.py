@@ -28,6 +28,8 @@ from pipx.venv import Venv, reset_backend_override_warnings
 from pipx.venv_inspect import list_not_required_packages
 
 if TYPE_CHECKING:
+    from unittest.mock import MagicMock
+
     from pytest_mock import MockerFixture
 
 
@@ -214,6 +216,41 @@ def test_uv_backend_rejects_pre_cooldown_version(mocker: MockerFixture) -> None:
 
     with pytest.raises(PipxError, match=r"uv>=0\.9\.17"):
         UvBackend()
+
+
+@pytest.mark.parametrize("backend_name", [pytest.param(PIP, id="pip"), pytest.param(UV, id="uv")])
+def test_backend_verbose_install_streams_output(backend_name: str, tmp_path: Path, mocker: MockerFixture) -> None:
+    binary: Final[Path] = tmp_path / "uv"
+    mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))
+    mocker.patch(
+        "pipx.backends.uv.subprocess.run",
+        return_value=subprocess.CompletedProcess([str(binary), "--version"], 0, stdout="uv 0.11.28", stderr=""),
+    )
+    run_subprocess: Final[MagicMock] = mocker.patch(
+        f"pipx.backends.{backend_name}.run_subprocess",
+        autospec=True,
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+    )
+    venv_python: Final[Path] = tmp_path / "bin" / "python"
+
+    (UvBackend() if backend_name == UV else PipBackend()).install(
+        venv_root=tmp_path,
+        venv_python=venv_python,
+        requirements=["demo"],
+        pip_args=[],
+        verbose=True,
+    )
+
+    expected_command: Final[list[str | Path]] = (
+        [str(venv_python), "-m", "pip", "--no-input", "install", "--progress-bar=on", "demo"]
+        if backend_name == PIP
+        else [binary, "pip", "install", "--python", str(venv_python), "--verbose", "demo"]
+    )
+    assert (run_subprocess.call_args.args[0], run_subprocess.call_args.kwargs["stream_output"]) == (
+        expected_command,
+        True,
+    )
 
 
 @pytest.mark.parametrize(
