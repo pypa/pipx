@@ -11,6 +11,7 @@ import shlex
 import sys
 import textwrap
 import time
+import typing
 import urllib.parse
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -56,6 +57,10 @@ from pipx.version import version as __version__
 logger = logging.getLogger(__name__)
 
 VenvCompleter = Callable[[str], list[str]]
+
+
+class _CompletableAction(typing.Protocol):
+    completer: VenvCompleter
 
 
 def print_version() -> None:
@@ -1328,6 +1333,36 @@ def _cmd_run(args: argparse.Namespace, ctx: DispatchContext) -> NoReturn:
     )
 
 
+def _add_execute(
+    subparsers: argparse._SubParsersAction,
+    venv_completer: VenvCompleter,
+    shared_parser: argparse.ArgumentParser,
+) -> None:
+    parser: Final[argparse.ArgumentParser] = subparsers.add_parser(
+        "exec",
+        help="Run an application from an existing pipx environment",
+        description="Run an application from an existing pipx environment",
+        parents=[shared_parser],
+    )
+    cast(
+        "_CompletableAction", parser.add_argument("package", help="Name of the existing pipx environment")
+    ).completer = venv_completer
+    parser.add_argument("app", help="Application to run")
+    parser.add_argument(
+        "app_args",
+        nargs=argparse.REMAINDER,
+        default=[],
+        help="Arguments to pass to the application",
+    )
+    parser.set_defaults(func=_cmd_execute)
+
+
+def _cmd_execute(args: argparse.Namespace, ctx: DispatchContext) -> NoReturn:
+    venv_dir: Final[Path] = _venv_dir(args, ctx)
+    with ctx.venv_container.venv_lock(venv_dir):
+        commands.execute(args.package, venv_dir, args.app, args.app_args)
+
+
 def _add_runpip(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "runpip",
@@ -1541,6 +1576,7 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
     subparsers_with_subcommands["interpreter"] = _add_interpreter(subparsers, shared_parser)
     subparsers_with_subcommands["cache"] = _add_cache(subparsers, shared_parser)
     _add_run(subparsers, shared_parser)
+    _add_execute(subparsers, completer_venvs.use, shared_parser)
     _add_runpip(subparsers, completer_venvs.use, shared_parser)
     _add_ensurepath(subparsers, shared_parser)
     _add_environment(subparsers, shared_parser)

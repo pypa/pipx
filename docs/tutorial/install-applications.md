@@ -68,6 +68,20 @@ pipx install "nox[tox_to_nox]" --include-apps-from tox
 Repeat `--include-apps-from` to select more dependencies. pipx records the selection for upgrade and reinstall. The
 install fails and rolls back when a selected package is not a dependency with apps or manual pages.
 
+### Running an application without exposing it
+
+Use `exec` to run a recorded application from an existing environment without adding it to the pipx binary directory.
+
+```
+pipx inject nox tox
+pipx exec nox tox --version
+```
+
+The application may belong to the main package, an injected package, or a dependency. pipx adds the selected
+environment's binary directory to the child process `PATH` and sets `VIRTUAL_ENV`, so sibling applications can call each
+other. `exec` does not install packages, change the environment, expose applications, or start a shell. Use `inject`
+first when the environment does not contain the application.
+
 ### Requiring an application entry point
 
 Pass `--app` when automation depends on a specific command.
