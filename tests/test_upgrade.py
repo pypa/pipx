@@ -1,9 +1,9 @@
+from __future__ import annotations
+
 import json
 import subprocess
 import sys
-from collections.abc import Callable
-from pathlib import Path
-from typing import Final, cast
+from typing import TYPE_CHECKING, Final, cast
 
 import pytest
 
@@ -19,6 +19,12 @@ from helpers import (
 from package_info import PKG
 from pipx import paths
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, PipxMetadata
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
+    from _pytest.capture import CaptureResult
 
 
 def test_upgrade(pipx_temp_env, capsys):
@@ -51,6 +57,38 @@ def test_upgrade_inline_script(pipx_temp_env: None, inline_script: Path) -> None
         text=True,
     )
     assert process.stdout == "upgraded\n"
+
+
+def test_upgrade_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["upgrade", "pycowsay", "--output", "json"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (json.loads(captured.out), captured.err) == (
+        {
+            "command": "upgrade",
+            "data": {
+                "failures": [],
+                "packages": [
+                    {
+                        "environment": "pycowsay",
+                        "injected": False,
+                        "location": str(paths.ctx.venvs / "pycowsay"),
+                        "package": "pycowsay",
+                        "previous_version": "0.0.0.2",
+                        "status": "unchanged",
+                        "version": "0.0.0.2",
+                    }
+                ],
+                "skipped": [],
+            },
+            "pipx_result_version": "0.1",
+            "status": "success",
+        },
+        "",
+    )
 
 
 @pytest.mark.parametrize(

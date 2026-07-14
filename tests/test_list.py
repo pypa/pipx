@@ -123,7 +123,7 @@ def test_list_json(pipx_temp_env, capsys):
     assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])
     captured = capsys.readouterr()
 
-    assert not run_pipx_cli(["list", "--json"])
+    assert not run_pipx_cli(["list", "--output", "json"])
     captured = capsys.readouterr()
 
     assert not re.search(r"\S", captured.err)
@@ -179,6 +179,17 @@ def test_list_short(pipx_temp_env, monkeypatch, capsys):
 
     assert "pycowsay 0.0.0.2" in captured.out
     assert "pylint 3.0.4" in captured.out
+
+
+@pytest.mark.parametrize("option", [pytest.param("--short", id="short"), pytest.param("--pinned", id="pinned")])
+def test_list_json_rejects_human_filter(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    option: str,
+) -> None:
+    assert run_pipx_cli(["list", "--output", "json", option]) == 1
+
+    assert "--output json cannot be combined with --short or --pinned" in capsys.readouterr().err
 
 
 def test_list_injected_apps_without_symlinks(

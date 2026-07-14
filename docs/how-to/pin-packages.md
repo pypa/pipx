@@ -11,7 +11,7 @@ versions until you unpin it.
 - `pipx unpin PACKAGE` — re-enables upgrades for the package and anything that was pinned with it.
 - `pipx list --pinned` — shows every pinned environment; add `--include-injected` to see pinned injected packages.
 
-Pass `--json` to read changed and skipped packages in a script, or `--quiet` to omit confirmations.
+Pass `--output json` to read changed and skipped packages in a script, or `--quiet` to omit confirmations.
 
 pipx tracks the main package and any injected packages. It does not record individual transitive dependencies, so there
 is no way to pin a single dependency in isolation. Pinning the main package protects its dependency set because pipx

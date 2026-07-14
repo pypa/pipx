@@ -338,8 +338,6 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
 
 
 def _output_format(args: argparse.Namespace) -> OutputFormat:
-    if getattr(args, "json", False):
-        return OutputFormat.JSON
     return OutputFormat(getattr(args, "output", OutputFormat.HUMAN))
 
 
@@ -437,13 +435,22 @@ def _add_dependency_app_options(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def _add_output_option(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
+def _add_output_option(parser: argparse.ArgumentParser, *, legacy_json: bool = False) -> None:
+    group: Final[argparse._MutuallyExclusiveGroup] = parser.add_mutually_exclusive_group()
+    group.add_argument(
         "--output",
         choices=[output.value for output in OutputFormat],
         default=OutputFormat.HUMAN,
         help="Select the output format.",
     )
+    if legacy_json:
+        group.add_argument(
+            "--json",
+            action="store_const",
+            const=OutputFormat.JSON,
+            dest="output",
+            help="Alias for '--output json'.",
+        )
 
 
 class _DeprecatedFetchMissingPython(argparse.Action):
@@ -590,7 +597,7 @@ def _add_install_all(subparsers: argparse._SubParsersAction, shared_parser: argp
         description="Installs all the packages according to spec metadata file.",
         parents=[shared_parser],
     )
-    p.add_argument("spec_metadata_file", help="Spec metadata file generated from pipx list --json")
+    p.add_argument("spec_metadata_file", help="Spec metadata file generated from pipx list --output json")
     p.add_argument(
         "--force",
         "-f",
@@ -784,7 +791,7 @@ def _add_expose(
         parents=[shared_parser],
     )
     parser.add_argument("package", help="Installed package to expose").completer = venv_completer
-    parser.add_argument("--json", action="store_true", help="Output a machine-readable result.")
+    _add_output_option(parser, legacy_json=True)
     parser.set_defaults(func=_cmd_expose)
 
 
@@ -806,7 +813,7 @@ def _add_unexpose(
         parents=[shared_parser],
     )
     parser.add_argument("package", help="Installed package to hide").completer = venv_completer
-    parser.add_argument("--json", action="store_true", help="Output a machine-readable result.")
+    _add_output_option(parser, legacy_json=True)
     parser.set_defaults(func=_cmd_unexpose)
 
 
@@ -842,7 +849,7 @@ def _add_pin(
         default=[],
         help="Skip these packages. Implies `--injected-only`.",
     )
-    p.add_argument("--json", action="store_true", help="Output a machine-readable result.")
+    _add_output_option(p, legacy_json=True)
     p.set_defaults(func=_cmd_pin)
 
 
@@ -864,7 +871,7 @@ def _add_unpin(
         parents=[shared_parser],
     )
     p.add_argument("package", help="Installed package to unpin")
-    p.add_argument("--json", action="store_true", help="Output a machine-readable result.")
+    _add_output_option(p, legacy_json=True)
     p.set_defaults(func=_cmd_unpin)
 
 
@@ -901,6 +908,7 @@ def _add_upgrade(subparsers, venv_completer: VenvCompleter, shared_parser: argpa
     )
     add_python_options(p)
     add_backend_arg(p)
+    _add_output_option(p)
     p.set_defaults(func=_cmd_upgrade)
 
 
@@ -942,7 +950,7 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argp
     )
     add_pip_venv_args(p)
     add_backend_arg(p)
-    p.add_argument("--json", action="store_true", help="Output a machine-readable result.")
+    _add_output_option(p, legacy_json=True)
     p.set_defaults(func=_cmd_upgrade_all)
 
 
@@ -987,7 +995,7 @@ def _add_uninstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
         parents=[shared_parser],
     )
     p.add_argument("package").completer = venv_completer
-    p.add_argument("--json", action="store_true", help="Output a machine-readable result.")
+    _add_output_option(p, legacy_json=True)
     p.set_defaults(func=_cmd_uninstall)
 
 
@@ -1004,7 +1012,7 @@ def _add_uninstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
         description="Uninstall all pipx-managed packages",
         parents=[shared_parser],
     )
-    p.add_argument("--json", action="store_true", help="Output a machine-readable result.")
+    _add_output_option(p, legacy_json=True)
     p.set_defaults(func=_cmd_uninstall_all)
 
 
@@ -1100,7 +1108,7 @@ def _add_health(
         parents=[shared_parser],
     )
     parser.add_argument("packages", nargs="*", help="Installed packages to check").completer = venv_completer
-    parser.add_argument("--json", action="store_true", help="Output a machine-readable result.")
+    _add_output_option(parser, legacy_json=True)
     parser.set_defaults(func=_cmd_health)
 
 
@@ -1122,6 +1130,7 @@ def _add_repair(
     parser.add_argument("packages", nargs="*", help="Installed packages to repair").completer = venv_completer
     add_python_options(parser)
     add_backend_arg(parser)
+    _add_output_option(parser)
     parser.set_defaults(func=_cmd_repair)
 
 
@@ -1159,13 +1168,13 @@ def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
     )
     p.add_argument("--outdated", action="store_true", help="List packages with an available upgrade.")
     g = p.add_mutually_exclusive_group()
-    g.add_argument("--json", action="store_true", help="Output rich data in json format.")
     g.add_argument("--short", action="store_true", help="List packages only.")
     g.add_argument(
         "--pinned",
         action="store_true",
         help="List pinned packages only. Pass --include-injected at the same time to list injected packages that were pinned.",
     )
+    _add_output_option(p, legacy_json=True)
     p.set_defaults(func=_cmd_list)
 
 
@@ -1174,7 +1183,16 @@ def _cmd_list(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode | Oper
         if args.short or args.pinned:
             raise PipxError("--outdated cannot be combined with --short or --pinned.")
         return commands.list_outdated(ctx.venv_container, include_injected=args.include_injected)
-    return commands.list_packages(ctx.venv_container, args.include_injected, args.json, args.short, args.pinned)
+    output: Final[OutputFormat] = _output_format(args)
+    if output is OutputFormat.JSON and (args.short or args.pinned):
+        raise PipxError("--output json cannot be combined with --short or --pinned.")
+    return commands.list_packages(
+        ctx.venv_container,
+        args.include_injected,
+        output is OutputFormat.JSON,
+        args.short,
+        args.pinned,
+    )
 
 
 def _add_interpreter(

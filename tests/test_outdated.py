@@ -97,7 +97,7 @@ def test_list_outdated_text(
 
 
 def test_list_outdated_json(outdated_environment: MagicMock, capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["list", "--outdated", "--json"])
+    assert not run_pipx_cli(["list", "--outdated", "--output", "json"])
 
     captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
