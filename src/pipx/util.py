@@ -206,6 +206,12 @@ def run_subprocess(
         env.setdefault("PYTHONSAFEPATH", "1")
 
     if stream_output:
+        # pip draws its progress bar through rich, which animates only while it believes it writes to a terminal. The
+        # pipe we read it over hides ours, so TTY_COMPATIBLE reports the terminal we forward the output to, and COLUMNS
+        # carries its width because rich cannot measure a pipe.
+        if sys.stdout.isatty():
+            env.setdefault("TTY_COMPATIBLE", "1")
+            env.setdefault("COLUMNS", str(shutil.get_terminal_size().columns))
         completed_process = _run_streaming_subprocess(
             cmd_str_list,
             capture_stdout=capture_stdout,

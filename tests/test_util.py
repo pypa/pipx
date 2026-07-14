@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
@@ -150,6 +151,35 @@ def test_subprocess_streams_and_captures_output(capsys: pytest.CaptureFixture[st
         "stdøut 1\rstdøut 2\r",
         "stdërr 1\rstdërr 2\n",
     )
+
+
+@pytest.mark.parametrize(
+    ("stdout_is_a_terminal", "expected"),
+    [
+        pytest.param(True, "1 120", id="terminal"),
+        pytest.param(False, "unset unset", id="pipe"),
+    ],
+)
+def test_subprocess_stream_reports_the_terminal_to_the_child(
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    stdout_is_a_terminal: bool,
+    expected: str,
+) -> None:
+    monkeypatch.delenv("TTY_COMPATIBLE", raising=False)
+    monkeypatch.delenv("COLUMNS", raising=False)
+    mocker.patch("pipx.util.sys.stdout.isatty", return_value=stdout_is_a_terminal)
+    mocker.patch("pipx.util.shutil.get_terminal_size", return_value=os.terminal_size((120, 40)))
+    result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
+        [
+            sys.executable,
+            "-c",
+            "import os; print(os.environ.get('TTY_COMPATIBLE', 'unset'), os.environ.get('COLUMNS', 'unset'))",
+        ],
+        stream_output=True,
+    )
+
+    assert result.stdout.strip() == expected
 
 
 def test_subprocess_stream_normalizes_split_crlf(mocker: MockerFixture) -> None:
