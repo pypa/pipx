@@ -47,7 +47,7 @@ from pipx.interpreter import (
     get_default_python_spec,
 )
 from pipx.package_specifier import valid_pypi_name
-from pipx.result import OperationResult, render_result
+from pipx.result import OperationResult, OutputFormat, render_result
 from pipx.shared_libs import skip_shared_libs_maintenance
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import VenvContainer
@@ -319,8 +319,14 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
     with skip_shared_libs_maintenance(getattr(args, "skip_maintenance", False)):
         result = args.func(args, ctx)
         if isinstance(result, OperationResult):
-            return render_result(result, json_output=getattr(args, "json", False), quiet=getattr(args, "quiet", 0))
+            return render_result(result, output=_output_format(args), quiet=getattr(args, "quiet", 0))
         return result
+
+
+def _output_format(args: argparse.Namespace) -> OutputFormat:
+    if getattr(args, "json", False):
+        return OutputFormat.JSON
+    return OutputFormat(getattr(args, "output", OutputFormat.HUMAN))
 
 
 def _validate_backend_available(cli_backend: str | None, env_backend: str | None) -> None:
@@ -520,10 +526,16 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
     )
     add_pip_venv_args(p)
     add_backend_arg(p)
+    p.add_argument(
+        "--output",
+        choices=[output.value for output in OutputFormat],
+        default=OutputFormat.HUMAN,
+        help="Select the output format.",
+    )
     p.set_defaults(func=_cmd_install)
 
 
-def _cmd_install(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_install(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.InstallData]:
     return commands.install(
         None,
         None,
@@ -548,6 +560,7 @@ def _cmd_install(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
         env_backend=ctx.env_backend,
         upgrade_strategy=args.upgrade_strategy,
         cooldown_days=ctx.cooldown_days,
+        emit_output=False,
     )
 
 
@@ -1604,7 +1617,9 @@ def setup(args: argparse.Namespace) -> None:
     if not constants.WINDOWS and getattr(args, "is_global", False):
         paths.ctx.make_global()
 
-    verbose = -2 if getattr(args, "json", False) else getattr(args, "verbose", 0) - getattr(args, "quiet", 0)
+    verbose: Final[int] = (
+        -2 if _output_format(args) is OutputFormat.JSON else getattr(args, "verbose", 0) - getattr(args, "quiet", 0)
+    )
 
     setup_logging(verbose)
     paths.ctx.log_warnings()

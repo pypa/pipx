@@ -1,15 +1,16 @@
+from __future__ import annotations
+
+import json
 import os
 import re
 import shutil
 import subprocess
 import sys
-from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 from unittest import mock
 
 import pytest
-from pytest_mock import MockerFixture
 
 from helpers import app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
 from package_info import PKG
@@ -21,7 +22,11 @@ from pipx.util import PipxError
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from unittest.mock import MagicMock
+
+    from _pytest.capture import CaptureResult
+    from pytest_mock import MockerFixture
 
 TEST_DATA_PATH = "./testdata/test_package_specifier"
 
@@ -68,6 +73,24 @@ def test_install_easy_multiple_packages(capsys, pipx_temp_env, caplog):
         ["pycowsay", PKG["black"]["spec"]],
         ["pycowsay", "black"],
     )
+
+
+def test_install_multiple_packages_reports_success_before_failure(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    missing_package: Final[str] = "pipx-package-does-not-exist"
+
+    return_code: Final[int] = run_pipx_cli(["install", "pycowsay", missing_package])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (
+        return_code,
+        "installed package pycowsay" in captured.out,
+        "Error installing pipx-package-does-not-exist" in captured.err,
+        (paths.ctx.venvs / "pycowsay").exists(),
+        (paths.ctx.venvs / missing_package).exists(),
+    ) == (1, True, True, True, False)
 
 
 @pytest.mark.parametrize(
@@ -588,7 +611,7 @@ def test_install_force_preserves_expected_app(pipx_temp_env: None) -> None:
 def test_install_backup_failure_preserves_existing_environment(
     pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
-    mocker: "MockerFixture",
+    mocker: MockerFixture,
 ) -> None:
     assert not run_pipx_cli(["install", "--app", "pycowsay", PKG["pycowsay"]["spec"]])
     mocker.patch("pipx.commands.transaction.copytree", autospec=True, side_effect=OSError("disk full"))
@@ -710,7 +733,7 @@ def test_install_reuses_empty_environment_dir(pipx_temp_env: None) -> None:
     ) == (EXIT_CODE_OK, "pycowsay")
 
 
-def test_install_upgrade_satisfied_spec_is_offline(pipx_temp_env, capsys, mocker: "MockerFixture"):
+def test_install_upgrade_satisfied_spec_is_offline(pipx_temp_env, capsys, mocker: MockerFixture):
     assert not run_pipx_cli(["install", PKG["black"]["spec"]])
     check_shared = mocker.patch.object(Venv, "check_upgrade_shared_libs", autospec=True)
     upgrade_package = mocker.patch.object(Venv, "upgrade_package", autospec=True)
@@ -727,7 +750,7 @@ def test_install_upgrade_strategy_requires_upgrade(pipx_temp_env, capsys):
     assert "--upgrade-strategy requires --upgrade" in capsys.readouterr().err
 
 
-def test_install_existing_package_skips_shared_lib_maintenance(pipx_temp_env: None, mocker: "MockerFixture") -> None:
+def test_install_existing_package_skips_shared_lib_maintenance(pipx_temp_env: None, mocker: MockerFixture) -> None:
     assert run_pipx_cli(["install", PKG["pycowsay"]["spec"]]) == 0
     mocker.patch.object(shared_libs.shared_libs, "has_been_updated_this_run", False)
     mocker.patch(
@@ -1247,6 +1270,123 @@ def test_install_quiet_flag(pipx_temp_env, capsys):
     assert "These apps are now" not in captured.out
     assert "done!" not in captured.out
     assert "done!" not in captured.err
+
+
+def test_install_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "--output", "json", "pycowsay"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert not captured.err
+    assert json.loads(captured.out) == {
+        "command": "install",
+        "data": {
+            "failures": [],
+            "packages": [
+                {
+                    "environment": "pycowsay",
+                    "location": str(paths.ctx.venvs / "pycowsay"),
+                    "package": "pycowsay",
+                    "version": "0.0.0.2",
+                }
+            ],
+            "skipped": [],
+        },
+        "pipx_result_version": "0.1",
+        "status": "success",
+    }
+
+
+def test_install_json_reports_existing(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["install", "--output", "json", "pycowsay"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert not captured.err
+    assert json.loads(captured.out) == {
+        "command": "install",
+        "data": {
+            "failures": [],
+            "packages": [],
+            "skipped": [
+                {
+                    "environment": "pycowsay",
+                    "package": "pycowsay",
+                    "reason": "already-installed",
+                }
+            ],
+        },
+        "pipx_result_version": "0.1",
+        "status": "success",
+    }
+
+
+def test_install_json_reports_invalid_option(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_pipx_cli(["install", "--output", "json", "--upgrade-strategy", "eager", "pycowsay"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert not captured.err
+    assert json.loads(captured.out) == {
+        "command": "install",
+        "data": {
+            "failures": [
+                {
+                    "environment": "pycowsay",
+                    "error": "--upgrade-strategy requires --upgrade",
+                }
+            ],
+            "packages": [],
+            "skipped": [],
+        },
+        "pipx_result_version": "0.1",
+        "status": "error",
+    }
+
+
+def test_install_json_reports_missing_app(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_pipx_cli(["install", "--output", "json", "--app", "missing", "pycowsay"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert not captured.err
+    assert (
+        json.loads(captured.out),
+        (paths.ctx.venvs / "pycowsay").exists(),
+    ) == (
+        {
+            "command": "install",
+            "data": {
+                "failures": [
+                    {
+                        "environment": "pycowsay",
+                        "error": "Package pycowsay does not provide expected app missing. Available apps:\npycowsay.",
+                    }
+                ],
+                "packages": [],
+                "skipped": [],
+            },
+            "pipx_result_version": "0.1",
+            "status": "error",
+        },
+        False,
+    )
+
+
+def test_install_keyboard_interrupt_removes_environment(pipx_temp_env: None, mocker: MockerFixture) -> None:
+    mocker.patch.object(Venv, "install_package", autospec=True, side_effect=KeyboardInterrupt)
+
+    assert (
+        run_pipx_cli(["install", "pycowsay"]),
+        (paths.ctx.venvs / "pycowsay").exists(),
+    ) == (1, False)
+
+
+def test_install_error_removes_environment(pipx_temp_env: None, mocker: MockerFixture) -> None:
+    mocker.patch.object(Venv, "install_package", autospec=True, side_effect=RuntimeError("failed"))
+
+    with pytest.raises(RuntimeError, match="failed"):
+        run_pipx_cli(["install", "pycowsay"])
+    assert not (paths.ctx.venvs / "pycowsay").exists()
 
 
 def test_install_skip_maintenance_without_index(

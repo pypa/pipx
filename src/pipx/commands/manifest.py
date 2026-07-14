@@ -19,7 +19,7 @@ from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.pipx_metadata_file import PipxMetadata
-from pipx.result import render_result
+from pipx.result import OutputFormat, render_result
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
@@ -334,7 +334,7 @@ def _prune_environments(
         with venv_container.venv_lock(venv_dir):
             render_result(
                 uninstall(venv_dir, local_bin_dir, local_man_dir, verbose),
-                json_output=False,
+                output=OutputFormat.HUMAN,
                 quiet=0,
             )
 
