@@ -1,3 +1,4 @@
+import codecs
 import logging
 import os
 import random
@@ -7,13 +8,17 @@ import string
 import subprocess
 import sys
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from itertools import chain
 from pathlib import Path
 from re import Pattern
 from typing import (
+    IO,
     Any,
     Final,
     NoReturn,
+    TextIO,
 )
 
 from pipx import paths
@@ -22,6 +27,7 @@ from pipx.constants import MINGW, WINDOWS
 from pipx.wrap import pipx_wrap
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+_SUBPROCESS_STREAM_READ_SIZE: Final[int] = 8 * 1024
 
 
 class PipxError(Exception):
@@ -170,6 +176,7 @@ def run_subprocess(
     log_stderr: bool = True,
     run_dir: str | None = None,
     env_overrides: dict[str, str | None] | None = None,
+    stream_output: bool = False,
 ) -> "subprocess.CompletedProcess[str]":
     """Run a command as a subprocess, capturing stderr and stdout.
 
@@ -198,24 +205,99 @@ def run_subprocess(
     if len(cmd_str_list) > 0 and "python" in Path(cmd_str_list[0]).name.lower():
         env.setdefault("PYTHONSAFEPATH", "1")
 
-    completed_process = subprocess.run(
-        cmd_str_list,
-        env=env,
-        stdout=subprocess.PIPE if capture_stdout else None,
-        stderr=subprocess.PIPE if capture_stderr else None,
-        encoding="utf-8",
-        text=True,
-        check=False,
-        cwd=run_dir,
-    )
+    if stream_output:
+        completed_process = _run_streaming_subprocess(
+            cmd_str_list,
+            capture_stdout=capture_stdout,
+            capture_stderr=capture_stderr,
+            cwd=run_dir,
+            env=env,
+        )
+    else:
+        completed_process = subprocess.run(
+            cmd_str_list,
+            env=env,
+            stdout=subprocess.PIPE if capture_stdout else None,
+            stderr=subprocess.PIPE if capture_stderr else None,
+            encoding="utf-8",
+            text=True,
+            check=False,
+            cwd=run_dir,
+        )
 
-    if capture_stdout and log_stdout:
+    if capture_stdout and log_stdout and not stream_output:
         _LOGGER.debug(f"stdout: {completed_process.stdout}".rstrip())
-    if capture_stderr and log_stderr:
+    if capture_stderr and log_stderr and not stream_output:
         _LOGGER.debug(f"stderr: {completed_process.stderr}".rstrip())
     _LOGGER.debug(f"returncode: {completed_process.returncode}")
 
     return completed_process
+
+
+def _run_streaming_subprocess(
+    cmd: list[str],
+    *,
+    capture_stdout: bool,
+    capture_stderr: bool,
+    cwd: str | None,
+    env: dict[str, str],
+) -> "subprocess.CompletedProcess[str]":
+    stdout_chunks: Final[list[str]] = []
+    stderr_chunks: Final[list[str]] = []
+    with (
+        subprocess.Popen(
+            cmd,
+            env=env,
+            stdout=subprocess.PIPE if capture_stdout else None,
+            stderr=subprocess.PIPE if capture_stderr else None,
+            cwd=cwd,
+        ) as process,
+        ThreadPoolExecutor(max_workers=2) as executor,
+    ):
+        for future in [
+            executor.submit(_tee_subprocess_output, source, destination, chunks)
+            for source, destination, chunks in (
+                (process.stdout, sys.stdout, stdout_chunks),
+                (process.stderr, sys.stderr, stderr_chunks),
+            )
+            if source is not None
+        ]:
+            future.result()
+        returncode: Final[int] = process.wait()
+    return subprocess.CompletedProcess(
+        cmd,
+        returncode,
+        "".join(stdout_chunks) if capture_stdout else None,
+        "".join(stderr_chunks) if capture_stderr else None,
+    )
+
+
+def _tee_subprocess_output(source: IO[bytes], destination: TextIO, chunks: list[str]) -> None:
+    write_error: OSError | UnicodeError | None = None
+    pending_carriage_return: bool = False
+    for decoded in chain(
+        codecs.iterdecode(iter(lambda: os.read(source.fileno(), _SUBPROCESS_STREAM_READ_SIZE), b""), "utf-8"),
+        (None,),
+    ):
+        if decoded is None:
+            chunk = "\r" if pending_carriage_return else ""
+        else:
+            chunk = ("\r" if pending_carriage_return else "") + decoded
+            pending_carriage_return = chunk.endswith("\r")
+            if pending_carriage_return:
+                chunk = chunk[:-1]
+            chunk = chunk.replace("\r\n", "\n")
+        if not chunk:
+            continue
+        chunks.append(chunk)
+        if write_error is None:
+            try:
+                destination.write(chunk)
+                destination.flush()
+            except (OSError, UnicodeError) as error:
+                write_error = error
+    if write_error is not None:
+        raise write_error
 
 
 def subprocess_post_check(completed_process: "subprocess.CompletedProcess[str]", raise_error: bool = True) -> None:

@@ -87,12 +87,15 @@ class PipBackend(Backend):
             cmd.append("--upgrade")
         if no_deps:
             cmd.append("--no-dependencies")
+        if verbose:
+            cmd.append("--progress-bar=on")
         cmd += [*pip_args, *requirements]
         process = run_subprocess(
             cmd,
             log_stdout=not log_pip_errors,
             log_stderr=not log_pip_errors,
             run_dir=str(venv_root),
+            stream_output=verbose,
         )
         if log_pip_errors:
             subprocess_post_check_handle_pip_error(process)

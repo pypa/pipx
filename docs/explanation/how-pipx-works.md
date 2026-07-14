@@ -88,7 +88,7 @@ flowchart TD
     style V1BIN fill:#7c4dff,color:#fff
 ```
 
-You can do all of this yourself. pipx automates it. Pass `--verbose` to see every command and argument pipx runs.
+You can do all of this yourself. pipx automates it. Pass `--verbose` to see each command and stream installer output.
 
 ### Resolving the Python interpreter
 
