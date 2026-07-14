@@ -81,13 +81,14 @@ class PipBackend(Backend):
         upgrade: bool = False,
         log_pip_errors: bool = True,
         verbose: bool = False,
+        progress: bool = False,
     ) -> CompletedProcess[str]:
         cmd: list[str] = [str(venv_python), "-m", "pip", "--no-input", "install"]
         if upgrade:
             cmd.append("--upgrade")
         if no_deps:
             cmd.append("--no-dependencies")
-        if verbose:
+        if verbose or progress:
             cmd.append("--progress-bar=on")
         cmd += [*pip_args, *requirements]
         process = run_subprocess(
@@ -95,7 +96,7 @@ class PipBackend(Backend):
             log_stdout=not log_pip_errors,
             log_stderr=not log_pip_errors,
             run_dir=str(venv_root),
-            stream_output=verbose,
+            stream_output=verbose or progress,
         )
         if log_pip_errors:
             subprocess_post_check_handle_pip_error(process)

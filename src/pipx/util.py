@@ -1,4 +1,5 @@
 import codecs
+import errno
 import logging
 import os
 import random
@@ -9,12 +10,12 @@ import subprocess
 import sys
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import suppress
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
 from re import Pattern
 from typing import (
-    IO,
     Any,
     Final,
     NoReturn,
@@ -25,6 +26,12 @@ from pipx import paths
 from pipx.animate import show_cursor
 from pipx.constants import MINGW, WINDOWS
 from pipx.wrap import pipx_wrap
+
+if not WINDOWS:
+    import fcntl
+    import pty
+    import struct
+    import termios
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _SUBPROCESS_STREAM_READ_SIZE: Final[int] = 8 * 1024
@@ -206,6 +213,11 @@ def run_subprocess(
         env.setdefault("PYTHONSAFEPATH", "1")
 
     if stream_output:
+        # Windows has no pseudo-terminal to hand the child, so it reads a pipe and rich, which pip draws its bar with,
+        # takes TTY_COMPATIBLE for the terminal we forward the output to and COLUMNS for a width it cannot measure.
+        if sys.stdout.isatty():
+            env.setdefault("TTY_COMPATIBLE", "1")
+            env.setdefault("COLUMNS", str(shutil.get_terminal_size().columns))
         completed_process = _run_streaming_subprocess(
             cmd_str_list,
             capture_stdout=capture_stdout,
@@ -244,26 +256,40 @@ def _run_streaming_subprocess(
 ) -> "subprocess.CompletedProcess[str]":
     stdout_chunks: Final[list[str]] = []
     stderr_chunks: Final[list[str]] = []
-    with (
-        subprocess.Popen(
-            cmd,
-            env=env,
-            stdout=subprocess.PIPE if capture_stdout else None,
-            stderr=subprocess.PIPE if capture_stderr else None,
-            cwd=cwd,
-        ) as process,
-        ThreadPoolExecutor(max_workers=2) as executor,
-    ):
-        for future in [
-            executor.submit(_tee_subprocess_output, source, destination, chunks)
-            for source, destination, chunks in (
-                (process.stdout, sys.stdout, stdout_chunks),
-                (process.stderr, sys.stderr, stderr_chunks),
-            )
-            if source is not None
-        ]:
-            future.result()
-        returncode: Final[int] = process.wait()
+    channels: Final[dict[str, _StreamChannel]] = {
+        name: _open_stream_channel(destination)
+        for name, destination, capture in (
+            ("stdout", sys.stdout, capture_stdout),
+            ("stderr", sys.stderr, capture_stderr),
+        )
+        if capture
+    }
+    try:
+        with (
+            subprocess.Popen(
+                cmd,
+                env=env,
+                stdout=channels["stdout"].child if capture_stdout else None,
+                stderr=channels["stderr"].child if capture_stderr else None,
+                cwd=cwd,
+            ) as process,
+            ThreadPoolExecutor(max_workers=2) as executor,
+        ):
+            for channel in channels.values():
+                channel.close_child()
+            for future in [
+                executor.submit(_tee_subprocess_output, channels[name].reader, destination, chunks)
+                for name, destination, chunks in (
+                    ("stdout", sys.stdout, stdout_chunks),
+                    ("stderr", sys.stderr, stderr_chunks),
+                )
+                if name in channels
+            ]:
+                future.result()
+            returncode: Final[int] = process.wait()
+    finally:
+        for channel in channels.values():
+            channel.close()
     return subprocess.CompletedProcess(
         cmd,
         returncode,
@@ -272,11 +298,55 @@ def _run_streaming_subprocess(
     )
 
 
-def _tee_subprocess_output(source: IO[bytes], destination: TextIO, chunks: list[str]) -> None:
+@dataclass
+class _StreamChannel:
+    reader: int
+    child: int
+
+    def close_child(self) -> None:
+        if self.child != -1:
+            os.close(self.child)
+            self.child = -1
+
+    def close(self) -> None:
+        self.close_child()
+        if self.reader != -1:
+            os.close(self.reader)
+            self.reader = -1
+
+
+def _open_stream_channel(destination: TextIO) -> _StreamChannel:
+    # pip and uv draw a progress bar only onto a terminal, and a pipe hides the one pipx forwards the output to, so
+    # hand the child a pseudo-terminal instead whenever the platform offers one
+    if not WINDOWS and destination.isatty():
+        reader, child = pty.openpty()
+        _match_terminal_size(child)
+        return _StreamChannel(reader, child)
+    reader, child = os.pipe()
+    return _StreamChannel(reader, child)
+
+
+def _match_terminal_size(child: int) -> None:
+    size: Final[os.terminal_size] = shutil.get_terminal_size()
+    with suppress(OSError):
+        fcntl.ioctl(child, termios.TIOCSWINSZ, struct.pack("HHHH", size.lines, size.columns, 0, 0))
+
+
+def _read_stream(source: int) -> bytes:
+    try:
+        return os.read(source, _SUBPROCESS_STREAM_READ_SIZE)
+    except OSError as error:
+        # a pseudo-terminal reports the departed child this way rather than as an end of file
+        if error.errno == errno.EIO:
+            return b""
+        raise
+
+
+def _tee_subprocess_output(source: int, destination: TextIO, chunks: list[str]) -> None:
     write_error: OSError | UnicodeError | None = None
     pending_carriage_return: bool = False
     for decoded in chain(
-        codecs.iterdecode(iter(lambda: os.read(source.fileno(), _SUBPROCESS_STREAM_READ_SIZE), b""), "utf-8"),
+        codecs.iterdecode(iter(lambda: _read_stream(source), b""), "utf-8"),
         (None,),
     ):
         if decoded is None:

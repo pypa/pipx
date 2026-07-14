@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 from packaging.utils import canonicalize_name
 from packaging.version import Version
 
-from pipx.animate import animate
+from pipx.animate import STDERR_IS_TTY, animate
 from pipx.backends import (
     Backend,
     OutdatedPackage,
@@ -160,7 +160,9 @@ class Venv:
         self.bin_path, self.python_path, self.man_path = get_venv_paths(self.root)
         self.pipx_metadata = PipxMetadata(venv_dir=path)
         self.verbose = verbose
-        self.do_animation = not verbose
+        # a terminal lets pip and uv draw their own download bar, which stands in for the spinner
+        self.show_progress = not verbose and STDERR_IS_TTY
+        self.do_animation = not verbose and not self.show_progress
         try:
             self._existing = self.root.exists() and bool(next(self.root.iterdir()))
         except StopIteration:
@@ -372,6 +374,7 @@ class Venv:
                         requirements=[install_spec],
                         pip_args=install_pip_args,
                         verbose=self.verbose,
+                        progress=self.show_progress,
                     )
                 if process.returncode:
                     raise PipxError(f"Error installing {full_package_description(package_name, package_or_url)}.")
@@ -418,6 +421,7 @@ class Venv:
                 lock_file=lock_file,
                 pip_args=[argument for argument in pip_args if argument != "--editable"],
                 verbose=self.verbose,
+                progress=self.show_progress,
             )
         if process.returncode:
             raise PipxError(f"Error installing packages from {lock_file}.")
@@ -431,6 +435,7 @@ class Venv:
                     pip_args=pip_args,
                     no_deps=True,
                     verbose=self.verbose,
+                    progress=self.show_progress,
                 )
             if process.returncode:
                 raise PipxError(f"Error installing {full_package_description(package_name, package_or_url)}.")
@@ -472,6 +477,7 @@ class Venv:
                 requirements=list(requirements),
                 pip_args=self._with_cooldown(pip_args, cooldown_days),
                 verbose=self.verbose,
+                progress=self.show_progress,
             )
         if process.returncode:
             raise PipxError(f"Error installing {', '.join(requirements)}.")
@@ -492,6 +498,7 @@ class Venv:
                 no_deps=True,
                 log_pip_errors=False,
                 verbose=self.verbose,
+                progress=self.show_progress,
             )
         if process.returncode:
             error_output = (process.stderr or process.stdout or "").strip()
@@ -682,6 +689,7 @@ class Venv:
                 upgrade=True,
                 log_pip_errors=False,
                 verbose=self.verbose,
+                progress=self.show_progress,
             )
         subprocess_post_check(process)
 
@@ -710,6 +718,7 @@ class Venv:
                     upgrade=True,
                     log_pip_errors=False,
                     verbose=self.verbose,
+                    progress=self.show_progress,
                 )
         subprocess_post_check(process)
 

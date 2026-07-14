@@ -254,6 +254,57 @@ def test_backend_verbose_install_streams_output(backend_name: str, tmp_path: Pat
 
 
 @pytest.mark.parametrize(
+    ("backend_name", "progress", "flags", "streams"),
+    [
+        pytest.param(PIP, True, ["--progress-bar=on"], True, id="pip-progress"),
+        pytest.param(PIP, False, [], False, id="pip-plain"),
+        # uv hides its bar under --verbose and under --quiet, so progress mode passes neither
+        pytest.param(UV, True, [], True, id="uv-progress"),
+        pytest.param(UV, False, ["--quiet"], False, id="uv-plain"),
+    ],
+)
+def test_backend_install_draws_progress_without_verbose(
+    backend_name: str,
+    progress: bool,
+    flags: list[str],
+    streams: bool,
+    tmp_path: Path,
+    mocker: MockerFixture,
+) -> None:
+    binary: Final[Path] = tmp_path / "uv"
+    mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))
+    mocker.patch(
+        "pipx.backends.uv.subprocess.run",
+        return_value=subprocess.CompletedProcess([str(binary), "--version"], 0, stdout="uv 0.11.28", stderr=""),
+    )
+    run_subprocess: Final[MagicMock] = mocker.patch(
+        f"pipx.backends.{backend_name}.run_subprocess",
+        autospec=True,
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+    )
+    venv_python: Final[Path] = tmp_path / "bin" / "python"
+
+    (UvBackend() if backend_name == UV else PipBackend()).install(
+        venv_root=tmp_path,
+        venv_python=venv_python,
+        requirements=["demo"],
+        pip_args=[],
+        progress=progress,
+    )
+
+    expected_command: Final[list[str | Path]] = (
+        [str(venv_python), "-m", "pip", "--no-input", "install", *flags, "demo"]
+        if backend_name == PIP
+        else [binary, "pip", "install", "--python", str(venv_python), *flags, "demo"]
+    )
+    assert (run_subprocess.call_args.args[0], run_subprocess.call_args.kwargs["stream_output"]) == (
+        expected_command,
+        streams,
+    )
+
+
+@pytest.mark.parametrize(
     ("pip_args", "expected"),
     [
         pytest.param([], [], id="empty"),
