@@ -17,12 +17,11 @@ def test_pin(pipx_temp_env: None, caplog: pytest.LogCaptureFixture) -> None:
     assert "Not upgrading pinned package pycowsay" in caplog.text
 
 
-def test_pin_survives_main_package_extra_injection(pipx_temp_env: None, root: Path) -> None:
-    package = root / "testdata/test_package_specifier/local_extras"
-    assert not run_pipx_cli(["install", str(package)])
+def test_pin_survives_main_package_extra_injection(pipx_temp_env: None, local_extras_project: Path) -> None:
+    assert not run_pipx_cli(["install", str(local_extras_project)])
     assert not run_pipx_cli(["pin", "repeatme"])
 
-    assert not run_pipx_cli(["inject", "repeatme", f"{package}[cow]"])
+    assert not run_pipx_cli(["inject", "repeatme", f"{local_extras_project}[cow]"])
 
     assert PipxMetadata(paths.ctx.venvs / "repeatme").main_package.pinned
 
