@@ -51,6 +51,26 @@ def test_list_outdated_backend(
     assert (captured.out, captured.err) == ("pipx found no available upgrades.\n", "")
 
 
+def test_list_outdated_selected_package(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["install", "pylint"])
+    capsys.readouterr()
+    list_outdated = mocker.patch(
+        "pipx.backends.pip.run_subprocess",
+        autospec=True,
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="[]", stderr=""),
+    )
+
+    assert not run_pipx_cli(["list", "pycowsay", "--outdated"])
+
+    captured = capsys.readouterr()
+    assert (captured.out, captured.err, list_outdated.call_count) == ("pipx found no available upgrades.\n", "", 1)
+
+
 def test_list_outdated_skips_removed_environment(
     pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],

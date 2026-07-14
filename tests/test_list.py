@@ -192,6 +192,33 @@ def test_list_json_rejects_human_filter(
     assert "--output json cannot be combined with --short or --pinned" in capsys.readouterr().err
 
 
+def test_list_selected_packages(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list", "pycowsay"])
+    captured = capsys.readouterr()
+    assert "package pycowsay 0.0.0.2," in captured.out
+    assert "package pylint" not in captured.out
+
+    assert not run_pipx_cli(["list", "pylint", "--short"])
+    captured = capsys.readouterr()
+    assert captured.out == "pylint 3.0.4\n"
+
+    assert not run_pipx_cli(["list", "pycowsay", "pylint", "--json"])
+    captured = capsys.readouterr()
+    assert sorted(json.loads(captured.out)["venvs"]) == ["pycowsay", "pylint"]
+
+
+def test_list_rejects_missing_selected_package(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert run_pipx_cli(["list", "missing"])
+    assert capsys.readouterr().err.endswith("venv for 'missing' was not found. Was 'missing' installed with pipx?\n")
+
+
 def test_list_injected_apps_without_symlinks(
     pipx_temp_env: None,
     mocker: MockerFixture,

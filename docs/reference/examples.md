@@ -158,6 +158,15 @@ black 18.9b0
 pipx 0.10.0
 ```
 
+Pass one or more installed package names to limit the output. The same selection also works with formats such as
+`--json`, `--short`, and `--outdated`.
+
+```shell
+> pipx list black
+> pipx list black pipx --short
+> pipx list black --outdated
+```
+
 ## `pipx install-all` example
 
 ```shell

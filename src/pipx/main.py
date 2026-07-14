@@ -1154,7 +1154,11 @@ def _selected_venv_dirs(args: argparse.Namespace, ctx: DispatchContext) -> tuple
     return tuple(sorted(ctx.venv_container.iter_venv_dirs()))
 
 
-def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+def _add_list(
+    subparsers: argparse._SubParsersAction,
+    venv_completer: VenvCompleter,
+    shared_parser: argparse.ArgumentParser,
+) -> None:
     p = subparsers.add_parser(
         "list",
         help="List installed packages",
@@ -1175,14 +1179,28 @@ def _add_list(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
         help="List pinned packages only. Pass --include-injected at the same time to list injected packages that were pinned.",
     )
     _add_output_option(p, legacy_json=True)
+    p.add_argument("packages", nargs="*", help="Installed packages to list").completer = venv_completer
     p.set_defaults(func=_cmd_list)
 
 
 def _cmd_list(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode | OperationResult[commands.OutdatedData]:
+    if args.packages:
+        selected_venv_dirs = _venv_dirs(args, ctx)
+        for package, venv_dir in selected_venv_dirs.items():
+            if not venv_dir.is_dir():
+                raise PipxError(f"venv for {package!r} was not found. Was {package!r} installed with pipx?")
+        venv_dirs = tuple(selected_venv_dirs.values())
+    else:
+        venv_dirs = tuple(sorted(ctx.venv_container.iter_venv_dirs()))
+
     if args.outdated:
         if args.short or args.pinned:
             raise PipxError("--outdated cannot be combined with --short or --pinned.")
-        return commands.list_outdated(ctx.venv_container, include_injected=args.include_injected)
+        return commands.list_outdated(
+            ctx.venv_container,
+            include_injected=args.include_injected,
+            venv_dirs=venv_dirs,
+        )
     output: Final[OutputFormat] = _output_format(args)
     if output is OutputFormat.JSON and (args.short or args.pinned):
         raise PipxError("--output json cannot be combined with --short or --pinned.")
@@ -1192,6 +1210,7 @@ def _cmd_list(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode | Oper
         output is OutputFormat.JSON,
         args.short,
         args.pinned,
+        venv_dirs=venv_dirs,
     )
 
 
@@ -1614,7 +1633,7 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
     _add_reinstall_all(subparsers, shared_parser)
     _add_health(subparsers, completer_venvs.use, shared_parser)
     _add_repair(subparsers, completer_venvs.use, shared_parser)
-    _add_list(subparsers, shared_parser)
+    _add_list(subparsers, completer_venvs.use, shared_parser)
     subparsers_with_subcommands["interpreter"] = _add_interpreter(subparsers, shared_parser)
     subparsers_with_subcommands["cache"] = _add_cache(subparsers, shared_parser)
     _add_run(subparsers, shared_parser)
