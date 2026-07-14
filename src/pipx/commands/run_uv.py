@@ -45,6 +45,7 @@ def run_via_uv_tool_run(
     venv_args: list[str],
     use_cache: bool,
     verbose: bool,
+    refresh: bool = False,
     no_path_check: bool = False,
     cooldown_days: int | None = None,
 ) -> NoReturn:
@@ -69,6 +70,8 @@ def run_via_uv_tool_run(
         cmd += ["--with", dependency]
     if not use_cache:
         cmd.append("--no-cache")
+    if refresh:
+        cmd.append("--refresh")
     if verbose:
         cmd.append("--verbose")
     cmd += translate_pip_args_for_uv(pip_args)
@@ -87,6 +90,7 @@ def run_script_via_uv_run(
     venv_args: list[str],
     use_cache: bool,
     verbose: bool,
+    refresh: bool = False,
     dependencies: list[str] | None = None,
     cooldown_days: int | None = None,
 ) -> NoReturn:
@@ -96,6 +100,8 @@ def run_script_via_uv_run(
         cmd += ["--python", python]
     if not use_cache:
         cmd.append("--no-cache")
+    if refresh:
+        cmd.append("--refresh")
     if verbose:
         cmd.append("--verbose")
     for dependency in dependencies or []:

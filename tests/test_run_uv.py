@@ -122,6 +122,28 @@ def test_run_via_uv_tool_run_omits_from_when_app_matches_spec(
     assert "--from" not in exec_mock.call_args.args[0]
 
 
+def test_run_via_uv_tool_run_refreshes_cache(
+    exec_mock: MagicMock,
+    fake_uv: Path,
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch("pipx.commands.run_uv.which", return_value=None)
+    with pytest.raises(RuntimeError, match="exec"):
+        run_via_uv_tool_run(
+            app="black",
+            package_or_url="black",
+            dependencies=[],
+            app_args=[],
+            python="",
+            pip_args=[],
+            venv_args=[],
+            use_cache=True,
+            refresh=True,
+            verbose=False,
+        )
+    assert "--refresh" in exec_mock.call_args.args[0]
+
+
 @pytest.mark.parametrize(
     ("cooldown_days", "cooldown_args"),
     [
@@ -159,6 +181,27 @@ def test_run_script_via_uv_run_uses_uv_run_script(
         str(script),
         "--quiet",
     ]
+
+
+def test_run_script_via_uv_run_refreshes_cache(
+    exec_mock: MagicMock,
+    fake_uv: Path,
+    tmp_path: Path,
+) -> None:
+    script: Final[Path] = tmp_path / "demo.py"
+    script.write_text("print('hi')\n")
+    with pytest.raises(RuntimeError, match="exec"):
+        run_script_via_uv_run(
+            script_path=script,
+            app_args=[],
+            python="",
+            pip_args=[],
+            venv_args=[],
+            use_cache=True,
+            verbose=False,
+            refresh=True,
+        )
+    assert "--refresh" in exec_mock.call_args.args[0]
 
 
 def test_run_via_uv_tool_run_rejects_venv_args(mocker: MockerFixture, fake_uv: Path) -> None:

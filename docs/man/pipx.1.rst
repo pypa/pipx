@@ -16,8 +16,8 @@ SYNOPSIS
 
 **pipx** [*global-options*] [**install** | **install-all** | **lock** | **sync** | **uninject** | **inject** |
 **expose** | **unexpose** | **pin** | **unpin** | **upgrade** | **upgrade-all** | **upgrade-shared** | **uninstall** |
-**uninstall-all** | **reinstall** | **reinstall-all** | **health** | **repair** | **list** | **interpreter** | **run** |
-**runpip** | **ensurepath** | **environment** | **completions** | **help**] [*command-options*]
+**uninstall-all** | **reinstall** | **reinstall-all** | **health** | **repair** | **list** | **interpreter** | **cache**
+| **run** | **runpip** | **ensurepath** | **environment** | **completions** | **help**] [*command-options*]
 
 DESCRIPTION
 -----------
@@ -90,6 +90,9 @@ COMMANDS
 
 **interpreter**
     Interact with interpreters managed by pipx
+
+**cache**
+    Manage cached run environments
 
 **run**
     Download the latest version of a package to a temporary virtual environment, then run an app from it. Also

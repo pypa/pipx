@@ -6,6 +6,8 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from shutil import which
 from typing import Final, NoReturn
@@ -27,7 +29,7 @@ from pipx.util import (
     rmdir,
     run_pypackage_bin,
 )
-from pipx.venv import Venv
+from pipx.venv import Venv, VenvContainer
 
 if sys.version_info < (3, 11):
     import tomli as tomllib
@@ -89,6 +91,7 @@ def run_script(
     verbose: bool,
     use_cache: bool,
     *,
+    refresh: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
     resolved_backend: str | None = None,
@@ -119,6 +122,7 @@ def run_script(
                 venv_args=venv_args,
                 use_cache=use_cache,
                 verbose=verbose,
+                refresh=refresh,
                 dependencies=dependencies,
                 cooldown_days=cooldown_days,
             )
@@ -138,25 +142,26 @@ def run_script(
         )
 
     if not requirements:
-        python_path = Path(python)
-    else:
-        # Note that the environment name is based on the identified
-        # requirements, and *not* on the script name. This is deliberate, as
-        # it ensures that two scripts with the same requirements can use the
-        # same environment, which means fewer environments need to be
-        # managed. The requirements are normalised (in
-        # _get_requirements_from_script), so that irrelevant differences in
-        # whitespace, and similar, don't prevent environment sharing.
-        venv_dir = _get_temporary_venv_path(
-            requirements,
-            python,
-            pip_args,
-            venv_args,
-            resolved_backend or "pip",
-            cooldown_days,
-        )
+        _exec_script(Path(python), content, app_args)
+
+    # Note that the environment name is based on the identified
+    # requirements, and *not* on the script name. This is deliberate, as
+    # it ensures that two scripts with the same requirements can use the
+    # same environment, which means fewer environments need to be
+    # managed. The requirements are normalised (in
+    # _get_requirements_from_script), so that irrelevant differences in
+    # whitespace, and similar, don't prevent environment sharing.
+    venv_dir = _get_temporary_venv_path(
+        requirements,
+        python,
+        pip_args,
+        venv_args,
+        resolved_backend or "pip",
+        cooldown_days,
+    )
+    with _locked_venv_cache(venv_dir):
         venv = Venv(venv_dir, backend=backend, env_backend=env_backend)
-        _prepare_venv_cache(venv, None, use_cache)
+        _prepare_venv_cache(venv, None, use_cache, refresh=refresh)
         if venv_dir.exists():
             _LOGGER.info(f"Reusing cached venv {venv_dir}")
         else:
@@ -171,8 +176,10 @@ def run_script(
                 # when `pipx run` is next executed, rather than just failing.
                 (venv_dir / _VENV_EXPIRED_FILENAME).touch()
                 raise
-        python_path = venv.python_path
+        _exec_script(venv.python_path, content, app_args)
 
+
+def _exec_script(python_path: Path, content: str | Path, app_args: list[str]) -> NoReturn:
     if isinstance(content, Path):
         exec_app([python_path, content, *app_args])
     else:
@@ -191,6 +198,7 @@ def run_package(
     verbose: bool,
     use_cache: bool,
     *,
+    refresh: bool = False,
     infer_app_name: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
@@ -237,49 +245,50 @@ def run_package(
         cooldown_days,
     )
 
-    venv = Venv(venv_dir, backend=backend, env_backend=env_backend)
-    if infer_app_name and venv.pipx_metadata.main_package.package is not None:
-        app = venv.pipx_metadata.main_package.package
-        app_filename = f"{app}.exe" if WINDOWS else app
-    bin_path = venv.bin_path / app_filename
-    _prepare_venv_cache(venv, bin_path, use_cache)
+    with _locked_venv_cache(venv_dir):
+        venv = Venv(venv_dir, backend=backend, env_backend=env_backend)
+        if infer_app_name and venv.pipx_metadata.main_package.package is not None:
+            app = venv.pipx_metadata.main_package.package
+            app_filename = f"{app}.exe" if WINDOWS else app
+        bin_path = venv.bin_path / app_filename
+        _prepare_venv_cache(venv, bin_path, use_cache, refresh=refresh)
 
-    if venv.has_app(app, app_filename):
-        _LOGGER.info(f"Reusing cached venv {venv_dir}")
-    else:
-        _LOGGER.info(f"venv location is {venv_dir}")
-        venv, app, app_filename = _prepare_venv(
-            Path(venv_dir),
-            package_or_url,
-            app,
-            app_filename,
-            python,
-            pip_args,
-            venv_args,
-            use_cache,
-            verbose,
-            infer_app_name=infer_app_name,
-            backend=backend,
-            env_backend=env_backend,
-            cooldown_days=cooldown_days,
-        )
+        if venv.has_app(app, app_filename):
+            _LOGGER.info(f"Reusing cached venv {venv_dir}")
+        else:
+            _LOGGER.info(f"venv location is {venv_dir}")
+            venv, app, app_filename = _prepare_venv(
+                Path(venv_dir),
+                package_or_url,
+                app,
+                app_filename,
+                python,
+                pip_args,
+                venv_args,
+                use_cache,
+                verbose,
+                infer_app_name=infer_app_name,
+                backend=backend,
+                env_backend=env_backend,
+                cooldown_days=cooldown_days,
+            )
 
-    for dependency in dependencies:
-        inject_dep(
-            venv_dir=venv_dir,
-            package_name=None,
-            package_spec=dependency,
-            pip_args=pip_args,
-            verbose=verbose,
-            include_apps=False,
-            include_dependencies=False,
-            include_apps_from=(),
-            force=False,
-            backend=backend,
-            env_backend=env_backend,
-            cooldown_days=cooldown_days,
-        )
-    venv.run_app(app, app_filename, app_args)
+        for dependency in dependencies:
+            inject_dep(
+                venv_dir=venv_dir,
+                package_name=None,
+                package_spec=dependency,
+                pip_args=pip_args,
+                verbose=verbose,
+                include_apps=False,
+                include_dependencies=False,
+                include_apps_from=(),
+                force=False,
+                backend=backend,
+                env_backend=env_backend,
+                cooldown_days=cooldown_days,
+            )
+        venv.run_app(app, app_filename, app_args)
 
 
 def run(
@@ -295,6 +304,7 @@ def run(
     verbose: bool,
     use_cache: bool,
     *,
+    refresh: bool = False,
     no_path_check: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
@@ -325,6 +335,7 @@ def run(
             venv_args,
             verbose,
             use_cache,
+            refresh=refresh,
             backend=backend,
             env_backend=env_backend,
             resolved_backend=resolved_backend,
@@ -343,6 +354,7 @@ def run(
             pip_args=pip_args,
             venv_args=venv_args,
             use_cache=use_cache,
+            refresh=refresh,
             verbose=verbose,
             no_path_check=no_path_check,
             cooldown_days=cooldown_days,
@@ -360,6 +372,7 @@ def run(
             pypackages,
             verbose,
             use_cache,
+            refresh=refresh,
             infer_app_name=spec is None and _is_vcs_url(app),
             backend=backend,
             env_backend=env_backend,
@@ -485,19 +498,33 @@ def _is_temporary_venv_expired(venv_dir: Path) -> bool:
     return age > expiration_threshold_sec or (venv_dir / _VENV_EXPIRED_FILENAME).exists()
 
 
-def _prepare_venv_cache(venv: Venv, bin_path: Path | None, use_cache: bool) -> None:
+@contextmanager
+def _locked_venv_cache(venv_dir: Path) -> Iterator[None]:
+    venv_container: Final[VenvContainer] = VenvContainer(paths.ctx.venv_cache)
+    for cached_venv_dir in sorted(venv_container.iter_venv_dirs()):
+        if cached_venv_dir == venv_dir:
+            continue
+        with venv_container.venv_lock(cached_venv_dir):
+            _remove_expired_venv(cached_venv_dir)
+    with venv_container.venv_lock(venv_dir):
+        _remove_expired_venv(venv_dir)
+        yield
+
+
+def _prepare_venv_cache(venv: Venv, bin_path: Path | None, use_cache: bool, *, refresh: bool = False) -> None:
     venv_dir = venv.root
-    if not use_cache and (bin_path is None or bin_path.exists()):
+    if refresh and venv_dir.exists():
+        _LOGGER.info(f"Refreshing cached venv {venv_dir!s}")
+        rmdir(venv_dir)
+    elif not use_cache and (bin_path is None or bin_path.exists()):
         _LOGGER.info(f"Removing cached venv {venv_dir!s}")
         rmdir(venv_dir)
-    _remove_all_expired_venvs()
 
 
-def _remove_all_expired_venvs() -> None:
-    for venv_dir in Path(paths.ctx.venv_cache).iterdir():
-        if venv_dir.is_dir() and _is_temporary_venv_expired(venv_dir):
-            _LOGGER.info(f"Removing expired venv {venv_dir!s}")
-            rmdir(venv_dir)
+def _remove_expired_venv(venv_dir: Path) -> None:
+    if venv_dir.is_dir() and _is_temporary_venv_expired(venv_dir):
+        _LOGGER.info(f"Removing expired venv {venv_dir!s}")
+        rmdir(venv_dir)
 
 
 def _http_get_request(url: str) -> str:

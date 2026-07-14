@@ -68,6 +68,39 @@ def test_cache(pipx_temp_env, monkeypatch, capsys, caplog):
     assert "Removing cached venv" in caplog.text
 
 
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_refresh_rebuilds_cached_environment(pipx_temp_env: None) -> None:
+    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
+    venv_dir: Final[Path] = next(path for path in paths.ctx.venv_cache.iterdir() if path.is_dir())
+    marker: Final[Path] = venv_dir / "marker"
+    marker.touch()
+
+    run_pipx_cli_exit(["run", "--refresh", "pycowsay", "cowsay", "args"])
+
+    assert not marker.exists()
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_refresh_retains_replacement(pipx_temp_env: None) -> None:
+    run_pipx_cli_exit(["run", "--refresh", "pycowsay", "cowsay", "args"])
+    venv_dir: Final[Path] = next(path for path in paths.ctx.venv_cache.iterdir() if path.is_dir())
+    marker: Final[Path] = venv_dir / "marker"
+    marker.touch()
+
+    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
+
+    assert marker.exists()
+
+
+def test_run_cache_options_are_mutually_exclusive(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit, match="2"):
+        run_pipx_cli(["run", "--no-cache", "--refresh", "pycowsay"])
+    assert "not allowed with argument" in capsys.readouterr().err
+
+
 def test_run_does_not_mark_cache_as_installation(pipx_temp_env: None, mocker: MockerFixture) -> None:
     mocker.patch("os.execvpe", new=execvpe_mock)
 
