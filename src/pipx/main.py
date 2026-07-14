@@ -109,6 +109,9 @@ PIPX_DESCRIPTION += pipx_wrap(
       PIPX_GLOBAL_BIN_DIR    Used instead of PIPX_BIN_DIR when the `--global` option is given.
       PIPX_MAN_DIR           Overrides location of manual pages installations. Manual pages are symlinked or copied here.
       PIPX_GLOBAL_MAN_DIR    Used instead of PIPX_MAN_DIR when the `--global` option is given.
+      PIPX_COMPLETION_DIR    Overrides location of shell completion installations. Completion scripts are symlinked or copied here.
+      PIPX_GLOBAL_COMPLETION_DIR
+                            Used instead of PIPX_COMPLETION_DIR when the `--global` option is given.
       PIPX_DEFAULT_PYTHON    Overrides default python used for commands.
       PIPX_DEFAULT_BACKEND   Overrides which backend (`pip` or `uv`) is used for new venvs.
       PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE

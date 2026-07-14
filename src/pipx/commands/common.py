@@ -65,6 +65,9 @@ def expose_resources_globally(
         src = path.resolve()
         if resource_type == "man":
             dest_dir = local_resource_dir / src.parent.name
+        elif resource_type == "completion":
+            # a completion section is two levels deep, such as bash-completion/completions
+            dest_dir = local_resource_dir / src.parent.parent.name / src.parent.name
         else:
             dest_dir = local_resource_dir
         if not dest_dir.is_dir():
@@ -100,6 +103,10 @@ def expose_package_resources(
     man_paths: Final[list[Path]] = package_metadata.man_paths_to_expose
     if man_paths:
         expose_resources_globally("man", local_man_dir, man_paths, force=force)
+    completion_paths: Final[list[Path]] = package_metadata.completion_paths_to_expose
+    if completion_paths:
+        # the script names the command it completes, so a suffix here would point the shell at a command that is gone
+        expose_resources_globally("completion", paths.ctx.completion_dir, completion_paths, force=force)
 
 
 _can_symlink_cache: dict[Path, bool] = {}

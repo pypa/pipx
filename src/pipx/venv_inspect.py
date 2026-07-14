@@ -6,7 +6,7 @@ import shutil
 import textwrap
 from collections.abc import Iterable, Iterator, Mapping
 from pathlib import Path, PurePosixPath
-from typing import NamedTuple
+from typing import Final, NamedTuple
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 
@@ -23,7 +23,7 @@ try:
 except ImportError:
     import tomli as tomllib  # type: ignore[import-not-found,no-redef]
 
-from pipx.constants import MAN_SECTIONS, WINDOWS
+from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, WINDOWS
 from pipx.util import PipxError, run_subprocess
 
 logger = logging.getLogger(__name__)
@@ -45,6 +45,10 @@ class VenvMetadata(NamedTuple):
     man_paths: list[Path]
     man_pages_of_dependencies: list[str]
     man_paths_of_dependencies: dict[str, list[Path]]
+    completions: list[str]
+    completion_paths: list[Path]
+    completions_of_dependencies: list[str]
+    completion_paths_of_dependencies: dict[str, list[Path]]
     package_version: str
     python_version: str
 
@@ -123,6 +127,7 @@ def get_apps_from_entry_points(dist: metadata.Distribution, bin_path: Path):
 def get_resources_from_dist_files(dist: metadata.Distribution, bin_path: Path, man_path: Path):
     app_names = set()
     man_names = set()
+    completion_names = set()
     # search installed files
     # "scripts" entry in setup.py is found here (test w/ awscli)
     for path in dist.files or []:
@@ -139,12 +144,15 @@ def get_resources_from_dist_files(dist: metadata.Distribution, bin_path: Path, m
                 man_names.add(str(Path(dist_file_path.parent.name) / path.name))
         except FileNotFoundError:
             pass
-    return app_names, man_names
+        if completion_name := _get_completion_name(dist_file_path, man_path.parent):
+            completion_names.add(completion_name)
+    return app_names, man_names, completion_names
 
 
 def get_resources_from_inst_files(dist: metadata.Distribution, bin_path: Path, man_path: Path):
     app_names = set()
     man_names = set()
+    completion_names = set()
     # not sure what is found here
     inst_files = dist.read_text("installed-files.txt") or ""
     for line in inst_files.splitlines():
@@ -157,18 +165,30 @@ def get_resources_from_inst_files(dist: metadata.Distribution, bin_path: Path, m
                 man_names.add(str(Path(inst_file_path.parent.name) / inst_file_path.name))
         except FileNotFoundError:
             pass
-    return app_names, man_names
+        if completion_name := _get_completion_name(inst_file_path, man_path.parent):
+            completion_names.add(completion_name)
+    return app_names, man_names, completion_names
 
 
-def get_resources(dist: metadata.Distribution, bin_path: Path, man_path: Path) -> tuple[list[str], list[str]]:
-    app_names = set()
-    man_names = set()
+def _get_completion_name(file_path: Path, share_path: Path) -> str | None:
+    # a wheel ships its completion scripts in the data scheme, which lands them beside the man pages under share/
+    for section in COMPLETION_SECTIONS:
+        try:
+            if file_path.parent.samefile(share_path / section):
+                return str(section / file_path.name)
+        except OSError:
+            continue
+    return None
+
+
+def get_resources(dist: metadata.Distribution, bin_path: Path, man_path: Path) -> tuple[list[str], list[str], list[str]]:
     app_names_ep = get_apps_from_entry_points(dist, bin_path)
-    app_names_df, man_names_df = get_resources_from_dist_files(dist, bin_path, man_path)
-    app_names_if, man_names_if = get_resources_from_inst_files(dist, bin_path, man_path)
+    app_names_df, man_names_df, completion_names_df = get_resources_from_dist_files(dist, bin_path, man_path)
+    app_names_if, man_names_if, completion_names_if = get_resources_from_inst_files(dist, bin_path, man_path)
     app_names = app_names_ep | app_names_df | app_names_if
     man_names = man_names_df | man_names_if | _get_man_pages_from_editable_project(dist, man_path)
-    return sorted(app_names), sorted(man_names)
+    completion_names = completion_names_df | completion_names_if
+    return sorted(app_names), sorted(man_names), sorted(completion_names)
 
 
 def _get_man_pages_from_editable_project(dist: metadata.Distribution, man_path: Path) -> set[str]:
@@ -315,12 +335,14 @@ def _dfs_package_resources(
     venv_inspect_info: VenvInspectInformation,
     app_paths_of_dependencies: dict[str, list[Path]],
     man_paths_of_dependencies: dict[str, list[Path]],
+    completion_paths_of_dependencies: dict[str, list[Path]],
     dep_visited: dict[str, bool] | None = None,
-) -> tuple[dict[str, list[Path]], dict[str, list[Path]]]:
+) -> tuple[dict[str, list[Path]], dict[str, list[Path]], dict[str, list[Path]]]:
     if dep_visited is None:
         # Initialize: we have already visited root
         dep_visited = {canonicalize_name(package_req.name): True}
 
+    share_path: Final[Path] = venv_inspect_info.man_path.parent
     dependencies = get_package_dependencies(dist, package_req.extras, venv_inspect_info.env)
     for dep_req in dependencies:
         dep_name = canonicalize_name(dep_req.name)
@@ -331,22 +353,27 @@ def _dfs_package_resources(
         dep_dist = venv_inspect_info.distributions.get(dep_name)
         if dep_dist is None:
             raise PipxError(f"Pipx Internal Error: cannot find package {dep_req.name!r} metadata.")
-        app_names, man_names = get_resources(dep_dist, venv_inspect_info.bin_path, venv_inspect_info.man_path)
+        app_names, man_names, completion_names = get_resources(
+            dep_dist, venv_inspect_info.bin_path, venv_inspect_info.man_path
+        )
         if app_names:
             app_paths_of_dependencies[dep_name] = [venv_inspect_info.bin_path / name for name in app_names]
         if man_names:
             man_paths_of_dependencies[dep_name] = [venv_inspect_info.man_path / name for name in man_names]
+        if completion_names:
+            completion_paths_of_dependencies[dep_name] = [share_path / name for name in completion_names]
         # recursively search for more
         dep_visited[dep_name] = True
-        app_paths_of_dependencies, man_paths_of_dependencies = _dfs_package_resources(
+        app_paths_of_dependencies, man_paths_of_dependencies, completion_paths_of_dependencies = _dfs_package_resources(
             dep_dist,
             dep_req,
             venv_inspect_info,
             app_paths_of_dependencies,
             man_paths_of_dependencies,
+            completion_paths_of_dependencies,
             dep_visited,
         )
-    return app_paths_of_dependencies, man_paths_of_dependencies
+    return app_paths_of_dependencies, man_paths_of_dependencies, completion_paths_of_dependencies
 
 
 def _windows_extra_app_paths(app_paths: list[Path]) -> list[Path]:
@@ -436,6 +463,8 @@ def inspect_venv(
     apps_of_dependencies: list[str] = []
     man_paths_of_dependencies: dict[str, list[Path]] = {}
     man_pages_of_dependencies: list[str] = []
+    completion_paths_of_dependencies: dict[str, list[Path]] = {}
+    completions_of_dependencies: list[str] = []
 
     root_req = Requirement(root_package_name)
     root_req.extras = root_package_extras
@@ -454,17 +483,20 @@ def inspect_venv(
     root_dist = venv_inspect_info.distributions.get(canonicalize_name(root_req.name))
     if root_dist is None:
         raise PipxError(f"Pipx Internal Error: cannot find package {root_req.name!r} metadata.")
-    app_paths_of_dependencies, man_paths_of_dependencies = _dfs_package_resources(
+    app_paths_of_dependencies, man_paths_of_dependencies, completion_paths_of_dependencies = _dfs_package_resources(
         root_dist,
         root_req,
         venv_inspect_info,
         app_paths_of_dependencies,
         man_paths_of_dependencies,
+        completion_paths_of_dependencies,
     )
 
-    apps, man_pages = get_resources(root_dist, venv_bin_path, venv_man_path)
+    venv_share_path: Final[Path] = venv_man_path.parent
+    apps, man_pages, completions = get_resources(root_dist, venv_bin_path, venv_man_path)
     app_paths = [venv_bin_path / app for app in apps]
     man_paths = [venv_man_path / man_page for man_page in man_pages]
+    completion_paths = [venv_share_path / completion for completion in completions]
     if WINDOWS:
         app_paths = _windows_extra_app_paths(app_paths)
 
@@ -476,6 +508,10 @@ def inspect_venv(
         man_pages_of_dependencies += [
             str(Path(dep_path.parent.name) / dep_path.name) for dep_path in man_paths_of_dependencies[dep]
         ]
+    for dep in completion_paths_of_dependencies:
+        completions_of_dependencies += [
+            dep_path.relative_to(venv_share_path).as_posix() for dep_path in completion_paths_of_dependencies[dep]
+        ]
 
     return VenvMetadata(
         apps=apps,
@@ -486,6 +522,10 @@ def inspect_venv(
         man_paths=man_paths,
         man_pages_of_dependencies=man_pages_of_dependencies,
         man_paths_of_dependencies=man_paths_of_dependencies,
+        completions=completions,
+        completion_paths=completion_paths,
+        completions_of_dependencies=completions_of_dependencies,
+        completion_paths_of_dependencies=completion_paths_of_dependencies,
         package_version=root_dist.version,
         python_version=venv_python_version,
     )

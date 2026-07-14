@@ -41,6 +41,10 @@ class _RawPackageInfo(TypedDict, total=False):
     man_paths: list[Path]
     man_pages_of_dependencies: list[str]
     man_paths_of_dependencies: dict[str, list[Path]]
+    completions: list[str]
+    completion_paths: list[Path]
+    completions_of_dependencies: list[str]
+    completion_paths_of_dependencies: dict[str, list[Path]]
     suffix: str
     pinned: bool
 
@@ -103,6 +107,10 @@ class PackageInfo:
     man_paths: list[Path] = field(default_factory=list)
     man_pages_of_dependencies: list[str] = field(default_factory=list)
     man_paths_of_dependencies: dict[str, list[Path]] = field(default_factory=dict)
+    completions: list[str] = field(default_factory=list)
+    completion_paths: list[Path] = field(default_factory=list)
+    completions_of_dependencies: list[str] = field(default_factory=list)
+    completion_paths_of_dependencies: dict[str, list[Path]] = field(default_factory=dict)
     suffix: str = ""
     pinned: bool = False
 
@@ -154,6 +162,32 @@ class PackageInfo:
             for path in paths
         ]
 
+    @property
+    def completion_paths_to_expose(self) -> list[Path]:
+        return [*(self.completion_paths if self.include_apps else ()), *self._included_dependency_completion_paths]
+
+    @property
+    def completions_to_expose(self) -> list[str]:
+        return [*(self.completions if self.include_apps else ()), *self._included_dependency_completions]
+
+    @property
+    def _included_dependency_completions(self) -> list[str]:
+        included_names: Final[set[str]] = {
+            f"{path.parent.parent.name}/{path.parent.name}/{path.name}"
+            for path in self._included_dependency_completion_paths
+        }
+        return [completion for completion in self.completions_of_dependencies if completion in included_names]
+
+    @property
+    def _included_dependency_completion_paths(self) -> list[Path]:
+        included_packages: Final[set[str]] = set(self.include_apps_from)
+        return [
+            path
+            for package, paths in self.completion_paths_of_dependencies.items()
+            if self.include_dependencies or package in included_packages
+            for path in paths
+        ]
+
 
 class PipxMetadata:
     # Only change this if file format changes
@@ -163,7 +197,7 @@ class PipxMetadata:
     # V0.4 -> Add source interpreter
     # V0.5 -> Add pinned
     # V0.6 -> Add backend (pip|uv)
-    __METADATA_VERSION__: Final[str] = "0.11"
+    __METADATA_VERSION__: Final[str] = "0.12"
 
     def __init__(self, venv_dir: Path, read: bool = True):
         self.venv_dir = venv_dir
@@ -220,7 +254,7 @@ class PipxMetadata:
 
     def _convert_legacy_metadata(self, metadata_dict: _RawMetadata) -> _RawMetadata:
         version = metadata_dict["pipx_metadata_version"]
-        if version in (self.__METADATA_VERSION__, "0.10", "0.9", "0.8", "0.7", "0.6", "0.5"):
+        if version in (self.__METADATA_VERSION__, "0.11", "0.10", "0.9", "0.8", "0.7", "0.6", "0.5"):
             pass
         elif version == "0.4":
             metadata_dict["pinned"] = False

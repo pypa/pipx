@@ -7,6 +7,7 @@ pipx reads the following environment variables. All are optional.
 | `PIPX_HOME`                             | Root directory for pipx virtual environments.                             | `~/.local/share/pipx` (Linux), `~/.local/pipx` (macOS), `~\pipx` (Windows) |
 | `PIPX_BIN_DIR`                          | Directory where pipx places application entry-point symlinks.             | `~/.local/bin`                                                             |
 | `PIPX_MAN_DIR`                          | Directory where pipx places man page symlinks.                            | `~/.local/share/man`                                                       |
+| `PIPX_COMPLETION_DIR`                   | Directory where pipx places shell completion symlinks.                    | `~/.local/share`                                                           |
 | `PIPX_GLOBAL_HOME`                      | Root directory for global (`--global`) virtual environments.              | `/opt/pipx`                                                                |
 | `PIPX_GLOBAL_BIN_DIR`                   | Binary directory for global installs.                                     | `/usr/local/bin`                                                           |
 | `PIPX_GLOBAL_MAN_DIR`                   | Man page directory for global installs.                                   | `/usr/local/share/man`                                                     |
