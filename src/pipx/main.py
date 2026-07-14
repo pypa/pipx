@@ -233,6 +233,13 @@ def get_runpip_args(pip_args: list[str]) -> list[str]:
     return split_args or pip_args
 
 
+def _split_python_args(python_args: str) -> list[str]:
+    try:
+        return shlex.split(python_args, posix=not WINDOWS)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"invalid Python arguments: {exc}") from exc
+
+
 def get_venv_args(parsed_args: dict[str, str]) -> list[str]:
     venv_args: list[str] = []
     if parsed_args.get("system_site_packages"):
@@ -1281,6 +1288,13 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
         help="Do not check whether the app is already on PATH",
     )
     p.add_argument(
+        "--python-args",
+        metavar="ARGS",
+        type=_split_python_args,
+        default=[],
+        help="Arguments to pass to the Python interpreter that runs the application",
+    )
+    p.add_argument(
         "app_with_args",
         metavar="app ...",
         nargs=argparse.REMAINDER,
@@ -1330,6 +1344,7 @@ def _cmd_run(args: argparse.Namespace, ctx: DispatchContext) -> NoReturn:
         backend=ctx.backend,
         env_backend=ctx.env_backend,
         cooldown_days=ctx.cooldown_days,
+        python_args=args.python_args,
     )
 
 

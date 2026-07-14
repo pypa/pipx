@@ -314,6 +314,100 @@ def test_run_without_requirements(caplog, pipx_temp_env, tmp_path):
     assert out.read_text() == test_str
 
 
+def test_run_passes_python_args_to_script(
+    pipx_temp_env: None,
+    tmp_path: Path,
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch("os.execvpe", new=execvpe_mock)
+    output: Final[Path] = tmp_path / "flags.txt"
+    script: Final[Path] = tmp_path / "flags.py"
+    script.write_text(
+        f"import sys\nfrom pathlib import Path\nPath({str(output)!r}).write_text(str(sys.flags.bytes_warning))",
+        encoding="utf-8",
+    )
+
+    run_pipx_cli_exit(["run", "--python-args=-bb", str(script)], assert_exit=0)
+
+    assert output.read_text(encoding="utf-8") == "2"
+
+
+def test_run_rejects_invalid_python_args(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit, match="2"):
+        run_pipx_cli(["run", '--python-args="', "demo"])
+
+    assert "invalid Python arguments: No closing quotation" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("backend", ["pip", "uv"])
+def test_run_passes_python_args_to_app(
+    pipx_temp_env: None,
+    mocker: MockerFixture,
+    tmp_path: Path,
+    backend: str,
+) -> None:
+    mocker.patch("os.execvpe", new=execvpe_mock)
+    project: Final[Path] = tmp_path / "flags-app"
+    project.mkdir()
+    (project / "pyproject.toml").write_text(
+        """\
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flags-app"
+version = "1"
+
+[project.scripts]
+flags-app = "flags_app:main"
+
+[tool.setuptools]
+py-modules = ["flags_app"]
+""",
+        encoding="utf-8",
+    )
+    output: Final[Path] = tmp_path / "flags.txt"
+    (project / "flags_app.py").write_text(
+        "import sys\nfrom pathlib import Path\n\ndef main() -> None:\n    Path(sys.argv[1]).write_text(str(sys.flags.bytes_warning))",
+        encoding="utf-8",
+    )
+
+    run_pipx_cli_exit(
+        [
+            "run",
+            "--backend",
+            backend,
+            "--python-args=-X dev -bb",
+            "--spec",
+            str(project),
+            "flags-app",
+            str(output),
+        ],
+        assert_exit=0,
+    )
+
+    assert output.read_text(encoding="utf-8") == "2"
+
+
+def test_run_rejects_python_args_for_pypackages(
+    pipx_temp_env: None,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    app: Final[Path] = (
+        tmp_path / "__pypackages__" / f"{sys.version_info.major}.{sys.version_info.minor}" / "lib" / "bin" / "demo"
+    )
+    app.parent.mkdir(parents=True)
+    app.touch()
+    monkeypatch.chdir(tmp_path)
+
+    assert run_pipx_cli(["run", "--python-args=-b", "demo"]) == 1
+
+    assert capsys.readouterr().err == "--python-args cannot run applications from __pypackages__.\n"
+
+
 @pytest.mark.parametrize(
     ("encoding", "script_text"),
     [
