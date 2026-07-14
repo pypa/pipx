@@ -28,7 +28,6 @@ ENVIRONMENT_VARIABLES: Final = [
     "PIPX_FETCH_PYTHON",
     DISABLE_SHARED_LIBS_AUTO_UPGRADE,
     "PIPX_USE_EMOJI",
-    "PIPX_HOME_ALLOW_SPACE",
 ]
 DERIVED_ENVIRONMENT_VARIABLES: Final = [
     "PIPX_LOCAL_VENVS",
@@ -66,7 +65,6 @@ def _get_derived_values() -> dict[str, Callable[[], object]]:
         "UV_CACHE_DIR": lambda: os.environ.get("UV_CACHE_DIR", ""),
         DISABLE_SHARED_LIBS_AUTO_UPGRADE: lambda: str(shared_libs_auto_upgrade_disabled()).lower(),
         "PIPX_USE_EMOJI": lambda: str(EMOJI_SUPPORT).lower(),
-        "PIPX_HOME_ALLOW_SPACE": lambda: str(paths.ctx.allow_spaces_in_home_path).lower(),
     }
 
 

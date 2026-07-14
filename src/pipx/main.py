@@ -114,7 +114,6 @@ PIPX_DESCRIPTION += pipx_wrap(
       PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE
                             Skips automatic shared library upgrades.
       PIPX_USE_EMOJI         Overrides emoji behavior. Default value varies based on platform.
-      PIPX_HOME_ALLOW_SPACE  Overrides default warning on spaces in the home path
     """,
     subsequent_indent=" " * 24,  # match the indent of argparse options
     keep_newlines=True,

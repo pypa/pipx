@@ -6,11 +6,11 @@ overridden with the environment variable `PIPX_MAN_DIR`. If the `--global` optio
 `/usr/local/bin` and `/usr/local/share/man` respectively and can be overridden with `PIPX_GLOBAL_BIN_DIR` and
 `PIPX_GLOBAL_MAN_DIR`.
 
-pipx's default virtual environment location is typically `~/.local/share/pipx` on Linux/Unix, `~/.local/pipx` on macOS
-and `~\pipx` on Windows. For compatibility reasons, if `~/.local/pipx` on Linux, `%USERPROFILE%\AppData\Local\pipx` or
-`~\.local\pipx` on Windows or `~/Library/Application Support/pipx` on macOS exists, it will be used as the default
-location instead. This can be overridden with the `PIPX_HOME` environment variable. If the `--global` option is used,
-the default location is always `/opt/pipx` and can be overridden with `PIPX_GLOBAL_HOME`.
+pipx's default virtual environment location is typically `~/.local/share/pipx` on Linux/Unix,
+`~/Library/Application Support/pipx` on macOS and `%USERPROFILE%\AppData\Local\pipx` on Windows. For compatibility
+reasons, if `~/.local/pipx` exists, or `~\pipx` exists on Windows, that location is used instead. This can be overridden
+with the `PIPX_HOME` environment variable. If the `--global` option is used, the default location is always `/opt/pipx`
+and can be overridden with `PIPX_GLOBAL_HOME`.
 
 In case one of these fallback locations exist, we recommend either manually moving the pipx files to the new default
 location (see the [Moving your pipx installation](move-installation.md) section of the docs), or setting the `PIPX_HOME`
@@ -26,7 +26,7 @@ sudo pipx install --global <PACKAGE>
 ```
 
 > [!NOTE]
-> After version 1.2.0, the default pipx paths have been moved from `~/.local/pipx` to specific user data directories on
+> After version 1.16.0, the default pipx paths have been moved from `~/.local/pipx` to specific user data directories on
 > each platform using [platformdirs](https://pypi.org/project/platformdirs/) library
 >
 > | Old Path               | New Path                                   |
@@ -41,9 +41,10 @@ sudo pipx install --global <PACKAGE>
 > and log directories. See the
 > [platformdirs documentation](https://platformdirs.readthedocs.io/en/latest/api.html#platforms) for details.
 >
-> This was reverted in 1.5.0 for Windows and macOS. We heavily recommend not using these locations on Windows and macOS
-> anymore, due to multiple incompatibilities discovered with these locations, documented
-> [here](troubleshoot.md#why-are-spaces-in-the-pipx_home-path-bad).
+> `platformdirs` reads `XDG_DATA_HOME` and `XDG_CACHE_HOME` on Linux and on macOS, so exporting either one moves the
+> matching pipx directory. Leave them unset to get the platform default.
+>
+> This was originally introduced in 1.2.0 and temporarily reverted between 1.5.0 and 1.16.0 for Windows and macOS.
 
 ### Customising your installation
 

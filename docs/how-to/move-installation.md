@@ -6,16 +6,16 @@ non-default location to the current default locations. If you wish to move to a 
 
 ### MacOS
 
-Current default location: `~/.local`
+Current default location: `~/Library/Application Support/pipx`
 
 ```bash
-NEW_LOCATION=~/.local
 cache_dir=$(pipx environment --value PIPX_VENV_CACHEDIR)
 logs_dir=$(pipx environment --value PIPX_LOG_DIR)
 trash_dir=$(pipx environment --value PIPX_TRASH_DIR)
 home_dir=$(pipx environment --value PIPX_HOME)
+NEW_LOCATION='~/Library/Application Support/pipx'
 rm -rf "$cache_dir" "$logs_dir" "$trash_dir"
-mkdir -p $NEW_LOCATION && mv "$home_dir" $NEW_LOCATION
+mkdir -p "$NEW_LOCATION" && mv "$home_dir" "$NEW_LOCATION"
 pipx reinstall-all
 ```
 
@@ -32,7 +32,7 @@ home_dir=$(pipx environment --value PIPX_HOME)
 # and set `NEW_LOCATION` explicitly
 NEW_LOCATION="${XDG_DATA_HOME:-$HOME/.local/share}"
 rm -rf "$cache_dir" "$logs_dir" "$trash_dir"
-mkdir -p $NEW_LOCATION && mv "$home_dir" $NEW_LOCATION
+mkdir -p "$NEW_LOCATION" && mv "$home_dir" "$NEW_LOCATION"
 pipx reinstall-all
 ```
 
