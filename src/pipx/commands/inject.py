@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import logging
 import os
 import re
-import sys
-from collections.abc import Generator, Iterable, Sequence
-from pathlib import Path
-from typing import Final
+from dataclasses import dataclass
+from enum import Enum
+from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
@@ -17,12 +18,27 @@ from pipx.commands.common import (
     run_post_install_actions,
 )
 from pipx.commands.transaction import preserve_venv
-from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK, ExitCode
+from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK
 from pipx.emojis import hazard, stars
 from pipx.package_specifier import get_extras
-from pipx.result import render_messages
+from pipx.result import (
+    OperationData,
+    OperationResult,
+    OutputFormat,
+    OutputLevel,
+    OutputMessage,
+    OutputStream,
+    render_messages,
+    render_result,
+)
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv
+
+if TYPE_CHECKING:
+    from collections.abc import Generator, Iterable, Sequence
+    from pathlib import Path
+
+    from pipx.pipx_metadata_file import PackageInfo
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -44,7 +60,8 @@ def inject_dep(
     backend: str | None = None,
     env_backend: str | None = None,
     cooldown_days: int | None = None,
-) -> bool:
+    emit_output: bool = True,
+) -> OperationResult[InjectionData]:
     _LOGGER.debug("Injecting package %s", package_spec)
 
     if not venv_dir.exists() or next(venv_dir.iterdir(), None) is None:
@@ -95,16 +112,28 @@ def inject_dep(
     is_main_package = canonicalize_name(package_name) == canonicalize_name(venv.main_package_name)
     if not force and venv.has_package(package_name) and (not is_main_package or not get_extras(package_spec)):
         _LOGGER.info("Package %s is already installed", package_name)
-        print(
-            pipx_wrap(
-                f"""
-                {hazard} {package_name} already seems to be installed in {venv.name!r}.
-                Not modifying existing installation in '{venv_dir}'.
-                Pass '--force' to force installation.
-                """
-            )
+        return _finish_inject(
+            OperationResult(
+                command="inject",
+                data=InjectionData(
+                    packages=(),
+                    skipped=(InjectionSkip(venv.name, package_name, "already-installed"),),
+                    failures=(),
+                ),
+                messages=(
+                    OutputMessage(
+                        pipx_wrap(
+                            f"""
+                            {hazard} {package_name} already seems to be installed in {venv.name!r}.
+                            Not modifying existing installation in '{venv_dir}'.
+                            Pass '--force' to force installation.
+                            """
+                        )
+                    ),
+                ),
+            ),
+            emit_output=emit_output,
         )
-        return True
 
     pinned = False
     if is_main_package:
@@ -122,6 +151,7 @@ def inject_dep(
     previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(
         venv, paths.ctx.bin_dir, paths.ctx.man_dir
     )
+    messages: Final[list[OutputMessage]] = []
     with preserve_venv(venv_dir, enabled=bool(include_apps_from)):
         venv.install_package(
             package_name=package_name,
@@ -137,7 +167,7 @@ def inject_dep(
             cooldown_days=cooldown_days,
         )
         if include_apps:
-            render_messages(
+            messages.extend(
                 run_post_install_actions(
                     venv,
                     package_name,
@@ -147,17 +177,35 @@ def inject_dep(
                     force=force,
                     previous_resource_paths=previous_resource_paths,
                 ),
-                quiet=0,
             )
 
+    status: Final[InjectionStatus] = InjectionStatus.UPDATED if is_main_package else InjectionStatus.INJECTED
     if is_main_package:
-        print(f"  updated package {bold(package_name)} in venv {bold(venv.name)}")
+        messages.append(OutputMessage(f"  updated package {bold(package_name)} in venv {bold(venv.name)}"))
     else:
-        print(f"  injected package {bold(package_name)} into venv {bold(venv.name)}")
-    print(f"done! {stars}", file=sys.stderr)
-
-    # Any failure to install will raise PipxError, otherwise success
-    return True
+        messages.append(OutputMessage(f"  injected package {bold(package_name)} into venv {bold(venv.name)}"))
+    messages.append(OutputMessage(f"done! {stars}", stream=OutputStream.STDERR))
+    package: Final[PackageInfo] = venv.package_metadata[package_name]
+    return _finish_inject(
+        OperationResult(
+            command="inject",
+            data=InjectionData(
+                packages=(
+                    InjectionPackage(
+                        environment=venv.name,
+                        package=f"{package.package}{package.suffix}",
+                        version=package.package_version,
+                        status=status,
+                        location=str(venv.root),
+                    ),
+                ),
+                skipped=(),
+                failures=(),
+            ),
+            messages=tuple(messages),
+        ),
+        emit_output=emit_output,
+    )
 
 
 def inject(
@@ -175,43 +223,86 @@ def inject(
     backend: str | None = None,
     env_backend: str | None = None,
     cooldown_days: int | None = None,
-) -> ExitCode:
-    """Returns pipx exit code."""
-    # Combined collection of package specifications
-    packages = list(package_specs)
+    emit_output: bool = True,
+) -> OperationResult[InjectionData]:
+    package_set: Final[set[str]] = set(package_specs)
     for filename in requirement_files:
-        packages.extend(parse_requirements(filename))
-
-    # Remove duplicates and order deterministically
-    packages = sorted(set(packages))
+        package_set.update(parse_requirements(filename))
+    packages: Final[list[str]] = sorted(package_set)
 
     if not packages:
-        raise PipxError("No packages have been specified.")
+        return _finish_inject(
+            _inject_failure(venv_dir.name, None, "No packages have been specified."),
+            emit_output=emit_output,
+        )
     _LOGGER.info("Injecting packages: %r", packages)
 
-    # Inject packages
-    if not include_apps and (include_dependencies or include_apps_from):
-        include_apps = True
-    all_success = True
+    expose_apps: Final[bool] = include_apps or include_dependencies or bool(include_apps_from)
+    changed: Final[list[InjectionPackage]] = []
+    failures: Final[list[InjectionFailure]] = []
+    messages: Final[list[OutputMessage]] = []
+    skipped: Final[list[InjectionSkip]] = []
     for dependency in packages:
-        all_success &= inject_dep(
-            venv_dir,
-            package_name=None,
-            package_spec=dependency,
-            pip_args=pip_args,
-            verbose=verbose,
-            include_apps=include_apps,
-            include_dependencies=include_dependencies,
-            include_apps_from=include_apps_from,
-            force=force,
-            suffix=suffix,
-            backend=backend,
-            env_backend=env_backend,
-            cooldown_days=cooldown_days,
-        )
+        try:
+            result: OperationResult[InjectionData] = inject_dep(
+                venv_dir,
+                package_name=None,
+                package_spec=dependency,
+                pip_args=pip_args,
+                verbose=verbose,
+                include_apps=expose_apps,
+                include_dependencies=include_dependencies,
+                include_apps_from=include_apps_from,
+                force=force,
+                suffix=suffix,
+                backend=backend,
+                env_backend=env_backend,
+                cooldown_days=cooldown_days,
+                emit_output=False,
+            )
+        except PipxError as error:
+            failures.append(InjectionFailure(venv_dir.name, dependency, error.raw_message))
+            messages.append(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+            break
+        changed.extend(result.data.packages)
+        skipped.extend(result.data.skipped)
+        messages.extend(result.messages)
 
-    # Any failure to install will raise PipxError, otherwise success
-    return EXIT_CODE_OK if all_success else EXIT_CODE_INJECT_ERROR
+    return _finish_inject(
+        OperationResult(
+            command="inject",
+            data=InjectionData(packages=tuple(changed), skipped=tuple(skipped), failures=tuple(failures)),
+            messages=tuple(messages),
+            exit_code=EXIT_CODE_INJECT_ERROR if failures else EXIT_CODE_OK,
+        ),
+        emit_output=emit_output,
+    )
+
+
+def _inject_failure(environment: str, package: str | None, error: str) -> OperationResult[InjectionData]:
+    return OperationResult(
+        command="inject",
+        data=InjectionData(packages=(), skipped=(), failures=(InjectionFailure(environment, package, error),)),
+        messages=(OutputMessage(error, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
+        exit_code=EXIT_CODE_INJECT_ERROR,
+    )
+
+
+def _finish_inject(
+    result: OperationResult[InjectionData],
+    *,
+    emit_output: bool,
+) -> OperationResult[InjectionData]:
+    if not emit_output:
+        return result
+    if result.data.failures:
+        render_messages(
+            tuple(message for message in result.messages if message.level is OutputLevel.NORMAL),
+            quiet=0,
+        )
+        raise PipxError(result.data.failures[0].error)
+    render_result(result, output=OutputFormat.HUMAN, quiet=0)
+    return result
 
 
 def parse_requirements(filename: str | os.PathLike) -> Generator[str, None, None]:
@@ -228,7 +319,48 @@ def parse_requirements(filename: str | os.PathLike) -> Generator[str, None, None
                 yield pkgspec
 
 
+class InjectionStatus(str, Enum):
+    INJECTED = "injected"
+    UNINJECTED = "uninjected"
+    UPDATED = "updated"
+
+
+@dataclass(frozen=True)
+class InjectionPackage:
+    environment: str
+    package: str
+    version: str
+    status: InjectionStatus
+    location: str
+
+
+@dataclass(frozen=True)
+class InjectionSkip:
+    environment: str
+    package: str
+    reason: str
+
+
+@dataclass(frozen=True)
+class InjectionFailure:
+    environment: str
+    package: str | None
+    error: str
+
+
+@dataclass(frozen=True)
+class InjectionData(OperationData):
+    packages: tuple[InjectionPackage, ...]
+    skipped: tuple[InjectionSkip, ...]
+    failures: tuple[InjectionFailure, ...]
+
+
 __all__ = [
+    "InjectionData",
+    "InjectionFailure",
+    "InjectionPackage",
+    "InjectionSkip",
+    "InjectionStatus",
     "inject",
     "inject_dep",
     "parse_requirements",

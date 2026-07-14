@@ -15,6 +15,13 @@ pipx inject ipython -r useful-packages.txt
 pipx inject ipython extra-pkg -r more-packages.txt
 ```
 
+Scripts can request the versioned result envelope from either command.
+
+```
+pipx inject ipython matplotlib --output json
+pipx uninject ipython matplotlib --output json
+```
+
 ### Expose injected apps
 
 By default, injected packages do not add their entry points to your `PATH`. Use `--include-apps` to expose them.

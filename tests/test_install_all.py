@@ -10,6 +10,7 @@ from helpers import run_pipx_cli
 from package_info import PKG
 from pipx import paths
 from pipx.pipx_metadata_file import PipxMetadata
+from pipx.util import pipx_wrap
 
 
 @pytest.mark.parametrize(
@@ -78,3 +79,28 @@ def test_install_all_multiple_errors(pipx_temp_env, root, capsys):
             log_contents = log_fh.read()
             assert "dotenv" in log_contents
             assert "weblate" in log_contents
+
+
+def test_install_all_reports_injected_failure(
+    pipx_temp_env: None,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert not run_pipx_cli(["install", "black"])
+    assert not run_pipx_cli(["inject", "black", "pycowsay"])
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--json"])
+    spec_file: Final[Path] = tmp_path / "pipx.json"
+    missing_spec: Final[str] = (tmp_path / "missing").as_posix()
+    spec_file.write_text(
+        capsys.readouterr().out.replace('"package_or_url": "pycowsay"', f'"package_or_url": "{missing_spec}"'),
+        encoding="utf-8",
+    )
+    assert not run_pipx_cli(["uninstall-all"])
+    capsys.readouterr()
+
+    result: Final[int] = run_pipx_cli(["install-all", str(spec_file)])
+
+    error: Final[str] = " ".join(capsys.readouterr().err.split())
+    expected_error: Final[str] = " ".join(pipx_wrap(f"Unable to parse package spec: {missing_spec}").split())
+    assert (result, expected_error in error) == (1, True)

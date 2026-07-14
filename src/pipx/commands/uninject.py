@@ -1,11 +1,19 @@
+from __future__ import annotations
+
 import logging
-from importlib import metadata
 from pathlib import Path
+from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
 from pipx.colors import bold
 from pipx.commands.common import add_suffix
+from pipx.commands.inject import (
+    InjectionData,
+    InjectionFailure,
+    InjectionPackage,
+    InjectionStatus,
+)
 from pipx.commands.uninstall import (
     _get_package_bin_dir_app_paths,
     _get_package_man_paths,
@@ -14,12 +22,17 @@ from pipx.constants import (
     EXIT_CODE_OK,
     EXIT_CODE_UNINJECT_ERROR,
     MAN_SECTIONS,
-    ExitCode,
 )
 from pipx.emojis import stars
-from pipx.util import PipxError, pipx_wrap, safe_unlink
+from pipx.result import OperationResult, OutputLevel, OutputMessage, OutputStream
+from pipx.util import pipx_wrap, safe_unlink
 from pipx.venv import Venv
 from pipx.venv_inspect import fetch_info_in_venv, get_distributions_by_name, get_required_dependency_names
+
+if TYPE_CHECKING:
+    from importlib import metadata
+
+    from pipx.pipx_metadata_file import PackageInfo
 
 logger = logging.getLogger(__name__)
 
@@ -32,38 +45,53 @@ def uninject(
     local_man_dir: Path,
     leave_deps: bool,
     verbose: bool,
-) -> ExitCode:
-    """Returns pipx exit code"""
-
+) -> OperationResult[InjectionData]:
     if not venv_dir.exists() or next(venv_dir.iterdir(), None) is None:
-        raise PipxError(f"Virtual environment {venv_dir.name} does not exist.")
-
-    venv = Venv(venv_dir, verbose=verbose)
-
-    if not venv.package_metadata:
-        raise PipxError(
-            f"""
-            Can't uninject from Virtual Environment {venv_dir.name!r}.
-            {venv_dir.name!r} has missing internal pipx metadata.
-            It was likely installed using a pipx version before 0.15.0.0.
-            Please uninstall and install {venv_dir.name!r} manually to fix.
-            """
+        return _uninject_failure(
+            venv_dir.name,
+            None,
+            f"Virtual environment {venv_dir.name} does not exist.",
+            stream=OutputStream.STDERR,
         )
 
-    all_success = True
+    venv: Final[Venv] = Venv(venv_dir, verbose=verbose)
+
+    if not venv.package_metadata:
+        return _uninject_failure(
+            venv.name,
+            None,
+            pipx_wrap(
+                f"""
+                Can't uninject from Virtual Environment {venv_dir.name!r}.
+                {venv_dir.name!r} has missing internal pipx metadata.
+                It was likely installed using a pipx version before 0.15.0.0.
+                Please uninstall and install {venv_dir.name!r} manually to fix.
+                """
+            ),
+            stream=OutputStream.STDERR,
+        )
+
+    failures: Final[list[InjectionFailure]] = []
+    messages: Final[list[OutputMessage]] = []
+    packages: Final[list[InjectionPackage]] = []
     for dep in dependencies:
-        all_success &= uninject_dep(
+        result: OperationResult[InjectionData] = uninject_dep(
             venv,
             dep,
             local_bin_dir=local_bin_dir,
             local_man_dir=local_man_dir,
             leave_deps=leave_deps,
         )
+        failures.extend(result.data.failures)
+        messages.extend(result.messages)
+        packages.extend(result.data.packages)
 
-    if all_success:
-        return EXIT_CODE_OK
-    else:
-        return EXIT_CODE_UNINJECT_ERROR
+    return OperationResult(
+        command="uninject",
+        data=InjectionData(packages=tuple(packages), skipped=(), failures=tuple(failures)),
+        messages=tuple(messages),
+        exit_code=EXIT_CODE_UNINJECT_ERROR if failures else EXIT_CODE_OK,
+    )
 
 
 def uninject_dep(
@@ -73,26 +101,31 @@ def uninject_dep(
     local_bin_dir: Path,
     local_man_dir: Path,
     leave_deps: bool = False,
-) -> bool:
+) -> OperationResult[InjectionData]:
     package_name = canonicalize_name(package_name)
 
     if package_name == venv.pipx_metadata.main_package.package:
-        logger.warning(
+        return _uninject_failure(
+            venv.name,
+            package_name,
             pipx_wrap(
                 f"""
-            {package_name} is the main package of {venv.root.name}
-            venv. Use `pipx uninstall {venv.root.name}` to uninstall instead of uninject.
-            """,
+                {package_name} is the main package of {venv.root.name}
+                venv. Use `pipx uninstall {venv.root.name}` to uninstall instead of uninject.
+                """,
                 subsequent_indent=" " * 4,
-            )
+            ),
         )
-        return False
 
     if package_name not in venv.pipx_metadata.injected_packages:
-        logger.warning(f"{package_name} is not in the {venv.root.name} venv. Skipping.")
-        return False
+        return _uninject_failure(
+            venv.name,
+            package_name,
+            f"{package_name} is not in the {venv.root.name} venv. Skipping.",
+        )
 
-    need_app_uninstall = venv.package_metadata[package_name].include_apps
+    package: Final[PackageInfo] = venv.package_metadata[package_name]
+    need_app_uninstall: Final[bool] = package.include_apps
 
     new_resource_paths = get_include_resource_paths(package_name, venv, local_bin_dir, local_man_dir)
 
@@ -128,8 +161,42 @@ def uninject_dep(
             else:
                 logger.info(f"removed file {path}")
 
-    print(f"Uninjected package {bold(package_name)}{deps_string} from venv {bold(venv.root.name)} {stars}")
-    return True
+    return OperationResult(
+        command="uninject",
+        data=InjectionData(
+            packages=(
+                InjectionPackage(
+                    environment=venv.name,
+                    package=f"{package.package}{package.suffix}",
+                    version=package.package_version,
+                    status=InjectionStatus.UNINJECTED,
+                    location=str(venv.root),
+                ),
+            ),
+            skipped=(),
+            failures=(),
+        ),
+        messages=(
+            OutputMessage(
+                f"Uninjected package {bold(package_name)}{deps_string} from venv {bold(venv.root.name)} {stars}"
+            ),
+        ),
+    )
+
+
+def _uninject_failure(
+    environment: str,
+    package: str | None,
+    error: str,
+    *,
+    stream: OutputStream = OutputStream.LOG,
+) -> OperationResult[InjectionData]:
+    return OperationResult(
+        command="uninject",
+        data=InjectionData(packages=(), skipped=(), failures=(InjectionFailure(environment, package, error),)),
+        messages=(OutputMessage(error, stream=stream, level=OutputLevel.ERROR),),
+        exit_code=EXIT_CODE_UNINJECT_ERROR,
+    )
 
 
 def get_include_resource_paths(package_name: str, venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:

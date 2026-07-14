@@ -428,6 +428,15 @@ def _add_dependency_app_options(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_output_option(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--output",
+        choices=[output.value for output in OutputFormat],
+        default=OutputFormat.HUMAN,
+        help="Select the output format.",
+    )
+
+
 class _DeprecatedFetchMissingPython(argparse.Action):
     def __init__(self, option_strings: list[str], dest: str, **kwargs: Any) -> None:
         super().__init__(option_strings, dest, nargs=0, **kwargs)
@@ -531,12 +540,7 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
     )
     add_pip_venv_args(p)
     add_backend_arg(p)
-    p.add_argument(
-        "--output",
-        choices=[output.value for output in OutputFormat],
-        default=OutputFormat.HUMAN,
-        help="Select the output format.",
-    )
+    _add_output_option(p)
     p.set_defaults(func=_cmd_install)
 
 
@@ -696,10 +700,11 @@ def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
         help="Add the suffix (if given) of the Virtual Environment to the packages to inject",
     )
     add_backend_arg(p)
+    _add_output_option(p)
     p.set_defaults(func=_cmd_inject)
 
 
-def _cmd_inject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_inject(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.InjectionData]:
     venv_dir = _venv_dir(args, ctx)
     with ctx.venv_container.venv_lock(venv_dir):
         return commands.inject(
@@ -716,6 +721,7 @@ def _cmd_inject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
             backend=ctx.backend,
             env_backend=ctx.env_backend,
             cooldown_days=ctx.cooldown_days,
+            emit_output=False,
         )
 
 
@@ -740,10 +746,11 @@ def _add_uninject(subparsers, venv_completer: VenvCompleter, shared_parser: argp
         action="store_true",
         help="Only uninstall the main injected package but leave its dependencies installed.",
     )
+    _add_output_option(p)
     p.set_defaults(func=_cmd_uninject)
 
 
-def _cmd_uninject(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_uninject(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.InjectionData]:
     venv_dir = _venv_dir(args, ctx)
     with ctx.venv_container.venv_lock(venv_dir):
         return commands.uninject(

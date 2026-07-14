@@ -25,7 +25,8 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 class PipxError(Exception):
-    def __init__(self, message: str, wrap_message: bool = True):
+    def __init__(self, message: str, wrap_message: bool = True) -> None:
+        self.raw_message: Final[str] = message
         if wrap_message:
             super().__init__(pipx_wrap(message))
         else:
