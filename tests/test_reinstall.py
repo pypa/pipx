@@ -1,16 +1,24 @@
+import json
 import subprocess
 import sys
 from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 import pytest
+from _pytest.capture import CaptureResult
 from pytest_mock import MockerFixture
 
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, app_name, mock_legacy_venv, run_pipx_cli, skip_if_windows
 from pipx import paths, util, venv_inspect
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+
+if TYPE_CHECKING:
+    from _pytest.capture import CaptureResult
+
+if True:
+    pass
 
 
 def test_reinstall(pipx_temp_env, capsys):
@@ -213,3 +221,49 @@ def test_reinstall_pinned_package(pipx_temp_env, capsys):
     assert not run_pipx_cli(["reinstall", "black"])
     captured = capsys.readouterr()
     assert "installed package black" in captured.out
+
+
+def test_reinstall_all_quiet_says_nothing(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["reinstall-all", "--python", sys.executable, "--quiet"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (captured.out, captured.err) == ("", "")
+
+
+def test_reinstall_all_json_reports_the_environments(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["reinstall-all", "--python", sys.executable, "--output", "json"])
+
+    assert json.loads(capsys.readouterr().out) == {
+        "command": "reinstall-all",
+        "data": {"environments": [{"environment": "pycowsay"}], "failures": []},
+        "pipx_result_version": "0.1",
+        "status": "success",
+    }
+
+
+def test_reinstall_json_reports_a_missing_environment(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert run_pipx_cli(["reinstall", "--python", sys.executable, "--output", "json", "missing"])
+
+    payload: Final[dict[str, object]] = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "error"
+
+
+def test_reinstall_all_json_reports_no_environments(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert not run_pipx_cli(["reinstall-all", "--python", sys.executable, "--output", "json"])
+
+    assert json.loads(capsys.readouterr().out)["data"] == {"environments": [], "failures": []}

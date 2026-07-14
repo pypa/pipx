@@ -1079,10 +1079,11 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
     p.add_argument("package").completer = venv_completer
     add_python_options(p)
     add_backend_arg(p)
+    _add_output_option(p)
     p.set_defaults(func=_cmd_reinstall)
 
 
-def _cmd_reinstall(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_reinstall(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.ReinstallData]:
     venv_dir = _venv_dir(args, ctx)
     with ctx.venv_container.venv_lock(venv_dir) as venv_lock:
         return commands.reinstall(
@@ -1119,10 +1120,11 @@ def _add_reinstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
     add_python_options(p)
     p.add_argument("--skip", nargs="+", default=[], help="skip these packages")
     add_backend_arg(p)
+    _add_output_option(p)
     p.set_defaults(func=_cmd_reinstall_all)
 
 
-def _cmd_reinstall_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_reinstall_all(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.ReinstallData]:
     return commands.reinstall_all(
         ctx.venv_container,
         paths.ctx.bin_dir,

@@ -1,9 +1,11 @@
-import sys
-from collections.abc import Sequence
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass
 from pathlib import Path
 from tempfile import mkdtemp
+from typing import TYPE_CHECKING, Final
 
-from filelock import BaseFileLock
 from packaging.utils import canonicalize_name
 
 from pipx.commands.common import add_suffix
@@ -18,8 +20,16 @@ from pipx.constants import (
     ExitCode,
 )
 from pipx.emojis import error, sleep, stars
+from pipx.result import OperationData, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import PipxError, rmdir, safe_unlink
 from pipx.venv import Venv, VenvContainer
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from filelock import BaseFileLock
+
+_LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def _create_reinstall_backup(venv_dir: Path) -> Path:
@@ -78,22 +88,29 @@ def reinstall(
     backend: str | None = None,
     env_backend: str | None = None,
     venv_lock: BaseFileLock | None = None,
-) -> ExitCode:
-    """Returns pipx exit code."""
+) -> OperationResult[ReinstallData]:
     if not venv_dir.exists():
-        print(f"Nothing to reinstall for {venv_dir.name} {sleep}")
-        return EXIT_CODE_REINSTALL_VENV_NONEXISTENT
+        return _outcome(
+            venv_dir.name,
+            OutputMessage(f"Nothing to reinstall for {venv_dir.name} {sleep}"),
+            exit_code=EXIT_CODE_REINSTALL_VENV_NONEXISTENT,
+        )
 
     try:
         Path(python).relative_to(venv_dir)
     except ValueError:
         pass
     else:
-        print(
-            f"{error} Error, the python executable would be deleted!",
-            "Change it using the --python option or PIPX_DEFAULT_PYTHON environment variable.",
+        return _outcome(
+            venv_dir.name,
+            OutputMessage(
+                f"{error} Error, the python executable would be deleted! Change it using the --python option "
+                f"or PIPX_DEFAULT_PYTHON environment variable.",
+                stream=OutputStream.STDERR,
+                level=OutputLevel.ERROR,
+            ),
+            exit_code=EXIT_CODE_REINSTALL_INVALID_PYTHON,
         )
-        return EXIT_CODE_REINSTALL_INVALID_PYTHON
 
     venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
     venv.check_upgrade_shared_libs(
@@ -111,7 +128,7 @@ def reinstall(
     old_resource_paths = _get_reinstall_resource_paths(venv, local_bin_dir, local_man_dir)
     original_venv_dir = venv_dir
     reinstall_backup_dir = _create_reinstall_backup(venv_dir)
-    print(f"uninstalled {venv.name}! {stars}")
+    messages: list[OutputMessage] = [OutputMessage(f"uninstalled {venv.name}! {stars}")]
 
     # in case legacy original dir name
     venv_dir = venv_dir.with_name(canonicalize_name(venv_dir.name))
@@ -171,13 +188,16 @@ def reinstall(
         _remove_stale_reinstall_resources(old_resource_paths - new_resource_paths)
     except (Exception, KeyboardInterrupt):
         _restore_reinstall_backup(venv_dir, original_venv_dir, reinstall_backup_dir)
-        print(f"{error} Reinstall failed; restored {venv.name}.", file=sys.stderr)
+        _LOGGER.error("%s Reinstall failed; restored %s.", error, venv.name)
         raise
     else:
         rmdir(reinstall_backup_dir)
 
-    # Any failure to install will raise PipxError, otherwise success
-    return EXIT_CODE_OK
+    return OperationResult(
+        command="reinstall",
+        data=ReinstallData(environments=(_ReinstalledEnvironment(venv.name),), failures=()),
+        messages=tuple(messages),
+    )
 
 
 def reinstall_all(
@@ -191,10 +211,10 @@ def reinstall_all(
     python_flag_passed: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
-) -> ExitCode:
-    """Returns pipx exit code."""
-    failed: list[str] = []
-    reinstalled: list[str] = []
+) -> OperationResult[ReinstallData]:
+    failures: list[_FailedReinstall] = []
+    reinstalled: list[_ReinstalledEnvironment] = []
+    messages: list[OutputMessage] = []
 
     # iterate on all packages and reinstall them
     # for the first one, we also trigger
@@ -205,7 +225,7 @@ def reinstall_all(
             continue
         try:
             with venv_container.venv_lock(venv_dir) as venv_lock:
-                reinstall(
+                outcome = reinstall(
                     venv_dir=venv_dir,
                     local_bin_dir=local_bin_dir,
                     local_man_dir=local_man_dir,
@@ -217,21 +237,52 @@ def reinstall_all(
                     env_backend=env_backend,
                     venv_lock=venv_lock,
                 )
-        except PipxError as e:
-            print(e, file=sys.stderr)
-            failed.append(venv_dir.name)
+        except PipxError as error_raised:
+            failure = _FailedReinstall(venv_dir.name, str(error_raised))
+            failures.append(failure)
+            messages.append(OutputMessage(str(error_raised), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
         else:
             first_reinstall = False
-            reinstalled.append(venv_dir.name)
-    if len(reinstalled) == 0:
-        print(f"No packages reinstalled after running 'pipx reinstall-all' {sleep}")
-    if len(failed) > 0:
-        raise PipxError(f"The following package(s) failed to reinstall: {', '.join(failed)}")
-    # Any failure to install will raise PipxError, otherwise success
-    return EXIT_CODE_OK
+            reinstalled.append(_ReinstalledEnvironment(venv_dir.name))
+            messages.extend(outcome.messages)
+    if not reinstalled:
+        messages.append(OutputMessage(f"No packages reinstalled after running 'pipx reinstall-all' {sleep}"))
+    return OperationResult(
+        command="reinstall-all",
+        data=ReinstallData(environments=tuple(reinstalled), failures=tuple(failures)),
+        messages=tuple(messages),
+        exit_code=ExitCode(1) if failures else EXIT_CODE_OK,
+    )
+
+
+@dataclass(frozen=True)
+class _ReinstalledEnvironment:
+    environment: str
+
+
+@dataclass(frozen=True)
+class _FailedReinstall:
+    environment: str
+    error: str
+
+
+@dataclass(frozen=True)
+class ReinstallData(OperationData):
+    environments: tuple[_ReinstalledEnvironment, ...]
+    failures: tuple[_FailedReinstall, ...]
+
+
+def _outcome(environment: str, message: OutputMessage, *, exit_code: ExitCode) -> OperationResult[ReinstallData]:
+    return OperationResult(
+        command="reinstall",
+        data=ReinstallData(environments=(), failures=(_FailedReinstall(environment, message.text),)),
+        messages=(message,),
+        exit_code=exit_code,
+    )
 
 
 __all__ = [
+    "ReinstallData",
     "reinstall",
     "reinstall_all",
 ]
