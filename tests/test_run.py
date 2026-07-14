@@ -74,8 +74,8 @@ def test_run_preserves_explicit_app_name(
     pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    assert run_pipx_cli(["run", "--spec", "black", "bLaCk"]) == 1
-    assert "'bLaCk' executable script not found in package 'black'." in capsys.readouterr().err
+    assert run_pipx_cli(["run", "--spec", "black", "bLaCk.app"]) == 1
+    assert "'bLaCk.app' executable script not found in package 'black'." in capsys.readouterr().err
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)

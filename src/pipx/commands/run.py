@@ -292,14 +292,6 @@ def run_package(
         venv.run_app(app, app_filename, app_args)
 
 
-def _package_name_from_app(app: str, *, inferred: bool) -> str:
-    try:
-        package_name = Requirement(app).name
-    except InvalidRequirement:
-        return app
-    return canonicalize_name(package_name) if inferred else package_name
-
-
 def run(
     app: str,
     spec: str | None,
@@ -385,6 +377,14 @@ def run(
             no_path_check=no_path_check,
             cooldown_days=cooldown_days,
         )
+
+
+def _package_name_from_app(app: str, *, inferred: bool) -> str:
+    try:
+        package_name = Requirement(app).name
+    except InvalidRequirement:
+        return app
+    return canonicalize_name(package_name) if inferred else package_name
 
 
 def _prepare_venv(
