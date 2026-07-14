@@ -1196,6 +1196,44 @@ def _cmd_interpreter_upgrade(args: argparse.Namespace, ctx: DispatchContext) -> 
     return commands.upgrade_interpreters(ctx.venv_container, ctx.verbose)
 
 
+def _add_cache(
+    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
+) -> argparse.ArgumentParser:
+    parser: Final[argparse.ArgumentParser] = subparsers.add_parser(
+        "cache",
+        help="Manage cached run environments",
+        description="Manage cached run environments",
+        parents=[shared_parser],
+    )
+    subcommands: Final[argparse._SubParsersAction] = parser.add_subparsers(
+        title="subcommands",
+        description="Get help for commands with pipx cache COMMAND --help",
+        dest="cache_command",
+    )
+    dir_parser: Final[argparse.ArgumentParser] = subcommands.add_parser(
+        "dir",
+        help="Show the cache directory",
+        description="Show the cache directory",
+    )
+    purge_parser: Final[argparse.ArgumentParser] = subcommands.add_parser(
+        "purge",
+        help="Remove cached run environments",
+        description="Remove cached run environments",
+    )
+    dir_parser.set_defaults(func=_cmd_cache_dir)
+    purge_parser.set_defaults(func=_cmd_cache_purge)
+    parser.set_defaults(func=_make_print_help(parser))
+    return parser
+
+
+def _cmd_cache_dir(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    return commands.print_cache_dir(VenvContainer(paths.ctx.venv_cache))
+
+
+def _cmd_cache_purge(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+    return commands.purge_cache(VenvContainer(paths.ctx.venv_cache))
+
+
 def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "run",
@@ -1221,10 +1259,16 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
         ),
         parents=[shared_parser],
     )
-    p.add_argument(
+    cache_group: Final[argparse._MutuallyExclusiveGroup] = p.add_mutually_exclusive_group()
+    cache_group.add_argument(
         "--no-cache",
         action="store_true",
         help="Do not reuse cached virtual environment if it exists",
+    )
+    cache_group.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Rebuild and cache the virtual environment",
     )
     p.add_argument(
         "--no-path-check",
@@ -1276,6 +1320,7 @@ def _cmd_run(args: argparse.Namespace, ctx: DispatchContext) -> NoReturn:
         args.pypackages,
         ctx.verbose,
         not args.no_cache,
+        refresh=args.refresh,
         no_path_check=args.no_path_check,
         backend=ctx.backend,
         env_backend=ctx.env_backend,
@@ -1494,6 +1539,7 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
     _add_repair(subparsers, completer_venvs.use, shared_parser)
     _add_list(subparsers, shared_parser)
     subparsers_with_subcommands["interpreter"] = _add_interpreter(subparsers, shared_parser)
+    subparsers_with_subcommands["cache"] = _add_cache(subparsers, shared_parser)
     _add_run(subparsers, shared_parser)
     _add_runpip(subparsers, completer_venvs.use, shared_parser)
     _add_ensurepath(subparsers, shared_parser)

@@ -45,6 +45,28 @@ Arguments after the application name pass straight through:
 
 pipx caches virtual environments per app for a few days. After they expire, pipx fetches the latest version.
 
+### Refresh or clear cached runs
+
+Use `--refresh` when a cached environment is corrupt or you want to replace it before it expires. pipx discards only
+that application's cached environment and retains the replacement:
+
+```
+pipx run --refresh APP
+```
+
+`--no-cache` also rebuilds the environment, but marks the replacement for removal by a later run. The two options are
+mutually exclusive.
+
+Inspect or clear every pipx-managed run environment with:
+
+```
+pipx cache dir
+pipx cache purge
+```
+
+The uv backend keeps ephemeral environments in uv's cache. `pipx run --refresh --backend uv APP` forwards uv's native
+refresh option; use `uv cache dir` and `uv cache clean` to inspect or clear that cache.
+
 ### Ambiguous arguments
 
 pipx can consume arguments meant for the application:
@@ -52,7 +74,7 @@ pipx can consume arguments meant for the application:
 ```
 > pipx run pycowsay --py
 
-usage: pipx run [-h] [--no-cache] [--pypackages] [--spec SPEC] [--verbose] [--python PYTHON]
+usage: pipx run [-h] [--no-cache | --refresh] [--pypackages] [--spec SPEC] [--verbose] [--python PYTHON]
                 [--system-site-packages] [--index-url INDEX_URL] [--editable] [--pip-args PIP_ARGS]
                 [--cooldown DAYS]
                 app ...

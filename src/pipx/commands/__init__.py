@@ -1,3 +1,4 @@
+from pipx.commands.cache import print_cache_dir, purge_cache
 from pipx.commands.ensure_path import ensure_pipx_paths
 from pipx.commands.environment import environment
 from pipx.commands.expose import ExposureData, expose, unexpose
@@ -36,7 +37,9 @@ __all__ = [
     "list_packages",
     "lock_manifest",
     "pin",
+    "print_cache_dir",
     "prune_interpreters",
+    "purge_cache",
     "reinstall",
     "reinstall_all",
     "repair",

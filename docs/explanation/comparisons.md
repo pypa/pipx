@@ -44,6 +44,9 @@ managers writes the same filename. Each manager refuses to overwrite a binary th
 | Install from a git URL       | `pipx install 'git+https://…'`                    | `uv tool install 'git+https://…'`                                   |
 | Install editable from path   | `pipx install -e ./mypkg`                         | `uv tool install -e ./mypkg`                                        |
 | One-off run (no install)     | `pipx run black .`                                | `uvx black .`                                                       |
+| Refresh one-off run          | `pipx run --refresh black .`                      | `uvx --refresh black .`                                             |
+| Show ephemeral cache         | `pipx cache dir`                                  | `uv cache dir`                                                      |
+| Purge ephemeral cache        | `pipx cache purge`                                | `uv cache clean`                                                    |
 | One-off run with extra dep   | _no clean equivalent_                             | `uvx --with mkdocs-material mkdocs`                                 |
 | Pinned-version one-off       | `pipx run --spec 'ruff==0.6.0' ruff check`        | `uvx ruff@0.6.0 check`                                              |
 | Add a dep to existing tool   | `pipx inject mkdocs mkdocs-material`              | `uv tool install mkdocs --with mkdocs-material` (rebuilds)          |
@@ -91,7 +94,8 @@ managers writes the same filename. Each manager refuses to overwrite a binary th
 ### Gotchas
 
 - `uvx` reuses cached envs across invocations until you prune the cache (`uv cache clean`), pin a new version
-    (`uvx black@latest`), or pass `--refresh`. `pipx run` also caches, but the temp venv expires after 14 days idle.
+    (`uvx black@latest`), or pass `--refresh`. `pipx run` caches for 14 days and accepts `--refresh` for an early
+    replacement.
 - `uvx` prefers a persistent install when one exists. After `uv tool install ruff`, plain `uvx ruff` reuses that env
     instead of building an ephemeral one. Pass `--isolated` to bypass.
 - `uv tool` ignores project-local `.python-version` files. `uv run` honors them; tool envs do not. pipx never reads

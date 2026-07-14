@@ -47,7 +47,8 @@ pipx environment --value PIPX_RESOLVED_BACKEND  # see what pipx will use right n
 - pipx creates new venvs with `uv venv`. The venv contains no `pip` and no `pipx_shared.pth` file.
 - `pipx runpip` runs `uv pip <args> --python <venv>/bin/python`. uv rejects flags it doesn't understand instead of pipx
     silently dropping them.
-- `pipx run` execs `uv tool run`; the cache lives in uv's cache directory. Pass `--no-cache` to skip it.
+- `pipx run` execs `uv tool run`; the cache lives in uv's cache directory. Pass `--no-cache` to skip it or `--refresh`
+    to replace the matching cached environment.
 - `pipx run script.py` execs `uv run --script script.py` for PEP 723 inline scripts.
 - `--cooldown DAYS` maps to uv's `--exclude-newer P{DAYS}D`. Relative cooldowns require uv 0.9.17 or newer.
 
@@ -66,6 +67,6 @@ pipx environment --value PIPX_RESOLVED_BACKEND  # see what pipx will use right n
 ## Cache layout
 
 `pipx run` under the uv backend caches in `UV_CACHE_DIR` instead of `PIPX_VENV_CACHEDIR`. Switching the default backend
-on a host that already used `pipx run` leaves the old pipx cache behind: `pipx environment` prints both paths so you can
-inspect them and remove the unused one manually. The 14-day expiry sweep that pipx applies to its own venv cache does
-not extend to uv's cache, which uv manages on its own schedule (`uv cache clean`).
+on a host that already used `pipx run` leaves the old pipx cache behind. Use `pipx cache dir` to find that cache and
+`pipx cache purge` to remove its environments. The 14-day expiry sweep that pipx applies to its own venv cache does not
+extend to uv's cache, which uv manages on its own schedule (`uv cache clean`).
