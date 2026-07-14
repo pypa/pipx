@@ -62,6 +62,13 @@ def test_health_json(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> N
     }
 
 
+def test_health_deduplicates_repeated_package(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> None:
+    assert run_pipx_cli(["health", "pycowsay", "PyCowSay", "--output", "json"]) == 0
+
+    environments = json.loads(capsys.readouterr().out)["data"]["environments"]
+    assert [environment["environment"] for environment in environments] == ["pycowsay"]
+
+
 def test_repair_json(pipx_temp_env: None, capsys: CaptureFixture[str]) -> None:
     assert run_pipx_cli(["repair", "--output", "json"]) == 0
 

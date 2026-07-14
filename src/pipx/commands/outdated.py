@@ -24,9 +24,9 @@ _MAX_OUTDATED_WORKERS: Final[int] = 8
 
 def list_outdated(
     venv_container: VenvContainer,
+    venv_dirs: Collection[Path],
     *,
     include_injected: bool,
-    venv_dirs: Collection[Path] | None = None,
 ) -> OperationResult[OutdatedData]:
     data: Final[OutdatedData] = inspect_outdated(
         venv_container,
