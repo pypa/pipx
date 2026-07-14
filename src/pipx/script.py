@@ -168,12 +168,28 @@ def _normalize_requires_python(value: str | list[str] | None) -> str | None:
 
 
 def _write_wheel(directory: Path, package_name: str, script: _Script) -> Path:
-    version: Final[str] = f"0+{hashlib.sha256(script.content.encode()).hexdigest()[:12]}"
+    digest: Final[str] = hashlib.sha256(script.content.encode()).hexdigest()[:12]
+    version: Final[str] = f"0+{digest}"
     distribution: Final[str] = re.sub(r"[-_.]+", "_", package_name)
+    module: Final[str] = f"_pipx_script_{distribution}"
     stem: Final[str] = f"{distribution}-{version}"
     dist_info: Final[str] = f"{stem}.dist-info"
     members: Final[dict[str, bytes]] = {
-        f"{stem}.data/scripts/{script.app}": _script_bytes(script.content),
+        f"{module}/__init__.py": b"",
+        f"{module}/_runner.py": b"""import runpy
+from pathlib import Path
+
+
+def main() -> None:
+    runpy.run_path(str(Path(__file__).with_name("_script.py")), run_name="__main__")
+
+
+__all__ = [
+    "main",
+]
+""",
+        f"{module}/_script.py": script.content.encode(),
+        f"{dist_info}/entry_points.txt": f"[console_scripts]\n{script.app} = {module}._runner:main\n".encode(),
         f"{dist_info}/METADATA": _metadata(package_name, version, script.metadata),
         f"{dist_info}/WHEEL": b"Wheel-Version: 1.0\nGenerator: pipx\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
     }
@@ -181,7 +197,7 @@ def _write_wheel(directory: Path, package_name: str, script: _Script) -> Path:
     wheel: Final[Path] = directory / f"{stem}-py3-none-any.whl"
     with ZipFile(wheel, "w", compression=ZIP_DEFLATED) as archive:
         for name, data in members.items():
-            _write_member(archive, name, data, executable=".data/scripts/" in name)
+            _write_member(archive, name, data)
         archive.writestr(
             record,
             "".join(f"{name},sha256={_digest(data)},{len(data)}\n" for name, data in members.items()) + f"{record},,\n",
@@ -197,14 +213,10 @@ def _metadata(package_name: str, version: str, metadata: ScriptMetadata) -> byte
     return ("\n".join(lines) + "\n\n").encode()
 
 
-def _script_bytes(content: str) -> bytes:
-    return ("#!python\n" + (content.partition("\n")[2] if content.startswith("#!") else content)).encode()
-
-
-def _write_member(archive: ZipFile, name: str, data: bytes, *, executable: bool) -> None:
+def _write_member(archive: ZipFile, name: str, data: bytes) -> None:
     info: Final[ZipInfo] = ZipInfo(name)
     info.create_system = 3
-    info.external_attr = (stat.S_IFREG | (0o755 if executable else 0o644)) << 16
+    info.external_attr = (stat.S_IFREG | 0o644) << 16
     archive.writestr(info, data, compress_type=ZIP_DEFLATED)
 
 
