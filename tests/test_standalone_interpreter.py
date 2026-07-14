@@ -22,8 +22,6 @@ from package_info import PKG
 from pipx import constants, paths, pipx_metadata_file, standalone_python
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
-
     from pytest_mock import MockerFixture
 
 MAJOR_PYTHON_VERSION = sys.version_info.major
@@ -80,27 +78,55 @@ def test_download_standalone_python_supports_early_python_310(
     pipx_temp_env: None,
     mocked_github_api: None,
     monkeypatch: pytest.MonkeyPatch,
-    mocker: MockerFixture,
 ) -> None:
-    original_extractall = tarfile.TarFile.extractall
-
-    def legacy_extractall(
-        archive: tarfile.TarFile,
-        path: str | Path = ".",
-        members: Iterable[tarfile.TarInfo] | None = None,
-        *,
-        numeric_owner: bool = False,
-    ) -> None:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            original_extractall(archive, path, members, numeric_owner=numeric_owner)
-
+    # Python 3.10.0-3.10.11 lack tarfile's data filter, so pipx validates members and extracts them by hand
     monkeypatch.delattr(tarfile, "data_filter")
-    mocker.patch.object(tarfile.TarFile, "extractall", legacy_extractall)
 
     python_path = standalone_python.download_python_build_standalone(TARGET_PYTHON_VERSION)
 
     assert Path(python_path).is_file()
+
+
+@pytest.mark.parametrize(
+    "unsafe",
+    [
+        pytest.param(("../outside", "file"), id="path-traversal"),
+        pytest.param(("python/escape", "symlink"), id="escaping-symlink"),
+    ],
+)
+def test_early_python_310_rejects_unsafe_archive(
+    pipx_temp_env: None,
+    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
+    unsafe: tuple[str, str],
+) -> None:
+    monkeypatch.delattr(tarfile, "data_filter")
+    name, kind = unsafe
+    archive = io.BytesIO()
+    with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
+        python_tar.addfile(tarfile.TarInfo("python/bin/python3"), io.BytesIO())
+        member = tarfile.TarInfo(name)
+        if kind == "symlink":
+            member.type, member.linkname = tarfile.SYMTYPE, "../../../../etc/passwd"
+        python_tar.addfile(member, io.BytesIO())
+    archive_bytes = archive.getvalue()
+    link = "https://example.invalid/cpython-3.99.0-aarch64-apple-darwin-install_only.tar.gz"
+    cache_dir = standalone_python.paths.ctx.standalone_python_cachedir
+    cache_dir.mkdir(parents=True)
+    (cache_dir / "index.json").write_text(
+        json.dumps(
+            {
+                "fetched": datetime.datetime.now().timestamp(),
+                "releases": [[link, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
+            }
+        )
+    )
+    mocker.patch.object(standalone_python.platform, "system", return_value="Darwin")
+    mocker.patch.object(standalone_python.platform, "machine", return_value="arm64")
+    mocker.patch.object(standalone_python, "urlopen", return_value=io.BytesIO(archive_bytes))
+
+    with pytest.raises(standalone_python.PipxError, match="outside"):
+        standalone_python.download_python_build_standalone("3.99")
 
 
 def test_get_latest_python_releases_sets_request_timeout(mocker: MockerFixture) -> None:

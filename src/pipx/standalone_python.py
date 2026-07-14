@@ -2,6 +2,7 @@ import datetime
 import hashlib
 import json
 import logging
+import os
 import platform
 import re
 import shutil
@@ -9,7 +10,7 @@ import tarfile
 import tempfile
 import urllib.error
 from functools import partial
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Final
 from urllib.request import urlopen
 
@@ -130,9 +131,54 @@ def _unpack(full_version, download_link, archive: Path, download_dir: Path, expe
                 if hasattr(tarfile, "data_filter"):
                     tar.extractall(download_dir, filter="data")
                 else:
-                    tar.extractall(download_dir)
+                    # Python 3.10.0-3.10.11 predate tarfile's data filter, so validate and extract by hand
+                    _extract_safely(tar, download_dir)
         except tarfile.TarError as error:
             raise PipxError(f"Unable to unpack python {full_version} build.") from error
+
+
+def _extract_safely(tar: tarfile.TarFile, dest: Path) -> None:
+    root: Final[Path] = dest.resolve()
+    for member in tar.getmembers():
+        if member.isdev():
+            continue  # the data filter drops device, block, and fifo entries
+        _reject_escape(member, root)
+        _extract_member(tar, member, dest)
+
+
+def _reject_escape(member: tarfile.TarInfo, root: Path) -> None:
+    if _escapes(root, root / member.name):
+        raise PipxError(f"Refusing to extract {member.name!r} outside the download directory.")
+    if member.issym() or member.islnk():
+        link: Final[PurePosixPath] = PurePosixPath(member.linkname)
+        base: Final[Path] = root if member.islnk() else (root / member.name).parent
+        if link.is_absolute() or _escapes(root, base / member.linkname):
+            raise PipxError(f"Refusing to extract link {member.name!r} pointing outside the download directory.")
+
+
+def _escapes(root: Path, target: Path) -> bool:
+    resolved: Final[Path] = Path(os.path.normpath(target))
+    return resolved != root and root not in resolved.parents
+
+
+def _extract_member(tar: tarfile.TarFile, member: tarfile.TarInfo, dest: Path) -> None:
+    target: Final[Path] = dest / member.name
+    if member.isdir():
+        target.mkdir(parents=True, exist_ok=True)
+        return
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.is_symlink() or target.exists():
+        target.unlink()
+    if member.issym():
+        target.symlink_to(member.linkname)
+    elif member.islnk():
+        os.link(dest / member.linkname, target)
+    else:
+        source = tar.extractfile(member)
+        with target.open("wb") as handle:
+            if source is not None:
+                shutil.copyfileobj(source, handle)
+        target.chmod(member.mode & 0o777)  # drop setuid, setgid, and sticky bits like the data filter
 
 
 def _is_valid_python_index(index: Any) -> bool:
