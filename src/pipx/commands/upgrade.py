@@ -11,7 +11,7 @@ from pipx.colors import bold, red
 from pipx.commands.common import expose_package_resources, locked_package_message, validate_expected_apps
 from pipx.commands.outdated import inspect_outdated
 from pipx.commands.transaction import preserve_venv
-from pipx.constants import EXIT_CODE_OK, ExitCode
+from pipx.constants import ExitCode
 from pipx.emojis import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
 from pipx.result import OperationData, OperationResult, OutputLevel, OutputMessage, OutputStream
@@ -176,10 +176,14 @@ def upgrade_all(
 def upgrade_shared(
     verbose: bool,
     pip_args: list[str],
-) -> ExitCode:
+) -> OperationResult[SharedData]:
     # pip-backed installs use this environment regardless of the installed environments' backends.
     shared_libs.upgrade(verbose=verbose, pip_args=pip_args, raises=True)
-    return EXIT_CODE_OK
+    return OperationResult(
+        command="upgrade-shared",
+        data=SharedData(location=str(shared_libs.root)),
+        messages=(OutputMessage(f"Upgraded the shared libraries in {shared_libs.root}."),),
+    )
 
 
 def _upgrade_venv(
@@ -496,7 +500,13 @@ class UpgradeData(OperationData):
     failures: tuple[FailedUpgrade, ...]
 
 
+@dataclass(frozen=True)
+class SharedData(OperationData):
+    location: str
+
+
 __all__ = [
+    "SharedData",
     "UpgradeData",
     "upgrade",
     "upgrade_all",

@@ -19,7 +19,15 @@ from pipx.commands.install import install
 from pipx.commands.uninstall import uninstall
 from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.pipx_metadata_file import PipxMetadata
-from pipx.result import OutputFormat, render_result
+from pipx.result import (
+    OperationData,
+    OperationResult,
+    OutputFormat,
+    OutputLevel,
+    OutputMessage,
+    OutputStream,
+    render_result,
+)
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
@@ -44,9 +52,11 @@ def sync_manifest(
     prune: bool,
     backend: str | None,
     env_backend: str | None,
-) -> ExitCode:
+) -> OperationResult[ManifestData]:
     manifest = _load_manifest(manifest_file, require_locks=True)
-    failures: list[str] = []
+    failures: list[_FailedTool] = []
+    messages: list[OutputMessage] = []
+    synced: list[str] = []
     for tool in manifest.tools:
         venv_dir = venv_container.get_venv_dir(tool.environment)
         with venv_container.venv_lock(venv_dir) as venv_lock:
@@ -82,29 +92,38 @@ def sync_manifest(
                     venv_lock=venv_lock,
                 )
             except PipxError as error:
-                print(error, file=sys.stderr)
-                failures.append(tool.environment)
+                failures.append(_FailedTool(tool.environment, str(error)))
+                messages.append(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
                 if was_exposed:
                     expose(venv_dir, local_bin_dir, local_man_dir, verbose)
+            else:
+                synced.append(tool.environment)
 
-    if failures:
-        raise PipxError(f"The following manifest tools failed to sync: {', '.join(failures)}")
-    if prune:
+    if prune and not failures:
         _prune_environments(manifest, venv_container, local_bin_dir, local_man_dir, verbose)
-    return EXIT_CODE_OK
+    return OperationResult(
+        command="sync",
+        data=ManifestData(environments=tuple(synced), locks=(), failures=tuple(failures)),
+        messages=tuple(messages),
+        exit_code=ExitCode(1) if failures else EXIT_CODE_OK,
+    )
 
 
-def lock_manifest(manifest_file: Path) -> ExitCode:
+def lock_manifest(manifest_file: Path) -> OperationResult[ManifestData]:
     manifest = _load_manifest(manifest_file, require_locks=False)
     if not any(tool.lock_file is not None for tool in manifest.tools):
         raise PipxError("The manifest does not declare any lock files.")
     if not (nab := which("nab")):
         raise PipxError("The nab command is required. Install it with `pipx install nab`.")
     try:
-        _generate_locks(manifest, nab)
+        locked: Final[list[str]] = _generate_locks(manifest, nab)
     except OSError as error:
         raise PipxError(f"Cannot write manifest locks: {error}") from error
-    return EXIT_CODE_OK
+    return OperationResult(
+        command="lock",
+        data=ManifestData(environments=(), locks=tuple(locked), failures=()),
+        messages=tuple(OutputMessage(f"locked {lock_file}") for lock_file in locked),
+    )
 
 
 def _load_manifest(manifest_file: Path, *, require_locks: bool) -> _Manifest:
@@ -285,7 +304,7 @@ def _is_pylock_name(name: str) -> bool:
     )
 
 
-def _generate_locks(manifest: _Manifest, nab: str) -> None:
+def _generate_locks(manifest: _Manifest, nab: str) -> list[str]:
     with TemporaryDirectory(prefix=".pipx-lock-", dir=manifest.path.parent) as temporary_dir:
         generated: list[tuple[Path, Path]] = []
         for tool in manifest.tools:
@@ -314,10 +333,12 @@ def _generate_locks(manifest: _Manifest, nab: str) -> None:
                 raise PipxError(f"nab did not create {generated_lock.name} for {tool.environment}.")
             generated.append((generated_lock, tool.lock_file))
 
+        locked: Final[list[str]] = []
         for generated_lock, lock_file in generated:
             lock_file.parent.mkdir(parents=True, exist_ok=True)
             generated_lock.replace(lock_file)
-            print(f"locked {lock_file}")
+            locked.append(str(lock_file))
+    return locked
 
 
 def _prune_environments(
@@ -371,7 +392,21 @@ _TOOL_KEYS: Final[frozenset[str]] = frozenset(
 )
 
 
+@dataclass(frozen=True)
+class _FailedTool:
+    environment: str
+    error: str
+
+
+@dataclass(frozen=True)
+class ManifestData(OperationData):
+    environments: tuple[str, ...]
+    locks: tuple[str, ...]
+    failures: tuple[_FailedTool, ...]
+
+
 __all__ = [
+    "ManifestData",
     "lock_manifest",
     "sync_manifest",
 ]

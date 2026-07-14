@@ -1,15 +1,22 @@
+from __future__ import annotations
+
 import logging
 import subprocess
-from pathlib import Path
-from typing import Final
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Final
 
 from packaging import version
 
 from pipx import commands, constants, paths, standalone_python
 from pipx.animate import animate
-from pipx.pipx_metadata_file import PipxMetadata
+from pipx.result import OperationData, OperationResult, OutputMessage
 from pipx.util import is_paths_relative, rmdir
 from pipx.venv import Venv, VenvContainer
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pipx.pipx_metadata_file import PipxMetadata
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -39,11 +46,11 @@ def get_interpreter_users(interpreter: Path, venvs: list[Venv]) -> list[PipxMeta
 
 def list_interpreters(
     venv_container: VenvContainer,
-) -> constants.ExitCode:
+) -> OperationResult[InterpreterData]:
     interpreters = get_installed_standalone_interpreters()
     venvs = get_venvs_using_standalone_interpreter(venv_container)
-    output: list[str] = []
-    output.append(f"Standalone interpreters are in {paths.ctx.standalone_python_cachedir}")
+    output: list[str] = [f"Standalone interpreters are in {paths.ctx.standalone_python_cachedir}"]
+    listed: list[_Interpreter] = []
     for interpreter in interpreters:
         output.append(f"Python {interpreter.name}")
         used_in = get_interpreter_users(interpreter, venvs)
@@ -52,14 +59,23 @@ def list_interpreters(
             output.extend(f"     - {p.main_package.package} {p.main_package.package_version}" for p in used_in)
         else:
             output.append("    Unused")
+        listed.append(
+            _Interpreter(
+                version=interpreter.name,
+                used_by=tuple(str(metadata.main_package.package) for metadata in used_in),
+            )
+        )
 
-    print("\n".join(output))
-    return constants.EXIT_CODE_OK
+    return OperationResult(
+        command="interpreter-list",
+        data=InterpreterData(interpreters=tuple(listed), removed=(), upgraded=()),
+        messages=(OutputMessage("\n".join(output)),),
+    )
 
 
 def prune_interpreters(
     venv_container: VenvContainer,
-) -> constants.ExitCode:
+) -> OperationResult[InterpreterData]:
     interpreters = get_installed_standalone_interpreters()
     venvs = get_venvs_using_standalone_interpreter(venv_container)
     removed = []
@@ -69,12 +85,14 @@ def prune_interpreters(
         rmdir(interpreter, safe_rm=True)
         removed.append(interpreter.name)
     if removed:
-        print("Successfully removed:")
-        for interpreter_name in removed:
-            print(f" - Python {interpreter_name}")
+        report = "\n".join(["Successfully removed:", *(f" - Python {name}" for name in removed)])
     else:
-        print("Nothing to remove")
-    return constants.EXIT_CODE_OK
+        report = "Nothing to remove"
+    return OperationResult(
+        command="interpreter-prune",
+        data=InterpreterData(interpreters=(), removed=tuple(removed), upgraded=()),
+        messages=(OutputMessage(report),),
+    )
 
 
 def get_latest_micro_version(
@@ -86,7 +104,7 @@ def get_latest_micro_version(
     return current_version
 
 
-def upgrade_interpreters(venv_container: VenvContainer, verbose: bool) -> constants.ExitCode:
+def upgrade_interpreters(venv_container: VenvContainer, verbose: bool) -> OperationResult[InterpreterData]:
     with animate("Getting the index of the latest standalone python builds", not verbose):
         latest_pythons = standalone_python.list_pythons(use_cache=False)
 
@@ -129,9 +147,11 @@ def upgrade_interpreters(venv_container: VenvContainer, verbose: bool) -> consta
                     venv.pipx_metadata.source_interpreter, interpreter_dir
                 ):
                     with venv_container.venv_lock(venv.root) as venv_lock:
-                        print(
-                            f"Upgrade the interpreter of {venv.name} from "
-                            f"{interpreter_full_version} to {latest_micro_version}"
+                        _LOGGER.info(
+                            "Upgrade the interpreter of %s from %s to %s",
+                            venv.name,
+                            interpreter_full_version,
+                            latest_micro_version,
                         )
                         commands.reinstall(
                             venv_dir=venv.root,
@@ -144,17 +164,47 @@ def upgrade_interpreters(venv_container: VenvContainer, verbose: bool) -> consta
                         upgraded.append((venv.name, interpreter_full_version, latest_micro_version))
 
     if upgraded:
-        print("Successfully upgraded the interpreter(s):")
-        for venv_name, old_version, new_version in upgraded:
-            print(f" - {venv_name}: {old_version} -> {new_version}")
+        report = "\n".join(
+            [
+                "Successfully upgraded the interpreter(s):",
+                *(f" - {name}: {old} -> {new}" for name, old, new in upgraded),
+            ]
+        )
     else:
-        print("Nothing to upgrade")
+        report = "Nothing to upgrade"
+    return OperationResult(
+        command="interpreter-upgrade",
+        data=InterpreterData(
+            interpreters=(),
+            removed=(),
+            upgraded=tuple(_UpgradedInterpreter(name, old, str(new)) for name, old, new in upgraded),
+        ),
+        messages=(OutputMessage(report),),
+    )
 
-    # Any failure to upgrade will raise PipxError, otherwise success
-    return constants.EXIT_CODE_OK
+
+@dataclass(frozen=True)
+class _Interpreter:
+    version: str
+    used_by: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class _UpgradedInterpreter:
+    environment: str
+    old_version: str
+    new_version: str
+
+
+@dataclass(frozen=True)
+class InterpreterData(OperationData):
+    interpreters: tuple[_Interpreter, ...]
+    removed: tuple[str, ...]
+    upgraded: tuple[_UpgradedInterpreter, ...]
 
 
 __all__ = [
+    "InterpreterData",
     "list_interpreters",
     "prune_interpreters",
     "upgrade_interpreters",
