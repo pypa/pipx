@@ -154,11 +154,12 @@ class _SharedLibs:
                 and _venv_python_is_valid(self.python_path)
                 and self.pip_path.is_file()
                 and run_subprocess(
-                    [self.python_path, "-c", "import importlib.util; print(importlib.util.find_spec('pip'))"],
-                    capture_stderr=False,
+                    [self.python_path, "-c", "from pip._internal.cli.main import main"],
                     log_cmd_str="<checking pip's availability>",
-                ).stdout.strip()
-                != "None"
+                    log_stdout=False,
+                    log_stderr=False,
+                ).returncode
+                == 0
             )
 
         return self._is_valid
