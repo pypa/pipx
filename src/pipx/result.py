@@ -18,6 +18,11 @@ class OutputLevel(enum.IntEnum):
     CRITICAL = 2
 
 
+class OutputFormat(str, enum.Enum):
+    HUMAN = "human"
+    JSON = "json"
+
+
 class OutputStream(str, enum.Enum):
     LOG = "log"
     STDOUT = "stdout"
@@ -48,8 +53,17 @@ class OperationResult(Generic[_PayloadT]):
     exit_code: ExitCode = EXIT_CODE_OK
 
 
-def render_result(result: OperationResult[_PayloadT], *, json_output: bool, quiet: int) -> ExitCode:
-    if json_output:
+def render_messages(messages: tuple[OutputMessage, ...], *, quiet: int) -> None:
+    for message in messages:
+        if quiet <= message.level:
+            if message.stream is OutputStream.LOG:
+                _LOGGER.warning(message.text)
+            else:
+                print(message.text, file=sys.stderr if message.stream is OutputStream.STDERR else sys.stdout)
+
+
+def render_result(result: OperationResult[_PayloadT], *, output: OutputFormat, quiet: int) -> ExitCode:
+    if output is OutputFormat.JSON:
         print(
             json.dumps(
                 {
@@ -64,20 +78,17 @@ def render_result(result: OperationResult[_PayloadT], *, json_output: bool, quie
         )
         return result.exit_code
 
-    for message in result.messages:
-        if quiet <= message.level:
-            if message.stream is OutputStream.LOG:
-                _LOGGER.warning(message.text)
-            else:
-                print(message.text, file=sys.stderr if message.stream is OutputStream.STDERR else sys.stdout)
+    render_messages(result.messages, quiet=quiet)
     return result.exit_code
 
 
 __all__ = [
     "OperationData",
     "OperationResult",
+    "OutputFormat",
     "OutputLevel",
     "OutputMessage",
     "OutputStream",
+    "render_messages",
     "render_result",
 ]

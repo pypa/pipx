@@ -1,12 +1,11 @@
+from __future__ import annotations
+
 import json
 import re
 import sys
-from collections.abc import Iterator, Sequence
-from dataclasses import replace
-from pathlib import Path
-from typing import Final
+from dataclasses import dataclass, replace
+from typing import TYPE_CHECKING, Final
 
-from filelock import BaseFileLock
 from packaging.utils import canonicalize_name
 
 from pipx import commands, paths
@@ -21,7 +20,6 @@ from pipx.commands.common import (
 )
 from pipx.commands.transaction import preserve_venv
 from pipx.constants import (
-    EXIT_CODE_INSTALL_VENV_EXISTS,
     EXIT_CODE_OK,
     ExitCode,
 )
@@ -29,8 +27,24 @@ from pipx.emojis import sleep
 from pipx.interpreter import get_default_python
 from pipx.package_specifier import package_spec_satisfied
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, load_spec_file
+from pipx.result import (
+    OperationData,
+    OperationResult,
+    OutputFormat,
+    OutputLevel,
+    OutputMessage,
+    OutputStream,
+    render_messages,
+    render_result,
+)
 from pipx.util import PipxError, pipx_wrap, rmdir
 from pipx.venv import Venv, VenvContainer
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator, Sequence
+    from pathlib import Path
+
+    from filelock import BaseFileLock
 
 _PYLOCK_NAME_RE: Final[re.Pattern[str]] = re.compile(r"pylock(?:\.[^.]+)?\.toml")
 
@@ -65,37 +79,30 @@ def install(
     preserve_existing: bool = False,
     replace_expected_apps: bool = False,
     replace_lock: bool = False,
-) -> ExitCode:
-    """Returns pipx exit code."""
-    # package_spec is anything pip-installable, including package_name, vcs spec,
-    #   zip file, or tar.gz file.
-
-    lock_file = _validate_install_options(
-        package_specs,
-        expected_apps,
-        preinstall_packages,
-        lock_file,
-        cooldown_days,
-        upgrade=upgrade,
-        upgrade_strategy=upgrade_strategy,
-    )
-
-    python = python or get_default_python()
-
-    package_names = package_names or []
-    if len(package_names) != len(package_specs):
-        package_names = [
-            package_name_from_spec(
-                package_spec,
-                python,
-                pip_args=pip_args,
-                verbose=verbose,
-                backend=backend,
-                env_backend=env_backend,
-                cooldown_days=cooldown_days,
-            )
-            for package_spec in package_specs
-        ]
+    emit_output: bool = True,
+) -> OperationResult[InstallData]:
+    messages: Final[list[OutputMessage]] = []
+    packages: Final[list[_InstalledPackage]] = []
+    skipped: Final[list[_SkippedInstall]] = []
+    failures: Final[list[_FailedInstall]] = []
+    try:
+        lock_file, python, package_names = _prepare_install(
+            package_names,
+            package_specs,
+            python,
+            pip_args,
+            verbose,
+            lock_file,
+            expected_apps,
+            preinstall_packages,
+            cooldown_days=cooldown_days,
+            upgrade=upgrade,
+            upgrade_strategy=upgrade_strategy,
+            backend=backend,
+            env_backend=env_backend,
+        )
+    except PipxError as error:
+        return _finish_install(_failed_install_result(package_specs[0], error), emit_output=emit_output)
 
     venv_container: Final[VenvContainer] = VenvContainer(venv_dir.parent if venv_dir is not None else paths.ctx.venvs)
     for package_name, package_spec in zip(package_names, package_specs, strict=False):
@@ -140,61 +147,39 @@ def install(
             )
             required_exposure = venv.pipx_metadata.exposure_enabled if exposure_enabled is None else exposure_enabled
             if exists:
-                if not reinstall and force and python_flag_passed:
-                    print(
-                        pipx_wrap(
-                            f"""
-                            --python is ignored when --force is passed.
-                            If you want to reinstall {package_name} with {python},
-                            run `pipx reinstall {package_spec} --python {python}` instead.
-                            """
-                        )
-                    )
-                if force:
-                    print(f"Installing to existing venv {venv.name!r}")
-                elif upgrade:
-                    _upgrade_existing_venv(
-                        venv,
-                        package_name,
-                        package_spec,
-                        local_bin_dir,
-                        local_man_dir,
-                        pip_args,
-                        verbose,
-                        upgrade_strategy,
-                        required_apps,
-                        required_cooldown,
-                    )
+                existing = _handle_existing_install(
+                    venv,
+                    package_name,
+                    package_spec,
+                    local_bin_dir,
+                    local_man_dir,
+                    python,
+                    pip_args,
+                    verbose,
+                    force=force,
+                    reinstall=reinstall,
+                    upgrade=upgrade,
+                    python_flag_passed=python_flag_passed,
+                    upgrade_strategy=upgrade_strategy,
+                    expected_apps=required_apps,
+                    cooldown_days=required_cooldown,
+                )
+                messages.extend(existing.messages)
+                packages.extend(existing.packages)
+                skipped.extend(existing.skipped)
+                if not existing.continue_install:
                     if len(package_specs) == 1:
-                        return EXIT_CODE_OK
-                    venv_dir = None
-                    continue
-                else:
-                    installed_version = venv.pipx_metadata.main_package.package_version
-                    version_info = f" ({installed_version})" if installed_version else ""
-                    print(
-                        pipx_wrap(
-                            f"""
-                            {venv.name!r}{version_info} already seems to be installed. Not
-                            modifying existing installation in '{venv_dir}'.
-                            Pass '--force' to force installation, or use
-                            'pipx upgrade {venv.name}' to upgrade.
-                            """
-                        )
-                    )
-                    if len(package_specs) == 1:
-                        return EXIT_CODE_INSTALL_VENV_EXISTS
+                        break
                     venv_dir = None
                     continue
 
             previous_resource_paths: set[Path] = get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir)
-            with preserve_venv(
-                venv_dir,
-                enabled=exists
-                and (preserve_existing or bool(required_apps or include_apps_from) or required_lock is not None),
-            ):
-                venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
-                try:
+            preserve_existing_venv = exists and (
+                preserve_existing or bool(required_apps or include_apps_from) or required_lock is not None
+            )
+            try:
+                with preserve_venv(venv_dir, enabled=preserve_existing_venv):
+                    venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
                     if exists and (required_lock is not None or (replace_lock and recorded_lock is not None)):
                         recorded_backend = venv.pipx_metadata.backend
                         rmdir(venv_dir)
@@ -225,22 +210,80 @@ def install(
                         cooldown_days=required_cooldown,
                     )
                     validate_expected_apps(venv, package_name, required_apps)
-                    run_post_install_actions(
-                        venv,
-                        package_name,
-                        local_bin_dir,
-                        local_man_dir,
-                        venv_dir,
-                        force=force,
-                        previous_resource_paths=previous_resource_paths,
+                    messages.extend(
+                        run_post_install_actions(
+                            venv,
+                            package_name,
+                            local_bin_dir,
+                            local_man_dir,
+                            venv_dir,
+                            force=force,
+                            previous_resource_paths=previous_resource_paths,
+                        )
                     )
-                except (Exception, KeyboardInterrupt):
-                    print()
+            except (Exception, KeyboardInterrupt) as error:
+                if not preserve_existing_venv:
                     venv.remove_venv()
+                if not isinstance(error, PipxError):
                     raise
+                failures.append(_FailedInstall(venv.name, str(error)))
+                messages.append(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+                break
+            packages.append(_installed_package(venv, package_name))
         venv_dir = None
 
-    return EXIT_CODE_OK
+    return _finish_install(
+        OperationResult(
+            command="install",
+            data=InstallData(packages=tuple(packages), skipped=tuple(skipped), failures=tuple(failures)),
+            messages=tuple(messages),
+            exit_code=ExitCode(1 if failures else 0),
+        ),
+        emit_output=emit_output,
+    )
+
+
+def _prepare_install(
+    package_names: list[str] | None,
+    package_specs: list[str],
+    python: str | None,
+    pip_args: list[str],
+    verbose: bool,
+    lock_file: Path | None,
+    expected_apps: Sequence[str],
+    preinstall_packages: Sequence[str] | None,
+    *,
+    cooldown_days: int | None,
+    upgrade: bool,
+    upgrade_strategy: str | None,
+    backend: str | None,
+    env_backend: str | None,
+) -> tuple[Path | None, str, list[str]]:
+    lock_file = _validate_install_options(
+        package_specs,
+        expected_apps,
+        preinstall_packages,
+        lock_file,
+        cooldown_days,
+        upgrade=upgrade,
+        upgrade_strategy=upgrade_strategy,
+    )
+    python = python or get_default_python()
+    package_names = package_names or []
+    if len(package_names) != len(package_specs):
+        package_names = [
+            package_name_from_spec(
+                package_spec,
+                python,
+                pip_args=pip_args,
+                verbose=verbose,
+                backend=backend,
+                env_backend=env_backend,
+                cooldown_days=cooldown_days,
+            )
+            for package_spec in package_specs
+        ]
+    return lock_file, python, package_names
 
 
 def _validate_install_options(
@@ -275,6 +318,29 @@ def _validate_install_options(
     return lock_file
 
 
+def _failed_install_result(environment: str, error: PipxError) -> OperationResult[InstallData]:
+    message: Final[str] = str(error)
+    return OperationResult(
+        command="install",
+        data=InstallData(packages=(), skipped=(), failures=(_FailedInstall(environment, message),)),
+        messages=(OutputMessage(message, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
+        exit_code=ExitCode(1),
+    )
+
+
+def _finish_install(result: OperationResult[InstallData], *, emit_output: bool) -> OperationResult[InstallData]:
+    if not emit_output:
+        return result
+    if result.data.failures:
+        render_messages(
+            tuple(message for message in result.messages if message.level is OutputLevel.NORMAL),
+            quiet=0,
+        )
+        raise PipxError(result.data.failures[0].error)
+    render_result(result, output=OutputFormat.HUMAN, quiet=0)
+    return result
+
+
 def _resolve_cooldown(
     lock_file: Path | None,
     requested: int | None,
@@ -289,6 +355,87 @@ def _resolve_cooldown(
     return requested if requested is not None else stored
 
 
+def _handle_existing_install(
+    venv: Venv,
+    package_name: str,
+    package_spec: str,
+    local_bin_dir: Path,
+    local_man_dir: Path,
+    python: str,
+    pip_args: list[str],
+    verbose: bool,
+    *,
+    force: bool,
+    reinstall: bool,
+    upgrade: bool,
+    python_flag_passed: bool,
+    upgrade_strategy: str | None,
+    expected_apps: Sequence[str],
+    cooldown_days: int | None,
+) -> _ExistingInstall:
+    messages: Final[list[OutputMessage]] = []
+    if not reinstall and force and python_flag_passed:
+        messages.append(
+            OutputMessage(
+                pipx_wrap(
+                    f"""
+                    --python is ignored when --force is passed.
+                    If you want to reinstall {package_name} with {python},
+                    run `pipx reinstall {package_spec} --python {python}` instead.
+                    """
+                )
+            )
+        )
+    if force:
+        messages.append(OutputMessage(f"Installing to existing venv {venv.name!r}"))
+        return _ExistingInstall(
+            continue_install=True,
+            packages=(),
+            skipped=(),
+            messages=tuple(messages),
+        )
+    if upgrade:
+        reason, upgrade_messages = _upgrade_existing_venv(
+            venv,
+            package_name,
+            package_spec,
+            local_bin_dir,
+            local_man_dir,
+            pip_args,
+            verbose,
+            upgrade_strategy,
+            expected_apps,
+            cooldown_days,
+        )
+        messages.extend(upgrade_messages)
+        return _ExistingInstall(
+            continue_install=False,
+            packages=(_installed_package(venv, package_name),) if reason is None else (),
+            skipped=(_SkippedInstall(venv.name, package_name, reason),) if reason is not None else (),
+            messages=tuple(messages),
+        )
+
+    installed_version = venv.pipx_metadata.main_package.package_version
+    messages.append(
+        OutputMessage(
+            pipx_wrap(
+                f"""
+                {venv.name!r}{f" ({installed_version})" if installed_version else ""} already seems to be installed. Not
+                modifying existing installation in '{venv.root}'.
+                Pass '--force' to force installation, or use
+                'pipx upgrade {venv.name}' to upgrade.
+                """
+            )
+        )
+    )
+    return _ExistingInstall(
+        continue_install=False,
+        packages=(),
+        skipped=(_SkippedInstall(venv.name, package_name, "already-installed"),),
+        messages=tuple(messages),
+    )
+
+
 def _upgrade_existing_venv(
     venv: Venv,
     package_name: str,
@@ -300,14 +447,13 @@ def _upgrade_existing_venv(
     upgrade_strategy: str | None,
     expected_apps: Sequence[str],
     cooldown_days: int | None,
-) -> None:
+) -> tuple[str | None, tuple[OutputMessage, ...]]:
     package_metadata = venv.pipx_metadata.main_package
     installed_version: Final[str] = package_metadata.package_version
     if package_metadata.lock_file is not None:
         validate_expected_apps(venv, package_name, expected_apps)
         _record_expected_apps(venv, expected_apps)
-        print(locked_package_message(venv.name))
-        return
+        return "locked", (OutputMessage(locked_package_message(venv.name)),)
     if package_spec_satisfied(
         package_spec,
         package_name,
@@ -316,13 +462,15 @@ def _upgrade_existing_venv(
     ):
         validate_expected_apps(venv, package_name, expected_apps)
         _record_expected_apps(venv, expected_apps)
-        print(f"{package_name} {installed_version} already satisfies {package_spec}")
-        return
+        return "already-satisfied", (
+            OutputMessage(f"{package_name} {installed_version} already satisfies {package_spec}"),
+        )
     if package_metadata.pinned:
         validate_expected_apps(venv, package_name, expected_apps)
         _record_expected_apps(venv, expected_apps)
-        print(f"Not upgrading pinned package {venv.name}. Run `pipx unpin {venv.name}` to unpin it.")
-        return
+        return "pinned", (
+            OutputMessage(f"Not upgrading pinned package {venv.name}. Run `pipx unpin {venv.name}` to unpin it."),
+        )
 
     with preserve_venv(venv.root, enabled=bool(expected_apps)):
         main_pip_args: Final[list[str]] = pip_args or package_metadata.pip_args
@@ -345,13 +493,15 @@ def _upgrade_existing_venv(
         package_metadata = venv.pipx_metadata.main_package
         if venv.pipx_metadata.exposure_enabled:
             expose_package_resources(package_metadata, local_bin_dir, local_man_dir, force=False)
-    print(
-        pipx_wrap(
-            f"""
-            upgraded package {venv.name} from {installed_version} to
-            {package_metadata.package_version} (location: {venv.root!s})
-            """
-        )
+    return None, (
+        OutputMessage(
+            pipx_wrap(
+                f"""
+                upgraded package {venv.name} from {installed_version} to
+                {package_metadata.package_version} (location: {venv.root!s})
+                """
+            )
+        ),
     )
 
 
@@ -361,6 +511,16 @@ def _record_expected_apps(venv: Venv, expected_apps: Sequence[str]) -> None:
         return
     venv.pipx_metadata.main_package = replace(venv.pipx_metadata.main_package, expected_apps=expected)
     venv.pipx_metadata.write()
+
+
+def _installed_package(venv: Venv, package_name: str) -> _InstalledPackage:
+    package: Final[PackageInfo] = venv.package_metadata[package_name]
+    return _InstalledPackage(
+        environment=venv.name,
+        package=str(package.package),
+        version=package.package_version,
+        location=str(venv.root),
+    )
 
 
 def install_all(
@@ -492,7 +652,44 @@ def get_python_interpreter(
     return None
 
 
+@dataclass(frozen=True)
+class _InstalledPackage:
+    environment: str
+    package: str
+    version: str
+    location: str
+
+
+@dataclass(frozen=True)
+class _SkippedInstall:
+    environment: str
+    package: str
+    reason: str
+
+
+@dataclass(frozen=True)
+class _FailedInstall:
+    environment: str
+    error: str
+
+
+@dataclass(frozen=True)
+class _ExistingInstall:
+    continue_install: bool
+    packages: tuple[_InstalledPackage, ...]
+    skipped: tuple[_SkippedInstall, ...]
+    messages: tuple[OutputMessage, ...]
+
+
+@dataclass(frozen=True)
+class InstallData(OperationData):
+    packages: tuple[_InstalledPackage, ...]
+    skipped: tuple[_SkippedInstall, ...]
+    failures: tuple[_FailedInstall, ...]
+
+
 __all__ = [
+    "InstallData",
     "extract_venv_metadata",
     "generate_package_spec",
     "get_python_interpreter",

@@ -20,6 +20,7 @@ from pipx.commands.transaction import preserve_venv
 from pipx.constants import EXIT_CODE_INJECT_ERROR, EXIT_CODE_OK, ExitCode
 from pipx.emojis import hazard, stars
 from pipx.package_specifier import get_extras
+from pipx.result import render_messages
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv
 
@@ -136,14 +137,17 @@ def inject_dep(
             cooldown_days=cooldown_days,
         )
         if include_apps:
-            run_post_install_actions(
-                venv,
-                package_name,
-                paths.ctx.bin_dir,
-                paths.ctx.man_dir,
-                venv_dir,
-                force=force,
-                previous_resource_paths=previous_resource_paths,
+            render_messages(
+                run_post_install_actions(
+                    venv,
+                    package_name,
+                    paths.ctx.bin_dir,
+                    paths.ctx.man_dir,
+                    venv_dir,
+                    force=force,
+                    previous_resource_paths=previous_resource_paths,
+                ),
+                quiet=0,
             )
 
     if is_main_package:

@@ -3,7 +3,6 @@ import logging
 import os
 import shlex
 import shutil
-import sys
 import tempfile
 import time
 from collections.abc import Sequence
@@ -21,6 +20,7 @@ from pipx.constants import MAN_SECTIONS, WINDOWS
 from pipx.emojis import hazard, stars
 from pipx.package_specifier import parse_specifier_for_install, valid_pypi_name
 from pipx.pipx_metadata_file import PackageInfo
+from pipx.result import OutputMessage, OutputStream
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir, safe_unlink
 from pipx.venv import Venv
 
@@ -467,7 +467,7 @@ def run_post_install_actions(
     *,
     force: bool,
     previous_resource_paths: set[Path],
-) -> None:
+) -> tuple[OutputMessage, ...]:
     package_metadata = venv.package_metadata[package_name]
 
     display_name = f"{package_name}{package_metadata.suffix}"
@@ -495,20 +495,18 @@ def run_post_install_actions(
                 """
             )
         if package_metadata.apps_of_dependencies and not package_metadata.included_dependency_apps:
-            for (
-                dep,
-                dependent_apps,
-            ) in package_metadata.app_paths_of_dependencies.items():
-                print(f"Note: Dependent package '{dep}' contains {len(dependent_apps)} apps")
-                for app in dependent_apps:
-                    print(f"  - {app.name}")
             if venv.safe_to_remove():
                 venv.remove_venv()
+            dependency_apps: Final[str] = "\n".join(
+                f"{dependency}: {', '.join(app.name for app in apps)}"
+                for dependency, apps in package_metadata.app_paths_of_dependencies.items()
+            )
             raise PipxError(
                 f"""
                 No apps associated with package {display_name}. Use
                 '--include-apps-from PACKAGE' to select one of the dependencies
-                listed above, or '--include-deps' to include all of them.
+                listed below, or '--include-deps' to include all of them.
+                {dependency_apps}
                 {library_guidance}
                 """
             )
@@ -518,11 +516,14 @@ def run_post_install_actions(
         _remove_stale_venv_resources(previous_resource_paths, venv, local_bin_dir, local_man_dir)
 
     package_summary, _ = get_venv_summary(venv_dir, package_name=package_name, new_install=True)
-    pipx_logger = logging.getLogger("pipx")
-    if not pipx_logger.handlers or pipx_logger.handlers[0].level <= logging.WARNING:
-        print(package_summary)
-        warn_if_not_on_path(local_bin_dir)
-        print(f"done! {stars}", file=sys.stderr)
+    pipx_logger: Final[logging.Logger] = logging.getLogger("pipx")
+    if pipx_logger.handlers and pipx_logger.handlers[0].level > logging.WARNING:
+        return ()
+    messages: Final[list[OutputMessage]] = [OutputMessage(package_summary)]
+    if path_warning := warn_if_not_on_path(local_bin_dir):
+        messages.append(path_warning)
+    messages.append(OutputMessage(f"done! {stars}", stream=OutputStream.STDERR))
+    return tuple(messages)
 
 
 def _remove_stale_venv_resources(
@@ -567,9 +568,9 @@ def validate_expected_apps(venv: Venv, package_name: str, expected_apps: Sequenc
         )
 
 
-def warn_if_not_on_path(local_bin_dir: Path) -> None:
+def warn_if_not_on_path(local_bin_dir: Path) -> OutputMessage | None:
     if not userpath.in_current_path(str(local_bin_dir)):
-        _LOGGER.warning(
+        return OutputMessage(
             pipx_wrap(
                 f"""
                 {hazard}  Note: '{local_bin_dir}' is not on your PATH
@@ -579,8 +580,10 @@ def warn_if_not_on_path(local_bin_dir: Path) -> None:
                 shell's config file (e.g. ~/.bashrc).
                 """,
                 subsequent_indent=" " * 4,
-            )
+            ),
+            stream=OutputStream.LOG,
         )
+    return None
 
 
 def add_suffix(name: str, suffix: str) -> str:

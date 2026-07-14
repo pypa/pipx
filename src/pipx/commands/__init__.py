@@ -3,7 +3,7 @@ from pipx.commands.environment import environment
 from pipx.commands.expose import ExposureData, expose, unexpose
 from pipx.commands.health import HealthData, RepairData, health, repair
 from pipx.commands.inject import inject
-from pipx.commands.install import install, install_all
+from pipx.commands.install import InstallData, install, install_all
 from pipx.commands.interpreter import list_interpreters, prune_interpreters, upgrade_interpreters
 from pipx.commands.list_packages import list_packages
 from pipx.commands.manifest import lock_manifest, sync_manifest
@@ -19,6 +19,7 @@ from pipx.commands.upgrade import upgrade, upgrade_all, upgrade_shared
 __all__ = [
     "ExposureData",
     "HealthData",
+    "InstallData",
     "OutdatedData",
     "PinData",
     "RepairData",
