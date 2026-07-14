@@ -1344,6 +1344,21 @@ def test_install_json_reports_invalid_option(pipx_temp_env: None, capsys: pytest
     }
 
 
+def test_install_json_attributes_name_resolution_failure(
+    pipx_temp_env: None,
+    empty_project: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    missing: Final[Path] = tmp_path / "missing.whl"
+
+    assert run_pipx_cli(["install", "--output", "json", str(empty_project), str(missing)])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert not captured.err
+    assert json.loads(captured.out)["data"]["failures"][0]["environment"] == str(missing)
+
+
 def test_install_json_reports_missing_app(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "--output", "json", "--app", "missing", "pycowsay"])
 
@@ -1370,6 +1385,25 @@ def test_install_json_reports_missing_app(pipx_temp_env: None, capsys: pytest.Ca
         },
         False,
     )
+
+
+def test_install_json_reports_existing_upgrade_failure(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert not run_pipx_cli(["install", "--suffix=-x", "pycowsay"])
+    capsys.readouterr()
+
+    assert run_pipx_cli(["install", "--output", "json", "--upgrade", "--app", "missing", "--suffix=-x", "pycowsay"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert not captured.err
+    assert json.loads(captured.out)["data"]["failures"] == [
+        {
+            "environment": "pycowsay-x",
+            "error": "Package pycowsay does not provide expected app missing. Available apps:\npycowsay.",
+        }
+    ]
 
 
 def test_install_keyboard_interrupt_removes_environment(pipx_temp_env: None, mocker: MockerFixture) -> None:
