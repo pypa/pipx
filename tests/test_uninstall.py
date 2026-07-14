@@ -211,6 +211,19 @@ def test_uninstall_removes_selected_dependency_resources(pipx_temp_env: None, lo
     assert not any(file_or_symlink(path) for path in exposed_paths)
 
 
+def test_uninstall_preserves_colliding_dependency_resource(
+    copied_dependency_resource: tuple[Path, bytes],
+    local_extras_project: Path,
+) -> None:
+    exposed_app: Final[Path] = copied_dependency_resource[0]
+    first_contents: Final[bytes] = copied_dependency_resource[1]
+    assert not run_pipx_cli(["install", f"{local_extras_project}[cow]", "--include-deps"])
+
+    assert not run_pipx_cli(["uninstall", "repeatme"])
+
+    assert exposed_app.read_bytes() == first_contents
+
+
 def test_uninstall_injected(pipx_temp_env):
     pycowsay_app_paths = [paths.ctx.bin_dir / app for app in PKG["pycowsay"]["apps"]]
     pycowsay_man_page_paths = [paths.ctx.man_dir / man_page for man_page in PKG["pycowsay"]["man_pages"]]

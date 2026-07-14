@@ -1,11 +1,10 @@
 import filecmp
 import logging
-import os
 import shlex
 import shutil
 import tempfile
 import time
-from collections.abc import Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from shutil import which
 from tempfile import TemporaryDirectory
@@ -71,7 +70,7 @@ def expose_resources_globally(
         if not dest_dir.is_dir():
             mkdir(dest_dir)
         if not can_symlink(dest_dir):
-            _copy_package_resource(dest_dir, path, suffix=suffix)
+            _copy_package_resource(dest_dir, path, force=force, suffix=suffix)
         else:
             _symlink_package_resource(
                 dest_dir,
@@ -148,7 +147,7 @@ def _add_ignore_environment_to_python_shebang(path: Path) -> None:
     path.write_bytes(first_line + b" -E" + separator + rest)
 
 
-def _copy_package_resource(dest_dir: Path, path: Path, suffix: str = "") -> None:
+def _copy_package_resource(dest_dir: Path, path: Path, *, force: bool, suffix: str = "") -> None:
     src = path.resolve()
     name = src.name
     dest = Path(dest_dir / add_suffix(name, suffix))
@@ -156,6 +155,9 @@ def _copy_package_resource(dest_dir: Path, path: Path, suffix: str = "") -> None
         mkdir(dest.parent)
     if dest.exists():
         if filecmp.cmp(dest, src, shallow=False):
+            return
+        if not force:
+            _LOGGER.warning(f"{hazard}  File exists at {dest!s} and does not match {src!s}. Not modifying.")
             return
         _LOGGER.warning(f"{hazard}  Overwriting file {dest!s} with {src!s}")
         safe_unlink(dest)
@@ -282,24 +284,23 @@ def get_venv_summary(
             if new_install
             else tuple(metadata for metadata in venv.package_metadata.values() if metadata.include_apps)
         )
-        exposed_app_paths = get_exposed_paths_for_package(
-            venv.bin_path,
-            paths.ctx.bin_dir,
-            [add_suffix(app, metadata.suffix) for metadata in resource_packages for app in metadata.apps_to_expose],
+        app_paths: Final[dict[str, list[Path]]] = group_resource_paths(
+            (add_suffix(path.name, metadata.suffix), path)
+            for metadata in resource_packages
+            for path in metadata.app_paths_to_expose
         )
+        exposed_app_paths = get_exposed_paths_for_package(venv.bin_path, paths.ctx.bin_dir, app_paths)
         exposed_binary_names = sorted(path.name for path in exposed_app_paths)
         unavailable_binary_names = sorted(
             {add_suffix(name, package_metadata.suffix) for name in package_metadata.apps} - set(exposed_binary_names)
         )
         exposed_man_paths = set()
-        man_pages: Final[list[str]] = [
-            man_page for metadata in resource_packages for man_page in metadata.man_pages_to_expose
-        ]
+        man_paths: Final[list[Path]] = [path for metadata in resource_packages for path in metadata.man_paths_to_expose]
         for man_section in MAN_SECTIONS:
             exposed_man_paths |= get_exposed_man_paths_for_package(
                 venv.man_path / man_section,
                 paths.ctx.man_dir / man_section,
-                man_pages,
+                man_paths,
             )
         exposed_man_pages = sorted(str(Path(path.parent.name) / path.name) for path in exposed_man_paths)
         unavailable_man_pages = sorted(set(package_metadata.man_pages) - set(exposed_man_pages))
@@ -334,29 +335,29 @@ def get_venv_summary(
 def get_exposed_paths_for_package(
     venv_resource_path: Path,
     local_resource_dir: Path,
-    package_resource_names: list[str] | None = None,
+    package_resource_paths: Mapping[str, Sequence[Path]] | None = None,
 ) -> set[Path]:
-    # package_binary_names is used only if local_bin_path cannot use symlinks.
-    # It is necessary for non-symlink systems to return valid app_paths.
-    if package_resource_names is None:
-        package_resource_names = []
-
     if not local_resource_dir.exists():
         return set()
 
     symlinks = set()
-    for b in local_resource_dir.iterdir():
+    for resource_path in local_resource_dir.iterdir():
         try:
             # Some apps expose symlinks whose names differ from their targets, so resolved paths cannot identify them.
             # Windows setups without symlink support fall back to package resource names.
             is_same_file = False
-            if can_symlink(local_resource_dir) and b.is_symlink():
-                is_same_file = b.resolve().parent.samefile(venv_resource_path)
+            if can_symlink(local_resource_dir) and resource_path.is_symlink():
+                is_same_file = resource_path.resolve().parent.samefile(venv_resource_path)
             elif not can_symlink(local_resource_dir):
-                is_same_file = b.name in package_resource_names
+                sources = (
+                    package_resource_paths.get(resource_path.name, ()) if package_resource_paths is not None else ()
+                )
+                is_same_file = any(
+                    source.is_file() and filecmp.cmp(resource_path, source, shallow=False) for source in sources
+                )
 
             if is_same_file:
-                symlinks.add(b)
+                symlinks.add(resource_path)
 
         except (FileNotFoundError, RuntimeError):
             pass
@@ -366,15 +367,21 @@ def get_exposed_paths_for_package(
 def get_exposed_man_paths_for_package(
     venv_man_path: Path,
     local_man_dir: Path,
-    package_man_pages: list[str] | None = None,
+    package_man_paths: Sequence[Path] = (),
 ) -> set[Path]:
     man_section = venv_man_path.name
-    prefix = man_section + os.sep
     return get_exposed_paths_for_package(
         venv_man_path,
         local_man_dir,
-        [name.removeprefix(prefix) for name in package_man_pages or [] if name.startswith(prefix)],
+        group_resource_paths((path.name, path) for path in package_man_paths if path.parent.name == man_section),
     )
+
+
+def group_resource_paths(resource_paths: Iterable[tuple[str, Path]]) -> dict[str, list[Path]]:
+    grouped: dict[str, list[Path]] = {}
+    for name, path in resource_paths:
+        grouped.setdefault(name, []).append(path)
+    return grouped
 
 
 def _get_list_output(
@@ -607,6 +614,7 @@ __all__ = [
     "get_exposed_man_paths_for_package",
     "get_exposed_paths_for_package",
     "get_venv_summary",
+    "group_resource_paths",
     "locked_package_message",
     "package_name_from_spec",
     "run_post_install_actions",

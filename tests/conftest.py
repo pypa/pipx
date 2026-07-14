@@ -15,13 +15,15 @@ from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 import pytest
+from pytest_mock import MockerFixture
 
-from helpers import WIN
+from helpers import WIN, app_name, run_pipx_cli
 from pipx import commands, interpreter, paths, shared_libs, standalone_python, venv
 from pipx.backends import get_backend
 from pipx.backends import pip as _pip_backend_module
 from pipx.backends import uv as _uv_backend_module
 from pipx.backends.uv import find_uv_binary
+from pipx.commands import common
 from pipx.venv import reset_backend_override_warnings
 
 # ``pipx.commands.__init__`` re-exports ``upgrade`` (the function), which
@@ -93,6 +95,19 @@ def local_extras_project(root: Path, tmp_path: Path) -> Path:
     project: Final[Path] = tmp_path / "local_extras"
     shutil.copytree(root / "testdata/test_package_specifier/local_extras", project, ignore=_IGNORE_PROJECT_OUTPUT)
     return project
+
+
+@pytest.fixture()
+def copied_dependency_resource(
+    pipx_temp_env: None,
+    make_project_with_dependency: Callable[[str], Path],
+    mocker: MockerFixture,
+) -> tuple[Path, bytes]:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
+    first_project: Final[Path] = make_project_with_dependency("pycowsay==0.0.0.2")
+    exposed_app: Final[Path] = paths.ctx.bin_dir / app_name("pycowsay")
+    assert not run_pipx_cli(["install", str(first_project), "--include-deps"])
+    return exposed_app, exposed_app.read_bytes()
 
 
 @pytest.fixture()
