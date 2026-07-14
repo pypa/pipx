@@ -11,7 +11,7 @@ from pipx.commands.list_packages import list_packages
 from pipx.commands.manifest import lock_manifest, sync_manifest
 from pipx.commands.outdated import OutdatedData, list_outdated
 from pipx.commands.pin import PinData, pin, unpin
-from pipx.commands.reinstall import reinstall, reinstall_all
+from pipx.commands.reinstall import ReinstallData, reinstall, reinstall_all
 from pipx.commands.reset import ResetData, reset
 from pipx.commands.run import run
 from pipx.commands.run_pip import run_pip
@@ -26,6 +26,7 @@ __all__ = [
     "InstallData",
     "OutdatedData",
     "PinData",
+    "ReinstallData",
     "RepairData",
     "ResetData",
     "UninstallData",
