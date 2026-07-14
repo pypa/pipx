@@ -58,6 +58,25 @@ pipx uninstall <mypackage>
 pipx install <mypackage>
 ```
 
+## Start over from a fresh install
+
+An interrupted install or shared-library upgrade can leave state that `pipx repair` cannot mend, such as a shared
+environment whose pip no longer imports. Reset pipx to the state it had when you installed it:
+
+```
+pipx reset
+```
+
+It uninstalls every package it manages, which unlinks their apps and man pages, and it removes the shared libraries, the
+caches, the standalone interpreters, the logs and the trash. Because it asks first, `--force` answers the question for a
+script, and `--dry-run` lists what it would remove without touching anything.
+
+```
+pipx reset --dry-run
+```
+
+Reinstall your packages afterwards. `pipx list --short` before the reset records what you had.
+
 ## Inspect package details with `list`
 
 ```

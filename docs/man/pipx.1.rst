@@ -16,8 +16,9 @@ SYNOPSIS
 
 **pipx** [*global-options*] [**install** | **install-all** | **lock** | **sync** | **uninject** | **inject** |
 **expose** | **unexpose** | **pin** | **unpin** | **upgrade** | **upgrade-all** | **upgrade-shared** | **uninstall** |
-**uninstall-all** | **reinstall** | **reinstall-all** | **health** | **repair** | **list** | **interpreter** | **cache**
-| **run** | **exec** | **runpip** | **ensurepath** | **environment** | **completions** | **help**] [*command-options*]
+**uninstall-all** | **reset** | **reinstall** | **reinstall-all** | **health** | **repair** | **list** | **interpreter**
+| **cache** | **run** | **exec** | **runpip** | **ensurepath** | **environment** | **completions** | **help**]
+[*command-options*]
 
 DESCRIPTION
 -----------
@@ -72,6 +73,9 @@ COMMANDS
 
 **uninstall-all**
     Uninstall all packages
+
+**reset**
+    Return pipx to a fresh install
 
 **reinstall**
     Reinstall a package
