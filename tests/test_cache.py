@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from typing import Final
+import json
+from typing import TYPE_CHECKING, Final
 
 import pytest
 
 from helpers import run_pipx_cli
 from pipx import paths
+
+if TYPE_CHECKING:
+    from _pytest.capture import CaptureResult
 
 
 def test_cache_dir(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
@@ -39,3 +43,38 @@ def test_cache_purge_removes_run_environments(
         capsys.readouterr().out,
         tuple(path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()),
     ) == (expected, ())
+
+
+@pytest.mark.parametrize(
+    ("subcommand", "command"),
+    [
+        pytest.param("dir", "cache-dir", id="dir"),
+        pytest.param("purge", "cache-purge", id="purge"),
+    ],
+)
+def test_cache_json_reports_the_directory(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    subcommand: str,
+    command: str,
+) -> None:
+    assert not run_pipx_cli(["cache", subcommand, "--output", "json"])
+
+    assert json.loads(capsys.readouterr().out) == {
+        "command": command,
+        "data": {"directory": str(paths.ctx.venv_cache), "removed": []},
+        "pipx_result_version": "0.1",
+        "status": "success",
+    }
+
+
+@pytest.mark.parametrize("subcommand", [pytest.param("dir", id="dir"), pytest.param("purge", id="purge")])
+def test_cache_quiet_says_nothing(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    subcommand: str,
+) -> None:
+    assert not run_pipx_cli(["cache", subcommand, "--quiet"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (captured.out, captured.err) == ("", "")

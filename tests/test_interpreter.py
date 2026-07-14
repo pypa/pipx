@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import subprocess
@@ -11,6 +12,7 @@ from pytest_mock import MockerFixture
 import pipx.interpreter
 import pipx.paths
 import pipx.standalone_python
+from helpers import run_pipx_cli
 from pipx.constants import WINDOWS, FetchPythonOptions
 from pipx.interpreter import (
     InterpreterResolutionError,
@@ -346,3 +348,38 @@ def test_find_python_interpreter_py_launcher_success(monkeypatch):
     monkeypatch.setattr(shutil, "which", lambda name: None)
     monkeypatch.setattr(pipx.interpreter, "find_py_launcher_python", lambda v: f"/fake/python{v}")
     assert find_python_interpreter("3.13", fetch_python=FetchPythonOptions.NEVER) == "/fake/python3.13"
+
+
+@pytest.mark.parametrize(
+    ("subcommand", "command"),
+    [
+        pytest.param("list", "interpreter-list", id="list"),
+        pytest.param("prune", "interpreter-prune", id="prune"),
+    ],
+)
+def test_interpreter_json_reports_an_empty_cache(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    subcommand: str,
+    command: str,
+) -> None:
+    assert not run_pipx_cli(["interpreter", subcommand, "--output", "json"])
+
+    assert json.loads(capsys.readouterr().out) == {
+        "command": command,
+        "data": {"interpreters": [], "removed": [], "upgraded": []},
+        "pipx_result_version": "0.1",
+        "status": "success",
+    }
+
+
+@pytest.mark.parametrize("subcommand", [pytest.param("list", id="list"), pytest.param("prune", id="prune")])
+def test_interpreter_quiet_says_nothing(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    subcommand: str,
+) -> None:
+    assert not run_pipx_cli(["interpreter", subcommand, "--quiet"])
+
+    captured = capsys.readouterr()
+    assert (captured.out, captured.err) == ("", "")

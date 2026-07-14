@@ -639,10 +639,11 @@ def _add_lock(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
         parents=[shared_parser],
     )
     parser.add_argument("manifest", type=Path, help="Path to the tool manifest.")
+    _add_output_option(parser)
     parser.set_defaults(func=_cmd_lock)
 
 
-def _cmd_lock(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_lock(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.ManifestData]:
     return commands.lock_manifest(args.manifest)
 
 
@@ -656,10 +657,11 @@ def _add_sync(subparsers: argparse._SubParsersAction, shared_parser: argparse.Ar
     parser.add_argument("manifest", type=Path, help="Path to the tool manifest.")
     parser.add_argument("--prune", action="store_true", help="Uninstall environments absent from the manifest.")
     add_backend_arg(parser)
+    _add_output_option(parser)
     parser.set_defaults(func=_cmd_sync)
 
 
-def _cmd_sync(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_sync(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.ManifestData]:
     return commands.sync_manifest(
         args.manifest,
         ctx.venv_container,
@@ -985,10 +987,11 @@ def _add_upgrade_shared(subparsers: argparse._SubParsersAction, shared_parser: a
         "--pip-args",
         help="Arbitrary pip arguments to pass directly to pip install/upgrade commands",
     )
+    _add_output_option(p)
     p.set_defaults(func=_cmd_upgrade_shared)
 
 
-def _cmd_upgrade_shared(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_upgrade_shared(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.SharedData]:
     return commands.upgrade_shared(ctx.verbose, ctx.pip_args)
 
 
@@ -1266,29 +1269,45 @@ def _add_interpreter(
         description="Get help for commands with pipx interpreter COMMAND --help",
         dest="interpreter_command",
     )
-    list_p = s.add_parser("list", help="List available interpreters", description="List available interpreters")
-    prune_p = s.add_parser("prune", help="Prune unused interpreters", description="Prune unused interpreters")
+    list_p = s.add_parser(
+        "list",
+        help="List available interpreters",
+        description="List available interpreters",
+        parents=[shared_parser],
+    )
+    prune_p = s.add_parser(
+        "prune",
+        help="Prune unused interpreters",
+        description="Prune unused interpreters",
+        parents=[shared_parser],
+    )
     upgrade_p = s.add_parser(
         "upgrade",
         help="Upgrade installed interpreters to the latest available micro/patch version",
         description="Upgrade installed interpreters to the latest available micro/patch version",
+        parents=[shared_parser],
     )
+    _add_output_option(list_p)
     list_p.set_defaults(func=_cmd_interpreter_list)
+    _add_output_option(prune_p)
     prune_p.set_defaults(func=_cmd_interpreter_prune)
+    _add_output_option(upgrade_p)
     upgrade_p.set_defaults(func=_cmd_interpreter_upgrade)
     p.set_defaults(func=_make_print_help(p))
     return p
 
 
-def _cmd_interpreter_list(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_interpreter_list(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.InterpreterData]:
     return commands.list_interpreters(ctx.venv_container)
 
 
-def _cmd_interpreter_prune(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_interpreter_prune(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.InterpreterData]:
     return commands.prune_interpreters(ctx.venv_container)
 
 
-def _cmd_interpreter_upgrade(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_interpreter_upgrade(
+    args: argparse.Namespace, ctx: DispatchContext
+) -> OperationResult[commands.InterpreterData]:
     return commands.upgrade_interpreters(ctx.venv_container, ctx.verbose)
 
 
@@ -1310,23 +1329,27 @@ def _add_cache(
         "dir",
         help="Show the cache directory",
         description="Show the cache directory",
+        parents=[shared_parser],
     )
     purge_parser: Final[argparse.ArgumentParser] = subcommands.add_parser(
         "purge",
         help="Remove cached run environments",
         description="Remove cached run environments",
+        parents=[shared_parser],
     )
+    _add_output_option(dir_parser)
     dir_parser.set_defaults(func=_cmd_cache_dir)
+    _add_output_option(purge_parser)
     purge_parser.set_defaults(func=_cmd_cache_purge)
     parser.set_defaults(func=_make_print_help(parser))
     return parser
 
 
-def _cmd_cache_dir(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_cache_dir(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.CacheData]:
     return commands.print_cache_dir(VenvContainer(paths.ctx.venv_cache))
 
 
-def _cmd_cache_purge(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
+def _cmd_cache_purge(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.CacheData]:
     return commands.purge_cache(VenvContainer(paths.ctx.venv_cache))
 
 
