@@ -103,17 +103,29 @@ def test_shared_libs_create_without_index_when_auto_upgrade_disabled(
     assert shared_libs.shared_libs.is_valid
 
 
-def test_shared_libs_validity_check_is_cached(pipx_ultra_temp_env: None, mocker: MockerFixture) -> None:
+@pytest.mark.parametrize(
+    ("returncode", "expected"),
+    [
+        pytest.param(0, True, id="valid"),
+        pytest.param(1, False, id="broken-pip"),
+    ],
+)
+def test_shared_libs_validity_check_is_cached(
+    pipx_ultra_temp_env: None,
+    mocker: MockerFixture,
+    returncode: int,
+    expected: bool,
+) -> None:
     shared_libs.shared_libs.python_path.parent.mkdir(parents=True)
     shared_libs.shared_libs.python_path.touch()
     shared_libs.shared_libs.pip_path.touch()
     run_subprocess = mocker.patch(
         "pipx.shared_libs.run_subprocess",
         autospec=True,
-        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="ModuleSpec", stderr=""),
+        return_value=subprocess.CompletedProcess(args=[], returncode=returncode, stdout="", stderr=""),
     )
 
-    assert (shared_libs.shared_libs.is_valid, shared_libs.shared_libs.is_valid) == (True, True)
+    assert (shared_libs.shared_libs.is_valid, shared_libs.shared_libs.is_valid) == (expected, expected)
     run_subprocess.assert_called_once()
 
 
