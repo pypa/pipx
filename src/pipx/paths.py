@@ -40,8 +40,7 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def get_expanded_environ(env_name: str) -> Path | None:
-    val = get_environment_value(env_name)
-    return Path(val).expanduser().resolve() if val else None
+    return Path(value).expanduser().absolute() if (value := get_environment_value(env_name)) else None
 
 
 class _PathContext:
@@ -100,7 +99,7 @@ class _PathContext:
             home = self._fallback_home
         else:
             home = self._default_home
-        return home.resolve()
+        return home.absolute()
 
     @cached_property
     def shared_libs(self) -> Path:
