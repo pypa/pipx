@@ -1019,6 +1019,41 @@ def _cmd_uninstall_all(args: argparse.Namespace, ctx: DispatchContext) -> Operat
     return commands.uninstall_all(ctx.venv_container, paths.ctx.bin_dir, paths.ctx.man_dir, ctx.verbose)
 
 
+def _add_reset(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
+    parser: Final[argparse.ArgumentParser] = subparsers.add_parser(
+        "reset",
+        help="Return pipx to a fresh install",
+        description=(
+            "Uninstall every pipx-managed package and remove the shared libraries, the caches, the standalone "
+            "interpreters, the logs and the trash, which returns pipx to the state it had when it was installed."
+        ),
+        parents=[shared_parser],
+    )
+    parser.add_argument("--force", action="store_true", help="Reset without asking for confirmation")
+    parser.add_argument("--dry-run", action="store_true", help="Report what a reset would remove and stop")
+    _add_output_option(parser)
+    parser.set_defaults(func=_cmd_reset)
+
+
+def _cmd_reset(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.ResetData]:
+    if not args.dry_run and not args.force and not _confirmed_reset():
+        raise PipxError("Reset cancelled.")
+    return commands.reset(
+        ctx.venv_container,
+        paths.ctx.bin_dir,
+        paths.ctx.man_dir,
+        ctx.verbose,
+        dry_run=args.dry_run,
+    )
+
+
+def _confirmed_reset() -> bool:
+    if not sys.stdin or not sys.stdin.isatty():
+        raise PipxError("Pass --force to reset when no terminal can confirm it.")
+    answer: Final[str] = input(f"Remove every package pipx installed, along with {paths.ctx.home}? [y/N] ")
+    return answer.strip().casefold() in {"y", "yes"}
+
+
 def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser(
         "reinstall",
@@ -1626,6 +1661,7 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
     _add_upgrade_shared(subparsers, shared_parser)
     _add_uninstall(subparsers, completer_venvs.use, shared_parser)
     _add_uninstall_all(subparsers, shared_parser)
+    _add_reset(subparsers, shared_parser)
     _add_reinstall(subparsers, completer_venvs.use, shared_parser)
     _add_reinstall_all(subparsers, shared_parser)
     _add_health(subparsers, completer_venvs.use, shared_parser)
