@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
+from helpers import skip_if_windows
 from pipx import paths
 from pipx.util import exec_app, rmdir, run_subprocess, safe_unlink
 
@@ -180,6 +181,32 @@ def test_subprocess_stream_reports_the_terminal_to_the_child(
     )
 
     assert result.stdout.strip() == expected
+
+
+@skip_if_windows
+def test_subprocess_stream_hands_a_terminal_to_the_child(mocker: MockerFixture) -> None:
+    destination: Final[StringIO] = StringIO()
+    mocker.patch.object(destination, "isatty", return_value=True)
+    mocker.patch("pipx.util.sys.stdout", destination)
+    result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
+        [sys.executable, "-c", "import sys; print(sys.stdout.isatty())"],
+        capture_stderr=False,
+        stream_output=True,
+    )
+
+    assert result.stdout.strip() == "True"
+
+
+def test_subprocess_stream_leaves_a_pipe_to_the_child_without_a_terminal(mocker: MockerFixture) -> None:
+    destination: Final[StringIO] = StringIO()
+    mocker.patch("pipx.util.sys.stdout", destination)
+    result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
+        [sys.executable, "-c", "import sys; print(sys.stdout.isatty())"],
+        capture_stderr=False,
+        stream_output=True,
+    )
+
+    assert result.stdout.strip() == "False"
 
 
 def test_subprocess_stream_normalizes_split_crlf(mocker: MockerFixture) -> None:

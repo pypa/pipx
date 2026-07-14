@@ -99,8 +99,9 @@ class UvBackend(Backend):
         upgrade: bool = False,
         log_pip_errors: bool = True,
         verbose: bool = False,
+        progress: bool = False,
     ) -> CompletedProcess[str]:
-        cmd = self._uv_pip_command("install", venv_python, verbose=verbose)
+        cmd = self._uv_pip_command("install", venv_python, verbose=verbose, progress=progress)
         if upgrade:
             cmd.append("--upgrade")
         if no_deps:
@@ -112,7 +113,7 @@ class UvBackend(Backend):
             log_stdout=not log_pip_errors,
             log_stderr=not log_pip_errors,
             env_overrides=_UV_ENV_OVERRIDES,
-            stream_output=verbose,
+            stream_output=verbose or progress,
         )
         if log_pip_errors:
             subprocess_post_check_handle_pip_error(process, tool_name="uv")
@@ -195,9 +196,20 @@ class UvBackend(Backend):
             env_overrides=_UV_ENV_OVERRIDES,
         )
 
-    def _uv_pip_command(self, subcommand: str, venv_python: Path, *, verbose: bool) -> list[str | Path]:
+    def _uv_pip_command(
+        self,
+        subcommand: str,
+        venv_python: Path,
+        *,
+        verbose: bool,
+        progress: bool = False,
+    ) -> list[str | Path]:
         cmd: list[str | Path] = [self._binary, "pip", subcommand, "--python", str(venv_python)]
-        cmd.append("--verbose" if verbose else "--quiet")
+        # uv hides its progress bar under both --verbose and --quiet, so drawing one means passing neither
+        if verbose:
+            cmd.append("--verbose")
+        elif not progress:
+            cmd.append("--quiet")
         return cmd
 
 
