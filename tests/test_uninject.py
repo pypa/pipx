@@ -246,21 +246,24 @@ def test_uninject_running_app(pipx_temp_env: None) -> None:
         process.wait(timeout=10)
 
 
-def test_uninject_with_suffix_removes_apps(pipx_temp_env: None, root: Path, tmp_path: Path) -> None:
+def test_uninject_with_suffix_removes_apps(
+    pipx_temp_env: None,
+    root: Path,
+    tmp_path: Path,
+    local_extras_project: Path,
+) -> None:
     suffix = "@1"
-    ignore_generated = shutil.ignore_patterns("build", "*.egg-info")
-    project = shutil.copytree(root / "testdata/empty_project", tmp_path / "empty_project", ignore=ignore_generated)
-    assert not run_pipx_cli(["install", str(project), f"--suffix={suffix}"])
-    injected_project = shutil.copytree(
-        root / "testdata/test_package_specifier/local_extras",
-        tmp_path / "local_extras",
-        ignore=ignore_generated,
+    project = shutil.copytree(
+        root / "testdata/empty_project",
+        tmp_path / "empty_project",
+        ignore=shutil.ignore_patterns("build", "*.egg-info"),
     )
+    assert not run_pipx_cli(["install", str(project), f"--suffix={suffix}"])
     assert not run_pipx_cli(
         [
             "inject",
             f"empty-project{suffix}",
-            f"{injected_project}[cow]",
+            f"{local_extras_project}[cow]",
             "--include-deps",
             "--with-suffix",
         ]

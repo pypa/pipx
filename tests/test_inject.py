@@ -255,17 +255,16 @@ def test_inject_single_package(pipx_temp_env, capsys, caplog, pkg_spec):
 )
 def test_inject_main_package_extra(
     pipx_temp_env: None,
-    root: Path,
+    local_extras_project: Path,
     capsys: pytest.CaptureFixture[str],
     backend: str,
     suffix: str,
 ) -> None:
-    package = root / "testdata/test_package_specifier/local_extras"
-    assert not run_pipx_cli(["install", str(package), "--backend", backend, f"--suffix={suffix}"])
+    assert not run_pipx_cli(["install", str(local_extras_project), "--backend", backend, f"--suffix={suffix}"])
     venv_dir = paths.ctx.venvs / canonicalize_name(f"repeatme{suffix}")
     environment = PipxMetadata(venv_dir).environment
     assert environment is not None
-    assert not run_pipx_cli(["inject", environment, f"{package}[cow]", "--backend", backend])
+    assert not run_pipx_cli(["inject", environment, f"{local_extras_project}[cow]", "--backend", backend])
     assert not run_pipx_cli(["reinstall", environment])
 
     output = subprocess.run(

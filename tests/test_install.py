@@ -545,10 +545,8 @@ def test_install_upgrade_records_expected_app_without_package_change(
     assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.expected_apps == ["pycowsay"]
 
 
-def test_install_accepts_expected_dependency_app(pipx_temp_env: None, root: Path) -> None:
-    package = f"{root / TEST_DATA_PATH / 'local_extras'}[cow]"
-
-    assert not run_pipx_cli(["install", "--include-deps", "--app", "pycowsay", package])
+def test_install_accepts_expected_dependency_app(pipx_temp_env: None, local_extras_project: Path) -> None:
+    assert not run_pipx_cli(["install", "--include-deps", "--app", "pycowsay", f"{local_extras_project}[cow]"])
 
     assert PipxMetadata(paths.ctx.venvs / "repeatme").main_package.expected_apps == ["pycowsay"]
 
@@ -859,8 +857,12 @@ def test_extra(pipx_temp_env, capsys):
     assert f"- {app_name('tox')}\n" in captured.out
 
 
-def test_install_local_extra(pipx_temp_env, capsys, monkeypatch, root):
-    assert not run_pipx_cli(["install", str(root / f"{TEST_DATA_PATH}/local_extras[cow]"), "--include-deps"])
+def test_install_local_extra(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    local_extras_project: Path,
+) -> None:
+    assert not run_pipx_cli(["install", f"{local_extras_project}[cow]", "--include-deps"])
     captured = capsys.readouterr()
     assert f"- {app_name('pycowsay')}\n" in captured.out
     assert f"- {Path('man6/pycowsay.6')}\n" in captured.out
@@ -1086,8 +1088,13 @@ def test_install_pip_failure(pipx_temp_env, capsys):
     assert re.search(r"pip (failed|seemed to fail) to build package", captured.err)
 
 
-def test_install_local_archive(pipx_temp_env, monkeypatch, capsys, root):
-    monkeypatch.chdir(root / TEST_DATA_PATH / "local_extras")
+def test_install_local_archive(
+    pipx_temp_env: None,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    local_extras_project: Path,
+) -> None:
+    monkeypatch.chdir(local_extras_project)
 
     subprocess.run([sys.executable, "-m", "pip", "wheel", "."], check=True)
     assert not run_pipx_cli(["install", "repeatme-0.1-py3-none-any.whl"])
