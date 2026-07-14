@@ -16,18 +16,22 @@ if WINDOWS:
 
 DEFAULT_PIPX_BIN_DIR: Final[Path] = Path.home() / ".local/bin"
 DEFAULT_PIPX_MAN_DIR: Final[Path] = Path.home() / ".local/share/man"
+DEFAULT_PIPX_COMPLETION_DIR: Final[Path] = Path.home() / ".local/share"
 DEFAULT_PIPX_GLOBAL_HOME: Final[Path] = Path("/opt/pipx")
 DEFAULT_PIPX_GLOBAL_BIN_DIR: Final[Path] = Path("/usr/local/bin")
 DEFAULT_PIPX_GLOBAL_MAN_DIR: Final[Path] = Path("/usr/local/share/man")
+DEFAULT_PIPX_GLOBAL_COMPLETION_DIR: Final[Path] = Path("/usr/local/share")
 
 # Overrides for testing
 OVERRIDE_PIPX_HOME = None
 OVERRIDE_PIPX_BIN_DIR = None
 OVERRIDE_PIPX_MAN_DIR = None
+OVERRIDE_PIPX_COMPLETION_DIR = None
 OVERRIDE_PIPX_SHARED_LIBS = None
 OVERRIDE_PIPX_GLOBAL_HOME = None
 OVERRIDE_PIPX_GLOBAL_BIN_DIR = None
 OVERRIDE_PIPX_GLOBAL_MAN_DIR = None
+OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR = None
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -43,6 +47,8 @@ class _PathContext:
     _default_bin: Path
     _base_man: Path | None
     _default_man: Path
+    _base_completion: Path | None
+    _default_completion: Path
     _default_log: Path
     _default_cache: Path
     _default_trash: Path
@@ -84,6 +90,10 @@ class _PathContext:
         return (self._base_man or self._default_man).resolve()
 
     @cached_property
+    def completion_dir(self) -> Path:
+        return (self._base_completion or self._default_completion).resolve()
+
+    @cached_property
     def home(self) -> Path:
         if self._base_home:
             home = self._base_home
@@ -98,7 +108,7 @@ class _PathContext:
         return (self._base_shared_libs or self.home / "shared").resolve()
 
     def _clear_cached_paths(self) -> None:
-        for attribute in ("bin_dir", "home", "man_dir", "shared_libs"):
+        for attribute in ("bin_dir", "completion_dir", "home", "man_dir", "shared_libs"):
             self.__dict__.pop(attribute, None)
 
     def make_local(self) -> None:
@@ -108,6 +118,8 @@ class _PathContext:
         self._default_bin = DEFAULT_PIPX_BIN_DIR
         self._base_man = OVERRIDE_PIPX_MAN_DIR or get_expanded_environ("PIPX_MAN_DIR")  # type: ignore[redundant-expr]
         self._default_man = DEFAULT_PIPX_MAN_DIR
+        self._base_completion = OVERRIDE_PIPX_COMPLETION_DIR or get_expanded_environ("PIPX_COMPLETION_DIR")  # type: ignore[redundant-expr]
+        self._default_completion = DEFAULT_PIPX_COMPLETION_DIR
         self._base_shared_libs = OVERRIDE_PIPX_SHARED_LIBS or get_expanded_environ("PIPX_SHARED_LIBS")  # type: ignore[redundant-expr]
         self._default_log = Path(user_log_path("pipx"))
         self._default_cache = Path(user_cache_path("pipx"))
@@ -123,6 +135,8 @@ class _PathContext:
         self._default_bin = DEFAULT_PIPX_GLOBAL_BIN_DIR
         self._base_man = OVERRIDE_PIPX_GLOBAL_MAN_DIR or get_expanded_environ("PIPX_GLOBAL_MAN_DIR")  # type: ignore[redundant-expr]
         self._default_man = DEFAULT_PIPX_GLOBAL_MAN_DIR
+        self._base_completion = OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR or get_expanded_environ("PIPX_GLOBAL_COMPLETION_DIR")  # type: ignore[redundant-expr]
+        self._default_completion = DEFAULT_PIPX_GLOBAL_COMPLETION_DIR
         self._default_log = self._default_home / "logs"
         self._default_cache = self._default_home / ".cache"
         self._default_trash = self._default_home / "trash"
@@ -156,13 +170,17 @@ ctx = _PathContext()
 
 __all__ = [
     "DEFAULT_PIPX_BIN_DIR",
+    "DEFAULT_PIPX_COMPLETION_DIR",
     "DEFAULT_PIPX_GLOBAL_BIN_DIR",
+    "DEFAULT_PIPX_GLOBAL_COMPLETION_DIR",
     "DEFAULT_PIPX_GLOBAL_HOME",
     "DEFAULT_PIPX_GLOBAL_MAN_DIR",
     "DEFAULT_PIPX_HOME",
     "DEFAULT_PIPX_MAN_DIR",
     "OVERRIDE_PIPX_BIN_DIR",
+    "OVERRIDE_PIPX_COMPLETION_DIR",
     "OVERRIDE_PIPX_GLOBAL_BIN_DIR",
+    "OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR",
     "OVERRIDE_PIPX_GLOBAL_HOME",
     "OVERRIDE_PIPX_GLOBAL_MAN_DIR",
     "OVERRIDE_PIPX_HOME",

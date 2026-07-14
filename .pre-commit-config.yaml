@@ -39,7 +39,7 @@ repos:
     hooks:
       - id: mypy
         args: ['--warn-unused-ignores', '--strict-equality', '--no-implicit-optional', '--check-untyped-defs']
-        exclude: 'testdata/test_package_specifier/(local_extras|local_manpage)/setup.py'
+        exclude: 'testdata/test_package_specifier/(local_extras|local_manpage|local_completion)/setup.py'
         additional_dependencies:
           - "docutils>=0.21"
           - "hatchling>=1.27"

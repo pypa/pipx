@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
     from pipx.venv_inspect import VenvMetadata
 
+from pipx import paths
 from pipx.commands.common import (
     add_suffix,
     can_symlink,
@@ -19,6 +20,7 @@ from pipx.commands.common import (
     group_resource_paths,
 )
 from pipx.constants import (
+    COMPLETION_SECTIONS,
     EXIT_CODE_OK,
     EXIT_CODE_UNINSTALL_ERROR,
     EXIT_CODE_UNINSTALL_VENV_NONEXISTENT,
@@ -86,6 +88,13 @@ def uninstall(
     for man_section in MAN_SECTIONS:
         resource_paths |= _get_venv_resource_paths(
             "man", venv.man_path / man_section, local_man_dir / man_section, package_infos
+        )
+    for completion_section in COMPLETION_SECTIONS:
+        resource_paths |= _get_venv_resource_paths(
+            "completion",
+            venv.man_path.parent / completion_section,
+            paths.ctx.completion_dir / completion_section,
+            package_infos,
         )
 
     for path in resource_paths:
@@ -175,7 +184,7 @@ def _venv_metadata_to_package_info(
 
 
 def _get_venv_resource_paths(
-    resource_type: Literal["app", "man"],
+    resource_type: Literal["app", "man", "completion"],
     venv_resource_path: Path,
     local_resource_dir: Path,
     package_infos: tuple[PackageInfo, ...] | None,
@@ -183,6 +192,7 @@ def _get_venv_resource_paths(
     get_package_resource_paths: Callable[[PackageInfo, Path, Path], set[Path]] = {
         "app": _get_package_bin_dir_app_paths,
         "man": _get_package_man_paths,
+        "completion": _get_package_completion_paths,
     }[resource_type]
     if package_infos is not None:
         return set().union(
@@ -210,6 +220,18 @@ def _get_package_bin_dir_app_paths(package_info: PackageInfo, venv_bin_path: Pat
 
 def _get_package_man_paths(package_info: PackageInfo, venv_man_path: Path, local_man_dir: Path) -> set[Path]:
     return get_exposed_man_paths_for_package(venv_man_path, local_man_dir, package_info.man_paths_to_expose)
+
+
+def _get_package_completion_paths(
+    package_info: PackageInfo,
+    venv_completion_path: Path,
+    local_completion_dir: Path,
+) -> set[Path]:
+    return get_exposed_paths_for_package(
+        venv_completion_path,
+        local_completion_dir,
+        group_resource_paths((path.name, path) for path in package_info.completion_paths_to_expose),
+    )
 
 
 __all__ = [

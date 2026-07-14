@@ -195,19 +195,23 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_
     home_dir = Path(tmp_path) / "subdir" / "pipxhome"
     bin_dir = Path(tmp_path) / "otherdir" / "pipxbindir"
     man_dir = Path(tmp_path) / "otherdir" / "pipxmandir"
+    completion_dir = Path(tmp_path) / "otherdir" / "pipxcompletiondir"
 
     global_home_dir = Path(tmp_path) / "global" / "pipxhome"
     global_bin_dir = Path(tmp_path) / "global_otherdir" / "pipxbindir"
+    global_completion_dir = Path(tmp_path) / "global_otherdir" / "pipxcompletiondir"
     global_man_dir = Path(tmp_path) / "global_otherdir" / "pipxmandir"
 
     # Patch in test specific paths
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_HOME", home_dir)
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_BIN_DIR", bin_dir)
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_MAN_DIR", man_dir)
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_COMPLETION_DIR", completion_dir)
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_SHARED_LIBS", pipx_shared_dir)
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_HOME", global_home_dir)
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_BIN_DIR", global_bin_dir)
     monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_MAN_DIR", global_man_dir)
+    monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_COMPLETION_DIR", global_completion_dir)
     # Refresh paths.ctx to commit the overrides
     paths.ctx.make_local()
 

@@ -4,9 +4,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING
 
+from pipx import paths
 from pipx.commands.common import expose_package_resources
 from pipx.commands.uninstall import _get_venv_resource_paths
-from pipx.constants import MAN_SECTIONS, ExitCode
+from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, ExitCode
 from pipx.result import OperationData, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import safe_unlink
 from pipx.venv import Venv
@@ -62,6 +63,13 @@ def _remove_resources(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> N
             "man",
             venv.man_path / man_section,
             local_man_dir / man_section,
+            package_infos,
+        )
+    for completion_section in COMPLETION_SECTIONS:
+        resource_paths |= _get_venv_resource_paths(
+            "completion",
+            venv.man_path.parent / completion_section,
+            paths.ctx.completion_dir / completion_section,
             package_infos,
         )
     for resource_path in resource_paths:

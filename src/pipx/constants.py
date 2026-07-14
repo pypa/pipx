@@ -2,6 +2,7 @@ import enum
 import os
 import platform
 import sysconfig
+from pathlib import PurePosixPath
 from textwrap import dedent
 from typing import NewType
 
@@ -20,6 +21,13 @@ PIPX_SHARED_PTH = "pipx_shared.pth"
 TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 14
 MINIMUM_PYTHON_VERSION = "3.10"
 MAN_SECTIONS = [f"man{i}" for i in range(1, 10)]
+# the directories a wheel ships completion scripts in, relative to the data scheme's share/, and the layout bash and
+# fish already read from under a user data directory
+COMPLETION_SECTIONS = [
+    PurePosixPath("bash-completion/completions"),
+    PurePosixPath("zsh/site-functions"),
+    PurePosixPath("fish/vendor_completions.d"),
+]
 
 
 _FETCH_MISSING_PYTHON_RAW = os.environ.get("PIPX_FETCH_MISSING_PYTHON")
