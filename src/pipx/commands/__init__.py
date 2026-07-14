@@ -1,6 +1,7 @@
 from pipx.commands.cache import print_cache_dir, purge_cache
 from pipx.commands.ensure_path import ensure_pipx_paths
 from pipx.commands.environment import environment
+from pipx.commands.execute import execute
 from pipx.commands.expose import ExposureData, expose, unexpose
 from pipx.commands.health import HealthData, RepairData, health, repair
 from pipx.commands.inject import inject
@@ -27,6 +28,7 @@ __all__ = [
     "UninstallData",
     "ensure_pipx_paths",
     "environment",
+    "execute",
     "expose",
     "health",
     "inject",
