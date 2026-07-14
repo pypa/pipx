@@ -616,36 +616,48 @@ class Venv:
             self._site_packages = get_site_packages(self.python_path)
         return self._site_packages
 
-    def _find_entry_point(self, app: str) -> EntryPoint | None:
+    def _find_entry_point(self, app: str, group: str) -> EntryPoint | None:
         if not self.python_path.exists():
             return None
         dists = Distribution.discover(name=self.main_package_name, path=[str(self.site_packages)])
         for dist in dists:
             for ep in dist.entry_points:
-                if ep.group == "pipx.run":
+                if ep.group == group:
                     if ep.name == app:
                         return ep
-                    # Try to infer app name from dist's metadata if given
-                    # local path
-                    if Path(app).exists() and dist.metadata["Name"] == ep.name:
+                    # Local project paths do not identify an app, so accept their matching pipx.run entry point.
+                    if group == "pipx.run" and Path(app).exists() and dist.metadata["Name"] == ep.name:
                         return ep
         return None
 
-    def run_app(self, app: str, filename: str, app_args: list[str]) -> NoReturn:
-        entry_point = self._find_entry_point(app)
+    def run_app(
+        self,
+        app: str,
+        filename: str,
+        app_args: list[str],
+        *,
+        python_args: list[str],
+    ) -> NoReturn:
+        entry_point = self._find_entry_point(app, "pipx.run")
+        if entry_point is None and python_args:
+            entry_point = self._find_entry_point(app, "console_scripts")
 
-        # No [pipx.run] entry point; default to run console script.
         if entry_point is None:
+            if python_args:
+                raise PipxError(f"Cannot pass Python arguments because {app!r} is not a Python entry point.")
             exec_app([str(self.bin_path / filename)] + app_args)
 
-        # Evaluate and execute the entry point.
         _LOGGER.info("Using discovered entry point for 'pipx run'")
-        module, attr = entry_point.module, entry_point.attr
-        code = f"import sys, {module}\nsys.argv[0] = {entry_point.name!r}\nsys.exit({module}.{attr}())\n"
-        exec_app([str(self.python_path), "-c", code] + app_args)
+        code = (
+            "import sys\nfrom importlib.metadata import EntryPoint\n"
+            f"sys.argv[0] = {entry_point.name!r}\n"
+            f"sys.exit(EntryPoint(name={entry_point.name!r}, value={entry_point.value!r}, "
+            f"group={entry_point.group!r}).load()())\n"
+        )
+        exec_app([str(self.python_path), *python_args, "-c", code, *app_args])
 
     def has_app(self, app: str, filename: str) -> bool:
-        if self._find_entry_point(app) is not None:
+        if self._find_entry_point(app, "pipx.run") is not None:
             return True
         return (self.bin_path / filename).is_file()
 

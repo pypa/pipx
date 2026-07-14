@@ -43,6 +43,21 @@ Arguments after the application name pass straight through:
 
 ```
 
+### Pass arguments to Python
+
+Use `--python-args` before the application to configure its Python interpreter:
+
+```
+pipx run --python-args="-X dev -b" APP
+pipx run --python-args=-i script.py
+```
+
+These arguments affect only the application process and reuse the same cached environment. Package applications must be
+Python entry points. Legacy scripts and applications from `__pypackages__` do not support this option.
+
+With `--backend uv`, this option uses a pipx-managed uv environment because `uv tool run` cannot pass arguments to the
+application's interpreter. The environment therefore appears under `pipx cache` rather than `uv cache`.
+
 pipx caches virtual environments per app for a few days. After they expire, pipx fetches the latest version.
 
 ### Refresh or clear cached runs
@@ -74,11 +89,14 @@ pipx can consume arguments meant for the application:
 ```
 > pipx run pycowsay --py
 
-usage: pipx run [-h] [--no-cache | --refresh] [--pypackages] [--spec SPEC] [--verbose] [--python PYTHON]
-                [--system-site-packages] [--index-url INDEX_URL] [--editable] [--pip-args PIP_ARGS]
-                [--cooldown DAYS]
+usage: pipx run [-h] [--quiet] [--verbose] [--skip-maintenance] [--global]
+                [--no-cache | --refresh] [--no-path-check] [--python-args ARGS]
+                [--path] [--pypackages] [--with WITH_] [--spec SPEC] [--python PYTHON]
+                [--fetch-python {always,missing,never} | --fetch-missing-python]
+                [--system-site-packages] [--index-url INDEX_URL] [--editable]
+                [--pip-args PIP_ARGS] [--cooldown DAYS] [--backend {pip,uv}]
                 app ...
-pipx run: error: ambiguous option: --py could match --pypackages, --python
+pipx run: error: ambiguous option: --py could match --python-args, --pypackages, --python
 ```
 
 Place `--` before the app name to forward all arguments verbatim:

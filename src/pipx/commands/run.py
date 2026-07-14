@@ -91,6 +91,7 @@ def run_script(
     verbose: bool,
     use_cache: bool,
     *,
+    python_args: list[str],
     refresh: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
@@ -112,7 +113,7 @@ def run_script(
             )
         requirements = [*requirements, *dependencies]
 
-    if resolved_backend == UV and requirements is not None:
+    if resolved_backend == UV and requirements is not None and not python_args:
         if script_source is not None:
             run_script_via_uv_run(
                 script_path=script_source,
@@ -142,7 +143,7 @@ def run_script(
         )
 
     if not requirements:
-        _exec_script(Path(python), content, app_args)
+        _exec_script(Path(python), content, app_args, python_args)
 
     # Note that the environment name is based on the identified
     # requirements, and *not* on the script name. This is deliberate, as
@@ -176,14 +177,19 @@ def run_script(
                 # when `pipx run` is next executed, rather than just failing.
                 (venv_dir / _VENV_EXPIRED_FILENAME).touch()
                 raise
-        _exec_script(venv.python_path, content, app_args)
+        _exec_script(venv.python_path, content, app_args, python_args)
 
 
-def _exec_script(python_path: Path, content: str | Path, app_args: list[str]) -> NoReturn:
+def _exec_script(
+    python_path: Path,
+    content: str | Path,
+    app_args: list[str],
+    python_args: list[str],
+) -> NoReturn:
     if isinstance(content, Path):
-        exec_app([python_path, content, *app_args])
+        exec_app([python_path, *python_args, content, *app_args])
     else:
-        exec_app([python_path, "-c", content, *app_args])
+        exec_app([python_path, *python_args, "-c", content, *app_args])
 
 
 def run_package(
@@ -198,6 +204,7 @@ def run_package(
     verbose: bool,
     use_cache: bool,
     *,
+    python_args: list[str],
     refresh: bool = False,
     infer_app_name: bool = False,
     backend: str | None = None,
@@ -225,6 +232,8 @@ def run_package(
 
     pypackage_bin_path = get_pypackage_bin_path(app)
     if pypackage_bin_path.exists():
+        if python_args:
+            raise PipxError("--python-args cannot run applications from __pypackages__.")
         _LOGGER.info(f"Using app in local __pypackages__ directory at '{pypackage_bin_path}'")
         run_pypackage_bin(pypackage_bin_path, app_args)
     if pypackages:
@@ -288,7 +297,7 @@ def run_package(
                 env_backend=env_backend,
                 cooldown_days=cooldown_days,
             )
-        venv.run_app(app, app_filename, app_args)
+        venv.run_app(app, app_filename, app_args, python_args=python_args)
 
 
 def run(
@@ -304,6 +313,7 @@ def run(
     verbose: bool,
     use_cache: bool,
     *,
+    python_args: list[str],
     refresh: bool = False,
     no_path_check: bool = False,
     backend: str | None = None,
@@ -323,7 +333,7 @@ def run(
     # ``resolved_backend`` only decides ROUTING (uv tool run vs Venv); cli/env
     # stay separate when we hand off so the Venv's source-attribution stays right.
     resolved_backend, _ = resolve_backend_name(cli_value=backend, env_value=env_backend)
-    use_uvx = resolved_backend == UV and not pypackages
+    use_uvx = resolved_backend == UV and not pypackages and not python_args
 
     content = None if spec is not None else maybe_script_content(app, is_path)
     if content is not None:
@@ -342,6 +352,7 @@ def run(
             script_source=Path(app) if isinstance(content, Path) else None,
             dependencies=dependencies,
             cooldown_days=cooldown_days,
+            python_args=python_args,
         )
 
     elif use_uvx:
@@ -379,6 +390,7 @@ def run(
             resolved_backend=resolved_backend,
             no_path_check=no_path_check,
             cooldown_days=cooldown_days,
+            python_args=python_args,
         )
 
 
