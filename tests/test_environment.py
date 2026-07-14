@@ -67,7 +67,6 @@ def test_cli_with_args(monkeypatch, capsys):
     assert not run_pipx_cli(["environment", "--value", "PIPX_DEFAULT_PYTHON"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_USE_EMOJI"])
-    assert not run_pipx_cli(["environment", "--value", "PIPX_HOME_ALLOW_SPACE"])
 
     with pytest.raises(SystemExit) as excinfo:
         run_pipx_cli(["environment", "--value", "SSS"])
@@ -128,39 +127,6 @@ def test_resolve_empty_env_paths(monkeypatch: pytest.MonkeyPatch, env_name: str)
     assert get_expanded_environ(env_name) is None
 
 
-def test_allow_space_in_pipx_home(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    tmp_path: Path,
-) -> None:
-    home_dir = tmp_path / "path with space"
-    monkeypatch.setattr(paths.ctx, "_base_home", home_dir)
-    assert not run_pipx_cli(["environment", "--value", "PIPX_HOME_ALLOW_SPACE"])
-    captured = capsys.readouterr()
-    assert "Found a space" in captured.err
-    assert "false" in captured.out
-
-    monkeypatch.setenv("PIPX_HOME_ALLOW_SPACE", "1")
-    assert not run_pipx_cli(["environment", "--value", "PIPX_HOME_ALLOW_SPACE"])
-    captured = capsys.readouterr()
-    assert "Found a space" not in captured.err
-    assert "true" in captured.out
-
-    paths.ctx.make_local()
-
-
-def test_cli_space_warning_respects_quiet(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    tmp_path: Path,
-) -> None:
-    monkeypatch.setattr(paths.ctx, "_base_home", tmp_path / "path with space")
-
-    assert not run_pipx_cli(["environment", "--value", "PIPX_HOME_ALLOW_SPACE", "--quiet"])
-
-    assert "Found a space" not in capsys.readouterr().err
-
-
 def test_cli_logs_fallback_home(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -174,20 +140,6 @@ def test_cli_logs_fallback_home(
     assert not run_pipx_cli(["environment", "--verbose"])
 
     assert "Both a specific pipx home folder" in capsys.readouterr().err
-
-
-@skip_if_windows
-def test_cli_global_warns_for_active_home(
-    pipx_temp_env: None,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    tmp_path: Path,
-) -> None:
-    monkeypatch.setattr(paths, "OVERRIDE_PIPX_GLOBAL_HOME", tmp_path / "global home")
-
-    assert not run_pipx_cli(["environment", "--global"])
-
-    assert "Found a space" in capsys.readouterr().err
 
 
 @skip_if_windows

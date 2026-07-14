@@ -1,25 +1,18 @@
 import logging
-import os
 from functools import cached_property
 from pathlib import Path
 from typing import Final
 
 from platformdirs import user_cache_path, user_data_path, user_log_path
 
-from pipx.constants import LINUX, WINDOWS
-from pipx.emojis import hazard, strtobool
+from pipx.constants import WINDOWS
 from pipx.self_install import get_environment_value
 from pipx.wrap import pipx_wrap
 
-if LINUX:
-    DEFAULT_PIPX_HOME = Path(user_data_path("pipx"))
-    FALLBACK_PIPX_HOMES = [Path.home() / ".local/pipx"]
-elif WINDOWS:
-    DEFAULT_PIPX_HOME = Path.home() / "pipx"
-    FALLBACK_PIPX_HOMES = [Path.home() / ".local/pipx", Path(user_data_path("pipx"))]
-else:
-    DEFAULT_PIPX_HOME = Path.home() / ".local/pipx"
-    FALLBACK_PIPX_HOMES = [Path(user_data_path("pipx"))]
+DEFAULT_PIPX_HOME = Path(user_data_path("pipx"))
+FALLBACK_PIPX_HOMES = [Path.home() / ".local/pipx"]
+if WINDOWS:
+    FALLBACK_PIPX_HOMES += [Path.home() / "pipx"]
 
 DEFAULT_PIPX_BIN_DIR: Final[Path] = Path.home() / ".local/bin"
 DEFAULT_PIPX_MAN_DIR: Final[Path] = Path.home() / ".local/share/man"
@@ -67,7 +60,7 @@ class _PathContext:
 
     @property
     def logs(self) -> Path:
-        if self._home_exists or not LINUX:
+        if self._home_exists:
             return self.home / "logs"
         return self._default_log
 
@@ -79,7 +72,7 @@ class _PathContext:
 
     @property
     def venv_cache(self) -> Path:
-        if self._home_exists or not LINUX:
+        if self._home_exists:
             return self.home / ".cache"
         return self._default_cache
 
@@ -143,35 +136,7 @@ class _PathContext:
     def standalone_python_cachedir(self) -> Path:
         return self.home / "py"
 
-    @property
-    def allow_spaces_in_home_path(self) -> bool:
-        return strtobool(os.getenv("PIPX_HOME_ALLOW_SPACE", "0"))
-
     def log_warnings(self) -> None:
-        if " " in str(self.home) and not self.allow_spaces_in_home_path:
-            _LOGGER.warning(
-                pipx_wrap(
-                    (
-                        f"{hazard} Found a space in the pipx home path. We heavily discourage this, due to "
-                        "multiple incompatibilities. Please check our docs for more information on this, "
-                        "as well as some pointers on how to migrate to a different home path."
-                    ),
-                    subsequent_indent=" " * 4,
-                )
-            )
-            _LOGGER.warning(
-                pipx_wrap(
-                    (f"{hazard} To see your PIPX_HOME dir: pipx environment --value PIPX_HOME"),
-                    subsequent_indent=" " * 4,
-                )
-            )
-            _LOGGER.warning(
-                pipx_wrap(
-                    (f"{hazard} Most likely fix on macOS: mv ~/Library/Application\\ Support/pipx ~/.local/"),
-                    subsequent_indent=" " * 4,
-                )
-            )
-
         fallback_home_exists = self._fallback_home is not None and self._fallback_home.exists()
         specific_home_exists = self.home != self._fallback_home
         if fallback_home_exists and specific_home_exists:

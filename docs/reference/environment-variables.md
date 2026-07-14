@@ -16,7 +16,6 @@ pipx reads the following environment variables. All are optional.
 | `PIPX_FETCH_PYTHON`                     | When to fetch a standalone Python build: `always`, `missing`, or `never`. | `never`                                                                    |
 | `PIPX_FETCH_MISSING_PYTHON`             | Deprecated, alias for `PIPX_FETCH_PYTHON=missing`.                        | _(unset)_                                                                  |
 | `PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE` | Set to `1` to skip automatic shared library upgrades.                     | _(unset)_                                                                  |
-| `PIPX_HOME_ALLOW_SPACE`                 | Set to `true` to suppress the "space in PIPX_HOME" warning.               | _(unset)_                                                                  |
 | `PIPX_USE_EMOJI`                        | Set to `0` to disable emoji output.                                       | `1`                                                                        |
 | `PIPX_MAX_LOGS`                         | Maximum number of log files to keep in the logs directory.                | `10`                                                                       |
 
