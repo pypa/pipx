@@ -161,6 +161,15 @@ sudo apt install python3-venv python3-pip
 Reference:
 [Python Packaging User Guide: Installing pip/setuptools/wheel with Linux Package Managers](https://packaging.python.org/guides/installing-using-linux-tools)
 
+## Naming a pipx application in your own shebang
+
+The default pipx home on macOS is `~/Library/Application Support/pipx`, which contains a space. Applications installed
+there run, because `pip` and `uv` write a `/bin/sh` wrapper as the shebang whenever the interpreter path holds a space.
+
+A shebang you write yourself has no such wrapper. `#!/Users/you/.local/bin/aws` works, while a shebang that names a path
+with a space in it does not, because the kernel reads the first space as the end of the interpreter path. Point your
+shebang at `PIPX_BIN_DIR` (`~/.local/bin` by default, which has no space), or set `PIPX_HOME` to a path without spaces.
+
 ## Does it work to install your package with `pip`?
 
 This is a tip for advanced users. An easy way to check if pipx is the problem or a package you're trying to install is
@@ -191,15 +200,15 @@ rm -rf test_venv
 
 ## pipx files not in expected locations according to documentation
 
-pipx versions after 1.16.0 adopt the XDG base directory specification for the location of `PIPX_HOME` and the data,
-cache, and log directories. Before, the default `PIPX_HOME` path was use `~/.local/pipx` (or `~/pipx` on Windows). To
-maintain compatibility with older versions, pipx will automatically use this old `PIPX_HOME` path if it exists. For a
-map of old and new paths, see [Installation Options](configure-paths.md).
+pipx versions after 1.16.0 place `PIPX_HOME` and the data, cache and log directories in the platform locations that
+[platformdirs](https://pypi.org/project/platformdirs/) reports. Earlier versions defaulted `PIPX_HOME` to
+`~/.local/pipx`, or to `~/pipx` on Windows. pipx picks up such a directory when it exists, so an installation from an
+earlier release keeps working. For a map of old and new paths, see [Installation Options](configure-paths.md).
 
-If you have a `pipx` version later than 1.16.0 and want to migrate from the old path to the new paths, you can move the
-`~/.local/pipx` directory to the new location (after removing cache, log, and trash directories which will get recreated
-automatically) and then reinstall all packages.
+The venv cache and the logs move to the platform cache and log directories even when pipx falls back to an older home,
+because both are disposable and pipx recreates them. Setting `PIPX_HOME` yourself keeps them inside it.
 
+To migrate an older installation, move the `~/.local/pipx` directory to the new location and reinstall your packages.
 Please refer to [Moving your pipx installation](move-installation.md) on how to move it.
 
-Standard paths were introduced in pipx versions 1.2.0, and reverted between 1.5.0, and 1.16.0 for Windows and macOS.
+pipx adopted these paths in 1.2.0 and reverted them for macOS and Windows between 1.5.0 and 1.16.0.

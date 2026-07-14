@@ -7,10 +7,10 @@ overridden with the environment variable `PIPX_MAN_DIR`. If the `--global` optio
 `PIPX_GLOBAL_MAN_DIR`.
 
 pipx's default virtual environment location is typically `~/.local/share/pipx` on Linux/Unix,
-`~/Library/Application Support/pipx` on macOS and `~\pipx` on Windows. For compatibility reasons, if `~/.local/pipx`
-exists or `%USERPROFILE%\AppData\Local\pipx` exists on Windows, it will be used as the default location instead. This
-can be overridden with the `PIPX_HOME` environment variable. If the `--global` option is used, the default location is
-always `/opt/pipx` and can be overridden with `PIPX_GLOBAL_HOME`.
+`~/Library/Application Support/pipx` on macOS and `%USERPROFILE%\AppData\Local\pipx` on Windows. For compatibility
+reasons, if `~/.local/pipx` exists, or `~\pipx` exists on Windows, that location is used instead. This can be overridden
+with the `PIPX_HOME` environment variable. If the `--global` option is used, the default location is always `/opt/pipx`
+and can be overridden with `PIPX_GLOBAL_HOME`.
 
 In case one of these fallback locations exist, we recommend either manually moving the pipx files to the new default
 location (see the [Moving your pipx installation](move-installation.md) section of the docs), or setting the `PIPX_HOME`
@@ -40,6 +40,9 @@ sudo pipx install --global <PACKAGE>
 > `user_data_dir()`, `user_cache_dir()` and `user_log_dir()` resolve to appropriate platform-specific user data, cache
 > and log directories. See the
 > [platformdirs documentation](https://platformdirs.readthedocs.io/en/latest/api.html#platforms) for details.
+>
+> `platformdirs` reads `XDG_DATA_HOME` and `XDG_CACHE_HOME` on Linux and on macOS, so exporting either one moves the
+> matching pipx directory. Leave them unset to get the platform default.
 >
 > This was originally introduced in 1.2.0 and temporarily reverted between 1.5.0 and 1.16.0 for Windows and macOS.
 

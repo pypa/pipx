@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Final
 
 import pytest
+from platformdirs import user_cache_path, user_log_path
 from pytest_mock import MockerFixture
 
 from helpers import skip_if_windows
@@ -47,5 +48,85 @@ def test_context_preserves_home_symlink(
         paths.ctx.make_local()
 
         assert (paths.ctx.home, paths.ctx.venvs) == (home, home / "venvs")
+
+    paths.ctx.make_local()
+
+
+def test_context_keeps_cache_and_logs_out_of_fallback_home(
+    pipx_temp_env: None,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fallback: Final[Path] = tmp_path / "legacy"
+    fallback.mkdir()
+    with monkeypatch.context() as scoped:
+        scoped.setattr(paths, "OVERRIDE_PIPX_HOME", None)
+        scoped.delenv("PIPX_HOME", raising=False)
+        scoped.setattr(paths, "FALLBACK_PIPX_HOMES", [fallback])
+        paths.ctx.make_local()
+
+        assert (paths.ctx.home, paths.ctx.venv_cache, paths.ctx.logs, paths.ctx.trash) == (
+            fallback,
+            Path(user_cache_path("pipx")),
+            Path(user_log_path("pipx")),
+            fallback / ".trash",
+        )
+
+    paths.ctx.make_local()
+
+
+def test_context_keeps_cache_and_logs_inside_explicit_home(
+    pipx_temp_env: None,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    home: Final[Path] = tmp_path / "home"
+    with monkeypatch.context() as scoped:
+        scoped.setattr(paths, "OVERRIDE_PIPX_HOME", None)
+        scoped.setenv("PIPX_HOME", str(home))
+        paths.ctx.make_local()
+
+        assert (paths.ctx.venv_cache, paths.ctx.logs) == (home / ".cache", home / "logs")
+
+    paths.ctx.make_local()
+
+
+def test_context_uses_platform_dirs_without_any_home(
+    pipx_temp_env: None,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    default: Final[Path] = tmp_path / "default"
+    with monkeypatch.context() as scoped:
+        scoped.setattr(paths, "OVERRIDE_PIPX_HOME", None)
+        scoped.delenv("PIPX_HOME", raising=False)
+        scoped.setattr(paths, "FALLBACK_PIPX_HOMES", [tmp_path / "absent"])
+        scoped.setattr(paths, "DEFAULT_PIPX_HOME", default)
+        paths.ctx.make_local()
+
+        assert (paths.ctx.home, paths.ctx.venv_cache, paths.ctx.logs) == (
+            default,
+            Path(user_cache_path("pipx")),
+            Path(user_log_path("pipx")),
+        )
+
+    paths.ctx.make_local()
+
+
+@skip_if_windows
+def test_context_honors_xdg_cache_home(
+    pipx_temp_env: None,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    cache: Final[Path] = tmp_path / "xdg-cache"
+    with monkeypatch.context() as scoped:
+        scoped.setattr(paths, "OVERRIDE_PIPX_HOME", None)
+        scoped.delenv("PIPX_HOME", raising=False)
+        scoped.setattr(paths, "FALLBACK_PIPX_HOMES", [tmp_path / "absent"])
+        scoped.setenv("XDG_CACHE_HOME", str(cache))
+        paths.ctx.make_local()
+
+        assert paths.ctx.venv_cache == cache / "pipx"
 
     paths.ctx.make_local()

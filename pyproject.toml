@@ -41,7 +41,7 @@ dependencies = [
   "colorama>=0.4.4; sys_platform=='win32'",
   "filelock>=3.16",
   "packaging>=20",
-  "platformdirs>=2.1",
+  "platformdirs>=4.6",
   "tomli; python_version<'3.11'",
   "userpath>=1.6,!=1.9",
 ]

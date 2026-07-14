@@ -60,21 +60,20 @@ class _PathContext:
 
     @property
     def logs(self) -> Path:
-        if self._home_exists:
-            return self.home / "logs"
-        return self._default_log
-
-    @property
-    def trash(self) -> Path:
-        if self._home_exists:
-            return self.home / ".trash"
-        return self._default_trash
+        # a legacy home keeps holding the venvs, yet its logs and cache belong in the platform locations, so only an
+        # explicit PIPX_HOME pulls them back under the home
+        return self.home / "logs" if self._base_home else self._default_log
 
     @property
     def venv_cache(self) -> Path:
+        return self.home / ".cache" if self._base_home else self._default_cache
+
+    @property
+    def trash(self) -> Path:
+        # renaming into the trash has to stay on one filesystem, so it follows the venvs under the home
         if self._home_exists:
-            return self.home / ".cache"
-        return self._default_cache
+            return self.home / ".trash"
+        return self._default_trash
 
     @cached_property
     def bin_dir(self) -> Path:
