@@ -547,8 +547,25 @@ def _remove_stale_venv_resources(
     local_man_dir: Path,
 ) -> None:
     current_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir)
-    for path in sorted(previous_resource_paths - current_resource_paths):
+    # only remove a dropped destination pipx still owns, so a replacement the user or another package put there stays
+    owned: Final[set[Path]] = _venv_owned_resource_paths(venv, local_bin_dir, local_man_dir)
+    for path in sorted((previous_resource_paths - current_resource_paths) & owned):
         safe_unlink(path)
+
+
+def _venv_owned_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
+    app_paths: Final[dict[str, list[Path]]] = group_resource_paths(
+        (add_suffix(path.name, package.suffix), path)
+        for package in venv.package_metadata.values()
+        for path in package.app_paths_to_expose
+    )
+    owned: set[Path] = get_exposed_paths_for_package(venv.bin_path, local_bin_dir, app_paths)
+    man_paths: Final[list[Path]] = [
+        path for package in venv.package_metadata.values() for path in package.man_paths_to_expose
+    ]
+    for man_section in MAN_SECTIONS:
+        owned |= get_exposed_man_paths_for_package(venv.man_path / man_section, local_man_dir / man_section, man_paths)
+    return owned
 
 
 def get_expected_venv_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
