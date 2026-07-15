@@ -23,11 +23,9 @@ from pipx.result import (
     OperationData,
     OperationError,
     OperationResult,
-    OutputFormat,
     OutputLevel,
     OutputMessage,
     OutputStream,
-    render_result,
 )
 from pipx.util import PipxError
 
@@ -66,7 +64,7 @@ def sync_manifest(
             if was_exposed:
                 unexpose(venv_dir, local_bin_dir, local_man_dir, verbose)
             try:
-                install(
+                outcome = install(
                     venv_dir,
                     [tool.package_name],
                     [tool.package],
@@ -91,17 +89,22 @@ def sync_manifest(
                     replace_expected_apps=True,
                     replace_lock=True,
                     venv_lock=venv_lock,
+                    emit_output=False,
                 )
+                error_message = outcome.errors[0].message if outcome.errors else None
             except PipxError as error:
-                failures.append(_FailedTool(tool.environment, str(error)))
-                messages.append(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+                error_message = str(error)
+            # install returns a failed result rather than raising when it does not render, so check both
+            if error_message is not None:
+                failures.append(_FailedTool(tool.environment, error_message))
+                messages.append(OutputMessage(error_message, stream=OutputStream.STDERR, level=OutputLevel.ERROR))
                 if was_exposed:
                     expose(venv_dir, local_bin_dir, local_man_dir, verbose)
             else:
                 synced.append(tool.environment)
 
     if prune and not failures:
-        _prune_environments(manifest, venv_container, local_bin_dir, local_man_dir, verbose)
+        messages.extend(_prune_environments(manifest, venv_container, local_bin_dir, local_man_dir, verbose))
     return OperationResult(
         command=("manifest", "sync"),
         data=ManifestData(environments=tuple(synced), locks=()),
@@ -352,17 +355,15 @@ def _prune_environments(
     local_bin_dir: Path,
     local_man_dir: Path,
     verbose: bool,
-) -> None:
+) -> list[OutputMessage]:
     declared = {tool.environment for tool in manifest.tools}
+    messages: list[OutputMessage] = []
     for venv_dir in sorted(venv_container.iter_venv_dirs()):
         if venv_dir.name in declared:
             continue
         with venv_container.venv_lock(venv_dir):
-            render_result(
-                uninstall(venv_dir, local_bin_dir, local_man_dir, verbose),
-                output=OutputFormat.HUMAN,
-                quiet=0,
-            )
+            messages.extend(uninstall(venv_dir, local_bin_dir, local_man_dir, verbose).messages)
+    return messages
 
 
 @dataclass(frozen=True)

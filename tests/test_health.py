@@ -197,3 +197,13 @@ def test_repair_verifies_rebuilt_interpreter(
     assert run_pipx_cli(["repair", "--python", sys.executable, "pycowsay"]) == 1
 
     assert "pycowsay: interpreter exited with status 7" in capsys.readouterr().err
+
+
+def test_repair_json_stays_pure_when_it_reinstalls(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> None:
+    remove_venv_interpreter("pycowsay")
+
+    assert not run_pipx_cli(["repair", "--python", sys.executable, "--output", "json"])
+
+    captured = capsys.readouterr()
+    document = json.loads(captured.out)  # the internal reinstall must not print human text before this
+    assert (document["command"], document["status"], captured.err) == (["repair"], "success", "")

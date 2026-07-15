@@ -47,6 +47,7 @@ def upgrade(
     cooldown_days: int | None = None,
 ) -> OperationResult[UpgradeData]:
     results: Final[list[PackageUpgradeResult]] = []
+    install_messages: Final[list[OutputMessage]] = []
 
     for venv_dir in venv_dirs.values():
         with VenvContainer(venv_dir.parent).venv_lock(venv_dir) as venv_lock:
@@ -65,6 +66,7 @@ def upgrade(
                     env_backend=env_backend,
                     venv_lock=venv_lock,
                     cooldown_days=cooldown_days,
+                    extra_messages=install_messages,
                 )
             )
 
@@ -72,8 +74,9 @@ def upgrade(
     return OperationResult(
         command=("upgrade",),
         data=UpgradeData(packages=package_results, skipped=()),
-        messages=tuple(
-            message for result in package_results for message in _package_messages(result, upgrading_all=False)
+        messages=(
+            *install_messages,
+            *(message for result in package_results for message in _package_messages(result, upgrading_all=False)),
         ),
     )
 
@@ -148,6 +151,7 @@ def upgrade_all(
                     packages_to_upgrade=packages_to_upgrade,
                     venv_lock=venv_lock,
                     cooldown_days=cooldown_days,
+                    extra_messages=messages,
                 )
                 results.extend(package_results)
                 for result in package_results:
@@ -207,10 +211,11 @@ def _upgrade_venv(
     packages_to_upgrade: Collection[str] | None = None,
     venv_lock: BaseFileLock | None = None,
     cooldown_days: int | None = None,
+    extra_messages: list[OutputMessage],
 ) -> tuple[PackageUpgradeResult, ...]:
     if not venv_dir.is_dir():
         if install:
-            commands.install(
+            installed = commands.install(
                 venv_dir=None,
                 venv_args=venv_args or [],
                 package_names=None,
@@ -230,7 +235,12 @@ def _upgrade_venv(
                 env_backend=env_backend,
                 venv_lock=venv_lock,
                 cooldown_days=cooldown_days,
+                emit_output=False,
             )
+            # install does not raise when it does not render, so surface a failed result here
+            if installed.errors:
+                raise PipxError(installed.errors[0].message)
+            extra_messages.extend(installed.messages)
             return ()
         raise PipxError(
             f"""

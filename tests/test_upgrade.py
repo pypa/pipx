@@ -381,3 +381,11 @@ def test_upgrade_injected_uses_stored_pip_args(pipx_temp_env: None, root: Path) 
         ["--no-cache-dir"],
         ["--no-compile"],
     )
+
+
+def test_upgrade_install_json_stays_pure(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["upgrade", "pycowsay", "--install", "--output", "json"])
+
+    captured = capsys.readouterr()
+    document = json.loads(captured.out)  # the internal install must not print human text before this
+    assert (document["command"], document["status"], captured.err) == (["upgrade"], "success", "")

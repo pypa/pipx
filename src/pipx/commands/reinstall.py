@@ -135,7 +135,7 @@ def reinstall(
 
     try:
         # install main package first
-        install(
+        installed = install(
             venv_dir,
             [venv.main_package_name],
             [package_or_url],
@@ -159,7 +159,12 @@ def reinstall(
             env_backend=env_backend,
             exposure_enabled=venv.pipx_metadata.exposure_enabled,
             venv_lock=venv_lock,
+            emit_output=False,
         )
+        # install does not raise when it does not render, so restore the backup on a failed result too
+        if installed.errors:
+            raise PipxError(installed.errors[0].message)
+        messages.extend(installed.messages)
 
         # now install injected packages
         for injected_name, injected_package in venv.pipx_metadata.injected_packages.items():
