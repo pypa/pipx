@@ -13,7 +13,7 @@ on:
           - patch
         default: auto
 env:
-  default-python: "3.13"
+  default-python: "3.14"
 jobs:
   pre-release:
     runs-on: ubuntu-latest
