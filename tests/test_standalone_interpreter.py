@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import email.message
 import hashlib
 import io
 import json
@@ -8,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import urllib.error
 import warnings
 from dataclasses import replace
 from pathlib import Path
@@ -218,6 +220,58 @@ def test_standalone_python_upgrade_restores_backup_when_swap_fails(
         standalone_python.download_python_build_standalone("3.99", override=True)
 
     assert (install_dir / "keepme").read_text(encoding="utf-8") == "v1"
+
+
+def _http_error(code: int) -> urllib.error.HTTPError:
+    return urllib.error.HTTPError("https://example.invalid", code, "boom", email.message.Message(), None)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_standalone_python_download_retries_transient_http_error(
+    published_darwin_release: tuple[Path, Callable[[bytes], None]],
+    mocker: MockerFixture,
+) -> None:
+    _, publish = published_darwin_release
+    archive_bytes = _python_archive_bytes()
+    publish(archive_bytes)
+    mocker.patch.object(standalone_python, "urlopen", side_effect=[_http_error(503), io.BytesIO(archive_bytes)])
+    sleep = mocker.patch.object(standalone_python.time, "sleep")
+
+    python_path = standalone_python.download_python_build_standalone("3.99")
+
+    assert (Path(python_path).is_file(), sleep.call_count) == (True, 1)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_standalone_python_download_does_not_retry_missing_build(
+    published_darwin_release: tuple[Path, Callable[[bytes], None]],
+    mocker: MockerFixture,
+) -> None:
+    _, publish = published_darwin_release
+    publish(_python_archive_bytes())
+    mocker.patch.object(standalone_python, "urlopen", side_effect=_http_error(404))
+    sleep = mocker.patch.object(standalone_python.time, "sleep")
+
+    with pytest.raises(standalone_python.PipxError, match="Unable to download"):
+        standalone_python.download_python_build_standalone("3.99")
+
+    assert sleep.call_count == 0
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_standalone_python_download_gives_up_after_repeated_failures(
+    published_darwin_release: tuple[Path, Callable[[bytes], None]],
+    mocker: MockerFixture,
+) -> None:
+    _, publish = published_darwin_release
+    publish(_python_archive_bytes())
+    mocker.patch.object(standalone_python, "urlopen", side_effect=_http_error(500))
+    sleep = mocker.patch.object(standalone_python.time, "sleep")
+
+    with pytest.raises(standalone_python.PipxError, match="Unable to download"):
+        standalone_python.download_python_build_standalone("3.99")
+
+    assert sleep.call_count == 2
 
 
 def test_get_latest_python_releases_sets_request_timeout(mocker: MockerFixture) -> None:
