@@ -50,7 +50,7 @@ def test_sync_manifest_installs_declared_tool(
         )
     )
 
-    assert not run_pipx_cli(["sync", str(manifest)])
+    assert not run_pipx_cli(["manifest", "sync", str(manifest)])
 
     metadata = PipxMetadata(paths.ctx.venvs / "pycowsay-managed")
     assert (
@@ -69,7 +69,7 @@ def test_sync_manifest_selects_dependency_apps(
     package: Final[str] = f"repeatme[tools] @ {local_extras_project.as_uri()}"
     manifest: Final[Path] = write_manifest(_manifest(package, "repeatme", 'include-resources-from = ["PyCowsay"]\n'))
 
-    assert not run_pipx_cli(["sync", str(manifest)])
+    assert not run_pipx_cli(["manifest", "sync", str(manifest)])
 
     metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "repeatme").main_package
     assert (
@@ -86,7 +86,7 @@ def test_sync_manifest_prunes_undeclared_tool(
     assert not run_pipx_cli(["install", "black"])
     manifest = write_manifest(_manifest("pycowsay", "pycowsay"))
 
-    assert not run_pipx_cli(["sync", "--prune", str(manifest)])
+    assert not run_pipx_cli(["manifest", "sync", "--prune", str(manifest)])
 
     assert not (paths.ctx.venvs / "black").exists()
 
@@ -97,7 +97,7 @@ def test_sync_manifest_hides_resources(
 ) -> None:
     manifest = write_manifest(_manifest("pycowsay", "pycowsay", "expose = false\n"))
 
-    assert not run_pipx_cli(["sync", str(manifest)])
+    assert not run_pipx_cli(["manifest", "sync", str(manifest)])
 
     assert (
         PipxMetadata(paths.ctx.venvs / "pycowsay").exposure_enabled,
@@ -111,12 +111,12 @@ def test_sync_manifest_restores_environment_after_missing_app(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     manifest = write_manifest(_manifest("pycowsay", "pycowsay", 'apps = ["pycowsay"]\n'))
-    assert not run_pipx_cli(["sync", str(manifest)])
+    assert not run_pipx_cli(["manifest", "sync", str(manifest)])
     (marker := paths.ctx.venvs / "pycowsay" / "marker").touch()
     write_manifest(_manifest("pycowsay", "pycowsay", 'apps = ["missing"]\n'))
     capsys.readouterr()
 
-    assert run_pipx_cli(["sync", str(manifest)])
+    assert run_pipx_cli(["manifest", "sync", str(manifest)])
 
     metadata = PipxMetadata(paths.ctx.venvs / "pycowsay")
     assert (
@@ -135,10 +135,10 @@ def test_sync_manifest_reapplies_lock(
 ) -> None:
     lock_file = make_pylock("pycowsay", "0.0.0.2")
     manifest = write_manifest(_manifest("pycowsay>=0", "pycowsay", f'apps = ["pycowsay"]\nlock = "{lock_file.name}"\n'))
-    assert not run_pipx_cli(["sync", str(manifest)])
+    assert not run_pipx_cli(["manifest", "sync", str(manifest)])
     (marker := paths.ctx.venvs / "pycowsay" / "marker").touch()
 
-    assert not run_pipx_cli(["sync", str(manifest)])
+    assert not run_pipx_cli(["manifest", "sync", str(manifest)])
 
     metadata = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
     assert (metadata.package_version, metadata.lock_file, marker.exists()) == (
@@ -155,11 +155,11 @@ def test_sync_manifest_clears_app_and_lock_state(
 ) -> None:
     lock_file = make_pylock("pycowsay", "0.0.0.2")
     manifest = write_manifest(_manifest("pycowsay", "pycowsay", f'apps = ["pycowsay"]\nlock = "{lock_file.name}"\n'))
-    assert not run_pipx_cli(["sync", str(manifest)])
+    assert not run_pipx_cli(["manifest", "sync", str(manifest)])
     (marker := paths.ctx.venvs / "pycowsay" / "marker").touch()
     write_manifest(_manifest("pycowsay", "pycowsay"))
 
-    assert not run_pipx_cli(["sync", str(manifest)])
+    assert not run_pipx_cli(["manifest", "sync", str(manifest)])
 
     metadata = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
     assert (metadata.expected_apps, metadata.lock_file, marker.exists()) == ([], None, False)
@@ -328,7 +328,7 @@ def test_sync_manifest_rejects_invalid_input(
     content: str,
     expected_error: str,
 ) -> None:
-    assert run_pipx_cli(["sync", str(write_manifest(content))])
+    assert run_pipx_cli(["manifest", "sync", str(write_manifest(content))])
     assert expected_error in capsys.readouterr().err
 
 
@@ -343,7 +343,7 @@ def test_sync_manifest_rejects_unreadable_path(
     if path_kind == "directory":
         manifest.mkdir()
 
-    assert run_pipx_cli(["sync", str(manifest)])
+    assert run_pipx_cli(["manifest", "sync", str(manifest)])
 
     assert ("does not exist" if path_kind == "missing" else "Cannot read manifest") in capsys.readouterr().err
 
@@ -376,7 +376,7 @@ lock = "pylock.tools.toml"
 """
     )
 
-    assert run_pipx_cli(["sync", str(manifest)])
+    assert run_pipx_cli(["manifest", "sync", str(manifest)])
     assert "Lock files must be unique per tool" in capsys.readouterr().err
 
 
@@ -420,7 +420,7 @@ offline = false
     mocker.patch.object(manifest_module, "which", autospec=True, return_value="/usr/bin/nab")
     run = mocker.patch.object(manifest_module.subprocess, "run", autospec=True, side_effect=run_nab)
 
-    assert not run_pipx_cli(["lock", str(manifest)])
+    assert not run_pipx_cli(["manifest", "lock", str(manifest)])
 
     assert (
         run.call_count,
@@ -466,7 +466,7 @@ def test_lock_manifest_preserves_existing_lock_after_failure(
     mocker.patch.object(manifest_module, "which", autospec=True, return_value="/usr/bin/nab")
     mocker.patch.object(manifest_module.subprocess, "run", autospec=True, side_effect=run_nab)
 
-    assert run_pipx_cli(["lock", str(manifest)])
+    assert run_pipx_cli(["manifest", "lock", str(manifest)])
 
     assert (expected_error in capsys.readouterr().err, lock_file.read_text(encoding="utf-8")) == (True, "old\n")
 
@@ -524,7 +524,7 @@ offline = false
 
     mocker.patch.object(Path, "replace", autospec=True, side_effect=replace)
 
-    assert run_pipx_cli(["lock", str(manifest)])
+    assert run_pipx_cli(["manifest", "lock", str(manifest)])
 
     assert (
         "Cannot write manifest locks" in capsys.readouterr().err,
@@ -552,5 +552,5 @@ def test_lock_manifest_requires_nab_and_lock(
     manifest = write_manifest(_manifest("black", "black", lock))
     mocker.patch.object(manifest_module, "which", autospec=True, return_value=nab)
 
-    assert run_pipx_cli(["lock", str(manifest)])
+    assert run_pipx_cli(["manifest", "lock", str(manifest)])
     assert expected_error in capsys.readouterr().err

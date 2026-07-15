@@ -651,34 +651,46 @@ def _cmd_install_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode
     )
 
 
-def _add_lock(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
-    parser = subparsers.add_parser(
+def _add_manifest(
+    subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser
+) -> argparse.ArgumentParser:
+    parser: Final[argparse.ArgumentParser] = subparsers.add_parser(
+        "manifest",
+        help="Manage tools declared in an explicit manifest",
+        description="Manage tools declared in an explicit manifest",
+        parents=[shared_parser],
+    )
+    subcommands: Final[argparse._SubParsersAction] = parser.add_subparsers(
+        title="subcommands",
+        description="Get help for commands with pipx manifest COMMAND --help",
+        dest="manifest_command",
+    )
+    lock_parser: Final[argparse.ArgumentParser] = subcommands.add_parser(
         "lock",
         help="Resolve a tool manifest with nab",
         description="Resolve each locked tool in an explicit manifest into a separate PEP 751 lock file.",
         parents=[shared_parser],
     )
-    parser.add_argument("manifest", type=Path, help="Path to the tool manifest.")
-    _add_output_option(parser)
-    parser.set_defaults(func=_cmd_lock)
-
-
-def _cmd_lock(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.ManifestData]:
-    return commands.lock_manifest(args.manifest)
-
-
-def _add_sync(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
-    parser = subparsers.add_parser(
+    lock_parser.add_argument("manifest", type=Path, help="Path to the tool manifest.")
+    _add_output_option(lock_parser)
+    lock_parser.set_defaults(func=_cmd_lock)
+    sync_parser: Final[argparse.ArgumentParser] = subcommands.add_parser(
         "sync",
         help="Apply a tool manifest",
         description="Install, upgrade, or downgrade the tools declared in an explicit manifest.",
         parents=[shared_parser],
     )
-    parser.add_argument("manifest", type=Path, help="Path to the tool manifest.")
-    parser.add_argument("--prune", action="store_true", help="Uninstall environments absent from the manifest.")
-    add_backend_arg(parser)
-    _add_output_option(parser)
-    parser.set_defaults(func=_cmd_sync)
+    sync_parser.add_argument("manifest", type=Path, help="Path to the tool manifest.")
+    sync_parser.add_argument("--prune", action="store_true", help="Uninstall environments absent from the manifest.")
+    add_backend_arg(sync_parser)
+    _add_output_option(sync_parser)
+    sync_parser.set_defaults(func=_cmd_sync)
+    parser.set_defaults(func=_make_print_help(parser))
+    return parser
+
+
+def _cmd_lock(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.ManifestData]:
+    return commands.lock_manifest(args.manifest)
 
 
 def _cmd_sync(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.ManifestData]:
@@ -1701,8 +1713,6 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
     subparsers_with_subcommands = {}
     _add_install(subparsers, shared_parser)
     _add_install_all(subparsers, shared_parser)
-    _add_lock(subparsers, shared_parser)
-    _add_sync(subparsers, shared_parser)
     _add_uninject(subparsers, completer_venvs.use, shared_parser)
     _add_inject(subparsers, completer_venvs.use, shared_parser)
     _add_expose(subparsers, completer_venvs.use, shared_parser)
@@ -1722,6 +1732,7 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
     _add_list(subparsers, completer_venvs.use, shared_parser)
     subparsers_with_subcommands["interpreter"] = _add_interpreter(subparsers, shared_parser)
     subparsers_with_subcommands["cache"] = _add_cache(subparsers, shared_parser)
+    subparsers_with_subcommands["manifest"] = _add_manifest(subparsers, shared_parser)
     _add_run(subparsers, shared_parser)
     _add_execute(subparsers, completer_venvs.use, shared_parser)
     _add_runpip(subparsers, completer_venvs.use, shared_parser)
