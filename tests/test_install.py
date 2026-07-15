@@ -1255,8 +1255,8 @@ def test_force_install_changes(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_force_install_changes_editable(root: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    empty_project_path_as_string = (root / "testdata" / "empty_project").as_posix()
+def test_force_install_changes_editable(empty_project: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    empty_project_path_as_string = empty_project.as_posix()
     assert not run_pipx_cli(["install", "--editable", empty_project_path_as_string])
     captured = capsys.readouterr()
     assert "empty-project" in captured.out
@@ -1267,8 +1267,8 @@ def test_force_install_changes_editable(root: Path, capsys: pytest.CaptureFixtur
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_install_multiple_packages_preserves_editable_for_local_package(root: Path) -> None:
-    local_package = (root / "testdata" / "empty_project").as_posix()
+def test_install_multiple_packages_preserves_editable_for_local_package(empty_project: Path) -> None:
+    local_package = empty_project.as_posix()
     assert (
         run_pipx_cli(["install", PKG["pycowsay"]["spec"], local_package, "--editable"]),
         PipxMetadata(paths.ctx.venvs / "empty-project").main_package.pip_args,

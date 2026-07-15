@@ -235,8 +235,8 @@ def test_upgrade_ignores_venv_args_without_install(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_editable(capsys: pytest.CaptureFixture[str], root: Path) -> None:
-    empty_project_path_as_string = (root / "testdata" / "empty_project").as_posix()
+def test_upgrade_editable(capsys: pytest.CaptureFixture[str], empty_project: Path) -> None:
+    empty_project_path_as_string = empty_project.as_posix()
     assert not run_pipx_cli(["install", "--editable", empty_project_path_as_string, "--force"])
     assert not run_pipx_cli(["upgrade", "--editable", "empty_project"])
     captured = capsys.readouterr()
@@ -288,8 +288,8 @@ def test_upgrade_multiple(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_absolute_path(capsys: pytest.CaptureFixture[str], root: Path) -> None:
-    assert run_pipx_cli(["upgrade", "--verbose", str((root / "testdata" / "empty_project").resolve())])
+def test_upgrade_absolute_path(capsys: pytest.CaptureFixture[str], empty_project: Path) -> None:
+    assert run_pipx_cli(["upgrade", "--verbose", str(empty_project.resolve())])
     captured = capsys.readouterr()
     assert "Package cannot be a URL" not in captured.err
 
@@ -391,9 +391,9 @@ def test_upgrade_cooldown(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_injected_uses_stored_pip_args(root: Path) -> None:
+def test_upgrade_injected_uses_stored_pip_args(empty_project: Path) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--pip-args=--no-cache-dir"])
-    assert not run_pipx_cli(["inject", "pycowsay", str(root / "testdata" / "empty_project"), "--pip-args=--no-compile"])
+    assert not run_pipx_cli(["inject", "pycowsay", str(empty_project), "--pip-args=--no-compile"])
 
     assert not run_pipx_cli(["upgrade", "--include-injected", "pycowsay"])
 

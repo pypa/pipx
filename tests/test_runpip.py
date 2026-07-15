@@ -34,8 +34,8 @@ def test_runpip_global() -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_runpip_install_refreshes_main_package_metadata(root: Path, tmp_path: Path) -> None:
-    package_dir = root / "testdata" / "empty_project"
+def test_runpip_install_refreshes_main_package_metadata(empty_project: Path, tmp_path: Path) -> None:
+    package_dir = empty_project
     wheel_dir = tmp_path / "wheelhouse"
     wheel_dir.mkdir()
     subprocess.run(
