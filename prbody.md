@@ -1,0 +1,14 @@
+The `1.16.0` release never made it out: its Release run deadlocked, and cleaning up the dangling `1.16.0` tag afterward
+let the version derivation fall back to `1.15.0`, so a later Pre-release cut a mis-numbered `1.15.1` (now yanked). Two
+`Release` commits had already consumed the news fragments, the bulk into a stale `1.16.0` section and one more into the
+phantom `1.15.1` section, leaving `docs/changelog.rst` split and out of order.
+
+This restores the 105 consumed fragments to `changelog.d/` and reverts `docs/changelog.rst` to its pre-release state
+(the towncrier marker sitting above `1.15.0`). It also adds a `performance` type to the towncrier config: the 11
+`*.performance.md` fragments were silently dropped because towncrier has no built-in `performance` type, and declaring
+any custom type replaces the built-ins, so pipx's default set is restated with `Performance` added.
+
+A `towncrier build --draft --version 1.16.0` now renders one complete section, 116 entries across Features, Bugfixes,
+Performance, Improved Documentation, and Deprecations, including the standalone-download retry from #1960. Once this
+merges, re-running Pre-release computes `1.16.0` from the current `1.15.1` tag and publishes the release that was
+intended.
