@@ -14,11 +14,10 @@ install and run Python applications in isolated environments
 SYNOPSIS
 --------
 
-**pipx** [*global-options*] [**install** | **install-all** | **manifest** | **uninject** | **inject** |
-**expose** | **unexpose** | **pin** | **unpin** | **upgrade** | **upgrade-all** | **upgrade-shared** | **uninstall** |
-**uninstall-all** | **reset** | **reinstall** | **reinstall-all** | **health** | **repair** | **list** | **interpreter**
-| **cache** | **run** | **exec** | **runpip** | **ensurepath** | **environment** | **completions** | **help**]
-[*command-options*]
+**pipx** [*global-options*] [**install** | **install-all** | **uninject** | **inject** | **expose** | **unexpose** |
+**pin** | **unpin** | **upgrade** | **upgrade-all** | **upgrade-shared** | **uninstall** | **uninstall-all** | **reset**
+| **reinstall** | **reinstall-all** | **health** | **repair** | **list** | **interpreter** | **cache** | **manifest** |
+**run** | **exec** | **runpip** | **ensurepath** | **environment** | **completions** | **help**] [*command-options*]
 
 DESCRIPTION
 -----------
@@ -34,12 +33,6 @@ COMMANDS
 
 **install-all**
     Install all packages
-
-**manifest lock**
-    Resolve each locked tool in a manifest with nab
-
-**manifest sync**
-    Install, upgrade, or downgrade the tools declared in a manifest
 
 **uninject**
     Uninstall injected packages from an existing Virtual Environment
@@ -97,6 +90,9 @@ COMMANDS
 
 **cache**
     Manage cached run environments
+
+**manifest**
+    Manage tools declared in an explicit manifest
 
 **run**
     Download the latest version of a package to a temporary virtual environment, then run an app from it. Also
