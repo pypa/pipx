@@ -9,7 +9,9 @@ on:
   schedule:
     - cron: "0 8 * * *"
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # a literal prefix, not ${{ github.workflow }}: when release.yml calls this as a reusable workflow, github.workflow
+  # resolves to the caller ("Release"), which would collide with release.yml's own group and cancel the release run
+  group: tests-${{ github.ref }}
   cancel-in-progress: true
 permissions:
   contents: read
