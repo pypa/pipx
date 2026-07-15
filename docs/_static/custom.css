@@ -1,0 +1,20 @@
+/* pipx documentation theme tweaks over furo. */
+
+:root {
+    --pipx-accent: #2a9d8f;
+}
+
+/* Keep the landing-page logo from dominating the sidebar. */
+.sidebar-logo {
+    max-width: 8rem;
+}
+
+/* Give the sphinx-design card grid a touch more breathing room and a hover cue. */
+.sd-card {
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.sd-card:hover {
+    border-color: var(--pipx-accent);
+    transform: translateY(-2px);
+}

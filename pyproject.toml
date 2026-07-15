@@ -84,12 +84,21 @@ type = [
   { include-group = "test" },
 ]
 docs = [
-  "jinja2",
-  "markdown-gfm-admonition",
-  "mkdocs<2",
-  "mkdocs-gen-files",
-  "mkdocs-macros-plugin",
-  "mkdocs-material",
+  "furo>=2024.8.6",
+  "sphinx>=8.1",
+  "sphinx-argparse-cli>=1.19",         # generate the CLI reference from pipx's argparse parser so it cannot drift
+  "sphinx-autodoc-typehints>=2.5",
+  "sphinx-codeautolink>=0.15",         # link the names in code blocks to the reference
+  "sphinx-copybutton>=0.5.2",
+  "sphinx-design>=0.6",                # the card grid on the landing page
+  "sphinx-issues>=5",                  # the :issue:/:pr: roles used in the changelog and notes
+  "sphinx-last-updated-by-git>=0.3.8",
+  "sphinx-notfound-page>=1",           # a versioned 404 page
+  "sphinx-reredirects>=0.1.5",         # keep old MkDocs URLs alive after the move to Sphinx
+  "sphinx-sitemap>=2.6",               # emit sitemap.xml for crawlers
+  "sphinxcontrib-mermaid>=1",          # the .. mermaid:: directive used across the explanation diagrams
+  "sphinxcontrib-towncrier>=0.5.0a0",  # render unreleased news fragments as a draft changelog section
+  "sphinxext-opengraph>=0.9",          # OpenGraph tags for link previews
   "towncrier>=23.6",
 ]
 lint = [
@@ -189,12 +198,12 @@ ini_options.log_level = "INFO"
 [tool.towncrier]
 package = "pipx"
 directory = "changelog.d"
-filename = "docs/changelog.md"
-start_string = "<!-- towncrier release notes start -->\n"
-title_format = "## [{version}](https://github.com/pypa/pipx/tree/{version}) - {project_date}"
-issue_format = "[#{issue}](https://github.com/pypa/pipx/issues/{issue})"
+filename = "docs/changelog.rst"
+start_string = ".. towncrier release notes start\n"
+title_format = "`{version} <https://github.com/pypa/pipx/tree/{version}>`_ - {project_date}"
+issue_format = ":issue:`{issue}`"
 underlines = [
-  "",
-  "",
-  "",
+  "=",
+  "-",
+  "~",
 ]
