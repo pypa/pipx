@@ -14,6 +14,16 @@ to this file.
 
 .. towncrier release notes start
 
+`1.15.1 <https://github.com/pypa/pipx/tree/1.15.1>`_ - 2026-07-15
+=================================================================
+
+Bugfixes
+--------
+
+- Retry fetching a standalone Python build when GitHub's release CDN returns a transient error, so a momentary `5xx` or
+  rate-limit response no longer fails the install. (:issue:`1960`)
+
+
 `1.16.0 <https://github.com/pypa/pipx/tree/1.16.0>`_ - 2026-07-15
 =================================================================
 
