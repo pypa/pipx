@@ -57,11 +57,11 @@ commands = [["pre-commit", "run", "--all-files"]]
 
 [env.docs]
 description = "build documentation"
+package = "editable"
 dependency_groups = ["docs"]
-set_env.NO_MKDOCS_2_WARNING = "true"
 commands = [
-  ["mkdocs", "build", "--strict", "--site-dir", "{env:READTHEDOCS_OUTPUT:site}{/}html"],
-  ["python", "-c", "print('docs built to: file://{tox_root}{/}{env:READTHEDOCS_OUTPUT:site}{/}html{/}index.html')"],
+  ["sphinx-build", "-d", "{env_tmp_dir}{/}doctree", "-b", "html", "docs", "{env:READTHEDOCS_OUTPUT:site}{/}html", "-W", "--keep-going"],
+  ["python", "-c", "print('docs built to: file://{env:READTHEDOCS_OUTPUT:site}{/}html{/}index.html')"],
 ]
 
 [env.docs-live]

@@ -1,0 +1,41 @@
+/* Widen furo's content column by ~50% (46em -> 69em).
+
+   Furo fixes the readable width with the SASS variable $content-width (variables/_layout.scss), compiled into
+   `.content { width: 46em }`, and derives $full-width = $content-width + 2*$content-padding + 2*$sidebar-width = 82em,
+   which centers the layout via the .sidebar-drawer calc and drives the responsive breakpoints. None of these are CSS
+   custom properties, so the only override is to re-set the compiled rules here with the new widths:
+   content-width 69em, content-padded-width 75em, sidebar-width 15em, full-width 105em. */
+
+.content {
+    width: 69em;
+}
+
+/* keep the block centered: .sidebar-drawer eats the left margin around the new $full-width (105em) */
+.sidebar-drawer {
+    width: calc((100% - 105em) / 2 + 15em);
+}
+
+/* below the new full width, fold the table of contents into its icon and re-centre (furo did this at 82em) */
+@media (max-width: 105em) {
+    .toc-content-icon {
+        display: flex;
+    }
+    .toc-drawer {
+        position: fixed;
+        height: 100vh;
+        top: 0;
+        right: -15em;
+        border-left: 1px solid var(--color-background-muted);
+    }
+    .sidebar-drawer {
+        width: calc((100% - 90em) / 2 + 15em);
+    }
+}
+
+/* center the page once the content column no longer fits beside the navigation (furo did this at 67em) */
+@media (max-width: 90em) {
+    .content {
+        margin-left: auto;
+        margin-right: auto;
+    }
+}

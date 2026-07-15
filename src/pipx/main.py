@@ -1812,6 +1812,12 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
     return parser, subparsers_with_subcommands
 
 
+def build_parser() -> argparse.ArgumentParser:
+    # sphinx-argparse-cli renders the CLI reference from a parser-returning callable; expose the root parser alone
+    # so the docs build cannot drift from the argument definitions.
+    return get_command_parser()[0]
+
+
 def _cmd_completions(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     del args, ctx
     print(constants.completion_instructions)  # noqa: T201  # user-facing CLI output
@@ -2034,5 +2040,6 @@ if __name__ == "__main__":
 
 
 __all__ = [
+    "build_parser",
     "cli",
 ]
