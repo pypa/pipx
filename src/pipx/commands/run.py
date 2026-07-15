@@ -242,8 +242,10 @@ def run_package(
             """
         )
 
+    # ``--with`` packages are injected into this venv, so they are part of its identity: leaving them out of the key let
+    # ``pipx run foo`` and ``pipx run --with bar foo`` collide on one cache dir and cross-contaminate each other.
     venv_dir = _get_temporary_venv_path(
-        [package_or_url],
+        [package_or_url, *dependencies],
         python,
         pip_args,
         venv_args,
@@ -278,22 +280,21 @@ def run_package(
                 env_backend=env_backend,
                 cooldown_days=cooldown_days,
             )
-
-        for dependency in dependencies:
-            inject_dep(
-                venv_dir=venv_dir,
-                package_name=None,
-                package_spec=dependency,
-                pip_args=pip_args,
-                verbose=verbose,
-                include_apps=False,
-                include_dependencies=False,
-                include_apps_from=(),
-                force=False,
-                backend=backend,
-                env_backend=env_backend,
-                cooldown_days=cooldown_days,
-            )
+            for dependency in dependencies:
+                inject_dep(
+                    venv_dir=venv_dir,
+                    package_name=None,
+                    package_spec=dependency,
+                    pip_args=pip_args,
+                    verbose=verbose,
+                    include_apps=False,
+                    include_dependencies=False,
+                    include_apps_from=(),
+                    force=False,
+                    backend=backend,
+                    env_backend=env_backend,
+                    cooldown_days=cooldown_days,
+                )
         venv.run_app(app, app_filename, app_args, python_args=python_args)
 
 

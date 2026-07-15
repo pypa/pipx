@@ -136,6 +136,19 @@ def test_run_skips_a_cache_entry_held_by_another_run(pipx_temp_env: None, mocker
     assert held.is_dir()
 
 
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_with_isolates_cache_by_dependency(pipx_temp_env: None, mocker: MockerFixture) -> None:
+    inject: Final = mocker.patch("pipx.commands.run.inject_dep")
+
+    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "hi"])
+    plain_dirs: Final[set[Path]] = {path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()}
+
+    run_pipx_cli_exit(["run", "--with", "packaging", "pycowsay", "cowsay", "hi"])
+    with_dirs: Final[set[Path]] = {path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()} - plain_dirs
+
+    assert (len(with_dirs), inject.call_count, inject.call_args.kwargs["package_spec"]) == (1, 1, "packaging")
+
+
 def test_run_cache_options_are_mutually_exclusive(
     pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
@@ -916,7 +929,7 @@ def test_run_vcs_url_infers_app_name(pipx_temp_env, root, tmp_path, caplog):
 
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with(capsys):
-    run_pipx_cli_exit(["run", "--with", "black", "pycowsay", "--help"])
+    run_pipx_cli_exit(["run", "--refresh", "--with", "black", "pycowsay", "--help"])
     captured = capsys.readouterr()
     assert "injected package black into venv pycowsay" in captured.out
 
@@ -958,16 +971,12 @@ def test_run_with_cooldown(
 
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_cache(capsys, caplog):
-    # Maybe there's a better way to remove the previous venv cache?
-    run_pipx_cli_exit(["run", "--no-cache", "pycowsay", "cowsay", "args"])
-    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"], assert_exit=0)
+    run_pipx_cli_exit(["run", "--refresh", "--with", "black", "pycowsay", "args"], assert_exit=0)
 
     caplog.set_level(logging.DEBUG)
     caplog.clear()
     run_pipx_cli_exit(["run", "--verbose", "--with", "black", "pycowsay", "args"], assert_exit=0)
-    captured = capsys.readouterr()
     assert "Reusing cached venv" in caplog.text
-    assert "injected package black into venv pycowsay" in captured.out
 
 
 def test_maybe_script_content_accepts_url_query_string(mocker: MockerFixture) -> None:
