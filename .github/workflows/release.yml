@@ -9,8 +9,14 @@ concurrency:
 env:
   default-python: "3.14"
 jobs:
+  test:
+    name: Gate release on the test suite
+    permissions:
+      contents: read
+    uses: ./.github/workflows/tests.yml
   build-package:
     name: Build pipx package
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -28,6 +34,25 @@ jobs:
         run: |
           pip install build
           python -m build
+      - name: Validate distributions and match the tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          pip install twine packaging
+          twine check dist/*
+          python - "${RELEASE_TAG}" <<'PY'
+          import pathlib
+          import sys
+
+          from packaging.utils import parse_sdist_filename
+          from packaging.version import Version
+
+          tag = Version(sys.argv[1])
+          _, built = parse_sdist_filename(next(pathlib.Path("dist").glob("*.tar.gz")).name)
+          if built != tag:
+              sys.exit(f"Built version {built} does not match release tag {tag}")
+          print(f"Built version {built} matches release tag {tag}")
+          PY
       - name: Upload distributions
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

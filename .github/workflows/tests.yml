@@ -1,6 +1,7 @@
 name: 🧪 tests
 on:
   workflow_dispatch:
+  workflow_call:
   push:
     branches:
       - "main"
