@@ -68,7 +68,10 @@ def download_python_build_standalone(python_version: str, override: bool = False
     if not override and installed_python.exists():
         return str(installed_python)
     if not override and install_dir.exists():
+        # a leftover directory without a usable interpreter is a failed prior attempt with nothing to preserve, so clear
+        # it now; an override upgrade keeps its working install until the atomic swap below
         _LOGGER.warning(f"A previous attempt to install python {python_version} failed. Retrying.")
+        shutil.rmtree(install_dir)
 
     full_version, (download_link, digest) = resolve_python_version(python_version)
 
