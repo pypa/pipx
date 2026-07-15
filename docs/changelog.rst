@@ -14,6 +14,12 @@ to this file.
 
 .. towncrier release notes start
 
+`1.15.2 <https://github.com/pypa/pipx/tree/1.15.2>`_ - 2026-07-15
+=================================================================
+
+No significant changes.
+
+
 `1.15.1 <https://github.com/pypa/pipx/tree/1.15.1>`_ - 2026-07-15
 =================================================================
 
