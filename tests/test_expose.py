@@ -155,6 +155,22 @@ def test_unexpose_json(installed_pycowsay: Path, capsys: CaptureFixture[str]) ->
     }
 
 
+def test_expose_reports_collisions_as_partial(unexposed_pycowsay: Path, capsys: CaptureFixture[str]) -> None:
+    blocker = paths.ctx.bin_dir / app_name("pycowsay")
+    blocker.write_text("not managed by pipx", encoding="utf-8")
+
+    assert run_pipx_cli(["expose", "pycowsay", "--json"]) == 1
+
+    envelope = json.loads(capsys.readouterr().out)
+    assert (
+        envelope["status"],
+        envelope["command"],
+        [error["code"] for error in envelope["errors"]],
+        (paths.ctx.man_dir / "man6" / "pycowsay.6").exists(),
+        blocker.read_text(encoding="utf-8"),
+    ) == ("partial", ["expose"], ["environment_expose_conflict"], True, "not managed by pipx")
+
+
 @pytest.mark.parametrize(
     ("command", "setup_command", "message"),
     [

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from pipx import paths
 from pipx.commands.common import expose_package_resources
@@ -44,15 +44,27 @@ def _set_exposure(
         return _success(command, venv.name, status, f"{venv.name}: already {status.value}")
 
     if enabled:
-        for package_metadata in venv.package_metadata.values():
-            expose_package_resources(package_metadata, local_bin_dir, local_man_dir, force=False)
-        status = _ExposureStatus.EXPOSED
-    else:
-        _remove_resources(venv, local_bin_dir, local_man_dir)
-        status = _ExposureStatus.UNEXPOSED
-    venv.pipx_metadata.exposure_enabled = enabled
+        attempted: Final[int] = sum(
+            len(package_metadata.app_paths_to_expose)
+            + len(package_metadata.man_paths_to_expose)
+            + len(package_metadata.completion_paths_to_expose)
+            for package_metadata in venv.package_metadata.values()
+        )
+        collisions: Final[list[Path]] = [
+            collision
+            for package_metadata in venv.package_metadata.values()
+            for collision in expose_package_resources(package_metadata, local_bin_dir, local_man_dir, force=False)
+        ]
+        venv.pipx_metadata.exposure_enabled = True
+        venv.pipx_metadata.write()
+        if collisions:
+            return _collision_outcome(command, venv.name, collisions, exposed_any=len(collisions) < attempted)
+        return _success(command, venv.name, _ExposureStatus.EXPOSED, f"{venv.name}: exposed")
+
+    _remove_resources(venv, local_bin_dir, local_man_dir)
+    venv.pipx_metadata.exposure_enabled = False
     venv.pipx_metadata.write()
-    return _success(command, venv.name, status, f"{venv.name}: {status.value}")
+    return _success(command, venv.name, _ExposureStatus.UNEXPOSED, f"{venv.name}: unexposed")
 
 
 def _remove_resources(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> None:
@@ -83,6 +95,27 @@ def _success(
         command=command,
         data=ExposureData(environments=(_EnvironmentExposure(environment, status),)),
         messages=(OutputMessage(message),),
+    )
+
+
+def _collision_outcome(
+    command: tuple[str, ...], environment: str, collisions: list[Path], *, exposed_any: bool
+) -> OperationResult[ExposureData]:
+    summary: Final[str] = f"{environment}: skipped {len(collisions)} resource(s) already present in the target directory"
+    return OperationResult(
+        command=command,
+        data=ExposureData(environments=(_EnvironmentExposure(environment, _ExposureStatus.EXPOSED),)),
+        messages=(OutputMessage(summary, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
+        exit_code=ExitCode(1),
+        errors=tuple(
+            OperationError(
+                code="environment_expose_conflict",
+                message=f"{path} already exists and does not belong to {environment}",
+                environment=environment,
+            )
+            for path in collisions
+        ),
+        succeeded=exposed_any,
     )
 
 

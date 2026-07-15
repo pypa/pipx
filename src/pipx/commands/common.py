@@ -60,7 +60,8 @@ def expose_resources_globally(
     *,
     force: bool,
     suffix: str = "",
-) -> None:
+) -> list[Path]:
+    collisions: Final[list[Path]] = []
     for path in paths:
         if resource_type == "app":
             _add_ignore_environment_to_python_shebang(path)
@@ -75,15 +76,18 @@ def expose_resources_globally(
         if not dest_dir.is_dir():
             mkdir(dest_dir)
         if not can_symlink(dest_dir):
-            _copy_package_resource(dest_dir, path, force=force, suffix=suffix)
+            collision = _copy_package_resource(dest_dir, path, force=force, suffix=suffix)
         else:
-            _symlink_package_resource(
+            collision = _symlink_package_resource(
                 dest_dir,
                 path,
                 force=force,
                 suffix=suffix,
                 executable=(resource_type == "app"),
             )
+        if collision is not None:
+            collisions.append(collision)
+    return collisions
 
 
 def expose_package_resources(
@@ -92,23 +96,20 @@ def expose_package_resources(
     local_man_dir: Path,
     *,
     force: bool,
-) -> None:
-    app_paths: Final[list[Path]] = package_metadata.app_paths_to_expose
-    if app_paths:
-        expose_resources_globally(
-            "app",
-            local_bin_dir,
-            app_paths,
-            force=force,
-            suffix=package_metadata.suffix,
+) -> list[Path]:
+    collisions: Final[list[Path]] = []
+    if app_paths := package_metadata.app_paths_to_expose:
+        collisions.extend(
+            expose_resources_globally("app", local_bin_dir, app_paths, force=force, suffix=package_metadata.suffix)
         )
-    man_paths: Final[list[Path]] = package_metadata.man_paths_to_expose
-    if man_paths:
-        expose_resources_globally("man", local_man_dir, man_paths, force=force)
-    completion_paths: Final[list[Path]] = package_metadata.completion_paths_to_expose
-    if completion_paths:
+    if man_paths := package_metadata.man_paths_to_expose:
+        collisions.extend(expose_resources_globally("man", local_man_dir, man_paths, force=force))
+    if completion_paths := package_metadata.completion_paths_to_expose:
         # the script names the command it completes, so a suffix here would point the shell at a command that is gone
-        expose_resources_globally("completion", paths.ctx.completion_dir, completion_paths, force=force)
+        collisions.extend(
+            expose_resources_globally("completion", paths.ctx.completion_dir, completion_paths, force=force)
+        )
+    return collisions
 
 
 _can_symlink_cache: dict[Path, bool] = {}
@@ -156,7 +157,7 @@ def _add_ignore_environment_to_python_shebang(path: Path) -> None:
     path.write_bytes(first_line + b" -E" + separator + rest)
 
 
-def _copy_package_resource(dest_dir: Path, path: Path, *, force: bool, suffix: str = "") -> None:
+def _copy_package_resource(dest_dir: Path, path: Path, *, force: bool, suffix: str = "") -> Path | None:
     src = path.resolve()
     name = src.name
     dest = Path(dest_dir / add_suffix(name, suffix))
@@ -164,14 +165,15 @@ def _copy_package_resource(dest_dir: Path, path: Path, *, force: bool, suffix: s
         mkdir(dest.parent)
     if dest.exists():
         if filecmp.cmp(dest, src, shallow=False):
-            return
+            return None
         if not force:
             _LOGGER.warning(f"{hazard}  File exists at {dest!s} and does not match {src!s}. Not modifying.")
-            return
+            return dest
         _LOGGER.warning(f"{hazard}  Overwriting file {dest!s} with {src!s}")
         safe_unlink(dest)
     if src.exists():
         shutil.copy(src, dest)
+    return None
 
 
 def _symlink_package_resource(
@@ -181,7 +183,7 @@ def _symlink_package_resource(
     force: bool,
     suffix: str = "",
     executable: bool = False,
-) -> None:
+) -> Path | None:
     name_suffixed = add_suffix(path.name, suffix)
     symlink_path = Path(dest_dir / name_suffixed)
 
@@ -202,18 +204,18 @@ def _symlink_package_resource(
     if exists:
         if symlink_path.samefile(path):
             _LOGGER.info(f"Same path {symlink_path!s} and {path!s}")
-        else:
-            _LOGGER.warning(
-                pipx_wrap(
-                    f"""
-                    {hazard}  File exists at {symlink_path!s} and points
-                    to {symlink_path.resolve()}, not {path!s}. Not
-                    modifying.
-                    """,
-                    subsequent_indent=" " * 4,
-                )
+            return None
+        _LOGGER.warning(
+            pipx_wrap(
+                f"""
+                {hazard}  File exists at {symlink_path!s} and points
+                to {symlink_path.resolve()}, not {path!s}. Not
+                modifying.
+                """,
+                subsequent_indent=" " * 4,
             )
-        return
+        )
+        return symlink_path
     if is_symlink and not exists:
         _LOGGER.info(f"Removing existing symlink {symlink_path!s} since it pointed non-existent location")
         symlink_path.unlink()
@@ -234,6 +236,7 @@ def _symlink_package_resource(
                 subsequent_indent=" " * 4,
             )
         )
+    return None
 
 
 def venv_health_check(venv: Venv, package_name: str | None = None) -> tuple[VenvProblems, str]:
