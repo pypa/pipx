@@ -945,8 +945,9 @@ def test_run_with_windows_python_version(tmp_path: Path) -> None:
             """
         ).strip()
     )
-    run_pipx_cli_exit(["run", script.as_uri(), "--python", "3.13"])
-    assert "3.13" in out.read_text()
+    version = f"{sys.version_info.major}.{sys.version_info.minor}"
+    run_pipx_cli_exit(["run", script.as_uri(), "--python", version])
+    assert version in out.read_text()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
