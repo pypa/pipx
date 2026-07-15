@@ -207,3 +207,13 @@ underlines = [
   "-",
   "~",
 ]
+type = [
+  # defining any custom type replaces towncrier's built-ins, so pipx's default set is repeated here with a
+  # performance type added, otherwise `*.performance.md` fragments are silently dropped from the changelog
+  { directory = "feature", name = "Features", showcontent = true },
+  { directory = "bugfix", name = "Bugfixes", showcontent = true },
+  { directory = "performance", name = "Performance", showcontent = true },
+  { directory = "doc", name = "Improved Documentation", showcontent = true },
+  { directory = "removal", name = "Deprecations and Removals", showcontent = true },
+  { directory = "misc", name = "Miscellaneous internal changes", showcontent = false },
+]
