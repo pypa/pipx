@@ -935,6 +935,8 @@ def test_run_vcs_url_infers_app_name(pipx_temp_env, root, tmp_path, caplog):
             "user.name=pipx tests",
             "-c",
             "user.email=pipx@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
             "commit",
             "--quiet",
             "-m",
