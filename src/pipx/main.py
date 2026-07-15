@@ -716,12 +716,13 @@ def _add_inject(subparsers, venv_completer: VenvCompleter, shared_parser: argpar
     )
     p.add_argument(
         "package",
-        help="Name of the existing pipx-managed Virtual Environment to inject into",
+        metavar="ENVIRONMENT",
+        help="Name of the existing pipx-managed environment to inject into",
     ).completer = venv_completer
     p.add_argument(
         "dependencies",
         nargs="*",
-        help="the packages to inject into the Virtual Environment--either package name or pip package spec",
+        help="the packages to inject into the environment--either package name or pip package spec",
     )
     p.add_argument(
         "-r",
@@ -789,12 +790,13 @@ def _add_uninject(subparsers, venv_completer: VenvCompleter, shared_parser: argp
     )
     p.add_argument(
         "package",
-        help="Name of the existing pipx-managed Virtual Environment to inject into",
+        metavar="ENVIRONMENT",
+        help="Name of the existing pipx-managed environment to uninject from",
     ).completer = venv_completer
     p.add_argument(
         "dependencies",
         nargs="+",
-        help="the package names to uninject from the Virtual Environment",
+        help="the package names to uninject from the environment",
     )
     p.add_argument(
         "--leave-deps",
@@ -829,7 +831,7 @@ def _add_expose(
         description="Relink each recorded app and manual page without rebuilding its environment.",
         parents=[shared_parser],
     )
-    parser.add_argument("package", help="Installed package to expose").completer = venv_completer
+    parser.add_argument("package", metavar="ENVIRONMENT", help="Environment to expose").completer = venv_completer
     _add_output_option(parser, legacy_json=True)
     parser.set_defaults(func=_cmd_expose)
 
@@ -851,7 +853,7 @@ def _add_unexpose(
         description="Remove global links or copies while retaining the managed environment.",
         parents=[shared_parser],
     )
-    parser.add_argument("package", help="Installed package to hide").completer = venv_completer
+    parser.add_argument("package", metavar="ENVIRONMENT", help="Environment to hide").completer = venv_completer
     _add_output_option(parser, legacy_json=True)
     parser.set_defaults(func=_cmd_unexpose)
 
@@ -873,7 +875,7 @@ def _add_pin(
         description="Pin the specified package to prevent it from being upgraded",
         parents=[shared_parser],
     )
-    p.add_argument("package", help="Installed package to pin")
+    p.add_argument("package", metavar="ENVIRONMENT", help="Environment to pin")
     p.add_argument(
         "--injected-only",
         action="store_true",
@@ -909,7 +911,7 @@ def _add_unpin(
         description="Unpin the specified package and all injected packages in its venv to allow them to be upgraded",
         parents=[shared_parser],
     )
-    p.add_argument("package", help="Installed package to unpin")
+    p.add_argument("package", metavar="ENVIRONMENT", help="Environment to unpin")
     _add_output_option(p, legacy_json=True)
     p.set_defaults(func=_cmd_unpin)
 
@@ -1034,7 +1036,7 @@ def _add_uninstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
         description="Uninstalls a pipx-managed Virtual Environment by deleting it and any files that point to its apps.",
         parents=[shared_parser],
     )
-    p.add_argument("package").completer = venv_completer
+    p.add_argument("package", metavar="ENVIRONMENT").completer = venv_completer
     _add_output_option(p, legacy_json=True)
     p.set_defaults(func=_cmd_uninstall)
 
@@ -1113,7 +1115,7 @@ def _add_reinstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
         ),
         parents=[shared_parser],
     )
-    p.add_argument("package").completer = venv_completer
+    p.add_argument("package", metavar="ENVIRONMENT").completer = venv_completer
     add_python_options(p)
     add_backend_arg(p)
     _add_output_option(p)
@@ -1505,9 +1507,10 @@ def _add_execute(
         parents=[shared_parser],
     )
     cast(
-        "_CompletableAction", parser.add_argument("package", help="Name of the existing pipx environment")
+        "_CompletableAction",
+        parser.add_argument("package", metavar="ENVIRONMENT", help="Name of the existing pipx environment"),
     ).completer = venv_completer
-    parser.add_argument("app", help="Application to run")
+    parser.add_argument("app", metavar="APP", help="Application to run")
     parser.add_argument(
         "app_args",
         nargs=argparse.REMAINDER,
