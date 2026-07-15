@@ -114,11 +114,20 @@ created by `Chad Smith <https://github.com/cs01/>`_ and has had lots of help fro
 <https://github.com/pypa/pipx/graphs/contributors>`_. The logo was created by `@IrishMorales
 <https://github.com/IrishMorales>`_.
 
-pipx is maintained by a team of volunteers (in alphabetical order): `Bernát Gábor
-<https://github.com/gaborbernat>`_, `Chad Smith <https://github.com/cs01>`_ (co-lead), `Chrysle
-<https://github.com/chrysle>`_, `Jason Lam <https://github.com/dukecat0>`_, `Matthew Clapp
-<https://github.com/itsayellow>`_ (co-lead), `Robert Offner <https://github.com/gitznik>`_, and `Tzu-ping Chung
-<https://github.com/uranusjr>`_.
+pipx is maintained by a team of volunteers (in alphabetical order):
+
+- `Bernát Gábor <https://github.com/gaborbernat>`_
+- `Henry Schreiner <https://github.com/henryiii>`_
+- `Jason Lam <https://github.com/dukecat0>`_
+- `Tzu-ping Chung <https://github.com/uranusjr>`_
+- `Xuan Hu <https://github.com/huxuan>`_
+
+Emeritus maintainers, who shaped earlier releases:
+
+- `Chad Smith <https://github.com/cs01>`_
+- `Chrysle <https://github.com/chrysle>`_
+- `Matthew Clapp <https://github.com/itsayellow>`_
+- `Robert Offner <https://github.com/gitznik>`_
 
 The documentation follows the `Diátaxis <https://diataxis.fr>`_ framework.
 
