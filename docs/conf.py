@@ -53,6 +53,8 @@ extensions = [
 
 html_theme = "furo"
 html_title = "pipx"
+# the logo is the pipx wordmark, so furo need not repeat the project name beside it in the sidebar
+html_theme_options = {"sidebar_hide_name": True}
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_logo = "_static/logo.svg"
