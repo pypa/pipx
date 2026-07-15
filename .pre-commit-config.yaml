@@ -34,29 +34,8 @@ repos:
       - id: ruff-check
         args: ["--fix", "--unsafe-fixes", "--show-fixes", "--exit-non-zero-on-fix"]
       - id: ruff-format
-  - repo: https://github.com/astral-sh/ty-pre-commit
-    rev: v0.0.59
-    hooks:
-      - id: ty
-        additional_dependencies:
-          - "argcomplete>=1.9.4"
-          - "colorama>=0.4.4"
-          - "docutils>=0.21"
-          - "filelock>=3.16"
-          - "gitpython>=3.1"
-          - "hatchling>=1.27"
-          - "jinja2"
-          - "mkdocs-gen-files"
-          - "packaging>=20"
-          - "platformdirs>=4.6"
-          - "pypiserver>=2.3.2"
-          - "pytest>=8"
-          - "pytest-mock>=3.11.1"
-          - "pytest-subprocess>=1.5.4"
-          - "tomli>=2"
-          - "types-docutils>=0.21"
-          - "userpath>=1.6"
-          - "watchdog>=4"
+  # ty runs in the `type` tox environment via GitHub Actions, not here: pre-commit.ci cannot install its
+  # heavier dependency set (e.g. GitPython) in its sandbox.
   # Configuration for codespell is in pyproject.toml
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.2
