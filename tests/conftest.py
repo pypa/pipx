@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib
 import json
+import logging
 import os
 import shutil
 import socket
@@ -155,6 +156,19 @@ def _backend_test_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
     _uv_backend_module._check_uv_version.cache_clear()  # noqa: SLF001  # cache reset has no public API
     get_backend.cache_clear()
     reset_backend_override_warnings()
+
+
+@pytest.fixture(autouse=True)
+def _isolate_pipx_logging() -> Iterator[None]:
+    yield
+    # setup_logging binds a StreamHandler to whatever sys.stderr is when it runs. pytest swaps that stream per
+    # test, so a handler left by an earlier verbose run keeps a stale reference and, on a Windows cp1252 console,
+    # crashes ("--- Logging error ---") the moment a later test logs a non-ASCII record. Drop pipx's handlers
+    # after each test to keep that state from leaking across tests.
+    pipx_logger: Final[logging.Logger] = logging.getLogger("pipx")
+    for handler in pipx_logger.handlers[:]:
+        pipx_logger.removeHandler(handler)
+        handler.close()
 
 
 @pytest.fixture
