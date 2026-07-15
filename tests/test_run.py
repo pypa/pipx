@@ -19,6 +19,7 @@ from helpers import run_pipx_cli
 from package_info import PKG
 from pipx import paths, shared_libs
 from pipx.pipx_metadata_file import PipxMetadata
+from pipx.util import PipxError
 
 
 def test_help_text(pipx_temp_env, monkeypatch, capsys):
@@ -945,3 +946,24 @@ def test_run_with_cache(capsys, caplog):
     captured = capsys.readouterr()
     assert "Reusing cached venv" in caplog.text
     assert "injected package black into venv pycowsay" in captured.out
+
+
+def test_maybe_script_content_accepts_url_query_string(mocker: MockerFixture) -> None:
+    from pipx.commands.run import maybe_script_content  # noqa: PLC0415
+
+    mocker.patch("pipx.commands.run._http_get_request", return_value="print('hi')")
+
+    assert maybe_script_content("https://example.invalid/tool.py?raw=1", is_path=False) == "print('hi')"
+
+
+def test_http_get_request_rejects_oversized_script(mocker: MockerFixture) -> None:
+    from pipx.commands.run import _MAX_SCRIPT_BYTES, _http_get_request  # noqa: PLC0415
+
+    response = mocker.MagicMock()
+    response.read.return_value = b"x" * (_MAX_SCRIPT_BYTES + 1)
+    response.headers.get_content_charset.return_value = "utf-8"
+    response.__enter__.return_value = response
+    mocker.patch("pipx.commands.run.urllib.request.urlopen", return_value=response)
+
+    with pytest.raises(PipxError, match="larger than"):
+        _http_get_request("https://example.invalid/big.py")

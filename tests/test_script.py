@@ -10,6 +10,8 @@ from pipx.util import PipxError
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from pytest_mock import MockerFixture
+
 
 def test_read_script_metadata() -> None:
     metadata: Final[ScriptMetadata | None] = read_script_metadata(
@@ -126,3 +128,17 @@ def test_installable_script_rejects_name_mismatch() -> None:
 def test_script_name_from_spec_invalid(expected_apps: tuple[str, ...], message: str) -> None:
     with pytest.raises(PipxError, match=message):
         script_name_from_spec("https://example.invalid/app.py", expected_apps)
+
+
+def test_read_url_bounds_the_response_size(mocker: MockerFixture) -> None:
+    from pipx.script import _MAX_SCRIPT_BYTES, _read_url  # noqa: PLC0415
+
+    response = mocker.MagicMock()
+    response.read.return_value = b"x" * (_MAX_SCRIPT_BYTES + 1)
+    response.headers.get_content_charset.return_value = "utf-8"
+    response.__enter__.return_value = response
+    urlopen = mocker.patch("pipx.script.urllib.request.urlopen", return_value=response)
+
+    with pytest.raises(PipxError, match="larger than"):
+        _read_url("https://example.invalid/big.py")
+    assert urlopen.call_args.kwargs["timeout"] == 30

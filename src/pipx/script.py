@@ -148,10 +148,19 @@ def _read_script(package_or_url: str, expected_apps: tuple[str, ...]) -> _Script
     return _Script(_script_app(package_or_url, expected_apps), content, metadata)
 
 
+_URL_TIMEOUT: Final[int] = 30
+# a PEP 723 script larger than this is almost certainly the wrong URL; bound the read so a stalled or huge response
+# cannot hang pipx or exhaust memory
+_MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
+
+
 def _read_url(url: str) -> str:
     try:
-        with urllib.request.urlopen(url) as response:
-            return response.read().decode(response.headers.get_content_charset() or "utf-8")
+        with urllib.request.urlopen(url, timeout=_URL_TIMEOUT) as response:  # scheme is validated upstream
+            data = response.read(_MAX_SCRIPT_BYTES + 1)
+            if len(data) > _MAX_SCRIPT_BYTES:
+                raise PipxError(f"Script {url} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it.")
+            return data.decode(response.headers.get_content_charset() or "utf-8")
     except OSError as error:
         raise PipxError(f"Unable to read script {url}: {error}") from error
 

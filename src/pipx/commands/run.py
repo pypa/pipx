@@ -58,10 +58,11 @@ def maybe_script_content(app: str, is_path: bool) -> str | Path | None:
         raise PipxError(f"The specified path {app} does not exist")
 
     # Check for a URL
-    if urllib.parse.urlparse(app).scheme:
+    if (parsed := urllib.parse.urlparse(app)).scheme:
         if _is_vcs_url(app):
             return None
-        if not app.endswith(".py"):
+        # match on the URL path so a query string such as ``script.py?raw=1`` is still recognised
+        if not parsed.path.lower().endswith(".py"):
             raise PipxError(
                 """
                 pipx will only execute apps from the internet directly if they
@@ -538,11 +539,20 @@ def _remove_expired_venv(venv_dir: Path) -> None:
         rmdir(venv_dir)
 
 
+_URL_TIMEOUT: Final[int] = 30
+# bound the download so a stalled or oversized script cannot hang pipx or exhaust memory
+_MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
+
+
 def _http_get_request(url: str) -> str:
     try:
-        res = urllib.request.urlopen(url)
-        charset = res.headers.get_content_charset() or "utf-8"
-        return res.read().decode(charset)
+        with urllib.request.urlopen(url, timeout=_URL_TIMEOUT) as res:  # scheme is validated upstream
+            data = res.read(_MAX_SCRIPT_BYTES + 1)
+            if len(data) > _MAX_SCRIPT_BYTES:
+                raise PipxError(f"Script {url} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it.")
+            return data.decode(res.headers.get_content_charset() or "utf-8")
+    except PipxError:
+        raise
     except Exception as e:
         _LOGGER.debug("Uncaught Exception:", exc_info=True)
         raise PipxError(str(e)) from e
