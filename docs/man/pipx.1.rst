@@ -14,7 +14,7 @@ install and run Python applications in isolated environments
 SYNOPSIS
 --------
 
-**pipx** [*global-options*] [**install** | **install-all** | **lock** | **sync** | **uninject** | **inject** |
+**pipx** [*global-options*] [**install** | **install-all** | **manifest** | **uninject** | **inject** |
 **expose** | **unexpose** | **pin** | **unpin** | **upgrade** | **upgrade-all** | **upgrade-shared** | **uninstall** |
 **uninstall-all** | **reset** | **reinstall** | **reinstall-all** | **health** | **repair** | **list** | **interpreter**
 | **cache** | **run** | **exec** | **runpip** | **ensurepath** | **environment** | **completions** | **help**]
@@ -35,11 +35,11 @@ COMMANDS
 **install-all**
     Install all packages
 
-**lock**
-    Resolve a tool manifest with nab
+**manifest lock**
+    Resolve each locked tool in a manifest with nab
 
-**sync**
-    Apply a tool manifest
+**manifest sync**
+    Install, upgrade, or downgrade the tools declared in a manifest
 
 **uninject**
     Uninstall injected packages from an existing Virtual Environment
