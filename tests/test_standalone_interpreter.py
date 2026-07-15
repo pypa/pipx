@@ -129,6 +129,91 @@ def test_early_python_310_rejects_unsafe_archive(
         standalone_python.download_python_build_standalone("3.99")
 
 
+def _python_archive_bytes() -> bytes:
+    archive = io.BytesIO()
+    with tarfile.open(fileobj=archive, mode="w:gz") as python_tar:
+        for name in ("python/bin/python3", "python/python.exe"):
+            python_tar.addfile(tarfile.TarInfo(name), io.BytesIO())
+    return archive.getvalue()
+
+
+@pytest.fixture
+def published_darwin_release(pipx_temp_env: None, mocker: MockerFixture):
+    mocker.patch.object(standalone_python.platform, "system", return_value="Darwin")
+    mocker.patch.object(standalone_python.platform, "machine", return_value="arm64")
+    cache_dir = standalone_python.paths.ctx.standalone_python_cachedir
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    link = "https://example.invalid/cpython-3.99.0-aarch64-apple-darwin-install_only.tar.gz"
+
+    def publish(archive_bytes: bytes) -> None:
+        (cache_dir / "index.json").write_text(
+            json.dumps(
+                {
+                    "fetched": datetime.datetime.now().timestamp(),
+                    "releases": [[link, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
+                }
+            )
+        )
+        mocker.patch.object(standalone_python, "urlopen", return_value=io.BytesIO(archive_bytes))
+
+    return cache_dir, publish
+
+
+def test_standalone_python_upgrade_keeps_old_build_when_unpack_fails(published_darwin_release, mocker) -> None:
+    cache_dir, publish = published_darwin_release
+    install_dir = cache_dir / "3.99"
+    (install_dir / "bin").mkdir(parents=True)
+    (install_dir / "bin" / "python3").write_text("old", encoding="utf-8")
+    (install_dir / "keepme").write_text("v1", encoding="utf-8")
+    publish(_python_archive_bytes())
+    mocker.patch.object(standalone_python, "_download")
+    mocker.patch.object(standalone_python, "_unpack", side_effect=standalone_python.PipxError("boom"))
+
+    with pytest.raises(standalone_python.PipxError, match="boom"):
+        standalone_python.download_python_build_standalone("3.99", override=True)
+
+    assert ((install_dir / "keepme").read_text(encoding="utf-8"), (install_dir / "bin" / "python3").read_text()) == (
+        "v1",
+        "old",
+    )
+
+
+def test_standalone_python_upgrade_replaces_existing_build(published_darwin_release) -> None:
+    cache_dir, publish = published_darwin_release
+    install_dir = cache_dir / "3.99"
+    install_dir.mkdir(parents=True)
+    stale = install_dir / "stale"
+    stale.write_text("old", encoding="utf-8")
+    publish(_python_archive_bytes())
+
+    python_path = standalone_python.download_python_build_standalone("3.99", override=True)
+
+    assert (Path(python_path).is_file(), stale.exists()) == (True, False)
+
+
+def test_standalone_python_upgrade_restores_backup_when_swap_fails(published_darwin_release, mocker) -> None:
+    cache_dir, publish = published_darwin_release
+    install_dir = cache_dir / "3.99"
+    (install_dir / "bin").mkdir(parents=True)
+    (install_dir / "keepme").write_text("v1", encoding="utf-8")
+    publish(_python_archive_bytes())
+    real_replace = standalone_python.os.replace
+    already_failed = {"value": False}
+
+    def replace(src: object, dst: object) -> None:
+        if Path(dst) == install_dir and not already_failed["value"]:
+            already_failed["value"] = True
+            raise OSError("swap failed")
+        real_replace(src, dst)
+
+    mocker.patch.object(standalone_python.os, "replace", side_effect=replace)
+
+    with pytest.raises(OSError, match="swap failed"):
+        standalone_python.download_python_build_standalone("3.99", override=True)
+
+    assert (install_dir / "keepme").read_text(encoding="utf-8") == "v1"
+
+
 def test_get_latest_python_releases_sets_request_timeout(mocker: MockerFixture) -> None:
     urlopen = mocker.patch.object(
         standalone_python,

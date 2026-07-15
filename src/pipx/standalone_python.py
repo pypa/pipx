@@ -65,16 +65,10 @@ def download_python_build_standalone(python_version: str, override: bool = False
     install_dir = paths.ctx.standalone_python_cachedir / python_version
     installed_python = install_dir / "python.exe" if constants.WINDOWS else install_dir / "bin" / "python3"
 
-    if override:
-        if install_dir.exists():
-            shutil.rmtree(install_dir)
-    else:
-        if installed_python.exists():
-            return str(installed_python)
-
-        if install_dir.exists():
-            _LOGGER.warning(f"A previous attempt to install python {python_version} failed. Retrying.")
-            shutil.rmtree(install_dir)
+    if not override and installed_python.exists():
+        return str(installed_python)
+    if not override and install_dir.exists():
+        _LOGGER.warning(f"A previous attempt to install python {python_version} failed. Retrying.")
 
     full_version, (download_link, digest) = resolve_python_version(python_version)
 
@@ -88,13 +82,34 @@ def download_python_build_standalone(python_version: str, override: bool = False
         # unpack the python build
         _unpack(full_version, download_link, archive, download_dir, digest)
 
-        # the python installation we want is nested in the tarball
-        # under a directory named 'python'. We move it to the install
-        # directory
-        extracted_dir = download_dir / "python"
-        shutil.move(extracted_dir, install_dir)
+        # the python installation we want is nested in the tarball under a directory named 'python'; only after it is
+        # fully extracted do we swap it into place, so a failed download or unpack never destroys a working interpreter
+        _install_atomically(download_dir / "python", install_dir)
 
     return str(installed_python)
+
+
+def _install_atomically(source: Path, install_dir: Path) -> None:
+    install_dir.parent.mkdir(parents=True, exist_ok=True)
+    # stage on the same filesystem as install_dir so the swap-in is an atomic rename rather than a mid-copy window
+    staging_dir = install_dir.with_name(f".{install_dir.name}.incoming")
+    backup_dir = install_dir.with_name(f".{install_dir.name}.previous")
+    for leftover in (staging_dir, backup_dir):
+        if leftover.exists():
+            shutil.rmtree(leftover)
+
+    shutil.move(str(source), str(staging_dir))
+    replaced_existing = install_dir.exists()
+    if replaced_existing:
+        os.replace(install_dir, backup_dir)
+    try:
+        os.replace(staging_dir, install_dir)
+    except OSError:
+        if replaced_existing:
+            os.replace(backup_dir, install_dir)
+        raise
+    if replaced_existing:
+        shutil.rmtree(backup_dir, ignore_errors=True)
 
 
 def _download(full_version: str, download_link: str, archive: Path):
