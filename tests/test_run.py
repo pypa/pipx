@@ -11,6 +11,7 @@ from typing import Final
 from unittest import mock
 
 import pytest
+from filelock import FileLock, Timeout
 from pytest_mock import MockerFixture
 
 import pipx.main
@@ -112,6 +113,27 @@ def test_run_refresh_retains_replacement(pipx_temp_env: None) -> None:
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "args"])
 
     assert marker.exists()
+
+
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_skips_a_cache_entry_held_by_another_run(pipx_temp_env: None, mocker: MockerFixture) -> None:
+    paths.ctx.venv_cache.mkdir(parents=True, exist_ok=True)
+    held: Final[Path] = paths.ctx.venv_cache / "held-by-another-run"
+    held.mkdir()
+    (held / "pipx_expired_venv").touch()
+
+    real_acquire: Final = FileLock.acquire
+
+    def acquire(self: FileLock, timeout: float | None = None, *args: object, **kwargs: object) -> object:
+        if timeout == 0:
+            raise Timeout(str(self.lock_file))
+        return real_acquire(self, timeout, *args, **kwargs)
+
+    mocker.patch.object(FileLock, "acquire", acquire)
+
+    run_pipx_cli_exit(["run", "pycowsay", "cowsay", "hi"])
+
+    assert held.is_dir()
 
 
 def test_run_cache_options_are_mutually_exclusive(

@@ -10,6 +10,7 @@ from pathlib import Path
 from shutil import which
 from typing import Final, NoReturn
 
+from filelock import Timeout
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
@@ -516,8 +517,17 @@ def _locked_venv_cache(venv_dir: Path) -> Iterator[None]:
     for cached_venv_dir in sorted(venv_container.iter_venv_dirs()):
         if cached_venv_dir == venv_dir:
             continue
-        with venv_container.venv_lock(cached_venv_dir):
+        # Purging expired venvs is opportunistic housekeeping, so skip any a concurrent run holds rather than block on
+        # it; on Windows an in-use cache would keep the lock held for the whole install and stall every other run.
+        lock = venv_container.venv_lock(cached_venv_dir)
+        try:
+            lock.acquire(timeout=0)
+        except Timeout:
+            continue
+        try:
             _remove_expired_venv(cached_venv_dir)
+        finally:
+            lock.release()
     with venv_container.venv_lock(venv_dir):
         _remove_expired_venv(venv_dir)
         yield
