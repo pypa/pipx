@@ -5,6 +5,7 @@ from shutil import Error, copytree
 from tempfile import mkdtemp
 from typing import Final
 
+from pipx import paths
 from pipx.util import PipxError, rmdir
 
 
@@ -14,7 +15,10 @@ def preserve_venv(venv_dir: Path, *, enabled: bool) -> Iterator[None]:
         yield
         return
 
-    backup_dir: Final[Path] = Path(mkdtemp(prefix=f".{venv_dir.name}-", suffix="-pipx-backup", dir=venv_dir.parent))
+    # the backup lives in the trash, not beside the venv, so a concurrent list or reinstall-all does not enumerate it as
+    # a broken environment; the trash shares the home's filesystem, so restoring it is still an atomic rename
+    paths.ctx.trash.mkdir(parents=True, exist_ok=True)
+    backup_dir: Final[Path] = Path(mkdtemp(prefix=f"{venv_dir.name}-", suffix="-pipx-backup", dir=paths.ctx.trash))
     backup_dir.rmdir()
     try:
         copytree(venv_dir, backup_dir, symlinks=True)

@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
+from pipx import paths
 from pipx.commands.common import add_suffix
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
@@ -33,7 +34,10 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def _create_reinstall_backup(venv_dir: Path) -> Path:
-    backup_dir = Path(mkdtemp(prefix=f".{venv_dir.name}-", suffix="-pipx-reinstall", dir=venv_dir.parent))
+    # keep the backup in the trash rather than beside the venv, so it is not enumerated as a broken environment; the
+    # trash shares the home's filesystem, so moving the venv there and back stays an atomic rename
+    paths.ctx.trash.mkdir(parents=True, exist_ok=True)
+    backup_dir = Path(mkdtemp(prefix=f"{venv_dir.name}-", suffix="-pipx-reinstall", dir=paths.ctx.trash))
     backup_dir.rmdir()
     venv_dir.rename(backup_dir)
     return backup_dir
