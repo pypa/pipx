@@ -1,11 +1,13 @@
 import filecmp
 import logging
+import re
 import shlex
 import shutil
 import tempfile
 import time
 from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
+from re import Pattern
 from shutil import which
 from tempfile import TemporaryDirectory
 from typing import Final
@@ -617,6 +619,20 @@ def warn_if_not_on_path(local_bin_dir: Path) -> OutputMessage | None:
     return None
 
 
+_SUFFIX_ALLOWED: Final[Pattern[str]] = re.compile(r"[A-Za-z0-9._@+-]*")
+
+
+def validate_suffix(suffix: str) -> str:
+    # a suffix is spliced straight into an exposed file name, so anything but a portable character set could steer the
+    # destination out of PIPX_BIN_DIR or PIPX_MAN_DIR
+    if _SUFFIX_ALLOWED.fullmatch(suffix) is None:
+        raise PipxError(
+            f"Invalid suffix {suffix!r}. Use only letters, digits, and the characters . _ - + @ so exposed file "
+            f"names stay inside pipx's directories."
+        )
+    return suffix
+
+
 def add_suffix(name: str, suffix: str) -> str:
     """Add suffix to app."""
 
@@ -643,5 +659,6 @@ __all__ = [
     "package_name_from_spec",
     "run_post_install_actions",
     "validate_expected_apps",
+    "validate_suffix",
     "venv_health_check",
 ]

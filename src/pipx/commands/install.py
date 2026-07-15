@@ -17,6 +17,7 @@ from pipx.commands.common import (
     package_name_from_spec,
     run_post_install_actions,
     validate_expected_apps,
+    validate_suffix,
 )
 from pipx.commands.transaction import preserve_venv
 from pipx.constants import (
@@ -87,6 +88,7 @@ def install(
     replace_lock: bool = False,
     emit_output: bool = True,
 ) -> OperationResult[InstallData]:
+    validate_suffix(suffix)
     messages: Final[list[OutputMessage]] = []
     packages: Final[list[_InstalledPackage]] = []
     skipped: Final[list[_SkippedInstall]] = []

@@ -94,6 +94,28 @@ def test_install_multiple_packages_reports_success_before_failure(
 
 
 @pytest.mark.parametrize(
+    "suffix",
+    [
+        pytest.param("/../../owned", id="parent-escape"),
+        pytest.param("nested/name", id="separator"),
+        pytest.param("has space", id="whitespace"),
+    ],
+)
+def test_install_rejects_unsafe_suffix(
+    pipx_temp_env: None,
+    capsys: pytest.CaptureFixture[str],
+    suffix: str,
+) -> None:
+    return_code: Final[int] = run_pipx_cli(["install", "--suffix", suffix, "pycowsay"])
+
+    assert (return_code, "Invalid suffix" in capsys.readouterr().err, (paths.ctx.venvs / "pycowsay").exists()) == (
+        1,
+        True,
+        False,
+    )
+
+
+@pytest.mark.parametrize(
     "package_name, package_spec",
     [("pycowsay", "pycowsay"), ("black", PKG["black"]["spec"])],
 )
