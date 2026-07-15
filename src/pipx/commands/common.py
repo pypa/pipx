@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import filecmp
 import logging
+import os
 import re
 import shlex
 import shutil
@@ -378,14 +379,54 @@ def _resource_belongs_to_venv(
 ) -> bool:
     try:
         # Some apps expose symlinks whose names differ from their targets, so resolved paths cannot identify them.
-        # Windows setups without symlink support fall back to package resource names.
-        if can_symlink(local_resource_dir) and resource_path.is_symlink():
-            return resource_path.resolve().parent.samefile(venv_resource_path)
-        if not can_symlink(local_resource_dir):
-            sources = package_resource_paths.get(resource_path.name, ()) if package_resource_paths is not None else ()
-            return any(source.is_file() and filecmp.cmp(resource_path, source, shallow=False) for source in sources)
+        if can_symlink(local_resource_dir):
+            return resource_path.is_symlink() and resource_path.resolve().parent.samefile(venv_resource_path)
+        return _copy_belongs_to_venv(resource_path, venv_resource_path, package_resource_paths)
     except (FileNotFoundError, RuntimeError):
         return False
+
+
+def _copy_belongs_to_venv(
+    resource_path: Path,
+    venv_resource_path: Path,
+    package_resource_paths: Mapping[str, Sequence[Path]] | None,
+) -> bool:
+    # A copied launcher keeps a shebang to the venv interpreter it was built for, so a stale copy is still
+    # recognised even after a force reinstall regenerates its source (the rewritten launcher no longer
+    # byte-matches, and Windows .exe stubs also embed install-time timestamps), while another venv's colliding
+    # copy is not.
+    if _copy_launcher_targets_venv(resource_path, venv_resource_path):
+        return True
+    # Man pages and completions carry no launcher shebang, so match a copy against the venv's own file of the
+    # same name (a static resource copies byte-for-byte) and every recorded source; a colliding copy differs.
+    same_named: Final[Path] = venv_resource_path / resource_path.name
+    if same_named.is_file() and filecmp.cmp(resource_path, same_named, shallow=False):
+        return True
+    sources = package_resource_paths.get(resource_path.name, ()) if package_resource_paths is not None else ()
+    return any(source.is_file() and filecmp.cmp(resource_path, source, shallow=False) for source in sources)
+
+
+def _copy_launcher_targets_venv(resource_path: Path, venv_resource_path: Path) -> bool:
+    try:
+        data: Final[bytes] = resource_path.read_bytes()
+    except OSError:
+        return False
+    # A console-script launcher embeds a "#!<interpreter>" line: the first line on POSIX, and on Windows a line
+    # tucked between the .exe launcher stub and the appended zip. Both point the copy at its owning venv.
+    start = 0
+    while (marker := data.find(b"#!", start)) != -1:
+        start = marker + 2
+        end = data.find(b"\n", marker)
+        line = (data[start:] if end == -1 else data[start:end]).strip()
+        if line.startswith(b'"'):
+            interpreter = line[1:close] if (close := line.find(b'"', 1)) != -1 else b""
+        else:
+            interpreter = parts[0] if (parts := line.split()) else b""
+        try:
+            if interpreter and Path(os.fsdecode(interpreter)).parent.samefile(venv_resource_path):
+                return True
+        except OSError:
+            continue
     return False
 
 
