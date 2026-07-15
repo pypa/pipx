@@ -104,7 +104,7 @@ def test_uninstall_json_reports_missing(
         autospec=True,
         return_value="/usr/bin/missing",
     )
-    assert run_pipx_cli(["uninstall", "missing", "--json"])
+    assert run_pipx_cli(["uninstall", "missing", "--output", "json"])
 
     captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (

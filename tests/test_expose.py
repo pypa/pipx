@@ -141,7 +141,7 @@ def test_list_reports_unexposed_environment(unexposed_pycowsay: Path, capsys: Ca
 
 
 def test_unexpose_json(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> None:
-    assert run_pipx_cli(["unexpose", "pycowsay", "--json"]) == 0
+    assert run_pipx_cli(["unexpose", "pycowsay", "--output", "json"]) == 0
 
     assert json.loads(capsys.readouterr().out) == {
         "command": ["unexpose"],
@@ -159,7 +159,7 @@ def test_expose_reports_collisions_as_partial(unexposed_pycowsay: Path, capsys: 
     blocker = paths.ctx.bin_dir / app_name("pycowsay")
     blocker.write_text("not managed by pipx", encoding="utf-8")
 
-    assert run_pipx_cli(["expose", "pycowsay", "--json"]) == 1
+    assert run_pipx_cli(["expose", "pycowsay", "--output", "json"]) == 1
 
     envelope = json.loads(capsys.readouterr().out)
     assert (

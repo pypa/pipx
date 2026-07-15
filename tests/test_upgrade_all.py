@@ -184,7 +184,7 @@ def test_upgrade_all_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
 
-    assert not run_pipx_cli(["upgrade-all", "--json"])
+    assert not run_pipx_cli(["upgrade-all", "--output", "json"])
 
     metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
     captured: Final[CaptureResult[str]] = capsys.readouterr()
@@ -229,7 +229,7 @@ def test_upgrade_all_pylock_json(
         return_value=subprocess.CompletedProcess(args=["pip", "list"], returncode=0, stdout="[]", stderr=""),
     )
 
-    assert not run_pipx_cli(["upgrade-all", "--json"])
+    assert not run_pipx_cli(["upgrade-all", "--output", "json"])
 
     metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
     assert (json.loads(capsys.readouterr().out)["data"]["packages"], check.call_count) == (
@@ -255,7 +255,7 @@ def test_upgrade_all_json_failure(pipx_temp_env: None, capsys: pytest.CaptureFix
     mock_legacy_venv("pycowsay")
     capsys.readouterr()
 
-    assert run_pipx_cli(["upgrade-all", "--json"])
+    assert run_pipx_cli(["upgrade-all", "--output", "json"])
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert not captured.err
@@ -284,7 +284,7 @@ def test_upgrade_all_json_requested_skip(pipx_temp_env: None, capsys: pytest.Cap
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
 
-    assert not run_pipx_cli(["upgrade-all", "--skip", "pycowsay", "--json"])
+    assert not run_pipx_cli(["upgrade-all", "--skip", "pycowsay", "--output", "json"])
 
     assert json.loads(capsys.readouterr().out)["data"] == {
         "packages": [],
@@ -296,7 +296,7 @@ def test_upgrade_all_json_editable_skip(pipx_temp_env: None, capsys: pytest.Capt
     assert not run_pipx_cli(["install", "--editable", str(root / "testdata" / "empty_project"), "--force"])
     capsys.readouterr()
 
-    assert not run_pipx_cli(["upgrade-all", "--json"])
+    assert not run_pipx_cli(["upgrade-all", "--output", "json"])
 
     assert json.loads(capsys.readouterr().out)["data"] == {
         "packages": [],

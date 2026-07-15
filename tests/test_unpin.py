@@ -24,7 +24,7 @@ def test_unpin_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> 
     assert not run_pipx_cli(["pin", "pycowsay"])
     capsys.readouterr()
 
-    assert not run_pipx_cli(["unpin", "pycowsay", "--json"])
+    assert not run_pipx_cli(["unpin", "pycowsay", "--output", "json"])
 
     captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (

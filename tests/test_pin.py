@@ -30,7 +30,7 @@ def test_pin_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> No
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
 
-    assert not run_pipx_cli(["pin", "pycowsay", "--json"])
+    assert not run_pipx_cli(["pin", "pycowsay", "--output", "json"])
 
     captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
@@ -59,7 +59,7 @@ def test_pin_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> No
 
 
 def test_pin_json_reports_missing(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
-    assert run_pipx_cli(["pin", "missing", "--json"])
+    assert run_pipx_cli(["pin", "missing", "--output", "json"])
 
     captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
@@ -97,7 +97,7 @@ def test_pin_json_reports_already_pinned_injected(
     pinned_injected_environment: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    assert not run_pipx_cli(["pin", "pycowsay", "--injected-only", "--json"])
+    assert not run_pipx_cli(["pin", "pycowsay", "--injected-only", "--output", "json"])
 
     assert json.loads(capsys.readouterr().out)["data"] == {
         "packages": [],
@@ -109,7 +109,7 @@ def test_pin_json_pins_main_after_injected(
     pinned_injected_environment: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    assert not run_pipx_cli(["pin", "pycowsay", "--json"])
+    assert not run_pipx_cli(["pin", "pycowsay", "--output", "json"])
 
     assert json.loads(capsys.readouterr().out)["data"] == {
         "packages": [

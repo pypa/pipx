@@ -459,7 +459,7 @@ def _add_dependency_app_options(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def _add_output_option(parser: argparse.ArgumentParser, *, legacy_json: bool = False) -> None:
+def _add_output_option(parser: argparse.ArgumentParser, *, snapshot_json: bool = False) -> None:
     group: Final[argparse._MutuallyExclusiveGroup] = parser.add_mutually_exclusive_group()
     group.add_argument(
         "--output",
@@ -467,13 +467,15 @@ def _add_output_option(parser: argparse.ArgumentParser, *, legacy_json: bool = F
         default=OutputFormat.HUMAN,
         help="Select the output format.",
     )
-    if legacy_json:
+    # only ``list`` keeps a ``--json`` flag: it prints the versioned package snapshot that ``install-all`` reads back,
+    # which predates and differs from the ``--output json`` result envelope
+    if snapshot_json:
         group.add_argument(
             "--json",
             action="store_const",
             const=OutputFormat.JSON,
             dest="output",
-            help="Alias for '--output json'.",
+            help="Print the installed-package snapshot as JSON, the format install-all consumes.",
         )
 
 
@@ -832,7 +834,7 @@ def _add_expose(
         parents=[shared_parser],
     )
     parser.add_argument("package", metavar="ENVIRONMENT", help="Environment to expose").completer = venv_completer
-    _add_output_option(parser, legacy_json=True)
+    _add_output_option(parser)
     parser.set_defaults(func=_cmd_expose)
 
 
@@ -854,7 +856,7 @@ def _add_unexpose(
         parents=[shared_parser],
     )
     parser.add_argument("package", metavar="ENVIRONMENT", help="Environment to hide").completer = venv_completer
-    _add_output_option(parser, legacy_json=True)
+    _add_output_option(parser)
     parser.set_defaults(func=_cmd_unexpose)
 
 
@@ -890,7 +892,7 @@ def _add_pin(
         default=[],
         help="Skip these packages. Implies `--injected-only`.",
     )
-    _add_output_option(p, legacy_json=True)
+    _add_output_option(p)
     p.set_defaults(func=_cmd_pin)
 
 
@@ -912,7 +914,7 @@ def _add_unpin(
         parents=[shared_parser],
     )
     p.add_argument("package", metavar="ENVIRONMENT", help="Environment to unpin")
-    _add_output_option(p, legacy_json=True)
+    _add_output_option(p)
     p.set_defaults(func=_cmd_unpin)
 
 
@@ -991,7 +993,7 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argp
     )
     add_pip_venv_args(p)
     add_backend_arg(p)
-    _add_output_option(p, legacy_json=True)
+    _add_output_option(p)
     p.set_defaults(func=_cmd_upgrade_all)
 
 
@@ -1037,7 +1039,7 @@ def _add_uninstall(subparsers, venv_completer: VenvCompleter, shared_parser: arg
         parents=[shared_parser],
     )
     p.add_argument("package", metavar="ENVIRONMENT").completer = venv_completer
-    _add_output_option(p, legacy_json=True)
+    _add_output_option(p)
     p.set_defaults(func=_cmd_uninstall)
 
 
@@ -1054,7 +1056,7 @@ def _add_uninstall_all(subparsers: argparse._SubParsersAction, shared_parser: ar
         description="Uninstall all pipx-managed packages",
         parents=[shared_parser],
     )
-    _add_output_option(p, legacy_json=True)
+    _add_output_option(p)
     p.set_defaults(func=_cmd_uninstall_all)
 
 
@@ -1189,7 +1191,7 @@ def _add_health(
         parents=[shared_parser],
     )
     parser.add_argument("packages", nargs="*", help="Installed packages to check").completer = venv_completer
-    _add_output_option(parser, legacy_json=True)
+    _add_output_option(parser)
     parser.set_defaults(func=_cmd_health)
 
 
@@ -1260,7 +1262,7 @@ def _add_list(
         action="store_true",
         help="List pinned packages only. Pass --include-injected at the same time to list injected packages that were pinned.",
     )
-    _add_output_option(p, legacy_json=True)
+    _add_output_option(p, snapshot_json=True)
     p.add_argument("packages", nargs="*", help="Installed packages to list").completer = venv_completer
     p.set_defaults(func=_cmd_list)
 
