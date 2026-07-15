@@ -48,6 +48,7 @@ _VERSION_RE: Final[re.Pattern[str]] = re.compile(
 # Stripping VIRTUAL_ENV stops uv from auto-targeting an active venv when no
 # ``--python`` flag is passed.
 _UV_ENV_OVERRIDES: Final[dict[str, str | None]] = {"VIRTUAL_ENV": None, "UV_NO_PROGRESS": "1"}
+_UV_PROBE_TIMEOUT: Final[int] = 10
 
 
 class UvBackend(Backend):
@@ -242,16 +243,20 @@ def find_uv_binary() -> tuple[Path | None, str]:
             # ENOEXEC) so we fall through to PATH instead of erroring later.
             if bundled.is_file() and _binary_runs(bundled):
                 return bundled, "bundled"
-    if path := shutil.which("uv"):
-        return Path(path), "path"
+    # Probe the PATH candidate too, so a broken or hanging ``uv`` on PATH is
+    # skipped here instead of stalling the later version check.
+    if (path := shutil.which("uv")) and _binary_runs(candidate := Path(path)):
+        return candidate, "path"
     return None, "missing"
 
 
 def _binary_runs(binary: Path) -> bool:
     # Liveness probe; full floor-version check stays in ``_check_uv_version``.
     try:
-        process = subprocess.run([str(binary), "--version"], check=False, text=True, capture_output=True, timeout=10)
-    except OSError as exc:
+        process = subprocess.run(
+            [str(binary), "--version"], check=False, text=True, capture_output=True, timeout=_UV_PROBE_TIMEOUT
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
         _LOGGER.debug(f"uv launch probe failed for {binary}: {exc}")
         return False
     if process.returncode != 0 or not _VERSION_RE.search(process.stdout):
@@ -266,7 +271,15 @@ def _binary_runs(binary: Path) -> bool:
 @cache
 def _check_uv_version(binary: Path) -> Version:
     # Cached so ``upgrade-all`` over many venvs doesn't fork uv repeatedly.
-    process = subprocess.run([str(binary), "--version"], check=False, text=True, capture_output=True)
+    try:
+        process = subprocess.run(
+            [str(binary), "--version"], check=False, text=True, capture_output=True, timeout=_UV_PROBE_TIMEOUT
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise PipxError(
+            f"Could not run {binary} --version ({exc}).\n"
+            "Repair or reinstall uv, or run with `--backend pip` (or set PIPX_DEFAULT_BACKEND=pip)."
+        ) from exc
     if (match := _VERSION_RE.search(process.stdout)) is None:
         raise PipxError(
             f"Could not parse uv version from {binary} "
