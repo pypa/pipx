@@ -10,15 +10,19 @@ import re
 import shutil
 import tarfile
 import tempfile
+import time
 import urllib.error
 from functools import partial
 from pathlib import Path, PurePosixPath
-from typing import Any, Final, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Final, TypedDict, cast
 from urllib.request import urlopen
 
 from pipx import constants, paths
 from pipx.animate import animate
 from pipx.util import PipxError
+
+if TYPE_CHECKING:
+    import http.client
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -54,6 +58,11 @@ PYTHON_VERSION_REGEX: Final[re.Pattern[str]] = re.compile(r"cpython-(\d+\.\d+\.\
 _URL_OPEN_TIMEOUT: Final[float] = 30
 _INDEX_MAX_AGE: Final[datetime.timedelta] = datetime.timedelta(days=30)
 _RELEASE_ENTRY_LEN: Final[int] = 2
+_DOWNLOAD_ATTEMPTS: Final[int] = 3
+_DOWNLOAD_BACKOFF_SECONDS: Final[float] = 2.0
+# GitHub's release CDN answers with transient 5xx (and 429 under rate limiting) often enough that a single failure
+# should not abort a download; these statuses are safe to retry, unlike a 404 for a genuinely missing build.
+_RETRYABLE_HTTP_STATUS: Final[frozenset[int]] = frozenset({429, 500, 502, 503, 504})
 
 
 class _PythonIndex(TypedDict):
@@ -131,13 +140,29 @@ def _download(full_version: str, download_link: str, archive: Path) -> None:
             # ballooning memory usage, we read the file in chunks
             # download_link comes from the pinned GitHub release index
             with (
-                urlopen(download_link, timeout=_URL_OPEN_TIMEOUT) as response,  # noqa: S310  # release index URL
+                _urlopen_retrying(download_link) as response,
                 Path(archive).open("wb") as file_handle,
             ):
                 file_handle.writelines(iter(partial(response.read, 32768), b""))
         except urllib.error.URLError as e:
             msg = f"Unable to download python {full_version} build."
             raise PipxError(msg) from e
+
+
+def _urlopen_retrying(url: str) -> http.client.HTTPResponse:
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            return urlopen(url, timeout=_URL_OPEN_TIMEOUT)  # noqa: S310  # pinned GitHub release URL
+        except urllib.error.URLError as error:
+            retryable = not isinstance(error, urllib.error.HTTPError) or error.code in _RETRYABLE_HTTP_STATUS
+            if not retryable or attempt >= _DOWNLOAD_ATTEMPTS:
+                raise
+            _LOGGER.debug(
+                "download attempt %d/%d for %s failed (%s); retrying", attempt, _DOWNLOAD_ATTEMPTS, url, error
+            )
+            time.sleep(_DOWNLOAD_BACKOFF_SECONDS * attempt)
 
 
 def _unpack(full_version: str, archive: Path, download_dir: Path, expected_checksum: str) -> None:
