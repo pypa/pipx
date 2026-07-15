@@ -48,6 +48,7 @@ def list_text(venv_dirs: Iterable[Path], include_injected: bool, venv_root_dir: 
     print(f"venvs are in {bold(venv_root_dir)}")
     print(f"apps are exposed on your $PATH at {bold(str(paths.ctx.bin_dir))}")
     print(f"manual pages are exposed at {bold(str(paths.ctx.man_dir))}")
+    print(f"shell completions are exposed at {bold(str(paths.ctx.completion_dir))}")
 
     all_venv_problems = VenvProblems()
     for venv_dir in venv_dirs:

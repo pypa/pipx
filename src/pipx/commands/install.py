@@ -604,6 +604,8 @@ def _installed_package(venv: Venv, package_name: str) -> _InstalledPackage:
         package=str(package.package),
         version=package.package_version,
         location=str(venv.root),
+        interpreter=venv.pipx_metadata.python_version,
+        backend=venv.pipx_metadata.backend,
     )
 
 
@@ -742,6 +744,8 @@ class _InstalledPackage:
     package: str
     version: str
     location: str
+    interpreter: str | None
+    backend: str
 
 
 @dataclass(frozen=True)

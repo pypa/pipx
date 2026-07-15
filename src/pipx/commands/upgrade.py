@@ -270,6 +270,8 @@ def _upgrade_venv(
                 status=UpgradeStatus.LOCKED,
                 injected=False,
                 location=str(venv.root),
+                interpreter=venv.pipx_metadata.python_version,
+                backend=venv.pipx_metadata.backend,
             ),
         )
 
@@ -421,6 +423,8 @@ def _upgrade_package(
         status=UpgradeStatus.UNCHANGED if old_version == new_version else UpgradeStatus.UPGRADED,
         injected=package_name != venv.main_package_name,
         location=str(venv.root),
+        interpreter=venv.pipx_metadata.python_version,
+        backend=venv.pipx_metadata.backend,
     )
 
 
@@ -434,6 +438,8 @@ def _package_result(venv: Venv, package_name: str, status: UpgradeStatus) -> Pac
         status=status,
         injected=package_name != venv.main_package_name,
         location=str(venv.root),
+        interpreter=venv.pipx_metadata.python_version,
+        backend=venv.pipx_metadata.backend,
     )
 
 
@@ -493,6 +499,8 @@ class PackageUpgradeResult:
     status: UpgradeStatus
     injected: bool
     location: str
+    interpreter: str | None
+    backend: str
 
 
 @dataclass(frozen=True)

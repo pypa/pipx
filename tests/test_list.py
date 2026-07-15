@@ -112,6 +112,7 @@ def test_list_suffix_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_ve
     assert not run_pipx_cli(["list"])
     captured = capsys.readouterr()
     assert f"package pycowsay 0.0.0.2 (pycowsay{suffix})," in captured.out
+    assert f"shell completions are exposed at {paths.ctx.completion_dir}" in captured.out
 
 
 def test_list_json(pipx_temp_env, capsys):

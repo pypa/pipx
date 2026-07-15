@@ -65,6 +65,7 @@ def test_upgrade_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -
 
     assert not run_pipx_cli(["upgrade", "pycowsay", "--output", "json"])
 
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
@@ -79,6 +80,8 @@ def test_upgrade_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -
                         "previous_version": "0.0.0.2",
                         "status": "unchanged",
                         "version": "0.0.0.2",
+                        "interpreter": metadata.python_version,
+                        "backend": metadata.backend,
                     }
                 ],
                 "skipped": [],

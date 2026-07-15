@@ -186,6 +186,7 @@ def test_upgrade_all_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str
 
     assert not run_pipx_cli(["upgrade-all", "--json"])
 
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert not captured.err
     assert json.loads(captured.out) == {
@@ -200,6 +201,8 @@ def test_upgrade_all_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str
                     "previous_version": "0.0.0.2",
                     "status": "unchanged",
                     "version": "0.0.0.2",
+                    "interpreter": metadata.python_version,
+                    "backend": metadata.backend,
                 }
             ],
             "skipped": [],
@@ -228,6 +231,7 @@ def test_upgrade_all_pylock_json(
 
     assert not run_pipx_cli(["upgrade-all", "--json"])
 
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
     assert (json.loads(capsys.readouterr().out)["data"]["packages"], check.call_count) == (
         [
             {
@@ -238,6 +242,8 @@ def test_upgrade_all_pylock_json(
                 "previous_version": "0.0.0.2",
                 "status": "locked",
                 "version": "0.0.0.2",
+                "interpreter": metadata.python_version,
+                "backend": metadata.backend,
             }
         ],
         0,

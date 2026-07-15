@@ -1409,6 +1409,7 @@ def test_install_quiet_flag(pipx_temp_env, capsys):
 def test_install_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "--output", "json", "pycowsay"])
 
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert not captured.err
     assert json.loads(captured.out) == {
@@ -1420,6 +1421,8 @@ def test_install_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -
                     "location": str(paths.ctx.venvs / "pycowsay"),
                     "package": "pycowsay",
                     "version": "0.0.0.2",
+                    "interpreter": metadata.python_version,
+                    "backend": metadata.backend,
                 }
             ],
             "skipped": [],
