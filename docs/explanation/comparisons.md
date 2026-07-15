@@ -5,7 +5,7 @@
 - pipx and pip both install packages from PyPI (or locally)
 - pipx relies on pip (and venv)
 - pipx replaces a subset of pip's functionality; it lets you install CLI applications but NOT libraries that you import
-  in your code.
+    in your code.
 - you can install pipx with pip
 
 Example interaction: Install pipx with pip: `pip install --user pipx`
@@ -65,17 +65,17 @@ managers writes the same filename. Each manager refuses to overwrite a binary th
 ### Only in pipx
 
 - `pipx inject` / `uninject` add or remove a package in place. `uv tool install --with` reaches the same end state by
-  rebuilding the venv.
+    rebuilding the venv.
 - `pipx runpip <venv> -- ...` runs pip inside a tool's venv. uv venvs have no pip.
 - `--include-deps` exposes entry points from every dependency. uv requires you to enumerate dep packages with
-  `--with-executables-from`.
+    `--with-executables-from`.
 - `--suffix` keeps two copies of the same tool side-by-side.
 - `--global` and the `PIPX_GLOBAL_*` variables drive a system-wide install.
 - Manual pages get symlinked under `$PIPX_MAN_DIR`.
 - `pipx manifest sync <manifest>` applies an explicit desired set; `pipx manifest lock <manifest>` writes one PEP 751
-  lock per selected tool.
+    lock per selected tool.
 - `pipx install-all <spec.json>` rebuilds every venv from a `pipx list --output json` snapshot for cross-machine
-  migration.
+    migration.
 - `[project.entry-points."pipx.run"]` declares pipx-specific runtime extras in the package metadata.
 - `pipx environment` prints every variable and its resolved value in one place.
 - `--cooldown DAYS` provides the same release-age policy through pip and uv.
@@ -83,28 +83,28 @@ managers writes the same filename. Each manager refuses to overwrite a binary th
 ### Only in uv tool
 
 - `uv tool list` toggles columns via `--show-with`, `--show-paths`, `--show-version-specifiers`, `--show-extras`,
-  `--show-python`.
+    `--show-python`.
 - `uvx --with-editable PATH` adds editable extras for a one-off run.
 - `uv tool upgrade --all -p 3.13` re-pins every tool to a different Python in one shot.
 - `uv python install/list/find/pin/upgrade/uninstall` integrates managed Python; uv auto-fetches when the requested
-  Python isn't installed.
+    Python isn't installed.
 - `--torch-backend` and `--isolated` add controls that pipx does not expose.
 - The content-addressed cache spans `uv pip`, `uv tool`, `uv run`, and `uv venv`. Wheels downloaded once get reused
-  everywhere.
+    everywhere.
 
 ### Gotchas
 
 - `uvx` reuses cached envs across invocations until you prune the cache (`uv cache clean`), pin a new version
-  (`uvx black@latest`), or pass `--refresh`. `pipx run` caches for 14 days and accepts `--refresh` for an early
-  replacement.
+    (`uvx black@latest`), or pass `--refresh`. `pipx run` caches for 14 days and accepts `--refresh` for an early
+    replacement.
 - `uvx` prefers a persistent install when one exists. After `uv tool install ruff`, plain `uvx ruff` reuses that env
-  instead of building an ephemeral one. Pass `--isolated` to bypass.
+    instead of building an ephemeral one. Pass `--isolated` to bypass.
 - `uv tool` ignores project-local `.python-version` files. `uv run` honors them; tool envs do not. pipx never reads
-  them; pass `--python` or set `PIPX_DEFAULT_PYTHON`.
+    them; pass `--python` or set `PIPX_DEFAULT_PYTHON`.
 - `uv python upgrade` only bumps patch versions. To move a tool from 3.12 to 3.13 run `uv tool upgrade --all -p 3.13`.
-  pipx's equivalent is `reinstall-all --python python3.13`.
+    pipx's equivalent is `reinstall-all --python python3.13`.
 - `uv run --script` needs a real on-disk path. When `pipx run script.py` content arrives via URL or named pipe, the uv
-  backend falls back to building a venv.
+    backend falls back to building a venv.
 
 ### Picking one
 
@@ -144,12 +144,12 @@ interpreter: `pipx install black --python=python3.11` where python3.11 was insta
 - pipx is under active development. pipsi is no longer maintained.
 - pipx always makes sure you're using the latest version of pip
 - pipx has the ability to run an app in one line, leaving your system unchanged after it finishes (`pipx run APP`) where
-  pipsi does not
+    pipsi does not
 - pipx has the ability to recursively install binaries from dependent packages
 - pipx adds more useful information to its output
 - pipx has more CLI options such as upgrade-all, reinstall-all, uninstall-all
 - pipx is more modern. It uses Python 3.6+, and the `venv` package in the Python3 standard library instead of the python
-  2 package `virtualenv`.
+    2 package `virtualenv`.
 - pipx works with Python homebrew installations while pipsi does not (at least on my machine)
 - pipx defaults to less verbose output
 - pipx allows you to see each command it runs by passing the --verbose flag
@@ -171,14 +171,14 @@ pipx run https://raw.githubusercontent.com/pypa/pipx/main/scripts/migrate_pipsi_
 
 - Both brew and pipx install cli tools
 - They install them from different sources. brew uses a curated repository specifically for brew, and pipx generally
-  uses PyPI.
+    uses PyPI.
 
 Example interaction: brew can be used to install pipx, but they generally don't interact much.
 
 ## pipx vs npx
 
 - Both can run cli tools (npx will search for them in node_modules, and if not found run in a temporary environment.
-  `pipx run` will search in `__pypackages__` and if not found run in a temporary environment)
+    `pipx run` will search in `__pypackages__` and if not found run in a temporary environment)
 - npx works with JavaScript and pipx works with Python
 - Both tools attempt to make running executables written in a dynamic language (JS/Python) as easy as possible
 - pipx can also install tools globally; npx cannot
@@ -205,10 +205,10 @@ Example interaction: None.
 virtualenvs with their dependencies installed.
 
 - Both [fades](https://github.com/PyAr/fades#how-to-mark-the-dependencies-to-be-installed) and
-  [pipx run](../reference/examples.md#pipx-run-examples) allow specifying a script's dependencies in specially formatted
-  comments, but the exact syntax differs. (pipx's syntax is standardized by a
-  [provisional specification](https://packaging.python.org/en/latest/specifications/inline-script-metadata/), fades's
-  syntax is not standardized.)
+    [pipx run](../reference/examples.md#pipx-run-examples) allow specifying a script's dependencies in specially
+    formatted comments, but the exact syntax differs. (pipx's syntax is standardized by a
+    [provisional specification](https://packaging.python.org/en/latest/specifications/inline-script-metadata/), fades's
+    syntax is not standardized.)
 - Both tools automatically set up reusable virtualenvs containing the necessary dependencies.
 - Both can download Python scripts/packages to execute from remote resources.
 - fades can only run individual script files while pipx can also run packages.
@@ -235,7 +235,7 @@ pae advantages:
 - Fewer dependencies. (See the detailed comparison for more information.)
 - Easier to have multiple versions of a single program and/or use different Python versions for a single program.
 - Somewhat more convenient for running arbitrary command-line programs in virtual environments, installing multiple
-  packages in a single environment, and activating virtual environments.
+    packages in a single environment, and activating virtual environments.
 - Integrates well with source code repos using [pactivate](https://github.com/cynic-net/pactivate).
 
 pae disadvantages:

@@ -8,7 +8,7 @@ exposes their entry points on `PATH`.
 - Persistent application environments for `pipx install` and disposable environments for `pipx run`.
 - User installations by default and system installations when the caller passes `--global`.
 - Application dependencies inside a managed environment. For unlocked environments, `inject` and `--preinstall` extend
-  an application environment; they do not create standalone library environments.
+    an application environment; they do not create standalone library environments.
 - Entry points from the main package and dependencies named with `--include-resources-from` or `--include-deps`.
 
 An install fails when neither the package nor its selected dependencies expose an application. The caller can pass

@@ -30,8 +30,8 @@ By default, injected packages do not add their entry points to your `PATH`. Use 
 pipx inject ipython black --include-apps
 ```
 
-`--include-deps` exposes apps and manual pages from every dependency. Use `--include-resources-from PACKAGE` to expose only
-one dependency, and repeat it to select more. Both options imply `--include-apps`.
+`--include-deps` exposes apps and manual pages from every dependency. Use `--include-resources-from PACKAGE` to expose
+only one dependency, and repeat it to select more. Both options imply `--include-apps`.
 
 ```
 pipx inject robotframework-keyta robotframework-browser-batteries --include-resources-from robotframework-browser
