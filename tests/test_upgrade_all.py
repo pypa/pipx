@@ -301,8 +301,8 @@ def test_upgrade_all_json_requested_skip(capsys: pytest.CaptureFixture[str]) -> 
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_all_json_editable_skip(capsys: pytest.CaptureFixture[str], root: Path) -> None:
-    assert not run_pipx_cli(["install", "--editable", str(root / "testdata" / "empty_project"), "--force"])
+def test_upgrade_all_json_editable_skip(capsys: pytest.CaptureFixture[str], empty_project: Path) -> None:
+    assert not run_pipx_cli(["install", "--editable", str(empty_project), "--force"])
     capsys.readouterr()
 
     assert not run_pipx_cli(["upgrade-all", "--output", "json"])

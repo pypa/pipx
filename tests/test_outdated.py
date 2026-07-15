@@ -297,9 +297,9 @@ def test_list_outdated_reports_no_index_packages(
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_outdated_json_reports_editable_skip(
     capsys: pytest.CaptureFixture[str],
-    root: Path,
+    empty_project: Path,
 ) -> None:
-    assert not run_pipx_cli(["install", "--editable", str(root / "testdata" / "empty_project")])
+    assert not run_pipx_cli(["install", "--editable", str(empty_project)])
     capsys.readouterr()
 
     assert not run_pipx_cli(["list", "--outdated", "--json"])
