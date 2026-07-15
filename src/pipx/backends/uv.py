@@ -45,9 +45,6 @@ _VERSION_RE: Final[re.Pattern[str]] = re.compile(
     """,
     re.VERBOSE,
 )
-# Stripping VIRTUAL_ENV stops uv from auto-targeting an active venv when no
-# ``--python`` flag is passed.
-_UV_ENV_OVERRIDES: Final[dict[str, str | None]] = {"VIRTUAL_ENV": None, "UV_NO_PROGRESS": "1"}
 _UV_PROBE_TIMEOUT: Final[int] = 10
 
 
@@ -86,7 +83,7 @@ class UvBackend(Backend):
         cmd.append("--verbose" if verbose else "--quiet")
         cmd.append(str(root))
         with animate("creating virtual environment", not verbose):
-            process = run_subprocess(cmd, run_dir=str(root), env_overrides=_UV_ENV_OVERRIDES)
+            process = run_subprocess(cmd, run_dir=str(root), env_overrides=_uv_env_overrides())
         subprocess_post_check(process)
 
     def install(
@@ -113,7 +110,7 @@ class UvBackend(Backend):
             run_dir=str(venv_root),
             log_stdout=not log_pip_errors,
             log_stderr=not log_pip_errors,
-            env_overrides=_UV_ENV_OVERRIDES,
+            env_overrides=_uv_env_overrides(progress=progress),
             stream_output=verbose or progress,
         )
         if log_pip_errors:
@@ -134,7 +131,7 @@ class UvBackend(Backend):
     ) -> CompletedProcess[str]:
         cmd = self._uv_pip_command("uninstall", venv_python, verbose=verbose)
         cmd.append(package)
-        process = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=_UV_ENV_OVERRIDES)
+        process = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=_uv_env_overrides())
         subprocess_post_check(process)
         return process
 
@@ -150,7 +147,7 @@ class UvBackend(Backend):
 
         cmd = self._uv_pip_command("list", venv_python, verbose=False)
         cmd += ["--format", "json"]
-        process = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=_UV_ENV_OVERRIDES)
+        process = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=_uv_env_overrides())
         if process.returncode != 0:
             raise PipxError(
                 f"Failed to execute {process.args}.\n"
@@ -168,7 +165,7 @@ class UvBackend(Backend):
     ) -> tuple[OutdatedPackage, ...]:
         cmd = self._uv_pip_command("list", venv_python, verbose=False)
         cmd += ["--outdated", "--format=json", *index_args]
-        process = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=_UV_ENV_OVERRIDES)
+        process = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=_uv_env_overrides())
         return outdated_packages_from_process(process)
 
     def run_raw_pip(
@@ -194,7 +191,7 @@ class UvBackend(Backend):
             run_dir=str(venv_root),
             capture_stdout=capture_stdout,
             capture_stderr=capture_stderr,
-            env_overrides=_UV_ENV_OVERRIDES,
+            env_overrides=_uv_env_overrides(),
         )
 
     def _uv_pip_command(
@@ -295,6 +292,16 @@ def _check_uv_version(binary: Path) -> Version:
             "Upgrade uv (`uv self update` or reinstall pipx[uv]), or run with `--backend pip` to bypass."
         )
     return version
+
+
+def _uv_env_overrides(*, progress: bool = False) -> dict[str, str | None]:
+    # Stripping VIRTUAL_ENV stops uv from auto-targeting an active venv when no ``--python`` flag is passed.
+    overrides: dict[str, str | None] = {"VIRTUAL_ENV": None}
+    # pipx draws its own spinner in quiet, JSON, and non-interactive runs, so silence uv's bar there; when pipx does
+    # want the bar (progress=True) leave the caller's UV_NO_PROGRESS untouched so their preference wins.
+    if not progress:
+        overrides["UV_NO_PROGRESS"] = "1"
+    return overrides
 
 
 def _strip_pip_quiet_flags(pip_args: list[str]) -> list[str]:
