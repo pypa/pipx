@@ -9,7 +9,9 @@ on:
   schedule:
     - cron: "0 8 * * *"
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # a literal prefix, not ${{ github.workflow }}: when release.yml calls this as a reusable workflow, github.workflow
+  # resolves to the caller ("Release"), which would collide with release.yml's own group and cancel the release run
+  group: tests-${{ github.ref }}
   cancel-in-progress: true
 permissions:
   contents: read
@@ -41,7 +43,7 @@ jobs:
         with:
           python-version: ${{ matrix.py }}
       - name: 📦 Install tox
-        run: uv tool install --python-preference only-managed --python 3.13 "tox>=4.45" --with tox-uv
+        run: uv tool install --python-preference only-managed --python 3.14 "tox>=4.45" --with tox-uv
       - name: Persistent .pipx_tests/package_cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -67,7 +69,7 @@ jobs:
       - name: 🚀 Install uv
         uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
       - name: 📦 Install tox
-        run: uv tool install --python-preference only-managed --python 3.13 "tox>=4.45" --with tox-uv
+        run: uv tool install --python-preference only-managed --python 3.14 "tox>=4.45" --with tox-uv
       - name: 🔍 Run ty
         run: tox run -e type
   man:
@@ -81,7 +83,7 @@ jobs:
       - name: 🚀 Install uv
         uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
       - name: 📦 Install tox
-        run: uv tool install --python-preference only-managed --python 3.13 "tox>=4.45" --with tox-uv
+        run: uv tool install --python-preference only-managed --python 3.14 "tox>=4.45" --with tox-uv
       - name: 📖 Build man page
         run: tox run -e man
       - name: Show man page
