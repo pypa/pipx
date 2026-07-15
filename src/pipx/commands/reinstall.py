@@ -14,6 +14,7 @@ from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
 from pipx.commands.uninstall import _get_venv_package_infos, _get_venv_resource_paths
 from pipx.constants import (
+    COMPLETION_SECTIONS,
     EXIT_CODE_OK,
     EXIT_CODE_REINSTALL_INVALID_PYTHON,
     EXIT_CODE_REINSTALL_VENV_NONEXISTENT,
@@ -55,6 +56,13 @@ def _get_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir
         resource_paths |= _get_venv_resource_paths(
             "man", venv.man_path / man_section, local_man_dir / man_section, package_infos
         )
+    for completion_section in COMPLETION_SECTIONS:
+        resource_paths |= _get_venv_resource_paths(
+            "completion",
+            venv.man_path.parent / completion_section,
+            paths.ctx.completion_dir / completion_section,
+            package_infos,
+        )
     return resource_paths
 
 
@@ -67,6 +75,13 @@ def _get_expected_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, loca
             resource_paths.add(local_bin_dir / add_suffix(app_path.name, package_info.suffix))
         for man_path in package_info.man_paths_to_expose:
             resource_paths.add(local_man_dir / man_path.parent.name / man_path.name)
+        for completion_path in package_info.completion_paths_to_expose:
+            resource_paths.add(
+                paths.ctx.completion_dir
+                / completion_path.parent.parent.name
+                / completion_path.parent.name
+                / completion_path.name
+            )
     return resource_paths
 
 

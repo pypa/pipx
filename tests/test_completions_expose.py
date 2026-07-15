@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from typing import TYPE_CHECKING, Final
 
 import pytest
@@ -59,6 +60,19 @@ def test_expose_restores_the_completion_scripts(pipx_temp_env: None, completion_
     assert sorted(path.name for path in paths.ctx.completion_dir.rglob("*local-completion*")) == sorted(
         _SECTIONS.values()
     )
+
+
+def test_reinstall_removes_a_stale_completion_link(pipx_temp_env: None, completion_project: str) -> None:
+    assert not run_pipx_cli(["install", completion_project])
+    section: Final[str] = "bash-completion/completions"
+    source: Final[Path] = paths.ctx.venvs / "local-completion" / "share" / "bash-completion" / "completions" / "orphan"
+    source.write_text("# orphan completion\n", encoding="utf-8")
+    orphan: Final[Path] = paths.ctx.completion_dir / section / "orphan"
+    orphan.symlink_to(source)
+
+    assert not run_pipx_cli(["reinstall", "--python", sys.executable, "local-completion"])
+
+    assert not orphan.exists()
 
 
 def test_environment_reports_the_completion_dir(

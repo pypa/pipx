@@ -17,7 +17,7 @@ from packaging.utils import canonicalize_name
 
 from pipx import paths
 from pipx.colors import bold, red
-from pipx.constants import MAN_SECTIONS, WINDOWS
+from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, WINDOWS
 from pipx.emojis import hazard, stars
 from pipx.package_specifier import parse_specifier_for_install, valid_pypi_name
 from pipx.pipx_metadata_file import PackageInfo
@@ -570,21 +570,38 @@ def _venv_owned_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: P
     ]
     for man_section in MAN_SECTIONS:
         owned |= get_exposed_man_paths_for_package(venv.man_path / man_section, local_man_dir / man_section, man_paths)
+    completion_paths: Final[dict[str, list[Path]]] = group_resource_paths(
+        (path.name, path) for package in venv.package_metadata.values() for path in package.completion_paths_to_expose
+    )
+    for completion_section in COMPLETION_SECTIONS:
+        owned |= get_exposed_paths_for_package(
+            venv.man_path.parent / completion_section,
+            paths.ctx.completion_dir / completion_section,
+            completion_paths,
+        )
     return owned
 
 
 def get_expected_venv_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
     if not venv.pipx_metadata.exposure_enabled:
         return set()
-    return {
-        local_bin_dir / add_suffix(path.name, package.suffix)
-        for package in venv.package_metadata.values()
-        for path in package.app_paths_to_expose
-    } | {
-        local_man_dir / path.parent.name / path.name
-        for package in venv.package_metadata.values()
-        for path in package.man_paths_to_expose
-    }
+    return (
+        {
+            local_bin_dir / add_suffix(path.name, package.suffix)
+            for package in venv.package_metadata.values()
+            for path in package.app_paths_to_expose
+        }
+        | {
+            local_man_dir / path.parent.name / path.name
+            for package in venv.package_metadata.values()
+            for path in package.man_paths_to_expose
+        }
+        | {
+            paths.ctx.completion_dir / path.parent.parent.name / path.parent.name / path.name
+            for package in venv.package_metadata.values()
+            for path in package.completion_paths_to_expose
+        }
+    )
 
 
 def validate_expected_apps(venv: Venv, package_name: str, expected_apps: Sequence[str]) -> None:
