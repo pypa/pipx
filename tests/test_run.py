@@ -165,7 +165,7 @@ def test_run_skips_a_cache_entry_held_by_another_run(mocker: MockerFixture) -> N
 @pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_isolates_cache_by_dependency(mocker: MockerFixture) -> None:
-    inject: Final = mocker.patch("pipx.commands.run.inject_dep")
+    inject: Final = mocker.patch.object(importlib.import_module("pipx.commands.run"), "inject_dep")
 
     run_pipx_cli_exit(["run", "pycowsay", "cowsay", "hi"])
     plain_dirs: Final[set[Path]] = {path for path in paths.ctx.venv_cache.iterdir() if path.is_dir()}
@@ -179,7 +179,9 @@ def test_run_with_isolates_cache_by_dependency(mocker: MockerFixture) -> None:
 @pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_resolves_interpreter_for_requires_python(tmp_path: Path, mocker: MockerFixture) -> None:
-    resolve: Final = mocker.patch("pipx.commands.run.interpreter_for", return_value=sys.executable)
+    resolve: Final = mocker.patch.object(
+        importlib.import_module("pipx.commands.run"), "interpreter_for", return_value=sys.executable
+    )
     script: Final[Path] = tmp_path / "script.py"
     script.write_text('# /// script\n# requires-python = ">=3.11"\n# ///\nprint("hi")\n', encoding="utf-8")
 
@@ -1067,21 +1069,20 @@ def test_run_with_cache(caplog: pytest.LogCaptureFixture) -> None:
 
 
 def test_maybe_script_content_accepts_url_query_string(mocker: MockerFixture) -> None:
-    from pipx.commands.run import maybe_script_content  # noqa: PLC0415
+    run_module = importlib.import_module("pipx.commands.run")
+    mocker.patch.object(run_module, "_http_get_request", return_value="print('hi')")
 
-    mocker.patch("pipx.commands.run._http_get_request", return_value="print('hi')")
-
-    assert maybe_script_content("https://example.invalid/tool.py?raw=1", is_path=False) == "print('hi')"
+    assert run_module.maybe_script_content("https://example.invalid/tool.py?raw=1", is_path=False) == "print('hi')"
 
 
 def test_http_get_request_rejects_oversized_script(mocker: MockerFixture) -> None:
-    from pipx.commands.run import _MAX_SCRIPT_BYTES, _http_get_request  # noqa: PLC0415, PLC2701  # no public API
+    run_module = importlib.import_module("pipx.commands.run")
 
     response = mocker.MagicMock()
-    response.read.return_value = b"x" * (_MAX_SCRIPT_BYTES + 1)
+    response.read.return_value = b"x" * (run_module._MAX_SCRIPT_BYTES + 1)  # noqa: SLF001  # private helper under test, no public API
     response.headers.get_content_charset.return_value = "utf-8"
     response.__enter__.return_value = response
-    mocker.patch("pipx.commands.run.urllib.request.urlopen", return_value=response)
+    mocker.patch.object(run_module.urllib.request, "urlopen", return_value=response)
 
     with pytest.raises(PipxError, match="larger than"):
-        _http_get_request("https://example.invalid/big.py")
+        run_module._http_get_request("https://example.invalid/big.py")  # noqa: SLF001  # private helper under test, no public API

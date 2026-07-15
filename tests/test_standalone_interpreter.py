@@ -202,17 +202,17 @@ def test_standalone_python_upgrade_restores_backup_when_swap_fails(
     (install_dir / "bin").mkdir(parents=True)
     (install_dir / "keepme").write_text("v1", encoding="utf-8")
     publish(_python_archive_bytes())
-    real_replace = standalone_python.os.replace
+    real_replace = Path.replace
     already_failed = {"value": False}
 
-    def replace(src: Path, dst: Path) -> None:
-        if dst == install_dir and not already_failed["value"]:
+    def replace(self: Path, target: Path) -> Path:
+        if target == install_dir and not already_failed["value"]:
             already_failed["value"] = True
             msg = "swap failed"
             raise OSError(msg)
-        real_replace(src, dst)
+        return real_replace(self, target)
 
-    mocker.patch.object(standalone_python.os, "replace", side_effect=replace)
+    mocker.patch.object(Path, "replace", autospec=True, side_effect=replace)
 
     with pytest.raises(OSError, match="swap failed"):
         standalone_python.download_python_build_standalone("3.99", override=True)
