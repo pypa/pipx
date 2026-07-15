@@ -67,13 +67,13 @@ def test_sync_manifest_selects_dependency_apps(
     local_extras_project: Path,
 ) -> None:
     package: Final[str] = f"repeatme[tools] @ {local_extras_project.as_uri()}"
-    manifest: Final[Path] = write_manifest(_manifest(package, "repeatme", 'include-apps-from = ["PyCowsay"]\n'))
+    manifest: Final[Path] = write_manifest(_manifest(package, "repeatme", 'include-resources-from = ["PyCowsay"]\n'))
 
     assert not run_pipx_cli(["sync", str(manifest)])
 
     metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "repeatme").main_package
     assert (
-        metadata.include_apps_from,
+        metadata.include_resources_from,
         (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
         (paths.ctx.bin_dir / app_name("black")).exists(),
     ) == (["pycowsay"], True, False)
@@ -280,28 +280,28 @@ def test_sync_manifest_clears_app_and_lock_state(
             id="include-dependencies",
         ),
         pytest.param(
-            _manifest("black", "black", 'include-apps-from = "pycowsay"\n'),
-            "include-apps-from must be non-empty strings",
-            id="include-apps-from-type",
+            _manifest("black", "black", 'include-resources-from = "pycowsay"\n'),
+            "include-resources-from must be non-empty strings",
+            id="include-resources-from-type",
         ),
         pytest.param(
-            _manifest("black", "black", 'include-apps-from = [""]\n'),
-            "include-apps-from must be non-empty strings",
-            id="include-apps-from-empty",
+            _manifest("black", "black", 'include-resources-from = [""]\n'),
+            "include-resources-from must be non-empty strings",
+            id="include-resources-from-empty",
         ),
         pytest.param(
-            _manifest("black", "black", 'include-apps-from = ["PyCowsay", "pycowsay"]\n'),
-            "include-apps-from must be unique",
-            id="include-apps-from-duplicate",
+            _manifest("black", "black", 'include-resources-from = ["PyCowsay", "pycowsay"]\n'),
+            "include-resources-from must be unique",
+            id="include-resources-from-duplicate",
         ),
         pytest.param(
             _manifest(
                 "black",
                 "black",
-                'include-dependencies = true\ninclude-apps-from = ["pycowsay"]\n',
+                'include-dependencies = true\ninclude-resources-from = ["pycowsay"]\n',
             ),
             "cannot combine include-dependencies",
-            id="include-apps-from-all",
+            id="include-resources-from-all",
         ),
         pytest.param(
             _manifest("black", "black", 'expose = "yes"\n'),

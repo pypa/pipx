@@ -205,7 +205,7 @@ def test_uninstall_man_page(pipx_temp_env):
 
 def test_uninstall_removes_selected_dependency_resources(pipx_temp_env: None, local_extras_project: Path) -> None:
     package: Final[str] = f"{local_extras_project}[tools]"
-    assert not run_pipx_cli(["install", package, "--include-apps-from", "pycowsay"])
+    assert not run_pipx_cli(["install", package, "--include-resources-from", "pycowsay"])
     exposed_paths: Final[tuple[Path, ...]] = (
         paths.ctx.bin_dir / app_name("repeatme"),
         paths.ctx.bin_dir / app_name("pycowsay"),

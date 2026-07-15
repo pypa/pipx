@@ -35,7 +35,7 @@ class _RawPackageInfo(TypedDict, total=False):
     package_version: str
     expected_apps: list[str]
     lock_file: Path | None
-    include_apps_from: list[str]
+    include_resources_from: list[str]
     cooldown_days: int | None
     man_pages: list[str]
     man_paths: list[Path]
@@ -101,7 +101,7 @@ class PackageInfo:
     package_version: str
     expected_apps: list[str] = field(default_factory=list)
     lock_file: Path | None = None
-    include_apps_from: list[str] = field(default_factory=list)
+    include_resources_from: list[str] = field(default_factory=list)
     cooldown_days: int | None = None
     man_pages: list[str] = field(default_factory=list)
     man_paths: list[Path] = field(default_factory=list)
@@ -137,7 +137,7 @@ class PackageInfo:
 
     @property
     def _included_dependency_app_paths(self) -> list[Path]:
-        included_packages: Final[set[str]] = set(self.include_apps_from)
+        included_packages: Final[set[str]] = set(self.include_resources_from)
         return [
             path
             for package, paths in self.app_paths_of_dependencies.items()
@@ -154,7 +154,7 @@ class PackageInfo:
 
     @property
     def _included_dependency_man_paths(self) -> list[Path]:
-        included_packages: Final[set[str]] = set(self.include_apps_from)
+        included_packages: Final[set[str]] = set(self.include_resources_from)
         return [
             path
             for package, paths in self.man_paths_of_dependencies.items()
@@ -180,7 +180,7 @@ class PackageInfo:
 
     @property
     def _included_dependency_completion_paths(self) -> list[Path]:
-        included_packages: Final[set[str]] = set(self.include_apps_from)
+        included_packages: Final[set[str]] = set(self.include_resources_from)
         return [
             path
             for package, paths in self.completion_paths_of_dependencies.items()
@@ -215,7 +215,7 @@ class PipxMetadata:
             app_paths_of_dependencies={},
             expected_apps=[],
             lock_file=None,
-            include_apps_from=[],
+            include_resources_from=[],
             cooldown_days=None,
             man_pages=[],
             man_paths=[],
@@ -277,6 +277,12 @@ class PipxMetadata:
         # ``backend`` is absent from any pre-0.6 dump; default once here.
         metadata_dict.setdefault("backend", "pip")
         metadata_dict.setdefault("exposure_enabled", True)
+        # ``include_apps_from`` was renamed to ``include_resources_from``; carry the value across so a venv written by an
+        # earlier pipx still constructs a PackageInfo instead of raising on the unknown keyword
+        injected = metadata_dict.get("injected_packages") or {}
+        for package_data in (metadata_dict["main_package"], *injected.values()):
+            if "include_apps_from" in package_data:
+                package_data.setdefault("include_resources_from", package_data.pop("include_apps_from"))
         return metadata_dict
 
     def from_dict(self, input_dict: _RawMetadata) -> None:

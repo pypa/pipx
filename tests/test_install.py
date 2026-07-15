@@ -230,7 +230,7 @@ def test_install_no_apps_guidance(
         f"No apps associated with package {display_name}" in error,
         f"pipx inject <environment> {package_name}" in error,
         f"--preinstall {package_name}" in error,
-        "--include-apps-from PACKAGE" in error,
+        "--include-resources-from PACKAGE" in error,
     ) == (1, True, True, True, has_dependency_apps)
 
 
@@ -792,18 +792,18 @@ def test_include_deps(pipx_temp_env: None) -> None:
     assert not run_pipx_cli(["install", PKG["jupyter"]["spec"], "--include-deps"])
 
 
-def test_install_include_apps_from_dependency(
+def test_install_include_resources_from_dependency(
     pipx_temp_env: None,
     local_extras_project: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     package: Final[str] = f"{local_extras_project}[tools]"
 
-    assert not run_pipx_cli(["install", package, "--include-apps-from", "PyCowsay"])
+    assert not run_pipx_cli(["install", package, "--include-resources-from", "PyCowsay"])
 
     metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "repeatme").main_package
     assert (
-        metadata.include_apps_from,
+        metadata.include_resources_from,
         (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
         (paths.ctx.bin_dir / app_name("black")).exists(),
         (paths.ctx.man_dir / "man6" / "pycowsay.6").exists(),
@@ -819,13 +819,13 @@ def test_install_force_replaces_included_dependency_resources(
     local_extras_project: Path,
 ) -> None:
     package: Final[str] = f"{local_extras_project}[tools]"
-    assert not run_pipx_cli(["install", package, "--include-apps-from", "pycowsay"])
+    assert not run_pipx_cli(["install", package, "--include-resources-from", "pycowsay"])
 
-    assert not run_pipx_cli(["install", "--force", package, "--include-apps-from", "black"])
+    assert not run_pipx_cli(["install", "--force", package, "--include-resources-from", "black"])
 
     metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "repeatme").main_package
     assert (
-        metadata.include_apps_from,
+        metadata.include_resources_from,
         (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
         (paths.ctx.man_dir / "man6" / "pycowsay.6").exists(),
         (paths.ctx.bin_dir / app_name("black")).exists(),
@@ -843,14 +843,14 @@ def test_install_preserves_colliding_dependency_resource(
     assert exposed_app.read_bytes() == first_contents
 
 
-def test_install_include_apps_from_missing_dependency_rolls_back(
+def test_install_include_resources_from_missing_dependency_rolls_back(
     pipx_temp_env: None,
     local_extras_project: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     package: Final[str] = f"{local_extras_project}[cow]"
 
-    assert run_pipx_cli(["install", package, "--include-apps-from", "black"])
+    assert run_pipx_cli(["install", package, "--include-resources-from", "black"])
 
     error: Final[str] = " ".join(capsys.readouterr().err.split())
     assert (

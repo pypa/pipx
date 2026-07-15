@@ -58,14 +58,14 @@ pipx expose ansible
 
 ### Selecting applications from dependencies
 
-`--include-deps` exposes apps and manual pages from every dependency. Use `--include-apps-from` to expose resources from
+`--include-deps` exposes apps and manual pages from every dependency. Use `--include-resources-from` to expose resources from
 one dependency:
 
 ```
-pipx install "nox[tox_to_nox]" --include-apps-from tox
+pipx install "nox[tox_to_nox]" --include-resources-from tox
 ```
 
-Repeat `--include-apps-from` to select more dependencies. pipx records the selection for upgrade and reinstall. The
+Repeat `--include-resources-from` to select more dependencies. pipx records the selection for upgrade and reinstall. The
 install fails and rolls back when a selected package is not a dependency with apps or manual pages.
 
 ### Running an application without exposing it
@@ -94,7 +94,7 @@ pipx checks the exact entry-point name before exposing files. If the package lac
 and pipx removes the new environment. pipx records the name; if a later force install, upgrade, or reinstall drops the
 entry point, pipx restores the existing environment.
 
-Use one package spec with `--app`. Repeat the option to require more than one entry point. `--include-apps-from` can
+Use one package spec with `--app`. Repeat the option to require more than one entry point. `--include-resources-from` can
 select dependency entry points; `--include-deps` selects all dependency entry points.
 
 ### Installing a PEP 723 script
@@ -205,7 +205,7 @@ apps = ["black"]
 ```
 
 Package requirements use PEP 508 syntax without environment markers. A tool table may set `suffix`, `apps`,
-`include-dependencies`, `include-apps-from`, `expose`, or `lock`. Use `include-apps-from = ["PACKAGE"]` to select
+`include-dependencies`, `include-resources-from`, `expose`, or `lock`. Use `include-resources-from = ["PACKAGE"]` to select
 dependency resources; do not combine it with `include-dependencies`. Relative lock paths start from the manifest
 directory. Put nab settings in `tool.nab`.
 

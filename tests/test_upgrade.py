@@ -293,13 +293,13 @@ def test_upgrade_with_extras(pipx_temp_env, capsys):
 
 def test_upgrade_preserves_included_dependency(pipx_temp_env: None, local_extras_project: Path) -> None:
     package: Final[str] = f"{local_extras_project}[tools]"
-    assert not run_pipx_cli(["install", package, "--include-apps-from", "pycowsay"])
+    assert not run_pipx_cli(["install", package, "--include-resources-from", "pycowsay"])
 
     assert not run_pipx_cli(["upgrade", "repeatme"])
 
     metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "repeatme").main_package
     assert (
-        metadata.include_apps_from,
+        metadata.include_resources_from,
         (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
         (paths.ctx.bin_dir / app_name("black")).exists(),
     ) == (["pycowsay"], True, False)

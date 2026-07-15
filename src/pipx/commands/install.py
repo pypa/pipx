@@ -69,7 +69,7 @@ def install(
     force: bool,
     reinstall: bool,
     include_dependencies: bool,
-    include_apps_from: Sequence[str],
+    include_resources_from: Sequence[str],
     preinstall_packages: list[str] | None,
     expected_apps: Sequence[str] = (),
     lock_file: Path | None = None,
@@ -199,7 +199,7 @@ def install(
 
             previous_resource_paths: set[Path] = get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir)
             preserve_existing_venv = exists and (
-                preserve_existing or bool(required_apps or include_apps_from) or required_lock is not None
+                preserve_existing or bool(required_apps or include_resources_from) or required_lock is not None
             )
             try:
                 with preserve_venv(venv_dir, enabled=preserve_existing_venv):
@@ -223,7 +223,7 @@ def install(
                         package_spec=package_spec,
                         force_reinstall=force and exists,
                         include_dependencies=include_dependencies,
-                        include_apps_from=include_apps_from,
+                        include_resources_from=include_resources_from,
                         suffix=suffix,
                         expected_apps=required_apps,
                         lock_file=required_lock,
@@ -565,7 +565,7 @@ def _upgrade_existing_venv(
             package_spec,
             main_pip_args,
             include_dependencies=package_metadata.include_dependencies,
-            include_apps_from=package_metadata.include_apps_from,
+            include_resources_from=package_metadata.include_resources_from,
             include_apps=package_metadata.include_apps,
             is_main_package=True,
             suffix=package_metadata.suffix,
@@ -649,7 +649,7 @@ def install_all(
                     force=force,
                     reinstall=False,
                     include_dependencies=main_package.include_dependencies,
-                    include_apps_from=main_package.include_apps_from,
+                    include_resources_from=main_package.include_resources_from,
                     preinstall_packages=[],
                     expected_apps=main_package.expected_apps,
                     lock_file=main_package.lock_file,
@@ -671,7 +671,7 @@ def install_all(
                         verbose=verbose,
                         include_apps=inject_package.include_apps,
                         include_dependencies=inject_package.include_dependencies,
-                        include_apps_from=inject_package.include_apps_from,
+                        include_resources_from=inject_package.include_resources_from,
                         force=force,
                         suffix=inject_package.suffix == main_package.suffix,
                         cooldown_days=(cooldown_days if cooldown_days is not None else inject_package.cooldown_days),
@@ -784,7 +784,7 @@ class _EnvironmentBuild:
     package_spec: str
     force_reinstall: bool
     include_dependencies: bool
-    include_apps_from: Sequence[str]
+    include_resources_from: Sequence[str]
     suffix: str
     expected_apps: tuple[str, ...]
     lock_file: Path | None
@@ -802,7 +802,7 @@ class _EnvironmentBuild:
             pip_args=self.pip_args,
             install_only_pip_args=["--force-reinstall"] if self.force_reinstall else None,
             include_dependencies=self.include_dependencies,
-            include_apps_from=self.include_apps_from,
+            include_resources_from=self.include_resources_from,
             include_apps=True,
             is_main_package=True,
             suffix=self.suffix,

@@ -523,7 +523,7 @@ def run_post_install_actions(
             raise PipxError(
                 f"""
                 No apps associated with package {display_name}. Use
-                '--include-apps-from PACKAGE' to select one of the dependencies
+                '--include-resources-from PACKAGE' to select one of the dependencies
                 listed below, or '--include-deps' to include all of them.
                 {dependency_apps}
                 {library_guidance}

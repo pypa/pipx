@@ -104,7 +104,7 @@ def _sync_main_package_metadata_after_runpip_install(venv: Venv, pip_args: list[
             package_or_url=package_spec,
             pip_args=_updated_main_package_pip_args(main_package.pip_args, editable),
             include_dependencies=main_package.include_dependencies,
-            include_apps_from=main_package.include_apps_from,
+            include_resources_from=main_package.include_resources_from,
             include_apps=main_package.include_apps,
             is_main_package=True,
             suffix=main_package.suffix,

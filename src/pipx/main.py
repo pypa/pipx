@@ -451,7 +451,7 @@ def _add_dependency_app_options(parser: argparse.ArgumentParser) -> None:
         action="store_true",
     )
     group.add_argument(
-        "--include-apps-from",
+        "--include-resources-from",
         action="append",
         default=[],
         metavar="PACKAGE",
@@ -599,7 +599,7 @@ def _cmd_install(args: argparse.Namespace, ctx: DispatchContext) -> OperationRes
         upgrade=args.upgrade,
         reinstall=False,
         include_dependencies=args.include_deps,
-        include_apps_from=args.include_apps_from,
+        include_resources_from=args.include_resources_from,
         preinstall_packages=args.preinstall,
         expected_apps=args.app or (),
         lock_file=args.lock,
@@ -758,7 +758,7 @@ def _cmd_inject(args: argparse.Namespace, ctx: DispatchContext) -> OperationResu
             verbose=ctx.verbose,
             include_apps=args.include_apps,
             include_dependencies=args.include_deps,
-            include_apps_from=args.include_apps_from,
+            include_resources_from=args.include_resources_from,
             force=args.force,
             suffix=args.with_suffix,
             backend=ctx.backend,

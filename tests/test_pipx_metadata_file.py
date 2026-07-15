@@ -143,10 +143,24 @@ def test_pipx_metadata_file_defaults_included_apps_from_version_0_9(tmp_path: Pa
     (venv_dir / PIPX_INFO_FILENAME).write_text(
         json.dumps(metadata.to_dict(), cls=JsonEncoderHandlesPath)
         .replace('"pipx_metadata_version": "0.11"', '"pipx_metadata_version": "0.9"')
-        .replace('"include_apps_from": [], ', "")
+        .replace('"include_resources_from": [], ', "")
     )
 
-    assert PipxMetadata(venv_dir).main_package.include_apps_from == []
+    assert PipxMetadata(venv_dir).main_package.include_resources_from == []
+
+
+def test_pipx_metadata_file_migrates_include_apps_from(tmp_path: Path) -> None:
+    venv_dir: Final[Path] = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    (venv_dir / PIPX_INFO_FILENAME).write_text(
+        json.dumps(metadata.to_dict(), cls=JsonEncoderHandlesPath).replace(
+            '"include_resources_from": []', '"include_apps_from": ["numpy"]'
+        )
+    )
+
+    assert PipxMetadata(venv_dir).main_package.include_resources_from == ["numpy"]
 
 
 def test_pipx_metadata_file_defaults_cooldown_from_version_0_10(tmp_path: Path) -> None:

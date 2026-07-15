@@ -301,7 +301,7 @@ def test_uninject_removes_selected_dependency_resources(
 ) -> None:
     package: Final[str] = f"{local_extras_project}[tools]"
     assert not run_pipx_cli(["install", str(empty_project)])
-    assert not run_pipx_cli(["inject", "empty-project", package, "--include-apps-from", "pycowsay"])
+    assert not run_pipx_cli(["inject", "empty-project", package, "--include-resources-from", "pycowsay"])
     exposed_paths: Final[tuple[Path, ...]] = (
         paths.ctx.bin_dir / app_name("repeatme"),
         paths.ctx.bin_dir / app_name("pycowsay"),

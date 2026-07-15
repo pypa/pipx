@@ -55,7 +55,7 @@ def inject_dep(
     verbose: bool,
     include_apps: bool,
     include_dependencies: bool,
-    include_apps_from: Sequence[str],
+    include_resources_from: Sequence[str],
     force: bool,
     suffix: bool = False,
     backend: str | None = None,
@@ -140,7 +140,7 @@ def inject_dep(
         main_package = venv.pipx_metadata.main_package
         pip_args = pip_args or main_package.pip_args
         include_dependencies = main_package.include_dependencies
-        include_apps_from = main_package.include_apps_from
+        include_resources_from = main_package.include_resources_from
         include_apps = main_package.include_apps
         venv_suffix = main_package.suffix
         pinned = main_package.pinned
@@ -152,14 +152,14 @@ def inject_dep(
         venv, paths.ctx.bin_dir, paths.ctx.man_dir
     )
     messages: Final[list[OutputMessage]] = []
-    with preserve_venv(venv_dir, enabled=bool(include_apps_from)):
+    with preserve_venv(venv_dir, enabled=bool(include_resources_from)):
         venv.install_package(
             package_name=package_name,
             package_or_url=package_spec,
             pip_args=pip_args,
             install_only_pip_args=["--force-reinstall"] if force else None,
             include_dependencies=include_dependencies,
-            include_apps_from=include_apps_from,
+            include_resources_from=include_resources_from,
             include_apps=include_apps,
             is_main_package=is_main_package,
             suffix=venv_suffix,
@@ -216,7 +216,7 @@ def inject(
     verbose: bool,
     include_apps: bool,
     include_dependencies: bool,
-    include_apps_from: Sequence[str],
+    include_resources_from: Sequence[str],
     force: bool,
     suffix: bool = False,
     backend: str | None = None,
@@ -236,7 +236,7 @@ def inject(
         )
     _LOGGER.info("Injecting packages: %r", packages)
 
-    expose_apps: Final[bool] = include_apps or include_dependencies or bool(include_apps_from)
+    expose_apps: Final[bool] = include_apps or include_dependencies or bool(include_resources_from)
     changed: Final[list[InjectionPackage]] = []
     failures: Final[list[InjectionFailure]] = []
     messages: Final[list[OutputMessage]] = []
@@ -251,7 +251,7 @@ def inject(
                 verbose=verbose,
                 include_apps=expose_apps,
                 include_dependencies=include_dependencies,
-                include_apps_from=include_apps_from,
+                include_resources_from=include_resources_from,
                 force=force,
                 suffix=suffix,
                 backend=backend,
