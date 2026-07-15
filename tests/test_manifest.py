@@ -471,6 +471,68 @@ def test_lock_manifest_preserves_existing_lock_after_failure(
     assert (expected_error in capsys.readouterr().err, lock_file.read_text(encoding="utf-8")) == (True, "old\n")
 
 
+def test_lock_manifest_rolls_back_every_lock_when_one_replacement_fails(
+    pipx_temp_env: None,
+    write_manifest: Callable[[str], Path],
+    tmp_path: Path,
+    mocker: MockerFixture,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    manifest = write_manifest(
+        """[project]
+name = "pipx-tools"
+version = "1"
+dependencies = []
+
+[dependency-groups]
+black = ["black>=22,<23"]
+pycowsay = ["pycowsay"]
+
+[tool.pipx]
+version = "1.0"
+
+[tool.pipx.tools.black]
+lock = "pylock.black.toml"
+
+[tool.pipx.tools.pycowsay]
+lock = "pylock.pycowsay.toml"
+
+[tool.nab]
+offline = false
+"""
+    )
+    (tmp_path / "pylock.black.toml").write_text("old-black\n", encoding="utf-8")
+    (tmp_path / "pylock.pycowsay.toml").write_text("old-pycowsay\n", encoding="utf-8")
+
+    def run_nab(command: list[str], *, check: bool, cwd: Path) -> subprocess.CompletedProcess[str]:
+        Path(command[6]).write_text("new\n", encoding="utf-8")
+        return subprocess.CompletedProcess(command, 0)
+
+    mocker.patch.object(manifest_module, "which", autospec=True, return_value="/usr/bin/nab")
+    mocker.patch.object(manifest_module.subprocess, "run", autospec=True, side_effect=run_nab)
+
+    real_replace = Path.replace
+    swap_ins = {"count": 0}
+
+    def replace(self: Path, target: Path) -> Path:
+        source, destination = Path(self), Path(target)
+        if destination.name.startswith("pylock") and ".previous" not in destination.parts + source.parts:
+            swap_ins["count"] += 1
+            if swap_ins["count"] == 2:
+                raise OSError("replace failed")
+        return real_replace(self, target)
+
+    mocker.patch.object(Path, "replace", autospec=True, side_effect=replace)
+
+    assert run_pipx_cli(["lock", str(manifest)])
+
+    assert (
+        "Cannot write manifest locks" in capsys.readouterr().err,
+        (tmp_path / "pylock.black.toml").read_text(encoding="utf-8"),
+        (tmp_path / "pylock.pycowsay.toml").read_text(encoding="utf-8"),
+    ) == (True, "old-black\n", "old-pycowsay\n")
+
+
 @pytest.mark.parametrize(
     ("nab", "lock", "expected_error"),
     [

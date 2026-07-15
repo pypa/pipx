@@ -341,11 +341,30 @@ def _generate_locks(manifest: _Manifest, nab: str) -> list[str]:
                 raise PipxError(f"nab did not create {generated_lock.name} for {tool.environment}.")
             generated.append((generated_lock, tool.lock_file))
 
+        backups_dir = Path(temporary_dir) / ".previous"
+        backups_dir.mkdir()
         locked: Final[list[str]] = []
-        for generated_lock, lock_file in generated:
-            lock_file.parent.mkdir(parents=True, exist_ok=True)
-            generated_lock.replace(lock_file)
-            locked.append(str(lock_file))
+        # replacing the whole set one file at a time is not atomic, so back each target up first and, if any replacement
+        # fails, roll every applied one back to leave the manifest's locks all-old rather than half-new
+        applied: list[tuple[Path, Path | None]] = []
+        try:
+            for index, (generated_lock, lock_file) in enumerate(generated):
+                lock_file.parent.mkdir(parents=True, exist_ok=True)
+                backup: Path | None = None
+                if lock_file.is_file():
+                    backup = backups_dir / f"{index}-{lock_file.name}"
+                    lock_file.replace(backup)
+                # record before the swap-in so a failure mid-replacement still rolls this target back
+                applied.append((lock_file, backup))
+                generated_lock.replace(lock_file)
+                locked.append(str(lock_file))
+        except OSError:
+            for lock_file, backup in reversed(applied):
+                if backup is not None:
+                    backup.replace(lock_file)
+                else:
+                    lock_file.unlink(missing_ok=True)
+            raise
     return locked
 
 
