@@ -1070,14 +1070,14 @@ def _add_reset(subparsers: argparse._SubParsersAction, shared_parser: argparse.A
         ),
         parents=[shared_parser],
     )
-    parser.add_argument("--force", action="store_true", help="Reset without asking for confirmation")
+    parser.add_argument("--yes", "-y", action="store_true", help="Reset without asking for confirmation")
     parser.add_argument("--dry-run", action="store_true", help="Report what a reset would remove and stop")
     _add_output_option(parser)
     parser.set_defaults(func=_cmd_reset)
 
 
 def _cmd_reset(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.ResetData]:
-    if not args.dry_run and not args.force and not _confirmed_reset():
+    if not args.dry_run and not args.yes and not _confirmed_reset():
         raise PipxError("Reset cancelled.")
     return commands.reset(
         ctx.venv_container,
@@ -1090,8 +1090,10 @@ def _cmd_reset(args: argparse.Namespace, ctx: DispatchContext) -> OperationResul
 
 def _confirmed_reset() -> bool:
     if not sys.stdin or not sys.stdin.isatty():
-        raise PipxError("Pass --force to reset when no terminal can confirm it.")
-    answer: Final[str] = input(f"Remove every package pipx installed, along with {paths.ctx.home}? [y/N] ")
+        raise PipxError("Pass --yes to reset when no terminal can confirm it.")
+    answer: Final[str] = input(
+        f"Remove every pipx-installed package and reset pipx's data under {paths.ctx.home}? [y/N] "
+    )
     return answer.strip().casefold() in {"y", "yes"}
 
 

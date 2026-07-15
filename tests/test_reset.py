@@ -24,7 +24,7 @@ def test_reset_removes_the_installed_packages(
     installed_pycowsay: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    assert not run_pipx_cli(["reset", "--force"])
+    assert not run_pipx_cli(["reset", "--yes"])
     capsys.readouterr()
 
     assert not run_pipx_cli(["list", "--short"])
@@ -36,7 +36,7 @@ def test_reset_unlinks_the_apps(installed_pycowsay: None) -> None:
     app: Final[Path] = paths.ctx.bin_dir / app_name("pycowsay")
     assert app.exists() or app.is_symlink()
 
-    assert not run_pipx_cli(["reset", "--force"])
+    assert not run_pipx_cli(["reset", "--yes"])
 
     assert not app.exists() and not app.is_symlink()
 
@@ -53,7 +53,7 @@ def test_reset_removes_the_pipx_state(installed_pycowsay: None, location: str) -
     target: Final[Path] = getattr(paths.ctx, location)
     target.mkdir(parents=True, exist_ok=True)
 
-    assert not run_pipx_cli(["reset", "--force"])
+    assert not run_pipx_cli(["reset", "--yes"])
 
     assert not target.is_dir()
 
@@ -63,7 +63,7 @@ def test_reset_keeps_the_log_it_writes(installed_pycowsay: None) -> None:
     stale.parent.mkdir(parents=True, exist_ok=True)
     stale.touch()
 
-    assert not run_pipx_cli(["reset", "--force"])
+    assert not run_pipx_cli(["reset", "--yes"])
 
     assert list(paths.ctx.logs.iterdir()) == [paths.ctx.log_file]
 
@@ -73,7 +73,9 @@ def test_reset_dry_run_keeps_everything(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["reset", "--dry-run"])
-    assert f"Would remove {paths.ctx.venvs}" in capsys.readouterr().out
+    reported: Final[str] = capsys.readouterr().out
+    assert f"Would remove {paths.ctx.venvs}" in reported
+    assert f"Would remove {paths.ctx.bin_dir / app_name('pycowsay')}" in reported
 
     assert not run_pipx_cli(["list", "--short"])
 
@@ -84,7 +86,7 @@ def test_reset_json_reports_what_it_removed(
     installed_pycowsay: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    assert not run_pipx_cli(["reset", "--force", "--output", "json"])
+    assert not run_pipx_cli(["reset", "--yes", "--output", "json"])
 
     assert json.loads(capsys.readouterr().out) == {
         "command": ["reset"],
@@ -114,7 +116,7 @@ def test_reset_without_a_terminal_demands_force(
 
     assert run_pipx_cli(["reset"])
 
-    assert "Pass --force to reset" in capsys.readouterr().err
+    assert "Pass --yes to reset" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize(
