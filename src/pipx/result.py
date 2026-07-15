@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import enum
 import json
 import logging
@@ -81,13 +83,16 @@ def render_messages(messages: tuple[OutputMessage, ...], *, quiet: int) -> None:
                 print(message.text, file=sys.stderr if message.stream is OutputStream.STDERR else sys.stdout)
 
 
-def error_envelope(command: tuple[str, ...], error: "OperationError", exit_code: ExitCode) -> str:
+def error_envelope(command: tuple[str, ...], error: OperationError, exit_code: ExitCode) -> str:
     return _render_envelope(command, "error", exit_code, {}, (error,))
 
 
 def render_result(result: OperationResult[_PayloadT], *, output: OutputFormat, quiet: int) -> ExitCode:
     if output is OutputFormat.JSON:
-        print(_render_envelope(result.command, result.status, result.exit_code, result.data.to_dict(), result.errors))
+        envelope = _render_envelope(
+            result.command, result.status, result.exit_code, result.data.to_dict(), result.errors
+        )
+        print(envelope)  # noqa: T201  # the JSON envelope is the command's machine-readable stdout payload
         return result.exit_code
 
     render_messages(result.messages, quiet=quiet)

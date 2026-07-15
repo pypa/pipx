@@ -17,8 +17,9 @@ if TYPE_CHECKING:
 
 def pin(
     venv_dir: Path,
-    verbose: bool,
     skip: Sequence[str],
+    *,
+    verbose: bool,
     injected_only: bool = False,
 ) -> OperationResult[PinData]:
     venv = Venv(venv_dir, verbose=verbose)
@@ -71,7 +72,7 @@ def pin(
     )
 
 
-def unpin(venv_dir: Path, verbose: bool) -> OperationResult[PinData]:
+def unpin(venv_dir: Path, *, verbose: bool) -> OperationResult[PinData]:
     venv = Venv(venv_dir, verbose=verbose)
     if venv.package_metadata.get(venv.main_package_name) is None:
         return _missing_result(("unpin",), venv)

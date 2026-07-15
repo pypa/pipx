@@ -1,15 +1,20 @@
+from __future__ import annotations
+
 import subprocess
-from collections.abc import Callable
 from pathlib import Path
-from typing import Final, Literal
+from typing import TYPE_CHECKING, Final, Literal
 
 import pytest
-from pytest_mock import MockerFixture
 
 from helpers import app_name, run_pipx_cli
 from pipx import paths
 from pipx.commands import manifest as manifest_module
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from pytest_mock import MockerFixture
 
 
 @pytest.fixture
@@ -38,8 +43,8 @@ version = "1.0"
 """
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_sync_manifest_installs_declared_tool(
-    pipx_temp_env: None,
     write_manifest: Callable[[str], Path],
 ) -> None:
     manifest = write_manifest(
@@ -61,8 +66,8 @@ def test_sync_manifest_installs_declared_tool(
     ) == ("pycowsay==0.0.0.2", "-managed", ["pycowsay"], True)
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_sync_manifest_selects_dependency_apps(
-    pipx_temp_env: None,
     write_manifest: Callable[[str], Path],
     local_extras_project: Path,
 ) -> None:
@@ -79,8 +84,8 @@ def test_sync_manifest_selects_dependency_apps(
     ) == (["pycowsay"], True, False)
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_sync_manifest_prunes_undeclared_tool(
-    pipx_temp_env: None,
     write_manifest: Callable[[str], Path],
 ) -> None:
     assert not run_pipx_cli(["install", "black"])
@@ -91,8 +96,8 @@ def test_sync_manifest_prunes_undeclared_tool(
     assert not (paths.ctx.venvs / "black").exists()
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_sync_manifest_hides_resources(
-    pipx_temp_env: None,
     write_manifest: Callable[[str], Path],
 ) -> None:
     manifest = write_manifest(_manifest("pycowsay", "pycowsay", "expose = false\n"))
@@ -105,8 +110,8 @@ def test_sync_manifest_hides_resources(
     ) == (False, False)
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_sync_manifest_restores_environment_after_missing_app(
-    pipx_temp_env: None,
     write_manifest: Callable[[str], Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -128,8 +133,8 @@ def test_sync_manifest_restores_environment_after_missing_app(
     ) == (True, True, ["pycowsay"], True, True)
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_sync_manifest_reapplies_lock(
-    pipx_temp_env: None,
     write_manifest: Callable[[str], Path],
     make_pylock: Callable[[str, str], Path],
 ) -> None:
@@ -148,8 +153,8 @@ def test_sync_manifest_reapplies_lock(
     )
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_sync_manifest_clears_app_and_lock_state(
-    pipx_temp_env: None,
     write_manifest: Callable[[str], Path],
     make_pylock: Callable[[str, str], Path],
 ) -> None:
@@ -321,8 +326,8 @@ def test_sync_manifest_clears_app_and_lock_state(
         ),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_sync_manifest_rejects_invalid_input(
-    pipx_temp_env: None,
     write_manifest: Callable[[str], Path],
     capsys: pytest.CaptureFixture[str],
     content: str,
@@ -332,9 +337,11 @@ def test_sync_manifest_rejects_invalid_input(
     assert expected_error in capsys.readouterr().err
 
 
-@pytest.mark.parametrize("path_kind", [pytest.param("missing", id="missing"), pytest.param("directory", id="directory")])
+@pytest.mark.parametrize(
+    "path_kind", [pytest.param("missing", id="missing"), pytest.param("directory", id="directory")]
+)
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_sync_manifest_rejects_unreadable_path(
-    pipx_temp_env: None,
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
     path_kind: Literal["missing", "directory"],
@@ -348,8 +355,8 @@ def test_sync_manifest_rejects_unreadable_path(
     assert ("does not exist" if path_kind == "missing" else "Cannot read manifest") in capsys.readouterr().err
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_sync_manifest_rejects_duplicate_locks(
-    pipx_temp_env: None,
     write_manifest: Callable[[str], Path],
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -380,8 +387,8 @@ lock = "pylock.tools.toml"
     assert "Lock files must be unique per tool" in capsys.readouterr().err
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_lock_manifest_generates_named_locks(
-    pipx_temp_env: None,
     write_manifest: Callable[[str], Path],
     tmp_path: Path,
     mocker: MockerFixture,
@@ -412,8 +419,13 @@ offline = false
     observed: list[tuple[str, str, str]] = []
 
     def run_nab(command: list[str], *, check: bool, cwd: Path) -> subprocess.CompletedProcess[str]:
+        del check, cwd
         generated_lock = Path(command[6])
-        observed.append((Path(command[2]).read_text(encoding="utf-8"), command[4], generated_lock.read_text()))
+        observed.append((
+            Path(command[2]).read_text(encoding="utf-8"),
+            command[4],
+            generated_lock.read_text(encoding="utf-8"),
+        ))
         generated_lock.write_text('lock-version = "1.0"\ncreated-by = "nab"\n', encoding="utf-8")
         return subprocess.CompletedProcess(command, 0)
 
@@ -443,12 +455,13 @@ offline = false
         pytest.param("os-error", "Cannot write manifest locks: unavailable", id="os-error"),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_lock_manifest_preserves_existing_lock_after_failure(
-    pipx_temp_env: None,
     write_manifest: Callable[[str], Path],
     tmp_path: Path,
     mocker: MockerFixture,
     capsys: pytest.CaptureFixture[str],
+    *,
     mode: Literal["failure", "missing", "os-error"],
     expected_error: str,
 ) -> None:
@@ -456,10 +469,12 @@ def test_lock_manifest_preserves_existing_lock_after_failure(
     (lock_file := tmp_path / "pylock.toml").write_text("old\n", encoding="utf-8")
 
     def run_nab(command: list[str], *, check: bool, cwd: Path) -> subprocess.CompletedProcess[str]:
+        del check, cwd
         if mode == "failure":
             return subprocess.CompletedProcess(command, 1)
         if mode == "os-error":
-            raise OSError("unavailable")
+            msg = "unavailable"
+            raise OSError(msg)
         Path(command[6]).unlink()
         return subprocess.CompletedProcess(command, 0)
 
@@ -471,8 +486,8 @@ def test_lock_manifest_preserves_existing_lock_after_failure(
     assert (expected_error in capsys.readouterr().err, lock_file.read_text(encoding="utf-8")) == (True, "old\n")
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_lock_manifest_rolls_back_every_lock_when_one_replacement_fails(
-    pipx_temp_env: None,
     write_manifest: Callable[[str], Path],
     tmp_path: Path,
     mocker: MockerFixture,
@@ -505,6 +520,7 @@ offline = false
     (tmp_path / "pylock.pycowsay.toml").write_text("old-pycowsay\n", encoding="utf-8")
 
     def run_nab(command: list[str], *, check: bool, cwd: Path) -> subprocess.CompletedProcess[str]:
+        del check, cwd
         Path(command[6]).write_text("new\n", encoding="utf-8")
         return subprocess.CompletedProcess(command, 0)
 
@@ -519,7 +535,8 @@ offline = false
         if destination.name.startswith("pylock") and ".previous" not in destination.parts + source.parts:
             swap_ins["count"] += 1
             if swap_ins["count"] == 2:
-                raise OSError("replace failed")
+                msg = "replace failed"
+                raise OSError(msg)
         return real_replace(self, target)
 
     mocker.patch.object(Path, "replace", autospec=True, side_effect=replace)
@@ -540,11 +557,12 @@ offline = false
         pytest.param("/usr/bin/nab", "", "does not declare any lock files", id="lock"),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_lock_manifest_requires_nab_and_lock(
-    pipx_temp_env: None,
     write_manifest: Callable[[str], Path],
     mocker: MockerFixture,
     capsys: pytest.CaptureFixture[str],
+    *,
     nab: str | None,
     lock: str,
     expected_error: str,

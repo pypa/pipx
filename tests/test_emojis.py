@@ -1,11 +1,16 @@
+from __future__ import annotations
+
 import subprocess
 import sys
 from io import BytesIO, TextIOWrapper
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest_mock import MockerFixture
 
 from pipx.emojis import use_emojis
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 @pytest.mark.parametrize(

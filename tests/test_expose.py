@@ -1,31 +1,36 @@
+from __future__ import annotations
+
 import json
 import sys
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import CaptureFixture
 
 from helpers import app_name, mock_legacy_venv, run_pipx_cli
 from package_info import PKG
 from pipx import paths
 from pipx.pipx_metadata_file import PipxMetadata
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 
 @pytest.fixture
-def installed_pycowsay(pipx_temp_env: None, capsys: CaptureFixture[str]) -> Path:
+def installed_pycowsay(request: pytest.FixtureRequest, capsys: pytest.CaptureFixture[str]) -> Path:
+    request.getfixturevalue("pipx_temp_env")
     assert run_pipx_cli(["install", "pycowsay"]) == 0
     capsys.readouterr()
     return paths.ctx.venvs / "pycowsay"
 
 
 @pytest.fixture
-def unexposed_pycowsay(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> Path:
+def unexposed_pycowsay(installed_pycowsay: Path, capsys: pytest.CaptureFixture[str]) -> Path:
     assert run_pipx_cli(["unexpose", "pycowsay"]) == 0
     capsys.readouterr()
     return installed_pycowsay
 
 
-def test_unexpose_hides_resources(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> None:
+def test_unexpose_hides_resources(installed_pycowsay: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["unexpose", "pycowsay"]) == 0
 
     assert not (paths.ctx.bin_dir / app_name("pycowsay")).exists()
@@ -35,7 +40,7 @@ def test_unexpose_hides_resources(installed_pycowsay: Path, capsys: CaptureFixtu
     assert capsys.readouterr().out == "pycowsay: unexposed\n"
 
 
-def test_expose_restores_resources(unexposed_pycowsay: Path, capsys: CaptureFixture[str]) -> None:
+def test_expose_restores_resources(unexposed_pycowsay: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["expose", "pycowsay"]) == 0
 
     assert (paths.ctx.bin_dir / app_name("pycowsay")).exists()
@@ -44,7 +49,8 @@ def test_expose_restores_resources(unexposed_pycowsay: Path, capsys: CaptureFixt
     assert capsys.readouterr().out == "pycowsay: exposed\n"
 
 
-def test_upgrade_preserves_unexposed_state(pipx_temp_env: None, capsys: CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_preserves_unexposed_state(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "pylint==3.0.4"]) == 0
     assert run_pipx_cli(["unexpose", "pylint"]) == 0
     venv_dir = paths.ctx.venvs / "pylint"
@@ -60,7 +66,8 @@ def test_upgrade_preserves_unexposed_state(pipx_temp_env: None, capsys: CaptureF
     assert metadata.exposure_enabled is False
 
 
-def test_install_upgrade_preserves_unexposed_state(pipx_temp_env: None, capsys: CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_upgrade_preserves_unexposed_state(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", PKG["black"]["spec"]]) == 0
     assert run_pipx_cli(["unexpose", "black"]) == 0
     capsys.readouterr()
@@ -76,7 +83,7 @@ def test_install_upgrade_preserves_unexposed_state(pipx_temp_env: None, capsys: 
 
 def test_force_install_preserves_unexposed_state(
     unexposed_pycowsay: Path,
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert run_pipx_cli(["install", "--force", "pycowsay"]) == 0
     output = capsys.readouterr().out
@@ -88,7 +95,7 @@ def test_force_install_preserves_unexposed_state(
 
 def test_reinstall_preserves_unexposed_state(
     unexposed_pycowsay: Path,
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     marker = unexposed_pycowsay / "marker"
     marker.touch()
@@ -103,7 +110,7 @@ def test_reinstall_preserves_unexposed_state(
 
 def test_unexposed_environment_does_not_expose_injected_apps(
     unexposed_pycowsay: Path,
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert run_pipx_cli(["inject", "--include-apps", "pycowsay", "pylint"]) == 0
     capsys.readouterr()
@@ -116,7 +123,7 @@ def test_unexposed_environment_does_not_expose_injected_apps(
 
 def test_install_all_preserves_unexposed_state(
     unexposed_pycowsay: Path,
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
     tmp_path: Path,
 ) -> None:
     assert run_pipx_cli(["list", "--json"]) == 0
@@ -132,7 +139,8 @@ def test_install_all_preserves_unexposed_state(
     assert PipxMetadata(unexposed_pycowsay).exposure_enabled is False
 
 
-def test_list_reports_unexposed_environment(unexposed_pycowsay: Path, capsys: CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("unexposed_pycowsay")
+def test_list_reports_unexposed_environment(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["list"]) == 0
 
     output = capsys.readouterr().out
@@ -140,7 +148,8 @@ def test_list_reports_unexposed_environment(unexposed_pycowsay: Path, capsys: Ca
     assert "symlink missing" not in output
 
 
-def test_unexpose_json(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_unexpose_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["unexpose", "pycowsay", "--output", "json"]) == 0
 
     assert json.loads(capsys.readouterr().out) == {
@@ -155,7 +164,8 @@ def test_unexpose_json(installed_pycowsay: Path, capsys: CaptureFixture[str]) ->
     }
 
 
-def test_expose_reports_collisions_as_partial(unexposed_pycowsay: Path, capsys: CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("unexposed_pycowsay")
+def test_expose_reports_collisions_as_partial(capsys: pytest.CaptureFixture[str]) -> None:
     blocker = paths.ctx.bin_dir / app_name("pycowsay")
     blocker.write_text("not managed by pipx", encoding="utf-8")
 
@@ -178,9 +188,9 @@ def test_expose_reports_collisions_as_partial(unexposed_pycowsay: Path, capsys: 
         pytest.param("unexpose", "unexpose", "pycowsay: already unexposed\n", id="unexpose"),
     ],
 )
+@pytest.mark.usefixtures("installed_pycowsay")
 def test_exposure_command_is_idempotent(
-    installed_pycowsay: Path,
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
     command: str,
     setup_command: str | None,
     message: str,
@@ -200,9 +210,9 @@ def test_legacy_environment_defaults_to_exposed(installed_pycowsay: Path) -> Non
     assert PipxMetadata(installed_pycowsay).exposure_enabled is True
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_exposure_command_reports_unreadable_metadata(
-    pipx_temp_env: None,
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     (paths.ctx.venvs / "broken").mkdir(parents=True)
 
@@ -212,9 +222,9 @@ def test_exposure_command_reports_unreadable_metadata(
 
 
 @pytest.mark.parametrize("command", [pytest.param("expose", id="expose"), pytest.param("unexpose", id="unexpose")])
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_exposure_command_reports_missing_environment(
-    pipx_temp_env: None,
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
     command: str,
 ) -> None:
     assert run_pipx_cli([command, "missing"]) == 1

@@ -22,6 +22,8 @@ from package_info import PKG
 from pipx import constants, paths, pipx_metadata_file, standalone_python
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pytest_mock import MockerFixture
 
 MAJOR_PYTHON_VERSION = sys.version_info.major
@@ -31,13 +33,14 @@ TARGET_PYTHON_VERSION = f"{MAJOR_PYTHON_VERSION}.{MINOR_PYTHON_VERSION}"
 original_which = shutil.which
 
 
-def mock_which(name):
+def mock_which(name: str) -> str | None:
     if name == TARGET_PYTHON_VERSION:
         return None
     return original_which(name)
 
 
-def test_legacy_standalone_python_index_is_refreshed(pipx_temp_env, monkeypatch):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_legacy_standalone_python_index_is_refreshed(monkeypatch: pytest.MonkeyPatch) -> None:
     legacy_link = (
         "https://github.com/astral-sh/python-build-standalone/releases/download/"
         "20250818/cpython-3.13.7%2B20250818-x86_64-unknown-linux-gnu-install_only.tar.gz"
@@ -48,12 +51,10 @@ def test_legacy_standalone_python_index_is_refreshed(pipx_temp_env, monkeypatch)
     index_file = cache_dir / "index.json"
     cache_dir.mkdir(parents=True)
     index_file.write_text(
-        json.dumps(
-            {
-                "fetched": datetime.datetime.now().timestamp(),
-                "releases": [legacy_link],
-            }
-        )
+        json.dumps({
+            "fetched": datetime.datetime.now(tz=datetime.timezone.utc).timestamp(),
+            "releases": [legacy_link],
+        })
     )
 
     monkeypatch.setattr(standalone_python, "get_latest_python_releases", lambda: current_releases)
@@ -62,10 +63,8 @@ def test_legacy_standalone_python_index_is_refreshed(pipx_temp_env, monkeypatch)
     assert json.loads(index_file.read_text())["releases"] == [[legacy_link, digest]]
 
 
-def test_download_standalone_python_sets_tar_filter(
-    pipx_temp_env: None,
-    mocked_github_api: None,
-) -> None:
+@pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
+def test_download_standalone_python_sets_tar_filter() -> None:
     with warnings.catch_warnings(record=True) as caught_warnings:
         warnings.simplefilter("always")
         python_path = standalone_python.download_python_build_standalone(TARGET_PYTHON_VERSION)
@@ -74,9 +73,8 @@ def test_download_standalone_python_sets_tar_filter(
     assert not [warning for warning in caught_warnings if "filter extracted tar archives" in str(warning.message)]
 
 
+@pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
 def test_download_standalone_python_supports_early_python_310(
-    pipx_temp_env: None,
-    mocked_github_api: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     # Python 3.10.0-3.10.11 lack tarfile's data filter, so pipx validates members and extracts them by hand
@@ -94,8 +92,8 @@ def test_download_standalone_python_supports_early_python_310(
         pytest.param(("python/escape", "symlink"), id="escaping-symlink"),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_early_python_310_rejects_unsafe_archive(
-    pipx_temp_env: None,
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
     unsafe: tuple[str, str],
@@ -114,12 +112,10 @@ def test_early_python_310_rejects_unsafe_archive(
     cache_dir = standalone_python.paths.ctx.standalone_python_cachedir
     cache_dir.mkdir(parents=True)
     (cache_dir / "index.json").write_text(
-        json.dumps(
-            {
-                "fetched": datetime.datetime.now().timestamp(),
-                "releases": [[link, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
-            }
-        )
+        json.dumps({
+            "fetched": datetime.datetime.now(tz=datetime.timezone.utc).timestamp(),
+            "releases": [[link, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
+        })
     )
     mocker.patch.object(standalone_python.platform, "system", return_value="Darwin")
     mocker.patch.object(standalone_python.platform, "machine", return_value="arm64")
@@ -138,7 +134,7 @@ def _python_archive_bytes() -> bytes:
 
 
 @pytest.fixture
-def published_darwin_release(pipx_temp_env: None, mocker: MockerFixture):
+def published_darwin_release(mocker: MockerFixture) -> tuple[Path, Callable[[bytes], None]]:
     mocker.patch.object(standalone_python.platform, "system", return_value="Darwin")
     mocker.patch.object(standalone_python.platform, "machine", return_value="arm64")
     cache_dir = standalone_python.paths.ctx.standalone_python_cachedir
@@ -147,19 +143,21 @@ def published_darwin_release(pipx_temp_env: None, mocker: MockerFixture):
 
     def publish(archive_bytes: bytes) -> None:
         (cache_dir / "index.json").write_text(
-            json.dumps(
-                {
-                    "fetched": datetime.datetime.now().timestamp(),
-                    "releases": [[link, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
-                }
-            )
+            json.dumps({
+                "fetched": datetime.datetime.now(tz=datetime.timezone.utc).timestamp(),
+                "releases": [[link, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
+            })
         )
         mocker.patch.object(standalone_python, "urlopen", return_value=io.BytesIO(archive_bytes))
 
     return cache_dir, publish
 
 
-def test_standalone_python_upgrade_keeps_old_build_when_unpack_fails(published_darwin_release, mocker) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_standalone_python_upgrade_keeps_old_build_when_unpack_fails(
+    published_darwin_release: tuple[Path, Callable[[bytes], None]],
+    mocker: MockerFixture,
+) -> None:
     cache_dir, publish = published_darwin_release
     install_dir = cache_dir / "3.99"
     (install_dir / "bin").mkdir(parents=True)
@@ -178,7 +176,10 @@ def test_standalone_python_upgrade_keeps_old_build_when_unpack_fails(published_d
     )
 
 
-def test_standalone_python_upgrade_replaces_existing_build(published_darwin_release) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_standalone_python_upgrade_replaces_existing_build(
+    published_darwin_release: tuple[Path, Callable[[bytes], None]],
+) -> None:
     cache_dir, publish = published_darwin_release
     install_dir = cache_dir / "3.99"
     install_dir.mkdir(parents=True)
@@ -191,7 +192,11 @@ def test_standalone_python_upgrade_replaces_existing_build(published_darwin_rele
     assert (Path(python_path).is_file(), stale.exists()) == (True, False)
 
 
-def test_standalone_python_upgrade_restores_backup_when_swap_fails(published_darwin_release, mocker) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_standalone_python_upgrade_restores_backup_when_swap_fails(
+    published_darwin_release: tuple[Path, Callable[[bytes], None]],
+    mocker: MockerFixture,
+) -> None:
     cache_dir, publish = published_darwin_release
     install_dir = cache_dir / "3.99"
     (install_dir / "bin").mkdir(parents=True)
@@ -200,10 +205,11 @@ def test_standalone_python_upgrade_restores_backup_when_swap_fails(published_dar
     real_replace = standalone_python.os.replace
     already_failed = {"value": False}
 
-    def replace(src: object, dst: object) -> None:
-        if Path(dst) == install_dir and not already_failed["value"]:
+    def replace(src: Path, dst: Path) -> None:
+        if dst == install_dir and not already_failed["value"]:
             already_failed["value"] = True
-            raise OSError("swap failed")
+            msg = "swap failed"
+            raise OSError(msg)
         real_replace(src, dst)
 
     mocker.patch.object(standalone_python.os, "replace", side_effect=replace)
@@ -225,8 +231,8 @@ def test_get_latest_python_releases_sets_request_timeout(mocker: MockerFixture) 
     urlopen.assert_called_once_with(standalone_python.GITHUB_API_URL, timeout=30)
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_download_standalone_python_sets_request_timeout(
-    pipx_temp_env: None,
     mocker: MockerFixture,
 ) -> None:
     archive = io.BytesIO()
@@ -238,12 +244,10 @@ def test_download_standalone_python_sets_request_timeout(
     cache_dir = standalone_python.paths.ctx.standalone_python_cachedir
     cache_dir.mkdir(parents=True)
     (cache_dir / "index.json").write_text(
-        json.dumps(
-            {
-                "fetched": datetime.datetime.now().timestamp(),
-                "releases": [[link, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
-            }
-        )
+        json.dumps({
+            "fetched": datetime.datetime.now(tz=datetime.timezone.utc).timestamp(),
+            "releases": [[link, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
+        })
     )
     mocker.patch.object(standalone_python.platform, "system", return_value="Darwin")
     mocker.patch.object(standalone_python.platform, "machine", return_value="arm64")
@@ -255,8 +259,8 @@ def test_download_standalone_python_sets_request_timeout(
     urlopen.assert_called_once_with(link, timeout=30)
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_download_standalone_python_rejects_unsafe_archive(
-    pipx_temp_env: None,
     mocker: MockerFixture,
 ) -> None:
     archive = io.BytesIO()
@@ -270,12 +274,10 @@ def test_download_standalone_python_rejects_unsafe_archive(
     cache_dir = standalone_python.paths.ctx.standalone_python_cachedir
     cache_dir.mkdir(parents=True)
     (cache_dir / "index.json").write_text(
-        json.dumps(
-            {
-                "fetched": datetime.datetime.now().timestamp(),
-                "releases": [[link, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
-            }
-        )
+        json.dumps({
+            "fetched": datetime.datetime.now(tz=datetime.timezone.utc).timestamp(),
+            "releases": [[link, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
+        })
     )
     mocker.patch.object(standalone_python.platform, "system", return_value="Darwin")
     mocker.patch.object(standalone_python.platform, "machine", return_value="arm64")
@@ -285,8 +287,8 @@ def test_download_standalone_python_rejects_unsafe_archive(
         standalone_python.download_python_build_standalone("3.99")
 
 
+@pytest.mark.usefixtures("mocked_github_api")
 def test_list_pythons_windows_arm64(
-    mocked_github_api: None,
     mocker: MockerFixture,
 ) -> None:
     mocker.patch.object(standalone_python.platform, "system", return_value="Windows")
@@ -295,7 +297,8 @@ def test_list_pythons_windows_arm64(
     assert standalone_python.list_pythons()["3.13.7"][0].endswith("aarch64-pc-windows-msvc-install_only.tar.gz")
 
 
-def test_list_no_standalone_interpreters(pipx_temp_env, monkeypatch, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_no_standalone_interpreters(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["interpreter", "list"])
 
     captured = capsys.readouterr()
@@ -303,18 +306,20 @@ def test_list_no_standalone_interpreters(pipx_temp_env, monkeypatch, capsys):
     assert len(captured.out.splitlines()) == 1
 
 
-def test_list_used_standalone_interpreters(pipx_temp_env, monkeypatch, mocked_github_api, capsys):
+@pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
+def test_list_used_standalone_interpreters(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     monkeypatch.setattr(shutil, "which", mock_which)
 
-    assert not run_pipx_cli(
-        [
-            "install",
-            "--fetch-python=missing",
-            "--python",
-            TARGET_PYTHON_VERSION,
-            PKG["pycowsay"]["spec"],
-        ]
-    )
+    assert not run_pipx_cli([
+        "install",
+        "--fetch-python=missing",
+        "--python",
+        TARGET_PYTHON_VERSION,
+        PKG["pycowsay"]["spec"],
+    ])
 
     capsys.readouterr()
     assert not run_pipx_cli(["interpreter", "list"])
@@ -324,18 +329,20 @@ def test_list_used_standalone_interpreters(pipx_temp_env, monkeypatch, mocked_gi
     assert "pycowsay" in captured.out
 
 
-def test_list_unused_standalone_interpreters(pipx_temp_env, monkeypatch, mocked_github_api, capsys):
+@pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
+def test_list_unused_standalone_interpreters(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     monkeypatch.setattr(shutil, "which", mock_which)
 
-    assert not run_pipx_cli(
-        [
-            "install",
-            "--fetch-python=missing",
-            "--python",
-            TARGET_PYTHON_VERSION,
-            PKG["pycowsay"]["spec"],
-        ]
-    )
+    assert not run_pipx_cli([
+        "install",
+        "--fetch-python=missing",
+        "--python",
+        TARGET_PYTHON_VERSION,
+        PKG["pycowsay"]["spec"],
+    ])
 
     assert not run_pipx_cli(["uninstall", "pycowsay"])
     capsys.readouterr()
@@ -347,18 +354,20 @@ def test_list_unused_standalone_interpreters(pipx_temp_env, monkeypatch, mocked_
     assert "Unused" in captured.out
 
 
-def test_prune_unused_standalone_interpreters(pipx_temp_env, monkeypatch, mocked_github_api, capsys):
+@pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
+def test_prune_unused_standalone_interpreters(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     monkeypatch.setattr(shutil, "which", mock_which)
 
-    assert not run_pipx_cli(
-        [
-            "install",
-            "--fetch-python=missing",
-            "--python",
-            TARGET_PYTHON_VERSION,
-            PKG["pycowsay"]["spec"],
-        ]
-    )
+    assert not run_pipx_cli([
+        "install",
+        "--fetch-python=missing",
+        "--python",
+        TARGET_PYTHON_VERSION,
+        PKG["pycowsay"]["spec"],
+    ])
 
     capsys.readouterr()
     assert not run_pipx_cli(["interpreter", "prune"])
@@ -383,33 +392,32 @@ def test_prune_unused_standalone_interpreters(pipx_temp_env, monkeypatch, mocked
     assert "Nothing to remove" in captured.out
 
 
-def test_upgrade_standalone_interpreter(pipx_temp_env, root, monkeypatch, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_standalone_interpreter(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(shutil, "which", mock_which)
 
-    with open(root / "testdata" / "standalone_python_index_20250818.json") as f:
+    with Path(root / "testdata" / "standalone_python_index_20250818.json").open(encoding="utf-8") as f:
         new_index = json.load(f)
-    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda _: new_index)
+    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda *, use_cache=True: new_index)  # noqa: ARG005  # mock ignores use_cache
 
-    assert not run_pipx_cli(
-        [
-            "install",
-            "--fetch-python=missing",
-            "--python",
-            TARGET_PYTHON_VERSION,
-            PKG["pycowsay"]["spec"],
-        ]
-    )
+    assert not run_pipx_cli([
+        "install",
+        "--fetch-python=missing",
+        "--python",
+        TARGET_PYTHON_VERSION,
+        PKG["pycowsay"]["spec"],
+    ])
 
-    with open(root / "testdata" / "standalone_python_index_20250828.json") as f:
+    with Path(root / "testdata" / "standalone_python_index_20250828.json").open(encoding="utf-8") as f:
         new_index = json.load(f)
-    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda _: new_index)
+    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda *, use_cache=True: new_index)  # noqa: ARG005  # mock ignores use_cache
 
     assert not run_pipx_cli(["interpreter", "upgrade"])
 
 
 @pytest.mark.parametrize("windows", [False, True], ids=["posix", "windows"])
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_standalone_interpreters_reads_each_venv_once(
-    pipx_temp_env: None,
     mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
     windows: bool,
@@ -432,7 +440,7 @@ def test_upgrade_standalone_interpreters_reads_each_venv_once(
         metadata.source_interpreter = interpreter_python
         metadata.write()
 
-    def read_version(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def read_version(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
         python_path = Path(command[0])
         python_version = python_path.parent.name if windows else python_path.parent.parent.name
         return subprocess.CompletedProcess(command, 0, stdout=f"Python {python_version}.0\n")
@@ -450,7 +458,8 @@ def test_upgrade_standalone_interpreters_reads_each_venv_once(
     assert metadata_read.call_count == 2
 
 
-def test_upgrade_standalone_interpreter_nothing_to_upgrade(pipx_temp_env, capsys, mocked_github_api):
+@pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
+def test_upgrade_standalone_interpreter_nothing_to_upgrade(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["interpreter", "upgrade"])
     captured = capsys.readouterr()
     assert "Nothing to upgrade" in captured.out
@@ -463,15 +472,15 @@ def test_upgrade_standalone_interpreter_nothing_to_upgrade(pipx_temp_env, capsys
         pytest.param(subprocess.CalledProcessError(1, ["python", "--version"]), id="nonzero-exit"),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_standalone_interpreter_skips_corrupt(
-    pipx_temp_env: None,
     mocker: MockerFixture,
     corrupt_error: OSError | subprocess.CalledProcessError,
 ) -> None:
     for name in ("corrupt", "valid"):
         (standalone_python.paths.ctx.standalone_python_cachedir / name).mkdir(parents=True)
 
-    def read_version(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+    def read_version(command: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
         if "corrupt" in command[0]:
             raise corrupt_error
         return subprocess.CompletedProcess(command, 0, stdout="Python 3.12.0\n")

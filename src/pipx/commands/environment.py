@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import os
-from collections.abc import Callable
 from functools import cache
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 from pipx import paths
 from pipx.backends import env_default_backend, find_uv_binary, resolve_backend_name
@@ -13,6 +14,9 @@ from pipx.shared_libs import (
     shared_libs_auto_upgrade_disabled,
 )
 from pipx.util import PipxError
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 ENVIRONMENT_VARIABLES: Final = [
     "PIPX_HOME",
@@ -75,22 +79,22 @@ def environment(value: str | None) -> ExitCode:
     """Print a list of environment variables and paths used by pipx"""
     derived_values = _get_derived_values()
     if value is None:
-        print("Environment variables (set by user):")
-        print("")
+        print("Environment variables (set by user):")  # noqa: T201  # user-facing CLI output
+        print()  # noqa: T201
         for env_variable in ENVIRONMENT_VARIABLES:
-            env_value = os.getenv(env_variable, "")
-            print(f"{env_variable}={env_value}")
-        print("")
-        print("Derived values (computed by pipx):")
-        print("")
+            print(f"{env_variable}={os.getenv(env_variable, '')}")  # noqa: T201
+        print()  # noqa: T201
+        print("Derived values (computed by pipx):")  # noqa: T201
+        print()  # noqa: T201
         for env_variable, resolve_derived_value in derived_values.items():
-            print(f"{env_variable}={resolve_derived_value()}")
+            print(f"{env_variable}={resolve_derived_value()}")  # noqa: T201
     elif (get_derived_value := derived_values.get(value)) is not None:
-        print(get_derived_value())
+        print(get_derived_value())  # noqa: T201
     elif value in ENVIRONMENT_VARIABLES:
-        print(os.getenv(value, ""))
+        print(os.getenv(value, ""))  # noqa: T201
     else:
-        raise PipxError("Variable not found.")
+        msg = "Variable not found."
+        raise PipxError(msg)
 
     return EXIT_CODE_OK
 

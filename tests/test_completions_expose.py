@@ -24,8 +24,8 @@ def completion_project(root: Path) -> str:
 
 
 @pytest.mark.parametrize("section", list(_SECTIONS), ids=["bash", "zsh", "fish"])
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_install_exposes_the_completion_script(
-    pipx_temp_env: None,
     completion_project: str,
     section: str,
 ) -> None:
@@ -35,7 +35,8 @@ def test_install_exposes_the_completion_script(
     assert exposed.is_symlink() or exposed.is_file()
 
 
-def test_uninstall_removes_the_completion_scripts(pipx_temp_env: None, completion_project: str) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_removes_the_completion_scripts(completion_project: str) -> None:
     assert not run_pipx_cli(["install", completion_project])
 
     assert not run_pipx_cli(["uninstall", "local-completion"])
@@ -43,7 +44,8 @@ def test_uninstall_removes_the_completion_scripts(pipx_temp_env: None, completio
     assert not list(paths.ctx.completion_dir.rglob("*local-completion*"))
 
 
-def test_unexpose_removes_the_completion_scripts(pipx_temp_env: None, completion_project: str) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_unexpose_removes_the_completion_scripts(completion_project: str) -> None:
     assert not run_pipx_cli(["install", completion_project])
 
     assert not run_pipx_cli(["unexpose", "local-completion"])
@@ -51,7 +53,8 @@ def test_unexpose_removes_the_completion_scripts(pipx_temp_env: None, completion
     assert not list(paths.ctx.completion_dir.rglob("*local-completion*"))
 
 
-def test_expose_restores_the_completion_scripts(pipx_temp_env: None, completion_project: str) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_expose_restores_the_completion_scripts(completion_project: str) -> None:
     assert not run_pipx_cli(["install", completion_project])
     assert not run_pipx_cli(["unexpose", "local-completion"])
 
@@ -62,7 +65,8 @@ def test_expose_restores_the_completion_scripts(pipx_temp_env: None, completion_
     )
 
 
-def test_reinstall_removes_a_stale_completion_link(pipx_temp_env: None, completion_project: str) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_removes_a_stale_completion_link(completion_project: str) -> None:
     assert not run_pipx_cli(["install", completion_project])
     section: Final[str] = "bash-completion/completions"
     source: Final[Path] = paths.ctx.venvs / "local-completion" / "share" / "bash-completion" / "completions" / "orphan"
@@ -75,8 +79,8 @@ def test_reinstall_removes_a_stale_completion_link(pipx_temp_env: None, completi
     assert not orphan.exists()
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_environment_reports_the_completion_dir(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["environment", "--value", "PIPX_COMPLETION_DIR"])

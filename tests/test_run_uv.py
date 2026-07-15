@@ -101,9 +101,9 @@ def test_run_via_uv_tool_run_threads_spec_and_with(
     ]
 
 
+@pytest.mark.usefixtures("fake_uv")
 def test_run_via_uv_tool_run_omits_from_when_app_matches_spec(
     exec_mock: MagicMock,
-    fake_uv: Path,
     mocker: MockerFixture,
 ) -> None:
     mocker.patch("pipx.commands.run_uv.which", return_value=None)
@@ -122,9 +122,9 @@ def test_run_via_uv_tool_run_omits_from_when_app_matches_spec(
     assert "--from" not in exec_mock.call_args.args[0]
 
 
+@pytest.mark.usefixtures("fake_uv")
 def test_run_via_uv_tool_run_refreshes_cache(
     exec_mock: MagicMock,
-    fake_uv: Path,
     mocker: MockerFixture,
 ) -> None:
     mocker.patch("pipx.commands.run_uv.which", return_value=None)
@@ -183,9 +183,9 @@ def test_run_script_via_uv_run_uses_uv_run_script(
     ]
 
 
+@pytest.mark.usefixtures("fake_uv")
 def test_run_script_via_uv_run_refreshes_cache(
     exec_mock: MagicMock,
-    fake_uv: Path,
     tmp_path: Path,
 ) -> None:
     script: Final[Path] = tmp_path / "demo.py"
@@ -204,7 +204,8 @@ def test_run_script_via_uv_run_refreshes_cache(
     assert "--refresh" in exec_mock.call_args.args[0]
 
 
-def test_run_via_uv_tool_run_rejects_venv_args(mocker: MockerFixture, fake_uv: Path) -> None:
+@pytest.mark.usefixtures("fake_uv")
+def test_run_via_uv_tool_run_rejects_venv_args(mocker: MockerFixture) -> None:
     mocker.patch("pipx.commands.run_uv.exec_app")
     mocker.patch("pipx.commands.run_uv.which", return_value=None)
     with pytest.raises(PipxError, match=r"--venv-args .* is not supported"):

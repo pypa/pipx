@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 import tarfile
 import zipfile
@@ -23,15 +25,18 @@ def _check_source_archive(distribution_dir: Path, rst: bytes) -> None:
     with tarfile.open(source_archive_path) as source_archive:
         sources = [member for member in source_archive.getmembers() if member.name.endswith("/docs/man/pipx.1.rst")]
         if len(sources) != 1:
-            raise SystemExit(f"Missing docs/man/pipx.1.rst from {source_archive_path.name}")
+            msg = f"Missing docs/man/pipx.1.rst from {source_archive_path.name}"
+            raise SystemExit(msg)
         extracted_source = source_archive.extractfile(sources[0])
         if extracted_source is None or extracted_source.read() != rst:
-            raise SystemExit(f"Manpage source differs in {source_archive_path.name}")
+            msg = f"Manpage source differs in {source_archive_path.name}"
+            raise SystemExit(msg)
 
 
 def _require_one(paths: list[Path], description: str, distribution_dir: Path) -> Path:
     if len(paths) != 1:
-        raise SystemExit(f"Expected one pipx {description} in {distribution_dir}; found {len(paths)}")
+        msg = f"Expected one pipx {description} in {distribution_dir}; found {len(paths)}"
+        raise SystemExit(msg)
     return paths[0]
 
 
@@ -41,12 +46,14 @@ def _check_wheel(distribution_dir: Path, generated_manpage: bytes) -> None:
     with zipfile.ZipFile(wheel_path) as wheel:
         manpages = [name for name in wheel.namelist() if name.endswith(".data/data/share/man/man1/pipx.1")]
         if len(manpages) != 1:
-            raise SystemExit(
+            msg = (
                 f"Wheel {wheel_path.name} has no manual page at share/man/man1/pipx.1, "
                 "so installers cannot place it in the target shared-data directory"
             )
+            raise SystemExit(msg)
         if wheel.read(manpages[0]) != generated_manpage:
-            raise SystemExit(f"Manual page in {wheel_path.name} differs from generated output")
+            msg = f"Manual page in {wheel_path.name} differs from generated output"
+            raise SystemExit(msg)
 
 
 if __name__ == "__main__":

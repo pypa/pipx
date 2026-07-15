@@ -55,15 +55,17 @@ class UvBackend(Backend):
         self._binary = resolve_uv_binary()
         _, self._source = find_uv_binary()
         version = _check_uv_version(self._binary)
-        _LOGGER.info(f"using {self._source} uv {version} from {self._binary}")
+        _LOGGER.info("using %s uv %s from %s", self._source, version, self._binary)
 
-    def needs_shared_libs(self) -> bool:
+    def needs_shared_libs(self) -> bool:  # noqa: PLR6301  # Backend interface method, must dispatch polymorphically
         return False
 
-    def upgrade_packaging_libraries(self, venv_python: Path, pip_args: list[str], *, verbose: bool) -> None:
+    def upgrade_packaging_libraries(  # noqa: PLR6301  # Backend interface method, must dispatch polymorphically
+        self, venv_python: Path, pip_args: list[str], *, verbose: bool
+    ) -> None:
         del venv_python, pip_args, verbose  # uv venvs ship no pip to upgrade.
 
-    def create_venv(
+    def create_venv(  # noqa: PLR0913  # Backend interface method mirroring venv-creation inputs
         self,
         root: Path,
         *,
@@ -75,18 +77,18 @@ class UvBackend(Backend):
     ) -> None:
         del pip_args  # uv venv has no pip to seed.
         if include_pip:
-            raise PipxError(
+            msg = (
                 "The uv backend cannot create a virtual environment with pip preinstalled.\n"
                 "Reinstall the package with `--backend pip` (or unset PIPX_DEFAULT_BACKEND)."
             )
+            raise PipxError(msg)
         cmd: list[str | Path] = [self._binary, "venv", "--python", python, "--allow-existing", *venv_args]
-        cmd.append("--verbose" if verbose else "--quiet")
-        cmd.append(str(root))
-        with animate("creating virtual environment", not verbose):
+        cmd.extend(("--verbose" if verbose else "--quiet", str(root)))
+        with animate("creating virtual environment", do_animation=not verbose):
             process = run_subprocess(cmd, run_dir=str(root), env_overrides=_uv_env_overrides())
         subprocess_post_check(process)
 
-    def install(
+    def install(  # noqa: PLR0913  # Backend interface method mapping flags to uv options
         self,
         *,
         venv_root: Path,
@@ -149,11 +151,12 @@ class UvBackend(Backend):
         cmd += ["--format", "json"]
         process = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=_uv_env_overrides())
         if process.returncode != 0:
-            raise PipxError(
+            msg = (
                 f"Failed to execute {process.args}.\n"
                 f"Process exited with return code {process.returncode}.\n"
                 f"stderr: {process.stderr}"
             )
+            raise PipxError(msg)
         return {entry["name"] for entry in json.loads(process.stdout.strip())}
 
     def list_outdated(
@@ -168,7 +171,7 @@ class UvBackend(Backend):
         process = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=_uv_env_overrides())
         return outdated_packages_from_process(process)
 
-    def run_raw_pip(
+    def run_raw_pip(  # noqa: PLR0913  # Backend interface method passing raw pip controls through
         self,
         *,
         venv_root: Path,
@@ -217,11 +220,12 @@ def resolve_uv_binary() -> Path:
     # an opaque uv-side error.
     binary, _ = find_uv_binary()
     if binary is None:
-        raise PipxError(
+        msg = (
             "The uv backend was requested but the 'uv' executable could not be found.\n"
             "Install pipx with the uv extra (`pipx install pipx[uv]`) or place 'uv' on your PATH.\n"
             "Alternatively, run with `--backend pip` (or set PIPX_DEFAULT_BACKEND=pip)."
         )
+        raise PipxError(msg)
     _check_uv_version(binary)
     return binary
 
@@ -254,12 +258,15 @@ def _binary_runs(binary: Path) -> bool:
             [str(binary), "--version"], check=False, text=True, capture_output=True, timeout=_UV_PROBE_TIMEOUT
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
-        _LOGGER.debug(f"uv launch probe failed for {binary}: {exc}")
+        _LOGGER.debug("uv launch probe failed for %s: %s", binary, exc)
         return False
     if process.returncode != 0 or not _VERSION_RE.search(process.stdout):
         _LOGGER.debug(
-            f"uv launch probe rejected {binary}: "
-            f"rc={process.returncode}, stdout={process.stdout!r}, stderr={process.stderr!r}"
+            "uv launch probe rejected %s: rc=%s, stdout=%r, stderr=%r",
+            binary,
+            process.returncode,
+            process.stdout,
+            process.stderr,
         )
         return False
     return True
@@ -273,24 +280,28 @@ def _check_uv_version(binary: Path) -> Version:
             [str(binary), "--version"], check=False, text=True, capture_output=True, timeout=_UV_PROBE_TIMEOUT
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
-        raise PipxError(
+        msg = (
             f"Could not run {binary} --version ({exc}).\n"
             "Repair or reinstall uv, or run with `--backend pip` (or set PIPX_DEFAULT_BACKEND=pip)."
-        ) from exc
+        )
+        raise PipxError(msg) from exc
     if (match := _VERSION_RE.search(process.stdout)) is None:
-        raise PipxError(
+        msg = (
             f"Could not parse uv version from {binary} "
             f"(rc={process.returncode}, stdout={process.stdout!r}, stderr={process.stderr!r})."
         )
+        raise PipxError(msg)
     try:
         version = Version(match.group(1))
     except InvalidVersion as exc:
-        raise PipxError(f"Unrecognized uv version {match.group(1)!r}.") from exc
+        msg = f"Unrecognized uv version {match.group(1)!r}."
+        raise PipxError(msg) from exc
     if version < _MIN_UV_VERSION:
-        raise PipxError(
+        msg = (
             f"pipx needs uv>={_MIN_UV_VERSION}, but {binary} reports {version}.\n"
             "Upgrade uv (`uv self update` or reinstall pipx[uv]), or run with `--backend pip` to bypass."
         )
+        raise PipxError(msg)
     return version
 
 
@@ -305,7 +316,7 @@ def _uv_env_overrides(*, progress: bool = False) -> dict[str, str | None]:
 
 
 def _strip_pip_quiet_flags(pip_args: list[str]) -> list[str]:
-    return [arg for arg in pip_args if arg not in ("-q", "-qq", "--quiet")]
+    return [arg for arg in pip_args if arg not in {"-q", "-qq", "--quiet"}]
 
 
 __all__ = [

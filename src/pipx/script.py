@@ -23,10 +23,10 @@ from pipx.util import PipxError
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-if sys.version_info < (3, 11):
-    import tomli as tomllib
-else:
+if sys.version_info >= (3, 11):
     import tomllib
+else:
+    import tomli as tomllib
 
 _APP_NAME: Final[re.Pattern[str]] = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]*")
 _INLINE_METADATA: Final[re.Pattern[str]] = re.compile(
@@ -62,10 +62,12 @@ def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
     ]
     if not matches:
         if any(match.group("type") == "pyproject" for match in _INLINE_METADATA.finditer(normalized_text)):
-            raise ValueError("Use `# /// script` instead of the obsolete `# /// pyproject` metadata block")
+            msg = "Use `# /// script` instead of the obsolete `# /// pyproject` metadata block"
+            raise ValueError(msg)
         return None
     if len(matches) > 1:
-        raise ValueError("Multiple `# /// script` metadata blocks found")
+        msg = "Multiple `# /// script` metadata blocks found"
+        raise ValueError(msg)
 
     raw: Final[dict[str, str | list[str]]] = cast(
         "dict[str, str | list[str]]",
@@ -78,13 +80,15 @@ def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
     )
     dependencies: Final[str | list[str]] = raw.get("dependencies", [])
     if not isinstance(dependencies, list) or not all(isinstance(dependency, str) for dependency in dependencies):
-        raise PipxError("Inline script `dependencies` must be an array of strings.")
+        msg = "Inline script `dependencies` must be an array of strings."
+        raise PipxError(msg)
     normalized: Final[list[str]] = []
-    for dependency in dependencies:
-        try:
+    try:
+        for dependency in dependencies:
             normalized.append(str(Requirement(dependency)))
-        except InvalidRequirement as error:
-            raise PipxError(f"Invalid requirement {dependency}: {error}") from error
+    except InvalidRequirement as error:
+        msg = f"Invalid requirement {dependency}: {error}"
+        raise PipxError(msg) from error
 
     requires_python: Final[str | None] = _normalize_requires_python(raw.get("requires-python"))
     return ScriptMetadata(tuple(normalized), requires_python)
@@ -94,10 +98,12 @@ def script_name_from_spec(package_spec: str, expected_apps: tuple[str, ...]) -> 
     if not _is_script_spec(package_spec):
         return None
     if len(expected_apps) > 1:
-        raise PipxError("A script can provide one --app name.")
+        msg = "A script can provide one --app name."
+        raise PipxError(msg)
     app: Final[str] = _script_app(package_spec, expected_apps)
     if _APP_NAME.fullmatch(app) is None:
-        raise PipxError(f"Invalid script app name {app!r}. Pass --app with a portable command name.")
+        msg = f"Invalid script app name {app!r}. Pass --app with a portable command name."
+        raise PipxError(msg)
     return canonicalize_name(app)
 
 
@@ -107,7 +113,8 @@ def installable_script(package_name: str, package_or_url: str, expected_apps: tu
         yield package_or_url
         return
     if canonicalize_name(package_name) != resolved_name:
-        raise PipxError(f"Script app {resolved_name!r} does not match package name {package_name!r}.")
+        msg = f"Script app {resolved_name!r} does not match package name {package_name!r}."
+        raise PipxError(msg)
 
     script: Final[_Script] = _read_script(package_or_url, expected_apps)
     with TemporaryDirectory(prefix="pipx-script-") as directory:
@@ -142,9 +149,11 @@ def _read_script(package_or_url: str, expected_apps: tuple[str, ...]) -> _Script
     try:
         metadata: Final[ScriptMetadata | None] = read_script_metadata(content)
     except ValueError as error:
-        raise PipxError(f"Invalid inline metadata in script {package_or_url}: {error}.") from error
+        msg = f"Invalid inline metadata in script {package_or_url}: {error}."
+        raise PipxError(msg) from error
     if metadata is None:
-        raise PipxError(f"Script {package_or_url} has no PEP 723 inline metadata block.")
+        msg = f"Script {package_or_url} has no PEP 723 inline metadata block."
+        raise PipxError(msg)
     return _Script(_script_app(package_or_url, expected_apps), content, metadata)
 
 
@@ -156,24 +165,28 @@ _MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
 
 def _read_url(url: str) -> str:
     try:
-        with urllib.request.urlopen(url, timeout=_URL_TIMEOUT) as response:  # scheme is validated upstream
+        with urllib.request.urlopen(url, timeout=_URL_TIMEOUT) as response:  # noqa: S310  # http(s) only, validated upstream
             data = response.read(_MAX_SCRIPT_BYTES + 1)
             if len(data) > _MAX_SCRIPT_BYTES:
-                raise PipxError(f"Script {url} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it.")
+                msg = f"Script {url} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it."
+                raise PipxError(msg)
             return data.decode(response.headers.get_content_charset() or "utf-8")
     except OSError as error:
-        raise PipxError(f"Unable to read script {url}: {error}") from error
+        msg = f"Unable to read script {url}: {error}"
+        raise PipxError(msg) from error
 
 
 def _normalize_requires_python(value: str | list[str] | None) -> str | None:
     if value is None:
         return None
     if not isinstance(value, str):
-        raise PipxError("Inline script `requires-python` must be a string.")
+        msg = "Inline script `requires-python` must be a string."
+        raise PipxError(msg)
     try:
         return str(SpecifierSet(value))
     except InvalidSpecifier as error:
-        raise PipxError(f"Invalid `requires-python` value {value}: {error}") from error
+        msg = f"Invalid `requires-python` value {value}: {error}"
+        raise PipxError(msg) from error
 
 
 def _write_wheel(directory: Path, package_name: str, script: _Script) -> Path:

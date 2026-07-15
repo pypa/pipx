@@ -1,17 +1,21 @@
+from __future__ import annotations
+
 import json
 import sys
 from dataclasses import replace
 from pathlib import Path
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 import pytest
-from pytest_mock import MockerFixture
 
 from helpers import assert_package_metadata, create_package_info_ref, run_pipx_cli
 from package_info import PKG
 from pipx import paths, pipx_metadata_file
 from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, JsonEncoderHandlesPath, PackageInfo, PipxMetadata
 from pipx.util import PipxError
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 TEST_PACKAGE1 = PackageInfo(
     package="test_package",
@@ -141,7 +145,8 @@ def test_pipx_metadata_file_defaults_included_apps_from_version_0_9(tmp_path: Pa
     metadata: Final[PipxMetadata] = PipxMetadata(venv_dir, read=False)
     metadata.main_package = TEST_PACKAGE1
     (venv_dir / PIPX_INFO_FILENAME).write_text(
-        json.dumps(metadata.to_dict(), cls=JsonEncoderHandlesPath)
+        json
+        .dumps(metadata.to_dict(), cls=JsonEncoderHandlesPath)
         .replace('"pipx_metadata_version": "0.11"', '"pipx_metadata_version": "0.9"')
         .replace('"include_resources_from": [], ', "")
     )
@@ -169,7 +174,8 @@ def test_pipx_metadata_file_defaults_cooldown_from_version_0_10(tmp_path: Path) 
     metadata: Final[PipxMetadata] = PipxMetadata(venv_dir, read=False)
     metadata.main_package = TEST_PACKAGE1
     (venv_dir / PIPX_INFO_FILENAME).write_text(
-        json.dumps(metadata.to_dict(), cls=JsonEncoderHandlesPath)
+        json
+        .dumps(metadata.to_dict(), cls=JsonEncoderHandlesPath)
         .replace('"pipx_metadata_version": "0.11"', '"pipx_metadata_version": "0.10"')
         .replace('"cooldown_days": null, ', "")
     )
@@ -185,7 +191,7 @@ def test_pipx_metadata_file_defaults_cooldown_from_version_0_10(tmp_path: Path) 
         replace(TEST_PACKAGE1, package_or_url=None),
     ],
 )
-def test_pipx_metadata_file_validation(tmp_path, test_package):
+def test_pipx_metadata_file_validation(tmp_path: Path, test_package: PackageInfo) -> None:
     venv_dir = tmp_path / "venv"
     venv_dir.mkdir()
 
@@ -223,7 +229,8 @@ def test_write_preserves_existing_metadata_after_os_error(
     ) == (previous_metadata, [PIPX_INFO_FILENAME], True)
 
 
-def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_package_install() -> None:
     pipx_venvs_dir = paths.ctx.home / "venvs"
 
     run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
@@ -235,7 +242,8 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     assert pipx_metadata.injected_packages == {}
 
 
-def test_package_inject(monkeypatch, tmp_path, pipx_temp_env):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_package_inject() -> None:
     pipx_venvs_dir = paths.ctx.home / "venvs"
 
     run_pipx_cli(["install", PKG["pycowsay"]["spec"]])

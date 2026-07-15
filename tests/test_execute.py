@@ -29,8 +29,8 @@ if TYPE_CHECKING:
         ),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_execute_runs_recorded_app(
-    pipx_temp_env: None,
     mocker: MockerFixture,
     setup_commands: list[list[str]],
     environment_name: str,
@@ -60,8 +60,8 @@ def test_execute_runs_recorded_app(
     ) == (bin_dir / app_name(application), ["--version"], str(venv_dir), str(bin_dir))
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_execute_rejects_unknown_app(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
@@ -74,8 +74,8 @@ def test_execute_rejects_unknown_app(
     )
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_execute_rejects_unknown_environment(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert run_pipx_cli(["exec", "missing", "app"]) == 1
@@ -83,8 +83,8 @@ def test_execute_rejects_unknown_environment(
     assert capsys.readouterr().err == "pipx does not manage environment 'missing'.\n"
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_execute_rejects_missing_recorded_app(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])

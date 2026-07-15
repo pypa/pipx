@@ -1,12 +1,16 @@
-from collections.abc import Iterator
+from __future__ import annotations
+
 from contextlib import contextmanager
 from pathlib import Path
 from shutil import Error, copytree
 from tempfile import mkdtemp
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 from pipx import paths
 from pipx.util import PipxError, rmdir
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
 @contextmanager
@@ -24,7 +28,8 @@ def preserve_venv(venv_dir: Path, *, enabled: bool) -> Iterator[None]:
         copytree(venv_dir, backup_dir, symlinks=True)
     except (Error, OSError) as error:
         rmdir(backup_dir)
-        raise PipxError(f"pipx could not back up environment {venv_dir.name}: {error}") from error
+        msg = f"pipx could not back up environment {venv_dir.name}: {error}"
+        raise PipxError(msg) from error
 
     try:
         yield

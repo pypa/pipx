@@ -31,13 +31,13 @@ if TYPE_CHECKING:
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
-def upgrade(
+def upgrade(  # noqa: PLR0913  # mirrors the CLI's flat upgrade option set across the selected venvs
     venv_dirs: dict[str, Path],
     python: str | None,
     pip_args: list[str],
     venv_args: list[str],
-    verbose: bool,
     *,
+    verbose: bool,
     include_injected: bool,
     force: bool,
     install: bool,
@@ -55,7 +55,7 @@ def upgrade(
                 _upgrade_venv(
                     venv_dir,
                     pip_args,
-                    verbose,
+                    verbose=verbose,
                     include_injected=include_injected,
                     force=force,
                     install=install,
@@ -81,10 +81,10 @@ def upgrade(
     )
 
 
-def upgrade_all(
+def upgrade_all(  # noqa: PLR0913  # mirrors the CLI's flat upgrade-all option set
     venv_container: VenvContainer,
-    verbose: bool,
     *,
+    verbose: bool,
     pip_args: list[str],
     include_injected: bool,
     skip: Sequence[str],
@@ -128,10 +128,9 @@ def upgrade_all(
             if "--editable" in venv.pipx_metadata.main_package.pip_args:
                 skipped.append(SkippedUpgrade(venv_dir.name, "editable"))
                 continue
-            try:
+            try:  # noqa: PLW0717  # one PipxError handler must cover the whole per-venv upgrade
                 _validate_venv_for_upgrade(venv_dir, venv)
-                if venv.pipx_metadata.main_package.lock_file is None and (errors := check_failures.get(venv.name)):
-                    raise PipxError("\n".join(errors), wrap_message=False)
+                _raise_check_failures(venv, check_failures)
                 packages_to_upgrade: set[str] = {
                     package_name
                     for package_name, package in venv.package_metadata.items()
@@ -181,9 +180,16 @@ def upgrade_all(
     )
 
 
+def _raise_check_failures(venv: Venv, check_failures: dict[str, list[str]]) -> None:
+    # index-check failures block an unlocked upgrade; raise so the enclosing handler records the environment
+    if venv.pipx_metadata.main_package.lock_file is None and (errors := check_failures.get(venv.name)):
+        raise PipxError("\n".join(errors), wrap_message=False)
+
+
 def upgrade_shared(
-    verbose: bool,
     pip_args: list[str],
+    *,
+    verbose: bool,
 ) -> OperationResult[SharedData]:
     # pip-backed installs use this environment regardless of the installed environments' backends.
     shared_libs.upgrade(verbose=verbose, pip_args=pip_args, raises=True)
@@ -194,11 +200,11 @@ def upgrade_shared(
     )
 
 
-def _upgrade_venv(
+def _upgrade_venv(  # noqa: PLR0913  # upgrade forwards the full install/upgrade context for one venv
     venv_dir: Path,
     pip_args: list[str],
-    verbose: bool,
     *,
+    verbose: bool,
     include_injected: bool,
     force: bool,
     install: bool = False,
@@ -242,15 +248,14 @@ def _upgrade_venv(
                 raise PipxError(installed.errors[0].message)
             extra_messages.extend(installed.messages)
             return ()
-        raise PipxError(
-            f"""
+        msg = f"""
             Package is not installed. Expected to find {venv_dir!s}, but it
             does not exist.
             """
-        )
+        raise PipxError(msg)
 
     if venv_args and not install:
-        _LOGGER.info(f"Ignoring {', '.join(venv_args)} as not combined with --install")
+        _LOGGER.info("Ignoring %s as not combined with --install", ", ".join(venv_args))
 
     if python and not install:
         _LOGGER.info("Ignoring --python as not combined with --install")
@@ -297,23 +302,29 @@ def _upgrade_venv(
 
 def _validate_venv_for_upgrade(venv_dir: Path, venv: Venv) -> None:
     if not venv.python_path.is_file():
-        raise PipxError(
+        msg = (
             f"Not upgrading {red(bold(venv_dir.name))}. It has an invalid python interpreter {venv.python_path}.\n"
             f"This usually happens after a system Python upgrade.\n"
-            f"To fix, execute: pipx reinstall-all",
+            f"To fix, execute: pipx reinstall-all"
+        )
+        raise PipxError(
+            msg,
             wrap_message=False,
         )
 
     if not venv.package_metadata:
-        raise PipxError(
+        msg = (
             f"Not upgrading {red(bold(venv_dir.name))}. It has missing internal pipx metadata.\n"
             f"It was likely installed using a pipx version before 0.15.0.0.\n"
-            f"Please uninstall and install this package to fix.",
+            f"Please uninstall and install this package to fix."
+        )
+        raise PipxError(
+            msg,
             wrap_message=False,
         )
 
 
-def _upgrade_packages(
+def _upgrade_packages(  # noqa: PLR0913  # upgrade needs both pip-arg sets plus the injected/force/cooldown flags
     venv: Venv,
     main_pip_args: list[str],
     pip_args: list[str],
@@ -377,10 +388,11 @@ def _upgrade_packages(
     return tuple(results)
 
 
-def _upgrade_package(
+def _upgrade_package(  # noqa: PLR0913  # upgrade of one package needs its pip args plus the main/force/cooldown context
     venv: Venv,
     package_name: str,
     pip_args: list[str],
+    *,
     is_main_package: bool,
     force: bool,
     cooldown_days: int | None,
@@ -388,7 +400,8 @@ def _upgrade_package(
     package_metadata = venv.package_metadata[package_name]
 
     if package_metadata.package_or_url is None:
-        raise PipxError(f"Internal Error: package {package_name} has corrupt pipx metadata.")
+        msg = f"Internal Error: package {package_name} has corrupt pipx metadata."
+        raise PipxError(msg)
     if package_metadata.pinned:
         return _package_result(venv, package_name, UpgradeStatus.PINNED)
 

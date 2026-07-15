@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
     from pipx.venv import VenvContainer
 
-_JsonValue: TypeAlias = None | bool | int | float | str | list["_JsonValue"] | dict[str, "_JsonValue"]
+_JsonValue: TypeAlias = bool | int | float | str | list["_JsonValue"] | dict[str, "_JsonValue"] | None
 _OUTDATED_JSON: Final[str] = (
     '[{"name":"pycowsay","version":"0.0.0.2","latest_version":"1.0","latest_filetype":"wheel"},'
     '{"name":"packaging","version":"20","latest_version":"26","latest_filetype":"wheel"}]'
@@ -37,8 +37,8 @@ _OUTDATED_PROCESS: Final[subprocess.CompletedProcess[str]] = subprocess.Complete
 
 
 @pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_list_outdated_backend(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
     backend: str,
 ) -> None:
@@ -51,8 +51,8 @@ def test_list_outdated_backend(
     assert (captured.out, captured.err) == ("pipx found no available upgrades.\n", "")
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_list_outdated_selected_package(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
     mocker: MockerFixture,
 ) -> None:
@@ -71,8 +71,8 @@ def test_list_outdated_selected_package(
     assert (captured.out, captured.err, list_outdated.call_count) == ("pipx found no available upgrades.\n", "", 1)
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_list_outdated_skips_removed_environment(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
     mocker: MockerFixture,
 ) -> None:
@@ -116,7 +116,8 @@ def test_list_outdated_text(
     assert (captured.out, captured.err, outdated_environment.call_count) == (expected, "", 1)
 
 
-def test_list_outdated_json(outdated_environment: MagicMock, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("outdated_environment")
+def test_list_outdated_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["list", "--outdated", "--output", "json"])
 
     captured = capsys.readouterr()
@@ -166,8 +167,8 @@ def test_list_outdated_reports_pinned(
         ),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_list_outdated_filters_injected(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
     mocker: MockerFixture,
     options: list[str],
@@ -293,8 +294,8 @@ def test_list_outdated_reports_no_index_packages(
     )
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_list_outdated_json_reports_editable_skip(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
     root: Path,
 ) -> None:
@@ -341,8 +342,8 @@ def test_list_outdated_reports_corrupt_package(
     )
 
 
+@pytest.mark.usefixtures("missing_metadata_environment")
 def test_list_outdated_json_reports_missing_metadata(
-    missing_metadata_environment: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert run_pipx_cli(["list", "--outdated", "--json"])
@@ -357,8 +358,8 @@ def test_list_outdated_json_reports_missing_metadata(
     )
 
 
+@pytest.mark.usefixtures("missing_metadata_environment")
 def test_list_outdated_reports_missing_metadata(
-    missing_metadata_environment: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert run_pipx_cli(["list", "--outdated"])
@@ -374,8 +375,8 @@ def test_list_outdated_reports_missing_metadata(
         pytest.param("--short", id="short"),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_list_outdated_rejects_other_filters(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
     option: str,
 ) -> None:
@@ -425,7 +426,7 @@ def corrupt_environment(outdated_environment: MagicMock) -> MagicMock:
 @pytest.fixture
 def outdated_environment(
     request: pytest.FixtureRequest,
-    pipx_temp_env: None,
+    pipx_temp_env: None,  # noqa: ARG001  # required so the temp env is active while the environment is built
     capsys: pytest.CaptureFixture[str],
     mocker: MockerFixture,
 ) -> MagicMock:
@@ -437,7 +438,7 @@ def outdated_environment(
 
 @pytest.fixture
 def non_index_environment(
-    pipx_temp_env: None,
+    pipx_temp_env: None,  # noqa: ARG001  # required so the temp env is active while the environment is built
     capsys: pytest.CaptureFixture[str],
     mocker: MockerFixture,
 ) -> MagicMock:
@@ -450,7 +451,10 @@ def non_index_environment(
 
 
 @pytest.fixture
-def missing_metadata_environment(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+def missing_metadata_environment(
+    pipx_temp_env: None,  # noqa: ARG001  # required so the temp env is active while the environment is built
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay")
     capsys.readouterr()

@@ -1,14 +1,18 @@
+from __future__ import annotations
+
 import os
 import stat
 from pathlib import Path
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 import pytest
-from pytest_mock import MockerFixture
 
 from helpers import run_pipx_cli
 from pipx.commands import ensure_path as ensure_path_module
 from pipx.constants import EXIT_CODE_OK, WINDOWS
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 _SKIP_GLOBAL_ON_WINDOWS: Final = pytest.mark.skipif(WINDOWS, reason="System-wide ensurepath is unavailable on Windows")
 
@@ -26,17 +30,17 @@ class FakeUserpath:
         self.in_path = False
         self.restart = False
 
-    def need_shell_restart(self, location: str) -> bool:
+    def need_shell_restart(self, _location: str) -> bool:
         return self.restart
 
-    def in_current_path(self, location: str) -> bool:
+    def in_current_path(self, _location: str) -> bool:
         return self.in_path
 
-    def append(self, location: str, app: str, all_shells: bool = False) -> bool:
+    def append(self, location: str, _app: str, all_shells: bool = False) -> bool:  # noqa: ARG002  # all_shells is passed by keyword at the call site
         self.append_calls.append(location)
         return True
 
-    def prepend(self, location: str, app: str, all_shells: bool = False) -> bool:
+    def prepend(self, location: str, _app: str, all_shells: bool = False) -> bool:  # noqa: ARG002  # all_shells is passed by keyword at the call site
         self.prepend_calls.append(location)
         return True
 
@@ -171,9 +175,8 @@ def test_ensure_pipx_paths_global_reports_existing_configuration(
 
 
 @_SKIP_GLOBAL_ON_WINDOWS
-def test_ensurepath_cli_global_writes_system_configuration(
-    mocker: MockerFixture, tmp_path: Path, pipx_temp_env: None
-) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_ensurepath_cli_global_writes_system_configuration(mocker: MockerFixture, tmp_path: Path) -> None:
     config_file = tmp_path / "pipx"
     mocker.patch.object(ensure_path_module, "_GLOBAL_PATH_FILE", config_file)
 

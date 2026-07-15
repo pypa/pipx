@@ -1,11 +1,17 @@
-from pathlib import Path
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from packaging.utils import canonicalize_name
 
 from pipx.commands.common import package_name_from_spec
-from pipx.constants import ExitCode
 from pipx.util import PipxError
 from pipx.venv import Venv
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pipx.constants import ExitCode
 
 
 def _iter_install_specs(pip_args: list[str]) -> list[tuple[str, bool]]:
@@ -76,7 +82,7 @@ def _iter_install_specs(pip_args: list[str]) -> list[tuple[str, bool]]:
     return specs
 
 
-def _updated_main_package_pip_args(existing_pip_args: list[str], editable: bool) -> list[str]:
+def _updated_main_package_pip_args(existing_pip_args: list[str], *, editable: bool) -> list[str]:
     pip_args = [arg for arg in existing_pip_args if arg not in {"-e", "--editable"}]
     if editable:
         pip_args.append("--editable")
@@ -102,7 +108,7 @@ def _sync_main_package_metadata_after_runpip_install(venv: Venv, pip_args: list[
         venv.update_package_metadata(
             package_name=main_package.package,
             package_or_url=package_spec,
-            pip_args=_updated_main_package_pip_args(main_package.pip_args, editable),
+            pip_args=_updated_main_package_pip_args(main_package.pip_args, editable=editable),
             include_dependencies=main_package.include_dependencies,
             include_resources_from=main_package.include_resources_from,
             include_apps=main_package.include_apps,
@@ -113,11 +119,12 @@ def _sync_main_package_metadata_after_runpip_install(venv: Venv, pip_args: list[
         return
 
 
-def run_pip(package: str, venv_dir: Path, pip_args: list[str], verbose: bool) -> ExitCode:
+def run_pip(package: str, venv_dir: Path, pip_args: list[str], *, verbose: bool) -> ExitCode:
     """Returns pipx exit code."""
     venv = Venv(venv_dir, verbose=verbose)
     if not venv.python_path.exists():
-        raise PipxError(f"venv for {package!r} was not found. Was {package!r} installed with pipx?")
+        msg = f"venv for {package!r} was not found. Was {package!r} installed with pipx?"
+        raise PipxError(msg)
     venv.verbose = True
     exit_code = venv.run_pip_get_exit_code(pip_args)
     if exit_code == 0:

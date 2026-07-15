@@ -1,31 +1,46 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, TypedDict
+
+import pytest
 
 from helpers import run_pipx_cli
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-    import pytest
     from pytest_mock import MockerFixture
 
-_ENVELOPE_KEYS: Final[frozenset[str]] = frozenset(
-    {"pipx_result_version", "command", "status", "exit_code", "data", "errors"}
-)
-_ERROR_KEYS: Final[frozenset[str]] = frozenset({"code", "message", "environment", "package"})
+
+class _Error(TypedDict):
+    code: str
+    message: str
+    environment: str | None
+    package: str | None
 
 
-def _envelope(captured: str) -> Mapping[str, object]:
-    document = json.loads(captured)
+class _Envelope(TypedDict):
+    pipx_result_version: str
+    command: list[str]
+    status: str
+    exit_code: int
+    data: dict[str, object]
+    errors: list[_Error]
+
+
+_ENVELOPE_KEYS: Final[frozenset[str]] = frozenset(_Envelope.__annotations__)
+_ERROR_KEYS: Final[frozenset[str]] = frozenset(_Error.__annotations__)
+
+
+def _envelope(captured: str) -> _Envelope:
+    document: _Envelope = json.loads(captured)
     assert set(document) == _ENVELOPE_KEYS
     assert document["pipx_result_version"] == "1"
     assert isinstance(document["command"], list)
     return document
 
 
-def test_contract_success_envelope(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_contract_success_envelope(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "--output", "json", "pycowsay"])
 
     document = _envelope(capsys.readouterr().out)
@@ -37,20 +52,20 @@ def test_contract_success_envelope(pipx_temp_env: None, capsys: pytest.CaptureFi
     )
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_contract_error_envelope_names_the_failure(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert run_pipx_cli(["install", "--output", "json", "--app", "missing", "pycowsay"])
 
     document = _envelope(capsys.readouterr().out)
     assert (document["status"], document["exit_code"]) == ("error", 1)
-    assert set(document["errors"][0]) == _ERROR_KEYS  # type: ignore[index]
-    assert document["errors"][0]["code"] == "package_install_failed"  # type: ignore[index]
+    assert set(document["errors"][0]) == _ERROR_KEYS
+    assert document["errors"][0]["code"] == "package_install_failed"
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_contract_dispatch_error_uses_the_envelope(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
     mocker: MockerFixture,
 ) -> None:
@@ -61,4 +76,4 @@ def test_contract_dispatch_error_uses_the_envelope(
 
     document = _envelope(capsys.readouterr().out)
     assert (document["status"], document["exit_code"], document["command"]) == ("error", 1, ["reset"])
-    assert document["errors"][0]["code"] == "pipx_error"  # type: ignore[index]
+    assert document["errors"][0]["code"] == "pipx_error"

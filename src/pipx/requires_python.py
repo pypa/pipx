@@ -60,22 +60,25 @@ def unsatisfied_by_interpreter(requires_python: str | None, interpreter: str) ->
 def interpreter_for(constraint: SpecifierSet, fetch_python: FetchPythonOptions) -> str:
     overlapping: Final[list[str]] = [minor for minor in _candidate_versions() if _minor_overlaps(constraint, minor)]
     if not overlapping:
-        raise PipxError(f"No Python that pipx supports satisfies {str(constraint)!r}.")
+        msg = f"No Python that pipx supports satisfies {str(constraint)!r}."
+        raise PipxError(msg)
 
     for minor in overlapping:
         if (interpreter := _matching_interpreter(minor, constraint, FetchPythonOptions.NEVER)) is not None:
             return interpreter
 
     if fetch_python is FetchPythonOptions.NEVER:
-        raise PipxError(
+        msg = (
             f"This package needs a Python matching {str(constraint)!r} and none of the interpreters on this "
             f"system does. Install one of {', '.join(overlapping)}, name it with --python, or pass "
             f"--fetch-python=missing to let pipx download it."
         )
+        raise PipxError(msg)
     for minor in overlapping:
         if (interpreter := _matching_interpreter(minor, constraint, FetchPythonOptions.MISSING)) is not None:
             return interpreter
-    raise PipxError(f"pipx could not obtain a Python matching {str(constraint)!r}.")
+    msg = f"pipx could not obtain a Python matching {str(constraint)!r}."
+    raise PipxError(msg)
 
 
 def _matching_interpreter(minor: str, constraint: SpecifierSet, fetch_python: FetchPythonOptions) -> str | None:

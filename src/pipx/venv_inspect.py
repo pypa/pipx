@@ -1,32 +1,36 @@
+from __future__ import annotations
+
 import ast
 import configparser
 import json
 import logging
 import shutil
+import sys
 import textwrap
-from collections.abc import Iterable, Iterator, Mapping
+from importlib import metadata
 from pathlib import Path, PurePosixPath
-from typing import Final, NamedTuple
+from typing import TYPE_CHECKING, Final, NamedTuple
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 
-try:
-    from importlib import metadata
-except ImportError:
-    import importlib_metadata as metadata  # type: ignore[import-not-found,no-redef]
-
-try:
+if sys.version_info >= (3, 11):
     import tomllib
-except ImportError:
-    import tomli as tomllib  # type: ignore[import-not-found,no-redef]
+else:
+    import tomli as tomllib
 
 from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, WINDOWS
 from pipx.util import PipxError, run_subprocess
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator, Mapping
+
 logger = logging.getLogger(__name__)
+
+_DATA_FILE_PAIR_LEN: Final[int] = 2
+_MIN_MAN_TARGET_PARTS: Final[int] = 2
 
 
 class VenvInspectInformation(NamedTuple):
@@ -55,11 +59,7 @@ class VenvMetadata(NamedTuple):
 
 def get_distributions_by_name(paths: list[str]) -> dict[str, metadata.Distribution]:
     metadata.MetadataPathFinder().invalidate_caches()
-    return {
-        canonicalize_name(name): dist
-        for dist in metadata.distributions(path=paths)
-        if (name := dist.metadata.get("Name")) is not None
-    }
+    return {canonicalize_name(name): dist for dist in metadata.distributions(path=paths) if (name := dist.name)}
 
 
 def get_package_dependencies(dist: metadata.Distribution, extras: set[str], env: dict[str, str]) -> list[Requirement]:
@@ -109,7 +109,7 @@ def list_not_required_packages(venv_python: Path) -> set[str]:
     return installed - required
 
 
-def get_apps_from_entry_points(dist: metadata.Distribution, bin_path: Path):
+def get_apps_from_entry_points(dist: metadata.Distribution, bin_path: Path) -> set[str]:
     app_names = set()
     sections = {"console_scripts", "gui_scripts"}
     # "entry_points" entry in setup.py are found here
@@ -124,7 +124,9 @@ def get_apps_from_entry_points(dist: metadata.Distribution, bin_path: Path):
     return app_names
 
 
-def get_resources_from_dist_files(dist: metadata.Distribution, bin_path: Path, man_path: Path):
+def get_resources_from_dist_files(
+    dist: metadata.Distribution, bin_path: Path, man_path: Path
+) -> tuple[set[str], set[str], set[str]]:
     app_names = set()
     man_names = set()
     completion_names = set()
@@ -149,7 +151,9 @@ def get_resources_from_dist_files(dist: metadata.Distribution, bin_path: Path, m
     return app_names, man_names, completion_names
 
 
-def get_resources_from_inst_files(dist: metadata.Distribution, bin_path: Path, man_path: Path):
+def get_resources_from_inst_files(
+    dist: metadata.Distribution, bin_path: Path, man_path: Path
+) -> tuple[set[str], set[str], set[str]]:
     app_names = set()
     man_names = set()
     completion_names = set()
@@ -170,18 +174,24 @@ def get_resources_from_inst_files(dist: metadata.Distribution, bin_path: Path, m
     return app_names, man_names, completion_names
 
 
+def _same_file(left: Path, right: Path) -> bool:
+    try:
+        return left.samefile(right)
+    except OSError:
+        return False
+
+
 def _get_completion_name(file_path: Path, share_path: Path) -> str | None:
     # a wheel ships its completion scripts in the data scheme, which lands them beside the man pages under share/
     for section in COMPLETION_SECTIONS:
-        try:
-            if file_path.parent.samefile(share_path / section):
-                return str(section / file_path.name)
-        except OSError:
-            continue
+        if _same_file(file_path.parent, share_path / section):
+            return str(section / file_path.name)
     return None
 
 
-def get_resources(dist: metadata.Distribution, bin_path: Path, man_path: Path) -> tuple[list[str], list[str], list[str]]:
+def get_resources(
+    dist: metadata.Distribution, bin_path: Path, man_path: Path
+) -> tuple[list[str], list[str], list[str]]:
     app_names_ep = get_apps_from_entry_points(dist, bin_path)
     app_names_df, man_names_df, completion_names_df = get_resources_from_dist_files(dist, bin_path, man_path)
     app_names_if, man_names_if, completion_names_if = get_resources_from_inst_files(dist, bin_path, man_path)
@@ -311,7 +321,7 @@ def _iter_normalized_data_files(data_files: object) -> Iterator[tuple[str, list[
         return
 
     for item in items:
-        if not isinstance(item, (list, tuple)) or len(item) != 2:
+        if not isinstance(item, (list, tuple)) or len(item) != _DATA_FILE_PAIR_LEN:
             continue
         target_dir, source_paths = item
         if not isinstance(target_dir, str):
@@ -319,20 +329,21 @@ def _iter_normalized_data_files(data_files: object) -> Iterator[tuple[str, list[
         if isinstance(source_paths, str):
             yield target_dir, [line.strip() for line in source_paths.splitlines() if line.strip()]
         elif isinstance(source_paths, (list, tuple)) and all(isinstance(path, str) for path in source_paths):
-            yield target_dir, list(source_paths)
+            yield target_dir, [path for path in source_paths if isinstance(path, str)]
 
 
 def _get_man_section_from_data_files_target(target_dir: str) -> str | None:
     parts = PurePosixPath(target_dir.replace("\\", "/")).parts
-    if len(parts) < 2 or parts[-2] != "man" or parts[-1] not in MAN_SECTIONS:
+    if len(parts) < _MIN_MAN_TARGET_PARTS or parts[-2] != "man" or parts[-1] not in MAN_SECTIONS:
         return None
     return parts[-1]
 
 
-def _dfs_package_resources(
+def _dfs_package_resources(  # noqa: PLR0913  # threads three resource accumulators plus the visited set through recursion
     dist: metadata.Distribution,
     package_req: Requirement,
     venv_inspect_info: VenvInspectInformation,
+    *,
     app_paths_of_dependencies: dict[str, list[Path]],
     man_paths_of_dependencies: dict[str, list[Path]],
     completion_paths_of_dependencies: dict[str, list[Path]],
@@ -352,7 +363,8 @@ def _dfs_package_resources(
 
         dep_dist = venv_inspect_info.distributions.get(dep_name)
         if dep_dist is None:
-            raise PipxError(f"Pipx Internal Error: cannot find package {dep_req.name!r} metadata.")
+            msg = f"Pipx Internal Error: cannot find package {dep_req.name!r} metadata."
+            raise PipxError(msg)
         app_names, man_names, completion_names = get_resources(
             dep_dist, venv_inspect_info.bin_path, venv_inspect_info.man_path
         )
@@ -368,10 +380,10 @@ def _dfs_package_resources(
             dep_dist,
             dep_req,
             venv_inspect_info,
-            app_paths_of_dependencies,
-            man_paths_of_dependencies,
-            completion_paths_of_dependencies,
-            dep_visited,
+            app_paths_of_dependencies=app_paths_of_dependencies,
+            man_paths_of_dependencies=man_paths_of_dependencies,
+            completion_paths_of_dependencies=completion_paths_of_dependencies,
+            dep_visited=dep_visited,
         )
     return app_paths_of_dependencies, man_paths_of_dependencies, completion_paths_of_dependencies
 
@@ -452,7 +464,7 @@ def fetch_info_in_venv(venv_python_path: Path) -> tuple[list[str], dict[str, str
     )
 
 
-def inspect_venv(
+def inspect_venv(  # noqa: PLR0914  # aggregates apps, man pages, and completions for root and deps into one VenvMetadata
     root_package_name: str,
     root_package_extras: set[str],
     venv_bin_path: Path,
@@ -482,14 +494,15 @@ def inspect_venv(
 
     root_dist = venv_inspect_info.distributions.get(canonicalize_name(root_req.name))
     if root_dist is None:
-        raise PipxError(f"Pipx Internal Error: cannot find package {root_req.name!r} metadata.")
+        msg = f"Pipx Internal Error: cannot find package {root_req.name!r} metadata."
+        raise PipxError(msg)
     app_paths_of_dependencies, man_paths_of_dependencies, completion_paths_of_dependencies = _dfs_package_resources(
         root_dist,
         root_req,
         venv_inspect_info,
-        app_paths_of_dependencies,
-        man_paths_of_dependencies,
-        completion_paths_of_dependencies,
+        app_paths_of_dependencies=app_paths_of_dependencies,
+        man_paths_of_dependencies=man_paths_of_dependencies,
+        completion_paths_of_dependencies=completion_paths_of_dependencies,
     )
 
     venv_share_path: Final[Path] = venv_man_path.parent

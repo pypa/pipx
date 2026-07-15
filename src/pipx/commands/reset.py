@@ -27,8 +27,8 @@ def reset(
     venv_container: VenvContainer,
     local_bin_dir: Path,
     local_man_dir: Path,
-    verbose: bool,
     *,
+    verbose: bool,
     dry_run: bool = False,
 ) -> OperationResult[ResetData]:
     targets: Final[tuple[Path, ...]] = _reset_targets()
@@ -50,7 +50,7 @@ def reset(
 
     # uninstalling is what unlinks the apps and the man pages, which live outside the pipx home
     uninstalled: Final[OperationResult[UninstallData]] = uninstall_all(
-        venv_container, local_bin_dir, local_man_dir, verbose
+        venv_container, local_bin_dir, local_man_dir, verbose=verbose
     )
     removed: Final[tuple[str, ...]] = tuple(str(target) for target in targets if _remove(target))
     return OperationResult(
@@ -67,7 +67,9 @@ def reset(
     )
 
 
-def _exposed_resource_paths(venv_container: VenvContainer, local_bin_dir: Path, local_man_dir: Path) -> tuple[Path, ...]:
+def _exposed_resource_paths(
+    venv_container: VenvContainer, local_bin_dir: Path, local_man_dir: Path
+) -> tuple[Path, ...]:
     exposed: set[Path] = set()
     for venv_dir in venv_container.iter_venv_dirs():
         venv = Venv(venv_dir)

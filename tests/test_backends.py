@@ -22,7 +22,7 @@ from pipx.backends.pip import PipBackend
 from pipx.backends.uv import UvBackend, resolve_uv_binary
 from pipx.commands.run_uv import translate_pip_args_for_uv
 from pipx.constants import PIPX_SHARED_PTH
-from pipx.main import _validate_backend_available
+from pipx.main import _validate_backend_available  # noqa: PLC2701  # test exercises private helper, no public API
 from pipx.util import PipxError
 from pipx.venv import Venv, reset_backend_override_warnings
 from pipx.venv_inspect import list_not_required_packages
@@ -157,7 +157,7 @@ def test_resolve_backend_name_auto_disabled(mocker: MockerFixture) -> None:
 def test_find_uv_binary_prefers_bundled(mocker: MockerFixture, tmp_path: Path) -> None:
     bundled = tmp_path / "bundled-uv"
     bundled.write_text("")
-    mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", lambda: str(bundled))
+    mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", return_value=str(bundled))
     mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
     # Stub bundled isn't a real uv, so bypass the launch probe.
     mocker.patch("pipx.backends.uv._binary_runs", return_value=True)
@@ -169,7 +169,7 @@ def test_find_uv_binary_prefers_bundled(mocker: MockerFixture, tmp_path: Path) -
 def test_find_uv_binary_skips_broken_bundled(mocker: MockerFixture, tmp_path: Path) -> None:
     bundled = tmp_path / "bundled-uv"
     bundled.write_text("")
-    mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", lambda: str(bundled))
+    mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", return_value=str(bundled))
     mocker.patch("pipx.backends.uv._binary_runs", side_effect=lambda candidate: candidate != bundled)
     mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
     binary, source = find_uv_binary()
@@ -298,7 +298,7 @@ def test_backend_verbose_install_streams_output(backend_name: str, tmp_path: Pat
         pytest.param(UV, False, ["--quiet"], False, id="uv-plain"),
     ],
 )
-def test_backend_install_draws_progress_without_verbose(
+def test_backend_install_draws_progress_without_verbose(  # noqa: PLR0917  # pytest injects fixtures by name
     backend_name: str,
     progress: bool,
     flags: list[str],
@@ -468,18 +468,18 @@ def test_uv_list_installed_not_required_uses_distribution_metadata(
     _write_dist_info(site_packages, "top-package", ["child-package>=1"])
     _write_dist_info(site_packages, "child-package")
 
-    def fail_run_subprocess(*args: object, **kwargs: object) -> None:
+    def fail_run_subprocess(*_args: object, **_kwargs: object) -> None:
         pytest.fail("uv pip list should not be invoked with --not-required")
 
     monkeypatch.setattr("pipx.backends.uv.run_subprocess", fail_run_subprocess)
     monkeypatch.setattr(
         "pipx.venv_inspect.fetch_info_in_venv",
-        lambda venv_python: ([str(site_packages)], {}, "Python 3.13.0"),
+        lambda _venv_python: ([str(site_packages)], {}, "Python 3.13.0"),
         raising=False,
     )
 
     backend = UvBackend.__new__(UvBackend)
-    backend._binary = tmp_path / "uv"
+    backend._binary = tmp_path / "uv"  # noqa: SLF001  # constructing backend bypasses __init__ to isolate list_installed
 
     assert backend.list_installed(
         venv_root=tmp_path,
@@ -489,7 +489,9 @@ def test_uv_list_installed_not_required_uses_distribution_metadata(
 
 
 @pytest.mark.parametrize("backend_name", [pytest.param(PIP, id="pip"), pytest.param(UV, id="uv")])
-def test_backend_list_outdated_forwards_index_settings(backend_name: str, tmp_path: Path, mocker: MockerFixture) -> None:
+def test_backend_list_outdated_forwards_index_settings(
+    backend_name: str, tmp_path: Path, mocker: MockerFixture
+) -> None:
     backend: PipBackend | UvBackend
     if backend_name == PIP:
         backend = PipBackend()
@@ -558,7 +560,7 @@ def test_backend_list_outdated_forwards_index_settings(backend_name: str, tmp_pa
     ],
 )
 def test_backend_cooldown_args(
-    backend_type: type[PipBackend] | type[UvBackend],
+    backend_type: type[PipBackend | UvBackend],
     expected: str,
 ) -> None:
     assert (
@@ -580,7 +582,7 @@ def test_list_not_required_packages_treats_extra_dependencies_as_required(
 
     monkeypatch.setattr(
         "pipx.venv_inspect.fetch_info_in_venv",
-        lambda venv_python: ([str(site_packages)], {}, "Python 3.13.0"),
+        lambda _venv_python: ([str(site_packages)], {}, "Python 3.13.0"),
         raising=False,
     )
 

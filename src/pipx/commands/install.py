@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 _PYLOCK_NAME_RE: Final[re.Pattern[str]] = re.compile(r"pylock(?:\.[^.]+)?\.toml")
 
 
-def install(
+def install(  # noqa: PLR0913, PLR0917, PLR0912, PLR0914, PLR0915  # flat install API mirroring the CLI's install options
     venv_dir: Path | None,
     package_names: list[str] | None,
     package_specs: list[str],
@@ -64,8 +64,8 @@ def install(
     python: str | None,
     pip_args: list[str],
     venv_args: list[str],
-    verbose: bool,
     *,
+    verbose: bool,
     force: bool,
     reinstall: bool,
     include_dependencies: bool,
@@ -112,8 +112,8 @@ def install(
         package_specs,
         python,
         pip_args,
-        verbose,
         tuple(expected_apps),
+        verbose=verbose,
         backend=backend,
         env_backend=env_backend,
         cooldown_days=cooldown_days,
@@ -145,7 +145,7 @@ def install(
                 install_backend = backend or PIP
                 install_env_backend = None
 
-            try:
+            try:  # noqa: PLW0717  # one PipxError handler must cover the whole existing-venv resolution
                 venv = Venv(
                     venv_dir,
                     python=python,
@@ -168,7 +168,9 @@ def install(
                     venv.pipx_metadata.main_package.cooldown_days,
                     modifies_existing=exists and force,
                 )
-                required_exposure = venv.pipx_metadata.exposure_enabled if exposure_enabled is None else exposure_enabled
+                required_exposure = (
+                    venv.pipx_metadata.exposure_enabled if exposure_enabled is None else exposure_enabled
+                )
                 if exists:
                     existing = _handle_existing_install(
                         venv,
@@ -176,9 +178,9 @@ def install(
                         package_spec,
                         local_bin_dir,
                         local_man_dir,
-                        python,
-                        pip_args,
-                        verbose,
+                        python=python,
+                        pip_args=pip_args,
+                        verbose=verbose,
                         force=force,
                         reinstall=reinstall,
                         upgrade=upgrade,
@@ -201,7 +203,7 @@ def install(
             preserve_existing_venv = exists and (
                 preserve_existing or bool(required_apps or include_resources_from) or required_lock is not None
             )
-            try:
+            try:  # noqa: PLW0717  # one handler must roll back the whole build-and-expose sequence on failure
                 with preserve_venv(venv_dir, enabled=preserve_existing_venv):
                     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
                     if exists and (required_lock is not None or (replace_lock and recorded_lock is not None)):
@@ -278,7 +280,7 @@ def install(
     )
 
 
-def _prepare_install(
+def _prepare_install(  # noqa: PLR0913  # forwards the flat install option set to validation
     package_specs: list[str],
     python: str | None,
     lock_file: Path | None,
@@ -301,14 +303,14 @@ def _prepare_install(
     return lock_file, python or get_default_python()
 
 
-def _resolve_package_names(
+def _resolve_package_names(  # noqa: PLR0913  # forwards the flat resolver context for each spec
     package_names: list[str] | None,
     package_specs: list[str],
     python: str,
     pip_args: list[str],
-    verbose: bool,
     expected_apps: tuple[str, ...],
     *,
+    verbose: bool,
     backend: str | None,
     env_backend: str | None,
     cooldown_days: int | None,
@@ -321,7 +323,7 @@ def _resolve_package_names(
 
     resolved: Final[list[str]] = []
     for package_spec in package_specs:
-        try:
+        try:  # noqa: PLW0717  # one PipxError handler must cover the whole per-spec name resolution
             if (script_name := script_name_from_spec(package_spec, expected_apps)) is not None:
                 resolved.append(script_name)
                 continue
@@ -358,7 +360,7 @@ def _resolve_package_names(
     return resolved, None, python
 
 
-def _validate_install_options(
+def _validate_install_options(  # noqa: PLR0913  # validates the flat set of install options together
     package_specs: Sequence[str],
     expected_apps: Sequence[str],
     preinstall_packages: Sequence[str] | None,
@@ -369,24 +371,32 @@ def _validate_install_options(
     upgrade_strategy: str | None,
 ) -> Path | None:
     if upgrade_strategy is not None and not upgrade:
-        raise PipxError("--upgrade-strategy requires --upgrade")
+        msg = "--upgrade-strategy requires --upgrade"
+        raise PipxError(msg)
     if expected_apps and len(package_specs) != 1:
-        raise PipxError("--app accepts one package spec")
+        msg = "--app accepts one package spec"
+        raise PipxError(msg)
     if lock_file is None:
         return None
     if len(package_specs) != 1:
-        raise PipxError("--lock accepts one package spec")
+        msg = "--lock accepts one package spec"
+        raise PipxError(msg)
     if preinstall_packages:
-        raise PipxError("--lock cannot be combined with --preinstall")
+        msg = "--lock cannot be combined with --preinstall"
+        raise PipxError(msg)
     if upgrade:
-        raise PipxError("--lock cannot be combined with --upgrade; use --force to apply a new lock")
+        msg = "--lock cannot be combined with --upgrade; use --force to apply a new lock"
+        raise PipxError(msg)
     if cooldown_days is not None:
-        raise PipxError("--lock cannot be combined with --cooldown")
+        msg = "--lock cannot be combined with --cooldown"
+        raise PipxError(msg)
     lock_file = lock_file.expanduser().resolve()
     if not _PYLOCK_NAME_RE.fullmatch(lock_file.name):
-        raise PipxError("Lock files must be named pylock.toml or pylock.<name>.toml")
+        msg = "Lock files must be named pylock.toml or pylock.<name>.toml"
+        raise PipxError(msg)
     if not lock_file.is_file():
-        raise PipxError(f"Lock file does not exist: {lock_file}")
+        msg = f"Lock file does not exist: {lock_file}"
+        raise PipxError(msg)
     return lock_file
 
 
@@ -432,22 +442,23 @@ def _resolve_cooldown(
     modifies_existing: bool,
 ) -> int | None:
     if modifies_existing and lock_file is not None and requested is not None:
-        raise PipxError("--cooldown cannot modify a locked environment")
+        msg = "--cooldown cannot modify a locked environment"
+        raise PipxError(msg)
     if lock_file is not None:
         return None
     return requested if requested is not None else stored
 
 
-def _handle_existing_install(
+def _handle_existing_install(  # noqa: PLR0913  # forwards the flat install context for an existing venv
     venv: Venv,
     package_name: str,
     package_spec: str,
     local_bin_dir: Path,
     local_man_dir: Path,
+    *,
     python: str,
     pip_args: list[str],
     verbose: bool,
-    *,
     force: bool,
     reinstall: bool,
     upgrade: bool,
@@ -484,11 +495,11 @@ def _handle_existing_install(
             package_spec,
             local_bin_dir,
             local_man_dir,
-            pip_args,
-            verbose,
-            upgrade_strategy,
-            expected_apps,
-            cooldown_days,
+            pip_args=pip_args,
+            verbose=verbose,
+            upgrade_strategy=upgrade_strategy,
+            expected_apps=expected_apps,
+            cooldown_days=cooldown_days,
         )
         messages.extend(upgrade_messages)
         return _ExistingInstall(
@@ -520,12 +531,13 @@ def _handle_existing_install(
     )
 
 
-def _upgrade_existing_venv(
+def _upgrade_existing_venv(  # noqa: PLR0913  # forwards the flat upgrade context for one existing venv
     venv: Venv,
     package_name: str,
     package_spec: str,
     local_bin_dir: Path,
     local_man_dir: Path,
+    *,
     pip_args: list[str],
     verbose: bool,
     upgrade_strategy: str | None,
@@ -560,6 +572,7 @@ def _upgrade_existing_venv(
         main_pip_args: Final[list[str]] = pip_args or package_metadata.pip_args
         venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=verbose)
         venv.upgrade_packaging_libraries(main_pip_args)
+        upgrade_only = [f"--upgrade-strategy={upgrade_strategy}"] if upgrade_strategy is not None else None
         venv.upgrade_package(
             package_name,
             package_spec,
@@ -569,7 +582,7 @@ def _upgrade_existing_venv(
             include_apps=package_metadata.include_apps,
             is_main_package=True,
             suffix=package_metadata.suffix,
-            upgrade_only_pip_args=([f"--upgrade-strategy={upgrade_strategy}"] if upgrade_strategy is not None else None),
+            upgrade_only_pip_args=upgrade_only,
             expected_apps=expected_apps,
             cooldown_days=cooldown_days,
         )
@@ -609,15 +622,15 @@ def _installed_package(venv: Venv, package_name: str) -> _InstalledPackage:
     )
 
 
-def install_all(
+def install_all(  # noqa: PLR0913, PLR0917  # mirrors the CLI's flat install-all option set
     spec_metadata_file: Path,
     local_bin_dir: Path,
     local_man_dir: Path,
     python: str | None,
     pip_args: list[str],
     venv_args: list[str],
-    verbose: bool,
     *,
+    verbose: bool,
     force: bool,
     backend: str | None = None,
     env_backend: str | None = None,
@@ -647,7 +660,7 @@ def install_all(
                     python or get_python_interpreter(venv_metadata.source_interpreter),
                     pip_args,
                     venv_args,
-                    verbose,
+                    verbose=verbose,
                     force=force,
                     reinstall=False,
                     include_dependencies=main_package.include_dependencies,
@@ -679,14 +692,17 @@ def install_all(
                         cooldown_days=(cooldown_days if cooldown_days is not None else inject_package.cooldown_days),
                     )
         except PipxError as error:
-            print(error, file=sys.stderr)
+            print(error, file=sys.stderr)  # noqa: T201  # user-facing CLI output
             failed.append(venv_dir.name)
         else:
             installed.append(venv_dir.name)
     if not installed:
-        print(f"No packages installed after running 'pipx install-all {spec_metadata_file}' {sleep}")
+        print(  # noqa: T201  # user-facing CLI output
+            f"No packages installed after running 'pipx install-all {spec_metadata_file}' {sleep}"
+        )
     if failed:
-        raise PipxError(f"The following package(s) failed to install: {', '.join(failed)}")
+        msg = f"The following package(s) failed to install: {', '.join(failed)}"
+        raise PipxError(msg)
     return EXIT_CODE_OK
 
 
@@ -694,13 +710,16 @@ def extract_venv_metadata(spec_metadata_file: Path) -> Iterator[PipxMetadata]:
     try:
         spec: Final = load_spec_file(spec_metadata_file)
     except json.decoder.JSONDecodeError as exc:
-        raise PipxError("The spec metadata file is an invalid JSON file.") from exc
+        msg = "The spec metadata file is an invalid JSON file."
+        raise PipxError(msg) from exc
 
     venvs_metadata_dict: Final = spec.get("venvs")
     if not venvs_metadata_dict:
-        raise PipxError("No packages found in the spec metadata file.")
+        msg = "No packages found in the spec metadata file."
+        raise PipxError(msg)
     if not isinstance(venvs_metadata_dict, dict):
-        raise PipxError("The spec metadata file is invalid.")
+        msg = "The spec metadata file is invalid."
+        raise PipxError(msg)
 
     for package_path_name, entry in venvs_metadata_dict.items():
         venv_dir = paths.ctx.venvs.joinpath(package_path_name)
@@ -712,7 +731,8 @@ def extract_venv_metadata(spec_metadata_file: Path) -> Iterator[PipxMetadata]:
 def generate_package_spec(package_info: PackageInfo) -> str:
     """Generate more precise package spec from package info."""
     if not package_info.package_or_url:
-        raise PipxError(f"A package spec is not available for {package_info.package}")
+        msg = f"A package spec is not available for {package_info.package}"
+        raise PipxError(msg)
 
     if package_info.package == package_info.package_or_url:
         return f"{package_info.package}=={package_info.package_version}"
@@ -726,7 +746,7 @@ def get_python_interpreter(
     if source_interpreter is not None and source_interpreter.is_file():
         return str(source_interpreter)
 
-    print(
+    print(  # noqa: T201  # user-facing CLI output
         pipx_wrap(
             f"""
             The exported python interpreter '{source_interpreter}' is ignored
@@ -795,7 +815,7 @@ class _EnvironmentBuild:
     cooldown_days: int | None
 
     def run(self, venv: Venv) -> None:
-        venv.create_venv(self.venv_args, self.pip_args, self.override_shared)
+        venv.create_venv(self.venv_args, self.pip_args, override_shared=self.override_shared)
         venv.pipx_metadata.exposure_enabled = self.exposure_enabled
         venv.pipx_metadata.environment = venv.root.name
         for dependency in self.preinstall_packages or []:
@@ -816,7 +836,7 @@ class _EnvironmentBuild:
         )
 
 
-def _install_on_supported_python(
+def _install_on_supported_python(  # noqa: PLR0913  # forwards the flat rebuild context around the interpreter retry
     venv: Venv,
     build: _EnvironmentBuild,
     *,
@@ -859,16 +879,17 @@ def _supported_python(
     messages: list[OutputMessage],
 ) -> str:
     if python_flag_passed:
-        raise PipxError(
+        msg = (
             f"The Python you named does not satisfy {str(constraint)!r}, which this package requires. "
             f"Name one that does, or leave --python out and let pipx choose."
         )
+        raise PipxError(msg)
     interpreter: Final[str] = interpreter_for(constraint, fetch_python)
     messages.append(OutputMessage(f"This package needs Python {constraint}, so pipx used {interpreter}."))
     return interpreter
 
 
-def _rebuild_on_supported_python(
+def _rebuild_on_supported_python(  # noqa: PLR0913  # forwards the flat rebuild context to a fresh venv
     *,
     venv_dir: Path,
     constraint: SpecifierSet,

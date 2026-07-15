@@ -5,6 +5,7 @@ import os
 import re
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
@@ -37,7 +38,6 @@ from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable, Sequence
-    from pathlib import Path
 
     from pipx.pipx_metadata_file import PackageInfo
 
@@ -46,7 +46,7 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _COMMENT_RE: Final[re.Pattern[str]] = re.compile(r"(^|\s+)#.*$")
 
 
-def inject_dep(
+def inject_dep(  # noqa: PLR0913, PLR0914  # inject resolves the full package/venv context inline; a struct would just relocate it
     venv_dir: Path,
     package_name: str | None,
     package_spec: str,
@@ -66,29 +66,28 @@ def inject_dep(
     _LOGGER.debug("Injecting package %s", package_spec)
 
     if not venv_dir.exists() or next(venv_dir.iterdir(), None) is None:
-        raise PipxError(
-            f"""
+        msg = f"""
             Can't inject {package_spec!r} into nonexistent Virtual Environment
             {venv_dir.name!r}. Be sure to install the package first with 'pipx
             install {venv_dir.name}' before injecting into it.
             """
-        )
+        raise PipxError(msg)
 
     venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
     if not venv.package_metadata:
-        raise PipxError(
-            f"""
+        msg = f"""
             Can't inject {package_spec!r} into Virtual Environment
             {venv.name!r}. {venv.name!r} has missing internal pipx metadata. It
             was likely installed using a pipx version before 0.15.0.0. Please
             uninstall and install {venv.name!r}, or reinstall-all to fix.
             """
-        )
+        raise PipxError(msg)
     if (lock_file := venv.pipx_metadata.main_package.lock_file) is not None:
-        raise PipxError(
+        msg = (
             f"Cannot inject into locked environment {venv.name}. "
             f"Update {lock_file} and run `pipx reinstall {venv.name}`."
         )
+        raise PipxError(msg)
     if cooldown_days is None:
         cooldown_days = venv.pipx_metadata.main_package.cooldown_days
     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
@@ -207,7 +206,7 @@ def inject_dep(
     )
 
 
-def inject(
+def inject(  # noqa: PLR0913  # inject mirrors inject_dep's flat CLI-facing option set
     venv_dir: Path,
     package_specs: Iterable[str],
     requirement_files: Iterable[str],
@@ -319,7 +318,7 @@ def parse_requirements(filename: str | os.PathLike) -> Generator[str, None, None
     Return all of the non-empty lines with comments removed.
     """
     # Based on https://github.com/pypa/pip/blob/main/src/pip/_internal/req/req_file.py
-    with open(filename) as f:
+    with Path(filename).open(encoding="utf-8") as f:
         for line in f:
             # Strip comments and filter empty lines
             if pkgspec := _COMMENT_RE.sub("", line).strip():

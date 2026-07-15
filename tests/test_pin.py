@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -8,8 +10,12 @@ from package_info import PKG
 from pipx import paths
 from pipx.pipx_metadata_file import PipxMetadata
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
-def test_pin(pipx_temp_env: None, caplog: pytest.LogCaptureFixture) -> None:
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin(caplog: pytest.LogCaptureFixture) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["pin", "pycowsay"])
     assert not run_pipx_cli(["upgrade", "pycowsay"])
@@ -17,7 +23,8 @@ def test_pin(pipx_temp_env: None, caplog: pytest.LogCaptureFixture) -> None:
     assert "Not upgrading pinned package pycowsay" in caplog.text
 
 
-def test_pin_survives_main_package_extra_injection(pipx_temp_env: None, local_extras_project: Path) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_survives_main_package_extra_injection(local_extras_project: Path) -> None:
     assert not run_pipx_cli(["install", str(local_extras_project)])
     assert not run_pipx_cli(["pin", "repeatme"])
 
@@ -26,7 +33,8 @@ def test_pin_survives_main_package_extra_injection(pipx_temp_env: None, local_ex
     assert PipxMetadata(paths.ctx.venvs / "repeatme").main_package.pinned
 
 
-def test_pin_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
 
@@ -58,7 +66,8 @@ def test_pin_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> No
     )
 
 
-def test_pin_json_reports_missing(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_json_reports_missing(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["pin", "missing", "--output", "json"])
 
     captured = capsys.readouterr()
@@ -82,7 +91,8 @@ def test_pin_json_reports_missing(pipx_temp_env: None, capsys: pytest.CaptureFix
     )
 
 
-def test_pin_quiet(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_quiet(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", "black"])
     capsys.readouterr()
@@ -93,8 +103,8 @@ def test_pin_quiet(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> N
     assert (captured.out, captured.err) == ("", "")
 
 
+@pytest.mark.usefixtures("pinned_injected_environment")
 def test_pin_json_reports_already_pinned_injected(
-    pinned_injected_environment: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["pin", "pycowsay", "--injected-only", "--output", "json"])
@@ -105,8 +115,8 @@ def test_pin_json_reports_already_pinned_injected(
     }
 
 
+@pytest.mark.usefixtures("pinned_injected_environment")
 def test_pin_json_pins_main_after_injected(
-    pinned_injected_environment: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["pin", "pycowsay", "--output", "json"])
@@ -127,14 +137,18 @@ def test_pin_json_pins_main_after_injected(
 
 
 @pytest.fixture
-def pinned_injected_environment(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+def pinned_injected_environment(
+    pipx_temp_env: None,  # noqa: ARG001  # required so the temp env is active while the environment is built
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", "black"])
     assert not run_pipx_cli(["pin", "pycowsay", "--injected-only"])
     capsys.readouterr()
 
 
-def test_pin_with_suffix(pipx_temp_env: None, caplog: pytest.LogCaptureFixture) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_with_suffix(caplog: pytest.LogCaptureFixture) -> None:
     assert not run_pipx_cli(["install", PKG["black"]["spec"], "--suffix", "@1"])
     assert not run_pipx_cli(["pin", "black@1"])
     assert not run_pipx_cli(["upgrade", "black@1"])
@@ -142,7 +156,8 @@ def test_pin_with_suffix(pipx_temp_env: None, caplog: pytest.LogCaptureFixture) 
     assert "Not upgrading pinned package black@1" in caplog.text
 
 
-def test_pin_warning(pipx_temp_env: None, caplog: pytest.LogCaptureFixture) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_warning(caplog: pytest.LogCaptureFixture) -> None:
     assert not run_pipx_cli(["install", PKG["nox"]["spec"]])
     assert not run_pipx_cli(["pin", "nox"])
     assert not run_pipx_cli(["pin", "nox"])
@@ -150,15 +165,16 @@ def test_pin_warning(pipx_temp_env: None, caplog: pytest.LogCaptureFixture) -> N
     assert "pipx already pins package nox 😴" in caplog.text
 
 
-def test_pin_not_installed_package(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_not_installed_package(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["pin", "abc"])
 
     captured = capsys.readouterr()
     assert "pipx does not manage package abc" in captured.err
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_pin_injected_packages_only(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -179,8 +195,8 @@ def test_pin_injected_packages_only(
     assert "Not upgrading pinned package pylint in venv pycowsay" in caplog.text
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_pin_injected_packages_only_when_main_package_pinned(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -207,8 +223,8 @@ def test_pin_injected_packages_only_when_main_package_pinned(
     assert "Not upgrading pinned package pylint in venv pycowsay" in caplog.text
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_pin_injected_packages_with_skip(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["install", "black"])

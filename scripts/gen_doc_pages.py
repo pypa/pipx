@@ -1,17 +1,19 @@
+from __future__ import annotations
+
 import os
 import sys
 from pathlib import Path
 from subprocess import check_output
 
 import mkdocs_gen_files
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 
 def get_help(cmd: str | None) -> str:
     base = ["pipx"]
     args = base + ([cmd] if cmd else []) + ["--help"]
     env_patch = os.environ.copy()
-    env_patch["PATH"] = os.pathsep.join([str(Path(sys.executable).parent)] + env_patch["PATH"].split(os.pathsep))
+    env_patch["PATH"] = os.pathsep.join([str(Path(sys.executable).parent), *env_patch["PATH"].split(os.pathsep)])
     content = check_output(args, text=True, env=env_patch)
     content = content.replace(str(Path("~").expanduser()), "~")
     return f"""
@@ -44,7 +46,7 @@ params = {
 }
 
 
-env = Environment(loader=FileSystemLoader(Path(__file__).parent / "templates"))
+env = Environment(loader=FileSystemLoader(Path(__file__).parent / "templates"), autoescape=select_autoescape())
 
 with mkdocs_gen_files.open("reference/cli.md", "wt") as file_handler:
     file_handler.write(env.get_template("docs.md").render(**params))

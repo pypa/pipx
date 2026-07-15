@@ -4,7 +4,14 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from pipx.script import ScriptMetadata, installable_script, read_script_metadata, script_name_from_spec
+from pipx.script import (
+    _MAX_SCRIPT_BYTES,  # noqa: PLC2701  # test exercises private helper, no public API
+    ScriptMetadata,
+    _read_url,  # noqa: PLC2701  # test exercises private helper, no public API
+    installable_script,
+    read_script_metadata,
+    script_name_from_spec,
+)
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
@@ -112,9 +119,11 @@ def test_script_name_from_spec_binary_without_suffix(tmp_path: Path) -> None:
 
 
 def test_installable_script_rejects_name_mismatch() -> None:
-    with pytest.raises(PipxError, match="does not match"):
-        with installable_script("other", "https://example.invalid/app.py", ()):
-            pass
+    with (
+        pytest.raises(PipxError, match="does not match"),
+        installable_script("other", "https://example.invalid/app.py", ()),
+    ):
+        pass
 
 
 @pytest.mark.parametrize(
@@ -131,8 +140,6 @@ def test_script_name_from_spec_invalid(expected_apps: tuple[str, ...], message: 
 
 
 def test_read_url_bounds_the_response_size(mocker: MockerFixture) -> None:
-    from pipx.script import _MAX_SCRIPT_BYTES, _read_url  # noqa: PLC0415
-
     response = mocker.MagicMock()
     response.read.return_value = b"x" * (_MAX_SCRIPT_BYTES + 1)
     response.headers.get_content_charset.return_value = "utf-8"

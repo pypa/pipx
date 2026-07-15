@@ -16,20 +16,25 @@ if TYPE_CHECKING:
 
 def execute(package: str, venv_dir: Path, app: str, app_args: list[str]) -> NoReturn:
     if not venv_dir.is_dir():
-        raise PipxError(f"pipx does not manage environment {package!r}.")
+        msg = f"pipx does not manage environment {package!r}."
+        raise PipxError(msg)
 
     venv: Final[Venv] = Venv(venv_dir)
     app_paths: Final[dict[str, Path]] = _application_paths(venv)
     if (app_path := app_paths.get(app)) is None:
         available: Final[str] = ", ".join(sorted(app_paths)) or "none"
+        msg = f"Application {app!r} was not found in environment {package!r}.\nAvailable applications: {available}"
         raise PipxError(
-            f"Application {app!r} was not found in environment {package!r}.\nAvailable applications: {available}",
+            msg,
             wrap_message=False,
         )
     if not app_path.is_file():
-        raise PipxError(
+        msg = (
             f"Application {app!r} is missing from environment {package!r} at {app_path}.\n"
-            f"Reinstall it with `pipx reinstall {package}`.",
+            f"Reinstall it with `pipx reinstall {package}`."
+        )
+        raise PipxError(
+            msg,
             wrap_message=False,
         )
 

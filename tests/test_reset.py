@@ -15,13 +15,14 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def installed_pycowsay(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+def installed_pycowsay(request: pytest.FixtureRequest, capsys: pytest.CaptureFixture[str]) -> None:
+    request.getfixturevalue("pipx_temp_env")
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
 
 
+@pytest.mark.usefixtures("installed_pycowsay")
 def test_reset_removes_the_installed_packages(
-    installed_pycowsay: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["reset", "--yes"])
@@ -29,16 +30,18 @@ def test_reset_removes_the_installed_packages(
 
     assert not run_pipx_cli(["list", "--short"])
 
-    assert capsys.readouterr().out == ""
+    assert not capsys.readouterr().out
 
 
-def test_reset_unlinks_the_apps(installed_pycowsay: None) -> None:
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_reset_unlinks_the_apps() -> None:
     app: Final[Path] = paths.ctx.bin_dir / app_name("pycowsay")
     assert app.exists() or app.is_symlink()
 
     assert not run_pipx_cli(["reset", "--yes"])
 
-    assert not app.exists() and not app.is_symlink()
+    assert not app.exists()
+    assert not app.is_symlink()
 
 
 @pytest.mark.parametrize(
@@ -49,7 +52,8 @@ def test_reset_unlinks_the_apps(installed_pycowsay: None) -> None:
         pytest.param("standalone_python_cachedir", id="interpreters"),
     ],
 )
-def test_reset_removes_the_pipx_state(installed_pycowsay: None, location: str) -> None:
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_reset_removes_the_pipx_state(location: str) -> None:
     target: Final[Path] = getattr(paths.ctx, location)
     target.mkdir(parents=True, exist_ok=True)
 
@@ -58,7 +62,8 @@ def test_reset_removes_the_pipx_state(installed_pycowsay: None, location: str) -
     assert not target.is_dir()
 
 
-def test_reset_keeps_the_log_it_writes(installed_pycowsay: None) -> None:
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_reset_keeps_the_log_it_writes() -> None:
     stale: Final[Path] = paths.ctx.logs / "cmd_stale.log"
     stale.parent.mkdir(parents=True, exist_ok=True)
     stale.touch()
@@ -68,8 +73,8 @@ def test_reset_keeps_the_log_it_writes(installed_pycowsay: None) -> None:
     assert list(paths.ctx.logs.iterdir()) == [paths.ctx.log_file]
 
 
+@pytest.mark.usefixtures("installed_pycowsay")
 def test_reset_dry_run_keeps_everything(
-    installed_pycowsay: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["reset", "--dry-run"])
@@ -82,8 +87,8 @@ def test_reset_dry_run_keeps_everything(
     assert capsys.readouterr().out == "pycowsay 0.0.0.2\n"
 
 
+@pytest.mark.usefixtures("installed_pycowsay")
 def test_reset_json_reports_what_it_removed(
-    installed_pycowsay: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["reset", "--yes", "--output", "json"])
@@ -107,8 +112,8 @@ def test_reset_json_reports_what_it_removed(
     }
 
 
+@pytest.mark.usefixtures("installed_pycowsay")
 def test_reset_without_a_terminal_demands_force(
-    installed_pycowsay: None,
     capsys: pytest.CaptureFixture[str],
     mocker: MockerFixture,
 ) -> None:
@@ -128,9 +133,8 @@ def test_reset_without_a_terminal_demands_force(
         pytest.param("n", False, id="n"),
     ],
 )
+@pytest.mark.usefixtures("installed_pycowsay")
 def test_reset_asks_before_it_removes(
-    installed_pycowsay: None,
-    capsys: pytest.CaptureFixture[str],
     mocker: MockerFixture,
     answer: str,
     resets: bool,

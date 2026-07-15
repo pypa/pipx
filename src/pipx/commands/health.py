@@ -40,14 +40,14 @@ def health(venv_container: VenvContainer, venv_dirs: Iterable[Path]) -> Operatio
     )
 
 
-def repair(
+def repair(  # noqa: PLR0913  # repair forwards the full reinstall context to every broken environment
     venv_container: VenvContainer,
     venv_dirs: Iterable[Path],
     local_bin_dir: Path,
     local_man_dir: Path,
     python: str,
-    verbose: bool,
     *,
+    verbose: bool,
     python_flag_passed: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,

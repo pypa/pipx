@@ -1,11 +1,16 @@
-from pathlib import Path
+from __future__ import annotations
 
-import pytest
-from pytest_mock import MockerFixture
+from typing import TYPE_CHECKING
 
 from helpers import run_pipx_cli
 from pipx import main
 from pipx.venv import VenvContainer
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    import pytest
+    from pytest_mock import MockerFixture
 
 
 def test_cli(capsys: pytest.CaptureFixture[str]) -> None:

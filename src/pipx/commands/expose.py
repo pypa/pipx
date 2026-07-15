@@ -16,20 +16,22 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def expose(venv_dir: Path, local_bin_dir: Path, local_man_dir: Path, verbose: bool) -> OperationResult[ExposureData]:
-    return _set_exposure(venv_dir, local_bin_dir, local_man_dir, verbose, enabled=True)
+def expose(venv_dir: Path, local_bin_dir: Path, local_man_dir: Path, *, verbose: bool) -> OperationResult[ExposureData]:
+    return _set_exposure(venv_dir, local_bin_dir, local_man_dir, verbose=verbose, enabled=True)
 
 
-def unexpose(venv_dir: Path, local_bin_dir: Path, local_man_dir: Path, verbose: bool) -> OperationResult[ExposureData]:
-    return _set_exposure(venv_dir, local_bin_dir, local_man_dir, verbose, enabled=False)
+def unexpose(
+    venv_dir: Path, local_bin_dir: Path, local_man_dir: Path, *, verbose: bool
+) -> OperationResult[ExposureData]:
+    return _set_exposure(venv_dir, local_bin_dir, local_man_dir, verbose=verbose, enabled=False)
 
 
 def _set_exposure(
     venv_dir: Path,
     local_bin_dir: Path,
     local_man_dir: Path,
-    verbose: bool,
     *,
+    verbose: bool,
     enabled: bool,
 ) -> OperationResult[ExposureData]:
     command = ("expose",) if enabled else ("unexpose",)
@@ -101,7 +103,9 @@ def _success(
 def _collision_outcome(
     command: tuple[str, ...], environment: str, collisions: list[Path], *, exposed_any: bool
 ) -> OperationResult[ExposureData]:
-    summary: Final[str] = f"{environment}: skipped {len(collisions)} resource(s) already present in the target directory"
+    summary: Final[str] = (
+        f"{environment}: skipped {len(collisions)} resource(s) already present in the target directory"
+    )
     return OperationResult(
         command=command,
         data=ExposureData(environments=(_EnvironmentExposure(environment, _ExposureStatus.EXPOSED),)),

@@ -34,23 +34,29 @@ repos:
       - id: ruff-check
         args: ["--fix", "--unsafe-fixes", "--show-fixes", "--exit-non-zero-on-fix"]
       - id: ruff-format
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.0
+  - repo: https://github.com/astral-sh/ty-pre-commit
+    rev: v0.0.59
     hooks:
-      - id: mypy
-        args: ['--warn-unused-ignores', '--strict-equality', '--no-implicit-optional', '--check-untyped-defs']
-        exclude: 'testdata/test_package_specifier/(local_extras|local_manpage|local_completion)/setup.py'
+      - id: ty
         additional_dependencies:
+          - "argcomplete>=1.9.4"
+          - "colorama>=0.4.4"
           - "docutils>=0.21"
+          - "filelock>=3.16"
+          - "gitpython>=3.1"
           - "hatchling>=1.27"
+          - "jinja2"
           - "mkdocs-gen-files"
-          - "nox"
           - "packaging>=20"
+          - "platformdirs>=4.6"
+          - "pypiserver>=2.3.2"
+          - "pytest>=8"
+          - "pytest-mock>=3.11.1"
+          - "pytest-subprocess>=1.5.4"
+          - "tomli>=2"
           - "types-docutils>=0.21"
-          - "platformdirs>=2.1"
-          - "pytest"
-          - "pytest-mock"
-          - "tomli; python_version < '3.11'"
+          - "userpath>=1.6"
+          - "watchdog>=4"
   # Configuration for codespell is in pyproject.toml
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.2

@@ -31,6 +31,8 @@ if TYPE_CHECKING:
 
     from filelock import BaseFileLock
 
+    from pipx.pipx_metadata_file import PackageInfo
+
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
@@ -71,31 +73,53 @@ def _get_expected_reinstall_resource_paths(venv: Venv, local_bin_dir: Path, loca
     if not venv.pipx_metadata.exposure_enabled:
         return resource_paths
     for package_info in venv.package_metadata.values():
-        for app_path in package_info.app_paths_to_expose:
-            resource_paths.add(local_bin_dir / add_suffix(app_path.name, package_info.suffix))
-        for man_path in package_info.man_paths_to_expose:
-            resource_paths.add(local_man_dir / man_path.parent.name / man_path.name)
-        for completion_path in package_info.completion_paths_to_expose:
-            resource_paths.add(
-                paths.ctx.completion_dir
-                / completion_path.parent.parent.name
-                / completion_path.parent.name
-                / completion_path.name
-            )
+        resource_paths.update(
+            local_bin_dir / add_suffix(app_path.name, package_info.suffix)
+            for app_path in package_info.app_paths_to_expose
+        )
+        resource_paths.update(
+            local_man_dir / man_path.parent.name / man_path.name for man_path in package_info.man_paths_to_expose
+        )
+        resource_paths.update(
+            paths.ctx.completion_dir
+            / completion_path.parent.parent.name
+            / completion_path.parent.name
+            / completion_path.name
+            for completion_path in package_info.completion_paths_to_expose
+        )
     return resource_paths
 
 
 def _remove_stale_reinstall_resources(resource_paths: set[Path]) -> None:
     for path in sorted(resource_paths):
-        try:
-            safe_unlink(path)
-            if path.is_symlink():
-                path.unlink()
-        except FileNotFoundError:
-            pass
+        _unlink_stale_resource(path)
 
 
-def reinstall(
+def _unlink_stale_resource(path: Path) -> None:
+    try:
+        safe_unlink(path)
+        if path.is_symlink():
+            path.unlink()
+    except FileNotFoundError:
+        pass
+
+
+def _raise_first_error(errors: tuple[OperationError, ...]) -> None:
+    # install returns a failed result instead of raising, so surface it here to trigger the enclosing rollback
+    if errors:
+        msg = errors[0].message
+        raise PipxError(msg)
+
+
+def _require_injected_url(injected_package: PackageInfo, venv_name: str) -> str:
+    # package_or_url is Optional[str] for mypy, though reinstall metadata always carries it
+    if injected_package.package_or_url is None:
+        msg = f"Internal Error injecting package {injected_package} into {venv_name}"
+        raise PipxError(msg)
+    return injected_package.package_or_url
+
+
+def reinstall(  # noqa: PLR0913  # reinstall rebuilds a venv from its metadata and forwards the full install context
     *,
     venv_dir: Path,
     local_bin_dir: Path,
@@ -142,7 +166,8 @@ def reinstall(
         package_or_url = venv.main_package_name
 
     if venv.pipx_metadata.main_package.pinned:
-        raise PipxError(f"{error} Package {venv_dir} is pinned. Run `pipx unpin {venv_dir.name}` to unpin it first.")
+        msg = f"{error} Package {venv_dir} is pinned. Run `pipx unpin {venv_dir.name}` to unpin it first."
+        raise PipxError(msg)
 
     old_resource_paths = _get_reinstall_resource_paths(venv, local_bin_dir, local_man_dir)
     original_venv_dir = venv_dir
@@ -152,7 +177,7 @@ def reinstall(
     # in case legacy original dir name
     venv_dir = venv_dir.with_name(canonicalize_name(venv_dir.name))
 
-    try:
+    try:  # noqa: PLW0717  # the whole rebuild must share one handler so any failure restores the backup
         # install main package first
         installed = install(
             venv_dir,
@@ -163,7 +188,7 @@ def reinstall(
             python,
             venv.pipx_metadata.main_package.pip_args,
             venv.pipx_metadata.venv_args,
-            verbose,
+            verbose=verbose,
             force=True,
             reinstall=True,
             include_dependencies=venv.pipx_metadata.main_package.include_dependencies,
@@ -181,20 +206,15 @@ def reinstall(
             emit_output=False,
         )
         # install does not raise when it does not render, so restore the backup on a failed result too
-        if installed.errors:
-            raise PipxError(installed.errors[0].message)
+        _raise_first_error(installed.errors)
         messages.extend(installed.messages)
 
         # now install injected packages
         for injected_name, injected_package in venv.pipx_metadata.injected_packages.items():
-            if injected_package.package_or_url is None:
-                # This should never happen, but package_or_url is type
-                #   Optional[str] so mypy thinks it could be None
-                raise PipxError(f"Internal Error injecting package {injected_package} into {venv.name}")
             inject_dep(
                 venv_dir,
                 injected_name,
-                injected_package.package_or_url,
+                _require_injected_url(injected_package, venv.name),
                 injected_package.pip_args,
                 verbose=verbose,
                 include_apps=injected_package.include_apps,
@@ -212,7 +232,7 @@ def reinstall(
         _remove_stale_reinstall_resources(old_resource_paths - new_resource_paths)
     except (Exception, KeyboardInterrupt):
         _restore_reinstall_backup(venv_dir, original_venv_dir, reinstall_backup_dir)
-        _LOGGER.error("%s Reinstall failed; restored %s.", error, venv.name)
+        _LOGGER.exception("%s Reinstall failed; restored %s.", error, venv.name)
         raise
     else:
         rmdir(reinstall_backup_dir)
@@ -224,13 +244,13 @@ def reinstall(
     )
 
 
-def reinstall_all(
+def reinstall_all(  # noqa: PLR0913  # reinstall-all forwards the full reinstall context to every environment
     venv_container: VenvContainer,
     local_bin_dir: Path,
     local_man_dir: Path,
     python: str,
-    verbose: bool,
     *,
+    verbose: bool,
     skip: Sequence[str],
     python_flag_passed: bool = False,
     backend: str | None = None,
@@ -263,7 +283,9 @@ def reinstall_all(
                 )
         except PipxError as error_raised:
             errors.append(
-                OperationError(code="environment_reinstall_failed", message=str(error_raised), environment=venv_dir.name)
+                OperationError(
+                    code="environment_reinstall_failed", message=str(error_raised), environment=venv_dir.name
+                )
             )
             messages.append(OutputMessage(str(error_raised), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
         else:

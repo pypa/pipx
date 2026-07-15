@@ -1,14 +1,17 @@
+from __future__ import annotations
+
 import datetime
 import hashlib
 import logging
-import time
 import urllib.parse
 import urllib.request
-from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from shutil import which
-from typing import Final, NoReturn
+from typing import TYPE_CHECKING, Final, NoReturn
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 from filelock import Timeout
 from packaging.requirements import InvalidRequirement, Requirement
@@ -45,7 +48,7 @@ Available executable scripts:
     {app_lines}"""
 
 
-def maybe_script_content(app: str, is_path: bool) -> str | Path | None:
+def maybe_script_content(app: str, *, is_path: bool) -> str | Path | None:
     """If the app is a script, return its content.
     Return None if it should be treated as a package name."""
 
@@ -58,7 +61,8 @@ def maybe_script_content(app: str, is_path: bool) -> str | Path | None:
         return app_path.read_text(encoding="utf-8")
 
     if is_path:
-        raise PipxError(f"The specified path {app} does not exist")
+        msg = f"The specified path {app} does not exist"
+        raise PipxError(msg)
 
     # Check for a URL
     if (parsed := urllib.parse.urlparse(app)).scheme:
@@ -66,13 +70,12 @@ def maybe_script_content(app: str, is_path: bool) -> str | Path | None:
             return None
         # match on the URL path so a query string such as ``script.py?raw=1`` is still recognised
         if not parsed.path.lower().endswith(".py"):
-            raise PipxError(
-                """
+            msg = """
                 pipx will only execute apps from the internet directly if they
                 end with '.py'. To run a package from another URL, use
                 'pipx run --spec URL BINARY'.
                 """
-            )
+            raise PipxError(msg)
         _LOGGER.info("Detected url. Downloading and executing as a Python file.")
 
         return _http_get_request(app)
@@ -81,15 +84,15 @@ def maybe_script_content(app: str, is_path: bool) -> str | Path | None:
     return None
 
 
-def run_script(
+def run_script(  # noqa: PLR0913  # mirrors the flat `pipx run` script options; a struct would only relocate them
     content: str | Path,
     app_args: list[str],
     python: str,
     pip_args: list[str],
     venv_args: list[str],
+    *,
     verbose: bool,
     use_cache: bool,
-    *,
     python_args: list[str],
     refresh: bool = False,
     backend: str | None = None,
@@ -104,18 +107,20 @@ def run_script(
     try:
         metadata: Final[ScriptMetadata | None] = read_script_metadata(content)
     except ValueError as error:
-        raise PipxError(f"Invalid inline script metadata: {error}") from error
+        msg = f"Invalid inline script metadata: {error}"
+        raise PipxError(msg) from error
     requirements = None if metadata is None else list(metadata.dependencies)
 
     if dependencies:
         if requirements is None:
             # Plain scripts have nowhere to record extra requirements; the pip path
             # silently dropped ``--with`` here, but a clear error is better.
-            raise PipxError(
+            msg = (
                 "--with packages can only be applied to scripts with PEP 723 inline metadata "
                 "(`# /// script` block). Add the dependencies to the script's metadata or run "
                 "via `pipx run --spec`."
             )
+            raise PipxError(msg)
         requirements = [*requirements, *dependencies]
 
     if resolved_backend == UV and requirements is not None and not python_args:
@@ -150,7 +155,9 @@ def run_script(
     # the uv path lets uv read requires-python from the block; on the pip path pipx honours it here so the script does
     # not silently run on an interpreter it declared unsupported
     if metadata is not None and metadata.requires_python is not None:
-        python = _interpreter_for_script(metadata.requires_python, python, python_flag_passed, fetch_python)
+        python = _interpreter_for_script(
+            metadata.requires_python, python, fetch_python, python_flag_passed=python_flag_passed
+        )
 
     if not requirements:
         _exec_script(Path(python), content, app_args, python_args)
@@ -167,13 +174,13 @@ def run_script(
         pip_args,
         venv_args,
         resolved_backend or "pip",
-        cooldown_days,
+        cooldown_days=cooldown_days,
     )
     with _locked_venv_cache(venv_dir):
         venv = Venv(venv_dir, backend=backend, env_backend=env_backend)
-        _prepare_venv_cache(venv, None, use_cache, refresh=refresh)
+        _prepare_venv_cache(venv, None, use_cache=use_cache, refresh=refresh)
         if venv_dir.exists():
-            _LOGGER.info(f"Reusing cached venv {venv_dir}")
+            _LOGGER.info("Reusing cached venv %s", venv_dir)
         else:
             venv = Venv(venv_dir, python=python, verbose=verbose, backend=backend, env_backend=env_backend)
             venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
@@ -190,15 +197,16 @@ def run_script(
 
 
 def _interpreter_for_script(
-    requires_python: str, python: str, python_flag_passed: bool, fetch_python: FetchPythonOptions
+    requires_python: str, python: str, fetch_python: FetchPythonOptions, *, python_flag_passed: bool
 ) -> str:
     if not python_flag_passed:
         return interpreter_for(SpecifierSet(requires_python), fetch_python)
     if unsatisfied_by_interpreter(requires_python, python) is not None:
-        raise PipxError(
+        msg = (
             f"The script requires Python {requires_python}, which the interpreter chosen with --python does not "
             f"satisfy. Pass a matching --python, or drop --python to let pipx pick one."
         )
+        raise PipxError(msg)
     return python
 
 
@@ -214,18 +222,18 @@ def _exec_script(
         exec_app([python_path, *python_args, "-c", content, *app_args])
 
 
-def run_package(
+def run_package(  # noqa: PLR0913  # mirrors the flat `pipx run` options; a struct would only relocate them
     app: str,
     package_or_url: str,
     dependencies: list[str],
     app_args: list[str],
     python: str,
+    *,
     pip_args: list[str],
     venv_args: list[str],
     pypackages: bool,
     verbose: bool,
     use_cache: bool,
-    *,
     python_args: list[str],
     refresh: bool = False,
     infer_app_name: bool = False,
@@ -248,24 +256,24 @@ def run_package(
 
     if WINDOWS:
         app_filename = f"{app}.exe"
-        _LOGGER.info(f"Assuming app is {app_filename!r} (Windows only)")
+        _LOGGER.info("Assuming app is %r (Windows only)", app_filename)
     else:
         app_filename = app
 
     pypackage_bin_path = get_pypackage_bin_path(app)
     if pypackage_bin_path.exists():
         if python_args:
-            raise PipxError("--python-args cannot run applications from __pypackages__.")
-        _LOGGER.info(f"Using app in local __pypackages__ directory at '{pypackage_bin_path}'")
+            msg = "--python-args cannot run applications from __pypackages__."
+            raise PipxError(msg)
+        _LOGGER.info("Using app in local __pypackages__ directory at '%s'", pypackage_bin_path)
         run_pypackage_bin(pypackage_bin_path, app_args)
     if pypackages:
-        raise PipxError(
-            f"""
+        msg = f"""
             '--pypackages' flag was passed, but '{pypackage_bin_path}' was
             not found. See https://github.com/cs01/pythonloc to learn how to
             install here, or omit the flag.
             """
-        )
+        raise PipxError(msg)
 
     # ``--with`` packages are injected into this venv, so they are part of its identity: leaving them out of the key let
     # ``pipx run foo`` and ``pipx run --with bar foo`` collide on one cache dir and cross-contaminate each other.
@@ -275,7 +283,7 @@ def run_package(
         pip_args,
         venv_args,
         resolved_backend or "pip",
-        cooldown_days,
+        cooldown_days=cooldown_days,
     )
 
     with _locked_venv_cache(venv_dir):
@@ -284,22 +292,22 @@ def run_package(
             app = venv.pipx_metadata.main_package.package
             app_filename = f"{app}.exe" if WINDOWS else app
         bin_path = venv.bin_path / app_filename
-        _prepare_venv_cache(venv, bin_path, use_cache, refresh=refresh)
+        _prepare_venv_cache(venv, bin_path, use_cache=use_cache, refresh=refresh)
 
         if venv.has_app(app, app_filename):
-            _LOGGER.info(f"Reusing cached venv {venv_dir}")
+            _LOGGER.info("Reusing cached venv %s", venv_dir)
         else:
-            _LOGGER.info(f"venv location is {venv_dir}")
+            _LOGGER.info("venv location is %s", venv_dir)
             venv, app, app_filename = _prepare_venv(
                 Path(venv_dir),
                 package_or_url,
                 app,
                 app_filename,
                 python,
-                pip_args,
-                venv_args,
-                use_cache,
-                verbose,
+                pip_args=pip_args,
+                venv_args=venv_args,
+                use_cache=use_cache,
+                verbose=verbose,
                 infer_app_name=infer_app_name,
                 backend=backend,
                 env_backend=env_backend,
@@ -323,19 +331,19 @@ def run_package(
         venv.run_app(app, app_filename, app_args, python_args=python_args)
 
 
-def run(
+def run(  # noqa: PLR0913, PLR0917  # mirrors the flat `pipx run` CLI options across the script/uvx/venv paths
     app: str,
     spec: str | None,
     dependencies: list[str],
-    is_path: bool,
     app_args: list[str],
     python: str,
     pip_args: list[str],
     venv_args: list[str],
+    *,
+    is_path: bool,
     pypackages: bool,
     verbose: bool,
     use_cache: bool,
-    *,
     python_args: list[str],
     refresh: bool = False,
     no_path_check: bool = False,
@@ -356,7 +364,7 @@ def run(
     resolved_backend, _ = resolve_backend_name(cli_value=backend, env_value=env_backend)
     use_uvx = resolved_backend == UV and not pypackages and not python_args
 
-    content = None if spec is not None else maybe_script_content(app, is_path)
+    content = None if spec is not None else maybe_script_content(app, is_path=is_path)
     if content is not None:
         run_script(
             content,
@@ -364,8 +372,8 @@ def run(
             python,
             pip_args,
             venv_args,
-            verbose,
-            use_cache,
+            verbose=verbose,
+            use_cache=use_cache,
             refresh=refresh,
             backend=backend,
             env_backend=env_backend,
@@ -401,11 +409,11 @@ def run(
             dependencies,
             app_args,
             python,
-            pip_args,
-            venv_args,
-            pypackages,
-            verbose,
-            use_cache,
+            pip_args=pip_args,
+            venv_args=venv_args,
+            pypackages=pypackages,
+            verbose=verbose,
+            use_cache=use_cache,
             refresh=refresh,
             infer_app_name=spec is None and _is_vcs_url(app),
             backend=backend,
@@ -425,17 +433,17 @@ def _package_name_from_app(app: str, *, inferred: bool) -> str:
     return canonicalize_name(package_name) if inferred else package_name
 
 
-def _prepare_venv(
+def _prepare_venv(  # noqa: PLR0913  # mirrors the flat run/install option set for one temporary venv
     venv_dir: Path,
     package_or_url: str,
     app: str,
     app_filename: str,
     python: str,
+    *,
     pip_args: list[str],
     venv_args: list[str],
     use_cache: bool,
     verbose: bool,
-    *,
     infer_app_name: bool = False,
     backend: str | None = None,
     env_backend: str | None = None,
@@ -461,7 +469,7 @@ def _prepare_venv(
 
     override_shared = package_name == "pip"
 
-    venv.create_venv(venv_args, pip_args, override_shared)
+    venv.create_venv(venv_args, pip_args, override_shared=override_shared)
     venv.install_package(
         package_name=package_name,
         package_or_url=package_or_url,
@@ -479,10 +487,10 @@ def _prepare_venv(
         # If there's a single app inside the package, run that by default
         if app == package_name and len(apps) == 1:
             app = apps[0]
-            print(f"NOTE: running app {app!r} from {package_name!r}")
+            print(f"NOTE: running app {app!r} from {package_name!r}")  # noqa: T201  # user-facing CLI output
             if WINDOWS:
                 app_filename = f"{app}.exe"
-                _LOGGER.info(f"Assuming app is {app_filename!r} (Windows only)")
+                _LOGGER.info("Assuming app is %r (Windows only)", app_filename)
             else:
                 app_filename = app
         else:
@@ -509,12 +517,13 @@ def _is_vcs_url(value: str) -> bool:
     return bool(separator) and vcs in _VCS_SCHEMES
 
 
-def _get_temporary_venv_path(
+def _get_temporary_venv_path(  # noqa: PLR0913  # all inputs feed the cache-key digest; a struct would only relocate them
     requirements: list[str],
     python: str,
     pip_args: list[str],
     venv_args: list[str],
     backend: str,
+    *,
     cooldown_days: int | None,
 ) -> Path:
     """Hash venv-affecting inputs to a deterministic cache path.
@@ -535,7 +544,7 @@ def _get_temporary_venv_path(
 
 def _is_temporary_venv_expired(venv_dir: Path) -> bool:
     created_time_sec = venv_dir.stat().st_ctime
-    current_time_sec = time.mktime(datetime.datetime.now().timetuple())
+    current_time_sec = datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
     age = current_time_sec - created_time_sec
     expiration_threshold_sec = 60 * 60 * 24 * TEMP_VENV_EXPIRATION_THRESHOLD_DAYS
     return age > expiration_threshold_sec or (venv_dir / _VENV_EXPIRED_FILENAME).exists()
@@ -563,19 +572,19 @@ def _locked_venv_cache(venv_dir: Path) -> Iterator[None]:
         yield
 
 
-def _prepare_venv_cache(venv: Venv, bin_path: Path | None, use_cache: bool, *, refresh: bool = False) -> None:
+def _prepare_venv_cache(venv: Venv, bin_path: Path | None, *, use_cache: bool, refresh: bool = False) -> None:
     venv_dir = venv.root
     if refresh and venv_dir.exists():
-        _LOGGER.info(f"Refreshing cached venv {venv_dir!s}")
+        _LOGGER.info("Refreshing cached venv %s", venv_dir)
         rmdir(venv_dir)
     elif not use_cache and (bin_path is None or bin_path.exists()):
-        _LOGGER.info(f"Removing cached venv {venv_dir!s}")
+        _LOGGER.info("Removing cached venv %s", venv_dir)
         rmdir(venv_dir)
 
 
 def _remove_expired_venv(venv_dir: Path) -> None:
     if venv_dir.is_dir() and _is_temporary_venv_expired(venv_dir):
-        _LOGGER.info(f"Removing expired venv {venv_dir!s}")
+        _LOGGER.info("Removing expired venv %s", venv_dir)
         rmdir(venv_dir)
 
 
@@ -584,18 +593,24 @@ _URL_TIMEOUT: Final[int] = 30
 _MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
 
 
+def _reject_oversized_script(url: str, data: bytes) -> None:
+    if len(data) > _MAX_SCRIPT_BYTES:
+        msg = f"Script {url} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it."
+        raise PipxError(msg)
+
+
 def _http_get_request(url: str) -> str:
     try:
-        with urllib.request.urlopen(url, timeout=_URL_TIMEOUT) as res:  # scheme is validated upstream
+        with urllib.request.urlopen(url, timeout=_URL_TIMEOUT) as res:  # noqa: S310  # scheme validated upstream
             data = res.read(_MAX_SCRIPT_BYTES + 1)
-            if len(data) > _MAX_SCRIPT_BYTES:
-                raise PipxError(f"Script {url} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it.")
+            _reject_oversized_script(url, data)
             return data.decode(res.headers.get_content_charset() or "utf-8")
     except PipxError:
         raise
-    except Exception as e:
+    except Exception as error:
         _LOGGER.debug("Uncaught Exception:", exc_info=True)
-        raise PipxError(str(e)) from e
+        msg = str(error)
+        raise PipxError(msg) from error
 
 
 __all__ = [

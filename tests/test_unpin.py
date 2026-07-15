@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -7,8 +9,12 @@ from helpers import run_pipx_cli
 from package_info import PKG
 from pipx import paths
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
-def test_unpin(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_unpin(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["nox"]["spec"]])
     assert not run_pipx_cli(["pin", "nox"])
 
@@ -19,7 +25,8 @@ def test_unpin(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
     assert "nox is already at latest version" in captured.out
 
 
-def test_unpin_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_unpin_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["pin", "pycowsay"])
     capsys.readouterr()
@@ -52,7 +59,8 @@ def test_unpin_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> 
     )
 
 
-def test_unpin_quiet(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_unpin_quiet(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["pin", "pycowsay"])
     capsys.readouterr()
@@ -63,7 +71,8 @@ def test_unpin_quiet(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) ->
     assert (captured.out, captured.err) == ("", "")
 
 
-def test_unpin_with_suffix(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_unpin_with_suffix(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["black"]["spec"], "--suffix", "@1"])
     assert not run_pipx_cli(["pin", "black@1"])
     assert not run_pipx_cli(["unpin", "black@1"])
@@ -77,7 +86,8 @@ def test_unpin_with_suffix(pipx_temp_env: None, capsys: pytest.CaptureFixture[st
     assert "upgraded package black@1 from 22.8.0 to 22.10.0" in captured.out
 
 
-def test_unpin_warning(pipx_temp_env: None, caplog: pytest.LogCaptureFixture) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_unpin_warning(caplog: pytest.LogCaptureFixture) -> None:
     assert not run_pipx_cli(["install", PKG["nox"]["spec"]])
     assert not run_pipx_cli(["pin", "nox"])
     assert not run_pipx_cli(["unpin", "nox"])
@@ -86,14 +96,16 @@ def test_unpin_warning(pipx_temp_env: None, caplog: pytest.LogCaptureFixture) ->
     assert "pipx found no pinned packages in venv nox" in caplog.text
 
 
-def test_unpin_not_installed_package(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_unpin_not_installed_package(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["unpin", "abc"])
 
     captured = capsys.readouterr()
     assert "pipx does not manage package abc" in captured.err
 
 
-def test_unpin_injected_packages(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_unpin_injected_packages(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "black"])
     assert not run_pipx_cli(["inject", "black", "nox", "pylint"])
     assert not run_pipx_cli(["pin", "black"])
@@ -103,8 +115,8 @@ def test_unpin_injected_packages(pipx_temp_env: None, capsys: pytest.CaptureFixt
     assert "pipx unpinned 3 packages in venv black" in captured.out
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_unpin_reports_only_changed_packages(
-    pipx_temp_env: None,
     empty_project: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:

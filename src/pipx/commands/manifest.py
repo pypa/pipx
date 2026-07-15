@@ -30,24 +30,24 @@ from pipx.result import (
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
-    if sys.version_info < (3, 11):
-        import tomli as tomllib
-    else:
+    if sys.version_info >= (3, 11):
         import tomllib
+    else:
+        import tomli as tomllib
 
     from pipx.venv import VenvContainer
 else:
     tomllib = import_module("tomli" if sys.version_info < (3, 11) else "tomllib")
 
 
-def sync_manifest(
+def sync_manifest(  # noqa: PLR0913  # manifest sync forwards the full install context for each tool
     manifest_file: Path,
     venv_container: VenvContainer,
     local_bin_dir: Path,
     local_man_dir: Path,
     python: str,
-    verbose: bool,
     *,
+    verbose: bool,
     prune: bool,
     backend: str | None,
     env_backend: str | None,
@@ -62,7 +62,7 @@ def sync_manifest(
             existed = venv_dir.is_dir()
             was_exposed = existed and PipxMetadata(venv_dir).exposure_enabled
             if was_exposed:
-                unexpose(venv_dir, local_bin_dir, local_man_dir, verbose)
+                unexpose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
             try:
                 outcome = install(
                     venv_dir,
@@ -73,7 +73,7 @@ def sync_manifest(
                     python,
                     [],
                     [],
-                    verbose,
+                    verbose=verbose,
                     force=existed,
                     reinstall=False,
                     include_dependencies=tool.include_dependencies,
@@ -99,12 +99,12 @@ def sync_manifest(
                 failures.append(_FailedTool(tool.environment, error_message))
                 messages.append(OutputMessage(error_message, stream=OutputStream.STDERR, level=OutputLevel.ERROR))
                 if was_exposed:
-                    expose(venv_dir, local_bin_dir, local_man_dir, verbose)
+                    expose(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
             else:
                 synced.append(tool.environment)
 
     if prune and not failures:
-        messages.extend(_prune_environments(manifest, venv_container, local_bin_dir, local_man_dir, verbose))
+        messages.extend(_prune_environments(manifest, venv_container, local_bin_dir, local_man_dir, verbose=verbose))
     return OperationResult(
         command=("manifest", "sync"),
         data=ManifestData(environments=tuple(synced), locks=()),
@@ -120,13 +120,16 @@ def sync_manifest(
 def lock_manifest(manifest_file: Path) -> OperationResult[ManifestData]:
     manifest = _load_manifest(manifest_file, require_locks=False)
     if not any(tool.lock_file is not None for tool in manifest.tools):
-        raise PipxError("The manifest does not declare any lock files.")
+        msg = "The manifest does not declare any lock files."
+        raise PipxError(msg)
     if not (nab := which("nab")):
-        raise PipxError("The nab command is required. Install it with `pipx install nab`.")
+        msg = "The nab command is required. Install it with `pipx install nab`."
+        raise PipxError(msg)
     try:
         locked: Final[list[str]] = _generate_locks(manifest, nab)
     except OSError as error:
-        raise PipxError(f"Cannot write manifest locks: {error}") from error
+        msg = f"Cannot write manifest locks: {error}"
+        raise PipxError(msg) from error
     return OperationResult(
         command=("manifest", "lock"),
         data=ManifestData(environments=(), locks=tuple(locked)),
@@ -140,21 +143,26 @@ def _load_manifest(manifest_file: Path, *, require_locks: bool) -> _Manifest:
         with path.open("rb") as file:
             data = cast("dict[str, _TomlValue]", tomllib.load(file))
     except FileNotFoundError as error:
-        raise PipxError(f"Manifest does not exist: {path}") from error
+        msg = f"Manifest does not exist: {path}"
+        raise PipxError(msg) from error
     except (OSError, tomllib.TOMLDecodeError) as error:
-        raise PipxError(f"Cannot read manifest {path}: {error}") from error
+        msg = f"Cannot read manifest {path}: {error}"
+        raise PipxError(msg) from error
 
     groups, tool_data = _parse_manifest_tables(data)
 
     tools: list[_ManifestTool] = []
     for environment, group in groups.items():
         if not isinstance(group, list) or len(group) != 1 or not isinstance(package := group[0], str):
-            raise PipxError(f"Dependency group {environment} must contain one package requirement.")
+            msg = f"Dependency group {environment} must contain one package requirement."
+            raise PipxError(msg)
         if not isinstance(values := tool_data.get(environment, {}), dict):
-            raise PipxError(f"Manifest tool {environment} must be a table.")
+            msg = f"Manifest tool {environment} must be a table."
+            raise PipxError(msg)
         tools.append(_parse_tool(environment, package, values, path.parent, require_locks=require_locks))
     if duplicates := _duplicate_lock_files(tools):
-        raise PipxError(f"Lock files must be unique per tool: {', '.join(map(str, duplicates))}")
+        msg = f"Lock files must be unique per tool: {', '.join(map(str, duplicates))}"
+        raise PipxError(msg)
     return _Manifest(path=path, tools=tuple(tools))
 
 
@@ -162,30 +170,40 @@ def _parse_manifest_tables(
     data: dict[str, _TomlValue],
 ) -> tuple[dict[str, _TomlValue], dict[str, _TomlValue]]:
     if unknown := sorted(set(data) - _ROOT_KEYS):
-        raise PipxError(f"Unknown manifest {'table' if len(unknown) == 1 else 'tables'}: {', '.join(unknown)}")
+        msg = f"Unknown manifest {'table' if len(unknown) == 1 else 'tables'}: {', '.join(unknown)}"
+        raise PipxError(msg)
     if not isinstance(project := data.get("project"), dict):
-        raise PipxError("Manifest project must be a table.")
+        msg = "Manifest project must be a table."
+        raise PipxError(msg)
     _validate_project(project)
     if not isinstance(groups := data.get("dependency-groups"), dict) or not groups:
-        raise PipxError("Manifest dependency-groups must be a non-empty table.")
+        msg = "Manifest dependency-groups must be a non-empty table."
+        raise PipxError(msg)
     if not isinstance(tool_table := data.get("tool"), dict):
-        raise PipxError("Manifest tool must be a table.")
+        msg = "Manifest tool must be a table."
+        raise PipxError(msg)
     if unknown := sorted(set(tool_table) - _TOOL_TABLE_KEYS):
-        raise PipxError(f"Unknown manifest tool {'table' if len(unknown) == 1 else 'tables'}: {', '.join(unknown)}")
+        msg = f"Unknown manifest tool {'table' if len(unknown) == 1 else 'tables'}: {', '.join(unknown)}"
+        raise PipxError(msg)
     if (nab_data := tool_table.get("nab")) is not None and not isinstance(nab_data, dict):
-        raise PipxError("Manifest tool.nab must be a table.")
+        msg = "Manifest tool.nab must be a table."
+        raise PipxError(msg)
     return groups, _parse_pipx_table(tool_table, groups)
 
 
 def _validate_project(data: dict[str, _TomlValue]) -> None:
     if unknown := sorted(set(data) - _PROJECT_KEYS):
-        raise PipxError(f"Unknown manifest project {'key' if len(unknown) == 1 else 'keys'}: {', '.join(unknown)}")
+        msg = f"Unknown manifest project {'key' if len(unknown) == 1 else 'keys'}: {', '.join(unknown)}"
+        raise PipxError(msg)
     if not isinstance(data.get("name"), str) or not isinstance(data.get("version"), str):
-        raise PipxError("Manifest project requires string name and version values.")
+        msg = "Manifest project requires string name and version values."
+        raise PipxError(msg)
     if data.get("dependencies") != []:
-        raise PipxError("Manifest project dependencies must be empty; declare tools in dependency-groups.")
+        msg = "Manifest project dependencies must be empty; declare tools in dependency-groups."
+        raise PipxError(msg)
     if (requires_python := data.get("requires-python")) is not None and not isinstance(requires_python, str):
-        raise PipxError("Manifest project requires-python must be a string.")
+        msg = "Manifest project requires-python must be a string."
+        raise PipxError(msg)
 
 
 def _parse_pipx_table(
@@ -193,15 +211,20 @@ def _parse_pipx_table(
     groups: dict[str, _TomlValue],
 ) -> dict[str, _TomlValue]:
     if not isinstance(pipx_data := tool_table.get("pipx"), dict):
-        raise PipxError("Manifest tool.pipx must be a table.")
+        msg = "Manifest tool.pipx must be a table."
+        raise PipxError(msg)
     if unknown := sorted(set(pipx_data) - _PIPX_KEYS):
-        raise PipxError(f"Unknown tool.pipx {'key' if len(unknown) == 1 else 'keys'}: {', '.join(unknown)}")
+        msg = f"Unknown tool.pipx {'key' if len(unknown) == 1 else 'keys'}: {', '.join(unknown)}"
+        raise PipxError(msg)
     if pipx_data.get("version") != _MANIFEST_VERSION:
-        raise PipxError(f'Manifest version must be "{_MANIFEST_VERSION}".')
+        msg = f'Manifest version must be "{_MANIFEST_VERSION}".'
+        raise PipxError(msg)
     if not isinstance(tool_data := pipx_data.get("tools", {}), dict):
-        raise PipxError("Manifest tool.pipx.tools must be a table.")
+        msg = "Manifest tool.pipx.tools must be a table."
+        raise PipxError(msg)
     if unknown := sorted(set(tool_data) - set(groups)):
-        raise PipxError(f"Missing dependency groups for manifest tools: {', '.join(unknown)}")
+        msg = f"Missing dependency groups for manifest tools: {', '.join(unknown)}"
+        raise PipxError(msg)
     return tool_data
 
 
@@ -214,23 +237,28 @@ def _parse_tool(
     require_locks: bool,
 ) -> _ManifestTool:
     if environment != canonicalize_name(environment):
-        raise PipxError(f"Manifest tool name must be normalized: {environment}")
+        msg = f"Manifest tool name must be normalized: {environment}"
+        raise PipxError(msg)
     if unknown := sorted(set(data) - _TOOL_KEYS):
-        raise PipxError(
-            f"Unknown {'key' if len(unknown) == 1 else 'keys'} for manifest tool {environment}: {', '.join(unknown)}"
-        )
+        msg = f"Unknown {'key' if len(unknown) == 1 else 'keys'} for manifest tool {environment}: {', '.join(unknown)}"
+        raise PipxError(msg)
     package_name = _parse_package(environment, package)
     if not isinstance(suffix := data.get("suffix", ""), str):
-        raise PipxError(f"Manifest tool {environment} suffix must be a string.")
+        msg = f"Manifest tool {environment} suffix must be a string."
+        raise PipxError(msg)
     if environment != canonicalize_name(f"{package_name}{suffix}"):
-        raise PipxError(f"Manifest tool {environment} must match package {package_name} and suffix {suffix!r}.")
+        msg = f"Manifest tool {environment} must match package {package_name} and suffix {suffix!r}."
+        raise PipxError(msg)
     if not isinstance(include_dependencies := data.get("include-dependencies", False), bool):
-        raise PipxError(f"Manifest tool {environment} include-dependencies must be a boolean.")
+        msg = f"Manifest tool {environment} include-dependencies must be a boolean."
+        raise PipxError(msg)
     include_resources_from: Final[tuple[str, ...]] = _parse_include_resources_from(environment, data)
     if include_dependencies and include_resources_from:
-        raise PipxError(f"Manifest tool {environment} cannot combine include-dependencies with include-resources-from.")
+        msg = f"Manifest tool {environment} cannot combine include-dependencies with include-resources-from."
+        raise PipxError(msg)
     if not isinstance(expose_resources := data.get("expose", True), bool):
-        raise PipxError(f"Manifest tool {environment} expose must be a boolean.")
+        msg = f"Manifest tool {environment} expose must be a boolean."
+        raise PipxError(msg)
 
     return _ManifestTool(
         environment=environment,
@@ -249,9 +277,11 @@ def _parse_package(environment: str, package: str) -> str:
     try:
         requirement = Requirement(package)
     except InvalidRequirement as error:
-        raise PipxError(f"Manifest tool {environment} has an invalid package requirement: {package}") from error
+        msg = f"Manifest tool {environment} has an invalid package requirement: {package}"
+        raise PipxError(msg) from error
     if requirement.marker is not None:
-        raise PipxError(f"Manifest tool {environment} cannot use an environment marker.")
+        msg = f"Manifest tool {environment} cannot use an environment marker."
+        raise PipxError(msg)
     return canonicalize_name(requirement.name)
 
 
@@ -259,18 +289,22 @@ def _parse_include_resources_from(environment: str, data: dict[str, _TomlValue])
     if not isinstance(packages := data.get("include-resources-from", []), list) or any(
         not isinstance(package, str) or not package for package in packages
     ):
-        raise PipxError(f"Manifest tool {environment} include-resources-from must be non-empty strings.")
+        msg = f"Manifest tool {environment} include-resources-from must be non-empty strings."
+        raise PipxError(msg)
     included: Final[tuple[str, ...]] = tuple(canonicalize_name(package) for package in cast("list[str]", packages))
     if len(included) != len(set(included)):
-        raise PipxError(f"Manifest tool {environment} include-resources-from must be unique.")
+        msg = f"Manifest tool {environment} include-resources-from must be unique."
+        raise PipxError(msg)
     return included
 
 
 def _parse_apps(environment: str, data: dict[str, _TomlValue]) -> tuple[str, ...]:
     if not isinstance(apps := data.get("apps", []), list) or any(not isinstance(app, str) or not app for app in apps):
-        raise PipxError(f"Manifest tool {environment} apps must be non-empty strings.")
+        msg = f"Manifest tool {environment} apps must be non-empty strings."
+        raise PipxError(msg)
     if len(apps) != len(set(apps)):
-        raise PipxError(f"Manifest tool {environment} apps must be unique.")
+        msg = f"Manifest tool {environment} apps must be unique."
+        raise PipxError(msg)
     return tuple(cast("list[str]", apps))
 
 
@@ -284,15 +318,18 @@ def _parse_lock_file(
     if (lock_value := data.get("lock")) is None:
         return None
     if not isinstance(lock_value, str):
-        raise PipxError(f"Manifest tool {environment} lock must be a path string.")
+        msg = f"Manifest tool {environment} lock must be a path string."
+        raise PipxError(msg)
     lock_file = Path(lock_value).expanduser()
     if not lock_file.is_absolute():
         lock_file = manifest_dir / lock_file
     lock_file = lock_file.resolve()
     if not _is_pylock_name(lock_file.name):
-        raise PipxError(f"Manifest tool {environment} lock must be named pylock.toml or pylock.<name>.toml.")
+        msg = f"Manifest tool {environment} lock must be named pylock.toml or pylock.<name>.toml."
+        raise PipxError(msg)
     if require_locks and not lock_file.is_file():
-        raise PipxError(f"Lock file does not exist for manifest tool {environment}: {lock_file}")
+        msg = f"Lock file does not exist for manifest tool {environment}: {lock_file}"
+        raise PipxError(msg)
     return lock_file
 
 
@@ -336,9 +373,11 @@ def _generate_locks(manifest: _Manifest, nab: str) -> list[str]:
                 check=False,
                 cwd=manifest.path.parent,
             ).returncode:
-                raise PipxError(f"nab failed to lock {tool.environment}.")
+                msg = f"nab failed to lock {tool.environment}."
+                raise PipxError(msg)
             if not generated_lock.is_file():
-                raise PipxError(f"nab did not create {generated_lock.name} for {tool.environment}.")
+                msg = f"nab did not create {generated_lock.name} for {tool.environment}."
+                raise PipxError(msg)
             generated.append((generated_lock, tool.lock_file))
 
         backups_dir = Path(temporary_dir) / ".previous"
@@ -347,7 +386,7 @@ def _generate_locks(manifest: _Manifest, nab: str) -> list[str]:
         # replacing the whole set one file at a time is not atomic, so back each target up first and, if any replacement
         # fails, roll every applied one back to leave the manifest's locks all-old rather than half-new
         applied: list[tuple[Path, Path | None]] = []
-        try:
+        try:  # noqa: PLW0717  # the whole apply loop shares one handler so a mid-run failure rolls all locks back
             for index, (generated_lock, lock_file) in enumerate(generated):
                 lock_file.parent.mkdir(parents=True, exist_ok=True)
                 backup: Path | None = None
@@ -373,6 +412,7 @@ def _prune_environments(
     venv_container: VenvContainer,
     local_bin_dir: Path,
     local_man_dir: Path,
+    *,
     verbose: bool,
 ) -> list[OutputMessage]:
     declared = {tool.environment for tool in manifest.tools}
@@ -381,7 +421,7 @@ def _prune_environments(
         if venv_dir.name in declared:
             continue
         with venv_container.venv_lock(venv_dir):
-            messages.extend(uninstall(venv_dir, local_bin_dir, local_man_dir, verbose).messages)
+            messages.extend(uninstall(venv_dir, local_bin_dir, local_man_dir, verbose=verbose).messages)
     return messages
 
 
@@ -412,9 +452,14 @@ _ROOT_KEYS: Final[frozenset[str]] = frozenset({"project", "dependency-groups", "
 _PROJECT_KEYS: Final[frozenset[str]] = frozenset({"name", "version", "dependencies", "requires-python"})
 _TOOL_TABLE_KEYS: Final[frozenset[str]] = frozenset({"pipx", "nab"})
 _PIPX_KEYS: Final[frozenset[str]] = frozenset({"version", "tools"})
-_TOOL_KEYS: Final[frozenset[str]] = frozenset(
-    {"suffix", "apps", "include-dependencies", "include-resources-from", "expose", "lock"}
-)
+_TOOL_KEYS: Final[frozenset[str]] = frozenset({
+    "suffix",
+    "apps",
+    "include-dependencies",
+    "include-resources-from",
+    "expose",
+    "lock",
+})
 
 
 @dataclass(frozen=True)

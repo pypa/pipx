@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import argparse
 import re
 import subprocess
@@ -19,7 +21,6 @@ def process_command_line(argv: list[str]) -> argparse.Namespace:
     Returns:
         argparse.Namespace: named attributes of arguments and switches
     """
-    # script_name = argv[0]
     argv = argv[1:]
 
     # initialize the parser object:
@@ -51,7 +52,7 @@ def process_command_line(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_path: Path, check_only: bool) -> int:
+def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_path: Path, *, check_only: bool) -> int:
     exit_code = 0
 
     platform_package_list_path = get_platform_list_path(package_list_dir_path)
@@ -61,44 +62,21 @@ def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_p
     packages_dir_files = list(packages_dir_path.iterdir())
 
     if not platform_package_list_path.exists():
-        print(
-            f"WARNING.  File {platform_package_list_path!s}\n    does not exist.  Creating now...",
-            file=sys.stderr,
-        )
         create_list_returncode = create_test_packages_list(
             package_list_dir_path,
             package_list_dir_path / "primary_packages.txt",
-            verbose=False,
         )
         if create_list_returncode == 0:
-            print(
-                f"File {platform_package_list_path!s}\n"
-                "    successfully created.  Please check this file in to the"
-                "    repository for future use.",
-                file=sys.stderr,
-            )
+            pass
         else:
-            print(
-                f"ERROR.  Unable to create {platform_package_list_path!s}\n    Cannot continue.\n",
-                file=sys.stderr,
-            )
             return 1
 
     try:
         platform_package_list_fh = platform_package_list_path.open("r")
     except OSError:
-        print(
-            f"ERROR.  File {platform_package_list_path!s}\n    is not readable.  Cannot continue.\n",
-            file=sys.stderr,
-        )
         return 1
     else:
         platform_package_list_fh.close()
-
-    print("Using the following file to specify needed package files:")
-    print(f"    {platform_package_list_path!s}")
-    print("Ensuring the following directory contains necessary package files:")
-    print(f"    {packages_dir_path!s}")
 
     packages_dir_hits = []
     packages_dir_missing = []
@@ -107,7 +85,6 @@ def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_p
             package_spec = line.strip()
             package_spec_re = re.search(r"^(.+)==(.+)$", package_spec)
             if not package_spec_re:
-                print(f"ERROR: CANNOT PARSE {package_spec}", file=sys.stderr)
                 exit_code = 1
                 continue
 
@@ -123,29 +100,21 @@ def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_p
                 packages_dir_files.remove(matches[0])
                 packages_dir_hits.append(matches[0])
                 continue
-            elif len(matches) > 1:
-                print(f"ERROR: more than one match for {package_spec}.", file=sys.stderr)
-                print(f"    {matches}", file=sys.stderr)
+            if len(matches) > 1:
                 exit_code = 1
                 continue
 
             packages_dir_missing.append(package_spec)
 
-    print(f"MISSING FILES: {len(packages_dir_missing)}")
-    print(f"EXISTING (found) FILES: {len(packages_dir_hits)}")
-    print(f"LEFTOVER (unused) FILES: {len(packages_dir_files)}")
-
     if check_only:
         return 0 if len(packages_dir_missing) == 0 else 1
-    else:
-        with ThreadPoolExecutor(max_workers=4) as pool:
-            futures = {pool.submit(download, pkg, packages_dir_path) for pkg in packages_dir_missing}
-            for future in as_completed(futures):
-                exit_code = future.result() or exit_code
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = {pool.submit(download, pkg, packages_dir_path) for pkg in packages_dir_missing}
+        for future in as_completed(futures):
+            exit_code = future.result() or exit_code
 
-        for unused_file in packages_dir_files:
-            print(f"Deleting {unused_file}...")
-            unused_file.unlink()
+    for unused_file in packages_dir_files:
+        unused_file.unlink()
 
     return exit_code
 
@@ -167,25 +136,22 @@ def download(package_spec: str, packages_dir_path: Path) -> int:
         check=False,
     )
     if pip_download_process.returncode == 0:
-        print(f"Successfully downloaded {package_spec}")
         return 0
 
-    print(f"ERROR downloading {package_spec}", file=sys.stderr)
-    print(pip_download_process.stdout, file=sys.stderr)
-    print(pip_download_process.stderr, file=sys.stderr)
     return 1
 
 
 def main(argv: list[str]) -> int:
     args = process_command_line(argv)
-    return update_test_packages_cache(Path(args.package_list_dir), Path(args.pipx_package_cache_dir), args.check_only)
+    return update_test_packages_cache(
+        Path(args.package_list_dir), Path(args.pipx_package_cache_dir), check_only=args.check_only
+    )
 
 
 if __name__ == "__main__":
     try:
         status = main(sys.argv)
     except KeyboardInterrupt:
-        print("Stopped by Keyboard Interrupt", file=sys.stderr)
         status = 130
 
     sys.exit(status)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import os
 import re
@@ -5,7 +7,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Final
+from typing import Final, cast
 from unittest import mock
 
 import pytest
@@ -18,7 +20,7 @@ _ROOT: Final = Path(__file__).parents[1]
 _MANPAGE_RST: Final = _ROOT / "docs" / "man" / "pipx.1.rst"
 
 
-def test_help_text(monkeypatch, capsys):
+def test_help_text(capsys: pytest.CaptureFixture[str]) -> None:
     mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
     with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
         assert not run_pipx_cli(["--help"])
@@ -26,7 +28,7 @@ def test_help_text(monkeypatch, capsys):
     assert "usage: pipx" in captured.out
 
 
-def test_help_command_text(monkeypatch, capsys):
+def test_help_command_text(capsys: pytest.CaptureFixture[str]) -> None:
     mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
     with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
         assert not run_pipx_cli(["help"])
@@ -35,7 +37,7 @@ def test_help_command_text(monkeypatch, capsys):
     assert "usage: pipx" in captured.out
 
 
-def test_help_command_for_subcommand(monkeypatch, capsys):
+def test_help_command_for_subcommand(capsys: pytest.CaptureFixture[str]) -> None:
     mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
     with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
         assert not run_pipx_cli(["help", "install"])
@@ -44,7 +46,7 @@ def test_help_command_for_subcommand(monkeypatch, capsys):
     assert "usage: pipx install" in captured.out
 
 
-def test_version(monkeypatch, capsys):
+def test_version(capsys: pytest.CaptureFixture[str]) -> None:
     mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
     with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
         assert not run_pipx_cli(["--version"])
@@ -60,25 +62,30 @@ def test_version(monkeypatch, capsys):
         ("__main__.py", "/usr/bin/python", "/usr/bin/python -m pipx"),
     ],
 )
-def test_prog_name(monkeypatch, argv, executable, expected):
+def test_prog_name(monkeypatch: pytest.MonkeyPatch, argv: str, executable: str, expected: str) -> None:
     monkeypatch.setattr("pipx.main.sys.argv", [argv])
     monkeypatch.setattr("pipx.main.sys.executable", executable)
     assert main.prog_name() == expected
 
 
-def test_limit_verbosity():
+def test_limit_verbosity() -> None:
     assert not run_pipx_cli(["list", "-qqq"])
     assert not run_pipx_cli(["list", "-vvvv"])
 
 
-def test_all_subcommands_have_func_registered():
+def test_all_subcommands_have_func_registered() -> None:
     parser, _ = main.get_command_parser()
-    subparsers_action = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
-    for name, subparser in subparsers_action.choices.items():
-        assert callable(subparser._defaults.get("func")), f"{name!r} missing callable func default"
-        for nested in (a for a in subparser._actions if isinstance(a, argparse._SubParsersAction)):
-            for sub_name, sub_parser in nested.choices.items():
-                assert callable(sub_parser._defaults.get("func")), f"{sub_name!r} missing callable func default"
+    subparsers_type = argparse._SubParsersAction  # noqa: SLF001  # argparse has no public subparser API
+    top_actions = parser._actions  # noqa: SLF001  # argparse has no public subparser API
+    subparsers_action = next(a for a in top_actions if isinstance(a, subparsers_type))
+    choices = cast("dict[str, argparse.ArgumentParser]", subparsers_action.choices)
+    for name, subparser in choices.items():
+        assert callable(subparser.get_default("func")), f"{name!r} missing callable func default"
+        nested_actions = subparser._actions  # noqa: SLF001  # argparse has no public subparser API
+        for nested in (a for a in nested_actions if isinstance(a, subparsers_type)):
+            nested_choices = cast("dict[str, argparse.ArgumentParser]", nested.choices)
+            for sub_name, sub_parser in nested_choices.items():
+                assert callable(sub_parser.get_default("func")), f"{sub_name!r} missing callable func default"
 
 
 @pytest.mark.parametrize(
@@ -136,7 +143,7 @@ def test_manpage_renders(manpage_troff: bytes, tmp_path: Path) -> None:
     manpage = tmp_path / "pipx.1"
     manpage.write_bytes(manpage_troff)
     result = subprocess.run(
-        ["man", str(manpage)],
+        ["man", str(manpage)],  # noqa: S607  # man resolves via PATH by design in this render smoke test
         capture_output=True,
         text=True,
         env=os.environ | {"COLUMNS": "200", "MANPAGER": "cat", "PAGER": "cat"},
@@ -162,7 +169,7 @@ def manpage_troff() -> bytes:
         ["inject", "ansible-core", "ansible", "--force"],
     ],
 )
-def test_inject_accepts_force_before_or_after_dependency(argv):
+def test_inject_accepts_force_before_or_after_dependency(argv: list[str]) -> None:
     parser, _ = main.get_command_parser()
 
     args = main.parse_pipx_args(parser, argv)
@@ -172,7 +179,7 @@ def test_inject_accepts_force_before_or_after_dependency(argv):
     assert args.force is True
 
 
-def test_package_is_path_ignores_existing_directory(tmp_path, monkeypatch):
+def test_package_is_path_ignores_existing_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # Regression for #1778: a directory in CWD with the same name as a
     # package should not be treated as a path.
     monkeypatch.chdir(tmp_path)
@@ -181,8 +188,8 @@ def test_package_is_path_ignores_existing_directory(tmp_path, monkeypatch):
     main.package_is_path("commit-check")
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_package_is_path_rejects_forward_slash(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert run_pipx_cli(["uninstall", "namespace/package"])
@@ -201,8 +208,13 @@ def test_package_is_path_rejects_forward_slash(
         pytest.param(None, "garbage", constants.FetchPythonOptions.NEVER, True, id="invalid-value"),
     ],
 )
-def test_compute_fetch_python(missing_raw, python_raw, expected_option, expected_invalid):
-    option, invalid = constants._compute_fetch_python(missing_raw, python_raw)
+def test_compute_fetch_python(
+    missing_raw: str | None,
+    python_raw: str | None,
+    expected_option: constants.FetchPythonOptions,
+    expected_invalid: bool,
+) -> None:
+    option, invalid = constants._compute_fetch_python(missing_raw, python_raw)  # noqa: SLF001  # no public API
     assert option is expected_option
     assert invalid is expected_invalid
 
@@ -214,30 +226,38 @@ def test_compute_fetch_python(missing_raw, python_raw, expected_option, expected
         pytest.param(False, "missing", "1", "Setting both", id="both-env-vars"),
     ],
 )
-def test_validate_fetch_python_raises(monkeypatch, invalid, fetch_python_raw, missing_raw, expected):
+def test_validate_fetch_python_raises(
+    monkeypatch: pytest.MonkeyPatch,
+    invalid: bool,
+    fetch_python_raw: str | None,
+    missing_raw: str | None,
+    expected: str,
+) -> None:
     monkeypatch.setattr(main, "_FETCH_PYTHON_INVALID", invalid)
     monkeypatch.setattr(main, "_FETCH_PYTHON_RAW", fetch_python_raw)
     monkeypatch.setattr(main, "_FETCH_MISSING_PYTHON_RAW", missing_raw)
     with pytest.raises(main.PipxError, match=expected):
-        main._validate_fetch_python()
+        main._validate_fetch_python()  # noqa: SLF001  # no public API
 
 
-def test_validate_fetch_python_deprecated_env_warning(monkeypatch, capsys):
+def test_validate_fetch_python_deprecated_env_warning(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     monkeypatch.setattr(main, "_FETCH_PYTHON_INVALID", False)
     monkeypatch.setattr(main, "_FETCH_PYTHON_RAW", None)
     monkeypatch.setattr(main, "_FETCH_MISSING_PYTHON_RAW", "1")
-    main._validate_fetch_python()
+    main._validate_fetch_python()  # noqa: SLF001  # no public API
     assert "PIPX_FETCH_MISSING_PYTHON is deprecated" in capsys.readouterr().err
 
 
-def test_validate_fetch_python_passes_when_unset(monkeypatch):
+def test_validate_fetch_python_passes_when_unset(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(main, "_FETCH_PYTHON_INVALID", False)
     monkeypatch.setattr(main, "_FETCH_PYTHON_RAW", None)
     monkeypatch.setattr(main, "_FETCH_MISSING_PYTHON_RAW", None)
-    main._validate_fetch_python()
+    main._validate_fetch_python()  # noqa: SLF001  # no public API
 
 
-def test_deprecated_fetch_missing_python_silent_under_help(capsys):
+def test_deprecated_fetch_missing_python_silent_under_help(capsys: pytest.CaptureFixture[str]) -> None:
     mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
     with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
         run_pipx_cli(["install", "--fetch-missing-python", "--help"])

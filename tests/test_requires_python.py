@@ -132,6 +132,7 @@ def test_interpreter_for_reports_a_constraint_no_release_meets() -> None:
 @pytest.fixture
 def older_python(pipx_temp_env: None, monkeypatch: pytest.MonkeyPatch) -> str:
     # pipx_temp_env strips the system directories out of PATH, and pipx looks the interpreters up there
+    del pipx_temp_env
     monkeypatch.setenv("PATH", os.environ["PATH_ORIG"])
     for minor in range(sys.version_info[1] - 1, int(MINIMUM_PYTHON_VERSION.split(".")[1]) - 1, -1):
         if (found := shutil.which(f"python3.{minor}")) is not None:
@@ -159,11 +160,9 @@ def project_excluding_this_python(tmp_path: Path) -> Path:
 
 
 @pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.usefixtures("pipx_temp_env", "older_python", "capsys")
 def test_install_moves_to_a_python_the_package_supports(
-    pipx_temp_env: None,
     project_excluding_this_python: Path,
-    older_python: str,
-    capsys: pytest.CaptureFixture[str],
     backend: str,
 ) -> None:
     if backend == "uv" and shutil.which("uv") is None:

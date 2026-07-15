@@ -1,8 +1,8 @@
+from __future__ import annotations
+
 import json
 import sys
-from collections.abc import Callable
-from pathlib import Path
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 import pytest
 
@@ -12,6 +12,10 @@ from pipx import paths
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.util import pipx_wrap
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
 
 @pytest.mark.parametrize(
     ("install_all_args", "expected_cooldown"),
@@ -20,8 +24,8 @@ from pipx.util import pipx_wrap
         pytest.param(["--cooldown", "0"], 0, id="override"),
     ],
 )
-def test_install_all(
-    pipx_temp_env: None,
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all(  # noqa: PLR0917  # pytest injects fixtures by name
     root: Path,
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -68,21 +72,22 @@ def test_install_all(
     )
 
 
-def test_install_all_multiple_errors(pipx_temp_env, root, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_multiple_errors(root: Path, capsys: pytest.CaptureFixture[str]) -> None:
     pipx_metadata_path = root / "testdata" / "pipx_metadata_multiple_errors.json"
     assert run_pipx_cli(["install-all", str(pipx_metadata_path)])
     captured = capsys.readouterr()
     assert "The following package(s) failed to install: dotenv, weblate" in captured.err
     assert f"No packages installed after running 'pipx install-all {pipx_metadata_path}'" in captured.out
     if paths.ctx.log_file:
-        with open(paths.ctx.log_file.parent / (paths.ctx.log_file.stem + "_pip_errors.log")) as log_fh:
-            log_contents = log_fh.read()
-            assert "dotenv" in log_contents
-            assert "weblate" in log_contents
+        log_path = paths.ctx.log_file.parent / (paths.ctx.log_file.stem + "_pip_errors.log")
+        log_contents = log_path.read_text(encoding="utf-8")
+        assert "dotenv" in log_contents
+        assert "weblate" in log_contents
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_install_all_reports_injected_failure(
-    pipx_temp_env: None,
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:

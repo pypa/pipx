@@ -21,7 +21,7 @@ class Backend(ABC):
     name: str
 
     @abstractmethod
-    def create_venv(
+    def create_venv(  # noqa: PLR0913  # backend contract mirrors the venv-creation CLI inputs
         self,
         root: Path,
         *,
@@ -33,7 +33,7 @@ class Backend(ABC):
     ) -> None: ...
 
     @abstractmethod
-    def install(
+    def install(  # noqa: PLR0913  # install flags map one-to-one onto backend CLI options
         self,
         *,
         venv_root: Path,
@@ -47,7 +47,7 @@ class Backend(ABC):
         progress: bool = False,
     ) -> CompletedProcess[str]: ...
 
-    def install_lock(
+    def install_lock(  # noqa: PLR0913  # forwards install inputs to install()
         self,
         *,
         venv_root: Path,
@@ -99,7 +99,7 @@ class Backend(ABC):
     ) -> tuple[OutdatedPackage, ...]: ...
 
     @abstractmethod
-    def run_raw_pip(
+    def run_raw_pip(  # noqa: PLR0913  # passes raw pip invocation controls through
         self,
         *,
         venv_root: Path,
@@ -125,8 +125,9 @@ class Backend(ABC):
 
 def outdated_packages_from_process(process: CompletedProcess[str]) -> tuple[OutdatedPackage, ...]:
     if process.returncode:
+        msg = f"Package backend exited with code {process.returncode}.\nstderr: {process.stderr}"
         raise PipxError(
-            f"Package backend exited with code {process.returncode}.\nstderr: {process.stderr}",
+            msg,
             wrap_message=False,
         )
     return _parse_outdated_packages(process.stdout)
@@ -139,7 +140,8 @@ def _parse_outdated_packages(output: str) -> tuple[OutdatedPackage, ...]:
             for entry in cast("list[_OutdatedEntry]", json.loads(output))
         )
     except (json.JSONDecodeError, KeyError, TypeError) as error:
-        raise PipxError("Package backend returned invalid JSON for an outdated query.", wrap_message=False) from error
+        msg = "Package backend returned invalid JSON for an outdated query."
+        raise PipxError(msg, wrap_message=False) from error
 
 
 @dataclass(frozen=True)

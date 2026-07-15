@@ -1,6 +1,11 @@
+from __future__ import annotations
+
 import platform
 import sys
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 PYTHON_VERSION_STR = f"{sys.version_info[0]}.{sys.version_info[1]}"
 

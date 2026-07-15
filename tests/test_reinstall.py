@@ -1,32 +1,33 @@
+from __future__ import annotations
+
 import json
 import subprocess
 import sys
-from collections.abc import Callable
 from dataclasses import replace
-from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 import pytest
-from _pytest.capture import CaptureResult
-from pytest_mock import MockerFixture
 
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, app_name, mock_legacy_venv, run_pipx_cli, skip_if_windows
 from pipx import paths, util, venv_inspect
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
     from _pytest.capture import CaptureResult
-
-if True:
-    pass
+    from pytest_mock import MockerFixture
 
 
-def test_reinstall(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall() -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
 
-def test_reinstall_inline_script(pipx_temp_env: None, inline_script: Path) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_inline_script(inline_script: Path) -> None:
     assert not run_pipx_cli(["install", str(inline_script)])
     inline_script.write_text(
         inline_script.read_text(encoding="utf-8").replace("installed", "reinstalled"),
@@ -44,8 +45,8 @@ def test_reinstall_inline_script(pipx_temp_env: None, inline_script: Path) -> No
     assert process.stdout == "reinstalled\n"
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_preserves_cooldowns(
-    pipx_temp_env: None,
     root: Path,
     empty_project: Path,
     caplog: pytest.LogCaptureFixture,
@@ -69,8 +70,8 @@ def test_reinstall_preserves_cooldowns(
     ) == (True, True, 7, 5)
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_pylock_restores_source_after_build_failure(
-    pipx_temp_env: None,
     make_pylock: Callable[[str, str], Path],
     make_project_with_dependency: Callable[[str], Path],
     capsys: pytest.CaptureFixture[str],
@@ -97,25 +98,29 @@ def test_reinstall_pylock_restores_source_after_build_failure(
 
 
 @skip_if_windows
-def test_reinstall_global(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_global() -> None:
     assert not run_pipx_cli(["install", "--global", "pycowsay"])
     assert not run_pipx_cli(["reinstall", "--global", "--python", sys.executable, "pycowsay"])
 
 
-def test_reinstall_nonexistent(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_nonexistent(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["reinstall", "--python", sys.executable, "nonexistent"])
     assert "Nothing to reinstall for nonexistent" in capsys.readouterr().out
 
 
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
-def test_reinstall_legacy_venv(pipx_temp_env, capsys, metadata_version):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_legacy_venv(metadata_version: str | None) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
 
 
-def test_reinstall_legacy_venv_inspects_once_for_resources(pipx_temp_env: None, mocker: MockerFixture) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_legacy_venv_inspects_once_for_resources(mocker: MockerFixture) -> None:
     assert run_pipx_cli(["install", "pycowsay"]) == 0
     executable_path = paths.ctx.bin_dir / app_name("pycowsay")
     mock_legacy_venv("pycowsay")
@@ -127,7 +132,8 @@ def test_reinstall_legacy_venv_inspects_once_for_resources(pipx_temp_env: None, 
     assert run_subprocess.call_count == 2
 
 
-def test_reinstall_suffix(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_suffix() -> None:
     suffix = "_x"
     assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
 
@@ -135,7 +141,8 @@ def test_reinstall_suffix(pipx_temp_env, capsys):
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])
-def test_reinstall_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_suffix_legacy_venv(metadata_version: str) -> None:
     suffix = "_x"
     assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
     mock_legacy_venv(f"pycowsay{suffix}", metadata_version=metadata_version)
@@ -143,7 +150,8 @@ def test_reinstall_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, f"pycowsay{suffix}"])
 
 
-def test_reinstall_specifier(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_specifier(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pylint==3.0.4"])
 
     # clear capsys before reinstall
@@ -154,7 +162,8 @@ def test_reinstall_specifier(pipx_temp_env, capsys):
     assert "installed package pylint 3.0.4" in captured.out
 
 
-def test_reinstall_preserves_included_dependency(pipx_temp_env: None, local_extras_project: Path) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_preserves_included_dependency(local_extras_project: Path) -> None:
     package: Final[str] = f"{local_extras_project}[tools]"
     assert not run_pipx_cli(["install", package, "--include-resources-from", "pycowsay"])
 
@@ -169,7 +178,8 @@ def test_reinstall_preserves_included_dependency(pipx_temp_env: None, local_extr
 
 
 @skip_if_windows
-def test_reinstall_removes_stale_apps_after_success(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_removes_stale_apps_after_success(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
 
@@ -196,7 +206,8 @@ def test_reinstall_removes_stale_apps_after_success(pipx_temp_env, capsys):
     assert not stale_exposed_path.is_symlink()
 
 
-def test_reinstall_with_path(pipx_temp_env, capsys, tmp_path):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_with_path(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
     path = tmp_path / "some" / "path"
 
     assert run_pipx_cli(["reinstall", str(path)])
@@ -210,7 +221,8 @@ def test_reinstall_with_path(pipx_temp_env, capsys, tmp_path):
     assert "Expected the name of an installed package" in captured.err.replace("\n", " ")
 
 
-def test_reinstall_pinned_package(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_pinned_package(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "black"])
     assert not run_pipx_cli(["pin", "black"])
     assert run_pipx_cli(["reinstall", "black"])
@@ -223,7 +235,8 @@ def test_reinstall_pinned_package(pipx_temp_env, capsys):
     assert "installed package black" in captured.out
 
 
-def test_reinstall_all_quiet_says_nothing(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_all_quiet_says_nothing(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
 
@@ -233,10 +246,8 @@ def test_reinstall_all_quiet_says_nothing(pipx_temp_env: None, capsys: pytest.Ca
     assert (captured.out, captured.err) == ("", "")
 
 
-def test_reinstall_all_json_reports_the_environments(
-    pipx_temp_env: None,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_all_json_reports_the_environments(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
 
@@ -252,20 +263,16 @@ def test_reinstall_all_json_reports_the_environments(
     }
 
 
-def test_reinstall_json_reports_a_missing_environment(
-    pipx_temp_env: None,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_json_reports_a_missing_environment(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["reinstall", "--python", sys.executable, "--output", "json", "missing"])
 
     payload: Final[dict[str, object]] = json.loads(capsys.readouterr().out)
     assert payload["status"] == "error"
 
 
-def test_reinstall_all_json_reports_no_environments(
-    pipx_temp_env: None,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_all_json_reports_no_environments(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["reinstall-all", "--python", sys.executable, "--output", "json"])
 
     assert json.loads(capsys.readouterr().out)["data"] == {"environments": []}

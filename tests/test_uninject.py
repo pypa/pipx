@@ -19,7 +19,8 @@ if TYPE_CHECKING:
     from _pytest.capture import CaptureResult
 
 
-def test_uninject_json(installed_pycowsay: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_uninject_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
     capsys.readouterr()
 
@@ -50,10 +51,8 @@ def test_uninject_json(installed_pycowsay: None, capsys: pytest.CaptureFixture[s
     )
 
 
-def test_uninject_json_reports_unknown_package(
-    installed_pycowsay: None,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_uninject_json_reports_unknown_package(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["uninject", "--output", "json", "pycowsay", "missing"])
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
@@ -77,10 +76,8 @@ def test_uninject_json_reports_unknown_package(
     )
 
 
-def test_uninject_json_reports_missing_environment(
-    pipx_temp_env: None,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_json_reports_missing_environment(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["uninject", "--output", "json", "missing", "black"])
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
@@ -104,10 +101,8 @@ def test_uninject_json_reports_missing_environment(
     )
 
 
-def test_uninject_json_reports_missing_metadata(
-    installed_pycowsay: None,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_uninject_json_reports_missing_metadata(capsys: pytest.CaptureFixture[str]) -> None:
     mock_legacy_venv("pycowsay")
 
     assert run_pipx_cli(["uninject", "--output", "json", "pycowsay", "black"])
@@ -140,10 +135,8 @@ def test_uninject_json_reports_missing_metadata(
     )
 
 
-def test_uninject_json_reports_main_package(
-    installed_pycowsay: None,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_uninject_json_reports_main_package(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["uninject", "--output", "json", "pycowsay", "pycowsay"])
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
@@ -173,7 +166,8 @@ def test_uninject_json_reports_main_package(
     )
 
 
-def test_uninject_quiet(installed_pycowsay: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_uninject_quiet(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["inject", "pycowsay", "black"])
     capsys.readouterr()
 
@@ -184,6 +178,7 @@ def test_uninject_quiet(installed_pycowsay: None, capsys: pytest.CaptureFixture[
 
 @pytest.fixture
 def installed_pycowsay(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+    del pipx_temp_env
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
 
@@ -192,7 +187,8 @@ def file_or_symlink(filepath: Path) -> bool:
     return filepath.exists() or filepath.is_symlink()
 
 
-def test_uninject_simple(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_simple(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
     assert not run_pipx_cli(["uninject", "pycowsay", "black"])
@@ -204,7 +200,8 @@ def test_uninject_simple(pipx_temp_env, capsys):
 
 
 @skip_if_windows
-def test_uninject_simple_global(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_simple_global(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "--global", "pycowsay"])
     assert not run_pipx_cli(["inject", "--global", "pycowsay", PKG["black"]["spec"]])
     assert not run_pipx_cli(["uninject", "--global", "pycowsay", "black"])
@@ -215,7 +212,8 @@ def test_uninject_simple_global(pipx_temp_env, capsys):
     assert "black" not in captured.out
 
 
-def test_uninject_with_include_apps(pipx_temp_env, capsys, caplog):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_with_include_apps(caplog: pytest.LogCaptureFixture) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--include-deps", "--include-apps"])
     assert not run_pipx_cli(["uninject", "pycowsay", "black", "--verbose"])
@@ -223,7 +221,8 @@ def test_uninject_with_include_apps(pipx_temp_env, capsys, caplog):
 
 
 @pytest.mark.skipif(not WINDOWS, reason="Windows-specific test")
-def test_uninject_running_app(pipx_temp_env: None) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_running_app() -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--include-apps"])
     app = paths.ctx.bin_dir / app_name("black")
@@ -243,8 +242,8 @@ def test_uninject_running_app(pipx_temp_env: None) -> None:
         process.wait(timeout=10)
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_uninject_with_suffix_removes_apps(
-    pipx_temp_env: None,
     root: Path,
     tmp_path: Path,
     local_extras_project: Path,
@@ -256,22 +255,21 @@ def test_uninject_with_suffix_removes_apps(
         ignore=shutil.ignore_patterns("build", "*.egg-info"),
     )
     assert not run_pipx_cli(["install", str(project), f"--suffix={suffix}"])
-    assert not run_pipx_cli(
-        [
-            "inject",
-            f"empty-project{suffix}",
-            f"{local_extras_project}[cow]",
-            "--include-deps",
-            "--with-suffix",
-        ]
-    )
+    assert not run_pipx_cli([
+        "inject",
+        f"empty-project{suffix}",
+        f"{local_extras_project}[cow]",
+        "--include-deps",
+        "--with-suffix",
+    ])
     app_paths = {paths.ctx.bin_dir / app_name(f"{app}{suffix}") for app in ("pycowsay", "repeatme")}
     assert all(file_or_symlink(path) for path in app_paths)
     assert not run_pipx_cli(["uninject", f"empty-project{suffix}", f"repeatme{suffix}"])
     assert not any(file_or_symlink(path) for path in app_paths)
 
 
-def test_uninject_man_page(pipx_temp_env):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_man_page() -> None:
     # Regression: uninject must remove the injected package's man page symlinks,
     # not only its app symlinks. pycowsay ships man6/pycowsay.6.
     man_page_paths = [paths.ctx.man_dir / man_page for man_page in PKG["pycowsay"]["man_pages"]]
@@ -284,7 +282,11 @@ def test_uninject_man_page(pipx_temp_env):
         assert not file_or_symlink(man_page_path)
 
 
-def test_uninject_removes_dependency_app_symlinks(pipx_temp_env, capsys, caplog):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_removes_dependency_app_symlinks(
+    capsys: pytest.CaptureFixture[str],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", PKG["pylint"]["spec"], "--include-deps", "--include-apps"])
     captured = capsys.readouterr()
@@ -294,8 +296,8 @@ def test_uninject_removes_dependency_app_symlinks(pipx_temp_env, capsys, caplog)
     assert "isort" in caplog.text
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_uninject_removes_selected_dependency_resources(
-    pipx_temp_env: None,
     local_extras_project: Path,
     empty_project: Path,
 ) -> None:
@@ -314,7 +316,11 @@ def test_uninject_removes_selected_dependency_resources(
     assert not any(file_or_symlink(path) for path in exposed_paths)
 
 
-def test_uninject_leave_deps(pipx_temp_env, capsys, caplog):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_leave_deps(
+    capsys: pytest.CaptureFixture[str],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
     assert not run_pipx_cli(["uninject", "pycowsay", "black", "--leave-deps", "--verbose"])
@@ -323,7 +329,8 @@ def test_uninject_leave_deps(pipx_temp_env, capsys, caplog):
     assert "Dependencies of uninstalled package:" not in caplog.text
 
 
-def test_uninject_preserves_shared_deps(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_preserves_shared_deps(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
     assert not run_pipx_cli(["inject", "pycowsay", PKG["pylint"]["spec"]])

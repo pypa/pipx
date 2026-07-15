@@ -39,6 +39,7 @@ def uninstall_all(
     venv_container: VenvContainer,
     local_bin_dir: Path,
     local_man_dir: Path,
+    *,
     verbose: bool,
 ) -> OperationResult[UninstallData]:
     errors: list[OperationError] = []
@@ -46,7 +47,7 @@ def uninstall_all(
     packages: list[_UninstalledPackage] = []
     for venv_dir in venv_container.iter_venv_dirs():
         with venv_container.venv_lock(venv_dir):
-            result = uninstall(venv_dir, local_bin_dir, local_man_dir, verbose)
+            result = uninstall(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
         errors.extend(result.errors)
         messages.extend(result.messages)
         packages.extend(result.data.packages)
@@ -67,6 +68,7 @@ def uninstall(
     venv_dir: Path,
     local_bin_dir: Path,
     local_man_dir: Path,
+    *,
     verbose: bool,
 ) -> OperationResult[UninstallData]:
     if not venv_dir.exists():
@@ -103,12 +105,7 @@ def uninstall(
         )
 
     for path in resource_paths:
-        try:
-            safe_unlink(path)
-        except FileNotFoundError:
-            _LOGGER.info("pipx did not find resource %s", path)
-        else:
-            _LOGGER.info("pipx removed resource %s", path)
+        _remove_resource(path)
 
     package_info = next(
         (package_info for package_info in package_infos or () if package_info.package == venv.main_package_name),
@@ -126,6 +123,15 @@ def uninstall(
         data=UninstallData(packages=(package,)),
         messages=(OutputMessage(f"uninstalled {venv.name}! {stars}"),),
     )
+
+
+def _remove_resource(path: Path) -> None:
+    try:
+        safe_unlink(path)
+    except FileNotFoundError:
+        _LOGGER.info("pipx did not find resource %s", path)
+    else:
+        _LOGGER.info("pipx removed resource %s", path)
 
 
 @dataclass(frozen=True)
@@ -150,11 +156,12 @@ def _get_venv_package_infos(venv: Venv) -> tuple[PackageInfo, ...] | None:
     return (_venv_metadata_to_package_info(venv_metadata, venv.root.name),)
 
 
-def _venv_metadata_to_package_info(
+def _venv_metadata_to_package_info(  # noqa: PLR0913  # builds a PackageInfo field-for-field from venv metadata
     venv_metadata: VenvMetadata,
     package_name: str,
     package_or_url: str = "",
     pip_args: list[str] | None = None,
+    *,
     include_apps: bool = True,
     include_dependencies: bool = False,
     suffix: str = "",

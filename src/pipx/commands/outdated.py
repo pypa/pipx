@@ -65,7 +65,7 @@ def list_outdated(
     )
 
 
-def inspect_outdated(
+def inspect_outdated(  # noqa: PLR0913  # forwards the full outdated-check context down the parallel fan-out
     venv_container: VenvContainer,
     *,
     include_injected: bool,
@@ -118,7 +118,7 @@ def inspect_outdated(
     )
 
 
-def _list_environments_outdated(
+def _list_environments_outdated(  # noqa: PLR0913  # forwards the shared outdated-check context to each worker
     venv_container: VenvContainer,
     venv_dirs: tuple[Path, ...],
     *,
@@ -145,7 +145,7 @@ def _list_environments_outdated(
         return tuple(executor.map(check, venv_dirs))
 
 
-def _list_environment_outdated(
+def _list_environment_outdated(  # noqa: PLR0913  # forwards the shared outdated-check context for one venv
     venv_container: VenvContainer,
     venv_dir: Path,
     *,
@@ -200,27 +200,39 @@ def _list_venv_outdated(
             ] = package_info
 
     for index_args, package_infos in packages_by_index.items():
-        try:
-            for package in venv.list_outdated_packages(list(index_args)):
-                if (managed_package := package_infos.get(canonicalize_name(package.name))) is not None:
-                    packages.append(
-                        _OutdatedPackage(
-                            environment=venv.name,
-                            package=f"{managed_package.package}{managed_package.suffix}",
-                            version=package.version,
-                            latest_version=package.latest_version,
-                            injected=managed_package.package != venv.main_package_name,
-                            pinned=managed_package.pinned,
-                        )
-                    )
-        except PipxError as error:
-            failures.append(_FailedEnvironment(venv.name, str(error)))
+        index_packages, index_failures = _collect_outdated(venv, index_args, package_infos)
+        packages.extend(index_packages)
+        failures.extend(index_failures)
     return _EnvironmentOutdated(
         sum(len(package_infos) for package_infos in packages_by_index.values()),
         tuple(packages),
         tuple(skipped),
         tuple(failures),
     )
+
+
+def _collect_outdated(
+    venv: Venv,
+    index_args: tuple[str, ...],
+    package_infos: dict[str, PackageInfo],
+) -> tuple[list[_OutdatedPackage], list[_FailedEnvironment]]:
+    try:
+        outdated = list(venv.list_outdated_packages(list(index_args)))
+    except PipxError as error:
+        return [], [_FailedEnvironment(venv.name, str(error))]
+    packages = [
+        _OutdatedPackage(
+            environment=venv.name,
+            package=f"{managed_package.package}{managed_package.suffix}",
+            version=package.version,
+            latest_version=package.latest_version,
+            injected=managed_package.package != venv.main_package_name,
+            pinned=managed_package.pinned,
+        )
+        for package in outdated
+        if (managed_package := package_infos.get(canonicalize_name(package.name))) is not None
+    ]
+    return packages, []
 
 
 def _package_message(package: _OutdatedPackage) -> OutputMessage:

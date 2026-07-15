@@ -1,24 +1,31 @@
+from __future__ import annotations
+
 import importlib
 import json
 import shutil
 import subprocess
 import sys
-from pathlib import Path
-from types import ModuleType
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 import pytest
-from pytest import CaptureFixture
-from pytest_mock import MockerFixture
 
 from helpers import remove_venv_interpreter, run_pipx_cli
 from pipx import paths, util
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from types import ModuleType
+
+    from pytest_mock import MockerFixture
 
 _HEALTH_MODULE: Final[ModuleType] = importlib.import_module("pipx.commands.health")
 
 
 @pytest.fixture
-def installed_pycowsay(pipx_temp_env: None, capsys: CaptureFixture[str]) -> Path:
+def installed_pycowsay(
+    pipx_temp_env: None,  # noqa: ARG001  # required so the temp env is active while pycowsay is installed
+    capsys: pytest.CaptureFixture[str],
+) -> Path:
     assert run_pipx_cli(["install", "pycowsay"]) == 0
     capsys.readouterr()
     return paths.ctx.venvs / "pycowsay"
@@ -31,9 +38,9 @@ def installed_pycowsay(pipx_temp_env: None, capsys: CaptureFixture[str]) -> Path
         pytest.param("repair", "pipx found no environments to repair.\n", id="repair"),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_environment_maintenance_no_packages(
-    pipx_temp_env: None,
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
     command: str,
     message: str,
 ) -> None:
@@ -42,7 +49,7 @@ def test_environment_maintenance_no_packages(
     assert capsys.readouterr().out == message
 
 
-def test_health_json(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> None:
+def test_health_json(installed_pycowsay: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["health", "pycowsay", "--output", "json"]) == 0
 
     assert json.loads(capsys.readouterr().out) == {
@@ -64,14 +71,16 @@ def test_health_json(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> N
     }
 
 
-def test_health_deduplicates_repeated_package(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_health_deduplicates_repeated_package(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["health", "pycowsay", "PyCowSay", "--output", "json"]) == 0
 
     environments = json.loads(capsys.readouterr().out)["data"]["environments"]
     assert [environment["environment"] for environment in environments] == ["pycowsay"]
 
 
-def test_repair_json(pipx_temp_env: None, capsys: CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_repair_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["repair", "--output", "json"]) == 0
 
     assert json.loads(capsys.readouterr().out) == {
@@ -84,7 +93,7 @@ def test_repair_json(pipx_temp_env: None, capsys: CaptureFixture[str]) -> None:
     }
 
 
-def test_health_reports_broken_interpreter(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> None:
+def test_health_reports_broken_interpreter(installed_pycowsay: Path, capsys: pytest.CaptureFixture[str]) -> None:
     remove_venv_interpreter("pycowsay")
 
     assert run_pipx_cli(["health"]) == 1
@@ -107,7 +116,7 @@ def test_health_reports_broken_interpreter(installed_pycowsay: Path, capsys: Cap
 )
 def test_health_reports_interpreter_failure(
     installed_pycowsay: Path,
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
     mocker: MockerFixture,
     failure: subprocess.CompletedProcess[str] | OSError,
     error: str,
@@ -129,9 +138,9 @@ def test_health_reports_interpreter_failure(
         pytest.param("repair", ("", "missing: pipx does not manage this environment\n"), id="repair"),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_environment_maintenance_reports_unmanaged_package(
-    pipx_temp_env: None,
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
     command: str,
     output: tuple[str, str],
 ) -> None:
@@ -141,7 +150,8 @@ def test_environment_maintenance_reports_unmanaged_package(
     assert (captured.out, captured.err) == output
 
 
-def test_repair_rebuilds_broken_interpreter(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_repair_rebuilds_broken_interpreter(capsys: pytest.CaptureFixture[str]) -> None:
     remove_venv_interpreter("pycowsay")
 
     assert run_pipx_cli(["repair", "--python", sys.executable]) == 0
@@ -152,7 +162,8 @@ def test_repair_rebuilds_broken_interpreter(installed_pycowsay: Path, capsys: Ca
 
 
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv is not on PATH")
-def test_repair_preserves_uv_backend(pipx_temp_env: None, capsys: CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_repair_preserves_uv_backend(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "--backend", "uv", "--python", sys.executable, "pycowsay"]) == 0
     remove_venv_interpreter("pycowsay")
     capsys.readouterr()
@@ -164,13 +175,15 @@ def test_repair_preserves_uv_backend(pipx_temp_env: None, capsys: CaptureFixture
     assert json.loads(capsys.readouterr().out)["venvs"]["pycowsay"]["metadata"]["backend"] == "uv"
 
 
-def test_repair_skips_healthy_interpreter(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_repair_skips_healthy_interpreter(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["repair", "pycowsay"]) == 0
 
     assert capsys.readouterr().out == "pycowsay: healthy\n"
 
 
-def test_repair_respects_pin(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_repair_respects_pin(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["pin", "pycowsay"]) == 0
     remove_venv_interpreter("pycowsay")
     capsys.readouterr()
@@ -180,9 +193,9 @@ def test_repair_respects_pin(installed_pycowsay: Path, capsys: CaptureFixture[st
     assert "is pinned. Run `pipx unpin pycowsay` to unpin it first." in capsys.readouterr().err.replace("\n", " ")
 
 
+@pytest.mark.usefixtures("installed_pycowsay")
 def test_repair_verifies_rebuilt_interpreter(
-    installed_pycowsay: Path,
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
     mocker: MockerFixture,
 ) -> None:
     remove_venv_interpreter("pycowsay")
@@ -199,7 +212,8 @@ def test_repair_verifies_rebuilt_interpreter(
     assert "pycowsay: interpreter exited with status 7" in capsys.readouterr().err
 
 
-def test_repair_json_stays_pure_when_it_reinstalls(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_repair_json_stays_pure_when_it_reinstalls(capsys: pytest.CaptureFixture[str]) -> None:
     remove_venv_interpreter("pycowsay")
 
     assert not run_pipx_cli(["repair", "--python", sys.executable, "--output", "json"])
