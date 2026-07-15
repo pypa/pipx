@@ -1168,7 +1168,7 @@ def test_install_inline_script_url_error(
     assert run_pipx_cli(["install", "--output", "json", "https://example.invalid/hello.py"])
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
-    failure: Final[str] = json.loads(captured.out)["data"]["failures"][0]["error"]
+    failure: Final[str] = json.loads(captured.out)["errors"][0]["message"]
     assert ("Unable to read script" in " ".join(failure.split()), (paths.ctx.venvs / "hello").exists()) == (
         True,
         False,
@@ -1186,7 +1186,7 @@ def test_install_inline_script_rolls_back_without_metadata(
     assert run_pipx_cli(["install", "--output", "json", str(script)])
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
-    failure: Final[str] = json.loads(captured.out)["data"]["failures"][0]["error"]
+    failure: Final[str] = json.loads(captured.out)["errors"][0]["message"]
     assert ("has no PEP 723" in " ".join(failure.split()), (paths.ctx.venvs / "plain").exists()) == (True, False)
 
 
@@ -1201,7 +1201,7 @@ def test_install_inline_script_rolls_back_obsolete_metadata(
     assert run_pipx_cli(["install", "--output", "json", str(script)])
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
-    failure: Final[str] = json.loads(captured.out)["data"]["failures"][0]["error"]
+    failure: Final[str] = json.loads(captured.out)["errors"][0]["message"]
     assert ("obsolete" in failure, (paths.ctx.venvs / "obsolete").exists()) == (True, False)
 
 
