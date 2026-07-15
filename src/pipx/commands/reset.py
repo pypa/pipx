@@ -32,7 +32,7 @@ def reset(
     targets: Final[tuple[Path, ...]] = _reset_targets()
     if dry_run:
         return OperationResult(
-            command="reset",
+            command=("reset",),
             data=ResetData(
                 packages=tuple(sorted(venv_dir.name for venv_dir in venv_container.iter_venv_dirs())),
                 removed=tuple(str(target) for target in targets),
@@ -46,7 +46,7 @@ def reset(
     )
     removed: Final[tuple[str, ...]] = tuple(str(target) for target in targets if _remove(target))
     return OperationResult(
-        command="reset",
+        command=("reset",),
         data=ResetData(
             packages=tuple(package.environment for package in uninstalled.data.packages),
             removed=removed,

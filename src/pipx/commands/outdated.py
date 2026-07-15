@@ -9,7 +9,7 @@ from packaging.utils import canonicalize_name
 
 from pipx.constants import ExitCode
 from pipx.package_specifier import extract_index_options, valid_pypi_name
-from pipx.result import OperationData, OperationResult, OutputLevel, OutputMessage, OutputStream
+from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import PipxError
 from pipx.venv import Venv, VenvContainer
 
@@ -51,10 +51,17 @@ def list_outdated(
             )
         )
     return OperationResult(
-        command="list",
+        command=("list",),
         data=data,
         messages=tuple(messages),
         exit_code=ExitCode(1 if data.failures else 0),
+        errors=tuple(
+            OperationError(
+                code="environment_outdated_check_failed", message=failure.error, environment=failure.environment
+            )
+            for failure in data.failures
+        ),
+        succeeded=bool(data.packages),
     )
 
 
@@ -258,6 +265,12 @@ class _EnvironmentOutdated:
 
 @dataclass(frozen=True)
 class OutdatedData(OperationData):
+    def to_dict(self) -> dict[str, object]:
+        # failures are surfaced as top-level envelope errors; upgrade still reads this field internally
+        data = super().to_dict()
+        data.pop("failures", None)
+        return data
+
     packages_checked: int
     packages: tuple[_OutdatedPackage, ...]
     skipped: tuple[_SkippedPackage, ...]

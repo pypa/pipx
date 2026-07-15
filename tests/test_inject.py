@@ -30,9 +30,8 @@ def test_inject_json(installed_pycowsay: None, capsys: pytest.CaptureFixture[str
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
-            "command": "inject",
+            "command": ["inject"],
             "data": {
-                "failures": [],
                 "packages": [
                     {
                         "environment": "pycowsay",
@@ -44,7 +43,9 @@ def test_inject_json(installed_pycowsay: None, capsys: pytest.CaptureFixture[str
                 ],
                 "skipped": [],
             },
-            "pipx_result_version": "0.1",
+            "pipx_result_version": "1",
+            "errors": [],
+            "exit_code": 0,
             "status": "success",
         },
         "",
@@ -65,19 +66,18 @@ def test_inject_json_reports_locked_environment(
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
-            "command": "inject",
-            "data": {
-                "failures": [
-                    {
-                        "environment": "pycowsay",
-                        "error": f"Cannot inject into locked environment pycowsay. Update {lock_file} and run `pipx reinstall pycowsay`.",
-                        "package": "black",
-                    }
-                ],
-                "packages": [],
-                "skipped": [],
-            },
-            "pipx_result_version": "0.1",
+            "command": ["inject"],
+            "data": {"packages": [], "skipped": []},
+            "errors": [
+                {
+                    "code": "package_inject_failed",
+                    "environment": "pycowsay",
+                    "message": f"Cannot inject into locked environment pycowsay. Update {lock_file} and run `pipx reinstall pycowsay`.",
+                    "package": "black",
+                }
+            ],
+            "exit_code": 1,
+            "pipx_result_version": "1",
             "status": "error",
         },
         "",
@@ -96,9 +96,8 @@ def test_inject_json_reports_already_installed(
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
-            "command": "inject",
+            "command": ["inject"],
             "data": {
-                "failures": [],
                 "packages": [],
                 "skipped": [
                     {
@@ -108,7 +107,9 @@ def test_inject_json_reports_already_installed(
                     }
                 ],
             },
-            "pipx_result_version": "0.1",
+            "pipx_result_version": "1",
+            "errors": [],
+            "exit_code": 0,
             "status": "success",
         },
         "",
@@ -131,15 +132,8 @@ def test_inject_json_reports_partial_failure(
     ) == (
         "",
         {
-            "command": "inject",
+            "command": ["inject"],
             "data": {
-                "failures": [
-                    {
-                        "environment": "pycowsay",
-                        "error": f"Unable to parse package spec: {missing_project}",
-                        "package": str(missing_project),
-                    }
-                ],
                 "packages": [
                     {
                         "environment": "pycowsay",
@@ -151,8 +145,17 @@ def test_inject_json_reports_partial_failure(
                 ],
                 "skipped": [],
             },
-            "pipx_result_version": "0.1",
-            "status": "error",
+            "errors": [
+                {
+                    "code": "package_inject_failed",
+                    "environment": "pycowsay",
+                    "message": f"Unable to parse package spec: {missing_project}",
+                    "package": str(missing_project),
+                }
+            ],
+            "exit_code": 1,
+            "pipx_result_version": "1",
+            "status": "partial",
         },
     )
 
@@ -166,19 +169,18 @@ def test_inject_json_reports_no_packages(
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
-            "command": "inject",
-            "data": {
-                "failures": [
-                    {
-                        "environment": "pycowsay",
-                        "error": "No packages have been specified.",
-                        "package": None,
-                    }
-                ],
-                "packages": [],
-                "skipped": [],
-            },
-            "pipx_result_version": "0.1",
+            "command": ["inject"],
+            "data": {"packages": [], "skipped": []},
+            "errors": [
+                {
+                    "code": "package_inject_failed",
+                    "environment": "pycowsay",
+                    "message": "No packages have been specified.",
+                    "package": None,
+                }
+            ],
+            "exit_code": 1,
+            "pipx_result_version": "1",
             "status": "error",
         },
         "",

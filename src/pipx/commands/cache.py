@@ -21,7 +21,7 @@ class CacheData(OperationData):
 def print_cache_dir(venv_container: VenvContainer) -> OperationResult[CacheData]:
     directory: Final[str] = str(venv_container)
     return OperationResult(
-        command="cache-dir",
+        command=("cache", "dir"),
         data=CacheData(directory=directory, removed=()),
         messages=(OutputMessage(directory),),
     )
@@ -35,7 +35,7 @@ def purge_cache(venv_container: VenvContainer) -> OperationResult[CacheData]:
         removed.append(venv_dir.name)
     noun: Final[str] = "environment" if len(removed) == 1 else "environments"
     return OperationResult(
-        command="cache-purge",
+        command=("cache", "purge"),
         data=CacheData(directory=str(venv_container), removed=tuple(removed)),
         messages=(OutputMessage(f"Removed {len(removed)} cached {noun}."),),
     )

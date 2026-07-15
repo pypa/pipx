@@ -8,7 +8,7 @@ from pipx import paths
 from pipx.commands.common import expose_package_resources
 from pipx.commands.uninstall import _get_venv_resource_paths
 from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, ExitCode
-from pipx.result import OperationData, OperationResult, OutputLevel, OutputMessage, OutputStream
+from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import safe_unlink
 from pipx.venv import Venv
 
@@ -32,7 +32,7 @@ def _set_exposure(
     *,
     enabled: bool,
 ) -> OperationResult[ExposureData]:
-    command = "expose" if enabled else "unexpose"
+    command = ("expose",) if enabled else ("unexpose",)
     if not venv_dir.is_dir():
         return _failure(command, venv_dir.name, f"pipx does not manage package {venv_dir.name}")
 
@@ -76,20 +76,23 @@ def _remove_resources(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> N
         safe_unlink(resource_path)
 
 
-def _success(command: str, environment: str, status: _ExposureStatus, message: str) -> OperationResult[ExposureData]:
+def _success(
+    command: tuple[str, ...], environment: str, status: _ExposureStatus, message: str
+) -> OperationResult[ExposureData]:
     return OperationResult(
         command=command,
-        data=ExposureData(environments=(_EnvironmentExposure(environment, status),), failures=()),
+        data=ExposureData(environments=(_EnvironmentExposure(environment, status),)),
         messages=(OutputMessage(message),),
     )
 
 
-def _failure(command: str, environment: str, error: str) -> OperationResult[ExposureData]:
+def _failure(command: tuple[str, ...], environment: str, error: str) -> OperationResult[ExposureData]:
     return OperationResult(
         command=command,
-        data=ExposureData(environments=(), failures=(_FailedExposure(environment, error),)),
+        data=ExposureData(environments=()),
         messages=(OutputMessage(error, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
         exit_code=ExitCode(1),
+        errors=(OperationError(code="environment_expose_failed", message=error, environment=environment),),
     )
 
 
@@ -105,15 +108,8 @@ class _EnvironmentExposure:
 
 
 @dataclass(frozen=True)
-class _FailedExposure:
-    environment: str
-    error: str
-
-
-@dataclass(frozen=True)
 class ExposureData(OperationData):
     environments: tuple[_EnvironmentExposure, ...]
-    failures: tuple[_FailedExposure, ...]
 
 
 __all__ = [

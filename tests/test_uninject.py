@@ -28,9 +28,8 @@ def test_uninject_json(installed_pycowsay: None, capsys: pytest.CaptureFixture[s
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
-            "command": "uninject",
+            "command": ["uninject"],
             "data": {
-                "failures": [],
                 "packages": [
                     {
                         "environment": "pycowsay",
@@ -42,7 +41,9 @@ def test_uninject_json(installed_pycowsay: None, capsys: pytest.CaptureFixture[s
                 ],
                 "skipped": [],
             },
-            "pipx_result_version": "0.1",
+            "pipx_result_version": "1",
+            "errors": [],
+            "exit_code": 0,
             "status": "success",
         },
         "",
@@ -58,19 +59,18 @@ def test_uninject_json_reports_unknown_package(
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
-            "command": "uninject",
-            "data": {
-                "failures": [
-                    {
-                        "environment": "pycowsay",
-                        "error": "missing is not in the pycowsay venv. Skipping.",
-                        "package": "missing",
-                    }
-                ],
-                "packages": [],
-                "skipped": [],
-            },
-            "pipx_result_version": "0.1",
+            "command": ["uninject"],
+            "data": {"packages": [], "skipped": []},
+            "errors": [
+                {
+                    "code": "package_uninject_failed",
+                    "environment": "pycowsay",
+                    "message": "missing is not in the pycowsay venv. Skipping.",
+                    "package": "missing",
+                }
+            ],
+            "exit_code": 1,
+            "pipx_result_version": "1",
             "status": "error",
         },
         "",
@@ -86,19 +86,18 @@ def test_uninject_json_reports_missing_environment(
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
-            "command": "uninject",
-            "data": {
-                "failures": [
-                    {
-                        "environment": "missing",
-                        "error": "Virtual environment missing does not exist.",
-                        "package": None,
-                    }
-                ],
-                "packages": [],
-                "skipped": [],
-            },
-            "pipx_result_version": "0.1",
+            "command": ["uninject"],
+            "data": {"packages": [], "skipped": []},
+            "errors": [
+                {
+                    "code": "package_uninject_failed",
+                    "environment": "missing",
+                    "message": "Virtual environment missing does not exist.",
+                    "package": None,
+                }
+            ],
+            "exit_code": 1,
+            "pipx_result_version": "1",
             "status": "error",
         },
         "",
@@ -116,26 +115,25 @@ def test_uninject_json_reports_missing_metadata(
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
-            "command": "uninject",
-            "data": {
-                "failures": [
-                    {
-                        "environment": "pycowsay",
-                        "error": pipx_wrap(
-                            """
-                            Can't uninject from Virtual Environment 'pycowsay'.
-                            'pycowsay' has missing internal pipx metadata.
-                            It was likely installed using a pipx version before 0.15.0.0.
-                            Please uninstall and install 'pycowsay' manually to fix.
-                            """
-                        ),
-                        "package": None,
-                    }
-                ],
-                "packages": [],
-                "skipped": [],
-            },
-            "pipx_result_version": "0.1",
+            "command": ["uninject"],
+            "data": {"packages": [], "skipped": []},
+            "errors": [
+                {
+                    "code": "package_uninject_failed",
+                    "environment": "pycowsay",
+                    "message": pipx_wrap(
+                        """
+                        Can't uninject from Virtual Environment 'pycowsay'.
+                        'pycowsay' has missing internal pipx metadata.
+                        It was likely installed using a pipx version before 0.15.0.0.
+                        Please uninstall and install 'pycowsay' manually to fix.
+                        """
+                    ),
+                    "package": None,
+                }
+            ],
+            "exit_code": 1,
+            "pipx_result_version": "1",
             "status": "error",
         },
         "",
@@ -151,25 +149,24 @@ def test_uninject_json_reports_main_package(
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
-            "command": "uninject",
-            "data": {
-                "failures": [
-                    {
-                        "environment": "pycowsay",
-                        "error": pipx_wrap(
-                            """
-                            pycowsay is the main package of pycowsay
-                            venv. Use `pipx uninstall pycowsay` to uninstall instead of uninject.
-                            """,
-                            subsequent_indent=" " * 4,
-                        ),
-                        "package": "pycowsay",
-                    }
-                ],
-                "packages": [],
-                "skipped": [],
-            },
-            "pipx_result_version": "0.1",
+            "command": ["uninject"],
+            "data": {"packages": [], "skipped": []},
+            "errors": [
+                {
+                    "code": "package_uninject_failed",
+                    "environment": "pycowsay",
+                    "message": pipx_wrap(
+                        """
+                        pycowsay is the main package of pycowsay
+                        venv. Use `pipx uninstall pycowsay` to uninstall instead of uninject.
+                        """,
+                        subsequent_indent=" " * 4,
+                    ),
+                    "package": "pycowsay",
+                }
+            ],
+            "exit_code": 1,
+            "pipx_result_version": "1",
             "status": "error",
         },
         "",

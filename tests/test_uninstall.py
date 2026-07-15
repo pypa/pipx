@@ -45,9 +45,8 @@ def test_uninstall_json(
     captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
-            "command": command,
+            "command": [command],
             "data": {
-                "failures": [],
                 "packages": [
                     {
                         "environment": "pycowsay",
@@ -57,7 +56,9 @@ def test_uninstall_json(
                     }
                 ],
             },
-            "pipx_result_version": "0.1",
+            "pipx_result_version": "1",
+            "errors": [],
+            "exit_code": 0,
             "status": "success",
         },
         "",
@@ -108,12 +109,18 @@ def test_uninstall_json_reports_missing(
     captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
-            "command": "uninstall",
-            "data": {
-                "failures": [{"environment": "missing", "error": "Nothing to uninstall for missing."}],
-                "packages": [],
-            },
-            "pipx_result_version": "0.1",
+            "command": ["uninstall"],
+            "data": {"packages": []},
+            "errors": [
+                {
+                    "code": "environment_uninstall_failed",
+                    "environment": "missing",
+                    "message": "Nothing to uninstall for missing.",
+                    "package": None,
+                }
+            ],
+            "exit_code": 1,
+            "pipx_result_version": "1",
             "status": "error",
         },
         "",

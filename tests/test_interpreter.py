@@ -353,8 +353,8 @@ def test_find_python_interpreter_py_launcher_success(monkeypatch):
 @pytest.mark.parametrize(
     ("subcommand", "command"),
     [
-        pytest.param("list", "interpreter-list", id="list"),
-        pytest.param("prune", "interpreter-prune", id="prune"),
+        pytest.param("list", ["interpreter", "list"], id="list"),
+        pytest.param("prune", ["interpreter", "prune"], id="prune"),
     ],
 )
 def test_interpreter_json_reports_an_empty_cache(
@@ -368,7 +368,9 @@ def test_interpreter_json_reports_an_empty_cache(
     assert json.loads(capsys.readouterr().out) == {
         "command": command,
         "data": {"interpreters": [], "removed": [], "upgraded": []},
-        "pipx_result_version": "0.1",
+        "pipx_result_version": "1",
+        "errors": [],
+        "exit_code": 0,
         "status": "success",
     }
 

@@ -31,6 +31,7 @@ from pipx.pipx_metadata_file import PackageInfo, PipxMetadata, load_spec_file
 from pipx.requires_python import IncompatiblePythonError, interpreter_for
 from pipx.result import (
     OperationData,
+    OperationError,
     OperationResult,
     OutputFormat,
     OutputLevel,
@@ -261,10 +262,15 @@ def install(
 
     return _finish_install(
         OperationResult(
-            command="install",
-            data=InstallData(packages=tuple(packages), skipped=tuple(skipped), failures=tuple(failures)),
+            command=("install",),
+            data=InstallData(packages=tuple(packages), skipped=tuple(skipped)),
             messages=tuple(messages),
             exit_code=ExitCode(1 if failures else 0),
+            errors=tuple(
+                OperationError(code="package_install_failed", message=f.error, environment=f.environment)
+                for f in failures
+            ),
+            succeeded=bool(packages or skipped),
         ),
         emit_output=emit_output,
     )
@@ -385,10 +391,11 @@ def _validate_install_options(
 def _failed_install_result(environment: str, error: PipxError) -> OperationResult[InstallData]:
     message: Final[str] = str(error)
     return OperationResult(
-        command="install",
-        data=InstallData(packages=(), skipped=(), failures=(_FailedInstall(environment, message),)),
+        command=("install",),
+        data=InstallData(packages=(), skipped=()),
         messages=(OutputMessage(message, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
         exit_code=ExitCode(1),
+        errors=(OperationError(code="package_install_failed", message=message, environment=environment),),
     )
 
 
@@ -405,12 +412,12 @@ def _record_install_failure(
 def _finish_install(result: OperationResult[InstallData], *, emit_output: bool) -> OperationResult[InstallData]:
     if not emit_output:
         return result
-    if result.data.failures:
+    if result.errors:
         render_messages(
             tuple(message for message in result.messages if message.level is OutputLevel.NORMAL),
             quiet=0,
         )
-        raise PipxError(result.data.failures[0].error)
+        raise PipxError(result.errors[0].message)
     render_result(result, output=OutputFormat.HUMAN, quiet=0)
     return result
 
@@ -760,7 +767,6 @@ class _ExistingInstall:
 class InstallData(OperationData):
     packages: tuple[_InstalledPackage, ...]
     skipped: tuple[_SkippedInstall, ...]
-    failures: tuple[_FailedInstall, ...]
 
 
 @dataclass(frozen=True)

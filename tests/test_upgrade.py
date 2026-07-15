@@ -68,9 +68,8 @@ def test_upgrade_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
-            "command": "upgrade",
+            "command": ["upgrade"],
             "data": {
-                "failures": [],
                 "packages": [
                     {
                         "environment": "pycowsay",
@@ -84,7 +83,9 @@ def test_upgrade_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -
                 ],
                 "skipped": [],
             },
-            "pipx_result_version": "0.1",
+            "pipx_result_version": "1",
+            "errors": [],
+            "exit_code": 0,
             "status": "success",
         },
         "",

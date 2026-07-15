@@ -14,7 +14,7 @@ from pipx.commands.transaction import preserve_venv
 from pipx.constants import ExitCode
 from pipx.emojis import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
-from pipx.result import OperationData, OperationResult, OutputLevel, OutputMessage, OutputStream
+from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.shared_libs import shared_libs
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv, VenvContainer
@@ -70,8 +70,8 @@ def upgrade(
 
     package_results: Final[tuple[PackageUpgradeResult, ...]] = tuple(results)
     return OperationResult(
-        command="upgrade",
-        data=UpgradeData(packages=package_results, skipped=(), failures=()),
+        command=("upgrade",),
+        data=UpgradeData(packages=package_results, skipped=()),
         messages=tuple(
             message for result in package_results for message in _package_messages(result, upgrading_all=False)
         ),
@@ -166,10 +166,14 @@ def upgrade_all(
             )
         )
     return OperationResult(
-        command="upgrade-all",
-        data=UpgradeData(packages=tuple(results), skipped=tuple(skipped), failures=tuple(failures)),
+        command=("upgrade-all",),
+        data=UpgradeData(packages=tuple(results), skipped=tuple(skipped)),
         messages=tuple(messages),
         exit_code=ExitCode(1 if failures else 0),
+        errors=tuple(
+            OperationError(code="package_upgrade_failed", message=f.error, environment=f.environment) for f in failures
+        ),
+        succeeded=bool(results or skipped),
     )
 
 
@@ -180,7 +184,7 @@ def upgrade_shared(
     # pip-backed installs use this environment regardless of the installed environments' backends.
     shared_libs.upgrade(verbose=verbose, pip_args=pip_args, raises=True)
     return OperationResult(
-        command="upgrade-shared",
+        command=("upgrade-shared",),
         data=SharedData(location=str(shared_libs.root)),
         messages=(OutputMessage(f"Upgraded the shared libraries in {shared_libs.root}."),),
     )
@@ -497,7 +501,6 @@ class FailedUpgrade:
 class UpgradeData(OperationData):
     packages: tuple[PackageUpgradeResult, ...]
     skipped: tuple[SkippedUpgrade, ...]
-    failures: tuple[FailedUpgrade, ...]
 
 
 @dataclass(frozen=True)

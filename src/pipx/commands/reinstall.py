@@ -20,7 +20,7 @@ from pipx.constants import (
     ExitCode,
 )
 from pipx.emojis import error, sleep, stars
-from pipx.result import OperationData, OperationResult, OutputLevel, OutputMessage, OutputStream
+from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import PipxError, rmdir, safe_unlink
 from pipx.venv import Venv, VenvContainer
 
@@ -194,8 +194,8 @@ def reinstall(
         rmdir(reinstall_backup_dir)
 
     return OperationResult(
-        command="reinstall",
-        data=ReinstallData(environments=(_ReinstalledEnvironment(venv.name),), failures=()),
+        command=("reinstall",),
+        data=ReinstallData(environments=(_ReinstalledEnvironment(venv.name),)),
         messages=tuple(messages),
     )
 
@@ -212,7 +212,7 @@ def reinstall_all(
     backend: str | None = None,
     env_backend: str | None = None,
 ) -> OperationResult[ReinstallData]:
-    failures: list[_FailedReinstall] = []
+    errors: list[OperationError] = []
     reinstalled: list[_ReinstalledEnvironment] = []
     messages: list[OutputMessage] = []
 
@@ -238,8 +238,9 @@ def reinstall_all(
                     venv_lock=venv_lock,
                 )
         except PipxError as error_raised:
-            failure = _FailedReinstall(venv_dir.name, str(error_raised))
-            failures.append(failure)
+            errors.append(
+                OperationError(code="environment_reinstall_failed", message=str(error_raised), environment=venv_dir.name)
+            )
             messages.append(OutputMessage(str(error_raised), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
         else:
             first_reinstall = False
@@ -248,10 +249,12 @@ def reinstall_all(
     if not reinstalled:
         messages.append(OutputMessage(f"No packages reinstalled after running 'pipx reinstall-all' {sleep}"))
     return OperationResult(
-        command="reinstall-all",
-        data=ReinstallData(environments=tuple(reinstalled), failures=tuple(failures)),
+        command=("reinstall-all",),
+        data=ReinstallData(environments=tuple(reinstalled)),
         messages=tuple(messages),
-        exit_code=ExitCode(1) if failures else EXIT_CODE_OK,
+        exit_code=ExitCode(1) if errors else EXIT_CODE_OK,
+        errors=tuple(errors),
+        succeeded=bool(reinstalled),
     )
 
 
@@ -261,23 +264,17 @@ class _ReinstalledEnvironment:
 
 
 @dataclass(frozen=True)
-class _FailedReinstall:
-    environment: str
-    error: str
-
-
-@dataclass(frozen=True)
 class ReinstallData(OperationData):
     environments: tuple[_ReinstalledEnvironment, ...]
-    failures: tuple[_FailedReinstall, ...]
 
 
 def _outcome(environment: str, message: OutputMessage, *, exit_code: ExitCode) -> OperationResult[ReinstallData]:
     return OperationResult(
-        command="reinstall",
-        data=ReinstallData(environments=(), failures=(_FailedReinstall(environment, message.text),)),
+        command=("reinstall",),
+        data=ReinstallData(environments=()),
         messages=(message,),
         exit_code=exit_code,
+        errors=(OperationError(code="environment_reinstall_failed", message=message.text, environment=environment),),
     )
 
 

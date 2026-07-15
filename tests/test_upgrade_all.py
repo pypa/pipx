@@ -189,9 +189,8 @@ def test_upgrade_all_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert not captured.err
     assert json.loads(captured.out) == {
-        "command": "upgrade-all",
+        "command": ["upgrade-all"],
         "data": {
-            "failures": [],
             "packages": [
                 {
                     "environment": "pycowsay",
@@ -205,7 +204,9 @@ def test_upgrade_all_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str
             ],
             "skipped": [],
         },
-        "pipx_result_version": "0.1",
+        "pipx_result_version": "1",
+        "errors": [],
+        "exit_code": 0,
         "status": "success",
     }
 
@@ -253,22 +254,22 @@ def test_upgrade_all_json_failure(pipx_temp_env: None, capsys: pytest.CaptureFix
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert not captured.err
     assert json.loads(captured.out) == {
-        "command": "upgrade-all",
-        "data": {
-            "failures": [
-                {
-                    "environment": "pycowsay",
-                    "error": (
-                        "Not upgrading pycowsay. It has missing internal pipx metadata.\n"
-                        "It was likely installed using a pipx version before 0.15.0.0.\n"
-                        "Please uninstall and install this package to fix."
-                    ),
-                }
-            ],
-            "packages": [],
-            "skipped": [],
-        },
-        "pipx_result_version": "0.1",
+        "command": ["upgrade-all"],
+        "data": {"packages": [], "skipped": []},
+        "errors": [
+            {
+                "code": "package_upgrade_failed",
+                "environment": "pycowsay",
+                "message": (
+                    "Not upgrading pycowsay. It has missing internal pipx metadata.\n"
+                    "It was likely installed using a pipx version before 0.15.0.0.\n"
+                    "Please uninstall and install this package to fix."
+                ),
+                "package": None,
+            }
+        ],
+        "exit_code": 1,
+        "pipx_result_version": "1",
         "status": "error",
     }
 
@@ -280,7 +281,6 @@ def test_upgrade_all_json_requested_skip(pipx_temp_env: None, capsys: pytest.Cap
     assert not run_pipx_cli(["upgrade-all", "--skip", "pycowsay", "--json"])
 
     assert json.loads(capsys.readouterr().out)["data"] == {
-        "failures": [],
         "packages": [],
         "skipped": [{"environment": "pycowsay", "reason": "requested"}],
     }
@@ -293,7 +293,6 @@ def test_upgrade_all_json_editable_skip(pipx_temp_env: None, capsys: pytest.Capt
     assert not run_pipx_cli(["upgrade-all", "--json"])
 
     assert json.loads(capsys.readouterr().out)["data"] == {
-        "failures": [],
         "packages": [],
         "skipped": [{"environment": "empty-project", "reason": "editable"}],
     }

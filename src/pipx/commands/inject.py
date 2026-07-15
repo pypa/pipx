@@ -23,6 +23,7 @@ from pipx.emojis import hazard, stars
 from pipx.package_specifier import get_extras
 from pipx.result import (
     OperationData,
+    OperationError,
     OperationResult,
     OutputFormat,
     OutputLevel,
@@ -114,11 +115,10 @@ def inject_dep(
         _LOGGER.info("Package %s is already installed", package_name)
         return _finish_inject(
             OperationResult(
-                command="inject",
+                command=("inject",),
                 data=InjectionData(
                     packages=(),
                     skipped=(InjectionSkip(venv.name, package_name, "already-installed"),),
-                    failures=(),
                 ),
                 messages=(
                     OutputMessage(
@@ -188,7 +188,7 @@ def inject_dep(
     package: Final[PackageInfo] = venv.package_metadata[package_name]
     return _finish_inject(
         OperationResult(
-            command="inject",
+            command=("inject",),
             data=InjectionData(
                 packages=(
                     InjectionPackage(
@@ -200,7 +200,6 @@ def inject_dep(
                     ),
                 ),
                 skipped=(),
-                failures=(),
             ),
             messages=tuple(messages),
         ),
@@ -270,10 +269,17 @@ def inject(
 
     return _finish_inject(
         OperationResult(
-            command="inject",
-            data=InjectionData(packages=tuple(changed), skipped=tuple(skipped), failures=tuple(failures)),
+            command=("inject",),
+            data=InjectionData(packages=tuple(changed), skipped=tuple(skipped)),
             messages=tuple(messages),
             exit_code=EXIT_CODE_INJECT_ERROR if failures else EXIT_CODE_OK,
+            errors=tuple(
+                OperationError(
+                    code="package_inject_failed", message=f.error, environment=f.environment, package=f.package
+                )
+                for f in failures
+            ),
+            succeeded=bool(changed or skipped),
         ),
         emit_output=emit_output,
     )
@@ -281,10 +287,11 @@ def inject(
 
 def _inject_failure(environment: str, package: str | None, error: str) -> OperationResult[InjectionData]:
     return OperationResult(
-        command="inject",
-        data=InjectionData(packages=(), skipped=(), failures=(InjectionFailure(environment, package, error),)),
+        command=("inject",),
+        data=InjectionData(packages=(), skipped=()),
         messages=(OutputMessage(error, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
         exit_code=EXIT_CODE_INJECT_ERROR,
+        errors=(OperationError(code="package_inject_failed", message=error, environment=environment, package=package),),
     )
 
 
@@ -295,12 +302,12 @@ def _finish_inject(
 ) -> OperationResult[InjectionData]:
     if not emit_output:
         return result
-    if result.data.failures:
+    if result.errors:
         render_messages(
             tuple(message for message in result.messages if message.level is OutputLevel.NORMAL),
             quiet=0,
         )
-        raise PipxError(result.data.failures[0].error)
+        raise PipxError(result.errors[0].message)
     render_result(result, output=OutputFormat.HUMAN, quiet=0)
     return result
 
@@ -352,7 +359,6 @@ class InjectionFailure:
 class InjectionData(OperationData):
     packages: tuple[InjectionPackage, ...]
     skipped: tuple[InjectionSkip, ...]
-    failures: tuple[InjectionFailure, ...]
 
 
 __all__ = [

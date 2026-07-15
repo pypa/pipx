@@ -10,7 +10,6 @@ from pipx.colors import bold
 from pipx.commands.common import add_suffix
 from pipx.commands.inject import (
     InjectionData,
-    InjectionFailure,
     InjectionPackage,
     InjectionStatus,
 )
@@ -24,7 +23,7 @@ from pipx.constants import (
     MAN_SECTIONS,
 )
 from pipx.emojis import stars
-from pipx.result import OperationResult, OutputLevel, OutputMessage, OutputStream
+from pipx.result import OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import pipx_wrap, safe_unlink
 from pipx.venv import Venv
 from pipx.venv_inspect import fetch_info_in_venv, get_distributions_by_name, get_required_dependency_names
@@ -71,7 +70,7 @@ def uninject(
             stream=OutputStream.STDERR,
         )
 
-    failures: Final[list[InjectionFailure]] = []
+    errors: Final[list[OperationError]] = []
     messages: Final[list[OutputMessage]] = []
     packages: Final[list[InjectionPackage]] = []
     for dep in dependencies:
@@ -82,15 +81,17 @@ def uninject(
             local_man_dir=local_man_dir,
             leave_deps=leave_deps,
         )
-        failures.extend(result.data.failures)
+        errors.extend(result.errors)
         messages.extend(result.messages)
         packages.extend(result.data.packages)
 
     return OperationResult(
-        command="uninject",
-        data=InjectionData(packages=tuple(packages), skipped=(), failures=tuple(failures)),
+        command=("uninject",),
+        data=InjectionData(packages=tuple(packages), skipped=()),
         messages=tuple(messages),
-        exit_code=EXIT_CODE_UNINJECT_ERROR if failures else EXIT_CODE_OK,
+        exit_code=EXIT_CODE_UNINJECT_ERROR if errors else EXIT_CODE_OK,
+        errors=tuple(errors),
+        succeeded=bool(packages),
     )
 
 
@@ -162,7 +163,7 @@ def uninject_dep(
                 logger.info(f"removed file {path}")
 
     return OperationResult(
-        command="uninject",
+        command=("uninject",),
         data=InjectionData(
             packages=(
                 InjectionPackage(
@@ -174,7 +175,6 @@ def uninject_dep(
                 ),
             ),
             skipped=(),
-            failures=(),
         ),
         messages=(
             OutputMessage(
@@ -192,10 +192,13 @@ def _uninject_failure(
     stream: OutputStream = OutputStream.LOG,
 ) -> OperationResult[InjectionData]:
     return OperationResult(
-        command="uninject",
-        data=InjectionData(packages=(), skipped=(), failures=(InjectionFailure(environment, package, error),)),
+        command=("uninject",),
+        data=InjectionData(packages=(), skipped=()),
         messages=(OutputMessage(error, stream=stream, level=OutputLevel.ERROR),),
         exit_code=EXIT_CODE_UNINJECT_ERROR,
+        errors=(
+            OperationError(code="package_uninject_failed", message=error, environment=environment, package=package),
+        ),
     )
 
 

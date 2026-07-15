@@ -87,7 +87,7 @@ def test_reset_json_reports_what_it_removed(
     assert not run_pipx_cli(["reset", "--force", "--output", "json"])
 
     assert json.loads(capsys.readouterr().out) == {
-        "command": "reset",
+        "command": ["reset"],
         "data": {
             "packages": ["pycowsay"],
             "removed": [
@@ -98,7 +98,9 @@ def test_reset_json_reports_what_it_removed(
                 str(paths.ctx.logs),
             ],
         },
-        "pipx_result_version": "0.1",
+        "pipx_result_version": "1",
+        "errors": [],
+        "exit_code": 0,
         "status": "success",
     }
 

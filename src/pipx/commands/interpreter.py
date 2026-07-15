@@ -67,7 +67,7 @@ def list_interpreters(
         )
 
     return OperationResult(
-        command="interpreter-list",
+        command=("interpreter", "list"),
         data=InterpreterData(interpreters=tuple(listed), removed=(), upgraded=()),
         messages=(OutputMessage("\n".join(output)),),
     )
@@ -89,7 +89,7 @@ def prune_interpreters(
     else:
         report = "Nothing to remove"
     return OperationResult(
-        command="interpreter-prune",
+        command=("interpreter", "prune"),
         data=InterpreterData(interpreters=(), removed=tuple(removed), upgraded=()),
         messages=(OutputMessage(report),),
     )
@@ -173,7 +173,7 @@ def upgrade_interpreters(venv_container: VenvContainer, verbose: bool) -> Operat
     else:
         report = "Nothing to upgrade"
     return OperationResult(
-        command="interpreter-upgrade",
+        command=("interpreter", "upgrade"),
         data=InterpreterData(
             interpreters=(),
             removed=(),

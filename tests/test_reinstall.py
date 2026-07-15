@@ -243,9 +243,11 @@ def test_reinstall_all_json_reports_the_environments(
     assert not run_pipx_cli(["reinstall-all", "--python", sys.executable, "--output", "json"])
 
     assert json.loads(capsys.readouterr().out) == {
-        "command": "reinstall-all",
-        "data": {"environments": [{"environment": "pycowsay"}], "failures": []},
-        "pipx_result_version": "0.1",
+        "command": ["reinstall-all"],
+        "data": {"environments": [{"environment": "pycowsay"}]},
+        "pipx_result_version": "1",
+        "errors": [],
+        "exit_code": 0,
         "status": "success",
     }
 
@@ -266,4 +268,4 @@ def test_reinstall_all_json_reports_no_environments(
 ) -> None:
     assert not run_pipx_cli(["reinstall-all", "--python", sys.executable, "--output", "json"])
 
-    assert json.loads(capsys.readouterr().out)["data"] == {"environments": [], "failures": []}
+    assert json.loads(capsys.readouterr().out)["data"] == {"environments": []}

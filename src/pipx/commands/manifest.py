@@ -21,6 +21,7 @@ from pipx.constants import EXIT_CODE_OK, ExitCode
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.result import (
     OperationData,
+    OperationError,
     OperationResult,
     OutputFormat,
     OutputLevel,
@@ -102,10 +103,14 @@ def sync_manifest(
     if prune and not failures:
         _prune_environments(manifest, venv_container, local_bin_dir, local_man_dir, verbose)
     return OperationResult(
-        command="sync",
-        data=ManifestData(environments=tuple(synced), locks=(), failures=tuple(failures)),
+        command=("manifest", "sync"),
+        data=ManifestData(environments=tuple(synced), locks=()),
         messages=tuple(messages),
         exit_code=ExitCode(1) if failures else EXIT_CODE_OK,
+        errors=tuple(
+            OperationError(code="manifest_sync_failed", message=f.error, environment=f.environment) for f in failures
+        ),
+        succeeded=bool(synced),
     )
 
 
@@ -120,8 +125,8 @@ def lock_manifest(manifest_file: Path) -> OperationResult[ManifestData]:
     except OSError as error:
         raise PipxError(f"Cannot write manifest locks: {error}") from error
     return OperationResult(
-        command="lock",
-        data=ManifestData(environments=(), locks=tuple(locked), failures=()),
+        command=("manifest", "lock"),
+        data=ManifestData(environments=(), locks=tuple(locked)),
         messages=tuple(OutputMessage(f"locked {lock_file}") for lock_file in locked),
     )
 
@@ -402,7 +407,6 @@ class _FailedTool:
 class ManifestData(OperationData):
     environments: tuple[str, ...]
     locks: tuple[str, ...]
-    failures: tuple[_FailedTool, ...]
 
 
 __all__ = [

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from pipx.commands.reinstall import reinstall
 from pipx.constants import ExitCode
-from pipx.result import OperationData, OperationResult, OutputLevel, OutputMessage, OutputStream
+from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import PipxError, get_venv_paths, run_subprocess
 
 if TYPE_CHECKING:
@@ -31,7 +31,7 @@ def health(venv_container: VenvContainer, venv_dirs: Iterable[Path]) -> Operatio
     if not messages:
         messages.append(OutputMessage("pipx manages no packages."))
     return OperationResult(
-        command="health",
+        command=("health",),
         data=HealthData(environments=tuple(environments)),
         messages=tuple(messages),
         exit_code=ExitCode(
@@ -96,10 +96,15 @@ def repair(
     if not messages:
         messages.append(OutputMessage("pipx found no environments to repair."))
     return OperationResult(
-        command="repair",
-        data=RepairData(repaired=tuple(repaired), skipped=tuple(skipped), failures=tuple(failures)),
+        command=("repair",),
+        data=RepairData(repaired=tuple(repaired), skipped=tuple(skipped)),
         messages=tuple(messages),
         exit_code=ExitCode(1 if failures else 0),
+        errors=tuple(
+            OperationError(code="environment_repair_failed", message=failure.error, environment=failure.environment)
+            for failure in failures
+        ),
+        succeeded=bool(repaired),
     )
 
 
@@ -178,7 +183,6 @@ class _FailedRepair:
 class RepairData(OperationData):
     repaired: tuple[_RepairedEnvironment, ...]
     skipped: tuple[_SkippedRepair, ...]
-    failures: tuple[_FailedRepair, ...]
 
 
 __all__ = [

@@ -46,7 +46,7 @@ def test_health_json(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> N
     assert run_pipx_cli(["health", "pycowsay", "--output", "json"]) == 0
 
     assert json.loads(capsys.readouterr().out) == {
-        "command": "health",
+        "command": ["health"],
         "data": {
             "environments": [
                 {
@@ -57,7 +57,9 @@ def test_health_json(installed_pycowsay: Path, capsys: CaptureFixture[str]) -> N
                 }
             ]
         },
-        "pipx_result_version": "0.1",
+        "pipx_result_version": "1",
+        "errors": [],
+        "exit_code": 0,
         "status": "success",
     }
 
@@ -73,9 +75,11 @@ def test_repair_json(pipx_temp_env: None, capsys: CaptureFixture[str]) -> None:
     assert run_pipx_cli(["repair", "--output", "json"]) == 0
 
     assert json.loads(capsys.readouterr().out) == {
-        "command": "repair",
-        "data": {"failures": [], "repaired": [], "skipped": []},
-        "pipx_result_version": "0.1",
+        "command": ["repair"],
+        "data": {"repaired": [], "skipped": []},
+        "pipx_result_version": "1",
+        "errors": [],
+        "exit_code": 0,
         "status": "success",
     }
 

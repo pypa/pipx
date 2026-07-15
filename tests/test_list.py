@@ -189,7 +189,9 @@ def test_list_json_rejects_human_filter(
 ) -> None:
     assert run_pipx_cli(["list", "--output", "json", option]) == 1
 
-    assert "--output json cannot be combined with --short or --pinned" in capsys.readouterr().err
+    document = json.loads(capsys.readouterr().out)
+    assert document["status"] == "error"
+    assert "--output json cannot be combined with --short or --pinned" in document["errors"][0]["message"]
 
 
 def test_list_selected_package_text(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:

@@ -48,8 +48,8 @@ def test_cache_purge_removes_run_environments(
 @pytest.mark.parametrize(
     ("subcommand", "command"),
     [
-        pytest.param("dir", "cache-dir", id="dir"),
-        pytest.param("purge", "cache-purge", id="purge"),
+        pytest.param("dir", ["cache", "dir"], id="dir"),
+        pytest.param("purge", ["cache", "purge"], id="purge"),
     ],
 )
 def test_cache_json_reports_the_directory(
@@ -63,7 +63,9 @@ def test_cache_json_reports_the_directory(
     assert json.loads(capsys.readouterr().out) == {
         "command": command,
         "data": {"directory": str(paths.ctx.venv_cache), "removed": []},
-        "pipx_result_version": "0.1",
+        "pipx_result_version": "1",
+        "errors": [],
+        "exit_code": 0,
         "status": "success",
     }
 

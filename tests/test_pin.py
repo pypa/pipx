@@ -35,9 +35,8 @@ def test_pin_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> No
     captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
-            "command": "pin",
+            "command": ["pin"],
             "data": {
-                "failures": [],
                 "packages": [
                     {
                         "environment": "pycowsay",
@@ -50,7 +49,9 @@ def test_pin_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> No
                 ],
                 "skipped": [],
             },
-            "pipx_result_version": "0.1",
+            "pipx_result_version": "1",
+            "errors": [],
+            "exit_code": 0,
             "status": "success",
         },
         "",
@@ -63,13 +64,18 @@ def test_pin_json_reports_missing(pipx_temp_env: None, capsys: pytest.CaptureFix
     captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
-            "command": "pin",
-            "data": {
-                "failures": [{"environment": "missing", "error": "pipx does not manage package missing"}],
-                "packages": [],
-                "skipped": [],
-            },
-            "pipx_result_version": "0.1",
+            "command": ["pin"],
+            "data": {"packages": [], "skipped": []},
+            "errors": [
+                {
+                    "code": "package_pin_failed",
+                    "environment": "missing",
+                    "message": "pipx does not manage package missing",
+                    "package": None,
+                }
+            ],
+            "exit_code": 1,
+            "pipx_result_version": "1",
             "status": "error",
         },
         "",
@@ -94,7 +100,6 @@ def test_pin_json_reports_already_pinned_injected(
     assert not run_pipx_cli(["pin", "pycowsay", "--injected-only", "--json"])
 
     assert json.loads(capsys.readouterr().out)["data"] == {
-        "failures": [],
         "packages": [],
         "skipped": [{"environment": "pycowsay", "package": "black", "reason": "already-pinned"}],
     }
@@ -107,7 +112,6 @@ def test_pin_json_pins_main_after_injected(
     assert not run_pipx_cli(["pin", "pycowsay", "--json"])
 
     assert json.loads(capsys.readouterr().out)["data"] == {
-        "failures": [],
         "packages": [
             {
                 "environment": "pycowsay",

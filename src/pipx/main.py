@@ -48,7 +48,7 @@ from pipx.interpreter import (
     get_default_python_spec,
 )
 from pipx.package_specifier import valid_pypi_name
-from pipx.result import OperationResult, OutputFormat, render_result
+from pipx.result import OperationError, OperationResult, OutputFormat, error_envelope, render_result
 from pipx.shared_libs import skip_shared_libs_maintenance
 from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
 from pipx.venv import VenvContainer
@@ -333,11 +333,31 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
         env_backend=env_backend,
         cooldown_days=getattr(args, "cooldown", None),
     )
+    output: Final[OutputFormat] = _output_format(args)
     with skip_shared_libs_maintenance(getattr(args, "skip_maintenance", False)):
-        result = args.func(args, ctx)
+        try:
+            result = args.func(args, ctx)
+        except PipxError as error:
+            # once a JSON-enabled command was selected, a dispatch failure must still speak the result envelope
+            if output is OutputFormat.JSON:
+                print(
+                    error_envelope(
+                        _command_tokens(args), OperationError(code="pipx_error", message=str(error)), ExitCode(1)
+                    )
+                )
+                return ExitCode(1)
+            raise
         if isinstance(result, OperationResult):
-            return render_result(result, output=_output_format(args), quiet=getattr(args, "quiet", 0))
+            return render_result(result, output=output, quiet=getattr(args, "quiet", 0))
         return result
+
+
+def _command_tokens(args: argparse.Namespace) -> tuple[str, ...]:
+    tokens: Final[list[str]] = [args.command]
+    for subcommand in ("cache_command", "interpreter_command", "manifest_command"):
+        if value := getattr(args, subcommand, None):
+            tokens.append(value)
+    return tuple(tokens)
 
 
 def _output_format(args: argparse.Namespace) -> OutputFormat:

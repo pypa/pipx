@@ -29,9 +29,8 @@ def test_unpin_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> 
     captured = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
-            "command": "unpin",
+            "command": ["unpin"],
             "data": {
-                "failures": [],
                 "packages": [
                     {
                         "environment": "pycowsay",
@@ -44,7 +43,9 @@ def test_unpin_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> 
                 ],
                 "skipped": [],
             },
-            "pipx_result_version": "0.1",
+            "pipx_result_version": "1",
+            "errors": [],
+            "exit_code": 0,
             "status": "success",
         },
         "",

@@ -389,17 +389,26 @@ def _outdated_result(
     packages: tuple[dict[str, _JsonValue], ...] = (),
     skipped: tuple[dict[str, _JsonValue], ...] = (),
     failures: tuple[dict[str, _JsonValue], ...] = (),
-    status: Literal["success", "error"] = "success",
+    status: Literal["success", "partial", "error"] = "success",
 ) -> dict[str, _JsonValue]:
     return {
-        "command": "list",
+        "command": ["list"],
         "data": {
             "packages_checked": packages_checked,
-            "failures": list(failures),
             "packages": list(packages),
             "skipped": list(skipped),
         },
-        "pipx_result_version": "0.1",
+        "errors": [
+            {
+                "code": "environment_outdated_check_failed",
+                "environment": failure["environment"],
+                "message": failure["error"],
+                "package": None,
+            }
+            for failure in failures
+        ],
+        "exit_code": 1 if failures else 0,
+        "pipx_result_version": "1",
         "status": status,
     }
 

@@ -144,12 +144,13 @@ def test_unexpose_json(installed_pycowsay: Path, capsys: CaptureFixture[str]) ->
     assert run_pipx_cli(["unexpose", "pycowsay", "--json"]) == 0
 
     assert json.loads(capsys.readouterr().out) == {
-        "command": "unexpose",
+        "command": ["unexpose"],
         "data": {
             "environments": [{"environment": "pycowsay", "status": "unexposed"}],
-            "failures": [],
         },
-        "pipx_result_version": "0.1",
+        "pipx_result_version": "1",
+        "errors": [],
+        "exit_code": 0,
         "status": "success",
     }
 

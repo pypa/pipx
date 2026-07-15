@@ -1390,9 +1390,8 @@ def test_install_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert not captured.err
     assert json.loads(captured.out) == {
-        "command": "install",
+        "command": ["install"],
         "data": {
-            "failures": [],
             "packages": [
                 {
                     "environment": "pycowsay",
@@ -1403,7 +1402,9 @@ def test_install_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -
             ],
             "skipped": [],
         },
-        "pipx_result_version": "0.1",
+        "pipx_result_version": "1",
+        "errors": [],
+        "exit_code": 0,
         "status": "success",
     }
 
@@ -1417,9 +1418,8 @@ def test_install_json_reports_existing(pipx_temp_env: None, capsys: pytest.Captu
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert not captured.err
     assert json.loads(captured.out) == {
-        "command": "install",
+        "command": ["install"],
         "data": {
-            "failures": [],
             "packages": [],
             "skipped": [
                 {
@@ -1429,7 +1429,9 @@ def test_install_json_reports_existing(pipx_temp_env: None, capsys: pytest.Captu
                 }
             ],
         },
-        "pipx_result_version": "0.1",
+        "pipx_result_version": "1",
+        "errors": [],
+        "exit_code": 0,
         "status": "success",
     }
 
@@ -1440,18 +1442,18 @@ def test_install_json_reports_invalid_option(pipx_temp_env: None, capsys: pytest
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert not captured.err
     assert json.loads(captured.out) == {
-        "command": "install",
-        "data": {
-            "failures": [
-                {
-                    "environment": "pycowsay",
-                    "error": "--upgrade-strategy requires --upgrade",
-                }
-            ],
-            "packages": [],
-            "skipped": [],
-        },
-        "pipx_result_version": "0.1",
+        "command": ["install"],
+        "data": {"packages": [], "skipped": []},
+        "errors": [
+            {
+                "code": "package_install_failed",
+                "environment": "pycowsay",
+                "message": "--upgrade-strategy requires --upgrade",
+                "package": None,
+            }
+        ],
+        "exit_code": 1,
+        "pipx_result_version": "1",
         "status": "error",
     }
 
@@ -1468,7 +1470,7 @@ def test_install_json_attributes_name_resolution_failure(
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert not captured.err
-    assert json.loads(captured.out)["data"]["failures"][0]["environment"] == str(missing)
+    assert json.loads(captured.out)["errors"][0]["environment"] == str(missing)
 
 
 def test_install_json_reports_missing_app(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
@@ -1481,18 +1483,18 @@ def test_install_json_reports_missing_app(pipx_temp_env: None, capsys: pytest.Ca
         (paths.ctx.venvs / "pycowsay").exists(),
     ) == (
         {
-            "command": "install",
-            "data": {
-                "failures": [
-                    {
-                        "environment": "pycowsay",
-                        "error": "Package pycowsay does not provide expected app missing. Available apps:\npycowsay.",
-                    }
-                ],
-                "packages": [],
-                "skipped": [],
-            },
-            "pipx_result_version": "0.1",
+            "command": ["install"],
+            "data": {"packages": [], "skipped": []},
+            "errors": [
+                {
+                    "code": "package_install_failed",
+                    "environment": "pycowsay",
+                    "message": "Package pycowsay does not provide expected app missing. Available apps:\npycowsay.",
+                    "package": None,
+                }
+            ],
+            "exit_code": 1,
+            "pipx_result_version": "1",
             "status": "error",
         },
         False,
@@ -1510,10 +1512,12 @@ def test_install_json_reports_existing_upgrade_failure(
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert not captured.err
-    assert json.loads(captured.out)["data"]["failures"] == [
+    assert json.loads(captured.out)["errors"] == [
         {
+            "code": "package_install_failed",
             "environment": "pycowsay-x",
-            "error": "Package pycowsay does not provide expected app missing. Available apps:\npycowsay.",
+            "message": "Package pycowsay does not provide expected app missing. Available apps:\npycowsay.",
+            "package": None,
         }
     ]
 
