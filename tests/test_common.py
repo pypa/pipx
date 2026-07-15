@@ -1,13 +1,27 @@
+from __future__ import annotations
+
 import os
 import subprocess
 import sys
+from typing import TYPE_CHECKING
 
-from helpers import skip_if_windows
-from pipx.commands.common import expose_resources_globally, get_exposed_paths_for_package
+import pytest
+
+from helpers import run_pipx_cli, skip_if_windows
+from pipx import paths
+from pipx.commands.common import (
+    _remove_stale_venv_resources,  # noqa: PLC2701  # test exercises private helper, no public API
+    expose_resources_globally,
+    get_exposed_paths_for_package,
+)
+from pipx.venv import Venv
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @skip_if_windows
-def test_get_exposed_paths_ignores_recursive_symlink(tmp_path):
+def test_get_exposed_paths_ignores_recursive_symlink(tmp_path: Path) -> None:
     venv_resource_path = tmp_path / "venv_bin"
     venv_resource_path.mkdir()
     local_resource_dir = tmp_path / "bin"
@@ -21,7 +35,7 @@ def test_get_exposed_paths_ignores_recursive_symlink(tmp_path):
 
 
 @skip_if_windows
-def test_expose_app_scripts_ignores_pythonpath(tmp_path):
+def test_expose_app_scripts_ignores_pythonpath(tmp_path: Path) -> None:
     venv_resource_path = tmp_path / "venv_bin"
     venv_resource_path.mkdir()
     local_resource_dir = tmp_path / "bin"
@@ -50,3 +64,21 @@ def test_expose_app_scripts_ignores_pythonpath(tmp_path):
         text=True,
     )
     assert result.stdout == "ok\n"
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_remove_stale_venv_resources_keeps_files_pipx_does_not_own(capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_pipx_cli(["install", "pycowsay"]) == 0
+    capsys.readouterr()
+    venv = Venv(paths.ctx.venvs / "pycowsay")
+    bin_dir = paths.ctx.bin_dir
+
+    owned = bin_dir / "stale-owned"
+    owned.symlink_to(venv.pipx_metadata.main_package.app_paths[0])
+    replaced = bin_dir / "stale-replaced"
+    replaced.write_text("belongs to the user")
+
+    _remove_stale_venv_resources({owned, replaced}, venv, bin_dir, paths.ctx.man_dir)
+
+    assert (owned.exists(), replaced.read_text()) == (False, "belongs to the user")

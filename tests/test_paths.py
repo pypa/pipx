@@ -1,12 +1,16 @@
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 import pytest
 from platformdirs import user_cache_path, user_log_path
-from pytest_mock import MockerFixture
 
 from helpers import skip_if_windows
 from pipx import paths
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 @pytest.mark.parametrize(
@@ -17,8 +21,8 @@ from pipx import paths
         pytest.param("shared_libs", "OVERRIDE_PIPX_SHARED_LIBS", id="shared"),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_context_resolves_base_path_once(
-    pipx_temp_env: None,
     mocker: MockerFixture,
     attribute: str,
     override_name: str,
@@ -33,8 +37,8 @@ def test_context_resolves_base_path_once(
 
 
 @skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_context_preserves_home_symlink(
-    pipx_temp_env: None,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -52,8 +56,8 @@ def test_context_preserves_home_symlink(
     paths.ctx.make_local()
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_context_keeps_cache_and_logs_out_of_fallback_home(
-    pipx_temp_env: None,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -75,8 +79,8 @@ def test_context_keeps_cache_and_logs_out_of_fallback_home(
     paths.ctx.make_local()
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_context_keeps_cache_and_logs_inside_explicit_home(
-    pipx_temp_env: None,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -91,8 +95,8 @@ def test_context_keeps_cache_and_logs_inside_explicit_home(
     paths.ctx.make_local()
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_context_uses_platform_dirs_without_any_home(
-    pipx_temp_env: None,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -114,8 +118,8 @@ def test_context_uses_platform_dirs_without_any_home(
 
 
 @skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_context_honors_xdg_cache_home(
-    pipx_temp_env: None,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:

@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import os
 import sys
 
 
 def strtobool(val: str) -> bool:
-    return val.lower() in ("y", "yes", "t", "true", "on", "1")
+    return val.lower() in {"y", "yes", "t", "true", "on", "1"}
 
 
 def use_emojis() -> bool:

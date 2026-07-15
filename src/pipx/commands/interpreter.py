@@ -67,7 +67,7 @@ def list_interpreters(
         )
 
     return OperationResult(
-        command="interpreter-list",
+        command=("interpreter", "list"),
         data=InterpreterData(interpreters=tuple(listed), removed=(), upgraded=()),
         messages=(OutputMessage("\n".join(output)),),
     )
@@ -89,31 +89,39 @@ def prune_interpreters(
     else:
         report = "Nothing to remove"
     return OperationResult(
-        command="interpreter-prune",
+        command=("interpreter", "prune"),
         data=InterpreterData(interpreters=(), removed=tuple(removed), upgraded=()),
         messages=(OutputMessage(report),),
     )
+
+
+def _parse_python_version(raw_version: str) -> version.Version | None:
+    try:
+        return version.parse(raw_version)
+    except version.InvalidVersion:
+        _LOGGER.info("Invalid version found in latest pythons: %s. Skipping.", raw_version)
+        return None
 
 
 def get_latest_micro_version(
     current_version: version.Version, latest_python_versions: list[version.Version]
 ) -> version.Version:
     for latest_python_version in latest_python_versions:
-        if current_version.major == latest_python_version.major and current_version.minor == latest_python_version.minor:
+        if (
+            current_version.major == latest_python_version.major
+            and current_version.minor == latest_python_version.minor
+        ):
             return latest_python_version
     return current_version
 
 
-def upgrade_interpreters(venv_container: VenvContainer, verbose: bool) -> OperationResult[InterpreterData]:
-    with animate("Getting the index of the latest standalone python builds", not verbose):
+def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> OperationResult[InterpreterData]:
+    with animate("Getting the index of the latest standalone python builds", do_animation=not verbose):
         latest_pythons = standalone_python.list_pythons(use_cache=False)
 
-    parsed_latest_python_versions = []
-    for latest_python_version in latest_pythons:
-        try:
-            parsed_latest_python_versions.append(version.parse(latest_python_version))
-        except version.InvalidVersion:
-            _LOGGER.info(f"Invalid version found in latest pythons: {latest_python_version}. Skipping.")
+    parsed_latest_python_versions = [
+        parsed for raw_version in latest_pythons if (parsed := _parse_python_version(raw_version)) is not None
+    ]
 
     upgraded = []
     venvs: list[Venv] | None = None
@@ -122,16 +130,19 @@ def upgrade_interpreters(venv_container: VenvContainer, verbose: bool) -> Operat
         if not interpreter_dir.is_dir():
             continue
 
-        interpreter_python = interpreter_dir / "python.exe" if constants.WINDOWS else interpreter_dir / "bin" / "python3"
+        interpreter_python = (
+            interpreter_dir / "python.exe" if constants.WINDOWS else interpreter_dir / "bin" / "python3"
+        )
         try:
             interpreter_full_version = (
-                subprocess.run([str(interpreter_python), "--version"], stdout=subprocess.PIPE, check=True, text=True)
+                subprocess
+                .run([str(interpreter_python), "--version"], stdout=subprocess.PIPE, check=True, text=True)
                 .stdout.removeprefix("Python ")
                 .strip()
             )
             parsed_interpreter_full_version = version.parse(interpreter_full_version)
         except (OSError, subprocess.CalledProcessError, version.InvalidVersion):
-            _LOGGER.info(f"Cannot read the interpreter version at {interpreter_dir}. Skipping.")
+            _LOGGER.info("Cannot read the interpreter version at %s. Skipping.", interpreter_dir)
             continue
         latest_micro_version = get_latest_micro_version(parsed_interpreter_full_version, parsed_latest_python_versions)
         if latest_micro_version > parsed_interpreter_full_version:
@@ -164,16 +175,14 @@ def upgrade_interpreters(venv_container: VenvContainer, verbose: bool) -> Operat
                         upgraded.append((venv.name, interpreter_full_version, latest_micro_version))
 
     if upgraded:
-        report = "\n".join(
-            [
-                "Successfully upgraded the interpreter(s):",
-                *(f" - {name}: {old} -> {new}" for name, old, new in upgraded),
-            ]
-        )
+        report = "\n".join([
+            "Successfully upgraded the interpreter(s):",
+            *(f" - {name}: {old} -> {new}" for name, old, new in upgraded),
+        ])
     else:
         report = "Nothing to upgrade"
     return OperationResult(
-        command="interpreter-upgrade",
+        command=("interpreter", "upgrade"),
         data=InterpreterData(
             interpreters=(),
             removed=(),

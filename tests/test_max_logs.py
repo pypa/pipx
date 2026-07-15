@@ -1,9 +1,21 @@
 """Tests for PIPX_MAX_LOGS environment variable functionality."""
 
-from pipx.main import _setup_log_file, delete_oldest_logs
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from pipx.main import (
+    _setup_log_file,  # noqa: PLC2701  # test exercises private helper, no public API
+    delete_oldest_logs,
+)
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    import pytest
 
 
-def test_delete_oldest_logs_keeps_specified_number(tmp_path):
+def test_delete_oldest_logs_keeps_specified_number(tmp_path: Path) -> None:
     """Test that delete_oldest_logs keeps only the specified number of newest files."""
     # Create 5 log files
     log_files = []
@@ -20,7 +32,7 @@ def test_delete_oldest_logs_keeps_specified_number(tmp_path):
     assert len(remaining) == 2
 
 
-def test_delete_oldest_logs_keeps_all_when_under_limit(tmp_path):
+def test_delete_oldest_logs_keeps_all_when_under_limit(tmp_path: Path) -> None:
     """Test that delete_oldest_logs keeps all files when under the limit."""
     log_files = []
     for i in range(3):
@@ -34,7 +46,7 @@ def test_delete_oldest_logs_keeps_all_when_under_limit(tmp_path):
     assert len(remaining) == 3
 
 
-def test_max_logs_defaults_to_10(tmp_path, monkeypatch):
+def test_max_logs_defaults_to_10(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that max_logs defaults to 10 when PIPX_MAX_LOGS is not set."""
     monkeypatch.delenv("PIPX_MAX_LOGS", raising=False)
 
@@ -50,7 +62,7 @@ def test_max_logs_defaults_to_10(tmp_path, monkeypatch):
     assert len(remaining) == 11
 
 
-def test_max_logs_respects_env_var(tmp_path, monkeypatch):
+def test_max_logs_respects_env_var(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that max_logs respects the PIPX_MAX_LOGS environment variable."""
     monkeypatch.setenv("PIPX_MAX_LOGS", "5")
 
@@ -66,7 +78,7 @@ def test_max_logs_respects_env_var(tmp_path, monkeypatch):
     assert len(remaining) == 6
 
 
-def test_max_logs_with_large_value(tmp_path, monkeypatch):
+def test_max_logs_with_large_value(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that a large PIPX_MAX_LOGS value keeps all logs."""
     monkeypatch.setenv("PIPX_MAX_LOGS", "100")
 

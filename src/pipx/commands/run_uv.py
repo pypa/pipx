@@ -34,7 +34,7 @@ _UV_TRANSLATABLE_BOOL_FLAGS: Final[dict[str, str]] = {
 }
 
 
-def run_via_uv_tool_run(
+def run_via_uv_tool_run(  # noqa: PLR0913  # builds a flat `uv tool run` invocation from the run options
     *,
     app: str,
     package_or_url: str,
@@ -81,7 +81,7 @@ def run_via_uv_tool_run(
     exec_app(cmd)
 
 
-def run_script_via_uv_run(
+def run_script_via_uv_run(  # noqa: PLR0913  # builds a flat `uv run --script` invocation from the run options
     *,
     script_path: Path,
     app_args: list[str],
@@ -117,13 +117,14 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
     translated: list[str] = []
     iterator = iter(pip_args)
     for arg in iterator:
-        if arg in ("-q", "-qq", "--quiet"):
+        if arg in {"-q", "-qq", "--quiet"}:
             continue
-        if arg in ("--editable", "-e"):
-            raise PipxError(
+        if arg in {"--editable", "-e"}:
+            msg = (
                 "`--editable` is not supported by `pipx run --backend uv`.\n"
                 "Use `pipx run --backend pip` for editable installs."
             )
+            raise PipxError(msg)
         if (translated_bool := _UV_TRANSLATABLE_BOOL_FLAGS.get(arg)) is not None:
             translated.append(translated_bool)
             continue
@@ -139,20 +140,22 @@ def translate_pip_args_for_uv(pip_args: list[str]) -> list[str]:
             else:
                 translated.extend([translated_flag, _next_pip_arg(flag, iterator)])
             continue
-        raise PipxError(
+        msg = (
             f"--pip-args contains {arg!r}, which has no `uv tool run` equivalent.\n"
             "Use `--backend pip` if you need pip-only flags."
         )
+        raise PipxError(msg)
     return translated
 
 
 def _reject_venv_args(venv_args: list[str]) -> None:
     # uv creates the venv, so accepting these options would ignore the requested behavior.
     if venv_args:
-        raise PipxError(
+        msg = (
             f"--venv-args ({' '.join(venv_args)}) is not supported by `pipx run --backend uv`.\n"
             "Use `pipx run --backend pip` if those flags are required, or drop them."
         )
+        raise PipxError(msg)
 
 
 def _translate_format_control(flag: str, value: str) -> list[str]:
@@ -162,7 +165,8 @@ def _translate_format_control(flag: str, value: str) -> list[str]:
     if value == ":none:":
         return []
     if not all(packages := value.split(",")):
-        raise PipxError(f"Invalid value for {flag!r} in --pip-args: {value!r}.")
+        msg = f"Invalid value for {flag!r} in --pip-args: {value!r}."
+        raise PipxError(msg)
     return [item for package in packages for item in (package_flag, package)]
 
 
@@ -170,7 +174,8 @@ def _next_pip_arg(flag: str, iterator: Iterator[str]) -> str:
     try:
         return next(iterator)
     except StopIteration as exc:
-        raise PipxError(f"Missing value for {flag!r} in --pip-args.") from exc
+        msg = f"Missing value for {flag!r} in --pip-args."
+        raise PipxError(msg) from exc
 
 
 __all__ = [

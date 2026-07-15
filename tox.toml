@@ -1,10 +1,12 @@
 requires = ["tox>=4.45"]
 
 env_list = [
+  "3.14",
   "3.13",
   "3.12",
   "3.11",
   "3.10",
+  "type",
   "lint",
   "docs",
   "man",
@@ -40,6 +42,12 @@ commands = [
   ["uv", "pip", "tree"],
   ["python", "-c", "import sys; print(sys.executable)"],
 ]
+
+[env.type]
+description = "run the type checker"
+package = "editable"
+dependency_groups = ["type"]
+commands = [["ty", "check"]]
 
 [env.lint]
 description = "run pre-commit on the codebase"

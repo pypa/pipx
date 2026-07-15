@@ -10,7 +10,6 @@ from pipx.colors import bold
 from pipx.commands.common import add_suffix
 from pipx.commands.inject import (
     InjectionData,
-    InjectionFailure,
     InjectionPackage,
     InjectionStatus,
 )
@@ -24,7 +23,7 @@ from pipx.constants import (
     MAN_SECTIONS,
 )
 from pipx.emojis import stars
-from pipx.result import OperationResult, OutputLevel, OutputMessage, OutputStream
+from pipx.result import OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import pipx_wrap, safe_unlink
 from pipx.venv import Venv
 from pipx.venv_inspect import fetch_info_in_venv, get_distributions_by_name, get_required_dependency_names
@@ -37,7 +36,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def uninject(
+def uninject(  # noqa: PLR0913  # uninject forwards the resource dirs and both flags for the whole dependency set
     venv_dir: Path,
     dependencies: list[str],
     *,
@@ -71,7 +70,7 @@ def uninject(
             stream=OutputStream.STDERR,
         )
 
-    failures: Final[list[InjectionFailure]] = []
+    errors: Final[list[OperationError]] = []
     messages: Final[list[OutputMessage]] = []
     packages: Final[list[InjectionPackage]] = []
     for dep in dependencies:
@@ -82,15 +81,17 @@ def uninject(
             local_man_dir=local_man_dir,
             leave_deps=leave_deps,
         )
-        failures.extend(result.data.failures)
+        errors.extend(result.errors)
         messages.extend(result.messages)
         packages.extend(result.data.packages)
 
     return OperationResult(
-        command="uninject",
-        data=InjectionData(packages=tuple(packages), skipped=(), failures=tuple(failures)),
+        command=("uninject",),
+        data=InjectionData(packages=tuple(packages), skipped=()),
         messages=tuple(messages),
-        exit_code=EXIT_CODE_UNINJECT_ERROR if failures else EXIT_CODE_OK,
+        exit_code=EXIT_CODE_UNINJECT_ERROR if errors else EXIT_CODE_OK,
+        errors=tuple(errors),
+        succeeded=bool(packages),
     )
 
 
@@ -131,19 +132,19 @@ def uninject_dep(
 
     if not leave_deps:
         orig_not_required_packages = venv.list_installed_packages(not_required=True)
-        logger.info(f"Original not required packages: {orig_not_required_packages}")
+        logger.info("Original not required packages: %s", orig_not_required_packages)
 
     venv.uninstall_package(package=package_name, was_injected=True)
 
     if not leave_deps:
         new_not_required_packages = venv.list_installed_packages(not_required=True)
-        logger.info(f"New not required packages: {new_not_required_packages}")
+        logger.info("New not required packages: %s", new_not_required_packages)
 
         deps_of_uninstalled = new_not_required_packages - orig_not_required_packages
         if deps_of_uninstalled:
             remaining_deps = _get_remaining_dependencies(venv, package_name)
             deps_of_uninstalled -= remaining_deps
-            logger.info(f"Dependencies of uninstalled package: {deps_of_uninstalled}")
+            logger.info("Dependencies of uninstalled package: %s", deps_of_uninstalled)
 
         for dep_package_name in deps_of_uninstalled:
             venv.uninstall_package(package=dep_package_name, was_injected=False)
@@ -154,15 +155,10 @@ def uninject_dep(
 
     if need_app_uninstall:
         for path in new_resource_paths:
-            try:
-                safe_unlink(path)
-            except FileNotFoundError:
-                logger.info(f"tried to remove but couldn't find {path}")
-            else:
-                logger.info(f"removed file {path}")
+            _unlink_injected_resource(path)
 
     return OperationResult(
-        command="uninject",
+        command=("uninject",),
         data=InjectionData(
             packages=(
                 InjectionPackage(
@@ -174,7 +170,6 @@ def uninject_dep(
                 ),
             ),
             skipped=(),
-            failures=(),
         ),
         messages=(
             OutputMessage(
@@ -182,6 +177,15 @@ def uninject_dep(
             ),
         ),
     )
+
+
+def _unlink_injected_resource(path: Path) -> None:
+    try:
+        safe_unlink(path)
+    except FileNotFoundError:
+        logger.info("tried to remove but couldn't find %s", path)
+    else:
+        logger.info("removed file %s", path)
 
 
 def _uninject_failure(
@@ -192,15 +196,20 @@ def _uninject_failure(
     stream: OutputStream = OutputStream.LOG,
 ) -> OperationResult[InjectionData]:
     return OperationResult(
-        command="uninject",
-        data=InjectionData(packages=(), skipped=(), failures=(InjectionFailure(environment, package, error),)),
+        command=("uninject",),
+        data=InjectionData(packages=(), skipped=()),
         messages=(OutputMessage(error, stream=stream, level=OutputLevel.ERROR),),
         exit_code=EXIT_CODE_UNINJECT_ERROR,
+        errors=(
+            OperationError(code="package_uninject_failed", message=error, environment=environment, package=package),
+        ),
     )
 
 
 def get_include_resource_paths(package_name: str, venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
-    bin_dir_app_paths = _get_package_bin_dir_app_paths(venv.package_metadata[package_name], venv.bin_path, local_bin_dir)
+    bin_dir_app_paths = _get_package_bin_dir_app_paths(
+        venv.package_metadata[package_name], venv.bin_path, local_bin_dir
+    )
     man_paths = set()
     for man_section in MAN_SECTIONS:
         man_paths |= _get_package_man_paths(
@@ -232,7 +241,7 @@ def _get_remaining_dependencies(venv: Venv, excluded_package: str) -> set[str]:
     remaining_deps: set[str] = set()
     remaining_packages: list[str] = [
         name
-        for name in [venv.pipx_metadata.main_package.package] + list(venv.pipx_metadata.injected_packages)
+        for name in [venv.pipx_metadata.main_package.package, *list(venv.pipx_metadata.injected_packages)]
         if name is not None and name != excluded_package
     ]
     for pkg_name in remaining_packages:

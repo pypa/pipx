@@ -178,12 +178,10 @@ def self_managed_installation(tmp_path: Path) -> _SelfManagedInstallation:
     source_interpreter = tmp_path / "python-custom"
     source_interpreter.touch(mode=0o755)
     (venv / PIPX_INFO_FILENAME).write_text(
-        json.dumps(
-            {
-                "main_package": {"package": "pipx"},
-                "source_interpreter": {"__type__": "Path", "__Path__": str(source_interpreter)},
-            }
-        ),
+        json.dumps({
+            "main_package": {"package": "pipx"},
+            "source_interpreter": {"__type__": "Path", "__Path__": str(source_interpreter)},
+        }),
         encoding="utf-8",
     )
     bin_dir = home / "bin"

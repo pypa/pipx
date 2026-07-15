@@ -28,7 +28,7 @@ from pipx.constants import (
 )
 from pipx.emojis import hazard, sleep, stars
 from pipx.pipx_metadata_file import PackageInfo
-from pipx.result import OperationData, OperationResult, OutputMessage
+from pipx.result import OperationData, OperationError, OperationResult, OutputMessage
 from pipx.util import rmdir, safe_unlink
 from pipx.venv import Venv, VenvContainer
 
@@ -39,26 +39,28 @@ def uninstall_all(
     venv_container: VenvContainer,
     local_bin_dir: Path,
     local_man_dir: Path,
+    *,
     verbose: bool,
 ) -> OperationResult[UninstallData]:
-    failures: list[_FailedEnvironment] = []
+    errors: list[OperationError] = []
     messages: list[OutputMessage] = []
     packages: list[_UninstalledPackage] = []
     for venv_dir in venv_container.iter_venv_dirs():
         with venv_container.venv_lock(venv_dir):
-            result = uninstall(venv_dir, local_bin_dir, local_man_dir, verbose)
-        failures.extend(result.data.failures)
+            result = uninstall(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
+        errors.extend(result.errors)
         messages.extend(result.messages)
         packages.extend(result.data.packages)
 
     return OperationResult(
-        command="uninstall-all",
+        command=("uninstall-all",),
         data=UninstallData(
             packages=tuple(sorted(packages, key=lambda package: package.environment)),
-            failures=tuple(sorted(failures, key=lambda failure: failure.environment)),
         ),
         messages=tuple(messages),
-        exit_code=EXIT_CODE_UNINSTALL_ERROR if failures else EXIT_CODE_OK,
+        exit_code=EXIT_CODE_UNINSTALL_ERROR if errors else EXIT_CODE_OK,
+        errors=tuple(sorted(errors, key=lambda error: error.environment or "")),
+        succeeded=bool(packages),
     )
 
 
@@ -66,6 +68,7 @@ def uninstall(
     venv_dir: Path,
     local_bin_dir: Path,
     local_man_dir: Path,
+    *,
     verbose: bool,
 ) -> OperationResult[UninstallData]:
     if not venv_dir.exists():
@@ -73,13 +76,17 @@ def uninstall(
         if app := which(venv_dir.name):
             messages.append(OutputMessage(f"{hazard}  Note: '{app}' still exists on your system and is on your PATH"))
         return OperationResult(
-            command="uninstall",
-            data=UninstallData(
-                packages=(),
-                failures=(_FailedEnvironment(venv_dir.name, f"Nothing to uninstall for {venv_dir.name}."),),
-            ),
+            command=("uninstall",),
+            data=UninstallData(packages=()),
             messages=tuple(messages),
             exit_code=EXIT_CODE_UNINSTALL_VENV_NONEXISTENT,
+            errors=(
+                OperationError(
+                    code="environment_uninstall_failed",
+                    message=f"Nothing to uninstall for {venv_dir.name}.",
+                    environment=venv_dir.name,
+                ),
+            ),
         )
 
     venv = Venv(venv_dir, verbose=verbose)
@@ -98,12 +105,7 @@ def uninstall(
         )
 
     for path in resource_paths:
-        try:
-            safe_unlink(path)
-        except FileNotFoundError:
-            _LOGGER.info("pipx did not find resource %s", path)
-        else:
-            _LOGGER.info("pipx removed resource %s", path)
+        _remove_resource(path)
 
     package_info = next(
         (package_info for package_info in package_infos or () if package_info.package == venv.main_package_name),
@@ -117,16 +119,19 @@ def uninstall(
     )
     rmdir(venv_dir)
     return OperationResult(
-        command="uninstall",
-        data=UninstallData(packages=(package,), failures=()),
+        command=("uninstall",),
+        data=UninstallData(packages=(package,)),
         messages=(OutputMessage(f"uninstalled {venv.name}! {stars}"),),
     )
 
 
-@dataclass(frozen=True)
-class _FailedEnvironment:
-    environment: str
-    error: str
+def _remove_resource(path: Path) -> None:
+    try:
+        safe_unlink(path)
+    except FileNotFoundError:
+        _LOGGER.info("pipx did not find resource %s", path)
+    else:
+        _LOGGER.info("pipx removed resource %s", path)
 
 
 @dataclass(frozen=True)
@@ -140,7 +145,6 @@ class _UninstalledPackage:
 @dataclass(frozen=True)
 class UninstallData(OperationData):
     packages: tuple[_UninstalledPackage, ...]
-    failures: tuple[_FailedEnvironment, ...]
 
 
 def _get_venv_package_infos(venv: Venv) -> tuple[PackageInfo, ...] | None:
@@ -152,11 +156,12 @@ def _get_venv_package_infos(venv: Venv) -> tuple[PackageInfo, ...] | None:
     return (_venv_metadata_to_package_info(venv_metadata, venv.root.name),)
 
 
-def _venv_metadata_to_package_info(
+def _venv_metadata_to_package_info(  # noqa: PLR0913  # builds a PackageInfo field-for-field from venv metadata
     venv_metadata: VenvMetadata,
     package_name: str,
     package_or_url: str = "",
     pip_args: list[str] | None = None,
+    *,
     include_apps: bool = True,
     include_dependencies: bool = False,
     suffix: str = "",

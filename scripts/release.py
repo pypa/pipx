@@ -7,7 +7,7 @@ from pathlib import Path
 from subprocess import call, check_call
 from urllib.parse import urlsplit, urlunsplit
 
-from git import Commit, Remote, Repo, TagReference  # type: ignore[import-not-found]
+from git import Commit, Remote, Repo, TagReference
 from packaging.version import Version
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -22,18 +22,14 @@ def main(version_str: str, *, push: bool) -> None:
     remote = get_remote(repo)
     remote.fetch()
     version = resolve_version(version_str, repo)
-    print(f"Releasing {version}")
     release_commit = release_changelog(repo, version)
     tag = tag_release_commit(release_commit, repo, version)
     if push:
         # The checkout uses persist-credentials: false, so no token lives in the git config;
         # authenticate the push via GH_RELEASE_TOKEN embedded into the remote URL.
         push_target = authenticated_url(remote)
-        print("Pushing release commit")
         repo.git.push(push_target, "HEAD:main")
-        print("Pushing release tag")
         repo.git.push(push_target, str(tag))
-    print("All done! ✨ 🍰 ✨")
 
 
 def authenticated_url(remote: Remote) -> str:
@@ -76,22 +72,18 @@ def get_remote(repo: Repo) -> Remote:
 
 
 def release_changelog(repo: Repo, version: Version) -> Commit:
-    print("Generating release commit")
-    check_call(["towncrier", "build", "--yes", "--version", version.public], cwd=str(ROOT_DIR))
-    call(["pre-commit", "run", "--all-files"], cwd=str(ROOT_DIR))
+    check_call(["towncrier", "build", "--yes", "--version", version.public], cwd=str(ROOT_DIR))  # noqa: S607  # towncrier resolved from PATH
+    call(["pre-commit", "run", "--all-files"], cwd=str(ROOT_DIR))  # noqa: S607  # pre-commit resolved from PATH
     repo.git.add(".")
-    check_call(["pre-commit", "run", "--all-files"], cwd=str(ROOT_DIR))
+    check_call(["pre-commit", "run", "--all-files"], cwd=str(ROOT_DIR))  # noqa: S607  # pre-commit resolved from PATH
     return repo.index.commit(f"Release {version}")
 
 
 def tag_release_commit(release_commit: Commit, repo: Repo, version: Version) -> TagReference:
-    print("Tagging release commit")
     existing_tags = [x.name for x in repo.tags]
     if str(version) in existing_tags:
-        print(f"Deleting existing tag {version}")
-        repo.delete_tag(str(version))
-    print(f"Creating tag {version}")
-    return repo.create_tag(str(version), ref=release_commit, force=True)
+        repo.delete_tag(repo.tags[str(version)])
+    return repo.create_tag(str(version), ref=release_commit.hexsha, force=True)
 
 
 if __name__ == "__main__":

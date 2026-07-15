@@ -1,21 +1,22 @@
+from __future__ import annotations
+
 import hashlib
 import importlib
 import json
+import logging
 import os
 import shutil
 import socket
 import subprocess
 import sys
-from collections.abc import Callable, Iterator
-from contextlib import closing
+from contextlib import closing, suppress
 from http import HTTPStatus
 from pathlib import Path
-from typing import Final
+from typing import TYPE_CHECKING, Final
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 import pytest
-from pytest_mock import MockerFixture
 
 from helpers import WIN, app_name, run_pipx_cli
 from pipx import commands, interpreter, paths, shared_libs, standalone_python, venv
@@ -25,6 +26,11 @@ from pipx.backends import uv as _uv_backend_module
 from pipx.backends.uv import find_uv_binary
 from pipx.commands import common
 from pipx.venv import reset_backend_override_warnings
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
+
+    from pytest_mock import MockerFixture
 
 # ``pipx.commands.__init__`` re-exports ``upgrade`` (the function), which
 # shadows the submodule on the package. ``import_module`` returns the module
@@ -51,7 +57,7 @@ def make_pylock(root: Path, tmp_path: Path) -> Callable[[str, str], Path]:
         )
         lock_file = tmp_path / "pylock.test.toml"
         lock_file.write_text(
-            f'''lock-version = "1.0"
+            f"""lock-version = "1.0"
 created-by = "pipx tests"
 
 [[packages]]
@@ -64,7 +70,7 @@ url = "{wheel.as_uri()}"
 
 [packages.wheels.hashes]
 sha256 = "{hashlib.sha256(wheel.read_bytes()).hexdigest()}"
-''',
+""",
             encoding="utf-8",
         )
         return lock_file
@@ -107,16 +113,16 @@ print("installed")
     return script
 
 
-@pytest.fixture()
+@pytest.fixture
 def local_extras_project(root: Path, tmp_path: Path) -> Path:
     project: Final[Path] = tmp_path / "local_extras"
     shutil.copytree(root / "testdata/test_package_specifier/local_extras", project, ignore=_IGNORE_PROJECT_OUTPUT)
     return project
 
 
-@pytest.fixture()
+@pytest.fixture
 def copied_dependency_resource(
-    pipx_temp_env: None,
+    pipx_temp_env: None,  # noqa: ARG001  # required so the temp env is active while the resource is built
     make_project_with_dependency: Callable[[str], Path],
     mocker: MockerFixture,
 ) -> tuple[Path, bytes]:
@@ -127,7 +133,7 @@ def copied_dependency_resource(
     return exposed_app, exposed_app.read_bytes()
 
 
-@pytest.fixture()
+@pytest.fixture
 def empty_project(root: Path, tmp_path: Path) -> Path:
     project: Final[Path] = tmp_path / "empty_project"
     shutil.copytree(root / "testdata/empty_project", project, ignore=_IGNORE_PROJECT_OUTPUT)
@@ -147,23 +153,36 @@ def _backend_test_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "pip")
     find_uv_binary.cache_clear()
-    _uv_backend_module._check_uv_version.cache_clear()
+    _uv_backend_module._check_uv_version.cache_clear()  # noqa: SLF001  # cache reset has no public API
     get_backend.cache_clear()
     reset_backend_override_warnings()
 
 
-@pytest.fixture()
-def mocked_github_api(monkeypatch, root):
+@pytest.fixture(autouse=True)
+def _isolate_pipx_logging() -> Iterator[None]:
+    yield
+    # setup_logging binds a StreamHandler to whatever sys.stderr is when it runs. pytest swaps that stream per
+    # test, so a handler left by an earlier verbose run keeps a stale reference and, on a Windows cp1252 console,
+    # crashes ("--- Logging error ---") the moment a later test logs a non-ASCII record. Drop pipx's handlers
+    # after each test to keep that state from leaking across tests.
+    pipx_logger: Final[logging.Logger] = logging.getLogger("pipx")
+    for handler in pipx_logger.handlers[:]:
+        pipx_logger.removeHandler(handler)
+        handler.close()
+
+
+@pytest.fixture
+def mocked_github_api(monkeypatch: pytest.MonkeyPatch, root: Path) -> None:
     """
     Fixture to replace the github index with a local copy,
     to prevent unit tests from exceeding github's API request limit.
     """
-    with open(root / "testdata" / "standalone_python_index_20250818.json") as f:
+    with Path(root / "testdata" / "standalone_python_index_20250818.json").open(encoding="utf-8") as f:
         index = json.load(f)
-    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda _: index)
+    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda *, use_cache=True: index)  # noqa: ARG005  # mock ignores use_cache
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
         "--all-packages",
         action="store_true",
@@ -180,7 +199,7 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_configure(config):
+def pytest_configure(config: pytest.Config) -> None:
     markexpr = getattr(config.option, "markexpr", "")
 
     if config.option.all_packages:
@@ -191,7 +210,15 @@ def pytest_configure(config):
     config.option.markexpr = new_markexpr
 
 
-def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pypi):
+def pipx_temp_env_helper(
+    pipx_shared_dir: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    utils_temp_dir: Path,
+    *,
+    pypi: str,
+) -> None:
     home_dir = Path(tmp_path) / "subdir" / "pipxhome"
     bin_dir = Path(tmp_path) / "otherdir" / "pipxbindir"
     man_dir = Path(tmp_path) / "otherdir" / "pipxmandir"
@@ -217,7 +244,7 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_
 
     # Each consumer holds its own ``shared_libs`` reference (via
     # ``from pipx.shared_libs import shared_libs``); patch every importer.
-    monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())
+    monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())  # noqa: SLF001  # fresh instance per test, no public factory
     monkeypatch.setattr(venv, "shared_libs", shared_libs.shared_libs)
     monkeypatch.setattr(_pip_backend_module, "shared_libs", shared_libs.shared_libs)
     monkeypatch.setattr(_upgrade_module, "shared_libs", shared_libs.shared_libs)
@@ -240,8 +267,8 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_
     #   cannot use symlinks, even if we're running as administrator and
     #   symlinks are actually possible.
     if WIN:
-        monkeypatch.setitem(commands.common._can_symlink_cache, paths.ctx.bin_dir, False)
-        monkeypatch.setitem(commands.common._can_symlink_cache, paths.ctx.man_dir, False)
+        monkeypatch.setitem(commands.common._can_symlink_cache, paths.ctx.bin_dir, False)  # noqa: SLF001  # seeding the symlink cache has no public API
+        monkeypatch.setitem(commands.common._can_symlink_cache, paths.ctx.man_dir, False)  # noqa: SLF001  # seeding the symlink cache has no public API
     if not request.config.option.net_pypiserver:
         # IMPORTANT: use 127.0.0.1 not localhost
         #   Using localhost on Windows creates enormous slowdowns
@@ -253,7 +280,9 @@ def pipx_temp_env_helper(pipx_shared_dir, tmp_path, monkeypatch, request, utils_
 
 
 @pytest.fixture(scope="session", autouse=True)
-def pipx_local_pypiserver(request, root: Path, tmp_path_factory) -> Iterator[str]:
+def pipx_local_pypiserver(
+    request: pytest.FixtureRequest, root: Path, tmp_path_factory: pytest.TempPathFactory
+) -> Iterator[str]:
     """Starts local pypiserver once per session unless --net-pypiserver was
     passed to pytest"""
     if request.config.option.net_pypiserver:
@@ -279,7 +308,7 @@ def pipx_local_pypiserver(request, root: Path, tmp_path_factory) -> Iterator[str
     if check_test_packages_process.returncode != 0:
         subprocess.run(update_test_packages_cmd, check=True, cwd=root)
 
-    def find_free_port():
+    def find_free_port() -> int:
         with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
             s.bind(("", 0))
             return s.getsockname()[1]
@@ -320,13 +349,13 @@ def pipx_local_pypiserver(request, root: Path, tmp_path_factory) -> Iterator[str
 
 
 @pytest.fixture(scope="session")
-def pipx_session_shared_dir(tmp_path_factory):
+def pipx_session_shared_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Makes a temporary pipx shared libs directory only once per session"""
     return tmp_path_factory.mktemp("session_shareddir")
 
 
 @pytest.fixture(scope="session")
-def utils_temp_dir(tmp_path_factory):
+def utils_temp_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
     tmp_path = tmp_path_factory.mktemp("session_utilstempdir")
     required = ["git"]
     optional = ["uv"]  # exposed only when present so the uv-backend smoke test can find it
@@ -334,24 +363,28 @@ def utils_temp_dir(tmp_path_factory):
         at_path = shutil.which(util)
         assert at_path is not None
         util_path = Path(at_path)
-        try:
+        with suppress(FileExistsError):
             (tmp_path / util_path.name).symlink_to(util_path)
-        except FileExistsError:
-            pass
     for util in optional:
         at_path = shutil.which(util)
         if at_path is None:
             continue
         util_path = Path(at_path)
-        try:
+        with suppress(FileExistsError):
             (tmp_path / util_path.name).symlink_to(util_path)
-        except FileExistsError:
-            pass
     return tmp_path
 
 
 @pytest.fixture
-def pipx_temp_env(tmp_path, monkeypatch, pipx_session_shared_dir, request, utils_temp_dir, pipx_local_pypiserver):
+def pipx_temp_env(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    pipx_session_shared_dir: Path,
+    request: pytest.FixtureRequest,
+    utils_temp_dir: Path,
+    *,
+    pipx_local_pypiserver: str,
+) -> Iterator[None]:
     """Sets up temporary paths for pipx to install into.
 
     Shared libs are setup once per session, all other pipx dirs, constants are
@@ -360,14 +393,22 @@ def pipx_temp_env(tmp_path, monkeypatch, pipx_session_shared_dir, request, utils
     Also adds environment variables as necessary to make pip installations
     seamless.
     """
-    pipx_temp_env_helper(pipx_session_shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pipx_local_pypiserver)
+    pipx_temp_env_helper(
+        pipx_session_shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pypi=pipx_local_pypiserver
+    )
     yield
     monkeypatch.undo()
     paths.ctx.make_local()
 
 
 @pytest.fixture
-def pipx_ultra_temp_env(tmp_path, monkeypatch, request, utils_temp_dir, pipx_local_pypiserver):
+def pipx_ultra_temp_env(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    utils_temp_dir: Path,
+    pipx_local_pypiserver: str,
+) -> Iterator[None]:
     """Sets up temporary paths for pipx to install into.
 
     Fully temporary environment, every test function starts as if pipx has
@@ -377,7 +418,7 @@ def pipx_ultra_temp_env(tmp_path, monkeypatch, request, utils_temp_dir, pipx_loc
     seamless.
     """
     shared_dir = Path(tmp_path) / "shareddir"
-    pipx_temp_env_helper(shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pipx_local_pypiserver)
+    pipx_temp_env_helper(shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pypi=pipx_local_pypiserver)
     yield
     monkeypatch.undo()
     paths.ctx.make_local()

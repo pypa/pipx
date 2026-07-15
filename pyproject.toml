@@ -61,6 +61,7 @@ dev = [
   { include-group = "lint" },
   { include-group = "man" },
   { include-group = "test" },
+  { include-group = "type" },
 ]
 test = [
   "docutils>=0.21",
@@ -72,6 +73,15 @@ test = [
   "pytest-xdist>=3.5",
   "setuptools>=68; python_version>='3.12'",
   "watchdog>=4",
+]
+type = [
+  "gitpython>=3.1",
+  "hatchling>=1.27",
+  "tomli>=2",
+  "ty>=0.0.59",
+  "types-docutils>=0.21",
+  { include-group = "docs" },
+  { include-group = "test" },
 ]
 docs = [
   "jinja2",
@@ -107,40 +117,53 @@ build.targets.sdist.include = [
 ]
 
 [tool.ruff]
-line-length = 121
-lint.extend-select = [
-  "A",
-  "B",
-  "C4",
-  "C9",
-  "I",
-  "ISC",
-  "PERF",
-  "PGH",
-  "PIE",
-  "PLC",
-  "PLE",
-  "PLW",
-  "RSE",
-  "RUF",
-  "TC",
-  "UP",
-  "W",
+line-length = 120
+extend-exclude = [
+  "testdata",
+]
+format.preview = true
+format.docstring-code-line-length = 100
+format.docstring-code-format = true
+lint.select = [
+  "ALL",
 ]
 lint.ignore = [
-  "PERF203",
-  "PLW1508",
-  "RUF005",
+  "COM812", # conflicts with formatter
+  "CPY",    # no copyright header
+  "D",      # ignore documentation for now
+  "D203",   # `one-blank-line-before-class` and `no-blank-line-before-class` are incompatible
+  "D212",   # `multi-line-summary-first-line` and `multi-line-summary-second-line` are incompatible
+  "DOC201", # no restructuredtext support yet
+  "DOC402", # no restructuredtext support yet
+  "DOC501", # broken with sphinx docs
+  "INP001", # no implicit namespaces here
+  "ISC001", # conflicts with formatter
+  "RUF067", # `__init__` module should only contain docstrings and re-exports
+  "S104",   # possible binding to all interfaces
+  "S404",   # using subprocess is alright
+  "S603",   # using subprocess is alright
 ]
 lint.per-file-ignores."src/pipx/venv.py" = [
-  "A005",
+  "A005", # module shadows the standard library
+]
+lint.per-file-ignores."tests/**/*.py" = [
+  "D",       # don't care about documentation in tests
+  "FBT",     # don't care about booleans as positional arguments in tests
+  "INP001",  # no implicit namespace
+  "PLR0913", # too many arguments to function definition
+  "PLR2004", # magic value used in comparison
+  "S101",    # asserts allowed in tests
+  "S603",    # subprocess call: check for execution of untrusted input
 ]
 lint.isort = { known-first-party = [
   "helpers",
   "package_info",
   "pipx",
+], required-imports = [
+  "from __future__ import annotations",
 ] }
 lint.mccabe.max-complexity = 15
+lint.preview = true
 
 [tool.codespell]
 # case sensitive etc
@@ -149,12 +172,10 @@ ignore-regex = "\\b(UE|path/doesnt/exist)\\b"
 skip = ".git,*.pdf,*.svg,.nox,testdata,.mypy_cache"
 check-hidden = true
 
-[tool.mypy]
-warn_unreachable = true
-enable_error_code = [ "ignore-without-code", "redundant-expr", "truthy-bool" ]
-overrides = [ { module = [
-  "pycowsay.*",
-], ignore_missing_imports = true } ]
+[tool.ty]
+src.include = [ "hatch_build.py", "scripts", "src", "tests" ]
+environment.python-version = "3.10"
+rules.unused-ignore-comment = "error"
 
 [tool.pytest]
 ini_options.minversion = "8"

@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 import datetime
 import logging
 import os
 import time
-from collections.abc import Generator
 from configparser import ConfigParser
+from configparser import Error as ConfigParserError
 from contextlib import contextmanager
 from contextvars import ContextVar
 from pathlib import Path
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 from filelock import BaseFileLock, FileLock
 
@@ -23,6 +25,9 @@ from pipx.util import (
     subprocess_post_check,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +41,7 @@ def shared_libs_auto_upgrade_disabled() -> bool:
 
 
 @contextmanager
-def skip_shared_libs_maintenance(enabled: bool) -> Generator[None, None, None]:
+def skip_shared_libs_maintenance(*, enabled: bool) -> Generator[None, None, None]:
     token = _SKIP_MAINTENANCE.set(enabled)
     try:
         yield
@@ -59,21 +64,21 @@ def _venv_python_is_valid(python_path: Path) -> bool:
     if not pyvenv_cfg.is_file():
         return True
 
+    config = ConfigParser()
     try:
-        config = ConfigParser()
-        with open(pyvenv_cfg, encoding="utf-8") as f:
-            # ConfigParser needs a section header, pyvenv.cfg doesn't have one
-            config.read_string("[DEFAULT]\n" + f.read())
-        home = config.get("DEFAULT", "home", fallback=None)
-        if home:
-            # The home path points to the directory containing the original python.exe
-            original_python = Path(home) / "python.exe"
-            if not original_python.is_file():
-                logger.info(f"Shared libs venv references a missing Python interpreter: {original_python}")
-                return False
-    except Exception:
+        # ConfigParser needs a section header, pyvenv.cfg doesn't have one
+        config.read_string("[DEFAULT]\n" + pyvenv_cfg.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ConfigParserError):
         # If we can't read pyvenv.cfg, assume the venv is valid
-        pass
+        return True
+
+    home = config.get("DEFAULT", "home", fallback=None)
+    if home:
+        # The home path points to the directory containing the original python.exe
+        original_python = Path(home) / "python.exe"
+        if not original_python.is_file():
+            logger.info("Shared libs venv references a missing Python interpreter: %s", original_python)
+            return False
 
     return True
 
@@ -115,17 +120,17 @@ class _SharedLibs:
 
         return self._site_packages[self.python_path]
 
-    def create(self, pip_args: list[str], verbose: bool = False, *, reinstall_pip: bool | None = None) -> None:
+    def create(self, pip_args: list[str], *, verbose: bool = False, reinstall_pip: bool | None = None) -> None:
         with self._maintenance_lock():
-            self._create(pip_args, verbose, reinstall_pip)
+            self._create(pip_args, verbose=verbose, reinstall_pip=reinstall_pip)
 
     def _maintenance_lock(self) -> BaseFileLock:
         self.root.parent.mkdir(parents=True, exist_ok=True)
         return FileLock(self.root.with_name(f".{self.root.name}.lock"))
 
-    def _create(self, pip_args: list[str], verbose: bool, reinstall_pip: bool | None = None) -> None:
+    def _create(self, pip_args: list[str], *, verbose: bool, reinstall_pip: bool | None = None) -> None:
         if not self.is_valid:
-            with animate("creating shared libraries", not verbose):
+            with animate("creating shared libraries", do_animation=not verbose):
                 create_process = run_subprocess(
                     [get_default_python(), "-m", "venv", "--clear", self.root], run_dir=str(self.root)
                 )
@@ -176,8 +181,10 @@ class _SharedLibs:
         time_since_last_update_sec = now - self.pip_path.stat().st_mtime
         if not self.has_been_logged_this_run:
             logger.info(
-                f"Time since last upgrade of shared libs, in seconds: {time_since_last_update_sec:.0f}. "
-                f"Upgrade will be run by pipx if greater than {SHARED_LIBS_MAX_AGE_SEC:.0f}."
+                "Time since last upgrade of shared libs, in seconds: %.0f. "
+                "Upgrade will be run by pipx if greater than %.0f.",
+                time_since_last_update_sec,
+                SHARED_LIBS_MAX_AGE_SEC,
             )
             self.has_been_logged_this_run = True
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
@@ -192,37 +199,35 @@ class _SharedLibs:
             return
 
         if self.has_been_updated_this_run:
-            logger.info(f"Already upgraded libraries in {self.root}")
+            logger.info("Already upgraded libraries in %s", self.root)
             return
 
-        logger.info(f"Upgrading shared libraries in {self.root}")
+        logger.info("Upgrading shared libraries in %s", self.root)
 
         filtered_pip_args = [arg for arg in pip_args if arg != "--editable"]
         if not verbose:
             filtered_pip_args.append("-q")
 
         try:
-            with animate("upgrading shared libraries", not verbose):
-                upgrade_process = run_subprocess(
-                    [
-                        self.python_path,
-                        "-m",
-                        "pip",
-                        "--no-input",
-                        "--disable-pip-version-check",
-                        "install",
-                        "--upgrade",
-                        *filtered_pip_args,
-                        "pip >= 26.1",
-                    ]
-                )
+            with animate("upgrading shared libraries", do_animation=not verbose):
+                upgrade_process = run_subprocess([
+                    self.python_path,
+                    "-m",
+                    "pip",
+                    "--no-input",
+                    "--disable-pip-version-check",
+                    "install",
+                    "--upgrade",
+                    *filtered_pip_args,
+                    "pip >= 26.1",
+                ])
             subprocess_post_check(upgrade_process)
 
             self.has_been_updated_this_run = True
             self.pip_path.touch()
 
         except Exception:
-            logger.error("Failed to upgrade shared libraries", exc_info=not raises)
+            logger.exception("Failed to upgrade shared libraries", exc_info=not raises)
             if raises:
                 raise
 

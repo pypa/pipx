@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 from typing import Any
@@ -5,7 +7,7 @@ from typing import Any
 WIN = sys.platform.startswith("win")
 
 
-def _exe_if_win(apps):
+def _exe_if_win(apps: list[str]) -> list[str]:
     return [f"{app}.exe" if WIN else app for app in apps]
 
 
@@ -38,17 +40,15 @@ PKG: dict[str, dict[str, Any]] = {
             "aws_completer",
             "aws_zsh_completer.sh",
         ],
-        "apps_of_dependencies": _exe_if_win(
-            [
+        "apps_of_dependencies": [
+            *_exe_if_win([
                 "pyrsa-decrypt",  # rsa EXE
                 "pyrsa-encrypt",  # rsa EXE
                 "pyrsa-keygen",  # rsa EXE
                 "pyrsa-priv2pub",  # rsa EXE
                 "pyrsa-sign",  # rsa EXE
                 "pyrsa-verify",  # rsa EXE
-            ]
-        )
-        + [
+            ]),
             "jp.py",  # jmespath.py NO_EXE
             "rst2html.py",  # docutils NO_EXE
             "rst2html4.py",  # docutils NO_EXE
@@ -67,8 +67,8 @@ PKG: dict[str, dict[str, Any]] = {
     "b2": {
         "spec": "b2==3.12.0",
         "apps": _exe_if_win(["b2"]),
-        "apps_of_dependencies": _exe_if_win(["docutils", "rst2ansi", "tabulate", "tqdm", "normalizer"])
-        + [
+        "apps_of_dependencies": [
+            *_exe_if_win(["docutils", "rst2ansi", "tabulate", "tqdm", "normalizer"]),
             "activate-global-python-argcomplete",
             "python-argcomplete-check-easy-install-script",
             "register-python-argcomplete",
@@ -88,27 +88,25 @@ PKG: dict[str, dict[str, Any]] = {
     },
     "beancount": {
         "spec": "beancount==2.3.6",
-        "apps": _exe_if_win(
-            [
-                "bean-bake",
-                "bean-check",
-                "bean-doctor",
-                "bean-example",
-                "bean-extract",
-                "bean-file",
-                "bean-format",
-                "bean-identify",
-                "bean-price",
-                "bean-query",
-                "bean-report",
-                "bean-sql",
-                "bean-web",
-                "treeify",
-                "upload-to-sheets",
-            ]
-        ),
-        "apps_of_dependencies": _exe_if_win(
-            [
+        "apps": _exe_if_win([
+            "bean-bake",
+            "bean-check",
+            "bean-doctor",
+            "bean-example",
+            "bean-extract",
+            "bean-file",
+            "bean-format",
+            "bean-identify",
+            "bean-price",
+            "bean-query",
+            "bean-report",
+            "bean-sql",
+            "bean-web",
+            "treeify",
+            "upload-to-sheets",
+        ]),
+        "apps_of_dependencies": [
+            *_exe_if_win([
                 "chardetect",  # chardet EXE
                 "py.test",  # pytest EXE
                 "pyrsa-decrypt",  # rsa EXE
@@ -120,24 +118,25 @@ PKG: dict[str, dict[str, Any]] = {
                 "pytest",  # pytest EXE
                 "normalizer",
                 "py.test",
-            ]
-        )
-        + ["bottle.py", "dumppdf.py", "latin2ascii.py", "pdf2txt.py"],  # bottle NO_EXE
+            ]),
+            "bottle.py",
+            "dumppdf.py",
+            "latin2ascii.py",
+            "pdf2txt.py",
+        ],  # bottle NO_EXE
     },
     "beets": {
         "spec": "beets==1.4.9",
         "apps": _exe_if_win(["beet"]),
-        "apps_of_dependencies": _exe_if_win(
-            [
-                "mid3cp",
-                "mid3iconv",
-                "mid3v2",
-                "moggsplit",
-                "mutagen-inspect",
-                "mutagen-pony",
-                "unidecode",  # unidecode EXE
-            ]
-        ),
+        "apps_of_dependencies": _exe_if_win([
+            "mid3cp",
+            "mid3iconv",
+            "mid3v2",
+            "moggsplit",
+            "mutagen-inspect",
+            "mutagen-pony",
+            "unidecode",  # unidecode EXE
+        ]),
         "man_pages": [],
         "man_pages_of_dependencies": [
             str(Path("man1") / "mutagen-pony.1"),
@@ -156,8 +155,8 @@ PKG: dict[str, dict[str, Any]] = {
     "cactus": {
         "spec": "cactus==3.3.3",
         "apps": _exe_if_win(["cactus"]),
-        "apps_of_dependencies": _exe_if_win(["keyring", "markdown2"])
-        + [
+        "apps_of_dependencies": [
+            *_exe_if_win(["keyring", "markdown2"]),
             "asadmin",
             "bundle_image",
             "cfadmin",
@@ -186,17 +185,12 @@ PKG: dict[str, dict[str, Any]] = {
     "chert": {
         "spec": "chert==19.1.0",
         "apps": _exe_if_win(["chert"]),
-        "apps_of_dependencies": _exe_if_win(["ashes", "markdown_py"]) + ["ashes.py"],
+        "apps_of_dependencies": [*_exe_if_win(["ashes", "markdown_py"]), "ashes.py"],
     },
-    # "cloudtoken": {
-    #     "spec": "cloudtoken==2.1.0",
-    #     "apps": ["awstoken", "cloudtoken", "cloudtoken.app", "cloudtoken_proxy.sh"],
-    #     "apps_of_dependencies": _exe_if_win(["flask", "keyring", "normalizer"]) + ["jp.py"],
-    # },
     "coala": {
         "spec": "coala==0.11.0",
         "apps": _exe_if_win(["coala", "coala-ci", "coala-delete-orig", "coala-format", "coala-json"]),
-        "apps_of_dependencies": _exe_if_win(["normalizer", "pygmentize"]) + ["unidiff"],
+        "apps_of_dependencies": [*_exe_if_win(["normalizer", "pygmentize"]), "unidiff"],
     },
     "cookiecutter": {
         "spec": "cookiecutter==2.4.0",
@@ -211,7 +205,7 @@ PKG: dict[str, dict[str, Any]] = {
     "datasette": {
         "spec": "datasette==0.50.2",
         "apps": _exe_if_win(["datasette"]),
-        "apps_of_dependencies": _exe_if_win(["httpx", "hupper", "uvicorn"]) + ["pint-convert"],
+        "apps_of_dependencies": [*_exe_if_win(["httpx", "hupper", "uvicorn"]), "pint-convert"],
     },
     "diffoscope": {
         "spec": "diffoscope==154",
@@ -243,24 +237,22 @@ PKG: dict[str, dict[str, Any]] = {
     "grow": {
         "spec": "grow==1.0.0a10",
         "apps": ["grow"],
-        "apps_of_dependencies": _exe_if_win(
-            [
-                "chardetect",  # chardet EXE
-                "gen_protorpc",  # EXE
-                "html2text",  # html2text EXE
-                "markdown_py",  # Markdown EXE
-                "pybabel",  # babel EXE
-                "pygmentize",  # pygments EXE
-                "pyrsa-decrypt",  # rsa EXE
-                "pyrsa-encrypt",  # rsa EXE
-                "pyrsa-keygen",  # rsa EXE
-                "pyrsa-priv2pub",  # rsa EXE
-                "pyrsa-sign",  # rsa EXE
-                "pyrsa-verify",  # rsa EXE
-                "slugify",  # python_slugify EXE
-                "watchmedo",  # watchdog EXE
-            ]
-        ),
+        "apps_of_dependencies": _exe_if_win([
+            "chardetect",  # chardet EXE
+            "gen_protorpc",  # EXE
+            "html2text",  # html2text EXE
+            "markdown_py",  # Markdown EXE
+            "pybabel",  # babel EXE
+            "pygmentize",  # pygments EXE
+            "pyrsa-decrypt",  # rsa EXE
+            "pyrsa-encrypt",  # rsa EXE
+            "pyrsa-keygen",  # rsa EXE
+            "pyrsa-priv2pub",  # rsa EXE
+            "pyrsa-sign",  # rsa EXE
+            "pyrsa-verify",  # rsa EXE
+            "slugify",  # python_slugify EXE
+            "watchmedo",  # watchdog EXE
+        ]),
     },
     "guake": {
         "spec": "guake==3.7.0",
@@ -291,7 +283,7 @@ PKG: dict[str, dict[str, Any]] = {
     "hyde": {
         "spec": "hyde==0.8.9",
         "apps": _exe_if_win(["hyde"]),
-        "apps_of_dependencies": _exe_if_win(["markdown_py", "pygmentize"]) + ["smartypants"],
+        "apps_of_dependencies": [*_exe_if_win(["markdown_py", "pygmentize"]), "smartypants"],
     },
     "ipython": {
         "spec": "ipython==7.16.1",
@@ -307,21 +299,19 @@ PKG: dict[str, dict[str, Any]] = {
     },
     "zest-releaser": {
         "spec": "zest.releaser==9.1.2",
-        "apps": _exe_if_win(
-            [
-                "addchangelogentry",
-                "bumpversion",
-                "fullrelease",
-                "lasttagdiff",
-                "lasttaglog",
-                "longtest",
-                "postrelease",
-                "prerelease",
-                "release",
-            ]
-        ),
-        "apps_of_dependencies": _exe_if_win(
-            [
+        "apps": _exe_if_win([
+            "addchangelogentry",
+            "bumpversion",
+            "fullrelease",
+            "lasttagdiff",
+            "lasttaglog",
+            "longtest",
+            "postrelease",
+            "prerelease",
+            "release",
+        ]),
+        "apps_of_dependencies": [
+            *_exe_if_win([
                 "markdown-it",
                 "normalizer",
                 "twine",
@@ -330,9 +320,7 @@ PKG: dict[str, dict[str, Any]] = {
                 "docutils",
                 "pygmentize",
                 "keyring",
-            ]
-        )
-        + [
+            ]),
             "rst2html.py",
             "rst2html4.py",
             "rst2html5.py",
@@ -350,30 +338,28 @@ PKG: dict[str, dict[str, Any]] = {
     "jupyter": {
         "spec": "jupyter==1.0.0",
         "apps": [],
-        "apps_of_dependencies": _exe_if_win(
-            [
-                "iptest",  # EXE
-                "iptest3",  # EXE
-                "ipython",  # EXE
-                "ipython3",  # EXE
-                "jsonschema",  # jsonschema EXE
-                "jupyter",  # EXE
-                "jupyter-bundlerextension",  # EXE
-                "jupyter-console",  # EXE
-                "jupyter-kernel",  # EXE
-                "jupyter-kernelspec",  # EXE
-                "jupyter-migrate",  # EXE
-                "jupyter-nbconvert",  # EXE
-                "jupyter-nbextension",  # EXE
-                "jupyter-notebook",  # EXE
-                "jupyter-qtconsole",  # EXE
-                "jupyter-run",  # EXE
-                "jupyter-serverextension",  # EXE
-                "jupyter-troubleshoot",  # EXE
-                "jupyter-trust",  # EXE
-                "pygmentize",  # pygments EXE
-            ]
-        ),
+        "apps_of_dependencies": _exe_if_win([
+            "iptest",  # EXE
+            "iptest3",  # EXE
+            "ipython",  # EXE
+            "ipython3",  # EXE
+            "jsonschema",  # jsonschema EXE
+            "jupyter",  # EXE
+            "jupyter-bundlerextension",  # EXE
+            "jupyter-console",  # EXE
+            "jupyter-kernel",  # EXE
+            "jupyter-kernelspec",  # EXE
+            "jupyter-migrate",  # EXE
+            "jupyter-nbconvert",  # EXE
+            "jupyter-nbextension",  # EXE
+            "jupyter-notebook",  # EXE
+            "jupyter-qtconsole",  # EXE
+            "jupyter-run",  # EXE
+            "jupyter-serverextension",  # EXE
+            "jupyter-troubleshoot",  # EXE
+            "jupyter-trust",  # EXE
+            "pygmentize",  # pygments EXE
+        ]),
     },
     "kaggle": {
         "spec": "kaggle==1.6.11",
@@ -388,8 +374,11 @@ PKG: dict[str, dict[str, Any]] = {
     "klaus": {
         "spec": "klaus==1.5.2",
         "apps": ["klaus"],
-        "apps_of_dependencies": _exe_if_win(["dulwich", "flask", "pygmentize"])
-        + ["dul-receive-pack", "dul-upload-pack"],
+        "apps_of_dependencies": [
+            *_exe_if_win(["dulwich", "flask", "pygmentize"]),
+            "dul-receive-pack",
+            "dul-upload-pack",
+        ],
     },
     "kolibri": {
         "spec": "kolibri==0.14.3",
@@ -399,14 +388,16 @@ PKG: dict[str, dict[str, Any]] = {
     "lektor": {
         "spec": "Lektor==3.3.10",
         "apps": _exe_if_win(["lektor"]),
-        "apps_of_dependencies": _exe_if_win(["filetype", "flask", "pybabel", "normalizer", "slugify", "watchmedo"])
-        + ["EXIF.py"],
+        "apps_of_dependencies": [
+            *_exe_if_win(["filetype", "flask", "pybabel", "normalizer", "slugify", "watchmedo"]),
+            "EXIF.py",
+        ],
     },
     "localstack": {
         "spec": "localstack==0.12.1",
         "apps": ["localstack", "localstack.bat"],
-        "apps_of_dependencies": _exe_if_win(
-            [
+        "apps_of_dependencies": [
+            *_exe_if_win([
                 "dotenv",
                 "markdown-it",
                 "pbr",
@@ -421,9 +412,12 @@ PKG: dict[str, dict[str, Any]] = {
                 "pytail",
                 "tabulate",
                 "normalizer",
-            ]
-        )
-        + ["get_objgraph", "jp.py", "localstack-supervisor", "undill"],
+            ]),
+            "get_objgraph",
+            "jp.py",
+            "localstack-supervisor",
+            "undill",
+        ],
     },
     "mackup": {
         "spec": "mackup==0.8.29",
@@ -433,31 +427,29 @@ PKG: dict[str, dict[str, Any]] = {
     "magic-wormhole": {
         "spec": "magic-wormhole==0.13.0",
         "apps": _exe_if_win(["wormhole"]),
-        "apps_of_dependencies": _exe_if_win(
-            [
-                "automat-visualize",  # EXE
-                "cftp",  # EXE
-                "ckeygen",  # EXE
-                "conch",  # EXE
-                "mailmail",  # EXE
-                "pyhtmlizer",  # EXE
-                "tkconch",  # EXE
-                "tqdm",  # tqdm EXE
-                "trial",  # EXE
-                "twist",  # EXE
-                "twistd",  # EXE
-                "wamp",  # EXE
-                "xbrnetwork",  # EXE
-                "xbrnetwork-ui",  # EXE
-            ]
-        )
+        "apps_of_dependencies": _exe_if_win([
+            "automat-visualize",  # EXE
+            "cftp",  # EXE
+            "ckeygen",  # EXE
+            "conch",  # EXE
+            "mailmail",  # EXE
+            "pyhtmlizer",  # EXE
+            "tkconch",  # EXE
+            "tqdm",  # tqdm EXE
+            "trial",  # EXE
+            "twist",  # EXE
+            "twistd",  # EXE
+            "wamp",  # EXE
+            "xbrnetwork",  # EXE
+            "xbrnetwork-ui",  # EXE
+        ])
         + (["pywin32_postinstall.py", "pywin32_testall.py"] if WIN else []),
     },
     "mayan-edms": {
         "spec": "mayan-edms==3.5.2",
         "apps": ["mayan-edms.py"],
-        "apps_of_dependencies": _exe_if_win(
-            [
+        "apps_of_dependencies": [
+            *_exe_if_win([
                 "celery",  # EXE
                 "chardetect",  # chardet EXE
                 "django-admin",  # EXE
@@ -466,23 +458,22 @@ PKG: dict[str, dict[str, Any]] = {
                 "sqlformat",  # sqlparse EXE
                 "swagger-flex",  # EXE
                 "update-tld-names",  # # EXE
-            ]
-        )
-        + ["django-admin.py", "jsonpointer"],
+            ]),
+            "django-admin.py",
+            "jsonpointer",
+        ],
     },
     "mkdocs": {
         "spec": "mkdocs==1.1.2",
         "apps": _exe_if_win(["mkdocs"]),
-        "apps_of_dependencies": _exe_if_win(
-            [
-                "livereload",  # EXE
-                "futurize",  # future EXE
-                "pasteurize",  # future EXE
-                "nltk",  # EXE
-                "tqdm",  # tqdm EXE
-                "markdown_py",  # Markdown EXE
-            ]
-        ),
+        "apps_of_dependencies": _exe_if_win([
+            "livereload",  # EXE
+            "futurize",  # future EXE
+            "pasteurize",  # future EXE
+            "nltk",  # EXE
+            "tqdm",  # tqdm EXE
+            "markdown_py",  # Markdown EXE
+        ]),
     },
     "mycli": {
         "spec": "mycli==1.22.2",
@@ -492,8 +483,8 @@ PKG: dict[str, dict[str, Any]] = {
     "nikola": {
         "spec": "nikola==8.2.4",
         "apps": _exe_if_win(["nikola"]),
-        "apps_of_dependencies": _exe_if_win(
-            [
+        "apps_of_dependencies": [
+            *_exe_if_win([
                 "docutils",
                 "doit",  # EXE
                 "mako-render",  # mako EXE
@@ -503,9 +494,7 @@ PKG: dict[str, dict[str, Any]] = {
                 "pygmentize",  # pygments EXE
                 "unidecode",  # unidecode EXE
                 "normalizer",
-            ]
-        )
-        + [
+            ]),
             "rst2html.py",  # docutils NO_EXE
             "rst2html4.py",  # docutils NO_EXE
             "rst2html5.py",  # docutils NO_EXE
@@ -525,8 +514,8 @@ PKG: dict[str, dict[str, Any]] = {
     "nox": {
         "spec": "nox==2023.4.22",
         "apps": _exe_if_win(["nox", "tox-to-nox"]),
-        "apps_of_dependencies": _exe_if_win(["virtualenv"])
-        + [
+        "apps_of_dependencies": [
+            *_exe_if_win(["virtualenv"]),
             "activate-global-python-argcomplete",
             "python-argcomplete-check-easy-install-script",
             "register-python-argcomplete",
@@ -535,17 +524,15 @@ PKG: dict[str, dict[str, Any]] = {
     "pbr": {"spec": "pbr==5.6.0", "apps": _exe_if_win(["pbr"])},
     "pelican": {
         "spec": "pelican==4.8.0",
-        "apps": _exe_if_win(
-            [
-                "pelican",
-                "pelican-import",
-                "pelican-plugins",
-                "pelican-quickstart",
-                "pelican-themes",
-            ]
-        ),
-        "apps_of_dependencies": _exe_if_win(["docutils", "markdown-it", "pygmentize", "unidecode"])
-        + [
+        "apps": _exe_if_win([
+            "pelican",
+            "pelican-import",
+            "pelican-plugins",
+            "pelican-quickstart",
+            "pelican-themes",
+        ]),
+        "apps_of_dependencies": [
+            *_exe_if_win(["docutils", "markdown-it", "pygmentize", "unidecode"]),
             "rst2html.py",  # docutils NO_EXE
             "rst2html4.py",  # docutils NO_EXE
             "rst2html5.py",  # docutils NO_EXE
@@ -563,50 +550,49 @@ PKG: dict[str, dict[str, Any]] = {
     "platformio": {
         "spec": "platformio==6.1.11",
         "apps": _exe_if_win(["pio", "piodebuggdb", "platformio"]),
-        "apps_of_dependencies": _exe_if_win(
-            [
+        "apps_of_dependencies": [
+            *_exe_if_win([
                 "async-json-rpc-server",
                 "pyserial-miniterm",
                 "pyserial-ports",
                 "tabulate",
                 "uvicorn",
                 "normalizer",
-            ]
-        )
-        + ["bottle.py", "readelf.py"],
+            ]),
+            "bottle.py",
+            "readelf.py",
+        ],
     },
     "ppci": {
         "spec": "ppci==0.5.8",
-        "apps": _exe_if_win(
-            [
-                "ppci-archive",
-                "ppci-asm",
-                "ppci-build",
-                "ppci-c3c",
-                "ppci-cc",
-                "ppci-dbg",
-                "ppci-disasm",
-                "ppci-hexdump",
-                "ppci-hexutil",
-                "ppci-java",
-                "ppci-ld",
-                "ppci-llc",
-                "ppci-mkuimage",
-                "ppci-objcopy",
-                "ppci-objdump",
-                "ppci-ocaml",
-                "ppci-opt",
-                "ppci-pascal",
-                "ppci-pedump",
-                "ppci-pycompile",
-                "ppci-readelf",
-                "ppci-wabt",
-                "ppci-wasm2wat",
-                "ppci-wasmcompile",
-                "ppci-wat2wasm",
-                "ppci-yacc",
-            ]
-        ),
+        "apps": _exe_if_win([
+            "ppci-archive",
+            "ppci-asm",
+            "ppci-build",
+            "ppci-c3c",
+            "ppci-cc",
+            "ppci-dbg",
+            "ppci-disasm",
+            "ppci-hexdump",
+            "ppci-hexutil",
+            "ppci-java",
+            "ppci-ld",
+            "ppci-llc",
+            "ppci-mkuimage",
+            "ppci-objcopy",
+            "ppci-objdump",
+            "ppci-ocaml",
+            "ppci-opt",
+            "ppci-pascal",
+            "ppci-pedump",
+            "ppci-pycompile",
+            "ppci-readelf",
+            "ppci-wabt",
+            "ppci-wasm2wat",
+            "ppci-wasmcompile",
+            "ppci-wat2wasm",
+            "ppci-yacc",
+        ]),
         "apps_of_dependencies": [],
     },
     "prosopopee": {
@@ -616,16 +602,14 @@ PKG: dict[str, dict[str, Any]] = {
     },
     "ptpython": {
         "spec": "ptpython==3.0.7",
-        "apps": _exe_if_win(
-            [
-                "ptipython",
-                "ptipython3",
-                "ptipython3.8",
-                "ptpython",
-                "ptpython3",
-                "ptpython3.8",
-            ]
-        ),
+        "apps": _exe_if_win([
+            "ptipython",
+            "ptipython3",
+            "ptipython3.8",
+            "ptpython",
+            "ptpython3",
+            "ptpython3.8",
+        ]),
         "apps_of_dependencies": _exe_if_win(["pygmentize"]),  # pygments EXE
     },
     "pycowsay": {
@@ -639,23 +623,25 @@ PKG: dict[str, dict[str, Any]] = {
     "pylint": {
         "spec": "pylint==3.0.4",
         "apps": _exe_if_win(["pylint", "pylint-config", "pyreverse", "symilar"]),
-        "apps_of_dependencies": _exe_if_win(["isort", "isort-identify-imports"])
-        + ["get_gprof", "get_objgraph", "undill"],
+        "apps_of_dependencies": [
+            *_exe_if_win(["isort", "isort-identify-imports"]),
+            "get_gprof",
+            "get_objgraph",
+            "undill",
+        ],
     },
     "retext": {
         "spec": "ReText==8.0.1",
         "apps": _exe_if_win(["retext"]),
-        "apps_of_dependencies": _exe_if_win(
-            [
+        "apps_of_dependencies": [
+            *_exe_if_win([
                 "docutils",
                 "markdown_py",  # Markdown EXE
                 "pygmentize",  # pygments EXE
                 "pylupdate6",  # EXE
                 "pyuic6",  # EXE
                 "chardetect",
-            ]
-        )
-        + [
+            ]),
             "rst2html.py",  # docutils NO_EXE
             "rst2html4.py",  # docutils NO_EXE
             "rst2html5.py",  # docutils NO_EXE
@@ -696,8 +682,8 @@ PKG: dict[str, dict[str, Any]] = {
     "sphinx": {
         "spec": "Sphinx==7.2.6",
         "apps": _exe_if_win(["sphinx-apidoc", "sphinx-autogen", "sphinx-build", "sphinx-quickstart"]),
-        "apps_of_dependencies": _exe_if_win(["docutils", "pybabel", "normalizer", "pygmentize"])
-        + [
+        "apps_of_dependencies": [
+            *_exe_if_win(["docutils", "pybabel", "normalizer", "pygmentize"]),
             "rst2html.py",  # docutils NO_EXE
             "rst2html4.py",  # docutils NO_EXE
             "rst2html5.py",  # docutils NO_EXE
@@ -727,7 +713,7 @@ PKG: dict[str, dict[str, Any]] = {
     "taguette": {
         "spec": "taguette==0.9.2",
         "apps": _exe_if_win(["taguette"]),
-        "apps_of_dependencies": _exe_if_win(["alembic", "mako-render"]) + ["vba_extract.py"],
+        "apps_of_dependencies": [*_exe_if_win(["alembic", "mako-render"]), "vba_extract.py"],
     },
     "term2048": {
         "spec": "term2048==0.2.7",
@@ -741,7 +727,7 @@ PKG: dict[str, dict[str, Any]] = {
     },
     "visidata": {
         "spec": "visidata==2.0.1",
-        "apps": _exe_if_win(["visidata"]) + ["vd"],
+        "apps": [*_exe_if_win(["visidata"]), "vd"],
         "apps_of_dependencies": [],
         "man_pages": [str(Path("man1") / "vd.1")],
         "man_pages_of_dependencies": [],
@@ -754,7 +740,7 @@ PKG: dict[str, dict[str, Any]] = {
     "weblate": {
         "spec": "Weblate==4.3.1",
         "apps": _exe_if_win(["weblate"]),
-        "apps_of_dependencies": _exe_if_win(  # TODO: check if _exe_if_win (can't install)
+        "apps_of_dependencies": _exe_if_win(  # _exe_if_win unverified: weblate can't install in tests
             [
                 "borg",
                 "borgfs",
@@ -864,17 +850,15 @@ PKG: dict[str, dict[str, Any]] = {
     "zeo": {
         "spec": "ZEO==5.2.2",
         "apps": _exe_if_win(["runzeo", "zeo-nagios", "zeoctl", "zeopack"]),
-        "apps_of_dependencies": _exe_if_win(
-            [
-                "fsdump",
-                "fsoids",
-                "fsrefs",
-                "fstail",
-                "repozo",
-                "zconfig",
-                "zconfig_schema2html",
-                "zdaemon",
-            ]
-        ),
+        "apps_of_dependencies": _exe_if_win([
+            "fsdump",
+            "fsoids",
+            "fsrefs",
+            "fstail",
+            "repozo",
+            "zconfig",
+            "zconfig_schema2html",
+            "zdaemon",
+        ]),
     },
 }

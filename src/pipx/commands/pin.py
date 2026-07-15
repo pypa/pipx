@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from pipx.colors import bold
 from pipx.constants import ExitCode
 from pipx.emojis import sleep
-from pipx.result import OperationData, OperationResult, OutputLevel, OutputMessage, OutputStream
+from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
@@ -17,13 +17,14 @@ if TYPE_CHECKING:
 
 def pin(
     venv_dir: Path,
-    verbose: bool,
     skip: Sequence[str],
+    *,
+    verbose: bool,
     injected_only: bool = False,
 ) -> OperationResult[PinData]:
     venv = Venv(venv_dir, verbose=verbose)
     if (main_package := venv.package_metadata.get(venv.main_package_name)) is None:
-        return _missing_result("pin", venv)
+        return _missing_result(("pin",), venv)
 
     messages: list[OutputMessage] = []
     packages: list[_ChangedPackage] = []
@@ -65,16 +66,16 @@ def pin(
             packages.append(_changed_package(venv, package_name, _PinStatus.PINNED))
 
     return OperationResult(
-        command="pin",
-        data=PinData(packages=tuple(packages), skipped=tuple(skipped), failures=()),
+        command=("pin",),
+        data=PinData(packages=tuple(packages), skipped=tuple(skipped)),
         messages=tuple(messages),
     )
 
 
-def unpin(venv_dir: Path, verbose: bool) -> OperationResult[PinData]:
+def unpin(venv_dir: Path, *, verbose: bool) -> OperationResult[PinData]:
     venv = Venv(venv_dir, verbose=verbose)
     if venv.package_metadata.get(venv.main_package_name) is None:
-        return _missing_result("unpin", venv)
+        return _missing_result(("unpin",), venv)
 
     packages: list[_ChangedPackage] = []
     skipped: list[_SkippedPackage] = []
@@ -97,19 +98,20 @@ def unpin(venv_dir: Path, verbose: bool) -> OperationResult[PinData]:
         messages = [OutputMessage(f"pipx found no pinned packages in venv {venv.name}", stream=OutputStream.LOG)]
 
     return OperationResult(
-        command="unpin",
-        data=PinData(packages=tuple(packages), skipped=tuple(skipped), failures=()),
+        command=("unpin",),
+        data=PinData(packages=tuple(packages), skipped=tuple(skipped)),
         messages=tuple(messages),
     )
 
 
-def _missing_result(command: str, venv: Venv) -> OperationResult[PinData]:
+def _missing_result(command: tuple[str, ...], venv: Venv) -> OperationResult[PinData]:
     error = f"pipx does not manage package {venv.name}"
     return OperationResult(
         command=command,
-        data=PinData(packages=(), skipped=(), failures=(_FailedEnvironment(venv.name, error),)),
+        data=PinData(packages=(), skipped=()),
         messages=(OutputMessage(error, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
         exit_code=ExitCode(1),
+        errors=(OperationError(code="package_pin_failed", message=error, environment=venv.name),),
     )
 
 
@@ -120,7 +122,7 @@ def _update_pin_info(venv: Venv, package_name: str, *, is_main_package: bool, pi
         package_or_url=str(package.package_or_url),
         pip_args=package.pip_args,
         include_dependencies=package.include_dependencies,
-        include_apps_from=package.include_apps_from,
+        include_resources_from=package.include_resources_from,
         include_apps=package.include_apps,
         is_main_package=is_main_package,
         suffix=package.suffix,
@@ -168,16 +170,9 @@ class _SkippedPackage:
 
 
 @dataclass(frozen=True)
-class _FailedEnvironment:
-    environment: str
-    error: str
-
-
-@dataclass(frozen=True)
 class PinData(OperationData):
     packages: tuple[_ChangedPackage, ...]
     skipped: tuple[_SkippedPackage, ...]
-    failures: tuple[_FailedEnvironment, ...]
 
 
 __all__ = [

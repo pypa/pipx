@@ -1,13 +1,18 @@
+from __future__ import annotations
+
 import subprocess
-from pathlib import Path
-from typing import Final
-from unittest.mock import MagicMock
+from typing import TYPE_CHECKING, Final
 
 import pytest
-from pytest_mock import MockerFixture
 
 from pipx.util import PipxError
 from pipx.venv import Venv
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from unittest.mock import MagicMock
+
+    from pytest_mock import MockerFixture
 
 
 @pytest.fixture

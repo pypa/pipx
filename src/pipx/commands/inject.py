@@ -5,6 +5,7 @@ import os
 import re
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
@@ -23,6 +24,7 @@ from pipx.emojis import hazard, stars
 from pipx.package_specifier import get_extras
 from pipx.result import (
     OperationData,
+    OperationError,
     OperationResult,
     OutputFormat,
     OutputLevel,
@@ -36,7 +38,6 @@ from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable, Sequence
-    from pathlib import Path
 
     from pipx.pipx_metadata_file import PackageInfo
 
@@ -45,7 +46,7 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _COMMENT_RE: Final[re.Pattern[str]] = re.compile(r"(^|\s+)#.*$")
 
 
-def inject_dep(
+def inject_dep(  # noqa: PLR0913, PLR0914  # inject resolves the full package/venv context inline; a struct would just relocate it
     venv_dir: Path,
     package_name: str | None,
     package_spec: str,
@@ -54,7 +55,7 @@ def inject_dep(
     verbose: bool,
     include_apps: bool,
     include_dependencies: bool,
-    include_apps_from: Sequence[str],
+    include_resources_from: Sequence[str],
     force: bool,
     suffix: bool = False,
     backend: str | None = None,
@@ -65,29 +66,28 @@ def inject_dep(
     _LOGGER.debug("Injecting package %s", package_spec)
 
     if not venv_dir.exists() or next(venv_dir.iterdir(), None) is None:
-        raise PipxError(
-            f"""
+        msg = f"""
             Can't inject {package_spec!r} into nonexistent Virtual Environment
             {venv_dir.name!r}. Be sure to install the package first with 'pipx
             install {venv_dir.name}' before injecting into it.
             """
-        )
+        raise PipxError(msg)
 
     venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
     if not venv.package_metadata:
-        raise PipxError(
-            f"""
+        msg = f"""
             Can't inject {package_spec!r} into Virtual Environment
             {venv.name!r}. {venv.name!r} has missing internal pipx metadata. It
             was likely installed using a pipx version before 0.15.0.0. Please
             uninstall and install {venv.name!r}, or reinstall-all to fix.
             """
-        )
+        raise PipxError(msg)
     if (lock_file := venv.pipx_metadata.main_package.lock_file) is not None:
-        raise PipxError(
+        msg = (
             f"Cannot inject into locked environment {venv.name}. "
             f"Update {lock_file} and run `pipx reinstall {venv.name}`."
         )
+        raise PipxError(msg)
     if cooldown_days is None:
         cooldown_days = venv.pipx_metadata.main_package.cooldown_days
     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
@@ -114,11 +114,10 @@ def inject_dep(
         _LOGGER.info("Package %s is already installed", package_name)
         return _finish_inject(
             OperationResult(
-                command="inject",
+                command=("inject",),
                 data=InjectionData(
                     packages=(),
                     skipped=(InjectionSkip(venv.name, package_name, "already-installed"),),
-                    failures=(),
                 ),
                 messages=(
                     OutputMessage(
@@ -140,7 +139,7 @@ def inject_dep(
         main_package = venv.pipx_metadata.main_package
         pip_args = pip_args or main_package.pip_args
         include_dependencies = main_package.include_dependencies
-        include_apps_from = main_package.include_apps_from
+        include_resources_from = main_package.include_resources_from
         include_apps = main_package.include_apps
         venv_suffix = main_package.suffix
         pinned = main_package.pinned
@@ -152,14 +151,14 @@ def inject_dep(
         venv, paths.ctx.bin_dir, paths.ctx.man_dir
     )
     messages: Final[list[OutputMessage]] = []
-    with preserve_venv(venv_dir, enabled=bool(include_apps_from)):
+    with preserve_venv(venv_dir, enabled=bool(include_resources_from)):
         venv.install_package(
             package_name=package_name,
             package_or_url=package_spec,
             pip_args=pip_args,
             install_only_pip_args=["--force-reinstall"] if force else None,
             include_dependencies=include_dependencies,
-            include_apps_from=include_apps_from,
+            include_resources_from=include_resources_from,
             include_apps=include_apps,
             is_main_package=is_main_package,
             suffix=venv_suffix,
@@ -188,7 +187,7 @@ def inject_dep(
     package: Final[PackageInfo] = venv.package_metadata[package_name]
     return _finish_inject(
         OperationResult(
-            command="inject",
+            command=("inject",),
             data=InjectionData(
                 packages=(
                     InjectionPackage(
@@ -200,7 +199,6 @@ def inject_dep(
                     ),
                 ),
                 skipped=(),
-                failures=(),
             ),
             messages=tuple(messages),
         ),
@@ -208,7 +206,7 @@ def inject_dep(
     )
 
 
-def inject(
+def inject(  # noqa: PLR0913  # inject mirrors inject_dep's flat CLI-facing option set
     venv_dir: Path,
     package_specs: Iterable[str],
     requirement_files: Iterable[str],
@@ -217,7 +215,7 @@ def inject(
     verbose: bool,
     include_apps: bool,
     include_dependencies: bool,
-    include_apps_from: Sequence[str],
+    include_resources_from: Sequence[str],
     force: bool,
     suffix: bool = False,
     backend: str | None = None,
@@ -237,7 +235,7 @@ def inject(
         )
     _LOGGER.info("Injecting packages: %r", packages)
 
-    expose_apps: Final[bool] = include_apps or include_dependencies or bool(include_apps_from)
+    expose_apps: Final[bool] = include_apps or include_dependencies or bool(include_resources_from)
     changed: Final[list[InjectionPackage]] = []
     failures: Final[list[InjectionFailure]] = []
     messages: Final[list[OutputMessage]] = []
@@ -252,7 +250,7 @@ def inject(
                 verbose=verbose,
                 include_apps=expose_apps,
                 include_dependencies=include_dependencies,
-                include_apps_from=include_apps_from,
+                include_resources_from=include_resources_from,
                 force=force,
                 suffix=suffix,
                 backend=backend,
@@ -270,10 +268,17 @@ def inject(
 
     return _finish_inject(
         OperationResult(
-            command="inject",
-            data=InjectionData(packages=tuple(changed), skipped=tuple(skipped), failures=tuple(failures)),
+            command=("inject",),
+            data=InjectionData(packages=tuple(changed), skipped=tuple(skipped)),
             messages=tuple(messages),
             exit_code=EXIT_CODE_INJECT_ERROR if failures else EXIT_CODE_OK,
+            errors=tuple(
+                OperationError(
+                    code="package_inject_failed", message=f.error, environment=f.environment, package=f.package
+                )
+                for f in failures
+            ),
+            succeeded=bool(changed or skipped),
         ),
         emit_output=emit_output,
     )
@@ -281,10 +286,11 @@ def inject(
 
 def _inject_failure(environment: str, package: str | None, error: str) -> OperationResult[InjectionData]:
     return OperationResult(
-        command="inject",
-        data=InjectionData(packages=(), skipped=(), failures=(InjectionFailure(environment, package, error),)),
+        command=("inject",),
+        data=InjectionData(packages=(), skipped=()),
         messages=(OutputMessage(error, stream=OutputStream.STDERR, level=OutputLevel.ERROR),),
         exit_code=EXIT_CODE_INJECT_ERROR,
+        errors=(OperationError(code="package_inject_failed", message=error, environment=environment, package=package),),
     )
 
 
@@ -295,12 +301,12 @@ def _finish_inject(
 ) -> OperationResult[InjectionData]:
     if not emit_output:
         return result
-    if result.data.failures:
+    if result.errors:
         render_messages(
             tuple(message for message in result.messages if message.level is OutputLevel.NORMAL),
             quiet=0,
         )
-        raise PipxError(result.data.failures[0].error)
+        raise PipxError(result.errors[0].message)
     render_result(result, output=OutputFormat.HUMAN, quiet=0)
     return result
 
@@ -312,7 +318,7 @@ def parse_requirements(filename: str | os.PathLike) -> Generator[str, None, None
     Return all of the non-empty lines with comments removed.
     """
     # Based on https://github.com/pypa/pip/blob/main/src/pip/_internal/req/req_file.py
-    with open(filename) as f:
+    with Path(filename).open(encoding="utf-8") as f:
         for line in f:
             # Strip comments and filter empty lines
             if pkgspec := _COMMENT_RE.sub("", line).strip():
@@ -352,7 +358,6 @@ class InjectionFailure:
 class InjectionData(OperationData):
     packages: tuple[InjectionPackage, ...]
     skipped: tuple[InjectionSkip, ...]
-    failures: tuple[InjectionFailure, ...]
 
 
 __all__ = [

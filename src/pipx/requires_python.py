@@ -8,7 +8,7 @@ from packaging.specifiers import InvalidSpecifier, SpecifierSet
 
 from pipx.constants import MINIMUM_PYTHON_VERSION, FetchPythonOptions
 from pipx.interpreter import InterpreterResolutionError, find_python_interpreter
-from pipx.util import PipxError
+from pipx.util import PipxError, run_subprocess
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -26,6 +26,8 @@ _PIP_REJECTION: Final[re.Pattern[str]] = re.compile(
 )
 # the newest release pipx looks for when a package rules out the default interpreter
 _NEWEST_PYTHON_MINOR: Final[int] = 14
+# scanned to decide whether a minor's range overlaps a constraint; above any real CPython patch count so none is missed
+_MAX_PATCH: Final[int] = 40
 
 
 class IncompatiblePythonError(PipxError):
@@ -48,26 +50,61 @@ def unsatisfied_constraint(requires_python: str | None, python_version: str) -> 
     return None if constraint.contains(python_version, prereleases=True) else constraint
 
 
-def interpreter_for(constraint: SpecifierSet, fetch_python: FetchPythonOptions) -> str:
-    candidates: Final[list[str]] = [version for version in _candidate_versions() if constraint.contains(version)]
-    if not candidates:
-        raise PipxError(f"No Python that pipx supports satisfies {str(constraint)!r}.")
+def unsatisfied_by_interpreter(requires_python: str | None, interpreter: str) -> SpecifierSet | None:
+    """The declared constraint when ``interpreter`` fails it, otherwise nothing (unknown version passes)."""
+    if (version := _interpreter_version(interpreter)) is None:
+        return None
+    return unsatisfied_constraint(requires_python, version)
 
-    for candidate in candidates:
-        try:
-            interpreter = find_python_interpreter(candidate, FetchPythonOptions.NEVER)
-        except (InterpreterResolutionError, PipxError):
-            continue
-        _LOGGER.info("Python %s satisfies %s", candidate, constraint)
-        return interpreter
+
+def interpreter_for(constraint: SpecifierSet, fetch_python: FetchPythonOptions) -> str:
+    overlapping: Final[list[str]] = [minor for minor in _candidate_versions() if _minor_overlaps(constraint, minor)]
+    if not overlapping:
+        msg = f"No Python that pipx supports satisfies {str(constraint)!r}."
+        raise PipxError(msg)
+
+    for minor in overlapping:
+        if (interpreter := _matching_interpreter(minor, constraint, FetchPythonOptions.NEVER)) is not None:
+            return interpreter
 
     if fetch_python is FetchPythonOptions.NEVER:
-        raise PipxError(
+        msg = (
             f"This package needs a Python matching {str(constraint)!r} and none of the interpreters on this "
-            f"system does. Install one of {', '.join(candidates)}, name it with --python, or pass "
+            f"system does. Install one of {', '.join(overlapping)}, name it with --python, or pass "
             f"--fetch-python=missing to let pipx download it."
         )
-    return find_python_interpreter(candidates[0], FetchPythonOptions.MISSING)
+        raise PipxError(msg)
+    for minor in overlapping:
+        if (interpreter := _matching_interpreter(minor, constraint, FetchPythonOptions.MISSING)) is not None:
+            return interpreter
+    msg = f"pipx could not obtain a Python matching {str(constraint)!r}."
+    raise PipxError(msg)
+
+
+def _matching_interpreter(minor: str, constraint: SpecifierSet, fetch_python: FetchPythonOptions) -> str | None:
+    try:
+        interpreter: Final[str] = find_python_interpreter(minor, fetch_python)
+    except (InterpreterResolutionError, PipxError):
+        return None
+    # the resolved interpreter is some patch release of the minor, so the constraint is checked against its real version
+    version: Final[str | None] = _interpreter_version(interpreter)
+    if version is not None and constraint.contains(version, prereleases=True):
+        _LOGGER.info("Python %s satisfies %s", version, constraint)
+        return interpreter
+    return None
+
+
+def _minor_overlaps(constraint: SpecifierSet, minor: str) -> bool:
+    return any(constraint.contains(f"{minor}.{patch}", prereleases=True) for patch in range(_MAX_PATCH))
+
+
+def _interpreter_version(interpreter: str) -> str | None:
+    process = run_subprocess(
+        [interpreter, "-c", "import sys; print('.'.join(str(part) for part in sys.version_info[:3]))"],
+        capture_stderr=False,
+        log_stdout=False,
+    )
+    return process.stdout.strip() or None if process.returncode == 0 else None
 
 
 def _candidate_versions() -> Iterator[str]:
@@ -87,5 +124,6 @@ def _parse(requires_python: str) -> SpecifierSet | None:
 __all__ = [
     "interpreter_for",
     "rejected_constraint",
+    "unsatisfied_by_interpreter",
     "unsatisfied_constraint",
 ]

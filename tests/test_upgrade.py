@@ -27,7 +27,8 @@ if TYPE_CHECKING:
     from _pytest.capture import CaptureResult
 
 
-def test_upgrade(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["upgrade", "pycowsay"])
     captured = capsys.readouterr()
     assert "Package is not installed" in captured.err
@@ -41,7 +42,8 @@ def test_upgrade(pipx_temp_env, capsys):
     assert "pycowsay is already at latest version" in captured.out
 
 
-def test_upgrade_inline_script(pipx_temp_env: None, inline_script: Path) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_inline_script(inline_script: Path) -> None:
     assert not run_pipx_cli(["install", "--app", "greet", str(inline_script)])
     inline_script.write_text(
         inline_script.read_text(encoding="utf-8").replace("installed", "upgraded"),
@@ -59,18 +61,19 @@ def test_upgrade_inline_script(pipx_temp_env: None, inline_script: Path) -> None
     assert process.stdout == "upgraded\n"
 
 
-def test_upgrade_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()
 
     assert not run_pipx_cli(["upgrade", "pycowsay", "--output", "json"])
 
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
         {
-            "command": "upgrade",
+            "command": ["upgrade"],
             "data": {
-                "failures": [],
                 "packages": [
                     {
                         "environment": "pycowsay",
@@ -80,11 +83,15 @@ def test_upgrade_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -
                         "previous_version": "0.0.0.2",
                         "status": "unchanged",
                         "version": "0.0.0.2",
+                        "interpreter": metadata.python_version,
+                        "backend": metadata.backend,
                     }
                 ],
                 "skipped": [],
             },
-            "pipx_result_version": "0.1",
+            "pipx_result_version": "1",
+            "errors": [],
+            "exit_code": 0,
             "status": "success",
         },
         "",
@@ -98,8 +105,8 @@ def test_upgrade_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -
         pytest.param(["upgrade-all"], id="all"),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_skips_pylock(
-    pipx_temp_env: None,
     make_pylock: Callable[[str, str], Path],
     capsys: pytest.CaptureFixture[str],
     command: list[str],
@@ -120,7 +127,8 @@ def test_upgrade_skips_pylock(
 
 
 @skip_if_windows
-def test_upgrade_global(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_global(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["upgrade", "--global", "pycowsay"])
     captured = capsys.readouterr()
     assert "Package is not installed" in captured.err
@@ -135,7 +143,8 @@ def test_upgrade_global(pipx_temp_env, capsys):
 
 
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
-def test_upgrade_legacy_venv(pipx_temp_env, capsys, metadata_version):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_legacy_venv(capsys: pytest.CaptureFixture[str], metadata_version: str | None) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
     captured = capsys.readouterr()
@@ -148,7 +157,8 @@ def test_upgrade_legacy_venv(pipx_temp_env, capsys, metadata_version):
         captured = capsys.readouterr()
 
 
-def test_upgrade_suffix(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_suffix() -> None:
     name = "pycowsay"
     suffix = "_a"
 
@@ -158,7 +168,8 @@ def test_upgrade_suffix(pipx_temp_env, capsys):
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])
-def test_upgrade_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_suffix_legacy_venv(metadata_version: str) -> None:
     name = "pycowsay"
     suffix = "_a"
 
@@ -168,7 +179,8 @@ def test_upgrade_suffix_legacy_venv(pipx_temp_env, capsys, metadata_version):
     assert not run_pipx_cli(["upgrade", f"{name}{suffix}"])
 
 
-def test_upgrade_specifier(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_specifier(capsys: pytest.CaptureFixture[str]) -> None:
     name = "pylint"
     pkg_spec = PKG[name]["spec"]
     initial_version = pkg_spec.split("==")[-1]
@@ -179,7 +191,8 @@ def test_upgrade_specifier(pipx_temp_env, capsys):
     assert f"upgraded package {name} from {initial_version} to" in captured.out
 
 
-def test_upgrade_missing_interpreter(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_missing_interpreter(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     remove_venv_interpreter("pycowsay")
 
@@ -190,8 +203,8 @@ def test_upgrade_missing_interpreter(pipx_temp_env, capsys):
     assert "pipx reinstall-all" in captured.err
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_reports_corrupt_package(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
@@ -209,8 +222,8 @@ def test_upgrade_reports_corrupt_package(
     assert "package pycowsay has corrupt pipx metadata" in capsys.readouterr().err
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_ignores_venv_args_without_install(
-    pipx_temp_env: None,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
@@ -221,7 +234,8 @@ def test_upgrade_ignores_venv_args_without_install(
     assert "Ignoring --system-site-packages as not combined with --install" in caplog.text
 
 
-def test_upgrade_editable(pipx_temp_env, capsys, root):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_editable(capsys: pytest.CaptureFixture[str], root: Path) -> None:
     empty_project_path_as_string = (root / "testdata" / "empty_project").as_posix()
     assert not run_pipx_cli(["install", "--editable", empty_project_path_as_string, "--force"])
     assert not run_pipx_cli(["upgrade", "--editable", "empty_project"])
@@ -229,7 +243,8 @@ def test_upgrade_editable(pipx_temp_env, capsys, root):
     assert "empty-project is already at latest version" in captured.out
 
 
-def test_upgrade_include_injected(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_include_injected(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
     assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])
     captured = capsys.readouterr()
@@ -239,7 +254,8 @@ def test_upgrade_include_injected(pipx_temp_env, capsys):
     assert "upgraded package black" in captured.out
 
 
-def test_upgrade_no_include_injected(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_no_include_injected(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
     assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])
     captured = capsys.readouterr()
@@ -249,13 +265,15 @@ def test_upgrade_no_include_injected(pipx_temp_env, capsys):
     assert "upgraded package black" not in captured.out
 
 
-def test_upgrade_install_missing(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_install_missing(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["upgrade", "pycowsay", "--install"])
     captured = capsys.readouterr()
     assert "installed package pycowsay" in captured.out
 
 
-def test_upgrade_multiple(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_multiple(capsys: pytest.CaptureFixture[str]) -> None:
     name = "pylint"
     pkg_spec = PKG[name]["spec"]
     initial_version = pkg_spec.split("==")[-1]
@@ -269,13 +287,15 @@ def test_upgrade_multiple(pipx_temp_env, capsys):
     assert "pycowsay is already at latest version" in captured.out
 
 
-def test_upgrade_absolute_path(pipx_temp_env, capsys, root):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_absolute_path(capsys: pytest.CaptureFixture[str], root: Path) -> None:
     assert run_pipx_cli(["upgrade", "--verbose", str((root / "testdata" / "empty_project").resolve())])
     captured = capsys.readouterr()
     assert "Package cannot be a URL" not in captured.err
 
 
-def test_upgrade_with_extras(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_with_extras(capsys: pytest.CaptureFixture[str]) -> None:
     """Test that upgrading a package with extras in the name works correctly.
 
     Regression test for https://github.com/pypa/pipx/issues/925
@@ -290,15 +310,16 @@ def test_upgrade_with_extras(pipx_temp_env, capsys):
     assert "Package is not installed" not in captured.err
 
 
-def test_upgrade_preserves_included_dependency(pipx_temp_env: None, local_extras_project: Path) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_preserves_included_dependency(local_extras_project: Path) -> None:
     package: Final[str] = f"{local_extras_project}[tools]"
-    assert not run_pipx_cli(["install", package, "--include-apps-from", "pycowsay"])
+    assert not run_pipx_cli(["install", package, "--include-resources-from", "pycowsay"])
 
     assert not run_pipx_cli(["upgrade", "repeatme"])
 
     metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "repeatme").main_package
     assert (
-        metadata.include_apps_from,
+        metadata.include_resources_from,
         (paths.ctx.bin_dir / app_name("pycowsay")).exists(),
         (paths.ctx.bin_dir / app_name("black")).exists(),
     ) == (["pycowsay"], True, False)
@@ -311,9 +332,8 @@ def test_upgrade_preserves_included_dependency(pipx_temp_env: None, local_extras
         pytest.param(["--pip-args=--no-deps"], ["--no-deps"], ["--no-cache-dir"], id="cli_overrides_stored"),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_pip_args(
-    pipx_temp_env: None,
-    capsys: pytest.CaptureFixture[str],
     upgrade_args: list[str],
     expected_args: list[str],
     unexpected_args: list[str],
@@ -342,11 +362,12 @@ def test_upgrade_pip_args(
         ),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_cooldown(
-    pipx_temp_env: None,
     root: Path,
     empty_project: Path,
     caplog: pytest.LogCaptureFixture,
+    *,
     command: list[str],
     expected_options: tuple[bool, bool],
     expected_cooldowns: tuple[int, int],
@@ -369,7 +390,8 @@ def test_upgrade_cooldown(
     ) == (*expected_options, expected_cooldowns)
 
 
-def test_upgrade_injected_uses_stored_pip_args(pipx_temp_env: None, root: Path) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_injected_uses_stored_pip_args(root: Path) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--pip-args=--no-cache-dir"])
     assert not run_pipx_cli(["inject", "pycowsay", str(root / "testdata" / "empty_project"), "--pip-args=--no-compile"])
 
@@ -380,3 +402,12 @@ def test_upgrade_injected_uses_stored_pip_args(pipx_temp_env: None, root: Path) 
         ["--no-cache-dir"],
         ["--no-compile"],
     )
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_install_json_stays_pure(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["upgrade", "pycowsay", "--install", "--output", "json"])
+
+    captured = capsys.readouterr()
+    document = json.loads(captured.out)  # the internal install must not print human text before this
+    assert (document["command"], document["status"], captured.err) == (["upgrade"], "success", "")

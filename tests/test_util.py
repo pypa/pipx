@@ -53,7 +53,8 @@ def test_rmdir_without_safe_rm_is_non_fatal_for_locked_files(
     def fake_rmtree(path: Path, ignore_errors: bool = False) -> None:
         assert path == trash_dir
         if not ignore_errors:
-            raise PermissionError("locked file")
+            msg = "locked file"
+            raise PermissionError(msg)
 
     monkeypatch.setattr("pipx.util.shutil.rmtree", fake_rmtree)
 
@@ -127,9 +128,11 @@ def test_subprocess_keyring_provider(monkeypatch: pytest.MonkeyPatch, env_value:
 
 def test_subprocess_pythonsafepath_set_for_python_commands() -> None:
     """Test that PYTHONSAFEPATH is set for Python subprocess calls to prevent CWD shadowing (issue #1575)."""
-    result = run_subprocess(
-        [sys.executable, "-c", "import os, sys; sys.stdout.write(os.environ.get('PYTHONSAFEPATH', ''))"]
-    )
+    result = run_subprocess([
+        sys.executable,
+        "-c",
+        "import os, sys; sys.stdout.write(os.environ.get('PYTHONSAFEPATH', ''))",
+    ])
 
     assert result.stdout == "1"
 
@@ -139,8 +142,10 @@ def test_subprocess_streams_and_captures_output(capsys: pytest.CaptureFixture[st
         [
             sys.executable,
             "-c",
-            "import sys; sys.stdout.buffer.write('stdøut 1\\rstdøut 2\\r'.encode()); sys.stdout.flush(); "
-            "sys.stderr.buffer.write('stdërr 1\\rstdërr 2\\r\\n'.encode()); sys.stderr.flush()",
+            (
+                "import sys; sys.stdout.buffer.write('stdøut 1\\rstdøut 2\\r'.encode()); sys.stdout.flush(); "
+                "sys.stderr.buffer.write('stdërr 1\\rstdërr 2\\r\\n'.encode()); sys.stderr.flush()"
+            ),
         ],
         stream_output=True,
     )

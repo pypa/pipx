@@ -6,6 +6,8 @@
 #   <pypi_package_name><version_specifier>
 #   <local_path>
 
+from __future__ import annotations
+
 import logging
 import re
 import urllib.parse
@@ -27,9 +29,15 @@ ARCHIVE_EXTENSIONS = (".whl", ".tar.gz", ".zip")
 _LOCAL_VCS_SCHEMES: Final[frozenset[str]] = frozenset({"git+file", "hg+file"})
 _PIP_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "--constraint", "-f", "--find-links"})
 _PIP_ATTACHED_PATH_OPTIONS: Final[frozenset[str]] = frozenset({"-c", "-f"})
-_PIP_INDEX_VALUE_OPTIONS: Final[frozenset[str]] = frozenset(
-    {"-f", "-i", "--extra-index-url", "--find-links", "--index-url", "--trusted-host"}
-)
+_SHORT_OPTION_LEN: Final[int] = 2
+_PIP_INDEX_VALUE_OPTIONS: Final[frozenset[str]] = frozenset({
+    "-f",
+    "-i",
+    "--extra-index-url",
+    "--find-links",
+    "--index-url",
+    "--trusted-host",
+})
 
 
 @dataclass(frozen=True)
@@ -44,8 +52,7 @@ def _split_path_extras(package_spec: str) -> tuple[str, str]:
     package_spec_extras_re = re.search(r"(.+)(\[.+\])", package_spec)
     if package_spec_extras_re:
         return (package_spec_extras_re.group(1), package_spec_extras_re.group(2))
-    else:
-        return (package_spec, "")
+    return (package_spec, "")
 
 
 def _check_package_path(package_path: str) -> tuple[Path, bool]:
@@ -78,7 +85,8 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
         if package_path_exists:
             valid_local_path = str(package_path.resolve())
         else:
-            raise PipxError(f"{package_path} does not exist")
+            msg = f"{package_path} does not exist"
+            raise PipxError(msg)
 
     # If this looks like a URL, treat it as such.
     if not valid_pep508:
@@ -95,7 +103,8 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
             valid_local_path = str(package_path.resolve()) + package_extras_str
 
     if not valid_pep508 and not valid_url and not valid_local_path:
-        raise PipxError(f"Unable to parse package spec: {package_spec}")
+        msg = f"Unable to parse package spec: {package_spec}"
+        raise PipxError(msg)
 
     if valid_pep508 and valid_local_path:
         # It is a valid local path without "./"
@@ -109,7 +118,7 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
     )
 
 
-def package_or_url_from_pep508(requirement: Requirement, remove_version_specifiers: bool = False) -> str:
+def package_or_url_from_pep508(requirement: Requirement, *, remove_version_specifiers: bool = False) -> str:
     requirement.marker = None
     requirement.name = canonicalize_name(requirement.name)
     if remove_version_specifiers:
@@ -117,7 +126,7 @@ def package_or_url_from_pep508(requirement: Requirement, remove_version_specifie
     return str(requirement)
 
 
-def _parsed_package_to_package_or_url(parsed_package: ParsedPackage, remove_version_specifiers: bool) -> str:
+def _parsed_package_to_package_or_url(parsed_package: ParsedPackage, *, remove_version_specifiers: bool) -> str:
     if parsed_package.valid_pep508 is not None:
         if parsed_package.valid_pep508.marker is not None:
             logger.warning(
@@ -140,7 +149,7 @@ def _parsed_package_to_package_or_url(parsed_package: ParsedPackage, remove_vers
     elif parsed_package.valid_local_path is not None:
         package_or_url = parsed_package.valid_local_path
 
-    logger.info(f"cleaned package spec: {package_or_url}")
+    logger.info("cleaned package spec: %s", package_or_url)
     return package_or_url
 
 
@@ -168,8 +177,13 @@ def parse_specifier_for_install(package_spec: str, pip_args: list[str]) -> tuple
         )
         pip_args.remove("--editable")
 
-    for index, option in enumerate(pip_args):
-        if len(option) > 2 and (option_name := option[:2]) in _PIP_ATTACHED_PATH_OPTIONS and option[2] != "=":
+    for index in range(len(pip_args)):
+        option = pip_args[index]
+        if (
+            len(option) > _SHORT_OPTION_LEN
+            and (option_name := option[:2]) in _PIP_ATTACHED_PATH_OPTIONS
+            and option[2] != "="
+        ):
             value = option[2:]
             if not urllib.parse.urlsplit(value).scheme:
                 pip_args[index] = f"{option_name}{Path(value).expanduser().resolve()}"
@@ -218,7 +232,7 @@ def get_extras(package_spec: str) -> set[str]:
     parsed_package = _parse_specifier(package_spec)
     if parsed_package.valid_pep508 and parsed_package.valid_pep508.extras is not None:
         return parsed_package.valid_pep508.extras
-    elif parsed_package.valid_local_path:
+    if parsed_package.valid_local_path:
         (_, package_extras_str) = _split_path_extras(parsed_package.valid_local_path)
         return Requirement("notapackage" + package_extras_str).extras
 
@@ -271,7 +285,7 @@ def extract_index_options(pip_args: list[str]) -> list[str]:
         option, separator = argument.partition("=")[:2]
         if option in _PIP_INDEX_VALUE_OPTIONS:
             index_args.extend([argument] if separator else [argument, next(iterator)])
-        elif len(argument) > 2 and argument[:2] in {"-f", "-i"}:
+        elif len(argument) > _SHORT_OPTION_LEN and argument[:2] in {"-f", "-i"}:
             index_args.append(argument)
     return index_args
 

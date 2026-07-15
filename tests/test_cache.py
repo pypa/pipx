@@ -12,7 +12,8 @@ if TYPE_CHECKING:
     from _pytest.capture import CaptureResult
 
 
-def test_cache_dir(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_cache_dir(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["cache", "dir"])
 
     assert capsys.readouterr().out.strip() == str(paths.ctx.venv_cache)
@@ -26,8 +27,8 @@ def test_cache_dir(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> N
         pytest.param(2, "Removed 2 cached environments.\n", id="multiple"),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_cache_purge_removes_run_environments(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
     count: int,
     expected: str,
@@ -48,12 +49,12 @@ def test_cache_purge_removes_run_environments(
 @pytest.mark.parametrize(
     ("subcommand", "command"),
     [
-        pytest.param("dir", "cache-dir", id="dir"),
-        pytest.param("purge", "cache-purge", id="purge"),
+        pytest.param("dir", ["cache", "dir"], id="dir"),
+        pytest.param("purge", ["cache", "purge"], id="purge"),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_cache_json_reports_the_directory(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
     subcommand: str,
     command: str,
@@ -63,14 +64,16 @@ def test_cache_json_reports_the_directory(
     assert json.loads(capsys.readouterr().out) == {
         "command": command,
         "data": {"directory": str(paths.ctx.venv_cache), "removed": []},
-        "pipx_result_version": "0.1",
+        "pipx_result_version": "1",
+        "errors": [],
+        "exit_code": 0,
         "status": "success",
     }
 
 
 @pytest.mark.parametrize("subcommand", [pytest.param("dir", id="dir"), pytest.param("purge", id="purge")])
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_cache_quiet_says_nothing(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
     subcommand: str,
 ) -> None:

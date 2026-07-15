@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pipx.commands.cache import CacheData, print_cache_dir, purge_cache
 from pipx.commands.ensure_path import ensure_pipx_paths
 from pipx.commands.environment import environment

@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+
 import os
 import sys
 import textwrap
-from argparse import SUPPRESS, Action, ArgumentParser, _SubParsersAction  # argparse has no public subparser type.
+from argparse import (
+    SUPPRESS,
+    Action,
+    ArgumentParser,
+    _SubParsersAction,  # noqa: PLC2701  # argparse exposes no public subparser type
+)
 from pathlib import Path
 
 
@@ -64,11 +71,11 @@ def _generate_manpage_rst(parser: ArgumentParser) -> str:
 
 
 def _get_subcommands(parser: ArgumentParser) -> list[tuple[str, str]]:
-    if parser._subparsers is None:
+    if parser._subparsers is None:  # noqa: SLF001  # argparse exposes no public subparser API
         return []
-    for action in parser._subparsers._actions:
+    for action in parser._subparsers._actions:  # noqa: SLF001  # argparse exposes no public subparser API
         if isinstance(action, _SubParsersAction):
-            return [(choice.dest, choice.help or "") for choice in action._choices_actions]
+            return [(choice.dest, choice.help or "") for choice in action._choices_actions]  # noqa: SLF001  # argparse exposes no public subparser API
     return []
 
 
@@ -85,7 +92,7 @@ def _commands_section(commands: list[tuple[str, str]]) -> list[str]:
 def _global_options_section(parser: ArgumentParser) -> list[str]:
     lines = ["GLOBAL OPTIONS", "--------------", ""]
     seen: set[int] = set()
-    for action in parser._actions:
+    for action in parser._actions:  # noqa: SLF001  # argparse exposes no public action list API
         if id(action) in seen or action.help == SUPPRESS or isinstance(action, _SubParsersAction):
             continue
         seen.add(id(action))

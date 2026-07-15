@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 import shutil
@@ -5,7 +7,7 @@ import sys
 from pathlib import Path
 from typing import Final, TypeAlias, cast
 
-_JsonValue: TypeAlias = None | bool | int | float | str | list["_JsonValue"] | dict[str, "_JsonValue"]
+_JsonValue: TypeAlias = bool | int | float | str | list["_JsonValue"] | dict[str, "_JsonValue"] | None
 _PIPX_METADATA_FILENAME: Final[str] = "pipx_metadata.json"
 
 
@@ -43,9 +45,12 @@ def discover_self_managed_environment(
         environment["PIPX_BIN_DIR"] = str(invoked_executable.parent)
 
     source_interpreter = metadata.get("source_interpreter")
-    if isinstance(source_interpreter, dict) and source_interpreter.get("__type__") == "Path":
-        if isinstance(source_path := source_interpreter.get("__Path__"), str):
-            environment["PIPX_DEFAULT_PYTHON"] = source_path
+    if (
+        isinstance(source_interpreter, dict)
+        and source_interpreter.get("__type__") == "Path"
+        and isinstance(source_path := source_interpreter.get("__Path__"), str)
+    ):
+        environment["PIPX_DEFAULT_PYTHON"] = source_path
     return environment
 
 

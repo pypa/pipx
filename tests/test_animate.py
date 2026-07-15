@@ -1,11 +1,11 @@
+from __future__ import annotations
+
 import threading
 import time
-from collections.abc import Callable
 from timeit import default_timer
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 import pytest
-from pytest_mock import MockerFixture
 
 import pipx.animate
 from pipx.animate import (
@@ -15,6 +15,11 @@ from pipx.animate import (
     hide_cursor,
     show_cursor,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from pytest_mock import MockerFixture
 
 TEST_STRING_40_CHAR: Final[str] = "".join(f"{number:02}" for number in range(2, 41, 2))
 
@@ -56,7 +61,7 @@ def test_delay_suppresses_output(
 
 
 @pytest.mark.parametrize(
-    "cursor_control,escape_sequence",
+    ("cursor_control", "escape_sequence"),
     [(hide_cursor, "\033[?25l"), (show_cursor, "\033[?25h")],
     ids=["hide", "show"],
 )
@@ -103,7 +108,7 @@ def test_animate_clears_after_thread_stops(monkeypatch: pytest.MonkeyPatch, mock
 
 
 @pytest.mark.parametrize(
-    "env_columns,expected_frame_message",
+    ("env_columns", "expected_frame_message"),
     [
         (45, f"{TEST_STRING_40_CHAR:.{45 - 6}}..."),
         (46, f"{TEST_STRING_40_CHAR}"),
@@ -128,7 +133,7 @@ def test_line_lengths_emoji(
 
 
 @pytest.mark.parametrize(
-    "env_columns,expected_frame_message",
+    ("env_columns", "expected_frame_message"),
     [
         (43, f"{TEST_STRING_40_CHAR:.{43 - 4}}"),
         (44, f"{TEST_STRING_40_CHAR}"),
@@ -159,7 +164,7 @@ def test_line_lengths_no_emoji(
 
 
 @pytest.mark.parametrize(
-    "env_columns,supports_tty",
+    ("env_columns", "supports_tty"),
     [(0, True), (8, True), (16, True), (17, False)],
     ids=["zero-columns", "narrow-terminal", "threshold", "not-tty"],
 )
@@ -179,5 +184,5 @@ def test_env_no_animate(
 
     captured = capsys.readouterr()
 
-    assert captured.out == ""
+    assert not captured.out
     assert captured.err == expected_string

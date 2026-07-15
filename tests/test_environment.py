@@ -1,18 +1,23 @@
+from __future__ import annotations
+
 import fnmatch
 import importlib
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest_mock import MockerFixture
 
 from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths
 from pipx.commands.environment import ENVIRONMENT_VARIABLES
 from pipx.paths import get_expanded_environ
 
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_cli_value_skips_unrelated_discovery(
-    pipx_temp_env: None,
     mocker: MockerFixture,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -39,7 +44,8 @@ def test_cli_value_skips_unrelated_discovery(
     get_default_python.assert_not_called()
 
 
-def test_cli(pipx_temp_env, monkeypatch, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_cli(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["environment"])
     captured = capsys.readouterr()
     assert fnmatch.fnmatch(captured.out, "*PIPX_HOME=*subdir/pipxhome*")
@@ -55,7 +61,7 @@ def test_cli(pipx_temp_env, monkeypatch, capsys):
         assert env_var in captured.out
 
 
-def test_cli_with_args(monkeypatch, capsys):
+def test_cli_with_args(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["environment", "--value", "PIPX_HOME"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_BIN_DIR"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_MAN_DIR"])
@@ -86,8 +92,8 @@ def test_cli_with_args(monkeypatch, capsys):
         ("PIPX_FETCH_PYTHON", "missing"),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_cli_with_user_environment_value(
-    pipx_temp_env: None,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
     variable: str,
@@ -99,7 +105,7 @@ def test_cli_with_user_environment_value(
     assert capsys.readouterr().out == f"{value}\n"
 
 
-def test_resolve_user_dir_in_env_paths(monkeypatch):
+def test_resolve_user_dir_in_env_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TEST_DIR", "~/test")
     home = Path.home()
     env_dir = get_expanded_environ("TEST_DIR")
@@ -143,7 +149,8 @@ def test_cli_logs_fallback_home(
 
 
 @skip_if_windows
-def test_cli_global(pipx_temp_env, monkeypatch, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_cli_global(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["environment", "--global"])
     captured = capsys.readouterr()
     assert fnmatch.fnmatch(captured.out, "*PIPX_HOME=*global/pipxhome*")

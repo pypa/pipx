@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 import logging
 import shutil
 import sys
-from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from threading import Event, Thread
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 from pipx.constants import WINDOWS
 from pipx.emojis import EMOJI_SUPPORT
+
+if TYPE_CHECKING:
+    from collections.abc import Generator, Sequence
 
 STDERR_IS_TTY: Final[bool] = bool(sys.stderr and sys.stderr.isatty())
 
@@ -32,7 +36,7 @@ def _env_supports_animation() -> bool:
 
 
 @contextmanager
-def animate(message: str, do_animation: bool, *, delay: float = 0) -> Generator[None, None, None]:
+def animate(message: str, *, do_animation: bool, delay: float = 0) -> Generator[None, None, None]:
     pipx_logger = logging.getLogger("pipx")
     handler_level = pipx_logger.handlers[0].level if pipx_logger.handlers else 0
     if pipx_logger.handlers and handler_level > logging.WARNING:
@@ -76,7 +80,7 @@ def animate(message: str, do_animation: bool, *, delay: float = 0) -> Generator[
         clear_line()
 
 
-def print_animation(
+def print_animation(  # noqa: PLR0913  # animation state is passed flat to the thread target
     *,
     message: str,
     event: Event,
@@ -107,10 +111,10 @@ def print_animation(
 
 # for Windows pre-ANSI-terminal-support (before Windows 10 TH2 (v1511))
 # https://stackoverflow.com/a/10455937
-def win_cursor(visible: bool) -> None:
+def win_cursor(*, visible: bool) -> None:
     if sys.platform != "win32":  # hello mypy
         return
-    ci = _CursorInfo()  # type: ignore[unreachable]
+    ci = _CursorInfo()
     handle = ctypes.windll.kernel32.GetStdHandle(-11)
     ctypes.windll.kernel32.GetConsoleCursorInfo(handle, ctypes.byref(ci))
     ci.visible = visible

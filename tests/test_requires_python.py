@@ -65,39 +65,60 @@ def test_unsatisfied_constraint_reports_only_a_mismatch(
     assert (None if constraint is None else str(constraint)) == expected
 
 
-def test_interpreter_for_takes_the_newest_installed_match(mocker: MockerFixture) -> None:
-    find = mocker.patch("pipx.requires_python.find_python_interpreter", return_value="/usr/bin/python3.11")
+def _install(mocker: MockerFixture, installed: dict[str, str], *, fetched: dict[str, str] | None = None) -> None:
+    """Fake a system where minor ``X.Y`` resolves to the given full version; missing minors download ``fetched``."""
+    fetched = fetched or {}
 
-    assert interpreter_for(SpecifierSet("<3.12"), FetchPythonOptions.NEVER) == "/usr/bin/python3.11"
-    assert find.call_args.args[0] == "3.11"
+    def resolve(minor: str, fetch: FetchPythonOptions) -> str:
+        if minor in installed:
+            return f"/py/{installed[minor]}"
+        if fetch is FetchPythonOptions.MISSING and minor in fetched:
+            return f"/downloaded/{fetched[minor]}"
+        raise InterpreterResolutionError(source="the system", version=minor)
+
+    mocker.patch("pipx.requires_python.find_python_interpreter", side_effect=resolve)
+    mocker.patch("pipx.requires_python._interpreter_version", side_effect=lambda path: path.rsplit("/", 1)[1])
+
+
+def test_interpreter_for_takes_the_newest_installed_match(mocker: MockerFixture) -> None:
+    _install(mocker, {"3.11": "3.11.9", "3.10": "3.10.14"})
+
+    assert interpreter_for(SpecifierSet("<3.12"), FetchPythonOptions.NEVER) == "/py/3.11.9"
 
 
 def test_interpreter_for_skips_a_version_the_system_lacks(mocker: MockerFixture) -> None:
-    def resolve(version: str, _fetch: FetchPythonOptions) -> str:
-        if version == "3.11":
-            raise InterpreterResolutionError(source="the system", version=version)
-        return f"/usr/bin/python{version}"
+    _install(mocker, {"3.10": "3.10.14"})
 
-    mocker.patch("pipx.requires_python.find_python_interpreter", side_effect=resolve)
+    assert interpreter_for(SpecifierSet("<3.12"), FetchPythonOptions.NEVER) == "/py/3.10.14"
 
-    assert interpreter_for(SpecifierSet("<3.12"), FetchPythonOptions.NEVER) == "/usr/bin/python3.10"
+
+def test_interpreter_for_accepts_a_patch_above_a_lower_bound(mocker: MockerFixture) -> None:
+    _install(mocker, {"3.13": "3.13.7"})
+
+    assert interpreter_for(SpecifierSet(">=3.13.5,<3.14"), FetchPythonOptions.NEVER) == "/py/3.13.7"
+
+
+def test_interpreter_for_rejects_a_patch_above_an_upper_bound(mocker: MockerFixture) -> None:
+    _install(mocker, {"3.14": "3.14.6", "3.13": "3.13.7"})
+
+    assert interpreter_for(SpecifierSet("<3.14.1"), FetchPythonOptions.NEVER) == "/py/3.13.7"
+
+
+def test_interpreter_for_rejects_every_patch_below_a_lower_bound(mocker: MockerFixture) -> None:
+    _install(mocker, {"3.13": "3.13.2"})
+
+    with pytest.raises(PipxError, match="--fetch-python=missing"):
+        interpreter_for(SpecifierSet(">=3.13.5,<3.14"), FetchPythonOptions.NEVER)
 
 
 def test_interpreter_for_fetches_when_the_caller_allows_it(mocker: MockerFixture) -> None:
-    find = mocker.patch(
-        "pipx.requires_python.find_python_interpreter",
-        side_effect=[InterpreterResolutionError(source="the system", version="3.11"), "/downloaded/python3.11"],
-    )
+    _install(mocker, {}, fetched={"3.11": "3.11.9"})
 
-    assert interpreter_for(SpecifierSet("==3.11.*"), FetchPythonOptions.MISSING) == "/downloaded/python3.11"
-    assert find.call_args.args[1] is FetchPythonOptions.MISSING
+    assert interpreter_for(SpecifierSet("==3.11.*"), FetchPythonOptions.MISSING) == "/downloaded/3.11.9"
 
 
 def test_interpreter_for_reports_a_system_without_a_match(mocker: MockerFixture) -> None:
-    mocker.patch(
-        "pipx.requires_python.find_python_interpreter",
-        side_effect=InterpreterResolutionError(source="the system", version="3.11"),
-    )
+    _install(mocker, {})
 
     with pytest.raises(PipxError, match="--fetch-python=missing"):
         interpreter_for(SpecifierSet("==3.11.*"), FetchPythonOptions.NEVER)
@@ -111,6 +132,7 @@ def test_interpreter_for_reports_a_constraint_no_release_meets() -> None:
 @pytest.fixture
 def older_python(pipx_temp_env: None, monkeypatch: pytest.MonkeyPatch) -> str:
     # pipx_temp_env strips the system directories out of PATH, and pipx looks the interpreters up there
+    del pipx_temp_env
     monkeypatch.setenv("PATH", os.environ["PATH_ORIG"])
     for minor in range(sys.version_info[1] - 1, int(MINIMUM_PYTHON_VERSION.split(".")[1]) - 1, -1):
         if (found := shutil.which(f"python3.{minor}")) is not None:
@@ -138,11 +160,9 @@ def project_excluding_this_python(tmp_path: Path) -> Path:
 
 
 @pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.usefixtures("pipx_temp_env", "older_python", "capsys")
 def test_install_moves_to_a_python_the_package_supports(
-    pipx_temp_env: None,
     project_excluding_this_python: Path,
-    older_python: str,
-    capsys: pytest.CaptureFixture[str],
     backend: str,
 ) -> None:
     if backend == "uv" and shutil.which("uv") is None:

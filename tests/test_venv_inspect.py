@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 import os
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from packaging.utils import canonicalize_name
-from pytest_mock import MockerFixture
 
 from pipx import venv_inspect
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest_mock import MockerFixture
 
 
 def _write_dist_info(site_packages: Path, name: str, requirements: tuple[str, ...] = ()) -> None:

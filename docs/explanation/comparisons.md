@@ -72,8 +72,8 @@ managers writes the same filename. Each manager refuses to overwrite a binary th
 - `--suffix` keeps two copies of the same tool side-by-side.
 - `--global` and the `PIPX_GLOBAL_*` variables drive a system-wide install.
 - Manual pages get symlinked under `$PIPX_MAN_DIR`.
-- `pipx sync <manifest>` applies an explicit desired set; `pipx lock <manifest>` writes one PEP 751 lock per selected
-    tool.
+- `pipx manifest sync <manifest>` applies an explicit desired set; `pipx manifest lock <manifest>` writes one PEP 751
+    lock per selected tool.
 - `pipx install-all <spec.json>` rebuilds every venv from a `pipx list --output json` snapshot for cross-machine
     migration.
 - `[project.entry-points."pipx.run"]` declares pipx-specific runtime extras in the package metadata.

@@ -9,7 +9,7 @@ exposes their entry points on `PATH`.
 - User installations by default and system installations when the caller passes `--global`.
 - Application dependencies inside a managed environment. For unlocked environments, `inject` and `--preinstall` extend
     an application environment; they do not create standalone library environments.
-- Entry points from the main package and dependencies named with `--include-apps-from` or `--include-deps`.
+- Entry points from the main package and dependencies named with `--include-resources-from` or `--include-deps`.
 
 An install fails when neither the package nor its selected dependencies expose an application. The caller can pass
 `--app NAME` to require an exact entry point. pipx removes a new environment or restores an existing one when the check
@@ -31,15 +31,15 @@ may package pipx for their users, but each ecosystem owns its build, release, up
 
 ## Configuration and state
 
-Ordinary pipx commands do not search the current directory or its parents for configuration. `pipx sync PATH` applies
-the desired application state from the manifest at `PATH`; pipx does not infer that path. The manifest accepts tool
-state instead of arbitrary command defaults.
+Ordinary pipx commands do not search the current directory or its parents for configuration. `pipx manifest sync PATH`
+applies the desired application state from the manifest at `PATH`; pipx does not infer that path. The manifest accepts
+tool state instead of arbitrary command defaults.
 
 pipx records resolved dependencies with the PyPA
 [`pylock.toml` specification](https://packaging.python.org/en/latest/specifications/pylock-toml/). PEP 751 defines
-`pylock.toml` and named files such as `pylock.black.toml` when a manifest needs more than one lock. `pipx lock PATH`
-uses nab to resolve each locked tool in isolation. `pipx install --lock` accepts one explicit lock path. pipx does not
-use `requirements.txt` as a state or lock format.
+`pylock.toml` and named files such as `pylock.black.toml` when a manifest needs more than one lock.
+`pipx manifest lock PATH` uses nab to resolve each locked tool in isolation. `pipx install --lock` accepts one explicit
+lock path. pipx does not use `requirements.txt` as a state or lock format.
 
 pipx exposes top-level policy when pip and uv honor the same contract. Backend arguments carry controls specific to pip
 or uv. `--cooldown DAYS` maps one pipx release-age policy to both backends.

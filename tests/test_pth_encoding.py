@@ -1,6 +1,11 @@
+from __future__ import annotations
+
 import site
 import sys
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_pth_file_readable_with_non_ascii_path(tmp_path: Path) -> None:

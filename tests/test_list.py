@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 import re
@@ -5,11 +7,9 @@ import shutil
 import subprocess
 import sys
 import time
-from pathlib import Path
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 import pytest
-from pytest_mock import MockerFixture
 
 from helpers import (
     PIPX_METADATA_LEGACY_VERSIONS,
@@ -24,20 +24,32 @@ from helpers import (
 from package_info import PKG
 from pipx import constants, paths, shared_libs, venv
 from pipx.commands import common
-from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, PackageInfo, _json_decoder_object_hook
+from pipx.pipx_metadata_file import (
+    PIPX_INFO_FILENAME,
+    PackageInfo,
+    _json_decoder_object_hook,  # noqa: PLC2701  # the decode hook has no public re-export
+)
 from pipx.util import PipxError
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest_mock import MockerFixture
+    from pytest_subprocess import FakeProcess
 
 _COMMAND_TIMEOUT: Final[int] = 30
 
 
-def test_cli(pipx_temp_env, monkeypatch, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_cli(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["list"])
     captured = capsys.readouterr()
     assert "nothing has been installed with pipx" in captured.err
 
 
 @skip_if_windows
-def test_cli_global(pipx_temp_env, monkeypatch, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_cli_global(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     captured = capsys.readouterr()
     assert "installed package" in captured.out
@@ -47,7 +59,8 @@ def test_cli_global(pipx_temp_env, monkeypatch, capsys):
     assert "nothing has been installed with pipx" in captured.err
 
 
-def test_missing_interpreter(pipx_temp_env, monkeypatch, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_missing_interpreter(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
 
     assert not run_pipx_cli(["list"])
@@ -61,7 +74,8 @@ def test_missing_interpreter(pipx_temp_env, monkeypatch, capsys):
     assert "package pycowsay has invalid interpreter" in captured.err
 
 
-def test_list_suffix(pipx_temp_env, monkeypatch, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_suffix(capsys: pytest.CaptureFixture[str]) -> None:
     suffix = "_x"
     assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
 
@@ -71,7 +85,8 @@ def test_list_suffix(pipx_temp_env, monkeypatch, capsys):
 
 
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
-def test_list_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_legacy_venv(capsys: pytest.CaptureFixture[str], metadata_version: str | None) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     mock_legacy_venv("pycowsay", metadata_version=metadata_version)
 
@@ -96,7 +111,8 @@ def test_list_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
         ),
     ],
 )
-def test_list_returns_problem_for_corrupt_metadata(pipx_temp_env: None, metadata: str) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_returns_problem_for_corrupt_metadata(metadata: str) -> None:
     venv_dir = paths.ctx.venvs / "broken"
     venv_dir.mkdir(parents=True)
     (venv_dir / PIPX_INFO_FILENAME).write_text(metadata, encoding="utf-8")
@@ -104,7 +120,8 @@ def test_list_returns_problem_for_corrupt_metadata(pipx_temp_env: None, metadata
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])
-def test_list_suffix_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_version):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_suffix_legacy_venv(capsys: pytest.CaptureFixture[str], metadata_version: str) -> None:
     suffix = "_x"
     assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
     mock_legacy_venv(f"pycowsay{suffix}", metadata_version=metadata_version)
@@ -112,9 +129,11 @@ def test_list_suffix_legacy_venv(pipx_temp_env, monkeypatch, capsys, metadata_ve
     assert not run_pipx_cli(["list"])
     captured = capsys.readouterr()
     assert f"package pycowsay 0.0.0.2 (pycowsay{suffix})," in captured.out
+    assert f"shell completions are exposed at {paths.ctx.completion_dir}" in captured.out
 
 
-def test_list_json(pipx_temp_env, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_json(capsys: pytest.CaptureFixture[str]) -> None:
     pipx_venvs_dir = paths.ctx.home / "venvs"
     venv_bin_dir = "Scripts" if constants.WINDOWS else "bin"
 
@@ -169,7 +188,8 @@ def test_list_json(pipx_temp_env, capsys):
     )
 
 
-def test_list_short(pipx_temp_env, monkeypatch, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_short(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
     captured = capsys.readouterr()
@@ -182,17 +202,20 @@ def test_list_short(pipx_temp_env, monkeypatch, capsys):
 
 
 @pytest.mark.parametrize("option", [pytest.param("--short", id="short"), pytest.param("--pinned", id="pinned")])
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_list_json_rejects_human_filter(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
     option: str,
 ) -> None:
     assert run_pipx_cli(["list", "--output", "json", option]) == 1
 
-    assert "--output json cannot be combined with --short or --pinned" in capsys.readouterr().err
+    document = json.loads(capsys.readouterr().out)
+    assert document["status"] == "error"
+    assert "--output json cannot be combined with --short or --pinned" in document["errors"][0]["message"]
 
 
-def test_list_selected_package_text(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_selected_package_text(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
     capsys.readouterr()
@@ -203,7 +226,8 @@ def test_list_selected_package_text(pipx_temp_env: None, capsys: pytest.CaptureF
     assert ("package pycowsay 0.0.0.2," in captured.out, "package pylint" in captured.out) == (True, False)
 
 
-def test_list_selected_packages_json(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_selected_packages_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
     capsys.readouterr()
@@ -222,8 +246,8 @@ def test_list_selected_packages_json(pipx_temp_env: None, capsys: pytest.Capture
         pytest.param(["pylint", "pylint==3.0.4"], id="with-specifier"),
     ],
 )
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_list_selected_package_short(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
     packages: list[str],
 ) -> None:
@@ -236,7 +260,8 @@ def test_list_selected_package_short(
     assert capsys.readouterr().out == "pylint 3.0.4\n"
 
 
-def test_list_selected_package_with_suffix(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_selected_package_with_suffix(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--suffix=@1"])
     capsys.readouterr()
 
@@ -245,7 +270,8 @@ def test_list_selected_package_with_suffix(pipx_temp_env: None, capsys: pytest.C
     assert capsys.readouterr().out == "pycowsay 0.0.0.2\n"
 
 
-def test_list_selected_package_pinned(pipx_temp_env: None, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_selected_package_pinned(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
     assert not run_pipx_cli(["pin", "pylint"])
@@ -256,16 +282,16 @@ def test_list_selected_package_pinned(pipx_temp_env: None, capsys: pytest.Captur
     assert capsys.readouterr().out == "pylint 3.0.4\n"
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_list_rejects_missing_selected_package(
-    pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert run_pipx_cli(["list", "missing"])
     assert capsys.readouterr().err.endswith("venv for 'missing' was not found. Was 'missing' installed with pipx?\n")
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_list_injected_apps_without_symlinks(
-    pipx_temp_env: None,
     mocker: MockerFixture,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -279,7 +305,8 @@ def test_list_injected_apps_without_symlinks(
     assert f"    - {PKG['pylint']['apps'][0]}" in capsys.readouterr().out.splitlines()
 
 
-def test_list_waits_for_install(pipx_temp_env: None, tmp_path: Path) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_waits_for_install(tmp_path: Path) -> None:
     package_dir = _create_package(tmp_path, "slow-app", "from time import sleep\nsleep(1)\n")
     install = _start_install(package_dir)
     try:
@@ -304,7 +331,8 @@ def test_list_waits_for_install(pipx_temp_env: None, tmp_path: Path) -> None:
     )
 
 
-def test_install_does_not_wait_for_other_environment(pipx_temp_env: None, tmp_path: Path) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_does_not_wait_for_other_environment(tmp_path: Path) -> None:
     entered = tmp_path / "entered"
     release = tmp_path / "release"
     pause = (
@@ -342,8 +370,9 @@ def test_install_does_not_wait_for_other_environment(pipx_temp_env: None, tmp_pa
     )
 
 
-def test_list_standalone_interpreter(pipx_temp_env, monkeypatch, mocked_github_api, capsys):
-    def which(name):
+@pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
+def test_list_standalone_interpreter(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    def which(_name: str) -> None:
         return None
 
     monkeypatch.setattr(shutil, "which", which)
@@ -352,15 +381,13 @@ def test_list_standalone_interpreter(pipx_temp_env, monkeypatch, mocked_github_a
     minor = sys.version_info.minor
     target_python = f"{major}.{minor}"
 
-    assert not run_pipx_cli(
-        [
-            "install",
-            "--fetch-python=missing",
-            "--python",
-            target_python,
-            PKG["pycowsay"]["spec"],
-        ]
-    )
+    assert not run_pipx_cli([
+        "install",
+        "--fetch-python=missing",
+        "--python",
+        target_python,
+        PKG["pycowsay"]["spec"],
+    ])
     captured = capsys.readouterr()
 
     assert not run_pipx_cli(["list"])
@@ -369,7 +396,8 @@ def test_list_standalone_interpreter(pipx_temp_env, monkeypatch, mocked_github_a
     assert "standalone" in captured.out
 
 
-def test_list_does_not_trigger_maintenance(pipx_temp_env, caplog):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_does_not_trigger_maintenance() -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
 
@@ -398,7 +426,8 @@ def test_list_does_not_trigger_maintenance(pipx_temp_env, caplog):
     assert shared_libs.shared_libs.needs_upgrade
 
 
-def test_list_pinned_packages(pipx_temp_env, monkeypatch, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_pinned_packages(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["install", PKG["black"]["spec"]])
     captured = capsys.readouterr()
@@ -411,7 +440,8 @@ def test_list_pinned_packages(pipx_temp_env, monkeypatch, capsys):
     assert "pycowsay 0.0.0.2" not in captured.out
 
 
-def test_list_pinned_packages_include_injected(pipx_temp_env, monkeypatch, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_list_pinned_packages_include_injected(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"], PKG["nox"]["spec"]])
     assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])
 
@@ -429,7 +459,7 @@ def test_list_pinned_packages_include_injected(pipx_temp_env, monkeypatch, capsy
     assert "black 22.8.0 (injected in venv pylint)" in captured.out
 
 
-def test_list_installed_packages_error(monkeypatch, tmp_path, fake_process):
+def test_list_installed_packages_error(tmp_path: Path, fake_process: FakeProcess) -> None:
     fake_venv = venv.Venv(tmp_path / "fake_venv")
     pip_list_args = [str(fake_venv.python_path), "-m", "pip", "list", "--format=json"]
 
