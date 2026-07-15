@@ -50,6 +50,13 @@ def unsatisfied_constraint(requires_python: str | None, python_version: str) -> 
     return None if constraint.contains(python_version, prereleases=True) else constraint
 
 
+def unsatisfied_by_interpreter(requires_python: str | None, interpreter: str) -> SpecifierSet | None:
+    """The declared constraint when ``interpreter`` fails it, otherwise nothing (unknown version passes)."""
+    if (version := _interpreter_version(interpreter)) is None:
+        return None
+    return unsatisfied_constraint(requires_python, version)
+
+
 def interpreter_for(constraint: SpecifierSet, fetch_python: FetchPythonOptions) -> str:
     overlapping: Final[list[str]] = [minor for minor in _candidate_versions() if _minor_overlaps(constraint, minor)]
     if not overlapping:
@@ -114,5 +121,6 @@ def _parse(requires_python: str) -> SpecifierSet | None:
 __all__ = [
     "interpreter_for",
     "rejected_constraint",
+    "unsatisfied_by_interpreter",
     "unsatisfied_constraint",
 ]

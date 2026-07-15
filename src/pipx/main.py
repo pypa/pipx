@@ -1474,6 +1474,8 @@ def _cmd_run(args: argparse.Namespace, ctx: DispatchContext) -> NoReturn:
         env_backend=ctx.env_backend,
         cooldown_days=ctx.cooldown_days,
         python_args=args.python_args,
+        python_flag_passed=ctx.python_flag_passed,
+        fetch_python=ctx.fetch_python,
     )
 
 

@@ -12,6 +12,7 @@ from typing import Final, NoReturn
 
 from filelock import Timeout
 from packaging.requirements import InvalidRequirement, Requirement
+from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
 
 from pipx import paths
@@ -19,8 +20,9 @@ from pipx.backends import UV, resolve_backend_name
 from pipx.commands.common import package_name_from_spec
 from pipx.commands.inject import inject_dep
 from pipx.commands.run_uv import run_script_via_uv_run, run_via_uv_tool_run
-from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS
+from pipx.constants import TEMP_VENV_EXPIRATION_THRESHOLD_DAYS, WINDOWS, FetchPythonOptions
 from pipx.emojis import hazard
+from pipx.requires_python import interpreter_for, unsatisfied_by_interpreter
 from pipx.script import ScriptMetadata, read_script_metadata
 from pipx.util import (
     PipxError,
@@ -96,8 +98,13 @@ def run_script(
     script_source: Path | None = None,
     dependencies: list[str] | None = None,
     cooldown_days: int | None = None,
+    python_flag_passed: bool = False,
+    fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER,
 ) -> NoReturn:
-    metadata: Final[ScriptMetadata | None] = read_script_metadata(content)
+    try:
+        metadata: Final[ScriptMetadata | None] = read_script_metadata(content)
+    except ValueError as error:
+        raise PipxError(f"Invalid inline script metadata: {error}") from error
     requirements = None if metadata is None else list(metadata.dependencies)
 
     if dependencies:
@@ -140,6 +147,11 @@ def run_script(
             )
         )
 
+    # the uv path lets uv read requires-python from the block; on the pip path pipx honours it here so the script does
+    # not silently run on an interpreter it declared unsupported
+    if metadata is not None and metadata.requires_python is not None:
+        python = _interpreter_for_script(metadata.requires_python, python, python_flag_passed, fetch_python)
+
     if not requirements:
         _exec_script(Path(python), content, app_args, python_args)
 
@@ -175,6 +187,19 @@ def run_script(
                 (venv_dir / _VENV_EXPIRED_FILENAME).touch()
                 raise
         _exec_script(venv.python_path, content, app_args, python_args)
+
+
+def _interpreter_for_script(
+    requires_python: str, python: str, python_flag_passed: bool, fetch_python: FetchPythonOptions
+) -> str:
+    if not python_flag_passed:
+        return interpreter_for(SpecifierSet(requires_python), fetch_python)
+    if unsatisfied_by_interpreter(requires_python, python) is not None:
+        raise PipxError(
+            f"The script requires Python {requires_python}, which the interpreter chosen with --python does not "
+            f"satisfy. Pass a matching --python, or drop --python to let pipx pick one."
+        )
+    return python
 
 
 def _exec_script(
@@ -317,6 +342,8 @@ def run(
     backend: str | None = None,
     env_backend: str | None = None,
     cooldown_days: int | None = None,
+    python_flag_passed: bool = False,
+    fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER,
 ) -> NoReturn:
     """Installs venv to temporary dir (or reuses cache), then runs app from
     package
@@ -347,6 +374,8 @@ def run(
             dependencies=dependencies,
             cooldown_days=cooldown_days,
             python_args=python_args,
+            python_flag_passed=python_flag_passed,
+            fetch_python=fetch_python,
         )
 
     elif use_uvx:

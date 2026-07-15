@@ -149,6 +149,39 @@ def test_run_with_isolates_cache_by_dependency(pipx_temp_env: None, mocker: Mock
     assert (len(with_dirs), inject.call_count, inject.call_args.kwargs["package_spec"]) == (1, 1, "packaging")
 
 
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_resolves_interpreter_for_requires_python(
+    pipx_temp_env: None, tmp_path: Path, mocker: MockerFixture
+) -> None:
+    resolve: Final = mocker.patch("pipx.commands.run.interpreter_for", return_value=sys.executable)
+    script: Final[Path] = tmp_path / "script.py"
+    script.write_text('# /// script\n# requires-python = ">=3.11"\n# ///\nprint("hi")\n', encoding="utf-8")
+
+    run_pipx_cli_exit(["run", "--backend", "pip", str(script)], assert_exit=0)
+
+    assert str(resolve.call_args.args[0]) == ">=3.11"
+
+
+def test_run_rejects_python_failing_requires_python(
+    pipx_temp_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    script: Final[Path] = tmp_path / "script.py"
+    script.write_text('# /// script\n# requires-python = ">=3.99"\n# ///\nprint("hi")\n', encoding="utf-8")
+
+    assert run_pipx_cli(["run", "--backend", "pip", "--python", sys.executable, str(script)]) == 1
+    assert ">=3.99" in capsys.readouterr().err
+
+
+def test_run_reports_invalid_inline_metadata(
+    pipx_temp_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    script: Final[Path] = tmp_path / "script.py"
+    script.write_text("# /// script\n# dependencies = [\n# ///\nprint('hi')\n", encoding="utf-8")
+
+    assert run_pipx_cli(["run", "--backend", "pip", str(script)]) == 1
+    assert "Invalid inline script metadata" in capsys.readouterr().err
+
+
 def test_run_cache_options_are_mutually_exclusive(
     pipx_temp_env: None,
     capsys: pytest.CaptureFixture[str],
@@ -632,29 +665,21 @@ def test_run_script_cooldown(
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_with_requirements_old(caplog, pipx_temp_env, tmp_path):
+def test_run_with_requirements_old(pipx_temp_env, tmp_path, capsys):
     script = tmp_path / "test.py"
-    out = tmp_path / "output.txt"
     script.write_text(
         textwrap.dedent(
-            f"""
+            """
                 # /// pyproject
                 # run.requirements = ["requests==2.31.0"]
                 # ///
-
-                # Check requests can be imported
                 import requests
-                # Check dependencies of requests can be imported
-                import certifi
-                # Check the installed version
-                from pathlib import Path
-                Path({str(out)!r}).write_text(requests.__version__)
             """
         ).strip(),
         encoding="utf-8",
     )
-    with pytest.raises(ValueError):
-        run_pipx_cli_exit(["run", script.as_uri()])
+    assert run_pipx_cli(["run", script.as_uri()]) == 1
+    assert "Use `# /// script`" in capsys.readouterr().err
 
 
 @mock.patch("os.execvpe", new=execvpe_mock)
