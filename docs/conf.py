@@ -78,6 +78,12 @@ autosectionlabel_maxdepth = 2
 # a later one.
 codeautolink_concat_default = True
 
+# The console blocks keep a literal "$ " prompt so Pygments detects the prompt and highlights the command after it
+# (custom.css restyles that glyph). Strip the prompt on copy and drop the output lines, so the clipboard holds just the
+# command. The trailing space keeps the match from catching shell variables like $HOME.
+copybutton_prompt_text = "$ "
+copybutton_prompt_is_regexp = False
+
 # Read the Docs builds from a shallow clone, so sphinx-last-updated-by-git cannot see far enough back to stamp some
 # pages and warns "Git clone too shallow"; under -W that would fail the build. The stamp still resolves for pages within
 # the clone depth and degrades to the build date otherwise.
