@@ -39,3 +39,26 @@
         margin-right: auto;
     }
 }
+
+/* Console prompts render as an accented "❯". The reStructuredText source keeps Pygments' literal "$ " prompt so the
+   command after it still gets shell highlighting and sphinx-copybutton can strip it on copy; only the shown glyph and
+   its colour change here. font-size:0 collapses the "$ " text so ::before can stand in; the glyph is sized in rem
+   rather than furo's --code-font-size, whose 81.25% would resolve against the zeroed parent to 0. */
+.highlight .gp {
+    font-size: 0;
+    user-select: none;
+}
+
+.highlight .gp::before {
+    content: "❯ ";
+    font-size: 0.8125rem;
+}
+
+/* Accent the prompt in the pipx brand colour (::before inherits it). furo's pygments sheet colours the prompt grey
+   through higher-specificity "body[data-theme=…]" selectors that also fire in OS-default light, so mirror them to win
+   the accent across explicit-light, explicit-dark, and no-preference states. */
+.highlight .gp,
+body[data-theme="dark"] .highlight .gp,
+body:not([data-theme="light"]) .highlight .gp {
+    color: var(--color-brand-content);
+}
