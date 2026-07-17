@@ -50,7 +50,8 @@ def test_copy_launcher_targets_venv_ignores_invalid_utf8_shebang(
 
     def raise_unicode_decode_error(*_args: object, **_kwargs: object) -> str:
         reason = "invalid continuation byte"
-        raise UnicodeDecodeError("utf-8", b"\xeb", 0, 1, reason)
+        msg = "utf-8"
+        raise UnicodeDecodeError(msg, b"\xeb", 0, 1, reason)
 
     monkeypatch.setattr(os, "fsdecode", raise_unicode_decode_error)
 
