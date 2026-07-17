@@ -10,6 +10,7 @@ import pytest
 from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths
 from pipx.commands.common import (
+    _copy_launcher_targets_venv,  # noqa: PLC2701  # test exercises private helper, no public API
     _remove_stale_venv_resources,  # noqa: PLC2701  # test exercises private helper, no public API
     expose_resources_globally,
     get_exposed_paths_for_package,
@@ -32,6 +33,28 @@ def test_get_exposed_paths_ignores_recursive_symlink(tmp_path: Path) -> None:
     exposed = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
 
     assert loop not in exposed
+
+
+def test_copy_launcher_targets_venv_ignores_invalid_utf8_shebang(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Regression test for #1965: a foreign binary sharing the bin dir (e.g. an unrelated multi-hundred-MB
+    # .exe) can contain a stray b"#!" byte pair followed by bytes that aren't valid UTF-8. On Windows,
+    # os.fsdecode raises UnicodeDecodeError for such bytes instead of silently escaping them like POSIX's
+    # surrogateescape does, which used to crash `pipx install`/`pipx list` outright. Reproduce that failure
+    # mode deterministically here by forcing os.fsdecode to raise, regardless of the host platform.
+    venv_resource_path = tmp_path / "venv_bin"
+    venv_resource_path.mkdir()
+    resource_path = tmp_path / "unrelated.exe"
+    resource_path.write_bytes(b"\x00" * 32 + b"#!" + bytes([0xEB, 0x00, 0x01]) + b"\x00" * 32)
+
+    def raise_unicode_decode_error(*_args: object, **_kwargs: object) -> str:
+        reason = "invalid continuation byte"
+        raise UnicodeDecodeError("utf-8", b"\xeb", 0, 1, reason)
+
+    monkeypatch.setattr(os, "fsdecode", raise_unicode_decode_error)
+
+    assert _copy_launcher_targets_venv(resource_path, venv_resource_path) is False
 
 
 @skip_if_windows

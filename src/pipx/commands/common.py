@@ -425,7 +425,7 @@ def _copy_launcher_targets_venv(resource_path: Path, venv_resource_path: Path) -
         try:
             if interpreter and Path(os.fsdecode(interpreter)).parent.samefile(venv_resource_path):
                 return True
-        except OSError:
+        except (OSError, UnicodeDecodeError):
             continue
     return False
 
