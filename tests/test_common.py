@@ -11,6 +11,7 @@ from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths
 from pipx.commands.common import (
     _remove_stale_venv_resources,  # noqa: PLC2701  # test exercises private helper, no public API
+    _copy_launcher_targets_venv,
     expose_resources_globally,
     get_exposed_paths_for_package,
 )
@@ -82,3 +83,54 @@ def test_remove_stale_venv_resources_keeps_files_pipx_does_not_own(capsys: pytes
     _remove_stale_venv_resources({owned, replaced}, venv, bin_dir, paths.ctx.man_dir)
 
     assert (owned.exists(), replaced.read_text()) == (False, "belongs to the user")
+
+
+def test_copy_launcher_targets_venv_unicode_decode_error(tmp_path: Path) -> None:
+    """_copy_launcher_targets_venv returns False for non-UTF8 file."""
+    venv_resource_path = tmp_path / "venv_bin"
+    venv_resource_path.mkdir()
+    local_resource_dir = tmp_path / "bin"
+    local_resource_dir.mkdir()
+
+    # Create a non-UTF8 file in the local bin directory
+    non_utf8_file = local_resource_dir / "weird.exe"
+    non_utf8_file.write_bytes(b'\xff\xfe')  # Invalid UTF-8
+
+    # Should return False without raising UnicodeDecodeError
+    assert not _copy_launcher_targets_venv(non_utf8_file, venv_resource_path)
+
+
+def test_copy_launcher_targets_venv_valid_launcher(tmp_path: Path) -> None:
+    """_copy_launcher_targets_venv returns True for a launcher pointing to venv."""
+    venv_resource_path = tmp_path / "venv_bin"
+    venv_resource_path.mkdir()
+    local_resource_dir = tmp_path / "bin"
+    local_resource_dir.mkdir()
+
+    # Create a launcher with a shebang pointing to the venv's python
+    launcher = local_resource_dir / "myapp"
+    shebang = f"#!{venv_resource_path / 'python'}\nprint('hello')"
+    launcher.write_text(shebang, encoding="utf-8")
+    launcher.chmod(0o755)
+
+    # Should return True
+    assert _copy_launcher_targets_venv(launcher, venv_resource_path)
+
+
+def test_copy_launcher_targets_venv_launcher_pointing_outside(tmp_path: Path) -> None:
+    """_copy_launcher_targets_venv returns False for launcher pointing outside venv."""
+    venv_resource_path = tmp_path / "venv_bin"
+    venv_resource_path.mkdir()
+    local_resource_dir = tmp_path / "bin"
+    local_resource_dir.mkdir()
+    other_dir = tmp_path / "other"
+    other_dir.mkdir()
+
+    # Create a launcher with a shebang pointing to another directory
+    launcher = local_resource_dir / "myapp"
+    shebang = f"#!{other_dir / 'python'}\nprint('hello')"
+    launcher.write_text(shebang, encoding="utf-8")
+    launcher.chmod(0o755)
+
+    # Should return False
+    assert not _copy_launcher_targets_venv(launcher, venv_resource_path)
