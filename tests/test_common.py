@@ -34,6 +34,35 @@ def test_get_exposed_paths_ignores_recursive_symlink(tmp_path: Path) -> None:
     assert loop not in exposed
 
 
+@pytest.mark.parametrize(
+    ("name", "payload"),
+    [
+        # Non-UTF-8 bytes after the marker. os.fsdecode rejects these on Windows,
+        # whose filesystem encoding is utf-8/surrogatepass.
+        ("undecodable", b"MZ\x90\x00\x03#!\xff\xfe\x80\x81 more binary\n"),
+        # A NUL inside the would-be path. os.fsdecode accepts it, then stat rejects it.
+        ("embedded-nul", b"MZ\x90\x00\x03#!/opt/no\x00pe/bin/python\n"),
+    ],
+)
+def test_get_exposed_paths_ignores_foreign_binary(tmp_path: Path, name: str, payload: bytes) -> None:
+    """A binary pipx did not create must not abort the scan.
+
+    Every file in the bin directory is read looking for a launcher's "#!" line, so an
+    unrelated executable dropped there by another installer is parsed as if it were one.
+    Neither failure below means the file belongs to the venv.
+    """
+    venv_resource_path = tmp_path / "venv_bin"
+    venv_resource_path.mkdir()
+    local_resource_dir = tmp_path / "bin"
+    local_resource_dir.mkdir()
+    foreign = local_resource_dir / name
+    foreign.write_bytes(payload)
+
+    exposed = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
+
+    assert foreign not in exposed
+
+
 @skip_if_windows
 def test_expose_app_scripts_ignores_pythonpath(tmp_path: Path) -> None:
     venv_resource_path = tmp_path / "venv_bin"
