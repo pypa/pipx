@@ -10,8 +10,8 @@ import pytest
 from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths
 from pipx.commands.common import (
-    _remove_stale_venv_resources,  # noqa: PLC2701  # test exercises private helper, no public API
     _copy_launcher_targets_venv,
+    _remove_stale_venv_resources,  # noqa: PLC2701  # test exercises private helper, no public API
     expose_resources_globally,
     get_exposed_paths_for_package,
 )
@@ -94,7 +94,7 @@ def test_copy_launcher_targets_venv_unicode_decode_error(tmp_path: Path) -> None
 
     # Create a non-UTF8 file in the local bin directory
     non_utf8_file = local_resource_dir / "weird.exe"
-    non_utf8_file.write_bytes(b'\xff\xfe')  # Invalid UTF-8
+    non_utf8_file.write_bytes(b"\xff\xfe")  # Invalid UTF-8
 
     # Should return False without raising UnicodeDecodeError
     assert not _copy_launcher_targets_venv(non_utf8_file, venv_resource_path)
