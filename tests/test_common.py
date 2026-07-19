@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from helpers import run_pipx_cli, skip_if_windows
+from helpers import WIN, run_pipx_cli, skip_if_windows
 from pipx import paths
+from pipx.commands import common
 from pipx.commands.common import (
     _remove_stale_venv_resources,  # noqa: PLC2701  # test exercises private helper, no public API
     expose_resources_globally,
@@ -32,6 +33,22 @@ def test_get_exposed_paths_ignores_recursive_symlink(tmp_path: Path) -> None:
     exposed = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
 
     assert loop not in exposed
+
+
+@pytest.mark.skipif(not WIN, reason="Windows decodes launcher bytes strictly")
+def test_get_exposed_paths_ignores_malformed_launcher(tmp_path: Path) -> None:
+    venv_resource_path = tmp_path / "venv_bin"
+    venv_resource_path.mkdir()
+    local_resource_dir = tmp_path / "bin"
+    local_resource_dir.mkdir()
+    foreign_executable = local_resource_dir / "foreign.exe"
+    foreign_executable.write_bytes(b"unrelated binary data#!\xeb\n")
+
+    common._can_symlink_cache[local_resource_dir] = False  # noqa: SLF001  # exercise copy-launcher path
+
+    exposed = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
+
+    assert exposed == set()
 
 
 @skip_if_windows
