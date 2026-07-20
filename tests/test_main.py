@@ -75,13 +75,13 @@ def test_limit_verbosity() -> None:
 
 def test_all_subcommands_have_func_registered() -> None:
     parser, _ = main.get_command_parser()
-    subparsers_type = argparse._SubParsersAction  # noqa: SLF001  # argparse has no public subparser API
-    top_actions = parser._actions  # noqa: SLF001  # argparse has no public subparser API
+    subparsers_type = argparse._SubParsersAction  # ruff:ignore[private-member-access]  # argparse has no public subparser API
+    top_actions = parser._actions  # ruff:ignore[private-member-access]  # argparse has no public subparser API
     subparsers_action = next(a for a in top_actions if isinstance(a, subparsers_type))
     choices = cast("dict[str, argparse.ArgumentParser]", subparsers_action.choices)
     for name, subparser in choices.items():
         assert callable(subparser.get_default("func")), f"{name!r} missing callable func default"
-        nested_actions = subparser._actions  # noqa: SLF001  # argparse has no public subparser API
+        nested_actions = subparser._actions  # ruff:ignore[private-member-access]  # argparse has no public subparser API
         for nested in (a for a in nested_actions if isinstance(a, subparsers_type)):
             nested_choices = cast("dict[str, argparse.ArgumentParser]", nested.choices)
             for sub_name, sub_parser in nested_choices.items():
@@ -143,7 +143,7 @@ def test_manpage_renders(manpage_troff: bytes, tmp_path: Path) -> None:
     manpage = tmp_path / "pipx.1"
     manpage.write_bytes(manpage_troff)
     result = subprocess.run(
-        ["man", str(manpage)],  # noqa: S607  # man resolves via PATH by design in this render smoke test
+        ["man", str(manpage)],  # ruff:ignore[start-process-with-partial-path]  # man resolves via PATH by design in this render smoke test
         capture_output=True,
         text=True,
         env=os.environ | {"COLUMNS": "200", "MANPAGER": "cat", "PAGER": "cat"},
@@ -214,7 +214,7 @@ def test_compute_fetch_python(
     expected_option: constants.FetchPythonOptions,
     expected_invalid: bool,
 ) -> None:
-    option, invalid = constants._compute_fetch_python(missing_raw, python_raw)  # noqa: SLF001  # no public API
+    option, invalid = constants._compute_fetch_python(missing_raw, python_raw)  # ruff:ignore[private-member-access]  # no public API
     assert option is expected_option
     assert invalid is expected_invalid
 
@@ -237,7 +237,7 @@ def test_validate_fetch_python_raises(
     monkeypatch.setattr(main, "_FETCH_PYTHON_RAW", fetch_python_raw)
     monkeypatch.setattr(main, "_FETCH_MISSING_PYTHON_RAW", missing_raw)
     with pytest.raises(main.PipxError, match=expected):
-        main._validate_fetch_python()  # noqa: SLF001  # no public API
+        main._validate_fetch_python()  # ruff:ignore[private-member-access]  # no public API
 
 
 def test_validate_fetch_python_deprecated_env_warning(
@@ -246,7 +246,7 @@ def test_validate_fetch_python_deprecated_env_warning(
     monkeypatch.setattr(main, "_FETCH_PYTHON_INVALID", False)
     monkeypatch.setattr(main, "_FETCH_PYTHON_RAW", None)
     monkeypatch.setattr(main, "_FETCH_MISSING_PYTHON_RAW", "1")
-    main._validate_fetch_python()  # noqa: SLF001  # no public API
+    main._validate_fetch_python()  # ruff:ignore[private-member-access]  # no public API
     assert "PIPX_FETCH_MISSING_PYTHON is deprecated" in capsys.readouterr().err
 
 
@@ -254,7 +254,7 @@ def test_validate_fetch_python_passes_when_unset(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(main, "_FETCH_PYTHON_INVALID", False)
     monkeypatch.setattr(main, "_FETCH_PYTHON_RAW", None)
     monkeypatch.setattr(main, "_FETCH_MISSING_PYTHON_RAW", None)
-    main._validate_fetch_python()  # noqa: SLF001  # no public API
+    main._validate_fetch_python()  # ruff:ignore[private-member-access]  # no public API
 
 
 def test_deprecated_fetch_missing_python_silent_under_help(capsys: pytest.CaptureFixture[str]) -> None:

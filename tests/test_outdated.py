@@ -426,7 +426,7 @@ def corrupt_environment(outdated_environment: MagicMock) -> MagicMock:
 @pytest.fixture
 def outdated_environment(
     request: pytest.FixtureRequest,
-    pipx_temp_env: None,  # noqa: ARG001  # required so the temp env is active while the environment is built
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while the environment is built
     capsys: pytest.CaptureFixture[str],
     mocker: MockerFixture,
 ) -> MagicMock:
@@ -438,7 +438,7 @@ def outdated_environment(
 
 @pytest.fixture
 def non_index_environment(
-    pipx_temp_env: None,  # noqa: ARG001  # required so the temp env is active while the environment is built
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while the environment is built
     capsys: pytest.CaptureFixture[str],
     mocker: MockerFixture,
 ) -> MagicMock:
@@ -452,7 +452,7 @@ def non_index_environment(
 
 @pytest.fixture
 def missing_metadata_environment(
-    pipx_temp_env: None,  # noqa: ARG001  # required so the temp env is active while the environment is built
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while the environment is built
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])

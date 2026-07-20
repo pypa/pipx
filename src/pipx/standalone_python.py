@@ -154,7 +154,7 @@ def _urlopen_retrying(url: str) -> http.client.HTTPResponse:
     while True:
         attempt += 1
         try:
-            return urlopen(url, timeout=_URL_OPEN_TIMEOUT)  # noqa: S310  # pinned GitHub release URL
+            return urlopen(url, timeout=_URL_OPEN_TIMEOUT)  # ruff:ignore[suspicious-url-open-usage]  # pinned GitHub release URL
         except urllib.error.URLError as error:
             retryable = not isinstance(error, urllib.error.HTTPError) or error.code in _RETRYABLE_HTTP_STATUS
             if not retryable or attempt >= _DOWNLOAD_ATTEMPTS:

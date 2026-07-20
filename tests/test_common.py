@@ -10,7 +10,7 @@ import pytest
 from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths
 from pipx.commands.common import (
-    _remove_stale_venv_resources,  # noqa: PLC2701  # test exercises private helper, no public API
+    _remove_stale_venv_resources,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
     expose_resources_globally,
     get_exposed_paths_for_package,
 )

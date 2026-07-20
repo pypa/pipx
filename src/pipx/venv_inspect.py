@@ -339,7 +339,7 @@ def _get_man_section_from_data_files_target(target_dir: str) -> str | None:
     return parts[-1]
 
 
-def _dfs_package_resources(  # noqa: PLR0913  # threads three resource accumulators plus the visited set through recursion
+def _dfs_package_resources(  # ruff:ignore[too-many-arguments]  # threads three resource accumulators plus the visited set through recursion
     dist: metadata.Distribution,
     package_req: Requirement,
     venv_inspect_info: VenvInspectInformation,
@@ -464,7 +464,7 @@ def fetch_info_in_venv(venv_python_path: Path) -> tuple[list[str], dict[str, str
     )
 
 
-def inspect_venv(  # noqa: PLR0914  # aggregates apps, man pages, and completions for root and deps into one VenvMetadata
+def inspect_venv(  # ruff:ignore[too-many-locals]  # aggregates apps, man pages, and completions for root and deps into one VenvMetadata
     root_package_name: str,
     root_package_extras: set[str],
     venv_bin_path: Path,

@@ -65,7 +65,7 @@ def list_outdated(
     )
 
 
-def inspect_outdated(  # noqa: PLR0913  # forwards the full outdated-check context down the parallel fan-out
+def inspect_outdated(  # ruff:ignore[too-many-arguments]  # forwards the full outdated-check context down the parallel fan-out
     venv_container: VenvContainer,
     *,
     include_injected: bool,
@@ -118,7 +118,7 @@ def inspect_outdated(  # noqa: PLR0913  # forwards the full outdated-check conte
     )
 
 
-def _list_environments_outdated(  # noqa: PLR0913  # forwards the shared outdated-check context to each worker
+def _list_environments_outdated(  # ruff:ignore[too-many-arguments]  # forwards the shared outdated-check context to each worker
     venv_container: VenvContainer,
     venv_dirs: tuple[Path, ...],
     *,
@@ -145,7 +145,7 @@ def _list_environments_outdated(  # noqa: PLR0913  # forwards the shared outdate
         return tuple(executor.map(check, venv_dirs))
 
 
-def _list_environment_outdated(  # noqa: PLR0913  # forwards the shared outdated-check context for one venv
+def _list_environment_outdated(  # ruff:ignore[too-many-arguments]  # forwards the shared outdated-check context for one venv
     venv_container: VenvContainer,
     venv_dir: Path,
     *,

@@ -134,9 +134,9 @@ _DESCRIPTION_LIMIT = 160
 
 
 def _add_page_description(
-    app: Sphinx,  # noqa: ARG001
-    pagename: str,  # noqa: ARG001
-    templatename: str,  # noqa: ARG001
+    app: Sphinx,  # ruff:ignore[unused-function-argument]
+    pagename: str,  # ruff:ignore[unused-function-argument]
+    templatename: str,  # ruff:ignore[unused-function-argument]
     context: dict[str, Any],
     doctree: nodes.document | None,
 ) -> None:

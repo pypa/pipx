@@ -72,10 +72,10 @@ def get_remote(repo: Repo) -> Remote:
 
 
 def release_changelog(repo: Repo, version: Version) -> Commit:
-    check_call(["towncrier", "build", "--yes", "--version", version.public], cwd=str(ROOT_DIR))  # noqa: S607  # towncrier resolved from PATH
-    call(["pre-commit", "run", "--all-files"], cwd=str(ROOT_DIR))  # noqa: S607  # pre-commit resolved from PATH
+    check_call(["towncrier", "build", "--yes", "--version", version.public], cwd=str(ROOT_DIR))  # ruff:ignore[start-process-with-partial-path]  # towncrier resolved from PATH
+    call(["pre-commit", "run", "--all-files"], cwd=str(ROOT_DIR))  # ruff:ignore[start-process-with-partial-path]  # pre-commit resolved from PATH
     repo.git.add(".")
-    check_call(["pre-commit", "run", "--all-files"], cwd=str(ROOT_DIR))  # noqa: S607  # pre-commit resolved from PATH
+    check_call(["pre-commit", "run", "--all-files"], cwd=str(ROOT_DIR))  # ruff:ignore[start-process-with-partial-path]  # pre-commit resolved from PATH
     return repo.index.commit(f"Release {version}")
 
 

@@ -21,7 +21,7 @@ class Backend(ABC):
     name: str
 
     @abstractmethod
-    def create_venv(  # noqa: PLR0913  # backend contract mirrors the venv-creation CLI inputs
+    def create_venv(  # ruff:ignore[too-many-arguments]  # backend contract mirrors the venv-creation CLI inputs
         self,
         root: Path,
         *,
@@ -33,7 +33,7 @@ class Backend(ABC):
     ) -> None: ...
 
     @abstractmethod
-    def install(  # noqa: PLR0913  # install flags map one-to-one onto backend CLI options
+    def install(  # ruff:ignore[too-many-arguments]  # install flags map one-to-one onto backend CLI options
         self,
         *,
         venv_root: Path,
@@ -47,7 +47,7 @@ class Backend(ABC):
         progress: bool = False,
     ) -> CompletedProcess[str]: ...
 
-    def install_lock(  # noqa: PLR0913  # forwards install inputs to install()
+    def install_lock(  # ruff:ignore[too-many-arguments]  # forwards install inputs to install()
         self,
         *,
         venv_root: Path,
@@ -99,7 +99,7 @@ class Backend(ABC):
     ) -> tuple[OutdatedPackage, ...]: ...
 
     @abstractmethod
-    def run_raw_pip(  # noqa: PLR0913  # passes raw pip invocation controls through
+    def run_raw_pip(  # ruff:ignore[too-many-arguments]  # passes raw pip invocation controls through
         self,
         *,
         venv_root: Path,

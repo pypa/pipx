@@ -28,10 +28,10 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 class PipBackend(Backend):
     name = PIP
 
-    def needs_shared_libs(self) -> bool:  # noqa: PLR6301  # Backend interface method, must dispatch polymorphically
+    def needs_shared_libs(self) -> bool:  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
         return True
 
-    def upgrade_packaging_libraries(  # noqa: PLR6301  # Backend interface method, must dispatch polymorphically
+    def upgrade_packaging_libraries(  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
         self,
         venv_python: Path,
         pip_args: list[str],
@@ -47,7 +47,7 @@ class PipBackend(Backend):
         )
         subprocess_post_check(process)
 
-    def create_venv(  # noqa: PLR6301, PLR0913  # Backend interface method mirroring venv-creation inputs
+    def create_venv(  # ruff:ignore[no-self-use, too-many-arguments]  # Backend interface method mirroring venv-creation inputs
         self,
         root: Path,
         *,
@@ -71,7 +71,7 @@ class PipBackend(Backend):
             pipx_pth = get_site_packages(python_path) / PIPX_SHARED_PTH
             pipx_pth.write_text(f"{shared_libs.site_packages}\n")
 
-    def install(  # noqa: PLR6301, PLR0913  # Backend interface method mapping flags to pip options
+    def install(  # ruff:ignore[no-self-use, too-many-arguments]  # Backend interface method mapping flags to pip options
         self,
         *,
         venv_root: Path,
@@ -107,7 +107,7 @@ class PipBackend(Backend):
     def cooldown_args(cooldown_days: int | None) -> list[str]:
         return [] if not cooldown_days else ["--uploaded-prior-to", f"P{cooldown_days}D"]
 
-    def uninstall(  # noqa: PLR6301  # Backend interface method, must dispatch polymorphically
+    def uninstall(  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
         self,
         *,
         venv_root: Path,
@@ -122,7 +122,7 @@ class PipBackend(Backend):
         subprocess_post_check(process)
         return process
 
-    def list_installed(  # noqa: PLR6301  # Backend interface method, must dispatch polymorphically
+    def list_installed(  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
         self,
         *,
         venv_root: Path,
@@ -143,7 +143,7 @@ class PipBackend(Backend):
             raise PipxError(msg)
         return {entry["name"] for entry in json.loads(process.stdout.strip())}
 
-    def list_outdated(  # noqa: PLR6301  # Backend interface method, must dispatch polymorphically
+    def list_outdated(  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
         self,
         *,
         venv_root: Path,
@@ -156,7 +156,7 @@ class PipBackend(Backend):
         )
         return outdated_packages_from_process(process)
 
-    def run_raw_pip(  # noqa: PLR6301, PLR0913  # Backend interface method passing raw pip controls through
+    def run_raw_pip(  # ruff:ignore[no-self-use, too-many-arguments]  # Backend interface method passing raw pip controls through
         self,
         *,
         venv_root: Path,

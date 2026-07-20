@@ -154,7 +154,7 @@ class VenvContainer:
         return FileLock(self._root / f".{canonicalize_name(venv_dir.name)}.lock")
 
 
-class Venv:  # noqa: PLR0904  # single facade over a pipx-managed virtual environment; splitting would scatter its state
+class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx-managed virtual environment; splitting would scatter its state
     """Abstraction for a virtual environment with various useful methods for pipx"""
 
     def __init__(
@@ -368,7 +368,7 @@ class Venv:  # noqa: PLR0904  # single facade over a pipx-managed virtual enviro
             self.pipx_metadata.injected_packages.pop(package)
             self.pipx_metadata.write()
 
-    def install_package(  # noqa: PLR0913  # flat install API mirroring the CLI's install options
+    def install_package(  # ruff:ignore[too-many-arguments]  # flat install API mirroring the CLI's install options
         self,
         package_name: str,
         package_or_url: str,
@@ -578,7 +578,7 @@ class Venv:  # noqa: PLR0904  # single facade over a pipx-managed virtual enviro
         _LOGGER.info("get_venv_metadata_for_package: %.0fms", 1e3 * (time.time() - data_start))
         return venv_metadata
 
-    def update_package_metadata(  # noqa: PLR0913  # writes the full PackageInfo record from the CLI's install options
+    def update_package_metadata(  # ruff:ignore[too-many-arguments]  # writes the full PackageInfo record from the CLI's install options
         self,
         package_name: str,
         package_or_url: str,
@@ -745,7 +745,7 @@ class Venv:  # noqa: PLR0904  # single facade over a pipx-managed virtual enviro
             )
         subprocess_post_check(process)
 
-    def upgrade_package(  # noqa: PLR0913  # flat upgrade API mirroring the CLI's upgrade options
+    def upgrade_package(  # ruff:ignore[too-many-arguments]  # flat upgrade API mirroring the CLI's upgrade options
         self,
         package_name: str,
         package_or_url: str,

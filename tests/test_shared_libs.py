@@ -55,7 +55,7 @@ def test_venv_python_is_valid_missing_interpreter(tmp_path: Path) -> None:
     pyvenv_cfg = venv_path / "pyvenv.cfg"
     pyvenv_cfg.write_text("home = C:\\NonExistent\\Python\\Path\nversion = 3.14.0\n")
 
-    assert shared_libs._venv_python_is_valid(python_exe) is False  # noqa: SLF001  # private helper under test has no public wrapper
+    assert shared_libs._venv_python_is_valid(python_exe) is False  # ruff:ignore[private-member-access]  # private helper under test has no public wrapper
 
 
 @pytest.mark.skipif(not WINDOWS, reason="Windows-specific test")
@@ -78,7 +78,7 @@ def test_venv_python_is_valid_existing_interpreter(tmp_path: Path) -> None:
     pyvenv_cfg = venv_path / "pyvenv.cfg"
     pyvenv_cfg.write_text(f"home = {original_python_dir}\nversion = 3.12.0\n")
 
-    assert shared_libs._venv_python_is_valid(python_exe) is True  # noqa: SLF001  # private helper under test has no public wrapper
+    assert shared_libs._venv_python_is_valid(python_exe) is True  # ruff:ignore[private-member-access]  # private helper under test has no public wrapper
 
 
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
@@ -193,7 +193,7 @@ def test_venv_python_is_valid_non_windows() -> None:
     """Test that _venv_python_is_valid always returns True on non-Windows platforms."""
     with patch.object(shared_libs, "WINDOWS", False):
         # Should return True regardless of the path
-        assert shared_libs._venv_python_is_valid(Path("/fake/path/python")) is True  # noqa: SLF001  # private helper under test has no public wrapper
+        assert shared_libs._venv_python_is_valid(Path("/fake/path/python")) is True  # ruff:ignore[private-member-access]  # private helper under test has no public wrapper
 
 
 @pytest.mark.parametrize(

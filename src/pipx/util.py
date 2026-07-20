@@ -60,7 +60,7 @@ class RelevantSearch:
 def _get_trash_file(path: Path) -> Path:
     if not paths.ctx.trash.is_dir():
         paths.ctx.trash.mkdir(exist_ok=True)
-    prefix = "".join(random.choices(string.ascii_lowercase, k=8))  # noqa: S311  # temp filename, not security-sensitive
+    prefix = "".join(random.choices(string.ascii_lowercase, k=8))  # ruff:ignore[suspicious-non-cryptographic-random-usage]  # temp filename, not security-sensitive
     return paths.ctx.trash / f"{prefix}.{path.name}"
 
 
@@ -179,7 +179,7 @@ def _fix_subprocess_env(env: dict[str, str], *, force_utf8: bool = True) -> dict
     return env
 
 
-def run_subprocess(  # noqa: PLR0913  # thin wrapper over subprocess.run exposing its capture and logging switches
+def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subprocess.run exposing its capture and logging switches
     cmd: Sequence[str | Path],
     *,
     capture_stdout: bool = True,
@@ -379,9 +379,9 @@ def _tee_subprocess_output(source: int, destination: TextIO, chunks: list[str]) 
 def subprocess_post_check(completed_process: subprocess.CompletedProcess[str], *, raise_error: bool = True) -> None:
     if completed_process.returncode:
         if completed_process.stdout is not None:
-            print(completed_process.stdout, file=sys.stdout, end="")  # noqa: T201  # relays subprocess output to the user
+            print(completed_process.stdout, file=sys.stdout, end="")  # ruff:ignore[print]  # relays subprocess output to the user
         if completed_process.stderr is not None:
-            print(completed_process.stderr, file=sys.stderr, end="")  # noqa: T201  # relays subprocess output to the user
+            print(completed_process.stderr, file=sys.stderr, end="")  # ruff:ignore[print]  # relays subprocess output to the user
         if raise_error:
             msg = f"{' '.join([str(x) for x in completed_process.args])!r} failed"
             raise PipxError(msg)
@@ -477,7 +477,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str) -> None:
     relevants_saved = dedup_ordered(relevants_saved)
 
     if relevants_saved:
-        print("\nSome possibly relevant errors from pip install:", file=sys.stderr)  # noqa: T201  # user-facing CLI output
+        print("\nSome possibly relevant errors from pip install:", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
 
         print_categories = [x.category for x in relevant_searches]
         relevants_saved_filtered = relevants_saved.copy()
@@ -486,7 +486,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str) -> None:
             relevants_saved_filtered = [x for x in relevants_saved if x[1] in print_categories]
 
         for relevant_saved in relevants_saved_filtered:
-            print(f"    {relevant_saved[0]}", file=sys.stderr)  # noqa: T201  # user-facing CLI output
+            print(f"    {relevant_saved[0]}", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
 
 
 def _log_failed_builds(
@@ -497,15 +497,15 @@ def _log_failed_builds(
     if failed_build_stdout:
         failed_to_build_str = "\n    ".join(failed_build_stdout)
         plural_str = "s" if len(failed_build_stdout) > 1 else ""
-        print(file=sys.stderr)  # noqa: T201  # user-facing CLI output
+        print(file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
         _LOGGER.error("pip failed to build package%s:\n    %s", plural_str, failed_to_build_str)
     elif failed_build_stderr:
         failed_to_build_str = "\n    ".join(failed_build_stderr)
         plural_str = "s" if len(failed_build_stderr) > 1 else ""
-        print(file=sys.stderr)  # noqa: T201  # user-facing CLI output
+        print(file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
         _LOGGER.error("pip seemed to fail to build package%s:\n    %s", plural_str, failed_to_build_str)
     elif last_collecting_dep is not None:
-        print(file=sys.stderr)  # noqa: T201  # user-facing CLI output
+        print(file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
         _LOGGER.error("pip seemed to fail to build package:\n    %s", last_collecting_dep)
 
 
@@ -571,7 +571,7 @@ def exec_app(
 
     if WINDOWS:
         sys.exit(subprocess.run(cmd, env=env, check=False).returncode)
-    os.execvpe(str(cmd[0]), [str(x) for x in cmd], env)  # noqa: S606  # pipx replaces itself with the requested app by design
+    os.execvpe(str(cmd[0]), [str(x) for x in cmd], env)  # ruff:ignore[start-process-with-no-shell]  # pipx replaces itself with the requested app by design
 
 
 def full_package_description(package_name: str, package_spec: str) -> str:
