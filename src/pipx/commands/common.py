@@ -426,10 +426,9 @@ def _copy_launcher_targets_venv(resource_path: Path, venv_resource_path: Path) -
             if interpreter and Path(os.fsdecode(interpreter)).parent.samefile(venv_resource_path):
                 return True
         except (OSError, ValueError):
-            # Any file in the bin directory is scanned, including binaries pipx did not
-            # create, so these bytes are not necessarily a path. ValueError covers both
-            # `os.fsdecode` rejecting non-UTF-8 bytes (Windows uses surrogatepass) and
-            # `stat` rejecting an embedded NUL. Neither means the copy is ours.
+            # The scan reads every file in the bin directory, so a stray "#!" in a foreign binary leads here with
+            # arbitrary bytes rather than a path: os.fsdecode rejects undecodable ones under the surrogatepass
+            # codec Windows uses, and stat rejects an embedded NUL. Neither makes the copy ours.
             continue
     return False
 

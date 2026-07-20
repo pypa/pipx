@@ -9,6 +9,7 @@ import pytest
 
 from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths
+from pipx.commands import common
 from pipx.commands.common import (
     _remove_stale_venv_resources,  # noqa: PLC2701  # test exercises private helper, no public API
     expose_resources_globally,
@@ -18,6 +19,8 @@ from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from pytest_mock import MockerFixture
 
 
 @skip_if_windows
@@ -34,28 +37,24 @@ def test_get_exposed_paths_ignores_recursive_symlink(tmp_path: Path) -> None:
     assert loop not in exposed
 
 
+# A binary pipx did not create is parsed as if it were a launcher, so the bytes trailing a stray "#!" reach
+# os.fsdecode and stat as an interpreter path. Windows rejects the undecodable one, every platform the NUL.
 @pytest.mark.parametrize(
-    ("name", "payload"),
+    "payload",
     [
-        # Non-UTF-8 bytes after the marker. os.fsdecode rejects these on Windows,
-        # whose filesystem encoding is utf-8/surrogatepass.
-        ("undecodable", b"MZ\x90\x00\x03#!\xff\xfe\x80\x81 more binary\n"),
-        # A NUL inside the would-be path. os.fsdecode accepts it, then stat rejects it.
-        ("embedded-nul", b"MZ\x90\x00\x03#!/opt/no\x00pe/bin/python\n"),
+        pytest.param(b"MZ\x90\x00\x03#!\xff\xfe\x80\x81 more binary\n", id="undecodable-interpreter"),
+        pytest.param(b"MZ\x90\x00\x03#!/opt/no\x00pe/bin/python\n", id="nul-in-interpreter"),
     ],
 )
-def test_get_exposed_paths_ignores_foreign_binary(tmp_path: Path, name: str, payload: bytes) -> None:
-    """A binary pipx did not create must not abort the scan.
-
-    Every file in the bin directory is read looking for a launcher's "#!" line, so an
-    unrelated executable dropped there by another installer is parsed as if it were one.
-    Neither failure below means the file belongs to the venv.
-    """
+def test_get_exposed_paths_ignores_foreign_binary(tmp_path: Path, mocker: MockerFixture, payload: bytes) -> None:
+    # Only copy-based environments read a shebang to establish ownership, so without this the symlink branch
+    # short-circuits the scan and the parse under test never runs off Windows.
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
     venv_resource_path = tmp_path / "venv_bin"
     venv_resource_path.mkdir()
     local_resource_dir = tmp_path / "bin"
     local_resource_dir.mkdir()
-    foreign = local_resource_dir / name
+    foreign = local_resource_dir / "foreign.exe"
     foreign.write_bytes(payload)
 
     exposed = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
