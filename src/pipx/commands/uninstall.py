@@ -156,7 +156,7 @@ def _get_venv_package_infos(venv: Venv) -> tuple[PackageInfo, ...] | None:
     return (_venv_metadata_to_package_info(venv_metadata, venv.root.name),)
 
 
-def _venv_metadata_to_package_info(  # noqa: PLR0913  # builds a PackageInfo field-for-field from venv metadata
+def _venv_metadata_to_package_info(  # ruff:ignore[too-many-arguments]  # builds a PackageInfo field-for-field from venv metadata
     venv_metadata: VenvMetadata,
     package_name: str,
     package_or_url: str = "",

@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 def has_venv() -> bool:
     try:
-        import venv  # noqa: F401, PLC0415
+        import venv  # ruff:ignore[unused-import, import-outside-top-level]
     except ImportError:
         return False
     return True

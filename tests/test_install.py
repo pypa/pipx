@@ -686,7 +686,7 @@ def test_install_missing_recorded_app_restores_existing_environment(
 
 @pytest.fixture
 def missing_expected_app_project(
-    pipx_temp_env: None,  # noqa: ARG001  # required so the temp env is active while the project is built
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while the project is built
     capsys: pytest.CaptureFixture[str],
     root: Path,
     tmp_path: Path,

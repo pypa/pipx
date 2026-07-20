@@ -91,7 +91,7 @@ def test_uninstall_quiet(
 )
 def uninstall_command(
     request: pytest.FixtureRequest,
-    pipx_temp_env: None,  # noqa: ARG001  # side-effect fixture; usefixtures marks cannot apply to fixtures
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # side-effect fixture; usefixtures marks cannot apply to fixtures
     capsys: pytest.CaptureFixture[str],
 ) -> tuple[str, list[str]]:
     assert not run_pipx_cli(["install", "pycowsay"])

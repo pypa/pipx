@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def uninject(  # noqa: PLR0913  # uninject forwards the resource dirs and both flags for the whole dependency set
+def uninject(  # ruff:ignore[too-many-arguments]  # uninject forwards the resource dirs and both flags for the whole dependency set
     venv_dir: Path,
     dependencies: list[str],
     *,

@@ -69,7 +69,7 @@ class _CompletableAction(typing.Protocol):
 
 
 def print_version() -> None:
-    print(__version__)  # noqa: T201  # user-facing CLI output
+    print(__version__)  # ruff:ignore[print]  # user-facing CLI output
 
 
 def prog_name() -> str:
@@ -289,7 +289,7 @@ def _validate_fetch_python() -> None:
         if _FETCH_PYTHON_RAW is not None:
             msg = "Setting both PIPX_FETCH_MISSING_PYTHON and PIPX_FETCH_PYTHON is invalid."
             raise PipxError(msg)
-        print(  # noqa: T201  # user-facing CLI output
+        print(  # ruff:ignore[print]  # user-facing CLI output
             f"{hazard} PIPX_FETCH_MISSING_PYTHON is deprecated; "
             f'use PIPX_FETCH_PYTHON="{FetchPythonOptions.MISSING}" instead.',
             file=sys.stderr,
@@ -317,7 +317,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
             python = find_python_interpreter(args.python or get_default_python(), fetch_python=args.fetch_python)
         except InterpreterResolutionError as e:
             logger.debug("Failed to resolve interpreter:", exc_info=True)
-            print(pipx_wrap(f"{hazard} {e}", subsequent_indent=" " * 4))  # noqa: T201  # user-facing CLI output
+            print(pipx_wrap(f"{hazard} {e}", subsequent_indent=" " * 4))  # ruff:ignore[print]  # user-facing CLI output
             return EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND
 
     cli_backend = get_backend_arg(vars(args))
@@ -345,7 +345,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
         except PipxError as error:
             # once a JSON-enabled command was selected, a dispatch failure must still speak the result envelope
             if output is OutputFormat.JSON:
-                print(  # noqa: T201  # user-facing CLI output
+                print(  # ruff:ignore[print]  # user-facing CLI output
                     error_envelope(
                         _command_tokens(args), OperationError(code="pipx_error", message=str(error)), ExitCode(1)
                     )
@@ -485,7 +485,7 @@ def _add_output_option(parser: argparse.ArgumentParser, *, snapshot_json: bool =
 
 
 class _DeprecatedFetchMissingPython(argparse.Action):
-    def __init__(self, option_strings: list[str], dest: str, **kwargs: Any) -> None:  # noqa: ANN401  # argparse kwargs
+    def __init__(self, option_strings: list[str], dest: str, **kwargs: Any) -> None:  # ruff:ignore[any-type]  # argparse kwargs
         super().__init__(option_strings, dest, nargs=0, **kwargs)
 
     def __call__(
@@ -497,7 +497,7 @@ class _DeprecatedFetchMissingPython(argparse.Action):
     ) -> None:
         del parser, values
         if not {"--help", "-h"}.intersection(sys.argv):
-            print(  # noqa: T201  # user-facing CLI output
+            print(  # ruff:ignore[print]  # user-facing CLI output
                 f"{hazard} {option_string} is deprecated; use --fetch-python={FetchPythonOptions.MISSING} instead.",
                 file=sys.stderr,
             )
@@ -1820,7 +1820,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _cmd_completions(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
     del args, ctx
-    print(constants.completion_instructions)  # noqa: T201  # user-facing CLI output
+    print(constants.completion_instructions)  # ruff:ignore[print]  # user-facing CLI output
     return ExitCode(0)
 
 
@@ -1988,8 +1988,8 @@ def normalize_help_command(args: list[str]) -> list[str]:
 def _get_subparser(parser: argparse.ArgumentParser, command: str) -> argparse.ArgumentParser:
     subparsers_action = next(
         action
-        for action in parser._actions  # noqa: SLF001  # no public API for subparsers
-        if isinstance(action, argparse._SubParsersAction)  # noqa: SLF001  # no public API for subparsers
+        for action in parser._actions  # ruff:ignore[private-member-access]  # no public API for subparsers
+        if isinstance(action, argparse._SubParsersAction)  # ruff:ignore[private-member-access]  # no public API for subparsers
     )
     return cast("argparse.ArgumentParser", subparsers_action.choices[command])
 
@@ -2022,7 +2022,7 @@ def cli() -> ExitCode:
         hide_cursor()
         return _dispatch(sys.argv[1:])
     except PipxError as e:
-        print(str(e), file=sys.stderr)  # noqa: T201  # user-facing CLI output
+        print(str(e), file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
         logger.debug("PipxError: %s", e, exc_info=True)
         return ExitCode(1)
     except KeyboardInterrupt:

@@ -39,7 +39,7 @@ def list_short(venv_dirs: Iterable[Path]) -> VenvProblems:
         if venv_problems.any_():
             logger.warning(warning_str)
         else:
-            print(  # noqa: T201  # user-facing CLI output
+            print(  # ruff:ignore[print]  # user-facing CLI output
                 venv_metadata.main_package.package,
                 venv_metadata.main_package.package_version,
             )
@@ -49,10 +49,10 @@ def list_short(venv_dirs: Iterable[Path]) -> VenvProblems:
 
 
 def list_text(venv_dirs: Iterable[Path], venv_root_dir: str, *, include_injected: bool) -> VenvProblems:
-    print(f"venvs are in {bold(venv_root_dir)}")  # noqa: T201  # user-facing CLI output
-    print(f"apps are exposed on your $PATH at {bold(str(paths.ctx.bin_dir))}")  # noqa: T201  # user-facing CLI output
-    print(f"manual pages are exposed at {bold(str(paths.ctx.man_dir))}")  # noqa: T201  # user-facing CLI output
-    print(  # noqa: T201  # user-facing CLI output
+    print(f"venvs are in {bold(venv_root_dir)}")  # ruff:ignore[print]  # user-facing CLI output
+    print(f"apps are exposed on your $PATH at {bold(str(paths.ctx.bin_dir))}")  # ruff:ignore[print]  # user-facing CLI output
+    print(f"manual pages are exposed at {bold(str(paths.ctx.man_dir))}")  # ruff:ignore[print]  # user-facing CLI output
+    print(  # ruff:ignore[print]  # user-facing CLI output
         f"shell completions are exposed at {bold(str(paths.ctx.completion_dir))}"
     )
 
@@ -62,7 +62,7 @@ def list_text(venv_dirs: Iterable[Path], venv_root_dir: str, *, include_injected
         if venv_problems.any_():
             logger.warning(package_summary)
         else:
-            print(package_summary)  # noqa: T201  # user-facing CLI output
+            print(package_summary)  # ruff:ignore[print]  # user-facing CLI output
         all_venv_problems.or_(venv_problems)
 
     return all_venv_problems
@@ -85,7 +85,7 @@ def list_json(venv_dirs: Iterable[Path]) -> VenvProblems:
         spec_metadata["venvs"][venv_dir.name] = {}
         spec_metadata["venvs"][venv_dir.name]["metadata"] = venv_metadata.to_dict()
 
-    print(  # noqa: T201  # user-facing CLI output
+    print(  # ruff:ignore[print]  # user-facing CLI output
         json.dumps(spec_metadata, indent=4, sort_keys=True, cls=JsonEncoderHandlesPath)
     )
     for warning_message in warning_messages:
@@ -102,14 +102,14 @@ def list_pinned(venv_dirs: Iterable[Path], *, include_injected: bool) -> VenvPro
             logger.warning(warning_str)
         else:
             if venv_metadata.main_package.pinned:
-                print(  # noqa: T201  # user-facing CLI output
+                print(  # ruff:ignore[print]  # user-facing CLI output
                     venv_metadata.main_package.package,
                     venv_metadata.main_package.package_version,
                 )
             if include_injected:
                 for pkg, info in venv_metadata.injected_packages.items():
                     if info.pinned:
-                        print(  # noqa: T201  # user-facing CLI output
+                        print(  # ruff:ignore[print]  # user-facing CLI output
                             pkg, info.package_version, f"(injected in venv {venv_dir.name})"
                         )
         all_venv_problems.or_(venv_problems)
@@ -117,7 +117,7 @@ def list_pinned(venv_dirs: Iterable[Path], *, include_injected: bool) -> VenvPro
     return all_venv_problems
 
 
-def list_packages(  # noqa: PLR0913  # flat CLI-facing list options; a struct would only relocate the flags
+def list_packages(  # ruff:ignore[too-many-arguments]  # flat CLI-facing list options; a struct would only relocate the flags
     venv_container: VenvContainer,
     venv_dirs: Collection[Path],
     *,
@@ -128,7 +128,7 @@ def list_packages(  # noqa: PLR0913  # flat CLI-facing list options; a struct wo
 ) -> ExitCode:
     """Returns pipx exit code."""
     if not venv_dirs:
-        print(f"nothing has been installed with pipx {sleep}", file=sys.stderr)  # noqa: T201  # user-facing CLI output
+        print(f"nothing has been installed with pipx {sleep}", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
 
     if json_format:
         all_venv_problems = list_json(venv_container.iter_locked_venv_dirs(venv_dirs))
@@ -168,7 +168,7 @@ def list_packages(  # noqa: PLR0913  # flat CLI-facing list options; a struct wo
         )
 
     if all_venv_problems.any_():
-        print(file=sys.stderr)  # noqa: T201  # user-facing CLI output
+        print(file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
         return EXIT_CODE_LIST_PROBLEM
 
     return EXIT_CODE_OK

@@ -12,9 +12,9 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def shared_libs(pipx_ultra_temp_env: None) -> _SharedLibs:  # noqa: ARG001  # required fixture dependency; usefixtures has no effect on fixtures
+def shared_libs(pipx_ultra_temp_env: None) -> _SharedLibs:  # ruff:ignore[unused-function-argument]  # required fixture dependency; usefixtures has no effect on fixtures
     # local import to get the shared_libs object patched by fixtures
-    from pipx.shared_libs import shared_libs as _shared_libs  # noqa: PLC0415
+    from pipx.shared_libs import shared_libs as _shared_libs  # ruff:ignore[import-outside-top-level]
 
     return _shared_libs
 

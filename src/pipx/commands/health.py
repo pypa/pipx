@@ -40,7 +40,7 @@ def health(venv_container: VenvContainer, venv_dirs: Iterable[Path]) -> Operatio
     )
 
 
-def repair(  # noqa: PLR0913  # repair forwards the full reinstall context to every broken environment
+def repair(  # ruff:ignore[too-many-arguments]  # repair forwards the full reinstall context to every broken environment
     venv_container: VenvContainer,
     venv_dirs: Iterable[Path],
     local_bin_dir: Path,

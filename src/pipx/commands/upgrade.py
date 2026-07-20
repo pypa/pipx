@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
-def upgrade(  # noqa: PLR0913  # mirrors the CLI's flat upgrade option set across the selected venvs
+def upgrade(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat upgrade option set across the selected venvs
     venv_dirs: dict[str, Path],
     python: str | None,
     pip_args: list[str],
@@ -81,7 +81,7 @@ def upgrade(  # noqa: PLR0913  # mirrors the CLI's flat upgrade option set acros
     )
 
 
-def upgrade_all(  # noqa: PLR0913  # mirrors the CLI's flat upgrade-all option set
+def upgrade_all(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat upgrade-all option set
     venv_container: VenvContainer,
     *,
     verbose: bool,
@@ -128,7 +128,7 @@ def upgrade_all(  # noqa: PLR0913  # mirrors the CLI's flat upgrade-all option s
             if "--editable" in venv.pipx_metadata.main_package.pip_args:
                 skipped.append(SkippedUpgrade(venv_dir.name, "editable"))
                 continue
-            try:  # noqa: PLW0717  # one PipxError handler must cover the whole per-venv upgrade
+            try:  # ruff:ignore[too-many-statements-in-try-clause]  # one PipxError handler must cover the whole per-venv upgrade
                 _validate_venv_for_upgrade(venv_dir, venv)
                 _raise_check_failures(venv, check_failures)
                 packages_to_upgrade: set[str] = {
@@ -200,7 +200,7 @@ def upgrade_shared(
     )
 
 
-def _upgrade_venv(  # noqa: PLR0913  # upgrade forwards the full install/upgrade context for one venv
+def _upgrade_venv(  # ruff:ignore[too-many-arguments]  # upgrade forwards the full install/upgrade context for one venv
     venv_dir: Path,
     pip_args: list[str],
     *,
@@ -324,7 +324,7 @@ def _validate_venv_for_upgrade(venv_dir: Path, venv: Venv) -> None:
         )
 
 
-def _upgrade_packages(  # noqa: PLR0913  # upgrade needs both pip-arg sets plus the injected/force/cooldown flags
+def _upgrade_packages(  # ruff:ignore[too-many-arguments]  # upgrade needs both pip-arg sets plus the injected/force/cooldown flags
     venv: Venv,
     main_pip_args: list[str],
     pip_args: list[str],
@@ -388,7 +388,7 @@ def _upgrade_packages(  # noqa: PLR0913  # upgrade needs both pip-arg sets plus 
     return tuple(results)
 
 
-def _upgrade_package(  # noqa: PLR0913  # upgrade of one package needs its pip args plus the main/force/cooldown context
+def _upgrade_package(  # ruff:ignore[too-many-arguments]  # upgrade of one package needs its pip args plus the main/force/cooldown context
     venv: Venv,
     package_name: str,
     pip_args: list[str],

@@ -165,7 +165,7 @@ _MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
 
 def _read_url(url: str) -> str:
     try:
-        with urllib.request.urlopen(url, timeout=_URL_TIMEOUT) as response:  # noqa: S310  # http(s) only, validated upstream
+        with urllib.request.urlopen(url, timeout=_URL_TIMEOUT) as response:  # ruff:ignore[suspicious-url-open-usage]  # http(s) only, validated upstream
             data = response.read(_MAX_SCRIPT_BYTES + 1)
             if len(data) > _MAX_SCRIPT_BYTES:
                 msg = f"Script {url} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it."

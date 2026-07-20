@@ -79,19 +79,19 @@ def environment(value: str | None) -> ExitCode:
     """Print a list of environment variables and paths used by pipx"""
     derived_values = _get_derived_values()
     if value is None:
-        print("Environment variables (set by user):")  # noqa: T201  # user-facing CLI output
-        print()  # noqa: T201
+        print("Environment variables (set by user):")  # ruff:ignore[print]  # user-facing CLI output
+        print()  # ruff:ignore[print]
         for env_variable in ENVIRONMENT_VARIABLES:
-            print(f"{env_variable}={os.getenv(env_variable, '')}")  # noqa: T201
-        print()  # noqa: T201
-        print("Derived values (computed by pipx):")  # noqa: T201
-        print()  # noqa: T201
+            print(f"{env_variable}={os.getenv(env_variable, '')}")  # ruff:ignore[print]
+        print()  # ruff:ignore[print]
+        print("Derived values (computed by pipx):")  # ruff:ignore[print]
+        print()  # ruff:ignore[print]
         for env_variable, resolve_derived_value in derived_values.items():
-            print(f"{env_variable}={resolve_derived_value()}")  # noqa: T201
+            print(f"{env_variable}={resolve_derived_value()}")  # ruff:ignore[print]
     elif (get_derived_value := derived_values.get(value)) is not None:
-        print(get_derived_value())  # noqa: T201
+        print(get_derived_value())  # ruff:ignore[print]
     elif value in ENVIRONMENT_VARIABLES:
-        print(os.getenv(value, ""))  # noqa: T201
+        print(os.getenv(value, ""))  # ruff:ignore[print]
     else:
         msg = "Variable not found."
         raise PipxError(msg)

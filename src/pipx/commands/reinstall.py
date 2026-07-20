@@ -119,7 +119,7 @@ def _require_injected_url(injected_package: PackageInfo, venv_name: str) -> str:
     return injected_package.package_or_url
 
 
-def reinstall(  # noqa: PLR0913  # reinstall rebuilds a venv from its metadata and forwards the full install context
+def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv from its metadata and forwards the full install context
     *,
     venv_dir: Path,
     local_bin_dir: Path,
@@ -177,7 +177,7 @@ def reinstall(  # noqa: PLR0913  # reinstall rebuilds a venv from its metadata a
     # in case legacy original dir name
     venv_dir = venv_dir.with_name(canonicalize_name(venv_dir.name))
 
-    try:  # noqa: PLW0717  # the whole rebuild must share one handler so any failure restores the backup
+    try:  # ruff:ignore[too-many-statements-in-try-clause]  # the whole rebuild must share one handler so any failure restores the backup
         # install main package first
         installed = install(
             venv_dir,
@@ -244,7 +244,7 @@ def reinstall(  # noqa: PLR0913  # reinstall rebuilds a venv from its metadata a
     )
 
 
-def reinstall_all(  # noqa: PLR0913  # reinstall-all forwards the full reinstall context to every environment
+def reinstall_all(  # ruff:ignore[too-many-arguments]  # reinstall-all forwards the full reinstall context to every environment
     venv_container: VenvContainer,
     local_bin_dir: Path,
     local_man_dir: Path,

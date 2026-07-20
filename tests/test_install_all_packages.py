@@ -531,7 +531,7 @@ class TestAllPackagesNoDeps:
     @pytest.mark.parametrize("package_name", PACKAGE_NAME_LIST)
     @pytest.mark.all_packages
     @pytest.mark.usefixtures("start_end_test_class", "pipx_temp_env")
-    def test_all_packages(  # noqa: PLR6301  # pytest collects tests via the class for the class-scoped report fixture
+    def test_all_packages(  # ruff:ignore[no-self-use]  # pytest collects tests via the class for the class-scoped report fixture
         self,
         monkeypatch: pytest.MonkeyPatch,
         capsys: pytest.CaptureFixture,
@@ -556,7 +556,7 @@ class TestAllPackagesDeps:
     @pytest.mark.parametrize("package_name", PACKAGE_NAME_LIST)
     @pytest.mark.all_packages
     @pytest.mark.usefixtures("start_end_test_class", "pipx_temp_env")
-    def test_deps_all_packages(  # noqa: PLR6301  # pytest collects tests via the class for the class-scoped report fixture
+    def test_deps_all_packages(  # ruff:ignore[no-self-use]  # pytest collects tests via the class for the class-scoped report fixture
         self,
         monkeypatch: pytest.MonkeyPatch,
         capsys: pytest.CaptureFixture,

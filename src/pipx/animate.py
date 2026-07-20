@@ -80,7 +80,7 @@ def animate(message: str, *, do_animation: bool, delay: float = 0) -> Generator[
         clear_line()
 
 
-def print_animation(  # noqa: PLR0913  # animation state is passed flat to the thread target
+def print_animation(  # ruff:ignore[too-many-arguments]  # animation state is passed flat to the thread target
     *,
     message: str,
     event: Event,

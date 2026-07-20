@@ -73,7 +73,7 @@ def ensure_path(
     if force or (not in_current_path and not need_shell_restart):
         if dry_run:
             action = "prepend" if prepend else "append"
-            print(  # noqa: T201  # user-facing CLI output
+            print(  # ruff:ignore[print]  # user-facing CLI output
                 pipx_wrap(
                     f"Would {action} {location_str} to the PATH environment variable.",
                     subsequent_indent=" " * 4,
@@ -85,7 +85,7 @@ def ensure_path(
         else:
             path_added = userpath.append(location_str, "pipx", all_shells=all_shells)
         if not path_added:
-            print(  # noqa: T201  # user-facing CLI output
+            print(  # ruff:ignore[print]  # user-facing CLI output
                 pipx_wrap(
                     f"{hazard}  {location_str} is not added to the PATH environment variable successfully. "
                     f"You may need to add it to PATH manually.",
@@ -93,7 +93,7 @@ def ensure_path(
                 )
             )
         else:
-            print(  # noqa: T201  # user-facing CLI output
+            print(  # ruff:ignore[print]  # user-facing CLI output
                 pipx_wrap(
                     f"Success! Added {location_str} to the PATH environment variable.",
                     subsequent_indent=" " * 4,
@@ -101,7 +101,7 @@ def ensure_path(
             )
         need_shell_restart = userpath.need_shell_restart(location_str)
     elif not in_current_path and need_shell_restart:
-        print(  # noqa: T201  # user-facing CLI output
+        print(  # ruff:ignore[print]  # user-facing CLI output
             pipx_wrap(
                 f"""
                 {location_str} has been added to PATH, but you need to
@@ -113,7 +113,7 @@ def ensure_path(
             )
         )
     else:
-        print(  # noqa: T201  # user-facing CLI output
+        print(  # ruff:ignore[print]  # user-facing CLI output
             pipx_wrap(f"{location_str} is already in PATH.", subsequent_indent=" " * 4)
         )
 
@@ -130,13 +130,13 @@ def _ensure_global_path(location: Path, *, force: bool, prepend: bool, dry_run: 
         contents = f'case ":$PATH:" in *:{quoted_location}:*) ;; *) {assignment} ;; esac\n'
 
     if not force and config_file.exists() and config_file.read_text(encoding="utf-8") == contents:
-        print(  # noqa: T201  # user-facing CLI output
+        print(  # ruff:ignore[print]  # user-facing CLI output
             pipx_wrap(f"{location} is already in the system PATH configuration.", subsequent_indent=" " * 4)
         )
         return False
 
     if dry_run:
-        print(  # noqa: T201  # user-facing CLI output
+        print(  # ruff:ignore[print]  # user-facing CLI output
             pipx_wrap(
                 f"Would write {location} to the system PATH configuration at {config_file}.",
                 subsequent_indent=" " * 4,
@@ -146,7 +146,7 @@ def _ensure_global_path(location: Path, *, force: bool, prepend: bool, dry_run: 
 
     config_file.write_text(contents, encoding="utf-8")
     config_file.chmod(0o644)
-    print(  # noqa: T201  # user-facing CLI output
+    print(  # ruff:ignore[print]  # user-facing CLI output
         pipx_wrap(
             f"Success! Added {location} to the system PATH configuration at {config_file}.",
             subsequent_indent=" " * 4,
@@ -166,18 +166,18 @@ def ensure_pipx_paths(
     """Returns pipx exit code."""
     if is_global:
         path_added = _ensure_global_path(paths.ctx.bin_dir, force=force, prepend=prepend, dry_run=dry_run)
-        print()  # noqa: T201  # user-facing CLI output
+        print()  # ruff:ignore[print]  # user-facing CLI output
 
         if dry_run:
-            print(  # noqa: T201  # user-facing CLI output
+            print(  # ruff:ignore[print]  # user-facing CLI output
                 pipx_wrap("This was a dry run; no changes were made to the system PATH configuration.")
             )
         elif path_added:
-            print(  # noqa: T201  # user-facing CLI output
+            print(  # ruff:ignore[print]  # user-facing CLI output
                 pipx_wrap("Users must open a new terminal or re-login for the PATH change to take effect.") + "\n"
             )
 
-        print(f"Otherwise pipx is ready to go! {stars}")  # noqa: T201  # user-facing CLI output
+        print(f"Otherwise pipx is ready to go! {stars}")  # ruff:ignore[print]  # user-facing CLI output
         return EXIT_CODE_OK
 
     bin_paths = {paths.ctx.bin_dir}
@@ -197,16 +197,16 @@ def ensure_pipx_paths(
         path_added |= path_added_current
         need_shell_restart |= need_shell_restart_current
 
-    print()  # noqa: T201  # user-facing CLI output
+    print()  # ruff:ignore[print]  # user-facing CLI output
 
     if dry_run:
-        print(  # noqa: T201  # user-facing CLI output
+        print(  # ruff:ignore[print]  # user-facing CLI output
             pipx_wrap("This was a dry run; no changes were made to your PATH or shell configuration files.")
         )
         return EXIT_CODE_OK
 
     if path_added:
-        print(  # noqa: T201  # user-facing CLI output
+        print(  # ruff:ignore[print]  # user-facing CLI output
             pipx_wrap(
                 """
                 Consider adding shell completions for pipx. Run 'pipx
@@ -230,7 +230,7 @@ def ensure_pipx_paths(
         logger.warning(no_change_warning)
 
     if need_shell_restart:
-        print(  # noqa: T201  # user-facing CLI output
+        print(  # ruff:ignore[print]  # user-facing CLI output
             pipx_wrap(
                 """
                 You will need to open a new terminal or re-login for the PATH
@@ -241,6 +241,6 @@ def ensure_pipx_paths(
             + "\n"
         )
 
-    print(f"Otherwise pipx is ready to go! {stars}")  # noqa: T201  # user-facing CLI output
+    print(f"Otherwise pipx is ready to go! {stars}")  # ruff:ignore[print]  # user-facing CLI output
 
     return EXIT_CODE_OK

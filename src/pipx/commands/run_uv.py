@@ -34,7 +34,7 @@ _UV_TRANSLATABLE_BOOL_FLAGS: Final[dict[str, str]] = {
 }
 
 
-def run_via_uv_tool_run(  # noqa: PLR0913  # builds a flat `uv tool run` invocation from the run options
+def run_via_uv_tool_run(  # ruff:ignore[too-many-arguments]  # builds a flat `uv tool run` invocation from the run options
     *,
     app: str,
     package_or_url: str,
@@ -81,7 +81,7 @@ def run_via_uv_tool_run(  # noqa: PLR0913  # builds a flat `uv tool run` invocat
     exec_app(cmd)
 
 
-def run_script_via_uv_run(  # noqa: PLR0913  # builds a flat `uv run --script` invocation from the run options
+def run_script_via_uv_run(  # ruff:ignore[too-many-arguments]  # builds a flat `uv run --script` invocation from the run options
     *,
     script_path: Path,
     app_args: list[str],

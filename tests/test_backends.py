@@ -22,7 +22,9 @@ from pipx.backends.pip import PipBackend
 from pipx.backends.uv import UvBackend, resolve_uv_binary
 from pipx.commands.run_uv import translate_pip_args_for_uv
 from pipx.constants import PIPX_SHARED_PTH
-from pipx.main import _validate_backend_available  # noqa: PLC2701  # test exercises private helper, no public API
+from pipx.main import (
+    _validate_backend_available,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
+)
 from pipx.util import PipxError
 from pipx.venv import Venv, reset_backend_override_warnings
 from pipx.venv_inspect import list_not_required_packages
@@ -298,7 +300,7 @@ def test_backend_verbose_install_streams_output(backend_name: str, tmp_path: Pat
         pytest.param(UV, False, ["--quiet"], False, id="uv-plain"),
     ],
 )
-def test_backend_install_draws_progress_without_verbose(  # noqa: PLR0917  # pytest injects fixtures by name
+def test_backend_install_draws_progress_without_verbose(  # ruff:ignore[too-many-positional-arguments]  # pytest injects fixtures by name
     backend_name: str,
     progress: bool,
     flags: list[str],
@@ -479,7 +481,7 @@ def test_uv_list_installed_not_required_uses_distribution_metadata(
     )
 
     backend = UvBackend.__new__(UvBackend)
-    backend._binary = tmp_path / "uv"  # noqa: SLF001  # constructing backend bypasses __init__ to isolate list_installed
+    backend._binary = tmp_path / "uv"  # ruff:ignore[private-member-access]  # constructing backend bypasses __init__ to isolate list_installed
 
     assert backend.list_installed(
         venv_root=tmp_path,

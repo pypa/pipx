@@ -92,7 +92,7 @@ def render_result(result: OperationResult[_PayloadT], *, output: OutputFormat, q
         envelope = _render_envelope(
             result.command, result.status, result.exit_code, result.data.to_dict(), result.errors
         )
-        print(envelope)  # noqa: T201  # the JSON envelope is the command's machine-readable stdout payload
+        print(envelope)  # ruff:ignore[print]  # the JSON envelope is the command's machine-readable stdout payload
         return result.exit_code
 
     render_messages(result.messages, quiet=quiet)

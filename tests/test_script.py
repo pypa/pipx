@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING, Final
 import pytest
 
 from pipx.script import (
-    _MAX_SCRIPT_BYTES,  # noqa: PLC2701  # test exercises private helper, no public API
+    _MAX_SCRIPT_BYTES,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
     ScriptMetadata,
-    _read_url,  # noqa: PLC2701  # test exercises private helper, no public API
+    _read_url,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
     installable_script,
     read_script_metadata,
     script_name_from_spec,
