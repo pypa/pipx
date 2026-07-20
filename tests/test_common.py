@@ -9,8 +9,8 @@ import pytest
 
 from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths
+from pipx.commands import common
 from pipx.commands.common import (
-    _copy_launcher_targets_venv,
     _remove_stale_venv_resources,  # noqa: PLC2701  # test exercises private helper, no public API
     expose_resources_globally,
     get_exposed_paths_for_package,
@@ -19,6 +19,8 @@ from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from pytest_mock import MockerFixture
 
 
 @skip_if_windows
@@ -85,52 +87,46 @@ def test_remove_stale_venv_resources_keeps_files_pipx_does_not_own(capsys: pytes
     assert (owned.exists(), replaced.read_text()) == (False, "belongs to the user")
 
 
-def test_copy_launcher_targets_venv_unicode_decode_error(tmp_path: Path) -> None:
-    """_copy_launcher_targets_venv returns False for non-UTF8 file."""
+# A binary pipx did not create is parsed as if it were a launcher, so the bytes trailing a stray "#!" reach
+# os.fsdecode and stat as an interpreter path. Windows rejects the undecodable one, every platform the NUL.
+@pytest.mark.parametrize(
+    "payload",
+    [
+        pytest.param(b"MZ\x90\x00\x03#!\xff\xfe\x80\x81 more binary\n", id="undecodable-interpreter"),
+        pytest.param(b"MZ\x90\x00\x03#!/opt/no\x00pe/bin/python\n", id="nul-in-interpreter"),
+    ],
+)
+def test_get_exposed_paths_ignores_foreign_binary(tmp_path: Path, mocker: MockerFixture, payload: bytes) -> None:
+    # Only copy-based environments read a shebang to establish ownership, so without this the symlink branch
+    # short-circuits the scan and the parse under test never runs off Windows.
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
     venv_resource_path = tmp_path / "venv_bin"
     venv_resource_path.mkdir()
     local_resource_dir = tmp_path / "bin"
     local_resource_dir.mkdir()
+    foreign = local_resource_dir / "foreign.exe"
+    foreign.write_bytes(payload)
 
-    # Create a non-UTF8 file in the local bin directory
-    non_utf8_file = local_resource_dir / "weird.exe"
-    non_utf8_file.write_bytes(b"\xff\xfe")  # Invalid UTF-8
+    exposed = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
 
-    # Should return False without raising UnicodeDecodeError
-    assert not _copy_launcher_targets_venv(non_utf8_file, venv_resource_path)
+    assert foreign not in exposed
 
 
-def test_copy_launcher_targets_venv_valid_launcher(tmp_path: Path) -> None:
-    """_copy_launcher_targets_venv returns True for a launcher pointing to venv."""
+@pytest.mark.parametrize(
+    "owned",
+    [pytest.param(True, id="shebang-into-venv"), pytest.param(False, id="shebang-elsewhere")],
+)
+def test_get_exposed_paths_matches_copied_launcher(tmp_path: Path, mocker: MockerFixture, owned: bool) -> None:
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
     venv_resource_path = tmp_path / "venv_bin"
     venv_resource_path.mkdir()
     local_resource_dir = tmp_path / "bin"
     local_resource_dir.mkdir()
-
-    # Create a launcher with a shebang pointing to the venv's python
+    elsewhere = tmp_path / "other"
+    elsewhere.mkdir()
     launcher = local_resource_dir / "myapp"
-    shebang = f"#!{venv_resource_path / 'python'}\nprint('hello')"
-    launcher.write_text(shebang, encoding="utf-8")
-    launcher.chmod(0o755)
+    launcher.write_text(f"#!{(venv_resource_path if owned else elsewhere) / 'python'}\n")
 
-    # Should return True
-    assert _copy_launcher_targets_venv(launcher, venv_resource_path)
+    exposed = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
 
-
-def test_copy_launcher_targets_venv_launcher_pointing_outside(tmp_path: Path) -> None:
-    """_copy_launcher_targets_venv returns False for launcher pointing outside venv."""
-    venv_resource_path = tmp_path / "venv_bin"
-    venv_resource_path.mkdir()
-    local_resource_dir = tmp_path / "bin"
-    local_resource_dir.mkdir()
-    other_dir = tmp_path / "other"
-    other_dir.mkdir()
-
-    # Create a launcher with a shebang pointing to another directory
-    launcher = local_resource_dir / "myapp"
-    shebang = f"#!{other_dir / 'python'}\nprint('hello')"
-    launcher.write_text(shebang, encoding="utf-8")
-    launcher.chmod(0o755)
-
-    # Should return False
-    assert not _copy_launcher_targets_venv(launcher, venv_resource_path)
+    assert (launcher in exposed) is owned
