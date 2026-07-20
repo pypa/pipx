@@ -27,7 +27,7 @@ from pipx.commands import common
 from pipx.pipx_metadata_file import (
     PIPX_INFO_FILENAME,
     PackageInfo,
-    _json_decoder_object_hook,  # noqa: PLC2701  # the decode hook has no public re-export
+    _json_decoder_object_hook,  # ruff:ignore[import-private-name]  # the decode hook has no public re-export
 )
 from pipx.util import PipxError
 

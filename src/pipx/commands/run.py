@@ -84,7 +84,7 @@ def maybe_script_content(app: str, *, is_path: bool) -> str | Path | None:
     return None
 
 
-def run_script(  # noqa: PLR0913  # mirrors the flat `pipx run` script options; a struct would only relocate them
+def run_script(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run` script options; a struct would only relocate them
     content: str | Path,
     app_args: list[str],
     python: str,
@@ -222,7 +222,7 @@ def _exec_script(
         exec_app([python_path, *python_args, "-c", content, *app_args])
 
 
-def run_package(  # noqa: PLR0913  # mirrors the flat `pipx run` options; a struct would only relocate them
+def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run` options; a struct would only relocate them
     app: str,
     package_or_url: str,
     dependencies: list[str],
@@ -331,7 +331,7 @@ def run_package(  # noqa: PLR0913  # mirrors the flat `pipx run` options; a stru
         venv.run_app(app, app_filename, app_args, python_args=python_args)
 
 
-def run(  # noqa: PLR0913, PLR0917  # mirrors the flat `pipx run` CLI options across the script/uvx/venv paths
+def run(  # ruff:ignore[too-many-arguments, too-many-positional-arguments]  # mirrors the flat `pipx run` CLI options across the script/uvx/venv paths
     app: str,
     spec: str | None,
     dependencies: list[str],
@@ -433,7 +433,7 @@ def _package_name_from_app(app: str, *, inferred: bool) -> str:
     return canonicalize_name(package_name) if inferred else package_name
 
 
-def _prepare_venv(  # noqa: PLR0913  # mirrors the flat run/install option set for one temporary venv
+def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/install option set for one temporary venv
     venv_dir: Path,
     package_or_url: str,
     app: str,
@@ -487,7 +487,7 @@ def _prepare_venv(  # noqa: PLR0913  # mirrors the flat run/install option set f
         # If there's a single app inside the package, run that by default
         if app == package_name and len(apps) == 1:
             app = apps[0]
-            print(f"NOTE: running app {app!r} from {package_name!r}")  # noqa: T201  # user-facing CLI output
+            print(f"NOTE: running app {app!r} from {package_name!r}")  # ruff:ignore[print]  # user-facing CLI output
             if WINDOWS:
                 app_filename = f"{app}.exe"
                 _LOGGER.info("Assuming app is %r (Windows only)", app_filename)
@@ -517,7 +517,7 @@ def _is_vcs_url(value: str) -> bool:
     return bool(separator) and vcs in _VCS_SCHEMES
 
 
-def _get_temporary_venv_path(  # noqa: PLR0913  # all inputs feed the cache-key digest; a struct would only relocate them
+def _get_temporary_venv_path(  # ruff:ignore[too-many-arguments]  # all inputs feed the cache-key digest; a struct would only relocate them
     requirements: list[str],
     python: str,
     pip_args: list[str],
@@ -601,7 +601,7 @@ def _reject_oversized_script(url: str, data: bytes) -> None:
 
 def _http_get_request(url: str) -> str:
     try:
-        with urllib.request.urlopen(url, timeout=_URL_TIMEOUT) as res:  # noqa: S310  # scheme validated upstream
+        with urllib.request.urlopen(url, timeout=_URL_TIMEOUT) as res:  # ruff:ignore[suspicious-url-open-usage]  # scheme validated upstream
             data = res.read(_MAX_SCRIPT_BYTES + 1)
             _reject_oversized_script(url, data)
             return data.decode(res.headers.get_content_charset() or "utf-8")

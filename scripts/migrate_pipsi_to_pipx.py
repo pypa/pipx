@@ -37,11 +37,11 @@ def main() -> None:
         sys.exit(0)
 
     for package in packages:
-        ret = subprocess.run(["pipsi", "uninstall", "--yes", package], check=False)  # noqa: S607  # pipsi resolved from PATH
+        ret = subprocess.run(["pipsi", "uninstall", "--yes", package], check=False)  # ruff:ignore[start-process-with-partial-path]  # pipsi resolved from PATH
         if ret.returncode:
             pass
         else:
-            ret = subprocess.run(["pipx", "install", package], check=False)  # noqa: S607  # pipx resolved from PATH
+            ret = subprocess.run(["pipx", "install", package], check=False)  # ruff:ignore[start-process-with-partial-path]  # pipx resolved from PATH
 
 
 if __name__ == "__main__":

@@ -138,7 +138,7 @@ def test_pin_json_pins_main_after_injected(
 
 @pytest.fixture
 def pinned_injected_environment(
-    pipx_temp_env: None,  # noqa: ARG001  # required so the temp env is active while the environment is built
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while the environment is built
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])

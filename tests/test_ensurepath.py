@@ -36,11 +36,11 @@ class FakeUserpath:
     def in_current_path(self, _location: str) -> bool:
         return self.in_path
 
-    def append(self, location: str, _app: str, all_shells: bool = False) -> bool:  # noqa: ARG002  # all_shells is passed by keyword at the call site
+    def append(self, location: str, _app: str, all_shells: bool = False) -> bool:  # ruff:ignore[unused-method-argument]  # all_shells is passed by keyword at the call site
         self.append_calls.append(location)
         return True
 
-    def prepend(self, location: str, _app: str, all_shells: bool = False) -> bool:  # noqa: ARG002  # all_shells is passed by keyword at the call site
+    def prepend(self, location: str, _app: str, all_shells: bool = False) -> bool:  # ruff:ignore[unused-method-argument]  # all_shells is passed by keyword at the call site
         self.prepend_calls.append(location)
         return True
 

@@ -318,8 +318,8 @@ def test_parse_specifier_for_upgrade(
 def test_parse_specifier_for_install(
     package_spec_in: str,
     pip_args_in: list[str],
-    package_spec_expected: str,  # noqa: ARG001  # expected columns kept in the case table; test only checks warnings
-    pip_args_expected: list[str],  # noqa: ARG001  # expected columns kept in the case table; test only checks warnings
+    package_spec_expected: str,  # ruff:ignore[unused-function-argument]  # expected columns kept in the case table; test only checks warnings
+    pip_args_expected: list[str],  # ruff:ignore[unused-function-argument]  # expected columns kept in the case table; test only checks warnings
     warning_str: str | None,
     *,
     caplog: pytest.LogCaptureFixture,

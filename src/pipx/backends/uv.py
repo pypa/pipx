@@ -57,15 +57,15 @@ class UvBackend(Backend):
         version = _check_uv_version(self._binary)
         _LOGGER.info("using %s uv %s from %s", self._source, version, self._binary)
 
-    def needs_shared_libs(self) -> bool:  # noqa: PLR6301  # Backend interface method, must dispatch polymorphically
+    def needs_shared_libs(self) -> bool:  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
         return False
 
-    def upgrade_packaging_libraries(  # noqa: PLR6301  # Backend interface method, must dispatch polymorphically
+    def upgrade_packaging_libraries(  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
         self, venv_python: Path, pip_args: list[str], *, verbose: bool
     ) -> None:
         del venv_python, pip_args, verbose  # uv venvs ship no pip to upgrade.
 
-    def create_venv(  # noqa: PLR0913  # Backend interface method mirroring venv-creation inputs
+    def create_venv(  # ruff:ignore[too-many-arguments]  # Backend interface method mirroring venv-creation inputs
         self,
         root: Path,
         *,
@@ -88,7 +88,7 @@ class UvBackend(Backend):
             process = run_subprocess(cmd, run_dir=str(root), env_overrides=_uv_env_overrides())
         subprocess_post_check(process)
 
-    def install(  # noqa: PLR0913  # Backend interface method mapping flags to uv options
+    def install(  # ruff:ignore[too-many-arguments]  # Backend interface method mapping flags to uv options
         self,
         *,
         venv_root: Path,
@@ -171,7 +171,7 @@ class UvBackend(Backend):
         process = run_subprocess(cmd, run_dir=str(venv_root), env_overrides=_uv_env_overrides())
         return outdated_packages_from_process(process)
 
-    def run_raw_pip(  # noqa: PLR0913  # Backend interface method passing raw pip controls through
+    def run_raw_pip(  # ruff:ignore[too-many-arguments]  # Backend interface method passing raw pip controls through
         self,
         *,
         venv_root: Path,

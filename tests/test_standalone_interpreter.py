@@ -452,7 +452,7 @@ def test_upgrade_standalone_interpreter(root: Path, monkeypatch: pytest.MonkeyPa
 
     with Path(root / "testdata" / "standalone_python_index_20250818.json").open(encoding="utf-8") as f:
         new_index = json.load(f)
-    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda *, use_cache=True: new_index)  # noqa: ARG005  # mock ignores use_cache
+    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda *, use_cache=True: new_index)  # ruff:ignore[unused-lambda-argument]  # mock ignores use_cache
 
     assert not run_pipx_cli([
         "install",
@@ -464,7 +464,7 @@ def test_upgrade_standalone_interpreter(root: Path, monkeypatch: pytest.MonkeyPa
 
     with Path(root / "testdata" / "standalone_python_index_20250828.json").open(encoding="utf-8") as f:
         new_index = json.load(f)
-    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda *, use_cache=True: new_index)  # noqa: ARG005  # mock ignores use_cache
+    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda *, use_cache=True: new_index)  # ruff:ignore[unused-lambda-argument]  # mock ignores use_cache
 
     assert not run_pipx_cli(["interpreter", "upgrade"])
 

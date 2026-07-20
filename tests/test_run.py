@@ -989,10 +989,10 @@ def test_run_vcs_url_infers_app_name(root: Path, tmp_path: Path, caplog: pytest.
     shutil.copytree(root / "testdata" / "empty_project", project)
     pyproject = project / "pyproject.toml"
     pyproject.write_text(pyproject.read_text().replace("empty_project.main:cli", "empty_project.main:main"))
-    subprocess.run(["git", "init", "--quiet"], cwd=project, check=True)  # noqa: S607  # git resolved from PATH in tests
-    subprocess.run(["git", "add", "."], cwd=project, check=True)  # noqa: S607  # git resolved from PATH in tests
+    subprocess.run(["git", "init", "--quiet"], cwd=project, check=True)  # ruff:ignore[start-process-with-partial-path]  # git resolved from PATH in tests
+    subprocess.run(["git", "add", "."], cwd=project, check=True)  # ruff:ignore[start-process-with-partial-path]  # git resolved from PATH in tests
     subprocess.run(
-        [  # noqa: S607  # git resolved from PATH in tests
+        [  # ruff:ignore[start-process-with-partial-path]  # git resolved from PATH in tests
             "git",
             "-c",
             "user.name=pipx tests",
@@ -1080,10 +1080,10 @@ def test_http_get_request_rejects_oversized_script(mocker: MockerFixture) -> Non
     run_module = importlib.import_module("pipx.commands.run")
 
     response = mocker.MagicMock()
-    response.read.return_value = b"x" * (run_module._MAX_SCRIPT_BYTES + 1)  # noqa: SLF001  # private helper under test, no public API
+    response.read.return_value = b"x" * (run_module._MAX_SCRIPT_BYTES + 1)  # ruff:ignore[private-member-access]  # private helper under test, no public API
     response.headers.get_content_charset.return_value = "utf-8"
     response.__enter__.return_value = response
     mocker.patch.object(run_module.urllib.request, "urlopen", return_value=response)
 
     with pytest.raises(PipxError, match="larger than"):
-        run_module._http_get_request("https://example.invalid/big.py")  # noqa: SLF001  # private helper under test, no public API
+        run_module._http_get_request("https://example.invalid/big.py")  # ruff:ignore[private-member-access]  # private helper under test, no public API

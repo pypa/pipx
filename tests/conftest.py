@@ -122,7 +122,7 @@ def local_extras_project(root: Path, tmp_path: Path) -> Path:
 
 @pytest.fixture
 def copied_dependency_resource(
-    pipx_temp_env: None,  # noqa: ARG001  # required so the temp env is active while the resource is built
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while the resource is built
     make_project_with_dependency: Callable[[str], Path],
     mocker: MockerFixture,
 ) -> tuple[Path, bytes]:
@@ -153,7 +153,7 @@ def _backend_test_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "pip")
     find_uv_binary.cache_clear()
-    _uv_backend_module._check_uv_version.cache_clear()  # noqa: SLF001  # cache reset has no public API
+    _uv_backend_module._check_uv_version.cache_clear()  # ruff:ignore[private-member-access]  # cache reset has no public API
     get_backend.cache_clear()
     reset_backend_override_warnings()
 
@@ -179,7 +179,7 @@ def mocked_github_api(monkeypatch: pytest.MonkeyPatch, root: Path) -> None:
     """
     with Path(root / "testdata" / "standalone_python_index_20250818.json").open(encoding="utf-8") as f:
         index = json.load(f)
-    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda *, use_cache=True: index)  # noqa: ARG005  # mock ignores use_cache
+    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda *, use_cache=True: index)  # ruff:ignore[unused-lambda-argument]  # mock ignores use_cache
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -244,7 +244,7 @@ def pipx_temp_env_helper(
 
     # Each consumer holds its own ``shared_libs`` reference (via
     # ``from pipx.shared_libs import shared_libs``); patch every importer.
-    monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())  # noqa: SLF001  # fresh instance per test, no public factory
+    monkeypatch.setattr(shared_libs, "shared_libs", shared_libs._SharedLibs())  # ruff:ignore[private-member-access]  # fresh instance per test, no public factory
     monkeypatch.setattr(venv, "shared_libs", shared_libs.shared_libs)
     monkeypatch.setattr(_pip_backend_module, "shared_libs", shared_libs.shared_libs)
     monkeypatch.setattr(_upgrade_module, "shared_libs", shared_libs.shared_libs)
@@ -267,8 +267,8 @@ def pipx_temp_env_helper(
     #   cannot use symlinks, even if we're running as administrator and
     #   symlinks are actually possible.
     if WIN:
-        monkeypatch.setitem(commands.common._can_symlink_cache, paths.ctx.bin_dir, False)  # noqa: SLF001  # seeding the symlink cache has no public API
-        monkeypatch.setitem(commands.common._can_symlink_cache, paths.ctx.man_dir, False)  # noqa: SLF001  # seeding the symlink cache has no public API
+        monkeypatch.setitem(commands.common._can_symlink_cache, paths.ctx.bin_dir, False)  # ruff:ignore[private-member-access]  # seeding the symlink cache has no public API
+        monkeypatch.setitem(commands.common._can_symlink_cache, paths.ctx.man_dir, False)  # ruff:ignore[private-member-access]  # seeding the symlink cache has no public API
     if not request.config.option.net_pypiserver:
         # IMPORTANT: use 127.0.0.1 not localhost
         #   Using localhost on Windows creates enormous slowdowns

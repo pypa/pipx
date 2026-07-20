@@ -46,7 +46,7 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _COMMENT_RE: Final[re.Pattern[str]] = re.compile(r"(^|\s+)#.*$")
 
 
-def inject_dep(  # noqa: PLR0913, PLR0914  # inject resolves the full package/venv context inline; a struct would just relocate it
+def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject resolves the full package/venv context inline; a struct would just relocate it
     venv_dir: Path,
     package_name: str | None,
     package_spec: str,
@@ -206,7 +206,7 @@ def inject_dep(  # noqa: PLR0913, PLR0914  # inject resolves the full package/ve
     )
 
 
-def inject(  # noqa: PLR0913  # inject mirrors inject_dep's flat CLI-facing option set
+def inject(  # ruff:ignore[too-many-arguments]  # inject mirrors inject_dep's flat CLI-facing option set
     venv_dir: Path,
     package_specs: Iterable[str],
     requirement_files: Iterable[str],

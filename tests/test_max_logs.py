@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from pipx.main import (
-    _setup_log_file,  # noqa: PLC2701  # test exercises private helper, no public API
+    _setup_log_file,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
     delete_oldest_logs,
 )
 

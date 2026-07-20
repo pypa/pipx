@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_install_all(  # noqa: PLR0917  # pytest injects fixtures by name
+def test_install_all(  # ruff:ignore[too-many-positional-arguments]  # pytest injects fixtures by name
     root: Path,
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

@@ -18,8 +18,8 @@ from helpers import run_pipx_cli
 from pipx.constants import WINDOWS, FetchPythonOptions
 from pipx.interpreter import (
     InterpreterResolutionError,
-    _find_default_windows_python,  # noqa: PLC2701  # private helper under test, no public alias
-    _resolve_python,  # noqa: PLC2701  # private helper under test, no public alias
+    _find_default_windows_python,  # ruff:ignore[import-private-name]  # private helper under test, no public alias
+    _resolve_python,  # ruff:ignore[import-private-name]  # private helper under test, no public alias
     find_python_interpreter,
 )
 from pipx.util import PipxError
@@ -107,7 +107,7 @@ def test_windows_python_with_python_and_unavailable_version(monkeypatch: pytest.
     minor = sys.version_info.minor
     monkeypatch.setattr(pipx.interpreter, "has_venv", lambda: venv)
     monkeypatch.setattr(shutil, "which", which)
-    with pytest.raises(InterpreterResolutionError) as e:  # noqa: PT012  # trailing assert is dead code today; hoisting it would change behavior
+    with pytest.raises(InterpreterResolutionError) as e:  # ruff:ignore[pytest-raises-with-multiple-statements]  # trailing assert is dead code today; hoisting it would change behavior
         find_python_interpreter(f"python{major}.{minor}")
         assert "py --list" in str(e)
 
@@ -242,14 +242,14 @@ def test_find_python_interpreter_by_version() -> None:
 
 def test_find_python_interpreter_by_wrong_path_raises() -> None:
     interpreter_path = sys.executable + "99"
-    with pytest.raises(InterpreterResolutionError) as e:  # noqa: PT012  # trailing assert is dead code today; hoisting it would change behavior
+    with pytest.raises(InterpreterResolutionError) as e:  # ruff:ignore[pytest-raises-with-multiple-statements]  # trailing assert is dead code today; hoisting it would change behavior
         find_python_interpreter(interpreter_path)
         assert "like a path" in str(e)
 
 
 def test_find_python_interpreter_missing_on_path_raises() -> None:
     interpreter = "1.1"
-    with pytest.raises(InterpreterResolutionError) as e:  # noqa: PT012  # trailing asserts are dead code today; hoisting them would change behavior
+    with pytest.raises(InterpreterResolutionError) as e:  # ruff:ignore[pytest-raises-with-multiple-statements]  # trailing asserts are dead code today; hoisting them would change behavior
         find_python_interpreter(interpreter)
         assert "Python Launcher" in str(e)
         assert "on your PATH" in str(e)

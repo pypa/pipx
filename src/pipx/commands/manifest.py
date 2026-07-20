@@ -40,7 +40,7 @@ else:
     tomllib = import_module("tomli" if sys.version_info < (3, 11) else "tomllib")
 
 
-def sync_manifest(  # noqa: PLR0913  # manifest sync forwards the full install context for each tool
+def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards the full install context for each tool
     manifest_file: Path,
     venv_container: VenvContainer,
     local_bin_dir: Path,
@@ -386,7 +386,7 @@ def _generate_locks(manifest: _Manifest, nab: str) -> list[str]:
         # replacing the whole set one file at a time is not atomic, so back each target up first and, if any replacement
         # fails, roll every applied one back to leave the manifest's locks all-old rather than half-new
         applied: list[tuple[Path, Path | None]] = []
-        try:  # noqa: PLW0717  # the whole apply loop shares one handler so a mid-run failure rolls all locks back
+        try:  # ruff:ignore[too-many-statements-in-try-clause]  # the whole apply loop shares one handler so a mid-run failure rolls all locks back
             for index, (generated_lock, lock_file) in enumerate(generated):
                 lock_file.parent.mkdir(parents=True, exist_ok=True)
                 backup: Path | None = None

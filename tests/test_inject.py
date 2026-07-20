@@ -204,7 +204,7 @@ def test_inject_quiet(capsys: pytest.CaptureFixture[str]) -> None:
 
 @pytest.fixture
 def installed_pycowsay(
-    pipx_temp_env: None,  # noqa: ARG001  # required so the temp env is active while pycowsay is installed
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while pycowsay is installed
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])

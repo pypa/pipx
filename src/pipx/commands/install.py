@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 _PYLOCK_NAME_RE: Final[re.Pattern[str]] = re.compile(r"pylock(?:\.[^.]+)?\.toml")
 
 
-def install(  # noqa: PLR0913, PLR0917, PLR0912, PLR0914, PLR0915  # flat install API mirroring the CLI's install options
+def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, too-many-branches, too-many-locals, too-many-statements]  # flat install API mirroring the CLI's install options
     venv_dir: Path | None,
     package_names: list[str] | None,
     package_specs: list[str],
@@ -145,7 +145,7 @@ def install(  # noqa: PLR0913, PLR0917, PLR0912, PLR0914, PLR0915  # flat instal
                 install_backend = backend or PIP
                 install_env_backend = None
 
-            try:  # noqa: PLW0717  # one PipxError handler must cover the whole existing-venv resolution
+            try:  # ruff:ignore[too-many-statements-in-try-clause]  # one PipxError handler must cover the whole existing-venv resolution
                 venv = Venv(
                     venv_dir,
                     python=python,
@@ -203,7 +203,7 @@ def install(  # noqa: PLR0913, PLR0917, PLR0912, PLR0914, PLR0915  # flat instal
             preserve_existing_venv = exists and (
                 preserve_existing or bool(required_apps or include_resources_from) or required_lock is not None
             )
-            try:  # noqa: PLW0717  # one handler must roll back the whole build-and-expose sequence on failure
+            try:  # ruff:ignore[too-many-statements-in-try-clause]  # one handler must roll back the whole build-and-expose sequence on failure
                 with preserve_venv(venv_dir, enabled=preserve_existing_venv):
                     venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
                     if exists and (required_lock is not None or (replace_lock and recorded_lock is not None)):
@@ -280,7 +280,7 @@ def install(  # noqa: PLR0913, PLR0917, PLR0912, PLR0914, PLR0915  # flat instal
     )
 
 
-def _prepare_install(  # noqa: PLR0913  # forwards the flat install option set to validation
+def _prepare_install(  # ruff:ignore[too-many-arguments]  # forwards the flat install option set to validation
     package_specs: list[str],
     python: str | None,
     lock_file: Path | None,
@@ -303,7 +303,7 @@ def _prepare_install(  # noqa: PLR0913  # forwards the flat install option set t
     return lock_file, python or get_default_python()
 
 
-def _resolve_package_names(  # noqa: PLR0913  # forwards the flat resolver context for each spec
+def _resolve_package_names(  # ruff:ignore[too-many-arguments]  # forwards the flat resolver context for each spec
     package_names: list[str] | None,
     package_specs: list[str],
     python: str,
@@ -323,7 +323,7 @@ def _resolve_package_names(  # noqa: PLR0913  # forwards the flat resolver conte
 
     resolved: Final[list[str]] = []
     for package_spec in package_specs:
-        try:  # noqa: PLW0717  # one PipxError handler must cover the whole per-spec name resolution
+        try:  # ruff:ignore[too-many-statements-in-try-clause]  # one PipxError handler must cover the whole per-spec name resolution
             if (script_name := script_name_from_spec(package_spec, expected_apps)) is not None:
                 resolved.append(script_name)
                 continue
@@ -360,7 +360,7 @@ def _resolve_package_names(  # noqa: PLR0913  # forwards the flat resolver conte
     return resolved, None, python
 
 
-def _validate_install_options(  # noqa: PLR0913  # validates the flat set of install options together
+def _validate_install_options(  # ruff:ignore[too-many-arguments]  # validates the flat set of install options together
     package_specs: Sequence[str],
     expected_apps: Sequence[str],
     preinstall_packages: Sequence[str] | None,
@@ -449,7 +449,7 @@ def _resolve_cooldown(
     return requested if requested is not None else stored
 
 
-def _handle_existing_install(  # noqa: PLR0913  # forwards the flat install context for an existing venv
+def _handle_existing_install(  # ruff:ignore[too-many-arguments]  # forwards the flat install context for an existing venv
     venv: Venv,
     package_name: str,
     package_spec: str,
@@ -531,7 +531,7 @@ def _handle_existing_install(  # noqa: PLR0913  # forwards the flat install cont
     )
 
 
-def _upgrade_existing_venv(  # noqa: PLR0913  # forwards the flat upgrade context for one existing venv
+def _upgrade_existing_venv(  # ruff:ignore[too-many-arguments]  # forwards the flat upgrade context for one existing venv
     venv: Venv,
     package_name: str,
     package_spec: str,
@@ -622,7 +622,7 @@ def _installed_package(venv: Venv, package_name: str) -> _InstalledPackage:
     )
 
 
-def install_all(  # noqa: PLR0913, PLR0917  # mirrors the CLI's flat install-all option set
+def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-arguments]  # mirrors the CLI's flat install-all option set
     spec_metadata_file: Path,
     local_bin_dir: Path,
     local_man_dir: Path,
@@ -692,12 +692,12 @@ def install_all(  # noqa: PLR0913, PLR0917  # mirrors the CLI's flat install-all
                         cooldown_days=(cooldown_days if cooldown_days is not None else inject_package.cooldown_days),
                     )
         except PipxError as error:
-            print(error, file=sys.stderr)  # noqa: T201  # user-facing CLI output
+            print(error, file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
             failed.append(venv_dir.name)
         else:
             installed.append(venv_dir.name)
     if not installed:
-        print(  # noqa: T201  # user-facing CLI output
+        print(  # ruff:ignore[print]  # user-facing CLI output
             f"No packages installed after running 'pipx install-all {spec_metadata_file}' {sleep}"
         )
     if failed:
@@ -746,7 +746,7 @@ def get_python_interpreter(
     if source_interpreter is not None and source_interpreter.is_file():
         return str(source_interpreter)
 
-    print(  # noqa: T201  # user-facing CLI output
+    print(  # ruff:ignore[print]  # user-facing CLI output
         pipx_wrap(
             f"""
             The exported python interpreter '{source_interpreter}' is ignored
@@ -836,7 +836,7 @@ class _EnvironmentBuild:
         )
 
 
-def _install_on_supported_python(  # noqa: PLR0913  # forwards the flat rebuild context around the interpreter retry
+def _install_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards the flat rebuild context around the interpreter retry
     venv: Venv,
     build: _EnvironmentBuild,
     *,
@@ -889,7 +889,7 @@ def _supported_python(
     return interpreter
 
 
-def _rebuild_on_supported_python(  # noqa: PLR0913  # forwards the flat rebuild context to a fresh venv
+def _rebuild_on_supported_python(  # ruff:ignore[too-many-arguments]  # forwards the flat rebuild context to a fresh venv
     *,
     venv_dir: Path,
     constraint: SpecifierSet,
