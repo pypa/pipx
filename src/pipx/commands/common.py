@@ -425,7 +425,10 @@ def _copy_launcher_targets_venv(resource_path: Path, venv_resource_path: Path) -
         try:
             if interpreter and Path(os.fsdecode(interpreter)).parent.samefile(venv_resource_path):
                 return True
-        except (OSError, UnicodeDecodeError):
+        except (OSError, ValueError):
+            # The scan reads every file in the bin directory, so a stray "#!" in a foreign binary leads here with
+            # arbitrary bytes rather than a path: os.fsdecode rejects undecodable ones under the surrogatepass
+            # codec Windows uses, and stat rejects an embedded NUL. Neither makes the copy ours.
             continue
     return False
 
