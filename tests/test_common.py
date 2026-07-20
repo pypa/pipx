@@ -9,8 +9,8 @@ import pytest
 
 from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths
+from pipx.commands import common
 from pipx.commands.common import (
-    _copy_launcher_targets_venv,  # noqa: PLC2701  # test exercises private helper, no public API
     _remove_stale_venv_resources,  # noqa: PLC2701  # test exercises private helper, no public API
     expose_resources_globally,
     get_exposed_paths_for_package,
@@ -19,6 +19,8 @@ from pipx.venv import Venv
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from pytest_mock import MockerFixture
 
 
 @skip_if_windows
@@ -35,27 +37,29 @@ def test_get_exposed_paths_ignores_recursive_symlink(tmp_path: Path) -> None:
     assert loop not in exposed
 
 
-def test_copy_launcher_targets_venv_ignores_invalid_utf8_shebang(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    # Regression test for #1965: a foreign binary sharing the bin dir (e.g. an unrelated multi-hundred-MB
-    # .exe) can contain a stray b"#!" byte pair followed by bytes that aren't valid UTF-8. On Windows,
-    # os.fsdecode raises UnicodeDecodeError for such bytes instead of silently escaping them like POSIX's
-    # surrogateescape does, which used to crash `pipx install`/`pipx list` outright. Reproduce that failure
-    # mode deterministically here by forcing os.fsdecode to raise, regardless of the host platform.
+# A binary pipx did not create is parsed as if it were a launcher, so the bytes trailing a stray "#!" reach
+# os.fsdecode and stat as an interpreter path. Windows rejects the undecodable one, every platform the NUL.
+@pytest.mark.parametrize(
+    "payload",
+    [
+        pytest.param(b"MZ\x90\x00\x03#!\xff\xfe\x80\x81 more binary\n", id="undecodable-interpreter"),
+        pytest.param(b"MZ\x90\x00\x03#!/opt/no\x00pe/bin/python\n", id="nul-in-interpreter"),
+    ],
+)
+def test_get_exposed_paths_ignores_foreign_binary(tmp_path: Path, mocker: MockerFixture, payload: bytes) -> None:
+    # Only copy-based environments read a shebang to establish ownership, so without this the symlink branch
+    # short-circuits the scan and the parse under test never runs off Windows.
+    mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
     venv_resource_path = tmp_path / "venv_bin"
     venv_resource_path.mkdir()
-    resource_path = tmp_path / "unrelated.exe"
-    resource_path.write_bytes(b"\x00" * 32 + b"#!" + bytes([0xEB, 0x00, 0x01]) + b"\x00" * 32)
+    local_resource_dir = tmp_path / "bin"
+    local_resource_dir.mkdir()
+    foreign = local_resource_dir / "foreign.exe"
+    foreign.write_bytes(payload)
 
-    def raise_unicode_decode_error(*_args: object, **_kwargs: object) -> str:
-        reason = "invalid continuation byte"
-        msg = "utf-8"
-        raise UnicodeDecodeError(msg, b"\xeb", 0, 1, reason)
+    exposed = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
 
-    monkeypatch.setattr(os, "fsdecode", raise_unicode_decode_error)
-
-    assert _copy_launcher_targets_venv(resource_path, venv_resource_path) is False
+    assert foreign not in exposed
 
 
 @skip_if_windows
