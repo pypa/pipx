@@ -14,6 +14,17 @@ to this file.
 
 .. towncrier release notes start
 
+`1.16.1 <https://github.com/pypa/pipx/tree/1.16.1>`_ - 2026-07-20
+=================================================================
+
+Bugfixes
+--------
+
+- Stop `install` and `list` from crashing when the pipx bin directory contains an executable pipx did not create. Scanning
+  for launcher ownership decoded arbitrary binary content as an interpreter path, which raised `UnicodeDecodeError` on
+  Windows, or `ValueError` for a path holding a NUL byte. Such a file is now treated as not owned by the venv. (:issue:`1965`)
+
+
 `1.16.0 <https://github.com/pypa/pipx/tree/1.16.0>`_ - 2026-07-15
 =================================================================
 
