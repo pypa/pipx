@@ -20,9 +20,8 @@ def main() -> None:
     original_program = sys.argv[0]
     sys.argv[0] = "pipx"
     try:
-        from pipx.main import (
-            get_command_parser,  # pipx reads the documentation environment on import.
-        )
+        # pipx reads the documentation environment on import.
+        from pipx.main import get_command_parser  # ruff:ignore[import-outside-top-level]
 
         parser, _ = get_command_parser()
     finally:
