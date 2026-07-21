@@ -5,14 +5,14 @@ import re
 import sys
 from dataclasses import replace
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 from unittest import mock
 
 import pytest
 from packaging.utils import canonicalize_name
 
 from package_info import PKG
-from pipx import constants, main, paths, pipx_metadata_file, standalone_python, util
+from pipx import constants, main, paths, pipx_metadata_file, util
 
 WIN = sys.platform.startswith("win")
 
@@ -246,16 +246,15 @@ def remove_venv_interpreter(venv_name: str) -> None:
 skip_if_windows = pytest.mark.skipif(sys.platform.startswith("win"), reason="This behavior is undefined on Windows")
 
 
-def _standalone_build_available() -> bool:
-    index_file = Path(__file__).parents[1] / "testdata" / "standalone_python_index_20250818.json"
-    running = [str(part) for part in sys.version_info[:2]]
-    return any(
-        (match := standalone_python.PYTHON_VERSION_REGEX.search(link)) and match[1].split(".")[:2] == running
-        for link, _digest in json.loads(index_file.read_text(encoding="utf-8"))["releases"]
-    )
-
-
+# The tests exercise the pinned index snapshot the mocked_github_api fixture serves, so whether a build exists for the
+# running interpreter is a property of that snapshot; the skip revives the tests when a refreshed snapshot carries one.
+_RUNNING_CPYTHON: Final[str] = f"cpython-{sys.version_info[0]}.{sys.version_info[1]}."
 skip_if_no_standalone_python = pytest.mark.skipif(
-    not _standalone_build_available(),
-    reason=f"python-build-standalone offers no {sys.version_info[0]}.{sys.version_info[1]} build",
+    not any(
+        _RUNNING_CPYTHON in link
+        for link, _ in json.loads(
+            (Path(__file__).parents[1] / "testdata" / "standalone_python_index_20250818.json").read_text("utf-8")
+        )["releases"]
+    ),
+    reason=f"the pinned python-build-standalone index has no {_RUNNING_CPYTHON}* build",
 )
