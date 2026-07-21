@@ -13,7 +13,7 @@ from unittest import mock
 
 import pytest
 
-from helpers import app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
+from helpers import PACKAGE_CACHE_DIR_NAME, app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
 from package_info import PKG
 from pipx import paths, shared_libs
 from pipx.backends import Backend
@@ -310,9 +310,7 @@ def test_install_from_pylock(make_pylock: Callable[[str, str], Path], backend: s
 def test_install_cooldown(root: Path, caplog: pytest.LogCaptureFixture, backend: str, backend_option: str) -> None:
     if backend == "uv" and shutil.which("uv") is None:
         pytest.skip("uv is not installed")
-    find_links: Final[Path] = (
-        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
-    )
+    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
 
     assert not run_pipx_cli([
         "install",
@@ -1298,9 +1296,7 @@ def test_preinstall(caplog: pytest.LogCaptureFixture) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_preinstall_cooldown(root: Path, caplog: pytest.LogCaptureFixture) -> None:
-    find_links: Final[Path] = (
-        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
-    )
+    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
 
     assert not run_pipx_cli([
         "install",
@@ -1635,11 +1631,7 @@ def test_install_skip_maintenance_without_index(capsys: pytest.CaptureFixture[st
     wheelhouse = tmp_path / "wheelhouse"
     wheelhouse.mkdir()
     wheel = shutil.copy2(
-        next(
-            (root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}").glob(
-                "pycowsay-*.whl"
-            )
-        ),
+        next((root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME).glob("pycowsay-*.whl")),
         wheelhouse,
     )
 

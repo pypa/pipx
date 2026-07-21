@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 import pipx.main
-from helpers import run_pipx_cli
+from helpers import PACKAGE_CACHE_DIR_NAME, run_pipx_cli
 from package_info import PKG
 from pipx import paths, shared_libs
 from pipx.pipx_metadata_file import PipxMetadata
@@ -234,9 +234,7 @@ def test_run_cooldown_separates_cache(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
-    find_links: Final[Path] = (
-        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
-    )
+    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
     pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
 
     run_pipx_cli_exit(
@@ -689,9 +687,7 @@ def test_run_script_cooldown(
         ).strip(),
         encoding="utf-8",
     )
-    find_links: Final[Path] = (
-        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
-    )
+    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
 
     run_pipx_cli_exit(
         [
@@ -1033,9 +1029,7 @@ def test_run_with_cooldown(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
-    find_links: Final[Path] = (
-        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
-    )
+    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
 
     run_pipx_cli_exit(
         [

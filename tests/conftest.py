@@ -9,7 +9,6 @@ import shutil
 import socket
 import subprocess
 import sys
-import sysconfig
 from contextlib import closing, suppress
 from http import HTTPStatus
 from pathlib import Path
@@ -19,7 +18,7 @@ from urllib.request import urlopen
 
 import pytest
 
-from helpers import WIN, app_name, run_pipx_cli
+from helpers import PACKAGE_CACHE_DIR_NAME, WIN, app_name, run_pipx_cli
 from pipx import commands, interpreter, paths, shared_libs, standalone_python, venv
 from pipx.backends import get_backend
 from pipx.backends import pip as _pip_backend_module
@@ -40,11 +39,6 @@ _upgrade_module = importlib.import_module("pipx.commands.upgrade")
 
 PIPX_TESTS_DIR = Path(".pipx_tests")
 PIPX_TESTS_PACKAGE_LIST_DIR = Path("testdata/tests_packages")
-# Mirrors scripts/test_packages_support.py: free-threaded builds seed a cache of cp3XXt wheels separate from the
-# same-version GIL build's directory.
-_PACKAGE_CACHE_DIR_NAME: Final[str] = (
-    f"{sys.version_info[0]}.{sys.version_info[1]}{'t' if sysconfig.get_config_var('Py_GIL_DISABLED') else ''}"
-)
 _IGNORE_PROJECT_OUTPUT: Final[Callable[[str, list[str]], set[str]]] = shutil.ignore_patterns("build", "*.egg-info")
 
 
@@ -57,7 +51,7 @@ def root() -> Path:
 def make_pylock(root: Path, tmp_path: Path) -> Callable[[str, str], Path]:
     def create(package: str, version: str) -> Path:
         wheel = next(
-            (root / PIPX_TESTS_DIR / "package_cache" / _PACKAGE_CACHE_DIR_NAME).glob(f"{package}-{version}-*.whl")
+            (root / PIPX_TESTS_DIR / "package_cache" / PACKAGE_CACHE_DIR_NAME).glob(f"{package}-{version}-*.whl")
         )
         lock_file = tmp_path / "pylock.test.toml"
         lock_file.write_text(
@@ -322,7 +316,7 @@ def pipx_local_pypiserver(
         server_log.unlink()
     port = find_free_port()
     os.environ["NO_PROXY"] = "127.0.0.1"
-    cache = str(pipx_cache_dir / _PACKAGE_CACHE_DIR_NAME)
+    cache = str(pipx_cache_dir / PACKAGE_CACHE_DIR_NAME)
     server = str(Path(sys.executable).parent / "pypi-server")
     cmd = [
         server,

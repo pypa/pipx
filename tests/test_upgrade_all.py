@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
 from threading import Barrier
 from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli
+from helpers import PACKAGE_CACHE_DIR_NAME, PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli
 from package_info import PKG
 from pipx import paths
 from pipx.pipx_metadata_file import PipxMetadata
@@ -91,9 +90,7 @@ def test_upgrade_all_updates_current_cooldowns(
     root: Path,
     mocker: MockerFixture,
 ) -> None:
-    find_links: Final[Path] = (
-        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
-    )
+    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
     pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
     assert not run_pipx_cli(["install", "--cooldown", "7", pip_args, PKG["pycowsay"]["spec"]])
     assert not run_pipx_cli(["inject", "--cooldown", "5", pip_args, "pycowsay", PKG["black"]["spec"]])

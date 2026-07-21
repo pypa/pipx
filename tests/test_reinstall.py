@@ -8,7 +8,14 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import PIPX_METADATA_LEGACY_VERSIONS, app_name, mock_legacy_venv, run_pipx_cli, skip_if_windows
+from helpers import (
+    PACKAGE_CACHE_DIR_NAME,
+    PIPX_METADATA_LEGACY_VERSIONS,
+    app_name,
+    mock_legacy_venv,
+    run_pipx_cli,
+    skip_if_windows,
+)
 from pipx import paths, util, venv_inspect
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 
@@ -51,9 +58,7 @@ def test_reinstall_preserves_cooldowns(
     empty_project: Path,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    find_links: Final[Path] = (
-        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
-    )
+    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
     pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
     assert not run_pipx_cli(["install", "--cooldown", "7", pip_args, "pycowsay"])
     assert not run_pipx_cli(["inject", "--cooldown", "5", pip_args, "pycowsay", str(empty_project)])

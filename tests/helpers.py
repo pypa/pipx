@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+import sysconfig
 from dataclasses import replace
 from pathlib import Path
 from typing import Any, Final
@@ -15,6 +16,12 @@ from package_info import PKG
 from pipx import constants, main, paths, pipx_metadata_file, util
 
 WIN = sys.platform.startswith("win")
+
+# Mirrors scripts/test_packages_support.py: free-threaded builds seed a cache of cp3XXt wheels separate from the
+# same-version GIL build's directory.
+PACKAGE_CACHE_DIR_NAME: Final[str] = (
+    f"{sys.version_info[0]}.{sys.version_info[1]}{'t' if sysconfig.get_config_var('Py_GIL_DISABLED') else ''}"
+)
 
 PIPX_METADATA_LEGACY_VERSIONS = [None, "0.1", "0.2", "0.3"]
 
