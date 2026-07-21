@@ -57,9 +57,20 @@ class VenvMetadata(NamedTuple):
     python_version: str
 
 
+def _distribution_name(dist: metadata.Distribution) -> str | None:
+    try:
+        return dist.name
+    except KeyError:  # Python 3.15+ raises instead of returning None when the metadata has no Name
+        return None
+
+
 def get_distributions_by_name(paths: list[str]) -> dict[str, metadata.Distribution]:
     metadata.MetadataPathFinder().invalidate_caches()
-    return {canonicalize_name(name): dist for dist in metadata.distributions(path=paths) if (name := dist.name)}
+    return {
+        canonicalize_name(name): dist
+        for dist in metadata.distributions(path=paths)
+        if (name := _distribution_name(dist))
+    }
 
 
 def get_package_dependencies(dist: metadata.Distribution, extras: set[str], env: dict[str, str]) -> list[Requirement]:
@@ -103,7 +114,7 @@ def list_not_required_packages(venv_python: Path) -> set[str]:
     installed: set[str] = set()
     required: set[str] = set()
     for dist in distributions:
-        if (name := dist.metadata["Name"]) is not None:
+        if (name := _distribution_name(dist)) is not None:
             installed.add(canonicalize_name(name))
         required |= get_required_dependency_names(dist, venv_env)
     return installed - required
