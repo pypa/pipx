@@ -886,6 +886,8 @@ def test_name_tricky_characters(
 ) -> None:
     if sys.platform == "darwin" and package_name == "zest-releaser":
         pytest.skip("Skipping zest-releaser due to missing Python 3.13 wheel for cmarkgfm on macOS")
+    if sys.version_info >= (3, 15) and package_name == "zest-releaser":
+        pytest.skip("Skipping zest-releaser due to missing Python 3.15 wheel for comrak")
 
     install_packages(capsys, caplog, [package_spec], [package_name])
 
