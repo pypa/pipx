@@ -19,6 +19,7 @@ import pytest
 
 from helpers import (
     run_pipx_cli,
+    skip_if_no_standalone_python,
 )
 from package_info import PKG
 from pipx import constants, paths, pipx_metadata_file, standalone_python
@@ -65,6 +66,7 @@ def test_legacy_standalone_python_index_is_refreshed(monkeypatch: pytest.MonkeyP
     assert json.loads(index_file.read_text())["releases"] == [[legacy_link, digest]]
 
 
+@skip_if_no_standalone_python
 @pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
 def test_download_standalone_python_sets_tar_filter() -> None:
     with warnings.catch_warnings(record=True) as caught_warnings:
@@ -75,6 +77,7 @@ def test_download_standalone_python_sets_tar_filter() -> None:
     assert not [warning for warning in caught_warnings if "filter extracted tar archives" in str(warning.message)]
 
 
+@skip_if_no_standalone_python
 @pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
 def test_download_standalone_python_supports_early_python_310(
     monkeypatch: pytest.MonkeyPatch,
@@ -360,6 +363,7 @@ def test_list_no_standalone_interpreters(capsys: pytest.CaptureFixture[str]) -> 
     assert len(captured.out.splitlines()) == 1
 
 
+@skip_if_no_standalone_python
 @pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
 def test_list_used_standalone_interpreters(
     monkeypatch: pytest.MonkeyPatch,
@@ -383,6 +387,7 @@ def test_list_used_standalone_interpreters(
     assert "pycowsay" in captured.out
 
 
+@skip_if_no_standalone_python
 @pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
 def test_list_unused_standalone_interpreters(
     monkeypatch: pytest.MonkeyPatch,
@@ -408,6 +413,7 @@ def test_list_unused_standalone_interpreters(
     assert "Unused" in captured.out
 
 
+@skip_if_no_standalone_python
 @pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
 def test_prune_unused_standalone_interpreters(
     monkeypatch: pytest.MonkeyPatch,
@@ -446,6 +452,7 @@ def test_prune_unused_standalone_interpreters(
     assert "Nothing to remove" in captured.out
 
 
+@skip_if_no_standalone_python
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_standalone_interpreter(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(shutil, "which", mock_which)

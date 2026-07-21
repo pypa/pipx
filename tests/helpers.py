@@ -12,7 +12,7 @@ import pytest
 from packaging.utils import canonicalize_name
 
 from package_info import PKG
-from pipx import constants, main, paths, pipx_metadata_file, util
+from pipx import constants, main, paths, pipx_metadata_file, standalone_python, util
 
 WIN = sys.platform.startswith("win")
 
@@ -244,3 +244,18 @@ def remove_venv_interpreter(venv_name: str) -> None:
 
 
 skip_if_windows = pytest.mark.skipif(sys.platform.startswith("win"), reason="This behavior is undefined on Windows")
+
+
+def _standalone_build_available() -> bool:
+    index_file = Path(__file__).parents[1] / "testdata" / "standalone_python_index_20250818.json"
+    running = [str(part) for part in sys.version_info[:2]]
+    return any(
+        (match := standalone_python.PYTHON_VERSION_REGEX.search(link)) and match[1].split(".")[:2] == running
+        for link, _digest in json.loads(index_file.read_text(encoding="utf-8"))["releases"]
+    )
+
+
+skip_if_no_standalone_python = pytest.mark.skipif(
+    not _standalone_build_available(),
+    reason=f"python-build-standalone offers no {sys.version_info[0]}.{sys.version_info[1]} build",
+)
