@@ -14,6 +14,17 @@ to this file.
 
 .. towncrier release notes start
 
+`1.16.2 <https://github.com/pypa/pipx/tree/1.16.2>`_ - 2026-07-21
+=================================================================
+
+Bugfixes
+--------
+
+- Stop venv inspection from crashing on Python 3.15 when a `dist-info` directory has no `Name` metadata field.
+  `importlib.metadata` now raises `KeyError` for missing metadata keys instead of returning `None`; such distributions are
+  skipped again, as on earlier Python versions. (:issue:`1971`)
+
+
 `1.16.1 <https://github.com/pypa/pipx/tree/1.16.1>`_ - 2026-07-20
 =================================================================
 
