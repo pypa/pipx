@@ -2,12 +2,17 @@ from __future__ import annotations
 
 import platform
 import sys
+import sysconfig
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-PYTHON_VERSION_STR = f"{sys.version_info[0]}.{sys.version_info[1]}"
+# Free-threaded builds need cp3XXt wheels, so they resolve and seed a cache of their own instead of sharing the
+# same-version GIL build's directory; the "t" suffix also matches the "3.XXt" naming CI keys its cache on.
+PYTHON_VERSION_STR = (
+    f"{sys.version_info[0]}.{sys.version_info[1]}{'t' if sysconfig.get_config_var('Py_GIL_DISABLED') else ''}"
+)
 
 # Platform logic
 if sys.platform == "darwin":

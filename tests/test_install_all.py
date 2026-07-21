@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import json
-import sys
 from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import run_pipx_cli
+from helpers import PACKAGE_CACHE_DIR_NAME, run_pipx_cli
 from package_info import PKG
 from pipx import paths
 from pipx.pipx_metadata_file import PipxMetadata
@@ -33,9 +32,7 @@ def test_install_all(  # ruff:ignore[too-many-positional-arguments]  # pytest in
     install_all_args: list[str],
     expected_cooldown: int,
 ) -> None:
-    find_links: Final[Path] = (
-        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
-    )
+    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
     pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
     lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
     assert not run_pipx_cli(["install", "--app", "pycowsay", "--lock", str(lock_file), "pycowsay"])

@@ -5,14 +5,20 @@ import logging
 import re
 import shutil
 import subprocess
-import sys
 import textwrap
 from typing import TYPE_CHECKING, Final
 
 import pytest
 from packaging.utils import canonicalize_name
 
-from helpers import PIPX_METADATA_LEGACY_VERSIONS, app_name, mock_legacy_venv, run_pipx_cli, skip_if_windows
+from helpers import (
+    PACKAGE_CACHE_DIR_NAME,
+    PIPX_METADATA_LEGACY_VERSIONS,
+    app_name,
+    mock_legacy_venv,
+    run_pipx_cli,
+    skip_if_windows,
+)
 from package_info import PKG
 from pipx import paths
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
@@ -499,9 +505,7 @@ def test_inject_inherits_cooldown(
     empty_project: Path,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    find_links: Final[Path] = (
-        root / ".pipx_tests" / "package_cache" / f"{sys.version_info.major}.{sys.version_info.minor}"
-    )
+    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
     pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
     assert not run_pipx_cli(["install", "--cooldown", "7", pip_args, PKG["pycowsay"]["spec"]])
     caplog.clear()

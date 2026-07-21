@@ -19,6 +19,7 @@ from helpers import (
     mock_legacy_venv,
     remove_venv_interpreter,
     run_pipx_cli,
+    skip_if_no_standalone_python,
     skip_if_windows,
 )
 from package_info import PKG
@@ -370,6 +371,7 @@ def test_install_does_not_wait_for_other_environment(tmp_path: Path) -> None:
     )
 
 
+@skip_if_no_standalone_python
 @pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
 def test_list_standalone_interpreter(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
     def which(_name: str) -> None:

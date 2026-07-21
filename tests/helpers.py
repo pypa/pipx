@@ -3,9 +3,10 @@ from __future__ import annotations
 import json
 import re
 import sys
+import sysconfig
 from dataclasses import replace
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 from unittest import mock
 
 import pytest
@@ -15,6 +16,12 @@ from package_info import PKG
 from pipx import constants, main, paths, pipx_metadata_file, util
 
 WIN = sys.platform.startswith("win")
+
+# Mirrors scripts/test_packages_support.py: free-threaded builds seed a cache of cp3XXt wheels separate from the
+# same-version GIL build's directory.
+PACKAGE_CACHE_DIR_NAME: Final[str] = (
+    f"{sys.version_info[0]}.{sys.version_info[1]}{'t' if sysconfig.get_config_var('Py_GIL_DISABLED') else ''}"
+)
 
 PIPX_METADATA_LEGACY_VERSIONS = [None, "0.1", "0.2", "0.3"]
 
@@ -244,3 +251,17 @@ def remove_venv_interpreter(venv_name: str) -> None:
 
 
 skip_if_windows = pytest.mark.skipif(sys.platform.startswith("win"), reason="This behavior is undefined on Windows")
+
+
+# The tests exercise the pinned index snapshot the mocked_github_api fixture serves, so whether a build exists for the
+# running interpreter is a property of that snapshot; the skip revives the tests when a refreshed snapshot carries one.
+_RUNNING_CPYTHON: Final[str] = f"cpython-{sys.version_info[0]}.{sys.version_info[1]}."
+skip_if_no_standalone_python = pytest.mark.skipif(
+    not any(
+        _RUNNING_CPYTHON in link
+        for link, _ in json.loads(
+            (Path(__file__).parents[1] / "testdata" / "standalone_python_index_20250818.json").read_text("utf-8")
+        )["releases"]
+    ),
+    reason=f"the pinned python-build-standalone index has no {_RUNNING_CPYTHON}* build",
+)
