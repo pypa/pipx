@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import sys
+import sysconfig
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 from unittest import mock
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 TEST_DATA_PATH = "./testdata/test_package_specifier"
+_FREE_THREADED: Final[bool] = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
 
 
 def test_help_text(capsys: pytest.CaptureFixture[str]) -> None:
@@ -157,6 +159,8 @@ def test_install_tricky_packages(
         pytest.skip("skipping slow tests")
     if sys.platform.startswith("win") and package_name == "ansible":
         pytest.skip("Ansible is not installable on Windows")
+    if _FREE_THREADED and package_name == "ansible":
+        pytest.skip("Skipping ansible due to missing free-threaded wheel for cryptography")
 
     install_packages(capsys, caplog, [package_spec], [package_name])
 
@@ -256,6 +260,9 @@ def test_install_no_apps_guidance(
     install_args: list[str],
     has_dependency_apps: bool,
 ) -> None:
+    if _FREE_THREADED and package_name == "jupyter":
+        pytest.skip("Skipping jupyter due to missing free-threaded wheel for pyzmq")
+
     return_code = run_pipx_cli(["install", *install_args])
 
     error = capsys.readouterr().err
@@ -804,6 +811,9 @@ def test_install_existing_package_skips_shared_lib_maintenance(mocker: MockerFix
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_include_deps() -> None:
+    if _FREE_THREADED:
+        pytest.skip("Skipping jupyter due to missing free-threaded wheel for pyzmq")
+
     assert not run_pipx_cli(["install", PKG["jupyter"]["spec"], "--include-deps"])
 
 
@@ -1042,6 +1052,9 @@ def test_pip_args_with_windows_path(capsys: pytest.CaptureFixture[str]) -> None:
 def test_pip_args_with_constraint_relative_path(
     constraint_flag: str, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
+    if _FREE_THREADED:
+        pytest.skip("Skipping ipython due to missing free-threaded wheel for psutil")
+
     constraint_file_name = "constraints.txt"
     package_name = "ipython"
     package_version = "8.23.0"
