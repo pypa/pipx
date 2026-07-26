@@ -14,6 +14,21 @@ to this file.
 
 .. towncrier release notes start
 
+`1.16.3 <https://github.com/pypa/pipx/tree/1.16.3>`_ - 2026-07-26
+=================================================================
+
+Bugfixes
+--------
+
+- Allow read-only global list commands when venv lock files are inaccessible. (:issue:`1974`)
+
+
+Improved Documentation
+----------------------
+
+- Direct Linux users to PEP 668-compatible installation methods. (:issue:`1976`)
+
+
 `1.16.2 <https://github.com/pypa/pipx/tree/1.16.2>`_ - 2026-07-21
 =================================================================
 
