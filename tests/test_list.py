@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import json
 import os
 import re
@@ -25,6 +26,7 @@ from helpers import (
 from package_info import PKG
 from pipx import constants, paths, shared_libs, venv
 from pipx.commands import common
+from pipx.commands.list_packages import list_packages
 from pipx.pipx_metadata_file import (
     PIPX_INFO_FILENAME,
     PackageInfo,
@@ -46,6 +48,32 @@ def test_cli(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["list"])
     captured = capsys.readouterr()
     assert "nothing has been installed with pipx" in captured.err
+
+
+def test_list_allows_read_only_venv_lock(tmp_path: Path, mocker: MockerFixture) -> None:
+    venv_dir = tmp_path / "venvs" / "example"
+    venv_dir.mkdir(parents=True)
+    venv_container = venv.VenvContainer(venv_dir.parent)
+    lock = mocker.Mock()
+    lock.acquire.side_effect = PermissionError("read-only lock file")
+    mocker.patch.object(venv_container, "venv_lock", return_value=lock)
+    list_packages_module = importlib.import_module("pipx.commands.list_packages")
+    mocker.patch.object(
+        list_packages_module,
+        "get_venv_summary",
+        return_value=("package example 1", common.VenvProblems()),
+    )
+
+    assert not list_packages(
+        venv_container,
+        [venv_dir],
+        include_injected=False,
+        json_format=False,
+        short_format=False,
+        pinned_only=False,
+    )
+
+    lock.release.assert_not_called()
 
 
 @skip_if_windows

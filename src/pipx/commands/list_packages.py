@@ -131,18 +131,21 @@ def list_packages(  # ruff:ignore[too-many-arguments]  # flat CLI-facing list op
         print(f"nothing has been installed with pipx {sleep}", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
 
     if json_format:
-        all_venv_problems = list_json(venv_container.iter_locked_venv_dirs(venv_dirs))
+        all_venv_problems = list_json(venv_container.iter_locked_venv_dirs(venv_dirs, allow_permission_error=True))
     elif short_format:
-        all_venv_problems = list_short(venv_container.iter_locked_venv_dirs(venv_dirs))
+        all_venv_problems = list_short(venv_container.iter_locked_venv_dirs(venv_dirs, allow_permission_error=True))
     elif pinned_only:
         all_venv_problems = list_pinned(
-            venv_container.iter_locked_venv_dirs(venv_dirs), include_injected=include_injected
+            venv_container.iter_locked_venv_dirs(venv_dirs, allow_permission_error=True),
+            include_injected=include_injected,
         )
     else:
         if not venv_dirs:
             return EXIT_CODE_OK
         all_venv_problems = list_text(
-            venv_container.iter_locked_venv_dirs(venv_dirs), str(venv_container), include_injected=include_injected
+            venv_container.iter_locked_venv_dirs(venv_dirs, allow_permission_error=True),
+            str(venv_container),
+            include_injected=include_injected,
         )
 
     if all_venv_problems.bad_venv_name:

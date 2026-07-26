@@ -143,11 +143,25 @@ class VenvContainer:
         """Return the expected venv path for given `package_name`."""
         return self._root.joinpath(canonicalize_name(package_name))
 
-    def iter_locked_venv_dirs(self, venv_dirs: Iterable[Path]) -> Generator[Path, None, None]:
+    def iter_locked_venv_dirs(
+        self, venv_dirs: Iterable[Path], *, allow_permission_error: bool = False
+    ) -> Generator[Path, None, None]:
         for venv_dir in venv_dirs:
-            with self.venv_lock(venv_dir):
+            lock = self.venv_lock(venv_dir)
+            try:
+                lock.acquire()
+            except PermissionError:
+                if not allow_permission_error:
+                    raise
                 if venv_dir.is_dir():
                     yield venv_dir
+                continue
+
+            try:
+                if venv_dir.is_dir():
+                    yield venv_dir
+            finally:
+                lock.release()
 
     def venv_lock(self, venv_dir: Path) -> BaseFileLock:
         self._root.mkdir(parents=True, exist_ok=True)
