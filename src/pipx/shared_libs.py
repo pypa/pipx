@@ -1,19 +1,23 @@
+from __future__ import annotations
+
 import datetime
 import logging
 import os
 import time
 from configparser import ConfigParser
-from contextlib import suppress
+from configparser import Error as ConfigParserError
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
+from typing import TYPE_CHECKING, Final
 
-from packaging.requirements import InvalidRequirement, Requirement
-from packaging.specifiers import SpecifierSet
+from filelock import BaseFileLock, FileLock
 
 from pipx import paths
 from pipx.animate import animate
 from pipx.constants import WINDOWS
 from pipx.emojis import strtobool
-from pipx.interpreter import DEFAULT_PYTHON
+from pipx.interpreter import get_default_python
 from pipx.util import (
     get_site_packages,
     get_venv_paths,
@@ -21,15 +25,28 @@ from pipx.util import (
     subprocess_post_check,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
 logger = logging.getLogger(__name__)
 
 
-SHARED_LIBS_MAX_AGE_SEC = datetime.timedelta(days=30).total_seconds()
-DISABLE_SHARED_LIBS_AUTO_UPGRADE = "PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE"
+SHARED_LIBS_MAX_AGE_SEC: Final[float] = datetime.timedelta(days=30).total_seconds()
+DISABLE_SHARED_LIBS_AUTO_UPGRADE: Final[str] = "PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE"
+_SKIP_MAINTENANCE: Final[ContextVar[bool]] = ContextVar("skip_maintenance", default=False)
 
 
 def shared_libs_auto_upgrade_disabled() -> bool:
-    return strtobool(os.getenv(DISABLE_SHARED_LIBS_AUTO_UPGRADE, "0"))
+    return _SKIP_MAINTENANCE.get() or strtobool(os.getenv(DISABLE_SHARED_LIBS_AUTO_UPGRADE, "0"))
+
+
+@contextmanager
+def skip_shared_libs_maintenance(*, enabled: bool) -> Generator[None, None, None]:
+    token = _SKIP_MAINTENANCE.set(enabled)
+    try:
+        yield
+    finally:
+        _SKIP_MAINTENANCE.reset(token)
 
 
 def _venv_python_is_valid(python_path: Path) -> bool:
@@ -47,21 +64,21 @@ def _venv_python_is_valid(python_path: Path) -> bool:
     if not pyvenv_cfg.is_file():
         return True
 
+    config = ConfigParser()
     try:
-        config = ConfigParser()
-        with open(pyvenv_cfg, encoding="utf-8") as f:
-            # ConfigParser needs a section header, pyvenv.cfg doesn't have one
-            config.read_string("[DEFAULT]\n" + f.read())
-        home = config.get("DEFAULT", "home", fallback=None)
-        if home:
-            # The home path points to the directory containing the original python.exe
-            original_python = Path(home) / "python.exe"
-            if not original_python.is_file():
-                logger.info(f"Shared libs venv references a missing Python interpreter: {original_python}")
-                return False
-    except Exception:
+        # ConfigParser needs a section header, pyvenv.cfg doesn't have one
+        config.read_string("[DEFAULT]\n" + pyvenv_cfg.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ConfigParserError):
         # If we can't read pyvenv.cfg, assume the venv is valid
-        pass
+        return True
+
+    home = config.get("DEFAULT", "home", fallback=None)
+    if home:
+        # The home path points to the directory containing the original python.exe
+        original_python = Path(home) / "python.exe"
+        if not original_python.is_file():
+            logger.info("Shared libs venv references a missing Python interpreter: %s", original_python)
+            return False
 
     return True
 
@@ -69,6 +86,7 @@ def _venv_python_is_valid(python_path: Path) -> bool:
 class _SharedLibs:
     def __init__(self) -> None:
         self._site_packages: dict[Path, Path] = {}
+        self._is_valid: bool | None = None
         self.has_been_updated_this_run = False
         self.has_been_logged_this_run = False
 
@@ -102,24 +120,32 @@ class _SharedLibs:
 
         return self._site_packages[self.python_path]
 
-    def create(self, pip_args: list[str], verbose: bool = False) -> None:
+    def create(self, pip_args: list[str], *, verbose: bool = False, reinstall_pip: bool | None = None) -> None:
+        with self._maintenance_lock():
+            self._create(pip_args, verbose=verbose, reinstall_pip=reinstall_pip)
+
+    def _maintenance_lock(self) -> BaseFileLock:
+        self.root.parent.mkdir(parents=True, exist_ok=True)
+        return FileLock(self.root.with_name(f".{self.root.name}.lock"))
+
+    def _create(self, pip_args: list[str], *, verbose: bool, reinstall_pip: bool | None = None) -> None:
         if not self.is_valid:
-            with animate("creating shared libraries", not verbose):
+            with animate("creating shared libraries", do_animation=not verbose):
                 create_process = run_subprocess(
-                    [DEFAULT_PYTHON, "-m", "venv", "--clear", self.root], run_dir=str(self.root)
+                    [get_default_python(), "-m", "venv", "--clear", self.root], run_dir=str(self.root)
                 )
             subprocess_post_check(create_process)
+            self._is_valid = None
 
-            # ignore installed packages to ensure no unexpected patches from the OS vendor
-            # are used
-            pip_args = pip_args or []
-            pip_args.append("--force-reinstall")
-            self.upgrade(pip_args=pip_args, verbose=verbose, raises=True)
+            should_reinstall_pip = not shared_libs_auto_upgrade_disabled() if reinstall_pip is None else reinstall_pip
+            if should_reinstall_pip:
+                # Reinstall pip so OS-vendor patches cannot enter the shared environment.
+                self._upgrade(pip_args=[*pip_args, "--force-reinstall"], verbose=verbose, raises=True)
+            else:
+                logger.info("Skipping the shared pip reinstall because maintenance is disabled")
 
-            # Remove setuptools from shared libs to prevent it from leaking into
-            # app venvs via the .pth file. On Python < 3.12, venv bundles setuptools
-            # via ensurepip, but a 3.10 setuptools breaks when imported under 3.12+
-            # because distutils was removed from the stdlib.
+            # Remove setuptools before the .pth file exposes shared libraries to apps. Python <3.12 venvs bundle a
+            # copy that fails under 3.12+ because the standard library no longer includes distutils.
             run_subprocess(
                 [self.python_path, "-m", "pip", "--no-input", "uninstall", "-y", "setuptools"],
                 capture_stderr=False,
@@ -127,21 +153,21 @@ class _SharedLibs:
 
     @property
     def is_valid(self) -> bool:
-        if self.python_path.is_file():
-            # On Windows, check that the venv's underlying Python still exists
-            if not _venv_python_is_valid(self.python_path):
-                return False
+        if self._is_valid is None:
+            self._is_valid = (
+                self.python_path.is_file()
+                and _venv_python_is_valid(self.python_path)
+                and self.pip_path.is_file()
+                and run_subprocess(
+                    [self.python_path, "-c", "from pip._internal.cli.main import main"],
+                    log_cmd_str="<checking pip's availability>",
+                    log_stdout=False,
+                    log_stderr=False,
+                ).returncode
+                == 0
+            )
 
-            check_pip = "import importlib.util; print(importlib.util.find_spec('pip'))"
-            out = run_subprocess(
-                [self.python_path, "-c", check_pip],
-                capture_stderr=False,
-                log_cmd_str="<checking pip's availability>",
-            ).stdout.strip()
-
-            return self.pip_path.is_file() and out != "None"
-        else:
-            return False
+        return self._is_valid
 
     @property
     def needs_upgrade(self) -> bool:
@@ -155,65 +181,64 @@ class _SharedLibs:
         time_since_last_update_sec = now - self.pip_path.stat().st_mtime
         if not self.has_been_logged_this_run:
             logger.info(
-                f"Time since last upgrade of shared libs, in seconds: {time_since_last_update_sec:.0f}. "
-                f"Upgrade will be run by pipx if greater than {SHARED_LIBS_MAX_AGE_SEC:.0f}."
+                "Time since last upgrade of shared libs, in seconds: %.0f. "
+                "Upgrade will be run by pipx if greater than %.0f.",
+                time_since_last_update_sec,
+                SHARED_LIBS_MAX_AGE_SEC,
             )
             self.has_been_logged_this_run = True
         return time_since_last_update_sec > SHARED_LIBS_MAX_AGE_SEC
 
     def upgrade(self, *, pip_args: list[str], verbose: bool = False, raises: bool = False) -> None:
+        with self._maintenance_lock():
+            self._upgrade(pip_args=pip_args, verbose=verbose, raises=raises)
+
+    def _upgrade(self, *, pip_args: list[str], verbose: bool, raises: bool) -> None:
         if not self.is_valid:
-            self.create(verbose=verbose, pip_args=pip_args)
+            self._create(verbose=verbose, pip_args=pip_args, reinstall_pip=True)
             return
 
-        # Don't try to upgrade multiple times per run
         if self.has_been_updated_this_run:
-            logger.info(f"Already upgraded libraries in {self.root}")
+            logger.info("Already upgraded libraries in %s", self.root)
             return
 
-        if pip_args is None:
-            pip_args = []  # type: ignore[unreachable]
+        logger.info("Upgrading shared libraries in %s", self.root)
 
-        logger.info(f"Upgrading shared libraries in {self.root}")
-
-        ignored_args = ["--editable"]
-        _pip_args = [arg for arg in pip_args if arg not in ignored_args]
+        filtered_pip_args = [arg for arg in pip_args if arg != "--editable"]
         if not verbose:
-            _pip_args.append("-q")
-
-        user_pip_req = None
-        for arg in _pip_args:
-            with suppress(InvalidRequirement):
-                if (req := Requirement(arg)).name == "pip":
-                    user_pip_req = req
-                    break
-
-        add_default = not user_pip_req or not (user_pip_req.specifier & SpecifierSet(">=23.1"))
-        install_args = [*_pip_args, "pip >= 23.1"] if add_default else _pip_args
+            filtered_pip_args.append("-q")
 
         try:
-            with animate("upgrading shared libraries", not verbose):
-                upgrade_process = run_subprocess(
-                    [
-                        self.python_path,
-                        "-m",
-                        "pip",
-                        "--no-input",
-                        "--disable-pip-version-check",
-                        "install",
-                        "--upgrade",
-                        *install_args,
-                    ]
-                )
+            with animate("upgrading shared libraries", do_animation=not verbose):
+                upgrade_process = run_subprocess([
+                    self.python_path,
+                    "-m",
+                    "pip",
+                    "--no-input",
+                    "--disable-pip-version-check",
+                    "install",
+                    "--upgrade",
+                    *filtered_pip_args,
+                    "pip >= 26.1",
+                ])
             subprocess_post_check(upgrade_process)
 
             self.has_been_updated_this_run = True
             self.pip_path.touch()
 
         except Exception:
-            logger.error("Failed to upgrade shared libraries", exc_info=not raises)
+            logger.exception("Failed to upgrade shared libraries", exc_info=not raises)
             if raises:
                 raise
 
 
 shared_libs = _SharedLibs()
+
+
+__all__ = [
+    "DISABLE_SHARED_LIBS_AUTO_UPGRADE",
+    "SHARED_LIBS_MAX_AGE_SEC",
+    "shared_libs",
+    "shared_libs_auto_upgrade_disabled",
+    "skip_shared_libs_maintenance",
+]

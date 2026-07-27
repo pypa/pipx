@@ -1,4 +1,8 @@
-from pipx.util import _fix_subprocess_env
+from __future__ import annotations
+
+from pipx.util import (
+    _fix_subprocess_env,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
+)
 
 
 def test_pip_target_removed_from_env() -> None:

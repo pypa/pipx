@@ -1,4 +1,9 @@
+from __future__ import annotations
+
+import importlib
+import json
 import sys
+from typing import TYPE_CHECKING, Final, cast
 
 import pytest
 
@@ -11,10 +16,15 @@ from helpers import (
     skip_if_windows,
 )
 from package_info import PKG
-from pipx import paths
+from pipx import paths, venv_inspect
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest_mock import MockerFixture
 
 
-def file_or_symlink(filepath):
+def file_or_symlink(filepath: Path) -> bool:
     # Returns True for file or broken symlink or non-broken symlink
     # Returns False for no file and no symlink
 
@@ -24,25 +34,134 @@ def file_or_symlink(filepath):
     return filepath.exists() or filepath.is_symlink()
 
 
-def test_uninstall(pipx_temp_env):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall() -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["uninstall", "pycowsay"])
 
 
+def test_uninstall_json(
+    uninstall_command: tuple[str, list[str]],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    command, arguments = uninstall_command
+
+    assert not run_pipx_cli([command, *arguments, "--output", "json"])
+
+    captured = capsys.readouterr()
+    assert (json.loads(captured.out), captured.err) == (
+        {
+            "command": [command],
+            "data": {
+                "packages": [
+                    {
+                        "environment": "pycowsay",
+                        "location": str(paths.ctx.venvs / "pycowsay"),
+                        "package": "pycowsay",
+                        "version": "0.0.0.2",
+                    }
+                ],
+            },
+            "pipx_result_version": "1",
+            "errors": [],
+            "exit_code": 0,
+            "status": "success",
+        },
+        "",
+    )
+
+
+def test_uninstall_quiet(
+    uninstall_command: tuple[str, list[str]],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    command, arguments = uninstall_command
+
+    assert not run_pipx_cli([command, *arguments, "--quiet"])
+
+    captured = capsys.readouterr()
+    assert (captured.out, captured.err) == ("", "")
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(("uninstall", ["pycowsay"]), id="one"),
+        pytest.param(("uninstall-all", []), id="all"),
+    ]
+)
+def uninstall_command(
+    request: pytest.FixtureRequest,
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # side-effect fixture; usefixtures marks cannot apply to fixtures
+    capsys: pytest.CaptureFixture[str],
+) -> tuple[str, list[str]]:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+    return cast("tuple[str, list[str]]", request.param)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_json_reports_missing(
+    capsys: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch.object(
+        importlib.import_module("pipx.commands.uninstall"),
+        "which",
+        autospec=True,
+        return_value="/usr/bin/missing",
+    )
+    assert run_pipx_cli(["uninstall", "missing", "--output", "json"])
+
+    captured = capsys.readouterr()
+    assert (json.loads(captured.out), captured.err) == (
+        {
+            "command": ["uninstall"],
+            "data": {"packages": []},
+            "errors": [
+                {
+                    "code": "environment_uninstall_failed",
+                    "environment": "missing",
+                    "message": "Nothing to uninstall for missing.",
+                    "package": None,
+                }
+            ],
+            "exit_code": 1,
+            "pipx_result_version": "1",
+            "status": "error",
+        },
+        "",
+    )
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_ignores_disappearing_resources(
+    capsys: pytest.CaptureFixture[str],
+    mocker: MockerFixture,
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+    safe_unlink = mocker.patch.object(
+        importlib.import_module("pipx.commands.uninstall"),
+        "safe_unlink",
+        autospec=True,
+        side_effect=FileNotFoundError,
+    )
+
+    result = run_pipx_cli(["uninstall", "pycowsay"])
+
+    assert (result, (paths.ctx.venvs / "pycowsay").exists(), safe_unlink.call_count > 0) == (0, False, True)
+
+
 @skip_if_windows
-def test_uninstall_global(pipx_temp_env):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_global() -> None:
     assert not run_pipx_cli(["install", "--global", "pycowsay"])
     assert not run_pipx_cli(["uninstall", "--global", "pycowsay"])
 
 
-# TODO: We can add this test back once a suitable substitute for cloudtoken is found
-# def test_uninstall_circular_deps(pipx_temp_env):
-#     assert not run_pipx_cli(["install", PKG["cloudtoken"]["spec"]])
-#     assert not run_pipx_cli(["uninstall", "cloudtoken"])
-
-
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
-def test_uninstall_legacy_venv(pipx_temp_env, metadata_version):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_legacy_venv(metadata_version: str | None) -> None:
     executable_path = paths.ctx.bin_dir / app_name("pycowsay")
 
     assert not run_pipx_cli(["install", "pycowsay"])
@@ -53,7 +172,22 @@ def test_uninstall_legacy_venv(pipx_temp_env, metadata_version):
     assert not file_or_symlink(executable_path)
 
 
-def test_uninstall_suffix(pipx_temp_env):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_legacy_venv_inspects_once(mocker: MockerFixture) -> None:
+    assert run_pipx_cli(["install", "pycowsay"]) == 0
+    executable_path = paths.ctx.bin_dir / app_name("pycowsay")
+    assert executable_path.exists()
+    mock_legacy_venv("pycowsay")
+    run_subprocess = mocker.spy(venv_inspect, "run_subprocess")
+
+    assert run_pipx_cli(["uninstall", "pycowsay"]) == 0
+
+    assert not file_or_symlink(executable_path)
+    assert run_subprocess.call_count == 1
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_suffix() -> None:
     name = "pbr"
     suffix = "_a"
     executable_path = paths.ctx.bin_dir / app_name(f"{name}{suffix}")
@@ -65,7 +199,8 @@ def test_uninstall_suffix(pipx_temp_env):
     assert not file_or_symlink(executable_path)
 
 
-def test_uninstall_man_page(pipx_temp_env):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_man_page() -> None:
     man_page_path = paths.ctx.man_dir / "man6" / "pycowsay.6"
     assert not run_pipx_cli(["install", "pycowsay"])
     assert man_page_path.exists()
@@ -73,7 +208,37 @@ def test_uninstall_man_page(pipx_temp_env):
     assert not file_or_symlink(man_page_path)
 
 
-def test_uninstall_injected(pipx_temp_env):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_removes_selected_dependency_resources(local_extras_project: Path) -> None:
+    package: Final[str] = f"{local_extras_project}[tools]"
+    assert not run_pipx_cli(["install", package, "--include-resources-from", "pycowsay"])
+    exposed_paths: Final[tuple[Path, ...]] = (
+        paths.ctx.bin_dir / app_name("repeatme"),
+        paths.ctx.bin_dir / app_name("pycowsay"),
+        paths.ctx.man_dir / "man6" / "pycowsay.6",
+    )
+    assert all(file_or_symlink(path) for path in exposed_paths)
+
+    assert not run_pipx_cli(["uninstall", "repeatme"])
+
+    assert not any(file_or_symlink(path) for path in exposed_paths)
+
+
+def test_uninstall_preserves_colliding_dependency_resource(
+    copied_dependency_resource: tuple[Path, bytes],
+    local_extras_project: Path,
+) -> None:
+    exposed_app: Final[Path] = copied_dependency_resource[0]
+    first_contents: Final[bytes] = copied_dependency_resource[1]
+    assert not run_pipx_cli(["install", f"{local_extras_project}[cow]", "--include-deps"])
+
+    assert not run_pipx_cli(["uninstall", "repeatme"])
+
+    assert exposed_app.read_bytes() == first_contents
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_injected() -> None:
     pycowsay_app_paths = [paths.ctx.bin_dir / app for app in PKG["pycowsay"]["apps"]]
     pycowsay_man_page_paths = [paths.ctx.man_dir / man_page for man_page in PKG["pycowsay"]["man_pages"]]
     pylint_app_paths = [paths.ctx.bin_dir / app for app in PKG["pylint"]["apps"]]
@@ -99,7 +264,8 @@ def test_uninstall_injected(pipx_temp_env):
 
 
 @pytest.mark.parametrize("metadata_version", ["0.1"])
-def test_uninstall_suffix_legacy_venv(pipx_temp_env, metadata_version):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_suffix_legacy_venv(metadata_version: str) -> None:
     name = "pbr"
     # legacy uninstall on Windows only works with "canonical name characters"
     #   in suffix
@@ -115,7 +281,8 @@ def test_uninstall_suffix_legacy_venv(pipx_temp_env, metadata_version):
 
 
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
-def test_uninstall_with_missing_interpreter(pipx_temp_env, metadata_version):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_with_missing_interpreter(metadata_version: str | None) -> None:
     executable_path = paths.ctx.bin_dir / app_name("pycowsay")
 
     assert not run_pipx_cli(["install", "pycowsay"])
@@ -131,7 +298,8 @@ def test_uninstall_with_missing_interpreter(pipx_temp_env, metadata_version):
 
 
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
-def test_uninstall_proper_dep_behavior(pipx_temp_env, metadata_version):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_proper_dep_behavior(metadata_version: str | None) -> None:
     # isort is a dependency of pylint.  Make sure that uninstalling pylint
     #   does not also uninstall isort app in LOCAL_BIN_DIR
     isort_app_paths = [paths.ctx.bin_dir / app for app in PKG["isort"]["apps"]]
@@ -156,7 +324,8 @@ def test_uninstall_proper_dep_behavior(pipx_temp_env, metadata_version):
 
 
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)
-def test_uninstall_proper_dep_behavior_missing_interpreter(pipx_temp_env, metadata_version):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_proper_dep_behavior_missing_interpreter(metadata_version: str | None) -> None:
     # isort is a dependency of pylint.  Make sure that uninstalling pylint
     #   does not also uninstall isort app in LOCAL_BIN_DIR
     isort_app_paths = [paths.ctx.bin_dir / app for app in PKG["isort"]["apps"]]

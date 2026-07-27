@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import json
-import os
 import re
 import sys
+import sysconfig
 from dataclasses import replace
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 from unittest import mock
 
 import pytest
@@ -15,7 +17,18 @@ from pipx import constants, main, paths, pipx_metadata_file, util
 
 WIN = sys.platform.startswith("win")
 
+# Mirrors scripts/test_packages_support.py: free-threaded builds seed a cache of cp3XXt wheels separate from the
+# same-version GIL build's directory.
+PACKAGE_CACHE_DIR_NAME: Final[str] = (
+    f"{sys.version_info[0]}.{sys.version_info[1]}{'t' if sysconfig.get_config_var('Py_GIL_DISABLED') else ''}"
+)
+
 PIPX_METADATA_LEGACY_VERSIONS = [None, "0.1", "0.2", "0.3"]
+
+
+class _UnknownMetadataVersionError(Exception):
+    """A test requested a pipx metadata version the mock helpers don't know."""
+
 
 MOCK_PIPXMETADATA_0_1: dict[str, Any] = {
     "main_package": None,
@@ -78,11 +91,11 @@ def app_name(app: str) -> str:
 
 
 def run_pipx_cli(pipx_args: list[str]) -> int:
-    with mock.patch.object(sys, "argv", ["pipx"] + pipx_args):
+    with mock.patch.object(sys, "argv", ["pipx", *pipx_args]):
         return main.cli()
 
 
-def unwrap_log_text(log_text: str):
+def unwrap_log_text(log_text: str) -> str:
     """Remove line-break + indent space from log messages
 
     Captured log lines always start with the 'severity' so if a line starts
@@ -93,12 +106,13 @@ def unwrap_log_text(log_text: str):
 
 
 def _mock_legacy_package_info(modern_package_info: dict[str, Any], metadata_version: str) -> dict[str, Any]:
-    if metadata_version in ["0.2", "0.3"]:
+    if metadata_version in {"0.2", "0.3"}:
         mock_package_info_template = MOCK_PACKAGE_INFO_0_2
     elif metadata_version == "0.1":
         mock_package_info_template = MOCK_PACKAGE_INFO_0_1
     else:
-        raise Exception(f"Internal Test Error: Unknown metadata_version={metadata_version}")
+        msg = f"Internal Test Error: Unknown metadata_version={metadata_version}"
+        raise _UnknownMetadataVersionError(msg)
 
     mock_package_info = {}
     for key in mock_package_info_template:
@@ -117,7 +131,7 @@ def mock_legacy_venv(venv_name: str, metadata_version: str | None = None) -> Non
     if metadata_version == "0.4":
         # Current metadata version, do nothing
         return
-    elif metadata_version == "0.3":
+    if metadata_version == "0.3":
         mock_pipx_metadata_template = MOCK_PIPXMETADATA_0_3
     elif metadata_version == "0.2":
         mock_pipx_metadata_template = MOCK_PIPXMETADATA_0_2
@@ -125,10 +139,11 @@ def mock_legacy_venv(venv_name: str, metadata_version: str | None = None) -> Non
         mock_pipx_metadata_template = MOCK_PIPXMETADATA_0_1
     elif metadata_version is None:
         # No metadata
-        os.remove(venv_dir / "pipx_metadata.json")
+        Path(venv_dir / "pipx_metadata.json").unlink()
         return
     else:
-        raise Exception(f"Internal Test Error: Unknown metadata_version={metadata_version}")
+        msg = f"Internal Test Error: Unknown metadata_version={metadata_version}"
+        raise _UnknownMetadataVersionError(msg)
 
     modern_metadata = pipx_metadata_file.PipxMetadata(venv_dir).to_dict()
 
@@ -148,7 +163,7 @@ def mock_legacy_venv(venv_name: str, metadata_version: str | None = None) -> Non
     mock_pipx_metadata["pipx_metadata_version"] = mock_pipx_metadata_template["pipx_metadata_version"]
 
     # replicate pipx_metadata_file.PipxMetadata.write()
-    with open(venv_dir / "pipx_metadata.json", "w") as pipx_metadata_fh:
+    with Path(venv_dir / "pipx_metadata.json").open("w", encoding="utf-8") as pipx_metadata_fh:
         json.dump(
             mock_pipx_metadata,
             pipx_metadata_fh,
@@ -158,7 +173,17 @@ def mock_legacy_venv(venv_name: str, metadata_version: str | None = None) -> Non
         )
 
 
-def create_package_info_ref(venv_name, package_name, pipx_venvs_dir, **field_overrides):
+def create_package_info_ref(
+    venv_name: str,
+    package_name: str,
+    pipx_venvs_dir: Path,
+    *,
+    pip_args: list[str] | None = None,
+    include_apps: bool = True,
+    include_dependencies: bool = False,
+    app_paths_of_dependencies: dict[str, list[Path]] | None = None,
+    man_paths_of_dependencies: dict[str, list[Path]] | None = None,
+) -> pipx_metadata_file.PackageInfo:
     """Create reference PackageInfo to check against
 
     Overridable fields to be used in field_overrides:
@@ -171,28 +196,31 @@ def create_package_info_ref(venv_name, package_name, pipx_venvs_dir, **field_ove
     return pipx_metadata_file.PackageInfo(
         package=package_name,
         package_or_url=PKG[package_name]["spec"],
-        pip_args=field_overrides.get("pip_args", []),
-        include_apps=field_overrides.get("include_apps", True),
-        include_dependencies=field_overrides.get("include_dependencies", False),
+        pip_args=pip_args if pip_args is not None else [],
+        include_apps=include_apps,
+        include_dependencies=include_dependencies,
         apps=PKG[package_name]["apps"],
         app_paths=[pipx_venvs_dir / venv_name / venv_bin_dir / app for app in PKG[package_name]["apps"]],
         apps_of_dependencies=PKG[package_name]["apps_of_dependencies"],
-        app_paths_of_dependencies=field_overrides.get("app_paths_of_dependencies", {}),
+        app_paths_of_dependencies=app_paths_of_dependencies if app_paths_of_dependencies is not None else {},
         man_pages=PKG[package_name].get("man_pages", []),
         man_paths=[
             pipx_venvs_dir / venv_name / "share" / "man" / man_page
             for man_page in PKG[package_name].get("man_pages", [])
         ],
         man_pages_of_dependencies=PKG[package_name].get("man_pages_of_dependencies", []),
-        man_paths_of_dependencies=field_overrides.get("man_paths_of_dependencies", {}),
+        man_paths_of_dependencies=man_paths_of_dependencies if man_paths_of_dependencies is not None else {},
         package_version=PKG[package_name]["spec"].split("==")[-1],
     )
 
 
-def assert_package_metadata(test_metadata, ref_metadata):
+def assert_package_metadata(
+    test_metadata: pipx_metadata_file.PackageInfo,
+    ref_metadata: pipx_metadata_file.PackageInfo,
+) -> None:
     # only compare sorted versions of apps, app_paths so order is not important
 
-    assert test_metadata.package_version != ""
+    assert test_metadata.package_version
     assert isinstance(test_metadata.apps, list)
     assert isinstance(test_metadata.app_paths, list)
 
@@ -201,7 +229,9 @@ def assert_package_metadata(test_metadata, ref_metadata):
         apps=sorted(test_metadata.apps),
         app_paths=sorted(test_metadata.app_paths),
         apps_of_dependencies=sorted(test_metadata.apps_of_dependencies),
-        app_paths_of_dependencies={key: sorted(value) for key, value in test_metadata.app_paths_of_dependencies.items()},
+        app_paths_of_dependencies={
+            key: sorted(value) for key, value in test_metadata.app_paths_of_dependencies.items()
+        },
     )
     ref_metadata_replaced = replace(
         ref_metadata,
@@ -213,7 +243,7 @@ def assert_package_metadata(test_metadata, ref_metadata):
     assert test_metadata_replaced == ref_metadata_replaced
 
 
-def remove_venv_interpreter(venv_name):
+def remove_venv_interpreter(venv_name: str) -> None:
     _, venv_python_path, _ = util.get_venv_paths(paths.ctx.venvs / venv_name)
     assert venv_python_path.is_file()
     venv_python_path.unlink()
@@ -221,3 +251,17 @@ def remove_venv_interpreter(venv_name):
 
 
 skip_if_windows = pytest.mark.skipif(sys.platform.startswith("win"), reason="This behavior is undefined on Windows")
+
+
+# The tests exercise the pinned index snapshot the mocked_github_api fixture serves, so whether a build exists for the
+# running interpreter is a property of that snapshot; the skip revives the tests when a refreshed snapshot carries one.
+_RUNNING_CPYTHON: Final[str] = f"cpython-{sys.version_info[0]}.{sys.version_info[1]}."
+skip_if_no_standalone_python = pytest.mark.skipif(
+    not any(
+        _RUNNING_CPYTHON in link
+        for link, _ in json.loads(
+            (Path(__file__).parents[1] / "testdata" / "standalone_python_index_20250818.json").read_text("utf-8")
+        )["releases"]
+    ),
+    reason=f"the pinned python-build-standalone index has no {_RUNNING_CPYTHON}* build",
+)

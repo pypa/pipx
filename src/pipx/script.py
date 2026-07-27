@@ -1,0 +1,254 @@
+from __future__ import annotations
+
+import base64
+import hashlib
+import re
+import stat
+import sys
+import urllib.parse
+import urllib.request
+from contextlib import contextmanager
+from dataclasses import dataclass
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import TYPE_CHECKING, Final, cast
+from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
+
+from packaging.requirements import InvalidRequirement, Requirement
+from packaging.specifiers import InvalidSpecifier, SpecifierSet
+from packaging.utils import canonicalize_name
+
+from pipx.util import PipxError
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
+
+_APP_NAME: Final[re.Pattern[str]] = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]*")
+_INLINE_METADATA: Final[re.Pattern[str]] = re.compile(
+    r"""
+    ^\#\ ///\ (?P<type>[a-zA-Z0-9-]+)$ \s
+    (?P<content> (^\#(|\ .*)$ \s)+? )
+    ^\#\ ///$
+    """,
+    re.VERBOSE | re.MULTILINE,
+)
+
+
+@dataclass(frozen=True)
+class ScriptMetadata:
+    dependencies: tuple[str, ...]
+    requires_python: str | None
+
+
+@dataclass(frozen=True)
+class _Script:
+    app: str
+    content: str
+    metadata: ScriptMetadata
+
+
+def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
+    text: Final[str] = (content.read_text(encoding="utf-8") if isinstance(content, Path) else content).removeprefix(
+        "\ufeff"
+    )
+    normalized_text: Final[str] = text.replace("\r\n", "\n")
+    matches: Final[list[re.Match[str]]] = [
+        match for match in _INLINE_METADATA.finditer(normalized_text) if match.group("type") == "script"
+    ]
+    if not matches:
+        if any(match.group("type") == "pyproject" for match in _INLINE_METADATA.finditer(normalized_text)):
+            msg = "Use `# /// script` instead of the obsolete `# /// pyproject` metadata block"
+            raise ValueError(msg)
+        return None
+    if len(matches) > 1:
+        msg = "Multiple `# /// script` metadata blocks found"
+        raise ValueError(msg)
+
+    raw: Final[dict[str, str | list[str]]] = cast(
+        "dict[str, str | list[str]]",
+        tomllib.loads(
+            "".join(
+                line[2:] if line.startswith("# ") else line[1:]
+                for line in matches[0].group("content").splitlines(keepends=True)
+            )
+        ),
+    )
+    dependencies: Final[str | list[str]] = raw.get("dependencies", [])
+    if not isinstance(dependencies, list) or not all(isinstance(dependency, str) for dependency in dependencies):
+        msg = "Inline script `dependencies` must be an array of strings."
+        raise PipxError(msg)
+    normalized: Final[list[str]] = []
+    try:
+        for dependency in dependencies:
+            normalized.append(str(Requirement(dependency)))
+    except InvalidRequirement as error:
+        msg = f"Invalid requirement {dependency}: {error}"
+        raise PipxError(msg) from error
+
+    requires_python: Final[str | None] = _normalize_requires_python(raw.get("requires-python"))
+    return ScriptMetadata(tuple(normalized), requires_python)
+
+
+def script_name_from_spec(package_spec: str, expected_apps: tuple[str, ...]) -> str | None:
+    if not _is_script_spec(package_spec):
+        return None
+    if len(expected_apps) > 1:
+        msg = "A script can provide one --app name."
+        raise PipxError(msg)
+    app: Final[str] = _script_app(package_spec, expected_apps)
+    if _APP_NAME.fullmatch(app) is None:
+        msg = f"Invalid script app name {app!r}. Pass --app with a portable command name."
+        raise PipxError(msg)
+    return canonicalize_name(app)
+
+
+@contextmanager
+def installable_script(package_name: str, package_or_url: str, expected_apps: tuple[str, ...]) -> Iterator[str]:
+    if (resolved_name := script_name_from_spec(package_or_url, expected_apps)) is None:
+        yield package_or_url
+        return
+    if canonicalize_name(package_name) != resolved_name:
+        msg = f"Script app {resolved_name!r} does not match package name {package_name!r}."
+        raise PipxError(msg)
+
+    script: Final[_Script] = _read_script(package_or_url, expected_apps)
+    with TemporaryDirectory(prefix="pipx-script-") as directory:
+        yield str(_write_wheel(Path(directory), package_name, script))
+
+
+def _is_script_spec(package_spec: str) -> bool:
+    path: Final[Path] = Path(package_spec).expanduser()
+    if path.is_file():
+        return path.suffix.lower() == ".py" or (not path.suffix and _has_inline_script_metadata(path))
+    parsed: Final[urllib.parse.SplitResult] = urllib.parse.urlsplit(package_spec)
+    return parsed.scheme in {"http", "https"} and parsed.path.lower().endswith(".py")
+
+
+def _has_inline_script_metadata(path: Path) -> bool:
+    try:
+        content: Final[str] = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return False
+    return any(match.group("type") == "script" for match in _INLINE_METADATA.finditer(content.removeprefix("\ufeff")))
+
+
+def _script_app(package_spec: str, expected_apps: tuple[str, ...]) -> str:
+    return expected_apps[0] if expected_apps else Path(urllib.parse.urlsplit(package_spec).path).stem
+
+
+def _read_script(package_or_url: str, expected_apps: tuple[str, ...]) -> _Script:
+    path: Final[Path] = Path(package_or_url).expanduser()
+    content: Final[str] = (
+        path.read_text(encoding="utf-8") if path.is_file() else _read_url(package_or_url)
+    ).removeprefix("\ufeff")
+    try:
+        metadata: Final[ScriptMetadata | None] = read_script_metadata(content)
+    except ValueError as error:
+        msg = f"Invalid inline metadata in script {package_or_url}: {error}."
+        raise PipxError(msg) from error
+    if metadata is None:
+        msg = f"Script {package_or_url} has no PEP 723 inline metadata block."
+        raise PipxError(msg)
+    return _Script(_script_app(package_or_url, expected_apps), content, metadata)
+
+
+_URL_TIMEOUT: Final[int] = 30
+# a PEP 723 script larger than this is almost certainly the wrong URL; bound the read so a stalled or huge response
+# cannot hang pipx or exhaust memory
+_MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
+
+
+def _read_url(url: str) -> str:
+    try:
+        with urllib.request.urlopen(url, timeout=_URL_TIMEOUT) as response:  # ruff:ignore[suspicious-url-open-usage]  # http(s) only, validated upstream
+            data = response.read(_MAX_SCRIPT_BYTES + 1)
+            if len(data) > _MAX_SCRIPT_BYTES:
+                msg = f"Script {url} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it."
+                raise PipxError(msg)
+            return data.decode(response.headers.get_content_charset() or "utf-8")
+    except OSError as error:
+        msg = f"Unable to read script {url}: {error}"
+        raise PipxError(msg) from error
+
+
+def _normalize_requires_python(value: str | list[str] | None) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        msg = "Inline script `requires-python` must be a string."
+        raise PipxError(msg)
+    try:
+        return str(SpecifierSet(value))
+    except InvalidSpecifier as error:
+        msg = f"Invalid `requires-python` value {value}: {error}"
+        raise PipxError(msg) from error
+
+
+def _write_wheel(directory: Path, package_name: str, script: _Script) -> Path:
+    digest: Final[str] = hashlib.sha256(script.content.encode()).hexdigest()[:12]
+    version: Final[str] = f"0+{digest}"
+    distribution: Final[str] = re.sub(r"[-_.]+", "_", package_name)
+    module: Final[str] = f"_pipx_script_{distribution}"
+    stem: Final[str] = f"{distribution}-{version}"
+    dist_info: Final[str] = f"{stem}.dist-info"
+    members: Final[dict[str, bytes]] = {
+        f"{module}/__init__.py": b"",
+        f"{module}/_runner.py": b"""import runpy
+from pathlib import Path
+
+
+def main() -> None:
+    runpy.run_path(str(Path(__file__).with_name("_script.py")), run_name="__main__")
+
+
+__all__ = [
+    "main",
+]
+""",
+        f"{module}/_script.py": script.content.encode(),
+        f"{dist_info}/entry_points.txt": f"[console_scripts]\n{script.app} = {module}._runner:main\n".encode(),
+        f"{dist_info}/METADATA": _metadata(package_name, version, script.metadata),
+        f"{dist_info}/WHEEL": b"Wheel-Version: 1.0\nGenerator: pipx\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+    }
+    record: Final[str] = f"{dist_info}/RECORD"
+    wheel: Final[Path] = directory / f"{stem}-py3-none-any.whl"
+    with ZipFile(wheel, "w", compression=ZIP_DEFLATED) as archive:
+        for name, data in members.items():
+            _write_member(archive, name, data)
+        archive.writestr(
+            record,
+            "".join(f"{name},sha256={_digest(data)},{len(data)}\n" for name, data in members.items()) + f"{record},,\n",
+        )
+    return wheel
+
+
+def _metadata(package_name: str, version: str, metadata: ScriptMetadata) -> bytes:
+    lines: Final[list[str]] = ["Metadata-Version: 2.3", f"Name: {package_name}", f"Version: {version}"]
+    if metadata.requires_python is not None:
+        lines.append(f"Requires-Python: {metadata.requires_python}")
+    lines.extend(f"Requires-Dist: {dependency}" for dependency in metadata.dependencies)
+    return ("\n".join(lines) + "\n\n").encode()
+
+
+def _write_member(archive: ZipFile, name: str, data: bytes) -> None:
+    info: Final[ZipInfo] = ZipInfo(name)
+    info.create_system = 3
+    info.external_attr = (stat.S_IFREG | 0o644) << 16
+    archive.writestr(info, data, compress_type=ZIP_DEFLATED)
+
+
+def _digest(data: bytes) -> str:
+    return base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
+
+
+__all__ = [
+    "ScriptMetadata",
+    "installable_script",
+    "read_script_metadata",
+    "script_name_from_spec",
+]

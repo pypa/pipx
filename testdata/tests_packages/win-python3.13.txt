@@ -122,7 +122,7 @@ pbr==5.6.0
 pickleshare==0.7.5
 pip==23.3.2
 pip==24.0
-pip==25.2
+pip==26.1.2
 platformdirs==4.4.0
 pluggy==1.6.0
 prometheus_client==0.23.1

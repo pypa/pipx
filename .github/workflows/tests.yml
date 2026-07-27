@@ -1,6 +1,7 @@
 name: 🧪 tests
 on:
   workflow_dispatch:
+  workflow_call:
   push:
     branches:
       - "main"
@@ -8,7 +9,9 @@ on:
   schedule:
     - cron: "0 8 * * *"
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # a literal prefix, not ${{ github.workflow }}: when release.yml calls this as a reusable workflow, github.workflow
+  # resolves to the caller ("Release"), which would collide with release.yml's own group and cancel the release run
+  group: tests-${{ github.ref }}
   cancel-in-progress: true
 permissions:
   contents: read
@@ -21,28 +24,30 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04]
-        py: ["3.13", "3.12", "3.11", "3.10"]
+        py: ["3.15", "3.15t", "3.14", "3.13", "3.12", "3.11", "3.10"]
         include:
           - os: windows-2025
-            py: "3.13"
+            py: "3.14"
           - os: macos-15
-            py: "3.13"
+            py: "3.14"
     steps:
       - name: 📥 Checkout code
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
           persist-credentials: false
       - name: 🚀 Install uv
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
       - name: 🐍 Setup Python ${{ matrix.py }}
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: ${{ matrix.py }}
+          # 3.15 is still in beta; setup-python resolves stable releases for every other matrix entry
+          allow-prereleases: true
       - name: 📦 Install tox
-        run: uv tool install --python-preference only-managed --python 3.13 "tox>=4.45" --with tox-uv
+        run: uv tool install --python-preference only-managed --python 3.14 "tox>=4.45" --with tox-uv
       - name: Persistent .pipx_tests/package_cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ github.workspace }}/.pipx_tests/package_cache/${{ matrix.py }}
           key: pipx-tests-package-cache-${{ runner.os }}-${{ matrix.py }}
@@ -55,32 +60,46 @@ jobs:
         timeout-minutes: 30
         env:
           PYTEST_ADDOPTS: "-vv --durations=20"
+  type:
+    name: 🔍 Type check
+    runs-on: ubuntu-24.04
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: 🚀 Install uv
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+      - name: 📦 Install tox
+        run: uv tool install --python-preference only-managed --python 3.14 "tox>=4.45" --with tox-uv
+      - name: 🔍 Run ty
+        run: tox run -e type
   man:
     name: 📖 Build man page
     runs-on: ubuntu-24.04
     steps:
       - name: 📥 Checkout code
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
       - name: 🚀 Install uv
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
       - name: 📦 Install tox
-        run: uv tool install --python-preference only-managed --python 3.13 "tox>=4.45" --with tox-uv
+        run: uv tool install --python-preference only-managed --python 3.14 "tox>=4.45" --with tox-uv
       - name: 📖 Build man page
         run: tox run -e man
       - name: Show man page
-        run: man -l pipx.1
+        run: man -l build/man/pipx.1
   zipapp:
     name: 📦 Build zipapp
     runs-on: ubuntu-24.04
     steps:
       - name: 📥 Checkout code
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
       - name: 🐍 Setup Python 3.10
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.10"
       - name: 📦 Build zipapp

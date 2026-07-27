@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import json
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Final
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Final, TypedDict, cast
+
+from pipx.util import PipxError
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -17,7 +21,7 @@ class Backend(ABC):
     name: str
 
     @abstractmethod
-    def create_venv(
+    def create_venv(  # ruff:ignore[too-many-arguments]  # backend contract mirrors the venv-creation CLI inputs
         self,
         root: Path,
         *,
@@ -29,7 +33,7 @@ class Backend(ABC):
     ) -> None: ...
 
     @abstractmethod
-    def install(
+    def install(  # ruff:ignore[too-many-arguments]  # install flags map one-to-one onto backend CLI options
         self,
         *,
         venv_root: Path,
@@ -40,7 +44,31 @@ class Backend(ABC):
         upgrade: bool = False,
         log_pip_errors: bool = True,
         verbose: bool = False,
+        progress: bool = False,
     ) -> CompletedProcess[str]: ...
+
+    def install_lock(  # ruff:ignore[too-many-arguments]  # forwards install inputs to install()
+        self,
+        *,
+        venv_root: Path,
+        venv_python: Path,
+        lock_file: Path,
+        pip_args: list[str],
+        verbose: bool = False,
+        progress: bool = False,
+    ) -> CompletedProcess[str]:
+        return self.install(
+            venv_root=venv_root,
+            venv_python=venv_python,
+            requirements=["--requirement", str(lock_file)],
+            pip_args=pip_args,
+            verbose=verbose,
+            progress=progress,
+        )
+
+    @staticmethod
+    @abstractmethod
+    def cooldown_args(cooldown_days: int | None) -> list[str]: ...
 
     @abstractmethod
     def uninstall(
@@ -62,7 +90,16 @@ class Backend(ABC):
     ) -> set[str]: ...
 
     @abstractmethod
-    def run_raw_pip(
+    def list_outdated(
+        self,
+        *,
+        venv_root: Path,
+        venv_python: Path,
+        index_args: list[str],
+    ) -> tuple[OutdatedPackage, ...]: ...
+
+    @abstractmethod
+    def run_raw_pip(  # ruff:ignore[too-many-arguments]  # passes raw pip invocation controls through
         self,
         *,
         venv_root: Path,
@@ -86,9 +123,45 @@ class Backend(ABC):
     ) -> None: ...
 
 
+def outdated_packages_from_process(process: CompletedProcess[str]) -> tuple[OutdatedPackage, ...]:
+    if process.returncode:
+        msg = f"Package backend exited with code {process.returncode}.\nstderr: {process.stderr}"
+        raise PipxError(
+            msg,
+            wrap_message=False,
+        )
+    return _parse_outdated_packages(process.stdout)
+
+
+def _parse_outdated_packages(output: str) -> tuple[OutdatedPackage, ...]:
+    try:
+        return tuple(
+            OutdatedPackage(entry["name"], entry["version"], entry["latest_version"])
+            for entry in cast("list[_OutdatedEntry]", json.loads(output))
+        )
+    except (json.JSONDecodeError, KeyError, TypeError) as error:
+        msg = "Package backend returned invalid JSON for an outdated query."
+        raise PipxError(msg, wrap_message=False) from error
+
+
+@dataclass(frozen=True)
+class OutdatedPackage:
+    name: str
+    version: str
+    latest_version: str
+
+
+class _OutdatedEntry(TypedDict):
+    name: str
+    version: str
+    latest_version: str
+
+
 __all__ = [
     "KNOWN_BACKENDS",
     "PIP",
     "UV",
     "Backend",
+    "OutdatedPackage",
+    "outdated_packages_from_process",
 ]

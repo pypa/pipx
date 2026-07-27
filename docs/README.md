@@ -56,9 +56,11 @@ pipx ensurepath
 
 ### On Linux
 
+Install pipx with your distribution's package manager. See the
+[Linux installation instructions](https://pipx.pypa.io/stable/how-to/install-pipx/) for commands and alternatives.
+
 ```
-python3 -m pip install --user pipx
-python3 -m pipx ensurepath
+pipx ensurepath
 ```
 
 ### On Windows

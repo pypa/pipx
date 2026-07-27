@@ -5,6 +5,9 @@ setup(
     version=0.1,
     description="Repeat arguments.",
     packages=["repeatme"],
-    extras_require={"cow": ["pycowsay==0.0.0.2"]},
+    extras_require={
+        "cow": ["pycowsay==0.0.0.2"],
+        "tools": ["black==22.8.0", "pycowsay==0.0.0.2"],
+    },
     entry_points={"console_scripts": ["repeatme=repeatme.main:main"]},
 )

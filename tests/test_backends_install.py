@@ -17,7 +17,8 @@ def test_install_pip_with_uv_backend_errors(capsys: pytest.CaptureFixture[str]) 
 
 
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH; skipping uv integration smoke")
-def test_uv_backend_install_uninstall_smoke(pipx_temp_env, capsys: pytest.CaptureFixture[str]) -> None:
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uv_backend_install_uninstall_smoke(capsys: pytest.CaptureFixture[str]) -> None:
     # Asserts that a uv-built venv records ``backend="uv"``, exposes apps the
     # same way pip venvs do, and uninstalls without re-invoking uv.
     install_rc = run_pipx_cli(["install", "pycowsay", "--backend", "uv", "--python", sys.executable])
@@ -36,3 +37,11 @@ def test_uv_backend_install_uninstall_smoke(pipx_temp_env, capsys: pytest.Captur
     uninstall_rc = run_pipx_cli(["uninstall", "pycowsay"])
     assert uninstall_rc == 0
     assert not metadata_file.exists()
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH; skipping uv integration smoke")
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uv_backend_force_install_existing() -> None:
+    command = ["install", "pycowsay", "--backend", "uv"]
+    assert run_pipx_cli(command) == 0
+    assert run_pipx_cli([*command, "--force"]) == 0

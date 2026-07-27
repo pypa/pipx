@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 import fnmatch
+import importlib
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -8,8 +12,40 @@ from pipx import paths
 from pipx.commands.environment import ENVIRONMENT_VARIABLES
 from pipx.paths import get_expanded_environ
 
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
-def test_cli(pipx_temp_env, monkeypatch, capsys):
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_cli_value_skips_unrelated_discovery(
+    mocker: MockerFixture,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    environment_module = importlib.import_module("pipx.commands.environment")
+    resolve_backend_name = mocker.patch.object(
+        environment_module,
+        "resolve_backend_name",
+        autospec=True,
+        return_value=("pip", "auto-pip"),
+    )
+    find_uv_binary = mocker.patch.object(
+        environment_module,
+        "find_uv_binary",
+        autospec=True,
+        return_value=(None, "missing"),
+    )
+    get_default_python = mocker.patch.object(environment_module, "get_default_python", autospec=True)
+
+    assert not run_pipx_cli(["environment", "--value", "PIPX_HOME"])
+
+    assert capsys.readouterr().out.strip() == str(paths.ctx.home)
+    resolve_backend_name.assert_not_called()
+    find_uv_binary.assert_not_called()
+    get_default_python.assert_not_called()
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_cli(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["environment"])
     captured = capsys.readouterr()
     assert fnmatch.fnmatch(captured.out, "*PIPX_HOME=*subdir/pipxhome*")
@@ -25,7 +61,7 @@ def test_cli(pipx_temp_env, monkeypatch, capsys):
         assert env_var in captured.out
 
 
-def test_cli_with_args(monkeypatch, capsys):
+def test_cli_with_args(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["environment", "--value", "PIPX_HOME"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_BIN_DIR"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_MAN_DIR"])
@@ -37,7 +73,6 @@ def test_cli_with_args(monkeypatch, capsys):
     assert not run_pipx_cli(["environment", "--value", "PIPX_DEFAULT_PYTHON"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE"])
     assert not run_pipx_cli(["environment", "--value", "PIPX_USE_EMOJI"])
-    assert not run_pipx_cli(["environment", "--value", "PIPX_HOME_ALLOW_SPACE"])
 
     with pytest.raises(SystemExit) as excinfo:
         run_pipx_cli(["environment", "--value", "SSS"])
@@ -46,7 +81,31 @@ def test_cli_with_args(monkeypatch, capsys):
     assert "invalid choice" in captured.err
 
 
-def test_resolve_user_dir_in_env_paths(monkeypatch):
+@pytest.mark.parametrize(
+    ("variable", "value"),
+    [
+        ("PIPX_GLOBAL_HOME", "global-home"),
+        ("PIPX_GLOBAL_BIN_DIR", "global-bin"),
+        ("PIPX_GLOBAL_MAN_DIR", "global-man"),
+        ("PIPX_DEFAULT_BACKEND", "pip"),
+        ("PIPX_FETCH_MISSING_PYTHON", "1"),
+        ("PIPX_FETCH_PYTHON", "missing"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_cli_with_user_environment_value(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    variable: str,
+    value: str,
+) -> None:
+    monkeypatch.setenv(variable, value)
+
+    assert not run_pipx_cli(["environment", "--value", variable])
+    assert capsys.readouterr().out == f"{value}\n"
+
+
+def test_resolve_user_dir_in_env_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TEST_DIR", "~/test")
     home = Path.home()
     env_dir = get_expanded_environ("TEST_DIR")
@@ -56,31 +115,42 @@ def test_resolve_user_dir_in_env_paths(monkeypatch):
     assert env_dir is None
 
 
-def test_allow_space_in_pipx_home(
-    monkeypatch,
-    capsys,
-    tmp_path,
-):
-    home_dir = Path(tmp_path) / "path with space"
-    monkeypatch.setattr(paths.ctx, "_base_home", home_dir)
-    assert not run_pipx_cli(["environment", "--value", "PIPX_HOME_ALLOW_SPACE"])
-    paths.ctx.log_warnings()
-    captured = capsys.readouterr()
-    assert "Found a space" in captured.err
-    assert "false" in captured.out
+@pytest.mark.parametrize(
+    "env_name",
+    [
+        "PIPX_HOME",
+        "PIPX_GLOBAL_HOME",
+        "PIPX_BIN_DIR",
+        "PIPX_GLOBAL_BIN_DIR",
+        "PIPX_MAN_DIR",
+        "PIPX_GLOBAL_MAN_DIR",
+        "PIPX_SHARED_LIBS",
+    ],
+)
+def test_resolve_empty_env_paths(monkeypatch: pytest.MonkeyPatch, env_name: str) -> None:
+    monkeypatch.setenv(env_name, "")
 
-    monkeypatch.setenv("PIPX_HOME_ALLOW_SPACE", "1")
-    assert not run_pipx_cli(["environment", "--value", "PIPX_HOME_ALLOW_SPACE"])
-    paths.ctx.log_warnings()
-    captured = capsys.readouterr()
-    assert "Found a space" not in captured.err
-    assert "true" in captured.out
+    assert get_expanded_environ(env_name) is None
 
-    paths.ctx.make_local()
+
+def test_cli_logs_fallback_home(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    fallback_home = tmp_path / "fallback"
+    fallback_home.mkdir()
+    monkeypatch.setattr(paths.ctx, "_base_home", tmp_path / "specific")
+    monkeypatch.setattr(paths.ctx, "_fallback_home", fallback_home)
+
+    assert not run_pipx_cli(["environment", "--verbose"])
+
+    assert "Both a specific pipx home folder" in capsys.readouterr().err
 
 
 @skip_if_windows
-def test_cli_global(pipx_temp_env, monkeypatch, capsys):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_cli_global(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["environment", "--global"])
     captured = capsys.readouterr()
     assert fnmatch.fnmatch(captured.out, "*PIPX_HOME=*global/pipxhome*")

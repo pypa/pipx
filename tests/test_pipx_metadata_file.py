@@ -1,14 +1,21 @@
+from __future__ import annotations
+
+import json
 import sys
 from dataclasses import replace
 from pathlib import Path
+from typing import TYPE_CHECKING, Final
 
 import pytest
 
 from helpers import assert_package_metadata, create_package_info_ref, run_pipx_cli
 from package_info import PKG
-from pipx import paths
-from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+from pipx import paths, pipx_metadata_file
+from pipx.pipx_metadata_file import PIPX_INFO_FILENAME, JsonEncoderHandlesPath, PackageInfo, PipxMetadata
 from pipx.util import PipxError
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 TEST_PACKAGE1 = PackageInfo(
     package="test_package",
@@ -24,6 +31,7 @@ TEST_PACKAGE1 = PackageInfo(
     man_pages_of_dependencies=[str(Path("man1/dep1.1"))],
     man_paths_of_dependencies={"dep1": [Path("man1/dep1.1")]},
     package_version="0.1.2",
+    expected_apps=["testapp"],
 )
 TEST_PACKAGE2 = PackageInfo(
     package="inj_package",
@@ -42,28 +50,137 @@ TEST_PACKAGE2 = PackageInfo(
 )
 
 
-def test_pipx_metadata_file_create(tmp_path):
+def test_json_encoder_rejects_unsupported_value() -> None:
+    with pytest.raises(TypeError, match=r"complex.*not JSON serializable"):
+        json.dumps(1j, cls=JsonEncoderHandlesPath)
+
+
+def test_pipx_metadata_file_create(tmp_path: Path) -> None:
+    assert TEST_PACKAGE1.package is not None
     venv_dir = tmp_path / TEST_PACKAGE1.package
     venv_dir.mkdir()
 
     pipx_metadata = PipxMetadata(venv_dir)
     pipx_metadata.main_package = TEST_PACKAGE1
+    pipx_metadata.environment = "test-package"
     pipx_metadata.python_version = "3.4.5"
     pipx_metadata.source_interpreter = Path(sys.executable)
     pipx_metadata.venv_args = ["--system-site-packages"]
     pipx_metadata.injected_packages = {"injected": TEST_PACKAGE2}
+    pipx_metadata.exposure_enabled = False
     pipx_metadata.write()
 
     pipx_metadata2 = PipxMetadata(venv_dir)
 
     for attribute in [
         "venv_dir",
+        "environment",
         "main_package",
         "python_version",
         "venv_args",
         "injected_packages",
+        "exposure_enabled",
     ]:
         assert getattr(pipx_metadata, attribute) == getattr(pipx_metadata2, attribute)
+
+
+def test_pipx_metadata_file_defaults_exposure_for_version_0_6(tmp_path: Path) -> None:
+    venv_dir = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    payload = metadata.to_dict()
+    payload["pipx_metadata_version"] = "0.6"
+    payload.pop("exposure_enabled")
+    (venv_dir / PIPX_INFO_FILENAME).write_text(
+        json.dumps(payload, cls=JsonEncoderHandlesPath),
+        encoding="utf-8",
+    )
+
+    assert PipxMetadata(venv_dir).exposure_enabled is True
+
+
+def test_pipx_metadata_file_defaults_expected_apps_from_version_0_7(tmp_path: Path) -> None:
+    venv_dir = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    payload = metadata.to_dict()
+    payload["pipx_metadata_version"] = "0.7"
+    payload["main_package"].pop("expected_apps")
+    (venv_dir / PIPX_INFO_FILENAME).write_text(json.dumps(payload, cls=JsonEncoderHandlesPath))
+
+    assert PipxMetadata(venv_dir).main_package.expected_apps == []
+
+
+def test_pipx_metadata_file_defaults_lock_file_from_version_0_8(tmp_path: Path) -> None:
+    venv_dir = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    payload = metadata.to_dict()
+    payload["pipx_metadata_version"] = "0.8"
+    payload["main_package"].pop("lock_file")
+    (venv_dir / PIPX_INFO_FILENAME).write_text(json.dumps(payload, cls=JsonEncoderHandlesPath))
+
+    assert PipxMetadata(venv_dir).main_package.lock_file is None
+
+
+def test_pipx_metadata_file_defaults_environment_from_version_0_8(tmp_path: Path) -> None:
+    venv_dir = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    payload = metadata.to_dict()
+    payload["pipx_metadata_version"] = "0.8"
+    payload.pop("environment")
+    (venv_dir / PIPX_INFO_FILENAME).write_text(json.dumps(payload, cls=JsonEncoderHandlesPath))
+
+    assert PipxMetadata(venv_dir).environment is None
+
+
+def test_pipx_metadata_file_defaults_included_apps_from_version_0_9(tmp_path: Path) -> None:
+    venv_dir: Final[Path] = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    (venv_dir / PIPX_INFO_FILENAME).write_text(
+        json
+        .dumps(metadata.to_dict(), cls=JsonEncoderHandlesPath)
+        .replace('"pipx_metadata_version": "0.11"', '"pipx_metadata_version": "0.9"')
+        .replace('"include_resources_from": [], ', "")
+    )
+
+    assert PipxMetadata(venv_dir).main_package.include_resources_from == []
+
+
+def test_pipx_metadata_file_migrates_include_apps_from(tmp_path: Path) -> None:
+    venv_dir: Final[Path] = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    (venv_dir / PIPX_INFO_FILENAME).write_text(
+        json.dumps(metadata.to_dict(), cls=JsonEncoderHandlesPath).replace(
+            '"include_resources_from": []', '"include_apps_from": ["numpy"]'
+        )
+    )
+
+    assert PipxMetadata(venv_dir).main_package.include_resources_from == ["numpy"]
+
+
+def test_pipx_metadata_file_defaults_cooldown_from_version_0_10(tmp_path: Path) -> None:
+    venv_dir: Final[Path] = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    (venv_dir / PIPX_INFO_FILENAME).write_text(
+        json
+        .dumps(metadata.to_dict(), cls=JsonEncoderHandlesPath)
+        .replace('"pipx_metadata_version": "0.11"', '"pipx_metadata_version": "0.10"')
+        .replace('"cooldown_days": null, ', "")
+    )
+
+    assert PipxMetadata(venv_dir).main_package.cooldown_days is None
 
 
 @pytest.mark.parametrize(
@@ -74,7 +191,7 @@ def test_pipx_metadata_file_create(tmp_path):
         replace(TEST_PACKAGE1, package_or_url=None),
     ],
 )
-def test_pipx_metadata_file_validation(tmp_path, test_package):
+def test_pipx_metadata_file_validation(tmp_path: Path, test_package: PackageInfo) -> None:
     venv_dir = tmp_path / "venv"
     venv_dir.mkdir()
 
@@ -89,7 +206,31 @@ def test_pipx_metadata_file_validation(tmp_path, test_package):
         pipx_metadata.write()
 
 
-def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
+def test_write_preserves_existing_metadata_after_os_error(
+    tmp_path: Path,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    venv_dir = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata_path = venv_dir / PIPX_INFO_FILENAME
+    previous_metadata = '{"existing": true}'
+    metadata_path.write_text(previous_metadata, encoding="utf-8")
+    metadata = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = TEST_PACKAGE1
+    mocker.patch.object(pipx_metadata_file.json, "dump", side_effect=OSError("disk full"))
+
+    metadata.write()
+
+    assert (
+        metadata_path.read_text(encoding="utf-8"),
+        sorted(path.name for path in venv_dir.iterdir()),
+        f"Unable to write {PIPX_INFO_FILENAME}" in caplog.text,
+    ) == (previous_metadata, [PIPX_INFO_FILENAME], True)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_package_install() -> None:
     pipx_venvs_dir = paths.ctx.home / "venvs"
 
     run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
@@ -101,7 +242,8 @@ def test_package_install(monkeypatch, tmp_path, pipx_temp_env):
     assert pipx_metadata.injected_packages == {}
 
 
-def test_package_inject(monkeypatch, tmp_path, pipx_temp_env):
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_package_inject() -> None:
     pipx_venvs_dir = paths.ctx.home / "venvs"
 
     run_pipx_cli(["install", PKG["pycowsay"]["spec"]])

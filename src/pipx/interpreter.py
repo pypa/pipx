@@ -1,29 +1,37 @@
+from __future__ import annotations
+
 import logging
 import os
 import shutil
 import subprocess
 import sys
+from functools import cache
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from packaging import version
 
 from pipx.constants import WINDOWS, FetchPythonOptions
+from pipx.self_install import get_environment_value
 from pipx.standalone_python import download_python_build_standalone
 from pipx.util import PipxError
 
 logger = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
+    DEFAULT_PYTHON: str
+
 
 def has_venv() -> bool:
     try:
-        import venv  # noqa: F401, PLC0415
+        import venv  # ruff:ignore[unused-import, import-outside-top-level]
     except ImportError:
         return False
     return True
 
 
 class InterpreterResolutionError(PipxError):
-    def __init__(self, source: str, version: str, wrap_message: bool = True):
+    def __init__(self, source: str, version: str, *, wrap_message: bool = True) -> None:
         self.source = source
         self.version = version
         potentially_path = "/" in version
@@ -52,14 +60,14 @@ class InterpreterResolutionError(PipxError):
                 "Try setting it to an executable name (e.g. python3.10) "
                 "or a full path (e.g. /usr/bin/python3.10)."
             )
-        super().__init__(message, wrap_message)
+        super().__init__(message, wrap_message=wrap_message)
 
 
 def find_unix_command_python(python_version: str) -> str | None:
     try:
         parsed_python_version = version.parse(python_version)
     except version.InvalidVersion:
-        logger.info(f"Invalid Python version: {python_version}")
+        logger.info("Invalid Python version: %s", python_version)
         return None
 
     if (
@@ -68,7 +76,7 @@ def find_unix_command_python(python_version: str) -> str | None:
         or parsed_python_version.is_postrelease
         or parsed_python_version.is_prerelease
     ):
-        logger.info(f"Unsupported Python version: {python_version}")
+        logger.info("Unsupported Python version: %s", python_version)
         return None
 
     # Python command could be `python3` or `python3.x` without micro version component
@@ -76,13 +84,16 @@ def find_unix_command_python(python_version: str) -> str | None:
 
     python_path = shutil.which(python_command)
     if not python_path:
-        logger.info(f"Command `{python_command}` was not found on the system")
+        logger.info("Command `%s` was not found on the system", python_command)
         return None
 
     if parsed_python_version.micro != 0:
         logger.warning(
-            f"The command '{python_command}' located at '{python_path}' will be used. "
-            f"It may not match the specified version {python_version} at the micro/patch level."
+            "The command '%s' located at '%s' will be used. "
+            "It may not match the specified version %s at the micro/patch level.",
+            python_command,
+            python_path,
+            python_version,
         )
 
     return python_path
@@ -98,10 +109,11 @@ def _fetch_standalone_interpreter(python_version: str) -> str:
 def find_python_interpreter(python_version: str, fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER) -> str:
     if fetch_python == FetchPythonOptions.ALWAYS:
         if os.sep in python_version or "/" in python_version or Path(python_version).is_file():
-            raise PipxError(
+            msg = (
                 f"--fetch-python={FetchPythonOptions.ALWAYS} requires a Python version "
                 f"(e.g. '3.13'), got '{python_version}'."
             )
+            raise PipxError(msg)
         return _fetch_standalone_interpreter(python_version)
 
     if Path(python_version).is_file() or shutil.which(python_version):
@@ -160,7 +172,8 @@ def _find_default_windows_python() -> str:
     python = find_py_launcher_python() or shutil.which("python")
 
     if python is None:
-        raise PipxError("No suitable Python found")
+        msg = "No suitable Python found"
+        raise PipxError(msg)
 
     # If the path contains "WindowsApps", it's the store python
     if "WindowsApps" not in python:
@@ -172,18 +185,19 @@ def _find_default_windows_python() -> str:
     proc = subprocess.run([python, "-V"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
     if proc.returncode != 0:
         # Cover the 9009 return code preemptively.
-        raise PipxError("No suitable Python found")
+        msg = "No suitable Python found"
+        raise PipxError(msg)
     if not proc.stdout.strip():
         # A real Python should print version, Windows Store stub won't.
-        raise PipxError("No suitable Python found")
+        msg = "No suitable Python found"
+        raise PipxError(msg)
     return python  # This executable seems to work.
 
 
 def _get_sys_executable() -> str:
     if WINDOWS:
         return _find_default_windows_python()
-    else:
-        return str(Path(sys.executable).resolve())
+    return str(Path(sys.executable).resolve())
 
 
 def _resolve_python(python: str) -> str:
@@ -196,9 +210,31 @@ def _resolve_python(python: str) -> str:
     raise InterpreterResolutionError(source="PIPX_DEFAULT_PYTHON", version=python)
 
 
-env_default_python = os.environ.get("PIPX_DEFAULT_PYTHON")
+def get_default_python_spec() -> str:
+    return get_environment_value("PIPX_DEFAULT_PYTHON") or sys.executable
 
-if not env_default_python:
-    DEFAULT_PYTHON = _get_sys_executable()
-else:
-    DEFAULT_PYTHON = _resolve_python(env_default_python)
+
+@cache
+def get_default_python() -> str:
+    if (python := get_environment_value("PIPX_DEFAULT_PYTHON")) is None:
+        return _get_sys_executable()
+    return _resolve_python(python)
+
+
+def __getattr__(name: str) -> object:
+    if name == "DEFAULT_PYTHON":
+        return get_default_python()
+    msg = f"module {__name__!r} has no attribute {name!r}"
+    raise AttributeError(msg)
+
+
+__all__ = [
+    "DEFAULT_PYTHON",
+    "InterpreterResolutionError",
+    "find_py_launcher_python",
+    "find_python_interpreter",
+    "find_unix_command_python",
+    "get_default_python",
+    "get_default_python_spec",
+    "has_venv",
+]

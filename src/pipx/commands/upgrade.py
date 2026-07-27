@@ -1,118 +1,211 @@
+from __future__ import annotations
+
 import logging
 import os
-import sys
-from collections.abc import Sequence
-from pathlib import Path
-from typing import Final
+from dataclasses import dataclass, replace
+from enum import Enum
+from typing import TYPE_CHECKING, Final
 
 from pipx import commands, paths
 from pipx.colors import bold, red
-from pipx.commands.common import expose_resources_globally
-from pipx.constants import EXIT_CODE_OK, ExitCode
+from pipx.commands.common import expose_package_resources, locked_package_message, validate_expected_apps
+from pipx.commands.outdated import inspect_outdated
+from pipx.commands.transaction import preserve_venv
+from pipx.constants import ExitCode
 from pipx.emojis import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade
+from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.shared_libs import shared_libs
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv, VenvContainer
 
+if TYPE_CHECKING:
+    from collections.abc import Collection, Sequence
+    from pathlib import Path
+
+    from filelock import BaseFileLock
+
+    from pipx.commands.outdated import OutdatedData
+    from pipx.pipx_metadata_file import PackageInfo
+
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
-def _upgrade_package(
-    venv: Venv,
-    package_name: str,
+def upgrade(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat upgrade option set across the selected venvs
+    venv_dirs: dict[str, Path],
+    python: str | None,
     pip_args: list[str],
-    is_main_package: bool,
+    venv_args: list[str],
+    *,
+    verbose: bool,
+    include_injected: bool,
     force: bool,
-    upgrading_all: bool,
-) -> int:
-    """Returns 1 if package version changed, 0 if same version"""
-    package_metadata = venv.package_metadata[package_name]
+    install: bool,
+    python_flag_passed: bool = False,
+    backend: str | None = None,
+    env_backend: str | None = None,
+    cooldown_days: int | None = None,
+) -> OperationResult[UpgradeData]:
+    results: Final[list[PackageUpgradeResult]] = []
+    install_messages: Final[list[OutputMessage]] = []
 
-    if package_metadata.package_or_url is None:
-        raise PipxError(f"Internal Error: package {package_name} has corrupt pipx metadata.")
-    elif package_metadata.pinned:
-        if package_metadata.package != venv.main_package_name:
-            _LOGGER.warning(
-                f"Not upgrading pinned package {package_metadata.package} in venv {venv.name}. "
-                f"Run `pipx unpin {venv.name}` to unpin it."
-            )
-        else:
-            _LOGGER.warning(f"Not upgrading pinned package {venv.name}. Run `pipx unpin {venv.name}` to unpin it.")
-        return 0
-
-    package_or_url = parse_specifier_for_upgrade(package_metadata.package_or_url)
-    old_version = package_metadata.package_version
-
-    venv.upgrade_package(
-        package_name,
-        package_or_url,
-        pip_args,
-        include_dependencies=package_metadata.include_dependencies,
-        include_apps=package_metadata.include_apps,
-        is_main_package=is_main_package,
-        suffix=package_metadata.suffix,
-    )
-
-    package_metadata = venv.package_metadata[package_name]
-
-    display_name = f"{package_metadata.package}{package_metadata.suffix}"
-    new_version = package_metadata.package_version
-
-    if package_metadata.include_apps:
-        expose_resources_globally(
-            "app",
-            paths.ctx.bin_dir,
-            package_metadata.app_paths,
-            force=force,
-            suffix=package_metadata.suffix,
-        )
-        expose_resources_globally("man", paths.ctx.man_dir, package_metadata.man_paths, force=force)
-
-    if package_metadata.include_dependencies:
-        for app_paths in package_metadata.app_paths_of_dependencies.values():
-            expose_resources_globally(
-                "app",
-                paths.ctx.bin_dir,
-                app_paths,
-                force=force,
-                suffix=package_metadata.suffix,
-            )
-        for man_paths in package_metadata.man_paths_of_dependencies.values():
-            expose_resources_globally("man", paths.ctx.man_dir, man_paths, force=force)
-
-    if old_version == new_version:
-        if upgrading_all:
-            pass
-        else:
-            print(
-                pipx_wrap(
-                    f"""
-                    {display_name} is already at latest version {old_version}
-                    (location: {venv.root!s})
-                    """
+    for venv_dir in venv_dirs.values():
+        with VenvContainer(venv_dir.parent).venv_lock(venv_dir) as venv_lock:
+            results.extend(
+                _upgrade_venv(
+                    venv_dir,
+                    pip_args,
+                    verbose=verbose,
+                    include_injected=include_injected,
+                    force=force,
+                    install=install,
+                    venv_args=venv_args,
+                    python=python,
+                    python_flag_passed=python_flag_passed,
+                    backend=backend,
+                    env_backend=env_backend,
+                    venv_lock=venv_lock,
+                    cooldown_days=cooldown_days,
+                    extra_messages=install_messages,
                 )
             )
-        return 0
-    else:
-        print(
-            pipx_wrap(
-                f"""
-                upgraded package {display_name} from {old_version} to
-                {new_version} (location: {venv.root!s})
-                """
+
+    package_results: Final[tuple[PackageUpgradeResult, ...]] = tuple(results)
+    return OperationResult(
+        command=("upgrade",),
+        data=UpgradeData(packages=package_results, skipped=()),
+        messages=(
+            *install_messages,
+            *(message for result in package_results for message in _package_messages(result, upgrading_all=False)),
+        ),
+    )
+
+
+def upgrade_all(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat upgrade-all option set
+    venv_container: VenvContainer,
+    *,
+    verbose: bool,
+    pip_args: list[str],
+    include_injected: bool,
+    skip: Sequence[str],
+    force: bool,
+    python_flag_passed: bool = False,
+    backend: str | None = None,
+    env_backend: str | None = None,
+    cooldown_days: int | None = None,
+) -> OperationResult[UpgradeData]:
+    outdated: Final[OutdatedData] = inspect_outdated(
+        venv_container,
+        include_injected=include_injected,
+        upgradable_only=True,
+        pip_args=pip_args,
+        skip=skip,
+        backend=backend,
+        env_backend=env_backend,
+    )
+    candidates: Final[set[tuple[str, str]]] = {
+        (package.environment, package.package) for package in outdated.packages
+    } | {
+        (package.environment, package.package)
+        for package in outdated.skipped
+        if package.reason in {"editable", "non-index"}
+    }
+    check_failures: Final[dict[str, list[str]]] = {}
+    for failure in outdated.failures:
+        check_failures.setdefault(failure.environment, []).append(failure.error)
+
+    failures: Final[list[FailedUpgrade]] = []
+    messages: Final[list[OutputMessage]] = []
+    results: Final[list[PackageUpgradeResult]] = []
+    skipped: Final[list[SkippedUpgrade]] = []
+
+    for venv_dir in venv_container.iter_venv_dirs():
+        if venv_dir.name in skip:
+            skipped.append(SkippedUpgrade(venv_dir.name, "requested"))
+            continue
+        with venv_container.venv_lock(venv_dir) as venv_lock:
+            venv: Venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
+            if "--editable" in venv.pipx_metadata.main_package.pip_args:
+                skipped.append(SkippedUpgrade(venv_dir.name, "editable"))
+                continue
+            try:  # ruff:ignore[too-many-statements-in-try-clause]  # one PipxError handler must cover the whole per-venv upgrade
+                _validate_venv_for_upgrade(venv_dir, venv)
+                _raise_check_failures(venv, check_failures)
+                packages_to_upgrade: set[str] = {
+                    package_name
+                    for package_name, package in venv.package_metadata.items()
+                    if (package_name == venv.main_package_name or include_injected)
+                    and (venv.name, f"{package_name}{package.suffix}") in candidates
+                }
+                package_results: tuple[PackageUpgradeResult, ...] = _upgrade_venv(
+                    venv_dir,
+                    pip_args,
+                    verbose=verbose,
+                    include_injected=include_injected,
+                    force=force,
+                    python_flag_passed=python_flag_passed,
+                    backend=backend,
+                    env_backend=env_backend,
+                    venv=venv,
+                    packages_to_upgrade=packages_to_upgrade,
+                    venv_lock=venv_lock,
+                    cooldown_days=cooldown_days,
+                    extra_messages=messages,
+                )
+                results.extend(package_results)
+                for result in package_results:
+                    messages.extend(_package_messages(result, upgrading_all=True))
+            except PipxError as error:
+                failures.append(FailedUpgrade(venv_dir.name, str(error)))
+                messages.append(OutputMessage(str(error), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
+    if not any(result.status is UpgradeStatus.UPGRADED for result in results):
+        messages.append(OutputMessage(f"No packages upgraded after running 'pipx upgrade-all' {sleep}"))
+    if failures:
+        messages.append(
+            OutputMessage(
+                f"The following package(s) failed to upgrade: {','.join(failure.environment for failure in failures)}",
+                stream=OutputStream.STDERR,
+                level=OutputLevel.ERROR,
             )
         )
-        return 1
+    return OperationResult(
+        command=("upgrade-all",),
+        data=UpgradeData(packages=tuple(results), skipped=tuple(skipped)),
+        messages=tuple(messages),
+        exit_code=ExitCode(1 if failures else 0),
+        errors=tuple(
+            OperationError(code="package_upgrade_failed", message=f.error, environment=f.environment) for f in failures
+        ),
+        succeeded=bool(results or skipped),
+    )
 
 
-def _upgrade_venv(
+def _raise_check_failures(venv: Venv, check_failures: dict[str, list[str]]) -> None:
+    # index-check failures block an unlocked upgrade; raise so the enclosing handler records the environment
+    if venv.pipx_metadata.main_package.lock_file is None and (errors := check_failures.get(venv.name)):
+        raise PipxError("\n".join(errors), wrap_message=False)
+
+
+def upgrade_shared(
+    pip_args: list[str],
+    *,
+    verbose: bool,
+) -> OperationResult[SharedData]:
+    # pip-backed installs use this environment regardless of the installed environments' backends.
+    shared_libs.upgrade(verbose=verbose, pip_args=pip_args, raises=True)
+    return OperationResult(
+        command=("upgrade-shared",),
+        data=SharedData(location=str(shared_libs.root)),
+        messages=(OutputMessage(f"Upgraded the shared libraries in {shared_libs.root}."),),
+    )
+
+
+def _upgrade_venv(  # ruff:ignore[too-many-arguments]  # upgrade forwards the full install/upgrade context for one venv
     venv_dir: Path,
     pip_args: list[str],
-    verbose: bool,
     *,
+    verbose: bool,
     include_injected: bool,
-    upgrading_all: bool,
     force: bool,
     install: bool = False,
     venv_args: list[str] | None = None,
@@ -121,20 +214,16 @@ def _upgrade_venv(
     backend: str | None = None,
     env_backend: str | None = None,
     venv: Venv | None = None,
-    shared_libs_already_checked: bool = False,
-) -> int:
-    """Return number of packages whose versions changed.
-
-    ``upgrade-all`` passes ``venv`` and ``shared_libs_already_checked=True``
-    after its own pre-checks to avoid re-running them per venv.
-    """
+    packages_to_upgrade: Collection[str] | None = None,
+    venv_lock: BaseFileLock | None = None,
+    cooldown_days: int | None = None,
+    extra_messages: list[OutputMessage],
+) -> tuple[PackageUpgradeResult, ...]:
     if not venv_dir.is_dir():
         if install:
-            if venv_args is None:
-                venv_args = []
-            commands.install(
+            installed = commands.install(
                 venv_dir=None,
-                venv_args=venv_args,
+                venv_args=venv_args or [],
                 package_names=None,
                 package_specs=[str(venv_dir).split(os.path.sep)[-1]],
                 local_bin_dir=paths.ctx.bin_dir,
@@ -145,180 +234,314 @@ def _upgrade_venv(
                 force=force,
                 reinstall=False,
                 include_dependencies=False,
+                include_resources_from=(),
                 preinstall_packages=None,
                 python_flag_passed=python_flag_passed,
                 backend=backend,
                 env_backend=env_backend,
+                venv_lock=venv_lock,
+                cooldown_days=cooldown_days,
+                emit_output=False,
             )
-            return 0
-        else:
-            raise PipxError(
-                f"""
-                Package is not installed. Expected to find {venv_dir!s}, but it
-                does not exist.
-                """
-            )
+            # install does not raise when it does not render, so surface a failed result here
+            if installed.errors:
+                raise PipxError(installed.errors[0].message)
+            extra_messages.extend(installed.messages)
+            return ()
+        msg = f"""
+            Package is not installed. Expected to find {venv_dir!s}, but it
+            does not exist.
+            """
+        raise PipxError(msg)
 
     if venv_args and not install:
-        _LOGGER.info(f"Ignoring {', '.join(venv_args)} as not combined with --install")
+        _LOGGER.info("Ignoring %s as not combined with --install", ", ".join(venv_args))
 
     if python and not install:
         _LOGGER.info("Ignoring --python as not combined with --install")
 
     if venv is None:
         venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
-    if not pip_args:
-        pip_args = venv.pipx_metadata.main_package.pip_args
-    if not shared_libs_already_checked:
-        venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
+        _validate_venv_for_upgrade(venv_dir, venv)
 
+    main_package: Final[PackageInfo] = venv.pipx_metadata.main_package
+    if main_package.lock_file is not None:
+        return (
+            PackageUpgradeResult(
+                environment=venv.name,
+                package=venv.name,
+                previous_version=main_package.package_version,
+                version=main_package.package_version,
+                status=UpgradeStatus.LOCKED,
+                injected=False,
+                location=str(venv.root),
+                interpreter=venv.pipx_metadata.python_version,
+                backend=venv.pipx_metadata.backend,
+            ),
+        )
+
+    main_pip_args: Final[list[str]] = pip_args or main_package.pip_args
+    if packages_to_upgrade is None or packages_to_upgrade:
+        venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=verbose)
+
+    with preserve_venv(
+        venv_dir,
+        enabled=(packages_to_upgrade is None or bool(packages_to_upgrade))
+        and any(package.expected_apps for package in venv.package_metadata.values()),
+    ):
+        return _upgrade_packages(
+            venv,
+            main_pip_args,
+            pip_args,
+            include_injected=include_injected,
+            force=force,
+            packages_to_upgrade=packages_to_upgrade,
+            cooldown_days=cooldown_days,
+        )
+
+
+def _validate_venv_for_upgrade(venv_dir: Path, venv: Venv) -> None:
     if not venv.python_path.is_file():
-        raise PipxError(
+        msg = (
             f"Not upgrading {red(bold(venv_dir.name))}. It has an invalid python interpreter {venv.python_path}.\n"
             f"This usually happens after a system Python upgrade.\n"
-            f"To fix, execute: pipx reinstall-all",
+            f"To fix, execute: pipx reinstall-all"
+        )
+        raise PipxError(
+            msg,
             wrap_message=False,
         )
 
     if not venv.package_metadata:
-        raise PipxError(
+        msg = (
             f"Not upgrading {red(bold(venv_dir.name))}. It has missing internal pipx metadata.\n"
             f"It was likely installed using a pipx version before 0.15.0.0.\n"
-            f"Please uninstall and install this package to fix.",
+            f"Please uninstall and install this package to fix."
+        )
+        raise PipxError(
+            msg,
             wrap_message=False,
         )
 
-    # Upgrade shared libraries (pip, setuptools and wheel)
-    venv.upgrade_packaging_libraries(pip_args)
 
-    versions_updated = 0
-
-    package_name = venv.main_package_name
-    versions_updated += _upgrade_package(
-        venv,
-        package_name,
-        pip_args,
-        is_main_package=True,
-        force=force,
-        upgrading_all=upgrading_all,
-    )
-
-    if include_injected:
-        for package_name in venv.package_metadata:
-            if package_name == venv.main_package_name:
-                continue
-            injected_pip_args = pip_args or venv.package_metadata[package_name].pip_args
-            versions_updated += _upgrade_package(
-                venv,
-                package_name,
-                injected_pip_args,
-                is_main_package=False,
-                force=force,
-                upgrading_all=upgrading_all,
-            )
-
-    return versions_updated
-
-
-def upgrade(
-    venv_dirs: dict[str, Path],
-    python: str | None,
+def _upgrade_packages(  # ruff:ignore[too-many-arguments]  # upgrade needs both pip-arg sets plus the injected/force/cooldown flags
+    venv: Venv,
+    main_pip_args: list[str],
     pip_args: list[str],
-    venv_args: list[str],
-    verbose: bool,
     *,
     include_injected: bool,
     force: bool,
-    install: bool,
-    python_flag_passed: bool = False,
-    backend: str | None = None,
-    env_backend: str | None = None,
-) -> ExitCode:
-    """Return pipx exit code."""
-
-    for venv_dir in venv_dirs.values():
-        _ = _upgrade_venv(
-            venv_dir,
-            pip_args,
-            verbose,
-            include_injected=include_injected,
-            upgrading_all=False,
-            force=force,
-            install=install,
-            venv_args=venv_args,
-            python=python,
-            python_flag_passed=python_flag_passed,
-            backend=backend,
-            env_backend=env_backend,
+    packages_to_upgrade: Collection[str] | None,
+    cooldown_days: int | None,
+) -> tuple[PackageUpgradeResult, ...]:
+    package_names: Final[list[str]] = [venv.main_package_name]
+    if include_injected:
+        package_names.extend(
+            package_name for package_name in venv.package_metadata if package_name != venv.main_package_name
         )
 
-    # Any error in upgrade will raise PipxError (e.g. from venv.upgrade_package())
-    return EXIT_CODE_OK
-
-
-def upgrade_all(
-    venv_container: VenvContainer,
-    verbose: bool,
-    *,
-    pip_args: list[str],
-    include_injected: bool,
-    skip: Sequence[str],
-    force: bool,
-    python_flag_passed: bool = False,
-    backend: str | None = None,
-    env_backend: str | None = None,
-) -> ExitCode:
-    """Return pipx exit code."""
-    failed: list[str] = []
-    upgraded: list[str] = []
-
-    for venv_dir in venv_container.iter_venv_dirs():
-        # Cheap skip-list check first so we don't pay metadata read +
-        # cross-backend warning + shared-libs health check on excluded venvs.
-        if venv_dir.name in skip:
-            continue
-        venv = Venv(venv_dir, verbose=verbose, backend=backend, env_backend=env_backend)
-        if "--editable" in venv.pipx_metadata.main_package.pip_args:
-            continue
-        venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
-        try:
-            versions_updated = _upgrade_venv(
-                venv_dir,
-                pip_args,
-                verbose=verbose,
-                include_injected=include_injected,
-                upgrading_all=True,
-                force=force,
-                python_flag_passed=python_flag_passed,
-                backend=backend,
-                env_backend=env_backend,
-                venv=venv,
-                shared_libs_already_checked=True,
+    selected: Final[set[str]] = (
+        set(package_names) if packages_to_upgrade is None else set(package_names).intersection(packages_to_upgrade)
+    )
+    if cooldown_days is not None:
+        cooldown_packages: Final[tuple[str, ...]] = tuple(
+            package_name
+            for package_name in package_names
+            if package_name not in selected
+            and not venv.package_metadata[package_name].pinned
+            and venv.package_metadata[package_name].cooldown_days != cooldown_days
+        )
+        for package_name in cooldown_packages:
+            updated: PackageInfo = replace(venv.package_metadata[package_name], cooldown_days=cooldown_days)
+            if package_name == venv.main_package_name:
+                venv.pipx_metadata.main_package = updated
+            else:
+                venv.pipx_metadata.injected_packages[package_name] = updated
+        if cooldown_packages:
+            venv.pipx_metadata.write()
+    if selected:
+        venv.upgrade_packaging_libraries(main_pip_args)
+    results: Final[list[PackageUpgradeResult]] = []
+    for package_name in package_names:
+        if package_name in selected:
+            results.append(
+                _upgrade_package(
+                    venv,
+                    package_name,
+                    main_pip_args
+                    if package_name == venv.main_package_name
+                    else pip_args or venv.package_metadata[package_name].pip_args,
+                    is_main_package=package_name == venv.main_package_name,
+                    force=force,
+                    cooldown_days=cooldown_days,
+                )
             )
-            if versions_updated > 0:
-                upgraded.append(venv_dir.name)
-        except PipxError as e:
-            print(e, file=sys.stderr)
-            failed.append(venv_dir.name)
-    if len(upgraded) == 0:
-        print(f"No packages upgraded after running 'pipx upgrade-all' {sleep}")
-    if len(failed) > 0:
-        raise PipxError(f"The following package(s) failed to upgrade: {','.join(failed)}")
-    # Any failure to install will raise PipxError, otherwise success
-    return EXIT_CODE_OK
+        else:
+            results.append(
+                _package_result(
+                    venv,
+                    package_name,
+                    UpgradeStatus.PINNED if venv.package_metadata[package_name].pinned else UpgradeStatus.UNCHANGED,
+                )
+            )
+
+    return tuple(results)
 
 
-def upgrade_shared(
-    verbose: bool,
+def _upgrade_package(  # ruff:ignore[too-many-arguments]  # upgrade of one package needs its pip args plus the main/force/cooldown context
+    venv: Venv,
+    package_name: str,
     pip_args: list[str],
-) -> ExitCode:
-    # Always refreshes: the next pip-backed install needs a fresh shared-libs
-    # venv even when all currently-installed venvs are uv-backed.
-    shared_libs.upgrade(verbose=verbose, pip_args=pip_args, raises=True)
-    return EXIT_CODE_OK
+    *,
+    is_main_package: bool,
+    force: bool,
+    cooldown_days: int | None,
+) -> PackageUpgradeResult:
+    package_metadata = venv.package_metadata[package_name]
+
+    if package_metadata.package_or_url is None:
+        msg = f"Internal Error: package {package_name} has corrupt pipx metadata."
+        raise PipxError(msg)
+    if package_metadata.pinned:
+        return _package_result(venv, package_name, UpgradeStatus.PINNED)
+
+    old_version: Final[str] = package_metadata.package_version
+
+    venv.upgrade_package(
+        package_name,
+        parse_specifier_for_upgrade(package_metadata.package_or_url),
+        pip_args,
+        include_dependencies=package_metadata.include_dependencies,
+        include_resources_from=package_metadata.include_resources_from,
+        include_apps=package_metadata.include_apps,
+        is_main_package=is_main_package,
+        suffix=package_metadata.suffix,
+        expected_apps=package_metadata.expected_apps,
+        cooldown_days=cooldown_days if cooldown_days is not None else package_metadata.cooldown_days,
+    )
+
+    package_metadata = venv.package_metadata[package_name]
+    validate_expected_apps(venv, package_name, package_metadata.expected_apps)
+
+    new_version: Final[str] = package_metadata.package_version
+
+    if venv.pipx_metadata.exposure_enabled:
+        expose_package_resources(package_metadata, paths.ctx.bin_dir, paths.ctx.man_dir, force=force)
+
+    return PackageUpgradeResult(
+        environment=venv.name,
+        package=f"{package_metadata.package}{package_metadata.suffix}",
+        previous_version=old_version,
+        version=new_version,
+        status=UpgradeStatus.UNCHANGED if old_version == new_version else UpgradeStatus.UPGRADED,
+        injected=package_name != venv.main_package_name,
+        location=str(venv.root),
+        interpreter=venv.pipx_metadata.python_version,
+        backend=venv.pipx_metadata.backend,
+    )
+
+
+def _package_result(venv: Venv, package_name: str, status: UpgradeStatus) -> PackageUpgradeResult:
+    package_metadata: Final[PackageInfo] = venv.package_metadata[package_name]
+    return PackageUpgradeResult(
+        environment=venv.name,
+        package=f"{package_metadata.package}{package_metadata.suffix}",
+        previous_version=package_metadata.package_version,
+        version=package_metadata.package_version,
+        status=status,
+        injected=package_name != venv.main_package_name,
+        location=str(venv.root),
+        interpreter=venv.pipx_metadata.python_version,
+        backend=venv.pipx_metadata.backend,
+    )
+
+
+def _package_messages(result: PackageUpgradeResult, *, upgrading_all: bool) -> tuple[OutputMessage, ...]:
+    if result.status is UpgradeStatus.LOCKED:
+        return (OutputMessage(locked_package_message(result.environment)),)
+    if result.status is UpgradeStatus.PINNED:
+        subject: Final[str] = (
+            f"package {result.package} in venv {result.environment}"
+            if result.injected
+            else f"package {result.environment}"
+        )
+        return (
+            OutputMessage(
+                f"Not upgrading pinned {subject}. Run `pipx unpin {result.environment}` to unpin it.",
+                stream=OutputStream.LOG,
+            ),
+        )
+    if result.status is UpgradeStatus.UNCHANGED:
+        if upgrading_all:
+            return ()
+        return (
+            OutputMessage(
+                pipx_wrap(
+                    f"""
+                    {result.package} is already at latest version {result.previous_version}
+                    (location: {result.location})
+                    """
+                )
+            ),
+        )
+    return (
+        OutputMessage(
+            pipx_wrap(
+                f"""
+                upgraded package {result.package} from {result.previous_version} to
+                {result.version} (location: {result.location})
+                """
+            )
+        ),
+    )
+
+
+class UpgradeStatus(str, Enum):
+    LOCKED = "locked"
+    PINNED = "pinned"
+    UNCHANGED = "unchanged"
+    UPGRADED = "upgraded"
+
+
+@dataclass(frozen=True)
+class PackageUpgradeResult:
+    environment: str
+    package: str
+    previous_version: str
+    version: str
+    status: UpgradeStatus
+    injected: bool
+    location: str
+    interpreter: str | None
+    backend: str
+
+
+@dataclass(frozen=True)
+class SkippedUpgrade:
+    environment: str
+    reason: str
+
+
+@dataclass(frozen=True)
+class FailedUpgrade:
+    environment: str
+    error: str
+
+
+@dataclass(frozen=True)
+class UpgradeData(OperationData):
+    packages: tuple[PackageUpgradeResult, ...]
+    skipped: tuple[SkippedUpgrade, ...]
+
+
+@dataclass(frozen=True)
+class SharedData(OperationData):
+    location: str
 
 
 __all__ = [
+    "SharedData",
+    "UpgradeData",
     "upgrade",
     "upgrade_all",
     "upgrade_shared",

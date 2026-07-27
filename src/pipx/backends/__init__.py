@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from functools import cache
 
-from pipx.backends._base import KNOWN_BACKENDS, PIP, UV, Backend
+from pipx.backends._base import KNOWN_BACKENDS, PIP, UV, Backend, OutdatedPackage
 from pipx.backends.pip import PipBackend
 from pipx.backends.uv import UvBackend, find_uv_binary
 from pipx.util import PipxError
@@ -37,18 +37,20 @@ def get_backend(name: str) -> Backend:
         return PipBackend()
     if name == UV:
         return UvBackend()
-    raise PipxError(f"Unknown backend {name!r}. Valid backends: {', '.join(KNOWN_BACKENDS)}.")
+    msg = f"Unknown backend {name!r}. Valid backends: {', '.join(KNOWN_BACKENDS)}."
+    raise PipxError(msg)
 
 
 def assert_not_pip_under_uv(package_name: str, backend_name: str) -> None:
     # Named narrowly: a future backend with its own deny-list should grow its
     # own guard rather than overload this one.
     if package_name == "pip" and backend_name != PIP:
-        raise PipxError(
+        msg = (
             "The 'pip' package cannot be installed or exposed via the uv backend, since uv venvs "
             "don't ship pip and the resulting environment would be inconsistent.\n"
             "Use `--backend pip` (or set PIPX_DEFAULT_BACKEND=pip) to install 'pip' as a tool."
         )
+        raise PipxError(msg)
 
 
 def env_default_backend() -> str | None:
@@ -60,7 +62,8 @@ def _validate(candidate: str | None) -> str | None:
     if not candidate:
         return None
     if candidate not in KNOWN_BACKENDS:
-        raise PipxError(f"Unknown backend {candidate!r}. Valid backends: {', '.join(KNOWN_BACKENDS)}.")
+        msg = f"Unknown backend {candidate!r}. Valid backends: {', '.join(KNOWN_BACKENDS)}."
+        raise PipxError(msg)
     return candidate
 
 
@@ -69,6 +72,7 @@ __all__ = [
     "PIP",
     "UV",
     "Backend",
+    "OutdatedPackage",
     "assert_not_pip_under_uv",
     "env_default_backend",
     "find_uv_binary",

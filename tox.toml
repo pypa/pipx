@@ -1,10 +1,14 @@
 requires = ["tox>=4.45"]
 
 env_list = [
+  "3.15",
+  "3.15t",
+  "3.14",
   "3.13",
   "3.12",
   "3.11",
   "3.10",
+  "type",
   "lint",
   "docs",
   "man",
@@ -41,6 +45,12 @@ commands = [
   ["python", "-c", "import sys; print(sys.executable)"],
 ]
 
+[env.type]
+description = "run the type checker"
+package = "editable"
+dependency_groups = ["type"]
+commands = [["ty", "check"]]
+
 [env.lint]
 description = "run pre-commit on the codebase"
 skip_install = true
@@ -49,11 +59,11 @@ commands = [["pre-commit", "run", "--all-files"]]
 
 [env.docs]
 description = "build documentation"
+package = "editable"
 dependency_groups = ["docs"]
-set_env.NO_MKDOCS_2_WARNING = "true"
 commands = [
-  ["mkdocs", "build", "--strict", "--site-dir", "{env:READTHEDOCS_OUTPUT:site}{/}html"],
-  ["python", "-c", "print('docs built to: file://{tox_root}{/}{env:READTHEDOCS_OUTPUT:site}{/}html{/}index.html')"],
+  ["sphinx-build", "-d", "{env_tmp_dir}{/}doctree", "-b", "html", "docs", "{env:READTHEDOCS_OUTPUT:site}{/}html", "-W", "--keep-going"],
+  ["python", "-c", "print('docs built to: file://{env:READTHEDOCS_OUTPUT:site}{/}html{/}index.html')"],
 ]
 
 [env.docs-live]
@@ -66,9 +76,18 @@ commands = [
 
 [env.man]
 description = "build man page"
+package = "editable"
 dependency_groups = ["man"]
+allowlist_externals = ["uv"]
 commands = [
-  ["python", "scripts/generate_man.py"],
+  ["python", "scripts/generate_man.py", "{tox_root}{/}docs{/}man{/}pipx.1.rst"],
+  ["uv", "build", "--out-dir", "{env_tmp_dir}{/}dist"],
+  [
+    "python",
+    "scripts/check_distribution_manpage.py",
+    "{env_tmp_dir}{/}dist",
+    "{tox_root}{/}docs{/}man{/}pipx.1.rst",
+  ],
 ]
 
 [env.zipapp]

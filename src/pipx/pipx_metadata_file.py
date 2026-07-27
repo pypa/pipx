@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import json
 import logging
+from contextlib import suppress
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Any, Final, TypedDict
 
 from pipx.backends._base import KNOWN_BACKENDS
@@ -11,7 +15,7 @@ from pipx.util import PipxError, pipx_wrap
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
-PIPX_INFO_FILENAME = "pipx_metadata.json"
+PIPX_INFO_FILENAME: Final[str] = "pipx_metadata.json"
 
 
 class _RawPackageInfo(TypedDict, total=False):
@@ -31,10 +35,18 @@ class _RawPackageInfo(TypedDict, total=False):
     apps_of_dependencies: list[str]
     app_paths_of_dependencies: dict[str, list[Path]]
     package_version: str
+    expected_apps: list[str]
+    lock_file: Path | None
+    include_resources_from: list[str]
+    cooldown_days: int | None
     man_pages: list[str]
     man_paths: list[Path]
     man_pages_of_dependencies: list[str]
     man_paths_of_dependencies: dict[str, list[Path]]
+    completions: list[str]
+    completion_paths: list[Path]
+    completions_of_dependencies: list[str]
+    completion_paths_of_dependencies: dict[str, list[Path]]
     suffix: str
     pinned: bool
 
@@ -42,12 +54,14 @@ class _RawPackageInfo(TypedDict, total=False):
 class _RawMetadata(TypedDict, total=False):
     """JSON-on-disk shape for ``pipx_metadata.json``."""
 
+    environment: str | None
     main_package: _RawPackageInfo
     python_version: str | None
     source_interpreter: Path | None
     venv_args: list[str]
     injected_packages: dict[str, _RawPackageInfo]
     backend: str
+    exposure_enabled: bool
     pipx_metadata_version: str
     pinned: bool
 
@@ -63,11 +77,10 @@ class _RawSpecFile(TypedDict, total=False):
 
 
 class JsonEncoderHandlesPath(json.JSONEncoder):
-    def default(self, obj: Any) -> Any:
-        # only handles what json.JSONEncoder doesn't understand by default
-        if isinstance(obj, Path):
-            return {"__type__": "Path", "__Path__": str(obj)}
-        return super().default(obj)
+    def default(self, o: object) -> dict[str, str]:
+        if isinstance(o, Path):
+            return {"__type__": "Path", "__Path__": str(o)}
+        return super().default(o)
 
 
 def _json_decoder_object_hook(json_dict: dict[str, Any]) -> dict[str, Any] | Path:
@@ -88,12 +101,94 @@ class PackageInfo:
     apps_of_dependencies: list[str]
     app_paths_of_dependencies: dict[str, list[Path]]
     package_version: str
+    expected_apps: list[str] = field(default_factory=list)
+    lock_file: Path | None = None
+    include_resources_from: list[str] = field(default_factory=list)
+    cooldown_days: int | None = None
     man_pages: list[str] = field(default_factory=list)
     man_paths: list[Path] = field(default_factory=list)
     man_pages_of_dependencies: list[str] = field(default_factory=list)
     man_paths_of_dependencies: dict[str, list[Path]] = field(default_factory=dict)
+    completions: list[str] = field(default_factory=list)
+    completion_paths: list[Path] = field(default_factory=list)
+    completions_of_dependencies: list[str] = field(default_factory=list)
+    completion_paths_of_dependencies: dict[str, list[Path]] = field(default_factory=dict)
     suffix: str = ""
     pinned: bool = False
+
+    @property
+    def app_paths_to_expose(self) -> list[Path]:
+        return [*(self.app_paths if self.include_apps else ()), *self._included_dependency_app_paths]
+
+    @property
+    def apps_to_expose(self) -> list[str]:
+        return [*(self.apps if self.include_apps else ()), *self.included_dependency_apps]
+
+    @property
+    def man_paths_to_expose(self) -> list[Path]:
+        return [*(self.man_paths if self.include_apps else ()), *self._included_dependency_man_paths]
+
+    @property
+    def man_pages_to_expose(self) -> list[str]:
+        return [*(self.man_pages if self.include_apps else ()), *self._included_dependency_man_pages]
+
+    @property
+    def included_dependency_apps(self) -> list[str]:
+        included_names: Final[set[str]] = {path.name for path in self._included_dependency_app_paths}
+        return [app for app in self.apps_of_dependencies if app in included_names]
+
+    @property
+    def _included_dependency_app_paths(self) -> list[Path]:
+        included_packages: Final[set[str]] = set(self.include_resources_from)
+        return [
+            path
+            for package, paths in self.app_paths_of_dependencies.items()
+            if self.include_dependencies or package in included_packages
+            for path in paths
+        ]
+
+    @property
+    def _included_dependency_man_pages(self) -> list[str]:
+        included_names: Final[set[str]] = {
+            str(Path(path.parent.name) / path.name) for path in self._included_dependency_man_paths
+        }
+        return [page for page in self.man_pages_of_dependencies if page in included_names]
+
+    @property
+    def _included_dependency_man_paths(self) -> list[Path]:
+        included_packages: Final[set[str]] = set(self.include_resources_from)
+        return [
+            path
+            for package, paths in self.man_paths_of_dependencies.items()
+            if self.include_dependencies or package in included_packages
+            for path in paths
+        ]
+
+    @property
+    def completion_paths_to_expose(self) -> list[Path]:
+        return [*(self.completion_paths if self.include_apps else ()), *self._included_dependency_completion_paths]
+
+    @property
+    def completions_to_expose(self) -> list[str]:
+        return [*(self.completions if self.include_apps else ()), *self._included_dependency_completions]
+
+    @property
+    def _included_dependency_completions(self) -> list[str]:
+        included_names: Final[set[str]] = {
+            f"{path.parent.parent.name}/{path.parent.name}/{path.name}"
+            for path in self._included_dependency_completion_paths
+        }
+        return [completion for completion in self.completions_of_dependencies if completion in included_names]
+
+    @property
+    def _included_dependency_completion_paths(self) -> list[Path]:
+        included_packages: Final[set[str]] = set(self.include_resources_from)
+        return [
+            path
+            for package, paths in self.completion_paths_of_dependencies.items()
+            if self.include_dependencies or package in included_packages
+            for path in paths
+        ]
 
 
 class PipxMetadata:
@@ -104,9 +199,9 @@ class PipxMetadata:
     # V0.4 -> Add source interpreter
     # V0.5 -> Add pinned
     # V0.6 -> Add backend (pip|uv)
-    __METADATA_VERSION__: str = "0.6"
+    __METADATA_VERSION__: Final[str] = "0.12"
 
-    def __init__(self, venv_dir: Path, read: bool = True):
+    def __init__(self, venv_dir: Path, *, read: bool = True) -> None:
         self.venv_dir = venv_dir
         # Reasonable defaults for everything except the fields the caller
         # populates from the install spec (package, package_or_url, python_version).
@@ -120,17 +215,23 @@ class PipxMetadata:
             app_paths=[],
             apps_of_dependencies=[],
             app_paths_of_dependencies={},
+            expected_apps=[],
+            lock_file=None,
+            include_resources_from=[],
+            cooldown_days=None,
             man_pages=[],
             man_paths=[],
             man_pages_of_dependencies=[],
             man_paths_of_dependencies={},
             package_version="",
         )
+        self.environment: str | None = None
         self.python_version: str | None = None
         self.source_interpreter: Path | None = None
         self.venv_args: list[str] = []
         self.injected_packages: dict[str, PackageInfo] = {}
         self.backend: str = "pip"
+        self.exposure_enabled: bool = True
         # ``None`` until ``read()`` succeeds; lets callers tell a fresh
         # instance from one with authoritative on-disk values.
         self.read_metadata_version: str | None = None
@@ -142,22 +243,24 @@ class PipxMetadata:
         # Plain dict over _RawMetadata: asdict() returns dict[str, Any] and
         # consumers serialise straight to JSON.
         return {
+            "environment": self.environment,
             "main_package": asdict(self.main_package),
             "python_version": self.python_version,
             "source_interpreter": self.source_interpreter,
             "venv_args": self.venv_args,
             "injected_packages": {name: asdict(data) for (name, data) in self.injected_packages.items()},
             "backend": self.backend,
+            "exposure_enabled": self.exposure_enabled,
             "pipx_metadata_version": self.__METADATA_VERSION__,
         }
 
     def _convert_legacy_metadata(self, metadata_dict: _RawMetadata) -> _RawMetadata:
         version = metadata_dict["pipx_metadata_version"]
-        if version in (self.__METADATA_VERSION__, "0.5"):
+        if version in {self.__METADATA_VERSION__, "0.11", "0.10", "0.9", "0.8", "0.7", "0.6", "0.5"}:
             pass
         elif version == "0.4":
             metadata_dict["pinned"] = False
-        elif version in ("0.2", "0.3"):
+        elif version in {"0.2", "0.3"}:
             metadata_dict["source_interpreter"] = None
         elif version == "0.1":
             main_package_data = metadata_dict["main_package"]
@@ -167,18 +270,25 @@ class PipxMetadata:
                 main_package_data["suffix"] = self.venv_dir.name.replace(package_name, "")
             metadata_dict["source_interpreter"] = None
         else:
-            raise PipxError(
-                f"""
+            msg = f"""
                 {self.venv_dir.name}: Unknown metadata version {version}.
                 Perhaps it was installed with a later version of pipx.
                 """
-            )
+            raise PipxError(msg)
         # ``backend`` is absent from any pre-0.6 dump; default once here.
         metadata_dict.setdefault("backend", "pip")
+        metadata_dict.setdefault("exposure_enabled", True)
+        # ``include_apps_from`` was renamed to ``include_resources_from``; carry the value across so a venv
+        # written by an earlier pipx still constructs a PackageInfo instead of raising on the unknown keyword
+        injected = metadata_dict.get("injected_packages") or {}
+        for package_data in (metadata_dict["main_package"], *injected.values()):
+            if "include_apps_from" in package_data:
+                package_data.setdefault("include_resources_from", package_data.pop("include_apps_from"))
         return metadata_dict
 
     def from_dict(self, input_dict: _RawMetadata) -> None:
         input_dict = self._convert_legacy_metadata(input_dict)
+        self.environment = input_dict.get("environment")
         self.main_package = PackageInfo(**input_dict["main_package"])
         self.python_version = input_dict.get("python_version")
         source_interpreter_raw = input_dict.get("source_interpreter")
@@ -201,6 +311,7 @@ class PipxMetadata:
             )
             recorded_backend = "pip"
         self.backend = recorded_backend
+        self.exposure_enabled = input_dict["exposure_enabled"]
         self.read_metadata_version = input_dict.get("pipx_metadata_version")
 
     def _validate_before_write(self) -> None:
@@ -209,13 +320,23 @@ class PipxMetadata:
             or self.main_package.package_or_url is None
             or not self.main_package.include_apps
         ):
-            _LOGGER.debug(f"PipxMetadata corrupt:\n{self.to_dict()}")
-            raise PipxError("Internal Error: PipxMetadata is corrupt, cannot write.")
+            _LOGGER.debug("PipxMetadata corrupt:\n%s", self.to_dict())
+            msg = "Internal Error: PipxMetadata is corrupt, cannot write."
+            raise PipxError(msg)
 
     def write(self) -> None:
         self._validate_before_write()
+        temporary_path: Path | None = None
         try:
-            with open(self.venv_dir / PIPX_INFO_FILENAME, "w", encoding="utf-8") as pipx_metadata_fh:
+            with NamedTemporaryFile(
+                "w",
+                encoding="utf-8",
+                dir=self.venv_dir,
+                prefix=f".{PIPX_INFO_FILENAME}.",
+                suffix=".tmp",
+                delete=False,
+            ) as pipx_metadata_fh:
+                temporary_path = Path(pipx_metadata_fh.name)
                 json.dump(
                     self.to_dict(),
                     pipx_metadata_fh,
@@ -223,6 +344,7 @@ class PipxMetadata:
                     sort_keys=True,
                     cls=JsonEncoderHandlesPath,
                 )
+            temporary_path.replace(self.venv_dir / PIPX_INFO_FILENAME)
         except OSError:
             _LOGGER.warning(
                 pipx_wrap(
@@ -235,13 +357,17 @@ class PipxMetadata:
                     subsequent_indent=" " * 4,
                 )
             )
+        finally:
+            if temporary_path is not None:
+                with suppress(OSError):
+                    temporary_path.unlink()
 
-    def read(self, verbose: bool = False) -> None:
+    def read(self, *, verbose: bool = False) -> None:
         try:
-            with open(self.venv_dir / PIPX_INFO_FILENAME, "rb") as pipx_metadata_fh:
+            with Path(self.venv_dir / PIPX_INFO_FILENAME).open("rb") as pipx_metadata_fh:
                 payload: _RawMetadata = json.load(pipx_metadata_fh, object_hook=_json_decoder_object_hook)
                 self.from_dict(payload)
-        except OSError:  # Reset self if problem reading
+        except (AttributeError, KeyError, OSError, PipxError, TypeError, ValueError):
             if verbose:
                 _LOGGER.warning(
                     pipx_wrap(
@@ -257,9 +383,9 @@ class PipxMetadata:
             return
 
 
-def load_spec_file(path: Path) -> "_RawSpecFile":
+def load_spec_file(path: Path) -> _RawSpecFile:
     # Round-trips Path values through :class:`JsonEncoderHandlesPath`'s hook.
-    with open(path, encoding="utf-8") as handle:
+    with Path(path).open(encoding="utf-8") as handle:
         payload: _RawSpecFile = json.load(handle, object_hook=_json_decoder_object_hook)
     return payload
 

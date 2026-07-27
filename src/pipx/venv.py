@@ -1,32 +1,46 @@
+from __future__ import annotations
+
 import logging
 import shutil
 import time
-from collections.abc import Generator
+from importlib.metadata import Distribution, EntryPoint
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, NoReturn
 
+from filelock import BaseFileLock, FileLock
+
 if TYPE_CHECKING:
+    from collections.abc import Generator, Iterable, Sequence
     from subprocess import CompletedProcess
 
-try:
-    from importlib.metadata import Distribution, EntryPoint
-except ImportError:
-    from importlib_metadata import Distribution, EntryPoint  # type: ignore[import-not-found,no-redef]
+    from packaging.specifiers import SpecifierSet
 
 from packaging.utils import canonicalize_name
+from packaging.version import Version
 
-from pipx.animate import animate
-from pipx.backends import Backend, assert_not_pip_under_uv, env_default_backend, get_backend, resolve_backend_name
+from pipx.animate import STDERR_IS_TTY, animate
+from pipx.backends import (
+    Backend,
+    OutdatedPackage,
+    assert_not_pip_under_uv,
+    env_default_backend,
+    get_backend,
+    resolve_backend_name,
+)
 from pipx.constants import PIPX_SHARED_PTH, ExitCode
 from pipx.emojis import hazard
-from pipx.interpreter import DEFAULT_PYTHON
+from pipx.interpreter import get_default_python
 from pipx.package_specifier import (
     fix_package_name,
     get_extras,
+    package_spec_satisfied,
     parse_specifier_for_install,
     parse_specifier_for_metadata,
+    valid_pypi_name,
 )
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
+from pipx.requires_python import IncompatiblePythonError, rejected_constraint, unsatisfied_constraint
+from pipx.script import installable_script
 from pipx.shared_libs import (
     DISABLE_SHARED_LIBS_AUTO_UPGRADE,
     shared_libs,
@@ -46,6 +60,13 @@ from pipx.util import (
 from pipx.venv_inspect import VenvMetadata, inspect_venv
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+_REQUIRES_PYTHON_SCRIPT: Final[str] = (
+    "import sys;"
+    "from importlib.metadata import distribution;"
+    "print(distribution(sys.argv[1]).metadata['Requires-Python'] or '');"
+    "print('.'.join(str(part) for part in sys.version_info[:3]))"
+)
+_BACKEND_METADATA_VERSION: Final[Version] = Version("0.6")
 
 # Keyed on full path so global vs user-local venvs with the same name don't
 # collide; deduped per-session because ``upgrade-all --backend uv`` against
@@ -100,7 +121,7 @@ def _resolve_backend_for_venv(
 class VenvContainer:
     """A collection of venvs managed by pipx."""
 
-    def __init__(self, root: Path):
+    def __init__(self, root: Path) -> None:
         self._root = root
 
     def __repr__(self) -> str:
@@ -122,8 +143,32 @@ class VenvContainer:
         """Return the expected venv path for given `package_name`."""
         return self._root.joinpath(canonicalize_name(package_name))
 
+    def iter_locked_venv_dirs(
+        self, venv_dirs: Iterable[Path], *, allow_permission_error: bool = False
+    ) -> Generator[Path, None, None]:
+        for venv_dir in venv_dirs:
+            lock = self.venv_lock(venv_dir)
+            try:
+                lock.acquire()
+            except PermissionError:
+                if not allow_permission_error:
+                    raise
+                if venv_dir.is_dir():
+                    yield venv_dir
+                continue
 
-class Venv:
+            try:
+                if venv_dir.is_dir():
+                    yield venv_dir
+            finally:
+                lock.release()
+
+    def venv_lock(self, venv_dir: Path) -> BaseFileLock:
+        self._root.mkdir(parents=True, exist_ok=True)
+        return FileLock(self._root / f".{canonicalize_name(venv_dir.name)}.lock")
+
+
+class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx-managed virtual environment; splitting would scatter its state
     """Abstraction for a virtual environment with various useful methods for pipx"""
 
     def __init__(
@@ -131,16 +176,18 @@ class Venv:
         path: Path,
         *,
         verbose: bool = False,
-        python: str = DEFAULT_PYTHON,
+        python: str | None = None,
         backend: str | None = None,
         env_backend: str | None = None,
     ) -> None:
         self.root = path
-        self.python = python
+        self.python = python or get_default_python()
         self.bin_path, self.python_path, self.man_path = get_venv_paths(self.root)
         self.pipx_metadata = PipxMetadata(venv_dir=path)
         self.verbose = verbose
-        self.do_animation = not verbose
+        # a terminal lets pip and uv draw their own download bar, which stands in for the spinner
+        self.show_progress = not verbose and STDERR_IS_TTY
+        self.do_animation = not verbose and not self.show_progress
         try:
             self._existing = self.root.exists() and bool(next(self.root.iterdir()))
         except StopIteration:
@@ -153,6 +200,7 @@ class Venv:
             env_backend=env_backend,
         )
         self._backend: Backend | None = None
+        self._site_packages: Path | None = None
         self._uses_shared_libs_cache: bool | None = None
 
     @property
@@ -169,7 +217,7 @@ class Venv:
     def backend_source(self) -> str:
         return self._backend_source
 
-    def check_upgrade_shared_libs(self, verbose: bool, pip_args: list[str], force_upgrade: bool = False):
+    def check_upgrade_shared_libs(self, *, verbose: bool, pip_args: list[str], force_upgrade: bool = False) -> None:
         """
         If necessary, run maintenance tasks to keep the shared libs up-to-date.
 
@@ -183,7 +231,9 @@ class Venv:
                 if force_upgrade:
                     shared_libs.upgrade(verbose=verbose, pip_args=pip_args)
                 elif shared_libs_auto_upgrade_disabled():
-                    _LOGGER.info(f"Skipping shared libs auto-upgrade because {DISABLE_SHARED_LIBS_AUTO_UPGRADE} is set.")
+                    _LOGGER.info(
+                        "Skipping shared libs auto-upgrade because %s is set.", DISABLE_SHARED_LIBS_AUTO_UPGRADE
+                    )
                 elif shared_libs.needs_upgrade:
                     shared_libs.upgrade(verbose=verbose, pip_args=pip_args)
             else:
@@ -220,7 +270,7 @@ class Venv:
         # (or missing file) fall back to the .pth probe so legacy venvs still
         # report correctly.
         recorded_version = self.pipx_metadata.read_metadata_version
-        if recorded_version is not None and recorded_version >= "0.6":
+        if recorded_version is not None and Version(recorded_version) >= _BACKEND_METADATA_VERSION:
             answer = self.pipx_metadata.backend == "pip"
         else:
             answer = next(self.root.glob(f"**/{PIPX_SHARED_PTH}"), None) is not None
@@ -238,12 +288,27 @@ class Venv:
     def main_package_name(self) -> str:
         if self.pipx_metadata.main_package.package is None:
             # This is OK, because if no metadata, we are pipx < v0.15.0.0 and
-            #   venv_name==main_package_name
+            #   the venv name is the main package name
             return self.root.name
-        else:
-            return self.pipx_metadata.main_package.package
+        return self.pipx_metadata.main_package.package
 
-    def create_venv(self, venv_args: list[str], pip_args: list[str], override_shared: bool = False) -> None:
+    def unsupported_python(self, package_name: str) -> SpecifierSet | None:
+        """The constraint an installed package declares when this venv's interpreter fails it.
+
+        uv installs a package onto an interpreter its Requires-Python rules out, so pipx reads the metadata rather
+        than trust the backend to refuse.
+        """
+        process = run_subprocess(
+            [self.python_path, "-c", _REQUIRES_PYTHON_SCRIPT, package_name],
+            capture_stderr=False,
+            log_stdout=False,
+        )
+        if process.returncode:
+            return None
+        requires_python, _, python_version = process.stdout.strip().partition("\n")
+        return unsatisfied_constraint(requires_python, python_version)
+
+    def create_venv(self, venv_args: list[str], pip_args: list[str], *, override_shared: bool = False) -> None:
         """
         override_shared -- Override installing shared libraries to the pipx shared directory (default False)
         """
@@ -258,6 +323,7 @@ class Venv:
             include_pip=override_shared,
             verbose=self.verbose,
         )
+        self._site_packages = None
 
         self.pipx_metadata.venv_args = venv_args
         # Persist the chosen backend on disk only when actually creating the venv.
@@ -297,10 +363,10 @@ class Venv:
             return
         self.backend.upgrade_packaging_libraries(self.python_path, pip_args, verbose=self.verbose)
 
-    def uninstall_package(self, package: str, was_injected: bool = False):
+    def uninstall_package(self, package: str, *, was_injected: bool = False) -> None:
         try:
             _LOGGER.info("Uninstalling %s", package)
-            with animate(f"uninstalling {package}", self.do_animation):
+            with animate(f"uninstalling {package}", do_animation=self.do_animation):
                 self.backend.uninstall(
                     venv_root=self.root,
                     venv_python=self.python_path,
@@ -309,139 +375,272 @@ class Venv:
                 )
         except PipxError as e:
             _LOGGER.info(e)
-            raise PipxError(f"Error uninstalling {package}.") from None
+            msg = f"Error uninstalling {package}."
+            raise PipxError(msg) from None
 
         if was_injected:
             self.pipx_metadata.injected_packages.pop(package)
             self.pipx_metadata.write()
 
-    def install_package(
+    def install_package(  # ruff:ignore[too-many-arguments]  # flat install API mirroring the CLI's install options
         self,
         package_name: str,
         package_or_url: str,
         pip_args: list[str],
+        *,
         include_dependencies: bool,
+        include_resources_from: Sequence[str],
         include_apps: bool,
         is_main_package: bool,
         suffix: str = "",
         install_only_pip_args: list[str] | None = None,
+        expected_apps: Sequence[str] | None = None,
+        lock_file: Path | None = None,
+        pinned: bool = False,
+        cooldown_days: int | None = None,
     ) -> None:
         # package_name in package specifier can mismatch URL due to user error
         package_or_url = fix_package_name(package_or_url, package_name)
 
         # check syntax and clean up spec and pip_args
         (package_or_url, pip_args) = parse_specifier_for_install(package_or_url, pip_args)
-        install_pip_args = [*(install_only_pip_args or []), *pip_args]
+        install_pip_args: Final[list[str]] = self._with_cooldown(
+            [*(install_only_pip_args or []), *pip_args], cooldown_days
+        )
 
-        _LOGGER.info("Installing %s", package_descr := full_package_description(package_name, package_or_url))
-        with animate(f"installing {package_descr}", self.do_animation):
-            process = self.backend.install(
-                venv_root=self.root,
-                venv_python=self.python_path,
-                requirements=[package_or_url],
-                pip_args=install_pip_args,
-                verbose=self.verbose,
-            )
-        if process.returncode:
-            raise PipxError(f"Error installing {full_package_description(package_name, package_or_url)}.")
+        with installable_script(package_name, package_or_url, tuple(expected_apps or ())) as install_spec:
+            if lock_file is None:
+                _LOGGER.info("Installing %s", package_descr := full_package_description(package_name, package_or_url))
+                with animate(f"installing {package_descr}", do_animation=self.do_animation):
+                    process = self.backend.install(
+                        venv_root=self.root,
+                        venv_python=self.python_path,
+                        requirements=[install_spec],
+                        pip_args=install_pip_args,
+                        verbose=self.verbose,
+                        progress=self.show_progress,
+                    )
+                if process.returncode:
+                    # pip refuses the interpreter and installs nothing, so its complaint is the only place the
+                    # constraint appears; uv installs regardless, which the caller catches from the metadata instead
+                    if constraint := rejected_constraint(process.stderr or ""):
+                        raise IncompatiblePythonError(constraint)
+                    msg = f"Error installing {full_package_description(package_name, package_or_url)}."
+                    raise PipxError(msg)
+            else:
+                self._install_locked_package(package_name, install_spec, lock_file, install_pip_args)
 
         self.update_package_metadata(
             package_name=package_name,
             package_or_url=package_or_url,
             pip_args=pip_args,
             include_dependencies=include_dependencies,
+            include_resources_from=include_resources_from,
             include_apps=include_apps,
             is_main_package=is_main_package,
             suffix=suffix,
+            expected_apps=expected_apps,
+            lock_file=lock_file,
+            pinned=pinned,
+            cooldown_days=cooldown_days,
         )
 
         # Verify package installed ok
         if self.package_metadata[package_name].package_version is None:
-            raise PipxError(
+            msg = (
                 f"Unable to install "
                 f"{full_package_description(package_name, package_or_url)}.\n"
                 f"Check the name or spec for errors, and verify that it can "
-                f"be installed with pip.",
+                f"be installed with pip."
+            )
+            raise PipxError(
+                msg,
                 wrap_message=False,
             )
 
-    def install_unmanaged_packages(self, requirements: list[str], pip_args: list[str]) -> None:
+    def _install_locked_package(
+        self,
+        package_name: str,
+        package_or_url: str,
+        lock_file: Path,
+        pip_args: list[str],
+    ) -> None:
+        _LOGGER.info("Installing packages from %s", lock_file)
+        with animate(f"installing packages from {lock_file.name}", do_animation=self.do_animation):
+            process = self.backend.install_lock(
+                venv_root=self.root,
+                venv_python=self.python_path,
+                lock_file=lock_file,
+                pip_args=[argument for argument in pip_args if argument != "--editable"],
+                verbose=self.verbose,
+                progress=self.show_progress,
+            )
+        if process.returncode:
+            msg = f"Error installing packages from {lock_file}."
+            raise PipxError(msg)
+
+        if valid_pypi_name(package_or_url) is None:
+            package_descr = full_package_description(package_name, package_or_url)
+            with animate(f"installing {package_descr}", do_animation=self.do_animation):
+                process = self.backend.install(
+                    venv_root=self.root,
+                    venv_python=self.python_path,
+                    requirements=[package_or_url],
+                    pip_args=pip_args,
+                    no_deps=True,
+                    verbose=self.verbose,
+                    progress=self.show_progress,
+                )
+            if process.returncode:
+                msg = f"Error installing {full_package_description(package_name, package_or_url)}."
+                raise PipxError(msg)
+        elif (
+            distribution := next(
+                iter(Distribution.discover(name=package_name, path=[str(self.site_packages)])),
+                None,
+            )
+        ) is None:
+            msg = f"Lock file {lock_file} does not contain {package_name}."
+            raise PipxError(msg)
+        elif not package_spec_satisfied(package_or_url, package_name, distribution.version, package_or_url):
+            msg = (
+                f"Lock file {lock_file} provides {package_name} {distribution.version}, "
+                f"which does not satisfy {package_or_url}."
+            )
+            raise PipxError(msg)
+
+        process = self.backend.run_raw_pip(
+            venv_root=self.root,
+            venv_python=self.python_path,
+            args=["check"],
+            verbose=self.verbose,
+        )
+        if process.returncode:
+            error = (process.stdout or process.stderr or "dependency check failed").strip()
+            msg = f"Lock file {lock_file} does not satisfy {package_name}: {error}"
+            raise PipxError(msg, wrap_message=False)
+
+    def install_unmanaged_packages(
+        self,
+        requirements: list[str],
+        pip_args: list[str],
+        cooldown_days: int | None = None,
+    ) -> None:
         """Install packages in the venv, but do not record them in the metadata."""
         _LOGGER.info("Installing %s", package_descr := ", ".join(requirements))
-        with animate(f"installing {package_descr}", self.do_animation):
+        with animate(f"installing {package_descr}", do_animation=self.do_animation):
             process = self.backend.install(
                 venv_root=self.root,
                 venv_python=self.python_path,
                 requirements=list(requirements),
-                pip_args=pip_args,
+                pip_args=self._with_cooldown(pip_args, cooldown_days),
                 verbose=self.verbose,
+                progress=self.show_progress,
             )
         if process.returncode:
-            raise PipxError(f"Error installing {', '.join(requirements)}.")
+            msg = f"Error installing {', '.join(requirements)}."
+            raise PipxError(msg)
 
-    def install_package_no_deps(self, package_or_url: str, pip_args: list[str]) -> str:
-        with animate(f"determining package name from {package_or_url!r}", self.do_animation):
+    def install_package_no_deps(
+        self,
+        package_or_url: str,
+        pip_args: list[str],
+        cooldown_days: int | None = None,
+    ) -> str:
+        with animate(f"determining package name from {package_or_url!r}", do_animation=self.do_animation):
             old_package_set = self.list_installed_packages()
             process = self.backend.install(
                 venv_root=self.root,
                 venv_python=self.python_path,
                 requirements=[package_or_url],
-                pip_args=pip_args,
+                pip_args=self._with_cooldown(pip_args, cooldown_days),
                 no_deps=True,
                 log_pip_errors=False,
                 verbose=self.verbose,
+                progress=self.show_progress,
             )
         if process.returncode:
             error_output = (process.stderr or process.stdout or "").strip()
+            if constraint := rejected_constraint(error_output):
+                raise IncompatiblePythonError(constraint)
             if error_output:
                 raise PipxError(error_output, wrap_message=False)
-            raise PipxError(
-                f"""
+            msg = f"""
                 Error determining package name from spec {package_or_url!r}.
                 See installer output for details.
                 """
-            )
+            raise PipxError(msg)
 
         installed_packages = self.list_installed_packages() - old_package_set
         if len(installed_packages) == 1:
             package_name = installed_packages.pop()
-            _LOGGER.info(f"Determined package name: {package_name}")
+            _LOGGER.info("Determined package name: %s", package_name)
         else:
-            _LOGGER.info(f"old_package_set = {old_package_set}")
-            _LOGGER.info(f"install_packages = {installed_packages}")
-            raise PipxError(
-                f"""
+            _LOGGER.info("old_package_set = %s", old_package_set)
+            _LOGGER.info("install_packages = %s", installed_packages)
+            msg = f"""
                 Cannot determine package name from spec {package_or_url!r}.
                 Check package spec for errors.
                 """
-            )
+            raise PipxError(msg)
 
         return package_name
 
     def get_venv_metadata_for_package(self, package_name: str, package_extras: set[str]) -> VenvMetadata:
         data_start = time.time()
         venv_metadata = inspect_venv(package_name, package_extras, self.bin_path, self.python_path, self.man_path)
-        _LOGGER.info(f"get_venv_metadata_for_package: {1e3 * (time.time() - data_start):.0f}ms")
+        _LOGGER.info("get_venv_metadata_for_package: %.0fms", 1e3 * (time.time() - data_start))
         return venv_metadata
 
-    def update_package_metadata(
+    def update_package_metadata(  # ruff:ignore[too-many-arguments]  # writes the full PackageInfo record from the CLI's install options
         self,
         package_name: str,
         package_or_url: str,
         pip_args: list[str],
+        *,
         include_dependencies: bool,
+        include_resources_from: Sequence[str],
         include_apps: bool,
         is_main_package: bool,
         suffix: str = "",
         pinned: bool = False,
+        expected_apps: Sequence[str] | None = None,
+        lock_file: Path | None = None,
+        cooldown_days: int | None = None,
     ) -> None:
         venv_package_metadata = self.get_venv_metadata_for_package(package_name, get_extras(package_or_url))
+        if expected_apps is None:
+            expected_apps = (
+                self.package_metadata[package_name].expected_apps if package_name in self.package_metadata else ()
+            )
+        if lock_file is None:
+            lock_file = self.package_metadata[package_name].lock_file if package_name in self.package_metadata else None
+        included_dependencies: Final[list[str]] = list(
+            dict.fromkeys(canonicalize_name(name) for name in include_resources_from)
+        )
+        available_dependencies: Final[set[str]] = (
+            venv_package_metadata.app_paths_of_dependencies.keys()
+            | venv_package_metadata.man_paths_of_dependencies.keys()
+        )
+        missing_dependencies: Final[list[str]] = sorted(set(included_dependencies) - available_dependencies)
+        if missing_dependencies:
+            msg = (
+                f"Cannot expose apps from {', '.join(missing_dependencies)} for package {package_name}. "
+                "Dependencies with apps or manual pages: "
+                f"{', '.join(sorted(available_dependencies)) or 'none'}."
+            )
+            raise PipxError(msg)
+        if cooldown_days is None:
+            cooldown_days = (
+                self.package_metadata[package_name].cooldown_days if package_name in self.package_metadata else None
+            )
         package_info = PackageInfo(
             package=package_name,
             package_or_url=parse_specifier_for_metadata(package_or_url),
             pip_args=pip_args,
             include_apps=include_apps,
             include_dependencies=include_dependencies,
+            include_resources_from=included_dependencies,
             apps=venv_package_metadata.apps,
             app_paths=venv_package_metadata.app_paths,
             apps_of_dependencies=venv_package_metadata.apps_of_dependencies,
@@ -450,7 +649,14 @@ class Venv:
             man_paths=venv_package_metadata.man_paths,
             man_pages_of_dependencies=venv_package_metadata.man_pages_of_dependencies,
             man_paths_of_dependencies=venv_package_metadata.man_paths_of_dependencies,
+            completions=venv_package_metadata.completions,
+            completion_paths=venv_package_metadata.completion_paths,
+            completions_of_dependencies=venv_package_metadata.completions_of_dependencies,
+            completion_paths_of_dependencies=venv_package_metadata.completion_paths_of_dependencies,
             package_version=venv_package_metadata.package_version,
+            expected_apps=list(dict.fromkeys(expected_apps)),
+            lock_file=lock_file,
+            cooldown_days=cooldown_days,
             suffix=suffix,
             pinned=pinned,
         )
@@ -464,83 +670,124 @@ class Venv:
     def get_python_version(self) -> str:
         return run_subprocess([str(self.python_path), "--version"]).stdout.strip()
 
-    def list_installed_packages(self, not_required: bool = False) -> set[str]:
+    def list_installed_packages(self, *, not_required: bool = False) -> set[str]:
         return self.backend.list_installed(
             venv_root=self.root,
             venv_python=self.python_path,
             not_required=not_required,
         )
 
-    def _find_entry_point(self, app: str) -> EntryPoint | None:
+    def list_outdated_packages(self, index_args: list[str]) -> tuple[OutdatedPackage, ...]:
+        return self.backend.list_outdated(
+            venv_root=self.root,
+            venv_python=self.python_path,
+            index_args=index_args,
+        )
+
+    @property
+    def site_packages(self) -> Path:
+        if self._site_packages is None:
+            self._site_packages = get_site_packages(self.python_path)
+        return self._site_packages
+
+    def _find_entry_point(self, app: str, group: str) -> EntryPoint | None:
         if not self.python_path.exists():
             return None
-        dists = Distribution.discover(name=self.main_package_name, path=[str(get_site_packages(self.python_path))])
+        dists = Distribution.discover(name=self.main_package_name, path=[str(self.site_packages)])
         for dist in dists:
             for ep in dist.entry_points:
-                if ep.group == "pipx.run":
+                if ep.group == group:
                     if ep.name == app:
                         return ep
-                    # Try to infer app name from dist's metadata if given
-                    # local path
-                    if Path(app).exists() and dist.metadata["Name"] == ep.name:
+                    # Local project paths do not identify an app, so accept their matching pipx.run entry point.
+                    if group == "pipx.run" and Path(app).exists() and dist.metadata["Name"] == ep.name:
                         return ep
         return None
 
-    def run_app(self, app: str, filename: str, app_args: list[str]) -> NoReturn:
-        entry_point = self._find_entry_point(app)
+    def run_app(
+        self,
+        app: str,
+        filename: str,
+        app_args: list[str],
+        *,
+        python_args: list[str],
+    ) -> NoReturn:
+        entry_point = self._find_entry_point(app, "pipx.run")
+        if entry_point is None and python_args:
+            entry_point = self._find_entry_point(app, "console_scripts")
 
-        # No [pipx.run] entry point; default to run console script.
         if entry_point is None:
-            exec_app([str(self.bin_path / filename)] + app_args)
+            if python_args:
+                msg = f"Cannot pass Python arguments because {app!r} is not a Python entry point."
+                raise PipxError(msg)
+            exec_app([str(self.bin_path / filename), *app_args])
 
-        # Evaluate and execute the entry point.
         _LOGGER.info("Using discovered entry point for 'pipx run'")
-        module, attr = entry_point.module, entry_point.attr
-        code = f"import sys, {module}\nsys.argv[0] = {entry_point.name!r}\nsys.exit({module}.{attr}())\n"
-        exec_app([str(self.python_path), "-c", code] + app_args)
+        code = (
+            "import sys\nfrom importlib.metadata import EntryPoint\n"
+            f"sys.argv[0] = {entry_point.name!r}\n"
+            f"sys.exit(EntryPoint(name={entry_point.name!r}, value={entry_point.value!r}, "
+            f"group={entry_point.group!r}).load()())\n"
+        )
+        exec_app([str(self.python_path), *python_args, "-c", code, *app_args])
 
     def has_app(self, app: str, filename: str) -> bool:
-        if self._find_entry_point(app) is not None:
+        if self._find_entry_point(app, "pipx.run") is not None:
             return True
         return (self.bin_path / filename).is_file()
 
     def has_package(self, package_name: str) -> bool:
-        return bool(list(Distribution.discover(name=package_name, path=[str(get_site_packages(self.python_path))])))
+        return bool(list(Distribution.discover(name=package_name, path=[str(self.site_packages)])))
 
-    def upgrade_package_no_metadata(self, package_name: str, pip_args: list[str]) -> None:
+    def upgrade_package_no_metadata(
+        self,
+        package_name: str,
+        pip_args: list[str],
+        cooldown_days: int | None = None,
+    ) -> None:
         _LOGGER.info("Upgrading %s", package_descr := full_package_description(package_name, package_name))
-        with animate(f"upgrading {package_descr}", self.do_animation):
+        with animate(f"upgrading {package_descr}", do_animation=self.do_animation):
             process = self.backend.install(
                 venv_root=self.root,
                 venv_python=self.python_path,
                 requirements=[package_name],
-                pip_args=pip_args,
+                pip_args=self._with_cooldown(pip_args, cooldown_days),
                 upgrade=True,
                 log_pip_errors=False,
                 verbose=self.verbose,
+                progress=self.show_progress,
             )
         subprocess_post_check(process)
 
-    def upgrade_package(
+    def upgrade_package(  # ruff:ignore[too-many-arguments]  # flat upgrade API mirroring the CLI's upgrade options
         self,
         package_name: str,
         package_or_url: str,
         pip_args: list[str],
+        *,
         include_dependencies: bool,
+        include_resources_from: Sequence[str],
         include_apps: bool,
         is_main_package: bool,
         suffix: str = "",
+        upgrade_only_pip_args: list[str] | None = None,
+        expected_apps: Sequence[str] | None = None,
+        cooldown_days: int | None = None,
     ) -> None:
         _LOGGER.info("Upgrading %s", package_descr := full_package_description(package_name, package_or_url))
-        with animate(f"upgrading {package_descr}", self.do_animation):
+        with (
+            installable_script(package_name, package_or_url, tuple(expected_apps or ())) as install_spec,
+            animate(f"upgrading {package_descr}", do_animation=self.do_animation),
+        ):
             process = self.backend.install(
                 venv_root=self.root,
                 venv_python=self.python_path,
-                requirements=[package_or_url],
-                pip_args=pip_args,
+                requirements=[install_spec],
+                pip_args=self._with_cooldown([*(upgrade_only_pip_args or []), *pip_args], cooldown_days),
                 upgrade=True,
                 log_pip_errors=False,
                 verbose=self.verbose,
+                progress=self.show_progress,
             )
         subprocess_post_check(process)
 
@@ -549,12 +796,18 @@ class Venv:
             package_or_url=package_or_url,
             pip_args=pip_args,
             include_dependencies=include_dependencies,
+            include_resources_from=include_resources_from,
             include_apps=include_apps,
             is_main_package=is_main_package,
             suffix=suffix,
+            expected_apps=expected_apps,
+            cooldown_days=cooldown_days,
         )
 
-    def _run_pip(self, cmd: list[str]) -> "CompletedProcess[str]":
+    def _with_cooldown(self, pip_args: list[str], cooldown_days: int | None) -> list[str]:
+        return [*pip_args, *self.backend.cooldown_args(cooldown_days)]
+
+    def _run_pip(self, cmd: list[str]) -> CompletedProcess[str]:
         return self.backend.run_raw_pip(
             venv_root=self.root,
             venv_python=self.python_path,
@@ -573,7 +826,7 @@ class Venv:
         )
         if process.returncode:
             cmd_str = " ".join(str(c) for c in process.args)
-            _LOGGER.error(f"{cmd_str!r} failed")
+            _LOGGER.error("%r failed", cmd_str)
         return ExitCode(process.returncode)
 
 

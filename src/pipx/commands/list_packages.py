@@ -1,9 +1,9 @@
+from __future__ import annotations
+
 import json
 import logging
 import sys
-from collections.abc import Collection
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pipx import paths
 from pipx.colors import bold
@@ -12,6 +12,10 @@ from pipx.constants import EXIT_CODE_LIST_PROBLEM, EXIT_CODE_OK, ExitCode
 from pipx.emojis import sleep
 from pipx.pipx_metadata_file import JsonEncoderHandlesPath, PipxMetadata
 from pipx.venv import Venv, VenvContainer
+
+if TYPE_CHECKING:
+    from collections.abc import Collection, Iterable
+    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -28,14 +32,14 @@ def get_venv_metadata_summary(venv_dir: Path) -> tuple[PipxMetadata, VenvProblem
     return (venv.pipx_metadata, venv_problems, "")
 
 
-def list_short(venv_dirs: Collection[Path]) -> VenvProblems:
+def list_short(venv_dirs: Iterable[Path]) -> VenvProblems:
     all_venv_problems = VenvProblems()
     for venv_dir in venv_dirs:
         venv_metadata, venv_problems, warning_str = get_venv_metadata_summary(venv_dir)
         if venv_problems.any_():
             logger.warning(warning_str)
         else:
-            print(
+            print(  # ruff:ignore[print]  # user-facing CLI output
                 venv_metadata.main_package.package,
                 venv_metadata.main_package.package_version,
             )
@@ -44,10 +48,13 @@ def list_short(venv_dirs: Collection[Path]) -> VenvProblems:
     return all_venv_problems
 
 
-def list_text(venv_dirs: Collection[Path], include_injected: bool, venv_root_dir: str) -> VenvProblems:
-    print(f"venvs are in {bold(venv_root_dir)}")
-    print(f"apps are exposed on your $PATH at {bold(str(paths.ctx.bin_dir))}")
-    print(f"manual pages are exposed at {bold(str(paths.ctx.man_dir))}")
+def list_text(venv_dirs: Iterable[Path], venv_root_dir: str, *, include_injected: bool) -> VenvProblems:
+    print(f"venvs are in {bold(venv_root_dir)}")  # ruff:ignore[print]  # user-facing CLI output
+    print(f"apps are exposed on your $PATH at {bold(str(paths.ctx.bin_dir))}")  # ruff:ignore[print]  # user-facing CLI output
+    print(f"manual pages are exposed at {bold(str(paths.ctx.man_dir))}")  # ruff:ignore[print]  # user-facing CLI output
+    print(  # ruff:ignore[print]  # user-facing CLI output
+        f"shell completions are exposed at {bold(str(paths.ctx.completion_dir))}"
+    )
 
     all_venv_problems = VenvProblems()
     for venv_dir in venv_dirs:
@@ -55,13 +62,13 @@ def list_text(venv_dirs: Collection[Path], include_injected: bool, venv_root_dir
         if venv_problems.any_():
             logger.warning(package_summary)
         else:
-            print(package_summary)
+            print(package_summary)  # ruff:ignore[print]  # user-facing CLI output
         all_venv_problems.or_(venv_problems)
 
     return all_venv_problems
 
 
-def list_json(venv_dirs: Collection[Path]) -> VenvProblems:
+def list_json(venv_dirs: Iterable[Path]) -> VenvProblems:
     warning_messages = []
     spec_metadata: dict[str, Any] = {
         "pipx_spec_version": PIPX_SPEC_VERSION,
@@ -78,14 +85,16 @@ def list_json(venv_dirs: Collection[Path]) -> VenvProblems:
         spec_metadata["venvs"][venv_dir.name] = {}
         spec_metadata["venvs"][venv_dir.name]["metadata"] = venv_metadata.to_dict()
 
-    print(json.dumps(spec_metadata, indent=4, sort_keys=True, cls=JsonEncoderHandlesPath))
+    print(  # ruff:ignore[print]  # user-facing CLI output
+        json.dumps(spec_metadata, indent=4, sort_keys=True, cls=JsonEncoderHandlesPath)
+    )
     for warning_message in warning_messages:
         logger.warning(warning_message)
 
     return all_venv_problems
 
 
-def list_pinned(venv_dirs: Collection[Path], include_injected: bool) -> VenvProblems:
+def list_pinned(venv_dirs: Iterable[Path], *, include_injected: bool) -> VenvProblems:
     all_venv_problems = VenvProblems()
     for venv_dir in venv_dirs:
         venv_metadata, venv_problems, warning_str = get_venv_metadata_summary(venv_dir)
@@ -93,41 +102,51 @@ def list_pinned(venv_dirs: Collection[Path], include_injected: bool) -> VenvProb
             logger.warning(warning_str)
         else:
             if venv_metadata.main_package.pinned:
-                print(
+                print(  # ruff:ignore[print]  # user-facing CLI output
                     venv_metadata.main_package.package,
                     venv_metadata.main_package.package_version,
                 )
             if include_injected:
                 for pkg, info in venv_metadata.injected_packages.items():
                     if info.pinned:
-                        print(pkg, info.package_version, f"(injected in venv {venv_dir.name})")
+                        print(  # ruff:ignore[print]  # user-facing CLI output
+                            pkg, info.package_version, f"(injected in venv {venv_dir.name})"
+                        )
         all_venv_problems.or_(venv_problems)
 
     return all_venv_problems
 
 
-def list_packages(
+def list_packages(  # ruff:ignore[too-many-arguments]  # flat CLI-facing list options; a struct would only relocate the flags
     venv_container: VenvContainer,
+    venv_dirs: Collection[Path],
+    *,
     include_injected: bool,
     json_format: bool,
     short_format: bool,
     pinned_only: bool,
 ) -> ExitCode:
     """Returns pipx exit code."""
-    venv_dirs: Collection[Path] = sorted(venv_container.iter_venv_dirs())
     if not venv_dirs:
-        print(f"nothing has been installed with pipx {sleep}", file=sys.stderr)
+        print(f"nothing has been installed with pipx {sleep}", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
 
     if json_format:
-        all_venv_problems = list_json(venv_dirs)
+        all_venv_problems = list_json(venv_container.iter_locked_venv_dirs(venv_dirs, allow_permission_error=True))
     elif short_format:
-        all_venv_problems = list_short(venv_dirs)
+        all_venv_problems = list_short(venv_container.iter_locked_venv_dirs(venv_dirs, allow_permission_error=True))
     elif pinned_only:
-        all_venv_problems = list_pinned(venv_dirs, include_injected)
+        all_venv_problems = list_pinned(
+            venv_container.iter_locked_venv_dirs(venv_dirs, allow_permission_error=True),
+            include_injected=include_injected,
+        )
     else:
         if not venv_dirs:
             return EXIT_CODE_OK
-        all_venv_problems = list_text(venv_dirs, include_injected, str(venv_container))
+        all_venv_problems = list_text(
+            venv_container.iter_locked_venv_dirs(venv_dirs, allow_permission_error=True),
+            str(venv_container),
+            include_injected=include_injected,
+        )
 
     if all_venv_problems.bad_venv_name:
         logger.warning(
@@ -152,7 +171,12 @@ def list_packages(
         )
 
     if all_venv_problems.any_():
-        print("", file=sys.stderr)
+        print(file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
         return EXIT_CODE_LIST_PROBLEM
 
     return EXIT_CODE_OK
+
+
+__all__ = [
+    "list_packages",
+]

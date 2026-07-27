@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest
 
 from pipx.package_specifier import (
+    extract_index_options,
     fix_package_name,
+    package_spec_satisfied,
     parse_specifier_for_install,
     parse_specifier_for_metadata,
     parse_specifier_for_upgrade,
@@ -15,7 +19,31 @@ TEST_DATA_PATH = "./testdata/test_package_specifier"
 
 
 @pytest.mark.parametrize(
-    "package_spec_in,package_name_out",
+    ("pip_args", "expected"),
+    [
+        pytest.param(
+            ["--no-cache-dir", "--index-url", "https://index.example/simple", "--pre"],
+            ["--index-url", "https://index.example/simple"],
+            id="separate-value",
+        ),
+        pytest.param(
+            ["-ihttps://index.example/simple", "-f", "https://files.example", "--no-index"],
+            ["-ihttps://index.example/simple", "-f", "https://files.example", "--no-index"],
+            id="short-options",
+        ),
+        pytest.param(
+            ["--extra-index-url=https://extra.example/simple", "--trusted-host", "extra.example"],
+            ["--extra-index-url=https://extra.example/simple", "--trusted-host", "extra.example"],
+            id="attached-value",
+        ),
+    ],
+)
+def test_extract_index_options(pip_args: list[str], expected: list[str]) -> None:
+    assert extract_index_options(pip_args) == expected
+
+
+@pytest.mark.parametrize(
+    ("package_spec_in", "package_name_out"),
     [
         ("Black", "black"),
         ("https://github.com/ambv/black/archive/18.9b0.zip", None),
@@ -24,12 +52,28 @@ TEST_DATA_PATH = "./testdata/test_package_specifier"
         ("black-18.9b0.tar.gz", None),
     ],
 )
-def test_valid_pypi_name(package_spec_in, package_name_out):
+def test_valid_pypi_name(package_spec_in: str, package_name_out: str | None) -> None:
     assert valid_pypi_name(package_spec_in) == package_name_out
 
 
 @pytest.mark.parametrize(
-    "package_spec_in,package_name,package_spec_out",
+    ("package_spec", "installed_spec", "expected"),
+    [
+        ("black>=22,<23", "black==22.8.0", True),
+        ("black<22", "black==22.8.0", False),
+        ("Black", "black==22.8.0", True),
+        ("black[colorama]", "black==22.8.0", False),
+        ("black[colorama]", "black[colorama]==22.8.0", True),
+        ("black @ https://example.com/black.whl", "black==22.8.0", False),
+        ("https://example.com/black.whl", "black==22.8.0", False),
+    ],
+)
+def test_package_spec_satisfied(package_spec: str, installed_spec: str, expected: bool) -> None:
+    assert package_spec_satisfied(package_spec, "black", "22.8.0", installed_spec) is expected
+
+
+@pytest.mark.parametrize(
+    ("package_spec_in", "package_name", "package_spec_out"),
     [
         (
             "https://github.com/ambv/black/archive/18.9b0.zip",
@@ -48,7 +92,7 @@ def test_valid_pypi_name(package_spec_in, package_name_out):
         ),
     ],
 )
-def test_fix_package_name(package_spec_in, package_name, package_spec_out):
+def test_fix_package_name(package_spec_in: str, package_name: str, package_spec_out: str) -> None:
     assert fix_package_name(package_spec_in, package_name) == package_spec_out
 
 
@@ -56,7 +100,7 @@ _ROOT = Path(__file__).parents[1]
 
 
 @pytest.mark.parametrize(
-    "package_spec_in,package_or_url_correct,valid_spec",
+    ("package_spec_in", "package_or_url_correct", "valid_spec"),
     [
         ("pipx", "pipx", True),
         ("PiPx_stylized.name", "pipx-stylized-name", True),
@@ -111,20 +155,25 @@ _ROOT = Path(__file__).parents[1]
         ),
     ],
 )
-def test_parse_specifier_for_metadata(package_spec_in, package_or_url_correct, valid_spec, monkeypatch, root):
+def test_parse_specifier_for_metadata(
+    package_spec_in: str,
+    package_or_url_correct: str,
+    valid_spec: bool,
+    monkeypatch: pytest.MonkeyPatch,
+    root: Path,
+) -> None:
     monkeypatch.chdir(root)
     if valid_spec:
         package_or_url = parse_specifier_for_metadata(package_spec_in)
         assert package_or_url == package_or_url_correct
     else:
         # print package_spec_in for info in case no error is raised
-        print(f"package_spec_in = {package_spec_in}")
         with pytest.raises(PipxError, match=r"^Unable to parse package spec"):
             package_or_url = parse_specifier_for_metadata(package_spec_in)
 
 
 @pytest.mark.parametrize(
-    "package_spec_in,package_or_url_correct,valid_spec",
+    ("package_spec_in", "package_or_url_correct", "valid_spec"),
     [
         ("pipx", "pipx", True),
         ("PiPx_stylized.name", "pipx-stylized-name", True),
@@ -179,20 +228,25 @@ def test_parse_specifier_for_metadata(package_spec_in, package_or_url_correct, v
         ),
     ],
 )
-def test_parse_specifier_for_upgrade(package_spec_in, package_or_url_correct, valid_spec, monkeypatch, root):
+def test_parse_specifier_for_upgrade(
+    package_spec_in: str,
+    package_or_url_correct: str,
+    valid_spec: bool,
+    monkeypatch: pytest.MonkeyPatch,
+    root: Path,
+) -> None:
     monkeypatch.chdir(root)
     if valid_spec:
         package_or_url = parse_specifier_for_upgrade(package_spec_in)
         assert package_or_url == package_or_url_correct
     else:
         # print package_spec_in for info in case no error is raised
-        print(f"package_spec_in = {package_spec_in}")
         with pytest.raises(PipxError, match=r"^Unable to parse package spec"):
             package_or_url = parse_specifier_for_upgrade(package_spec_in)
 
 
 @pytest.mark.parametrize(
-    "package_spec_in,pip_args_in,package_spec_expected,pip_args_expected,warning_str",
+    ("package_spec_in", "pip_args_in", "package_spec_expected", "pip_args_expected", "warning_str"),
     [
         ('pipx==0.15.0;python_version>="3.6"', [], "pipx==0.15.0", [], None),
         ("pipx==0.15.0", ["--editable"], "pipx==0.15.0", [], "Ignoring --editable"),
@@ -262,15 +316,16 @@ def test_parse_specifier_for_upgrade(package_spec_in, package_or_url_correct, va
     ],
 )
 def test_parse_specifier_for_install(
-    caplog,
-    package_spec_in,
-    pip_args_in,
-    package_spec_expected,
-    pip_args_expected,
-    warning_str,
-    monkeypatch,
-    root,
-):
+    package_spec_in: str,
+    pip_args_in: list[str],
+    package_spec_expected: str,  # ruff:ignore[unused-function-argument]  # expected columns kept in the case table; test only checks warnings
+    pip_args_expected: list[str],  # ruff:ignore[unused-function-argument]  # expected columns kept in the case table; test only checks warnings
+    warning_str: str | None,
+    *,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    root: Path,
+) -> None:
     monkeypatch.chdir(root)
     parse_specifier_for_install(package_spec_in, pip_args_in)
     if warning_str is not None:
@@ -278,11 +333,15 @@ def test_parse_specifier_for_install(
 
 
 @pytest.mark.parametrize(
-    "pip_args_in,pip_args_expected",
+    ("pip_args_in", "pip_args_expected"),
     [
         (
             ["-c", "https://example.com/constraints.txt"],
             ["-c", "https://example.com/constraints.txt"],
+        ),
+        (
+            ["-chttps://example.com/constraints.txt"],
+            ["-chttps://example.com/constraints.txt"],
         ),
         (
             ["--constraint", "https://example.com/constraints.txt"],
@@ -297,12 +356,87 @@ def test_parse_specifier_for_install(
             ["-c", str(Path("constraints.txt").resolve())],
         ),
         (
+            ["-cconstraints.txt"],
+            [f"-c{Path('constraints.txt').resolve()}"],
+        ),
+        (
             ["--constraint=constraints.txt"],
             [f"--constraint={Path('constraints.txt').resolve()}"],
         ),
     ],
+    ids=[
+        "short-separated-url",
+        "short-attached-url",
+        "long-separated-url",
+        "long-equals-url",
+        "short-separated-path",
+        "short-attached-path",
+        "long-equals-path",
+    ],
 )
 def test_parse_specifier_for_install_constraint_args(
+    pip_args_in: list[str],
+    pip_args_expected: list[str],
+) -> None:
+    _, pip_args_out = parse_specifier_for_install("pipx", pip_args_in)
+    assert pip_args_out == pip_args_expected
+
+
+@pytest.mark.parametrize(
+    "package_spec",
+    [
+        "git+file:///tmp/project@main",
+        "hg+file:///tmp/project@default",
+    ],
+    ids=["git", "mercurial"],
+)
+def test_parse_specifier_for_install_accepts_local_vcs_url(package_spec: str) -> None:
+    assert parse_specifier_for_install(package_spec, []) == (package_spec, [])
+
+
+@pytest.mark.parametrize(
+    ("pip_args_in", "pip_args_expected"),
+    [
+        (
+            ["-f", "https://example.com/wheels"],
+            ["-f", "https://example.com/wheels"],
+        ),
+        (
+            ["-fhttps://example.com/wheels"],
+            ["-fhttps://example.com/wheels"],
+        ),
+        (
+            ["--find-links", "https://example.com/wheels"],
+            ["--find-links", "https://example.com/wheels"],
+        ),
+        (
+            ["--find-links=https://example.com/wheels"],
+            ["--find-links=https://example.com/wheels"],
+        ),
+        (
+            ["-f", "wheels"],
+            ["-f", str(Path("wheels").resolve())],
+        ),
+        (
+            ["-fwheels"],
+            [f"-f{Path('wheels').resolve()}"],
+        ),
+        (
+            ["--find-links=wheels"],
+            [f"--find-links={Path('wheels').resolve()}"],
+        ),
+    ],
+    ids=[
+        "short-separated-url",
+        "short-attached-url",
+        "long-separated-url",
+        "long-equals-url",
+        "short-separated-path",
+        "short-attached-path",
+        "long-equals-path",
+    ],
+)
+def test_parse_specifier_for_install_find_links_args(
     pip_args_in: list[str],
     pip_args_expected: list[str],
 ) -> None:

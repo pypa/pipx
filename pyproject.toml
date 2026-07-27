@@ -1,6 +1,7 @@
 [build-system]
 build-backend = "hatchling.build"
 requires = [
+  "docutils>=0.21",
   "hatch-vcs>=0.4",
   "hatchling>=1.27",
 ]
@@ -38,13 +39,14 @@ dynamic = [
 dependencies = [
   "argcomplete>=1.9.4",
   "colorama>=0.4.4; sys_platform=='win32'",
+  "filelock>=3.16",
   "packaging>=20",
-  "platformdirs>=2.1",
+  "platformdirs>=4.6",
   "tomli; python_version<'3.11'",
   "userpath>=1.6,!=1.9",
 ]
 optional-dependencies.uv = [
-  "uv>=0.4",
+  "uv>=0.9.17",
 ]
 urls."Issue Tracker" = "https://github.com/pypa/pipx/issues"
 urls."Release Notes" = "https://pipx.pypa.io/latest/changelog/"
@@ -59,8 +61,10 @@ dev = [
   { include-group = "lint" },
   { include-group = "man" },
   { include-group = "test" },
+  { include-group = "type" },
 ]
 test = [
+  "docutils>=0.21",
   "pypiserver[cache,passlib]>=2.3.2",
   "pytest>=8",
   "pytest-cov>=4",
@@ -70,20 +74,38 @@ test = [
   "setuptools>=68; python_version>='3.12'",
   "watchdog>=4",
 ]
+type = [
+  "gitpython>=3.1",
+  "hatchling>=1.27",
+  "tomli>=2",
+  "ty>=0.0.59",
+  "types-docutils>=0.21",
+  { include-group = "docs" },
+  { include-group = "test" },
+]
 docs = [
-  "jinja2",
-  "markdown-gfm-admonition",
-  "mkdocs<2",
-  "mkdocs-gen-files",
-  "mkdocs-macros-plugin",
-  "mkdocs-material",
+  "furo>=2024.8.6",
+  "sphinx>=8.1",
+  "sphinx-argparse-cli>=1.19",         # generate the CLI reference from pipx's argparse parser so it cannot drift
+  "sphinx-autodoc-typehints>=2.5",
+  "sphinx-codeautolink>=0.15",         # link the names in code blocks to the reference
+  "sphinx-copybutton>=0.5.2",
+  "sphinx-design>=0.6",                # the card grid on the landing page
+  "sphinx-issues>=5",                  # the :issue:/:pr: roles used in the changelog and notes
+  "sphinx-last-updated-by-git>=0.3.8",
+  "sphinx-notfound-page>=1",           # a versioned 404 page
+  "sphinx-reredirects>=0.1.5",         # keep old MkDocs URLs alive after the move to Sphinx
+  "sphinx-sitemap>=2.6",               # emit sitemap.xml for crawlers
+  "sphinxcontrib-mermaid>=1",          # the .. mermaid:: directive used across the explanation diagrams
+  "sphinxcontrib-towncrier>=0.5.0a0",  # render unreleased news fragments as a draft changelog section
+  "sphinxext-opengraph>=0.9",          # OpenGraph tags for link previews
   "towncrier>=23.6",
 ]
 lint = [
   "pre-commit>=3",
 ]
 man = [
-  "argparse-manpage[setuptools]",
+  "docutils>=0.21",
 ]
 zipapp = [
   "shiv>=1.0.6",
@@ -91,49 +113,66 @@ zipapp = [
 
 [tool.hatch]
 version.source = "vcs"
+build.hooks.custom = {}
 build.hooks.vcs.version-file = "src/pipx/version.py"
+build.targets.wheel.shared-data = { "build/man" = "share/man/man1" }
 build.targets.sdist.include = [
   "/*.md",
+  "/docs/man",
+  "/hatch_build.py",
   "/logo.png",
   "/pipx_demo.gif",
   "/src",
 ]
 
 [tool.ruff]
-line-length = 121
-lint.extend-select = [
-  "A",
-  "B",
-  "C4",
-  "C9",
-  "I",
-  "ISC",
-  "PERF",
-  "PGH",
-  "PIE",
-  "PLC",
-  "PLE",
-  "PLW",
-  "RSE",
-  "RUF",
-  "TC",
-  "UP",
-  "W",
+line-length = 120
+extend-exclude = [
+  "testdata",
+]
+format.preview = true
+format.docstring-code-line-length = 100
+format.docstring-code-format = true
+lint.select = [
+  "ALL",
 ]
 lint.ignore = [
-  "PERF203",
-  "PLW1508",
-  "RUF005",
+  "COM812", # conflicts with formatter
+  "CPY",    # no copyright header
+  "D",      # ignore documentation for now
+  "D203",   # `one-blank-line-before-class` and `no-blank-line-before-class` are incompatible
+  "D212",   # `multi-line-summary-first-line` and `multi-line-summary-second-line` are incompatible
+  "DOC201", # no restructuredtext support yet
+  "DOC402", # no restructuredtext support yet
+  "DOC501", # broken with sphinx docs
+  "INP001", # no implicit namespaces here
+  "ISC001", # conflicts with formatter
+  "RUF067", # `__init__` module should only contain docstrings and re-exports
+  "S104",   # possible binding to all interfaces
+  "S404",   # using subprocess is alright
+  "S603",   # using subprocess is alright
 ]
 lint.per-file-ignores."src/pipx/venv.py" = [
-  "A005",
+  "A005", # module shadows the standard library
+]
+lint.per-file-ignores."tests/**/*.py" = [
+  "D",       # don't care about documentation in tests
+  "FBT",     # don't care about booleans as positional arguments in tests
+  "INP001",  # no implicit namespace
+  "PLR0913", # too many arguments to function definition
+  "PLR2004", # magic value used in comparison
+  "S101",    # asserts allowed in tests
+  "S603",    # subprocess call: check for execution of untrusted input
 ]
 lint.isort = { known-first-party = [
   "helpers",
   "package_info",
   "pipx",
+], required-imports = [
+  "from __future__ import annotations",
 ] }
 lint.mccabe.max-complexity = 15
+lint.preview = true
 
 [tool.codespell]
 # case sensitive etc
@@ -142,12 +181,10 @@ ignore-regex = "\\b(UE|path/doesnt/exist)\\b"
 skip = ".git,*.pdf,*.svg,.nox,testdata,.mypy_cache"
 check-hidden = true
 
-[tool.mypy]
-warn_unreachable = true
-enable_error_code = [ "ignore-without-code", "redundant-expr", "truthy-bool" ]
-overrides = [ { module = [
-  "pycowsay.*",
-], ignore_missing_imports = true } ]
+[tool.ty]
+src.include = [ "hatch_build.py", "scripts", "src", "tests" ]
+environment.python-version = "3.10"
+rules.unused-ignore-comment = "error"
 
 [tool.pytest]
 ini_options.minversion = "8"
@@ -161,12 +198,22 @@ ini_options.log_level = "INFO"
 [tool.towncrier]
 package = "pipx"
 directory = "changelog.d"
-filename = "docs/changelog.md"
-start_string = "<!-- towncrier release notes start -->\n"
-title_format = "## [{version}](https://github.com/pypa/pipx/tree/{version}) - {project_date}"
-issue_format = "[#{issue}](https://github.com/pypa/pipx/issues/{issue})"
+filename = "docs/changelog.rst"
+start_string = ".. towncrier release notes start\n"
+title_format = "`{version} <https://github.com/pypa/pipx/tree/{version}>`_ - {project_date}"
+issue_format = ":issue:`{issue}`"
 underlines = [
-  "",
-  "",
-  "",
+  "=",
+  "-",
+  "~",
+]
+type = [
+  # defining any custom type replaces towncrier's built-ins, so pipx's default set is repeated here with a
+  # performance type added, otherwise `*.performance.md` fragments are silently dropped from the changelog
+  { directory = "feature", name = "Features", showcontent = true },
+  { directory = "bugfix", name = "Bugfixes", showcontent = true },
+  { directory = "performance", name = "Performance", showcontent = true },
+  { directory = "doc", name = "Improved Documentation", showcontent = true },
+  { directory = "removal", name = "Deprecations and Removals", showcontent = true },
+  { directory = "misc", name = "Miscellaneous internal changes", showcontent = false },
 ]

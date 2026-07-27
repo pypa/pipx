@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import codecs
+import errno
 import logging
 import os
 import random
@@ -6,14 +10,18 @@ import shutil
 import string
 import subprocess
 import sys
-from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import suppress
 from dataclasses import dataclass
+from itertools import chain
 from pathlib import Path
 from re import Pattern
 from typing import (
+    TYPE_CHECKING,
     Any,
     Final,
     NoReturn,
+    TextIO,
 )
 
 from pipx import paths
@@ -21,11 +29,22 @@ from pipx.animate import show_cursor
 from pipx.constants import MINGW, WINDOWS
 from pipx.wrap import pipx_wrap
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+if not WINDOWS:
+    import fcntl
+    import pty
+    import struct
+    import termios
+
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+_SUBPROCESS_STREAM_READ_SIZE: Final[int] = 8 * 1024
 
 
 class PipxError(Exception):
-    def __init__(self, message: str, wrap_message: bool = True):
+    def __init__(self, message: str, *, wrap_message: bool = True) -> None:
+        self.raw_message: Final[str] = message
         if wrap_message:
             super().__init__(pipx_wrap(message))
         else:
@@ -40,36 +59,41 @@ class RelevantSearch:
 
 def _get_trash_file(path: Path) -> Path:
     if not paths.ctx.trash.is_dir():
-        paths.ctx.trash.mkdir()
-    prefix = "".join(random.choices(string.ascii_lowercase, k=8))
+        paths.ctx.trash.mkdir(exist_ok=True)
+    prefix = "".join(random.choices(string.ascii_lowercase, k=8))  # ruff:ignore[suspicious-non-cryptographic-random-usage]  # temp filename, not security-sensitive
     return paths.ctx.trash / f"{prefix}.{path.name}"
 
 
-def rmdir(path: Path, safe_rm: bool = True) -> None:
+def rmdir(path: Path, *, safe_rm: bool = True) -> None:
     if not path.is_dir():
         return
 
-    _LOGGER.info(f"removing directory {path}")
+    _LOGGER.info("removing directory %s", path)
     # Windows doesn't let us delete or overwrite files that are being run
     # But it does let us rename/move it. To get around this issue, we can move
     # the file to a temporary folder (to be deleted at a later time)
-    # So, if safe_rm is True, we ignore any errors and move the file to the trash with below code
-    shutil.rmtree(path, ignore_errors=safe_rm)
+    # Always ignore errors so locked files don't make cleanup fatal. If the
+    # directory is still present afterwards, safe_rm controls whether it is
+    # moved to the trash or left in place with a warning.
+    shutil.rmtree(path, ignore_errors=True)
 
     # move it to be deleted later if it still exists
     if path.is_dir():
         if safe_rm:
-            _LOGGER.warning(f"Failed to delete {path}. Will move it to a temp folder to delete later.")
+            _LOGGER.warning("Failed to delete %s. Will move it to a temp folder to delete later.", path)
 
-            path.rename(_get_trash_file(path))
+            try:
+                path.rename(_get_trash_file(path))
+            except OSError as error:
+                _LOGGER.warning("Failed to move %s to the trash; remove it by hand (%s).", path, error)
         else:
-            _LOGGER.warning(f"Failed to delete {path}. You may need to delete it manually.")
+            _LOGGER.warning("Failed to delete %s. You may need to delete it manually.", path)
 
 
 def mkdir(path: Path) -> None:
     if path.is_dir():
         return
-    _LOGGER.info(f"creating directory {path}")
+    _LOGGER.info("creating directory %s", path)
     path.mkdir(parents=True, exist_ok=True)
 
 
@@ -78,7 +102,7 @@ def safe_unlink(file: Path) -> None:
     # But it does let us rename/move it. To get around this issue, we can move
     # the file to a temporary folder (to be deleted at a later time)
 
-    if not file.is_file():
+    if not file.is_file() and not file.is_symlink():
         return
     try:
         file.unlink()
@@ -98,7 +122,7 @@ def get_pypackage_bin_path(binary_name: str) -> Path:
 
 def run_pypackage_bin(bin_path: Path, args: list[str]) -> NoReturn:
     exec_app(
-        [str(bin_path.resolve())] + args,
+        [str(bin_path.resolve()), *args],
         extra_python_paths=[".", str(bin_path.parent.parent)],
     )
 
@@ -134,7 +158,7 @@ def get_site_packages(python: Path) -> Path:
     return path
 
 
-def _fix_subprocess_env(env: dict[str, str]) -> dict[str, str]:
+def _fix_subprocess_env(env: dict[str, str], *, force_utf8: bool = True) -> dict[str, str]:
     # Remove PYTHONPATH because some platforms (macOS with Homebrew) add pipx
     #   directories to it, and can make it appear to venvs as though pipx
     #   dependencies are in the venv path (#233)
@@ -145,9 +169,9 @@ def _fix_subprocess_env(env: dict[str, str]) -> dict[str, str]:
         env.pop(env_to_remove, None)
 
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
-    # Make sure that Python writes output in UTF-8
-    env["PYTHONIOENCODING"] = "utf-8"
-    env["PYTHONLEGACYWINDOWSSTDIO"] = "utf-8"
+    if force_utf8:
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTHONLEGACYWINDOWSSTDIO"] = "utf-8"
     # Make sure we install packages to venv, not to userbase or a custom target dir
     env["PIP_USER"] = "0"
     env.pop("PIP_TARGET", None)
@@ -155,8 +179,9 @@ def _fix_subprocess_env(env: dict[str, str]) -> dict[str, str]:
     return env
 
 
-def run_subprocess(
+def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subprocess.run exposing its capture and logging switches
     cmd: Sequence[str | Path],
+    *,
     capture_stdout: bool = True,
     capture_stderr: bool = True,
     log_cmd_str: str | None = None,
@@ -164,7 +189,8 @@ def run_subprocess(
     log_stderr: bool = True,
     run_dir: str | None = None,
     env_overrides: dict[str, str | None] | None = None,
-) -> "subprocess.CompletedProcess[str]":
+    stream_output: bool = False,
+) -> subprocess.CompletedProcess[str]:
     """Run a command as a subprocess, capturing stderr and stdout.
 
     ``env_overrides`` keys map to a string (set/replace) or ``None`` (delete).
@@ -179,9 +205,9 @@ def run_subprocess(
 
     if log_cmd_str is None:
         log_cmd_str = " ".join(str(c) for c in cmd)
-    _LOGGER.info(f"running {log_cmd_str}")
+    _LOGGER.info("running %s", log_cmd_str)
     if run_dir:
-        os.makedirs(run_dir, exist_ok=True)
+        Path(run_dir).mkdir(parents=True, exist_ok=True)
     # windows cannot take Path objects, only strings
     cmd_str_list = [str(c) for c in cmd]
 
@@ -192,36 +218,174 @@ def run_subprocess(
     if len(cmd_str_list) > 0 and "python" in Path(cmd_str_list[0]).name.lower():
         env.setdefault("PYTHONSAFEPATH", "1")
 
-    completed_process = subprocess.run(
-        cmd_str_list,
-        env=env,
-        stdout=subprocess.PIPE if capture_stdout else None,
-        stderr=subprocess.PIPE if capture_stderr else None,
-        encoding="utf-8",
-        text=True,
-        check=False,
-        cwd=run_dir,
-    )
+    if stream_output:
+        # Windows has no pseudo-terminal to hand the child, so it reads a pipe and rich, which pip draws its bar with,
+        # takes TTY_COMPATIBLE for the terminal we forward the output to and COLUMNS for a width it cannot measure.
+        if sys.stdout.isatty():
+            env.setdefault("TTY_COMPATIBLE", "1")
+            env.setdefault("COLUMNS", str(shutil.get_terminal_size().columns))
+        completed_process = _run_streaming_subprocess(
+            cmd_str_list,
+            capture_stdout=capture_stdout,
+            capture_stderr=capture_stderr,
+            cwd=run_dir,
+            env=env,
+        )
+    else:
+        completed_process = subprocess.run(
+            cmd_str_list,
+            env=env,
+            stdout=subprocess.PIPE if capture_stdout else None,
+            stderr=subprocess.PIPE if capture_stderr else None,
+            encoding="utf-8",
+            text=True,
+            check=False,
+            cwd=run_dir,
+        )
 
-    if capture_stdout and log_stdout:
+    if capture_stdout and log_stdout and not stream_output:
         _LOGGER.debug(f"stdout: {completed_process.stdout}".rstrip())
-    if capture_stderr and log_stderr:
+    if capture_stderr and log_stderr and not stream_output:
         _LOGGER.debug(f"stderr: {completed_process.stderr}".rstrip())
-    _LOGGER.debug(f"returncode: {completed_process.returncode}")
+    _LOGGER.debug("returncode: %s", completed_process.returncode)
 
     return completed_process
 
 
-def subprocess_post_check(completed_process: "subprocess.CompletedProcess[str]", raise_error: bool = True) -> None:
+def _run_streaming_subprocess(
+    cmd: list[str],
+    *,
+    capture_stdout: bool,
+    capture_stderr: bool,
+    cwd: str | None,
+    env: dict[str, str],
+) -> subprocess.CompletedProcess[str]:
+    stdout_chunks: Final[list[str]] = []
+    stderr_chunks: Final[list[str]] = []
+    channels: Final[dict[str, _StreamChannel]] = {
+        name: _open_stream_channel(destination)
+        for name, destination, capture in (
+            ("stdout", sys.stdout, capture_stdout),
+            ("stderr", sys.stderr, capture_stderr),
+        )
+        if capture
+    }
+    try:
+        with (
+            subprocess.Popen(
+                cmd,
+                env=env,
+                stdout=channels["stdout"].child if capture_stdout else None,
+                stderr=channels["stderr"].child if capture_stderr else None,
+                cwd=cwd,
+            ) as process,
+            ThreadPoolExecutor(max_workers=2) as executor,
+        ):
+            for channel in channels.values():
+                channel.close_child()
+            for future in [
+                executor.submit(_tee_subprocess_output, channels[name].reader, destination, chunks)
+                for name, destination, chunks in (
+                    ("stdout", sys.stdout, stdout_chunks),
+                    ("stderr", sys.stderr, stderr_chunks),
+                )
+                if name in channels
+            ]:
+                future.result()
+            returncode: Final[int] = process.wait()
+    finally:
+        for channel in channels.values():
+            channel.close()
+    return subprocess.CompletedProcess(
+        cmd,
+        returncode,
+        "".join(stdout_chunks) if capture_stdout else None,
+        "".join(stderr_chunks) if capture_stderr else None,
+    )
+
+
+@dataclass
+class _StreamChannel:
+    reader: int
+    child: int
+
+    def close_child(self) -> None:
+        if self.child != -1:
+            os.close(self.child)
+            self.child = -1
+
+    def close(self) -> None:
+        self.close_child()
+        if self.reader != -1:
+            os.close(self.reader)
+            self.reader = -1
+
+
+def _open_stream_channel(destination: TextIO) -> _StreamChannel:
+    # pip and uv draw a progress bar only onto a terminal, and a pipe hides the one pipx forwards the output to, so
+    # hand the child a pseudo-terminal instead whenever the platform offers one
+    if not WINDOWS and destination.isatty():
+        reader, child = pty.openpty()
+        _match_terminal_size(child)
+        return _StreamChannel(reader, child)
+    reader, child = os.pipe()
+    return _StreamChannel(reader, child)
+
+
+def _match_terminal_size(child: int) -> None:
+    size: Final[os.terminal_size] = shutil.get_terminal_size()
+    with suppress(OSError):
+        fcntl.ioctl(child, termios.TIOCSWINSZ, struct.pack("HHHH", size.lines, size.columns, 0, 0))
+
+
+def _read_stream(source: int) -> bytes:
+    try:
+        return os.read(source, _SUBPROCESS_STREAM_READ_SIZE)
+    except OSError as error:
+        # a pseudo-terminal reports the departed child this way rather than as an end of file
+        if error.errno == errno.EIO:
+            return b""
+        raise
+
+
+def _tee_subprocess_output(source: int, destination: TextIO, chunks: list[str]) -> None:
+    write_error: OSError | UnicodeError | None = None
+    pending_carriage_return: bool = False
+    for decoded in chain(
+        codecs.iterdecode(iter(lambda: _read_stream(source), b""), "utf-8"),
+        (None,),
+    ):
+        if decoded is None:
+            chunk = "\r" if pending_carriage_return else ""
+        else:
+            chunk = ("\r" if pending_carriage_return else "") + decoded
+            pending_carriage_return = chunk.endswith("\r")
+            if pending_carriage_return:
+                chunk = chunk[:-1]
+            chunk = chunk.replace("\r\n", "\n")
+        if not chunk:
+            continue
+        chunks.append(chunk)
+        if write_error is None:
+            try:
+                destination.write(chunk)
+                destination.flush()
+            except (OSError, UnicodeError) as error:
+                write_error = error
+    if write_error is not None:
+        raise write_error
+
+
+def subprocess_post_check(completed_process: subprocess.CompletedProcess[str], *, raise_error: bool = True) -> None:
     if completed_process.returncode:
         if completed_process.stdout is not None:
-            print(completed_process.stdout, file=sys.stdout, end="")
+            print(completed_process.stdout, file=sys.stdout, end="")  # ruff:ignore[print]  # relays subprocess output to the user
         if completed_process.stderr is not None:
-            print(completed_process.stderr, file=sys.stderr, end="")
+            print(completed_process.stderr, file=sys.stderr, end="")  # ruff:ignore[print]  # relays subprocess output to the user
         if raise_error:
-            raise PipxError(f"{' '.join([str(x) for x in completed_process.args])!r} failed")
-        else:
-            _LOGGER.info(f"{' '.join(completed_process.args)!r} failed")
+            msg = f"{' '.join([str(x) for x in completed_process.args])!r} failed"
+            raise PipxError(msg)
+        _LOGGER.info("%r failed", " ".join(completed_process.args))
 
 
 def dedup_ordered(input_list: list[tuple[str, Any]]) -> list[tuple[str, Any]]:
@@ -275,11 +439,11 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str) -> None:
 
     # In order of most useful to least useful
     relevant_searches = [
-        RelevantSearch(re.compile(r"not (?:be )?found", re.I), "not_found"),
-        RelevantSearch(re.compile(r"no such", re.I), "no_such"),
+        RelevantSearch(re.compile(r"not (?:be )?found", re.IGNORECASE), "not_found"),
+        RelevantSearch(re.compile(r"no such", re.IGNORECASE), "no_such"),
         RelevantSearch(re.compile(r"(Exception|Error):\s*\S+"), "exception_error"),
-        RelevantSearch(re.compile(r"fatal error", re.I), "fatal_error"),
-        RelevantSearch(re.compile(r"conflict", re.I), "conflict_"),
+        RelevantSearch(re.compile(r"fatal error", re.IGNORECASE), "fatal_error"),
+        RelevantSearch(re.compile(r"conflict", re.IGNORECASE), "conflict_"),
         RelevantSearch(
             re.compile(
                 r"error:"
@@ -288,7 +452,7 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str) -> None:
                 r"(?!.+could not build wheels? for)"
                 r"(?!.+failed to build one or more wheels)"
                 r".+[^:]$",
-                re.I,
+                re.IGNORECASE,
             ),
             "error_",
         ),
@@ -308,24 +472,12 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str) -> None:
                 relevants_saved.append((line.strip(), relevant_search.category))
                 break
 
-    if failed_build_stdout:
-        failed_to_build_str = "\n    ".join(failed_build_stdout)
-        plural_str = "s" if len(failed_build_stdout) > 1 else ""
-        print("", file=sys.stderr)
-        _LOGGER.error(f"pip failed to build package{plural_str}:\n    {failed_to_build_str}")
-    elif failed_build_stderr:
-        failed_to_build_str = "\n    ".join(failed_build_stderr)
-        plural_str = "s" if len(failed_build_stderr) > 1 else ""
-        print("", file=sys.stderr)
-        _LOGGER.error(f"pip seemed to fail to build package{plural_str}:\n    {failed_to_build_str}")
-    elif last_collecting_dep is not None:
-        print("", file=sys.stderr)
-        _LOGGER.error(f"pip seemed to fail to build package:\n    {last_collecting_dep}")
+    _log_failed_builds(failed_build_stdout, failed_build_stderr, last_collecting_dep)
 
     relevants_saved = dedup_ordered(relevants_saved)
 
     if relevants_saved:
-        print("\nSome possibly relevant errors from pip install:", file=sys.stderr)
+        print("\nSome possibly relevant errors from pip install:", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
 
         print_categories = [x.category for x in relevant_searches]
         relevants_saved_filtered = relevants_saved.copy()
@@ -334,11 +486,31 @@ def analyze_pip_output(pip_stdout: str, pip_stderr: str) -> None:
             relevants_saved_filtered = [x for x in relevants_saved if x[1] in print_categories]
 
         for relevant_saved in relevants_saved_filtered:
-            print(f"    {relevant_saved[0]}", file=sys.stderr)
+            print(f"    {relevant_saved[0]}", file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
+
+
+def _log_failed_builds(
+    failed_build_stdout: list[str],
+    failed_build_stderr: set[str],
+    last_collecting_dep: str | None,
+) -> None:
+    if failed_build_stdout:
+        failed_to_build_str = "\n    ".join(failed_build_stdout)
+        plural_str = "s" if len(failed_build_stdout) > 1 else ""
+        print(file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
+        _LOGGER.error("pip failed to build package%s:\n    %s", plural_str, failed_to_build_str)
+    elif failed_build_stderr:
+        failed_to_build_str = "\n    ".join(failed_build_stderr)
+        plural_str = "s" if len(failed_build_stderr) > 1 else ""
+        print(file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
+        _LOGGER.error("pip seemed to fail to build package%s:\n    %s", plural_str, failed_to_build_str)
+    elif last_collecting_dep is not None:
+        print(file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
+        _LOGGER.error("pip seemed to fail to build package:\n    %s", last_collecting_dep)
 
 
 def subprocess_post_check_handle_pip_error(
-    completed_process: "subprocess.CompletedProcess[str]",
+    completed_process: subprocess.CompletedProcess[str],
     tool_name: str = "pip",
 ) -> None:
     """Persist subprocess output; run pip-specific heuristics for the pip path.
@@ -349,9 +521,10 @@ def subprocess_post_check_handle_pip_error(
     """
     if not completed_process.returncode:
         return
-    _LOGGER.info(f"{' '.join(completed_process.args)!r} failed")
+    _LOGGER.info("%r failed", " ".join(completed_process.args))
     if paths.ctx.log_file is None:
-        raise PipxError("Pipx internal error: No log_file present.")
+        msg = "Pipx internal error: No log_file present."
+        raise PipxError(msg)
     error_file = paths.ctx.log_file.parent / f"{paths.ctx.log_file.stem}_{tool_name}_errors.log"
     upper_label = tool_name.upper()
     with error_file.open("a", encoding="utf-8") as error_fh:
@@ -365,7 +538,7 @@ def subprocess_post_check_handle_pip_error(
             print(completed_process.stderr, file=error_fh, end="")
 
     _LOGGER.error(
-        f"Fatal error from {tool_name} prevented installation. Full {tool_name} output in file:\n    {error_file}"
+        "Fatal error from %s prevented installation. Full %s output in file:\n    %s", tool_name, tool_name, error_file
     )
     if tool_name == "pip":
         analyze_pip_output(completed_process.stdout, completed_process.stderr)
@@ -384,7 +557,7 @@ def exec_app(
 
     if env is None:
         env = dict(os.environ)
-    env = _fix_subprocess_env(env)
+    env = _fix_subprocess_env(env, force_utf8=False)
 
     if extra_python_paths is not None:
         env["PYTHONPATH"] = os.path.pathsep.join(
@@ -394,32 +567,20 @@ def exec_app(
     # make sure we show cursor again before handing over control
     show_cursor()
 
-    _LOGGER.info(f"exec_app: {' '.join(str(c) for c in cmd)}")
+    _LOGGER.info("exec_app: %s", " ".join(str(c) for c in cmd))
 
     if WINDOWS:
-        sys.exit(
-            subprocess.run(
-                cmd,
-                env=env,
-                stdout=None,
-                stderr=None,
-                encoding="utf-8",
-                text=True,
-                check=False,
-            ).returncode
-        )
-    else:
-        os.execvpe(str(cmd[0]), [str(x) for x in cmd], env)
+        sys.exit(subprocess.run(cmd, env=env, check=False).returncode)
+    os.execvpe(str(cmd[0]), [str(x) for x in cmd], env)  # ruff:ignore[start-process-with-no-shell]  # pipx replaces itself with the requested app by design
 
 
 def full_package_description(package_name: str, package_spec: str) -> str:
     if package_name == package_spec:
         return package_name
-    else:
-        return f"{package_name} from spec {package_spec!r}"
+    return f"{package_name} from spec {package_spec!r}"
 
 
-def is_paths_relative(path: Path, parent: Path):
+def is_paths_relative(path: Path, parent: Path) -> bool:
     return path.is_relative_to(parent)
 
 

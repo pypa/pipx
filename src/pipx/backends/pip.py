@@ -5,7 +5,7 @@ import logging
 from typing import TYPE_CHECKING, Final
 
 from pipx.animate import animate
-from pipx.backends._base import PIP, Backend
+from pipx.backends._base import PIP, Backend, OutdatedPackage, outdated_packages_from_process
 from pipx.constants import PIPX_SHARED_PTH
 from pipx.shared_libs import shared_libs
 from pipx.util import (
@@ -16,6 +16,7 @@ from pipx.util import (
     subprocess_post_check,
     subprocess_post_check_handle_pip_error,
 )
+from pipx.venv_inspect import list_not_required_packages
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -27,16 +28,17 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 class PipBackend(Backend):
     name = PIP
 
-    def needs_shared_libs(self) -> bool:
+    def needs_shared_libs(self) -> bool:  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
         return True
 
-    def upgrade_packaging_libraries(
+    def upgrade_packaging_libraries(  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
         self,
         venv_python: Path,
         pip_args: list[str],
         *,
         verbose: bool,
     ) -> None:
+        del verbose  # pip's upgrade output is not gated on verbosity here
         # Reached only for ``pipx install pip``-style venvs that ship pip
         # in-tree; shared-libs venvs upgrade through ``shared_libs.upgrade``.
         process = run_subprocess(
@@ -45,7 +47,7 @@ class PipBackend(Backend):
         )
         subprocess_post_check(process)
 
-    def create_venv(
+    def create_venv(  # ruff:ignore[no-self-use, too-many-arguments]  # Backend interface method mirroring venv-creation inputs
         self,
         root: Path,
         *,
@@ -59,7 +61,7 @@ class PipBackend(Backend):
         if not include_pip:
             cmd.append("--without-pip")
         cmd += [*venv_args, str(root)]
-        with animate("creating virtual environment", not verbose):
+        with animate("creating virtual environment", do_animation=not verbose):
             venv_process = run_subprocess(cmd, run_dir=str(root))
         subprocess_post_check(venv_process)
 
@@ -69,7 +71,7 @@ class PipBackend(Backend):
             pipx_pth = get_site_packages(python_path) / PIPX_SHARED_PTH
             pipx_pth.write_text(f"{shared_libs.site_packages}\n")
 
-    def install(
+    def install(  # ruff:ignore[no-self-use, too-many-arguments]  # Backend interface method mapping flags to pip options
         self,
         *,
         venv_root: Path,
@@ -80,24 +82,32 @@ class PipBackend(Backend):
         upgrade: bool = False,
         log_pip_errors: bool = True,
         verbose: bool = False,
+        progress: bool = False,
     ) -> CompletedProcess[str]:
         cmd: list[str] = [str(venv_python), "-m", "pip", "--no-input", "install"]
         if upgrade:
             cmd.append("--upgrade")
         if no_deps:
             cmd.append("--no-dependencies")
+        if verbose or progress:
+            cmd.append("--progress-bar=on")
         cmd += [*pip_args, *requirements]
         process = run_subprocess(
             cmd,
             log_stdout=not log_pip_errors,
             log_stderr=not log_pip_errors,
             run_dir=str(venv_root),
+            stream_output=verbose or progress,
         )
         if log_pip_errors:
             subprocess_post_check_handle_pip_error(process)
         return process
 
-    def uninstall(
+    @staticmethod
+    def cooldown_args(cooldown_days: int | None) -> list[str]:
+        return [] if not cooldown_days else ["--uploaded-prior-to", f"P{cooldown_days}D"]
+
+    def uninstall(  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
         self,
         *,
         venv_root: Path,
@@ -112,7 +122,7 @@ class PipBackend(Backend):
         subprocess_post_check(process)
         return process
 
-    def list_installed(
+    def list_installed(  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
         self,
         *,
         venv_root: Path,
@@ -120,19 +130,33 @@ class PipBackend(Backend):
         not_required: bool = False,
     ) -> set[str]:
         del venv_root
-        cmd = [str(venv_python), "-m", "pip", "list", "--format=json"]
         if not_required:
-            cmd.append("--not-required")
+            return list_not_required_packages(venv_python)
+        cmd = [str(venv_python), "-m", "pip", "list", "--format=json"]
         process = run_subprocess(cmd)
         if process.returncode != 0:
-            raise PipxError(
+            msg = (
                 f"Failed to execute {process.args}.\n"
                 f"Process exited with return code {process.returncode}.\n"
                 f"stderr: {process.stderr}"
             )
+            raise PipxError(msg)
         return {entry["name"] for entry in json.loads(process.stdout.strip())}
 
-    def run_raw_pip(
+    def list_outdated(  # ruff:ignore[no-self-use]  # Backend interface method, must dispatch polymorphically
+        self,
+        *,
+        venv_root: Path,
+        venv_python: Path,
+        index_args: list[str],
+    ) -> tuple[OutdatedPackage, ...]:
+        process = run_subprocess(
+            [str(venv_python), "-m", "pip", "list", "--outdated", "--format=json", *index_args],
+            run_dir=str(venv_root),
+        )
+        return outdated_packages_from_process(process)
+
+    def run_raw_pip(  # ruff:ignore[no-self-use, too-many-arguments]  # Backend interface method passing raw pip controls through
         self,
         *,
         venv_root: Path,
