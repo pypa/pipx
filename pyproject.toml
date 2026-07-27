@@ -49,7 +49,7 @@ optional-dependencies.uv = [
   "uv>=0.9.17",
 ]
 urls."Issue Tracker" = "https://github.com/pypa/pipx/issues"
-urls."Release Notes" = "https://pipx.pypa.io/latest/changelog/"
+urls."Release Notes" = "https://pipx.pypa.io/latest/changelog.html"
 urls."Source Code" = "https://github.com/pypa/pipx"
 urls.Documentation = "https://pipx.pypa.io"
 urls.Homepage = "https://pipx.pypa.io"
