@@ -114,7 +114,6 @@ jobs:
           name: pipx.pyz
           path: pipx.pyz
           retention-days: 3
-
   zipapp-windows:
     name: 🪟 Test windows zipapp
     runs-on: windows-2025
