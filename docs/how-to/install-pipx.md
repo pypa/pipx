@@ -150,8 +150,12 @@ pipx ensurepath
 
 ### Using pipx without installing (via zipapp)
 
-The zipapp can be downloaded from [Github releases](https://github.com/pypa/pipx/releases) and you can invoke it with a
-Python 3.10+ interpreter:
+The zipapps can be downloaded from [Github releases](https://github.com/pypa/pipx/releases):
+
+- `pipx.pyz` for Linux, macOS
+- `pipx-windows.pyz` for Windows
+
+Invoke either one with a Python 3.10+ interpreter:
 
 ```
 python pipx.pyz ensurepath
