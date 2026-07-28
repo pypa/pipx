@@ -1,4 +1,4 @@
-### Thanks for contributing, make sure you address all the checklists (for details on how see [development documentation](https://pipx.pypa.io/latest/contributing/))
+### Thanks for contributing, make sure you address all the checklists (for details on how see [development documentation](https://pipx.pypa.io/latest/contributing.html))
 
 - [ ] ran the linter to address style issues (`pre-commit run --all-files`)
 - [ ] wrote descriptive pull request text
