@@ -95,7 +95,11 @@ description = "build zipapp via shiv"
 skip_install = true
 dependency_groups = ["zipapp"]
 allowlist_externals = ["{tox_root}{/}pipx.pyz"]
+# The zipapp is one artifact for every platform and interpreter, but pip evaluates the
+# environment markers in `dependencies` against the machine that builds it. Requesting the
+# marker-gated dependencies explicitly keeps them in the artifact, so it also runs on the
+# platforms the release builder is not.
 commands = [
-  ["shiv", "-c", "pipx", "-o", "{tox_root}{/}pipx.pyz", "."],
+  ["shiv", "-c", "pipx", "-o", "{tox_root}{/}pipx.pyz", ".", "colorama>=0.4.4", "tomli"],
   ["{tox_root}{/}pipx.pyz", "--version"],
 ]
