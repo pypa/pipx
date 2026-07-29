@@ -1,4 +1,13 @@
 repos:
+  - repo: local
+    hooks:
+      # towncrier orphan fragments (+name) and typos in the type render without a PR link or get silently
+      # dropped from the changelog, so enforce the <PR number>.<type>.md naming here
+      - id: changelog-fragment-naming
+        name: changelog fragments are named <PR number>.<type>.md
+        language: fail
+        entry: changelog.d entries must be named <PR number>.(feature|bugfix|performance|doc|removal|misc).md
+        files: ^changelog\.d/(?!\.gitignore$)(?!\d+\.(feature|bugfix|performance|doc|removal|misc)(\.\d+)?\.md$)
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
