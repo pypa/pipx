@@ -32,6 +32,35 @@ def test_delete_oldest_logs_keeps_specified_number(tmp_path: Path) -> None:
     assert len(remaining) == 2
 
 
+def test_delete_oldest_logs_keeps_none(tmp_path: Path) -> None:
+    """Test that delete_oldest_logs with keep_number=0 deletes every file."""
+    log_files = []
+    for i in range(5):
+        log_file = tmp_path / f"cmd_2024-01-01_00.00.0{i}.log"
+        log_file.touch()
+        log_files.append(log_file)
+
+    delete_oldest_logs(log_files, keep_number=0)
+
+    remaining = list(tmp_path.glob("cmd_*.log"))
+    assert remaining == []
+
+
+def test_max_logs_zero_keeps_only_the_new_log(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that PIPX_MAX_LOGS=0 prunes the existing logs."""
+    monkeypatch.setenv("PIPX_MAX_LOGS", "0")
+
+    for i in range(15):
+        log_file = tmp_path / f"cmd_2024-01-01_00.00.{i:02d}.log"
+        log_file.touch()
+
+    _setup_log_file(pipx_log_dir=tmp_path)
+
+    # Every pre-existing log is pruned, leaving only the one just created.
+    remaining = list(tmp_path.glob("cmd_*.log"))
+    assert len(remaining) == 1
+
+
 def test_delete_oldest_logs_keeps_all_when_under_limit(tmp_path: Path) -> None:
     """Test that delete_oldest_logs keeps all files when under the limit."""
     log_files = []

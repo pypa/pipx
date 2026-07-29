@@ -1826,9 +1826,11 @@ def _cmd_completions(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode
 
 def delete_oldest_logs(file_list: list[Path], keep_number: int) -> None:
     file_list = sorted(file_list)
-    if len(file_list) > keep_number:
-        for existing_file in file_list[:-keep_number]:
-            existing_file.unlink(missing_ok=True)
+    # Count from the front rather than slicing with -keep_number: file_list[:-0] is
+    # file_list[:0], so keeping none used to delete none. max() guards the other end,
+    # where keep_number exceeds the list and a negative bound would delete instead.
+    for existing_file in file_list[: max(0, len(file_list) - keep_number)]:
+        existing_file.unlink(missing_ok=True)
 
 
 def _setup_log_file(pipx_log_dir: Path | None = None) -> Path:
