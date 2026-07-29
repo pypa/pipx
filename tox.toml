@@ -91,16 +91,23 @@ commands = [
 ]
 
 [env.zipapp]
-description = "build zipapps via shiv"
+description = "build zipapp via shiv"
 skip_install = true
 dependency_groups = ["zipapp"]
-allowlist_externals = [
-  "{tox_root}{/}pipx.pyz",
-  "{tox_root}{/}pipx-windows.pyz",
-]
+allowlist_externals = ["{tox_root}{/}pipx.pyz"]
+# pip evaluates environment markers against the interpreter building the artifact, dropping the
+# marker-gated dependencies; requesting them explicitly keeps the single zipapp working on every
+# supported platform and Python version
 commands = [
-  ["shiv", "-c", "pipx", "-o", "{tox_root}{/}pipx.pyz", "."],
+  [
+    "shiv",
+    "-c",
+    "pipx",
+    "-o",
+    "{tox_root}{/}pipx.pyz",
+    ".",
+    "colorama>=0.4.4",
+    "tomli",
+  ],
   ["{tox_root}{/}pipx.pyz", "--version"],
-  ["shiv", "-c", "pipx", "-o", "{tox_root}{/}pipx-windows.pyz", ".", "colorama>=0.4.4"],
-  ["{tox_root}{/}pipx-windows.pyz", "--version"],
 ]
