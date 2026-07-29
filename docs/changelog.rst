@@ -14,6 +14,15 @@ to this file.
 
 .. towncrier release notes start
 
+`1.16.5 <https://github.com/pypa/pipx/tree/1.16.5>`_ - 2026-07-29
+=================================================================
+
+Bugfixes
+--------
+
+- Honor the version specifier when `pipx upgrade --install` installs a missing package. (:issue:`1987`)
+
+
 `1.16.4 <https://github.com/pypa/pipx/tree/1.16.4>`_ - 2026-07-29
 =================================================================
 
