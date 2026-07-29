@@ -91,11 +91,16 @@ commands = [
 ]
 
 [env.zipapp]
-description = "build zipapp via shiv"
+description = "build zipapps via shiv"
 skip_install = true
 dependency_groups = ["zipapp"]
-allowlist_externals = ["{tox_root}{/}pipx.pyz"]
+allowlist_externals = [
+  "{tox_root}{/}pipx.pyz",
+  "{tox_root}{/}pipx-windows.pyz",
+]
 commands = [
   ["shiv", "-c", "pipx", "-o", "{tox_root}{/}pipx.pyz", "."],
   ["{tox_root}{/}pipx.pyz", "--version"],
+  ["shiv", "-c", "pipx", "-o", "{tox_root}{/}pipx-windows.pyz", ".", "colorama>=0.4.4"],
+  ["{tox_root}{/}pipx-windows.pyz", "--version"],
 ]

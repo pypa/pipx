@@ -147,8 +147,12 @@ For where these directories live and how to change them, see :doc:`configure-pat
  Run pipx without installing
 ****************************
 
-Download the zipapp from `GitHub releases <https://github.com/pypa/pipx/releases>`_ and invoke it with a Python 3.10+
-interpreter:
+Download the appropriate zipapp from `GitHub releases <https://github.com/pypa/pipx/releases>`_:
+
+* ``pipx.pyz`` for Linux and macOS
+* ``pipx-windows.pyz`` for Windows
+
+Invoke it with a Python 3.10+ interpreter:
 
 .. code-block:: console
 

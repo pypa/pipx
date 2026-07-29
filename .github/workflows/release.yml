@@ -113,7 +113,7 @@ jobs:
         run: tox run -e zipapp
       - name: Upload to release
         run: |
-          gh release upload --repo pypa/pipx "${RELEASE_TAG}" pipx.pyz
+          gh release upload --repo pypa/pipx "${RELEASE_TAG}" pipx.pyz pipx-windows.pyz
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.ref_name }}
