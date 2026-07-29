@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from dataclasses import dataclass, replace
 from enum import Enum
 from typing import TYPE_CHECKING, Final
@@ -49,7 +48,7 @@ def upgrade(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat upgrad
     results: Final[list[PackageUpgradeResult]] = []
     install_messages: Final[list[OutputMessage]] = []
 
-    for venv_dir in venv_dirs.values():
+    for package_spec, venv_dir in venv_dirs.items():
         with VenvContainer(venv_dir.parent).venv_lock(venv_dir) as venv_lock:
             results.extend(
                 _upgrade_venv(
@@ -59,6 +58,7 @@ def upgrade(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat upgrad
                     include_injected=include_injected,
                     force=force,
                     install=install,
+                    package_spec=package_spec,
                     venv_args=venv_args,
                     python=python,
                     python_flag_passed=python_flag_passed,
@@ -208,6 +208,7 @@ def _upgrade_venv(  # ruff:ignore[too-many-arguments]  # upgrade forwards the fu
     include_injected: bool,
     force: bool,
     install: bool = False,
+    package_spec: str | None = None,
     venv_args: list[str] | None = None,
     python: str | None = None,
     python_flag_passed: bool = False,
@@ -225,7 +226,9 @@ def _upgrade_venv(  # ruff:ignore[too-many-arguments]  # upgrade forwards the fu
                 venv_dir=None,
                 venv_args=venv_args or [],
                 package_names=None,
-                package_specs=[str(venv_dir).split(os.path.sep)[-1]],
+                # the venv directory only carries the package name; the original argument keeps
+                # any version specifier or extras the user asked to install
+                package_specs=[package_spec or venv_dir.name],
                 local_bin_dir=paths.ctx.bin_dir,
                 local_man_dir=paths.ctx.man_dir,
                 python=python,

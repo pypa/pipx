@@ -273,6 +273,14 @@ def test_upgrade_install_missing(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_install_missing_honors_specifier(capsys: pytest.CaptureFixture[str]) -> None:
+    pkg_spec = PKG["pylint"]["spec"]
+    assert not run_pipx_cli(["upgrade", pkg_spec, "--install"])
+    captured = capsys.readouterr()
+    assert f"installed package pylint {pkg_spec.split('==')[-1]}" in captured.out
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_multiple(capsys: pytest.CaptureFixture[str]) -> None:
     name = "pylint"
     pkg_spec = PKG[name]["spec"]
