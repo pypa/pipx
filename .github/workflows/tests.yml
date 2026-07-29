@@ -98,39 +98,41 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+      # the oldest supported Python consumes the artifact while tox builds it with the same
+      # interpreter as the release workflow, so this job reproduces the release scenario
       - name: 🐍 Setup Python 3.10
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.10"
+      - name: 🚀 Install uv
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+      - name: 📦 Install tox
+        run: uv tool install --python-preference only-managed --python 3.14 "tox>=4.45" --with tox-uv
       - name: 📦 Build zipapp
-        run: |
-          pip install shiv
-          shiv -c pipx -o ./pipx.pyz .
-          ./pipx.pyz --version
+        run: tox run -e zipapp
       - name: Test zipapp by installing black
-        run: python ./pipx.pyz install black
+        run: |
+          python ./pipx.pyz --version
+          python ./pipx.pyz install black
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: pipx.pyz
           path: pipx.pyz
           retention-days: 3
   zipapp-windows:
-    name: 🪟 Test Windows zipapp
+    name: 🪟 Test zipapp on Windows
+    needs: zipapp
     runs-on: windows-2025
     steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
       - name: 🐍 Setup Python 3.10
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.10"
-      - name: 📦 Build windows zipapp
+      - name: 📥 Download zipapp
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: pipx.pyz
+      - name: Test zipapp by installing black
         run: |
-          pip install shiv
-          shiv -c pipx -o .\pipx-windows.pyz . "colorama>=0.4.4"
-      - name: Test windows zipapp by installing black
-        run: |
-          python .\pipx-windows.pyz --version
-          python .\pipx-windows.pyz install black
+          python .\pipx.pyz --version
+          python .\pipx.pyz install black
