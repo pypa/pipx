@@ -23,7 +23,7 @@
 **Source Code**: <https://github.com/pypa/pipx>
 
 _For comparison to other tools including pipsi, see
-[Comparison to Other Tools](https://pipx.pypa.io/stable/explanation/comparisons/)._
+[Comparison to Other Tools](https://pipx.pypa.io/stable/explanation/comparisons.html)._
 
 ## Overview: What is `pipx`?
 
@@ -57,7 +57,7 @@ pipx ensurepath
 ### On Linux
 
 Install pipx with your distribution's package manager. See the
-[Linux installation instructions](https://pipx.pypa.io/stable/how-to/install-pipx/) for commands and alternatives.
+[Linux installation instructions](https://pipx.pypa.io/stable/how-to/install-pipx.html) for commands and alternatives.
 
 ```
 pipx ensurepath
@@ -71,7 +71,7 @@ pipx ensurepath
 ```
 
 For more detailed installation instructions, see the
-[full documentation](https://pipx.pypa.io/stable/how-to/install-pipx/).
+[full documentation](https://pipx.pypa.io/stable/how-to/install-pipx.html).
 
 ## Quick Start
 
@@ -92,6 +92,6 @@ See the [full documentation](https://pipx.pypa.io/stable/) for more details.
 
 ## Contributing
 
-Issues and Pull Requests are definitely welcome! Check out [Contributing](https://pipx.pypa.io/stable/contributing/) to
-get started. Everyone who interacts with the pipx project via codebase, issue tracker, chat rooms, or otherwise is
+Issues and Pull Requests are definitely welcome! Check out [Contributing](https://pipx.pypa.io/stable/contributing.html)
+to get started. Everyone who interacts with the pipx project via codebase, issue tracker, chat rooms, or otherwise is
 expected to follow the [PSF Code of Conduct](https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md).

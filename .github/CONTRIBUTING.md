@@ -5,7 +5,7 @@ As a reminder, all contributors are expected to follow the [PSF Code of Conduct]
 
 ## Development Documentation
 
-Our [development documentation](https://pipx.pypa.io/latest/contributing/) contains details on how to get started with
-contributing to `pipx`, and details of our development processes.
+Our [development documentation](https://pipx.pypa.io/latest/contributing.html) contains details on how to get started
+with contributing to `pipx`, and details of our development processes.
 
 [coc]: https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md
