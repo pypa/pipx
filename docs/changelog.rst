@@ -14,6 +14,29 @@ to this file.
 
 .. towncrier release notes start
 
+`1.16.4 <https://github.com/pypa/pipx/tree/1.16.4>`_ - 2026-07-29
+=================================================================
+
+Bugfixes
+--------
+
+- Bundle `colorama` and `tomli` in the zipapp so the single `pipx.pyz` works on Windows and on Python 3.10. (:issue:`1978`, :issue:`1984`)
+- Fix the Release Notes link published in package metadata. (:issue:`1980`)
+- `PIPX_MAX_LOGS=0` now prunes the log files instead of keeping all of them. (:issue:`1988`)
+
+
+Improved Documentation
+----------------------
+
+- Fix the documentation links that 404 after the Sphinx move, including the PyPI Release Notes link. (:issue:`1980`)
+
+
+Miscellaneous internal changes
+------------------------------
+
+- :issue:`1989`
+
+
 `1.16.3 <https://github.com/pypa/pipx/tree/1.16.3>`_ - 2026-07-26
 =================================================================
 
