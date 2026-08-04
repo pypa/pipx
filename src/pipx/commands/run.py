@@ -254,11 +254,7 @@ def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
             )
         )
 
-    if WINDOWS:
-        app_filename = f"{app}.exe"
-        _LOGGER.info("Assuming app is %r (Windows only)", app_filename)
-    else:
-        app_filename = app
+    app, app_filename = _app_names(app)
 
     pypackage_bin_path = get_pypackage_bin_path(app)
     if pypackage_bin_path.exists():
@@ -288,9 +284,9 @@ def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
 
     with _locked_venv_cache(venv_dir):
         venv = Venv(venv_dir, backend=backend, env_backend=env_backend)
-        if infer_app_name and venv.pipx_metadata.main_package.package is not None:
-            app = venv.pipx_metadata.main_package.package
-            app_filename = f"{app}.exe" if WINDOWS else app
+        if infer_app_name and (cached := venv.pipx_metadata.main_package).package is not None:
+            # repeat ``_prepare_venv``'s sole-script fallback, else the cache check below misses and rebuilds the venv
+            app, app_filename = _app_names(cached.apps[0] if len(cached.apps) == 1 else cached.package)
         bin_path = venv.bin_path / app_filename
         _prepare_venv_cache(venv, bin_path, use_cache=use_cache, refresh=refresh)
 
@@ -331,6 +327,16 @@ def run_package(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx ru
         venv.run_app(app, app_filename, app_args, python_args=python_args)
 
 
+def _app_names(app: str) -> tuple[str, str]:
+    """Return an app's entry-point name and the filename it has inside the venv."""
+    if not WINDOWS:
+        return app, app
+    # apps recorded in the venv metadata carry the .exe stub suffix, so drop it before re-appending
+    name = app[: -len(".exe")] if app.lower().endswith(".exe") else app
+    _LOGGER.info("Assuming app is %r (Windows only)", app_filename := f"{name}.exe")
+    return name, app_filename
+
+
 def run(  # ruff:ignore[too-many-arguments, too-many-positional-arguments]  # mirrors the flat `pipx run` CLI options across the script/uvx/venv paths
     app: str,
     spec: str | None,
@@ -357,12 +363,17 @@ def run(  # ruff:ignore[too-many-arguments, too-many-positional-arguments]  # mi
     package
     """
 
-    package_name: Final[str] = _package_name_from_app(app, inferred=spec is None)
+    requirement_name: Final[str] = _requirement_name(app)
+    package_name: Final[str] = canonicalize_name(requirement_name) if spec is None else requirement_name
+    # a VCS URL names no script at all, and a normalized name is no longer the one on disk (`pip_search` installs a
+    # `pip_search` script but canonicalizes to `pip-search`), so pipx picks the app from the installed entry points
+    infer_app_name: Final[bool] = spec is None and (_is_vcs_url(app) or package_name != requirement_name)
 
     # ``resolved_backend`` only decides ROUTING (uv tool run vs Venv); cli/env
     # stay separate when we hand off so the Venv's source-attribution stays right.
     resolved_backend, _ = resolve_backend_name(cli_value=backend, env_value=env_backend)
-    use_uvx = resolved_backend == UV and not pypackages and not python_args
+    # `uv tool run` takes the script name up front and would guess an inferred one from the package name
+    use_uvx = resolved_backend == UV and not pypackages and not python_args and not infer_app_name
 
     content = None if spec is not None else maybe_script_content(app, is_path=is_path)
     if content is not None:
@@ -415,7 +426,7 @@ def run(  # ruff:ignore[too-many-arguments, too-many-positional-arguments]  # mi
             verbose=verbose,
             use_cache=use_cache,
             refresh=refresh,
-            infer_app_name=spec is None and _is_vcs_url(app),
+            infer_app_name=infer_app_name,
             backend=backend,
             env_backend=env_backend,
             resolved_backend=resolved_backend,
@@ -425,12 +436,11 @@ def run(  # ruff:ignore[too-many-arguments, too-many-positional-arguments]  # mi
         )
 
 
-def _package_name_from_app(app: str, *, inferred: bool) -> str:
+def _requirement_name(app: str) -> str:
     try:
-        package_name = Requirement(app).name
+        return Requirement(app).name
     except InvalidRequirement:
         return app
-    return canonicalize_name(package_name) if inferred else package_name
 
 
 def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/install option set for one temporary venv
@@ -464,8 +474,7 @@ def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/in
         )
 
     if infer_app_name:
-        app = package_name
-        app_filename = f"{app}.exe" if WINDOWS else app
+        app, app_filename = _app_names(package_name)
 
     override_shared = package_name == "pip"
 
@@ -486,13 +495,8 @@ def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/in
 
         # If there's a single app inside the package, run that by default
         if app == package_name and len(apps) == 1:
-            app = apps[0]
+            app, app_filename = _app_names(apps[0])
             print(f"NOTE: running app {app!r} from {package_name!r}")  # ruff:ignore[print]  # user-facing CLI output
-            if WINDOWS:
-                app_filename = f"{app}.exe"
-                _LOGGER.info("Assuming app is %r (Windows only)", app_filename)
-            else:
-                app_filename = app
         else:
             all_apps = (f"{a} - usage: 'pipx run --spec {package_or_url} {a} [arguments?]'" for a in apps)
             raise PipxError(

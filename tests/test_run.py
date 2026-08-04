@@ -80,6 +80,15 @@ def test_run_normalizes_inferred_package_name(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_normalized_name_skips_uv_tool_run(caplog: pytest.LogCaptureFixture) -> None:
+    # `uv tool run PyCowSay` would look for a `PyCowSay` script; only the venv path knows what the package installed
+    run_pipx_cli_exit(["run", "--backend", "uv", "PyCowSay", "cowsay", "hi"], assert_exit=0)
+
+    assert f"exec_app: {paths.ctx.venv_cache}" in caplog.text
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_run_preserves_explicit_app_name(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -978,38 +987,76 @@ def test_run_local_path_entry_point(
     assert "Using discovered entry point for 'pipx run'" in caplog.text
 
 
+@pytest.fixture
+def vcs_project(root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[[str, str], str]:
+    """Apply one pyproject substitution to the empty project, commit it and return its git URL."""
+
+    def create(old: str, new: str) -> str:
+        project = tmp_path / "vcs-project"
+        shutil.copytree(root / "testdata" / "empty_project", project)
+        pyproject = project / "pyproject.toml"
+        pyproject.write_text(pyproject.read_text().replace(old, new))
+        # uv clones through `git submodule`, a shell script needing the platform utilities the sandboxed PATH drops
+        monkeypatch.setenv("PATH", os.environ["PATH_ORIG"])
+        subprocess.run(["git", "init", "--quiet"], cwd=project, check=True)  # ruff:ignore[start-process-with-partial-path]  # git resolved from PATH in tests
+        subprocess.run(["git", "add", "."], cwd=project, check=True)  # ruff:ignore[start-process-with-partial-path]  # git resolved from PATH in tests
+        subprocess.run(
+            [  # ruff:ignore[start-process-with-partial-path]  # git resolved from PATH in tests
+                "git",
+                "-c",
+                "user.name=pipx tests",
+                "-c",
+                "user.email=pipx@example.invalid",
+                "-c",
+                "commit.gpgsign=false",
+                "commit",
+                "--quiet",
+                "-m",
+                "test fixture",
+            ],
+            cwd=project,
+            check=True,
+        )
+        return f"git+{project.as_uri()}"
+
+    return create
+
+
+@pytest.mark.parametrize("backend", ["pip", "uv"])
 @pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_vcs_url_infers_app_name(root: Path, tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
-    project = tmp_path / "empty-project-vcs"
-    shutil.copytree(root / "testdata" / "empty_project", project)
-    pyproject = project / "pyproject.toml"
-    pyproject.write_text(pyproject.read_text().replace("empty_project.main:cli", "empty_project.main:main"))
-    subprocess.run(["git", "init", "--quiet"], cwd=project, check=True)  # ruff:ignore[start-process-with-partial-path]  # git resolved from PATH in tests
-    subprocess.run(["git", "add", "."], cwd=project, check=True)  # ruff:ignore[start-process-with-partial-path]  # git resolved from PATH in tests
-    subprocess.run(
-        [  # ruff:ignore[start-process-with-partial-path]  # git resolved from PATH in tests
-            "git",
-            "-c",
-            "user.name=pipx tests",
-            "-c",
-            "user.email=pipx@example.invalid",
-            "-c",
-            "commit.gpgsign=false",
-            "commit",
-            "--quiet",
-            "-m",
-            "test fixture",
-        ],
-        cwd=project,
-        check=True,
-    )
-
-    command = ["run", "--backend", "pip", f"git+{project.as_uri()}"]
+def test_run_vcs_url_infers_app_name(
+    vcs_project: Callable[[str, str], str],
+    caplog: pytest.LogCaptureFixture,
+    backend: str,
+) -> None:
+    command = ["run", "--backend", backend, vcs_project("empty_project.main:cli", "empty_project.main:main")]
     run_pipx_cli_exit(command, assert_exit=0)
     run_pipx_cli_exit(command, assert_exit=0)
 
     assert caplog.text.count("Determined package name: empty-project") == 1
+    assert "Reusing cached venv" in caplog.text
+
+
+@pytest.mark.parametrize("backend", ["pip", "uv"])
+@pytest.mark.usefixtures("pipx_temp_env")
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_vcs_url_runs_sole_script_of_other_name(
+    vcs_project: Callable[[str, str], str],
+    caplog: pytest.LogCaptureFixture,
+    capsys: pytest.CaptureFixture[str],
+    backend: str,
+) -> None:
+    # drop the pipx.run entry point as well: it matches on package name and would hide the console script lookup
+    declared = (
+        'scripts.empty-project = "empty_project.main:cli"\n'
+        'entry-points."pipx.run".empty-project = "empty_project.main:cli"'
+    )
+    command = ["run", "--backend", backend, vcs_project(declared, 'scripts.renamed = "empty_project.main:main"')]
+    run_pipx_cli_exit(command, assert_exit=0)
+    assert "NOTE: running app 'renamed' from 'empty-project'" in capsys.readouterr().out
+
+    run_pipx_cli_exit(command, assert_exit=0)
     assert "Reusing cached venv" in caplog.text
 
 
