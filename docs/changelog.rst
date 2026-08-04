@@ -14,6 +14,18 @@ to this file.
 
 .. towncrier release notes start
 
+`1.16.6 <https://github.com/pypa/pipx/tree/1.16.6>`_ - 2026-08-04
+=================================================================
+
+Bugfixes
+--------
+
+- Stop appending a second `.exe` on Windows to the app name `pipx run` infers. (:issue:`1189`)
+- Run the console script a package declares when `pipx run` infers the app name from a VCS URL, a local path, or a name it
+  normalized, instead of passing a guess to `uv tool run`. Reusing that venv no longer reinstalls the package on every
+  run. (:issue:`1994`)
+
+
 `1.16.5 <https://github.com/pypa/pipx/tree/1.16.5>`_ - 2026-07-29
 =================================================================
 
