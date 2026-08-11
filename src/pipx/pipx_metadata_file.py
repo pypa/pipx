@@ -6,7 +6,7 @@ from contextlib import suppress
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any, Final, TypedDict
+from typing import Any, Final, TypedDict, cast
 
 from pipx.backends._base import KNOWN_BACKENDS
 from pipx.emojis import hazard
@@ -279,11 +279,13 @@ class PipxMetadata:
         metadata_dict.setdefault("backend", "pip")
         metadata_dict.setdefault("exposure_enabled", True)
         # ``include_apps_from`` was renamed to ``include_resources_from``; carry the value across so a venv
-        # written by an earlier pipx still constructs a PackageInfo instead of raising on the unknown keyword
+        # written by an earlier pipx still constructs a PackageInfo instead of raising on the unknown keyword.
+        # The legacy key is outside ``_RawPackageInfo``'s declared shape, hence the untyped view for popping it.
         injected = metadata_dict.get("injected_packages") or {}
         for package_data in (metadata_dict["main_package"], *injected.values()):
-            if "include_apps_from" in package_data:
-                package_data.setdefault("include_resources_from", package_data.pop("include_apps_from"))
+            raw_package_data = cast("dict[str, Any]", package_data)
+            if "include_apps_from" in raw_package_data:
+                package_data.setdefault("include_resources_from", raw_package_data.pop("include_apps_from"))
         return metadata_dict
 
     def from_dict(self, input_dict: _RawMetadata) -> None:
