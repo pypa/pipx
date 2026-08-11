@@ -86,6 +86,7 @@ PKG: dict[str, dict[str, Any]] = {
             "rstpep2html.py",
         ],
     },
+    "bcrypt": {"spec": "bcrypt==5.0.0", "apps": [], "apps_of_dependencies": []},
     "beancount": {
         "spec": "beancount==2.3.6",
         "apps": _exe_if_win([
