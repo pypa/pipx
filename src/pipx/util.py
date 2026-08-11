@@ -148,14 +148,24 @@ else:
         return bin_path, python_path, man_path
 
 
-def get_site_packages(python: Path) -> Path:
+def get_site_packages(python: Path) -> list[Path]:
     output = run_subprocess(
-        [python, "-c", "import sysconfig; print(sysconfig.get_path('purelib'))"],
+        [
+            python,
+            "-c",
+            "import sysconfig; print(sysconfig.get_path('purelib')); print(sysconfig.get_path('platlib') or '')",
+        ],
         capture_stderr=False,
     ).stdout
-    path = Path(output.strip())
-    path.mkdir(parents=True, exist_ok=True)
-    return path
+    purelib, _, platlib = output.strip().partition("\n")
+
+    site_packages = [Path(purelib)]
+    if platlib and platlib != purelib:
+        site_packages.append(Path(platlib))
+
+    for path in site_packages:
+        path.mkdir(parents=True, exist_ok=True)
+    return site_packages
 
 
 def _fix_subprocess_env(env: dict[str, str], *, force_utf8: bool = True) -> dict[str, str]:

@@ -68,8 +68,8 @@ class PipBackend(Backend):
         shared_libs.create(verbose=verbose, pip_args=pip_args)
         if not include_pip:
             _, python_path, _ = get_venv_paths(root)
-            pipx_pth = get_site_packages(python_path) / PIPX_SHARED_PTH
-            pipx_pth.write_text(f"{shared_libs.site_packages}\n")
+            pipx_pth = get_site_packages(python_path)[0] / PIPX_SHARED_PTH
+            pipx_pth.write_text("\n".join(str(path) for path in shared_libs.site_packages))
 
     def install(  # ruff:ignore[no-self-use, too-many-arguments]  # Backend interface method mapping flags to pip options
         self,

@@ -85,7 +85,7 @@ def _venv_python_is_valid(python_path: Path) -> bool:
 
 class _SharedLibs:
     def __init__(self) -> None:
-        self._site_packages: dict[Path, Path] = {}
+        self._site_packages: dict[Path, list[Path]] = {}
         self._is_valid: bool | None = None
         self.has_been_updated_this_run = False
         self.has_been_logged_this_run = False
@@ -114,7 +114,7 @@ class _SharedLibs:
         return self.bin_path / ("pip" if not WINDOWS else "pip.exe")
 
     @property
-    def site_packages(self) -> Path:
+    def site_packages(self) -> list[Path]:
         if self.python_path not in self._site_packages:
             self._site_packages[self.python_path] = get_site_packages(self.python_path)
 

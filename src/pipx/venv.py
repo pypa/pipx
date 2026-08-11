@@ -200,7 +200,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             env_backend=env_backend,
         )
         self._backend: Backend | None = None
-        self._site_packages: Path | None = None
+        self._site_packages: list[Path] | None = None
         self._uses_shared_libs_cache: bool | None = None
 
     @property
@@ -496,7 +496,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 raise PipxError(msg)
         elif (
             distribution := next(
-                iter(Distribution.discover(name=package_name, path=[str(self.site_packages)])),
+                iter(Distribution.discover(name=package_name, path=[str(p) for p in self.site_packages])),
                 None,
             )
         ) is None:
@@ -685,7 +685,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         )
 
     @property
-    def site_packages(self) -> Path:
+    def site_packages(self) -> list[Path]:
         if self._site_packages is None:
             self._site_packages = get_site_packages(self.python_path)
         return self._site_packages
@@ -693,7 +693,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
     def _find_entry_point(self, app: str, group: str) -> EntryPoint | None:
         if not self.python_path.exists():
             return None
-        dists = Distribution.discover(name=self.main_package_name, path=[str(self.site_packages)])
+        dists = Distribution.discover(name=self.main_package_name, path=[str(p) for p in self.site_packages])
         for dist in dists:
             for ep in dist.entry_points:
                 if ep.group == group:
@@ -737,7 +737,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         return (self.bin_path / filename).is_file()
 
     def has_package(self, package_name: str) -> bool:
-        return bool(list(Distribution.discover(name=package_name, path=[str(self.site_packages)])))
+        return bool(list(Distribution.discover(name=package_name, path=[str(p) for p in self.site_packages])))
 
     def upgrade_package_no_metadata(
         self,
