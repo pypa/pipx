@@ -30,6 +30,7 @@ version = ".".join(release.split(".")[:2])
 doctest_global_setup = "import pipx"
 
 extensions = [
+    "sphinx_llm.txt",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosectionlabel",  # reference any section by its title, scoped per document to keep labels unique
     "sphinx.ext.doctest",  # run the testcode/testoutput examples so the docs cannot drift from the code
@@ -156,3 +157,6 @@ def setup(app: Sphinx) -> dict[str, Any]:
     """Register the per-page meta description hook."""
     app.connect("html-page-context", _add_page_description)
     return {"parallel_read_safe": True, "parallel_write_safe": True}
+
+
+markdown_http_base = os.environ.get("READTHEDOCS_CANONICAL_URL", "")
