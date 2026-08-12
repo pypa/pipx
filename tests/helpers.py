@@ -251,17 +251,3 @@ def remove_venv_interpreter(venv_name: str) -> None:
 
 
 skip_if_windows = pytest.mark.skipif(sys.platform.startswith("win"), reason="This behavior is undefined on Windows")
-
-
-# The tests exercise the pinned index snapshot the mocked_github_api fixture serves, so whether a build exists for the
-# running interpreter is a property of that snapshot; the skip revives the tests when a refreshed snapshot carries one.
-_RUNNING_CPYTHON: Final[str] = f"cpython-{sys.version_info[0]}.{sys.version_info[1]}."
-skip_if_no_standalone_python = pytest.mark.skipif(
-    not any(
-        _RUNNING_CPYTHON in link
-        for link, _ in json.loads(
-            (Path(__file__).parents[1] / "testdata" / "standalone_python_index_20250818.json").read_text("utf-8")
-        )["releases"]
-    ),
-    reason=f"the pinned python-build-standalone index has no {_RUNNING_CPYTHON}* build",
-)

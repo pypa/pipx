@@ -2,19 +2,22 @@ from __future__ import annotations
 
 import hashlib
 import importlib
-import json
+import io
 import logging
 import os
 import shutil
 import socket
 import subprocess
 import sys
+import tarfile
+import time
 from contextlib import closing, suppress
 from http import HTTPStatus
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
+from venv import EnvBuilder
 
 import pytest
 
@@ -169,15 +172,65 @@ def _isolate_pipx_logging() -> Iterator[None]:
         handler.close()
 
 
+@pytest.fixture(scope="session")
+def standalone_python_build(tmp_path_factory: pytest.TempPathFactory) -> tuple[bytes, str]:
+    """A local stand-in for a python-build-standalone release archive, shaped like the upstream layout.
+
+    On POSIX ``bin/python3`` is a shim that execs the running interpreter, because copying the binary itself would
+    break its relative dylib/RPATH lookups on some builds. On Windows it is the venv launcher beside ``pyvenv.cfg``,
+    the same relocatable pair every Windows venv ships. Tests exercise the real download, unpack, and install code
+    paths against a working interpreter without touching github.com.
+    """
+    env_dir = tmp_path_factory.mktemp("standalone_python") / "python"
+    if WIN:
+        EnvBuilder(with_pip=False).create(env_dir)
+        for launcher in (env_dir / "Scripts").glob("*.exe"):
+            shutil.copy2(launcher, env_dir / launcher.name)
+    else:
+        bin_dir = env_dir / "bin"
+        bin_dir.mkdir(parents=True)
+        shim = bin_dir / "python3"
+        shim.write_text(f'#!/bin/sh\nexec "{sys.executable}" "$@"\n', encoding="utf-8")
+        shim.chmod(0o755)
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
+        tar.add(env_dir, arcname="python")
+    return buffer.getvalue(), "{}.{}.{}".format(*sys.version_info[:3])
+
+
+@pytest.fixture(scope="session")
+def standalone_python_index(standalone_python_build: tuple[bytes, str]) -> Callable[[str], dict[str, object]]:
+    """Builds a release index advertising the local archive as the given version for every supported platform."""
+    archive_bytes, _ = standalone_python_build
+    digest = "sha256:" + hashlib.sha256(archive_bytes).hexdigest()
+
+    def build(full_version: str) -> dict[str, object]:
+        suffixes = [
+            suffix
+            for machines in standalone_python.MACHINE_SUFFIX.values()
+            for entry in machines.values()
+            for suffix_list in (entry.values() if isinstance(entry, dict) else [entry])
+            for suffix in suffix_list
+        ]
+        return {
+            "fetched": time.time(),
+            "releases": [(f"https://example.invalid/cpython-{full_version}-{suffix}", digest) for suffix in suffixes],
+        }
+
+    return build
+
+
 @pytest.fixture
-def mocked_github_api(monkeypatch: pytest.MonkeyPatch, root: Path) -> None:
-    """
-    Fixture to replace the github index with a local copy,
-    to prevent unit tests from exceeding github's API request limit.
-    """
-    with Path(root / "testdata" / "standalone_python_index_20250818.json").open(encoding="utf-8") as f:
-        index = json.load(f)
-    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda *, use_cache=True: index)  # ruff:ignore[unused-lambda-argument]  # mock ignores use_cache
+def mocked_github_api(
+    monkeypatch: pytest.MonkeyPatch,
+    standalone_python_build: tuple[bytes, str],
+    standalone_python_index: Callable[[str], dict[str, object]],
+) -> None:
+    """Serve the locally built python archive and a matching release index in place of github.com."""
+    archive_bytes, full_version = standalone_python_build
+    index = standalone_python_index(full_version)
+    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda *, use_cache=True: index)  # ruff:ignore[unused-lambda-argument]  # the canned index never goes stale
+    monkeypatch.setattr(standalone_python, "urlopen", lambda url, timeout=None: io.BytesIO(archive_bytes))  # ruff:ignore[unused-lambda-argument]  # every download link serves the same archive
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
