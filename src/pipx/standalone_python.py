@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import hashlib
+import http.client
 import json
 import logging
 import os
@@ -13,16 +14,14 @@ import tempfile
 import time
 import urllib.error
 from functools import partial
+from http import HTTPStatus
 from pathlib import Path, PurePosixPath
-from typing import TYPE_CHECKING, Any, Final, TypedDict, cast
-from urllib.request import urlopen
+from typing import Any, Final, TypedDict, cast
+from urllib.request import Request, urlopen
 
 from pipx import constants, paths
 from pipx.animate import animate
 from pipx.util import PipxError
-
-if TYPE_CHECKING:
-    import http.client
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
@@ -58,11 +57,19 @@ PYTHON_VERSION_REGEX: Final[re.Pattern[str]] = re.compile(r"cpython-(\d+\.\d+\.\
 _URL_OPEN_TIMEOUT: Final[float] = 30
 _INDEX_MAX_AGE: Final[datetime.timedelta] = datetime.timedelta(days=30)
 _RELEASE_ENTRY_LEN: Final[int] = 2
-_DOWNLOAD_ATTEMPTS: Final[int] = 3
-_DOWNLOAD_BACKOFF_SECONDS: Final[float] = 2.0
+_FETCH_ATTEMPTS: Final[int] = 3
+_FETCH_BACKOFF_SECONDS: Final[float] = 0.5
 # GitHub's release CDN answers with transient 5xx (and 429 under rate limiting) often enough that a single failure
 # should not abort a download; these statuses are safe to retry, unlike a 404 for a genuinely missing build.
 _RETRYABLE_HTTP_STATUS: Final[frozenset[int]] = frozenset({429, 500, 502, 503, 504})
+# GitHub can also drop the connection mid-response (RemoteDisconnected is a ConnectionError, a truncated chunked body
+# an IncompleteRead), so failures while reading the body are as retryable as ones while opening the connection.
+_TRANSIENT_NETWORK_ERRORS: Final[tuple[type[Exception], ...]] = (
+    urllib.error.URLError,
+    http.client.IncompleteRead,
+    ConnectionError,
+    TimeoutError,
+)
 
 
 class _PythonIndex(TypedDict):
@@ -136,33 +143,42 @@ def _install_atomically(source: Path, install_dir: Path) -> None:
 def _download(full_version: str, download_link: str, archive: Path) -> None:
     with animate(f"Downloading python {full_version} build", do_animation=True):
         try:
-            # python standalone builds are typically ~32MB in size. to avoid
-            # ballooning memory usage, we read the file in chunks
-            # download_link comes from the pinned GitHub release index
-            with (
-                _urlopen_retrying(download_link) as response,
-                Path(archive).open("wb") as file_handle,
-            ):
-                file_handle.writelines(iter(partial(response.read, 32768), b""))
-        except urllib.error.URLError as e:
+            _download_resuming(download_link, archive)
+        except _TRANSIENT_NETWORK_ERRORS as e:
             msg = f"Unable to download python {full_version} build."
             raise PipxError(msg) from e
 
 
-def _urlopen_retrying(url: str) -> http.client.HTTPResponse:
+def _download_resuming(url: str, archive: Path) -> None:
+    archive.touch()
     attempt = 0
     while True:
         attempt += 1
-        try:
-            return urlopen(url, timeout=_URL_OPEN_TIMEOUT)  # ruff:ignore[suspicious-url-open-usage]  # pinned GitHub release URL
-        except urllib.error.URLError as error:
-            retryable = not isinstance(error, urllib.error.HTTPError) or error.code in _RETRYABLE_HTTP_STATUS
-            if not retryable or attempt >= _DOWNLOAD_ATTEMPTS:
-                raise
-            _LOGGER.debug(
-                "download attempt %d/%d for %s failed (%s); retrying", attempt, _DOWNLOAD_ATTEMPTS, url, error
-            )
-            time.sleep(_DOWNLOAD_BACKOFF_SECONDS * attempt)
+        with archive.open("r+b") as file_handle:
+            written = file_handle.seek(0, os.SEEK_END)
+            # url comes from the pinned GitHub release index; a build archive is ~32MB, so on a dropped connection ask
+            # the CDN to continue from the bytes already on disk instead of downloading everything again
+            request = Request(url, headers={"Range": f"bytes={written}-"} if written else {})  # ruff:ignore[suspicious-url-open-usage]
+            try:
+                with urlopen(request, timeout=_URL_OPEN_TIMEOUT) as response:  # ruff:ignore[suspicious-url-open-usage]
+                    if written and response.status != HTTPStatus.PARTIAL_CONTENT:
+                        # the server ignored the range request and answered with the whole file
+                        file_handle.seek(0)
+                        file_handle.truncate()
+                    # read in 32KB chunks to avoid ballooning memory usage
+                    file_handle.writelines(iter(partial(response.read, 32768), b""))
+            except _TRANSIENT_NETWORK_ERRORS as error:
+                _backoff_or_raise(error, attempt, url)
+            else:
+                return
+
+
+def _backoff_or_raise(error: Exception, attempt: int, url: str) -> None:
+    retryable = not isinstance(error, urllib.error.HTTPError) or error.code in _RETRYABLE_HTTP_STATUS
+    if not retryable or attempt >= _FETCH_ATTEMPTS:
+        raise error
+    _LOGGER.debug("fetch attempt %d/%d for %s failed (%s); retrying", attempt, _FETCH_ATTEMPTS, url, error)
+    time.sleep(_FETCH_BACKOFF_SECONDS * 2 ** (attempt - 1))
 
 
 def _unpack(full_version: str, archive: Path, download_dir: Path, expected_checksum: str) -> None:
@@ -279,15 +295,24 @@ def get_or_update_index(*, use_cache: bool = True) -> _PythonIndex:
 def get_latest_python_releases() -> list[tuple[str, str]]:
     """Returns the list of python download links from the latest github release."""
     try:
-        with urlopen(GITHUB_API_URL, timeout=_URL_OPEN_TIMEOUT) as response:
-            release_data = json.load(response)
-
-    except urllib.error.URLError as e:
-        # raise
+        release_data = _fetch_release_data()
+    except _TRANSIENT_NETWORK_ERRORS as e:
         msg = f"Unable to fetch python-build-standalone release data (from {GITHUB_API_URL})."
         raise PipxError(msg) from e
 
     return [(asset["browser_download_url"], asset["digest"]) for asset in release_data["assets"]]
+
+
+def _fetch_release_data() -> dict[str, list[dict[str, str]]]:
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            # the index body is small, so unlike the archive download a retry re-fetches it whole
+            with urlopen(GITHUB_API_URL, timeout=_URL_OPEN_TIMEOUT) as response:
+                return cast("dict[str, list[dict[str, str]]]", json.load(response))
+        except _TRANSIENT_NETWORK_ERRORS as error:
+            _backoff_or_raise(error, attempt, GITHUB_API_URL)
 
 
 def list_pythons(*, use_cache: bool = True) -> dict[str, tuple[str, str]]:
