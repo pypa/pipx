@@ -14,7 +14,7 @@ import pytest
 import pipx.interpreter
 import pipx.paths
 import pipx.standalone_python
-from helpers import run_pipx_cli, skip_if_no_standalone_python
+from helpers import run_pipx_cli
 from pipx.constants import WINDOWS, FetchPythonOptions
 from pipx.interpreter import (
     InterpreterResolutionError,
@@ -262,8 +262,7 @@ def test_find_python_interpreter_missing_on_path_raises() -> None:
         pytest.param(FetchPythonOptions.ALWAYS, id="always"),
     ],
 )
-@skip_if_no_standalone_python
-@pytest.mark.usefixtures("mocked_github_api")
+@pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
 def test_fetch_missing_python(monkeypatch: pytest.MonkeyPatch, fetch_python: FetchPythonOptions) -> None:
     def which(_name: str) -> None:
         return None
@@ -285,6 +284,7 @@ def test_fetch_missing_python(monkeypatch: pytest.MonkeyPatch, fetch_python: Fet
     subprocess.run([python_path, "-c", "import sys; print(sys.executable)"], check=True)
 
 
+@pytest.mark.usefixtures("mocked_github_api")
 def test_fetch_python_always_invalid_version_raises() -> None:
     with pytest.raises(InterpreterResolutionError, match="python-build-standalone"):
         find_python_interpreter("3.0", fetch_python=FetchPythonOptions.ALWAYS)

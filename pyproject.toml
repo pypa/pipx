@@ -93,6 +93,7 @@ docs = [
   "sphinx-design>=0.6",                # the card grid on the landing page
   "sphinx-issues>=5",                  # the :issue:/:pr: roles used in the changelog and notes
   "sphinx-last-updated-by-git>=0.3.8",
+  "sphinx-llm>=0.4.1",
   "sphinx-notfound-page>=1",           # a versioned 404 page
   "sphinx-reredirects>=0.1.5",         # keep old MkDocs URLs alive after the move to Sphinx
   "sphinx-sitemap>=2.6",               # emit sitemap.xml for crawlers

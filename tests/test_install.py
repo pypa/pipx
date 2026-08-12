@@ -7,6 +7,10 @@ import shutil
 import subprocess
 import sys
 import sysconfig
+import threading
+from contextlib import contextmanager
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 from unittest import mock
@@ -23,7 +27,7 @@ from pipx.util import PipxError
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable, Iterator, Sequence
     from unittest.mock import MagicMock
 
     from _pytest.capture import CaptureResult
@@ -195,22 +199,68 @@ def test_install_tricky_multiple_packages(
     install_packages(capsys, caplog, package_specs, packages)
 
 
-@pytest.mark.parametrize(
-    ("package_name", "package_spec"),
-    [
-        ("pycowsay", "git+https://github.com/cs01/pycowsay.git@master"),
-        ("pylint", PKG["pylint"]["spec"]),
-        ("nox", "https://github.com/wntrblm/nox/archive/2022.1.7.zip"),
-    ],
-)
+def _local_git_spec(project: Path) -> str:
+    subprocess.run(["git", "init", "--quiet"], cwd=project, check=True)  # ruff:ignore[start-process-with-partial-path]  # git resolved from PATH in tests
+    subprocess.run(["git", "add", "."], cwd=project, check=True)  # ruff:ignore[start-process-with-partial-path]  # git resolved from PATH in tests
+    subprocess.run(
+        [  # ruff:ignore[start-process-with-partial-path]  # git resolved from PATH in tests
+            "git",
+            "-c",
+            "user.name=pipx tests",
+            "-c",
+            "user.email=pipx@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "--quiet",
+            "-m",
+            "test fixture",
+        ],
+        cwd=project,
+        check=True,
+    )
+    return f"git+{project.as_uri()}"
+
+
+@contextmanager
+def _served_archive_spec(project: Path) -> Iterator[str]:
+    archive = Path(
+        shutil.make_archive(str(project.parent / "empty-project-0.1.0"), "zip", project.parent, project.name)
+    )
+    handler = partial(SimpleHTTPRequestHandler, directory=str(project.parent))
+    with ThreadingHTTPServer(("127.0.0.1", 0), handler) as server:
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            yield f"http://127.0.0.1:{server.server_address[1]}/{archive.name}"
+        finally:
+            server.shutdown()
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_install_package_specs(
+def test_install_package_spec_pinned(
     capsys: pytest.CaptureFixture[str],
     caplog: pytest.LogCaptureFixture,
-    package_name: str,
-    package_spec: str,
 ) -> None:
-    install_packages(capsys, caplog, [package_spec], [package_name])
+    install_packages(capsys, caplog, [PKG["pylint"]["spec"]], ["pylint"])
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_package_spec_vcs_url(
+    capsys: pytest.CaptureFixture[str],
+    caplog: pytest.LogCaptureFixture,
+    empty_project: Path,
+) -> None:
+    install_packages(capsys, caplog, [_local_git_spec(empty_project)], ["empty-project"])
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_package_spec_archive_url(
+    capsys: pytest.CaptureFixture[str],
+    caplog: pytest.LogCaptureFixture,
+    empty_project: Path,
+) -> None:
+    with _served_archive_spec(empty_project) as package_spec:
+        install_packages(capsys, caplog, [package_spec], ["empty-project"])
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -1257,14 +1307,22 @@ def test_install_inline_script_from_pylock(inline_script: Path, make_pylock: Cal
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_force_install_changes(capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["install", "https://github.com/wntrblm/nox/archive/2022.1.7.zip"])
+def test_force_install_changes(capsys: pytest.CaptureFixture[str], empty_project: Path, tmp_path: Path) -> None:
+    with _served_archive_spec(empty_project) as package_spec:
+        assert not run_pipx_cli(["install", package_spec])
     captured = capsys.readouterr()
-    assert "2022.1.7" in captured.out
+    assert "0.1.0" in captured.out
 
-    assert not run_pipx_cli(["install", "nox", "--force"])
+    bumped_project = tmp_path / "bumped_project"
+    shutil.copytree(empty_project, bumped_project)
+    pyproject = bumped_project / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text(encoding="utf-8").replace('version = "0.1.0"', 'version = "0.2.0"'), encoding="utf-8"
+    )
+
+    assert not run_pipx_cli(["install", str(bumped_project), "--force"])
     captured = capsys.readouterr()
-    assert "2022.1.7" not in captured.out
+    assert "0.1.0" not in captured.out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
