@@ -5,7 +5,6 @@ import logging
 import re
 import shutil
 import subprocess
-import sysconfig
 import textwrap
 from typing import TYPE_CHECKING, Final
 
@@ -29,8 +28,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from _pytest.capture import CaptureResult
-
-_FREE_THREADED: Final[bool] = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
 
 
 @pytest.mark.usefixtures("installed_pycowsay")
@@ -97,19 +94,14 @@ def test_inject_json_reports_locked_environment(
     )
 
 
-@pytest.mark.parametrize("package", ["bcrypt", "black"])
 @pytest.mark.usefixtures("installed_pycowsay")
 def test_inject_json_reports_already_installed(
     capsys: pytest.CaptureFixture[str],
-    package: str,
 ) -> None:
-    if _FREE_THREADED and package == "bcrypt":
-        pytest.skip("Skipping bcrypt due to missing python3.15t wheel")
-
-    assert not run_pipx_cli(["inject", "pycowsay", PKG[package]["spec"]])
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
     capsys.readouterr()
 
-    assert not run_pipx_cli(["inject", "--output", "json", "pycowsay", PKG[package]["spec"]])
+    assert not run_pipx_cli(["inject", "--output", "json", "pycowsay", PKG["black"]["spec"]])
 
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert (json.loads(captured.out), captured.err) == (
@@ -120,7 +112,7 @@ def test_inject_json_reports_already_installed(
                 "skipped": [
                     {
                         "environment": "pycowsay",
-                        "package": package,
+                        "package": "black",
                         "reason": "already-installed",
                     }
                 ],

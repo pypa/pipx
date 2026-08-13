@@ -41,8 +41,7 @@ def venv_with_site_packages(tmp_path: Path, mocker: MockerFixture) -> tuple[Venv
 
 def test_has_package(venv_with_site_packages: tuple[Venv, tuple[Path, Path], MagicMock]) -> None:
     venv, _, _ = venv_with_site_packages
-    assert venv.has_package("demo")
-    assert venv.has_package("demo2")
+    assert (venv.has_package("demo"), venv.has_package("demo2")) == (True, True)
 
 
 def test_has_app_caches_site_packages(venv_with_site_packages: tuple[Venv, tuple[Path, Path], MagicMock]) -> None:

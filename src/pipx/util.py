@@ -149,23 +149,22 @@ else:
 
 
 def get_site_packages(python: Path) -> list[Path]:
+    """Return the interpreter's purelib first, then its platlib when that is a second directory."""
     output = run_subprocess(
         [
             python,
             "-c",
-            "import sysconfig; print(sysconfig.get_path('purelib')); print(sysconfig.get_path('platlib') or '')",
+            "import sysconfig; print(sysconfig.get_path('purelib')); print(sysconfig.get_path('platlib'))",
         ],
         capture_stderr=False,
     ).stdout
     purelib, _, platlib = output.strip().partition("\n")
 
-    site_packages = [Path(purelib)]
-    if platlib and platlib != purelib:
-        site_packages.append(Path(platlib))
-
-    for path in site_packages:
-        path.mkdir(parents=True, exist_ok=True)
-    return site_packages
+    purelib_path = Path(purelib)
+    # some Linux layouts symlink lib64 to lib, so compare the resolved targets rather than the scheme strings
+    if (platlib_path := Path(platlib)).resolve() == purelib_path.resolve():
+        return [purelib_path]
+    return [purelib_path, platlib_path]
 
 
 def _fix_subprocess_env(env: dict[str, str], *, force_utf8: bool = True) -> dict[str, str]:

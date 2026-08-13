@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -13,6 +14,7 @@ from unittest.mock import patch
 import pytest
 
 from pipx import shared_libs
+from pipx.backends.pip import PipBackend
 from pipx.constants import PIPX_SHARED_PTH, WINDOWS
 from pipx.venv import Venv
 
@@ -20,6 +22,21 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from pytest_mock import MockerFixture
+
+
+@pytest.mark.usefixtures("pipx_ultra_temp_env")
+def test_create_venv_lists_every_shared_site_packages_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # purelib and platlib coincide on the platforms CI runs, so pin a split layout to keep both lines under test
+    shared_site_packages = [tmp_path / "shared" / "purelib", tmp_path / "shared" / "platlib"]
+    monkeypatch.setattr(type(shared_libs.shared_libs), "site_packages", property(lambda _self: shared_site_packages))
+    venv_root = tmp_path / "venv"
+
+    PipBackend().create_venv(
+        venv_root, python=sys.executable, venv_args=[], pip_args=[], include_pip=False, verbose=False
+    )
+
+    pth_file = next(venv_root.glob(f"**/{PIPX_SHARED_PTH}"))
+    assert pth_file.read_text().splitlines() == [str(path) for path in shared_site_packages]
 
 
 @pytest.mark.parametrize(
