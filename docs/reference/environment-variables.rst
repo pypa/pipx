@@ -17,7 +17,7 @@ environment`` to print the resolved value of each one on your system.
       - Meaning and default
     - - ``PIPX_HOME``
       - Root directory for pipx virtual environments. Default: ``platformdirs.user_data_path("pipx")`` — Linux
-        ``~/.local/share/pipx``, macOS ``~/Library/Application Support/pipx``, Windows ``%LOCALAPPDATA%\pipx``.
+        ``~/.local/share/pipx``, macOS ``~/Library/Application Support/pipx``, Windows ``%LOCALAPPDATA%\pipx\pipx``.
     - - ``PIPX_BIN_DIR``
       - Directory for application entry-point symlinks. Default: ``~/.local/bin``.
     - - ``PIPX_MAN_DIR``

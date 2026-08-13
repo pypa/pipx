@@ -49,7 +49,7 @@ pipx splits its files across three locations, each with an environment-variable 
       - ``~/.local/share/man``
 
 The default ``PIPX_HOME`` is typically ``~/.local/share/pipx`` on Linux, ``~/Library/Application Support/pipx`` on
-macOS, and ``%USERPROFILE%\AppData\Local\pipx`` on Windows. Set any variable to override its location.
+macOS, and ``%USERPROFILE%\AppData\Local\pipx\pipx`` on Windows. Set any variable to override its location.
 
 .. _platformdirs-migration:
 
