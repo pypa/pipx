@@ -14,6 +14,24 @@ to this file.
 
 .. towncrier release notes start
 
+`1.16.7 <https://github.com/pypa/pipx/tree/1.16.7>`_ - 2026-08-13
+=================================================================
+
+Bugfixes
+--------
+
+- Fix pipx not being able to discover packages in separated platlib directories. (:issue:`1999`)
+- Retry transient failures when fetching the python-build-standalone release index and downloading interpreter archives,
+  resuming an interrupted archive download from the bytes already received instead of starting over. (:issue:`2001`)
+
+
+Improved Documentation
+----------------------
+
+- Correct the documented Windows default for `PIPX_HOME`, which resolves to `%LOCALAPPDATA%\pipx\pipx` rather than
+  `%LOCALAPPDATA%\pipx`. (:issue:`2002`)
+
+
 `1.16.6 <https://github.com/pypa/pipx/tree/1.16.6>`_ - 2026-08-04
 =================================================================
 
