@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Final, NoReturn
 from filelock import BaseFileLock, FileLock
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable, Sequence
+    from collections.abc import Generator, Iterable, Iterator, Sequence
     from subprocess import CompletedProcess
 
     from packaging.specifiers import SpecifierSet
@@ -200,7 +200,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             env_backend=env_backend,
         )
         self._backend: Backend | None = None
-        self._site_packages: Path | None = None
+        self._site_packages: list[Path] | None = None
         self._uses_shared_libs_cache: bool | None = None
 
     @property
@@ -494,12 +494,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             if process.returncode:
                 msg = f"Error installing {full_package_description(package_name, package_or_url)}."
                 raise PipxError(msg)
-        elif (
-            distribution := next(
-                iter(Distribution.discover(name=package_name, path=[str(self.site_packages)])),
-                None,
-            )
-        ) is None:
+        elif (distribution := next(self._distributions(package_name), None)) is None:
             msg = f"Lock file {lock_file} does not contain {package_name}."
             raise PipxError(msg)
         elif not package_spec_satisfied(package_or_url, package_name, distribution.version, package_or_url):
@@ -685,16 +680,18 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         )
 
     @property
-    def site_packages(self) -> Path:
+    def site_packages(self) -> list[Path]:
         if self._site_packages is None:
             self._site_packages = get_site_packages(self.python_path)
         return self._site_packages
 
+    def _distributions(self, name: str) -> Iterator[Distribution]:
+        return iter(Distribution.discover(name=name, path=[str(path) for path in self.site_packages]))
+
     def _find_entry_point(self, app: str, group: str) -> EntryPoint | None:
         if not self.python_path.exists():
             return None
-        dists = Distribution.discover(name=self.main_package_name, path=[str(self.site_packages)])
-        for dist in dists:
+        for dist in self._distributions(self.main_package_name):
             for ep in dist.entry_points:
                 if ep.group == group:
                     if ep.name == app:
@@ -737,7 +734,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         return (self.bin_path / filename).is_file()
 
     def has_package(self, package_name: str) -> bool:
-        return bool(list(Distribution.discover(name=package_name, path=[str(self.site_packages)])))
+        return next(self._distributions(package_name), None) is not None
 
     def upgrade_package_no_metadata(
         self,
