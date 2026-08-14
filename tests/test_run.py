@@ -121,7 +121,8 @@ def test_run_spec_honors_dotted_pipx_run_entry_point(
 ) -> None:
     pyproject = empty_project / "pyproject.toml"
     pyproject.write_text(
-        pyproject.read_text(encoding="utf-8")
+        pyproject
+        .read_text(encoding="utf-8")
         .replace('scripts.empty-project = "empty_project.main:cli"', "")
         .replace(
             'entry-points."pipx.run".empty-project = "empty_project.main:cli"',
