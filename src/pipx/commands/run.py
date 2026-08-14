@@ -372,8 +372,16 @@ def run(  # ruff:ignore[too-many-arguments, too-many-positional-arguments]  # mi
     # ``resolved_backend`` only decides ROUTING (uv tool run vs Venv); cli/env
     # stay separate when we hand off so the Venv's source-attribution stays right.
     resolved_backend, _ = resolve_backend_name(cli_value=backend, env_value=env_backend)
-    # `uv tool run` takes the script name up front and would guess an inferred one from the package name
-    use_uvx = resolved_backend == UV and not pypackages and not python_args and not infer_app_name
+    # `uv tool run` takes the script name up front and would guess an inferred one from the package name.
+    # It also has no knowledge of pipx's [pipx.run] group, so a typed ``--spec`` app name that is not
+    # the PEP 503-normalized distribution name must use the venv path (https://github.com/pypa/pipx/issues/2004).
+    use_uvx = (
+        resolved_backend == UV
+        and not pypackages
+        and not python_args
+        and not infer_app_name
+        and not _typed_app_skips_uvx(app, spec)
+    )
 
     content = None if spec is not None else maybe_script_content(app, is_path=is_path)
     if content is not None:
@@ -441,6 +449,24 @@ def _requirement_name(app: str) -> str:
         return Requirement(app).name
     except InvalidRequirement:
         return app
+
+
+def _typed_app_skips_uvx(app: str, spec: str | None) -> bool:
+    """Return True when a typed ``--spec`` app name cannot be an ``uv tool run`` console-script lookup.
+
+    ``uv tool run`` looks up a console script by the exact app name and does not consult ``[pipx.run]``.
+    When the typed name is not the PEP 503-normalized distribution name — the usual ``[pipx.run]``
+    case, e.g. ``pipx run --spec 'coherent.test>=0.7.0' coherent.test`` — the venv path is the one
+    that honors that group. Non-requirement specs (local paths, VCS URLs) also go through the venv
+    path so the installed metadata can be read.
+    """
+    if spec is None:
+        return False
+    try:
+        spec_name = canonicalize_name(Requirement(spec).name)
+    except InvalidRequirement:
+        return True
+    return app != spec_name
 
 
 def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/install option set for one temporary venv
