@@ -68,6 +68,17 @@ def test_prog_name(monkeypatch: pytest.MonkeyPatch, argv: str, executable: str, 
     assert main.prog_name() == expected
 
 
+def test_build_parser_uses_pipx_prog(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    # The docs build renders the CLI reference from build_parser(); sys.argv[0]
+    # is sphinx-build there, so the parser must not derive its name from it.
+    monkeypatch.setattr("pipx.main.sys.argv", ["sphinx-build"])
+    parser = main.build_parser()
+    assert parser.prog == "pipx"
+    with pytest.raises(SystemExit):
+        parser.parse_args(["run", "--help"])
+    assert "pipx run" in capsys.readouterr().out
+
+
 def test_limit_verbosity() -> None:
     assert not run_pipx_cli(["list", "-qqq"])
     assert not run_pipx_cli(["list", "-vvvv"])
