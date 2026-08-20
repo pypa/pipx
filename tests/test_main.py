@@ -60,12 +60,33 @@ def test_version(capsys: pytest.CaptureFixture[str]) -> None:
     [
         ("/usr/bin/pipx", "", "pipx"),
         ("__main__.py", "/usr/bin/python", "/usr/bin/python -m pipx"),
+        # An alternate install name is still the user's own invocation, so keep it.
+        ("/usr/bin/pipx3", "", "pipx3"),
+        # Anything that is not pipx is some other process importing the parser --
+        # the docs build runs under sphinx-build -- and must not leak into help output.
+        ("/usr/local/bin/sphinx-build", "", "pipx"),
+        ("/usr/bin/pytest", "", "pipx"),
     ],
 )
 def test_prog_name(monkeypatch: pytest.MonkeyPatch, argv: str, executable: str, expected: str) -> None:
     monkeypatch.setattr("pipx.main.sys.argv", [argv])
     monkeypatch.setattr("pipx.main.sys.executable", executable)
     assert main.prog_name() == expected
+
+
+def test_subparser_prog_does_not_leak_host_program(monkeypatch: pytest.MonkeyPatch) -> None:
+    """argparse bakes the parent prog into each subparser when it is created."""
+    monkeypatch.setattr("pipx.main.sys.argv", ["/usr/local/bin/sphinx-build"])
+    parser, _ = main.get_command_parser()
+
+    subparsers_type = argparse._SubParsersAction  # ruff:ignore[private-member-access]  # argparse has no public subparser API
+    top_actions = parser._actions  # ruff:ignore[private-member-access]  # argparse has no public subparser API
+    subparsers_action = next(a for a in top_actions if isinstance(a, subparsers_type))
+    choices = cast("dict[str, argparse.ArgumentParser]", subparsers_action.choices)
+
+    assert parser.prog == "pipx"
+    for name, subparser in choices.items():
+        assert subparser.prog.startswith("pipx "), f"{name!r} usage line reads {subparser.prog!r}"
 
 
 def test_limit_verbosity() -> None:

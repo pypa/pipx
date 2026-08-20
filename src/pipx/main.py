@@ -75,7 +75,15 @@ def print_version() -> None:
 def prog_name() -> str:
     with contextlib.suppress(IndexError):
         prog = Path(sys.argv[0]).name
-        return f"{sys.executable} -m pipx" if prog == "__main__.py" else prog
+        if prog == "__main__.py":
+            return f"{sys.executable} -m pipx"
+        # Only trust argv[0] when it actually names pipx. The parser is also built
+        # by processes that are not pipx -- the docs build imports build_parser from
+        # sphinx-build -- and argparse bakes the parent prog into every subparser at
+        # construction time, so an unrelated argv[0] leaks into the whole CLI
+        # reference as "sphinx-build run", "sphinx-build install" and so on.
+        if prog.startswith("pipx"):
+            return prog
     return "pipx"
 
 
