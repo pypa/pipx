@@ -1713,7 +1713,9 @@ def _make_print_help(
     return _print_help
 
 
-def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.ArgumentParser]]:
+def get_command_parser(
+    *, prog: str | None = None
+) -> tuple[argparse.ArgumentParser, dict[str, argparse.ArgumentParser]]:
     venv_container = VenvContainer(paths.ctx.venvs)
 
     completer_venvs = InstalledVenvsCompleter(venv_container)
@@ -1757,7 +1759,7 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
         )
 
     parser = argparse.ArgumentParser(
-        prog=prog_name(),
+        prog=prog or prog_name(),
         formatter_class=LineWrapRawTextHelpFormatter,
         description=PIPX_DESCRIPTION,
     )
@@ -1815,7 +1817,7 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
 def build_parser() -> argparse.ArgumentParser:
     # sphinx-argparse-cli renders the CLI reference from a parser-returning callable; expose the root parser alone
     # so the docs build cannot drift from the argument definitions.
-    return get_command_parser()[0]
+    return get_command_parser(prog="pipx")[0]
 
 
 def _cmd_completions(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
