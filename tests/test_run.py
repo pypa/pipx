@@ -89,6 +89,56 @@ def test_run_normalized_name_skips_uv_tool_run(caplog: pytest.LogCaptureFixture)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_run_spec_typed_pipx_run_name_skips_uv_tool_run(mocker: MockerFixture) -> None:
+    # ``uv tool run --from coherent.test>=0.7.0 coherent.test`` has no [pipx.run] support; venv path does
+    uvx = mocker.patch("pipx.commands.run.run_via_uv_tool_run")
+    venv = mocker.patch("pipx.commands.run.run_package", side_effect=SystemExit(0))
+
+    run_pipx_cli_exit(["run", "--backend", "uv", "--spec", "coherent.test>=0.7.0", "coherent.test"], assert_exit=0)
+
+    uvx.assert_not_called()
+    venv.assert_called_once()
+    assert venv.call_args.args[0] == "coherent.test"
+    assert venv.call_args.args[1] == "coherent.test>=0.7.0"
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_spec_matching_name_uses_uv_tool_run(mocker: MockerFixture) -> None:
+    uvx = mocker.patch("pipx.commands.run.run_via_uv_tool_run", side_effect=SystemExit(0))
+    venv = mocker.patch("pipx.commands.run.run_package")
+
+    run_pipx_cli_exit(["run", "--backend", "uv", "--spec", "pycowsay", "pycowsay", "cowsay", "hi"], assert_exit=0)
+
+    uvx.assert_called_once()
+    venv.assert_not_called()
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+@mock.patch("os.execvpe", new=execvpe_mock)
+def test_run_spec_honors_dotted_pipx_run_entry_point(
+    empty_project: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    pyproject = empty_project / "pyproject.toml"
+    pyproject.write_text(
+        pyproject
+        .read_text(encoding="utf-8")
+        .replace('scripts.empty-project = "empty_project.main:cli"', "")
+        .replace(
+            'entry-points."pipx.run".empty-project = "empty_project.main:cli"',
+            'entry-points."pipx.run"."empty.project" = "empty_project.main:main"',
+        ),
+        encoding="utf-8",
+    )
+    caplog.set_level(logging.INFO)
+
+    run_pipx_cli_exit(["run", "--backend", "uv", "--spec", str(empty_project), "empty.project"], assert_exit=0)
+
+    assert "Using discovered entry point for 'pipx run'" in caplog.text
+    assert f"exec_app: {paths.ctx.venv_cache}" in caplog.text
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_run_preserves_explicit_app_name(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
