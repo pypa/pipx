@@ -1759,7 +1759,7 @@ def get_command_parser(
         )
 
     parser = argparse.ArgumentParser(
-        prog=prog or prog_name(),
+        prog=prog_name() if prog is None else prog,
         formatter_class=LineWrapRawTextHelpFormatter,
         description=PIPX_DESCRIPTION,
     )
