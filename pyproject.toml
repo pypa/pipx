@@ -138,32 +138,32 @@ lint.select = [
   "ALL",
 ]
 lint.ignore = [
-  "COM812", # conflicts with formatter
-  "CPY",    # no copyright header
-  "D",      # ignore documentation for now
-  "D203",   # `one-blank-line-before-class` and `no-blank-line-before-class` are incompatible
-  "D212",   # `multi-line-summary-first-line` and `multi-line-summary-second-line` are incompatible
-  "DOC201", # no restructuredtext support yet
-  "DOC402", # no restructuredtext support yet
-  "DOC501", # broken with sphinx docs
-  "INP001", # no implicit namespaces here
-  "ISC001", # conflicts with formatter
-  "RUF067", # `__init__` module should only contain docstrings and re-exports
-  "S104",   # possible binding to all interfaces
-  "S404",   # using subprocess is alright
-  "S603",   # using subprocess is alright
+  "CPY",                                       # no copyright header
+  "D",                                         # ignore documentation for now
+  "docstring-missing-exception",               # broken with sphinx docs
+  "docstring-missing-returns",                 # no restructuredtext support yet
+  "docstring-missing-yields",                  # no restructuredtext support yet
+  "hardcoded-bind-all-interfaces",             # possible binding to all interfaces
+  "implicit-namespace-package",                # no implicit namespaces here
+  "incorrect-blank-line-before-class",         # `one-blank-line-before-class` and `no-blank-line-before-class` are incompatible
+  "missing-trailing-comma",                    # conflicts with formatter
+  "multi-line-summary-first-line",             # `multi-line-summary-first-line` and `multi-line-summary-second-line` are incompatible
+  "non-empty-init-module",                     # `__init__` module should only contain docstrings and re-exports
+  "single-line-implicit-string-concatenation", # conflicts with formatter
+  "subprocess-without-shell-equals-true",      # using subprocess is alright
+  "suspicious-subprocess-import",              # using subprocess is alright
 ]
 lint.per-file-ignores."src/pipx/venv.py" = [
-  "A005", # module shadows the standard library
+  "stdlib-module-shadowing", # module shadows the standard library
 ]
 lint.per-file-ignores."tests/**/*.py" = [
-  "D",       # don't care about documentation in tests
-  "FBT",     # don't care about booleans as positional arguments in tests
-  "INP001",  # no implicit namespace
-  "PLR0913", # too many arguments to function definition
-  "PLR2004", # magic value used in comparison
-  "S101",    # asserts allowed in tests
-  "S603",    # subprocess call: check for execution of untrusted input
+  "assert",                               # asserts allowed in tests
+  "D",                                    # don't care about documentation in tests
+  "FBT",                                  # don't care about booleans as positional arguments in tests
+  "implicit-namespace-package",           # no implicit namespace
+  "magic-value-comparison",               # magic value used in comparison
+  "subprocess-without-shell-equals-true", # subprocess call: check for execution of untrusted input
+  "too-many-arguments",                   # too many arguments to function definition
 ]
 lint.isort = { known-first-party = [
   "helpers",
