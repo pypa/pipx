@@ -88,38 +88,38 @@ def test_run_normalized_name_skips_uv_tool_run(caplog: pytest.LogCaptureFixture)
     assert f"exec_app: {paths.ctx.venv_cache}" in caplog.text
 
 
+@pytest.mark.parametrize(
+    "spec_args",
+    [
+        pytest.param([], id="package-name"),
+        pytest.param(["--spec", "pycowsay"], id="explicit-spec"),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_run_spec_typed_pipx_run_name_skips_uv_tool_run(mocker: MockerFixture) -> None:
-    # ``uv tool run --from coherent.test>=0.7.0 coherent.test`` has no [pipx.run] support; venv path does
-    uvx = mocker.patch("pipx.commands.run.run_via_uv_tool_run")
-    venv = mocker.patch("pipx.commands.run.run_package", side_effect=SystemExit(0))
+def test_run_matching_name_uses_uv_tool_run(mocker: MockerFixture, spec_args: list[str]) -> None:
+    execvpe: Final = mocker.patch("os.execvpe", autospec=True, side_effect=SystemExit(0))
 
-    run_pipx_cli_exit(["run", "--backend", "uv", "--spec", "coherent.test>=0.7.0", "coherent.test"], assert_exit=0)
+    run_pipx_cli_exit(["run", "--backend", "uv", *spec_args, "pycowsay", "cowsay", "hi"], assert_exit=0)
 
-    uvx.assert_not_called()
-    venv.assert_called_once()
-    assert venv.call_args.args[0] == "coherent.test"
-    assert venv.call_args.args[1] == "coherent.test>=0.7.0"
+    assert execvpe.call_args.args[1][1:3] == ["tool", "run"]
 
 
+@pytest.mark.parametrize(
+    "spec_template",
+    [
+        pytest.param("{path}", id="local-path"),
+        pytest.param("empty-project @ {uri}", id="direct-reference"),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_run_spec_matching_name_uses_uv_tool_run(mocker: MockerFixture) -> None:
-    uvx = mocker.patch("pipx.commands.run.run_via_uv_tool_run", side_effect=SystemExit(0))
-    venv = mocker.patch("pipx.commands.run.run_package")
-
-    run_pipx_cli_exit(["run", "--backend", "uv", "--spec", "pycowsay", "pycowsay", "cowsay", "hi"], assert_exit=0)
-
-    uvx.assert_called_once()
-    venv.assert_not_called()
-
-
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_spec_honors_dotted_pipx_run_entry_point(
     empty_project: Path,
     caplog: pytest.LogCaptureFixture,
+    mocker: MockerFixture,
+    spec_template: str,
 ) -> None:
-    pyproject = empty_project / "pyproject.toml"
+    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
+    pyproject: Final[Path] = empty_project / "pyproject.toml"
     pyproject.write_text(
         pyproject
         .read_text(encoding="utf-8")
@@ -132,7 +132,17 @@ def test_run_spec_honors_dotted_pipx_run_entry_point(
     )
     caplog.set_level(logging.INFO)
 
-    run_pipx_cli_exit(["run", "--backend", "uv", "--spec", str(empty_project), "empty.project"], assert_exit=0)
+    run_pipx_cli_exit(
+        [
+            "run",
+            "--backend",
+            "uv",
+            "--spec",
+            spec_template.format(path=empty_project, uri=empty_project.as_uri()),
+            "empty.project",
+        ],
+        assert_exit=0,
+    )
 
     assert "Using discovered entry point for 'pipx run'" in caplog.text
     assert f"exec_app: {paths.ctx.venv_cache}" in caplog.text
