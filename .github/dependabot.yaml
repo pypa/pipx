@@ -4,6 +4,7 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+      day: tuesday
     groups:
       actions:
         patterns:
