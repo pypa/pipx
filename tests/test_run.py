@@ -97,11 +97,13 @@ def test_run_normalized_name_skips_uv_tool_run(caplog: pytest.LogCaptureFixture)
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_run_matching_name_uses_uv_tool_run(mocker: MockerFixture, spec_args: list[str]) -> None:
-    execvpe: Final = mocker.patch("os.execvpe", autospec=True, side_effect=SystemExit(0))
+    # patch the handover rather than os.execvpe, which exec_app calls on POSIX only
+    exec_app: Final = mocker.patch("pipx.commands.run_uv.exec_app", autospec=True, side_effect=SystemExit(0))
 
     run_pipx_cli_exit(["run", "--backend", "uv", *spec_args, "pycowsay", "cowsay", "hi"], assert_exit=0)
 
-    assert execvpe.call_args.args[1][1:3] == ["tool", "run"]
+    exec_app.assert_called_once()
+    assert exec_app.call_args.args[0][1:3] == ["tool", "run"]
 
 
 @pytest.mark.parametrize(
@@ -112,13 +114,12 @@ def test_run_matching_name_uses_uv_tool_run(mocker: MockerFixture, spec_args: li
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
+@mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_spec_honors_dotted_pipx_run_entry_point(
     empty_project: Path,
     caplog: pytest.LogCaptureFixture,
-    mocker: MockerFixture,
     spec_template: str,
 ) -> None:
-    mocker.patch("os.execvpe", autospec=True, side_effect=execvpe_mock)
     pyproject: Final[Path] = empty_project / "pyproject.toml"
     pyproject.write_text(
         pyproject

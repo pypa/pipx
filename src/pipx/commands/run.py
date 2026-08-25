@@ -480,11 +480,14 @@ def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/in
     if venv.pipx_metadata.main_package.package is not None:
         package_name = venv.pipx_metadata.main_package.package
     else:
+        # a spec without a distribution name costs a throwaway venv here, so resolve it on the requested backend
         package_name = package_name_from_spec(
             package_or_url,
             python,
             pip_args=pip_args,
             verbose=verbose,
+            backend=backend,
+            env_backend=env_backend,
             cooldown_days=cooldown_days,
         )
 

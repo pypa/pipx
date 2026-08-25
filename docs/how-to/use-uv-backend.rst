@@ -73,9 +73,10 @@ all accept ``--backend``. Switch an installed venv with ``pipx reinstall NAME --
 ************
 
 - ``pipx install pip --backend uv`` errors: a uv venv has no pip. Use ``--backend pip``.
-- ``pipx run --spec <spec> <app> --backend uv`` uses a pipx-managed venv when the spec has no requirement name or
-  ``<app>`` differs from its normalized distribution name. pipx reads ``[pipx.run]`` metadata from the venv;
-  ``uv tool run`` reads only console scripts.
+- ``pipx run --backend uv`` honors ``[pipx.run]`` entry points only where it builds a venv, which with ``--spec``
+  means an ``<app>`` that differs from the spec's normalized distribution name, or a spec carrying no name at all.
+  An ``<app>`` matching that name goes to ``uv tool run``, which reads console scripts only, so reach for
+  ``--backend pip`` to override a console script of the same name.
 - Some ``--pip-args`` values have no ``uv tool run`` equivalent (``--editable``, ``--no-build-isolation``); pipx errors
   instead of dropping them. See :doc:`use-private-index` for which flags uv translates.
 - ``pipx run --backend uv`` against URL or named-pipe scripts falls back to a pipx-managed venv, because ``uv run
@@ -84,6 +85,8 @@ all accept ``--backend``. Switch an installed venv with ``pipx reinstall NAME --
   path, or a name it normalizes (``pipx run pip_search`` installs ``pip-search``). ``uv tool run`` takes that name up
   front and would guess it from the package, so pipx installs the package first and runs the script it declares. Pass
   ``pipx run --spec <spec> <normalized-name>`` to keep uv's cache when the package declares a matching console script.
+  A spec with no distribution name (a path, a URL, a direct reference) is installed twice, once to learn its name and
+  once into the run venv.
 
 *************
  Cache layout
