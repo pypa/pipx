@@ -14,6 +14,23 @@ to this file.
 
 .. towncrier release notes start
 
+`1.16.8 <https://github.com/pypa/pipx/tree/1.16.8>`_ - 2026-08-25
+=================================================================
+
+Bugfixes
+--------
+
+- `pipx run --spec <spec> <app>` on the uv backend builds a pipx-managed venv when `<app>` differs from the spec's
+  normalized distribution name, or when the spec carries no name at all, so pipx honors the package's `[pipx.run]` entry
+  point. An `<app>` that matches the name still runs through `uv tool run`, which sees console scripts only. (:issue:`2004`)
+
+
+Improved Documentation
+----------------------
+
+- The CLI reference in the documentation now shows `pipx run` instead of `sphinx-build run`. (:issue:`2005`)
+
+
 `1.16.7 <https://github.com/pypa/pipx/tree/1.16.7>`_ - 2026-08-13
 =================================================================
 
