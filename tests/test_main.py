@@ -74,8 +74,11 @@ def test_prog_name(mocker: MockerFixture, argv: str, executable: str, expected: 
 def test_build_parser_uses_pipx_in_subcommand_help(mocker: MockerFixture, capsys: pytest.CaptureFixture[str]) -> None:
     mocker.patch.object(sys, "argv", ["sphinx-build"])
     parser = main.build_parser()
-    with pytest.raises(SystemExit, match="0"):
+
+    with pytest.raises(SystemExit) as sys_exit:
         parser.parse_args(["run", "--help"])
+
+    assert sys_exit.value.code == 0
     assert capsys.readouterr().out.startswith("usage: pipx run ")
 
 
