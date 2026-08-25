@@ -372,8 +372,14 @@ def run(  # ruff:ignore[too-many-arguments, too-many-positional-arguments]  # mi
     # ``resolved_backend`` only decides ROUTING (uv tool run vs Venv); cli/env
     # stay separate when we hand off so the Venv's source-attribution stays right.
     resolved_backend, _ = resolve_backend_name(cli_value=backend, env_value=env_backend)
-    # `uv tool run` takes the script name up front and would guess an inferred one from the package name
-    use_uvx = resolved_backend == UV and not pypackages and not python_args and not infer_app_name
+    # uv cannot discover inferred app names or pipx.run entry points before installing the package.
+    use_uvx: Final[bool] = (
+        resolved_backend == UV
+        and not pypackages
+        and not python_args
+        and not infer_app_name
+        and _can_use_uvx_for_spec(app, spec)
+    )
 
     content = None if spec is not None else maybe_script_content(app, is_path=is_path)
     if content is not None:
@@ -443,6 +449,15 @@ def _requirement_name(app: str) -> str:
         return app
 
 
+def _can_use_uvx_for_spec(app: str, spec: str | None) -> bool:
+    if spec is None:
+        return True
+    try:
+        return app == canonicalize_name(Requirement(spec).name)
+    except InvalidRequirement:
+        return False
+
+
 def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/install option set for one temporary venv
     venv_dir: Path,
     package_or_url: str,
@@ -465,11 +480,14 @@ def _prepare_venv(  # ruff:ignore[too-many-arguments]  # mirrors the flat run/in
     if venv.pipx_metadata.main_package.package is not None:
         package_name = venv.pipx_metadata.main_package.package
     else:
+        # a spec without a distribution name costs a throwaway venv here, so resolve it on the requested backend
         package_name = package_name_from_spec(
             package_or_url,
             python,
             pip_args=pip_args,
             verbose=verbose,
+            backend=backend,
+            env_backend=env_backend,
             cooldown_days=cooldown_days,
         )
 
