@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Final, cast
+from typing import TYPE_CHECKING, Final, cast
 from unittest import mock
 
 import pytest
@@ -15,6 +15,9 @@ from docutils.core import publish_string
 
 from helpers import run_pipx_cli
 from pipx import constants, main
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 _ROOT: Final = Path(__file__).parents[1]
 _MANPAGE_RST: Final = _ROOT / "docs" / "man" / "pipx.1.rst"
@@ -62,10 +65,21 @@ def test_version(capsys: pytest.CaptureFixture[str]) -> None:
         ("__main__.py", "/usr/bin/python", "/usr/bin/python -m pipx"),
     ],
 )
-def test_prog_name(monkeypatch: pytest.MonkeyPatch, argv: str, executable: str, expected: str) -> None:
-    monkeypatch.setattr("pipx.main.sys.argv", [argv])
-    monkeypatch.setattr("pipx.main.sys.executable", executable)
+def test_prog_name(mocker: MockerFixture, argv: str, executable: str, expected: str) -> None:
+    mocker.patch.object(sys, "argv", [argv])
+    mocker.patch.object(sys, "executable", executable)
     assert main.prog_name() == expected
+
+
+def test_build_parser_uses_pipx_in_subcommand_help(mocker: MockerFixture, capsys: pytest.CaptureFixture[str]) -> None:
+    mocker.patch.object(sys, "argv", ["sphinx-build"])
+    parser = main.build_parser()
+
+    with pytest.raises(SystemExit) as sys_exit:
+        parser.parse_args(["run", "--help"])
+
+    assert sys_exit.value.code == 0
+    assert capsys.readouterr().out.startswith("usage: pipx run ")
 
 
 def test_limit_verbosity() -> None:

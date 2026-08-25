@@ -1508,7 +1508,8 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
     add_backend_arg(p)
     p.set_defaults(subparser=p, func=_cmd_run)
 
-    # modify usage text to show required app argument
+    # modify usage text to show required app argument; this freezes the prog into the usage line, so a parser built
+    # for the docs has to be given its program name up front
     p.usage = re.sub(r"^usage: ", "", p.format_usage())
     # add a double-dash to usage text to show requirement before app
     p.usage = re.sub(r"\.\.\.", "app ...", p.usage)
@@ -1713,7 +1714,9 @@ def _make_print_help(
     return _print_help
 
 
-def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.ArgumentParser]]:
+def get_command_parser(
+    *, prog: str | None = None
+) -> tuple[argparse.ArgumentParser, dict[str, argparse.ArgumentParser]]:
     venv_container = VenvContainer(paths.ctx.venvs)
 
     completer_venvs = InstalledVenvsCompleter(venv_container)
@@ -1757,7 +1760,7 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
         )
 
     parser = argparse.ArgumentParser(
-        prog=prog_name(),
+        prog=prog or prog_name(),
         formatter_class=LineWrapRawTextHelpFormatter,
         description=PIPX_DESCRIPTION,
     )
@@ -1814,8 +1817,10 @@ def get_command_parser() -> tuple[argparse.ArgumentParser, dict[str, argparse.Ar
 
 def build_parser() -> argparse.ArgumentParser:
     # sphinx-argparse-cli renders the CLI reference from a parser-returning callable; expose the root parser alone
-    # so the docs build cannot drift from the argument definitions.
-    return get_command_parser()[0]
+    # so the docs build cannot drift from the argument definitions. Name the program here rather than inherit the docs
+    # builder's argv[0]: ``run`` bakes the prog into a frozen usage string, which the directive's ``:prog:`` option
+    # cannot rewrite afterwards.
+    return get_command_parser(prog="pipx")[0]
 
 
 def _cmd_completions(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode:
