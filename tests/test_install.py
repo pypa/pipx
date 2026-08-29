@@ -19,7 +19,7 @@ import pytest
 
 from helpers import PACKAGE_CACHE_DIR_NAME, app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
 from package_info import PKG
-from pipx import paths, shared_libs
+from pipx import main, paths, shared_libs
 from pipx.backends import Backend
 from pipx.constants import EXIT_CODE_OK
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
@@ -376,6 +376,74 @@ def test_install_cooldown(root: Path, caplog: pytest.LogCaptureFixture, backend:
     assert (backend_option in caplog.text, metadata.cooldown_days) == (True, 7)
 
 
+@pytest.mark.parametrize(
+    ("cli_args", "expected_days"),
+    [
+        pytest.param([], 7, id="env"),
+        pytest.param(["--cooldown", "3"], 3, id="flag-wins"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_env_cooldown(
+    root: Path,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    cli_args: list[str],
+    expected_days: int,
+) -> None:
+    monkeypatch.setattr(main, "_COOLDOWN", 7)
+    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
+
+    assert not run_pipx_cli([
+        "install",
+        "--backend",
+        "pip",
+        *cli_args,
+        f"--pip-args=--no-index --find-links={find_links}",
+        PKG["pycowsay"]["spec"],
+    ])
+
+    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
+    assert (f"--uploaded-prior-to P{expected_days}D" in caplog.text, metadata.cooldown_days) == (True, expected_days)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_env_cooldown_opted_out_by_flag(
+    root: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(main, "_COOLDOWN", 7)
+    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
+
+    assert not run_pipx_cli([
+        "install",
+        "--backend",
+        "pip",
+        "--cooldown",
+        "0",
+        f"--pip-args=--no-index --find-links={find_links}",
+        PKG["pycowsay"]["spec"],
+    ])
+
+    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
+    assert ("--uploaded-prior-to" in caplog.text, metadata.cooldown_days) == (False, 0)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_env_cooldown_outranks_recorded(
+    root: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
+    pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
+    assert not run_pipx_cli(["install", "--backend", "pip", "--cooldown", "7", pip_args, PKG["pycowsay"]["spec"]])
+    caplog.clear()
+
+    monkeypatch.setattr(main, "_COOLDOWN", 3)
+    assert not run_pipx_cli(["install", "--backend", "pip", "--force", pip_args, PKG["pycowsay"]["spec"]])
+
+    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
+    assert ("--uploaded-prior-to P3D" in caplog.text, metadata.cooldown_days) == (True, 3)
+
+
 @pytest.mark.parametrize("value", [pytest.param("-1", id="negative"), pytest.param("invalid", id="not-an-integer")])
 def test_install_rejects_invalid_cooldown(value: str, capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit, match="2"):
@@ -535,6 +603,19 @@ def test_install_rejects_cooldown_for_recorded_pylock(
         metadata.package_version,
         metadata.lock_file,
     ) == (True, "0.0.0.2", lock_file.resolve())
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_env_cooldown_ignored_for_pylock(
+    make_pylock: Callable[[str, str], Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(main, "_COOLDOWN", 7)
+    lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
+
+    assert not run_pipx_cli(["install", "--lock", str(lock_file), "pycowsay"])
+
+    metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "pycowsay").main_package
+    assert (metadata.cooldown_days, metadata.lock_file) == (None, lock_file.resolve())
 
 
 @pytest.mark.parametrize(

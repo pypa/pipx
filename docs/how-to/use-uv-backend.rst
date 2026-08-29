@@ -66,7 +66,7 @@ all accept ``--backend``. Switch an installed venv with ``pipx reinstall NAME --
 - ``pipx run`` execs ``uv tool run``; its cache lives in uv's cache directory. Pass ``--no-cache`` to skip it or
   ``--refresh`` to rebuild the cached environment.
 - ``pipx run script.py`` execs ``uv run --script script.py`` for PEP 723 inline scripts.
-- ``--cooldown DAYS`` maps to uv's ``--exclude-newer P{DAYS}D``. Relative cooldowns need uv 0.9.17 or newer.
+- ``--cooldown DAYS`` (or ``PIPX_COOLDOWN``) maps to uv's ``--exclude-newer P{DAYS}D``. Relative cooldowns need uv 0.9.17 or newer. See :doc:`Dependency cooldown <dependency-cooldown>`.
 
 ************
  Limitations

@@ -20,6 +20,7 @@ effect. They assume pipx is already installed unless the guide is about installi
     shell-completions
     move-installation
     standalone-python
+    dependency-cooldown
     use-private-index
     use-uv-backend
     use-with-pre-commit

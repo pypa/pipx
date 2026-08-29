@@ -50,6 +50,13 @@ pipx does not use ``requirements.txt`` as a state or lock format.
 pipx exposes top-level policy when pip and uv honor the same contract. Backend arguments carry controls specific to pip
 or uv. ``--cooldown DAYS`` maps one pipx release-age policy to both backends.
 
+A release-age policy describes the machine, not one command, so ``PIPX_COOLDOWN`` supplies the default and no
+configuration file appears to hold it. That keeps pipx settings in one place and keeps the policy out of the backend
+environment variables (``PIP_UPLOADED_PRIOR_TO``, ``UV_EXCLUDE_NEWER``), which would bind pipx to one backend and leak
+into unrelated pip and uv runs in the same shell. The variable outranks the cooldown an environment recorded at install
+time, because it states what the machine wants now rather than what an older install happened to use; ``--cooldown``
+still overrides both, and a lock file supersedes all of them by pinning every version outright.
+
 Application launchers start the installed application without downloading packages or changing its environment. Health
 checks and repairs belong in commands that the user invokes for those purposes.
 

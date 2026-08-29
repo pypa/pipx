@@ -31,6 +31,9 @@ from pipx.backends import KNOWN_BACKENDS, UV, env_default_backend, get_backend, 
 from pipx.colors import bold, green
 from pipx.commands.environment import ENVIRONMENT_VALUE_CHOICES, ENVIRONMENT_VARIABLES
 from pipx.constants import (
+    _COOLDOWN,
+    _COOLDOWN_INVALID,
+    _COOLDOWN_RAW,
     _FETCH_MISSING_PYTHON_RAW,
     _FETCH_PYTHON,
     _FETCH_PYTHON_INVALID,
@@ -116,6 +119,7 @@ PIPX_DESCRIPTION += pipx_wrap(
     "                        Used instead of PIPX_COMPLETION_DIR when the `--global` option is given.\n"
     "  PIPX_DEFAULT_PYTHON    Overrides default python used for commands.\n"
     "  PIPX_DEFAULT_BACKEND   Overrides which backend (`pip` or `uv`) is used for new venvs.\n"
+    "  PIPX_COOLDOWN          Default `--cooldown` in days for the commands that accept it.\n"
     "  PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE\n"
     "                        Skips automatic shared library upgrades.\n"
     "  PIPX_USE_EMOJI         Overrides emoji behavior. Default value varies based on platform.",
@@ -296,6 +300,12 @@ def _validate_fetch_python() -> None:
         )
 
 
+def _validate_cooldown() -> None:
+    if _COOLDOWN_INVALID:
+        msg = f"PIPX_COOLDOWN must be unset or a non-negative integer, got {_COOLDOWN_RAW!r}."
+        raise PipxError(msg)
+
+
 def run_pipx_command(args: argparse.Namespace) -> ExitCode:
     if "package" in args:
         package_is_url(args.package)
@@ -337,6 +347,7 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
         backend=cli_backend,
         env_backend=env_backend,
         cooldown_days=getattr(args, "cooldown", None),
+        env_cooldown_days=_COOLDOWN if "cooldown" in args else None,
     )
     output: Final[OutputFormat] = _output_format(args)
     with skip_shared_libs_maintenance(enabled=getattr(args, "skip_maintenance", False)):
@@ -395,6 +406,7 @@ class DispatchContext:
     backend: str | None = None
     env_backend: str | None = None
     cooldown_days: int | None = None
+    env_cooldown_days: int | None = None
     fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER
 
     @property
@@ -403,6 +415,12 @@ class DispatchContext:
         # :class:`pipx.venv.Venv`; this only collapses them for code paths
         # without metadata to consult.
         return self.backend or self.env_backend
+
+    @property
+    def effective_cooldown_days(self) -> int | None:
+        # ``install`` takes the two apart instead, so a lock file can override
+        # the machine-wide policy rather than collide with it.
+        return self.cooldown_days if self.cooldown_days is not None else self.env_cooldown_days
 
 
 def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
@@ -430,7 +448,7 @@ def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
         "--cooldown",
         type=_non_negative_int,
         metavar="DAYS",
-        help="Ignore index artifacts uploaded fewer than DAYS days ago.",
+        help="Ignore index artifacts uploaded fewer than DAYS days ago. Defaults to PIPX_COOLDOWN; pass 0 to opt out.",
     )
 
 
@@ -618,6 +636,7 @@ def _cmd_install(args: argparse.Namespace, ctx: DispatchContext) -> OperationRes
         env_backend=ctx.env_backend,
         upgrade_strategy=args.upgrade_strategy,
         cooldown_days=ctx.cooldown_days,
+        env_cooldown_days=ctx.env_cooldown_days,
         emit_output=False,
     )
 
@@ -655,7 +674,7 @@ def _cmd_install_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode
         force=args.force,
         backend=ctx.backend,
         env_backend=ctx.env_backend,
-        cooldown_days=ctx.cooldown_days,
+        cooldown_days=ctx.effective_cooldown_days,
     )
 
 
@@ -789,7 +808,7 @@ def _cmd_inject(args: argparse.Namespace, ctx: DispatchContext) -> OperationResu
             suffix=args.with_suffix,
             backend=ctx.backend,
             env_backend=ctx.env_backend,
-            cooldown_days=ctx.cooldown_days,
+            cooldown_days=ctx.effective_cooldown_days,
             emit_output=False,
         )
 
@@ -981,7 +1000,7 @@ def _cmd_upgrade(args: argparse.Namespace, ctx: DispatchContext) -> OperationRes
         python_flag_passed=ctx.python_flag_passed,
         backend=ctx.backend,
         env_backend=ctx.env_backend,
-        cooldown_days=ctx.cooldown_days,
+        cooldown_days=ctx.effective_cooldown_days,
     )
 
 
@@ -1023,7 +1042,7 @@ def _cmd_upgrade_all(args: argparse.Namespace, ctx: DispatchContext) -> Operatio
         python_flag_passed=ctx.python_flag_passed,
         backend=ctx.backend,
         env_backend=ctx.env_backend,
-        cooldown_days=ctx.cooldown_days,
+        cooldown_days=ctx.effective_cooldown_days,
     )
 
 
@@ -1532,7 +1551,7 @@ def _cmd_run(args: argparse.Namespace, ctx: DispatchContext) -> NoReturn:
         no_path_check=args.no_path_check,
         backend=ctx.backend,
         env_backend=ctx.env_backend,
-        cooldown_days=ctx.cooldown_days,
+        cooldown_days=ctx.effective_cooldown_days,
         python_args=args.python_args,
         python_flag_passed=ctx.python_flag_passed,
         fetch_python=ctx.fetch_python,
@@ -2015,6 +2034,7 @@ def _dispatch(argv: list[str]) -> ExitCode:
     argcomplete.autocomplete(parser, always_complete_options=False)
     parsed_pipx_args = parse_pipx_args(parser, argv)
     _validate_fetch_python()
+    _validate_cooldown()
     setup(parsed_pipx_args)
     check_args(parsed_pipx_args)
     if not parsed_pipx_args.command:
