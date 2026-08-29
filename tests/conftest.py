@@ -387,16 +387,20 @@ def pipx_local_pypiserver(
     ]
     cmd += ["--log-file", str(server_log)]
     pypiserver_process = subprocess.Popen(cmd, cwd=root)
-    url = f"http://127.0.0.1:{port}/simple/"
-    while True:
-        try:
-            with urlopen(url) as response:
-                if response.code == HTTPStatus.OK:
-                    break
-        except (URLError, HTTPError):
-            continue
-    yield url
-    pypiserver_process.terminate()
+    try:
+        url = f"http://127.0.0.1:{port}/simple/"
+        while True:
+            try:
+                with urlopen(url) as response:
+                    if response.code == HTTPStatus.OK:
+                        break
+            except (URLError, HTTPError):
+                continue
+        yield url
+    finally:
+        pypiserver_process.terminate()
+        # reap the child before the Popen is collected, else its finalizer raises ResourceWarning
+        pypiserver_process.wait()
 
 
 @pytest.fixture(scope="session")
