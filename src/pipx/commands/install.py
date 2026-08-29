@@ -81,6 +81,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
     upgrade: bool = False,
     upgrade_strategy: str | None = None,
     cooldown_days: int | None = None,
+    env_cooldown_days: int | None = None,
     venv_lock: BaseFileLock | None = None,
     preserve_existing: bool = False,
     fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER,
@@ -107,6 +108,10 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
     except PipxError as error:
         return _finish_install(_failed_install_result(package_specs[0], error), emit_output=emit_output)
 
+    # a lock file already pins every version, so PIPX_COOLDOWN has nothing left to constrain
+    resolution_cooldown: Final[int | None] = (
+        None if lock_file is not None else _first_cooldown(cooldown_days, env_cooldown_days)
+    )
     package_names, resolution_failure, python = _resolve_package_names(
         package_names,
         package_specs,
@@ -116,7 +121,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
         verbose=verbose,
         backend=backend,
         env_backend=env_backend,
-        cooldown_days=cooldown_days,
+        cooldown_days=resolution_cooldown,
         fetch_python=fetch_python,
         python_flag_passed=python_flag_passed,
         messages=messages,
@@ -167,6 +172,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                     cooldown_days,
                     venv.pipx_metadata.main_package.cooldown_days,
                     modifies_existing=exists and force,
+                    env_cooldown_days=env_cooldown_days,
                 )
                 required_exposure = (
                     venv.pipx_metadata.exposure_enabled if exposure_enabled is None else exposure_enabled
@@ -434,19 +440,25 @@ def _finish_install(result: OperationResult[InstallData], *, emit_output: bool) 
     return result
 
 
+def _first_cooldown(*candidates: int | None) -> int | None:
+    return next((candidate for candidate in candidates if candidate is not None), None)
+
+
 def _resolve_cooldown(
     lock_file: Path | None,
     requested: int | None,
     stored: int | None,
     *,
     modifies_existing: bool,
+    env_cooldown_days: int | None = None,
 ) -> int | None:
     if modifies_existing and lock_file is not None and requested is not None:
         msg = "--cooldown cannot modify a locked environment"
         raise PipxError(msg)
     if lock_file is not None:
         return None
-    return requested if requested is not None else stored
+    # PIPX_COOLDOWN states a current machine-wide policy, so it outranks the cooldown the venv was last installed with
+    return _first_cooldown(requested, env_cooldown_days, stored)
 
 
 def _handle_existing_install(  # ruff:ignore[too-many-arguments]  # forwards the flat install context for an existing venv

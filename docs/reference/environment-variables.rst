@@ -39,6 +39,10 @@ environment`` to print the resolved value of each one on your system.
         (``sys.executable``).
     - - ``PIPX_DEFAULT_BACKEND``
       - Backend for new venvs, ``pip`` or ``uv``. Default: ``uv`` when uv is available, else ``pip``.
+    - - ``PIPX_COOLDOWN``
+      - Default for ``--cooldown``: ignore index artifacts uploaded fewer than this many days ago, on ``install``,
+        ``install-all``, ``inject``, ``upgrade``, ``upgrade-all`` and ``run``. An explicit ``--cooldown`` wins, and
+        ``--cooldown 0`` opts a single command out. A locked install ignores it. Default: unset.
     - - ``PIPX_FETCH_PYTHON``
       - When to fetch a standalone Python build: ``always``, ``missing``, or ``never``. Default: ``never``.
     - - ``PIPX_FETCH_MISSING_PYTHON``

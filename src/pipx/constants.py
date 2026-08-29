@@ -48,6 +48,21 @@ def _compute_fetch_python(missing_raw: str | None, python_raw: str | None) -> tu
 
 _FETCH_PYTHON, _FETCH_PYTHON_INVALID = _compute_fetch_python(_FETCH_MISSING_PYTHON_RAW, _FETCH_PYTHON_RAW)
 
+_COOLDOWN_RAW = os.environ.get("PIPX_COOLDOWN")
+
+
+def _compute_cooldown(raw: str | None) -> tuple[int | None, bool]:
+    if raw is None or not (stripped := raw.strip()):
+        return None, False
+    try:
+        days = int(stripped)
+    except ValueError:
+        return None, True
+    return (days, False) if days >= 0 else (None, True)
+
+
+_COOLDOWN, _COOLDOWN_INVALID = _compute_cooldown(_COOLDOWN_RAW)
+
 
 ExitCode = NewType("ExitCode", int)
 # pipx shell exit codes
