@@ -14,6 +14,25 @@ to this file.
 
 .. towncrier release notes start
 
+`1.17.0 <https://github.com/pypa/pipx/tree/1.17.0>`_ - 2026-08-29
+=================================================================
+
+Features
+--------
+
+- Add `PIPX_COOLDOWN`, a default for `--cooldown` on `install`, `install-all`, `inject`, `upgrade`, `upgrade-all` and
+  `run`, so one release-age policy covers every command. An explicit `--cooldown` still wins, `--cooldown 0` opts a single
+  command out, and a locked install ignores the variable rather than failing. (:issue:`2014`)
+
+
+Bugfixes
+--------
+
+- Require `packaging>=26`. Earlier releases serialize a direct reference as `name@ url` rather than PEP 508's
+  `name @ url`, so the specifier pipx recorded in `pipx_metadata.json` and passed to the backend depended on which
+  `packaging` happened to be installed. (:issue:`2015`)
+
+
 `1.16.8 <https://github.com/pypa/pipx/tree/1.16.8>`_ - 2026-08-25
 =================================================================
 
