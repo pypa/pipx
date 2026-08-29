@@ -55,6 +55,24 @@ Call one of the exposed apps to confirm the install:
 If the version prints, the app is on your ``PATH`` and ready to use. (Missing? Run ``pipx ensurepath`` and open a new
 terminal, then see :doc:`Troubleshoot <../how-to/troubleshoot>`.)
 
+*************************
+ Hold back fresh releases
+*************************
+
+A brand-new release is the one most likely to be broken or compromised. Install the next tool a week behind the index:
+
+.. code-block:: console
+
+    $ pipx install --cooldown 7 black
+      installed package black 24.8.0, Python 3.12.3
+      These apps are now globally available
+        - black
+        - blackd
+    done! ✨ 🌟 ✨
+
+pipx remembers the number, so later upgrades of ``black`` keep the same seven-day lag without you repeating the flag.
+Set ``PIPX_COOLDOWN=7`` in your shell profile to get the same lag for every tool.
+
 ************
  Learn more
 ************
@@ -69,3 +87,4 @@ terminal, then see :doc:`Troubleshoot <../how-to/troubleshoot>`.)
 - :doc:`Use the uv backend <../how-to/use-uv-backend>`: swap pip for uv to resolve and install faster.
 - :doc:`Standalone Python <../how-to/standalone-python>`: install against a specific Python version, downloading one if
   needed.
+- :doc:`Dependency cooldown <../how-to/dependency-cooldown>`: set the release-age lag once with ``PIPX_COOLDOWN``.

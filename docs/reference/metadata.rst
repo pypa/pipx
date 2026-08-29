@@ -85,7 +85,7 @@ The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrate
     - - ``lock_file``
       - Path to the ``pylock.toml`` used to install, or ``null``.
     - - ``cooldown_days``
-      - Index-artifact cooldown recorded for the install, or ``null``.
+      - Index-artifact cooldown recorded for the install, from ``--cooldown`` or ``PIPX_COOLDOWN``, or ``null``.
     - - ``suffix``
       - Suffix appended to the environment and executable names, or empty.
     - - ``pinned``
