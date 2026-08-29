@@ -118,12 +118,22 @@ def _parse_specifier(package_spec: str) -> ParsedPackage:
     )
 
 
+def _render_requirement(requirement: Requirement) -> str:
+    # packaging only spells direct references PEP 508's "name @ url" from 26 onwards; older releases drop the space,
+    # leaking the installed packaging version into pipx metadata and into the specs handed to the backend
+    rendered: Final[str] = str(requirement)
+    if requirement.url is None:
+        return rendered
+    head, _, tail = rendered.partition("@ ")
+    return f"{head.rstrip()} @ {tail}"
+
+
 def package_or_url_from_pep508(requirement: Requirement, *, remove_version_specifiers: bool = False) -> str:
     requirement.marker = None
     requirement.name = canonicalize_name(requirement.name)
     if remove_version_specifiers:
         requirement.specifier = SpecifierSet("")
-    return str(requirement)
+    return _render_requirement(requirement)
 
 
 def _parsed_package_to_package_or_url(parsed_package: ParsedPackage, *, remove_version_specifiers: bool) -> str:
@@ -298,7 +308,7 @@ def fix_package_name(package_or_url: str, package_name: str) -> str:
         return package_or_url
 
     if package_req.name.endswith(ARCHIVE_EXTENSIONS):
-        return str(package_req)
+        return _render_requirement(package_req)
 
     if canonicalize_name(package_req.name) != canonicalize_name(package_name):
         logger.warning(
@@ -313,7 +323,7 @@ def fix_package_name(package_or_url: str, package_name: str) -> str:
         )
     package_req.name = package_name
 
-    return str(package_req)
+    return _render_requirement(package_req)
 
 
 __all__ = [
