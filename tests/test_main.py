@@ -82,9 +82,10 @@ def test_build_parser_uses_pipx_in_subcommand_help(mocker: MockerFixture, capsys
     assert capsys.readouterr().out.startswith("usage: pipx run ")
 
 
-def test_limit_verbosity() -> None:
-    assert not run_pipx_cli(["list", "-qqq"])
-    assert not run_pipx_cli(["list", "-vvvv"])
+@pytest.mark.parametrize("flag", [pytest.param("-qqq", id="quiet"), pytest.param("-vvvv", id="verbose")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_limit_verbosity(flag: str) -> None:
+    assert not run_pipx_cli(["list", flag])
 
 
 def test_all_subcommands_have_func_registered() -> None:
