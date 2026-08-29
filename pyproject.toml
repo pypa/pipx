@@ -191,14 +191,14 @@ rules.unused-ignore-comment = "error"
 ini_options.minversion = "8"
 ini_options.testpaths = [ "tests" ]
 ini_options.addopts = [ "-ra", "--strict-config", "--strict-markers" ]
+ini_options.markers = [
+  "all_packages: test install with maximum number of packages",
+]
 ini_options.filterwarnings = [
   "error",
   # importlib.metadata warns before returning None for a dist-info carrying no Name; venv_inspect handles that case
   # and Python 3.15 turns it into the KeyError the code already catches
   "ignore:Implicit None on return values is deprecated:DeprecationWarning",
-]
-ini_options.markers = [
-  "all_packages: test install with maximum number of packages",
 ]
 ini_options.log_level = "INFO"
 
