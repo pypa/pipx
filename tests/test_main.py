@@ -271,6 +271,31 @@ def test_validate_fetch_python_passes_when_unset(monkeypatch: pytest.MonkeyPatch
     main._validate_fetch_python()  # ruff:ignore[private-member-access]  # no public API
 
 
+@pytest.mark.parametrize(
+    ("raw", "expected_days", "expected_invalid"),
+    [
+        pytest.param(None, None, False, id="unset"),
+        pytest.param("  ", None, False, id="blank"),
+        pytest.param("7", 7, False, id="days"),
+        pytest.param(" 7 ", 7, False, id="whitespace-padded"),
+        pytest.param("0", 0, False, id="zero"),
+        pytest.param("-1", None, True, id="negative"),
+        pytest.param("garbage", None, True, id="not-an-integer"),
+    ],
+)
+def test_compute_cooldown(raw: str | None, expected_days: int | None, expected_invalid: bool) -> None:
+    assert constants._compute_cooldown(raw) == (expected_days, expected_invalid)  # ruff:ignore[private-member-access]  # no public API
+
+
+def test_cli_rejects_invalid_env_cooldown(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    monkeypatch.setattr(main, "_COOLDOWN_INVALID", True)
+    monkeypatch.setattr(main, "_COOLDOWN_RAW", "garbage")
+
+    assert run_pipx_cli(["list"])
+
+    assert "PIPX_COOLDOWN must be unset or a non-negative integer, got 'garbage'." in capsys.readouterr().err
+
+
 def test_deprecated_fetch_missing_python_silent_under_help(capsys: pytest.CaptureFixture[str]) -> None:
     mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
     with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
