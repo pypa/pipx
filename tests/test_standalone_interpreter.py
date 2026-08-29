@@ -24,7 +24,7 @@ from package_info import PKG
 from pipx import constants, paths, pipx_metadata_file, standalone_python
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterator
     from unittest.mock import MagicMock
 
     from pytest_mock import MockerFixture
@@ -223,19 +223,31 @@ def test_standalone_python_upgrade_restores_backup_when_swap_fails(
     assert (install_dir / "keepme").read_text(encoding="utf-8") == "v1"
 
 
-def _http_error(code: int) -> urllib.error.HTTPError:
-    return urllib.error.HTTPError("https://example.invalid", code, "boom", email.message.Message(), None)
+@pytest.fixture
+def http_error() -> Iterator[Callable[[int], urllib.error.HTTPError]]:
+    errors: list[urllib.error.HTTPError] = []
+
+    def make(code: int) -> urllib.error.HTTPError:
+        error = urllib.error.HTTPError("https://example.invalid", code, "boom", email.message.Message(), None)
+        errors.append(error)
+        return error
+
+    yield make
+    # urllib hands a synthetic HTTPError an unclosed body, which warns once the object is collected
+    for error in errors:
+        error.close()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_standalone_python_download_retries_transient_http_error(
     published_darwin_release: tuple[Path, Callable[[bytes], None]],
     mocker: MockerFixture,
+    http_error: Callable[[int], urllib.error.HTTPError],
 ) -> None:
     _, publish = published_darwin_release
     archive_bytes = _python_archive_bytes()
     publish(archive_bytes)
-    mocker.patch.object(standalone_python, "urlopen", side_effect=[_http_error(503), io.BytesIO(archive_bytes)])
+    mocker.patch.object(standalone_python, "urlopen", side_effect=[http_error(503), io.BytesIO(archive_bytes)])
     sleep = mocker.patch.object(standalone_python.time, "sleep")
 
     python_path = standalone_python.download_python_build_standalone("3.99")
@@ -247,10 +259,11 @@ def test_standalone_python_download_retries_transient_http_error(
 def test_standalone_python_download_does_not_retry_missing_build(
     published_darwin_release: tuple[Path, Callable[[bytes], None]],
     mocker: MockerFixture,
+    http_error: Callable[[int], urllib.error.HTTPError],
 ) -> None:
     _, publish = published_darwin_release
     publish(_python_archive_bytes())
-    mocker.patch.object(standalone_python, "urlopen", side_effect=_http_error(404))
+    mocker.patch.object(standalone_python, "urlopen", side_effect=http_error(404))
     sleep = mocker.patch.object(standalone_python.time, "sleep")
 
     with pytest.raises(standalone_python.PipxError, match="Unable to download"):
@@ -263,10 +276,11 @@ def test_standalone_python_download_does_not_retry_missing_build(
 def test_standalone_python_download_gives_up_after_repeated_failures(
     published_darwin_release: tuple[Path, Callable[[bytes], None]],
     mocker: MockerFixture,
+    http_error: Callable[[int], urllib.error.HTTPError],
 ) -> None:
     _, publish = published_darwin_release
     publish(_python_archive_bytes())
-    mocker.patch.object(standalone_python, "urlopen", side_effect=_http_error(500))
+    mocker.patch.object(standalone_python, "urlopen", side_effect=http_error(500))
     sleep = mocker.patch.object(standalone_python.time, "sleep")
 
     with pytest.raises(standalone_python.PipxError, match="Unable to download"):
@@ -326,12 +340,14 @@ def test_standalone_python_download_restarts_when_range_ignored(
     assert (Path(python_path).is_file(), sleep.call_count) == (True, 1)
 
 
-def test_get_latest_python_releases_retries_transient_http_error(mocker: MockerFixture) -> None:
+def test_get_latest_python_releases_retries_transient_http_error(
+    mocker: MockerFixture, http_error: Callable[[int], urllib.error.HTTPError]
+) -> None:
     release = {"browser_download_url": "https://example.invalid/x.tar.gz", "digest": "sha256:" + "0" * 64}
     mocker.patch.object(
         standalone_python,
         "urlopen",
-        side_effect=[_http_error(503), io.StringIO(json.dumps({"assets": [release]}))],
+        side_effect=[http_error(503), io.StringIO(json.dumps({"assets": [release]}))],
     )
     sleep = mocker.patch.object(standalone_python.time, "sleep")
 
@@ -340,8 +356,10 @@ def test_get_latest_python_releases_retries_transient_http_error(mocker: MockerF
     assert (releases, sleep.call_count) == ([(release["browser_download_url"], release["digest"])], 1)
 
 
-def test_get_latest_python_releases_gives_up_after_repeated_failures(mocker: MockerFixture) -> None:
-    mocker.patch.object(standalone_python, "urlopen", side_effect=_http_error(500))
+def test_get_latest_python_releases_gives_up_after_repeated_failures(
+    mocker: MockerFixture, http_error: Callable[[int], urllib.error.HTTPError]
+) -> None:
+    mocker.patch.object(standalone_python, "urlopen", side_effect=http_error(500))
     sleep = mocker.patch.object(standalone_python.time, "sleep")
 
     with pytest.raises(standalone_python.PipxError, match="Unable to fetch"):
@@ -350,8 +368,10 @@ def test_get_latest_python_releases_gives_up_after_repeated_failures(mocker: Moc
     assert sleep.call_count == 2
 
 
-def test_get_latest_python_releases_does_not_retry_missing_release(mocker: MockerFixture) -> None:
-    mocker.patch.object(standalone_python, "urlopen", side_effect=_http_error(404))
+def test_get_latest_python_releases_does_not_retry_missing_release(
+    mocker: MockerFixture, http_error: Callable[[int], urllib.error.HTTPError]
+) -> None:
+    mocker.patch.object(standalone_python, "urlopen", side_effect=http_error(404))
     sleep = mocker.patch.object(standalone_python.time, "sleep")
 
     with pytest.raises(standalone_python.PipxError, match="Unable to fetch"):
