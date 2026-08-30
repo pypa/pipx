@@ -4,7 +4,7 @@ import fnmatch
 import importlib
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 import pytest
 
@@ -16,19 +16,27 @@ from pipx.paths import get_expanded_environ
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-ENVIRONMENT_VARIABLES_DOC = Path(__file__).parents[1] / "docs" / "reference" / "environment-variables.rst"
-SETTABLE_HEADING = " Settable variables"
-DERIVED_HEADING = " Derived (read-only) values"
-# First cell of a list-table row. Anchored so the surrounding prose, which also names variables, is not picked up.
-DOC_TABLE_NAME = re.compile(r"^    - - ``([A-Z0-9_]+)``", re.MULTILINE)
+_ENVIRONMENT_VARIABLES_DOC: Final = Path(__file__).parents[1] / "docs" / "reference" / "environment-variables.rst"
+# docstrfmt indents RST section titles by one space, and that indent is what keeps these off the prose naming
+# the same sections further up the page.
+_SETTABLE_HEADING: Final = " Settable variables"
+_DERIVED_HEADING: Final = " Derived (read-only) values"
+_DOC_TABLE_NAME: Final[re.Pattern[str]] = re.compile(
+    r"""
+    ^\ \ \ \ -\ -\ ``  # first cell of a list-table row, at the indent docstrfmt writes
+    ([A-Z0-9_]+)       # the variable name, which the prose around the table spells the same way
+    ``
+    """,
+    re.VERBOSE | re.MULTILINE,
+)
 
 
-def documented_variables(start: str, end: str | None = None) -> list[str]:
-    text = ENVIRONMENT_VARIABLES_DOC.read_text(encoding="utf-8")
+def _documented_variables(start: str, end: str | None = None) -> list[str]:
+    text = _ENVIRONMENT_VARIABLES_DOC.read_text(encoding="utf-8")
     section = text[text.index(start) :]
     if end is not None:
         section = section[: section.index(end)]
-    return DOC_TABLE_NAME.findall(section)
+    return _DOC_TABLE_NAME.findall(section)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -124,15 +132,15 @@ def test_cli_with_user_environment_value(
 @pytest.mark.parametrize(
     ("start", "end", "reported"),
     [
-        pytest.param(SETTABLE_HEADING, DERIVED_HEADING, ENVIRONMENT_VARIABLES, id="settable"),
-        pytest.param(DERIVED_HEADING, None, DERIVED_ENVIRONMENT_VARIABLES, id="derived"),
+        pytest.param(_SETTABLE_HEADING, _DERIVED_HEADING, ENVIRONMENT_VARIABLES, id="settable"),
+        pytest.param(_DERIVED_HEADING, None, DERIVED_ENVIRONMENT_VARIABLES, id="derived"),
     ],
 )
 def test_reported_variables_match_the_documentation(start: str, end: str | None, reported: list[str]) -> None:
     # The `for env_var in ENVIRONMENT_VARIABLES` loops in `test_cli` and `test_cli_global` read the same list
     # `environment()` prints from, so a name missing from that list is invisible to them. The documentation table is
     # the user-facing contract, so it is the oracle here.
-    documented = documented_variables(start, end)
+    documented = _documented_variables(start, end)
     assert documented, f"no variables parsed out of the {start.strip()!r} table"
     assert sorted(documented) == sorted(reported)
 
