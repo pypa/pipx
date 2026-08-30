@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import fnmatch
 import importlib
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -9,11 +10,25 @@ import pytest
 
 from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths
-from pipx.commands.environment import ENVIRONMENT_VARIABLES
+from pipx.commands.environment import DERIVED_ENVIRONMENT_VARIABLES, ENVIRONMENT_VARIABLES
 from pipx.paths import get_expanded_environ
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
+
+ENVIRONMENT_VARIABLES_DOC = Path(__file__).parents[1] / "docs" / "reference" / "environment-variables.rst"
+SETTABLE_HEADING = " Settable variables"
+DERIVED_HEADING = " Derived (read-only) values"
+# First cell of a list-table row. Anchored so the surrounding prose, which also names variables, is not picked up.
+DOC_TABLE_NAME = re.compile(r"^    - - ``([A-Z0-9_]+)``", re.MULTILINE)
+
+
+def documented_variables(start: str, end: str | None = None) -> list[str]:
+    text = ENVIRONMENT_VARIABLES_DOC.read_text(encoding="utf-8")
+    section = text[text.index(start) :]
+    if end is not None:
+        section = section[: section.index(end)]
+    return DOC_TABLE_NAME.findall(section)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -90,6 +105,7 @@ def test_cli_with_args(capsys: pytest.CaptureFixture[str]) -> None:
         ("PIPX_DEFAULT_BACKEND", "pip"),
         ("PIPX_FETCH_MISSING_PYTHON", "1"),
         ("PIPX_FETCH_PYTHON", "missing"),
+        ("PIPX_MAX_LOGS", "3"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -103,6 +119,22 @@ def test_cli_with_user_environment_value(
 
     assert not run_pipx_cli(["environment", "--value", variable])
     assert capsys.readouterr().out == f"{value}\n"
+
+
+@pytest.mark.parametrize(
+    ("start", "end", "reported"),
+    [
+        pytest.param(SETTABLE_HEADING, DERIVED_HEADING, ENVIRONMENT_VARIABLES, id="settable"),
+        pytest.param(DERIVED_HEADING, None, DERIVED_ENVIRONMENT_VARIABLES, id="derived"),
+    ],
+)
+def test_reported_variables_match_the_documentation(start: str, end: str | None, reported: list[str]) -> None:
+    # The `for env_var in ENVIRONMENT_VARIABLES` loops in `test_cli` and `test_cli_global` read the same list
+    # `environment()` prints from, so a name missing from that list is invisible to them. The documentation table is
+    # the user-facing contract, so it is the oracle here.
+    documented = documented_variables(start, end)
+    assert documented, f"no variables parsed out of the {start.strip()!r} table"
+    assert sorted(documented) == sorted(reported)
 
 
 def test_resolve_user_dir_in_env_paths(monkeypatch: pytest.MonkeyPatch) -> None:
