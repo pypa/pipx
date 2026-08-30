@@ -11,7 +11,7 @@ import subprocess
 import sys
 import tarfile
 import time
-from contextlib import closing, suppress
+from contextlib import closing
 from http import HTTPStatus
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
@@ -266,7 +266,7 @@ def pipx_temp_env_helper(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     request: pytest.FixtureRequest,
-    utils_temp_dir: list[Path],
+    utils_path_dirs: list[Path],
     *,
     pypi: str,
 ) -> None:
@@ -312,8 +312,7 @@ def pipx_temp_env_helper(
     #   which make tests fail (e.g. on Github ansible apps exist in /usr/bin)
     monkeypatch.setenv("PATH_ORIG", str(paths.ctx.bin_dir) + os.pathsep + os.environ["PATH"])
     monkeypatch.setenv("PATH_TEST", str(paths.ctx.bin_dir))
-    util_dirs = os.pathsep.join(str(p) for p in utils_temp_dir)
-    monkeypatch.setenv("PATH", str(paths.ctx.bin_dir) + os.pathsep + util_dirs)
+    monkeypatch.setenv("PATH", os.pathsep.join(str(entry) for entry in (paths.ctx.bin_dir, *utils_path_dirs)))
     # On Windows, monkeypatch pipx.commands.common._can_symlink_cache to
     #   indicate that paths.ctx.bin_dir and paths.ctx.man_dir
     #   cannot use symlinks, even if we're running as administrator and
@@ -411,33 +410,37 @@ def pipx_session_shared_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 
 @pytest.fixture(scope="session")
-def utils_temp_dir(tmp_path_factory: pytest.TempPathFactory) -> list[Path]:
-    """Directories to put on PATH so tests can find the utilities they need.
+def utils_path_dirs(tmp_path_factory: pytest.TempPathFactory) -> list[Path]:
+    """PATH entries exposing git, plus uv when it is installed, and nothing else.
 
-    Normally a single temp directory of symlinks, which keeps PATH minimal. Windows
-    refuses symlink creation unless the process is elevated or Developer Mode is on,
-    so fall back to the directory the utility actually lives in. Copying or hard
-    linking is not an alternative: Windows resolves an executable's DLLs relative to
-    its image path, and git.exe needs the siblings in its own directory.
+    One scratch directory of symlinks keeps whatever else lives beside these two off
+    PATH, which the ``⚠️``/``WARNING`` assertions in ``test_install`` depend on. An
+    unelevated Windows user without Developer Mode cannot create symlinks, so uv gets
+    copied instead and git falls back to its own directory: git.exe finds its helpers
+    and DLLs relative to its image path, so it only runs from where it was installed.
     """
     tmp_path = tmp_path_factory.mktemp("session_utilstempdir")
-    required = ["git"]
-    optional = ["uv"]  # exposed only when present so the uv-backend smoke test can find it
-    fallback_dirs: list[Path] = []
-    for util in required + optional:
-        at_path = shutil.which(util)
-        if at_path is None:
-            assert util not in required, f"{util} is required but not on PATH"
-            continue
-        util_path = Path(at_path)
+    path_dirs = [tmp_path]
+
+    at_path = shutil.which("git")
+    assert at_path is not None, "git must be on PATH to run the test suite"
+    git_path = Path(at_path)
+    try:
+        (tmp_path / git_path.name).symlink_to(git_path)
+    except OSError:  # no symlink privilege, e.g. Windows raises WinError 1314
+        path_dirs.append(git_path.parent)
+
+    if at_path := shutil.which("uv"):  # exposed only when present so the uv-backend smoke test can find it
+        uv_path = Path(at_path)
+        exposed = tmp_path / uv_path.name
         try:
-            with suppress(FileExistsError):
-                (tmp_path / util_path.name).symlink_to(util_path)
+            exposed.symlink_to(uv_path)
         except OSError:
-            # Windows without symlink privilege; expose the real directory instead.
-            if util_path.parent not in fallback_dirs:
-                fallback_dirs.append(util_path.parent)
-    return [tmp_path, *fallback_dirs]
+            # uv is a standalone binary, so a copy behaves the same and keeps the
+            # directory it ships in, usually ~/.local/bin, off PATH.
+            shutil.copy2(uv_path, exposed)
+
+    return path_dirs
 
 
 @pytest.fixture
@@ -446,7 +449,7 @@ def pipx_temp_env(
     monkeypatch: pytest.MonkeyPatch,
     pipx_session_shared_dir: Path,
     request: pytest.FixtureRequest,
-    utils_temp_dir: list[Path],
+    utils_path_dirs: list[Path],
     *,
     pipx_local_pypiserver: str,
 ) -> Iterator[None]:
@@ -459,7 +462,7 @@ def pipx_temp_env(
     seamless.
     """
     pipx_temp_env_helper(
-        pipx_session_shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pypi=pipx_local_pypiserver
+        pipx_session_shared_dir, tmp_path, monkeypatch, request, utils_path_dirs, pypi=pipx_local_pypiserver
     )
     yield
     monkeypatch.undo()
@@ -471,7 +474,7 @@ def pipx_ultra_temp_env(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     request: pytest.FixtureRequest,
-    utils_temp_dir: list[Path],
+    utils_path_dirs: list[Path],
     pipx_local_pypiserver: str,
 ) -> Iterator[None]:
     """Sets up temporary paths for pipx to install into.
@@ -483,7 +486,7 @@ def pipx_ultra_temp_env(
     seamless.
     """
     shared_dir = Path(tmp_path) / "shareddir"
-    pipx_temp_env_helper(shared_dir, tmp_path, monkeypatch, request, utils_temp_dir, pypi=pipx_local_pypiserver)
+    pipx_temp_env_helper(shared_dir, tmp_path, monkeypatch, request, utils_path_dirs, pypi=pipx_local_pypiserver)
     yield
     monkeypatch.undo()
     paths.ctx.make_local()
