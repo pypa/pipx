@@ -14,6 +14,22 @@ to this file.
 
 .. towncrier release notes start
 
+`1.17.1 <https://github.com/pypa/pipx/tree/1.17.1>`_ - 2026-08-30
+=================================================================
+
+Bugfixes
+--------
+
+- `pipx environment` now reports `PIPX_MAX_LOGS`, and `pipx environment --value PIPX_MAX_LOGS` no longer exits with
+  `invalid choice`. (:issue:`2024`)
+
+
+Miscellaneous internal changes
+------------------------------
+
+- :issue:`2021`, :issue:`2025`
+
+
 `1.17.0 <https://github.com/pypa/pipx/tree/1.17.0>`_ - 2026-08-29
 =================================================================
 
