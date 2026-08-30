@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib
 import io
+import ipaddress
 import logging
 import os
 import shutil
@@ -40,6 +41,7 @@ if TYPE_CHECKING:
 # ``import_module`` returns the module regardless.
 _UPGRADE_MODULE: Final[ModuleType] = importlib.import_module("pipx.commands.upgrade")
 
+_LOOPBACK_HOSTS: Final[frozenset[str]] = frozenset({"localhost", "127.0.0.1", "::1"})
 _PIPX_TESTS_DIR: Final[Path] = Path(".pipx_tests")
 _PIPX_TESTS_PACKAGE_LIST_DIR: Final[Path] = Path("testdata/tests_packages")
 _IGNORE_PROJECT_OUTPUT: Final[Callable[[str, list[str]], set[str]]] = shutil.ignore_patterns("build", "*.egg-info")
@@ -159,6 +161,37 @@ def _backend_test_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
     _uv_backend_module._check_uv_version.cache_clear()  # ruff:ignore[private-member-access]
     get_backend.cache_clear()
     reset_backend_override_warnings()
+
+
+@pytest.fixture(autouse=True)
+def _block_external_network(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Fail a test that dials the real internet instead of letting it flake on somebody else's rate limit.
+
+    The standalone-python tests used to reach github.com, so a 403 there turned into an unclosed SSLSocket and an
+    unraisable ResourceWarning attributed to whichever test happened to be running when the GC caught up. The local
+    pypiserver lives on loopback, which stays reachable; --net-pypiserver and --all-packages want real indexes and
+    opt out.
+    """
+    if request.config.option.net_pypiserver or request.config.option.all_packages:
+        return
+    connect = socket.socket.connect
+
+    def guarded_connect(self: socket.socket, address: tuple[str | int, ...] | str | bytes) -> None:
+        if isinstance(address, tuple) and not _is_loopback(str(address[0])):
+            msg = f"test connected to {address[0]}; mock the remote instead of reaching it"
+            raise RuntimeError(msg)
+        connect(self, address)
+
+    monkeypatch.setattr(socket.socket, "connect", guarded_connect)
+
+
+def _is_loopback(host: str) -> bool:
+    if host in _LOOPBACK_HOSTS:
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:  # a hostname that never resolved, so it cannot be loopback
+        return False
 
 
 @pytest.fixture(autouse=True)
