@@ -16,11 +16,11 @@ from pipx.paths import get_expanded_environ
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-_ENVIRONMENT_VARIABLES_DOC: Final = Path(__file__).parents[1] / "docs" / "reference" / "environment-variables.rst"
+_ENVIRONMENT_VARIABLES_DOC: Final[Path] = Path(__file__).parents[1] / "docs" / "reference" / "environment-variables.rst"
 # docstrfmt indents RST section titles by one space, and that indent is what keeps these off the prose naming
 # the same sections further up the page.
-_SETTABLE_HEADING: Final = " Settable variables"
-_DERIVED_HEADING: Final = " Derived (read-only) values"
+_SETTABLE_HEADING: Final[str] = " Settable variables"
+_DERIVED_HEADING: Final[str] = " Derived (read-only) values"
 _DOC_TABLE_NAME: Final[re.Pattern[str]] = re.compile(
     r"""
     ^\ \ \ \ -\ -\ ``  # first cell of a list-table row, at the indent docstrfmt writes
@@ -31,19 +31,13 @@ _DOC_TABLE_NAME: Final[re.Pattern[str]] = re.compile(
 )
 
 
-def _documented_variables(start: str, end: str | None = None) -> list[str]:
-    text = _ENVIRONMENT_VARIABLES_DOC.read_text(encoding="utf-8")
-    section = text[text.index(start) :]
-    if end is not None:
-        section = section[: section.index(end)]
-    return _DOC_TABLE_NAME.findall(section)
-
-
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_cli_value_skips_unrelated_discovery(
     mocker: MockerFixture,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
+    # ``pipx.commands.__init__`` re-exports ``environment`` (the function), which shadows the submodule on the
+    # package. ``import_module`` returns the module regardless.
     environment_module = importlib.import_module("pipx.commands.environment")
     resolve_backend_name = mocker.patch.object(
         environment_module,
@@ -67,41 +61,56 @@ def test_cli_value_skips_unrelated_discovery(
     get_default_python.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    ("args", "home", "other"),
+    [
+        pytest.param([], "subdir/pipxhome", "otherdir", id="local"),
+        pytest.param(["--global"], "global/pipxhome", "global_otherdir", id="global", marks=skip_if_windows),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_cli(capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["environment"])
+def test_cli(capsys: pytest.CaptureFixture[str], args: list[str], home: str, other: str) -> None:
+    assert not run_pipx_cli(["environment", *args])
     captured = capsys.readouterr()
-    assert fnmatch.fnmatch(captured.out, "*PIPX_HOME=*subdir/pipxhome*")
-    assert fnmatch.fnmatch(captured.out, "*PIPX_BIN_DIR=*otherdir/pipxbindir*")
-    assert fnmatch.fnmatch(captured.out, "*PIPX_MAN_DIR=*otherdir/pipxmandir*")
-    assert "PIPX_SHARED_LIBS" in captured.out
-    assert fnmatch.fnmatch(captured.out, "*PIPX_LOCAL_VENVS=*subdir/pipxhome/venvs*")
-    assert fnmatch.fnmatch(captured.out, "*PIPX_LOG_DIR=*subdir/pipxhome/logs*")
-    assert fnmatch.fnmatch(captured.out, "*PIPX_TRASH_DIR=*subdir/pipxhome/.trash*")
-    assert fnmatch.fnmatch(captured.out, "*PIPX_VENV_CACHEDIR=*subdir/pipxhome/.cache*")
-    # Checking just for the sake of completeness
+    for pattern in (
+        f"*PIPX_HOME=*{home}*",
+        f"*PIPX_BIN_DIR=*{other}/pipxbindir*",
+        f"*PIPX_MAN_DIR=*{other}/pipxmandir*",
+        f"*PIPX_LOCAL_VENVS=*{home}/venvs*",
+        f"*PIPX_LOG_DIR=*{home}/logs*",
+        f"*PIPX_TRASH_DIR=*{home}/.trash*",
+        f"*PIPX_VENV_CACHEDIR=*{home}/.cache*",
+    ):
+        assert fnmatch.fnmatch(captured.out, pattern)
     for env_var in ENVIRONMENT_VARIABLES:
         assert env_var in captured.out
 
 
-def test_cli_with_args(capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["environment", "--value", "PIPX_HOME"])
-    assert not run_pipx_cli(["environment", "--value", "PIPX_BIN_DIR"])
-    assert not run_pipx_cli(["environment", "--value", "PIPX_MAN_DIR"])
-    assert not run_pipx_cli(["environment", "--value", "PIPX_SHARED_LIBS"])
-    assert not run_pipx_cli(["environment", "--value", "PIPX_LOCAL_VENVS"])
-    assert not run_pipx_cli(["environment", "--value", "PIPX_LOG_DIR"])
-    assert not run_pipx_cli(["environment", "--value", "PIPX_TRASH_DIR"])
-    assert not run_pipx_cli(["environment", "--value", "PIPX_VENV_CACHEDIR"])
-    assert not run_pipx_cli(["environment", "--value", "PIPX_DEFAULT_PYTHON"])
-    assert not run_pipx_cli(["environment", "--value", "PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE"])
-    assert not run_pipx_cli(["environment", "--value", "PIPX_USE_EMOJI"])
+@pytest.mark.parametrize(
+    "variable",
+    [
+        "PIPX_HOME",
+        "PIPX_BIN_DIR",
+        "PIPX_MAN_DIR",
+        "PIPX_SHARED_LIBS",
+        "PIPX_LOCAL_VENVS",
+        "PIPX_LOG_DIR",
+        "PIPX_TRASH_DIR",
+        "PIPX_VENV_CACHEDIR",
+        "PIPX_DEFAULT_PYTHON",
+        "PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE",
+        "PIPX_USE_EMOJI",
+    ],
+)
+def test_cli_with_args(variable: str) -> None:
+    assert not run_pipx_cli(["environment", "--value", variable])
 
+
+def test_cli_rejects_unknown_value(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as excinfo:
         run_pipx_cli(["environment", "--value", "SSS"])
     assert excinfo.value.code == 2
-    captured = capsys.readouterr()
-    assert "invalid choice" in captured.err
+    assert "invalid choice" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize(
@@ -137,22 +146,30 @@ def test_cli_with_user_environment_value(
     ],
 )
 def test_reported_variables_match_the_documentation(start: str, end: str | None, reported: list[str]) -> None:
-    # The `for env_var in ENVIRONMENT_VARIABLES` loops in `test_cli` and `test_cli_global` read the same list
-    # `environment()` prints from, so a name missing from that list is invisible to them. The documentation table is
-    # the user-facing contract, so it is the oracle here.
+    # The `for env_var in ENVIRONMENT_VARIABLES` loop in `test_cli` reads the same list `environment()` prints from,
+    # so a name missing from that list is invisible to it. The documentation table is the user-facing contract, so it
+    # is the oracle here.
     documented = _documented_variables(start, end)
     assert documented, f"no variables parsed out of the {start.strip()!r} table"
     assert sorted(documented) == sorted(reported)
 
 
+def _documented_variables(start: str, end: str | None) -> list[str]:
+    text = _ENVIRONMENT_VARIABLES_DOC.read_text(encoding="utf-8")
+    section = text[text.index(start) :]
+    if end is not None:
+        section = section[: section.index(end)]
+    return _DOC_TABLE_NAME.findall(section)
+
+
 def test_resolve_user_dir_in_env_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TEST_DIR", "~/test")
-    home = Path.home()
-    env_dir = get_expanded_environ("TEST_DIR")
-    assert "~" not in str(env_dir)
-    assert env_dir == home / "test"
-    env_dir = get_expanded_environ("THIS_SHOULD_NOT_EXIST")
-    assert env_dir is None
+
+    assert get_expanded_environ("TEST_DIR") == Path.home() / "test"
+
+
+def test_resolve_missing_env_path() -> None:
+    assert get_expanded_environ("THIS_SHOULD_NOT_EXIST") is None
 
 
 @pytest.mark.parametrize(
@@ -186,21 +203,3 @@ def test_cli_logs_fallback_home(
     assert not run_pipx_cli(["environment", "--verbose"])
 
     assert "Both a specific pipx home folder" in capsys.readouterr().err
-
-
-@skip_if_windows
-@pytest.mark.usefixtures("pipx_temp_env")
-def test_cli_global(capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["environment", "--global"])
-    captured = capsys.readouterr()
-    assert fnmatch.fnmatch(captured.out, "*PIPX_HOME=*global/pipxhome*")
-    assert fnmatch.fnmatch(captured.out, "*PIPX_BIN_DIR=*global_otherdir/pipxbindir*")
-    assert fnmatch.fnmatch(captured.out, "*PIPX_MAN_DIR=*global_otherdir/pipxmandir*")
-    assert "PIPX_SHARED_LIBS" in captured.out
-    assert fnmatch.fnmatch(captured.out, "*PIPX_LOCAL_VENVS=*global/pipxhome/venvs*")
-    assert fnmatch.fnmatch(captured.out, "*PIPX_LOG_DIR=*global/pipxhome/logs*")
-    assert fnmatch.fnmatch(captured.out, "*PIPX_TRASH_DIR=*global/pipxhome/.trash*")
-    assert fnmatch.fnmatch(captured.out, "*PIPX_VENV_CACHEDIR=*global/pipxhome/.cache*")
-    # Checking just for the sake of completeness
-    for env_var in ENVIRONMENT_VARIABLES:
-        assert env_var in captured.out
