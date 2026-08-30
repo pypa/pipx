@@ -227,19 +227,20 @@ def test_uninject_running_app() -> None:
     assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--include-apps"])
     app = paths.ctx.bin_dir / app_name("black")
 
-    process = subprocess.Popen(
+    # the context manager closes the three pipes; leaking them trips the ResourceWarning that filterwarnings errors on
+    with subprocess.Popen(
         [app, "-"],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-    )
-    try:
-        assert process.poll() is None
-        assert not run_pipx_cli(["uninject", "pycowsay", "black"])
-        assert not app.exists()
-    finally:
-        process.terminate()
-        process.wait(timeout=10)
+    ) as process:
+        try:
+            assert process.poll() is None
+            assert not run_pipx_cli(["uninject", "pycowsay", "black"])
+            assert not app.exists()
+        finally:
+            process.terminate()
+            process.wait(timeout=10)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
