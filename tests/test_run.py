@@ -8,6 +8,9 @@ import shutil
 import subprocess
 import sys
 import textwrap
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from threading import Thread
 from typing import TYPE_CHECKING, Final
 from unittest import mock
 
@@ -15,7 +18,7 @@ import pytest
 from filelock import AcquireReturnProxy, FileLock, Timeout
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping, Sequence
+    from collections.abc import Callable, Iterator, Mapping, Sequence
     from pathlib import Path
 
     from pytest_mock import MockerFixture
@@ -394,18 +397,27 @@ def test_cache_sweep_ignores_tag(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_script_from_internet() -> None:
-    run_pipx_cli_exit(
-        [
-            "run",
-            (
-                "https://gist.githubusercontent.com/cs01/"
-                "fa721a17a326e551ede048c5088f9e0f/raw/"
-                "6bdfbb6e9c1132b1c38fdd2f195d4a24c540c324/pipx-demo.py"
-            ),
-        ],
-        assert_exit=0,
-    )
+def test_run_script_from_url(served_script: str) -> None:
+    run_pipx_cli_exit(["run", served_script], assert_exit=0)
+
+
+@pytest.fixture
+def served_script(tmp_path: Path) -> Iterator[str]:
+    """Serves the script over loopback rather than fetching a third-party gist.
+
+    Pointing the test at somebody else's URL made it fail whenever that host rate-limited the runner, and the leaked
+    socket surfaced as an unraisable ResourceWarning in whichever test the GC happened to interrupt.
+    """
+    (tmp_path / "pipx-demo.py").write_text("print('pipx works!')\n", encoding="utf-8")
+    server = ThreadingHTTPServer(("127.0.0.1", 0), partial(SimpleHTTPRequestHandler, directory=str(tmp_path)))
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{server.server_port}/pipx-demo.py"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 @pytest.mark.parametrize(
