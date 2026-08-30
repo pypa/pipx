@@ -1501,6 +1501,7 @@ def test_passed_python_and_force_flag_warning(capsys: pytest.CaptureFixture[str]
         pytest.param("3.0", "--fetch-missing-python", True, id="3.0-deprecated-flag"),
     ],
 )
+@pytest.mark.usefixtures("mocked_github_api")
 def test_install_fetch_missing_python_invalid(
     capsys: pytest.CaptureFixture[str], python_version: str, fetch_flag: str, expect_deprecation: bool
 ) -> None:
