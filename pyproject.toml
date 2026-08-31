@@ -162,6 +162,7 @@ lint.per-file-ignores."tests/**/*.py" = [
   "FBT",                                  # don't care about booleans as positional arguments in tests
   "implicit-namespace-package",           # no implicit namespace
   "magic-value-comparison",               # magic value used in comparison
+  "pytest-fixture-autouse",               # shared setup fixtures are meant to apply to every test
   "subprocess-without-shell-equals-true", # subprocess call: check for execution of untrusted input
   "too-many-arguments",                   # too many arguments to function definition
 ]
