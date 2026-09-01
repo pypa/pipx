@@ -14,6 +14,15 @@ to this file.
 
 .. towncrier release notes start
 
+`1.17.2 <https://github.com/pypa/pipx/tree/1.17.2>`_ - 2026-09-01
+=================================================================
+
+Bugfixes
+--------
+
+- Fix `KeyError` stderr noise when installing packages in Python3.15. (:issue:`2026`)
+
+
 `1.17.1 <https://github.com/pypa/pipx/tree/1.17.1>`_ - 2026-08-30
 =================================================================
 
