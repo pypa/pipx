@@ -63,7 +63,7 @@ _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _REQUIRES_PYTHON_SCRIPT: Final[str] = (
     "import sys;"
     "from importlib.metadata import distribution;"
-    "print(distribution(sys.argv[1]).metadata['Requires-Python'] or '');"
+    "print(distribution(sys.argv[1]).metadata.get('Requires-Python') or '');"
     "print('.'.join(str(part) for part in sys.version_info[:3]))"
 )
 _BACKEND_METADATA_VERSION: Final[Version] = Version("0.6")
