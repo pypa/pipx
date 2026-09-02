@@ -64,6 +64,22 @@ def _compute_cooldown(raw: str | None) -> tuple[int | None, bool]:
 _COOLDOWN, _COOLDOWN_INVALID = _compute_cooldown(_COOLDOWN_RAW)
 
 
+_MAX_LOGS_RAW = os.environ.get("PIPX_MAX_LOGS")
+
+
+def _compute_max_logs(raw: str | None) -> tuple[int, bool]:
+    if raw is None or not (stripped := raw.strip()):
+        return 10, False
+    try:
+        logs = int(stripped)
+    except ValueError:
+        return 10, True
+    return (logs, False) if logs >= 0 else (10, True)
+
+
+_MAX_LOGS, _MAX_LOGS_INVALID = _compute_max_logs(_MAX_LOGS_RAW)
+
+
 ExitCode = NewType("ExitCode", int)
 # pipx shell exit codes
 EXIT_CODE_OK = ExitCode(0)
