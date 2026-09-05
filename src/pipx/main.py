@@ -38,12 +38,15 @@ from pipx.constants import (
     _FETCH_PYTHON,
     _FETCH_PYTHON_INVALID,
     _FETCH_PYTHON_RAW,
+    _MAX_LOGS_INVALID,
+    _MAX_LOGS_RAW,
     EXIT_CODE_OK,
     EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND,
     MINIMUM_PYTHON_VERSION,
     WINDOWS,
     ExitCode,
     FetchPythonOptions,
+    _compute_max_logs,
 )
 from pipx.emojis import hazard
 from pipx.interpreter import (
@@ -303,6 +306,12 @@ def _validate_fetch_python() -> None:
 def _validate_cooldown() -> None:
     if _COOLDOWN_INVALID:
         msg = f"PIPX_COOLDOWN must be unset or a non-negative integer, got {_COOLDOWN_RAW!r}."
+        raise PipxError(msg)
+
+
+def _validate_max_logs() -> None:
+    if _MAX_LOGS_INVALID:
+        msg = f"PIPX_MAX_LOGS must be unset or a non-negative integer, got {_MAX_LOGS_RAW!r}."
         raise PipxError(msg)
 
 
@@ -1858,7 +1867,10 @@ def delete_oldest_logs(file_list: list[Path], keep_number: int) -> None:
 
 
 def _setup_log_file(pipx_log_dir: Path | None = None) -> Path:
-    max_logs = int(os.getenv("PIPX_MAX_LOGS", "10"))
+    # parse through the shared _compute_max_logs so blank values fall back to the
+    # default here too: raw int() re-parsing crashed on PIPX_MAX_LOGS="" or "   "
+    # even though dispatch validation had already passed them as unset
+    max_logs, _ = _compute_max_logs(os.getenv("PIPX_MAX_LOGS"))
     pipx_log_dir = pipx_log_dir or paths.ctx.logs
     # don't use utils.mkdir, to prevent emission of log message
     pipx_log_dir.mkdir(parents=True, exist_ok=True)
@@ -2035,6 +2047,7 @@ def _dispatch(argv: list[str]) -> ExitCode:
     parsed_pipx_args = parse_pipx_args(parser, argv)
     _validate_fetch_python()
     _validate_cooldown()
+    _validate_max_logs()
     setup(parsed_pipx_args)
     check_args(parsed_pipx_args)
     if not parsed_pipx_args.command:
