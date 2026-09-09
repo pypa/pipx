@@ -8,61 +8,58 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, cast
-from unittest import mock
 
 import pytest
 from docutils.core import publish_string
 
 from helpers import run_pipx_cli
 from pipx import constants, main
+from pipx.util import PipxError
 
 if TYPE_CHECKING:
+    from unittest.mock import MagicMock
+
     from pytest_mock import MockerFixture
 
 _ROOT: Final = Path(__file__).parents[1]
 _MANPAGE_RST: Final = _ROOT / "docs" / "man" / "pipx.1.rst"
 
 
-def test_help_text(capsys: pytest.CaptureFixture[str]) -> None:
-    mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
-    with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
-        assert not run_pipx_cli(["--help"])
-    captured = capsys.readouterr()
-    assert "usage: pipx" in captured.out
+@pytest.fixture
+def exit_early(mocker: MockerFixture) -> MagicMock:
+    # the real sys.exit would end the test run, so raise instead and let each test catch it
+    return mocker.patch.object(sys, "exit", side_effect=ValueError("raised in test to exit early"))
 
 
-def test_help_command_text(capsys: pytest.CaptureFixture[str]) -> None:
-    mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
-    with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
-        assert not run_pipx_cli(["help"])
-    captured = capsys.readouterr()
-    mock_exit.assert_called_with(0)
-    assert "usage: pipx" in captured.out
+@pytest.mark.parametrize(
+    ("argv", "expected"),
+    [
+        pytest.param(["--help"], "usage: pipx", id="help-flag"),
+        pytest.param(["help"], "usage: pipx", id="help-command"),
+        pytest.param(["help", "install"], "usage: pipx install", id="help-for-subcommand"),
+    ],
+)
+def test_help_text(exit_early: MagicMock, capsys: pytest.CaptureFixture[str], argv: list[str], expected: str) -> None:
+    with pytest.raises(ValueError, match="raised in test to exit early"):
+        run_pipx_cli(argv)
+
+    exit_early.assert_called_with(0)
+    assert expected in capsys.readouterr().out
 
 
-def test_help_command_for_subcommand(capsys: pytest.CaptureFixture[str]) -> None:
-    mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
-    with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
-        assert not run_pipx_cli(["help", "install"])
-    captured = capsys.readouterr()
-    mock_exit.assert_called_with(0)
-    assert "usage: pipx install" in captured.out
+def test_version(exit_early: MagicMock, capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(ValueError, match="raised in test to exit early"):
+        run_pipx_cli(["--version"])
 
-
-def test_version(capsys: pytest.CaptureFixture[str]) -> None:
-    mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
-    with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
-        assert not run_pipx_cli(["--version"])
-    captured = capsys.readouterr()
-    mock_exit.assert_called_with(0)
-    assert main.__version__ in captured.out.strip()
+    exit_early.assert_called_with(0)
+    assert main.__version__ in capsys.readouterr().out.strip()
 
 
 @pytest.mark.parametrize(
     ("argv", "executable", "expected"),
     [
-        ("/usr/bin/pipx", "", "pipx"),
-        ("__main__.py", "/usr/bin/python", "/usr/bin/python -m pipx"),
+        pytest.param("/usr/bin/pipx", "", "pipx", id="installed-script"),
+        pytest.param("__main__.py", "/usr/bin/python", "/usr/bin/python -m pipx", id="module-invocation"),
     ],
 )
 def test_prog_name(mocker: MockerFixture, argv: str, executable: str, expected: str) -> None:
@@ -73,7 +70,7 @@ def test_prog_name(mocker: MockerFixture, argv: str, executable: str, expected: 
 
 def test_build_parser_uses_pipx_in_subcommand_help(mocker: MockerFixture, capsys: pytest.CaptureFixture[str]) -> None:
     mocker.patch.object(sys, "argv", ["sphinx-build"])
-    parser = main.build_parser()
+    parser: Final[argparse.ArgumentParser] = main.build_parser()
 
     with pytest.raises(SystemExit) as sys_exit:
         parser.parse_args(["run", "--help"])
@@ -89,11 +86,13 @@ def test_limit_verbosity(flag: str) -> None:
 
 
 def test_all_subcommands_have_func_registered() -> None:
-    parser, _ = main.get_command_parser()
-    subparsers_type = argparse._SubParsersAction  # ruff:ignore[private-member-access]  # argparse has no public subparser API
+    parser: Final[argparse.ArgumentParser] = main.get_command_parser()[0]
+    subparsers_type: Final[type[argparse.Action]] = argparse._SubParsersAction  # ruff:ignore[private-member-access]  # argparse has no public subparser API
     top_actions = parser._actions  # ruff:ignore[private-member-access]  # argparse has no public subparser API
     subparsers_action = next(a for a in top_actions if isinstance(a, subparsers_type))
-    choices = cast("dict[str, argparse.ArgumentParser]", subparsers_action.choices)
+    choices: Final[dict[str, argparse.ArgumentParser]] = cast(
+        "dict[str, argparse.ArgumentParser]", subparsers_action.choices
+    )
     for name, subparser in choices.items():
         assert callable(subparser.get_default("func")), f"{name!r} missing callable func default"
         nested_actions = subparser._actions  # ruff:ignore[private-member-access]  # argparse has no public subparser API
@@ -131,7 +130,7 @@ def test_operation_commands_accept_output_format(argv: list[str]) -> None:
 
 
 def test_manpage_matches_parser(tmp_path: Path) -> None:
-    generated = tmp_path / "pipx.1.rst"
+    generated: Final[Path] = tmp_path / "pipx.1.rst"
     subprocess.run([sys.executable, str(_ROOT / "scripts" / "generate_man.py"), str(generated)], check=True)
     assert _MANPAGE_RST.read_bytes() == generated.read_bytes()
 
@@ -155,7 +154,7 @@ def test_manpage_header(manpage_troff: bytes) -> None:
 
 @pytest.mark.skipif(shutil.which("man") is None, reason="man is not installed")
 def test_manpage_renders(manpage_troff: bytes, tmp_path: Path) -> None:
-    manpage = tmp_path / "pipx.1"
+    manpage: Final[Path] = tmp_path / "pipx.1"
     manpage.write_bytes(manpage_troff)
     result = subprocess.run(
         ["man", str(manpage)],  # ruff:ignore[start-process-with-partial-path]  # man resolves via PATH by design in this render smoke test
@@ -165,13 +164,13 @@ def test_manpage_renders(manpage_troff: bytes, tmp_path: Path) -> None:
         check=False,
         timeout=5,
     )
-    rendered = re.sub(r".\x08", "", result.stdout)
+    rendered: Final[str] = re.sub(r".\x08", "", result.stdout)
     assert (result.returncode, "pipx" in rendered.lower(), "SYNOPSIS" in rendered) == (0, True, True)
 
 
 @pytest.fixture
 def manpage_troff() -> bytes:
-    source = "\n".join(
+    source: Final[str] = "\n".join(
         line for line in _MANPAGE_RST.read_text(encoding="utf-8").splitlines() if line.strip() != ":orphan:"
     )
     return publish_string(source, writer="manpage", settings_overrides={"report_level": 5})
@@ -180,14 +179,12 @@ def manpage_troff() -> bytes:
 @pytest.mark.parametrize(
     "argv",
     [
-        ["inject", "ansible-core", "--force", "ansible"],
-        ["inject", "ansible-core", "ansible", "--force"],
+        pytest.param(["inject", "ansible-core", "--force", "ansible"], id="flag-before-dependency"),
+        pytest.param(["inject", "ansible-core", "ansible", "--force"], id="flag-after-dependency"),
     ],
 )
 def test_inject_accepts_force_before_or_after_dependency(argv: list[str]) -> None:
-    parser, _ = main.get_command_parser()
-
-    args = main.parse_pipx_args(parser, argv)
+    args: Final[argparse.Namespace] = main.parse_pipx_args(main.get_command_parser()[0], argv)
 
     assert args.package == "ansible-core"
     assert args.dependencies == ["ansible"]
@@ -195,11 +192,10 @@ def test_inject_accepts_force_before_or_after_dependency(argv: list[str]) -> Non
 
 
 def test_package_is_path_ignores_existing_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    # Regression for #1778: a directory in CWD with the same name as a
-    # package should not be treated as a path.
     monkeypatch.chdir(tmp_path)
     (tmp_path / "commit-check").mkdir()
-    # Should not raise even though a directory of that name exists in CWD.
+
+    # regression for #1778: a directory sharing the package name is not a path spec, so this must not raise
     main.package_is_path("commit-check")
 
 
@@ -297,8 +293,50 @@ def test_cli_rejects_invalid_env_cooldown(monkeypatch: pytest.MonkeyPatch, capsy
     assert "PIPX_COOLDOWN must be unset or a non-negative integer, got 'garbage'." in capsys.readouterr().err
 
 
+@pytest.mark.usefixtures("exit_early")
 def test_deprecated_fetch_missing_python_silent_under_help(capsys: pytest.CaptureFixture[str]) -> None:
-    mock_exit = mock.Mock(side_effect=ValueError("raised in test to exit early"))
-    with mock.patch.object(sys, "exit", mock_exit), pytest.raises(ValueError, match="raised in test to exit early"):
+    with pytest.raises(ValueError, match="raised in test to exit early"):
         run_pipx_cli(["install", "--fetch-missing-python", "--help"])
+
     assert "--fetch-missing-python is deprecated" not in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("windows", [pytest.param(True, id="windows"), pytest.param(False, id="posix")])
+@pytest.mark.parametrize(
+    ("pip_args", "expected"),
+    [
+        pytest.param("--no-deps", ["--no-deps"], id="bare"),
+        pytest.param("'--no-deps --pre'", ["--no-deps", "--pre"], id="wrapped-value"),
+        pytest.param("--find-links '/opt/foo bar'", ["--find-links", "/opt/foo bar"], id="quoted-path"),
+        pytest.param('--find-links "/opt/foo bar"', ["--find-links", "/opt/foo bar"], id="double-quoted-path"),
+        pytest.param(
+            "'--find-links=/opt/foo bar' '--constraint=/opt/c d.txt'",
+            ["--find-links=/opt/foo bar", "--constraint=/opt/c d.txt"],
+            id="two-quoted-arguments",
+        ),
+    ],
+)
+def test_get_pip_args_quoting(mocker: MockerFixture, windows: bool, pip_args: str, expected: list[str]) -> None:
+    mocker.patch.object(main, "WINDOWS", windows)
+
+    assert main.get_pip_args({"pip_args": pip_args}) == expected
+
+
+def test_get_pip_args_keeps_windows_path_separator(mocker: MockerFixture) -> None:
+    mocker.patch.object(main, "WINDOWS", True)
+
+    assert main.get_pip_args({"pip_args": r"'--no-index --find-links=D:\TEST\DIR'"}) == [
+        "--no-index",
+        r"--find-links=D:\TEST\DIR",
+    ]
+
+
+def test_get_pip_args_honours_posix_escape(mocker: MockerFixture) -> None:
+    mocker.patch.object(main, "WINDOWS", False)
+
+    assert main.get_pip_args({"pip_args": "--find-links /opt/foo\\ bar"}) == ["--find-links", "/opt/foo bar"]
+
+
+def test_get_pip_args_rejects_unclosed_quote() -> None:
+    with pytest.raises(PipxError, match="invalid pip arguments: No closing quotation"):
+        main.get_pip_args({"pip_args": "--find-links '/opt/foo bar"})
