@@ -382,6 +382,41 @@ def test_uv_install_gates_progress_bar_via_env(
 
 
 @pytest.mark.parametrize(
+    ("verbose", "args", "flags"),
+    [
+        # verbose means "do not silence", matching pip; uv's --verbose would print DEBUG logs on every `pipx runpip`
+        pytest.param(True, ["show", "demo"], ["demo"], id="verbose-passes-through"),
+        pytest.param(True, ["install", "-q", "demo"], ["-q", "demo"], id="verbose-keeps-user-quiet"),
+        pytest.param(False, ["show", "-q", "demo"], ["--quiet", "demo"], id="plain-quiet"),
+    ],
+)
+def test_uv_run_raw_pip_verbosity(
+    verbose: bool,
+    args: list[str],
+    flags: list[str],
+    tmp_path: Path,
+    mocker: MockerFixture,
+) -> None:
+    binary: Final[Path] = tmp_path / "uv"
+    mocker.patch("pipx.backends.uv.resolve_uv_binary", return_value=binary)
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(binary, "path"))
+    mocker.patch(
+        "pipx.backends.uv.subprocess.run",
+        return_value=subprocess.CompletedProcess([str(binary), "--version"], 0, stdout="uv 0.11.28", stderr=""),
+    )
+    run_subprocess: Final[MagicMock] = mocker.patch(
+        "pipx.backends.uv.run_subprocess",
+        autospec=True,
+        return_value=subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+    )
+    venv_python: Final[Path] = tmp_path / "bin" / "python"
+
+    UvBackend().run_raw_pip(venv_root=tmp_path, venv_python=venv_python, args=args, verbose=verbose)
+
+    assert run_subprocess.call_args.args[0] == [binary, "pip", args[0], "--python", str(venv_python), *flags]
+
+
+@pytest.mark.parametrize(
     ("pip_args", "expected"),
     [
         pytest.param([], [], id="empty"),
