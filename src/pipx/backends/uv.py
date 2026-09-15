@@ -184,11 +184,13 @@ class UvBackend(Backend):
         # Mirror pip-backend ``pipx runpip TOOL`` (no args -> pip's help).
         cmd: list[str | Path] = [self._binary, "pip", args[0] if args else "--help"]
         cmd += ["--python", str(venv_python)]
+        # As with pip, verbose only means "do not silence": uv's --verbose prints DEBUG logs, and runpip always sets it
         if verbose:
-            cmd.append("--verbose")
-        elif args:
-            cmd.append("--quiet")
-        cmd += _strip_pip_quiet_flags(args[1:])
+            cmd += args[1:]
+        else:
+            if args:
+                cmd.append("--quiet")
+            cmd += _strip_pip_quiet_flags(args[1:])
         return run_subprocess(
             cmd,
             run_dir=str(venv_root),
