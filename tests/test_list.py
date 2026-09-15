@@ -8,7 +8,8 @@ import shutil
 import subprocess
 import sys
 import time
-from typing import TYPE_CHECKING, Final
+from contextlib import contextmanager
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -34,12 +35,11 @@ from pipx.pipx_metadata_file import (
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from pathlib import Path
 
     from pytest_mock import MockerFixture
     from pytest_subprocess import FakeProcess
-
-_COMMAND_TIMEOUT: Final[int] = 30
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -335,43 +335,27 @@ def test_list_injected_apps_without_symlinks(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_list_waits_for_install(tmp_path: Path) -> None:
-    package_dir = _create_package(tmp_path, "slow-app", "from time import sleep\nsleep(1)\n")
-    install = _start_install(package_dir)
-    try:
-        _wait_for_path(paths.ctx.venvs / "slow-app", install)
-        listed = subprocess.run(
-            [sys.executable, "-m", "pipx", "list", "--short"],
-            env=_subprocess_env(),
-            capture_output=True,
-            text=True,
-            timeout=_COMMAND_TIMEOUT,
-            check=False,
-        )
-        install_stdout, install_stderr = install.communicate(timeout=_COMMAND_TIMEOUT)
-    finally:
-        _stop_process(install)
+    release = tmp_path / "release"
+    with _install_paused_under_lock(tmp_path, "slow-app", release) as install:
+        listed = _start_pipx("list", "--short")
+        # the install cannot progress until release, so a list that honours the lock is still running
+        with pytest.raises(subprocess.TimeoutExpired):
+            listed.wait(timeout=1)
+        release.touch()
+        install_stdout, install_stderr = install.communicate()
+        listed_stdout, listed_stderr = listed.communicate()
 
-    assert (install.returncode, listed.returncode, listed.stdout.strip()) == (0, 0, "slow-app 1"), (
+    assert (install.returncode, listed.returncode, listed_stdout.strip()) == (0, 0, "slow-app 1"), (
         install_stdout,
         install_stderr,
-        listed.stdout,
-        listed.stderr,
+        listed_stdout,
+        listed_stderr,
     )
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_does_not_wait_for_other_environment(tmp_path: Path) -> None:
-    entered = tmp_path / "entered"
-    release = tmp_path / "release"
-    pause = (
-        "from pathlib import Path\n"
-        "from time import sleep\n"
-        f"Path({str(entered)!r}).touch()\n"
-        f"while not Path({str(release)!r}).exists():\n    sleep(0.01)\n"
-    )
-    blocked_install = _start_install(_create_package(tmp_path, "blocked-app", pause))
-    try:
-        _wait_for_path(entered, blocked_install)
+    with _install_paused_under_lock(tmp_path, "blocked-app", tmp_path / "release") as blocked_install:
         installed = subprocess.run(
             [
                 sys.executable,
@@ -384,13 +368,9 @@ def test_install_does_not_wait_for_other_environment(tmp_path: Path) -> None:
             env=_subprocess_env(),
             capture_output=True,
             text=True,
-            timeout=_COMMAND_TIMEOUT,
             check=False,
         )
         blocked_returncode = blocked_install.poll()
-    finally:
-        release.touch()
-        _stop_process(blocked_install, terminate=False)
 
     assert (installed.returncode, blocked_returncode, (paths.ctx.venvs / "other-app").is_dir()) == (0, None, True), (
         installed.stdout,
@@ -503,6 +483,32 @@ def test_list_installed_packages_error(tmp_path: Path, fake_process: FakeProcess
     assert "unit test stderr" in rendered
 
 
+@contextmanager
+def _install_paused_under_lock(tmp_path: Path, name: str, release: Path) -> Iterator[subprocess.Popen[str]]:
+    entered = tmp_path / f"{name}-entered"
+    # name resolution builds the project once in a throwaway venv before taking any lock, so pause only in the real one
+    pause = (
+        "import sys\n"
+        "from pathlib import Path\n"
+        "from time import sleep\n"
+        f"if Path(sys.prefix).name == {name!r}:\n"
+        f"    Path({str(entered)!r}).touch()\n"
+        f"    while not Path({str(release)!r}).exists():\n"
+        "        sleep(0.01)\n"
+    )
+    install = _start_pipx("install", str(_create_package(tmp_path, name, pause)), "--skip-maintenance")
+    try:
+        while not entered.exists():
+            if install.poll() is not None:
+                pytest.fail(f"install exited before pausing under its lock: {install.communicate()!r}")
+            time.sleep(0.01)
+        yield install
+    finally:
+        release.touch()
+        if install.returncode is None:
+            install.communicate()
+
+
 def _create_package(tmp_path: Path, name: str, setup_prefix: str = "") -> Path:
     package_dir = tmp_path / name
     package_dir.mkdir()
@@ -517,9 +523,9 @@ def _create_package(tmp_path: Path, name: str, setup_prefix: str = "") -> Path:
     return package_dir
 
 
-def _start_install(package_dir: Path) -> subprocess.Popen[str]:
+def _start_pipx(*args: str) -> subprocess.Popen[str]:
     return subprocess.Popen(
-        [sys.executable, "-m", "pipx", "install", str(package_dir), "--skip-maintenance"],
+        [sys.executable, "-m", "pipx", *args],
         env=_subprocess_env(),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -534,19 +540,3 @@ def _subprocess_env() -> dict[str, str]:
         "PIPX_MAN_DIR": str(paths.ctx.man_dir),
         "PIPX_SHARED_LIBS": str(paths.ctx.shared_libs),
     }
-
-
-def _wait_for_path(path: Path, process: subprocess.Popen[str]) -> None:
-    deadline = time.monotonic() + _COMMAND_TIMEOUT
-    while not path.exists():
-        if process.poll() is not None:
-            pytest.fail(f"install exited before creating {path}: {process.communicate()!r}")
-        if time.monotonic() >= deadline:
-            pytest.fail(f"install did not create {path} within {_COMMAND_TIMEOUT} seconds")
-        time.sleep(0.01)
-
-
-def _stop_process(process: subprocess.Popen[str], *, terminate: bool = True) -> None:
-    if process.poll() is None and terminate:
-        process.terminate()
-    process.communicate(timeout=_COMMAND_TIMEOUT)
