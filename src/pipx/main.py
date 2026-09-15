@@ -449,8 +449,9 @@ def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
         "--pip-args",
         help=(
             "Arbitrary pip arguments to pass directly to pip install/upgrade commands. "
-            "Under the uv backend a small subset is translated (--index-url, --extra-index-url, "
-            "--find-links, --pre); other flags raise an error so behaviour stays explicit."
+            "Under the uv backend a subset is translated (--index-url/-i, --extra-index-url, "
+            "--find-links/-f, --trusted-host, --no-binary, --only-binary, --pre, --upgrade/-U, "
+            "--no-cache-dir); other flags raise an error so behaviour stays explicit."
         ),
     )
     parser.add_argument(
