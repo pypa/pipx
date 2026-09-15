@@ -51,9 +51,10 @@ Pass ``--skip-maintenance`` to keep the bundled pip instead of downloading a sha
 
 .. warning::
 
-    Under the uv backend, pipx translates only a small subset of ``--pip-args``: ``--index-url``, ``--extra-index-url``,
-    ``--find-links``, and ``--pre``. Any other flag raises an error rather than being silently dropped. Use
-    ``--backend pip`` when you need a flag uv cannot translate. See :doc:`use-uv-backend`.
+    Under the uv backend, pipx translates only a subset of ``--pip-args``: ``--index-url`` (``-i``),
+    ``--extra-index-url``, ``--find-links`` (``-f``), ``--trusted-host``, ``--no-binary``, ``--only-binary``,
+    ``--pre``, ``--upgrade`` (``-U``), and ``--no-cache-dir``. Any other flag raises an error rather than being
+    silently dropped. Use ``--backend pip`` when you need a flag uv cannot translate. See :doc:`use-uv-backend`.
 
 **********
  Verify it
