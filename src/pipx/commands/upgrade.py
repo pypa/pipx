@@ -12,7 +12,7 @@ from pipx.commands.outdated import inspect_outdated
 from pipx.commands.transaction import preserve_venv
 from pipx.constants import ExitCode
 from pipx.emojis import sleep
-from pipx.package_specifier import parse_specifier_for_upgrade
+from pipx.package_specifier import parse_specifier_for_upgrade, valid_pypi_name
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.shared_libs import shared_libs
 from pipx.util import PipxError, pipx_wrap
@@ -441,7 +441,15 @@ def _upgrade_package(  # ruff:ignore[too-many-arguments]  # upgrade of one packa
         location=str(venv.root),
         interpreter=venv.pipx_metadata.python_version,
         backend=venv.pipx_metadata.backend,
+        source=_local_source(package_metadata),
     )
+
+
+def _local_source(package_metadata: PackageInfo) -> str | None:
+    """The install source when it is a local path/URL rather than an index name, else None."""
+    if package_metadata.package_or_url is not None and valid_pypi_name(package_metadata.package_or_url) is None:
+        return package_metadata.package_or_url
+    return None
 
 
 def _package_result(venv: Venv, package_name: str, status: UpgradeStatus) -> PackageUpgradeResult:
@@ -456,6 +464,7 @@ def _package_result(venv: Venv, package_name: str, status: UpgradeStatus) -> Pac
         location=str(venv.root),
         interpreter=venv.pipx_metadata.python_version,
         backend=venv.pipx_metadata.backend,
+        source=_local_source(package_metadata),
     )
 
 
@@ -477,6 +486,23 @@ def _package_messages(result: PackageUpgradeResult, *, upgrading_all: bool) -> t
     if result.status is UpgradeStatus.UNCHANGED:
         if upgrading_all:
             return ()
+        if result.source is not None:
+            remedy: Final[str] = (
+                ""
+                if result.injected
+                else (f" To track index releases, reinstall by package name: pipx install --force {result.environment}")
+            )
+            return (
+                OutputMessage(
+                    pipx_wrap(
+                        f"""
+                        {result.package} is unchanged at version {result.previous_version}
+                        because it is installed from the local source {result.source};
+                        no package index was checked.{remedy}
+                        """
+                    )
+                ),
+            )
         return (
             OutputMessage(
                 pipx_wrap(
@@ -517,6 +543,7 @@ class PackageUpgradeResult:
     location: str
     interpreter: str | None
     backend: str
+    source: str | None = None
 
 
 @dataclass(frozen=True)

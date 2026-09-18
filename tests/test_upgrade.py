@@ -85,6 +85,7 @@ def test_upgrade_json(capsys: pytest.CaptureFixture[str]) -> None:
                         "version": "0.0.0.2",
                         "interpreter": metadata.python_version,
                         "backend": metadata.backend,
+                        "source": None,
                     }
                 ],
                 "skipped": [],
@@ -240,7 +241,32 @@ def test_upgrade_editable(capsys: pytest.CaptureFixture[str], empty_project: Pat
     assert not run_pipx_cli(["install", "--editable", empty_project_path_as_string, "--force"])
     assert not run_pipx_cli(["upgrade", "--editable", "empty_project"])
     captured = capsys.readouterr()
-    assert "empty-project is already at latest version" in captured.out
+    upgrade_out = " ".join(captured.out.split())  # pipx_wrap reflows messages across lines
+    assert "empty-project is unchanged at version" in upgrade_out
+    assert "installed from the local source" in upgrade_out
+    assert "no package index was checked" in upgrade_out
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_local_path_does_not_claim_latest(
+    capsys: pytest.CaptureFixture[str],
+    empty_project: Path,
+) -> None:
+    """Regression test for https://github.com/pypa/pipx/issues/2040
+
+    Upgrading a local-path install must not claim the package is at the
+    *latest* version: no index was ever consulted.
+    """
+    assert not run_pipx_cli(["install", str(empty_project.resolve())])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["upgrade", "empty_project"])
+    captured = capsys.readouterr()
+    upgrade_out = " ".join(captured.out.split())  # pipx_wrap reflows messages across lines
+    assert "is already at latest version" not in upgrade_out
+    assert "empty-project is unchanged at version" in upgrade_out
+    assert "no package index was checked" in upgrade_out
+    assert "pipx install --force empty-project" in upgrade_out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
