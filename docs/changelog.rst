@@ -14,6 +14,17 @@ to this file.
 
 .. towncrier release notes start
 
+`1.17.4 <https://github.com/pypa/pipx/tree/1.17.4>`_ - 2026-09-18
+=================================================================
+
+Bugfixes
+--------
+
+- `pipx upgrade` of a package installed from a local path, wheel, or VCS URL no longer reports "already at latest
+  version". It now says the package is unchanged because it is installed from a local source and that no package index was
+  checked, and suggests reinstalling by package name to track index releases. (:issue:`2040`)
+
+
 `1.17.3 <https://github.com/pypa/pipx/tree/1.17.3>`_ - 2026-09-16
 =================================================================
 
