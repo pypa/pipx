@@ -6,6 +6,11 @@ pipx returns ``0`` on success and ``1`` on failure. A command that raises an une
 an argument-parsing problem also exits non-zero. The named codes below come from ``pipx.constants``; each maps to one of
 those two process exit values.
 
+``reinstall-all`` exits with ``1`` if any environment could not be reinstalled,
+including when its selected Python interpreter belongs to that environment.
+With ``--output json``, failed environments appear in ``errors`` and only
+successfully reinstalled environments appear in ``data.environments``.
+
 .. list-table::
     :header-rows: 1
     :widths: 12 48 40

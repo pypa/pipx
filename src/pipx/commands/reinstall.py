@@ -289,9 +289,11 @@ def reinstall_all(  # ruff:ignore[too-many-arguments]  # reinstall-all forwards 
             )
             messages.append(OutputMessage(str(error_raised), stream=OutputStream.STDERR, level=OutputLevel.ERROR))
         else:
-            first_reinstall = False
-            reinstalled.append(_ReinstalledEnvironment(venv_dir.name))
+            errors.extend(outcome.errors)
             messages.extend(outcome.messages)
+            if not outcome.errors:
+                first_reinstall = False
+                reinstalled.extend(outcome.data.environments)
     if not reinstalled:
         messages.append(OutputMessage(f"No packages reinstalled after running 'pipx reinstall-all' {sleep}"))
     return OperationResult(

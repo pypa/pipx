@@ -276,6 +276,27 @@ def test_reinstall_json_reports_a_missing_environment(capsys: pytest.CaptureFixt
     assert payload["status"] == "error"
 
 
+@pytest.mark.parametrize("partial", [False, True])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_all_json_reports_returned_errors(capsys: pytest.CaptureFixture[str], partial: bool) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    if partial:
+        assert not run_pipx_cli(["install", "pycowsay", "--suffix=-other"])
+    python = util.get_venv_paths(paths.ctx.venvs / "pycowsay")[1]
+    capsys.readouterr()
+
+    assert run_pipx_cli(["reinstall-all", "--python", str(python), "--output", "json"]) == 1
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == ("partial" if partial else "error")
+    assert result["data"]["environments"] == ([{"environment": "pycowsay-other"}] if partial else [])
+    assert len(result["errors"]) == 1
+    assert result["errors"][0]["environment"] == "pycowsay"
+    assert result["errors"][0]["code"] == "environment_reinstall_failed"
+    assert "the python executable would be deleted" in result["errors"][0]["message"]
+    assert python.is_file()
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_all_json_reports_no_environments(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["reinstall-all", "--python", sys.executable, "--output", "json"])
