@@ -14,6 +14,15 @@ to this file.
 
 .. towncrier release notes start
 
+`1.17.5 <https://github.com/pypa/pipx/tree/1.17.5>`_ - 2026-09-20
+=================================================================
+
+Bugfixes
+--------
+
+- Report failed environments when running `pipx reinstall-all`. (:issue:`2042`)
+
+
 `1.17.4 <https://github.com/pypa/pipx/tree/1.17.4>`_ - 2026-09-18
 =================================================================
 
