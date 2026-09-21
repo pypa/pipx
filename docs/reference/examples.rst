@@ -107,7 +107,7 @@ The two forms can be combined and repeated:
 
 .. code-block:: bash
 
-    pipx inject ptpython package-1 -r extra-1.txt -r extra-2.txt package-2
+    pipx inject ptpython package-1 package-2 -r extra-1.txt -r extra-2.txt
 
 See :doc:`Inject packages <../how-to/inject-packages>` for the requirements-file format and the ``--include-apps``
 option.
