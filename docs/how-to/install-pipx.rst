@@ -188,11 +188,11 @@ pipx accepts any source pip supports, including git repositories. Using ``black`
     $ pipx install git+https://github.com/psf/black.git@ce14fa8b497bae2b50ec48b3bd7022573a59cdb1
     $ pipx install https://github.com/psf/black/archive/18.9b0.zip
 
-Use pip's ``egg`` syntax to install extras:
+Use a direct URL requirement to install extras:
 
 .. code-block:: console
 
-    $ pipx install "git+https://github.com/psf/black.git#egg=black[jupyter]"
+    $ pipx install "black[jupyter] @ git+https://github.com/psf/black.git"
 
 To test a package from an open pull request, find the fork owner and branch on the PR page, then build the git URL. For
 PR #794 from user ``contributor`` on branch ``fix-something``:
