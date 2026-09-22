@@ -6,7 +6,7 @@ import sys
 import sysconfig
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, Protocol
 from unittest import mock
 
 import pytest
@@ -24,6 +24,10 @@ PACKAGE_CACHE_DIR_NAME: Final[str] = (
 )
 
 PIPX_METADATA_LEGACY_VERSIONS = [None, "0.1", "0.2", "0.3"]
+
+
+class MakePylock(Protocol):
+    def __call__(self, package: str, version: str, group: str | None = None) -> Path: ...
 
 
 class _UnknownMetadataVersionError(Exception):

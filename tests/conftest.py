@@ -22,7 +22,7 @@ from venv import EnvBuilder
 
 import pytest
 
-from helpers import PACKAGE_CACHE_DIR_NAME, WIN, app_name, run_pipx_cli
+from helpers import PACKAGE_CACHE_DIR_NAME, WIN, MakePylock, app_name, run_pipx_cli
 from pipx import commands, interpreter, paths, shared_libs, standalone_python, venv
 from pipx.backends import get_backend
 from pipx.backends import pip as _pip_backend_module
@@ -53,20 +53,21 @@ def root() -> Path:
 
 
 @pytest.fixture
-def make_pylock(root: Path, tmp_path: Path) -> Callable[[str, str], Path]:
-    def create(package: str, version: str) -> Path:
+def make_pylock(root: Path, tmp_path: Path) -> MakePylock:
+    def create(package: str, version: str, group: str | None = None) -> Path:
         wheel = next(
             (root / _PIPX_TESTS_DIR / "package_cache" / PACKAGE_CACHE_DIR_NAME).glob(f"{package}-{version}-*.whl")
         )
-        lock_file = tmp_path / "pylock.test.toml"
-        lock_file.write_text(
+        groups = "" if group is None else f'dependency-groups = ["{group}"]\ndefault-groups = ["{group}"]\n'
+        marker = "" if group is None else f'marker = "\\"{group}\\" in dependency_groups"\n'
+        (lock_file := tmp_path / "pylock.test.toml").write_text(
             f"""lock-version = "1.0"
 created-by = "pipx tests"
-
+{groups}
 [[packages]]
 name = "{package}"
 version = "{version}"
-
+{marker}
 [[packages.wheels]]
 name = "{wheel.name}"
 url = "{wheel.as_uri()}"

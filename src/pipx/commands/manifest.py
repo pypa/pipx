@@ -367,6 +367,10 @@ def _generate_locks(manifest: _Manifest, nab: str) -> list[str]:
                     str(manifest.path),
                     "--groups",
                     tool.environment,
+                    # nab marks every group member with `"<group>" in dependency_groups`, and an installer selects
+                    # no groups unless the lock names one as its default, so without this the lock installs nothing
+                    "--project-default-group",
+                    tool.environment,
                     "--output",
                     str(generated_lock),
                 ],

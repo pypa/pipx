@@ -63,9 +63,9 @@ generate the declared locks:
     $ pipx install nab
     $ pipx manifest lock ./pipx.toml
 
-``pipx manifest lock`` passes the manifest to nab once per locked dependency group. Existing locks seed their
-replacements, and pipx overwrites the declared files only after every resolution succeeds. Entries without ``lock``
-stay unlocked.
+``pipx manifest lock`` passes the manifest to nab once per locked dependency group, and records that group as the
+lock's default so installers select it. Existing locks seed their replacements, and pipx overwrites the declared files
+only after every resolution succeeds. Entries without ``lock`` stay unlocked.
 
 *******************
  Apply the manifest
