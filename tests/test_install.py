@@ -17,7 +17,7 @@ from unittest import mock
 
 import pytest
 
-from helpers import PACKAGE_CACHE_DIR_NAME, app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
+from helpers import PACKAGE_CACHE_DIR_NAME, MakePylock, app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
 from package_info import PKG
 from pipx import main, paths, shared_libs
 from pipx.backends import Backend
@@ -332,12 +332,15 @@ def test_install_records_expected_app() -> None:
     assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.expected_apps == ["pycowsay"]
 
 
+# the grouped row mirrors a `pipx manifest lock` output: nab gates every package on the tool's group and the lock
+# names that group as its default
+@pytest.mark.parametrize("group", [pytest.param(None, id="flat"), pytest.param("pycowsay", id="grouped")])
 @pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_install_from_pylock(make_pylock: Callable[[str, str], Path], backend: str) -> None:
+def test_install_from_pylock(make_pylock: MakePylock, backend: str, group: str | None) -> None:
     if backend == "uv" and shutil.which("uv") is None:
         pytest.skip("uv is not installed")
-    lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2")
+    lock_file: Final[Path] = make_pylock("pycowsay", "0.0.0.2", group)
 
     assert not run_pipx_cli(["install", "--backend", backend, "--lock", str(lock_file), "pycowsay>=0"])
 
