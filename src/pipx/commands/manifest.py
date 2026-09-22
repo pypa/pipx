@@ -349,6 +349,57 @@ def _is_pylock_name(name: str) -> bool:
     )
 
 
+def _toml_string(value: str) -> str:
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def _toml_dump_value(value: _TomlValue) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int | float) and not isinstance(value, bool):
+        return str(value)
+    if isinstance(value, str):
+        return _toml_string(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(_toml_dump_value(item) for item in value) + "]"
+    if isinstance(value, dict):
+        # inline tables are enough for nab settings observed in manifests
+        inner = ", ".join(f"{key} = {_toml_dump_value(item)}" for key, item in value.items())
+        return "{ " + inner + " }"
+    msg = f"Cannot serialize {type(value).__name__} into synthesized nab lock input."
+    raise PipxError(msg)
+
+
+def _write_synthesized_lock_project(destination: Path, manifest_path: Path, package: str) -> None:
+    """Write a group-free project nab can lock into an unconditional pylock.
+
+    Manifest tools live in dependency-groups. Since nab 0.0.9, locking with
+    ``--groups`` marks every package with a membership marker. ``manifest sync``
+    installs the lock without selecting a group, so those markers evaluate false
+    and nothing is installed. Putting the tool requirement in ``dependencies``
+    instead yields a flat lock both the pip and uv backends can install as-is.
+    Carry ``requires-python`` and ``[tool.nab]`` so resolution stays equivalent.
+    """
+    with manifest_path.open("rb") as file:
+        data = cast("dict[str, _TomlValue]", tomllib.load(file))
+    project = cast("dict[str, _TomlValue]", data["project"])
+    lines = [
+        "[project]",
+        f"name = {_toml_string(cast('str', project['name']))}",
+        f"version = {_toml_string(cast('str', project['version']))}",
+        f"dependencies = [{_toml_string(package)}]",
+    ]
+    if (requires_python := project.get("requires-python")) is not None:
+        lines.append(f"requires-python = {_toml_string(cast('str', requires_python))}")
+    tool_table = cast("dict[str, _TomlValue]", data.get("tool", {}))
+    if isinstance(nab_data := tool_table.get("nab"), dict) and nab_data:
+        lines.extend(("", "[tool.nab]"))
+        for key, value in nab_data.items():
+            lines.append(f"{key} = {_toml_dump_value(value)}")
+    lines.append("")
+    destination.write_text("\n".join(lines), encoding="utf-8")
+
+
 def _generate_locks(manifest: _Manifest, nab: str) -> list[str]:
     with TemporaryDirectory(prefix=".pipx-lock-", dir=manifest.path.parent) as temporary_dir:
         generated: list[tuple[Path, Path]] = []
@@ -360,13 +411,13 @@ def _generate_locks(manifest: _Manifest, nab: str) -> list[str]:
             generated_lock = tool_dir / tool.lock_file.name
             if tool.lock_file.is_file():
                 copy2(tool.lock_file, generated_lock)
+            synthesized = tool_dir / "pyproject.toml"
+            _write_synthesized_lock_project(synthesized, manifest.path, tool.package)
             if subprocess.run(
                 [
                     nab,
                     "lock",
-                    str(manifest.path),
-                    "--groups",
-                    tool.environment,
+                    str(synthesized),
                     "--output",
                     str(generated_lock),
                 ],

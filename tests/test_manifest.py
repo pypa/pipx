@@ -420,10 +420,11 @@ offline = false
 
     def run_nab(command: list[str], *, check: bool, cwd: Path) -> subprocess.CompletedProcess[str]:
         del check, cwd
-        generated_lock = Path(command[6])
+        assert "--groups" not in command
+        output_index = command.index("--output") + 1
+        generated_lock = Path(command[output_index])
         observed.append((
             Path(command[2]).read_text(encoding="utf-8"),
-            command[4],
             generated_lock.read_text(encoding="utf-8"),
         ))
         generated_lock.write_text('lock-version = "1.0"\ncreated-by = "nab"\n', encoding="utf-8")
@@ -434,15 +435,22 @@ offline = false
 
     assert not run_pipx_cli(["manifest", "lock", str(manifest)])
 
+    synthesized, prior_lock = observed[0]
     assert (
         run.call_count,
-        observed,
+        prior_lock,
         lock_file.read_text(encoding="utf-8"),
         "locked" in capsys.readouterr().out,
+        'dependencies = ["black>=22,<23"]' in synthesized,
+        "dependency-groups" not in synthesized,
+        "offline = false" in synthesized,
     ) == (
         1,
-        [(manifest.read_text(encoding="utf-8"), "black", "old\n")],
+        "old\n",
         'lock-version = "1.0"\ncreated-by = "nab"\n',
+        True,
+        True,
+        True,
         True,
     )
 
@@ -475,7 +483,7 @@ def test_lock_manifest_preserves_existing_lock_after_failure(
         if mode == "os-error":
             msg = "unavailable"
             raise OSError(msg)
-        Path(command[6]).unlink()
+        Path(command[command.index("--output") + 1]).unlink()
         return subprocess.CompletedProcess(command, 0)
 
     mocker.patch.object(manifest_module, "which", autospec=True, return_value="/usr/bin/nab")
@@ -521,7 +529,7 @@ offline = false
 
     def run_nab(command: list[str], *, check: bool, cwd: Path) -> subprocess.CompletedProcess[str]:
         del check, cwd
-        Path(command[6]).write_text("new\n", encoding="utf-8")
+        Path(command[command.index("--output") + 1]).write_text("new\n", encoding="utf-8")
         return subprocess.CompletedProcess(command, 0)
 
     mocker.patch.object(manifest_module, "which", autospec=True, return_value="/usr/bin/nab")
