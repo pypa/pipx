@@ -14,6 +14,23 @@ to this file.
 
 .. towncrier release notes start
 
+`1.17.6 <https://github.com/pypa/pipx/tree/1.17.6>`_ - 2026-09-22
+=================================================================
+
+Bugfixes
+--------
+
+- Record each tool's dependency group as its lock's default so `pipx manifest sync` installs what `pipx manifest lock`
+  wrote. Run `pipx manifest lock` again to fix existing locks. (:issue:`2049`)
+
+
+Improved Documentation
+----------------------
+
+- Fix the argument order in the combined inject command example. (:issue:`2044`)
+- Use direct URL requirements for the Git install example with extras. (:issue:`2045`)
+
+
 `1.17.5 <https://github.com/pypa/pipx/tree/1.17.5>`_ - 2026-09-20
 =================================================================
 
