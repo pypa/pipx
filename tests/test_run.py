@@ -27,6 +27,7 @@ import pipx.main
 from helpers import PACKAGE_CACHE_DIR_NAME, run_pipx_cli
 from package_info import PKG
 from pipx import paths, shared_libs
+from pipx.commands.run import run_package
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.util import PipxError
 
@@ -1201,3 +1202,63 @@ def test_http_get_request_rejects_oversized_script(mocker: MockerFixture) -> Non
 
     with pytest.raises(PipxError, match="larger than"):
         run_module._http_get_request("https://example.invalid/big.py")  # ruff:ignore[private-member-access]  # private helper under test, no public API
+
+
+@pytest.mark.parametrize(
+    ("first", "second"),
+    [
+        pytest.param((["black", "isort"], [], []), (["blackisort"], [], []), id="requirements"),
+        pytest.param(([], ["-q", "--pre"], []), ([], ["-q--pre"], []), id="pip-short-options"),
+        pytest.param(
+            ([], ["--index-url", "https://example.invalid"], []),
+            ([], ["--index-urlhttps://example.invalid"], []),
+            id="pip-long-options",
+        ),
+        pytest.param(([], [], ["--upgrade", "--copies"]), ([], [], ["--upgrade--copies"]), id="venv-options"),
+        pytest.param(
+            ([], ["--system-site-packages"], []),
+            ([], [], ["--system-site-packages"]),
+            id="pip-venv-boundary",
+        ),
+        pytest.param(([], [""], []), ([], [], []), id="empty-argument"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_cache_keeps_argument_boundaries(
+    cache_lock_path: Callable[[list[str], list[str], list[str]], Path],
+    first: tuple[list[str], list[str], list[str]],
+    second: tuple[list[str], list[str], list[str]],
+) -> None:
+    assert cache_lock_path(*first) != cache_lock_path(*second)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_cache_key_is_stable(cache_lock_path: Callable[[list[str], list[str], list[str]], Path]) -> None:
+    assert cache_lock_path(["black", "isort"], ["-q"], []) == cache_lock_path(["black", "isort"], ["-q"], [])
+
+
+@pytest.fixture
+def cache_lock_path(mocker: MockerFixture) -> Callable[[list[str], list[str], list[str]], Path]:
+    # Stop at the filesystem boundary before installing conflicting argument sets.
+    lock: Final = mocker.patch("pipx.venv.FileLock", autospec=True)
+    lock.return_value.__enter__.side_effect = OSError("cache lock unavailable")
+
+    def capture(dependencies: list[str], pip_args: list[str], venv_args: list[str]) -> Path:
+        with pytest.raises(OSError, match="cache lock unavailable"):
+            run_package(
+                "pycowsay",
+                "pycowsay",
+                dependencies,
+                [],
+                "python3",
+                pip_args=pip_args,
+                venv_args=venv_args,
+                pypackages=False,
+                verbose=False,
+                use_cache=True,
+                python_args=[],
+                no_path_check=True,
+            )
+        return lock.call_args.args[0]
+
+    return capture
