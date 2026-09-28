@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import hashlib
+import json
 import logging
 import urllib.parse
 import urllib.request
@@ -548,23 +549,11 @@ def _get_temporary_venv_path(  # ruff:ignore[too-many-arguments]  # all inputs f
     *,
     cooldown_days: int | None,
 ) -> Path:
-    """Hash venv-affecting inputs to a deterministic cache path.
-
-    ``backend`` is part of the key so pip- and uv-backed temp venvs for the
-    same package coexist instead of stomping on each other.
-
-    Every part is NUL-terminated so the digest cannot blur a boundary: running
-    the parts together let ``--with black --with isort`` and ``--with
-    blackisort`` (likewise ``["-q", "--pre"]`` and ``["-q--pre"]``) hash to one
-    directory, so either invocation reused the other's venv. A NUL never occurs
-    in an argument, so this encoding stays unambiguous.
-    """
-    digest = hashlib.sha256()
-    for part in (*requirements, python, *pip_args, *venv_args, backend, f"{cooldown_days=}"):
-        digest.update(part.encode())
-        digest.update(b"\0")
-    venv_folder_name = digest.hexdigest()[:15]  # 15 chosen arbitrarily
-    return Path(paths.ctx.venv_cache) / venv_folder_name
+    # Preserve list and field boundaries so different invocations cannot reuse the same digest input.
+    digest: Final = hashlib.sha256(
+        json.dumps([requirements, python, pip_args, venv_args, backend, cooldown_days]).encode()
+    )
+    return Path(paths.ctx.venv_cache) / digest.hexdigest()[:15]
 
 
 def _is_temporary_venv_expired(venv_dir: Path) -> bool:
