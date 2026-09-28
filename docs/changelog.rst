@@ -14,6 +14,16 @@ to this file.
 
 .. towncrier release notes start
 
+`1.17.7 <https://github.com/pypa/pipx/tree/1.17.7>`_ - 2026-09-28
+=================================================================
+
+Bugfixes
+--------
+
+- Prevent `pipx run` from sharing cached environments across different requirement lists or argument boundaries. This
+  changes cache keys; run `pipx cache purge` to remove old entries. (:issue:`2053`)
+
+
 `1.17.6 <https://github.com/pypa/pipx/tree/1.17.6>`_ - 2026-09-22
 =================================================================
 
