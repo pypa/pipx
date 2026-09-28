@@ -552,14 +552,17 @@ def _get_temporary_venv_path(  # ruff:ignore[too-many-arguments]  # all inputs f
 
     ``backend`` is part of the key so pip- and uv-backed temp venvs for the
     same package coexist instead of stomping on each other.
+
+    Every part is NUL-terminated so the digest cannot blur a boundary: running
+    the parts together let ``--with black --with isort`` and ``--with
+    blackisort`` (likewise ``["-q", "--pre"]`` and ``["-q--pre"]``) hash to one
+    directory, so either invocation reused the other's venv. A NUL never occurs
+    in an argument, so this encoding stays unambiguous.
     """
     digest = hashlib.sha256()
-    digest.update("".join(requirements).encode())
-    digest.update(python.encode())
-    digest.update("".join(pip_args).encode())
-    digest.update("".join(venv_args).encode())
-    digest.update(backend.encode())
-    digest.update(f"{cooldown_days=}".encode())
+    for part in (*requirements, python, *pip_args, *venv_args, backend, f"{cooldown_days=}"):
+        digest.update(part.encode())
+        digest.update(b"\0")
     venv_folder_name = digest.hexdigest()[:15]  # 15 chosen arbitrarily
     return Path(paths.ctx.venv_cache) / venv_folder_name
 

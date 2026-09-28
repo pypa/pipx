@@ -1201,3 +1201,28 @@ def test_http_get_request_rejects_oversized_script(mocker: MockerFixture) -> Non
 
     with pytest.raises(PipxError, match="larger than"):
         run_module._http_get_request("https://example.invalid/big.py")  # ruff:ignore[private-member-access]  # private helper under test, no public API
+
+
+def _cache_dir_name(*requirements: str, pip_args: list[str] | None = None) -> Path:
+    run_module = importlib.import_module("pipx.commands.run")
+    return run_module._get_temporary_venv_path(  # ruff:ignore[private-member-access]  # private helper under test, no public API
+        list(requirements), "python3", pip_args or [], [], "pip", cooldown_days=None
+    )
+
+
+def test_temporary_venv_path_keeps_requirement_boundaries() -> None:
+    # ``--with black --with isort`` and ``--with blackisort`` are different venvs, so they must not share a cache dir
+    assert _cache_dir_name("cowsay", "black", "isort") != _cache_dir_name("cowsay", "blackisort")
+
+
+@pytest.mark.parametrize(
+    ("first_pip_args", "second_pip_args"),
+    [
+        pytest.param(["-q", "--pre"], ["-q--pre"], id="joined-short-option"),
+        pytest.param(
+            ["--index-url", "https://example.invalid"], ["--index-urlhttps://example.invalid"], id="joined-long-option"
+        ),
+    ],
+)
+def test_temporary_venv_path_keeps_pip_arg_boundaries(first_pip_args: list[str], second_pip_args: list[str]) -> None:
+    assert _cache_dir_name("cowsay", pip_args=first_pip_args) != _cache_dir_name("cowsay", pip_args=second_pip_args)
