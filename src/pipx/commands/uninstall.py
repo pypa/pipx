@@ -242,6 +242,7 @@ def _get_package_completion_paths(
 __all__ = [
     "UninstallData",
     "_get_package_bin_dir_app_paths",
+    "_get_package_completion_paths",
     "_get_package_man_paths",
     "_get_venv_package_infos",
     "_get_venv_resource_paths",

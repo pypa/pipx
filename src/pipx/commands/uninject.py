@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
+from pipx import paths
 from pipx.colors import bold
 from pipx.commands.common import add_suffix
 from pipx.commands.inject import (
@@ -15,9 +16,11 @@ from pipx.commands.inject import (
 )
 from pipx.commands.uninstall import (
     _get_package_bin_dir_app_paths,
+    _get_package_completion_paths,
     _get_package_man_paths,
 )
 from pipx.constants import (
+    COMPLETION_SECTIONS,
     EXIT_CODE_OK,
     EXIT_CODE_UNINJECT_ERROR,
     MAN_SECTIONS,
@@ -217,10 +220,18 @@ def get_include_resource_paths(package_name: str, venv: Venv, local_bin_dir: Pat
             venv.man_path / man_section,
             local_man_dir / man_section,
         )
+    completion_paths = set()
+    for completion_section in COMPLETION_SECTIONS:
+        completion_paths |= _get_package_completion_paths(
+            venv.package_metadata[package_name],
+            venv.man_path.parent / completion_section,
+            paths.ctx.completion_dir / completion_section,
+        )
 
     pkg_metadata = venv.package_metadata[package_name]
     all_apps = {add_suffix(app, pkg_metadata.suffix) for app in pkg_metadata.apps_to_expose}
     all_man_pages = set(pkg_metadata.man_pages_to_expose)
+    all_completions = set(pkg_metadata.completions_to_expose)
 
     need_to_remove = set()
     for bin_dir_app_path in bin_dir_app_paths:
@@ -230,6 +241,10 @@ def get_include_resource_paths(package_name: str, venv: Venv, local_bin_dir: Pat
         path = Path(man_path.parent.name) / man_path.name
         if str(path) in all_man_pages:
             need_to_remove.add(man_path)
+    for completion_path in completion_paths:
+        relative = f"{completion_path.parent.parent.name}/{completion_path.parent.name}/{completion_path.name}"
+        if relative in all_completions:
+            need_to_remove.add(completion_path)
 
     return need_to_remove
 

@@ -284,6 +284,23 @@ def test_uninject_man_page() -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_completion_scripts(root: Path, empty_project: Path) -> None:
+    # Regression: uninject must remove the injected package's completion
+    # scripts, not only its app and man page symlinks.
+    completion_project = str(root / "testdata/test_package_specifier/local_completion")
+    completion_paths = [
+        paths.ctx.completion_dir / "bash-completion/completions" / "local-completion",
+        paths.ctx.completion_dir / "zsh/site-functions" / "_local-completion",
+        paths.ctx.completion_dir / "fish/vendor_completions.d" / "local-completion.fish",
+    ]
+    assert not run_pipx_cli(["install", str(empty_project)])
+    assert not run_pipx_cli(["inject", "empty-project", completion_project, "--include-apps"])
+    assert all(file_or_symlink(path) for path in completion_paths)
+    assert not run_pipx_cli(["uninject", "empty-project", "local-completion"])
+    assert not any(file_or_symlink(path) for path in completion_paths)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_uninject_removes_dependency_app_symlinks(
     capsys: pytest.CaptureFixture[str],
     caplog: pytest.LogCaptureFixture,
