@@ -14,6 +14,15 @@ to this file.
 
 .. towncrier release notes start
 
+`1.17.8 <https://github.com/pypa/pipx/tree/1.17.8>`_ - 2026-09-29
+=================================================================
+
+Bugfixes
+--------
+
+- Remove leftover shell completion scripts when running `pipx uninject`. (:issue:`2055`)
+
+
 `1.17.7 <https://github.com/pypa/pipx/tree/1.17.7>`_ - 2026-09-28
 =================================================================
 
