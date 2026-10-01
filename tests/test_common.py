@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 import pytest
 
@@ -15,6 +15,7 @@ from pipx.commands.common import (
     expose_resources_globally,
     get_exposed_paths_for_package,
 )
+from pipx.constants import MACOS
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
@@ -67,6 +68,27 @@ def test_expose_app_scripts_ignores_pythonpath(tmp_path: Path) -> None:
         text=True,
     )
     assert result.stdout == "ok\n"
+
+
+@skip_if_windows
+@pytest.mark.parametrize(
+    ("overflow", "separator", "flag"),
+    [
+        pytest.param(0, b"\n", b" -E", id="flag-fits"),
+        pytest.param(1, b"\n", b"", id="flag-one-byte-over"),
+        pytest.param(0, b"", b" -E", id="flag-fits-without-newline"),
+    ],
+)
+def test_expose_app_scripts_keep_shebang_within_kernel_limit(
+    tmp_path: Path, overflow: int, separator: bytes, flag: bytes
+) -> None:
+    max_shebang_length: Final[int] = 512 if MACOS else 127
+    shebang = b"#!/" + b"x" * (max_shebang_length + overflow - len(b"#!/python -E") - len(separator)) + b"python"
+    (app_path := tmp_path / "demo").write_bytes(shebang + separator)
+
+    expose_resources_globally("app", tmp_path / "bin", [app_path], force=False)
+
+    assert app_path.read_bytes() == shebang + flag + separator
 
 
 @skip_if_windows
