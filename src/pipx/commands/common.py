@@ -33,8 +33,8 @@ if TYPE_CHECKING:
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _IGNORE_ENVIRONMENT_FLAG: Final[bytes] = b" -E"
-# The kernel reads a shebang into a fixed buffer and truncates or rejects anything longer, so a line within this
-# bound runs and one past it does not. Installers refuse to emit a longer shebang for the same reason.
+# macOS refuses a shebang line longer than 512 bytes (newline included) and Linux before 5.1 truncates it at 127, which
+# can cut ` -E` to ` -` and make python run stdin; distlib caps the shebangs it writes at the same bounds
 _MAX_SHEBANG_LENGTH: Final[int] = 512 if MACOS else 127
 
 
@@ -164,8 +164,6 @@ def _add_ignore_environment_to_python_shebang(path: Path) -> None:
         return
     if b"python" not in interpreter.lower() or b" " in interpreter or b"\t" in interpreter:
         return
-    # Appending the flag is what would push the line past the kernel's buffer, so the script keeps the shebang
-    # the installer wrote and stays runnable.
     if len(first_line) + len(separator) + len(_IGNORE_ENVIRONMENT_FLAG) > _MAX_SHEBANG_LENGTH:
         return
 
