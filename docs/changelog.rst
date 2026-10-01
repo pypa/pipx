@@ -14,6 +14,16 @@ to this file.
 
 .. towncrier release notes start
 
+`1.17.9 <https://github.com/pypa/pipx/tree/1.17.9>`_ - 2026-10-01
+=================================================================
+
+Bugfixes
+--------
+
+- Stop adding ` -E` to an app script's shebang when the longer line would exceed the kernel's limit, which made the script
+  fail on macOS with `Exec format error`. (:issue:`2058`)
+
+
 `1.17.8 <https://github.com/pypa/pipx/tree/1.17.8>`_ - 2026-09-29
 =================================================================
 
