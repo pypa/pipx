@@ -69,6 +69,39 @@ def test_expose_app_scripts_ignores_pythonpath(tmp_path: Path) -> None:
     assert result.stdout == "ok\n"
 
 
+# The kernel reads `#!` into a fixed buffer, so a shebang line longer than this never runs; installers honour the
+# same bound when writing one (distlib's `max_shebang_length`).
+_KERNEL_MAX_SHEBANG_LENGTH = 512 if sys.platform == "darwin" else 127
+
+
+@skip_if_windows
+@pytest.mark.parametrize(
+    "room",
+    [
+        pytest.param(len(b" -E"), id="exactly-room-for-the-flag"),
+        pytest.param(0, id="no-room-left"),
+    ],
+)
+def test_expose_app_scripts_respect_kernel_shebang_length(tmp_path: Path, room: int) -> None:
+    venv_resource_path = tmp_path / "venv_bin"
+    venv_resource_path.mkdir()
+    local_resource_dir = tmp_path / "bin"
+    local_resource_dir.mkdir()
+
+    # A venv path long enough that the shebang distlib could legitimately write leaves no room for ` -E`.
+    padding = _KERNEL_MAX_SHEBANG_LENGTH - len(b"#!\n") - room - len(b"/") - len(b"python")
+    app_path = venv_resource_path / "demo"
+    app_path.write_bytes(b"#!/" + b"x" * padding + b"python\nprint('ok')\n")
+    app_path.chmod(0o755)
+    assert len(app_path.read_bytes().split(b"\n")[0]) + 1 == _KERNEL_MAX_SHEBANG_LENGTH - room
+
+    expose_resources_globally("app", local_resource_dir, [app_path], force=False)
+
+    shebang = app_path.read_bytes().split(b"\n")[0]
+    assert shebang == b"#!/" + b"x" * padding + b"python" + (b" -E" if room else b"")
+    assert len(shebang) + 1 <= _KERNEL_MAX_SHEBANG_LENGTH
+
+
 @skip_if_windows
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_remove_stale_venv_resources_keeps_files_pipx_does_not_own(capsys: pytest.CaptureFixture[str]) -> None:

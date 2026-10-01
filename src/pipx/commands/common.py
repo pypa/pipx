@@ -19,7 +19,7 @@ from packaging.utils import canonicalize_name
 
 from pipx import paths
 from pipx.colors import bold, red
-from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, WINDOWS
+from pipx.constants import COMPLETION_SECTIONS, MACOS, MAN_SECTIONS, WINDOWS
 from pipx.emojis import hazard, stars
 from pipx.package_specifier import parse_specifier_for_install, valid_pypi_name
 from pipx.result import OutputMessage, OutputStream
@@ -32,6 +32,10 @@ if TYPE_CHECKING:
     from pipx.pipx_metadata_file import PackageInfo
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
+_IGNORE_ENVIRONMENT_FLAG: Final[bytes] = b" -E"
+# The kernel reads a shebang into a fixed buffer and truncates or rejects anything longer, so a line within this
+# bound runs and one past it does not. Installers refuse to emit a longer shebang for the same reason.
+_MAX_SHEBANG_LENGTH: Final[int] = 512 if MACOS else 127
 
 
 class VenvProblems:
@@ -156,12 +160,16 @@ def _add_ignore_environment_to_python_shebang(path: Path) -> None:
         return
 
     interpreter = first_line[2:]
-    if interpreter.endswith(b" -E"):
+    if interpreter.endswith(_IGNORE_ENVIRONMENT_FLAG):
         return
     if b"python" not in interpreter.lower() or b" " in interpreter or b"\t" in interpreter:
         return
+    # Appending the flag is what would push the line past the kernel's buffer, so the script keeps the shebang
+    # the installer wrote and stays runnable.
+    if len(first_line) + len(separator) + len(_IGNORE_ENVIRONMENT_FLAG) > _MAX_SHEBANG_LENGTH:
+        return
 
-    path.write_bytes(first_line + b" -E" + separator + rest)
+    path.write_bytes(first_line + _IGNORE_ENVIRONMENT_FLAG + separator + rest)
 
 
 def _copy_package_resource(dest_dir: Path, path: Path, *, force: bool, suffix: str = "") -> Path | None:
