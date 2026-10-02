@@ -62,6 +62,19 @@ def test_upgrade_inline_script(inline_script: Path) -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_unchanged_inline_script_offers_no_index_reinstall(
+    inline_script: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert not run_pipx_cli(["install", str(inline_script)])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["upgrade", "hello"])
+
+    upgrade_out: Final[str] = " ".join(capsys.readouterr().out.split())
+    assert ("installed from the local source" in upgrade_out, "pipx install --force" in upgrade_out) == (True, False)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_json(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()

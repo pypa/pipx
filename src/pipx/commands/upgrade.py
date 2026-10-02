@@ -14,6 +14,7 @@ from pipx.constants import ExitCode
 from pipx.emojis import sleep
 from pipx.package_specifier import parse_specifier_for_upgrade, valid_pypi_name
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
+from pipx.script import is_script_spec
 from pipx.shared_libs import shared_libs
 from pipx.util import PipxError, pipx_wrap
 from pipx.venv import Venv, VenvContainer
@@ -489,7 +490,7 @@ def _package_messages(result: PackageUpgradeResult, *, upgrading_all: bool) -> t
         if result.source is not None:
             remedy: Final[str] = (
                 ""
-                if result.injected
+                if result.injected or is_script_spec(result.source)
                 else (f" To track index releases, reinstall by package name: pipx install --force {result.environment}")
             )
             return (

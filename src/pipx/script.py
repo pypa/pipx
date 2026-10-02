@@ -95,7 +95,7 @@ def read_script_metadata(content: str | Path) -> ScriptMetadata | None:
 
 
 def script_name_from_spec(package_spec: str, expected_apps: tuple[str, ...]) -> str | None:
-    if not _is_script_spec(package_spec):
+    if not is_script_spec(package_spec):
         return None
     if len(expected_apps) > 1:
         msg = "A script can provide one --app name."
@@ -121,12 +121,18 @@ def installable_script(package_name: str, package_or_url: str, expected_apps: tu
         yield str(_write_wheel(Path(directory), package_name, script))
 
 
-def _is_script_spec(package_spec: str) -> bool:
-    path: Final[Path] = Path(package_spec).expanduser()
-    if path.is_file():
-        return path.suffix.lower() == ".py" or (not path.suffix and _has_inline_script_metadata(path))
+def is_script_spec(package_spec: str) -> bool:
+    if local_script(package_spec) is not None:
+        return True
     parsed: Final[urllib.parse.SplitResult] = urllib.parse.urlsplit(package_spec)
     return parsed.scheme in {"http", "https"} and parsed.path.lower().endswith(".py")
+
+
+def local_script(package_spec: str) -> Path | None:
+    path: Final[Path] = Path(package_spec).expanduser()
+    if path.is_file() and (path.suffix.lower() == ".py" or (not path.suffix and _has_inline_script_metadata(path))):
+        return path.resolve()
+    return None
 
 
 def _has_inline_script_metadata(path: Path) -> bool:
@@ -252,6 +258,8 @@ def _digest(data: bytes) -> str:
 __all__ = [
     "ScriptMetadata",
     "installable_script",
+    "is_script_spec",
+    "local_script",
     "read_script_metadata",
     "script_name_from_spec",
 ]
