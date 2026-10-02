@@ -1,4 +1,4 @@
-requires = ["tox>=4.45"]
+requires = ["tox>=4.64.7"]
 
 env_list = [
   "3.15",

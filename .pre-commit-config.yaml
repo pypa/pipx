@@ -26,12 +26,12 @@ repos:
       - id: mdformat
         args: ["--wrap", "120"]
         additional_dependencies:
-          - mdformat-mkdocs
-          - mdformat-gfm
-          - mdformat-gfm-alerts
-          - mdformat-footnote
-          - mdformat-config
-          - mdformat-front-matters
+          - mdformat-mkdocs>=5.3
+          - mdformat-gfm>=1
+          - mdformat-gfm-alerts>=2.1
+          - mdformat-footnote>=0.1.3
+          - mdformat-config>=0.2.1
+          - mdformat-front-matters>=2
         exclude: ^(docs/changelog\.md|testdata)
   - repo: https://github.com/tox-dev/pyproject-fmt
     rev: v2.29.4
@@ -51,5 +51,5 @@ repos:
     hooks:
       - id: codespell
         additional_dependencies:
-          - tomli
+          - tomli>=2.4.1
         exclude: ^testdata

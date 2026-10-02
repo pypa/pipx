@@ -1,9 +1,9 @@
 [build-system]
 build-backend = "hatchling.build"
 requires = [
-  "docutils>=0.21",
-  "hatch-vcs>=0.4",
-  "hatchling>=1.27",
+  "docutils>=0.23",
+  "hatch-vcs>=0.5",
+  "hatchling>=1.32.4",
 ]
 
 [project]
@@ -38,16 +38,16 @@ dynamic = [
   "version",
 ]
 dependencies = [
-  "argcomplete>=1.9.4",
-  "colorama>=0.4.4; sys_platform=='win32'",
-  "filelock>=3.16",
-  "packaging>=26",
-  "platformdirs>=4.6",
-  "tomli; python_version<'3.11'",
-  "userpath>=1.6,!=1.9",
+  "argcomplete>=3.7.2",
+  "colorama>=0.4.6; sys_platform == 'win32'",
+  "filelock>=4.0.9",
+  "packaging>=26.3",
+  "platformdirs>=4.12.2",
+  "tomli>=2.4.1; python_version < '3.11'",
+  "userpath!=1.9,>=1.9.2",
 ]
 optional-dependencies.uv = [
-  "uv>=0.9.17",
+  "uv>=0.12.22",
 ]
 urls."Issue Tracker" = "https://github.com/pypa/pipx/issues"
 urls."Release Notes" = "https://pipx.pypa.io/latest/changelog.html"
@@ -65,52 +65,52 @@ dev = [
   { include-group = "type" },
 ]
 test = [
-  "docutils>=0.21",
-  "pypiserver[cache,passlib]>=2.3.2",
-  "pytest>=8",
-  "pytest-cov>=4",
-  "pytest-mock>=3.11.1",
-  "pytest-subprocess>=1.5.4",
-  "pytest-xdist>=3.5",
-  "setuptools>=68; python_version>='3.12'",
-  "watchdog>=4",
+  "docutils>=0.23",
+  "pypiserver[cache,passlib]>=2.4.2",
+  "pytest>=9.1.1",
+  "pytest-cov>=7.1",
+  "pytest-mock>=3.16",
+  "pytest-subprocess>=1.6",
+  "pytest-xdist>=3.8",
+  "setuptools>=84; python_version >= '3.12'",
+  "watchdog>=6",
 ]
 type = [
-  "gitpython>=3.1",
-  "hatchling>=1.27",
-  "tomli>=2",
-  "ty>=0.0.59",
-  "types-docutils>=0.21",
+  "gitpython>=3.2",
+  "hatchling>=1.32.4",
+  "tomli>=2.4.1",
+  "ty>=0.0.84",
+  "types-docutils>=0.23.0.20260923",
   { include-group = "docs" },
   { include-group = "test" },
 ]
 docs = [
-  "furo>=2024.8.6",
-  "sphinx>=8.1",
+  "furo>=2025.12.19",
+  "sphinx>=8.1.3",
   "sphinx-argparse-cli>=1.19",         # generate the CLI reference from pipx's argparse parser so it cannot drift
-  "sphinx-autodoc-typehints>=2.5",
-  "sphinx-codeautolink>=0.15",         # link the names in code blocks to the reference
+  "sphinx-autodoc-typehints>=3.0.1",
+  "sphinx-codeautolink>=0.19",         # link the names in code blocks to the reference
   "sphinx-copybutton>=0.5.2",
-  "sphinx-design>=0.6",                # the card grid on the landing page
-  "sphinx-issues>=5",                  # the :issue:/:pr: roles used in the changelog and notes
+  "sphinx-design>=0.6.1",                # the card grid on the landing page
+  "sphinx-issues>=6",                  # the :issue:/:pr: roles used in the changelog and notes
   "sphinx-last-updated-by-git>=0.3.8",
-  "sphinx-llm>=0.4.1,!=1.1",
-  "sphinx-notfound-page>=1",           # a versioned 404 page
-  "sphinx-reredirects>=0.1.5",         # keep old MkDocs URLs alive after the move to Sphinx
-  "sphinx-sitemap>=2.6",               # emit sitemap.xml for crawlers
-  "sphinxcontrib-mermaid>=1",          # the .. mermaid:: directive used across the explanation diagrams
+  "sphinx-llm!=1.1,>=1",
+  "sphinx-notfound-page>=1.1",           # a versioned 404 page
+  "sphinx-reredirects>=0.1.6",         # keep old MkDocs URLs alive after the move to Sphinx
+  "sphinx-sitemap>=2.9",               # emit sitemap.xml for crawlers
+  "sphinxcontrib-mermaid>=2.1.1",          # the .. mermaid:: directive used across the explanation diagrams
   "sphinxcontrib-towncrier>=0.5.0a0",  # render unreleased news fragments as a draft changelog section
-  "sphinxext-opengraph>=0.9",          # OpenGraph tags for link previews
-  "towncrier>=23.6",
+  "sphinxext-opengraph>=0.13",          # OpenGraph tags for link previews
+  "towncrier>=26.9",
 ]
 lint = [
-  "pre-commit>=3",
+  "pre-commit>=4.6.2",
 ]
 man = [
-  "docutils>=0.21",
+  "docutils>=0.23",
 ]
 zipapp = [
-  "shiv>=1.0.6",
+  "shiv>=1.0.8",
 ]
 
 [tool.hatch]
