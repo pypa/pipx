@@ -17,6 +17,7 @@ from helpers import (
 )
 from package_info import PKG
 from pipx import paths, venv_inspect
+from pipx.util import get_venv_paths
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -278,6 +279,38 @@ def test_uninstall_suffix_legacy_venv(metadata_version: str) -> None:
 
     assert not run_pipx_cli(["uninstall", f"{name}{suffix}"])
     assert not file_or_symlink(executable_path)
+
+
+@skip_if_windows
+@pytest.mark.parametrize(
+    "command",
+    [pytest.param(["uninstall", "pycowsay"], id="uninstall"), pytest.param(["uninstall-all"], id="uninstall-all")],
+)
+@pytest.mark.parametrize(
+    ("interpreter", "reason"),
+    [
+        pytest.param(b"#!/bin/sh\necho not json\n", "cannot parse", id="unparsable-output"),
+        pytest.param(b"#!/bin/sh\nexit 1\n", "exited with code 1", id="failing"),
+        pytest.param(b"", "Unable to run", id="not-executable"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninstall_removes_venv_it_cannot_inspect(
+    capsys: pytest.CaptureFixture[str], command: list[str], interpreter: bytes, reason: str
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    mock_legacy_venv("pycowsay")
+    remove_venv_interpreter("pycowsay")
+    (python := get_venv_paths(paths.ctx.venvs / "pycowsay")[1]).write_bytes(interpreter)
+    python.chmod(0o755)
+    capsys.readouterr()
+
+    assert (
+        run_pipx_cli(command),
+        reason in capsys.readouterr().err,
+        (paths.ctx.venvs / "pycowsay").exists(),
+        file_or_symlink(paths.ctx.bin_dir / app_name("pycowsay")),
+    ) == (0, True, False, False)
 
 
 @pytest.mark.parametrize("metadata_version", PIPX_METADATA_LEGACY_VERSIONS)

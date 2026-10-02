@@ -46,21 +46,11 @@ def uninstall_all(
     messages: list[OutputMessage] = []
     packages: list[_UninstalledPackage] = []
     for venv_dir in venv_container.iter_venv_dirs():
-        try:
-            with venv_container.venv_lock(venv_dir):
-                result = uninstall(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
-            errors.extend(result.errors)
-            messages.extend(result.messages)
-            packages.extend(result.data.packages)
-        except PipxError as e:  # ruff: ignore[try-except-in-loop]
-            errors.append(
-                OperationError(
-                    code="uninstall_failed",
-                    message=f"Failed to uninstall {venv_dir.name} due to corruption: {e}",
-                    environment=venv_dir.name,
-                )
-            )
-            messages.append(OutputMessage(f"{hazard}  Failed to uninstall {venv_dir.name} due to corruption"))
+        with venv_container.venv_lock(venv_dir):
+            result = uninstall(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
+        errors.extend(result.errors)
+        messages.extend(result.messages)
+        packages.extend(result.data.packages)
 
     return OperationResult(
         command=("uninstall-all",),
@@ -162,7 +152,12 @@ def _get_venv_package_infos(venv: Venv) -> tuple[PackageInfo, ...] | None:
         return tuple(venv.package_metadata.values())
     if not venv.python_path.is_file():
         return None
-    venv_metadata = venv.get_venv_metadata_for_package(venv.root.name, set())
+    try:
+        venv_metadata: Final[VenvMetadata] = venv.get_venv_metadata_for_package(venv.root.name, set())
+    except PipxError as error:
+        # an environment that cannot report its packages is still removable, from the links that point into it
+        _LOGGER.warning("%s  Unable to inspect %s, removing it anyway: %s", hazard, venv.name, error)
+        return None
     return (_venv_metadata_to_package_info(venv_metadata, venv.root.name),)
 
 
