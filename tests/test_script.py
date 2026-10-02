@@ -97,16 +97,18 @@ def test_script_name_from_spec(spec: str, expected_apps: tuple[str, ...], name: 
     assert script_name_from_spec(spec, expected_apps) == name
 
 
-def test_script_name_from_spec_path(tmp_path: Path) -> None:
-    script: Final[Path] = tmp_path / "My_App.py"
-    script.touch()
-
-    assert script_name_from_spec(str(script), ()) == "my-app"
-
-
-def test_script_name_from_spec_path_without_suffix(tmp_path: Path) -> None:
-    script: Final[Path] = tmp_path / "My_App"
-    script.write_text("# /// script\n# dependencies = []\n# ///\n", encoding="utf-8")
+@pytest.mark.parametrize("filename", [pytest.param("My_App.py", id="suffix"), pytest.param("My_App", id="no-suffix")])
+@pytest.mark.parametrize(
+    "directory",
+    [
+        pytest.param("scripts", id="plain"),
+        pytest.param("scripts#123", id="hash"),
+        pytest.param("Project #123", id="space-and-hash"),
+    ],
+)
+def test_script_name_from_spec_path(tmp_path: Path, directory: str, filename: str) -> None:
+    (script_dir := tmp_path / directory).mkdir()
+    (script := script_dir / filename).write_text("# /// script\n# dependencies = []\n# ///\n", encoding="utf-8")
 
     assert script_name_from_spec(str(script), ()) == "my-app"
 
