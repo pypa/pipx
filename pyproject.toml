@@ -65,7 +65,7 @@ dev = [
   { include-group = "type" },
 ]
 test = [
-  "docutils>=0.23",
+  "docutils>=0.21.2",
   "pypiserver[cache,passlib]>=2.4.2",
   "pytest>=9.1.1",
   "pytest-cov>=7.1",
@@ -80,7 +80,7 @@ type = [
   "hatchling>=1.32.4",
   "tomli>=2.4.1",
   "ty>=0.0.84",
-  "types-docutils>=0.23.0.20260923",
+  "types-docutils>=0.22.3.20260724",
   { include-group = "docs" },
   { include-group = "test" },
 ]
@@ -107,7 +107,7 @@ lint = [
   "pre-commit>=4.6.2",
 ]
 man = [
-  "docutils>=0.23",
+  "docutils>=0.21.2",
 ]
 zipapp = [
   "shiv>=1.0.8",
