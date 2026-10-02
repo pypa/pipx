@@ -29,7 +29,7 @@ from pipx.constants import (
 from pipx.emojis import hazard, sleep, stars
 from pipx.pipx_metadata_file import PackageInfo
 from pipx.result import OperationData, OperationError, OperationResult, OutputMessage
-from pipx.util import rmdir, safe_unlink
+from pipx.util import PipxError, rmdir, safe_unlink
 from pipx.venv import Venv, VenvContainer
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
@@ -152,7 +152,12 @@ def _get_venv_package_infos(venv: Venv) -> tuple[PackageInfo, ...] | None:
         return tuple(venv.package_metadata.values())
     if not venv.python_path.is_file():
         return None
-    venv_metadata = venv.get_venv_metadata_for_package(venv.root.name, set())
+    try:
+        venv_metadata: Final[VenvMetadata] = venv.get_venv_metadata_for_package(venv.root.name, set())
+    except PipxError as error:
+        # an environment that cannot report its packages is still removable, from the links that point into it
+        _LOGGER.warning("%s  Unable to inspect %s, removing it anyway: %s", hazard, venv.name, error)
+        return None
     return (_venv_metadata_to_package_info(venv_metadata, venv.root.name),)
 
 

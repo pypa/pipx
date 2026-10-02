@@ -9,7 +9,7 @@ import sys
 import textwrap
 from importlib import metadata
 from pathlib import Path, PurePosixPath
-from typing import TYPE_CHECKING, Final, NamedTuple
+from typing import TYPE_CHECKING, Final, NamedTuple, TypedDict
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 
@@ -26,6 +26,7 @@ from pipx.util import PipxError, run_subprocess
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Mapping
+    from subprocess import CompletedProcess
 
 logger = logging.getLogger(__name__)
 
@@ -461,18 +462,34 @@ def fetch_info_in_venv(venv_python_path: Path) -> tuple[list[str], dict[str, str
         )
         """
     )
-    venv_info = json.loads(
-        run_subprocess(
+    try:
+        process: Final[CompletedProcess[str]] = run_subprocess(
             [venv_python_path, "-c", command_str],
             capture_stderr=False,
             log_cmd_str="<fetch_info_in_venv commands>",
-        ).stdout
-    )
+        )
+    except OSError as error:
+        msg = f"Unable to run {venv_python_path}: {error}"
+        raise PipxError(msg, wrap_message=False) from error
+    if process.returncode:
+        msg = f"{venv_python_path} exited with code {process.returncode} while pipx inspected its environment."
+        raise PipxError(msg, wrap_message=False)
+    try:
+        venv_info: Final[_VenvInfo] = json.loads(process.stdout)
+    except json.JSONDecodeError as error:
+        msg = f"{venv_python_path} printed output pipx cannot parse while inspecting its environment."
+        raise PipxError(msg, wrap_message=False) from error
     return (
         venv_info["sys_path"],
         venv_info["environment"],
         f"Python {venv_info['python_version']}",
     )
+
+
+class _VenvInfo(TypedDict):
+    sys_path: list[str]
+    environment: dict[str, str]
+    python_version: str
 
 
 def inspect_venv(  # ruff:ignore[too-many-locals]  # aggregates apps, man pages, and completions for root and deps into one VenvMetadata
