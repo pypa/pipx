@@ -48,6 +48,13 @@ Install from a PEP 723 script or a lock file:
     pipx install ./script.py
     pipx install --lock pylock.toml .
 
+For a local script, the filename without its extension supplies the command name. Pass ``--app`` to choose a different
+name:
+
+.. code-block:: bash
+
+    pipx install --app greet ./script.py
+
 Pass arguments through to pip, or install globally for all users:
 
 .. code-block:: bash

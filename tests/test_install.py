@@ -1306,10 +1306,14 @@ def test_install_local_archive(
 
 
 @pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.parametrize("directory", ["scripts", "scripts#123", "Project #123"])
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_install_inline_script(inline_script: Path, backend: str) -> None:
+def test_install_inline_script(inline_script: Path, backend: str, directory: str) -> None:
     if backend == "uv" and shutil.which("uv") is None:
         pytest.skip("uv is not installed")
+    script_dir: Final[Path] = inline_script.parent / directory
+    script_dir.mkdir()
+    inline_script = inline_script.rename(script_dir / inline_script.name)
     assert not run_pipx_cli(["install", "--backend", backend, str(inline_script)])
 
     app: Final[Path] = paths.ctx.bin_dir / app_name("hello")

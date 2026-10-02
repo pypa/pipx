@@ -138,7 +138,10 @@ def _has_inline_script_metadata(path: Path) -> bool:
 
 
 def _script_app(package_spec: str, expected_apps: tuple[str, ...]) -> str:
-    return expected_apps[0] if expected_apps else Path(urllib.parse.urlsplit(package_spec).path).stem
+    if expected_apps:
+        return expected_apps[0]
+    path: Final[Path] = Path(package_spec).expanduser()
+    return path.stem if path.is_file() else Path(urllib.parse.urlsplit(package_spec).path).stem
 
 
 def _read_script(package_or_url: str, expected_apps: tuple[str, ...]) -> _Script:
