@@ -461,13 +461,16 @@ def fetch_info_in_venv(venv_python_path: Path) -> tuple[list[str], dict[str, str
         )
         """
     )
-    venv_info = json.loads(
-        run_subprocess(
-            [venv_python_path, "-c", command_str],
-            capture_stderr=False,
-            log_cmd_str="<fetch_info_in_venv commands>",
-        ).stdout
+    res = run_subprocess(
+        [venv_python_path, "-c", command_str],
+        capture_stderr=False,
+        log_cmd_str="<fetch_info_in_venv commands>",
     )
+    try:
+        venv_info = json.loads(res.stdout)
+    except json.JSONDecodeError as err:
+        msg = f"Failed to inspect venv. Python executable '{venv_python_path}' output invalid JSON:\n{res.stdout}"
+        raise PipxError(msg) from err
     return (
         venv_info["sys_path"],
         venv_info["environment"],

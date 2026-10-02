@@ -29,7 +29,7 @@ from pipx.constants import (
 from pipx.emojis import hazard, sleep, stars
 from pipx.pipx_metadata_file import PackageInfo
 from pipx.result import OperationData, OperationError, OperationResult, OutputMessage
-from pipx.util import rmdir, safe_unlink
+from pipx.util import PipxError, rmdir, safe_unlink
 from pipx.venv import Venv, VenvContainer
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
@@ -46,11 +46,21 @@ def uninstall_all(
     messages: list[OutputMessage] = []
     packages: list[_UninstalledPackage] = []
     for venv_dir in venv_container.iter_venv_dirs():
-        with venv_container.venv_lock(venv_dir):
-            result = uninstall(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
-        errors.extend(result.errors)
-        messages.extend(result.messages)
-        packages.extend(result.data.packages)
+        try:
+            with venv_container.venv_lock(venv_dir):
+                result = uninstall(venv_dir, local_bin_dir, local_man_dir, verbose=verbose)
+            errors.extend(result.errors)
+            messages.extend(result.messages)
+            packages.extend(result.data.packages)
+        except PipxError as e:  # ruff: ignore[try-except-in-loop]
+            errors.append(
+                OperationError(
+                    code="uninstall_failed",
+                    message=f"Failed to uninstall {venv_dir.name} due to corruption: {e}",
+                    environment=venv_dir.name,
+                )
+            )
+            messages.append(OutputMessage(f"{hazard}  Failed to uninstall {venv_dir.name} due to corruption"))
 
     return OperationResult(
         command=("uninstall-all",),
