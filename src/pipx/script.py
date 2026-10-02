@@ -21,7 +21,7 @@ from packaging.utils import canonicalize_name
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -108,7 +108,9 @@ def script_name_from_spec(package_spec: str, expected_apps: tuple[str, ...]) -> 
 
 
 @contextmanager
-def installable_script(package_name: str, package_or_url: str, expected_apps: tuple[str, ...]) -> Iterator[str]:
+def installable_script(
+    package_name: str, package_or_url: str, expected_apps: tuple[str, ...]
+) -> Generator[str, None, None]:
     if (resolved_name := script_name_from_spec(package_or_url, expected_apps)) is None:
         yield package_or_url
         return

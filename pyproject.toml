@@ -39,11 +39,11 @@ dynamic = [
 ]
 dependencies = [
   "argcomplete>=3.7.2",
-  "colorama>=0.4.6; sys_platform == 'win32'",
+  "colorama>=0.4.6; sys_platform=='win32'",
   "filelock>=4.0.9",
   "packaging>=26.3",
   "platformdirs>=4.12.2",
-  "tomli>=2.4.1; python_version < '3.11'",
+  "tomli>=2.4.1; python_version<'3.11'",
   "userpath!=1.9,>=1.9.2",
 ]
 optional-dependencies.uv = [
@@ -72,7 +72,7 @@ test = [
   "pytest-mock>=3.16",
   "pytest-subprocess>=1.6",
   "pytest-xdist>=3.8",
-  "setuptools>=84; python_version >= '3.12'",
+  "setuptools>=84; python_version>='3.12'",
   "watchdog>=6",
 ]
 type = [
@@ -91,16 +91,16 @@ docs = [
   "sphinx-autodoc-typehints>=3.0.1",
   "sphinx-codeautolink>=0.19",         # link the names in code blocks to the reference
   "sphinx-copybutton>=0.5.2",
-  "sphinx-design>=0.6.1",                # the card grid on the landing page
+  "sphinx-design>=0.6.1",              # the card grid on the landing page
   "sphinx-issues>=6",                  # the :issue:/:pr: roles used in the changelog and notes
   "sphinx-last-updated-by-git>=0.3.8",
   "sphinx-llm!=1.1,>=1",
-  "sphinx-notfound-page>=1.1",           # a versioned 404 page
+  "sphinx-notfound-page>=1.1",         # a versioned 404 page
   "sphinx-reredirects>=0.1.6",         # keep old MkDocs URLs alive after the move to Sphinx
   "sphinx-sitemap>=2.9",               # emit sitemap.xml for crawlers
-  "sphinxcontrib-mermaid>=2.1.1",          # the .. mermaid:: directive used across the explanation diagrams
+  "sphinxcontrib-mermaid>=2.1.1",      # the .. mermaid:: directive used across the explanation diagrams
   "sphinxcontrib-towncrier>=0.5.0a0",  # render unreleased news fragments as a draft changelog section
-  "sphinxext-opengraph>=0.13",          # OpenGraph tags for link previews
+  "sphinxext-opengraph>=0.13",         # OpenGraph tags for link previews
   "towncrier>=26.9",
 ]
 lint = [

@@ -35,7 +35,7 @@ from pipx.pipx_metadata_file import (
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
     from pathlib import Path
 
     from pytest_mock import MockerFixture
@@ -484,7 +484,9 @@ def test_list_installed_packages_error(tmp_path: Path, fake_process: FakeProcess
 
 
 @contextmanager
-def _install_paused_under_lock(tmp_path: Path, name: str, release: Path) -> Iterator[subprocess.Popen[str]]:
+def _install_paused_under_lock(
+    tmp_path: Path, name: str, release: Path
+) -> Generator[subprocess.Popen[str], None, None]:
     entered = tmp_path / f"{name}-entered"
     # name resolution builds the project once in a throwaway venv before taking any lock, so pause only in the real one
     pause = (

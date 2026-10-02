@@ -27,7 +27,7 @@ from pipx.util import PipxError
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator, Sequence
+    from collections.abc import Callable, Generator, Sequence
     from unittest.mock import MagicMock
 
     from _pytest.capture import CaptureResult
@@ -223,7 +223,7 @@ def _local_git_spec(project: Path) -> str:
 
 
 @contextmanager
-def _served_archive_spec(project: Path) -> Iterator[str]:
+def _served_archive_spec(project: Path) -> Generator[str, None, None]:
     archive = Path(
         shutil.make_archive(str(project.parent / "empty-project-0.1.0"), "zip", project.parent, project.name)
     )
