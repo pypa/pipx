@@ -14,6 +14,20 @@ to this file.
 
 .. towncrier release notes start
 
+`1.17.10 <https://github.com/pypa/pipx/tree/1.17.10>`_ - 2026-10-02
+===================================================================
+
+Bugfixes
+--------
+
+- Remove an environment that has no pipx metadata and an interpreter that no longer runs, instead of crashing
+  `pipx uninstall` and `pipx uninstall-all`. (:issue:`2059`)
+- Derive local script command names from the filename when parent directories contain `#`. A script installed by an
+  earlier release under its directory's name no longer upgrades; uninstall it and install it again. (:issue:`2060`)
+- Install a local PEP 723 script from its file when the path reads as a PyPI name (`pipx install bare.py`), contains `[`,
+  or starts with a quoted `~`, and stop the upgrade hint from suggesting a PyPI reinstall for a script. (:issue:`2062`)
+
+
 `1.17.9 <https://github.com/pypa/pipx/tree/1.17.9>`_ - 2026-10-01
 =================================================================
 
