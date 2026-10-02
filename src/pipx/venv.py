@@ -40,7 +40,7 @@ from pipx.package_specifier import (
 )
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 from pipx.requires_python import IncompatiblePythonError, rejected_constraint, unsatisfied_constraint
-from pipx.script import installable_script
+from pipx.script import installable_script, local_script
 from pipx.shared_libs import (
     DISABLE_SHARED_LIBS_AUTO_UPGRADE,
     shared_libs,
@@ -399,6 +399,9 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         pinned: bool = False,
         cooldown_days: int | None = None,
     ) -> None:
+        # a script path can also read as a PyPI name (bare.py) or as extras (dir[1]/app.py), so pin it to the file
+        if (script := local_script(package_or_url)) is not None:
+            package_or_url = str(script)
         # package_name in package specifier can mismatch URL due to user error
         package_or_url = fix_package_name(package_or_url, package_name)
 

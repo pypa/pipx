@@ -1323,6 +1323,40 @@ def test_install_inline_script(inline_script: Path, backend: str) -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_install_inline_script_by_bare_relative_name(inline_script: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(inline_script.parent)
+
+    assert (
+        run_pipx_cli(["install", inline_script.name]),
+        PipxMetadata(paths.ctx.venvs / "hello").main_package.package_or_url,
+    ) == (0, str(inline_script.resolve()))
+
+
+@pytest.mark.parametrize(
+    "directory",
+    [pytest.param("[1]", id="whole-name"), pytest.param("a[x]b", id="inside-name")],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_inline_script_from_bracketed_directory(inline_script: Path, directory: str) -> None:
+    (script_dir := inline_script.parent / directory).mkdir()
+    script: Final[Path] = inline_script.rename(script_dir / inline_script.name)
+
+    assert (
+        run_pipx_cli(["install", str(script)]),
+        run_pipx_cli(["reinstall", "hello"]),
+        PipxMetadata(paths.ctx.venvs / "hello").main_package.package_or_url,
+    ) == (0, 0, str(script.resolve()))
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_inline_script_from_unexpanded_home(inline_script: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HOME", str(inline_script.parent))
+    monkeypatch.setenv("USERPROFILE", str(inline_script.parent))
+
+    assert not run_pipx_cli(["install", f"~/{inline_script.name}"])
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_install_inline_script_app_override(inline_script: Path) -> None:
     assert not run_pipx_cli(["install", "--app", "greet", str(inline_script)])
 

@@ -49,14 +49,25 @@ class ParsedPackage:
 
 def _split_path_extras(package_spec: str) -> tuple[str, str]:
     """Returns (path, extras_string)"""
-    package_spec_extras_re = re.search(r"(.+)(\[.+\])", package_spec)
+    # a bracket can be part of a directory name, so only a trailing group on a path that does not exist is extras
+    if Path(package_spec).expanduser().exists():
+        return (package_spec, "")
+    package_spec_extras_re = re.search(
+        r"""
+        (.+)           # the path
+        (\[[^\[\]]+\])  # one trailing [extras] group
+        $
+        """,
+        package_spec,
+        re.VERBOSE,
+    )
     if package_spec_extras_re:
         return (package_spec_extras_re.group(1), package_spec_extras_re.group(2))
     return (package_spec, "")
 
 
 def _check_package_path(package_path: str) -> tuple[Path, bool]:
-    pkg_path = Path(package_path)
+    pkg_path: Final[Path] = Path(package_path).expanduser()
     pkg_path_exists = pkg_path.exists()
 
     return (pkg_path, pkg_path_exists)
