@@ -14,6 +14,15 @@ to this file.
 
 .. towncrier release notes start
 
+`1.17.11 <https://github.com/pypa/pipx/tree/1.17.11>`_ - 2026-10-03
+===================================================================
+
+Improved Documentation
+----------------------
+
+- Hide the extra documentation TOC toggle on narrow screens. (:issue:`2064`)
+
+
 `1.17.10 <https://github.com/pypa/pipx/tree/1.17.10>`_ - 2026-10-02
 ===================================================================
 
