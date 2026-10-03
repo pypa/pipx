@@ -10,11 +10,11 @@ from pipx import paths
 from pipx.util import PipxError, rmdir
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
 
 @contextmanager
-def preserve_venv(venv_dir: Path, *, enabled: bool) -> Iterator[None]:
+def preserve_venv(venv_dir: Path, *, enabled: bool) -> Generator[None, None, None]:
     if not enabled:
         yield
         return
