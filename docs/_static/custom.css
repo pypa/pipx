@@ -40,6 +40,15 @@
     }
 }
 
+/* Furo swaps to the header TOC toggle at 67em. The 105em rule above keeps
+   .toc-content-icon as display:flex at every narrower width, so both icons
+   appear together on mobile. Restore the single header button. */
+@media (max-width: 67em) {
+    .toc-content-icon {
+        display: none;
+    }
+}
+
 /* Console prompts render as an accented "❯". The reStructuredText source keeps Pygments' literal "$ " prompt so the
    command after it still gets shell highlighting and sphinx-copybutton can strip it on copy; only the shown glyph and
    its colour change here. font-size:0 collapses the "$ " text so ::before can stand in; the glyph is sized in rem
