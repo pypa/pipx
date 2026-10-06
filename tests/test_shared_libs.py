@@ -112,6 +112,13 @@ def test_shared_libs_excludes_setuptools() -> None:
     assert "setuptools" not in installed
 
 
+@pytest.mark.skipif(sys.version_info < (3, 12), reason="venvs bundle setuptools before Python 3.12")
+@pytest.mark.usefixtures("pipx_ultra_temp_env")
+def test_shared_libs_create_does_not_warn_about_missing_setuptools(capfd: pytest.CaptureFixture[str]) -> None:
+    shared_libs.shared_libs.create(verbose=False, pip_args=[])
+    assert "Skipping setuptools" not in capfd.readouterr().err
+
+
 @pytest.mark.usefixtures("pipx_ultra_temp_env")
 def test_shared_libs_create_preserves_pip_args() -> None:
     pip_args = ["--disable-pip-version-check"]
