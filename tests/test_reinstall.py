@@ -94,12 +94,14 @@ def test_reinstall_pylock_restores_source_after_build_failure(
     assert run_pipx_cli(["reinstall", "empty-project"])
 
     metadata = PipxMetadata(paths.ctx.venvs / "empty-project").main_package
+    err = capsys.readouterr().err
     assert (
-        "Reinstall failed; restored empty-project" in capsys.readouterr().err,
+        "Reinstall failed; restored empty-project" in err,
+        "Traceback" in err,
         metadata.package_version,
         metadata.lock_file,
         (paths.ctx.bin_dir / app_name("empty-project")).exists(),
-    ) == (True, "0.1.0", lock_file.resolve(), True)
+    ) == (True, False, "0.1.0", lock_file.resolve(), True)
 
 
 @skip_if_windows
