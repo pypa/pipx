@@ -146,10 +146,13 @@ class _SharedLibs:
 
             # Remove setuptools before the .pth file exposes shared libraries to apps. Python <3.12 venvs bundle a
             # copy that fails under 3.12+ because the standard library no longer includes distutils.
-            run_subprocess(
-                [self.python_path, "-m", "pip", "--no-input", "uninstall", "-y", "setuptools"],
-                capture_stderr=False,
-            )
+            # Python 3.12+ venvs do not bundle setuptools, and uninstalling a missing package makes pip warn on stderr.
+            has_setuptools = run_subprocess([self.python_path, "-m", "pip", "--no-input", "show", "setuptools"])
+            if has_setuptools.returncode == 0:
+                run_subprocess(
+                    [self.python_path, "-m", "pip", "--no-input", "uninstall", "-y", "setuptools"],
+                    capture_stderr=False,
+                )
 
     @property
     def is_valid(self) -> bool:
