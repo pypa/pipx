@@ -66,7 +66,7 @@ def test_pipx_metadata_file_create(tmp_path: Path) -> None:
     pipx_metadata.python_version = "3.4.5"
     pipx_metadata.source_interpreter = Path(sys.executable)
     pipx_metadata.venv_args = ["--system-site-packages"]
-    pipx_metadata.injected_packages = {"injected": TEST_PACKAGE2}
+    pipx_metadata.injected_packages = {"inj_package": TEST_PACKAGE2}
     pipx_metadata.exposure_enabled = False
     pipx_metadata.write()
 
@@ -166,6 +166,17 @@ def test_pipx_metadata_file_migrates_include_apps_from(tmp_path: Path) -> None:
     )
 
     assert PipxMetadata(venv_dir).main_package.include_resources_from == ["numpy"]
+
+
+def test_pipx_metadata_file_keys_injected_package_by_name(tmp_path: Path) -> None:
+    venv_dir: Final[Path] = tmp_path / "venv"
+    venv_dir.mkdir()
+    metadata: Final[PipxMetadata] = PipxMetadata(venv_dir, read=False)
+    metadata.main_package = replace(TEST_PACKAGE1, suffix="@1")
+    metadata.injected_packages = {"inj_package@1": replace(TEST_PACKAGE2, suffix="@1")}
+    (venv_dir / PIPX_INFO_FILENAME).write_text(json.dumps(metadata.to_dict(), cls=JsonEncoderHandlesPath))
+
+    assert list(PipxMetadata(venv_dir).injected_packages) == ["inj_package"]
 
 
 def test_pipx_metadata_file_defaults_cooldown_from_version_0_10(tmp_path: Path) -> None:

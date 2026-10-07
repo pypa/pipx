@@ -294,6 +294,19 @@ def test_upgrade_include_injected(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_include_injected_with_suffix_keeps_package_name() -> None:
+    # Regression: upgrading rewrites the injected record under the name pipx keys
+    # it by, so re-appending the environment suffix there renamed the package on
+    # every run ("black" -> "black@1" -> "black@1@1") until `pipx uninject` could
+    # no longer name it.
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--suffix=@1"])
+    assert not run_pipx_cli(["inject", "pycowsay@1", PKG["black"]["spec"], "--with-suffix"])
+    assert not run_pipx_cli(["upgrade", "--include-injected", "pycowsay@1"])
+
+    assert not run_pipx_cli(["uninject", "pycowsay@1", "black"])
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_no_include_injected(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", PKG["pylint"]["spec"]])
     assert not run_pipx_cli(["inject", "pylint", PKG["black"]["spec"]])

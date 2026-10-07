@@ -296,8 +296,10 @@ class PipxMetadata:
         source_interpreter_raw = input_dict.get("source_interpreter")
         self.source_interpreter = Path(source_interpreter_raw) if source_interpreter_raw else None
         self.venv_args = input_dict.get("venv_args", [])
+        # Key by the record's own package name, as ``Venv.update_package_metadata`` writes it, so a read-modify-write
+        # cycle keeps keys stable and files where earlier pipx versions saved a suffixed key (``black@1``) heal.
         self.injected_packages = {
-            f"{name}{data.get('suffix', '')}": PackageInfo(**data)
+            data.get("package") or name: PackageInfo(**data)
             for (name, data) in input_dict.get("injected_packages", {}).items()
         }
         # Permissive: an unknown ``backend`` (manual edit, post-downgrade

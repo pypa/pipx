@@ -221,6 +221,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
                 include_dependencies=injected_package.include_dependencies,
                 include_resources_from=injected_package.include_resources_from,
                 force=True,
+                suffix=injected_package.suffix == venv.pipx_metadata.main_package.suffix,
                 backend=backend or venv.pipx_metadata.backend,
                 env_backend=env_backend,
                 cooldown_days=injected_package.cooldown_days,
