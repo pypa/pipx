@@ -14,6 +14,26 @@ to this file.
 
 .. towncrier release notes start
 
+`1.17.12 <https://github.com/pypa/pipx/tree/1.17.12>`_ - 2026-10-07
+===================================================================
+
+Bugfixes
+--------
+
+- Stop `pipx reinstall` from printing a traceback when the reinstall fails for an expected reason. (:issue:`2070`)
+- Stop `pipx install` printing `WARNING: Skipping setuptools as it is not installed.` when the shared libraries are
+  created on Python 3.12+, where setuptools is already absent. (:issue:`2071`)
+- Stop an injected package in a suffixed environment from being renamed every time its record is rewritten:
+  `pipx upgrade`, `pipx pin` and `pipx reinstall` no longer append the environment suffix again, so the package keeps its
+  name in `pipx list --include-injected` and stays addressable by `pipx uninject`. (:issue:`2072`)
+
+
+Improved Documentation
+----------------------
+
+- Update the pipx logo author credit. (:issue:`2073`)
+
+
 `1.17.11 <https://github.com/pypa/pipx/tree/1.17.11>`_ - 2026-10-03
 ===================================================================
 
