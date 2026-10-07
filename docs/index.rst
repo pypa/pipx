@@ -111,8 +111,8 @@ directories, wheels, and git URLs. Any package that declares `console script ent
 
 pipx was inspired by `pipsi <https://github.com/mitsuhiko/pipsi>`_ and `npx <https://github.com/npm/npx>`_. It was
 created by `Chad Smith <https://github.com/cs01/>`_ and has had lots of help from `contributors
-<https://github.com/pypa/pipx/graphs/contributors>`_. The logo was created by `@IrishMorales
-<https://github.com/IrishMorales>`_.
+<https://github.com/pypa/pipx/graphs/contributors>`_. The logo was created by `Ase Morales
+<https://github.com/asemorales>`_.
 
 pipx is maintained by a team of volunteers (in alphabetical order):
 
