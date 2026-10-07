@@ -98,6 +98,21 @@ def uninject(  # ruff:ignore[too-many-arguments]  # uninject forwards the resour
     )
 
 
+def _injected_metadata_name(venv: Venv, package_name: str) -> str:
+    """Resolve a requested package name to the name it is keyed by in pipx metadata.
+
+    Injected packages are keyed by their bare package name, but ``pipx inject
+    --with-suffix`` gives them the environment suffix, so users spell them
+    ``pycowsay@1 black@1``. Both spellings have to name the same record.
+    """
+    if package_name in venv.pipx_metadata.injected_packages:
+        return package_name
+    for name, injected_package in venv.pipx_metadata.injected_packages.items():
+        if injected_package.suffix and package_name == f"{name}{injected_package.suffix}":
+            return name
+    return package_name
+
+
 def uninject_dep(
     venv: Venv,
     package_name: str,
@@ -106,7 +121,7 @@ def uninject_dep(
     local_man_dir: Path,
     leave_deps: bool = False,
 ) -> OperationResult[InjectionData]:
-    package_name = canonicalize_name(package_name)
+    package_name = _injected_metadata_name(venv, canonicalize_name(package_name))
 
     if package_name == venv.pipx_metadata.main_package.package:
         return _uninject_failure(

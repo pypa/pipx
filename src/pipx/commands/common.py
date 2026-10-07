@@ -550,15 +550,12 @@ def run_post_install_actions(  # ruff:ignore[too-many-arguments]  # post-install
     force: bool,
     previous_resource_paths: set[Path],
 ) -> tuple[OutputMessage, ...]:
+    # ``package_name`` is the metadata key, so it must stay the bare package name:
+    # the record's own ``suffix`` field already renders the environment suffix in
+    # the summary below, and looking the key up by a suffixed name would miss.
     package_metadata = venv.package_metadata[package_name]
 
     display_name = f"{package_name}{package_metadata.suffix}"
-
-    if (
-        venv.main_package_name != package_name
-        and venv.package_metadata[venv.main_package_name].suffix == package_metadata.suffix
-    ):
-        package_name = display_name
 
     if not package_metadata.apps:
         library_name = package_metadata.package or package_name
