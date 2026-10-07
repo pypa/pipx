@@ -243,13 +243,20 @@ def test_uninject_running_app() -> None:
             process.wait(timeout=10)
 
 
+@pytest.mark.parametrize(
+    "suffix",
+    [
+        pytest.param("@1", id="canonical"),
+        pytest.param("_x", id="non-canonical"),
+    ],
+)
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_uninject_with_suffix_removes_apps(
     root: Path,
     tmp_path: Path,
     local_extras_project: Path,
+    suffix: str,
 ) -> None:
-    suffix = "@1"
     project = shutil.copytree(
         root / "testdata/empty_project",
         tmp_path / "empty_project",

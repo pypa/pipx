@@ -16,6 +16,7 @@ from helpers import (
     run_pipx_cli,
     skip_if_windows,
 )
+from package_info import PKG
 from pipx import paths, util, venv_inspect
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 
@@ -153,6 +154,18 @@ def test_reinstall_suffix_legacy_venv(metadata_version: str) -> None:
     mock_legacy_venv(f"pycowsay{suffix}", metadata_version=metadata_version)
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, f"pycowsay{suffix}"])
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_keeps_injected_package_suffix() -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--suffix=@1"])
+    assert not run_pipx_cli(["inject", "pycowsay@1", PKG["black"]["spec"], "--with-suffix", "--include-apps"])
+
+    assert not run_pipx_cli(["reinstall", "pycowsay@1"])
+
+    assert sorted(path.name for path in paths.ctx.bin_dir.iterdir()) == sorted(
+        app_name(app) for app in ("black@1", "blackd@1", "pycowsay@1")
+    )
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
