@@ -1,8 +1,8 @@
 version: 2
 build:
   os: ubuntu-22.04
-  tools:
-    python: "3.14"
+  tools: {}
   commands:
-    - pip install "tox>=4.45" tox-uv
-    - tox run -e docs
+    - curl -LsSf https://astral.sh/uv/install.sh | sh
+    - ~/.local/bin/uv tool install tox --with tox-uv -p 3.15 --managed-python
+    - ~/.local/bin/tox run -e docs

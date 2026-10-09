@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, replace
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Final
 
 from pipx import commands, paths
@@ -526,7 +526,7 @@ def _package_messages(result: PackageUpgradeResult, *, upgrading_all: bool) -> t
     )
 
 
-class UpgradeStatus(str, Enum):
+class UpgradeStatus(StrEnum):
     LOCKED = "locked"
     PINNED = "pinned"
     UNCHANGED = "unchanged"

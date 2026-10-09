@@ -6,7 +6,7 @@ import importlib
 import inspect
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from html import escape as html_escape
 from importlib.metadata import version as distribution_version
 from pathlib import Path
@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent / "_ext"))
 
 project = "pipx"
 author = "pipx contributors"
-project_copyright = f"{datetime.now(tz=timezone.utc):%Y}, pipx contributors"
+project_copyright = f"{datetime.now(tz=UTC):%Y}, pipx contributors"
 release = distribution_version("pipx")
 version = ".".join(release.split(".")[:2])
 

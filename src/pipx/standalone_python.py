@@ -281,12 +281,12 @@ def get_or_update_index(*, use_cache: bool = True) -> _PythonIndex:
         loaded = json.loads(index_file.read_text())
         # Refresh legacy URL-only indexes, and update current indexes after 30 days.
         if _is_valid_python_index(loaded):
-            fetched = datetime.datetime.fromtimestamp(loaded["fetched"], tz=datetime.timezone.utc)
-            if datetime.datetime.now(tz=datetime.timezone.utc) - fetched <= _INDEX_MAX_AGE:
+            fetched = datetime.datetime.fromtimestamp(loaded["fetched"], tz=datetime.UTC)
+            if datetime.datetime.now(tz=datetime.UTC) - fetched <= _INDEX_MAX_AGE:
                 index = cast("_PythonIndex", loaded)
     if not index:
         releases = get_latest_python_releases()
-        index = {"fetched": datetime.datetime.now(tz=datetime.timezone.utc).timestamp(), "releases": releases}
+        index = {"fetched": datetime.datetime.now(tz=datetime.UTC).timestamp(), "releases": releases}
         # update index
         index_file.write_text(json.dumps(index))
     return cast("_PythonIndex", index)

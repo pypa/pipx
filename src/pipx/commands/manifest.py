@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import subprocess
-import sys
+import tomllib
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date, datetime, time
-from importlib import import_module
 from pathlib import Path
 from shutil import copy2, which
 from tempfile import TemporaryDirectory
@@ -30,14 +29,7 @@ from pipx.result import (
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
-    if sys.version_info >= (3, 11):
-        import tomllib
-    else:
-        import tomli as tomllib
-
     from pipx.venv import VenvContainer
-else:
-    tomllib = import_module("tomli" if sys.version_info < (3, 11) else "tomllib")
 
 
 def sync_manifest(  # ruff:ignore[too-many-arguments]  # manifest sync forwards the full install context for each tool

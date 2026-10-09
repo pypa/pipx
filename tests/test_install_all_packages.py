@@ -22,7 +22,7 @@ import subprocess
 import sys
 import textwrap
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -152,15 +152,15 @@ class ModuleGlobalsData:
         self.report_path = Path()
         self.sys_platform = sys.platform
         self.test_class = ""
-        self.test_start = datetime.now(tz=timezone.utc)
-        self.test_end = datetime.now(tz=timezone.utc)  # default, must be set later
+        self.test_start = datetime.now(tz=UTC)
+        self.test_end = datetime.now(tz=UTC)  # default, must be set later
 
     def reset(self, test_class: str = "") -> None:
         self.errors_path = Path()
         self.install_data = []
         self.report_path = Path()
         self.test_class = test_class
-        self.test_start = datetime.now(tz=timezone.utc)
+        self.test_start = datetime.now(tz=UTC)
 
 
 @pytest.fixture(scope="module")
@@ -520,7 +520,7 @@ def start_end_test_class(module_globals: ModuleGlobalsData, request: pytest.Fixt
 
     yield
 
-    module_globals.test_end = datetime.now(tz=timezone.utc)
+    module_globals.test_end = datetime.now(tz=UTC)
     with module_globals.report_path.open("a", encoding="utf-8") as report_fh:
         print(format_report_table_footer(module_globals), file=report_fh)
 

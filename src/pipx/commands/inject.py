@@ -4,7 +4,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
@@ -325,7 +325,7 @@ def parse_requirements(filename: str | os.PathLike) -> Generator[str, None, None
                 yield pkgspec
 
 
-class InjectionStatus(str, Enum):
+class InjectionStatus(StrEnum):
     INJECTED = "injected"
     UNINJECTED = "uninjected"
     UPDATED = "updated"

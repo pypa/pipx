@@ -13,7 +13,7 @@ on:
           - patch
         default: auto
 env:
-  default-python: "3.14"
+  default-python: "3.15"
 jobs:
   pre-release:
     runs-on: ubuntu-26.04
@@ -27,8 +27,12 @@ jobs:
           token: ${{ secrets.GH_RELEASE_TOKEN }}
           persist-credentials: false
       - name: Set up Python ${{ env.default-python }}
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        env:
+          UV_VENV_SEED: "true"
         with:
+          enable-cache: false
+          activate-environment: true
           python-version: ${{ env.default-python }}
       - name: Install dependencies
         run: |

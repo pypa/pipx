@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from pipx.commands.reinstall import reinstall
@@ -142,7 +142,7 @@ def _repair_failure_message(failure: _FailedRepair) -> OutputMessage:
     )
 
 
-class _HealthStatus(str, Enum):
+class _HealthStatus(StrEnum):
     HEALTHY = "healthy"
     BROKEN = "broken"
     MISSING = "missing"

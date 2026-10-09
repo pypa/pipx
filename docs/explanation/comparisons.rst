@@ -236,7 +236,7 @@ install black --python=python3.11`` where ``python3.11`` was installed by pyenv.
 -  pipx can run an app in one line, leaving your system unchanged after it finishes (``pipx run APP``); pipsi cannot.
 -  pipx can recursively install binaries from dependent packages.
 -  pipx has more CLI options such as ``upgrade-all``, ``reinstall-all``, and ``uninstall-all``.
--  pipx is more modern. It requires Python 3.10+ and uses the standard-library ``venv`` package.
+-  pipx is more modern. It requires Python 3.11+ and uses the standard-library ``venv`` package.
 -  pipx works with Python homebrew installations while pipsi does not.
 -  pipx lets you see each command it runs by passing ``--verbose``.
 
@@ -317,7 +317,7 @@ Similarities:
 
 pae advantages:
 
--  Supports all versions of Python from 2.7 upward. pipx requires 3.10 or above.
+-  Supports all versions of Python from 2.7 upward. pipx requires 3.11 or above.
 -  Fewer dependencies.
 -  Easier to have multiple versions of a single program, or use different Python versions for one program.
 -  Somewhat more convenient for running arbitrary command-line programs in virtual environments, installing multiple

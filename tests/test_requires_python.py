@@ -87,9 +87,9 @@ def test_interpreter_for_takes_the_newest_installed_match(mocker: MockerFixture)
 
 
 def test_interpreter_for_skips_a_version_the_system_lacks(mocker: MockerFixture) -> None:
-    _install(mocker, {"3.10": "3.10.14"})
+    _install(mocker, {"3.11": "3.11.9"})
 
-    assert interpreter_for(SpecifierSet("<3.12"), FetchPythonOptions.NEVER) == "/py/3.10.14"
+    assert interpreter_for(SpecifierSet("<3.13"), FetchPythonOptions.NEVER) == "/py/3.11.9"
 
 
 def test_interpreter_for_accepts_a_patch_above_a_lower_bound(mocker: MockerFixture) -> None:

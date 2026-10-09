@@ -5,8 +5,8 @@ import configparser
 import json
 import logging
 import shutil
-import sys
 import textwrap
+import tomllib
 from importlib import metadata
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Final, NamedTuple, TypedDict
@@ -15,11 +15,6 @@ from urllib.request import url2pathname
 
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 from pipx.constants import COMPLETION_SECTIONS, MAN_SECTIONS, WINDOWS
 from pipx.util import PipxError, run_subprocess

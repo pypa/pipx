@@ -4,7 +4,7 @@ import base64
 import hashlib
 import re
 import stat
-import sys
+import tomllib
 import urllib.parse
 import urllib.request
 from contextlib import contextmanager
@@ -23,10 +23,6 @@ from pipx.util import PipxError
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 _APP_NAME: Final[re.Pattern[str]] = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]*")
 _INLINE_METADATA: Final[re.Pattern[str]] = re.compile(

@@ -13,23 +13,24 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-26.04]
-        python-version: ["3.15", "3.14", "3.13", "3.12", "3.11", "3.10"]
+        python-version: ["3.15", "3.14", "3.13", "3.12", "3.11"]
         include:
           - os: macos-latest
-            python-version: "3.14"
+            python-version: "3.15"
           - os: windows-latest
-            python-version: "3.14"
+            python-version: "3.15"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        env:
+          UV_VENV_SEED: "true"
         with:
+          enable-cache: false
+          activate-environment: true
           python-version: ${{ matrix.python-version }}
-          # 3.15 is still in beta; setup-python resolves stable releases for every other matrix entry
-          allow-prereleases: true
-          cache: "pip"
       - name: Install nox
         run: python -m pip install nox
       - name: Create lists
