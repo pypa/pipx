@@ -256,3 +256,23 @@ def test_pin_skip_suffixed_spelling(
     assert "pylint@1" not in captured.out
     metadata = PipxMetadata(paths.ctx.venvs / "black@1")
     assert not metadata.injected_packages["pylint"].pinned
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_skip_suffixed_spelling_canonicalized(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert not run_pipx_cli(["install", PKG["black"]["spec"], "--suffix", "@1"])
+    assert not run_pipx_cli(["inject", "black@1", PKG["pylint"]["spec"], "--with-suffix"])
+
+    _ = capsys.readouterr()
+
+    # canonicalize_name("Pylint@1") == "pylint@1", so a non-normalized
+    # spelling must skip the same record as the exact spelling
+    assert not run_pipx_cli(["pin", "black@1", "--skip", "Pylint@1"])
+
+    captured = capsys.readouterr()
+
+    assert "pylint@1" not in captured.out
+    metadata = PipxMetadata(paths.ctx.venvs / "black@1")
+    assert not metadata.injected_packages["pylint"].pinned

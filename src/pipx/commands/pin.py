@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING
 
+from packaging.utils import canonicalize_name
+
 from pipx.colors import bold
 from pipx.constants import ExitCode
 from pipx.emojis import sleep
@@ -30,15 +32,18 @@ def pin(
     packages: list[_ChangedPackage] = []
     skipped: list[_SkippedPackage] = []
     if injected_only or skip:
-        skip_names = set(skip)
+        skip_names = {canonicalize_name(requested) for requested in skip}
         for package_name in venv.package_metadata:
             if package_name == venv.main_package_name:
                 continue
             # Injected packages carry the environment suffix in user-facing
             # spellings (``six@1``), like uninject accepts since #2072, so
             # match `--skip` against both the bare key and the suffixed name.
+            # Both sides are canonicalized so ``Foo_Bar@1``-style spellings hit.
             package_suffix = venv.package_metadata[package_name].suffix
-            if package_name in skip_names or (package_suffix and f"{package_name}{package_suffix}" in skip_names):
+            if package_name in skip_names or (
+                package_suffix and canonicalize_name(f"{package_name}{package_suffix}") in skip_names
+            ):
                 skipped.append(_SkippedPackage(venv.name, package_name, "requested"))
                 continue
             if venv.package_metadata[package_name].pinned:
