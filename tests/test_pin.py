@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 import pytest
+from packaging.utils import canonicalize_name
 
 from helpers import run_pipx_cli
 from package_info import PKG
@@ -238,3 +239,56 @@ def test_pin_injected_packages_with_skip(
 
     assert "pylint" in captured.out
     assert "isort" not in captured.out
+
+
+@pytest.mark.parametrize(
+    ("suffix", "with_suffix", "skip", "pinned"),
+    [
+        pytest.param("@1", True, "empty-project", False, id="bare"),
+        pytest.param("@1", True, "Empty_Project", False, id="normalized-bare"),
+        pytest.param("@1", True, "empty-project@1", False, id="suffixed"),
+        pytest.param("@1", True, "Empty_Project@1", False, id="normalized-suffixed"),
+        pytest.param("_X", True, "Empty.Project_x", False, id="normalized-suffix"),
+        pytest.param("@1", True, "empty-project@2", True, id="wrong-suffix"),
+        pytest.param("@1", True, "missing@1", True, id="unknown-package"),
+        pytest.param("@1", False, "empty-project", False, id="unsuffixed-injection"),
+        pytest.param("@1", False, "empty-project@1", True, id="suffix-not-applied"),
+        pytest.param("", False, "Empty_Project", False, id="unsuffixed-environment"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_skip_spelling(
+    empty_project: Path,
+    capsys: pytest.CaptureFixture[str],
+    suffix: str,
+    *,
+    with_suffix: bool,
+    skip: str,
+    pinned: bool,
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay", f"--suffix={suffix}"])
+    environment: Final[str] = f"pycowsay{suffix}"
+    assert not run_pipx_cli([
+        "inject",
+        environment,
+        str(empty_project),
+        *(["--with-suffix"] if with_suffix else []),
+    ])
+    assert not run_pipx_cli(["inject", environment, PKG["black"]["spec"]])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["pin", environment, "--skip", skip, "--output", "json"])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / canonicalize_name(environment))
+    assert (
+        metadata.main_package.pinned,
+        {name: package.pinned for name, package in metadata.injected_packages.items()},
+    ) == (
+        False,
+        {"empty-project": pinned, "black": True},
+    )
+    data: Final = json.loads(capsys.readouterr().out)["data"]
+    assert ([package["package"] for package in data["packages"]], data["skipped"]) == (
+        ["black", f"empty-project{suffix if with_suffix else ''}"] if pinned else ["black"],
+        [] if pinned else [{"environment": environment, "package": "empty-project", "reason": "requested"}],
+    )
