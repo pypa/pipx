@@ -34,7 +34,11 @@ def pin(
         for package_name in venv.package_metadata:
             if package_name == venv.main_package_name:
                 continue
-            if package_name in skip_names:
+            # Injected packages carry the environment suffix in user-facing
+            # spellings (``six@1``), like uninject accepts since #2072, so
+            # match `--skip` against both the bare key and the suffixed name.
+            package_suffix = venv.package_metadata[package_name].suffix
+            if package_name in skip_names or (package_suffix and f"{package_name}{package_suffix}" in skip_names):
                 skipped.append(_SkippedPackage(venv.name, package_name, "requested"))
                 continue
             if venv.package_metadata[package_name].pinned:
