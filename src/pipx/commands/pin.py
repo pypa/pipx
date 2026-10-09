@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
 
@@ -32,21 +32,14 @@ def pin(
     packages: list[_ChangedPackage] = []
     skipped: list[_SkippedPackage] = []
     if injected_only or skip:
-        skip_names = {canonicalize_name(requested) for requested in skip}
-        for package_name in venv.package_metadata:
+        skip_names: Final[set[str]] = {canonicalize_name(requested) for requested in skip}
+        for package_name, package in venv.package_metadata.items():
             if package_name == venv.main_package_name:
                 continue
-            # Injected packages carry the environment suffix in user-facing
-            # spellings (``six@1``), like uninject accepts since #2072, so
-            # match `--skip` against both the bare key and the suffixed name.
-            # Both sides are canonicalized so ``Foo_Bar@1``-style spellings hit.
-            package_suffix = venv.package_metadata[package_name].suffix
-            if package_name in skip_names or (
-                package_suffix and canonicalize_name(f"{package_name}{package_suffix}") in skip_names
-            ):
+            if package_name in skip_names or canonicalize_name(f"{package_name}{package.suffix}") in skip_names:
                 skipped.append(_SkippedPackage(venv.name, package_name, "requested"))
                 continue
-            if venv.package_metadata[package_name].pinned:
+            if package.pinned:
                 skipped.append(_SkippedPackage(venv.name, package_name, "already-pinned"))
                 messages.append(OutputMessage(f"pipx already pins {package_name}; skipping it."))
                 continue
