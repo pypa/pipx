@@ -48,6 +48,9 @@ jobs:
           enable-cache: false
           activate-environment: true
           python-version: ${{ matrix.py }}
+      - name: Register Python with the Windows launcher
+        if: runner.os == 'Windows'
+        run: uv python install "${{ matrix.py }}" 3.14
       - name: 📦 Install tox
         run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
       - name: Persistent .pipx_tests/package_cache
@@ -59,6 +62,13 @@ jobs:
         run: tox run -vv --notest --skip-missing-interpreters false -e ${{ matrix.py }}
       - name: 📦 Seed package cache
         run: tox exec -e ${{ matrix.py }} -- python scripts/update_package_cache.py testdata/tests_packages .pipx_tests/package_cache/
+      - name: Cache the Windows Jupyter dependency for Python 3.14
+        if: runner.os == 'Windows' && matrix.py == '3.15'
+        # Pywinpty lacks Python 3.15 wheels: https://github.com/andfoy/pywinpty/issues/582
+        shell: pwsh
+        run: |
+          Remove-Item .pipx_tests/package_cache/3.15/pywinpty-*.tar.gz -ErrorAction SilentlyContinue
+          python -m pip download --no-deps --only-binary=:all: --python-version 3.14 pywinpty -d .pipx_tests/package_cache/3.15
       - name: 🏃 Run test suite
         run: tox run --skip-pkg-install -e ${{ matrix.py }}
         timeout-minutes: 30
