@@ -237,7 +237,13 @@ def test_find_python_interpreter_by_version() -> None:
     major = sys.version_info.major
     minor = sys.version_info.minor
     python_path = find_python_interpreter(f"python{major}.{minor}")
-    assert python_path == f"python{major}.{minor}" or f"Python\\{major}.{minor}" in python_path
+    result = subprocess.run(
+        [python_path, "-c", "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert result.stdout.strip() == f"{major}.{minor}"
 
 
 def test_find_python_interpreter_by_wrong_path_raises() -> None:
