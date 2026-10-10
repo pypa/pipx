@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import shutil
+import sys
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 import pytest
@@ -13,7 +16,6 @@ from pipx.util import pipx_wrap
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
 
 @pytest.mark.parametrize(
@@ -67,6 +69,64 @@ def test_install_all(  # ruff:ignore[too-many-positional-arguments]  # pytest in
         expected_cooldown,
         expected_cooldown,
     )
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_restores_recorded_interpreter(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    # ``pipx install-all`` is the migration tool: the snapshot records each environment's
+    # ``source_interpreter``, and restoring without ``--python`` should use it, as it did before the
+    # dispatch refactor. An explicitly named ``--python`` keeps the last word.
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--json"])
+    snapshot: Final = json.loads(capsys.readouterr().out)
+
+    alt_interpreter: Final[Path] = tmp_path / "python-alt"
+    try:
+        alt_interpreter.symlink_to(Path(sys.executable))
+    except OSError:  # Windows without Developer Mode, matching tests/conftest.py
+        shutil.copy2(sys.executable, alt_interpreter)
+    assert alt_interpreter != Path(sys.executable).resolve()
+
+    snapshot["venvs"]["pycowsay"]["metadata"]["source_interpreter"] = {
+        "__type__": "Path",
+        "__Path__": str(alt_interpreter),
+    }
+    spec_file: Final[Path] = tmp_path / "pipx.json"
+    spec_file.write_text(json.dumps(snapshot), encoding="utf-8")
+
+    assert not run_pipx_cli(["uninstall-all"])
+    capsys.readouterr()
+    assert not run_pipx_cli(["install-all", str(spec_file)])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    assert metadata.source_interpreter == alt_interpreter
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_reports_missing_recorded_interpreter(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--json"])
+    snapshot: Final = json.loads(capsys.readouterr().out)
+
+    gone_interpreter: Final[Path] = tmp_path / "python-gone"
+    snapshot["venvs"]["pycowsay"]["metadata"]["source_interpreter"] = {
+        "__type__": "Path",
+        "__Path__": str(gone_interpreter),
+    }
+    spec_file: Final[Path] = tmp_path / "pipx.json"
+    spec_file.write_text(json.dumps(snapshot), encoding="utf-8")
+
+    assert not run_pipx_cli(["uninstall-all"])
+    capsys.readouterr()
+    assert not run_pipx_cli(["install-all", str(spec_file)])
+    captured: Final = capsys.readouterr()
+
+    # pipx_wrap breaks the long path inside the message, so match the sentence around it
+    assert "The exported python interpreter" in captured.out
+    assert "' is ignored" in captured.out
+    assert "as not found" in captured.out
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

@@ -647,6 +647,7 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
     backend: str | None = None,
     env_backend: str | None = None,
     cooldown_days: int | None = None,
+    python_flag_passed: bool = False,
 ) -> ExitCode:
     venv_container: Final[VenvContainer] = VenvContainer(paths.ctx.venvs)
     failed: Final[list[str]] = []
@@ -655,6 +656,11 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
     for venv_metadata in extract_venv_metadata(spec_metadata_file):
         main_package = venv_metadata.main_package
         venv_dir = venv_container.get_venv_dir(f"{main_package.package}{main_package.suffix}")
+        # ``ctx.python`` is always a resolved interpreter; without an explicit ``--python`` the interpreter
+        # recorded in the snapshot is the one the user asked to restore
+        interpreter = (
+            python if python_flag_passed else get_python_interpreter(venv_metadata.source_interpreter) or python
+        )
         try:
             with venv_container.venv_lock(venv_dir) as venv_lock:
                 package_cooldown = _resolve_cooldown(
@@ -669,7 +675,7 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
                     [generate_package_spec(main_package)],
                     local_bin_dir,
                     local_man_dir,
-                    python or get_python_interpreter(venv_metadata.source_interpreter),
+                    interpreter,
                     pip_args,
                     venv_args,
                     verbose=verbose,
@@ -755,7 +761,9 @@ def get_python_interpreter(
     source_interpreter: Path | None,
 ) -> str | None:
     """Get appropriate python interpreter."""
-    if source_interpreter is not None and source_interpreter.is_file():
+    if source_interpreter is None:
+        return None
+    if source_interpreter.is_file():
         return str(source_interpreter)
 
     print(  # ruff:ignore[print]  # user-facing CLI output

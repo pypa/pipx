@@ -703,6 +703,7 @@ def _cmd_install_all(args: argparse.Namespace, ctx: DispatchContext) -> ExitCode
         backend=ctx.backend,
         env_backend=ctx.env_backend,
         cooldown_days=ctx.effective_cooldown_days,
+        python_flag_passed=ctx.python_flag_passed,
     )
 
 
