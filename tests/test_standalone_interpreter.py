@@ -55,7 +55,7 @@ def test_legacy_standalone_python_index_is_refreshed(monkeypatch: pytest.MonkeyP
     cache_dir.mkdir(parents=True)
     index_file.write_text(
         json.dumps({
-            "fetched": datetime.datetime.now(tz=datetime.timezone.utc).timestamp(),
+            "fetched": datetime.datetime.now(tz=datetime.UTC).timestamp(),
             "releases": [legacy_link],
         })
     )
@@ -116,7 +116,7 @@ def test_early_python_310_rejects_unsafe_archive(
     cache_dir.mkdir(parents=True)
     (cache_dir / "index.json").write_text(
         json.dumps({
-            "fetched": datetime.datetime.now(tz=datetime.timezone.utc).timestamp(),
+            "fetched": datetime.datetime.now(tz=datetime.UTC).timestamp(),
             "releases": [[link, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
         })
     )
@@ -147,7 +147,7 @@ def published_darwin_release(mocker: MockerFixture) -> tuple[Path, Callable[[byt
     def publish(archive_bytes: bytes) -> None:
         (cache_dir / "index.json").write_text(
             json.dumps({
-                "fetched": datetime.datetime.now(tz=datetime.timezone.utc).timestamp(),
+                "fetched": datetime.datetime.now(tz=datetime.UTC).timestamp(),
                 "releases": [[link, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
             })
         )
@@ -405,7 +405,7 @@ def test_download_standalone_python_sets_request_timeout(
     cache_dir.mkdir(parents=True)
     (cache_dir / "index.json").write_text(
         json.dumps({
-            "fetched": datetime.datetime.now(tz=datetime.timezone.utc).timestamp(),
+            "fetched": datetime.datetime.now(tz=datetime.UTC).timestamp(),
             "releases": [[link, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
         })
     )
@@ -436,7 +436,7 @@ def test_download_standalone_python_rejects_unsafe_archive(
     cache_dir.mkdir(parents=True)
     (cache_dir / "index.json").write_text(
         json.dumps({
-            "fetched": datetime.datetime.now(tz=datetime.timezone.utc).timestamp(),
+            "fetched": datetime.datetime.now(tz=datetime.UTC).timestamp(),
             "releases": [[link, f"sha256:{hashlib.sha256(archive_bytes).hexdigest()}"]],
         })
     )

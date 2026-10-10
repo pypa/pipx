@@ -25,7 +25,7 @@ _PIP_REJECTION: Final[re.Pattern[str]] = re.compile(
     re.VERBOSE,
 )
 # the newest release pipx looks for when a package rules out the default interpreter
-_NEWEST_PYTHON_MINOR: Final[int] = 14
+_NEWEST_PYTHON_MINOR: Final[int] = 15
 # scanned to decide whether a minor's range overlaps a constraint; above any real CPython patch count so none is missed
 _MAX_PATCH: Final[int] = 40
 

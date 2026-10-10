@@ -20,12 +20,12 @@ class OutputLevel(enum.IntEnum):
     CRITICAL = 2
 
 
-class OutputFormat(str, enum.Enum):
+class OutputFormat(enum.StrEnum):
     HUMAN = "human"
     JSON = "json"
 
 
-class OutputStream(str, enum.Enum):
+class OutputStream(enum.StrEnum):
     LOG = "log"
     STDOUT = "stdout"
     STDERR = "stderr"

@@ -24,12 +24,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04]
-        py: ["3.15", "3.15t", "3.14", "3.13", "3.12", "3.11", "3.10"]
+        py: ["3.15", "3.15t", "3.14", "3.13", "3.12", "3.11"]
         include:
           - os: windows-2025
-            py: "3.14"
+            py: "3.15"
           - os: macos-15
-            py: "3.14"
+            py: "3.15"
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -38,14 +38,31 @@ jobs:
           persist-credentials: false
       - name: 🚀 Install uv
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
-      - name: 🐍 Setup Python ${{ matrix.py }}
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
+          python-version: "3.15"
+      - name: 🐍 Setup Python ${{ matrix.py }}
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        env:
+          UV_VENV_SEED: "true"
+        with:
+          enable-cache: false
+          activate-environment: true
           python-version: ${{ matrix.py }}
-          # 3.15 is still in beta; setup-python resolves stable releases for every other matrix entry
-          allow-prereleases: true
+      - name: Register Python with the Windows launcher
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          uv python install "${{ matrix.py }}" 3.14
+          $pythonPath = uv python find "${{ matrix.py }}" --system
+          $registryPath = "HKCU:\Software\Python\PythonCore\${{ matrix.py }}"
+          New-Item "$registryPath\InstallPath" -Force -Value (Split-Path $pythonPath) | Out-Null
+          New-ItemProperty "$registryPath\InstallPath" -Name ExecutablePath -Value $pythonPath -Force | Out-Null
+          New-ItemProperty $registryPath -Name SysVersion -Value "${{ matrix.py }}" -Force | Out-Null
+          New-ItemProperty $registryPath -Name SysArchitecture -Value "64bit" -Force | Out-Null
+          py -${{ matrix.py }} -c "import sys; print(sys.executable)"
+          "PIPX_TEST_JUPYTER_PYTHON=$(uv python find 3.14 --system)" >> $env:GITHUB_ENV
       - name: 📦 Install tox
-        run: uv tool install --python-preference only-managed --python 3.14 "tox>=4.45" --with tox-uv
+        run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
       - name: Persistent .pipx_tests/package_cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -55,6 +72,13 @@ jobs:
         run: tox run -vv --notest --skip-missing-interpreters false -e ${{ matrix.py }}
       - name: 📦 Seed package cache
         run: tox exec -e ${{ matrix.py }} -- python scripts/update_package_cache.py testdata/tests_packages .pipx_tests/package_cache/
+      - name: Cache Windows Jupyter dependencies for Python 3.14
+        if: runner.os == 'Windows' && matrix.py == '3.15'
+        # Pywinpty lacks Python 3.15 wheels: https://github.com/andfoy/pywinpty/issues/582
+        shell: pwsh
+        run: |
+          Remove-Item .pipx_tests/package_cache/3.15/pywinpty-*.tar.gz -ErrorAction SilentlyContinue
+          python -m pip download --only-binary=:all: --python-version 3.14 jupyter==1.0.0 -d .pipx_tests/package_cache/3.15
       - name: 🏃 Run test suite
         run: tox run --skip-pkg-install -e ${{ matrix.py }}
         timeout-minutes: 30
@@ -70,8 +94,10 @@ jobs:
           persist-credentials: false
       - name: 🚀 Install uv
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.15"
       - name: 📦 Install tox
-        run: uv tool install --python-preference only-managed --python 3.14 "tox>=4.45" --with tox-uv
+        run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
       - name: 🔍 Run ty
         run: tox run -e type
   man:
@@ -84,8 +110,10 @@ jobs:
           persist-credentials: false
       - name: 🚀 Install uv
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.15"
       - name: 📦 Install tox
-        run: uv tool install --python-preference only-managed --python 3.14 "tox>=4.45" --with tox-uv
+        run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
       - name: 📖 Build man page
         run: tox run -e man
       - name: Show man page
@@ -100,14 +128,20 @@ jobs:
           persist-credentials: false
       # the oldest supported Python consumes the artifact while tox builds it with the same
       # interpreter as the release workflow, so this job reproduces the release scenario
-      - name: 🐍 Setup Python 3.10
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - name: 🐍 Setup Python 3.11
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        env:
+          UV_VENV_SEED: "true"
         with:
-          python-version: "3.10"
+          enable-cache: false
+          activate-environment: true
+          python-version: "3.11"
       - name: 🚀 Install uv
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.15"
       - name: 📦 Install tox
-        run: uv tool install --python-preference only-managed --python 3.14 "tox>=4.45" --with tox-uv
+        run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
       - name: 📦 Build zipapp
         run: tox run -e zipapp
       - name: Test zipapp by installing black
@@ -124,10 +158,14 @@ jobs:
     needs: zipapp
     runs-on: windows-2025
     steps:
-      - name: 🐍 Setup Python 3.10
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - name: 🐍 Setup Python 3.11
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        env:
+          UV_VENV_SEED: "true"
         with:
-          python-version: "3.10"
+          enable-cache: false
+          activate-environment: true
+          python-version: "3.11"
       - name: 📥 Download zipapp
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:

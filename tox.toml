@@ -1,87 +1,77 @@
-requires = ["tox>=4.64.7"]
-
+requires = [ "tox>=4.64.7" ]
 env_list = [
   "3.15",
-  "3.15t",
   "3.14",
   "3.13",
   "3.12",
   "3.11",
-  "3.10",
-  "type",
-  "lint",
+  "3.15t",
   "docs",
+  "lint",
   "man",
+  "type",
 ]
-
 skip_missing_interpreters = true
 
 [env_run_base]
 description = "run tests with {env_name}"
+default_base_python = [ "3.15" ]
 package = "wheel"
-dependency_groups = ["test"]
+dependency_groups = [ "test" ]
+pass_env = [ "PIPX_TEST_JUPYTER_PYTHON" ]
 set_env.COVERAGE_FILE = "{work_dir}{/}.coverage.{env_name}"
 commands = [
   [
     "pytest",
-    {replace = "posargs", default = [
+    { replace = "posargs", default = [
       "--cov=pipx",
       "--cov-report=term-missing:skip-covered",
       "--cov-report=xml:{work_dir}{/}coverage.{env_name}.xml",
-      "-n", "auto",
-      "--dist", "loadfile",
+      "-n",
+      "auto",
+      "--dist",
+      "loadfile",
       "tests",
-    ], extend = true},
+    ], extend = true },
   ],
 ]
 uv_seed = true
 
-[env.dev]
-description = "generate a DEV environment"
-package = "editable"
-dependency_groups = ["dev"]
-commands = [
-  ["uv", "pip", "tree"],
-  ["python", "-c", "import sys; print(sys.executable)"],
-]
-
-[env.type]
-description = "run the type checker"
-package = "editable"
-dependency_groups = ["type"]
-commands = [["ty", "check"]]
-
-[env.lint]
-description = "run pre-commit on the codebase"
-skip_install = true
-dependency_groups = ["lint"]
-commands = [["pre-commit", "run", "--all-files"]]
+[env_pkg_base]
+default_base_python = [ "3.15" ]
 
 [env.docs]
 description = "build documentation"
 package = "editable"
-dependency_groups = ["docs"]
+dependency_groups = [ "docs" ]
 commands = [
-  ["sphinx-build", "-d", "{env_tmp_dir}{/}doctree", "-b", "html", "docs", "{env:READTHEDOCS_OUTPUT:site}{/}html", "-W", "--keep-going"],
-  ["python", "-c", "print('docs built to: file://{env:READTHEDOCS_OUTPUT:site}{/}html{/}index.html')"],
+  [
+    "sphinx-build",
+    "-d",
+    "{env_tmp_dir}{/}doctree",
+    "-b",
+    "html",
+    "docs",
+    "{env:READTHEDOCS_OUTPUT:site}{/}html",
+    "-W",
+    "--keep-going",
+  ],
+  [ "python", "-c", "print('docs built to: file://{env:READTHEDOCS_OUTPUT:site}{/}html{/}index.html')" ],
 ]
 
-[env.docs-live]
-description = "serve documentation with live reload"
-dependency_groups = ["docs"]
-set_env.NO_MKDOCS_2_WARNING = "true"
-commands = [
-  ["mkdocs", "serve", "--dirty", "--open"],
-]
+[env.lint]
+description = "run pre-commit on the codebase"
+skip_install = true
+dependency_groups = [ "lint" ]
+commands = [ [ "pre-commit", "run", "--all-files" ] ]
 
 [env.man]
 description = "build man page"
 package = "editable"
-dependency_groups = ["man"]
-allowlist_externals = ["uv"]
+dependency_groups = [ "man" ]
 commands = [
-  ["python", "scripts/generate_man.py", "{tox_root}{/}docs{/}man{/}pipx.1.rst"],
-  ["uv", "build", "--out-dir", "{env_tmp_dir}{/}dist"],
+  [ "python", "scripts/generate_man.py", "{tox_root}{/}docs{/}man{/}pipx.1.rst" ],
+  [ "uv", "build", "--out-dir", "{env_tmp_dir}{/}dist" ],
   [
     "python",
     "scripts/check_distribution_manpage.py",
@@ -89,12 +79,35 @@ commands = [
     "{tox_root}{/}docs{/}man{/}pipx.1.rst",
   ],
 ]
+allowlist_externals = [ "uv" ]
+
+[env.type]
+description = "run the type checker"
+package = "editable"
+dependency_groups = [ "type" ]
+commands = [ [ "ty", "check" ] ]
+
+[env.dev]
+description = "generate a DEV environment"
+package = "editable"
+dependency_groups = [ "dev" ]
+commands = [
+  [ "uv", "pip", "tree" ],
+  [ "python", "-c", "import sys; print(sys.executable)" ],
+]
+
+[env.docs-live]
+description = "serve documentation with live reload"
+dependency_groups = [ "docs" ]
+set_env.NO_MKDOCS_2_WARNING = "true"
+commands = [
+  [ "mkdocs", "serve", "--dirty", "--open" ],
+]
 
 [env.zipapp]
 description = "build zipapp via shiv"
 skip_install = true
-dependency_groups = ["zipapp"]
-allowlist_externals = ["{tox_root}{/}pipx.pyz"]
+dependency_groups = [ "zipapp" ]
 # pip evaluates environment markers against the interpreter building the artifact, dropping the
 # marker-gated dependencies; requesting them explicitly keeps the single zipapp working on every
 # supported platform and Python version
@@ -107,7 +120,7 @@ commands = [
     "{tox_root}{/}pipx.pyz",
     ".",
     "colorama>=0.4.4",
-    "tomli",
   ],
-  ["{tox_root}{/}pipx.pyz", "--version"],
+  [ "{tox_root}{/}pipx.pyz", "--version" ],
 ]
+allowlist_externals = [ "{tox_root}{/}pipx.pyz" ]

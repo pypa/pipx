@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Final
 
 from packaging.utils import canonicalize_name
@@ -149,7 +149,7 @@ def _summary_message(venv: Venv, status: _PinStatus, package_count: int) -> Outp
     return OutputMessage(bold(f"pipx {status.value} {package_count} {package_label} in venv {venv.name}"))
 
 
-class _PinStatus(str, Enum):
+class _PinStatus(StrEnum):
     PINNED = "pinned"
     UNPINNED = "unpinned"
 

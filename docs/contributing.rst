@@ -147,11 +147,11 @@ At the time of this writing, the output looks like this
 .. code-block:: text
 
     default environments:
+    3.15 -> run tests with 3.15
     3.14 -> run tests with 3.14
     3.13 -> run tests with 3.13
     3.12 -> run tests with 3.12
     3.11 -> run tests with 3.11
-    3.10 -> run tests with 3.10
     type -> run the type checker
     lint -> run pre-commit on the codebase
     docs -> build documentation
@@ -173,11 +173,11 @@ afterwards use the Python interpreter available under ``.tox/dev/bin/python``.
 Unit Tests
 ==========
 
-To run unit tests in Python 3.12, you can run
+To run unit tests in Python 3.15, you can run
 
 .. code-block:: console
 
-    $ tox run -e 3.12
+    $ tox run -e 3.15
 
 .. tip::
 
@@ -185,13 +185,13 @@ To run unit tests in Python 3.12, you can run
 
     .. code-block:: console
 
-        $ tox run -e 3.10 -- -k EXPRESSION
+        $ tox run -e 3.15 -- -k EXPRESSION
 
     ``EXPRESSION`` can be a test name, such as
 
     .. code-block:: console
 
-        $ tox run -e 3.10 -- -k test_uninstall
+        $ tox run -e 3.15 -- -k test_uninstall
 
     Coverage errors can usually be ignored when only running a subset of tests.
 

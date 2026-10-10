@@ -35,6 +35,12 @@ if TYPE_CHECKING:
 
 TEST_DATA_PATH = "./testdata/test_package_specifier"
 _FREE_THREADED: Final[bool] = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
+# Pywinpty lacks Python 3.15 wheels: https://github.com/andfoy/pywinpty/issues/582
+_JUPYTER_PYTHON_ARGS: Final[tuple[str, ...]] = (
+    ("--python", os.environ.get("PIPX_TEST_JUPYTER_PYTHON", "3.14"))
+    if sys.platform == "win32" and sys.version_info >= (3, 15)
+    else ()
+)
 
 
 def test_help_text(capsys: pytest.CaptureFixture[str]) -> None:
@@ -313,7 +319,7 @@ def test_install_no_apps_guidance(
     if _FREE_THREADED and package_name == "jupyter":
         pytest.skip("Skipping jupyter due to missing free-threaded wheel for pyzmq")
 
-    return_code = run_pipx_cli(["install", *install_args])
+    return_code = run_pipx_cli(["install", *install_args, *(_JUPYTER_PYTHON_ARGS if package_name == "jupyter" else ())])
 
     error = capsys.readouterr().err
     assert (
@@ -946,7 +952,7 @@ def test_include_deps() -> None:
     if _FREE_THREADED:
         pytest.skip("Skipping jupyter due to missing free-threaded wheel for pyzmq")
 
-    assert not run_pipx_cli(["install", PKG["jupyter"]["spec"], "--include-deps"])
+    assert not run_pipx_cli(["install", PKG["jupyter"]["spec"], "--include-deps", *_JUPYTER_PYTHON_ARGS])
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

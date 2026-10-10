@@ -1,3 +1,5 @@
+default_language_version:
+  python: python3.15
 repos:
   - repo: local
     hooks:

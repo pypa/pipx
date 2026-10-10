@@ -78,7 +78,6 @@ def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_p
     else:
         platform_package_list_fh.close()
 
-    packages_dir_hits = []
     packages_dir_missing = []
     with platform_package_list_path.open("r") as platform_package_list_fh:
         for line in platform_package_list_fh:
@@ -96,12 +95,9 @@ def update_test_packages_cache(package_list_dir_path: Path, pipx_package_cache_p
                 for output_dir_file in packages_dir_files
                 if re.search(package_dist_patt, output_dir_file.name)
             ]
-            if len(matches) == 1:
-                packages_dir_files.remove(matches[0])
-                packages_dir_hits.append(matches[0])
-                continue
-            if len(matches) > 1:
-                exit_code = 1
+            if matches:
+                for matched_file in matches:
+                    packages_dir_files.remove(matched_file)
                 continue
 
             packages_dir_missing.append(package_spec)

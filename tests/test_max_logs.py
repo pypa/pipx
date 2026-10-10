@@ -152,6 +152,7 @@ def test_cli_rejects_invalid_env_max_logs(monkeypatch: pytest.MonkeyPatch, capsy
 
 
 @pytest.mark.parametrize("raw", ["", "   "], ids=["empty", "whitespace-only"])
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_cli_blank_env_max_logs_falls_back_to_default(
     raw: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

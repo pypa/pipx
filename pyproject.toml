@@ -22,12 +22,11 @@ license-files = [ "LICENSE" ]
 authors = [
   { name = "Chad Smith", email = "chadsmith.software@gmail.com" },
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
   "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -43,7 +42,6 @@ dependencies = [
   "filelock>=4.0.9",
   "packaging>=26.3",
   "platformdirs>=4.12.2",
-  "tomli>=2.4.1; python_version<'3.11'",
   "userpath!=1.9,>=1.9.2",
 ]
 optional-dependencies.uv = [
@@ -78,7 +76,6 @@ test = [
 type = [
   "gitpython>=3.2",
   "hatchling>=1.32.4",
-  "tomli>=2.4.1",
   "ty>=0.0.84",
   "types-docutils>=0.22.3.20260724",
   { include-group = "docs" },
@@ -186,7 +183,7 @@ check-hidden = true
 
 [tool.ty]
 src.include = [ "hatch_build.py", "scripts", "src", "tests" ]
-environment.python-version = "3.10"
+environment.python-version = "3.15"
 rules.unused-ignore-comment = "error"
 
 [tool.pytest]

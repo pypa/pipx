@@ -14,7 +14,7 @@ pipx runs on macOS, Linux, and Windows.
  Check the requirements
 ***********************
 
-Installing pipx needs Python 3.10 or newer; the apps it runs can target Python 3.3 or newer. Without Python 3.10, see
+Installing pipx needs Python 3.11 or newer; the apps it runs can target Python 3.3 or newer. Without Python 3.11, see
 the `Python 3 installation guide <https://realpython.com/installing-python/>`_.
 
 You also need ``pip`` for ``python3``. The steps vary by system; see `pip's installation instructions
@@ -147,7 +147,7 @@ For where these directories live and how to change them, see :doc:`configure-pat
  Run pipx without installing
 ****************************
 
-Download the zipapp from `GitHub releases <https://github.com/pypa/pipx/releases>`_ and invoke it with a Python 3.10+
+Download the zipapp from `GitHub releases <https://github.com/pypa/pipx/releases>`_ and invoke it with a Python 3.11+
 interpreter:
 
 .. code-block:: console

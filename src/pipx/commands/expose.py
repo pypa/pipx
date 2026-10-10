@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Final
 
 from pipx import paths
@@ -133,7 +133,7 @@ def _failure(command: tuple[str, ...], environment: str, error: str) -> Operatio
     )
 
 
-class _ExposureStatus(str, Enum):
+class _ExposureStatus(StrEnum):
     EXPOSED = "exposed"
     UNEXPOSED = "unexposed"
 

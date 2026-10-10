@@ -9,19 +9,15 @@ from textwrap import dedent
 from typing import NewType
 
 
-# enum.StrEnum is Python 3.11+; pipx supports 3.10.
-class FetchPythonOptions(str, enum.Enum):
+class FetchPythonOptions(enum.StrEnum):
     ALWAYS = "always"
     MISSING = "missing"
     NEVER = "never"
 
-    def __str__(self) -> str:
-        return self.value
-
 
 PIPX_SHARED_PTH = "pipx_shared.pth"
 TEMP_VENV_EXPIRATION_THRESHOLD_DAYS = 14
-MINIMUM_PYTHON_VERSION = "3.10"
+MINIMUM_PYTHON_VERSION = "3.11"
 MAN_SECTIONS = [f"man{i}" for i in range(1, 10)]
 # the directories a wheel ships completion scripts in, relative to the data scheme's share/, and the layout bash and
 # fish already read from under a user data directory
