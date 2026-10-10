@@ -14,6 +14,17 @@ to this file.
 
 .. towncrier release notes start
 
+`1.17.13 <https://github.com/pypa/pipx/tree/1.17.13>`_ - 2026-10-10
+===================================================================
+
+Bugfixes
+--------
+
+- Accept bare and suffixed injected package names in `pipx pin --skip`. (:issue:`2079`)
+- Use each snapshot's recorded interpreter when `pipx install-all` rebuilds an environment unless the user passes
+  `--python`. (:issue:`2081`)
+
+
 `1.17.12 <https://github.com/pypa/pipx/tree/1.17.12>`_ - 2026-10-07
 ===================================================================
 
