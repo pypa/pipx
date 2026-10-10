@@ -656,9 +656,7 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
     for venv_metadata in extract_venv_metadata(spec_metadata_file):
         main_package = venv_metadata.main_package
         venv_dir = venv_container.get_venv_dir(f"{main_package.package}{main_package.suffix}")
-        # ``ctx.python`` is always a resolved interpreter; without an explicit ``--python`` the interpreter
-        # recorded in the snapshot is the one the user asked to restore
-        interpreter = (
+        interpreter: Final[str | None] = (
             python if python_flag_passed else get_python_interpreter(venv_metadata.source_interpreter) or python
         )
         try:
@@ -687,6 +685,7 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
                     expected_apps=main_package.expected_apps,
                     lock_file=main_package.lock_file,
                     suffix=main_package.suffix,
+                    python_flag_passed=python_flag_passed,
                     backend=backend or venv_metadata.backend,
                     env_backend=env_backend,
                     exposure_enabled=venv_metadata.exposure_enabled,
