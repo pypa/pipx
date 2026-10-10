@@ -50,7 +50,17 @@ jobs:
           python-version: ${{ matrix.py }}
       - name: Register Python with the Windows launcher
         if: runner.os == 'Windows'
-        run: uv python install "${{ matrix.py }}" 3.14
+        shell: pwsh
+        run: |
+          uv python install "${{ matrix.py }}" 3.14
+          $pythonPath = uv python find "${{ matrix.py }}" --system
+          $registryPath = "HKCU:\Software\Python\PythonCore\${{ matrix.py }}"
+          New-Item "$registryPath\InstallPath" -Force -Value (Split-Path $pythonPath) | Out-Null
+          New-ItemProperty "$registryPath\InstallPath" -Name ExecutablePath -Value $pythonPath -Force | Out-Null
+          New-ItemProperty $registryPath -Name SysVersion -Value "${{ matrix.py }}" -Force | Out-Null
+          New-ItemProperty $registryPath -Name SysArchitecture -Value "64bit" -Force | Out-Null
+          py -${{ matrix.py }} -c "import sys; print(sys.executable)"
+          "PIPX_TEST_JUPYTER_PYTHON=$(uv python find 3.14 --system)" >> $env:GITHUB_ENV
       - name: 📦 Install tox
         run: uv tool install --python-preference only-managed --python 3.15 "tox>=4.45" --with tox-uv
       - name: Persistent .pipx_tests/package_cache
