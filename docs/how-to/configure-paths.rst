@@ -96,7 +96,8 @@ The ``--global`` flag installs into a system-wide location for all users. Place 
     $ sudo pipx install --global pycowsay
     $ sudo pipx list --global
 
-pipx silently ignores ``--global`` when it comes before the subcommand (``sudo pipx --global install pycowsay``).
+``--global`` has to come after the subcommand: pipx rejects ``sudo pipx --global install pycowsay`` with
+``unrecognized arguments: --global``.
 
 Default global paths are ``/usr/local/bin`` for binaries, ``/usr/local/share/man`` for man pages, and ``/opt/pipx`` for
 environments. Override them with ``PIPX_GLOBAL_BIN_DIR``, ``PIPX_GLOBAL_MAN_DIR``, and ``PIPX_GLOBAL_HOME``. Add the
