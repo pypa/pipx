@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Final, cast
 
 import pytest
 from docutils.core import publish_string
+from docutils.writers.manpage import Writer
 
 from helpers import run_pipx_cli
 from pipx import constants, main
@@ -173,7 +174,7 @@ def manpage_troff() -> bytes:
     source: Final[str] = "\n".join(
         line for line in _MANPAGE_RST.read_text(encoding="utf-8").splitlines() if line.strip() != ":orphan:"
     )
-    return publish_string(source, writer="manpage", settings_overrides={"report_level": 5})
+    return publish_string(source, writer=Writer(), settings_overrides={"report_level": 5})
 
 
 @pytest.mark.parametrize(

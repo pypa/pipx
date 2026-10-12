@@ -6,6 +6,7 @@ import zipfile
 from pathlib import Path
 
 from docutils.core import publish_string
+from docutils.writers.manpage import Writer
 
 
 def main() -> None:
@@ -13,7 +14,7 @@ def main() -> None:
     rst = Path(sys.argv[2]).read_text(encoding="utf-8")
     generated_manpage = publish_string(
         "\n".join(line for line in rst.splitlines() if line.strip() != ":orphan:"),
-        writer="manpage",
+        writer=Writer(),
         settings_overrides={"report_level": 5},
     )
     _check_source_archive(distribution_dir, rst.encode())
