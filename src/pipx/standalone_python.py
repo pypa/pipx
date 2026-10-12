@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import hashlib
 import http.client
 import json
@@ -55,7 +55,7 @@ MACHINE_SUFFIX: Final[dict[str, dict[str, Any]]] = {
 GITHUB_API_URL: Final[str] = "https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest"
 PYTHON_VERSION_REGEX: Final[re.Pattern[str]] = re.compile(r"cpython-(\d+\.\d+\.\d+)")
 _URL_OPEN_TIMEOUT: Final[float] = 30
-_INDEX_MAX_AGE: Final[datetime.timedelta] = datetime.timedelta(days=30)
+_INDEX_MAX_AGE: Final[dt.timedelta] = dt.timedelta(days=30)
 _RELEASE_ENTRY_LEN: Final[int] = 2
 _FETCH_ATTEMPTS: Final[int] = 3
 _FETCH_BACKOFF_SECONDS: Final[float] = 0.5
@@ -281,12 +281,12 @@ def get_or_update_index(*, use_cache: bool = True) -> _PythonIndex:
         loaded = json.loads(index_file.read_text())
         # Refresh legacy URL-only indexes, and update current indexes after 30 days.
         if _is_valid_python_index(loaded):
-            fetched = datetime.datetime.fromtimestamp(loaded["fetched"], tz=datetime.UTC)
-            if datetime.datetime.now(tz=datetime.UTC) - fetched <= _INDEX_MAX_AGE:
+            fetched = dt.datetime.fromtimestamp(loaded["fetched"], tz=dt.UTC)
+            if dt.datetime.now(tz=dt.UTC) - fetched <= _INDEX_MAX_AGE:
                 index = cast("_PythonIndex", loaded)
     if not index:
         releases = get_latest_python_releases()
-        index = {"fetched": datetime.datetime.now(tz=datetime.UTC).timestamp(), "releases": releases}
+        index = {"fetched": dt.datetime.now(tz=dt.UTC).timestamp(), "releases": releases}
         # update index
         index_file.write_text(json.dumps(index))
     return cast("_PythonIndex", index)

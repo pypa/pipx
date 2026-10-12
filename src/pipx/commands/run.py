@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import hashlib
 import json
 import logging
@@ -558,7 +558,7 @@ def _get_temporary_venv_path(  # ruff:ignore[too-many-arguments]  # all inputs f
 
 def _is_temporary_venv_expired(venv_dir: Path) -> bool:
     created_time_sec = venv_dir.stat().st_ctime
-    current_time_sec = datetime.datetime.now(tz=datetime.UTC).timestamp()
+    current_time_sec = dt.datetime.now(tz=dt.UTC).timestamp()
     age = current_time_sec - created_time_sec
     expiration_threshold_sec = 60 * 60 * 24 * TEMP_VENV_EXPIRATION_THRESHOLD_DAYS
     return age > expiration_threshold_sec or (venv_dir / _VENV_EXPIRED_FILENAME).exists()
