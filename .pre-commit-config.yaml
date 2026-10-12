@@ -36,11 +36,11 @@ repos:
           - mdformat-front-matters>=2
         exclude: ^(docs/changelog\.md|testdata)
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.30.1
+    rev: v2.30.3
     hooks:
       - id: pyproject-fmt
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.10
+    rev: v0.17.0
     hooks:
       - id: ruff-check
         args: ["--fix", "--unsafe-fixes", "--show-fixes", "--exit-non-zero-on-fix"]

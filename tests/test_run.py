@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import importlib
 import logging
 import os
@@ -380,12 +380,12 @@ def test_cache_sweep_ignores_tag(
     expired_venv = paths.ctx.venv_cache / "expired"
     expired_venv.mkdir()
 
-    class FutureDateTime(datetime.datetime):
+    class FutureDateTime(dt.datetime):
         @classmethod
-        def now(cls, tz: datetime.tzinfo | None = None) -> FutureDateTime:
-            return cls.fromtimestamp((super().now(tz) + datetime.timedelta(days=15)).timestamp(), tz)
+        def now(cls, tz: dt.tzinfo | None = None) -> FutureDateTime:
+            return cls.fromtimestamp((super().now(tz) + dt.timedelta(days=15)).timestamp(), tz)
 
-    monkeypatch.setattr(datetime, "datetime", FutureDateTime)
+    monkeypatch.setattr(dt, "datetime", FutureDateTime)
     caplog.set_level(logging.INFO)
     caplog.clear()
 
