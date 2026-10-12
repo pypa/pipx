@@ -14,6 +14,21 @@ to this file.
 
 .. towncrier release notes start
 
+`1.17.14 <https://github.com/pypa/pipx/tree/1.17.14>`_ - 2026-10-12
+===================================================================
+
+Bugfixes
+--------
+
+- Build pipx wheels with Docutils 0.21.2 and later, including environments pinned to Docutils 0.22. (:issue:`2084`)
+
+
+Improved Documentation
+----------------------
+
+- Say that pipx rejects `--global` before the subcommand instead of ignoring it. (:issue:`2082`)
+
+
 `1.17.13 <https://github.com/pypa/pipx/tree/1.17.13>`_ - 2026-10-10
 ===================================================================
 
