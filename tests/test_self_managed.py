@@ -105,6 +105,24 @@ def test_self_managed_missing_executable_does_not_set_bin_dir(
     )
 
 
+@_SKIP_ON_WINDOWS
+@pytest.mark.parametrize("through_symlink", [pytest.param(False, id="direct"), pytest.param(True, id="symlink")])
+def test_self_managed_global_home_keeps_default_paths(
+    self_managed_installation: _SelfManagedInstallation,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    through_symlink: bool,
+) -> None:
+    global_home = self_managed_installation.home
+    if through_symlink:
+        (global_home := tmp_path / "global-link").symlink_to(self_managed_installation.home)
+    monkeypatch.setenv("PIPX_GLOBAL_HOME", str(global_home))
+    assert discover_self_managed_environment(
+        prefix=self_managed_installation.venv,
+        executable=str(self_managed_installation.executable),
+    ) == {"PIPX_DEFAULT_PYTHON": str(self_managed_installation.source_interpreter)}
+
+
 def test_self_managed_windows_is_ignored(
     self_managed_installation: _SelfManagedInstallation,
     monkeypatch: pytest.MonkeyPatch,

@@ -9,6 +9,7 @@ from typing import Final, TypeAlias, cast
 
 _JsonValue: TypeAlias = bool | int | float | str | list["_JsonValue"] | dict[str, "_JsonValue"] | None
 _PIPX_METADATA_FILENAME: Final[str] = "pipx_metadata.json"
+DEFAULT_PIPX_GLOBAL_HOME: Final[Path] = Path("/opt/pipx")
 
 
 def discover_self_managed_environment(
@@ -35,14 +36,18 @@ def discover_self_managed_environment(
     if not isinstance(main_package, dict) or main_package.get("package") != "pipx":
         return {}
 
-    environment: dict[str, str] = {"PIPX_HOME": str(venv.parent.parent)}
-    invoked_executable = _invoked_executable(sys.argv[0] if executable is None else executable)
-    if (
-        invoked_executable is not None
-        and not invoked_executable.is_relative_to(venv)
-        and invoked_executable.resolve().is_relative_to(venv)
-    ):
-        environment["PIPX_BIN_DIR"] = str(invoked_executable.parent)
+    environment: dict[str, str] = {}
+    global_home: Final[Path] = Path(os.environ.get("PIPX_GLOBAL_HOME") or DEFAULT_PIPX_GLOBAL_HOME).expanduser()
+    # a pipx installed with --global serves every user, so only --global may select the global paths
+    if (home := venv.parent.parent).resolve() != global_home.resolve():
+        environment["PIPX_HOME"] = str(home)
+        invoked_executable = _invoked_executable(sys.argv[0] if executable is None else executable)
+        if (
+            invoked_executable is not None
+            and not invoked_executable.is_relative_to(venv)
+            and invoked_executable.resolve().is_relative_to(venv)
+        ):
+            environment["PIPX_BIN_DIR"] = str(invoked_executable.parent)
 
     source_interpreter = metadata.get("source_interpreter")
     if (
@@ -70,6 +75,7 @@ def get_environment_value(name: str) -> str | None:
 
 
 __all__ = [
+    "DEFAULT_PIPX_GLOBAL_HOME",
     "SELF_MANAGED_ENVIRONMENT",
     "discover_self_managed_environment",
     "get_environment_value",

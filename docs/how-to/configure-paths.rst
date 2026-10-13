@@ -113,6 +113,10 @@ for shell completions, and ``/opt/pipx`` for environments. Override them with ``
 global binary directory to the system ``PATH`` with ``sudo pipx ensurepath --global``, which writes
 ``/etc/profile.d/pipx.sh`` on Linux and ``/etc/paths.d/pipx`` on macOS.
 
+When pipx itself is installed with ``--global`` and ``PIPX_GLOBAL_HOME`` is overridden, set the override for every user
+(for example in ``/etc/environment``), so that pipx recognizes its own environment as the global one; see
+:doc:`../reference/environment-variables`.
+
 You can also set the variables explicitly instead of using ``--global``:
 
 .. code-block:: console

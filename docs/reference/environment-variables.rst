@@ -76,7 +76,10 @@ and when ``PIPX_HOME`` is unset. See :doc:`Configure paths <../how-to/configure-
 
 On Unix, a pipx installation that manages itself recovers ``PIPX_HOME`` and ``PIPX_DEFAULT_PYTHON`` from its own
 virtual environment when those variables are unset, and ``PIPX_BIN_DIR`` when pipx was launched through its exposed
-link, so later shells stay attached to the same installation.
+link, so later shells stay attached to the same installation. A pipx installed with ``--global`` lives in the global
+home (``PIPX_GLOBAL_HOME``, ``/opt/pipx`` by default) and recovers only ``PIPX_DEFAULT_PYTHON``: without ``--global``
+it uses the per-user defaults, with ``--global`` the global ones. A custom ``PIPX_GLOBAL_HOME`` must be set for every
+user who runs that pipx; otherwise it treats the global home as their own ``PIPX_HOME``.
 
 *******************************
  Derived (read-only) values
