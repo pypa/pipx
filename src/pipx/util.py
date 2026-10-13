@@ -11,7 +11,8 @@ import string
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import suppress
+from contextlib import contextmanager, suppress
+from contextvars import ContextVar
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
@@ -30,7 +31,7 @@ from pipx.constants import MINGW, WINDOWS
 from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Generator, Sequence
 
 if not WINDOWS:
     import fcntl
@@ -40,6 +41,7 @@ if not WINDOWS:
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _SUBPROCESS_STREAM_READ_SIZE: Final[int] = 8 * 1024
+_STREAM_STDOUT_TO_STDERR: Final[ContextVar[bool]] = ContextVar("stream_stdout_to_stderr", default=False)
 
 
 class PipxError(Exception):
@@ -188,6 +190,15 @@ def _fix_subprocess_env(env: dict[str, str], *, force_utf8: bool = True) -> dict
     return env
 
 
+@contextmanager
+def stream_subprocess_stdout_to_stderr(*, enabled: bool) -> Generator[None, None, None]:
+    token: Final = _STREAM_STDOUT_TO_STDERR.set(enabled)
+    try:
+        yield
+    finally:
+        _STREAM_STDOUT_TO_STDERR.reset(token)
+
+
 def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subprocess.run exposing its capture and logging switches
     cmd: Sequence[str | Path],
     *,
@@ -228,11 +239,6 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
         env.setdefault("PYTHONSAFEPATH", "1")
 
     if stream_output:
-        # Windows has no pseudo-terminal to hand the child, so it reads a pipe and rich, which pip draws its bar with,
-        # takes TTY_COMPATIBLE for the terminal we forward the output to and COLUMNS for a width it cannot measure.
-        if sys.stdout.isatty():
-            env.setdefault("TTY_COMPATIBLE", "1")
-            env.setdefault("COLUMNS", str(shutil.get_terminal_size().columns))
         completed_process = _run_streaming_subprocess(
             cmd_str_list,
             capture_stdout=capture_stdout,
@@ -269,12 +275,18 @@ def _run_streaming_subprocess(
     cwd: str | None,
     env: dict[str, str],
 ) -> subprocess.CompletedProcess[str]:
+    stdout_destination: Final[TextIO] = sys.stderr if _STREAM_STDOUT_TO_STDERR.get() else sys.stdout
+    # Windows has no pseudo-terminal to hand the child, so it reads a pipe and rich, which pip draws its bar with,
+    # takes TTY_COMPATIBLE for the terminal we forward the output to and COLUMNS for a width it cannot measure.
+    if stdout_destination.isatty():
+        env.setdefault("TTY_COMPATIBLE", "1")
+        env.setdefault("COLUMNS", str(shutil.get_terminal_size().columns))
     stdout_chunks: Final[list[str]] = []
     stderr_chunks: Final[list[str]] = []
     channels: Final[dict[str, _StreamChannel]] = {
         name: _open_stream_channel(destination)
         for name, destination, capture in (
-            ("stdout", sys.stdout, capture_stdout),
+            ("stdout", stdout_destination, capture_stdout),
             ("stderr", sys.stderr, capture_stderr),
         )
         if capture
@@ -295,7 +307,7 @@ def _run_streaming_subprocess(
             for future in [
                 executor.submit(_tee_subprocess_output, channels[name].reader, destination, chunks)
                 for name, destination, chunks in (
-                    ("stdout", sys.stdout, stdout_chunks),
+                    ("stdout", stdout_destination, stdout_chunks),
                     ("stderr", sys.stderr, stderr_chunks),
                 )
                 if name in channels
@@ -610,6 +622,7 @@ __all__ = [
     "run_pypackage_bin",
     "run_subprocess",
     "safe_unlink",
+    "stream_subprocess_stdout_to_stderr",
     "subprocess_post_check",
     "subprocess_post_check_handle_pip_error",
 ]

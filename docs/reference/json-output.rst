@@ -3,8 +3,8 @@
 #############
 
 Most pipx commands accept ``--output json`` to print a single machine-readable result envelope on stdout instead of
-human-readable text. Selecting JSON suppresses the normal progress messages, so the envelope is the only thing on
-stdout.
+human-readable text. Selecting JSON suppresses pipx's own progress messages and sends whatever pip or uv print while
+installing to stderr, so the envelope is the only thing on stdout.
 
 **********
  Envelope
@@ -44,9 +44,11 @@ The envelope is a JSON object with these keys (serialized with sorted keys):
       "errors": []
     }
 
-A dispatch failure on a JSON-enabled command still speaks the envelope: it prints a ``status`` of ``"error"`` with a
-single error whose ``code`` is ``pipx_error``, and exits ``1``. Two checks run before dispatch and print plain text
-instead: a ``--python`` that cannot be resolved, and a rejected package spec. Both exit ``1``.
+Once the arguments parse, a failure on a JSON-enabled command still speaks the envelope. That covers an invalid
+environment variable such as ``PIPX_COOLDOWN``, a ``--python`` that cannot be resolved, a path or URL where a package
+name belongs, and ``--backend uv`` without a ``uv`` executable. The envelope has a ``status`` of ``"error"`` and a
+single error whose ``code`` is ``pipx_error``, and pipx exits ``1``. Only argument-parsing errors, such as an unknown
+option or a missing argument, print plain text instead: the usage message goes to stderr and pipx exits ``2``.
 
 ********************
  Supported commands

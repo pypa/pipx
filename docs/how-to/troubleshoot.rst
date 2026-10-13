@@ -51,7 +51,8 @@ Check each managed environment without changing it:
     $ pipx health
 
 The command exits with status 1 when an environment cannot run its Python interpreter. Pass package names to check a
-subset, or ``--output json`` to read the result from a script.
+subset, or ``--output json`` to read the result from a script; each unhealthy environment then appears in ``errors``
+with the code ``environment_unhealthy``.
 
 Repair failed environments with the default Python:
 

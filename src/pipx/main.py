@@ -58,7 +58,7 @@ from pipx.interpreter import (
 from pipx.package_specifier import valid_pypi_name
 from pipx.result import OperationError, OperationResult, OutputFormat, error_envelope, render_result
 from pipx.shared_libs import skip_shared_libs_maintenance
-from pipx.util import PipxError, mkdir, pipx_wrap, rmdir
+from pipx.util import PipxError, mkdir, pipx_wrap, rmdir, stream_subprocess_stdout_to_stderr
 from pipx.venv import VenvContainer
 from pipx.version import version as __version__
 
@@ -357,6 +357,8 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
             python = find_python_interpreter(args.python or get_default_python(), fetch_python=args.fetch_python)
         except InterpreterResolutionError as error:
             _LOGGER.debug("Failed to resolve interpreter:", exc_info=True)
+            if _output_format(args) is OutputFormat.JSON:
+                raise
             print(  # ruff:ignore[print]  # user-facing CLI output
                 pipx_wrap(f"{hazard} {error}", subsequent_indent=" " * 4)
             )
@@ -382,30 +384,15 @@ def run_pipx_command(args: argparse.Namespace) -> ExitCode:
         env_cooldown_days=_COOLDOWN if "cooldown" in args else None,
     )
     output: Final[OutputFormat] = _output_format(args)
-    with skip_shared_libs_maintenance(enabled=getattr(args, "skip_maintenance", False)):
-        try:
-            result = args.func(args, ctx)
-        except PipxError as error:
-            # once a JSON-enabled command was selected, a dispatch failure must still speak the result envelope
-            if output is OutputFormat.JSON:
-                print(  # ruff:ignore[print]  # user-facing CLI output
-                    error_envelope(
-                        _command_tokens(args), OperationError(code="pipx_error", message=str(error)), ExitCode(1)
-                    )
-                )
-                return ExitCode(1)
-            raise
-        if isinstance(result, OperationResult):
-            return render_result(result, output=output, quiet=getattr(args, "quiet", 0))
-        return result
-
-
-def _command_tokens(args: argparse.Namespace) -> tuple[str, ...]:
-    tokens: Final[list[str]] = [args.command]
-    for subcommand in ("cache_command", "interpreter_command", "manifest_command"):
-        if value := getattr(args, subcommand, None):
-            tokens.append(value)
-    return tuple(tokens)
+    with (
+        skip_shared_libs_maintenance(enabled=getattr(args, "skip_maintenance", False)),
+        # pip writes its progress to stdout, which under JSON belongs to the envelope alone
+        stream_subprocess_stdout_to_stderr(enabled=output is OutputFormat.JSON),
+    ):
+        result = args.func(args, ctx)
+    if isinstance(result, OperationResult):
+        return render_result(result, output=output, quiet=getattr(args, "quiet", 0))
+    return result
 
 
 def _output_format(args: argparse.Namespace) -> OutputFormat:
@@ -2005,6 +1992,9 @@ def setup_logging(verbose: int) -> None:
 
 
 def setup(args: argparse.Namespace) -> None:
+    _validate_fetch_python()
+    _validate_cooldown()
+    _validate_max_logs()
     if "version" in args and args.version:
         print_version()
         sys.exit(0)
@@ -2102,15 +2092,31 @@ def _dispatch(argv: list[str]) -> ExitCode:
     parser, _ = get_command_parser()
     argcomplete.autocomplete(parser, always_complete_options=False)
     parsed_pipx_args: Final[argparse.Namespace] = parse_pipx_args(parser, argv)
-    _validate_fetch_python()
-    _validate_cooldown()
-    _validate_max_logs()
-    setup(parsed_pipx_args)
-    check_args(parsed_pipx_args)
-    if not parsed_pipx_args.command:
-        parser.print_help()
+    try:
+        setup(parsed_pipx_args)
+        check_args(parsed_pipx_args)
+        if not parsed_pipx_args.command:
+            parser.print_help()
+            return ExitCode(1)
+        return run_pipx_command(parsed_pipx_args)
+    except PipxError as error:
+        # once a JSON-enabled command was selected, any failure must still speak the result envelope
+        if _output_format(parsed_pipx_args) is not OutputFormat.JSON:
+            raise
+        print(  # ruff:ignore[print]  # user-facing CLI output
+            error_envelope(
+                _command_tokens(parsed_pipx_args), OperationError(code="pipx_error", message=str(error)), ExitCode(1)
+            )
+        )
         return ExitCode(1)
-    return run_pipx_command(parsed_pipx_args)
+
+
+def _command_tokens(args: argparse.Namespace) -> tuple[str, ...]:
+    tokens: Final[list[str]] = [args.command]
+    for subcommand in ("cache_command", "interpreter_command", "manifest_command"):
+        if value := getattr(args, subcommand, None):
+            tokens.append(value)
+    return tuple(tokens)
 
 
 def cli() -> ExitCode:

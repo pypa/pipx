@@ -221,3 +221,37 @@ def test_repair_json_stays_pure_when_it_reinstalls(capsys: pytest.CaptureFixture
     captured = capsys.readouterr()
     document = json.loads(captured.out)  # the internal reinstall must not print human text before this
     assert (document["command"], document["status"], captured.err) == (["repair"], "success", "")
+
+
+@pytest.mark.parametrize(
+    ("healthy_neighbour", "status"),
+    [
+        pytest.param(False, "error", id="all-broken"),
+        pytest.param(True, "partial", id="some-broken"),
+    ],
+)
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_health_json_reports_broken_environment_as_error(
+    capsys: pytest.CaptureFixture[str],
+    healthy_neighbour: bool,
+    status: str,
+) -> None:
+    if healthy_neighbour:
+        assert not run_pipx_cli(["install", "pycowsay", "--suffix=-other"])
+    remove_venv_interpreter("pycowsay")
+    capsys.readouterr()
+
+    assert run_pipx_cli(["health", "--output", "json"]) == 1
+
+    document: Final[dict[str, object]] = json.loads(capsys.readouterr().out)
+    assert (document["status"], document["errors"]) == (
+        status,
+        [
+            {
+                "code": "environment_unhealthy",
+                "environment": "pycowsay",
+                "message": "interpreter is missing",
+                "package": None,
+            }
+        ],
+    )
