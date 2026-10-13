@@ -182,6 +182,27 @@ def test_expose_reports_collisions_as_partial(capsys: pytest.CaptureFixture[str]
 
 
 @pytest.mark.parametrize(
+    "prior_collision",
+    [pytest.param(True, id="after-cleared-collision"), pytest.param(False, id="after-manual-delete")],
+)
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_expose_relinks_missing_app(capsys: pytest.CaptureFixture[str], *, prior_collision: bool) -> None:
+    app = paths.ctx.bin_dir / app_name("pycowsay")
+    if prior_collision:
+        assert run_pipx_cli(["unexpose", "pycowsay"]) == 0
+        app.write_text("not managed by pipx", encoding="utf-8")
+        assert run_pipx_cli(["expose", "pycowsay"]) == 1
+        capsys.readouterr()
+    app.unlink()
+
+    assert (run_pipx_cli(["expose", "pycowsay"]), app.exists(), capsys.readouterr().out) == (
+        0,
+        True,
+        "pycowsay: exposed\n",
+    )
+
+
+@pytest.mark.parametrize(
     ("command", "setup_command", "message"),
     [
         pytest.param("expose", None, "pycowsay: already exposed\n", id="expose"),
