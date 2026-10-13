@@ -41,7 +41,6 @@ if TYPE_CHECKING:
     from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
 
-TEST_DATA_PATH = "./testdata/test_package_specifier"
 _FREE_THREADED: Final[bool] = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
 # Pywinpty lacks Python 3.15 wheels: https://github.com/andfoy/pywinpty/issues/582
 _JUPYTER_PYTHON_ARGS: Final[tuple[str, ...]] = (
@@ -737,8 +736,10 @@ def test_install_accepts_expected_dependency_app(local_extras_project: Path) -> 
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_install_upgrade_reexposes_expected_dependency_resources(root: Path, tmp_path: Path) -> None:
-    dependency: Final[Path] = root / TEST_DATA_PATH / "local_manpage"
+def test_install_upgrade_reexposes_expected_dependency_resources(
+    root: Path, tmp_path: Path, local_manpage_project: Path
+) -> None:
+    dependency: Final[Path] = local_manpage_project
     project: Final[Path] = tmp_path / "expected-dependency-app"
     shutil.copytree(root / "testdata/empty_project", project)
     pyproject: Final[Path] = project / "pyproject.toml"
@@ -1305,8 +1306,8 @@ def test_man_page_install(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_editable_install_links_man_pages(capsys: pytest.CaptureFixture[str], root: Path) -> None:
-    package = (root / TEST_DATA_PATH / "local_manpage").as_posix()
+def test_editable_install_links_man_pages(capsys: pytest.CaptureFixture[str], local_manpage_project: Path) -> None:
+    package = local_manpage_project.as_posix()
 
     assert not run_pipx_cli(["install", "--editable", package])
     captured = capsys.readouterr()

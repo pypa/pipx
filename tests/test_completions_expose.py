@@ -19,8 +19,8 @@ _SECTIONS: Final[dict[str, str]] = {
 
 
 @pytest.fixture
-def completion_project(root: Path) -> str:
-    return str(root / "testdata/test_package_specifier/local_completion")
+def completion_project(local_completion_project: Path) -> str:
+    return str(local_completion_project)
 
 
 @pytest.mark.parametrize("section", list(_SECTIONS), ids=["bash", "zsh", "fish"])
