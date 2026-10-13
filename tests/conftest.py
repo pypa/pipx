@@ -118,10 +118,29 @@ print("installed")
 
 
 @pytest.fixture
-def local_extras_project(root: Path, tmp_path: Path) -> Path:
-    project: Final[Path] = tmp_path / "local_extras"
-    shutil.copytree(root / "testdata/test_package_specifier/local_extras", project, ignore=_IGNORE_PROJECT_OUTPUT)
-    return project
+def local_extras_project(copy_local_package: Callable[[str], Path]) -> Path:
+    return copy_local_package("local_extras")
+
+
+@pytest.fixture
+def local_completion_project(copy_local_package: Callable[[str], Path]) -> Path:
+    return copy_local_package("local_completion")
+
+
+@pytest.fixture
+def local_manpage_project(copy_local_package: Callable[[str], Path]) -> Path:
+    return copy_local_package("local_manpage")
+
+
+@pytest.fixture
+def copy_local_package(root: Path, tmp_path: Path) -> Callable[[str], Path]:
+    # setuptools builds these in place, so tests sharing the checkout under xdist race on its build/ directory
+    def copy(name: str) -> Path:
+        project: Final[Path] = tmp_path / name
+        shutil.copytree(root / "testdata/test_package_specifier" / name, project, ignore=_IGNORE_PROJECT_OUTPUT)
+        return project
+
+    return copy
 
 
 @pytest.fixture
