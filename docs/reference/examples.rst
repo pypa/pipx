@@ -151,7 +151,8 @@ Narrow the output or change the format; the package filter works with every form
  install-all
 *************
 
-Reinstall from a snapshot produced by ``pipx list --output json`` (see :doc:`json-output`):
+Reinstall from a snapshot produced by ``pipx list --output json`` (see :doc:`json-output`). Each environment gets the
+venv and pip arguments the snapshot recorded unless you pass your own:
 
 .. code-block:: console
 

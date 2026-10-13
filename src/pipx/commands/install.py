@@ -674,8 +674,8 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
                     local_bin_dir,
                     local_man_dir,
                     interpreter,
-                    pip_args,
-                    venv_args,
+                    pip_args or main_package.pip_args,
+                    venv_args or venv_metadata.venv_args,
                     verbose=verbose,
                     force=force,
                     reinstall=False,
@@ -699,7 +699,7 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
                         venv_dir=venv_dir,
                         package_specs=[generate_package_spec(inject_package)],
                         requirement_files=[],
-                        pip_args=pip_args,
+                        pip_args=pip_args or inject_package.pip_args,
                         verbose=verbose,
                         include_apps=inject_package.include_apps,
                         include_dependencies=inject_package.include_dependencies,
@@ -726,22 +726,31 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
 def extract_venv_metadata(spec_metadata_file: Path) -> Iterator[PipxMetadata]:
     try:
         spec: Final = load_spec_file(spec_metadata_file)
-    except json.decoder.JSONDecodeError as exc:
-        msg = "The spec metadata file is an invalid JSON file."
+    except OSError as exc:
+        msg = f"Unable to read the spec metadata file {spec_metadata_file}: {exc.strerror}"
+        raise PipxError(msg) from exc
+    except (json.decoder.JSONDecodeError, UnicodeDecodeError) as exc:
+        msg = f"The spec metadata file {spec_metadata_file} is not valid JSON."
         raise PipxError(msg) from exc
 
-    venvs_metadata_dict: Final = spec.get("venvs")
-    if not venvs_metadata_dict:
-        msg = "No packages found in the spec metadata file."
+    if not isinstance(spec, dict) or not isinstance(venvs_metadata_dict := spec.get("venvs", {}), dict):
+        msg = f"The spec metadata file {spec_metadata_file} is invalid."
         raise PipxError(msg)
-    if not isinstance(venvs_metadata_dict, dict):
-        msg = "The spec metadata file is invalid."
+    if not venvs_metadata_dict:
+        msg = f"No packages found in the spec metadata file {spec_metadata_file}."
         raise PipxError(msg)
 
     for package_path_name, entry in venvs_metadata_dict.items():
         venv_dir = paths.ctx.venvs.joinpath(package_path_name)
         venv_metadata = PipxMetadata(venv_dir, read=False)
-        venv_metadata.from_dict(entry["metadata"])
+        try:
+            venv_metadata.from_dict(entry["metadata"])
+        except KeyError as exc:
+            msg = f"Entry {package_path_name!r} in the spec metadata file {spec_metadata_file} is missing {exc}."
+            raise PipxError(msg) from exc
+        except (AttributeError, TypeError) as exc:
+            msg = f"Entry {package_path_name!r} in the spec metadata file {spec_metadata_file} is malformed: {exc}"
+            raise PipxError(msg) from exc
         yield venv_metadata
 
 
