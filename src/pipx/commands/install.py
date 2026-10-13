@@ -201,6 +201,13 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                     if not existing.continue_install:
                         venv_dir = None
                         continue
+                    # --force reuses the environment, so --python does not switch it; `pipx reinstall --python` does
+                    if (
+                        python_flag_passed
+                        and (recorded := venv.pipx_metadata.source_interpreter) is not None
+                        and recorded.is_file()
+                    ):
+                        venv.python = str(recorded)
             except PipxError as error:
                 _record_install_failure(failures, messages, environment, error)
                 break
@@ -217,7 +224,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                         rmdir(venv_dir)
                         venv = Venv(
                             venv_dir,
-                            python=python,
+                            python=venv.python,
                             verbose=verbose,
                             backend=install_backend or recorded_backend,
                         )
@@ -487,7 +494,7 @@ def _handle_existing_install(  # ruff:ignore[too-many-arguments]  # forwards the
                     f"""
                     --python is ignored when --force is passed.
                     If you want to reinstall {package_name} with {python},
-                    run `pipx reinstall {package_spec} --python {python}` instead.
+                    run `pipx reinstall {venv.name} --python {python}` instead.
                     """
                 )
             )

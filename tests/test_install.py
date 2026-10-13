@@ -1546,6 +1546,36 @@ def test_passed_python_and_force_flag_warning(capsys: pytest.CaptureFixture[str]
     )
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_force_install_python_warning_suggests_reinstall_of_environment(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["install", "--force", "--python", sys.executable, PKG["pycowsay"]["spec"]])
+
+    assert f"run `pipx reinstall pycowsay --python {sys.executable}` instead" in " ".join(
+        capsys.readouterr().out.split()
+    )
+
+
+@skip_if_windows
+@pytest.mark.parametrize("locked", [pytest.param(False, id="plain"), pytest.param(True, id="locked")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_force_install_keeps_existing_interpreter(
+    tmp_path: Path, make_pylock: Callable[[str, str], Path], locked: bool
+) -> None:
+    lock_args: Final[list[str]] = ["--lock", str(make_pylock("pycowsay", "0.0.0.2"))] if locked else []
+    assert not run_pipx_cli(["install", *lock_args, PKG["pycowsay"]["spec"]])
+    venv_dir: Final[Path] = paths.ctx.venvs / "pycowsay"
+    recorded: Final[Path | None] = PipxMetadata(venv_dir).source_interpreter
+    other_python: Final[Path] = tmp_path / "python-other"
+    other_python.symlink_to(sys.executable)
+
+    assert not run_pipx_cli(["install", "--force", "--python", str(other_python), PKG["pycowsay"]["spec"]])
+
+    assert PipxMetadata(venv_dir).source_interpreter == recorded
+
+
 @pytest.mark.parametrize(
     ("python_version", "fetch_flag", "expect_deprecation"),
     [
