@@ -10,6 +10,7 @@ import sys
 import textwrap
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from threading import Thread
 from typing import TYPE_CHECKING, Final
 from unittest import mock
@@ -19,7 +20,6 @@ from filelock import AcquireReturnProxy, FileLock, Timeout
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Mapping, Sequence
-    from pathlib import Path
 
     from pytest_mock import MockerFixture
 
@@ -287,7 +287,9 @@ def test_run_script_searches_python_only_when_default_fails_requires_python(
 
     run_pipx_cli_exit(["run", "--backend", backend, str(script)], assert_exit=0)
 
-    assert {str(arg) for arg in exec_mock.call_args.args[0]} & {"/py/3.12", "/py/3.15"} == searched
+    assert {Path(arg) for arg in exec_mock.call_args.args[0]} & {Path("/py/3.12"), Path("/py/3.15")} == {
+        Path(path) for path in searched
+    }
 
 
 @pytest.mark.parametrize("backend", ["pip", "uv"])
