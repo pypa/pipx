@@ -256,6 +256,17 @@ def test_reinstall_pinned_package(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_keeps_injected_pin() -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
+    assert not run_pipx_cli(["pin", "pycowsay", "--injected-only"])
+
+    assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").injected_packages["black"].pinned
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_all_quiet_says_nothing(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     capsys.readouterr()

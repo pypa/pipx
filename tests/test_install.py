@@ -779,6 +779,18 @@ def test_install_force_preserves_expected_app() -> None:
     ) == (["pycowsay"], ())
 
 
+@pytest.mark.parametrize("locked", [pytest.param(False, id="plain"), pytest.param(True, id="lock")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_force_keeps_pin(make_pylock: MakePylock, locked: bool) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["pin", "pycowsay"])
+    lock_args: Final[list[str]] = ["--lock", str(make_pylock("pycowsay", "0.0.0.2"))] if locked else []
+
+    assert not run_pipx_cli(["install", "--force", *lock_args, PKG["pycowsay"]["spec"]])
+
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.pinned
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_backup_failure_preserves_existing_environment(
     capsys: pytest.CaptureFixture[str], mocker: MockerFixture

@@ -488,6 +488,16 @@ def test_inject_with_req_file(
     assert set(injected) == {pkg for pkg, _ in packages}
 
 
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_force_inject_keeps_injected_pin() -> None:
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
+    assert not run_pipx_cli(["pin", "pycowsay", "--injected-only"])
+
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--force"])
+
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").injected_packages["black"].pinned
+
+
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_force_inject_reinstalls_without_storing_force(caplog: pytest.LogCaptureFixture) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
