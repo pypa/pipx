@@ -83,6 +83,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
     cooldown_days: int | None = None,
     env_cooldown_days: int | None = None,
     venv_lock: BaseFileLock | None = None,
+    pinned: bool | None = None,
     preserve_existing: bool = False,
     fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER,
     replace_expected_apps: bool = False,
@@ -177,7 +178,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                 required_exposure = (
                     venv.pipx_metadata.exposure_enabled if exposure_enabled is None else exposure_enabled
                 )
-                required_pinned = venv.pipx_metadata.main_package.pinned
+                required_pinned = venv.pipx_metadata.main_package.pinned if pinned is None else pinned
                 if exists:
                     existing = _handle_existing_install(
                         venv,
@@ -695,6 +696,7 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
                     replace_lock=True,
                     venv_lock=venv_lock,
                     cooldown_days=package_cooldown,
+                    pinned=main_package.pinned,
                 )
                 for inject_package in venv_metadata.injected_packages.values():
                     commands.inject(
@@ -709,6 +711,7 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
                         force=force,
                         suffix=inject_package.suffix == main_package.suffix,
                         cooldown_days=(cooldown_days if cooldown_days is not None else inject_package.cooldown_days),
+                        pinned=inject_package.pinned,
                     )
         except PipxError as error:
             print(error, file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output

@@ -72,6 +72,32 @@ def test_install_all(  # ruff:ignore[too-many-positional-arguments]  # pytest in
     )
 
 
+@pytest.mark.parametrize(
+    ("pin_args", "expected_pins"),
+    [
+        pytest.param([], (True, True), id="all"),
+        pytest.param(["--injected-only"], (False, True), id="injected-only"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_restores_pins(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], pin_args: list[str], expected_pins: tuple[bool, bool]
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
+    assert not run_pipx_cli(["pin", "pycowsay", *pin_args])
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--json"])
+    spec_file: Final[Path] = tmp_path / "pipx.json"
+    spec_file.write_text(capsys.readouterr().out, encoding="utf-8")
+    assert not run_pipx_cli(["uninstall-all"])
+
+    assert not run_pipx_cli(["install-all", str(spec_file)])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    assert (metadata.main_package.pinned, metadata.injected_packages["black"].pinned) == expected_pins
+
+
 @pytest.fixture
 def recorded_snapshot(
     pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # create an isolated pipx home
