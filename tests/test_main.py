@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import shutil
@@ -14,7 +15,8 @@ from docutils.core import publish_string
 from docutils.writers.manpage import Writer
 
 from helpers import run_pipx_cli
-from pipx import constants, main
+from package_info import PKG
+from pipx import constants, main, venv
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
@@ -341,3 +343,25 @@ def test_get_pip_args_honours_posix_escape(mocker: MockerFixture) -> None:
 def test_get_pip_args_rejects_unclosed_quote() -> None:
     with pytest.raises(PipxError, match="invalid pip arguments: No closing quotation"):
         main.get_pip_args({"pip_args": "--find-links '/opt/foo bar"})
+
+
+@pytest.fixture
+def json_install_with_progress(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # requested for its isolated pipx home
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> pytest.CaptureFixture[str]:
+    # an interactive stderr makes pipx stream the backend's own progress output
+    monkeypatch.setattr(venv, "STDERR_IS_TTY", True)
+    assert not run_pipx_cli(["install", "--output", "json", PKG["pycowsay"]["spec"]])
+    return capsys
+
+
+def test_json_output_keeps_streamed_progress_off_stdout(
+    json_install_with_progress: pytest.CaptureFixture[str],
+) -> None:
+    assert json.loads(json_install_with_progress.readouterr().out)["status"] == "success"
+
+
+def test_json_output_streams_progress_to_stderr(json_install_with_progress: pytest.CaptureFixture[str]) -> None:
+    assert "Collecting pycowsay" in json_install_with_progress.readouterr().err
