@@ -208,6 +208,16 @@ def test_inject_quiet(capsys: pytest.CaptureFixture[str]) -> None:
     ) == (True, True)
 
 
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_inject_warns_system_site_packages_is_ignored(caplog: pytest.LogCaptureFixture) -> None:
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"], "--system-site-packages"])
+
+    assert any(
+        record.levelno == logging.WARNING and "Ignoring --system-site-packages" in record.getMessage()
+        for record in caplog.records
+    )
+
+
 @pytest.fixture
 def installed_pycowsay(
     pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while pycowsay is installed

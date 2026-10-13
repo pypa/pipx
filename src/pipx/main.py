@@ -823,6 +823,7 @@ def _add_inject(
 
 
 def _cmd_inject(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[commands.InjectionData]:
+    _warn_ignored_venv_args(ctx, "inject")
     venv_dir: Final[Path] = _venv_dir(args, ctx)
     with ctx.venv_container.venv_lock(venv_dir):
         return commands.inject(
@@ -840,6 +841,16 @@ def _cmd_inject(args: argparse.Namespace, ctx: DispatchContext) -> OperationResu
             env_backend=ctx.env_backend,
             cooldown_days=ctx.effective_cooldown_days,
             emit_output=False,
+        )
+
+
+def _warn_ignored_venv_args(ctx: DispatchContext, command: str) -> None:
+    if ctx.venv_args:
+        _LOGGER.warning(
+            "%s  Ignoring %s: %s works on existing environments, whose venv options were set by install",
+            hazard,
+            ", ".join(ctx.venv_args),
+            command,
         )
 
 
@@ -1069,6 +1080,7 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argp
 
 
 def _cmd_upgrade_all(args: argparse.Namespace, ctx: DispatchContext) -> OperationResult[UpgradeData]:
+    _warn_ignored_venv_args(ctx, "upgrade-all")
     return commands.upgrade_all(
         ctx.venv_container,
         verbose=ctx.verbose,

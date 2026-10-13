@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import subprocess
 from threading import Barrier
 from typing import TYPE_CHECKING, Final
@@ -34,6 +35,18 @@ def test_upgrade_all_none(capsys: pytest.CaptureFixture[str]) -> None:
     assert not run_pipx_cli(["upgrade-all"])
     captured: Final[CaptureResult[str]] = capsys.readouterr()
     assert "No packages upgraded after running 'pipx upgrade-all'" in captured.out
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_all_warns_system_site_packages_is_ignored(caplog: pytest.LogCaptureFixture) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+
+    assert not run_pipx_cli(["upgrade-all", "--system-site-packages"])
+
+    assert any(
+        record.levelno == logging.WARNING and "Ignoring --system-site-packages" in record.getMessage()
+        for record in caplog.records
+    )
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
