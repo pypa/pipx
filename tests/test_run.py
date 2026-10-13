@@ -250,18 +250,41 @@ def test_run_with_isolates_cache_by_dependency(mocker: MockerFixture) -> None:
     assert (len(with_dirs), inject.call_count, inject.call_args.kwargs["package_spec"]) == (1, 1, "packaging")
 
 
-@pytest.mark.usefixtures("pipx_temp_env")
-@mock.patch("os.execvpe", new=execvpe_mock)
-def test_run_resolves_interpreter_for_requires_python(tmp_path: Path, mocker: MockerFixture) -> None:
-    resolve: Final = mocker.patch.object(
-        importlib.import_module("pipx.commands.run"), "interpreter_for", return_value=sys.executable
+@pytest.fixture
+def script_interpreters(mocker: MockerFixture) -> None:
+    """Each searched minor ``3.X`` resolves to ``/py/3.X``; the default Python reports 3.14.0."""
+    mocker.patch(
+        "pipx.requires_python.find_python_interpreter", autospec=True, side_effect=lambda minor, _: f"/py/{minor}"
     )
+    mocker.patch(
+        "pipx.requires_python.run_subprocess",
+        autospec=True,
+        side_effect=lambda cmd, **_: subprocess.CompletedProcess(
+            cmd, 0, stdout=f"{cmd[0].removeprefix('/py/')}.0" if cmd[0].startswith("/py/") else "3.14.0"
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    ("requires_python", "searched"),
+    [
+        pytest.param(">=3.10", set(), id="default-satisfies"),
+        pytest.param("<3.13", {"/py/3.12"}, id="default-fails"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env", "script_interpreters")
+def test_run_script_searches_python_only_when_default_fails_requires_python(
+    tmp_path: Path, mocker: MockerFixture, requires_python: str, searched: set[str]
+) -> None:
+    exec_mock: Final = mocker.patch("pipx.commands.run.exec_app", autospec=True, side_effect=SystemExit(0))
     script: Final[Path] = tmp_path / "script.py"
-    script.write_text('# /// script\n# requires-python = ">=3.11"\n# ///\nprint("hi")\n', encoding="utf-8")
+    script.write_text(
+        f'# /// script\n# requires-python = "{requires_python}"\n# dependencies = []\n# ///\n', encoding="utf-8"
+    )
 
     run_pipx_cli_exit(["run", "--backend", "pip", str(script)], assert_exit=0)
 
-    assert str(resolve.call_args.args[0]) == ">=3.11"
+    assert {str(arg) for arg in exec_mock.call_args.args[0]} & {"/py/3.12", "/py/3.15"} == searched
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
 from filelock import Timeout
 from packaging.requirements import InvalidRequirement, Requirement
-from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
 
 from pipx import paths
@@ -200,15 +199,15 @@ def run_script(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run
 def _interpreter_for_script(
     requires_python: str, python: str, fetch_python: FetchPythonOptions, *, python_flag_passed: bool
 ) -> str:
-    if not python_flag_passed:
-        return interpreter_for(SpecifierSet(requires_python), fetch_python)
-    if unsatisfied_by_interpreter(requires_python, python) is not None:
+    if (constraint := unsatisfied_by_interpreter(requires_python, python)) is None:
+        return python
+    if python_flag_passed:
         msg = (
             f"The script requires Python {requires_python}, which the interpreter chosen with --python does not "
             f"satisfy. Pass a matching --python, or drop --python to let pipx pick one."
         )
         raise PipxError(msg)
-    return python
+    return interpreter_for(constraint, fetch_python)
 
 
 def _exec_script(
