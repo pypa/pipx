@@ -211,7 +211,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
 
         # now install injected packages
         for injected_name, injected_package in venv.pipx_metadata.injected_packages.items():
-            inject_dep(
+            injected = inject_dep(
                 venv_dir,
                 injected_name,
                 _require_injected_url(injected_package, venv.name),
@@ -226,7 +226,9 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
                 env_backend=env_backend,
                 cooldown_days=injected_package.cooldown_days,
                 pinned=injected_package.pinned,
+                emit_output=False,
             )
+            messages.extend(injected.messages)
 
         new_resource_paths = _get_expected_reinstall_resource_paths(
             Venv(venv_dir, verbose=verbose), local_bin_dir, local_man_dir

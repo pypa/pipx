@@ -328,3 +328,44 @@ def test_reinstall_all_json_reports_no_environments(capsys: pytest.CaptureFixtur
     assert not run_pipx_cli(["reinstall-all", "--python", sys.executable, "--output", "json"])
 
     assert json.loads(capsys.readouterr().out)["data"] == {"environments": []}
+
+
+@pytest.fixture
+def installed_with_injection(
+    pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # requested for its isolated pipx home
+    capsys: pytest.CaptureFixture[str],
+) -> pytest.CaptureFixture[str]:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
+    capsys.readouterr()
+    return capsys
+
+
+@pytest.mark.parametrize(
+    ("argv", "command"),
+    [
+        pytest.param(["reinstall", "pycowsay"], "reinstall", id="reinstall"),
+        pytest.param(["reinstall-all"], "reinstall-all", id="reinstall-all"),
+    ],
+)
+def test_reinstall_json_with_injected_package_prints_only_the_envelope(
+    installed_with_injection: pytest.CaptureFixture[str],
+    argv: list[str],
+    command: str,
+) -> None:
+    assert not run_pipx_cli([*argv, "--python", sys.executable, "--output", "json"])
+
+    assert json.loads(installed_with_injection.readouterr().out) == {
+        "command": [command],
+        "data": {"environments": [{"environment": "pycowsay"}]},
+        "pipx_result_version": "1",
+        "errors": [],
+        "exit_code": 0,
+        "status": "success",
+    }
+
+
+def test_reinstall_reports_the_reinjected_package(installed_with_injection: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
+
+    assert "injected package black into venv pycowsay" in installed_with_injection.readouterr().out

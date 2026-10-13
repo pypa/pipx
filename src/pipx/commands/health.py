@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from pipx.commands.reinstall import reinstall
 from pipx.constants import ExitCode
@@ -30,13 +30,18 @@ def health(venv_container: VenvContainer, venv_dirs: Iterable[Path]) -> Operatio
         messages.append(OutputMessage(f"{environment.environment}: {environment.error}{location}"))
     if not messages:
         messages.append(OutputMessage("pipx manages no packages."))
+    errors: Final[tuple[OperationError, ...]] = tuple(
+        OperationError(code="environment_unhealthy", message=environment.error, environment=environment.environment)
+        for environment in environments
+        if environment.error is not None
+    )
     return OperationResult(
         command=("health",),
         data=HealthData(environments=tuple(environments)),
         messages=tuple(messages),
-        exit_code=ExitCode(
-            1 if any(environment.status is not _HealthStatus.HEALTHY for environment in environments) else 0
-        ),
+        exit_code=ExitCode(1 if errors else 0),
+        errors=errors,
+        succeeded=any(environment.status is _HealthStatus.HEALTHY for environment in environments),
     )
 
 
