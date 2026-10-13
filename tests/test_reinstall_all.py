@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING, NoReturn
 import pytest
 
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli
+from package_info import PKG
 from pipx import paths, shared_libs
+from pipx.pipx_metadata_file import PipxMetadata
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -17,6 +19,17 @@ if TYPE_CHECKING:
 def test_reinstall_all() -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
     assert not run_pipx_cli(["reinstall-all", "--python", sys.executable])
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_reinstall_all_keeps_injected_pin() -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
+    assert not run_pipx_cli(["pin", "pycowsay", "--injected-only"])
+
+    assert not run_pipx_cli(["reinstall-all", "--python", sys.executable])
+
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").injected_packages["black"].pinned
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

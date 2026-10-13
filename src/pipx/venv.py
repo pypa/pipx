@@ -396,7 +396,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         install_only_pip_args: list[str] | None = None,
         expected_apps: Sequence[str] | None = None,
         lock_file: Path | None = None,
-        pinned: bool = False,
+        pinned: bool | None = None,
         cooldown_days: int | None = None,
     ) -> None:
         # a script path can also read as a PyPI name (bare.py) or as extras (dir[1]/app.py), so pin it to the file
@@ -601,7 +601,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         include_apps: bool,
         is_main_package: bool,
         suffix: str = "",
-        pinned: bool = False,
+        pinned: bool | None = None,
         expected_apps: Sequence[str] | None = None,
         lock_file: Path | None = None,
         cooldown_days: int | None = None,
@@ -632,6 +632,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             cooldown_days = (
                 self.package_metadata[package_name].cooldown_days if package_name in self.package_metadata else None
             )
+        if pinned is None:
+            pinned = self.package_metadata[package_name].pinned if package_name in self.package_metadata else False
         package_info = PackageInfo(
             package=package_name,
             package_or_url=parse_specifier_for_metadata(package_or_url),

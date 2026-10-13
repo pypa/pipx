@@ -177,6 +177,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                 required_exposure = (
                     venv.pipx_metadata.exposure_enabled if exposure_enabled is None else exposure_enabled
                 )
+                required_pinned = venv.pipx_metadata.main_package.pinned
                 if exists:
                     existing = _handle_existing_install(
                         venv,
@@ -236,6 +237,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                         expected_apps=required_apps,
                         lock_file=required_lock,
                         cooldown_days=required_cooldown,
+                        pinned=required_pinned,
                     )
                     venv = _install_on_supported_python(
                         venv,
@@ -832,6 +834,7 @@ class _EnvironmentBuild:
     expected_apps: tuple[str, ...]
     lock_file: Path | None
     cooldown_days: int | None
+    pinned: bool
 
     def run(self, venv: Venv) -> None:
         venv.create_venv(self.venv_args, self.pip_args, override_shared=self.override_shared)
@@ -852,6 +855,7 @@ class _EnvironmentBuild:
             expected_apps=self.expected_apps,
             lock_file=self.lock_file,
             cooldown_days=self.cooldown_days,
+            pinned=self.pinned,
         )
 
 
