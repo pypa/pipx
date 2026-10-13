@@ -174,8 +174,12 @@ does not clear entries used by ``pipx runpip <package>``.
 pipx writes a verbose log for every command to ``pipx environment --value PIPX_LOG_DIR``. By default that is
 ``~/.local/state/pipx/log`` on Linux (``$XDG_STATE_HOME/pipx/log``), ``~/Library/Logs/pipx`` on macOS, and
 ``%LOCALAPPDATA%\pipx\pipx\Logs`` on Windows, or ``$PIPX_HOME/logs`` when ``PIPX_HOME`` is set. When that directory is
-not writable, pipx falls back to the platform user log directory. pipx keeps the last 10 logs; set ``PIPX_MAX_LOGS`` to
-change how many (default ``10``).
+not writable, pipx falls back to the platform user log directory. A command that fails while pip or uv runs also writes
+the backend output beside its log, as ``cmd_<timestamp>_pip_errors.log`` or ``cmd_<timestamp>_uv_errors.log``.
+
+pipx keeps the logs of the last 10 commands, counting the one that is running, and separately the last 10 error logs.
+Set ``PIPX_MAX_LOGS`` to change both limits. ``0`` acts like ``1``: the latest command's log stays, because a failing
+command points you at its error log.
 
 .. _sudo-pipx-not-found:
 

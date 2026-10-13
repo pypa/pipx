@@ -1935,8 +1935,11 @@ def _setup_log_file(pipx_log_dir: Path | None = None) -> Path:
     # don't use utils.mkdir, to prevent emission of log message
     pipx_log_dir.mkdir(parents=True, exist_ok=True)
 
-    delete_oldest_logs(list(pipx_log_dir.glob("cmd_*[0-9].log")), max_logs)
-    delete_oldest_logs(list(pipx_log_dir.glob("cmd_*_pip_errors.log")), max_logs)
+    # the log created below counts toward the limit and must outlive its run, since a failure points the user at its
+    # error log, so 0 keeps that one log
+    keep_old: Final[int] = max(max_logs - 1, 0)
+    delete_oldest_logs(list(pipx_log_dir.glob("cmd_*[0-9].log")), keep_old)
+    delete_oldest_logs(list(pipx_log_dir.glob("cmd_*_errors.log")), keep_old)
 
     datetime_str: Final[str] = time.strftime("%Y-%m-%d_%H.%M.%S")
     log_file = pipx_log_dir / f"cmd_{datetime_str}.log"
