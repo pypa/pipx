@@ -15,6 +15,7 @@ from pipx.commands.common import (
     get_expected_venv_resource_paths,
     locked_package_message,
     package_name_from_spec,
+    remove_stale_venv_resources,
     run_post_install_actions,
     validate_expected_apps,
     validate_suffix,
@@ -585,6 +586,7 @@ def _upgrade_existing_venv(  # ruff:ignore[too-many-arguments]  # forwards the f
         venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=verbose)
         venv.upgrade_packaging_libraries(main_pip_args)
         upgrade_only = [f"--upgrade-strategy={upgrade_strategy}"] if upgrade_strategy is not None else None
+        previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir)
         venv.upgrade_package(
             package_name,
             package_spec,
@@ -602,6 +604,7 @@ def _upgrade_existing_venv(  # ruff:ignore[too-many-arguments]  # forwards the f
         package_metadata = venv.pipx_metadata.main_package
         if venv.pipx_metadata.exposure_enabled:
             expose_package_resources(package_metadata, local_bin_dir, local_man_dir, force=False)
+            remove_stale_venv_resources(previous_resource_paths, venv, local_bin_dir, local_man_dir)
     return None, (
         OutputMessage(
             pipx_wrap(

@@ -145,6 +145,19 @@ def empty_project(root: Path, tmp_path: Path) -> Path:
     return project
 
 
+@pytest.fixture
+def two_app_project(empty_project: Path) -> Path:
+    pyproject: Final[Path] = empty_project / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text(encoding="utf-8").replace(
+            "scripts.empty-project = ",
+            'scripts.empty-project-extra = "empty_project.main:cli"\nscripts.empty-project = ',
+        ),
+        encoding="utf-8",
+    )
+    return empty_project
+
+
 @pytest.fixture(autouse=True)
 def _backend_test_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
     """Pin every test to pip with empty backend caches.

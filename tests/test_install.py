@@ -17,7 +17,15 @@ from unittest import mock
 
 import pytest
 
-from helpers import PACKAGE_CACHE_DIR_NAME, MakePylock, app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
+from helpers import (
+    PACKAGE_CACHE_DIR_NAME,
+    MakePylock,
+    app_name,
+    drop_extra_app,
+    run_pipx_cli,
+    skip_if_windows,
+    unwrap_log_text,
+)
 from package_info import PKG
 from pipx import main, paths, shared_libs
 from pipx.backends import Backend
@@ -754,6 +762,21 @@ def test_install_upgrade_reexposes_expected_dependency_resources(root: Path, tmp
     assert not run_pipx_cli(["install", "--upgrade", str(project)])
 
     assert (app_path.exists(), man_path.exists()) == (True, True)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_upgrade_removes_dropped_app(two_app_project: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", str(two_app_project)])
+    drop_extra_app(two_app_project)
+    assert not run_pipx_cli(["install", "--upgrade", str(two_app_project)])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list"])
+
+    assert (
+        sorted(path.name for path in paths.ctx.bin_dir.iterdir()),
+        "empty-project-extra" in capsys.readouterr().out,
+    ) == ([app_name("empty-project")], False)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
