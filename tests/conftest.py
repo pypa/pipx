@@ -27,7 +27,7 @@ from pipx import commands, interpreter, paths, shared_libs, standalone_python, v
 from pipx.backends import get_backend
 from pipx.backends import pip as _pip_backend_module
 from pipx.backends import uv as _uv_backend_module
-from pipx.backends.uv import find_uv_binary
+from pipx.backends.uv import find_uv_binary, uv_meets_minimum_version
 from pipx.commands import common
 from pipx.venv import reset_backend_override_warnings
 
@@ -158,8 +158,9 @@ def _backend_test_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     monkeypatch.setenv("PIPX_DEFAULT_BACKEND", "pip")
     find_uv_binary.cache_clear()
+    uv_meets_minimum_version.cache_clear()
     # cache reset has no public API
-    _uv_backend_module._check_uv_version.cache_clear()  # ruff:ignore[private-member-access]
+    _uv_backend_module._uv_version.cache_clear()  # ruff:ignore[private-member-access]
     get_backend.cache_clear()
     reset_backend_override_warnings()
 
