@@ -245,7 +245,7 @@ To accomplish this:
 Then using Github workflows to generate all platforms in the Github CI:
 
 - Manually activate the Github workflow: Create tests package lists for offline tests
-- Download the artifact ``lists`` and put the files from it into ``testdata/tests_packages/``
+- Download each ``lists-<os>-<python>`` artifact and put the files from it into ``testdata/tests_packages/``
 
 Finally, check-in the new or modified list files in the directory ``testdata/tests_packages``
 
