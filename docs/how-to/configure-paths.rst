@@ -102,7 +102,10 @@ Use ``--global`` **after** the subcommand to operate on the system-wide installa
 .. code-block:: console
 
     $ sudo pipx install --global pycowsay
-    $ sudo pipx list --global
+    $ pipx list --global
+
+Commands that write to the global locations need root. ``pipx list --global`` and ``pipx environment --global`` only
+read them, so any user can run those.
 
 Putting ``--global`` before the subcommand, as in ``sudo pipx --global install pycowsay``, raises
 ``unrecognized arguments: --global``.
@@ -112,6 +115,10 @@ for shell completions, and ``/opt/pipx`` for environments. Override them with ``
 ``PIPX_GLOBAL_MAN_DIR``, ``PIPX_GLOBAL_COMPLETION_DIR``, and ``PIPX_GLOBAL_HOME``. Add the
 global binary directory to the system ``PATH`` with ``sudo pipx ensurepath --global``, which writes
 ``/etc/profile.d/pipx.sh`` on Linux and ``/etc/paths.d/pipx`` on macOS.
+
+When pipx itself is installed with ``--global`` and ``PIPX_GLOBAL_HOME`` is overridden, set the override for every user
+(for example in ``/etc/environment``), so that pipx recognizes its own environment as the global one; see
+:doc:`../reference/environment-variables`.
 
 You can also set the variables explicitly instead of using ``--global``:
 

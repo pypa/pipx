@@ -2009,7 +2009,7 @@ def setup(args: argparse.Namespace) -> None:
         print_version()
         sys.exit(0)
 
-    if not constants.WINDOWS and getattr(args, "is_global", False):
+    if is_global := not constants.WINDOWS and getattr(args, "is_global", False):
         paths.ctx.make_global()
 
     verbose: Final[int] = (
@@ -2024,26 +2024,9 @@ def setup(args: argparse.Namespace) -> None:
     _LOGGER.info("pipx version is %s", __version__)
     _LOGGER.info("Default python interpreter is '%s'", get_default_python())
 
-    mkdir(paths.ctx.venvs)
-    mkdir(paths.ctx.bin_dir)
-    mkdir(paths.ctx.man_dir)
-    mkdir(paths.ctx.venv_cache)
-    mkdir(paths.ctx.standalone_python_cachedir)
-
-    for cachedir in [
-        paths.ctx.venv_cache,
-        paths.ctx.standalone_python_cachedir,
-    ]:
-        cachedir_tag = cachedir / "CACHEDIR.TAG"
-        if not cachedir_tag.exists():
-            _LOGGER.debug("Adding CACHEDIR.TAG to cache directory")
-            signature = (
-                "Signature: 8a477f597d28d172789f06886806bc55\n"
-                "# This file is a cache directory tag created by pipx.\n"
-                "# For information about cache directory tags, see:\n"
-                "#       https://bford.info/cachedir/\n"
-            )
-            cachedir_tag.write_text(signature, encoding="utf-8")
+    # these only read paths, so they also work for users who cannot write the (global) home
+    if args.command not in {"environment", "list"}:
+        _create_directories(is_global=is_global)
 
     rmdir(paths.ctx.trash, safe_rm=False)
 
@@ -2060,6 +2043,40 @@ def setup(args: argparse.Namespace) -> None:
                 subsequent_indent=" " * 4,
             )
         )
+
+
+def _create_directories(*, is_global: bool) -> None:
+    try:
+        mkdir(paths.ctx.venvs)
+        mkdir(paths.ctx.bin_dir)
+        mkdir(paths.ctx.man_dir)
+        mkdir(paths.ctx.venv_cache)
+        mkdir(paths.ctx.standalone_python_cachedir)
+    except PermissionError as error:
+        fix: Final[str] = (
+            "run pipx with sudo, or point PIPX_GLOBAL_HOME, PIPX_GLOBAL_BIN_DIR and PIPX_GLOBAL_MAN_DIR at writable"
+            " directories"
+            if is_global
+            else "point PIPX_HOME, PIPX_BIN_DIR and PIPX_MAN_DIR at writable directories"
+        )
+        msg = f"Cannot create {error.filename}: permission denied; {fix}."
+        # wrapping would split a long path across lines
+        raise PipxError(msg, wrap_message=False) from error
+
+    for cachedir in [
+        paths.ctx.venv_cache,
+        paths.ctx.standalone_python_cachedir,
+    ]:
+        cachedir_tag = cachedir / "CACHEDIR.TAG"
+        if not cachedir_tag.exists():
+            _LOGGER.debug("Adding CACHEDIR.TAG to cache directory")
+            signature = (
+                "Signature: 8a477f597d28d172789f06886806bc55\n"
+                "# This file is a cache directory tag created by pipx.\n"
+                "# For information about cache directory tags, see:\n"
+                "#       https://bford.info/cachedir/\n"
+            )
+            cachedir_tag.write_text(signature, encoding="utf-8")
 
 
 def check_args(parsed_pipx_args: argparse.Namespace) -> None:

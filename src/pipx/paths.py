@@ -8,7 +8,7 @@ from typing import Final
 from platformdirs import user_cache_path, user_data_path, user_log_path
 
 from pipx.constants import WINDOWS
-from pipx.self_install import get_environment_value
+from pipx.self_install import DEFAULT_PIPX_GLOBAL_HOME, get_environment_value
 from pipx.wrap import pipx_wrap
 
 DEFAULT_PIPX_HOME = Path(user_data_path("pipx"))
@@ -19,7 +19,6 @@ if WINDOWS:
 DEFAULT_PIPX_BIN_DIR: Final[Path] = Path.home() / ".local/bin"
 DEFAULT_PIPX_MAN_DIR: Final[Path] = Path.home() / ".local/share/man"
 DEFAULT_PIPX_COMPLETION_DIR: Final[Path] = Path.home() / ".local/share"
-DEFAULT_PIPX_GLOBAL_HOME: Final[Path] = Path("/opt/pipx")
 DEFAULT_PIPX_GLOBAL_BIN_DIR: Final[Path] = Path("/usr/local/bin")
 DEFAULT_PIPX_GLOBAL_MAN_DIR: Final[Path] = Path("/usr/local/share/man")
 DEFAULT_PIPX_GLOBAL_COMPLETION_DIR: Final[Path] = Path("/usr/local/share")

@@ -204,6 +204,16 @@ found". Use the full path:
 To avoid this, install pipx through your distribution's package manager (``apt install pipx``, ``dnf install pipx``) or
 system-wide with ``sudo pip install pipx`` (without ``--user``).
 
+******************************************
+ ``Cannot create ...: permission denied``
+******************************************
+
+pipx creates its home, binary, and manual page directories before any command that may write to them. When the current
+user cannot create one, pipx exits with this error and names the directory. With ``--global`` the defaults sit under
+``/opt/pipx`` and ``/usr/local``, so run the command with ``sudo``. Otherwise, or to keep the installation out of
+system directories, point ``PIPX_HOME``, ``PIPX_BIN_DIR``, and ``PIPX_MAN_DIR`` (or their ``PIPX_GLOBAL_*``
+counterparts) at directories you can write; see :doc:`configure-paths`.
+
 *************************
  Debian and Ubuntu issues
 *************************

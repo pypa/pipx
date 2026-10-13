@@ -172,6 +172,16 @@ older versions. Bootstrap it through a throwaway virtual environment:
 After this, ``pipx upgrade pipx`` upgrades pipx like any other managed app. On Windows, pipx cannot delete its own
 running executable, so it moves locked files to a trash directory and cleans them up on the next run.
 
+To share one self-managed pipx between all users on Unix, run the bootstrap's ``install`` with ``sudo`` and
+``--global`` instead. The installed ``pipx`` then works on each user's own environments, and on the global ones only
+when ``--global`` is passed:
+
+.. code-block:: console
+
+    $ sudo /tmp/bootstrap/bin/pipx install --global pipx
+    $ pipx install pycowsay
+    $ sudo pipx install --global pycowsay
+
 .. _install-from-source-control:
 
 ****************************

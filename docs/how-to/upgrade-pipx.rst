@@ -43,6 +43,12 @@ If pipx manages its own installation (see :ref:`install-from-source-control` and
 
     $ pipx upgrade pipx
 
+A pipx installed with ``--global`` belongs to the global installation, so upgrade it there:
+
+.. code-block:: console
+
+    $ sudo pipx upgrade --global pipx
+
 ****************
  Upgrade via pip
 ****************
