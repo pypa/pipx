@@ -152,8 +152,8 @@ def _reject_venv_args(venv_args: list[str]) -> None:
     # uv creates the venv, so accepting these options would ignore the requested behavior.
     if venv_args:
         msg = (
-            f"--venv-args ({' '.join(venv_args)}) is not supported by `pipx run --backend uv`.\n"
-            "Use `pipx run --backend pip` if those flags are required, or drop them."
+            f"{' '.join(venv_args)} is not supported by `pipx run` under the uv backend.\n"
+            "Use `pipx run --backend pip` if you need it, or drop it."
         )
         raise PipxError(msg)
 

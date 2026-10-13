@@ -71,7 +71,7 @@ Run an app in a temporary environment, optionally pinning package or Python vers
 .. code-block:: bash
 
     pipx run pycowsay moo
-    pipx run --spec 'pycowsay==2.0' pycowsay --version
+    pipx run --spec 'pycowsay==0.0.0.2' pycowsay --version
     pipx run --python 3.12 pycowsay moo
 
 Run from a VCS URL or an archive:

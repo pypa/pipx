@@ -122,8 +122,8 @@ To ignore SSL/TLS errors:
  Check for PIP_* environment variables
 **************************************
 
-pipx uses pip to install and manage packages. If pipx behaves strangely on install or upgrade, check for environment
-variables that change pip's behavior.
+Under the pip backend, ``PIP_*`` environment variables change how pipx installs and upgrades packages. If pipx behaves
+strangely on install or upgrade, check for them.
 
 Unix or macOS:
 
@@ -143,7 +143,9 @@ Windows ``cmd``:
 
     $ set PIP_
 
-See `pip's environment variables <https://pip.pypa.io/en/stable/user_guide/#environment-variables>`_.
+See `pip's environment variables <https://pip.pypa.io/en/stable/user_guide/#environment-variables>`_. The uv backend
+ignores ``PIP_*`` and reads uv's own ``UV_*`` variables (for example ``UV_INDEX_URL``) instead; check for those the same
+way.
 
 ****************************
  Clear runpip cache warnings
@@ -153,20 +155,23 @@ Under the pip backend, ``pipx runpip`` runs pip from pipx's shared libraries wit
 Warnings such as ``WARNING: Cache entry deserialization failed, entry ignored`` come from that pip and its own HTTP
 cache, not from pipx's venv cache.
 
-Clear the cache for a managed package:
+Inspect and clear the cache for a managed package:
 
 .. code-block:: console
 
+    $ pipx runpip <package> cache dir
     $ pipx runpip <package> cache purge
-
-Inspect the cache directory first with ``--verbose`` so pipx does not quiet pip's output:
-
-.. code-block:: console
-
-    $ pipx runpip --verbose <package> cache dir
 
 Clearing pipx's venv cache (``pipx environment --value PIPX_VENV_CACHEDIR``) or the cache for a different interpreter
 does not clear entries used by ``pipx runpip <package>``.
+
+Under the uv backend, ``pipx runpip`` runs ``uv pip``, which has no ``cache`` subcommand. Use uv's cache commands with
+the binary pipx uses (``pipx environment --value PIPX_UV_BINARY``):
+
+.. code-block:: console
+
+    $ uv cache dir
+    $ uv cache clean
 
 **********
  Log files

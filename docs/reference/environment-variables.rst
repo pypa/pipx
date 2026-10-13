@@ -51,8 +51,8 @@ environment`` to print each variable as set in your environment, followed by the
     - - ``PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE``
       - Set to a truthy value to skip automatic shared library upgrades. Default: unset.
     - - ``PIPX_USE_EMOJI``
-      - Set to ``1``, ``true``, ``yes``, or ``on`` to force emoji output; any other value disables it. Default:
-        enabled when the stderr encoding supports the emoji glyphs.
+      - Set to ``1``, ``y``, ``yes``, ``t``, ``true``, or ``on`` (case-insensitive) to force emoji output; any other
+        value disables it. Default: enabled when the stderr encoding supports the emoji glyphs.
     - - ``PIPX_MAX_LOGS``
       - Number of command logs to keep in the log directory, counting the current command's; pip and uv error logs
         share a separate limit of the same size. ``0`` acts like ``1``. Default: ``10``.

@@ -208,7 +208,9 @@ def test_run_script_via_uv_run_refreshes_cache(
 def test_run_via_uv_tool_run_rejects_venv_args(mocker: MockerFixture) -> None:
     mocker.patch("pipx.commands.run_uv.exec_app")
     mocker.patch("pipx.commands.run_uv.which", return_value=None)
-    with pytest.raises(PipxError, match=r"--venv-args .* is not supported"):
+    with pytest.raises(
+        PipxError, match=r"^--system-site-packages is not supported by `pipx run` under the uv backend\.\n"
+    ):
         run_via_uv_tool_run(
             app="black",
             package_or_url="black",

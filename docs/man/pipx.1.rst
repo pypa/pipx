@@ -56,7 +56,7 @@ COMMANDS
     Upgrade a package
 
 **upgrade-all**
-    Upgrade all packages. Runs ``pip install -U <pkgname>`` for each package.
+    Upgrade all packages.
 
 **upgrade-shared**
     Upgrade shared libraries.
@@ -102,7 +102,7 @@ COMMANDS
     Run an application from an existing pipx environment
 
 **runpip**
-    Run pip in an existing pipx-managed Virtual Environment
+    Run pip, or ``uv pip`` under the uv backend, in an existing pipx-managed Virtual Environment
 
 **ensurepath**
     Ensure directories necessary for pipx operation are in your PATH environment variable.

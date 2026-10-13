@@ -82,6 +82,8 @@ all accept ``--backend``. Switch an installed venv with ``pipx reinstall NAME --
   ``--backend pip`` to override a console script of the same name.
 - Some ``--pip-args`` values have no ``uv tool run`` equivalent (``--editable``, ``--no-build-isolation``); pipx errors
   instead of dropping them. See :doc:`use-private-index` for which flags uv translates.
+- ``pipx run --backend uv`` rejects ``--system-site-packages``, since uv builds the environment. Use ``--backend pip``
+  when you need it.
 - ``pipx run --backend uv`` against URL or named-pipe scripts falls back to a pipx-managed venv, because ``uv run
   --script`` reads PEP 723 metadata off disk and runtime-fetched content has no on-disk path. pipx logs a warning.
 - ``pipx run`` falls back to a pipx-managed venv when it has to infer the script name: from a VCS URL, a local project

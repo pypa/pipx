@@ -62,22 +62,24 @@ separately:
 
     $ pipx run --spec PACKAGE APP
 
-Under the pip backend, pipx lists the executables of `esptool <https://github.com/espressif/esptool>`_ when you guess
-wrong:
+Under the pip backend, pipx lists the executables of a package when you guess wrong. `esptool
+<https://github.com/espressif/esptool>`_ 4.6.2 ships no ``esptool`` script:
 
 .. code-block:: console
 
-    $ pipx run esptool
+    $ pipx run --spec esptool==4.6.2 esptool
     'esptool' executable script not found in package 'esptool'.
     Available executable scripts:
-        esptool.py - usage: 'pipx run --spec esptool esptool.py [arguments?]'
-        espefuse.py - usage: 'pipx run --spec esptool espefuse.py [arguments?]'
+        esp_rfc2217_server.py - usage: 'pipx run --spec esptool==4.6.2 esp_rfc2217_server.py [arguments?]'
+        espefuse.py - usage: 'pipx run --spec esptool==4.6.2 espefuse.py [arguments?]'
+        espsecure.py - usage: 'pipx run --spec esptool==4.6.2 espsecure.py [arguments?]'
+        esptool.py - usage: 'pipx run --spec esptool==4.6.2 esptool.py [arguments?]'
 
 Run the one you want with ``--spec``:
 
 .. code-block:: console
 
-    $ pipx run --spec esptool esptool.py
+    $ pipx run --spec esptool==4.6.2 esptool.py
 
 Package authors can remove this requirement by declaring a :doc:`pipx.run entry point
 <../explanation/making-packages-compatible>` in their metadata.
