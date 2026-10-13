@@ -48,21 +48,6 @@ def test_delete_oldest_logs_keeps_none(tmp_path: Path) -> None:
     assert remaining == []
 
 
-def test_max_logs_zero_keeps_only_the_new_log(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test that PIPX_MAX_LOGS=0 prunes the existing logs."""
-    monkeypatch.setenv("PIPX_MAX_LOGS", "0")
-
-    for i in range(15):
-        log_file = tmp_path / f"cmd_2024-01-01_00.00.{i:02d}.log"
-        log_file.touch()
-
-    _setup_log_file(pipx_log_dir=tmp_path)
-
-    # Every pre-existing log is pruned, leaving only the one just created.
-    remaining = list(tmp_path.glob("cmd_*.log"))
-    assert len(remaining) == 1
-
-
 def test_delete_oldest_logs_keeps_all_when_under_limit(tmp_path: Path) -> None:
     """Test that delete_oldest_logs keeps all files when under the limit."""
     log_files = []
@@ -77,52 +62,39 @@ def test_delete_oldest_logs_keeps_all_when_under_limit(tmp_path: Path) -> None:
     assert len(remaining) == 3
 
 
-def test_max_logs_defaults_to_10(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test that max_logs defaults to 10 when PIPX_MAX_LOGS is not set."""
-    monkeypatch.delenv("PIPX_MAX_LOGS", raising=False)
-
-    # Create 15 log files
-    for i in range(15):
-        log_file = tmp_path / f"cmd_2024-01-01_00.00.{i:02d}.log"
-        log_file.touch()
-
-    _setup_log_file(pipx_log_dir=tmp_path)
-
-    # Should have 10 old logs + 1 new log = 11 total
-    remaining = list(tmp_path.glob("cmd_*.log"))
-    assert len(remaining) == 11
-
-
-def test_max_logs_respects_env_var(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test that max_logs respects the PIPX_MAX_LOGS environment variable."""
-    monkeypatch.setenv("PIPX_MAX_LOGS", "5")
-
-    # Create 15 log files
-    for i in range(15):
-        log_file = tmp_path / f"cmd_2024-01-01_00.00.{i:02d}.log"
-        log_file.touch()
+@pytest.mark.parametrize(
+    ("max_logs", "existing", "expected"),
+    [
+        pytest.param(None, 15, 10, id="default"),
+        pytest.param("5", 15, 5, id="env-var"),
+        pytest.param("100", 5, 6, id="under-limit"),
+        pytest.param("1", 15, 1, id="one"),
+        pytest.param("0", 15, 1, id="zero-keeps-current-run"),
+    ],
+)
+def test_max_logs_counts_the_new_log(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, max_logs: str | None, existing: int, expected: int
+) -> None:
+    if max_logs is None:
+        monkeypatch.delenv("PIPX_MAX_LOGS", raising=False)
+    else:
+        monkeypatch.setenv("PIPX_MAX_LOGS", max_logs)
+    for i in range(existing):
+        (tmp_path / f"cmd_2024-01-01_00.00.{i:02d}.log").touch()
 
     _setup_log_file(pipx_log_dir=tmp_path)
 
-    # Should have 5 old logs + 1 new log = 6 total
-    remaining = list(tmp_path.glob("cmd_*.log"))
-    assert len(remaining) == 6
+    assert len(list(tmp_path.glob("cmd_*[0-9].log"))) == expected
 
 
-def test_max_logs_with_large_value(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test that a large PIPX_MAX_LOGS value keeps all logs."""
-    monkeypatch.setenv("PIPX_MAX_LOGS", "100")
-
-    # Create 5 log files
-    for i in range(5):
-        log_file = tmp_path / f"cmd_2024-01-01_00.00.0{i}.log"
-        log_file.touch()
+def test_max_logs_rotates_every_backend_error_log(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PIPX_MAX_LOGS", "2")
+    for i, backend in enumerate(["uv", "pip", "uv", "pip"]):
+        (tmp_path / f"cmd_2024-01-01_00.00.{i:02d}_{backend}_errors.log").touch()
 
     _setup_log_file(pipx_log_dir=tmp_path)
 
-    # Should have 5 old logs + 1 new log = 6 total
-    remaining = list(tmp_path.glob("cmd_*.log"))
-    assert len(remaining) == 6
+    assert sorted(path.name for path in tmp_path.glob("cmd_*_errors.log")) == ["cmd_2024-01-01_00.00.03_pip_errors.log"]
 
 
 @pytest.mark.parametrize(

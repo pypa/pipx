@@ -54,7 +54,8 @@ environment`` to print each variable as set in your environment, followed by the
       - Set to ``1``, ``true``, ``yes``, or ``on`` to force emoji output; any other value disables it. Default:
         enabled when the stderr encoding supports the emoji glyphs.
     - - ``PIPX_MAX_LOGS``
-      - Number of log files to keep in the log directory. Default: ``10``.
+      - Number of command logs to keep in the log directory, counting the current command's; pip and uv error logs
+        share a separate limit of the same size. ``0`` acts like ``1``. Default: ``10``.
 
 .. note::
 

@@ -161,7 +161,7 @@ class _PathContext:
                 pipx_wrap(
                     (
                         f"Both a specific pipx home folder ({self.home}) and the fallback "
-                        f"pipx home folder ({self._fallback_home}) exist. If you are done migrating from the"
+                        f"pipx home folder ({self._fallback_home}) exist. If you are done migrating from the "
                         "fallback to the new location, it is safe to delete the fallback location."
                     ),
                     subsequent_indent=" " * 4,

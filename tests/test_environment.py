@@ -190,16 +190,22 @@ def test_resolve_empty_env_paths(monkeypatch: pytest.MonkeyPatch, env_name: str)
     assert get_expanded_environ(env_name) is None
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_cli_logs_fallback_home(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
     tmp_path: Path,
 ) -> None:
-    fallback_home = tmp_path / "fallback"
+    fallback_home: Final[Path] = tmp_path / "fallback"
     fallback_home.mkdir()
-    monkeypatch.setattr(paths.ctx, "_base_home", tmp_path / "specific")
-    monkeypatch.setattr(paths.ctx, "_fallback_home", fallback_home)
+    monkeypatch.setattr(paths, "FALLBACK_PIPX_HOMES", [fallback_home])
+    paths.ctx.make_local()
+    monkeypatch.setenv("COLUMNS", "1000")
 
     assert not run_pipx_cli(["environment", "--verbose"])
 
-    assert "Both a specific pipx home folder" in capsys.readouterr().err
+    assert (
+        f"Both a specific pipx home folder ({paths.ctx.home}) and the fallback pipx home folder ({fallback_home}) "
+        "exist. If you are done migrating from the fallback to the new location, it is safe to delete the fallback "
+        "location.\n"
+    ) in capsys.readouterr().err
