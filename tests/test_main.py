@@ -14,16 +14,20 @@ from docutils.core import publish_string
 from docutils.writers.manpage import Writer
 
 from helpers import run_pipx_cli
-from pipx import constants, main
+from pipx import constants, main, paths
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from unittest.mock import MagicMock
 
     from pytest_mock import MockerFixture
 
 _ROOT: Final = Path(__file__).parents[1]
 _MANPAGE_RST: Final = _ROOT / "docs" / "man" / "pipx.1.rst"
+_SKIP_WITHOUT_PERMISSIONS: Final[pytest.MarkDecorator] = pytest.mark.skipif(
+    sys.platform == "win32" or os.geteuid() == 0, reason="needs POSIX permissions that bind the current user"
+)
 
 
 @pytest.fixture
@@ -341,3 +345,56 @@ def test_get_pip_args_honours_posix_escape(mocker: MockerFixture) -> None:
 def test_get_pip_args_rejects_unclosed_quote() -> None:
     with pytest.raises(PipxError, match="invalid pip arguments: No closing quotation"):
         main.get_pip_args({"pip_args": "--find-links '/opt/foo bar"})
+
+
+_LOCAL: Final = pytest.param("OVERRIDE_PIPX_HOME", [], id="local")
+_GLOBAL: Final = pytest.param("OVERRIDE_PIPX_GLOBAL_HOME", ["--global"], id="global")
+
+
+@_SKIP_WITHOUT_PERMISSIONS
+@pytest.mark.parametrize("command", [pytest.param("environment", id="environment"), pytest.param("list", id="list")])
+@pytest.mark.parametrize(("locked_home", "flags"), [_LOCAL, _GLOBAL], indirect=["locked_home"])
+def test_read_only_command_runs_without_writable_home(locked_home: Path, flags: list[str], command: str) -> None:
+    del locked_home
+    assert run_pipx_cli([command, *flags]) == 0
+
+
+@_SKIP_WITHOUT_PERMISSIONS
+@pytest.mark.parametrize(
+    ("locked_home", "flags", "fix"),
+    [
+        pytest.param(
+            *_LOCAL.values, "point PIPX_HOME, PIPX_BIN_DIR and PIPX_MAN_DIR at writable directories", id="local"
+        ),
+        pytest.param(
+            *_GLOBAL.values,
+            "run pipx with sudo, or point PIPX_GLOBAL_HOME, PIPX_GLOBAL_BIN_DIR and PIPX_GLOBAL_MAN_DIR at writable"
+            " directories",
+            id="global",
+        ),
+    ],
+    indirect=["locked_home"],
+)
+def test_unwritable_home_reports_error(
+    locked_home: Path, capsys: pytest.CaptureFixture[str], flags: list[str], fix: str
+) -> None:
+    exit_code = run_pipx_cli(["install", *flags, "pycowsay"])
+    assert (exit_code, capsys.readouterr().err) == (1, f"Cannot create {locked_home}: permission denied; {fix}.\n")
+
+
+@pytest.fixture
+def locked_home(
+    request: pytest.FixtureRequest,
+    pipx_temp_env: None,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
+) -> Iterator[Path]:
+    del pipx_temp_env
+    # the log file falls back to the user log directory, keep it inside the test
+    mocker.patch("platformdirs.user_log_path", autospec=True, return_value=tmp_path / "logs")
+    (locked := tmp_path / "locked").mkdir(mode=0o500)
+    monkeypatch.setattr(paths, request.param, home := locked / "pipx")
+    paths.ctx.make_local()
+    yield home
+    locked.chmod(0o700)
