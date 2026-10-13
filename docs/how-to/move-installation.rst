@@ -24,7 +24,7 @@ Current default location: ``~/Library/Application Support/pipx``.
     logs_dir=$(pipx environment --value PIPX_LOG_DIR)
     trash_dir=$(pipx environment --value PIPX_TRASH_DIR)
     home_dir=$(pipx environment --value PIPX_HOME)
-    NEW_LOCATION='~/Library/Application Support/pipx'
+    NEW_LOCATION="$HOME/Library/Application Support"
     rm -rf "$cache_dir" "$logs_dir" "$trash_dir"
     mkdir -p "$NEW_LOCATION" && mv "$home_dir" "$NEW_LOCATION"
     pipx reinstall-all
@@ -33,7 +33,7 @@ Current default location: ``~/Library/Application Support/pipx``.
  Linux
 ******
 
-Current default location: ``~/.local/share``.
+Current default location: ``~/.local/share/pipx`` (``$XDG_DATA_HOME/pipx`` when set).
 
 .. code-block:: bash
 
@@ -50,11 +50,11 @@ Current default location: ``~/.local/share``.
  Windows
 ********
 
-Current default location: ``~/pipx``.
+Current default location: ``%LOCALAPPDATA%\pipx\pipx``.
 
 .. code-block:: powershell
 
-    $NEW_LOCATION = Join-Path "$HOME" 'pipx'
+    $NEW_LOCATION = Join-Path "$env:LOCALAPPDATA" 'pipx\pipx'
     $cache_dir = pipx environment --value PIPX_VENV_CACHEDIR
     $logs_dir = pipx environment --value PIPX_LOG_DIR
     $trash_dir = pipx environment --value PIPX_TRASH_DIR
@@ -64,6 +64,7 @@ Current default location: ``~/pipx``.
 
     # Remove the destination first so Move-Item renames rather than nests
     Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$NEW_LOCATION"
+    New-Item -ItemType Directory -Force (Split-Path "$NEW_LOCATION") | Out-Null
 
     Move-Item -Path $home_dir -Destination "$NEW_LOCATION"
     pipx reinstall-all

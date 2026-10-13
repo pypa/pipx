@@ -2,13 +2,13 @@
  Configure paths
 ################
 
-Choose where pipx stores environments, apps, and manual pages, and how it installs for all users.
+Choose where pipx stores environments, apps, manual pages, and shell completions, and how it installs for all users.
 
 *****************
  Directory layout
 *****************
 
-pipx splits its files across three locations, each with an environment-variable override and a ``--global`` counterpart:
+pipx splits its files across four locations, each with an environment-variable override and a ``--global`` counterpart:
 
 .. mermaid::
 
@@ -17,19 +17,23 @@ pipx splits its files across three locations, each with an environment-variable 
             H1["PIPX_HOME<br/>~/.local/share/pipx<br/>(venvs, shared libs)"]
             B1["PIPX_BIN_DIR<br/>~/.local/bin<br/>(app links)"]
             M1["PIPX_MAN_DIR<br/>~/.local/share/man<br/>(man page links)"]
+            C1["PIPX_COMPLETION_DIR<br/>~/.local/share<br/>(completion links)"]
         end
         subgraph glob["--global (all users)"]
             H2["PIPX_GLOBAL_HOME<br/>/opt/pipx"]
             B2["PIPX_GLOBAL_BIN_DIR<br/>/usr/local/bin"]
             M2["PIPX_GLOBAL_MAN_DIR<br/>/usr/local/share/man"]
+            C2["PIPX_GLOBAL_COMPLETION_DIR<br/>/usr/local/share"]
         end
 
         classDef home fill:#2a9d8f,stroke:#1f7268,color:#fff;
         classDef bin fill:#3f72af,stroke:#28507d,color:#fff;
         classDef man fill:#7c4dff,stroke:#5a34c0,color:#fff;
+        classDef completion fill:#e76f51,stroke:#b4513a,color:#fff;
         class H1,H2 home;
         class B1,B2 bin;
         class M1,M2 man;
+        class C1,C2 completion;
 
 .. list-table::
     :header-rows: 1
@@ -47,6 +51,9 @@ pipx splits its files across three locations, each with an environment-variable 
     - - ``PIPX_MAN_DIR``
       - Manual page links
       - ``~/.local/share/man``
+    - - ``PIPX_COMPLETION_DIR``
+      - Shell completion links
+      - ``~/.local/share``
 
 The default ``PIPX_HOME`` is typically ``~/.local/share/pipx`` on Linux, ``~/Library/Application Support/pipx`` on
 macOS, and ``%USERPROFILE%\AppData\Local\pipx\pipx`` on Windows. Set any variable to override its location.
@@ -77,10 +84,11 @@ After version 1.16.0, pipx moved its default paths from ``~/.local/pipx`` to per
     - - ``~/.local/pipx/logs``
       - ``platformdirs.user_log_dir("pipx")``
 
-For compatibility, if ``~/.local/pipx`` exists (or ``~\pipx`` on Windows), pipx keeps using it. See the `platformdirs
+For compatibility, if ``~/.local/pipx`` exists (on Windows also ``~\pipx``), pipx keeps using it. See the `platformdirs
 platform table <https://platformdirs.readthedocs.io/en/latest/api.html#platforms>`_ for the resolved directories. On
-Linux and macOS, ``platformdirs`` reads ``XDG_DATA_HOME`` and ``XDG_CACHE_HOME``, so exporting either moves the matching
-pipx directory; leave them unset for the platform default.
+Linux and macOS, ``platformdirs`` reads ``XDG_DATA_HOME`` and ``XDG_CACHE_HOME``, and on Linux also ``XDG_STATE_HOME``
+for the log directory, so exporting any of them moves the matching pipx directory; leave them unset for the platform
+default.
 
 These paths were introduced in 1.2.0 and temporarily reverted for macOS and Windows between 1.5.0 and 1.16.0. To move an
 existing installation to the new default, see :doc:`move-installation`.
@@ -99,8 +107,9 @@ Use ``--global`` **after** the subcommand to operate on the system-wide installa
 Putting ``--global`` before the subcommand, as in ``sudo pipx --global install pycowsay``, raises
 ``unrecognized arguments: --global``.
 
-Default global paths are ``/usr/local/bin`` for binaries, ``/usr/local/share/man`` for man pages, and ``/opt/pipx`` for
-environments. Override them with ``PIPX_GLOBAL_BIN_DIR``, ``PIPX_GLOBAL_MAN_DIR``, and ``PIPX_GLOBAL_HOME``. Add the
+Default global paths are ``/usr/local/bin`` for binaries, ``/usr/local/share/man`` for man pages, ``/usr/local/share``
+for shell completions, and ``/opt/pipx`` for environments. Override them with ``PIPX_GLOBAL_BIN_DIR``,
+``PIPX_GLOBAL_MAN_DIR``, ``PIPX_GLOBAL_COMPLETION_DIR``, and ``PIPX_GLOBAL_HOME``. Add the
 global binary directory to the system ``PATH`` with ``sudo pipx ensurepath --global``, which writes
 ``/etc/profile.d/pipx.sh`` on Linux and ``/etc/paths.d/pipx`` on macOS.
 
@@ -132,9 +141,10 @@ configuration file:
  Point pip at an index
 **********************
 
-pipx uses pip internally for all installs, including its own shared libraries. Set ``PIP_*`` environment variables to
-route pip at a private index; pipx forwards them to every pip call. For per-command control use ``--pip-args``. See
-:doc:`use-private-index` for the full recipe.
+Under the pip backend, pipx uses pip for all installs, including its own shared libraries. Set ``PIP_*`` environment
+variables to route pip at a private index; pipx forwards them to every pip call. The uv backend ignores ``PIP_*``; use
+uv's own variables such as ``UV_INDEX_URL``. For per-command control use ``--pip-args``. See :doc:`use-private-index`
+for the full recipe.
 
 Set ``PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE=1`` to skip automatic shared-library upgrades during commands such as
 ``pipx install`` and ``pipx upgrade``; ``pipx upgrade-shared`` still upgrades them. Use ``--skip-maintenance`` to apply

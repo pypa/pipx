@@ -3,7 +3,7 @@
 #######################
 
 pipx has no user configuration file. Every setting is an environment variable, all of them optional. Run ``pipx
-environment`` to print the resolved value of each one on your system.
+environment`` to print each variable as set in your environment, followed by the values pipx derives from them.
 
 *******************
  Settable variables
@@ -33,10 +33,11 @@ environment`` to print the resolved value of each one on your system.
     - - ``PIPX_GLOBAL_COMPLETION_DIR``
       - Shell completion directory for global installs. Default: ``/usr/local/share``.
     - - ``PIPX_SHARED_LIBS``
-      - Override the shared libraries directory. Default: ``$PIPX_HOME/shared``.
+      - Override the shared libraries directory. Ignored with ``--global``. Default: ``$PIPX_HOME/shared``.
     - - ``PIPX_DEFAULT_PYTHON``
       - Python interpreter used when ``--python`` is not passed. Default: the interpreter running pipx
-        (``sys.executable``).
+        (``sys.executable``); on Windows, unless pipx runs inside a venv, the ``py`` launcher's default Python or
+        ``python`` on ``PATH``.
     - - ``PIPX_DEFAULT_BACKEND``
       - Backend for new venvs, ``pip`` or ``uv``. Default: ``uv`` when uv is available, else ``pip``.
     - - ``PIPX_COOLDOWN``
@@ -50,8 +51,8 @@ environment`` to print the resolved value of each one on your system.
     - - ``PIPX_DISABLE_SHARED_LIBS_AUTO_UPGRADE``
       - Set to a truthy value to skip automatic shared library upgrades. Default: unset.
     - - ``PIPX_USE_EMOJI``
-      - Set to a falsy value to disable emoji output. Default: enabled when the terminal encoding supports the emoji
-        glyphs.
+      - Set to ``1``, ``true``, ``yes``, or ``on`` to force emoji output; any other value disables it. Default:
+        enabled when the stderr encoding supports the emoji glyphs.
     - - ``PIPX_MAX_LOGS``
       - Number of log files to keep in the log directory. Default: ``10``.
 
@@ -61,8 +62,10 @@ environment`` to print the resolved value of each one on your system.
 
 .. note::
 
-    pipx forwards the standard ``PIP_*`` environment variables (for example ``PIP_INDEX_URL``) to pip. See
-    :doc:`Troubleshoot <../how-to/troubleshoot>` if pip behaves unexpectedly.
+    pipx forwards the standard ``PIP_*`` environment variables (for example ``PIP_INDEX_URL``) to pip, except that it
+    forces ``PIP_USER=0`` and ``PIP_DISABLE_PIP_VERSION_CHECK=1``, drops ``PIP_TARGET``, and defaults
+    ``PIP_KEYRING_PROVIDER`` to ``subprocess``. See :doc:`Troubleshoot <../how-to/troubleshoot>` if pip behaves
+    unexpectedly.
 
 Legacy fallback home
 ====================
@@ -71,9 +74,9 @@ If a legacy home directory already exists on disk, pipx keeps its virtual enviro
 ``PIPX_HOME`` default: ``~/.local/pipx`` on any platform, and ``~\pipx`` on Windows. These are used only when present
 and when ``PIPX_HOME`` is unset. See :doc:`Configure paths <../how-to/configure-paths>` to migrate off them.
 
-On Unix, a pipx installation that manages itself recovers ``PIPX_HOME``, ``PIPX_BIN_DIR``, and ``PIPX_DEFAULT_PYTHON``
-from its own virtual environment when those variables are unset, so later shells stay attached to the same
-installation.
+On Unix, a pipx installation that manages itself recovers ``PIPX_HOME`` and ``PIPX_DEFAULT_PYTHON`` from its own
+virtual environment when those variables are unset, and ``PIPX_BIN_DIR`` when pipx was launched through its exposed
+link, so later shells stay attached to the same installation.
 
 *******************************
  Derived (read-only) values
@@ -101,7 +104,7 @@ platform; they are reported, not set.
     - - ``PIPX_RESOLVED_BACKEND``
       - Backend pipx resolved for new venvs (``pip`` or ``uv``).
     - - ``PIPX_BACKEND_SOURCE``
-      - Where the resolved backend came from (CLI flag, environment, or auto-detection).
+      - Where the resolved backend came from: ``env``, ``auto-bundled``, ``auto-path``, or ``auto-pip``.
     - - ``PIPX_UV_BINARY``
       - Path to the uv binary pipx would use, or empty when none is found.
     - - ``UV_CACHE_DIR``

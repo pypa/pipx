@@ -2,9 +2,9 @@
  Exit codes
 ############
 
-pipx returns ``0`` on success and ``1`` on failure. A command that raises an unexpected error, is interrupted, or hits
-an argument-parsing problem also exits non-zero. The named codes below come from ``pipx.constants``; each maps to one of
-those two process exit values.
+pipx returns ``0`` on success and ``1`` on failure. ``run``, ``runpip``, and ``exec`` exit with the code of the app or
+pip they ran, and argument-parsing errors exit ``2``. A command that raises an unexpected error or is interrupted also
+exits non-zero. The named codes below come from ``pipx.constants``; each maps to ``0`` or ``1``.
 
 ``reinstall-all`` exits with ``1`` if any environment could not be reinstalled,
 including when its selected Python interpreter belongs to that environment.
@@ -21,9 +21,6 @@ successfully reinstalled environments appear in ``data.environments``.
     - - ``0``
       - ``EXIT_CODE_OK``
       - Command completed successfully.
-    - - ``0``
-      - ``EXIT_CODE_INSTALL_VENV_EXISTS``
-      - Install skipped because the environment already exists; not treated as a failure.
     - - ``1``
       - ``EXIT_CODE_INJECT_ERROR``
       - ``inject`` failed to install one or more packages.
@@ -44,7 +41,7 @@ successfully reinstalled environments appear in ``data.environments``.
       - ``reinstall`` targeted an environment that does not exist.
     - - ``1``
       - ``EXIT_CODE_REINSTALL_INVALID_PYTHON``
-      - ``reinstall`` was given a Python interpreter it could not use.
+      - ``reinstall`` selected a Python interpreter that lives inside the environment being reinstalled.
     - - ``1``
       - ``EXIT_CODE_SPECIFIED_PYTHON_EXECUTABLE_NOT_FOUND``
       - The interpreter passed to ``--python`` was not found.

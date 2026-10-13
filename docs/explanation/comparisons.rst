@@ -9,7 +9,7 @@
 -  pip is a general Python package installer. It can install libraries or CLI applications with entry points.
 -  pipx is a specialized package installer. It can only install packages with CLI entry points.
 -  pipx and pip both install packages from PyPI (or locally).
--  pipx relies on pip (and venv).
+-  pipx relies on pip and venv, or on uv under the uv backend.
 -  pipx replaces a subset of pip's functionality: it installs CLI applications but not libraries that you import in your
    code.
 -  You can install pipx with pip.
@@ -48,11 +48,12 @@ Where state lives
     - - Man pages
       - ``$PIPX_MAN_DIR`` (default ``~/.local/share/man``)
       - *not exposed*
-    - - Shared pip/setuptools/wheel
+    - - Shared pip
       - ``$PIPX_HOME/shared`` (pip backend only)
       - *none; uv venvs ship without pip*
     - - Ephemeral run cache
-      - ``$PIPX_HOME/.cache`` (TTL 14 days)
+      - ``pipx cache dir`` (platform cache dir, or ``$PIPX_HOME/.cache`` when ``PIPX_HOME`` is set; TTL 14 days, pip
+        backend)
       - ``$UV_CACHE_DIR`` (no TTL; ``uv cache prune``)
     - - Standalone Python
       - ``$PIPX_HOME/py`` (``PIPX_FETCH_PYTHON``)
@@ -127,7 +128,7 @@ Subcommand mapping
       - ``pipx reinstall ruff`` / ``reinstall-all``
       - ``uv tool upgrade --reinstall ruff`` / ``--all``
     - - Run pip inside a venv
-      - ``pipx runpip <tool> -- pip ...``
+      - ``pipx runpip <tool> install ...``
       - *not supported (no pip in uv venvs)*
     - - PATH setup
       - ``pipx ensurepath``
@@ -144,7 +145,7 @@ Only in pipx
 
 -  ``pipx inject`` / ``uninject`` add or remove a package in place. ``uv tool install --with`` reaches the same end
    state by rebuilding the venv.
--  ``pipx runpip <venv> -- ...`` runs pip inside a tool's venv. uv venvs have no pip.
+-  ``pipx runpip <venv> install ...`` runs pip against a tool's venv, or ``uv pip`` under the uv backend.
 -  ``--include-deps`` exposes entry points from every dependency. uv requires you to enumerate dep packages with
    ``--with-executables-from``.
 -  ``--suffix`` keeps two copies of the same tool side-by-side.
@@ -212,9 +213,9 @@ Example: install poetry with pipx, ``pipx install poetry``; run poetry without i
 
 -  venv is part of Python's standard library in Python 3.2 and above.
 -  venv creates "virtual environments", which are sandboxed Python installations.
--  pipx relies heavily on the venv package.
+-  Under the pip backend, pipx relies heavily on the venv package.
 
-Example: pipx installs packages into environments created with venv, ``pipx install black --verbose``.
+Example: pipx installs packages into environments created with venv, ``pipx install black --backend pip --verbose``.
 
 ***************
  pipx vs pyenv
@@ -232,11 +233,11 @@ install black --python=python3.11`` where ``python3.11`` was installed by pyenv.
 
 -  pipx and pipsi both install packages in a similar way.
 -  pipx is under active development; pipsi is no longer maintained.
--  pipx always makes sure you're using the latest version of pip.
+-  pipx keeps its shared pip upgraded, refreshing it every 30 days under the pip backend.
 -  pipx can run an app in one line, leaving your system unchanged after it finishes (``pipx run APP``); pipsi cannot.
 -  pipx can recursively install binaries from dependent packages.
 -  pipx has more CLI options such as ``upgrade-all``, ``reinstall-all``, and ``uninstall-all``.
--  pipx is more modern. It requires Python 3.11+ and uses the standard-library ``venv`` package.
+-  pipx is more modern. It requires Python 3.11+ and, under the pip backend, uses the standard-library ``venv`` package.
 -  pipx works with Python homebrew installations while pipsi does not.
 -  pipx lets you see each command it runs by passing ``--verbose``.
 

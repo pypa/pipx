@@ -14,8 +14,8 @@ Install `HTTPie <https://httpie.io/>`_, a command-line HTTP client:
 .. code-block:: console
 
     $ pipx install httpie
-      installed package httpie 3.2.4, Python 3.12.3
-      These apps are now globally available
+      installed package httpie 3.2.4, installed using Python 3.12.3
+      These apps are now available
         - http
         - https
     done! ✨ 🌟 ✨
@@ -37,7 +37,9 @@ pipx creates a virtual environment, installs the ``httpie`` package into it, and
     $ pipx list
     venvs are in /home/user/.local/share/pipx/venvs
     apps are exposed on your $PATH at /home/user/.local/bin
-       package httpie 3.2.4, Python 3.12.3
+    manual pages are exposed at /home/user/.local/share/man
+    shell completions are exposed at /home/user/.local/share
+       package httpie 3.2.4, installed using Python 3.12.3
         - http
         - https
 
@@ -64,8 +66,8 @@ A brand-new release is the one most likely to be broken or compromised. Install 
 .. code-block:: console
 
     $ pipx install --cooldown 7 black
-      installed package black 24.8.0, Python 3.12.3
-      These apps are now globally available
+      installed package black 24.8.0, installed using Python 3.12.3
+      These apps are now available
         - black
         - blackd
     done! ✨ 🌟 ✨

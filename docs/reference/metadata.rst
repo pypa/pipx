@@ -94,5 +94,6 @@ The current schema version is ``0.12`` (``pipx_metadata_version``). pipx migrate
 .. note::
 
     Path values are encoded as ``{"__type__": "Path", "__Path__": "<path>"}`` so pipx can round-trip them across
-    platforms. The same snapshot, wrapped under ``pipx_spec_version`` and a ``venvs`` map, is what ``pipx list --output
-    json`` emits and ``pipx install-all`` consumes (see :doc:`json-output`).
+    platforms. The same snapshot, wrapped under ``pipx_spec_version`` and a ``venvs`` map whose entries nest it under a
+    ``metadata`` key, is what ``pipx list --output json`` emits and ``pipx install-all`` consumes (see
+    :doc:`json-output`).

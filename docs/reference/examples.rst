@@ -130,10 +130,12 @@ List installed packages and their apps:
     $ pipx list
     venvs are in /home/user/.local/share/pipx/venvs
     apps are exposed on your $PATH at /home/user/.local/bin
-       package black 24.3.0, Python 3.12.0
+    manual pages are exposed at /home/user/.local/share/man
+    shell completions are exposed at /home/user/.local/share
+       package black 24.3.0, installed using Python 3.12.0
         - black
         - blackd
-       package pipx 1.4.3, Python 3.12.0
+       package pipx 1.4.3, installed using Python 3.12.0
         - pipx
 
 Narrow the output or change the format; the package filter works with every format:
@@ -154,29 +156,34 @@ Reinstall from a snapshot produced by ``pipx list --output json`` (see :doc:`jso
 .. code-block:: console
 
     $ pipx install-all pipx.json
-    'black' already seems to be installed. Not modifying existing installation in '/usr/local/pipx/venvs/black'. Pass '--force' to force installation.
-    'pipx' already seems to be installed. Not modifying existing installation in '/usr/local/pipx/venvs/pipx'. Pass '--force' to force installation.
+    'black' (24.3.0) already seems to be installed. Not
+    modifying existing installation in '/home/user/.local/share/pipx/venvs/black'.
+    Pass '--force' to force installation, or use
+    'pipx upgrade black' to upgrade.
+    'pipx' (1.4.3) already seems to be installed. Not
+    modifying existing installation in '/home/user/.local/share/pipx/venvs/pipx'.
+    Pass '--force' to force installation, or use
+    'pipx upgrade pipx' to upgrade.
     $ pipx install-all pipx.json --force
     Installing to existing venv 'black'
       installed package black 24.3.0, installed using Python 3.12.0
-      These apps are now globally available
+      These apps are now available
         - black
         - blackd
     Installing to existing venv 'pipx'
       installed package pipx 1.4.3, installed using Python 3.12.0
-      These apps are now globally available
+      These apps are now available
         - pipx
 
 ***************
  upgrade-shared
 ***************
 
-Upgrade the shared libraries, or pin pip to a specific version until the next automatic upgrade:
+Upgrade the shared libraries:
 
 .. code-block:: bash
 
     pipx upgrade-shared
-    pipx upgrade-shared --pip-args=pip==24.0
 
 *********
  pin
@@ -190,16 +197,15 @@ Pin only injected packages, leaving the main package upgradable:
 .. code-block:: console
 
     $ pipx pin poetry --injected-only
-    Pinned 2 packages in venv poetry
+    pipx pinned 2 packages in venv poetry
       - poetry-plugin-export <current version>
       - poetry-plugin-app <current version>
 
-Unpin the whole environment so upgrades resume:
+Unpin the environment so upgrades resume. Only packages that were pinned are listed:
 
 .. code-block:: console
 
     $ pipx unpin poetry
-    Unpinned 3 packages in venv poetry
-      - poetry
+    pipx unpinned 2 packages in venv poetry
       - poetry-plugin-export
       - poetry-plugin-app

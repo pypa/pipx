@@ -57,8 +57,8 @@ Windows (they launch without opening a console window).
                 },
             )
 
-Here ``foo`` and ``bar`` (and ``baz`` on Windows) become applications that pipx exposes after installing the package,
-invoking their corresponding entry point functions.
+Here ``foo``, ``bar``, and ``baz`` become applications that pipx exposes after installing the package, invoking their
+corresponding entry point functions.
 
 .. mermaid::
 
@@ -107,7 +107,9 @@ This entry point takes priority over console scripts when present.
 
 With this declaration, ``pipx run my-package`` invokes ``my_package.cli:main`` even if no console script named
 ``my-package`` exists. The `build <https://github.com/pypa/build>`_ package uses this pattern so that ``pipx run build``
-works even though build's console script is named ``pyproject-build``.
+works even though build's console script is named ``pyproject-build``. The uv backend hands ``pipx run build`` to ``uv
+tool run``, which reads console scripts only, so this needs ``--backend pip`` there (see
+:doc:`../how-to/use-uv-backend`).
 
 Detect a pipx installation
 ==========================

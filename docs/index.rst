@@ -4,8 +4,8 @@
 
 ``pipx`` installs and runs end-user Python applications in isolated environments. It fills the same role as macOS's
 ``brew``, JavaScript's `npx <https://docs.npmjs.com/cli/commands/npx>`_, and Linux's ``apt``. Under the hood it uses
-pip, but unlike pip it creates a separate virtual environment for each application, so their dependencies never collide
-and an uninstall leaves nothing behind.
+uv when available and pip otherwise, but unlike either it creates a separate virtual environment for each application,
+so their dependencies never collide and an uninstall leaves nothing behind.
 
 .. mermaid::
 

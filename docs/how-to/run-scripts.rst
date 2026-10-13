@@ -3,7 +3,8 @@
 ############
 
 Run an app or a script in a temporary environment with ``pipx run``, without installing it first. pipx downloads the
-package, caches the environment, and runs the app.
+package, caches the environment, and runs the app. Under the uv backend, pipx hands packages to ``uv tool run`` and
+local scripts with inline metadata to ``uv run --script``, so uv's cache applies instead of pipx's.
 
 ***********************
  Run a specific version
@@ -25,7 +26,8 @@ Quote any specifier that contains ``>``, ``<``, or spaces.
  Add extra dependencies
 ***********************
 
-``--with PKG`` adds packages to the temporary environment alongside the app. Repeat it to add more:
+``--with PKG`` adds packages to the temporary environment alongside the app. Repeat it to add more. For a script,
+``--with`` requires a ``# /// script`` metadata block; pipx adds the packages to its declared dependencies:
 
 .. code-block:: console
 

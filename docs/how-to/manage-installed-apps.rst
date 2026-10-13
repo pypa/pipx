@@ -61,7 +61,7 @@ Verify:
 
     $ pipx uninstall black
 
-pipx deletes the environment and unlinks its apps and manual pages.
+pipx deletes the environment and unlinks its apps, manual pages, and shell completions.
 
 Verify:
 

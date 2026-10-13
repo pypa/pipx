@@ -26,8 +26,8 @@ flags the same way:
  Set it for every command
 *************************
 
-pipx forwards ``PIP_*`` environment variables to every pip invocation, including shared-library upgrades. Set them in
-your shell profile or pip's own config file for a permanent default:
+Under the pip backend, pipx forwards ``PIP_*`` environment variables to every pip invocation, including shared-library
+upgrades. Set them in your shell profile or pip's own config file for a permanent default:
 
 .. code-block:: console
 
@@ -35,7 +35,9 @@ your shell profile or pip's own config file for a permanent default:
     $ export PIP_TRUSTED_HOST=my-index.example.com
     $ pipx install my-private-package
 
-See the `pip configuration docs <https://pip.pypa.io/en/stable/topics/configuration/>`_ for the config-file form.
+See the `pip configuration docs <https://pip.pypa.io/en/stable/topics/configuration/>`_ for the config-file form. pipx
+always sets ``PIP_USER=0`` and drops ``PIP_TARGET`` so packages land in the venv. The uv backend ignores ``PIP_*``; use
+uv's own variables (for example ``UV_INDEX_URL``) or ``--backend pip``.
 
 ****************
  Install offline
@@ -51,10 +53,11 @@ Pass ``--skip-maintenance`` to keep the bundled pip instead of downloading a sha
 
 .. warning::
 
-    Under the uv backend, pipx translates only a subset of ``--pip-args``: ``--index-url`` (``-i``),
+    Under the uv backend, ``pipx run`` translates only a subset of ``--pip-args``: ``--index-url`` (``-i``),
     ``--extra-index-url``, ``--find-links`` (``-f``), ``--trusted-host``, ``--no-binary``, ``--only-binary``,
     ``--pre``, ``--upgrade`` (``-U``), and ``--no-cache-dir``. Any other flag raises an error rather than being
-    silently dropped. Use ``--backend pip`` when you need a flag uv cannot translate. See :doc:`use-uv-backend`.
+    silently dropped. Other commands pass ``--pip-args`` to ``uv pip install`` unchanged, so uv decides which flags it
+    accepts. Use ``--backend pip`` when you need a pip-only flag. See :doc:`use-uv-backend`.
 
 **********
  Verify it
