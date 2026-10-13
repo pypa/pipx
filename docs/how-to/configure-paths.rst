@@ -75,7 +75,7 @@ After version 1.16.0, pipx moved its default paths from ``~/.local/pipx`` to per
     - - ``~/.local/pipx/.cache``
       - ``platformdirs.user_cache_dir()/pipx``
     - - ``~/.local/pipx/logs``
-      - ``platformdirs.user_log_dir()/pipx/log``
+      - ``platformdirs.user_log_dir("pipx")``
 
 For compatibility, if ``~/.local/pipx`` exists (or ``~\pipx`` on Windows), pipx keeps using it. See the `platformdirs
 platform table <https://platformdirs.readthedocs.io/en/latest/api.html#platforms>`_ for the resolved directories. On
