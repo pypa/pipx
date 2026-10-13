@@ -9,7 +9,8 @@ Declare a set of pipx tools in one file and install, upgrade, or prune them as a
 *******************
 
 The manifest is a ``pipx.toml`` file. Each dependency group holds one PEP 508 package requirement and names its pipx
-environment. Keep ``project.dependencies`` empty so each group resolves on its own:
+environment. ``project.dependencies`` must be an empty list so each group resolves on its own; pipx rejects the
+manifest otherwise:
 
 .. code-block:: toml
 
@@ -79,14 +80,16 @@ only after every resolution succeeds. Entries without ``lock`` stay unlocked.
 entries install from the artifacts in their named PEP 751 files. pipx restores an existing environment and its exposed
 resources when a tool fails to install or lacks a required app.
 
-Pass ``--prune`` to uninstall environments absent from the manifest:
+Pass ``--prune`` to uninstall environments absent from the manifest. pipx skips pruning when any declared tool fails
+to sync:
 
 .. code-block:: console
 
     $ pipx manifest sync ./pipx.toml --prune
 
-Without ``--prune``, sync leaves your other pipx environments alone. Pass ``--global`` or ``--backend`` after ``sync``
-to select the pipx store or the installation backend. pipx reads only the manifest path you supply on the command line.
+Without ``--prune``, sync leaves your other pipx environments alone. Pass ``--global`` (not available on Windows) or
+``--backend`` after ``sync`` to select the pipx store or the installation backend. pipx reads only the manifest path you
+supply on the command line.
 
 **********
  Verify it

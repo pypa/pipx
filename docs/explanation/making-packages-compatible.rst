@@ -57,8 +57,8 @@ Windows (they launch without opening a console window).
                 },
             )
 
-Here ``foo`` and ``bar`` (and ``baz`` on Windows) become applications that pipx exposes after installing the package,
-invoking their corresponding entry point functions.
+Here ``foo``, ``bar``, and ``baz`` become applications that pipx exposes after installing the package, invoking their
+corresponding entry point functions.
 
 .. mermaid::
 

@@ -38,7 +38,7 @@ Arguments after the app name pass straight through to it:
  Ambiguous arguments
 *********************
 
-pipx can swallow an argument meant for the app when it looks like one of pipx's own options:
+On Python 3.11, pipx can swallow an argument meant for the app when it looks like one of pipx's own options:
 
 .. code-block:: console
 
@@ -62,7 +62,8 @@ separately:
 
     $ pipx run --spec PACKAGE APP
 
-`esptool <https://github.com/espressif/esptool>`_, for example, lists its executables when you guess wrong:
+Under the pip backend, pipx lists the executables of `esptool <https://github.com/espressif/esptool>`_ when you guess
+wrong:
 
 .. code-block:: console
 
@@ -87,8 +88,9 @@ Package authors can remove this requirement by declaring a :doc:`pipx.run entry 
  Run cache
 ***********
 
-pipx caches each ``pipx run`` environment for a few days so repeated runs start instantly. After the cache expires, the
-next run fetches the latest version.
+pipx caches each ``pipx run`` environment for 14 days so repeated runs start instantly. After the cache expires, the
+next run fetches the latest version. Under the uv backend pipx hands the run to ``uv tool run``, so uv's own cache
+applies instead.
 
 .. mermaid::
 
@@ -98,7 +100,7 @@ next run fetches the latest version.
         FETCH --> CACHE["cache venv"]
         CHECK -->|"yes"| REUSE["reuse cached venv"]
         CACHE --> REUSE
-        REUSE --> EXPIRE["expires after a few days"]
+        REUSE --> EXPIRE["expires after 14 days"]
         EXPIRE --> RUN
 
         classDef step fill:#2a9d8f,stroke:#1f7268,color:#fff;
@@ -113,10 +115,10 @@ replacement:
 
     $ pipx run --refresh APP
 
-``--no-cache`` also rebuilds, but marks the new environment for cleanup by a later run. The two options are mutually
-exclusive.
+``--no-cache`` also rebuilds, but under the pip backend marks the new environment for cleanup by a later run. The two
+options are mutually exclusive.
 
-Inspect or clear every cached run environment:
+Show the cache directory or remove pipx's cached run environments:
 
 .. code-block:: console
 

@@ -14,8 +14,8 @@ pipx runs on macOS, Linux, and Windows.
  Check the requirements
 ***********************
 
-Installing pipx needs Python 3.11 or newer; the apps it runs can target Python 3.3 or newer. Without Python 3.11, see
-the `Python 3 installation guide <https://realpython.com/installing-python/>`_.
+Installing pipx needs Python 3.11 or newer, and so does any interpreter you pass with ``--python``. Without Python
+3.11, see the `Python 3 installation guide <https://realpython.com/installing-python/>`_.
 
 You also need ``pip`` for ``python3``. The steps vary by system; see `pip's installation instructions
 <https://pip.pypa.io/en/stable/installation/>`_. On Linux, install through a `Linux package manager
@@ -118,7 +118,7 @@ Or via pip:
  Optional PATH commands
 ***********************
 
-Add the global app directory to the system ``PATH`` (pipx 1.5.0+):
+Add the global app directory to the system ``PATH`` (pipx 1.6.0+):
 
 .. code-block:: console
 
@@ -129,7 +129,7 @@ Prepend the pipx bin directory instead of appending it, so pipx apps win over sy
 
 .. code-block:: console
 
-    $ sudo pipx ensurepath --prepend
+    $ pipx ensurepath --prepend
 
 For where these directories live and how to change them, see :doc:`configure-paths`.
 

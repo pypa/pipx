@@ -10,27 +10,28 @@ Python lacks the version you need, or when a distro patched its Python in ways t
  How pipx decides
 *****************
 
-``--fetch-python`` (or ``PIPX_FETCH_PYTHON``) sets the policy. With ``missing``, pipx downloads only when no local
-interpreter satisfies the app's ``requires-python``:
+``--fetch-python`` (or ``PIPX_FETCH_PYTHON``) sets the policy. Without ``--python``, pipx first looks for a local
+interpreter that satisfies the app's ``requires-python``, and the policy only decides what happens when none does:
 
 .. mermaid::
 
     flowchart TD
-        START["pipx install"] --> POLICY{"--fetch-python"}
-        POLICY -->|never| PATHPY["use Python from PATH<br/>or py launcher"]
-        POLICY -->|always| FETCH["download standalone build"]
-        POLICY -->|missing| DEF{"default Python satisfies<br/>requires-python?"}
+        START["pipx install"] --> DEF{"default Python satisfies<br/>requires-python?"}
         DEF -->|yes| USEDEF["use default Python"]
-        DEF -->|no| SEARCH{"another interpreter<br/>on PATH fits?"}
+        DEF -->|no| SEARCH{"another local<br/>interpreter fits?"}
         SEARCH -->|yes| USEMATCH["use newest match"]
-        SEARCH -->|no| FETCH2["download standalone build"]
+        SEARCH -->|no| POLICY{"--fetch-python"}
+        POLICY -->|never| FAIL["error"]
+        POLICY -->|missing or always| FETCH["download standalone build"]
 
         classDef decision fill:#2a9d8f,stroke:#1f7268,color:#fff;
         classDef fetch fill:#c78c20,stroke:#946716,color:#fff;
         classDef use fill:#388e3c,stroke:#276628,color:#fff;
+        classDef fail fill:#c62828,stroke:#8e1c1c,color:#fff;
         class POLICY,DEF,SEARCH decision;
-        class FETCH,FETCH2 fetch;
-        class PATHPY,USEDEF,USEMATCH use;
+        class FETCH fetch;
+        class USEDEF,USEMATCH use;
+        class FAIL fail;
 
 Naming ``--python`` yourself keeps the last word: pipx uses the interpreter you named and reports it, rather than
 overriding you when the package rejects it.
@@ -50,7 +51,7 @@ overriding you when the package rejects it.
     - - ``missing``
       - Look locally first; download when the requested version is not found.
     - - ``always``
-      - Skip the local search and use a standalone build for the requested version.
+      - Skip the local search and use a standalone build for the version named with ``--python``.
 
 .. code-block:: console
 

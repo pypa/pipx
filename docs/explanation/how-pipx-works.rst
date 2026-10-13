@@ -14,23 +14,23 @@
 ***************************
 
 ``pipx install PACKAGE`` creates an isolated virtual environment under ``PIPX_HOME`` (for example
-``~/.local/share/pipx/venvs/black``) and installs the package into it. Under the pip backend pipx first creates or
-reuses a shared environment that holds an up-to-date ``pip`` and exposes it to each managed venv through a
-`.pth file <https://docs.python.org/3/library/site.html>`_, so every venv borrows one pip rather than installing its
-own. Under the uv backend there is no shared environment: ``uv venv`` builds the venv (without pip) and ``uv pip``
-installs into it.
+``~/.local/share/pipx/venvs/black``) and installs the package into it. Under the pip backend pipx creates the venv
+without pip, then creates or reuses a shared environment that holds an up-to-date ``pip`` and links it into the venv
+through a `.pth file <https://docs.python.org/3/library/site.html>`_, so every venv borrows one pip rather than
+installing its own. Under the uv backend there is no shared environment: ``uv venv`` builds the venv (without pip)
+and ``uv pip`` installs into it.
 
 Once the package is installed, pipx exposes the application's resources so you can reach them from anywhere. It handles
-four kinds:
+three kinds:
 
 -  console and GUI scripts, into ``PIPX_BIN_DIR`` (default ``~/.local/bin``), for example
    ``~/.local/bin/black`` -> ``~/.local/share/pipx/venvs/black/bin/black``;
 -  manual pages, into ``PIPX_MAN_DIR`` (default ``~/.local/share/man/man[1-9]``);
 -  shell completion scripts, into ``PIPX_COMPLETION_DIR`` (default ``~/.local/share``).
 
-pipx symlinks each resource into place. On Windows, and on any filesystem that does not support symlinks, it copies the
-file instead. As long as ``PIPX_BIN_DIR`` is on your ``PATH`` the commands are available globally, and on systems with
-``man`` support the pages are too.
+pipx symlinks each resource into place. On Windows it copies the file instead when the target directory does not
+support symlinks. As long as ``PIPX_BIN_DIR`` is on your ``PATH`` the commands are available globally, and on systems
+with ``man`` support the pages are too.
 
 pipx records what it installed and exposed in a per-venv ``pipx_metadata.json`` file. Later commands (``upgrade``,
 ``reinstall``, ``expose``) read it to reproduce the same state.
@@ -46,11 +46,11 @@ dependencies, installs that wheel like any other package, then records the origi
 
     flowchart LR
         A["pipx install black"] --> BK{"backend?"}
-        BK -- pip --> P["shared venv (pip)<br/>reused via .pth"]
+        BK -- pip --> C["create venv<br/>venvs/black/"]
         BK -- uv --> U["uv venv<br/>(no pip)"]
-        P --> C["create venv<br/>venvs/black/"]
-        U --> C
-        C --> D["install package<br/>pip install / uv pip install"]
+        C --> P["link shared pip<br/>via .pth"]
+        P --> D["install package<br/>pip install / uv pip install"]
+        U --> D
         D --> E["expose apps<br/>~/.local/bin"]
         D --> F["expose man pages<br/>~/.local/share/man"]
         D --> G["expose completions<br/>PIPX_COMPLETION_DIR"]
@@ -68,25 +68,27 @@ dependencies, installs that wheel like any other package, then records the origi
  Running an application
 *************************
 
-``pipx run APP`` executes an application without installing it permanently. pipx either reuses a cached temporary venv
-or builds a fresh one, then invokes the app. The cache key is a hash of the package name, spec, Python version, and pip
-arguments; cached environments expire after 14 days, after which the next run rebuilds against the latest release.
+``pipx run APP`` executes an application without installing it permanently. Under the pip backend pipx either reuses a
+cached temporary venv or builds a fresh one, then invokes the app. The cache key is a hash of the requirements (the spec
+plus any ``--with`` packages), the ``--python`` value, pip and venv arguments, the backend, and the cooldown; cached
+environments expire after 14 days, after which the next run rebuilds against the latest release. The temporary venv
+borrows the shared pip.
 
-Under the pip backend the temporary venv borrows the shared pip; under the uv backend uv creates and populates it.
-``pipx run --with PKG`` adds extra dependencies to that temporary environment.
+Under the uv backend pipx usually hands the whole run to ``uv tool run``, which uses uv's own cache. ``pipx run --with
+PKG`` adds extra dependencies to the temporary environment either way.
 
 .. mermaid::
 
     flowchart LR
-        A["pipx run pycowsay"] --> C{"cached<br/>venv?"}
+        A["pipx run pycowsay"] --> BK{"backend?"}
+        BK -- pip --> C{"cached<br/>venv?"}
+        BK -- uv --> U["uv tool run<br/>(uv's cache)"]
         C -- yes --> E["reuse cached venv"]
-        C -- no --> BK{"backend?"}
-        BK -- pip --> P["shared pip +<br/>python -m venv"]
-        BK -- uv --> U["uv venv + uv pip"]
+        C -- no --> P["python -m venv +<br/>shared pip"]
         P --> D["install pycowsay"]
-        U --> D
         D --> F["invoke app"]
         E --> F
+        U --> F
 
         classDef input fill:#3f72af,stroke:#28517f,color:#fff
         classDef decision fill:#c78c20,stroke:#8a6011,color:#fff
@@ -123,7 +125,8 @@ always uses its isolated dependencies and never your system site-packages.
  Directory layout
 ******************
 
-pipx keeps its state under one home directory. The tree below is the conceptual shape; the concrete locations, defaults,
+pipx keeps its venvs and shared libraries under one home directory; the run cache and logs use the platform cache and
+log directories unless ``PIPX_HOME`` is set. The tree below is the conceptual shape; the concrete locations, defaults,
 and every override live in :doc:`../how-to/configure-paths`.
 
 .. mermaid::
@@ -159,9 +162,10 @@ installer output.
 
 pipx prefers a real system Python and only downloads a standalone build as a fallback. When you pass ``--python``, it
 tries the value as a literal path, then as a command on ``PATH``, then as a ``pythonX.Y`` command, then through the
-``py`` launcher on Windows. Only if every step fails, and ``--fetch-python`` permits it, does pipx fetch a build from
-`python-build-standalone <https://github.com/astral-sh/python-build-standalone>`_. The default, ``--fetch-python=never``,
-keeps pipx offline and errors out instead.
+``py`` launcher when one is on ``PATH``. Only if every step fails, and ``--fetch-python=missing`` is set, does pipx
+fetch a build from `python-build-standalone <https://github.com/astral-sh/python-build-standalone>`_.
+``--fetch-python=always`` skips these steps and downloads directly. The default, ``--fetch-python=never``, keeps pipx
+offline and errors out instead.
 
 For the authoritative step-by-step order, the ``--fetch-python`` values, and when a downloaded build beats a patched
 system Python, see :doc:`../how-to/standalone-python`.
@@ -169,23 +173,25 @@ system Python, see :doc:`../how-to/standalone-python`.
 .. mermaid::
 
     flowchart TD
-        S["--python VALUE"] --> A{"file exists?"}
+        S["--python VALUE"] --> AL{"--fetch-python<br/>=always?"}
+        AL -- yes --> DL["download standalone build"]
+        AL -- no --> A{"file exists?"}
         A -- yes --> USE["use interpreter"]
         A -- no --> B{"on PATH?<br/>shutil.which"}
         B -- yes --> USE
         B -- no --> C{"pythonX.Y?<br/>(non-Windows)"}
         C -- yes --> USE
-        C -- no --> D{"py launcher?<br/>(Windows)"}
+        C -- no --> D{"py launcher?"}
         D -- yes --> USE
-        D -- no --> E{"--fetch-python<br/>allows download?"}
-        E -- "missing / always" --> DL["download standalone build"]
-        E -- "never (default)" --> ERR["error"]
+        D -- no --> E{"--fetch-python<br/>=missing?"}
+        E -- "yes" --> DL
+        E -- "no (never, default)" --> ERR["error"]
 
         classDef input fill:#3f72af,stroke:#28517f,color:#fff
         classDef decision fill:#c78c20,stroke:#8a6011,color:#fff
         classDef out fill:#388e3c,stroke:#256128,color:#fff
         classDef err fill:#b3261e,stroke:#7a1a15,color:#fff
         class S input
-        class A,B,C,D,E decision
+        class AL,A,B,C,D,E decision
         class USE,DL out
         class ERR err

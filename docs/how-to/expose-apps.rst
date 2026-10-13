@@ -2,7 +2,8 @@
  Expose apps
 ############
 
-Control which apps and manual pages an environment links onto your ``PATH``, without rebuilding it.
+Control which apps, manual pages, and shell completions an environment links onto your ``PATH``, without rebuilding
+it.
 
 ************
  Hide an app
@@ -14,8 +15,8 @@ Use ``unexpose`` when another command with the same name should win, but you wan
 
     $ pipx unexpose ansible
 
-pipx removes the apps and manual pages recorded for that environment from its global directories. Upgrade and reinstall
-keep it hidden, and injected apps stay hidden too.
+pipx removes the apps, manual pages, and shell completions recorded for that environment from its global directories.
+Upgrade and reinstall keep it hidden, and injected apps stay hidden too.
 
 ***************
  Restore an app
@@ -25,7 +26,8 @@ keep it hidden, and injected apps stay hidden too.
 
     $ pipx expose ansible
 
-pipx relinks each recorded app and manual page without rebuilding the environment.
+pipx relinks each recorded app, manual page, and shell completion without rebuilding the environment. It skips any
+file already present in the target directory and exits with ``1``.
 
 ***************************
  Expose a dependency's apps

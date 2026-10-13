@@ -31,8 +31,8 @@ pipx is a tool to help you install and run end-user applications written in Pyth
 `brew`, JavaScript's [npx](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b), and
 Linux's `apt`.
 
-It's closely related to pip. In fact, it uses pip, but is focused on installing and managing Python packages that can be
-run from the command line directly as applications.
+It's closely related to pip. It installs with uv when available and pip otherwise, but is focused on installing and
+managing Python packages that can be run from the command line directly as applications.
 
 ### Features
 
@@ -75,7 +75,7 @@ For more detailed installation instructions, see the
 
 ## Quick Start
 
-Install an application globally:
+Install an application for your user:
 
 ```
 pipx install pycowsay

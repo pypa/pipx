@@ -17,7 +17,7 @@ lag the newest version.
     $ pipx install --cooldown 7 httpie
 
 pipx translates one policy for both backends: pip receives ``--uploaded-prior-to P7D`` and uv receives
-``--exclude-newer P7D``. Relative cooldowns need uv 0.9.17 or newer.
+``--exclude-newer P7D``.
 
 *********************
  Set it for a machine

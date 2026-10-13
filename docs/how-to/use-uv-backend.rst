@@ -17,8 +17,9 @@ Install pipx with the ``uv`` extra so it ships the bundled binary:
 
     $ pipx install pipx[uv]
 
-Or install uv however you like (``brew install uv``, ``cargo install uv``) and put it on ``PATH``; pipx picks it up
-automatically. New venvs then default to uv. Existing venvs keep their recorded backend.
+Or install uv 0.9.17 or newer however you like (``brew install uv``, ``cargo install uv``) and put it on ``PATH``;
+pipx picks it up automatically. New venvs then default to uv. Existing venvs keep their recorded backend. An older uv
+on ``PATH`` still gets picked, and commands then fail asking you to upgrade it or pass ``--backend pip``.
 
 *************************
  How pipx picks a backend
@@ -66,7 +67,8 @@ all accept ``--backend``. Switch an installed venv with ``pipx reinstall NAME --
 - ``pipx run`` execs ``uv tool run``; its cache lives in uv's cache directory. Pass ``--no-cache`` to skip it or
   ``--refresh`` to rebuild the cached environment.
 - ``pipx run script.py`` execs ``uv run --script script.py`` for PEP 723 inline scripts.
-- ``--cooldown DAYS`` (or ``PIPX_COOLDOWN``) maps to uv's ``--exclude-newer P{DAYS}D``. Relative cooldowns need uv 0.9.17 or newer. See :doc:`Dependency cooldown <dependency-cooldown>`.
+- ``--cooldown DAYS`` (or ``PIPX_COOLDOWN``) maps to uv's ``--exclude-newer P{DAYS}D``. See :doc:`Dependency cooldown
+  <dependency-cooldown>`.
 
 ************
  Limitations

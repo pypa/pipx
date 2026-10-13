@@ -142,8 +142,9 @@ See `pip's environment variables <https://pip.pypa.io/en/stable/user_guide/#envi
  Clear runpip cache warnings
 ****************************
 
-``pipx runpip`` runs the pip installed inside a pipx-managed venv. Warnings such as ``WARNING: Cache entry
-deserialization failed, entry ignored`` come from that pip and its own HTTP cache, not from pipx's venv cache.
+Under the pip backend, ``pipx runpip`` runs pip from pipx's shared libraries with a pipx-managed venv's interpreter.
+Warnings such as ``WARNING: Cache entry deserialization failed, entry ignored`` come from that pip and its own HTTP
+cache, not from pipx's venv cache.
 
 Clear the cache for a managed package:
 
@@ -157,16 +158,18 @@ Inspect the cache directory first with ``--verbose`` so pipx does not quiet pip'
 
     $ pipx runpip --verbose <package> cache dir
 
-Clearing ``$PIPX_HOME/.cache`` or the cache for a different interpreter does not clear entries used by ``pipx runpip
-<package>``.
+Clearing pipx's venv cache (``pipx environment --value PIPX_VENV_CACHEDIR``) or the cache for a different interpreter
+does not clear entries used by ``pipx runpip <package>``.
 
 **********
  Log files
 **********
 
-pipx writes a verbose log for every command. The last 10 logs live in ``$XDG_STATE_HOME/pipx/logs``, or the user log
-path when that is not writable (usually ``~/.local/state/pipx/logs``). Set ``PIPX_MAX_LOGS`` to change how many are kept
-(default ``10``).
+pipx writes a verbose log for every command to ``pipx environment --value PIPX_LOG_DIR``. By default that is
+``~/.local/state/pipx/log`` on Linux (``$XDG_STATE_HOME/pipx/log``), ``~/Library/Logs/pipx`` on macOS, and
+``%LOCALAPPDATA%\pipx\pipx\Logs`` on Windows, or ``$PIPX_HOME/logs`` when ``PIPX_HOME`` is set. When that directory is
+not writable, pipx falls back to the platform user log directory. pipx keeps the last 10 logs; set ``PIPX_MAX_LOGS`` to
+change how many (default ``10``).
 
 .. _sudo-pipx-not-found:
 

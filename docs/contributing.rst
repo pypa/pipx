@@ -21,12 +21,13 @@ Changelog entries
 
 The changelog at ``docs/changelog.rst`` is built by `towncrier <https://pypi.org/project/towncrier/>`_ from news
 fragments in the ``changelog.d/`` directory. To add an entry, create a news fragment in that directory named
-``{number}.{type}.md``, where ``{number}`` is the issue number, and ``{type}`` is one of ``feature``, ``bugfix``,
-``doc``, ``removal``, or ``misc``.
+``{number}.{type}.md``, where ``{number}`` is the pull request number, and ``{type}`` is one of ``feature``, ``bugfix``,
+``performance``, ``doc``, ``removal``, or ``misc``.
 
-For example, if your issue number is 1234 and it's fixing a bug, then you would create ``changelog.d/1234.bugfix.md``.
-PRs can span multiple categories by creating multiple files: if you added a feature and deprecated/removed an old
-feature for issue #5678, you would create ``changelog.d/5678.feature.md`` and ``changelog.d/5678.removal.md``.
+For example, if your pull request number is 1234 and it fixes a bug, then you would create
+``changelog.d/1234.bugfix.md``. PRs can span multiple categories by creating multiple files: if you added a feature and
+deprecated/removed an old feature in pull request #5678, you would create ``changelog.d/5678.feature.md`` and
+``changelog.d/5678.removal.md``.
 
 A changelog entry is meant for end users and should only contain details relevant to them. In order to maintain a
 consistent style, please keep the entry to the point, in sentence case, shorter than 80 characters, and in an
@@ -152,10 +153,11 @@ At the time of this writing, the output looks like this
     3.13 -> run tests with 3.13
     3.12 -> run tests with 3.12
     3.11 -> run tests with 3.11
-    type -> run the type checker
-    lint -> run pre-commit on the codebase
+    3.15t -> run tests with 3.15t
     docs -> build documentation
+    lint -> run pre-commit on the codebase
     man  -> build man page
+    type -> run the type checker
 
     additional environments:
     dev       -> generate a DEV environment
@@ -298,8 +300,8 @@ to ensure formatting, both the commit and tag are pushed to the main branch.
 
 The act of pushing a version tag (matching the pattern ``*.*.*``) automatically triggers the main release workflow.
 This workflow builds the project distribution files, publishes the package to PyPI using trusted publishing, creates a
-GitHub release with auto-generated notes, and builds the zipapp using the minimum supported Python version before
-uploading it to the GitHub release assets.
+GitHub release with auto-generated notes, and builds the zipapp with Python 3.15 before uploading it to the GitHub
+release assets.
 
 Version Calculation Examples
 ============================

@@ -42,8 +42,8 @@ Pick a small package to try. ``pycowsay`` works well:
 .. code-block:: console
 
     $ pipx install pycowsay
-      installed package pycowsay 2.0.3, Python 3.10.3
-      These apps are now globally available
+      installed package pycowsay 2.0.3, installed using Python 3.10.3
+      These apps are now available
         - pycowsay
     done! ✨ 🌟 ✨
 
@@ -84,7 +84,9 @@ If you see the cow, pipx is working.
     $ pipx list
     venvs are in /home/user/.local/share/pipx/venvs
     apps are exposed on your $PATH at /home/user/.local/bin
-       package pycowsay 2.0.3, Python 3.10.3
+    manual pages are exposed at /home/user/.local/share/man
+    shell completions are exposed at /home/user/.local/share
+       package pycowsay 2.0.3, installed using Python 3.10.3
         - pycowsay
 
 The output shows each virtual environment's location, the apps it exposes, and the Python version it uses.
@@ -93,7 +95,7 @@ The output shows each virtual environment's location, the apps it exposes, and t
  Run an app without installing
 **********************************
 
-``pipx run`` executes an app in a temporary environment and cleans up after itself:
+``pipx run`` executes an app from a cached temporary environment without installing it:
 
 .. code-block:: console
 
