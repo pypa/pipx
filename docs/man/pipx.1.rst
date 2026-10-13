@@ -41,7 +41,7 @@ COMMANDS
     Install packages into an existing Virtual Environment
 
 **expose**
-    Restore resources from a hidden environment
+    Relink hidden or missing resources of an environment
 
 **unexpose**
     Hide resources without removing an environment

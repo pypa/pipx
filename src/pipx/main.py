@@ -905,8 +905,8 @@ def _add_expose(
 ) -> None:
     parser: Final[argparse.ArgumentParser] = subparsers.add_parser(
         "expose",
-        help="Restore resources from a hidden environment",
-        description="Relink each recorded app and manual page without rebuilding its environment.",
+        help="Relink hidden or missing resources of an environment",
+        description="Link each missing app, manual page, and shell completion without rebuilding the environment.",
         parents=[shared_parser],
     )
     cast(

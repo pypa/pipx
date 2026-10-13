@@ -26,8 +26,10 @@ Upgrade and reinstall keep it hidden, and injected apps stay hidden too.
 
     $ pipx expose ansible
 
-pipx relinks each recorded app, manual page, and shell completion without rebuilding the environment. It skips any
-file already present in the target directory and exits with ``1``.
+pipx links each recorded app, manual page, and shell completion that is missing from its target directory, without
+rebuilding the environment. Run it on an exposed environment to restore a link you deleted. When a file pipx does not
+own already sits at a target path, pipx leaves it in place, links the rest, and exits with ``1``. Move that file away
+and run ``pipx expose`` again to link the skipped resource.
 
 ***************************
  Expose a dependency's apps
