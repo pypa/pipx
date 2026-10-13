@@ -87,8 +87,7 @@ def prog_name() -> str:
 
 _SPEC_HELP: Final[str] = textwrap.dedent(
     """\
-    The package name or specific installation source passed to pip.
-    Runs `pip install -U SPEC`.
+    The package name or specific installation source to install the app from.
     For example `--spec mypackage==2.0.0` or `--spec  git+https://github.com/user/repo.git@branch`
     """
 )
@@ -455,11 +454,16 @@ class DispatchContext:
         return self.cooldown_days if self.cooldown_days is not None else self.env_cooldown_days
 
 
-def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
+_IGNORED_ON_EXISTING_VENV: Final[str] = (
+    " Ignored, since the existing environment keeps the venv options it was installed with; accepted for compatibility."
+)
+
+
+def add_pip_venv_args(parser: argparse.ArgumentParser, system_site_packages_note: str = "") -> None:
     parser.add_argument(
         "--system-site-packages",
         action="store_true",
-        help="Give the virtual environment access to the system site-packages dir.",
+        help=f"Give the virtual environment access to the system site-packages dir.{system_site_packages_note}",
     )
     parser.add_argument("--index-url", "-i", help="Base URL of Python Package Index")
     parser.add_argument(
@@ -493,8 +497,9 @@ def add_backend_arg(parser: argparse.ArgumentParser) -> None:
         help=(
             "Backend used for creating venvs and managing packages. Defaults to "
             "PIPX_DEFAULT_BACKEND when set, else 'uv' when uv is available "
-            "(via the `pipx[uv]` extra or on PATH), else 'pip'. Existing venvs "
-            "always honor their recorded backend unless this flag is given."
+            "(via the `pipx[uv]` extra or on PATH), else 'pip'. Commands on an existing venv keep its "
+            "recorded backend and warn when this flag differs; `pipx reinstall` and `pipx reinstall-all` "
+            "rebuild venvs with it."
         ),
     )
 
@@ -816,7 +821,7 @@ def _add_inject(
         help="Add apps from the injected packages onto your PATH and expose their manual pages",
     )
     _add_dependency_app_options(parser)
-    add_pip_venv_args(parser)
+    add_pip_venv_args(parser, _IGNORED_ON_EXISTING_VENV)
     parser.add_argument(
         "--force",
         "-f",
@@ -1016,7 +1021,8 @@ def _add_upgrade(
         "upgrade",
         help="Upgrade a package",
         description=(
-            "Upgrade package(s) in pipx-managed Virtual Environment(s) by running 'pip install --upgrade PACKAGE'. "
+            "Upgrade package(s) in pipx-managed Virtual Environment(s) by running 'pip install --upgrade PACKAGE' "
+            "('uv pip install --upgrade PACKAGE' under the uv backend). "
             "Apps, manual pages, and shell completions the new version adds are exposed, and those it no longer "
             "ships are removed."
         ),
@@ -1036,7 +1042,7 @@ def _add_upgrade(
         action="store_true",
         help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
-    add_pip_venv_args(parser)
+    add_pip_venv_args(parser, " Only used with --install.")
     parser.add_argument(
         "--install",
         action="store_true",
@@ -1068,9 +1074,10 @@ def _cmd_upgrade(args: argparse.Namespace, ctx: DispatchContext) -> OperationRes
 def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     parser: Final[argparse.ArgumentParser] = subparsers.add_parser(
         "upgrade-all",
-        help="Upgrade all packages. Runs `pip install -U <pkgname>` for each package.",
+        help="Upgrade all packages.",
         description=(
-            "Upgrades all packages within their virtual environments by running 'pip install --upgrade PACKAGE'. "
+            "Upgrades all packages within their virtual environments by running 'pip install --upgrade PACKAGE' "
+            "('uv pip install --upgrade PACKAGE' under the uv backend). "
             "Apps, manual pages, and shell completions a new version adds are exposed, and those it no longer "
             "ships are removed."
         ),
@@ -1088,7 +1095,7 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argp
         action="store_true",
         help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
     )
-    add_pip_venv_args(parser)
+    add_pip_venv_args(parser, _IGNORED_ON_EXISTING_VENV)
     add_backend_arg(parser)
     _add_output_option(parser)
     parser.set_defaults(func=_cmd_upgrade_all)
@@ -1593,7 +1600,7 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
     )
     parser.add_argument("--spec", help=_SPEC_HELP)
     add_python_options(parser)
-    add_pip_venv_args(parser)
+    add_pip_venv_args(parser, " Not supported under the uv backend.")
     add_backend_arg(parser)
     parser.set_defaults(subparser=parser, func=_cmd_run)
 
@@ -1664,8 +1671,8 @@ def _add_runpip(
 ) -> None:
     parser: Final[argparse.ArgumentParser] = subparsers.add_parser(
         "runpip",
-        help="Run pip in an existing pipx-managed Virtual Environment",
-        description="Run pip in an existing pipx-managed Virtual Environment",
+        help="Run pip, or `uv pip` under the uv backend, in an existing pipx-managed Virtual Environment",
+        description="Run pip, or `uv pip` under the uv backend, in an existing pipx-managed Virtual Environment",
         parents=[shared_parser],
     )
     cast(
