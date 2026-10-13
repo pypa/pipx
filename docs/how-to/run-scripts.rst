@@ -103,6 +103,10 @@ and installs the listed packages before running:
 
 pipx caches an environment keyed to the script's dependency list. Changing the dependencies builds a fresh one.
 
+When the block sets ``requires-python``, pipx keeps the default Python if it satisfies the constraint and otherwise
+looks for an interpreter that does, the same way ``pipx install`` does (see :doc:`standalone-python`). An explicit
+``--python`` that fails the constraint is an error. Both backends follow this rule.
+
 **********
  Verify it
 **********
