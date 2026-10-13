@@ -57,7 +57,7 @@ For exposing apps from an already-installed environment, see :doc:`expose-apps`.
 - ``--with-suffix`` targets a suffixed venv (for example ``ipython_3.11``).
 - ``--pip-args`` passes extra arguments to pip (for example ``--pip-args='--no-cache-dir'``).
 - ``--index-url`` / ``-i`` sets the package index URL for this inject.
-- ``--system-site-packages`` gives the venv access to the system site-packages.
+- ``--system-site-packages`` is ignored with a warning; the environment keeps the setting ``pipx install`` gave it.
 
 **********
  Verify it
