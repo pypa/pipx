@@ -16,7 +16,7 @@ top to bottom with one small package, and you will know every command you need d
 pipx installs **packages** and exposes their **apps**. A package is what you download from PyPI, such as ``pycowsay`` or
 ``httpie``. An app is a command that package puts on your ``PATH`` through a `console script entry point
 <https://packaging.python.org/en/latest/specifications/entry-points/>`_. One package can expose several apps: ``httpie``
-gives you both ``http`` and ``https``. For the full picture, see :doc:`How pipx works <../explanation/how-pipx-works>`.
+gives you ``http``, ``httpie``, and ``https``. For the full picture, see :doc:`How pipx works <../explanation/how-pipx-works>`.
 
 ***************
  The lifecycle
@@ -42,9 +42,11 @@ Pick a small package to try. ``pycowsay`` works well:
 .. code-block:: console
 
     $ pipx install pycowsay
-      installed package pycowsay 2.0.3, installed using Python 3.10.3
+      installed package pycowsay 0.0.0.2, installed using Python 3.12.3
       These apps are now available
         - pycowsay
+      These manual pages are now available
+        - man6/pycowsay.6
     done! ✨ 🌟 ✨
 
 pipx creates an isolated virtual environment for ``pycowsay``, installs it there, and links the ``pycowsay`` command into
@@ -86,8 +88,9 @@ If you see the cow, pipx is working.
     apps are exposed on your $PATH at /home/user/.local/bin
     manual pages are exposed at /home/user/.local/share/man
     shell completions are exposed at /home/user/.local/share
-       package pycowsay 2.0.3, installed using Python 3.10.3
+       package pycowsay 0.0.0.2, installed using Python 3.12.3
         - pycowsay
+        - man6/pycowsay.6
 
 The output shows each virtual environment's location, the apps it exposes, and the Python version it uses.
 

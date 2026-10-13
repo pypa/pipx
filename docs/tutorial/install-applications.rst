@@ -17,11 +17,17 @@ Install `HTTPie <https://httpie.io/>`_, a command-line HTTP client:
       installed package httpie 3.2.4, installed using Python 3.12.3
       These apps are now available
         - http
+        - httpie
         - https
+      These manual pages are now available
+        - man1/http.1
+        - man1/httpie.1
+        - man1/https.1
     done! ✨ 🌟 ✨
 
 pipx creates a virtual environment, installs the ``httpie`` package into it, and exposes the apps it declares on your
-``PATH``. Note that the package is ``httpie`` but the commands are ``http`` and ``https``: one package, two apps.
+``PATH``. Note that the package is ``httpie`` but the commands are ``http``, ``httpie``, and ``https``: one package, three
+apps.
 
 .. tip::
 
@@ -41,7 +47,11 @@ pipx creates a virtual environment, installs the ``httpie`` package into it, and
     shell completions are exposed at /home/user/.local/share
        package httpie 3.2.4, installed using Python 3.12.3
         - http
+        - httpie
         - https
+        - man1/http.1
+        - man1/httpie.1
+        - man1/https.1
 
 ************************
  Run it and verify
