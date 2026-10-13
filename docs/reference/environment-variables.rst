@@ -39,7 +39,7 @@ environment`` to print each variable as set in your environment, followed by the
         (``sys.executable``); on Windows, unless pipx runs inside a venv, the ``py`` launcher's default Python or
         ``python`` on ``PATH``.
     - - ``PIPX_DEFAULT_BACKEND``
-      - Backend for new venvs, ``pip`` or ``uv``. Default: ``uv`` when uv is available, else ``pip``.
+      - Backend for new venvs, ``pip`` or ``uv``. Default: ``uv`` when uv 0.9.17 or newer is available, else ``pip``.
     - - ``PIPX_COOLDOWN``
       - Default for ``--cooldown``: ignore index artifacts uploaded fewer than this many days ago, on ``install``,
         ``install-all``, ``inject``, ``upgrade``, ``upgrade-all`` and ``run``. An explicit ``--cooldown`` wins, and

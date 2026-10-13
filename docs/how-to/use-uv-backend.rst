@@ -18,8 +18,9 @@ Install pipx with the ``uv`` extra so it ships the bundled binary:
     $ pipx install pipx[uv]
 
 Or install uv 0.9.17 or newer however you like (``brew install uv``, ``cargo install uv``) and put it on ``PATH``;
-pipx picks it up automatically. New venvs then default to uv. Existing venvs keep their recorded backend. An older uv
-on ``PATH`` still gets picked, and commands then fail asking you to upgrade it or pass ``--backend pip``.
+pipx picks it up automatically. New venvs then default to uv. Existing venvs keep their recorded backend. When the uv
+pipx finds is older than that, pipx warns and falls back to pip. Asking for uv explicitly (``--backend uv``,
+``PIPX_DEFAULT_BACKEND=uv``, or a venv that recorded uv) with an older uv fails and asks you to upgrade it.
 
 *************************
  How pipx picks a backend
@@ -32,7 +33,7 @@ on ``PATH`` still gets picked, and commands then fail asking you to upgrade it o
         CLI -->|yes| USECLI["use it"]
         CLI -->|no| ENV{"PIPX_DEFAULT_BACKEND set?"}
         ENV -->|yes| USEENV["use it"]
-        ENV -->|no| UV{"uv available?<br/>bundled or on PATH"}
+        ENV -->|no| UV{"uv 0.9.17+ available?<br/>bundled or on PATH"}
         UV -->|yes| USEUV["uv"]
         UV -->|no| PIP["pip + venv"]
 
