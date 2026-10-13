@@ -616,7 +616,10 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
     parser.add_argument(
         "--suffix",
         default="",
-        help="Optional suffix for virtual environment and executable names.",
+        help=(
+            "Optional suffix for virtual environment and executable names. It goes at the end of each app name "
+            "(pip3.14 becomes pip3.14_a), before the launcher extension on Windows (pip3.14_a.exe)."
+        ),
     )
     add_python_options(parser)
     parser.add_argument(

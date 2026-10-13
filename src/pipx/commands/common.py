@@ -714,10 +714,11 @@ def validate_suffix(suffix: str) -> str:
 
 
 def add_suffix(name: str, suffix: str) -> str:
-    """Add suffix to app."""
-
-    app = Path(name)
-    return f"{app.stem}{suffix}{app.suffix}"
+    # app names such as pip3.14 contain dots, so only a Windows launcher extension may follow the suffix
+    app: Final[Path] = Path(name)
+    if WINDOWS and app.suffix.upper() in os.environ.get("PATHEXT", ".COM;.EXE;.BAT;.CMD").upper().split(";"):
+        return f"{app.stem}{suffix}{app.suffix}"
+    return f"{name}{suffix}"
 
 
 def locked_package_message(package_name: str) -> str:

@@ -12,6 +12,7 @@ from pipx import paths
 from pipx.commands import common
 from pipx.commands.common import (
     _remove_stale_venv_resources,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
+    add_suffix,
     expose_resources_globally,
     get_exposed_paths_for_package,
 )
@@ -152,3 +153,19 @@ def test_get_exposed_paths_matches_copied_launcher(tmp_path: Path, mocker: Mocke
     exposed = get_exposed_paths_for_package(venv_resource_path, local_resource_dir)
 
     assert (launcher in exposed) is owned
+
+
+@pytest.mark.parametrize(
+    ("name", "windows", "expected"),
+    [
+        pytest.param("pycowsay", False, "pycowsay@1", id="posix-plain"),
+        pytest.param("pip3.14", False, "pip3.14@1", id="posix-dotted"),
+        pytest.param("tool.exe", False, "tool.exe@1", id="posix-exe-is-part-of-name"),
+        pytest.param("pip3.14.exe", True, "pip3.14@1.exe", id="windows-exe"),
+        pytest.param("tool.CMD", True, "tool@1.CMD", id="windows-cmd-any-case"),
+        pytest.param("pip3.14", True, "pip3.14@1", id="windows-dotted-without-extension"),
+    ],
+)
+def test_add_suffix(mocker: MockerFixture, name: str, windows: bool, expected: str) -> None:
+    mocker.patch.object(common, "WINDOWS", windows)
+    assert add_suffix(name, "@1") == expected
