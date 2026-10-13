@@ -98,10 +98,19 @@ commands = [
 
 [env.docs-live]
 description = "serve documentation with live reload"
-dependency_groups = [ "docs" ]
-set_env.NO_MKDOCS_2_WARNING = "true"
+package = "editable"
+dependency_groups = [ "docs-live" ]
 commands = [
-  [ "mkdocs", "serve", "--dirty", "--open" ],
+  [
+    "sphinx-autobuild",
+    "-d",
+    "{env_tmp_dir}{/}doctree",
+    "-b",
+    "html",
+    "docs",
+    "{env:READTHEDOCS_OUTPUT:site}{/}html",
+    "--open-browser",
+  ],
 ]
 
 [env.zipapp]
