@@ -15,6 +15,7 @@ from pipx.commands.common import (
     get_expected_venv_resource_paths,
     locked_package_message,
     package_name_from_spec,
+    remove_stale_venv_resources,
     run_post_install_actions,
     validate_expected_apps,
     validate_suffix,
@@ -83,6 +84,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
     cooldown_days: int | None = None,
     env_cooldown_days: int | None = None,
     venv_lock: BaseFileLock | None = None,
+    pinned: bool | None = None,
     preserve_existing: bool = False,
     fetch_python: FetchPythonOptions = FetchPythonOptions.NEVER,
     replace_expected_apps: bool = False,
@@ -177,6 +179,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                 required_exposure = (
                     venv.pipx_metadata.exposure_enabled if exposure_enabled is None else exposure_enabled
                 )
+                required_pinned = venv.pipx_metadata.main_package.pinned if pinned is None else pinned
                 if exists:
                     existing = _handle_existing_install(
                         venv,
@@ -243,6 +246,7 @@ def install(  # ruff:ignore[too-many-arguments, too-many-positional-arguments, t
                         expected_apps=required_apps,
                         lock_file=required_lock,
                         cooldown_days=required_cooldown,
+                        pinned=required_pinned,
                     )
                     venv = _install_on_supported_python(
                         venv,
@@ -592,6 +596,7 @@ def _upgrade_existing_venv(  # ruff:ignore[too-many-arguments]  # forwards the f
         venv.check_upgrade_shared_libs(pip_args=main_pip_args, verbose=verbose)
         venv.upgrade_packaging_libraries(main_pip_args)
         upgrade_only = [f"--upgrade-strategy={upgrade_strategy}"] if upgrade_strategy is not None else None
+        previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(venv, local_bin_dir, local_man_dir)
         venv.upgrade_package(
             package_name,
             package_spec,
@@ -609,6 +614,7 @@ def _upgrade_existing_venv(  # ruff:ignore[too-many-arguments]  # forwards the f
         package_metadata = venv.pipx_metadata.main_package
         if venv.pipx_metadata.exposure_enabled:
             expose_package_resources(package_metadata, local_bin_dir, local_man_dir, force=False)
+            remove_stale_venv_resources(previous_resource_paths, venv, local_bin_dir, local_man_dir)
     return None, (
         OutputMessage(
             pipx_wrap(
@@ -681,8 +687,8 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
                     local_bin_dir,
                     local_man_dir,
                     interpreter,
-                    pip_args,
-                    venv_args,
+                    pip_args or main_package.pip_args,
+                    venv_args or venv_metadata.venv_args,
                     verbose=verbose,
                     force=force,
                     reinstall=False,
@@ -700,13 +706,14 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
                     replace_lock=True,
                     venv_lock=venv_lock,
                     cooldown_days=package_cooldown,
+                    pinned=main_package.pinned,
                 )
                 for inject_package in venv_metadata.injected_packages.values():
                     commands.inject(
                         venv_dir=venv_dir,
                         package_specs=[generate_package_spec(inject_package)],
                         requirement_files=[],
-                        pip_args=pip_args,
+                        pip_args=pip_args or inject_package.pip_args,
                         verbose=verbose,
                         include_apps=inject_package.include_apps,
                         include_dependencies=inject_package.include_dependencies,
@@ -714,6 +721,7 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
                         force=force,
                         suffix=inject_package.suffix == main_package.suffix,
                         cooldown_days=(cooldown_days if cooldown_days is not None else inject_package.cooldown_days),
+                        pinned=inject_package.pinned,
                     )
         except PipxError as error:
             print(error, file=sys.stderr)  # ruff:ignore[print]  # user-facing CLI output
@@ -733,22 +741,31 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
 def extract_venv_metadata(spec_metadata_file: Path) -> Iterator[PipxMetadata]:
     try:
         spec: Final = load_spec_file(spec_metadata_file)
-    except json.decoder.JSONDecodeError as exc:
-        msg = "The spec metadata file is an invalid JSON file."
+    except OSError as exc:
+        msg = f"Unable to read the spec metadata file {spec_metadata_file}: {exc.strerror}"
+        raise PipxError(msg) from exc
+    except (json.decoder.JSONDecodeError, UnicodeDecodeError) as exc:
+        msg = f"The spec metadata file {spec_metadata_file} is not valid JSON."
         raise PipxError(msg) from exc
 
-    venvs_metadata_dict: Final = spec.get("venvs")
-    if not venvs_metadata_dict:
-        msg = "No packages found in the spec metadata file."
+    if not isinstance(spec, dict) or not isinstance(venvs_metadata_dict := spec.get("venvs", {}), dict):
+        msg = f"The spec metadata file {spec_metadata_file} is invalid."
         raise PipxError(msg)
-    if not isinstance(venvs_metadata_dict, dict):
-        msg = "The spec metadata file is invalid."
+    if not venvs_metadata_dict:
+        msg = f"No packages found in the spec metadata file {spec_metadata_file}."
         raise PipxError(msg)
 
     for package_path_name, entry in venvs_metadata_dict.items():
         venv_dir = paths.ctx.venvs.joinpath(package_path_name)
         venv_metadata = PipxMetadata(venv_dir, read=False)
-        venv_metadata.from_dict(entry["metadata"])
+        try:
+            venv_metadata.from_dict(entry["metadata"])
+        except KeyError as exc:
+            msg = f"Entry {package_path_name!r} in the spec metadata file {spec_metadata_file} is missing {exc}."
+            raise PipxError(msg) from exc
+        except (AttributeError, TypeError) as exc:
+            msg = f"Entry {package_path_name!r} in the spec metadata file {spec_metadata_file} is malformed: {exc}"
+            raise PipxError(msg) from exc
         yield venv_metadata
 
 
@@ -839,6 +856,7 @@ class _EnvironmentBuild:
     expected_apps: tuple[str, ...]
     lock_file: Path | None
     cooldown_days: int | None
+    pinned: bool
 
     def run(self, venv: Venv) -> None:
         venv.create_venv(self.venv_args, self.pip_args, override_shared=self.override_shared)
@@ -859,6 +877,7 @@ class _EnvironmentBuild:
             expected_apps=self.expected_apps,
             lock_file=self.lock_file,
             cooldown_days=self.cooldown_days,
+            pinned=self.pinned,
         )
 
 

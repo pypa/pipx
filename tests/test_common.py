@@ -11,10 +11,10 @@ from helpers import run_pipx_cli, skip_if_windows
 from pipx import paths
 from pipx.commands import common
 from pipx.commands.common import (
-    _remove_stale_venv_resources,  # ruff:ignore[import-private-name]  # test exercises private helper, no public API
     add_suffix,
     expose_resources_globally,
     get_exposed_paths_for_package,
+    remove_stale_venv_resources,
 )
 from pipx.constants import MACOS
 from pipx.venv import Venv
@@ -105,7 +105,7 @@ def test_remove_stale_venv_resources_keeps_files_pipx_does_not_own(capsys: pytes
     replaced = bin_dir / "stale-replaced"
     replaced.write_text("belongs to the user")
 
-    _remove_stale_venv_resources({owned, replaced}, venv, bin_dir, paths.ctx.man_dir)
+    remove_stale_venv_resources({owned, replaced}, venv, bin_dir, paths.ctx.man_dir)
 
     assert (owned.exists(), replaced.read_text()) == (False, "belongs to the user")
 

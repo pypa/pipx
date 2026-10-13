@@ -33,7 +33,8 @@ support symlinks. As long as ``PIPX_BIN_DIR`` is on your ``PATH`` the commands a
 with ``man`` support the pages are too.
 
 pipx records what it installed and exposed in a per-venv ``pipx_metadata.json`` file. Later commands (``upgrade``,
-``reinstall``, ``expose``) read it to reproduce the same state.
+``reinstall``, ``expose``) read it to reproduce the same state. When an upgrade or reinstall changes the resources a
+package ships, pipx exposes the new ones and deletes the links or copies of the ones the package dropped.
 
 Adding ``--global`` to any command targets a system-wide location shared by all users instead of your home directory;
 the concrete paths and overrides live in :doc:`../how-to/configure-paths`. It is not available on Windows.

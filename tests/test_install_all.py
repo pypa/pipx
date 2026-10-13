@@ -72,6 +72,32 @@ def test_install_all(  # ruff:ignore[too-many-positional-arguments]  # pytest in
     )
 
 
+@pytest.mark.parametrize(
+    ("pin_args", "expected_pins"),
+    [
+        pytest.param([], (True, True), id="all"),
+        pytest.param(["--injected-only"], (False, True), id="injected-only"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_restores_pins(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], pin_args: list[str], expected_pins: tuple[bool, bool]
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
+    assert not run_pipx_cli(["pin", "pycowsay", *pin_args])
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--json"])
+    spec_file: Final[Path] = tmp_path / "pipx.json"
+    spec_file.write_text(capsys.readouterr().out, encoding="utf-8")
+    assert not run_pipx_cli(["uninstall-all"])
+
+    assert not run_pipx_cli(["install-all", str(spec_file)])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
+    assert (metadata.main_package.pinned, metadata.injected_packages["black"].pinned) == expected_pins
+
+
 @pytest.fixture
 def recorded_snapshot(
     pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # create an isolated pipx home
@@ -174,3 +200,73 @@ def test_install_all_reports_injected_failure(
     error: Final[str] = " ".join(capsys.readouterr().err.split())
     expected_error: Final[str] = " ".join(pipx_wrap(f"Unable to parse package spec: {missing_spec}").split())
     assert (result, expected_error in error) == (1, True)
+
+
+@pytest.mark.parametrize(
+    ("install_all_args", "expected_pip_args"),
+    [
+        pytest.param([], ["--no-cache-dir"], id="recorded"),
+        pytest.param(["--pip-args=--no-compile"], ["--no-compile"], id="override"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_restores_recorded_args(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], install_all_args: list[str], expected_pip_args: list[str]
+) -> None:
+    assert not run_pipx_cli(["install", "--system-site-packages", "--pip-args=--no-cache-dir", "black"])
+    assert not run_pipx_cli(["inject", "black", "--pip-args=--no-cache-dir", "pycowsay"])
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--json"])
+    spec_file: Final[Path] = tmp_path / "pipx.json"
+    spec_file.write_text(capsys.readouterr().out, encoding="utf-8")
+    assert not run_pipx_cli(["uninstall-all"])
+
+    assert not run_pipx_cli(["install-all", *install_all_args, str(spec_file)])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "black")
+    assert (
+        metadata.venv_args,
+        metadata.main_package.pip_args,
+        metadata.injected_packages["pycowsay"].pip_args,
+    ) == (["--system-site-packages"], expected_pip_args, expected_pip_args)
+
+
+@pytest.mark.parametrize(
+    ("content", "expected_error"),
+    [
+        pytest.param(None, "Unable to read the spec metadata file {file}: No such file or directory", id="missing"),
+        pytest.param(b"\xff", "The spec metadata file {file} is not valid JSON.", id="binary"),
+        pytest.param(b"{", "The spec metadata file {file} is not valid JSON.", id="truncated"),
+        pytest.param(b"[]", "The spec metadata file {file} is invalid.", id="not-an-object"),
+        pytest.param(b'{"venvs": []}', "The spec metadata file {file} is invalid.", id="venvs-not-an-object"),
+        pytest.param(b'{"venvs": {}}', "No packages found in the spec metadata file {file}.", id="no-venvs"),
+        pytest.param(
+            b'{"venvs": {"x": {}}}',
+            "Entry 'x' in the spec metadata file {file} is missing 'metadata'.",
+            id="no-metadata",
+        ),
+        pytest.param(
+            b'{"venvs": {"x": {"metadata": {"pipx_metadata_version": "0.12"}}}}',
+            "Entry 'x' in the spec metadata file {file} is missing 'main_package'.",
+            id="no-main-package",
+        ),
+        pytest.param(
+            b'{"venvs": {"x": {"metadata": "x"}}}',
+            "Entry 'x' in the spec metadata file {file} is malformed: string indices must be integers, not 'str'",
+            id="metadata-not-an-object",
+        ),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_rejects_bad_spec_file(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], content: bytes | None, expected_error: str
+) -> None:
+    spec_file: Final[Path] = tmp_path / "pipx.json"
+    if content is not None:
+        spec_file.write_bytes(content)
+
+    result: Final[int] = run_pipx_cli(["install-all", str(spec_file)])
+
+    error: Final[str] = " ".join(capsys.readouterr().err.split())
+    expected: Final[str] = " ".join(pipx_wrap(expected_error.format(file=spec_file)).split())
+    assert (result, expected in error) == (1, True)

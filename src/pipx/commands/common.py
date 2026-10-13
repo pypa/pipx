@@ -590,7 +590,7 @@ def run_post_install_actions(  # ruff:ignore[too-many-arguments]  # post-install
 
     if venv.pipx_metadata.exposure_enabled:
         expose_package_resources(package_metadata, local_bin_dir, local_man_dir, force=force)
-        _remove_stale_venv_resources(previous_resource_paths, venv, local_bin_dir, local_man_dir)
+        remove_stale_venv_resources(previous_resource_paths, venv, local_bin_dir, local_man_dir)
 
     package_summary, _ = get_venv_summary(venv_dir, package_name=package_name, new_install=True)
     pipx_logger: Final[logging.Logger] = logging.getLogger("pipx")
@@ -603,7 +603,7 @@ def run_post_install_actions(  # ruff:ignore[too-many-arguments]  # post-install
     return tuple(messages)
 
 
-def _remove_stale_venv_resources(
+def remove_stale_venv_resources(
     previous_resource_paths: set[Path],
     venv: Venv,
     local_bin_dir: Path,
@@ -738,6 +738,7 @@ __all__ = [
     "group_resource_paths",
     "locked_package_message",
     "package_name_from_spec",
+    "remove_stale_venv_resources",
     "run_post_install_actions",
     "validate_expected_apps",
     "validate_suffix",

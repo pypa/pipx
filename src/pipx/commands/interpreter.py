@@ -146,7 +146,8 @@ def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> Ope
             continue
         latest_micro_version = get_latest_micro_version(parsed_interpreter_full_version, parsed_latest_python_versions)
         if latest_micro_version > parsed_interpreter_full_version:
-            standalone_python.download_python_build_standalone(
+            # the new build lands in py/X.Y, so venvs on a patch-pinned py/X.Y.Z build must move to it
+            upgraded_python = standalone_python.download_python_build_standalone(
                 f"{latest_micro_version.major}.{latest_micro_version.minor}",
                 override=True,
             )
@@ -168,7 +169,7 @@ def upgrade_interpreters(venv_container: VenvContainer, *, verbose: bool) -> Ope
                             venv_dir=venv.root,
                             local_bin_dir=paths.ctx.bin_dir,
                             local_man_dir=paths.ctx.man_dir,
-                            python=str(interpreter_python),
+                            python=upgraded_python,
                             verbose=verbose,
                             venv_lock=venv_lock,
                         )

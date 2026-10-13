@@ -247,6 +247,17 @@ def assert_package_metadata(
     assert test_metadata_replaced == ref_metadata_replaced
 
 
+def drop_extra_app(project: Path) -> None:
+    pyproject: Final[Path] = project / "pyproject.toml"
+    pyproject.write_text(
+        pyproject
+        .read_text(encoding="utf-8")
+        .replace('version = "0.1.0"', 'version = "0.2.0"')
+        .replace('scripts.empty-project-extra = "empty_project.main:cli"\n', ""),
+        encoding="utf-8",
+    )
+
+
 def remove_venv_interpreter(venv_name: str) -> None:
     _, venv_python_path, _ = util.get_venv_paths(paths.ctx.venvs / venv_name)
     assert venv_python_path.is_file()

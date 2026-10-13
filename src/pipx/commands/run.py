@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
 from filelock import Timeout
 from packaging.requirements import InvalidRequirement, Requirement
-from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
 
 from pipx import paths
@@ -124,6 +123,13 @@ def run_script(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run
             raise PipxError(msg)
         requirements = [*requirements, *dependencies]
 
+    # uv treats the --python pipx hands it as an explicit request and runs a script on it even when requires-python
+    # rules it out, so pipx settles the interpreter for both backends
+    if metadata is not None and metadata.requires_python is not None:
+        python = _interpreter_for_script(
+            metadata.requires_python, python, fetch_python, python_flag_passed=python_flag_passed
+        )
+
     if resolved_backend == UV and requirements is not None and not python_args:
         if script_source is not None:
             run_script_via_uv_run(
@@ -151,13 +157,6 @@ def run_script(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run
                 """,
                 subsequent_indent=" " * 4,
             )
-        )
-
-    # the uv path lets uv read requires-python from the block; on the pip path pipx honours it here so the script does
-    # not silently run on an interpreter it declared unsupported
-    if metadata is not None and metadata.requires_python is not None:
-        python = _interpreter_for_script(
-            metadata.requires_python, python, fetch_python, python_flag_passed=python_flag_passed
         )
 
     if not requirements:
@@ -200,15 +199,15 @@ def run_script(  # ruff:ignore[too-many-arguments]  # mirrors the flat `pipx run
 def _interpreter_for_script(
     requires_python: str, python: str, fetch_python: FetchPythonOptions, *, python_flag_passed: bool
 ) -> str:
-    if not python_flag_passed:
-        return interpreter_for(SpecifierSet(requires_python), fetch_python)
-    if unsatisfied_by_interpreter(requires_python, python) is not None:
+    if (constraint := unsatisfied_by_interpreter(requires_python, python)) is None:
+        return python
+    if python_flag_passed:
         msg = (
             f"The script requires Python {requires_python}, which the interpreter chosen with --python does not "
             f"satisfy. Pass a matching --python, or drop --python to let pipx pick one."
         )
         raise PipxError(msg)
-    return python
+    return interpreter_for(constraint, fetch_python)
 
 
 def _exec_script(
