@@ -28,8 +28,8 @@ Pass ``--output json`` to read the changed and skipped packages from a script, o
 
     pipx pins the main package and injected packages, not individual transitive dependencies. Pinning the main package
     freezes its whole dependency set, because pipx skips ``pip install --upgrade`` for that environment. A package
-    injected after ``pipx pin`` starts unpinned, so ``pipx upgrade --include-injected`` still upgrades it. For how pipx
-    records this metadata, see :doc:`../explanation/how-pipx-works`.
+    injected after ``pipx pin`` starts unpinned, so ``pipx upgrade --include-injected`` still upgrades it; run ``pipx
+    pin PACKAGE`` again to pin it too. For how pipx records this metadata, see :doc:`../explanation/how-pipx-works`.
 
 **********
  Verify it

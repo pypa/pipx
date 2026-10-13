@@ -137,6 +137,30 @@ def test_pin_json_pins_main_after_injected(
     }
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_pin_json_pins_injected_after_main(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["pin", "pycowsay"])
+    assert not run_pipx_cli(["inject", "pycowsay", PKG["black"]["spec"]])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["pin", "pycowsay", "--output", "json"])
+
+    assert json.loads(capsys.readouterr().out)["data"] == {
+        "packages": [
+            {
+                "environment": "pycowsay",
+                "injected": True,
+                "location": str(paths.ctx.venvs / "pycowsay"),
+                "package": "black",
+                "status": "pinned",
+                "version": "22.8.0",
+            }
+        ],
+        "skipped": [{"environment": "pycowsay", "package": "pycowsay", "reason": "already-pinned"}],
+    }
+
+
 @pytest.fixture
 def pinned_injected_environment(
     pipx_temp_env: None,  # ruff:ignore[unused-function-argument]  # required so the temp env is active while the environment is built
