@@ -10,6 +10,7 @@ from helpers import (
     PACKAGE_CACHE_DIR_NAME,
     PIPX_METADATA_LEGACY_VERSIONS,
     app_name,
+    drop_extra_app,
     mock_legacy_venv,
     remove_venv_interpreter,
     run_pipx_cli,
@@ -291,6 +292,48 @@ def test_upgrade_include_injected(capsys: pytest.CaptureFixture[str]) -> None:
     captured = capsys.readouterr()
     assert "upgraded package pylint" in captured.out
     assert "upgraded package black" in captured.out
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        pytest.param(["upgrade", "empty-project"], id="upgrade"),
+        pytest.param(["upgrade-all"], id="upgrade-all"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_removes_dropped_app(
+    two_app_project: Path, command: list[str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert not run_pipx_cli(["install", str(two_app_project)])
+    drop_extra_app(two_app_project)
+    assert not run_pipx_cli(command)
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list"])
+
+    assert (
+        sorted(path.name for path in paths.ctx.bin_dir.iterdir()),
+        "empty-project-extra" in capsys.readouterr().out,
+    ) == ([app_name("empty-project")], False)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_include_injected_removes_dropped_app(
+    two_app_project: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["inject", "--include-apps", "pycowsay", str(two_app_project)])
+    drop_extra_app(two_app_project)
+    assert not run_pipx_cli(["upgrade", "--include-injected", "pycowsay"])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list", "--include-injected"])
+
+    assert (
+        sorted(path.name for path in paths.ctx.bin_dir.iterdir()),
+        "empty-project-extra" in capsys.readouterr().out,
+    ) == ([app_name("empty-project"), app_name("pycowsay")], False)
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
