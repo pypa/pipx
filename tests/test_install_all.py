@@ -174,3 +174,32 @@ def test_install_all_reports_injected_failure(
     error: Final[str] = " ".join(capsys.readouterr().err.split())
     expected_error: Final[str] = " ".join(pipx_wrap(f"Unable to parse package spec: {missing_spec}").split())
     assert (result, expected_error in error) == (1, True)
+
+
+@pytest.mark.parametrize(
+    ("install_all_args", "expected_pip_args"),
+    [
+        pytest.param([], ["--no-cache-dir"], id="recorded"),
+        pytest.param(["--pip-args=--no-compile"], ["--no-compile"], id="override"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_restores_recorded_args(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], install_all_args: list[str], expected_pip_args: list[str]
+) -> None:
+    assert not run_pipx_cli(["install", "--system-site-packages", "--pip-args=--no-cache-dir", "black"])
+    assert not run_pipx_cli(["inject", "black", "--pip-args=--no-cache-dir", "pycowsay"])
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--json"])
+    spec_file: Final[Path] = tmp_path / "pipx.json"
+    spec_file.write_text(capsys.readouterr().out, encoding="utf-8")
+    assert not run_pipx_cli(["uninstall-all"])
+
+    assert not run_pipx_cli(["install-all", *install_all_args, str(spec_file)])
+
+    metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "black")
+    assert (
+        metadata.venv_args,
+        metadata.main_package.pip_args,
+        metadata.injected_packages["pycowsay"].pip_args,
+    ) == (["--system-site-packages"], expected_pip_args, expected_pip_args)
