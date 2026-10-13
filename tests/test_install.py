@@ -41,7 +41,6 @@ if TYPE_CHECKING:
     from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
 
-TEST_DATA_PATH = "./testdata/test_package_specifier"
 _FREE_THREADED: Final[bool] = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
 # Pywinpty lacks Python 3.15 wheels: https://github.com/andfoy/pywinpty/issues/582
 _JUPYTER_PYTHON_ARGS: Final[tuple[str, ...]] = (
@@ -737,8 +736,10 @@ def test_install_accepts_expected_dependency_app(local_extras_project: Path) -> 
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_install_upgrade_reexposes_expected_dependency_resources(root: Path, tmp_path: Path) -> None:
-    dependency: Final[Path] = root / TEST_DATA_PATH / "local_manpage"
+def test_install_upgrade_reexposes_expected_dependency_resources(
+    root: Path, tmp_path: Path, local_manpage_project: Path
+) -> None:
+    dependency: Final[Path] = local_manpage_project
     project: Final[Path] = tmp_path / "expected-dependency-app"
     shutil.copytree(root / "testdata/empty_project", project)
     pyproject: Final[Path] = project / "pyproject.toml"
@@ -1305,8 +1306,8 @@ def test_man_page_install(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_editable_install_links_man_pages(capsys: pytest.CaptureFixture[str], root: Path) -> None:
-    package = (root / TEST_DATA_PATH / "local_manpage").as_posix()
+def test_editable_install_links_man_pages(capsys: pytest.CaptureFixture[str], local_manpage_project: Path) -> None:
+    package = local_manpage_project.as_posix()
 
     assert not run_pipx_cli(["install", "--editable", package])
     captured = capsys.readouterr()
@@ -1579,6 +1580,36 @@ def test_passed_python_and_force_flag_warning(capsys: pytest.CaptureFixture[str]
     assert "--python is ignored when --force is passed." not in captured.out, (
         "Should not print warning if package does not exist yet"
     )
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_force_install_python_warning_suggests_reinstall_of_environment(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["install", "--force", "--python", sys.executable, PKG["pycowsay"]["spec"]])
+
+    assert f"run `pipx reinstall pycowsay --python {sys.executable}` instead" in " ".join(
+        capsys.readouterr().out.split()
+    )
+
+
+@skip_if_windows
+@pytest.mark.parametrize("locked", [pytest.param(False, id="plain"), pytest.param(True, id="locked")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_force_install_keeps_existing_interpreter(
+    tmp_path: Path, make_pylock: Callable[[str, str], Path], locked: bool
+) -> None:
+    lock_args: Final[list[str]] = ["--lock", str(make_pylock("pycowsay", "0.0.0.2"))] if locked else []
+    assert not run_pipx_cli(["install", *lock_args, PKG["pycowsay"]["spec"]])
+    venv_dir: Final[Path] = paths.ctx.venvs / "pycowsay"
+    recorded: Final[Path | None] = PipxMetadata(venv_dir).source_interpreter
+    other_python: Final[Path] = tmp_path / "python-other"
+    other_python.symlink_to(sys.executable)
+
+    assert not run_pipx_cli(["install", "--force", "--python", str(other_python), PKG["pycowsay"]["spec"]])
+
+    assert PipxMetadata(venv_dir).source_interpreter == recorded
 
 
 @pytest.mark.parametrize(

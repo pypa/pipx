@@ -131,6 +131,11 @@ _PIPX_DESCRIPTION: Final[str] = textwrap.dedent(
 
 _DOC_DEFAULT_PYTHON: Final[str] = os.getenv("PIPX__DOC_DEFAULT_PYTHON", get_default_python_spec())
 
+_FORCE_INSTALL_HELP: Final[str] = (
+    "Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR; --python does not change an "
+    "existing environment's Python, use `pipx reinstall --python` for that"
+)
+
 _INSTALL_DESCRIPTION: Final[str] = textwrap.dedent(
     f"""
     The install command is the preferred way to globally install apps
@@ -582,7 +587,7 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         "--force",
         "-f",
         action="store_true",
-        help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
+        help=_FORCE_INSTALL_HELP,
     )
     parser.add_argument(
         "--upgrade",
@@ -601,7 +606,10 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
     parser.add_argument(
         "--suffix",
         default="",
-        help="Optional suffix for virtual environment and executable names.",
+        help=(
+            "Optional suffix for virtual environment and executable names. It goes at the end of each app name "
+            "(pip3.14 becomes pip3.14_a), before the launcher extension on Windows (pip3.14_a.exe)."
+        ),
     )
     add_python_options(parser)
     parser.add_argument(
@@ -672,7 +680,7 @@ def _add_install_all(subparsers: argparse._SubParsersAction, shared_parser: argp
         "--force",
         "-f",
         action="store_true",
-        help="Modify existing virtual environment and files in PIPX_BIN_DIR and PIPX_MAN_DIR",
+        help=_FORCE_INSTALL_HELP,
     )
     add_python_options(parser)
     add_pip_venv_args(parser)
@@ -895,8 +903,8 @@ def _add_expose(
 ) -> None:
     parser: Final[argparse.ArgumentParser] = subparsers.add_parser(
         "expose",
-        help="Restore resources from a hidden environment",
-        description="Relink each recorded app and manual page without rebuilding its environment.",
+        help="Relink hidden or missing resources of an environment",
+        description="Link each missing app, manual page, and shell completion without rebuilding the environment.",
         parents=[shared_parser],
     )
     cast(

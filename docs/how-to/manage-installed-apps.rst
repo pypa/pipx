@@ -100,7 +100,8 @@ a Python upgrade or to repair a broken environment.
 
     $ pipx reinstall black
 
-Pass ``--python`` to rebuild under another interpreter.
+Pass ``--python`` to rebuild under another interpreter. ``pipx install --force`` keeps the environment's interpreter
+and ignores ``--python``.
 
 Verify:
 

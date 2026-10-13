@@ -23,6 +23,12 @@ Install with a different Python:
 
     $ pipx install my-package --python python3.12
 
+If the package is already installed, reinstall it instead; ``pipx install --force`` ignores ``--python``:
+
+.. code-block:: console
+
+    $ pipx reinstall my-package --python python3.12
+
 If you do not have that version, let pipx download a standalone build:
 
 .. code-block:: console

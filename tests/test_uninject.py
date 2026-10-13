@@ -291,10 +291,10 @@ def test_uninject_man_page() -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_uninject_completion_scripts(root: Path, empty_project: Path) -> None:
+def test_uninject_completion_scripts(local_completion_project: Path, empty_project: Path) -> None:
     # Regression: uninject must remove the injected package's completion
     # scripts, not only its app and man page symlinks.
-    completion_project = str(root / "testdata/test_package_specifier/local_completion")
+    completion_project = str(local_completion_project)
     completion_paths = [
         paths.ctx.completion_dir / "bash-completion/completions" / "local-completion",
         paths.ctx.completion_dir / "zsh/site-functions" / "_local-completion",

@@ -41,11 +41,13 @@ def _set_exposure(
     venv = Venv(venv_dir, verbose=verbose)
     if venv.pipx_metadata.main_package.package is None:
         return _failure(command, venv.name, f"pipx cannot read metadata for package {venv.name}")
-    if venv.pipx_metadata.exposure_enabled == enabled:
-        status = _ExposureStatus.EXPOSED if enabled else _ExposureStatus.UNEXPOSED
-        return _success(command, venv.name, status, f"{venv.name}: already {status.value}")
+    if not enabled and not venv.pipx_metadata.exposure_enabled:
+        return _success(command, venv.name, _ExposureStatus.UNEXPOSED, f"{venv.name}: already unexposed")
 
     if enabled:
+        linked_before: Final[set[Path] | None] = (
+            _exposed_resources(venv, local_bin_dir, local_man_dir) if venv.pipx_metadata.exposure_enabled else None
+        )
         attempted: Final[int] = sum(
             len(package_metadata.app_paths_to_expose)
             + len(package_metadata.man_paths_to_expose)
@@ -61,15 +63,19 @@ def _set_exposure(
         venv.pipx_metadata.write()
         if collisions:
             return _collision_outcome(command, venv.name, collisions, exposed_any=len(collisions) < attempted)
-        return _success(command, venv.name, _ExposureStatus.EXPOSED, f"{venv.name}: exposed")
+        prefix: Final[str] = (
+            "already " if _exposed_resources(venv, local_bin_dir, local_man_dir) == linked_before else ""
+        )
+        return _success(command, venv.name, _ExposureStatus.EXPOSED, f"{venv.name}: {prefix}exposed")
 
-    _remove_resources(venv, local_bin_dir, local_man_dir)
+    for resource_path in _exposed_resources(venv, local_bin_dir, local_man_dir):
+        safe_unlink(resource_path)
     venv.pipx_metadata.exposure_enabled = False
     venv.pipx_metadata.write()
     return _success(command, venv.name, _ExposureStatus.UNEXPOSED, f"{venv.name}: unexposed")
 
 
-def _remove_resources(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> None:
+def _exposed_resources(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
     package_infos = tuple(venv.package_metadata.values())
     resource_paths = _get_venv_resource_paths("app", venv.bin_path, local_bin_dir, package_infos)
     for man_section in MAN_SECTIONS:
@@ -86,8 +92,7 @@ def _remove_resources(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> N
             paths.ctx.completion_dir / completion_section,
             package_infos,
         )
-    for resource_path in resource_paths:
-        safe_unlink(resource_path)
+    return resource_paths
 
 
 def _success(
