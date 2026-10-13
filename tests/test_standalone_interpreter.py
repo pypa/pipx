@@ -581,6 +581,28 @@ def test_upgrade_standalone_interpreter(
     assert "pycowsay" in captured.out
 
 
+@pytest.mark.usefixtures("pipx_temp_env", "mocked_github_api")
+def test_upgrade_patch_pinned_standalone_interpreter_moves_venv_to_new_build(
+    monkeypatch: pytest.MonkeyPatch,
+    standalone_python_index: Callable[[str], dict[str, object]],
+) -> None:
+    assert not run_pipx_cli([
+        "install",
+        "--fetch-python=always",
+        "--python",
+        "{}.{}.{}".format(*sys.version_info[:3]),
+        PKG["pycowsay"]["spec"],
+    ])
+    newer_index = standalone_python_index(f"{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2] + 1}")
+    monkeypatch.setattr(standalone_python, "get_or_update_index", lambda **_: newer_index)
+
+    assert not run_pipx_cli(["interpreter", "upgrade"])
+
+    interpreter_dir = paths.ctx.standalone_python_cachedir / TARGET_PYTHON_VERSION
+    expected = interpreter_dir / "python.exe" if constants.WINDOWS else interpreter_dir / "bin" / "python3"
+    assert pipx_metadata_file.PipxMetadata(paths.ctx.venvs / "pycowsay").source_interpreter == expected
+
+
 @pytest.mark.parametrize("windows", [False, True], ids=["posix", "windows"])
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_standalone_interpreters_reads_each_venv_once(

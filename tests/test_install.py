@@ -17,7 +17,15 @@ from unittest import mock
 
 import pytest
 
-from helpers import PACKAGE_CACHE_DIR_NAME, MakePylock, app_name, run_pipx_cli, skip_if_windows, unwrap_log_text
+from helpers import (
+    PACKAGE_CACHE_DIR_NAME,
+    MakePylock,
+    app_name,
+    drop_extra_app,
+    run_pipx_cli,
+    skip_if_windows,
+    unwrap_log_text,
+)
 from package_info import PKG
 from pipx import main, paths, shared_libs
 from pipx.backends import Backend
@@ -757,6 +765,21 @@ def test_install_upgrade_reexposes_expected_dependency_resources(root: Path, tmp
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
+def test_install_upgrade_removes_dropped_app(two_app_project: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["install", str(two_app_project)])
+    drop_extra_app(two_app_project)
+    assert not run_pipx_cli(["install", "--upgrade", str(two_app_project)])
+    capsys.readouterr()
+
+    assert not run_pipx_cli(["list"])
+
+    assert (
+        sorted(path.name for path in paths.ctx.bin_dir.iterdir()),
+        "empty-project-extra" in capsys.readouterr().out,
+    ) == ([app_name("empty-project")], False)
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
 def test_install_expected_app_rejects_multiple_specs(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_pipx_cli(["install", "--app", "pycowsay", "pycowsay", PKG["black"]["spec"]])
 
@@ -777,6 +800,18 @@ def test_install_force_preserves_expected_app() -> None:
         PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.expected_apps,
         tuple(paths.ctx.venvs.glob(".pycowsay-*-pipx-backup")),
     ) == (["pycowsay"], ())
+
+
+@pytest.mark.parametrize("locked", [pytest.param(False, id="plain"), pytest.param(True, id="lock")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_force_keeps_pin(make_pylock: MakePylock, locked: bool) -> None:
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["pin", "pycowsay"])
+    lock_args: Final[list[str]] = ["--lock", str(make_pylock("pycowsay", "0.0.0.2"))] if locked else []
+
+    assert not run_pipx_cli(["install", "--force", *lock_args, PKG["pycowsay"]["spec"]])
+
+    assert PipxMetadata(paths.ctx.venvs / "pycowsay").main_package.pinned
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

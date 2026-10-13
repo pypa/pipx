@@ -7,7 +7,13 @@ from typing import TYPE_CHECKING, Final
 
 from pipx import commands, paths
 from pipx.colors import bold, red
-from pipx.commands.common import expose_package_resources, locked_package_message, validate_expected_apps
+from pipx.commands.common import (
+    expose_package_resources,
+    get_expected_venv_resource_paths,
+    locked_package_message,
+    remove_stale_venv_resources,
+    validate_expected_apps,
+)
 from pipx.commands.outdated import inspect_outdated
 from pipx.commands.transaction import preserve_venv
 from pipx.constants import ExitCode
@@ -410,6 +416,9 @@ def _upgrade_package(  # ruff:ignore[too-many-arguments]  # upgrade of one packa
         return _package_result(venv, package_name, UpgradeStatus.PINNED)
 
     old_version: Final[str] = package_metadata.package_version
+    previous_resource_paths: Final[set[Path]] = get_expected_venv_resource_paths(
+        venv, paths.ctx.bin_dir, paths.ctx.man_dir
+    )
 
     venv.upgrade_package(
         package_name,
@@ -431,6 +440,7 @@ def _upgrade_package(  # ruff:ignore[too-many-arguments]  # upgrade of one packa
 
     if venv.pipx_metadata.exposure_enabled:
         expose_package_resources(package_metadata, paths.ctx.bin_dir, paths.ctx.man_dir, force=force)
+        remove_stale_venv_resources(previous_resource_paths, venv, paths.ctx.bin_dir, paths.ctx.man_dir)
 
     return PackageUpgradeResult(
         environment=venv.name,

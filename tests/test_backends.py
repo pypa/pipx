@@ -30,6 +30,7 @@ from pipx.venv import Venv, reset_backend_override_warnings
 from pipx.venv_inspect import list_not_required_packages
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from unittest.mock import MagicMock
 
     from pytest_mock import MockerFixture
@@ -141,9 +142,71 @@ def test_resolve_backend_name_rejects_unknown() -> None:
         resolve_backend_name(cli_value="poetry")
 
 
-def test_resolve_backend_name_auto_uv_available(mocker: MockerFixture) -> None:
-    mocker.patch.object(backends, "find_uv_binary", return_value=(Path("/opt/uv"), "path"))
-    assert resolve_backend_name() == (UV, "auto-path")
+@pytest.fixture
+def path_uv_reports(mocker: MockerFixture) -> Callable[[str], None]:
+    mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", None)
+    mocker.patch("shutil.which", return_value="/usr/local/bin/uv")
+
+    def report(version: str) -> None:
+        mocker.patch(
+            "pipx.backends.uv.subprocess.run",
+            return_value=subprocess.CompletedProcess(["uv", "--version"], 0, stdout=f"uv {version}", stderr=""),
+        )
+
+    return report
+
+
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    [
+        pytest.param("0.9.17", (UV, "auto-path"), id="supported"),
+        pytest.param("0.5.0", (PIP, "auto-pip"), id="too-old"),
+    ],
+)
+def test_resolve_backend_name_auto_path_uv(
+    path_uv_reports: Callable[[str], None], version: str, expected: tuple[str, str]
+) -> None:
+    path_uv_reports(version)
+    assert resolve_backend_name() == expected
+
+
+def test_resolve_backend_name_auto_skips_too_old_bundled_uv(
+    path_uv_reports: Callable[[str], None], mocker: MockerFixture, tmp_path: Path
+) -> None:
+    path_uv_reports("0.5.0")
+    (bundled := tmp_path / "uv").write_text("")
+    mocker.patch("pipx.backends.uv._FIND_UV_BIN_FROM_EXTRA", return_value=str(bundled))
+    mocker.patch("shutil.which", return_value=None)
+    assert resolve_backend_name() == (PIP, "auto-pip")
+
+
+def test_resolve_backend_name_auto_warns_once_about_too_old_uv(
+    path_uv_reports: Callable[[str], None], caplog: pytest.LogCaptureFixture
+) -> None:
+    path_uv_reports("0.5.0")
+    resolve_backend_name()
+    resolve_backend_name()
+    assert [record.getMessage() for record in caplog.records if record.levelname == "WARNING"] == [
+        (
+            f"Skipping uv 0.5.0 at {Path('/usr/local/bin/uv')} since pipx needs uv>=0.9.17; using pip. "
+            "Upgrade uv, or set PIPX_DEFAULT_BACKEND=pip to silence this."
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "expected"),
+    [
+        pytest.param({"cli_value": "uv"}, (UV, "cli"), id="cli"),
+        pytest.param({"env_value": "uv"}, (UV, "env"), id="env"),
+        pytest.param({"metadata_value": "uv"}, (UV, "metadata"), id="metadata"),
+    ],
+)
+def test_resolve_backend_name_keeps_explicit_uv_when_too_old(
+    path_uv_reports: Callable[[str], None], kwargs: _BackendResolveKwargs, expected: tuple[str, str]
+) -> None:
+    path_uv_reports("0.5.0")
+    assert resolve_backend_name(**kwargs) == expected
 
 
 def test_resolve_backend_name_auto_no_uv(mocker: MockerFixture) -> None:

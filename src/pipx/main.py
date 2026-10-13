@@ -601,7 +601,10 @@ def _add_install(subparsers: argparse._SubParsersAction, shared_parser: argparse
         "--upgrade",
         "-U",
         action="store_true",
-        help="Upgrade or downgrade an existing package when its version does not satisfy the supplied spec",
+        help=(
+            "Upgrade or downgrade an existing package when its version does not satisfy the supplied spec, "
+            "removing exposed apps, manual pages, and shell completions the new version no longer ships"
+        ),
     )
     parser.add_argument(
         "--upgrade-strategy",
@@ -1005,7 +1008,9 @@ def _add_upgrade(
         "upgrade",
         help="Upgrade a package",
         description=(
-            "Upgrade package(s) in pipx-managed Virtual Environment(s) by running 'pip install --upgrade PACKAGE'"
+            "Upgrade package(s) in pipx-managed Virtual Environment(s) by running 'pip install --upgrade PACKAGE'. "
+            "Apps, manual pages, and shell completions the new version adds are exposed, and those it no longer "
+            "ships are removed."
         ),
         parents=[shared_parser],
     )
@@ -1057,7 +1062,9 @@ def _add_upgrade_all(subparsers: argparse._SubParsersAction, shared_parser: argp
         "upgrade-all",
         help="Upgrade all packages. Runs `pip install -U <pkgname>` for each package.",
         description=(
-            "Upgrades all packages within their virtual environments by running 'pip install --upgrade PACKAGE'"
+            "Upgrades all packages within their virtual environments by running 'pip install --upgrade PACKAGE'. "
+            "Apps, manual pages, and shell completions a new version adds are exposed, and those it no longer "
+            "ships are removed."
         ),
         parents=[shared_parser],
     )

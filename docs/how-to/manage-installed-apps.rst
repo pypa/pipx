@@ -30,6 +30,10 @@ The output shows each package version, its apps, and the environment paths. Narr
 Add ``--include-injected`` to upgrade injected packages alongside the main app. Pass ``--install`` to install the
 package spec when it is missing rather than error.
 
+pipx exposes any apps, manual pages, and shell completions the new version adds, and removes the ones it no longer
+ships, so ``pipx list`` and ``PIPX_BIN_DIR`` match the upgraded package. ``upgrade-all`` and ``pipx install --upgrade``
+do the same.
+
 Verify:
 
 .. code-block:: console

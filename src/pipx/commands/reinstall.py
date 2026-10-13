@@ -225,6 +225,7 @@ def reinstall(  # ruff:ignore[too-many-arguments]  # reinstall rebuilds a venv f
                 backend=backend or venv.pipx_metadata.backend,
                 env_backend=env_backend,
                 cooldown_days=injected_package.cooldown_days,
+                pinned=injected_package.pinned,
             )
 
         new_resource_paths = _get_expected_reinstall_resource_paths(

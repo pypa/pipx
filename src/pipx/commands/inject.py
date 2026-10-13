@@ -61,6 +61,7 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
     backend: str | None = None,
     env_backend: str | None = None,
     cooldown_days: int | None = None,
+    pinned: bool | None = None,
     emit_output: bool = True,
 ) -> OperationResult[InjectionData]:
     _LOGGER.debug("Injecting package %s", package_spec)
@@ -134,7 +135,6 @@ def inject_dep(  # ruff:ignore[too-many-arguments, too-many-locals]  # inject re
             emit_output=emit_output,
         )
 
-    pinned = False
     if is_main_package:
         main_package = venv.pipx_metadata.main_package
         pip_args = pip_args or main_package.pip_args
@@ -221,6 +221,7 @@ def inject(  # ruff:ignore[too-many-arguments]  # inject mirrors inject_dep's fl
     backend: str | None = None,
     env_backend: str | None = None,
     cooldown_days: int | None = None,
+    pinned: bool | None = None,
     emit_output: bool = True,
 ) -> OperationResult[InjectionData]:
     package_set: Final[set[str]] = set(package_specs)
@@ -256,6 +257,7 @@ def inject(  # ruff:ignore[too-many-arguments]  # inject mirrors inject_dep's fl
                 backend=backend,
                 env_backend=env_backend,
                 cooldown_days=cooldown_days,
+                pinned=pinned,
                 emit_output=False,
             )
         except PipxError as error:

@@ -80,6 +80,9 @@ pipx unpacks each interpreter into its standalone cache. Manage them with:
     $ pipx interpreter prune
     $ pipx interpreter upgrade
 
+``interpreter upgrade`` moves every environment on a standalone build to the newest patch release of its minor version,
+including environments installed with an exact version such as ``--python 3.14.8``.
+
 .. note::
 
     ``--fetch-missing-python`` and ``PIPX_FETCH_MISSING_PYTHON`` still work but are deprecated aliases for

@@ -5,7 +5,7 @@ from functools import cache
 
 from pipx.backends._base import KNOWN_BACKENDS, PIP, UV, Backend, OutdatedPackage
 from pipx.backends.pip import PipBackend
-from pipx.backends.uv import UvBackend, find_uv_binary
+from pipx.backends.uv import UvBackend, find_uv_binary, uv_meets_minimum_version
 from pipx.util import PipxError
 
 
@@ -24,8 +24,8 @@ def resolve_backend_name(
     for candidate, source in ((cli_value, "cli"), (metadata_value, "metadata"), (env_value, "env")):
         if (validated := _validate(candidate)) is not None:
             return validated, source
-    if auto and (binary_source := find_uv_binary()[1]) != "missing":
-        return UV, f"auto-{binary_source}"
+    if auto and (found := find_uv_binary())[0] is not None and uv_meets_minimum_version(found[0]):
+        return UV, f"auto-{found[1]}"
     return PIP, "auto-pip"
 
 

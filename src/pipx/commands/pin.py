@@ -49,14 +49,9 @@ def pin(
         if packages:
             messages.append(_summary_message(venv, _PinStatus.PINNED, len(packages)))
             messages.extend(OutputMessage(f"  - {package.package} {package.version}") for package in packages)
-    elif main_package.pinned:
-        skipped.append(_SkippedPackage(venv.name, str(main_package.package), "already-pinned"))
-        messages.append(
-            OutputMessage(f"pipx already pins package {main_package.package} {sleep}", stream=OutputStream.LOG)
-        )
     else:
-        for package_name in venv.package_metadata:
-            if venv.package_metadata[package_name].pinned:
+        for package_name, package in venv.package_metadata.items():
+            if package.pinned:
                 skipped.append(_SkippedPackage(venv.name, package_name, "already-pinned"))
                 continue
             _update_pin_info(
@@ -66,6 +61,10 @@ def pin(
                 pinned=True,
             )
             packages.append(_changed_package(venv, package_name, _PinStatus.PINNED))
+        if main_package.pinned:
+            messages.append(
+                OutputMessage(f"pipx already pins package {main_package.package} {sleep}", stream=OutputStream.LOG)
+            )
 
     return OperationResult(
         command=("pin",),

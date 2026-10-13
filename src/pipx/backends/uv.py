@@ -275,7 +275,32 @@ def _binary_runs(binary: Path) -> bool:
 
 
 @cache
+def uv_meets_minimum_version(binary: Path) -> bool:
+    # Cached so auto-detection, which runs once per venv, warns once per process.
+    if (version := _uv_version(binary)) >= _MIN_UV_VERSION:
+        return True
+    _LOGGER.warning(
+        "Skipping uv %s at %s since pipx needs uv>=%s; using pip. "
+        "Upgrade uv, or set PIPX_DEFAULT_BACKEND=pip to silence this.",
+        version,
+        binary,
+        _MIN_UV_VERSION,
+    )
+    return False
+
+
 def _check_uv_version(binary: Path) -> Version:
+    if (version := _uv_version(binary)) < _MIN_UV_VERSION:
+        msg = (
+            f"pipx needs uv>={_MIN_UV_VERSION}, but {binary} reports {version}.\n"
+            "Upgrade uv (`uv self update` or reinstall pipx[uv]), or run with `--backend pip` to bypass."
+        )
+        raise PipxError(msg)
+    return version
+
+
+@cache
+def _uv_version(binary: Path) -> Version:
     # Cached so ``upgrade-all`` over many venvs doesn't fork uv repeatedly.
     try:
         process = subprocess.run(
@@ -294,17 +319,10 @@ def _check_uv_version(binary: Path) -> Version:
         )
         raise PipxError(msg)
     try:
-        version = Version(match.group(1))
+        return Version(match.group(1))
     except InvalidVersion as exc:
         msg = f"Unrecognized uv version {match.group(1)!r}."
         raise PipxError(msg) from exc
-    if version < _MIN_UV_VERSION:
-        msg = (
-            f"pipx needs uv>={_MIN_UV_VERSION}, but {binary} reports {version}.\n"
-            "Upgrade uv (`uv self update` or reinstall pipx[uv]), or run with `--backend pip` to bypass."
-        )
-        raise PipxError(msg)
-    return version
 
 
 def _uv_env_overrides(*, progress: bool = False) -> dict[str, str | None]:
@@ -325,4 +343,5 @@ __all__ = [
     "UvBackend",
     "find_uv_binary",
     "resolve_uv_binary",
+    "uv_meets_minimum_version",
 ]
