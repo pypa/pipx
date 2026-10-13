@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 import pipx.main
 from helpers import PACKAGE_CACHE_DIR_NAME, run_pipx_cli
 from package_info import PKG
-from pipx import paths, shared_libs
+from pipx import paths, shared_libs, util
 from pipx.commands.run import run_package
 from pipx.pipx_metadata_file import PipxMetadata
 from pipx.util import PipxError
@@ -265,6 +265,7 @@ def script_interpreters(mocker: MockerFixture) -> None:
     )
 
 
+@pytest.mark.parametrize("backend", ["pip", "uv"])
 @pytest.mark.parametrize(
     ("requires_python", "searched"),
     [
@@ -274,25 +275,31 @@ def script_interpreters(mocker: MockerFixture) -> None:
 )
 @pytest.mark.usefixtures("pipx_temp_env", "script_interpreters")
 def test_run_script_searches_python_only_when_default_fails_requires_python(
-    tmp_path: Path, mocker: MockerFixture, requires_python: str, searched: set[str]
+    tmp_path: Path, mocker: MockerFixture, backend: str, requires_python: str, searched: set[str]
 ) -> None:
-    exec_mock: Final = mocker.patch("pipx.commands.run.exec_app", autospec=True, side_effect=SystemExit(0))
+    exec_mock: Final = mocker.create_autospec(util.exec_app, side_effect=SystemExit(0))
+    mocker.patch("pipx.commands.run.exec_app", new=exec_mock)
+    mocker.patch("pipx.commands.run_uv.exec_app", new=exec_mock)
     script: Final[Path] = tmp_path / "script.py"
     script.write_text(
         f'# /// script\n# requires-python = "{requires_python}"\n# dependencies = []\n# ///\n', encoding="utf-8"
     )
 
-    run_pipx_cli_exit(["run", "--backend", "pip", str(script)], assert_exit=0)
+    run_pipx_cli_exit(["run", "--backend", backend, str(script)], assert_exit=0)
 
     assert {str(arg) for arg in exec_mock.call_args.args[0]} & {"/py/3.12", "/py/3.15"} == searched
 
 
+@pytest.mark.parametrize("backend", ["pip", "uv"])
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_run_rejects_python_failing_requires_python(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_run_rejects_python_failing_requires_python(
+    tmp_path: Path, mocker: MockerFixture, capsys: pytest.CaptureFixture[str], backend: str
+) -> None:
+    mocker.patch("pipx.commands.run_uv.exec_app", autospec=True, side_effect=SystemExit(0))
     script: Final[Path] = tmp_path / "script.py"
     script.write_text('# /// script\n# requires-python = ">=3.99"\n# ///\nprint("hi")\n', encoding="utf-8")
 
-    assert run_pipx_cli(["run", "--backend", "pip", "--python", sys.executable, str(script)]) == 1
+    assert run_pipx_cli(["run", "--backend", backend, "--python", sys.executable, str(script)]) == 1
     assert ">=3.99" in capsys.readouterr().err
 
 
