@@ -44,9 +44,11 @@ The envelope is a JSON object with these keys (serialized with sorted keys):
       "errors": []
     }
 
-A dispatch failure on a JSON-enabled command still speaks the envelope: it prints a ``status`` of ``"error"`` with a
-single error whose ``code`` is ``pipx_error``, and exits ``1``. Two checks run before dispatch and print plain text
-instead: a ``--python`` that cannot be resolved, and a rejected package spec. Both exit ``1``.
+Once the arguments parse, a failure on a JSON-enabled command still speaks the envelope. That covers an invalid
+environment variable such as ``PIPX_COOLDOWN``, a ``--python`` that cannot be resolved, a path or URL where a package
+name belongs, and ``--backend uv`` without a ``uv`` executable. The envelope has a ``status`` of ``"error"`` and a
+single error whose ``code`` is ``pipx_error``, and pipx exits ``1``. Only argument-parsing errors, such as an unknown
+option or a missing argument, print plain text instead: the usage message goes to stderr and pipx exits ``2``.
 
 ********************
  Supported commands

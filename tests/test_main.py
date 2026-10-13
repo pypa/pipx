@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, cast
+from typing import TYPE_CHECKING, Final, TypedDict, cast
 
 import pytest
 from docutils.core import publish_string
@@ -365,3 +365,77 @@ def test_json_output_keeps_streamed_progress_off_stdout(
 
 def test_json_output_streams_progress_to_stderr(json_install_with_progress: pytest.CaptureFixture[str]) -> None:
     assert "Collecting pycowsay" in json_install_with_progress.readouterr().err
+
+
+class _Envelope(TypedDict):
+    command: list[str]
+    status: str
+    exit_code: int
+    errors: list[dict[str, str | None]]
+
+
+def _envelope_failure(stdout: str) -> tuple[list[str], str, int, list[str | None]]:
+    document: Final[_Envelope] = json.loads(stdout)
+    return (
+        document["command"],
+        document["status"],
+        document["exit_code"],
+        [error["code"] for error in document["errors"]],
+    )
+
+
+@pytest.mark.parametrize(
+    "patches",
+    [
+        pytest.param({"_COOLDOWN_INVALID": True, "_COOLDOWN_RAW": "abc"}, id="cooldown"),
+        pytest.param({"_MAX_LOGS_INVALID": True, "_MAX_LOGS_RAW": "x"}, id="max-logs"),
+        pytest.param({"_FETCH_PYTHON_INVALID": True}, id="fetch-python"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_json_output_reports_invalid_environment_variable_in_envelope(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    patches: dict[str, bool | str],
+) -> None:
+    for name, value in patches.items():
+        monkeypatch.setattr(main, name, value)
+
+    assert run_pipx_cli(["cache", "dir", "--output", "json"]) == 1
+
+    assert _envelope_failure(capsys.readouterr().out) == (["cache", "dir"], "error", 1, ["pipx_error"])
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        pytest.param(["install", "--python", "/nonexistent/python3", "pycowsay"], id="unresolvable-python"),
+        pytest.param(["uninstall", "some/path"], id="package-path"),
+        pytest.param(["uninstall", "https://example.com/pycowsay"], id="package-url"),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_json_output_reports_rejected_arguments_in_envelope(
+    capsys: pytest.CaptureFixture[str],
+    argv: list[str],
+) -> None:
+    assert run_pipx_cli([*argv, "--output", "json"]) == 1
+
+    assert _envelope_failure(capsys.readouterr().out) == ([argv[0]], "error", 1, ["pipx_error"])
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_json_output_reports_missing_uv_in_envelope(capsys: pytest.CaptureFixture[str], mocker: MockerFixture) -> None:
+    mocker.patch("pipx.backends.find_uv_binary", return_value=(None, "missing"))
+    mocker.patch("pipx.backends.uv.find_uv_binary", return_value=(None, "missing"))
+
+    assert run_pipx_cli(["install", "--backend", "uv", "--output", "json", "pycowsay"]) == 1
+
+    assert _envelope_failure(capsys.readouterr().out) == (["install"], "error", 1, ["pipx_error"])
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_cli_without_command_prints_help(capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_pipx_cli([]) == 1
+
+    assert capsys.readouterr().out.startswith("usage: pipx")
