@@ -17,6 +17,7 @@ from pipx.constants import WINDOWS
 from pipx.emojis import strtobool
 from pipx.interpreter import get_default_python
 from pipx.util import (
+    PipxError,
     get_site_packages,
     get_venv_paths,
     run_subprocess,
@@ -132,24 +133,51 @@ class _SharedLibs:
 
     def _create(self, pip_args: list[str], *, verbose: bool, reinstall_pip: bool | None = None) -> None:
         if not self.is_valid:
+            # Run the venv CLI, then print the pip wheel the base interpreter's ensurepip would install, checking the
+            # distro wheel directory first as ensurepip does. Debian strips both locations, which prints an empty line.
+            script: Final[str] = (
+                "import sys, sysconfig, venv; from pathlib import Path; venv.main(sys.argv[1:]); "
+                "wheel_dirs = [sysconfig.get_config_var('WHEEL_PKG_DIR'), "
+                "Path(sysconfig.get_path('stdlib'), 'ensurepip', '_bundled')]; "
+                "wheels = (str(wheel) for folder in wheel_dirs if folder "
+                "for wheel in sorted(Path(folder).glob('pip-*.whl'), reverse=True)); "
+                "print(next(wheels, ''))"
+            )
             with animate("creating shared libraries", do_animation=not verbose):
                 create_process = run_subprocess(
-                    [get_default_python(), "-m", "venv", "--clear", self.root], run_dir=str(self.root)
+                    [get_default_python(), "-c", script, "--without-pip", "--clear", self.root], run_dir=str(self.root)
                 )
             subprocess_post_check(create_process)
             self._is_valid = None
 
             should_reinstall_pip = not shared_libs_auto_upgrade_disabled() if reinstall_pip is None else reinstall_pip
-            if should_reinstall_pip:
-                # Reinstall pip so OS-vendor patches cannot enter the shared environment.
-                self._upgrade(pip_args=[*pip_args, "--force-reinstall"], verbose=verbose, raises=True)
+            # Reinstall pip so OS-vendor patches cannot enter the shared environment. Importing pip straight from the
+            # base interpreter's bundled wheel skips the ensurepip install that the reinstall would replace anyway; it
+            # goes through PYTHONPATH and -m because pip on Windows refuses to replace itself when started by path.
+            if should_reinstall_pip and (bundled_pip := create_process.stdout.strip()):
+                try:
+                    self._install_pip(
+                        pip_args=[*pip_args, "--force-reinstall"], verbose=verbose, raises=True, pythonpath=bundled_pip
+                    )
+                except PipxError:
+                    # keep a working pip so a later offline run can still use the shared venv
+                    self._bootstrap_pip()
+                    raise
+                self._is_valid = True
             else:
-                logger.info("Skipping the shared pip reinstall because maintenance is disabled")
+                self._bootstrap_pip()
+                if should_reinstall_pip:
+                    self._upgrade(pip_args=[*pip_args, "--force-reinstall"], verbose=verbose, raises=True)
+                else:
+                    logger.info("Skipping the shared pip reinstall because maintenance is disabled")
 
-            # Remove setuptools before the .pth file exposes shared libraries to apps. Python <3.12 venvs bundle a
-            # copy that fails under 3.12+ because the standard library no longer includes distutils.
-            # Python 3.12+ venvs do not bundle it, so pip warns that it is not installed; keep that in the debug log.
-            run_subprocess([self.python_path, "-m", "pip", "--no-input", "uninstall", "-y", "setuptools"])
+            # Remove setuptools before the .pth file exposes shared libraries to apps. Python <3.12 ensurepip installs
+            # a copy that fails under 3.12+ because the standard library no longer includes distutils.
+            if any(self.root.glob("*/site-packages/setuptools")) or any(self.root.glob("*/*/site-packages/setuptools")):
+                run_subprocess([self.python_path, "-m", "pip", "--no-input", "uninstall", "-y", "setuptools"])
+
+    def _bootstrap_pip(self) -> None:
+        subprocess_post_check(run_subprocess([self.python_path, "-m", "ensurepip", "--upgrade", "--default-pip"]))
 
     @property
     def is_valid(self) -> bool:
@@ -202,6 +230,9 @@ class _SharedLibs:
             logger.info("Already upgraded libraries in %s", self.root)
             return
 
+        self._install_pip(pip_args=pip_args, verbose=verbose, raises=raises)
+
+    def _install_pip(self, *, pip_args: list[str], verbose: bool, raises: bool, pythonpath: str | None = None) -> None:
         logger.info("Upgrading shared libraries in %s", self.root)
 
         filtered_pip_args = [arg for arg in pip_args if arg != "--editable"]
@@ -210,17 +241,20 @@ class _SharedLibs:
 
         try:
             with animate("upgrading shared libraries", do_animation=not verbose):
-                upgrade_process = run_subprocess([
-                    self.python_path,
-                    "-m",
-                    "pip",
-                    "--no-input",
-                    "--disable-pip-version-check",
-                    "install",
-                    "--upgrade",
-                    *filtered_pip_args,
-                    "pip >= 26.1",
-                ])
+                upgrade_process = run_subprocess(
+                    [
+                        self.python_path,
+                        "-m",
+                        "pip",
+                        "--no-input",
+                        "--disable-pip-version-check",
+                        "install",
+                        "--upgrade",
+                        *filtered_pip_args,
+                        "pip >= 26.1",
+                    ],
+                    env_overrides={"PYTHONPATH": pythonpath},
+                )
             subprocess_post_check(upgrade_process)
 
             self.has_been_updated_this_run = True
