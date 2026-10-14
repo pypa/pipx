@@ -9,7 +9,6 @@ import contextlib
 import logging
 import logging.config
 import os
-import re
 import shlex
 import sys
 import textwrap
@@ -1584,7 +1583,7 @@ def _cmd_cache_purge(args: argparse.Namespace, ctx: DispatchContext) -> Operatio
 def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.ArgumentParser) -> None:
     parser: Final[argparse.ArgumentParser] = subparsers.add_parser(
         "run",
-        formatter_class=LineWrapRawTextHelpFormatter,
+        formatter_class=_RunHelpFormatter,
         help=(
             "Download the latest version of a package to a temporary virtual environment, "
             "then run an app from it. Also compatible with local `__pypackages__` "
@@ -1655,9 +1654,14 @@ def _add_run(subparsers: argparse._SubParsersAction, shared_parser: argparse.Arg
     add_backend_arg(parser)
     parser.set_defaults(subparser=parser, func=_cmd_run)
 
-    # spell the required app out in the usage line, which argparse.REMAINDER renders as a bare "..."; this freezes
-    # the prog into that line, so a parser built for the docs has to be given its program name up front
-    parser.usage = re.sub(r"\.\.\.", "app ...", re.sub(r"^usage: ", "", parser.format_usage()))
+
+class _RunHelpFormatter(LineWrapRawTextHelpFormatter):
+    # argparse renders a REMAINDER positional as a bare "..." in the usage line; show its metavar so the required app
+    # is spelled out
+    def _format_args(self, action: argparse.Action, default_metavar: str) -> str:
+        if action.nargs == argparse.REMAINDER:
+            return self._metavar_formatter(action, default_metavar)(1)[0]
+        return super()._format_args(action, default_metavar)
 
 
 def _cmd_run(args: argparse.Namespace, ctx: DispatchContext) -> NoReturn:
@@ -1974,8 +1978,8 @@ def get_command_parser(
 def build_parser() -> argparse.ArgumentParser:
     # sphinx-argparse-cli renders the CLI reference from a parser-returning callable; expose the root parser alone
     # so the docs build cannot drift from the argument definitions. Name the program here rather than inherit the docs
-    # builder's argv[0]: ``run`` bakes the prog into a frozen usage string, which the directive's ``:prog:`` option
-    # cannot rewrite afterwards.
+    # builder's argv[0]: each subcommand parser copies the prog when it is created, which the directive's ``:prog:``
+    # option cannot rewrite afterwards.
     return get_command_parser(prog="pipx")[0]
 
 

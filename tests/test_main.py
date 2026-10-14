@@ -86,6 +86,20 @@ def test_build_parser_uses_pipx_in_subcommand_help(mocker: MockerFixture, capsys
     assert capsys.readouterr().out.startswith("usage: pipx run ")
 
 
+@pytest.mark.usefixtures("exit_early")
+def test_run_help_prints_usage_prefix_once_in_color(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.delenv("PYTHON_COLORS", raising=False)
+
+    with pytest.raises(ValueError, match="raised in test to exit early"):
+        run_pipx_cli(["run", "--help"])
+
+    assert re.sub(r"\x1b\[[0-9;]*m", "", capsys.readouterr().out).count("usage:") == 1
+
+
 @pytest.mark.parametrize("flag", [pytest.param("-qqq", id="quiet"), pytest.param("-vvvv", id="verbose")])
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_limit_verbosity(flag: str) -> None:
