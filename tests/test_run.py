@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 import pipx.main
-from helpers import PACKAGE_CACHE_DIR_NAME, run_pipx_cli
+from helpers import PACKAGE_CACHE_DIR_NAME, pipx_subprocess_env, run_pipx_cli
 from package_info import PKG
 from pipx import paths, shared_libs, util
 from pipx.commands.run import run_package
@@ -483,8 +483,7 @@ def test_appargs_doubledash(
 
 
 def test_run_ensure_null_pythonpath() -> None:
-    env = os.environ.copy()
-    env["PYTHONPATH"] = "test"
+    env = pipx_subprocess_env() | {"PYTHONPATH": "test"}
     assert (
         "None"
         in subprocess.run(
@@ -663,11 +662,7 @@ def test_run_rejects_python_args_for_pypackages(
 def test_run_preserves_console_encoding(tmp_path: Path, encoding: str, script_text: str) -> None:
     script = tmp_path / "console_output.py"
     script.write_text(script_text, encoding="utf-8")
-    env = os.environ | {
-        "PIPX_DEFAULT_BACKEND": "pip",
-        "PIPX_HOME": str(tmp_path / "pipx"),
-        "PYTHONIOENCODING": encoding,
-    }
+    env = pipx_subprocess_env() | {"PIPX_DEFAULT_BACKEND": "pip", "PYTHONIOENCODING": encoding}
 
     direct_output = subprocess.run(
         [sys.executable, script],
@@ -1161,6 +1156,7 @@ def test_run_vcs_url_runs_sole_script_of_other_name(
     assert "Reusing cached venv" in caplog.text
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with(capsys: pytest.CaptureFixture[str]) -> None:
     run_pipx_cli_exit(["run", "--refresh", "--with", "black", "pycowsay", "--help"])
@@ -1201,6 +1197,7 @@ def test_run_with_cooldown(
     ) == (True, True)
 
 
+@pytest.mark.usefixtures("pipx_temp_env")
 @mock.patch("os.execvpe", new=execvpe_mock)
 def test_run_with_cache(caplog: pytest.LogCaptureFixture) -> None:
     run_pipx_cli_exit(["run", "--refresh", "--with", "black", "pycowsay", "args"], assert_exit=0)

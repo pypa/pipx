@@ -19,6 +19,7 @@ from helpers import (
     assert_package_metadata,
     create_package_info_ref,
     mock_legacy_venv,
+    pipx_subprocess_env,
     remove_venv_interpreter,
     run_pipx_cli,
     skip_if_windows,
@@ -365,7 +366,7 @@ def test_install_does_not_wait_for_other_environment(tmp_path: Path) -> None:
                 str(_create_package(tmp_path, "other-app")),
                 "--skip-maintenance",
             ],
-            env=_subprocess_env(),
+            env=pipx_subprocess_env(),
             capture_output=True,
             text=True,
             check=False,
@@ -533,17 +534,8 @@ def _create_package(tmp_path: Path, name: str, setup_prefix: str = "") -> Path:
 def _start_pipx(*args: str) -> subprocess.Popen[str]:
     return subprocess.Popen(
         [sys.executable, "-m", "pipx", *args],
-        env=_subprocess_env(),
+        env=pipx_subprocess_env(),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
     )
-
-
-def _subprocess_env() -> dict[str, str]:
-    return os.environ | {
-        "PIPX_BIN_DIR": str(paths.ctx.bin_dir),
-        "PIPX_HOME": str(paths.ctx.home),
-        "PIPX_MAN_DIR": str(paths.ctx.man_dir),
-        "PIPX_SHARED_LIBS": str(paths.ctx.shared_libs),
-    }
