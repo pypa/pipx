@@ -182,6 +182,9 @@ def _list_venv_outdated(
     upgradable_only: bool,
     pip_args: Sequence[str],
 ) -> _EnvironmentOutdated:
+    if not venv.python_path.is_file():
+        message: Final[str] = f"Invalid python interpreter {venv.python_path}. To fix, execute: pipx reinstall-all"
+        return _EnvironmentOutdated(failures=(_FailedEnvironment(venv.name, message),))
     if not venv.package_metadata:
         return _EnvironmentOutdated(failures=(_FailedEnvironment(venv.name, "Missing internal pipx metadata."),))
     if upgradable_only and venv.pipx_metadata.main_package.lock_file is not None:

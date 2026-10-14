@@ -11,7 +11,13 @@ from typing import TYPE_CHECKING, Final
 
 import pytest
 
-from helpers import PACKAGE_CACHE_DIR_NAME, PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli
+from helpers import (
+    PACKAGE_CACHE_DIR_NAME,
+    PIPX_METADATA_LEGACY_VERSIONS,
+    mock_legacy_venv,
+    remove_venv_interpreter,
+    run_pipx_cli,
+)
 from package_info import PKG
 from pipx import paths
 from pipx.pipx_metadata_file import PipxMetadata
@@ -404,3 +410,20 @@ def test_upgrade_all_upgrades_the_rest_after_a_failure(
         [package["environment"] for package in result["data"]["packages"]],
         [error["environment"] for error in result["errors"]],
     ) == (1, outdated_venv_names[1:], outdated_venv_names[:1])
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_all_upgrades_the_rest_after_a_missing_interpreter(
+    capsys: pytest.CaptureFixture[str], outdated_venv_names: list[str]
+) -> None:
+    remove_venv_interpreter(outdated_venv_names[0])
+
+    exit_code: Final[int] = run_pipx_cli(["upgrade-all"])
+
+    captured: Final[CaptureResult[str]] = capsys.readouterr()
+    assert (
+        exit_code,
+        f"upgraded package {outdated_venv_names[1]} from " in captured.out,
+        f"Not upgrading {outdated_venv_names[0]}. It has an invalid python interpreter" in captured.err,
+        f"The following package(s) failed to upgrade: {outdated_venv_names[0]}" in captured.err,
+    ) == (1, True, True, True)
