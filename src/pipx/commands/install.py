@@ -33,6 +33,7 @@ from pipx import paths
 from pipx.backends import PIP
 from pipx.commands.common import (
     expose_package_resources,
+    expose_shared_resources_in_order,
     get_expected_venv_resource_paths,
     locked_package_message,
     package_name_from_spec,
@@ -699,28 +700,29 @@ def install_all(  # ruff:ignore[too-many-arguments, too-many-positional-argument
             raise
         malformed = error
     venv_container: Final[VenvContainer] = VenvContainer(paths.ctx.venvs)
-    outcomes: Final[list[tuple[str, bool]]] = fan_out(
-        [
-            partial(
-                _install_spec_venv,
-                venv_container,
-                venv_metadata,
-                local_bin_dir=local_bin_dir,
-                local_man_dir=local_man_dir,
-                python=python,
-                pip_args=pip_args,
-                venv_args=venv_args,
-                verbose=verbose,
-                force=force,
-                backend=backend,
-                env_backend=env_backend,
-                cooldown_days=cooldown_days,
-                python_flag_passed=python_flag_passed,
-            )
-            for venv_metadata in venvs_metadata
-        ],
-        sequential=verbose,
-    )
+    with expose_shared_resources_in_order(venvs_metadata, local_bin_dir, local_man_dir):
+        outcomes: Final[list[tuple[str, bool]]] = fan_out(
+            [
+                partial(
+                    _install_spec_venv,
+                    venv_container,
+                    venv_metadata,
+                    local_bin_dir=local_bin_dir,
+                    local_man_dir=local_man_dir,
+                    python=python,
+                    pip_args=pip_args,
+                    venv_args=venv_args,
+                    verbose=verbose,
+                    force=force,
+                    backend=backend,
+                    env_backend=env_backend,
+                    cooldown_days=cooldown_days,
+                    python_flag_passed=python_flag_passed,
+                )
+                for venv_metadata in venvs_metadata
+            ],
+            sequential=verbose,
+        )
     if malformed is not None:
         raise malformed
     if not any(succeeded for _, succeeded in outcomes):

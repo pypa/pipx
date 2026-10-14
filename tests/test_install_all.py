@@ -354,3 +354,24 @@ def test_install_all_installs_entries_before_a_malformed_one(spec_file: Path) ->
         1,
         ["pycowsay"],
     )
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_all_gives_shared_man_page_to_the_first_venv(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    before_venv_subprocess: Callable[[Path, Callable[[], None]], None],
+) -> None:
+    assert not run_pipx_cli(["install", "pycowsay"])
+    assert not run_pipx_cli(["install", "pycowsay", "--suffix=_x"])
+    capsys.readouterr()
+    assert not run_pipx_cli(["list", "--json"])
+    spec_file: Final[Path] = tmp_path / "pipx.json"
+    spec_file.write_text(capsys.readouterr().out, encoding="utf-8")
+    assert not run_pipx_cli(["uninstall-all"])
+    first: Final[Path] = paths.ctx.venvs / next(iter(json.loads(spec_file.read_text(encoding="utf-8"))["venvs"]))
+    before_venv_subprocess(first, lambda: time.sleep(0.5))
+
+    assert not run_pipx_cli(["install-all", str(spec_file)])
+
+    assert (paths.ctx.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(first)

@@ -9,6 +9,7 @@ __lazy_modules__ = [
     "pipx.commands.transaction",
     "pipx.fanout",
     "pipx.package_specifier",
+    "pipx.pipx_metadata_file",
     "pipx.script",
     "pipx.shared_libs",
     "pipx.util",
@@ -25,6 +26,7 @@ from pipx import paths
 from pipx.colors import bold, red
 from pipx.commands.common import (
     expose_package_resources,
+    expose_shared_resources_in_order,
     get_expected_venv_resource_paths,
     locked_package_message,
     remove_stale_venv_resources,
@@ -37,6 +39,7 @@ from pipx.constants import ExitCode
 from pipx.emojis import sleep
 from pipx.fanout import fan_out
 from pipx.package_specifier import parse_specifier_for_upgrade, valid_pypi_name
+from pipx.pipx_metadata_file import PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.script import is_script_spec
 from pipx.shared_libs import shared_libs
@@ -143,28 +146,33 @@ def upgrade_all(  # ruff:ignore[too-many-arguments]  # mirrors the CLI's flat up
     messages: Final[list[OutputMessage]] = []
     results: Final[list[PackageUpgradeResult]] = []
     skipped: Final[list[SkippedUpgrade]] = []
-    for venv_upgrade in fan_out(
-        [
-            partial(
-                _upgrade_listed_venv,
-                venv_container,
-                venv_dir,
-                verbose=verbose,
-                pip_args=pip_args,
-                include_injected=include_injected,
-                skip=skip,
-                force=force,
-                python_flag_passed=python_flag_passed,
-                backend=backend,
-                env_backend=env_backend,
-                cooldown_days=cooldown_days,
-                candidates=candidates,
-                check_failures=check_failures,
-            )
-            for venv_dir in venv_container.iter_venv_dirs()
-        ],
-        sequential=verbose,
+    venv_dirs: Final[list[Path]] = list(venv_container.iter_venv_dirs())
+    with expose_shared_resources_in_order(
+        (PipxMetadata(venv_dir) for venv_dir in venv_dirs), paths.ctx.bin_dir, paths.ctx.man_dir
     ):
+        venv_upgrades: Final[list[_VenvUpgrade]] = fan_out(
+            [
+                partial(
+                    _upgrade_listed_venv,
+                    venv_container,
+                    venv_dir,
+                    verbose=verbose,
+                    pip_args=pip_args,
+                    include_injected=include_injected,
+                    skip=skip,
+                    force=force,
+                    python_flag_passed=python_flag_passed,
+                    backend=backend,
+                    env_backend=env_backend,
+                    cooldown_days=cooldown_days,
+                    candidates=candidates,
+                    check_failures=check_failures,
+                )
+                for venv_dir in venv_dirs
+            ],
+            sequential=verbose,
+        )
+    for venv_upgrade in venv_upgrades:
         messages.extend(venv_upgrade.messages)
         results.extend(venv_upgrade.results)
         skipped.extend(venv_upgrade.skipped)

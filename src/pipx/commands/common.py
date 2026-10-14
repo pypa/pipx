@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 __lazy_modules__ = [
+    "collections",
     "filecmp",
     "packaging.utils",
     "pathlib",
     "pipx",
     "pipx.backends",
+    "pipx.fanout",
     "pipx.package_specifier",
     "pipx.result",
     "pipx.util",
@@ -24,7 +26,8 @@ import shlex
 import shutil
 import tempfile
 import time
-from contextlib import contextmanager
+from collections import Counter
+from contextlib import AbstractContextManager, contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
@@ -41,6 +44,7 @@ from pipx.backends import PIP, env_default_backend, resolve_backend_name
 from pipx.colors import bold, red
 from pipx.constants import COMPLETION_SECTIONS, MACOS, MAN_SECTIONS, WINDOWS
 from pipx.emojis import hazard, stars
+from pipx.fanout import in_turn
 from pipx.package_specifier import (
     parse_specifier_for_install,
     static_project_name,
@@ -52,9 +56,9 @@ from pipx.util import PipxError, mkdir, pipx_wrap, rmdir, safe_unlink
 from pipx.venv import Venv
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable, Mapping, Sequence
+    from collections.abc import Collection, Generator, Iterable, Mapping, Sequence
 
-    from pipx.pipx_metadata_file import PackageInfo
+    from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 _IGNORE_ENVIRONMENT_FLAG: Final[bytes] = b" -E"
@@ -89,6 +93,29 @@ class VenvProblems:
             )
 
 
+_SHARED_RESOURCES: Final[ContextVar[frozenset[Path]]] = ContextVar("shared_resources", default=frozenset())
+
+
+@contextmanager
+def expose_shared_resources_in_order(
+    venvs_metadata: Iterable[PipxMetadata], local_bin_dir: Path, local_man_dir: Path
+) -> Generator[None]:
+    # a path several environments of a fan-out expose must end up where a one-at-a-time run leaves it, so they expose
+    # it in task order; only shared paths wait, as a task waiting for its turn holds one of the fan-out's workers
+    counts: Final[Counter[Path]] = Counter(
+        path
+        for metadata in venvs_metadata
+        for path in _expected_resource_paths(
+            metadata, (metadata.main_package, *metadata.injected_packages.values()), local_bin_dir, local_man_dir
+        )
+    )
+    token = _SHARED_RESOURCES.set(frozenset(path for path, count in counts.items() if count > 1))
+    try:
+        yield
+    finally:
+        _SHARED_RESOURCES.reset(token)
+
+
 def expose_resources_globally(
     resource_type: str,
     local_resource_dir: Path,
@@ -111,21 +138,26 @@ def expose_resources_globally(
             dest_dir = local_resource_dir
         if not dest_dir.is_dir():
             mkdir(dest_dir)
-        if not can_symlink(dest_dir):
-            collision = _copy_package_resource(dest_dir, path, force=force, suffix=suffix)
-        elif (
-            collision := _symlink_package_resource(
-                dest_dir,
-                path,
-                force=force,
-                suffix=suffix,
-                executable=(resource_type == "app"),
-            )
-        ) is None:
-            _remove_link_named_before_last_dot(dest_dir, path, suffix)
+        with _in_turn_if_shared(dest_dir / add_suffix(path.name, suffix)):
+            if not can_symlink(dest_dir):
+                collision = _copy_package_resource(dest_dir, path, force=force, suffix=suffix)
+            elif (
+                collision := _symlink_package_resource(
+                    dest_dir,
+                    path,
+                    force=force,
+                    suffix=suffix,
+                    executable=(resource_type == "app"),
+                )
+            ) is None:
+                _remove_link_named_before_last_dot(dest_dir, path, suffix)
         if collision is not None:
             collisions.append(collision)
     return collisions
+
+
+def _in_turn_if_shared(path: Path) -> AbstractContextManager[None]:
+    return in_turn(lambda: path not in _SHARED_RESOURCES.get())
 
 
 def expose_package_resources(
@@ -743,22 +775,24 @@ def _venv_owned_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: P
 
 
 def get_expected_venv_resource_paths(venv: Venv, local_bin_dir: Path, local_man_dir: Path) -> set[Path]:
-    if not venv.pipx_metadata.exposure_enabled:
+    return _expected_resource_paths(venv.pipx_metadata, venv.package_metadata.values(), local_bin_dir, local_man_dir)
+
+
+def _expected_resource_paths(
+    metadata: PipxMetadata, packages: Collection[PackageInfo], local_bin_dir: Path, local_man_dir: Path
+) -> set[Path]:
+    if not metadata.exposure_enabled:
         return set()
     return (
         {
             local_bin_dir / add_suffix(path.name, package.suffix)
-            for package in venv.package_metadata.values()
+            for package in packages
             for path in package.app_paths_to_expose
         }
-        | {
-            local_man_dir / path.parent.name / path.name
-            for package in venv.package_metadata.values()
-            for path in package.man_paths_to_expose
-        }
+        | {local_man_dir / path.parent.name / path.name for package in packages for path in package.man_paths_to_expose}
         | {
             paths.ctx.completion_dir / path.parent.parent.name / path.parent.name / path.name
-            for package in venv.package_metadata.values()
+            for package in packages
             for path in package.completion_paths_to_expose
         }
     )
@@ -833,6 +867,7 @@ __all__ = [
     "can_symlink",
     "expose_package_resources",
     "expose_resources_globally",
+    "expose_shared_resources_in_order",
     "get_expected_venv_resource_paths",
     "get_exposed_man_paths_for_package",
     "get_exposed_paths_for_package",

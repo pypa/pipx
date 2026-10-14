@@ -10,6 +10,7 @@ __lazy_modules__ = [
     "pipx.commands.install",
     "pipx.commands.uninstall",
     "pipx.fanout",
+    "pipx.pipx_metadata_file",
     "pipx.util",
     "pipx.venv",
     "tempfile",
@@ -26,7 +27,7 @@ from typing import TYPE_CHECKING, Final
 from packaging.utils import canonicalize_name
 
 from pipx import paths
-from pipx.commands.common import add_suffix
+from pipx.commands.common import add_suffix, expose_shared_resources_in_order
 from pipx.commands.inject import inject_dep
 from pipx.commands.install import install
 from pipx.commands.uninstall import _get_venv_package_infos, _get_venv_resource_paths
@@ -40,6 +41,7 @@ from pipx.constants import (
 )
 from pipx.emojis import error, sleep, stars
 from pipx.fanout import fan_out
+from pipx.pipx_metadata_file import PipxMetadata
 from pipx.result import OperationData, OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import PipxError, rmdir, safe_unlink
 from pipx.venv import Venv, VenvContainer
@@ -299,25 +301,31 @@ def reinstall_all(  # ruff:ignore[too-many-arguments]  # reinstall-all forwards 
     reinstalled: list[_ReinstalledEnvironment] = []
     messages: list[OutputMessage] = []
 
-    for outcome in fan_out(
-        [
-            partial(
-                _reinstall_locked,
-                venv_container,
-                venv_dir,
-                local_bin_dir=local_bin_dir,
-                local_man_dir=local_man_dir,
-                python=python,
-                verbose=verbose,
-                python_flag_passed=python_flag_passed,
-                backend=backend,
-                env_backend=env_backend,
-            )
-            for venv_dir in venv_container.iter_venv_dirs()
-            if venv_dir.name not in skip
-        ],
-        sequential=verbose,
+    venv_dirs: Final[list[Path]] = [
+        venv_dir for venv_dir in venv_container.iter_venv_dirs() if venv_dir.name not in skip
+    ]
+    with expose_shared_resources_in_order(
+        (PipxMetadata(venv_dir) for venv_dir in venv_dirs), local_bin_dir, local_man_dir
     ):
+        outcomes: Final[list[OperationResult[ReinstallData]]] = fan_out(
+            [
+                partial(
+                    _reinstall_locked,
+                    venv_container,
+                    venv_dir,
+                    local_bin_dir=local_bin_dir,
+                    local_man_dir=local_man_dir,
+                    python=python,
+                    verbose=verbose,
+                    python_flag_passed=python_flag_passed,
+                    backend=backend,
+                    env_backend=env_backend,
+                )
+                for venv_dir in venv_dirs
+            ],
+            sequential=verbose,
+        )
+    for outcome in outcomes:
         errors.extend(outcome.errors)
         messages.extend(outcome.messages)
         if not outcome.errors:
