@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import logging
 import os
-import signal
 import sys
 import threading
 from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, NoReturn
+from typing import TYPE_CHECKING, Final
 from venv import EnvBuilder
 
 import pytest
@@ -19,8 +18,6 @@ from pipx.util import exec_app, get_site_packages, rmdir, run_subprocess, safe_u
 
 if TYPE_CHECKING:
     import subprocess
-    from collections.abc import Generator
-    from types import FrameType
 
     from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
@@ -316,6 +313,7 @@ def test_subprocess_stream_drains_before_output_error(mocker: MockerFixture) -> 
 
 @pytest.mark.skipif(sys.platform != "darwin", reason="only macOS drops what a closing pseudo-terminal still queues")
 @pytest.mark.usefixtures("terminal_stdout")
+@pytest.mark.timeout(60)  # 300 process launches take about 30 s on a macOS CI runner
 def test_subprocess_stream_keeps_output_of_a_child_that_exits_at_once() -> None:
     # the loss hit about 1 run in 75 on a CI macOS runner, so a few hundred runs catch it reliably
     outputs: Final[set[str]] = {
@@ -327,7 +325,7 @@ def test_subprocess_stream_keeps_output_of_a_child_that_exits_at_once() -> None:
 
 
 @skip_if_windows
-@pytest.mark.usefixtures("terminal_stdout", "fail_on_hang")
+@pytest.mark.usefixtures("terminal_stdout")
 def test_subprocess_stream_propagates_ctrl_c() -> None:
     # Ctrl-C on a terminal reaches the whole foreground process group: pipx and the child alike
     with pytest.raises(KeyboardInterrupt):
@@ -351,7 +349,7 @@ def test_subprocess_replaces_undecodable_output(stream_output: bool) -> None:
 
 
 @skip_if_windows
-@pytest.mark.usefixtures("terminal_stdout", "fail_on_hang")
+@pytest.mark.usefixtures("terminal_stdout")
 def test_subprocess_stream_replaces_undecodable_terminal_output() -> None:
     result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
         [sys.executable, "-c", _UNDECODABLE_OUTPUT], capture_stderr=False, stream_output=True
@@ -361,7 +359,6 @@ def test_subprocess_stream_replaces_undecodable_terminal_output() -> None:
 
 
 @skip_if_windows
-@pytest.mark.usefixtures("fail_on_hang")
 def test_subprocess_stream_stops_draining_a_failed_reader(mocker: MockerFixture) -> None:
     destination: Final[StringIO] = StringIO()
     mocker.patch.object(destination, "isatty", return_value=True)
@@ -387,20 +384,6 @@ def terminal_stdout(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.delenv("COLUMNS", raising=False)
     mocker.patch("pipx.util.sys.stdout.isatty", return_value=True)
     mocker.patch("pipx.util.shutil.get_terminal_size", return_value=os.terminal_size((120, 40)))
-
-
-@pytest.fixture
-def fail_on_hang() -> Generator[None]:
-    def fail(_signum: int, _frame: FrameType | None) -> NoReturn:
-        pytest.fail("run_subprocess hung")
-
-    previous: Final = signal.signal(signal.SIGALRM, fail)
-    signal.alarm(10)
-    try:
-        yield
-    finally:
-        signal.alarm(0)
-        signal.signal(signal.SIGALRM, previous)
 
 
 @pytest.mark.parametrize(

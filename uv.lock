@@ -709,6 +709,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-mock" },
     { name = "pytest-subprocess" },
+    { name = "pytest-timeout" },
     { name = "pytest-xdist" },
     { name = "setuptools", marker = "python_full_version >= '3.12'" },
     { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -791,6 +792,7 @@ test = [
     { name = "pytest-cov" },
     { name = "pytest-mock" },
     { name = "pytest-subprocess" },
+    { name = "pytest-timeout" },
     { name = "pytest-xdist" },
     { name = "setuptools", marker = "python_full_version >= '3.12'" },
     { name = "watchdog" },
@@ -806,6 +808,7 @@ type = [
     { name = "pytest-cov" },
     { name = "pytest-mock" },
     { name = "pytest-subprocess" },
+    { name = "pytest-timeout" },
     { name = "pytest-xdist" },
     { name = "setuptools", marker = "python_full_version >= '3.12'" },
     { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -859,6 +862,7 @@ dev = [
     { name = "pytest-cov", specifier = ">=7.1" },
     { name = "pytest-mock", specifier = ">=3.16" },
     { name = "pytest-subprocess", specifier = ">=1.6" },
+    { name = "pytest-timeout", specifier = ">=2.4" },
     { name = "pytest-xdist", specifier = ">=3.8" },
     { name = "setuptools", marker = "python_full_version >= '3.12'", specifier = ">=84" },
     { name = "sphinx", specifier = ">=8.1.3" },
@@ -931,6 +935,7 @@ test = [
     { name = "pytest-cov", specifier = ">=7.1" },
     { name = "pytest-mock", specifier = ">=3.16" },
     { name = "pytest-subprocess", specifier = ">=1.6" },
+    { name = "pytest-timeout", specifier = ">=2.4" },
     { name = "pytest-xdist", specifier = ">=3.8" },
     { name = "setuptools", marker = "python_full_version >= '3.12'", specifier = ">=84" },
     { name = "watchdog", specifier = ">=6" },
@@ -946,6 +951,7 @@ type = [
     { name = "pytest-cov", specifier = ">=7.1" },
     { name = "pytest-mock", specifier = ">=3.16" },
     { name = "pytest-subprocess", specifier = ">=1.6" },
+    { name = "pytest-timeout", specifier = ">=2.4" },
     { name = "pytest-xdist", specifier = ">=3.8" },
     { name = "setuptools", marker = "python_full_version >= '3.12'", specifier = ">=84" },
     { name = "sphinx", specifier = ">=8.1.3" },
@@ -1089,6 +1095,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/76/7a/0d5855132e11de2a96da26e596560757ebbbf8190cfe36cbf85d7423f384/pytest_subprocess-1.6.0.tar.gz", hash = "sha256:b2d746eb1b768a6f9087e5c7c91f87fb9d40c7fdc777550dc00397af428a0654", size = 47910, upload-time = "2026-05-10T08:22:54.207Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c5/4f/ebe38bf128380f6a8a9b0fbbbe24cbf83915bb2f934717be65cadf55b6fa/pytest_subprocess-1.6.0-py3-none-any.whl", hash = "sha256:00037100f30429c8546adc81f357fddb5213eb036fe3bfb47b7b6befc965e5b2", size = 23803, upload-time = "2026-05-10T08:22:52.52Z" },
+]
+
+[[package]]
+name = "pytest-timeout"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ac/82/4c9ecabab13363e72d880f2fb504c5f750433b2b6f16e99f4ec21ada284c/pytest_timeout-2.4.0.tar.gz", hash = "sha256:7e68e90b01f9eff71332b25001f85c75495fc4e3a836701876183c4bcfd0540a", size = 17973, upload-time = "2025-05-05T19:44:34.99Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fa/b6/3127540ecdf1464a00e5a01ee60a1b09175f6913f0644ac748494d9c4b21/pytest_timeout-2.4.0-py3-none-any.whl", hash = "sha256:c42667e5cdadb151aeb5b26d114aff6bdf5a907f176a007a30b940d3d865b5c2", size = 14382, upload-time = "2025-05-05T19:44:33.502Z" },
 ]
 
 [[package]]
