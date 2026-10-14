@@ -188,6 +188,15 @@ Set ``PIPX_MAX_LOGS`` to change both limits. ``0`` acts like ``1``: the latest c
 command points you at its error log. pipx never deletes the logs of a command that is still running in another pipx
 process, so concurrent commands can briefly leave more logs than the limit.
 
+****************************
+ Lazy imports on Python 3.15
+****************************
+
+On Python 3.15 pipx makes every import in its process lazy (:pep:`810`) to start faster. A missing or broken dependency
+then fails where pipx first uses it, with ``lazy import of 'X' raised an exception during resolution``, instead of at
+startup. To load modules eagerly, set ``PYTHON_LAZY_IMPORTS=normal`` or run ``python -X lazy_imports=normal -m pipx``;
+pipx keeps a mode you set either way.
+
 .. _sudo-pipx-not-found:
 
 ************************
