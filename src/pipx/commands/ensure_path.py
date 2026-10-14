@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["pipx", "pipx.util", "shlex", "typing", "userpath"]
+
 import logging
 import shlex
 import site

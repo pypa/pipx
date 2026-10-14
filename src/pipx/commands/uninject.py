@@ -1,5 +1,17 @@
 from __future__ import annotations
 
+__lazy_modules__ = [
+    "packaging.utils",
+    "pathlib",
+    "pipx",
+    "pipx.commands.common",
+    "pipx.commands.inject",
+    "pipx.commands.uninstall",
+    "pipx.util",
+    "pipx.venv",
+    "pipx.venv_inspect",
+]
+
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Final

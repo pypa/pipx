@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["pipx.self_install", "pipx.wrap", "typing"]
+
 import logging
 from functools import cached_property
 from pathlib import Path

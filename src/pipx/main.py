@@ -4,6 +4,23 @@
 
 from __future__ import annotations
 
+__lazy_modules__ = [
+    "argcomplete",
+    "contextlib",
+    "packaging.utils",
+    "pathlib",
+    "pipx.backends",
+    "pipx.commands.environment",
+    "pipx.package_specifier",
+    "pipx.result",
+    "pipx.shared_libs",
+    "pipx.venv",
+    "pipx.version",
+    "platformdirs",
+    "shlex",
+    "urllib.parse",
+]
+
 import argparse
 import contextlib
 import logging

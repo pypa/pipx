@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["pipx.util"]
+
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 

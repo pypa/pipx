@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["itertools", "pipx.util", "pipx.venv"]
+
 import os
 from itertools import chain
 from typing import TYPE_CHECKING, Final, NoReturn

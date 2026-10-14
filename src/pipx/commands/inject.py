@@ -1,5 +1,17 @@
 from __future__ import annotations
 
+__lazy_modules__ = [
+    "packaging.utils",
+    "pathlib",
+    "pipx",
+    "pipx.backends",
+    "pipx.commands.common",
+    "pipx.commands.transaction",
+    "pipx.package_specifier",
+    "pipx.util",
+    "pipx.venv",
+]
+
 import logging
 import os
 import re

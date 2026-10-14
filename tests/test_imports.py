@@ -4,7 +4,7 @@ import importlib
 import os
 import subprocess
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 import pytest
 
@@ -12,6 +12,10 @@ import pipx.commands
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+_LAZY_MODULES_HONORED: Final[pytest.MarkDecorator] = pytest.mark.skipif(
+    sys.version_info < (3, 15), reason="__lazy_modules__ (PEP 810) is honored from Python 3.15"
+)
 
 
 def test_importing_util_first_succeeds(root: Path) -> None:
@@ -43,6 +47,11 @@ def test_importing_util_first_succeeds(root: Path) -> None:
         pytest.param("urllib.request", id="urllib-request"),
         pytest.param("pipx.standalone_python", id="standalone-python"),
         pytest.param("pipx.commands.install", id="command-module"),
+        pytest.param("json", id="json", marks=_LAZY_MODULES_HONORED),
+        pytest.param("tomllib", id="tomllib", marks=_LAZY_MODULES_HONORED),
+        pytest.param("concurrent.futures", id="concurrent-futures", marks=_LAZY_MODULES_HONORED),
+        pytest.param("packaging.specifiers", id="packaging-specifiers", marks=_LAZY_MODULES_HONORED),
+        pytest.param("pipx.package_specifier", id="package-specifier", marks=_LAZY_MODULES_HONORED),
     ],
 )
 def test_importing_main_defers_heavy_module(root: Path, module: str) -> None:

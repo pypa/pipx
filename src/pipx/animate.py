@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["logging", "shutil", "threading"]
+
 import logging
 import shutil
 import sys

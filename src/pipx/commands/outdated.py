@@ -1,5 +1,14 @@
 from __future__ import annotations
 
+__lazy_modules__ = [
+    "concurrent.futures",
+    "functools",
+    "packaging.utils",
+    "pipx.package_specifier",
+    "pipx.util",
+    "pipx.venv",
+]
+
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from functools import partial

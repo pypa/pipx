@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["configparser", "pathlib", "pipx", "pipx.interpreter", "pipx.util"]
+
 import datetime as dt
 import logging
 import os

@@ -1,5 +1,22 @@
 from __future__ import annotations
 
+__lazy_modules__ = [
+    "json",
+    "packaging.utils",
+    "pipx",
+    "pipx.backends",
+    "pipx.commands.common",
+    "pipx.commands.inject",
+    "pipx.commands.transaction",
+    "pipx.interpreter",
+    "pipx.package_specifier",
+    "pipx.pipx_metadata_file",
+    "pipx.requires_python",
+    "pipx.script",
+    "pipx.util",
+    "pipx.venv",
+]
+
 import json
 import re
 import sys

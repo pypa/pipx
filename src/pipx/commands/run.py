@@ -1,5 +1,25 @@
 from __future__ import annotations
 
+__lazy_modules__ = [
+    "datetime",
+    "hashlib",
+    "json",
+    "packaging.requirements",
+    "packaging.utils",
+    "pathlib",
+    "pipx",
+    "pipx.backends",
+    "pipx.commands.common",
+    "pipx.commands.inject",
+    "pipx.commands.run_uv",
+    "pipx.requires_python",
+    "pipx.script",
+    "pipx.util",
+    "pipx.venv",
+    "shutil",
+    "urllib.parse",
+]
+
 import datetime as dt
 import hashlib
 import json

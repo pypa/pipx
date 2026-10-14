@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["packaging.specifiers", "pipx.interpreter"]
+
 import logging
 import re
 from typing import TYPE_CHECKING, Final

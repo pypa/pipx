@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__lazy_modules__ = ["pipx", "pipx.commands.common", "pipx.pipx_metadata_file", "pipx.util", "pipx.venv", "shutil"]
+
 import logging
 from dataclasses import dataclass
 from shutil import which

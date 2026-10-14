@@ -1,5 +1,16 @@
 from __future__ import annotations
 
+__lazy_modules__ = [
+    "base64",
+    "packaging.specifiers",
+    "packaging.utils",
+    "pathlib",
+    "pipx.util",
+    "tempfile",
+    "tomllib",
+    "urllib.parse",
+]
+
 import base64
 import re
 import stat

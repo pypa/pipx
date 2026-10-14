@@ -1,5 +1,18 @@
 from __future__ import annotations
 
+__lazy_modules__ = [
+    "packaging.utils",
+    "pathlib",
+    "pipx",
+    "pipx.commands.common",
+    "pipx.commands.inject",
+    "pipx.commands.install",
+    "pipx.commands.uninstall",
+    "pipx.util",
+    "pipx.venv",
+    "tempfile",
+]
+
 import logging
 from dataclasses import dataclass
 from pathlib import Path
