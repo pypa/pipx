@@ -10,11 +10,14 @@ from contextlib import contextmanager
 from contextvars import Context, ContextVar, copy_context
 from dataclasses import dataclass, field
 from functools import partial
-from threading import Condition
+from threading import Condition, Event
 from typing import TYPE_CHECKING, Final, TextIO, TypeVar, cast
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Sequence
+    from subprocess import Popen
+
+    _Child = Popen[str] | Popen[bytes]
 
 _ResultT = TypeVar("_ResultT")
 _SLOT: Final[ContextVar[_Slot | None]] = ContextVar("fanout_slot", default=None)
@@ -30,27 +33,44 @@ def fan_out(tasks: Sequence[Callable[[], _ResultT]], *, sequential: bool) -> lis
     if sequential or (workers := min(len(tasks), os.cpu_count() or 1, 8)) <= 1:
         return [task() for task in tasks]
     turn: Final[Condition] = Condition()
-    slots: Final[list[_Slot]] = [_Slot(turn, live=index == 0) for index in range(len(tasks))]
+    # the turn's lock also guards the children, which no task holds while waiting for a child to exit
+    children: Final[_Children] = _Children(turn, Event())
+    slots: Final[list[_Slot]] = [_Slot(turn, children, live=index == 0) for index in range(len(tasks))]
     executor: Final[ThreadPoolExecutor] = ThreadPoolExecutor(max_workers=workers)
     with _routed_output():
-        futures: Final[list[Future[_ResultT]]] = [
-            executor.submit(_in_slot(slot, task)) for slot, task in zip(slots, tasks, strict=True)
-        ]
+        futures: Final[list[Future[_ResultT]]] = []
         try:
-            for future, next_slot in zip(futures, slots[1:], strict=False):
-                wait((future,))
-                if not future.cancelled() and future.exception() is not None:
-                    for later in futures:
-                        later.cancel()
-                next_slot.go_live()
-            # the loop stops short of the last task, which shutdown would cancel if no thread has picked it up yet
-            wait(futures)
+            futures.extend(
+                executor.submit(_in_slot(slot, partial(_once_submitted, children, task)))
+                for slot, task in zip(slots, tasks, strict=True)
+            )
+            children.submitted.set()
+            _wait_in_order(futures, slots)
+        except KeyboardInterrupt:
+            # a SIGINT sent to pipx alone, not to its process group, leaves the children running, so stop them for the
+            # running tasks to roll back now instead of finishing their work first
+            for future in futures:
+                future.cancel()
+            children.stop()
+            raise
         finally:
+            children.submitted.set()
             # an interrupt can leave tasks waiting for their turn, so hand every slot over before waiting on them
             for slot in slots:
                 slot.go_live()
             executor.shutdown(cancel_futures=True)
     return [future.result() for future in futures]
+
+
+def _wait_in_order(futures: list[Future[_ResultT]], slots: list[_Slot]) -> None:
+    for future, next_slot in zip(futures, slots[1:], strict=False):
+        wait((future,))
+        if not future.cancelled() and future.exception() is not None:
+            for later in futures:
+                later.cancel()
+        next_slot.go_live()
+    # the loop stops short of the last task, which shutdown would cancel if no thread has picked it up yet
+    wait(futures)
 
 
 def output_is_held() -> bool:
@@ -77,9 +97,44 @@ def in_turn(done: Callable[[], bool]) -> Generator[None, None, None]:
             slot.turn.notify_all()
 
 
+@contextmanager
+def stopped_on_interrupt(process: _Child) -> Generator[None, None, None]:
+    """Terminate the child process when the fan-out running this task is interrupted, then interrupt the task too."""
+    if (slot := _SLOT.get()) is None:
+        yield
+        return
+    children: Final[_Children] = slot.children
+    with children.lock:
+        children.running.add(process)
+        if children.interrupted:
+            process.terminate()
+    try:
+        yield
+    finally:
+        with children.lock:
+            children.running.discard(process)
+    if children.interrupted:
+        raise KeyboardInterrupt
+
+
+@dataclass
+class _Children:
+    lock: Condition
+    submitted: Event
+    running: set[_Child] = field(default_factory=set)
+    interrupted: bool = False
+
+    def stop(self) -> None:
+        with self.lock:
+            self.interrupted = True
+            for process in self.running:
+                process.terminate()
+
+
 @dataclass
 class _Slot:
     turn: Condition
+    children: _Children
     live: bool
     chunks: list[tuple[TextIO, str]] = field(default_factory=list)
 
@@ -98,6 +153,15 @@ def _in_slot(slot: _Slot, task: Callable[[], _ResultT]) -> Callable[[], _ResultT
     context: Final[Context] = copy_context()
     context.run(_SLOT.set, slot)
     return partial(context.run, task)
+
+
+def _once_submitted(children: _Children, task: Callable[[], _ResultT]) -> _ResultT:
+    # an interrupt landing while submit starts a worker thread leaves that thread out of the threads shutdown waits on,
+    # so no task may start its work before every task is submitted, and none once the fan-out is interrupted
+    children.submitted.wait()
+    if children.interrupted:
+        raise KeyboardInterrupt
+    return task()
 
 
 @contextmanager
@@ -150,4 +214,5 @@ __all__ = [
     "fan_out",
     "in_turn",
     "output_is_held",
+    "stopped_on_interrupt",
 ]

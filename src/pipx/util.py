@@ -48,7 +48,7 @@ from typing import (
 from pipx import paths
 from pipx.animate import show_cursor
 from pipx.constants import MINGW, WINDOWS
-from pipx.fanout import output_is_held
+from pipx.fanout import output_is_held, stopped_on_interrupt
 from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
@@ -292,17 +292,26 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
     else:
         # a child writing straight to the terminal would cut into the output of the fan-out task whose turn it is
         hold_stderr: Final[bool] = not capture_stderr and output_is_held()
-        completed_process = subprocess.run(
-            cmd_str_list,
-            env=env,
-            stdout=subprocess.PIPE if capture_stdout else None,
-            stderr=subprocess.PIPE if capture_stderr or hold_stderr else None,
-            encoding="utf-8",
-            errors="replace",
-            text=True,
-            check=False,
-            cwd=run_dir,
-        )
+        with (
+            subprocess.Popen(
+                cmd_str_list,
+                env=env,
+                stdout=subprocess.PIPE if capture_stdout else None,
+                stderr=subprocess.PIPE if capture_stderr or hold_stderr else None,
+                encoding="utf-8",
+                errors="replace",
+                text=True,
+                cwd=run_dir,
+            ) as process,
+            stopped_on_interrupt(process),
+        ):
+            try:
+                stdout, stderr = process.communicate()
+            except BaseException:
+                # like subprocess.run, so an interrupt does not leave the child running
+                process.kill()
+                raise
+        completed_process = subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
         if hold_stderr:
             sys.stderr.write(completed_process.stderr)
             completed_process = subprocess.CompletedProcess(
@@ -351,6 +360,7 @@ def _run_streaming_subprocess(
                 stderr=channels["stderr"].child if capture_stderr else None,
                 cwd=cwd,
             ) as process,
+            stopped_on_interrupt(process),
             ThreadPoolExecutor(max_workers=2) as executor,
         ):
             for channel in channels.values():

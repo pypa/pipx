@@ -3,8 +3,11 @@ from __future__ import annotations
 import datetime as dt
 import importlib
 import json
+import os
 import re
+import signal
 import sys
+import threading
 import time
 from dataclasses import replace
 from pathlib import Path
@@ -14,11 +17,11 @@ import pytest
 
 from helpers import PIPX_METADATA_LEGACY_VERSIONS, mock_legacy_venv, run_pipx_cli, set_shared_pip_age
 from package_info import PKG
-from pipx import paths, shared_libs
+from pipx import constants, paths, shared_libs
 from pipx.pipx_metadata_file import PipxMetadata
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterator
 
     from pytest_mock import MockerFixture
 
@@ -218,3 +221,38 @@ def test_reinstall_all_gives_shared_man_page_to_the_last_venv(
     assert not run_pipx_cli(["reinstall-all"])
 
     assert (paths.ctx.man_dir / "man6" / "pycowsay.6").resolve().is_relative_to(last)
+
+
+@pytest.fixture
+def default_sigint_handler() -> Iterator[None]:
+    previous: Final = signal.signal(signal.SIGINT, signal.default_int_handler)
+    yield
+    signal.signal(signal.SIGINT, previous)
+
+
+@pytest.mark.skipif(constants.WINDOWS, reason="os.kill with SIGINT terminates the process on Windows")
+@pytest.mark.usefixtures("pipx_temp_env", "default_sigint_handler")
+def test_reinstall_all_restores_running_venvs_on_sigint_to_pipx_alone(
+    before_venv_subprocess: Callable[[Path, Callable[[], None]], None], venv_names: list[str]
+) -> None:
+    venv_dirs: Final[list[Path]] = [paths.ctx.venvs / name for name in venv_names]
+    for venv_dir in venv_dirs:
+        (venv_dir / "marker").touch()
+    interrupted: Final[threading.Event] = threading.Event()
+
+    def interrupt() -> None:
+        # signals this process only, as kill -INT <pid> does, so the running pip and venv children carry on
+        os.kill(os.getpid(), signal.SIGINT)
+        interrupted.set()
+
+    def hold() -> None:
+        interrupted.wait(timeout=5)
+
+    before_venv_subprocess(venv_dirs[0], interrupt)
+    # the other venvs stay mid-reinstall until the signal, or one could finish first and rightly keep its new venv
+    for venv_dir in venv_dirs[1:]:
+        before_venv_subprocess(venv_dir, hold)
+
+    exit_code: Final[int] = run_pipx_cli(["reinstall-all"])
+
+    assert (exit_code, [(venv_dir / "marker").exists() for venv_dir in venv_dirs]) == (1, [True] * len(venv_dirs))
