@@ -86,6 +86,20 @@ def test_build_parser_uses_pipx_in_subcommand_help(mocker: MockerFixture, capsys
     assert capsys.readouterr().out.startswith("usage: pipx run ")
 
 
+@pytest.mark.usefixtures("exit_early")
+def test_run_help_prints_usage_prefix_once_in_color(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.delenv("PYTHON_COLORS", raising=False)
+
+    with pytest.raises(ValueError, match="raised in test to exit early"):
+        run_pipx_cli(["run", "--help"])
+
+    assert re.sub(r"\x1b\[[0-9;]*m", "", capsys.readouterr().out).count("usage:") == 1
+
+
 @pytest.mark.parametrize("flag", [pytest.param("-qqq", id="quiet"), pytest.param("-vvvv", id="verbose")])
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_limit_verbosity(flag: str) -> None:
@@ -489,6 +503,18 @@ def test_json_output_reports_missing_uv_in_envelope(capsys: pytest.CaptureFixtur
     assert run_pipx_cli(["install", "--backend", "uv", "--output", "json", "pycowsay"]) == 1
 
     assert _envelope_failure(capsys.readouterr().out) == (["install"], "error", 1, ["pipx_error"])
+
+
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_cli_skips_uv_detection_without_backend_choice(monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture) -> None:
+    monkeypatch.delenv("PIPX_DEFAULT_BACKEND")
+    find_uv_binary: Final[MagicMock] = mocker.patch(
+        "pipx.backends.find_uv_binary", autospec=True, return_value=(Path("/usr/local/bin/uv"), "path")
+    )
+
+    assert not run_pipx_cli(["list"])
+
+    find_uv_binary.assert_not_called()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")

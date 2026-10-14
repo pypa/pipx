@@ -6,7 +6,6 @@ import re
 import stat
 import tomllib
 import urllib.parse
-import urllib.request
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -171,8 +170,10 @@ _MAX_SCRIPT_BYTES: Final[int] = 10 * 1024 * 1024
 
 
 def _read_url(url: str) -> str:
+    from urllib.request import urlopen  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
+
     try:
-        with urllib.request.urlopen(url, timeout=_URL_TIMEOUT) as response:  # ruff:ignore[suspicious-url-open-usage]  # http(s) only, validated upstream
+        with urlopen(url, timeout=_URL_TIMEOUT) as response:  # ruff:ignore[suspicious-url-open-usage]  # http(s) only, validated upstream
             data = response.read(_MAX_SCRIPT_BYTES + 1)
             if len(data) > _MAX_SCRIPT_BYTES:
                 msg = f"Script {url} is larger than {_MAX_SCRIPT_BYTES} bytes; refusing to download it."

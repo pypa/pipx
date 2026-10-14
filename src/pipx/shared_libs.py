@@ -11,8 +11,6 @@ from contextvars import ContextVar
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
-from filelock import BaseFileLock, FileLock
-
 from pipx import paths
 from pipx.animate import animate
 from pipx.constants import WINDOWS
@@ -27,6 +25,8 @@ from pipx.util import (
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+
+    from filelock import BaseFileLock
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +125,8 @@ class _SharedLibs:
             self._create(pip_args, verbose=verbose, reinstall_pip=reinstall_pip)
 
     def _maintenance_lock(self) -> BaseFileLock:
+        from filelock import FileLock  # ruff:ignore[import-outside-top-level]  # pulls in asyncio, slows startup
+
         self.root.parent.mkdir(parents=True, exist_ok=True)
         return FileLock(self.root.with_name(f".{self.root.name}.lock"))
 

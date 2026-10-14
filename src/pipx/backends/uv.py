@@ -256,9 +256,7 @@ def find_uv_binary() -> tuple[Path | None, str]:
 def _binary_runs(binary: Path) -> bool:
     # Liveness probe; full floor-version check stays in ``_check_uv_version``.
     try:
-        process = subprocess.run(
-            [str(binary), "--version"], check=False, text=True, capture_output=True, timeout=_UV_PROBE_TIMEOUT
-        )
+        process = _run_uv_version(binary)
     except (OSError, subprocess.TimeoutExpired) as exc:
         _LOGGER.debug("uv launch probe failed for %s: %s", binary, exc)
         return False
@@ -299,13 +297,9 @@ def _check_uv_version(binary: Path) -> Version:
     return version
 
 
-@cache
 def _uv_version(binary: Path) -> Version:
-    # Cached so ``upgrade-all`` over many venvs doesn't fork uv repeatedly.
     try:
-        process = subprocess.run(
-            [str(binary), "--version"], check=False, text=True, capture_output=True, timeout=_UV_PROBE_TIMEOUT
-        )
+        process = _run_uv_version(binary)
     except (OSError, subprocess.TimeoutExpired) as exc:
         msg = (
             f"Could not run {binary} --version ({exc}).\n"
@@ -323,6 +317,14 @@ def _uv_version(binary: Path) -> Version:
     except InvalidVersion as exc:
         msg = f"Unrecognized uv version {match.group(1)!r}."
         raise PipxError(msg) from exc
+
+
+@cache
+def _run_uv_version(binary: Path) -> subprocess.CompletedProcess[str]:
+    # Cached so the liveness probe, the version floor check and ``upgrade-all`` over many venvs share one fork of uv.
+    return subprocess.run(
+        [str(binary), "--version"], check=False, text=True, capture_output=True, timeout=_UV_PROBE_TIMEOUT
+    )
 
 
 def _uv_env_overrides(*, progress: bool = False) -> dict[str, str | None]:

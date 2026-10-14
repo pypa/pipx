@@ -1421,7 +1421,7 @@ def test_install_inline_script_url(inline_script: Path, mocker: MockerFixture) -
     response.read.return_value = inline_script.read_bytes()
     response.headers.get_content_charset.return_value = "utf-8"
     response.__enter__.return_value = response
-    mocker.patch("pipx.script.urllib.request.urlopen", autospec=True, return_value=response)
+    mocker.patch("urllib.request.urlopen", autospec=True, return_value=response)
 
     assert not run_pipx_cli(["install", "https://example.invalid/hello.py"])
 
@@ -1430,7 +1430,7 @@ def test_install_inline_script_url(inline_script: Path, mocker: MockerFixture) -
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_inline_script_url_error(mocker: MockerFixture, capsys: pytest.CaptureFixture[str]) -> None:
-    mocker.patch("pipx.script.urllib.request.urlopen", autospec=True, side_effect=OSError("unavailable"))
+    mocker.patch("urllib.request.urlopen", autospec=True, side_effect=OSError("unavailable"))
 
     assert run_pipx_cli(["install", "--output", "json", "https://example.invalid/hello.py"])
 

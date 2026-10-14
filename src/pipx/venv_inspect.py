@@ -11,7 +11,6 @@ from importlib import metadata
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Final, NamedTuple, TypedDict
 from urllib.parse import urlparse
-from urllib.request import url2pathname
 
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
@@ -255,6 +254,8 @@ def _get_editable_project_root(dist: metadata.Distribution) -> Path | None:
     parsed_url = urlparse(url)
     if parsed_url.scheme != "file":
         return None
+
+    from urllib.request import url2pathname  # ruff:ignore[import-outside-top-level]  # pulls in http.client, slows startup
 
     url_path = f"//{parsed_url.netloc}{parsed_url.path}" if parsed_url.netloc else parsed_url.path
     return Path(url2pathname(url_path))
