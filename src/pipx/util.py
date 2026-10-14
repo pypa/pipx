@@ -357,12 +357,17 @@ def _run_streaming_subprocess(
                 )
                 if name in channels
             ]
-            returncode: Final[int] = process.wait()
-            for channel in channels.values():
-                if channel.terminal:
-                    # macOS discards what a pseudo-terminal still queues once its last child end closes, so hold
-                    # ours open until the reader has taken everything the exited child wrote
-                    _wait_until_drained(channel.reader)
+            try:
+                returncode: Final[int] = process.wait()
+                for channel in channels.values():
+                    if channel.terminal:
+                        # macOS discards what a pseudo-terminal still queues once its last child end closes, so hold
+                        # ours open until the reader has taken everything the exited child wrote
+                        _wait_until_drained(channel.reader)
+            finally:
+                # a pseudo-terminal reader returns only once every child end is closed, so ours must close before the
+                # executor joins the readers, also when Ctrl-C interrupts the wait
+                for channel in channels.values():
                     channel.close_child()
             for future in futures:
                 future.result()

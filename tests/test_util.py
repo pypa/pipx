@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import logging
 import os
+import signal
 import sys
 import threading
 from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, NoReturn
 from venv import EnvBuilder
 
 import pytest
@@ -18,6 +19,8 @@ from pipx.util import exec_app, get_site_packages, rmdir, run_subprocess, safe_u
 
 if TYPE_CHECKING:
     import subprocess
+    from collections.abc import Generator
+    from types import FrameType
 
     from _pytest.capture import CaptureResult
     from pytest_mock import MockerFixture
@@ -309,14 +312,8 @@ def test_subprocess_stream_drains_before_output_error(mocker: MockerFixture) -> 
 
 
 @pytest.mark.skipif(sys.platform != "darwin", reason="only macOS drops what a closing pseudo-terminal still queues")
-def test_subprocess_stream_keeps_output_of_a_child_that_exits_at_once(
-    mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.delenv("TTY_COMPATIBLE", raising=False)
-    monkeypatch.delenv("COLUMNS", raising=False)
-    mocker.patch("pipx.util.sys.stdout.isatty", return_value=True)
-    mocker.patch("pipx.util.shutil.get_terminal_size", return_value=os.terminal_size((120, 40)))
-
+@pytest.mark.usefixtures("terminal_stdout")
+def test_subprocess_stream_keeps_output_of_a_child_that_exits_at_once() -> None:
     # the loss hit about 1 run in 75 on a CI macOS runner, so a few hundred runs catch it reliably
     outputs: Final[set[str]] = {
         run_subprocess([sys.executable, "-c", "print('payload')"], stream_output=True).stdout.strip()
@@ -324,6 +321,43 @@ def test_subprocess_stream_keeps_output_of_a_child_that_exits_at_once(
     }
 
     assert outputs == {"payload"}
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("terminal_stdout", "fail_on_hang")
+def test_subprocess_stream_propagates_ctrl_c() -> None:
+    # Ctrl-C on a terminal reaches the whole foreground process group: pipx and the child alike
+    with pytest.raises(KeyboardInterrupt):
+        run_subprocess(
+            [
+                sys.executable,
+                "-c",
+                "import os, signal; os.kill(os.getppid(), signal.SIGINT); os.kill(os.getpid(), signal.SIGINT)",
+            ],
+            stream_output=True,
+        )
+
+
+@pytest.fixture
+def terminal_stdout(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("TTY_COMPATIBLE", raising=False)
+    monkeypatch.delenv("COLUMNS", raising=False)
+    mocker.patch("pipx.util.sys.stdout.isatty", return_value=True)
+    mocker.patch("pipx.util.shutil.get_terminal_size", return_value=os.terminal_size((120, 40)))
+
+
+@pytest.fixture
+def fail_on_hang() -> Generator[None]:
+    def fail(_signum: int, _frame: FrameType | None) -> NoReturn:
+        pytest.fail("run_subprocess hung")
+
+    previous: Final = signal.signal(signal.SIGALRM, fail)
+    signal.alarm(10)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous)
 
 
 @pytest.mark.parametrize(
