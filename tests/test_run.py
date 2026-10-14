@@ -1171,7 +1171,7 @@ def test_run_with(capsys: pytest.CaptureFixture[str]) -> None:
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_run_with_cooldown(
     root: Path,
-    empty_project: Path,
+    empty_project_wheel: Path,
     mocker: MockerFixture,
     capsys: pytest.CaptureFixture[str],
     caplog: pytest.LogCaptureFixture,
@@ -1187,7 +1187,7 @@ def test_run_with_cooldown(
             "--cooldown",
             "7",
             "--with",
-            str(empty_project),
+            str(empty_project_wheel),
             f"--pip-args=--no-index --find-links={find_links}",
             PKG["pycowsay"]["spec"],
             "hello",

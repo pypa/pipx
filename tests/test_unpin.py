@@ -117,11 +117,11 @@ def test_unpin_injected_packages(capsys: pytest.CaptureFixture[str]) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_unpin_reports_only_changed_packages(
-    empty_project: Path,
+    empty_project_wheel: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     assert not run_pipx_cli(["install", "pycowsay"])
-    assert not run_pipx_cli(["inject", "pycowsay", str(empty_project)])
+    assert not run_pipx_cli(["inject", "pycowsay", str(empty_project_wheel)])
     assert not run_pipx_cli(["pin", "pycowsay", "--injected-only"])
     capsys.readouterr()
 

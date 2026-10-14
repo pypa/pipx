@@ -19,25 +19,25 @@ _SECTIONS: Final[dict[str, str]] = {
 
 
 @pytest.fixture
-def completion_project(local_completion_project: Path) -> str:
-    return str(local_completion_project)
+def completion_wheel(local_completion_wheel: Path) -> str:
+    return str(local_completion_wheel)
 
 
 @pytest.mark.parametrize("section", list(_SECTIONS), ids=["bash", "zsh", "fish"])
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_exposes_the_completion_script(
-    completion_project: str,
+    completion_wheel: str,
     section: str,
 ) -> None:
-    assert not run_pipx_cli(["install", completion_project])
+    assert not run_pipx_cli(["install", completion_wheel])
 
     exposed: Final[Path] = paths.ctx.completion_dir / section / _SECTIONS[section]
     assert exposed.is_symlink() or exposed.is_file()
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_uninstall_removes_the_completion_scripts(completion_project: str) -> None:
-    assert not run_pipx_cli(["install", completion_project])
+def test_uninstall_removes_the_completion_scripts(completion_wheel: str) -> None:
+    assert not run_pipx_cli(["install", completion_wheel])
 
     assert not run_pipx_cli(["uninstall", "local-completion"])
 
@@ -45,8 +45,8 @@ def test_uninstall_removes_the_completion_scripts(completion_project: str) -> No
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_unexpose_removes_the_completion_scripts(completion_project: str) -> None:
-    assert not run_pipx_cli(["install", completion_project])
+def test_unexpose_removes_the_completion_scripts(completion_wheel: str) -> None:
+    assert not run_pipx_cli(["install", completion_wheel])
 
     assert not run_pipx_cli(["unexpose", "local-completion"])
 
@@ -54,8 +54,8 @@ def test_unexpose_removes_the_completion_scripts(completion_project: str) -> Non
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_expose_restores_the_completion_scripts(completion_project: str) -> None:
-    assert not run_pipx_cli(["install", completion_project])
+def test_expose_restores_the_completion_scripts(completion_wheel: str) -> None:
+    assert not run_pipx_cli(["install", completion_wheel])
     assert not run_pipx_cli(["unexpose", "local-completion"])
 
     assert not run_pipx_cli(["expose", "local-completion"])
@@ -66,8 +66,8 @@ def test_expose_restores_the_completion_scripts(completion_project: str) -> None
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_reinstall_removes_a_stale_completion_link(completion_project: str) -> None:
-    assert not run_pipx_cli(["install", completion_project])
+def test_reinstall_removes_a_stale_completion_link(completion_wheel: str) -> None:
+    assert not run_pipx_cli(["install", completion_wheel])
     section: Final[str] = "bash-completion/completions"
     source: Final[Path] = paths.ctx.venvs / "local-completion" / "share" / "bash-completion" / "completions" / "orphan"
     source.write_text("# orphan completion\n", encoding="utf-8")

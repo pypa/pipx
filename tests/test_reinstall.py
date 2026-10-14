@@ -56,13 +56,13 @@ def test_reinstall_inline_script(inline_script: Path) -> None:
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_reinstall_preserves_cooldowns(
     root: Path,
-    empty_project: Path,
+    empty_project_wheel: Path,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
     pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
     assert not run_pipx_cli(["install", "--cooldown", "7", pip_args, "pycowsay"])
-    assert not run_pipx_cli(["inject", "--cooldown", "5", pip_args, "pycowsay", str(empty_project)])
+    assert not run_pipx_cli(["inject", "--cooldown", "5", pip_args, "pycowsay", str(empty_project_wheel)])
     caplog.clear()
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "pycowsay"])
@@ -183,8 +183,8 @@ def test_reinstall_specifier(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_reinstall_preserves_included_dependency(local_extras_project: Path) -> None:
-    package: Final[str] = f"{local_extras_project}[tools]"
+def test_reinstall_preserves_included_dependency(local_extras_wheel: Path) -> None:
+    package: Final[str] = f"{local_extras_wheel}[tools]"
     assert not run_pipx_cli(["install", package, "--include-resources-from", "pycowsay"])
 
     assert not run_pipx_cli(["reinstall", "--python", sys.executable, "repeatme"])

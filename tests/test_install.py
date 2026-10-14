@@ -701,24 +701,23 @@ def test_install_upgrade_records_expected_app_without_package_change(package_spe
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_install_accepts_expected_dependency_app(local_extras_project: Path) -> None:
-    assert not run_pipx_cli(["install", "--include-deps", "--app", "pycowsay", f"{local_extras_project}[cow]"])
+def test_install_accepts_expected_dependency_app(local_extras_wheel: Path) -> None:
+    assert not run_pipx_cli(["install", "--include-deps", "--app", "pycowsay", f"{local_extras_wheel}[cow]"])
 
     assert PipxMetadata(paths.ctx.venvs / "repeatme").main_package.expected_apps == ["pycowsay"]
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_upgrade_reexposes_expected_dependency_resources(
-    root: Path, tmp_path: Path, local_manpage_project: Path
+    root: Path, tmp_path: Path, local_manpage_wheel: Path
 ) -> None:
-    dependency: Final[Path] = local_manpage_project
     project: Final[Path] = tmp_path / "expected-dependency-app"
     shutil.copytree(root / "testdata/empty_project", project)
     pyproject: Final[Path] = project / "pyproject.toml"
     pyproject.write_text(
         pyproject.read_text(encoding="utf-8").replace(
             'requires-python = ">=3.10"\n',
-            f'dependencies = [\n  "local-manpage @ {dependency.as_uri()}",\n]\nrequires-python = ">=3.10"\n',
+            f'dependencies = [\n  "local-manpage @ {local_manpage_wheel.as_uri()}",\n]\nrequires-python = ">=3.10"\n',
         ),
         encoding="utf-8",
     )
@@ -962,9 +961,9 @@ def test_include_deps() -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_include_resources_from_dependency(
-    local_extras_project: Path, capsys: pytest.CaptureFixture[str]
+    local_extras_wheel: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    package: Final[str] = f"{local_extras_project}[tools]"
+    package: Final[str] = f"{local_extras_wheel}[tools]"
 
     assert not run_pipx_cli(["install", package, "--include-resources-from", "PyCowsay"])
 
@@ -982,8 +981,8 @@ def test_install_include_resources_from_dependency(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_install_force_replaces_included_dependency_resources(local_extras_project: Path) -> None:
-    package: Final[str] = f"{local_extras_project}[tools]"
+def test_install_force_replaces_included_dependency_resources(local_extras_wheel: Path) -> None:
+    package: Final[str] = f"{local_extras_wheel}[tools]"
     assert not run_pipx_cli(["install", package, "--include-resources-from", "pycowsay"])
 
     assert not run_pipx_cli(["install", "--force", package, "--include-resources-from", "black"])
@@ -999,20 +998,20 @@ def test_install_force_replaces_included_dependency_resources(local_extras_proje
 
 def test_install_preserves_colliding_dependency_resource(
     copied_dependency_resource: tuple[Path, bytes],
-    local_extras_project: Path,
+    local_extras_wheel: Path,
 ) -> None:
     exposed_app: Final[Path] = copied_dependency_resource[0]
     first_contents: Final[bytes] = copied_dependency_resource[1]
-    assert not run_pipx_cli(["install", f"{local_extras_project}[cow]", "--include-deps"])
+    assert not run_pipx_cli(["install", f"{local_extras_wheel}[cow]", "--include-deps"])
 
     assert exposed_app.read_bytes() == first_contents
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_include_resources_from_missing_dependency_rolls_back(
-    local_extras_project: Path, capsys: pytest.CaptureFixture[str]
+    local_extras_wheel: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    package: Final[str] = f"{local_extras_project}[cow]"
+    package: Final[str] = f"{local_extras_wheel}[cow]"
 
     assert run_pipx_cli(["install", package, "--include-resources-from", "black"])
 
@@ -1295,11 +1294,10 @@ def test_install_pip_failure(capsys: pytest.CaptureFixture[str]) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_install_local_archive(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], local_extras_project: Path
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], local_extras_wheel: Path
 ) -> None:
-    monkeypatch.chdir(local_extras_project)
+    monkeypatch.chdir(local_extras_wheel.parent)
 
-    subprocess.run([sys.executable, "-m", "pip", "wheel", "."], check=True)
     assert not run_pipx_cli(["install", "repeatme-0.1-py3-none-any.whl"])
     captured = capsys.readouterr()
     assert f"- {app_name('repeatme')}\n" in captured.out

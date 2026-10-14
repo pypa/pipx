@@ -210,8 +210,8 @@ def test_uninstall_man_page() -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_uninstall_removes_selected_dependency_resources(local_extras_project: Path) -> None:
-    package: Final[str] = f"{local_extras_project}[tools]"
+def test_uninstall_removes_selected_dependency_resources(local_extras_wheel: Path) -> None:
+    package: Final[str] = f"{local_extras_wheel}[tools]"
     assert not run_pipx_cli(["install", package, "--include-resources-from", "pycowsay"])
     exposed_paths: Final[tuple[Path, ...]] = (
         paths.ctx.bin_dir / app_name("repeatme"),
@@ -227,11 +227,11 @@ def test_uninstall_removes_selected_dependency_resources(local_extras_project: P
 
 def test_uninstall_preserves_colliding_dependency_resource(
     copied_dependency_resource: tuple[Path, bytes],
-    local_extras_project: Path,
+    local_extras_wheel: Path,
 ) -> None:
     exposed_app: Final[Path] = copied_dependency_resource[0]
     first_contents: Final[bytes] = copied_dependency_resource[1]
-    assert not run_pipx_cli(["install", f"{local_extras_project}[cow]", "--include-deps"])
+    assert not run_pipx_cli(["install", f"{local_extras_wheel}[cow]", "--include-deps"])
 
     assert not run_pipx_cli(["uninstall", "repeatme"])
 
