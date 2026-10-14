@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tarfile
 import time
+import zipfile
 from contextlib import closing
 from http import HTTPStatus
 from pathlib import Path
@@ -97,6 +98,17 @@ def make_project_with_dependency(root: Path, tmp_path: Path) -> Callable[[str], 
             encoding="utf-8",
         )
         return project
+
+    return create
+
+
+@pytest.fixture
+def make_wheel(tmp_path: Path) -> Callable[[dict[str, str]], Path]:
+    def create(entries: dict[str, str]) -> Path:
+        with zipfile.ZipFile(wheel := tmp_path / "foo_bar_x-1-py3-none-any.whl", "w") as archive:
+            for name, content in entries.items():
+                archive.writestr(name, content)
+        return wheel
 
     return create
 

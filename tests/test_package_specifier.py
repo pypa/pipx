@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -13,8 +14,12 @@ from pipx.package_specifier import (
     parse_specifier_for_upgrade,
     static_project_name,
     valid_pypi_name,
+    wheel_project_name,
 )
 from pipx.util import PipxError
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 TEST_DATA_PATH = "./testdata/test_package_specifier"
 
@@ -472,3 +477,42 @@ def test_static_project_name_unreadable_pyproject(tmp_path: Path) -> None:
     (tmp_path / "pyproject.toml").mkdir()
 
     assert static_project_name(str(tmp_path)) is None
+
+
+@pytest.mark.parametrize(
+    ("entries", "expected"),
+    [
+        pytest.param({"foo_bar_x-1.dist-info/METADATA": "Name: Foo_Bar.X\n"}, "Foo_Bar.X", id="declared"),
+        pytest.param({"foo_bar_x/__init__.py": ""}, None, id="no-dist-info"),
+        pytest.param({"nested/foo_bar_x-1.dist-info/METADATA": "Name: Foo_Bar.X\n"}, None, id="nested-dist-info"),
+        pytest.param(
+            {"foo-1.dist-info/METADATA": "Name: foo\n", "bar-1.dist-info/METADATA": "Name: bar\n"},
+            None,
+            id="multiple-dist-info",
+        ),
+        pytest.param({"foo_bar_x-1.dist-info/METADATA": "Version: 1\n"}, None, id="no-name"),
+        pytest.param({"foo_bar_x-1.dist-info/METADATA": "Name: -bad-\n"}, None, id="name-invalid"),
+        pytest.param({"foo_bar_x-1.dist-info/METADATA": "Name: f\u00e9\n"}, None, id="name-not-ascii"),
+    ],
+)
+def test_wheel_project_name(
+    make_wheel: Callable[[dict[str, str]], Path], entries: dict[str, str], expected: str | None
+) -> None:
+    assert wheel_project_name(f"{make_wheel(entries)}[extra]") == expected
+
+
+@pytest.mark.parametrize("content", [pytest.param(b"not a zip", id="not-a-zip"), pytest.param(None, id="missing")])
+def test_wheel_project_name_unreadable(tmp_path: Path, content: bytes | None) -> None:
+    wheel = tmp_path / "foo-1-py3-none-any.whl"
+    if content is not None:
+        wheel.write_bytes(content)
+
+    assert wheel_project_name(str(wheel)) is None
+
+
+def test_wheel_project_name_ignores_other_archives(
+    make_wheel: Callable[[dict[str, str]], Path], tmp_path: Path
+) -> None:
+    archive = make_wheel({"foo_bar_x-1.dist-info/METADATA": "Name: Foo_Bar.X\n"}).rename(tmp_path / "foo_bar_x-1.zip")
+
+    assert wheel_project_name(str(archive)) is None
