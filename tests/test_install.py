@@ -1555,11 +1555,12 @@ def test_preinstall_specific_version(caplog: pytest.LogCaptureFixture) -> None:
     assert "black==22.8.0" in caplog.text
 
 
-@pytest.mark.xfail
 @pytest.mark.usefixtures("pipx_temp_env", "pipx_session_shared_dir")
 def test_do_not_wait_for_input(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PIP_INDEX_URL", "http://127.0.0.1:8080/simple")
-    run_pipx_cli(["install", "pycowsay"])
+    # pip otherwise retries the refused connection five times with backoff
+    monkeypatch.setenv("PIP_RETRIES", "0")
+    assert run_pipx_cli(["install", "pycowsay"])
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
