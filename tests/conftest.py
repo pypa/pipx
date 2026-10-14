@@ -134,7 +134,7 @@ def local_manpage_project(copy_local_package: Callable[[str], Path]) -> Path:
 
 @pytest.fixture
 def copy_local_package(root: Path, tmp_path: Path) -> Callable[[str], Path]:
-    # a build backend may write into the project directory, so each test builds its own copy instead of the shared checkout
+    # a build backend may write into the project directory, so each test builds its own copy
     def copy(name: str) -> Path:
         project: Final[Path] = tmp_path / name
         shutil.copytree(root / "testdata/test_package_specifier" / name, project, ignore=_IGNORE_PROJECT_OUTPUT)
