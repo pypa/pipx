@@ -113,14 +113,16 @@ def expose_resources_globally(
             mkdir(dest_dir)
         if not can_symlink(dest_dir):
             collision = _copy_package_resource(dest_dir, path, force=force, suffix=suffix)
-        else:
-            collision = _symlink_package_resource(
+        elif (
+            collision := _symlink_package_resource(
                 dest_dir,
                 path,
                 force=force,
                 suffix=suffix,
                 executable=(resource_type == "app"),
             )
+        ) is None:
+            _remove_link_named_before_last_dot(dest_dir, path, suffix)
         if collision is not None:
             collisions.append(collision)
     return collisions
@@ -272,6 +274,17 @@ def _symlink_package_resource(
             )
         )
     return None
+
+
+def _remove_link_named_before_last_dot(dest_dir: Path, path: Path, suffix: str) -> None:
+    # pipx 1.17.14 and earlier put the suffix before the last dot (pip3@1.12 for pip3.12), which the new name replaces
+    legacy: Final[Path] = dest_dir / f"{path.stem}{suffix}{path.suffix}"
+    if (
+        legacy != dest_dir / add_suffix(path.name, suffix)
+        and legacy.is_symlink()
+        and legacy.resolve() == path.resolve()
+    ):
+        legacy.unlink()
 
 
 def venv_health_check(venv: Venv, package_name: str | None = None) -> tuple[VenvProblems, str]:

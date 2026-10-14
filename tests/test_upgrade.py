@@ -538,3 +538,22 @@ def test_upgrade_install_json_stays_pure(capsys: pytest.CaptureFixture[str]) -> 
     captured = capsys.readouterr()
     document = json.loads(captured.out)  # the internal install must not print human text before this
     assert (document["command"], document["status"], captured.err) == (["upgrade"], "success", "")
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_upgrade_suffix_removes_link_named_before_the_last_dot(make_wheel: Callable[[dict[str, str]], Path]) -> None:
+    wheel: Final[Path] = make_wheel({
+        "foo_bar_x.py": "def main() -> None:\n    pass\n",
+        "foo_bar_x-1.dist-info/METADATA": "Metadata-Version: 2.1\nName: foo-bar-x\nVersion: 1\n",
+        "foo_bar_x-1.dist-info/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+        "foo_bar_x-1.dist-info/entry_points.txt": "[console_scripts]\ntool3.12 = foo_bar_x:main\n",
+        "foo_bar_x-1.dist-info/RECORD": "",
+    })
+    assert not run_pipx_cli(["install", "--suffix=@1", str(wheel)])
+    # the name pipx 1.17.14 gave the link, with the suffix before the last dot
+    (paths.ctx.bin_dir / "tool3@1.12").symlink_to(paths.ctx.venvs / "foo-bar-x@1" / "bin" / "tool3.12")
+
+    assert not run_pipx_cli(["upgrade", "foo-bar-x@1"])
+
+    assert sorted(path.name for path in paths.ctx.bin_dir.iterdir()) == ["tool3.12@1"]
