@@ -288,16 +288,16 @@ def test_inject_single_package(
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_inject_main_package_extra(
-    local_extras_project: Path,
+    local_extras_wheel: Path,
     capsys: pytest.CaptureFixture[str],
     backend: str,
     suffix: str,
 ) -> None:
-    assert not run_pipx_cli(["install", str(local_extras_project), "--backend", backend, f"--suffix={suffix}"])
+    assert not run_pipx_cli(["install", str(local_extras_wheel), "--backend", backend, f"--suffix={suffix}"])
     venv_dir = paths.ctx.venvs / canonicalize_name(f"repeatme{suffix}")
     environment = PipxMetadata(venv_dir).environment
     assert environment is not None
-    assert not run_pipx_cli(["inject", environment, f"{local_extras_project}[cow]", "--backend", backend])
+    assert not run_pipx_cli(["inject", environment, f"{local_extras_wheel}[cow]", "--backend", backend])
     assert not run_pipx_cli(["reinstall", environment])
 
     output = subprocess.run(
@@ -360,11 +360,11 @@ def test_inject_include_apps(with_suffix: bool) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_inject_include_resources_from_dependency(
-    local_extras_project: Path,
-    empty_project: Path,
+    local_extras_wheel: Path,
+    empty_project_wheel: Path,
 ) -> None:
-    package: Final[str] = f"{local_extras_project}[tools]"
-    assert not run_pipx_cli(["install", str(empty_project)])
+    package: Final[str] = f"{local_extras_wheel}[tools]"
+    assert not run_pipx_cli(["install", str(empty_project_wheel)])
 
     assert not run_pipx_cli(["inject", "empty-project", package, "--include-resources-from", "PyCowsay"])
 
@@ -380,12 +380,12 @@ def test_inject_include_resources_from_dependency(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_inject_main_package_preserves_included_dependency(
-    local_extras_project: Path,
+    local_extras_wheel: Path,
 ) -> None:
-    package: Final[str] = f"{local_extras_project}[tools]"
+    package: Final[str] = f"{local_extras_wheel}[tools]"
     assert not run_pipx_cli(["install", package, "--include-resources-from", "pycowsay"])
 
-    assert not run_pipx_cli(["inject", "repeatme", f"{local_extras_project}[cow]"])
+    assert not run_pipx_cli(["inject", "repeatme", f"{local_extras_wheel}[cow]"])
 
     metadata: Final[PackageInfo] = PipxMetadata(paths.ctx.venvs / "repeatme").main_package
     assert metadata.include_resources_from == ["pycowsay"]
@@ -393,11 +393,11 @@ def test_inject_main_package_preserves_included_dependency(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_inject_force_replaces_included_dependency_resources(
-    local_extras_project: Path,
-    empty_project: Path,
+    local_extras_wheel: Path,
+    empty_project_wheel: Path,
 ) -> None:
-    package: Final[str] = f"{local_extras_project}[tools]"
-    assert not run_pipx_cli(["install", str(empty_project)])
+    package: Final[str] = f"{local_extras_wheel}[tools]"
+    assert not run_pipx_cli(["install", str(empty_project_wheel)])
     assert not run_pipx_cli(["inject", "empty-project", package, "--include-resources-from", "pycowsay"])
 
     assert not run_pipx_cli(["inject", "empty-project", package, "--force", "--include-resources-from", "black"])
@@ -413,13 +413,13 @@ def test_inject_force_replaces_included_dependency_resources(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_inject_include_resources_from_missing_dependency_rolls_back(
-    local_extras_project: Path,
-    empty_project: Path,
+    local_extras_wheel: Path,
+    empty_project_wheel: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    assert not run_pipx_cli(["install", str(empty_project)])
+    assert not run_pipx_cli(["install", str(empty_project_wheel)])
     capsys.readouterr()
-    package: Final[str] = f"{local_extras_project}[cow]"
+    package: Final[str] = f"{local_extras_wheel}[cow]"
 
     assert run_pipx_cli(["inject", "empty-project", package, "--include-resources-from", "black"])
 
@@ -521,7 +521,7 @@ def test_force_inject_reinstalls_without_storing_force(caplog: pytest.LogCapture
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_inject_inherits_cooldown(
     root: Path,
-    empty_project: Path,
+    empty_project_wheel: Path,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
@@ -529,7 +529,7 @@ def test_inject_inherits_cooldown(
     assert not run_pipx_cli(["install", "--cooldown", "7", pip_args, PKG["pycowsay"]["spec"]])
     caplog.clear()
 
-    assert not run_pipx_cli(["inject", "pycowsay", pip_args, str(empty_project)])
+    assert not run_pipx_cli(["inject", "pycowsay", pip_args, str(empty_project_wheel)])
 
     metadata: Final[PipxMetadata] = PipxMetadata(paths.ctx.venvs / "pycowsay")
     assert (

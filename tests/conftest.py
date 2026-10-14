@@ -23,6 +23,7 @@ from venv import EnvBuilder
 
 import pytest
 from filelock import FileLock
+from flit_core.wheel import make_wheel_in
 
 from helpers import PACKAGE_CACHE_DIR_NAME, WIN, MakePylock, app_name, run_pipx_cli
 from pipx import commands, interpreter, paths, shared_libs, standalone_python, venv
@@ -136,11 +137,6 @@ def local_extras_project(copy_local_package: Callable[[str], Path]) -> Path:
 
 
 @pytest.fixture
-def local_completion_project(copy_local_package: Callable[[str], Path]) -> Path:
-    return copy_local_package("local_completion")
-
-
-@pytest.fixture
 def local_manpage_project(copy_local_package: Callable[[str], Path]) -> Path:
     return copy_local_package("local_manpage")
 
@@ -156,17 +152,44 @@ def copy_local_package(root: Path, tmp_path: Path) -> Callable[[str], Path]:
     return copy
 
 
+@pytest.fixture(scope="session")
+def empty_project_wheel(root: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
+    return _build_wheel(root / "testdata/empty_project", tmp_path_factory.mktemp("wheel"))
+
+
+@pytest.fixture(scope="session")
+def local_extras_wheel(root: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
+    return _build_wheel(root / "testdata/test_package_specifier/local_extras", tmp_path_factory.mktemp("wheel"))
+
+
+@pytest.fixture(scope="session")
+def local_completion_wheel(root: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
+    return _build_wheel(root / "testdata/test_package_specifier/local_completion", tmp_path_factory.mktemp("wheel"))
+
+
+@pytest.fixture(scope="session")
+def local_manpage_wheel(root: Path, tmp_path_factory: pytest.TempPathFactory) -> Path:
+    return _build_wheel(root / "testdata/test_package_specifier/local_manpage", tmp_path_factory.mktemp("wheel"))
+
+
+def _build_wheel(project: Path, wheel_dir: Path) -> Path:
+    # pip and uv build an installed directory in a fresh isolated environment, which takes seconds on Windows; tests
+    # that do not exercise the source tree install this in-process build instead
+    return make_wheel_in(project / "pyproject.toml", wheel_dir).file
+
+
 @pytest.fixture
 def copied_dependency_resource(
     # the temp env must be active while the resource is built
     pipx_temp_env: None,  # ruff:ignore[unused-function-argument]
     make_project_with_dependency: Callable[[str], Path],
     mocker: MockerFixture,
+    tmp_path: Path,
 ) -> tuple[Path, bytes]:
     mocker.patch.object(common, "can_symlink", autospec=True, return_value=False)
-    first_project: Final[Path] = make_project_with_dependency("pycowsay==0.0.0.2")
+    first_package: Final[Path] = _build_wheel(make_project_with_dependency("pycowsay==0.0.0.2"), tmp_path)
     exposed_app: Final[Path] = paths.ctx.bin_dir / app_name("pycowsay")
-    assert not run_pipx_cli(["install", str(first_project), "--include-deps"])
+    assert not run_pipx_cli(["install", str(first_package), "--include-deps"])
     return exposed_app, exposed_app.read_bytes()
 
 

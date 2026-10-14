@@ -440,8 +440,8 @@ def test_upgrade_with_extras(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_preserves_included_dependency(local_extras_project: Path) -> None:
-    package: Final[str] = f"{local_extras_project}[tools]"
+def test_upgrade_preserves_included_dependency(local_extras_wheel: Path) -> None:
+    package: Final[str] = f"{local_extras_wheel}[tools]"
     assert not run_pipx_cli(["install", package, "--include-resources-from", "pycowsay"])
 
     assert not run_pipx_cli(["upgrade", "repeatme"])
@@ -494,7 +494,7 @@ def test_upgrade_pip_args(
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_upgrade_cooldown(
     root: Path,
-    empty_project: Path,
+    empty_project_wheel: Path,
     caplog: pytest.LogCaptureFixture,
     *,
     command: list[str],
@@ -504,7 +504,7 @@ def test_upgrade_cooldown(
     find_links: Final[Path] = root / ".pipx_tests" / "package_cache" / PACKAGE_CACHE_DIR_NAME
     pip_args: Final[str] = f"--pip-args=--no-index --find-links={find_links}"
     assert not run_pipx_cli(["install", "--cooldown", "7", pip_args, PKG["pycowsay"]["spec"]])
-    assert not run_pipx_cli(["inject", "--cooldown", "5", pip_args, "pycowsay", str(empty_project)])
+    assert not run_pipx_cli(["inject", "--cooldown", "5", pip_args, "pycowsay", str(empty_project_wheel)])
     caplog.clear()
 
     assert not run_pipx_cli(command)
@@ -518,9 +518,9 @@ def test_upgrade_cooldown(
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_upgrade_injected_uses_stored_pip_args(empty_project: Path) -> None:
+def test_upgrade_injected_uses_stored_pip_args(empty_project_wheel: Path) -> None:
     assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--pip-args=--no-cache-dir"])
-    assert not run_pipx_cli(["inject", "pycowsay", str(empty_project), "--pip-args=--no-compile"])
+    assert not run_pipx_cli(["inject", "pycowsay", str(empty_project_wheel), "--pip-args=--no-compile"])
 
     assert not run_pipx_cli(["upgrade", "--include-injected", "pycowsay"])
 

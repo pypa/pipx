@@ -69,9 +69,9 @@ def test_sync_manifest_installs_declared_tool(
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_sync_manifest_selects_dependency_apps(
     write_manifest: Callable[[str], Path],
-    local_extras_project: Path,
+    local_extras_wheel: Path,
 ) -> None:
-    package: Final[str] = f"repeatme[tools] @ {local_extras_project.as_uri()}"
+    package: Final[str] = f"repeatme[tools] @ {local_extras_wheel.as_uri()}"
     manifest: Final[Path] = write_manifest(_manifest(package, "repeatme", 'include-resources-from = ["PyCowsay"]\n'))
 
     assert not run_pipx_cli(["manifest", "sync", str(manifest)])

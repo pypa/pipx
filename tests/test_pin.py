@@ -25,11 +25,11 @@ def test_pin(caplog: pytest.LogCaptureFixture) -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_pin_survives_main_package_extra_injection(local_extras_project: Path) -> None:
-    assert not run_pipx_cli(["install", str(local_extras_project)])
+def test_pin_survives_main_package_extra_injection(local_extras_wheel: Path) -> None:
+    assert not run_pipx_cli(["install", str(local_extras_wheel)])
     assert not run_pipx_cli(["pin", "repeatme"])
 
-    assert not run_pipx_cli(["inject", "repeatme", f"{local_extras_project}[cow]"])
+    assert not run_pipx_cli(["inject", "repeatme", f"{local_extras_wheel}[cow]"])
 
     assert PipxMetadata(paths.ctx.venvs / "repeatme").main_package.pinned
 
@@ -282,7 +282,7 @@ def test_pin_injected_packages_with_skip(
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_pin_skip_spelling(
-    empty_project: Path,
+    empty_project_wheel: Path,
     capsys: pytest.CaptureFixture[str],
     suffix: str,
     *,
@@ -295,7 +295,7 @@ def test_pin_skip_spelling(
     assert not run_pipx_cli([
         "inject",
         environment,
-        str(empty_project),
+        str(empty_project_wheel),
         *(["--with-suffix"] if with_suffix else []),
     ])
     assert not run_pipx_cli(["inject", environment, PKG["black"]["spec"]])

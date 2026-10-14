@@ -252,21 +252,15 @@ def test_uninject_running_app() -> None:
 )
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_uninject_with_suffix_removes_apps(
-    root: Path,
-    tmp_path: Path,
-    local_extras_project: Path,
+    empty_project_wheel: Path,
+    local_extras_wheel: Path,
     suffix: str,
 ) -> None:
-    project = shutil.copytree(
-        root / "testdata/empty_project",
-        tmp_path / "empty_project",
-        ignore=shutil.ignore_patterns("build", "*.egg-info"),
-    )
-    assert not run_pipx_cli(["install", str(project), f"--suffix={suffix}"])
+    assert not run_pipx_cli(["install", str(empty_project_wheel), f"--suffix={suffix}"])
     assert not run_pipx_cli([
         "inject",
         f"empty-project{suffix}",
-        f"{local_extras_project}[cow]",
+        f"{local_extras_wheel}[cow]",
         "--include-deps",
         "--with-suffix",
     ])
@@ -291,17 +285,16 @@ def test_uninject_man_page() -> None:
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
-def test_uninject_completion_scripts(local_completion_project: Path, empty_project: Path) -> None:
+def test_uninject_completion_scripts(local_completion_wheel: Path, empty_project_wheel: Path) -> None:
     # Regression: uninject must remove the injected package's completion
     # scripts, not only its app and man page symlinks.
-    completion_project = str(local_completion_project)
     completion_paths = [
         paths.ctx.completion_dir / "bash-completion/completions" / "local-completion",
         paths.ctx.completion_dir / "zsh/site-functions" / "_local-completion",
         paths.ctx.completion_dir / "fish/vendor_completions.d" / "local-completion.fish",
     ]
-    assert not run_pipx_cli(["install", str(empty_project)])
-    assert not run_pipx_cli(["inject", "empty-project", completion_project, "--include-apps"])
+    assert not run_pipx_cli(["install", str(empty_project_wheel)])
+    assert not run_pipx_cli(["inject", "empty-project", str(local_completion_wheel), "--include-apps"])
     assert all(file_or_symlink(path) for path in completion_paths)
     assert not run_pipx_cli(["uninject", "empty-project", "local-completion"])
     assert not any(file_or_symlink(path) for path in completion_paths)
@@ -323,11 +316,11 @@ def test_uninject_removes_dependency_app_symlinks(
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_uninject_removes_selected_dependency_resources(
-    local_extras_project: Path,
-    empty_project: Path,
+    local_extras_wheel: Path,
+    empty_project_wheel: Path,
 ) -> None:
-    package: Final[str] = f"{local_extras_project}[tools]"
-    assert not run_pipx_cli(["install", str(empty_project)])
+    package: Final[str] = f"{local_extras_wheel}[tools]"
+    assert not run_pipx_cli(["install", str(empty_project_wheel)])
     assert not run_pipx_cli(["inject", "empty-project", package, "--include-resources-from", "pycowsay"])
     exposed_paths: Final[tuple[Path, ...]] = (
         paths.ctx.bin_dir / app_name("repeatme"),
