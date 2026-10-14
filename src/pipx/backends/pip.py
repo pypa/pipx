@@ -160,10 +160,20 @@ class PipBackend(Backend):
         venv_root: Path,
         venv_python: Path,
         index_args: list[str],
+        exclude: list[str],
     ) -> tuple[OutdatedPackage, ...]:
         process = _run_with_shared_pip_repair(
             lambda: run_subprocess(
-                [str(venv_python), "-m", "pip", "list", "--outdated", "--format=json", *index_args],
+                [
+                    str(venv_python),
+                    "-m",
+                    "pip",
+                    "list",
+                    "--outdated",
+                    "--format=json",
+                    *index_args,
+                    *(f"--exclude={name}" for name in exclude),
+                ],
                 run_dir=str(venv_root),
             ),
             pip_args=index_args,
