@@ -295,7 +295,7 @@ def test_force_install_does_not_record_internal_pip_args() -> None:
             False,
             id="library-with-suffix",
         ),
-        pytest.param("jupyter", "jupyter", [PKG["jupyter"]["spec"]], True, id="dependency-apps"),
+        pytest.param("requests", "requests", ["requests==2.31.0"], True, id="dependency-apps"),
     ],
 )
 @pytest.mark.usefixtures("pipx_temp_env")
@@ -306,10 +306,7 @@ def test_install_no_apps_guidance(
     install_args: list[str],
     has_dependency_apps: bool,
 ) -> None:
-    if _FREE_THREADED and package_name == "jupyter":
-        pytest.skip("Skipping jupyter due to missing free-threaded wheel for pyzmq")
-
-    return_code = run_pipx_cli(["install", *install_args, *(_JUPYTER_PYTHON_ARGS if package_name == "jupyter" else ())])
+    return_code = run_pipx_cli(["install", *install_args])
 
     error = capsys.readouterr().err
     assert (
@@ -968,10 +965,7 @@ def test_install_existing_package_skips_shared_lib_maintenance(mocker: MockerFix
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_include_deps() -> None:
-    if _FREE_THREADED:
-        pytest.skip("Skipping jupyter due to missing free-threaded wheel for pyzmq")
-
-    assert not run_pipx_cli(["install", PKG["jupyter"]["spec"], "--include-deps", *_JUPYTER_PYTHON_ARGS])
+    assert not run_pipx_cli(["install", "requests==2.31.0", "--include-deps"])
 
 
 @pytest.mark.usefixtures("pipx_temp_env")
