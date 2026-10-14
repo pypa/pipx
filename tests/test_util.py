@@ -26,6 +26,9 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
+_UNDECODABLE_OUTPUT: Final[str] = "import os; os.write(1, b'\\xff bad\\n'); os.write(1, b'after\\n')"
+
+
 @pytest.mark.parametrize("windows", [pytest.param(False, id="posix"), pytest.param(True, id="windows")])
 def test_exec_app_preserves_stream_encoding(
     mocker: MockerFixture,
@@ -334,6 +337,46 @@ def test_subprocess_stream_propagates_ctrl_c() -> None:
                 "-c",
                 "import os, signal; os.kill(os.getppid(), signal.SIGINT); os.kill(os.getpid(), signal.SIGINT)",
             ],
+            stream_output=True,
+        )
+
+
+@pytest.mark.parametrize("stream_output", [pytest.param(False, id="captured"), pytest.param(True, id="streamed")])
+def test_subprocess_replaces_undecodable_output(stream_output: bool) -> None:
+    result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
+        [sys.executable, "-c", _UNDECODABLE_OUTPUT], capture_stderr=False, stream_output=stream_output
+    )
+
+    assert result.stdout == "\ufffd bad\nafter\n"
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("terminal_stdout", "fail_on_hang")
+def test_subprocess_stream_replaces_undecodable_terminal_output() -> None:
+    result: Final[subprocess.CompletedProcess[str]] = run_subprocess(
+        [sys.executable, "-c", _UNDECODABLE_OUTPUT], capture_stderr=False, stream_output=True
+    )
+
+    assert result.stdout == "\ufffd bad\nafter\n"
+
+
+@skip_if_windows
+@pytest.mark.usefixtures("fail_on_hang")
+def test_subprocess_stream_stops_draining_a_failed_reader(mocker: MockerFixture) -> None:
+    destination: Final[StringIO] = StringIO()
+    mocker.patch.object(destination, "isatty", return_value=True)
+    mocker.patch("pipx.util.sys.stdout", destination)
+    destination.close()
+
+    with pytest.raises(ValueError, match="closed file"):
+        run_subprocess(
+            # the pause leaves the second line unread after the first write kills the reader
+            [
+                sys.executable,
+                "-c",
+                "import os, time; os.write(1, b'first\\n'); time.sleep(0.2); os.write(1, b'second\\n')",
+            ],
+            capture_stderr=False,
             stream_output=True,
         )
 

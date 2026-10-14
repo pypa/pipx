@@ -53,6 +53,7 @@ from pipx.wrap import pipx_wrap
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Sequence
+    from concurrent.futures import Future
 
 if not WINDOWS:
     import fcntl
@@ -291,6 +292,7 @@ def run_subprocess(  # ruff:ignore[too-many-arguments]  # thin wrapper over subp
             stdout=subprocess.PIPE if capture_stdout else None,
             stderr=subprocess.PIPE if capture_stderr or hold_stderr else None,
             encoding="utf-8",
+            errors="replace",
             text=True,
             check=False,
             cwd=run_dir,
@@ -348,28 +350,25 @@ def _run_streaming_subprocess(
             for channel in channels.values():
                 if not channel.terminal:
                     channel.close_child()
-            futures: Final = [
+            sinks: Final = {"stdout": (stdout_destination, stdout_chunks), "stderr": (sys.stderr, stderr_chunks)}
+            futures: Final[dict[str, Future[None]]] = {
                 # each reader needs the caller's context to buffer the output of a fan-out task waiting its turn
-                executor.submit(copy_context().run, _tee_subprocess_output, channels[name].reader, destination, chunks)
-                for name, destination, chunks in (
-                    ("stdout", stdout_destination, stdout_chunks),
-                    ("stderr", sys.stderr, stderr_chunks),
-                )
-                if name in channels
-            ]
+                name: executor.submit(copy_context().run, _tee_subprocess_output, channel.reader, *sinks[name])
+                for name, channel in channels.items()
+            }
             try:
                 returncode: Final[int] = process.wait()
-                for channel in channels.values():
+                for name, channel in channels.items():
                     if channel.terminal:
                         # macOS discards what a pseudo-terminal still queues once its last child end closes, so hold
                         # ours open until the reader has taken everything the exited child wrote
-                        _wait_until_drained(channel.reader)
+                        _wait_until_drained(channel.reader, futures[name])
             finally:
                 # a pseudo-terminal reader returns only once every child end is closed, so ours must close before the
                 # executor joins the readers, also when Ctrl-C interrupts the wait
                 for channel in channels.values():
                     channel.close_child()
-            for future in futures:
+            for future in futures.values():
                 future.result()
     finally:
         for channel in channels.values():
@@ -417,9 +416,9 @@ def _match_terminal_size(child: int) -> None:
         fcntl.ioctl(child, termios.TIOCSWINSZ, struct.pack("HHHH", size.lines, size.columns, 0, 0))
 
 
-def _wait_until_drained(reader: int) -> None:
+def _wait_until_drained(reader: int, reading: Future[None]) -> None:
     poll_seconds: Final[float] = 0.01
-    while select.select([reader], [], [], poll_seconds)[0]:
+    while not reading.done() and select.select([reader], [], [], poll_seconds)[0]:
         time.sleep(poll_seconds)
 
 
@@ -437,7 +436,7 @@ def _tee_subprocess_output(source: int, destination: TextIO, chunks: list[str]) 
     write_error: OSError | UnicodeError | None = None
     pending_carriage_return: bool = False
     for decoded in chain(
-        codecs.iterdecode(iter(lambda: _read_stream(source), b""), "utf-8"),
+        codecs.iterdecode(iter(lambda: _read_stream(source), b""), "utf-8", errors="replace"),
         (None,),
     ):
         if decoded is None:
