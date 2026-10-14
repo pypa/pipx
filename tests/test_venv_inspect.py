@@ -32,7 +32,7 @@ def test_inspect_venv_indexes_distribution_names_once(tmp_path: Path, mocker: Mo
         venv_inspect,
         "fetch_info_in_venv",
         autospec=True,
-        return_value=([str(site_packages)], {}, "Python 3.10.0"),
+        return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
     )
     canonicalize = mocker.spy(venv_inspect, "canonicalize_name")
 
@@ -56,7 +56,7 @@ def test_inspect_venv_refreshes_distribution_paths(tmp_path: Path, mocker: Mocke
         venv_inspect,
         "fetch_info_in_venv",
         autospec=True,
-        return_value=([str(site_packages)], {}, "Python 3.10.0"),
+        return_value=([str(site_packages)], {"python_full_version": "3.10.0"}, "3.10.0"),
     )
     args: tuple[str, set[str], Path, Path, Path] = (
         "root-package",

@@ -172,3 +172,18 @@ def test_install_moves_to_a_python_the_package_supports(
 
     recorded: Final[str] = PipxMetadata(paths.ctx.venvs / "needs-older").python_version or ""
     assert recorded != f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+
+
+@pytest.mark.parametrize("backend", [pytest.param("pip", id="pip"), pytest.param("uv", id="uv")])
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_install_refuses_a_named_python_the_package_rules_out(
+    project_excluding_this_python: Path,
+    backend: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    if backend == "uv" and shutil.which("uv") is None:
+        pytest.skip("uv binary not on PATH")
+
+    run_pipx_cli(["install", "--backend", backend, "--python", sys.executable, str(project_excluding_this_python)])
+
+    assert "The Python you named does not satisfy" in capsys.readouterr().err

@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from subprocess import CompletedProcess
 
     from filelock import BaseFileLock
-    from packaging.specifiers import SpecifierSet
 
 from packaging.utils import canonicalize_name
 from packaging.version import Version
@@ -38,7 +37,7 @@ from pipx.package_specifier import (
     valid_pypi_name,
 )
 from pipx.pipx_metadata_file import PackageInfo, PipxMetadata
-from pipx.requires_python import IncompatiblePythonError, rejected_constraint, unsatisfied_constraint
+from pipx.requires_python import IncompatiblePythonError, rejected_constraint
 from pipx.script import installable_script, local_script
 from pipx.shared_libs import (
     DISABLE_SHARED_LIBS_AUTO_UPGRADE,
@@ -53,18 +52,11 @@ from pipx.util import (
     get_venv_paths,
     pipx_wrap,
     rmdir,
-    run_subprocess,
     subprocess_post_check,
 )
 from pipx.venv_inspect import VenvMetadata, inspect_venv
 
 _LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
-_REQUIRES_PYTHON_SCRIPT: Final[str] = (
-    "import sys;"
-    "from importlib.metadata import distribution;"
-    "print(distribution(sys.argv[1]).metadata.get('Requires-Python') or '');"
-    "print('.'.join(str(part) for part in sys.version_info[:3]))"
-)
 _BACKEND_METADATA_VERSION: Final[Version] = Version("0.6")
 
 # Keyed on full path so global vs user-local venvs with the same name don't
@@ -293,22 +285,6 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             return self.root.name
         return self.pipx_metadata.main_package.package
 
-    def unsupported_python(self, package_name: str) -> SpecifierSet | None:
-        """The constraint an installed package declares when this venv's interpreter fails it.
-
-        uv installs a package onto an interpreter its Requires-Python rules out, so pipx reads the metadata rather
-        than trust the backend to refuse.
-        """
-        process = run_subprocess(
-            [self.python_path, "-c", _REQUIRES_PYTHON_SCRIPT, package_name],
-            capture_stderr=False,
-            log_stdout=False,
-        )
-        if process.returncode:
-            return None
-        requires_python, _, python_version = process.stdout.strip().partition("\n")
-        return unsatisfied_constraint(requires_python, python_version)
-
     def create_venv(self, venv_args: list[str], pip_args: list[str], *, override_shared: bool = False) -> None:
         """
         override_shared -- Override installing shared libraries to the pipx shared directory (default False)
@@ -331,7 +307,8 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         # Runtime overrides on existing venvs (e.g. `--backend uv pipx upgrade ...`)
         # must not silently flip the recorded backend.
         self.pipx_metadata.backend = self._backend_name
-        self.pipx_metadata.python_version = self.get_python_version()
+        # update_package_metadata records it from the package inspection, sparing a `python --version` run
+        self.pipx_metadata.python_version = None
         source_interpreter = shutil.which(self.python)
         if source_interpreter:
             self.pipx_metadata.source_interpreter = Path(source_interpreter)
@@ -399,7 +376,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         lock_file: Path | None = None,
         pinned: bool | None = None,
         cooldown_days: int | None = None,
-    ) -> None:
+    ) -> VenvMetadata:
         # a script path can also read as a PyPI name (bare.py) or as extras (dir[1]/app.py), so pin it to the file
         if (script := local_script(package_or_url)) is not None:
             package_or_url = str(script)
@@ -434,7 +411,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             else:
                 self._install_locked_package(package_name, install_spec, lock_file, install_pip_args)
 
-        self.update_package_metadata(
+        venv_metadata: Final[VenvMetadata] = self.update_package_metadata(
             package_name=package_name,
             package_or_url=package_or_url,
             pip_args=pip_args,
@@ -461,6 +438,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
                 msg,
                 wrap_message=False,
             )
+        return venv_metadata
 
     def _install_locked_package(
         self,
@@ -606,8 +584,10 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
         expected_apps: Sequence[str] | None = None,
         lock_file: Path | None = None,
         cooldown_days: int | None = None,
-    ) -> None:
+    ) -> VenvMetadata:
         venv_package_metadata = self.get_venv_metadata_for_package(package_name, get_extras(package_or_url))
+        if self.pipx_metadata.python_version is None:
+            self.pipx_metadata.python_version = venv_package_metadata.python_version
         if expected_apps is None:
             expected_apps = (
                 self.package_metadata[package_name].expected_apps if package_name in self.package_metadata else ()
@@ -667,9 +647,7 @@ class Venv:  # ruff:ignore[too-many-public-methods]  # single facade over a pipx
             self.pipx_metadata.injected_packages[package_name] = package_info
 
         self.pipx_metadata.write()
-
-    def get_python_version(self) -> str:
-        return run_subprocess([str(self.python_path), "--version"]).stdout.strip()
+        return venv_package_metadata
 
     def list_installed_packages(self, *, not_required: bool = False) -> set[str]:
         return self.backend.list_installed(

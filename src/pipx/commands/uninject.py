@@ -29,7 +29,12 @@ from pipx.emojis import stars
 from pipx.result import OperationError, OperationResult, OutputLevel, OutputMessage, OutputStream
 from pipx.util import pipx_wrap, safe_unlink
 from pipx.venv import Venv
-from pipx.venv_inspect import fetch_info_in_venv, get_distributions_by_name, get_required_dependency_names
+from pipx.venv_inspect import (
+    fetch_info_in_venv,
+    get_distributions_by_name,
+    get_required_dependency_names,
+    not_required_packages,
+)
 
 if TYPE_CHECKING:
     from importlib import metadata
@@ -155,12 +160,14 @@ def uninject_dep(
     venv.uninstall_package(package=package_name, was_injected=True)
 
     if not leave_deps:
-        new_not_required_packages = venv.list_installed_packages(not_required=True)
+        # inspect again: the uninstall can drop search path entries, such as an editable install's .pth
+        venv_sys_path, venv_env, _ = fetch_info_in_venv(venv.python_path)
+        new_not_required_packages = not_required_packages(venv_sys_path, venv_env)
         logger.info("New not required packages: %s", new_not_required_packages)
 
         deps_of_uninstalled = new_not_required_packages - orig_not_required_packages
         if deps_of_uninstalled:
-            remaining_deps = _get_remaining_dependencies(venv, package_name)
+            remaining_deps = _get_remaining_dependencies(venv, package_name, venv_sys_path, venv_env)
             deps_of_uninstalled -= remaining_deps
             logger.info("Dependencies of uninstalled package: %s", deps_of_uninstalled)
 
@@ -264,8 +271,9 @@ def get_include_resource_paths(package_name: str, venv: Venv, local_bin_dir: Pat
     return need_to_remove
 
 
-def _get_remaining_dependencies(venv: Venv, excluded_package: str) -> set[str]:
-    venv_sys_path, venv_env, _ = fetch_info_in_venv(venv.python_path)
+def _get_remaining_dependencies(
+    venv: Venv, excluded_package: str, venv_sys_path: list[str], venv_env: dict[str, str]
+) -> set[str]:
     distributions = get_distributions_by_name(venv_sys_path)
 
     remaining_deps: set[str] = set()

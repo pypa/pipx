@@ -6,12 +6,13 @@ import sys
 from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
+from venv import EnvBuilder
 
 import pytest
 
 from helpers import skip_if_windows
 from pipx import paths
-from pipx.util import exec_app, rmdir, run_subprocess, safe_unlink
+from pipx.util import exec_app, get_site_packages, rmdir, run_subprocess, safe_unlink
 
 if TYPE_CHECKING:
     import subprocess
@@ -280,3 +281,41 @@ def test_subprocess_stream_keeps_output_of_a_child_that_exits_at_once(
     }
 
     assert outputs == {"payload"}
+
+
+@pytest.mark.parametrize(
+    ("site_dirs", "expected"),
+    [
+        pytest.param(["lib/python3.99/site-packages"], ["lib/python3.99/site-packages"], id="posix"),
+        pytest.param(["lib/python3.99t/site-packages"], ["lib/python3.99t/site-packages"], id="free-threaded"),
+        pytest.param(["Lib/site-packages"], ["Lib/site-packages"], id="windows"),
+        pytest.param(
+            ["lib/python3.99/site-packages", "lib64/python3.99/site-packages"],
+            ["lib/python3.99/site-packages", "lib64/python3.99/site-packages"],
+            id="separate-lib64",
+        ),
+    ],
+)
+def test_get_site_packages_reads_the_venv_layout(tmp_path: Path, site_dirs: list[str], expected: list[str]) -> None:
+    for site_dir in site_dirs:
+        (tmp_path / site_dir).mkdir(parents=True)
+
+    # no interpreter exists at this path, so only the layout can answer
+    assert get_site_packages(tmp_path / "bin" / "python") == [tmp_path / site_dir for site_dir in expected]
+
+
+@skip_if_windows
+def test_get_site_packages_skips_a_lib64_linked_to_lib(tmp_path: Path) -> None:
+    (purelib := tmp_path / "lib" / "python3.99" / "site-packages").mkdir(parents=True)
+    (tmp_path / "lib64").symlink_to("lib")
+
+    assert get_site_packages(tmp_path / "bin" / "python") == [purelib]
+
+
+@skip_if_windows
+def test_get_site_packages_asks_the_interpreter_when_the_layout_is_ambiguous(tmp_path: Path) -> None:
+    EnvBuilder(symlinks=True).create(tmp_path)
+    expected: Final[list[Path]] = list(tmp_path.glob("lib/python3*/site-packages"))
+    (tmp_path / "lib" / "python3.0" / "site-packages").mkdir(parents=True)
+
+    assert get_site_packages(tmp_path / "bin" / "python") == expected
