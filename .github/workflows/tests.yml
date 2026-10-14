@@ -67,7 +67,9 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ github.workspace }}/.pipx_tests/package_cache/${{ matrix.py }}
-          key: pipx-tests-package-cache-${{ runner.os }}-${{ matrix.py }}
+          # actions/cache never re-saves an existing key, so key on the package lists to pick up new packages
+          key: pipx-tests-package-cache-${{ runner.os }}-${{ matrix.py }}-${{ hashFiles('testdata/tests_packages/*.txt') }}
+          restore-keys: pipx-tests-package-cache-${{ runner.os }}-${{ matrix.py }}-
       - name: 🏗️ Setup test suite
         run: tox run -vv --notest --skip-missing-interpreters false -e ${{ matrix.py }}
       - name: 📦 Seed package cache
