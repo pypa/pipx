@@ -19,6 +19,7 @@ from pipx.util import (
 from pipx.venv_inspect import list_not_required_packages
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
     from subprocess import CompletedProcess
 
@@ -113,10 +114,10 @@ class PipBackend(Backend):
         *,
         venv_root: Path,
         venv_python: Path,
-        package: str,
+        packages: Sequence[str],
         verbose: bool,
     ) -> CompletedProcess[str]:
-        cmd = [str(venv_python), "-m", "pip", "uninstall", "-y", package]
+        cmd = [str(venv_python), "-m", "pip", "uninstall", "-y", *packages]
         if not verbose:
             cmd.append("-q")
         process = run_subprocess(cmd, run_dir=str(venv_root))

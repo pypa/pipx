@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Final, TypedDict, cast
 from pipx.util import PipxError
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
     from subprocess import CompletedProcess
 
@@ -76,7 +77,7 @@ class Backend(ABC):
         *,
         venv_root: Path,
         venv_python: Path,
-        package: str,
+        packages: Sequence[str],
         verbose: bool,
     ) -> CompletedProcess[str]: ...
 

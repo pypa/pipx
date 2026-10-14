@@ -382,3 +382,36 @@ def test_uninject_editable_removes_its_dependencies(tmp_path: Path) -> None:
     assert not run_pipx_cli(["uninject", "pycowsay", "editable-dep"])
 
     assert not list((paths.ctx.venvs / "pycowsay").rglob("six-*.dist-info"))
+
+
+@pytest.mark.parametrize(
+    "backend",
+    [
+        pytest.param("pip", id="pip"),
+        pytest.param(
+            "uv", id="uv", marks=pytest.mark.skipif(shutil.which("uv") is None, reason="uv binary not on PATH")
+        ),
+    ],
+)
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_uninject_removes_all_orphaned_dependencies(backend: str) -> None:
+    assert not run_pipx_cli(["install", "pycowsay", "--backend", backend])
+    venv_dir: Final[Path] = paths.ctx.venvs / "pycowsay"
+    installed_before: Final[set[str]] = {path.name for path in venv_dir.rglob("*.dist-info")}
+    assert not run_pipx_cli(["inject", "pycowsay", "requests==2.31.0"])
+
+    assert not run_pipx_cli(["uninject", "pycowsay", "requests"])
+
+    assert {path.name for path in venv_dir.rglob("*.dist-info")} == installed_before
+
+
+@pytest.mark.usefixtures("installed_pycowsay")
+def test_uninject_reports_failed_dependency_uninstall(capsys: pytest.CaptureFixture[str]) -> None:
+    assert not run_pipx_cli(["inject", "pycowsay", "requests==2.31.0"])
+    capsys.readouterr()
+    # pip refuses to uninstall a distribution without a RECORD file
+    next((paths.ctx.venvs / "pycowsay").rglob("urllib3-*.dist-info/RECORD")).unlink()
+
+    assert run_pipx_cli(["uninject", "pycowsay", "requests"])
+
+    assert "Error uninstalling certifi, charset-normalizer, idna, urllib3." in capsys.readouterr().err
