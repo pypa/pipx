@@ -482,25 +482,24 @@ def test_appargs_doubledash(
     assert parsed_pipx_args.app_with_args == expected_app_with_args
 
 
-def test_run_ensure_null_pythonpath() -> None:
-    env = pipx_subprocess_env() | {"PYTHONPATH": "test"}
+@pytest.mark.usefixtures("pipx_temp_env")
+def test_run_ensure_null_pythonpath(make_wheel: Callable[[dict[str, str]], Path]) -> None:
+    wheel: Final[Path] = make_wheel({
+        "foo_bar_x.py": "import os\ndef main() -> None:\n    print(os.environ.get('PYTHONPATH'))\n",
+        "foo_bar_x-1.dist-info/METADATA": "Metadata-Version: 2.1\nName: foo-bar-x\nVersion: 1\n",
+        "foo_bar_x-1.dist-info/WHEEL": "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+        "foo_bar_x-1.dist-info/entry_points.txt": "[console_scripts]\nfoo-bar-x = foo_bar_x:main\n",
+        "foo_bar_x-1.dist-info/RECORD": "",
+    })
     assert (
-        "None"
-        in subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "pipx",
-                "run",
-                "ipython",
-                "-c",
-                "import os; print(os.environ.get('PYTHONPATH'))",
-            ],
-            env=env,
+        subprocess.run(
+            [sys.executable, "-m", "pipx", "run", "--spec", str(wheel), "foo-bar-x"],
+            env=pipx_subprocess_env() | {"PYTHONPATH": "test"},
             capture_output=True,
             text=True,
             check=True,
         ).stdout
+        == "None\n"
     )
 
 

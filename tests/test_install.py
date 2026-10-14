@@ -1526,7 +1526,7 @@ def test_preinstall_cooldown(root: Path, caplog: pytest.LogCaptureFixture) -> No
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_preinstall_multiple(caplog: pytest.LogCaptureFixture) -> None:
-    assert not run_pipx_cli(["install", "--preinstall", "chardet", "--preinstall", "colorama", "nox"])
+    assert not run_pipx_cli(["install", "--preinstall", "chardet", "--preinstall", "colorama", PKG["pycowsay"]["spec"]])
     assert "chardet" in caplog.text
     assert "colorama" in caplog.text
 
@@ -1547,18 +1547,18 @@ def test_do_not_wait_for_input(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.usefixtures("pipx_temp_env")
 def test_passed_python_and_force_flag_warning(capsys: pytest.CaptureFixture[str]) -> None:
-    assert not run_pipx_cli(["install", "black"])
-    assert not run_pipx_cli(["install", "--python", sys.executable, "--force", "black"])
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"]])
+    assert not run_pipx_cli(["install", "--python", sys.executable, "--force", PKG["pycowsay"]["spec"]])
     captured = capsys.readouterr()
     assert "--python is ignored when --force is passed." in captured.out
 
-    assert not run_pipx_cli(["install", "black", "--force"])
+    assert not run_pipx_cli(["install", PKG["pycowsay"]["spec"], "--force"])
     captured = capsys.readouterr()
     assert "--python is ignored when --force is passed." not in captured.out, (
         "Should only print warning if both flags present"
     )
 
-    assert not run_pipx_cli(["install", "pycowsay", "--force"])
+    assert not run_pipx_cli(["install", PKG["isort"]["spec"], "--force"])
     captured = capsys.readouterr()
     assert "--python is ignored when --force is passed." not in captured.out, (
         "Should not print warning if package does not exist yet"
